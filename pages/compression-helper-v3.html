@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compression Helper (v3)</title>
+
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  v3: same UI as v2, but the two compression components are registered as
+  Alpine.data() factories in alpineComponents/ instead of being defined
+  inline as custom elements via kits/component.js. The remaining kits
+  (compression, fills, persistence, messaging) are still used.
+-->
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/compression.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/fills.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/persistence.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/messaging.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/alpineComponents/compress-output-assembled.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/alpineComponents/compress-input-assembled.js"></script>
+<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+</head>
+<body class="h-dvh font-mono text-sm">
+
+<div class="h-full flex flex-col p-4" x-data="{ outHeight: 150, resizing: false, startY: 0, startH: 0 }"
+     :class="resizing && 'select-none cursor-ns-resize'"
+     @mouseup.window="resizing = false"
+     @mousemove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
+     x-effect="$refs.output.style.height = outHeight + 'px'">
+
+  <div class="flex items-center gap-2 mb-4">
+    <h1 class="text-xl">Compression Helper <span class="text-xs opacity-60">(v3 — assembled components)</span></h1>
+    <a href="compression-helper-v2.html" class="text-xs opacity-50 hover:opacity-100 ml-auto">← v2</a>
+  </div>
+
+  <div x-data="compressOutput()" x-ref="output" class="block relative overflow-hidden flex-none mb-1"></div>
+
+  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none"
+       @mousedown.prevent="resizing = true; startY = $event.clientY; startH = outHeight"></div>
+
+  <div x-data="compressInput()" class="block relative overflow-hidden flex-1 min-h-0 mt-1"></div>
+</div>
+
+</body>
+</html>
