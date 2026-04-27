@@ -1,5 +1,6 @@
 document.addEventListener('alpine:init', function() {
-  Alpine.data('viewer', function() {
+  Alpine.data('viewer', function(opts) {
+    opts = opts || {};
     return {
       template: `
         <div class="flex items-center justify-between mb-2" x-show="file">
@@ -10,6 +11,9 @@ document.addEventListener('alpine:init', function() {
                 <i class="ph text-lg" :class="u.i"></i>
               </a>
             </template>
+            <button x-show="showCopy" @click="copy()" class="btn btn-sm btn-square btn-ghost hover:text-primary">
+              <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i>
+            </button>
             <details class="dropdown dropdown-end">
               <summary class="btn btn-sm btn-square btn-ghost hover:text-primary">
                 <i class="ph text-lg" :class="modeIcon"></i>
@@ -38,6 +42,8 @@ document.addEventListener('alpine:init', function() {
       viewLoading: false,
       commits: [],
       commitsFor: '',
+      showCopy: opts.copy !== false,
+      copied: false,
 
       init() {
         this.$root.__viewer = this;
@@ -101,6 +107,13 @@ document.addEventListener('alpine:init', function() {
       openUrls() {
         const el = this.$root.querySelector('dialog.viewer-urls');
         if (el) el.showModal();
+      },
+
+      async copy() {
+        if (!this.content) return;
+        await navigator.clipboard.writeText(this.content);
+        this.copied = true;
+        setTimeout(() => { this.copied = false; }, 1500);
       }
     };
   });
