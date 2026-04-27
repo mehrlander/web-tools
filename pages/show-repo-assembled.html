@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GH Browse</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script type="module">
+  window.__showBootError = (msg) => {
+  const safe = String(msg).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
+  document.body.innerHTML = `
+    <form id="be" class="max-w-md mx-auto mt-10 p-4">
+    <h2 class="font-semibold text-lg mb-2">Couldn't load GH Browse</h2>
+    <p class="text-sm opacity-70 mb-4 break-words">${safe}</p>
+    <div class="flex flex-wrap gap-2 mb-2">
+      <input name="t" type="password" placeholder="GitHub token (optional)"
+      class="input input-bordered input-sm flex-1 min-w-56 font-mono">
+      <button class="btn btn-sm">Save &amp; retry</button>
+    </div>
+    <button name="clear" class="btn btn-link btn-xs opacity-60 px-0">Retry without token</button>
+    </form>
+  `;
+  document.getElementById('be').onsubmit = e => {
+    e.preventDefault();
+    const t = e.submitter?.name === 'clear' ? '' : document.querySelector('[name=t]').value.trim();
+    try { t ? localStorage.setItem('ghToken', t) : localStorage.removeItem('ghToken'); } catch {}
+    location.reload();
+  };
+  };
+
+  try {
+  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-fetch.js');
+  window.GH = mod.default;
+  const gh = new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
+  window.ViewRegistry = await gh.load('view-registry.js');
+  await gh.load('alpineComponents/repo.js');
+  await gh.load('alpineComponents/navigator.js');
+  await gh.load('alpineComponents/viewer.js');
+  await gh.load('alpine-bundle.js');
+  } catch (e) {
+  console.error('boot:', e);
+  window.__showBootError(e?.message || String(e));
+  }
+</script>
+</head>
+<body class="min-h-screen bg-base-100" x-data="app()" x-init="init()">
+
+<div class="toast toast-top toast-end z-40" x-data x-show="$store.toasts && $store.toasts.length">
+  <template x-for="t in ($store.toasts || [])" :key="t.id">
+  <div class="alert text-sm gap-2" :class="t.cls">
+    <i class="ph" :class="'ph-'+t.icon"></i>
+    <span x-text="t.msg"></span>
+  </div>
+  </template>
+</div>
+
+<div class="max-w-7xl mx-auto px-2 py-3">
+
+  <div id="repo" x-data="repo()">
+
+  <div class="mb-4 flex items-center justify-between border-b border-base-200 pb-3">
+    <div class="flex items-baseline gap-2 text-xl font-bold font-mono">
+    <span class="text-base-content/70" x-text="owner||'Select'"></span>
+    <span class="text-base-content/30">/</span>
+    <details class="dropdown dropdown-bottom">
+      <summary class="hover:text-primary hover:underline decoration-2 underline-offset-4 cursor-pointer flex items-center gap-1">
+      <span x-text="name||'Repository...'"></span>
+      <i class="ph ph-caret-down text-xs opacity-50"></i>
+      </summary>
+      <ul class="dropdown-content z-10 menu p-2 shadow-lg bg-base-200 rounded-box w-64 max-h-96 overflow-y-auto mt-1 border border-base-300">
+      <template x-for="r in repos"><li><a @click="pick(r)" class="font-mono text-xs" x-text="(r.private?'🔒 ':'')+r.name"></a></li></template>
+      </ul>
+    </details>
+    </div>
+    <button @click="repoModal.showModal()" class="tooltip tooltip-left flex items-center gap-1 btn btn-ghost btn-sm" :data-tip="auth?'Authenticated: '+user:(tokenExpired?'Token expired':'Public only')">
+    <i class="ph text-xl" :class="auth?'ph-shield-check text-success':(tokenExpired?'ph-warning text-warning':'ph-globe text-base-content/50')"></i>
+    <span x-show="auth" class="text-xs text-base-content/50 hidden sm:inline" x-text="user"></span>
+    </button>
+  </div>
+
+  <dialog id="repoModal" class="modal" onclick="if(event.target===this)this.close()">
+    <div class="modal-box shadow-none border border-base-300 bg-base-100 p-4 max-w-lg">
+    <div class="mb-1 px-1 font-mono text-sm font-bold" x-text="repo"></div>
+    <div x-show="repoObj?.description" class="px-1 mb-3 text-xs text-base-content/60 italic" x-text="repoObj?.description"></div>
+    <div x-show="repoObj" class="flex flex-wrap gap-1.5 mb-3 px-1">
+      <span class="badge badge-sm badge-ghost font-mono" x-text="repoObj?.private ? 'private' : 'public'"></span>
+      <span class="badge badge-sm badge-ghost font-mono" x-text="(repoObj?.stargazers_count || 0) + ' stars'"></span>
+      <span class="badge badge-sm badge-ghost font-mono" x-text="(repoObj?.forks_count || 0) + ' forks'"></span>
+      <span class="badge badge-sm badge-ghost font-mono" x-text="repoObj?.default_branch"></span>
+      <span class="badge badge-sm badge-ghost font-mono" x-text="repoObj ? 'pushed ' + gh.ago(repoObj.pushed_at) : ''"></span>
+    </div>
+    <div class="mb-3 px-1">
+      <div x-show="auth" class="flex items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-2">
+        <i class="ph ph-shield-check text-success"></i>
+        <span>Authenticated as <span class="font-mono" x-text="user"></span></span>
+      </div>
+      <button @click="clearToken()" class="text-[10px] text-base-content/40 hover:text-error underline">clear</button>
+      </div>
+      <div x-show="!auth" class="flex flex-col gap-1.5">
+      <div class="flex items-center gap-2 text-xs">
+        <i class="ph" :class="tokenExpired ? 'ph-warning text-warning' : 'ph-globe text-base-content/40'"></i>
+        <span x-text="tokenExpired ? 'Token expired, enter a new one' : 'Public access only, paste a token for auth'"></span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <input type="password" x-model="tokenInput" placeholder="ghp_..." class="input input-xs input-bordered flex-1 font-mono text-xs" @keyup.enter="saveToken()">
+        <button @click="saveToken()" :disabled="!tokenInput" class="btn btn-xs btn-primary">Save</button>
+      </div>
+      </div>
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <template x-for="url in repoUrls">
+      <div class="flex items-center bg-base-200 rounded-lg overflow-hidden">
+        <a :href="url.u" target="_blank" class="flex-1 flex items-center gap-2.5 px-3 py-2 min-w-0 hover:bg-base-300">
+        <i class="ph shrink-0 text-sm" :class="url.i"></i>
+        <div class="flex flex-col min-w-0">
+          <span class="text-xs font-semibold leading-tight" x-text="url.l"></span>
+          <span class="text-[10px] font-mono opacity-50 truncate leading-tight mt-0.5" x-text="url.u.replace('https://','')"></span>
+        </div>
+        </a>
+        <button class="px-3 py-2 border-l border-base-300 hover:bg-base-300" @click="$clip(url.u)">
+        <i class="ph ph-copy text-sm opacity-40"></i>
+        </button>
+      </div>
+      </template>
+    </div>
+    <div class="modal-action mt-3"><button onclick="repoModal.close()" class="btn btn-ghost btn-sm text-xs">Done</button></div>
+    </div>
+  </dialog>
+
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+
+  <div id="navigator" x-data="navigator()" class="lg:col-span-1 flex flex-col gap-4">
+
+    <div>
+    <button @click="open=!open" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
+      <i class="ph" :class="open?'ph-caret-down':'ph-caret-right'"></i>Files
+    </button>
+    <div x-show="open" x-collapse>
+      <div class="text-xs font-mono text-base-content/50 px-1 pb-1 truncate flex items-center gap-1">
+      <i class="ph ph-folder-open"></i><span x-text="'/'+path"></span>
+      </div>
+      <div class="overflow-y-auto text-sm bg-base-100 rounded-lg p-1 h-[33vh] border border-base-300">
+      <div x-show="loading" class="flex justify-center py-8">
+        <span class="loading loading-dots loading-sm opacity-30"></span>
+      </div>
+      <div x-show="!loading">
+        <div x-show="path" @click="load(parentPath)" class="p-1 hover:bg-base-200 rounded cursor-pointer opacity-50 font-mono">..</div>
+        <template x-for="f in tree" :key="f.path">
+        <div @click="f.type==='dir' ? load(f.path) : sel(f.path)"
+          class="group flex items-center justify-between p-1 hover:bg-base-200 rounded cursor-pointer"
+          :class="{'bg-primary/10 text-primary font-bold': activeFile === f.path}">
+          <div class="flex items-center gap-1 min-w-0">
+          <i class="ph" :class="f.type==='dir' ? 'ph-folder text-warning' : 'ph-file text-info'"></i>
+          <span class="truncate" x-text="f.name"></span>
+          </div>
+          <button x-show="f.type!=='dir'" @click.stop="pullAdd(f.path)"
+          class="btn btn-ghost btn-xs w-6 h-6 p-0 opacity-30 hover:opacity-100 hover:text-success">
+          <i class="ph ph-plus-circle text-lg"></i>
+          </button>
+        </div>
+        </template>
+      </div>
+      </div>
+    </div>
+    </div>
+
+    <div x-show="pulled.length" class="flex flex-col gap-2 p-2 bg-base-200 rounded-lg">
+    <div class="flex flex-wrap gap-1.5">
+      <template x-for="p in pulled" :key="p">
+      <div class="badge badge-outline gap-1 pr-0.5">
+        <span class="truncate max-w-[140px] font-mono text-[10px]" x-text="p"></span>
+        <button @click="pullRm(p)" class="btn btn-ghost btn-xs w-4 h-4 p-0 rounded-full hover:text-error"><i class="ph ph-x"></i></button>
+      </div>
+      </template>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold opacity-70" x-text="'Combined (' + pullStat + ')'"></span>
+      <button @click="$clip(pullText)" class="btn btn-xs btn-square btn-ghost"><i class="ph ph-copy text-lg"></i></button>
+    </div>
+    <div class="overflow-auto font-mono text-xs border border-base-300 rounded p-2 bg-base-100 h-[25vh] opacity-80" x-text="pullText"></div>
+    </div>
+
+  </div>
+
+  <div class="lg:col-span-3">
+    <button @click="ui.content=!ui.content" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
+    <i class="ph" :class="ui.content?'ph-caret-down':'ph-caret-right'"></i>Content
+    </button>
+    <div x-show="ui.content" x-collapse>
+
+    <div id="viewer" x-data="viewer()" class="flex flex-col gap-2">
+
+      <div class="flex items-center justify-between">
+      <div class="flex-1 min-w-0 pr-2">
+        <div class="text-sm font-medium font-mono truncate" x-show="file" x-text="file"></div>
+        <div x-show="!file" class="h-[calc(100vh-190px)] border border-dashed border-base-300 rounded-lg flex items-center justify-center text-base-content/15">
+        <i class="ph ph-code text-6xl"></i>
+        </div>
+        <div class="text-xs text-base-content/50" x-text="stats"></div>
+      </div>
+      <div class="flex items-center gap-0.5" x-show="file">
+        <details class="dropdown dropdown-end">
+        <summary class="btn btn-sm btn-square btn-ghost hover:text-primary">
+          <i class="ph text-lg" :class="modeIcon"></i>
+        </summary>
+        <ul class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-32 mt-1 border border-base-300">
+          <template x-for="m in availableModes">
+          <li><a @click="switchMode(m.id)" :class="{active: mode === m.id}"><i class="ph" :class="m.icon"></i> <span x-text="m.label"></span></a></li>
+          </template>
+        </ul>
+        </details>
+        <button @click="$clip(content)" class="btn btn-sm btn-square btn-ghost hover:text-primary"><i class="ph ph-copy text-lg"></i></button>
+        <button @click="openUrls()" class="btn btn-sm btn-square btn-ghost hover:text-primary"><i class="ph ph-link text-lg"></i></button>
+      </div>
+      </div>
+
+      <div x-show="file" class="h-[calc(100vh-230px)] border border-base-300 rounded-lg bg-base-100 overflow-hidden relative">
+      <div class="h-full" x-html="viewHtml"></div>
+      <div x-show="viewLoading" class="absolute inset-0 bg-base-100/30 flex items-center justify-center z-10">
+        <span class="loading loading-spinner loading-md"></span>
+      </div>
+      </div>
+
+      <dialog class="modal viewer-urls" onclick="if(event.target===this)this.close()">
+      <div class="modal-box shadow-none border border-base-300 bg-base-100 p-4 max-w-lg">
+        <div class="mb-3 px-1 font-mono text-sm font-bold truncate" x-text="file.split('/').pop()"></div>
+        <div class="flex flex-col gap-1.5">
+        <template x-for="url in fileUrls">
+          <div class="flex items-center bg-base-200 rounded-lg overflow-hidden">
+          <a :href="url.u" target="_blank" class="flex-1 flex items-center gap-2.5 px-3 py-2 min-w-0 hover:bg-base-300">
+            <i class="ph shrink-0 text-sm" :class="url.i"></i>
+            <div class="flex flex-col min-w-0">
+            <span class="text-xs font-semibold leading-tight" x-text="url.l"></span>
+            <span class="text-[10px] font-mono opacity-50 truncate leading-tight mt-0.5" x-text="url.u.replace('https://','')"></span>
+            </div>
+          </a>
+          <button class="px-3 py-2 border-l border-base-300 hover:bg-base-300" @click="$clip(url.u)">
+            <i class="ph ph-copy text-sm opacity-40"></i>
+          </button>
+          </div>
+        </template>
+        </div>
+        <div class="modal-action mt-3"><button class="btn btn-ghost btn-sm text-xs" onclick="this.closest('dialog').close()">Done</button></div>
+      </div>
+      </dialog>
+
+    </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+window.TOKEN = '🎟️GitHubToken';
+if (window.TOKEN === '🎟️GitHubToken') {
+  try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
+}
+const HOME_REPO = 'mehrlander/home';
+const STATE_FILE = 'gh-browse-state.json';
+
+const waitFor = async (pred, ms=8000, step=50) => {
+  for (let t=0; t<ms; t+=step) {
+  if (pred()) return true;
+  await new Promise(r => setTimeout(r, step));
+  }
+  return false;
+};
+
+const notify = (msg, cls='alert-error', icon='warning') => {
+  try {
+  const t = Alpine.store('toast');
+  if (t) return t(icon, msg, cls, 6000);
+  } catch {}
+  console.error(msg);
+};
+
+function app(){ return {
+  ui: { content: true },
+  stateSha: null,
+
+  async init(){
+  const ready = await waitFor(() => window.GH && window.ViewRegistry);
+  if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
+  try {
+    const gh = new window.GH({ token: window.TOKEN });
+    Alpine.store('browser').gh = gh;
+    const repoEl = document.getElementById('repo');
+    if (!await waitFor(() => repoEl.__repo)) return notify('Repo component never mounted.');
+
+    const saved = await this.loadState();
+
+    try {
+    await repoEl.__repo.setup(gh);
+    } catch (e) {
+    console.error('setup:', e);
+    const status = e?.status;
+    if (status === 401) {
+      notify('GitHub rejected the token (401). Paste a new one.');
+      try { repoEl.__repo.tokenExpired = true; } catch {}
+    } else if (status === 403) {
+      notify('GitHub rate-limited this IP (403). A token raises the limit.');
+    } else {
+      notify('Could not load repos: ' + (e?.message || e));
+    }
+    try { document.getElementById('repoModal').showModal(); } catch {}
+    return;
+    }
+
+    if (saved?.repo) {
+    const target = repoEl.__repo.repos.find(r => r.full_name === saved.repo);
+    if (target) {
+      await repoEl.__repo.pick(target);
+      const navEl = document.getElementById('navigator');
+      if (await waitFor(() => navEl.__navigator) && saved.file) {
+      const folder = saved.file.split('/').slice(0, -1).join('/');
+      if (folder) await navEl.__navigator.load(folder, true);
+      await navEl.__navigator.sel(saved.file, true);
+      }
+    }
+    }
+
+    Alpine.store('browser').save = (state) => this.saveState(state);
+
+  } catch(e) {
+    console.error('init:', e);
+    notify('Startup failed: ' + (e?.message || e));
+  }
+  },
+
+  async loadState() {
+  try {
+    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
+    const res = await homeGh.get(STATE_FILE);
+    this.stateSha = res.sha;
+    return JSON.parse(res.text);
+  } catch { return null; }
+  },
+
+  async saveState(state) {
+  try {
+    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
+    const content = btoa(JSON.stringify(state, null, 2));
+    const put = () => {
+    const body = { message: 'update gh-browse state', content };
+    if (this.stateSha) body.sha = this.stateSha;
+    return homeGh.req('contents/' + STATE_FILE, { method: 'PUT', body: JSON.stringify(body) });
+    };
+    let res;
+    try {
+    res = await put();
+    } catch(e) {
+    if (e.status !== 409) throw e;
+    const cur = await homeGh.get(STATE_FILE);
+    this.stateSha = cur.sha;
+    res = await put();
+    }
+    this.stateSha = res.content.sha;
+  } catch(e) { console.error('saveState:', e); }
+  }
+}}
+</script>
+</body>
+</html>
