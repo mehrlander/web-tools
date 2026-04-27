@@ -26,7 +26,8 @@ document.addEventListener('alpine:init', function() {
                 return { name: this.file, ext: this.ext, content: this.content };
             },
             get availableModes() {
-                return window.ViewRegistry ? window.ViewRegistry.getModes(this.fileContext) : [];
+                const ctx = this.fileContext;
+                return window.ViewRegistry ? window.ViewRegistry.getModes(ctx) : [];
             },
             get modeIcon() {
                 if (!window.ViewRegistry) return 'ph-text-t';

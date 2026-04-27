@@ -40,11 +40,11 @@
     const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-fetch.js');
     window.GH = mod.default;
     const gh = new window.GH({ token: TOKEN, repo: 'mehrlander/web-tools' });
+    window.ViewRegistry = await gh.load('view-registry.js');
     await gh.load('alpineComponents/repo.js');
     await gh.load('alpineComponents/navigator.js');
     await gh.load('alpineComponents/viewer.js');
     await gh.load('alpine-bundle.js');
-    window.ViewRegistry = await gh.load('view-registry.js');
   } catch (e) {
     console.error('boot:', e);
     window.__showBootError(e && e.message ? e.message : String(e));
