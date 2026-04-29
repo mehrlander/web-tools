@@ -1,21 +1,24 @@
 #!/usr/bin/env node
-// Headless preview harness.
-//
-// Loads a page from this repo in headless Chromium, intercepts any HTTP
-// fetch that would resolve to repo content (jsdelivr/gh or GitHub contents
-// API) and serves it from the local working tree instead. Captures console
-// output, page errors, failed requests, the rendered DOM, and a screenshot.
+// Headless preview harness. Loads a page from the working tree under JSDOM,
+// intercepts every external <script>/<link> URL that resolves to repo
+// content (jsdelivr /gh/, raw.githubusercontent.com, GitHub contents API)
+// and serves it from local files instead. Then waits for Alpine to mount
+// and reports which x-data containers actually got their template injected
+// by their component's init().
 //
 // Usage:
 //   node tools/preview.mjs <page-path>
 //
-// Outputs land under tools/.preview/ (gitignored).
+// Outputs (HTML dump + log) land under tools/.preview/ (gitignored).
 
-import { chromium } from 'playwright';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import jsdomPkg from 'jsdom';
+import 'fake-indexeddb/auto';
+
+const { JSDOM, VirtualConsole, requestInterceptor } = jsdomPkg;
 
 const REPO = 'mehrlander/web-tools';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,7 +28,6 @@ if (!arg) {
   console.error('Usage: node tools/preview.mjs <page-path>');
   process.exit(2);
 }
-
 const pageAbs = path.resolve(repoRoot, arg);
 if (!existsSync(pageAbs)) {
   console.error(`Page not found: ${pageAbs}`);
@@ -35,131 +37,226 @@ if (!existsSync(pageAbs)) {
 const outDir = path.join(repoRoot, 'tools', '.preview');
 await mkdir(outDir, { recursive: true });
 const baseName = path.basename(arg, path.extname(arg));
-const screenshotPath = path.join(outDir, `${baseName}.png`);
 const htmlPath = path.join(outDir, `${baseName}.html`);
 const logPath = path.join(outDir, `${baseName}.log`);
 
-function contentTypeFor(p) {
-  const ext = path.extname(p).toLowerCase();
-  if (ext === '.js' || ext === '.mjs') return 'application/javascript; charset=utf-8';
-  if (ext === '.css') return 'text/css; charset=utf-8';
-  if (ext === '.html') return 'text/html; charset=utf-8';
-  if (ext === '.json') return 'application/json; charset=utf-8';
-  return 'text/plain; charset=utf-8';
+const intercepts = [];
+
+function jsResponse(buf) {
+  return new Response(buf, {
+    status: 200,
+    headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+  });
+}
+function emptyResponse(contentType = 'application/javascript; charset=utf-8') {
+  return new Response('', { status: 200, headers: { 'Content-Type': contentType } });
+}
+function jsonResponse(obj) {
+  return new Response(JSON.stringify(obj), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  });
 }
 
-// Resolve a URL to a path in the local working tree, or null if it's not
-// one of our repo-content URLs.
-function resolveLocalPath(urlStr) {
-  const url = new URL(urlStr);
+// Some kit files use top-level `await import(...)` of remote ESM modules.
+// JSDOM's script VM has no dynamic-import callback, so those throw. For
+// harness purposes we replace them with self-contained stubs that expose
+// the same window.* surface (in-memory persistence, no-op compression).
+const STUB_KITS = {
+  'kits/persistence.js': `
+    (() => {
+      const mem = new Map();
+      const save = async (path, value) => { mem.set(path, value); };
+      const load = async (path) => mem.get(path) ?? null;
+      const remove = async (path) => { mem.delete(path); };
+      const list = async () => [...mem.keys()];
+      window.persistence = { save, load, remove, list };
+    })();`,
+  'kits/compression.js': `
+    (() => {
+      const noop = async () => '';
+      const text = {
+        detectCompressionType: () => null,
+        findCompressedChunks: () => [],
+        templates: {},
+        assess: async () => ({}),
+        pack: async (s) => s,
+        process: async (input, opts = {}) => ({
+          isCompressed: false,
+          output: input || '',
+          packingSegments: [{ t: 'payload', v: input || '' }],
+          sizes: { raw: (input || '').length, brotli: 0, gzip: 0 },
+          outSize: (input || '').length,
+        }),
+      };
+      const acorn = { parse: () => null, isJS: async () => false };
+      window.compression = {
+        brotli: { compress: noop, decompress: noop, detect: () => null, findChunks: () => [] },
+        gzip:   { compress: noop, decompress: noop, detect: () => null, findChunks: () => [], sizeOf: () => 0 },
+        acorn,
+        text,
+      };
+    })();`,
+};
 
-  // jsdelivr GH: cdn.jsdelivr.net/gh/<owner>/<repo>[@ref]/<path>
-  if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith(`/gh/${REPO}`)) {
-    const tail = url.pathname.slice(`/gh/${REPO}`.length).replace(/^@[^/]+/, '');
-    return { kind: 'raw', filePath: path.join(repoRoot, decodeURIComponent(tail)) };
+function resolveRequest(request) {
+  const u = new URL(request.url);
+
+  // Repo content via jsdelivr GH (with optional @ref)
+  if (u.host === 'cdn.jsdelivr.net' && u.pathname.startsWith(`/gh/${REPO}`)) {
+    const tail = u.pathname.slice(`/gh/${REPO}`.length).replace(/^@[^/]+/, '');
+    const relPath = decodeURIComponent(tail).replace(/^\//, '');
+    if (STUB_KITS[relPath]) {
+      intercepts.push(`STUB ${request.url}`);
+      return jsResponse(Buffer.from(STUB_KITS[relPath]));
+    }
+    const fp = path.join(repoRoot, relPath);
+    if (existsSync(fp)) {
+      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)}`);
+      return jsResponse(readFileSync(fp));
+    }
+    intercepts.push(`MISS ${request.url} -> ${fp}`);
+    return new Response('', { status: 404 });
   }
 
-  // raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>
-  if (url.host === 'raw.githubusercontent.com' && url.pathname.startsWith(`/${REPO}/`)) {
-    const tail = url.pathname.slice(`/${REPO}/`.length).split('/').slice(1).join('/');
-    return { kind: 'raw', filePath: path.join(repoRoot, decodeURIComponent(tail)) };
+  // Raw GitHub
+  if (u.host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
+    const tail = u.pathname.slice(`/${REPO}/`.length).split('/').slice(1).join('/');
+    const fp = path.join(repoRoot, decodeURIComponent(tail));
+    if (existsSync(fp)) {
+      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)}`);
+      return jsResponse(readFileSync(fp));
+    }
   }
 
-  // GitHub contents API: api.github.com/repos/<owner>/<repo>/contents/<path>
-  if (url.host === 'api.github.com' && url.pathname.startsWith(`/repos/${REPO}/contents/`)) {
-    const tail = url.pathname.slice(`/repos/${REPO}/contents/`.length);
-    return { kind: 'contents-api', filePath: path.join(repoRoot, decodeURIComponent(tail)) };
-  }
-
-  return null;
-}
-
-const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-
-// Seed a fake token so any code that fishes for one finds the sentinel
-// rather than throwing or trying to prompt.
-await ctx.addInitScript(() => {
-  try { localStorage.setItem('ghToken', '\u{1F39F}️GitHubToken-test'); } catch {}
-});
-
-const page = await ctx.newPage();
-
-const messages = [];
-const errors = [];
-page.on('console', msg => messages.push(`[${msg.type()}] ${msg.text()}`));
-page.on('pageerror', err => errors.push(`[pageerror] ${err.message}\n${err.stack || ''}`));
-page.on('requestfailed', req => {
-  // Ignore failures we caused on purpose by 404'ing unknown intercepts.
-  const f = req.failure()?.errorText || '';
-  errors.push(`[requestfailed] ${req.url()} :: ${f}`);
-});
-
-const intercepted = [];
-async function handleRoute(route) {
-  const target = resolveLocalPath(route.request().url());
-  if (!target) return route.continue();
-  if (!existsSync(target.filePath)) {
-    intercepted.push(`MISS ${route.request().url()} -> ${target.filePath}`);
-    return route.fulfill({ status: 404, body: 'not found locally' });
-  }
-  const text = await readFile(target.filePath, 'utf8');
-  intercepted.push(`HIT  ${route.request().url()} -> ${path.relative(repoRoot, target.filePath)}`);
-  if (target.kind === 'contents-api') {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json; charset=utf-8',
-      body: JSON.stringify({
+  // GitHub contents API: respond with base64-encoded payload
+  if (u.host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
+    const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
+    const fp = path.join(repoRoot, decodeURIComponent(tail));
+    if (existsSync(fp)) {
+      const text = readFileSync(fp, 'utf8');
+      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)} (api)`);
+      return jsonResponse({
         content: Buffer.from(text).toString('base64'),
         sha: 'local',
         size: text.length,
         html_url: '',
         encoding: 'base64',
-      }),
-    });
+      });
+    }
+    return new Response('not found', { status: 404 });
   }
-  return route.fulfill({
-    status: 200,
-    contentType: contentTypeFor(target.filePath),
-    body: text,
-  });
+
+  // Alpine — serve from node_modules
+  if (u.host === 'unpkg.com' && u.pathname.includes('alpinejs')) {
+    const fp = path.join(repoRoot, 'node_modules/alpinejs/dist/cdn.min.js');
+    intercepts.push(`HIT  ${request.url} -> node_modules/alpinejs/dist/cdn.min.js`);
+    return jsResponse(readFileSync(fp));
+  }
+
+  // idb-keyval ESM (used by kits/persistence.js dynamic import)
+  if (u.host === 'cdn.jsdelivr.net' && u.pathname.includes('idb-keyval')) {
+    const fp = path.join(repoRoot, 'node_modules/idb-keyval/dist/index.js');
+    intercepts.push(`HIT  ${request.url} -> node_modules/idb-keyval/dist/index.js`);
+    return jsResponse(readFileSync(fp));
+  }
+
+  // Tailwind / Phosphor / daisyUI — irrelevant for a DOM-correctness check.
+  intercepts.push(`SKIP ${request.url}`);
+  return emptyResponse();
 }
 
-await page.route('**/cdn.jsdelivr.net/gh/**', handleRoute);
-await page.route('**/raw.githubusercontent.com/**', handleRoute);
-await page.route('**/api.github.com/repos/**', handleRoute);
+const consoleLines = [];
+const errorLines = [];
+const vc = new VirtualConsole();
+['log', 'info', 'warn', 'debug'].forEach(level => {
+  vc.on(level, (...args) => consoleLines.push(`[${level}] ${args.map(formatArg).join(' ')}`));
+});
+vc.on('error', (...args) => errorLines.push(`[error] ${args.map(formatArg).join(' ')}`));
+vc.on('jsdomError', err => errorLines.push(`[jsdomError] ${err.message}`));
 
-const pageUrl = pathToFileURL(pageAbs).href;
-try {
-  await page.goto(pageUrl, { waitUntil: 'load', timeout: 15000 });
-} catch (e) {
-  errors.push(`[goto] ${e.message}`);
+function formatArg(a) {
+  if (a instanceof Error) return a.stack || a.message;
+  if (typeof a === 'object') { try { return JSON.stringify(a); } catch { return String(a); } }
+  return String(a);
 }
 
-// Give Alpine a beat to mount any components.
-await page.waitForTimeout(1200);
+const html = await readFile(pageAbs, 'utf8');
+const dom = new JSDOM(html, {
+  url: pathToFileURL(pageAbs).href,
+  runScripts: 'dangerously',
+  resources: {
+    interceptors: [requestInterceptor(req => resolveRequest(req))],
+  },
+  pretendToBeVisual: true,
+  virtualConsole: vc,
+  beforeParse(window) {
+    if (!window.navigator.clipboard) {
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: { writeText: async () => {}, readText: async () => '' },
+        configurable: true,
+      });
+    }
+    if (!window.indexedDB && globalThis.indexedDB) {
+      window.indexedDB = globalThis.indexedDB;
+      window.IDBKeyRange = globalThis.IDBKeyRange;
+    }
+    try { window.localStorage.setItem('ghToken', '\u{1F39F}️GitHubToken-test'); } catch {}
+  },
+});
 
-const html = await page.content();
-await page.screenshot({ path: screenshotPath, fullPage: true });
-await writeFile(htmlPath, html);
+await new Promise(resolve => {
+  const win = dom.window;
+  let done = false;
+  const finish = () => { if (!done) { done = true; resolve(); } };
+  if (win.document.readyState === 'complete') {
+    setTimeout(finish, 1500);
+  } else {
+    win.addEventListener('load', () => setTimeout(finish, 1500));
+  }
+  setTimeout(finish, 8000);
+});
+
+const win = dom.window;
+const doc = win.document;
+
+const xDataNodes = [...doc.querySelectorAll('[x-data]')];
+const componentReports = xDataNodes.map(el => {
+  const expr = el.getAttribute('x-data');
+  const tag = el.tagName.toLowerCase();
+  return {
+    expr,
+    tag,
+    childEls: el.children.length,
+    snippet: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+  };
+});
+
+const alpineVersion = win.Alpine?.version ?? '(Alpine not detected)';
 
 const summary = [
   `=== preview: ${arg} ===`,
-  `screenshot: ${path.relative(repoRoot, screenshotPath)}`,
-  `html:       ${path.relative(repoRoot, htmlPath)}`,
+  `alpine: ${alpineVersion}`,
   '',
-  `--- intercepts (${intercepted.length}) ---`,
-  ...intercepted,
+  `--- x-data containers (${componentReports.length}) ---`,
+  ...componentReports.map(r =>
+    `  <${r.tag} x-data="${r.expr}"> children=${r.childEls}  text="${r.snippet}"`),
   '',
-  `--- console (${messages.length}) ---`,
-  ...messages,
+  `--- intercepts (${intercepts.length}) ---`,
+  ...intercepts,
   '',
-  `--- errors (${errors.length}) ---`,
-  ...errors,
+  `--- console (${consoleLines.length}) ---`,
+  ...consoleLines,
+  '',
+  `--- errors (${errorLines.length}) ---`,
+  ...errorLines,
 ].join('\n');
 
 console.log(summary);
+await writeFile(htmlPath, dom.serialize());
 await writeFile(logPath, summary);
+console.log(`\nwrote: ${path.relative(repoRoot, htmlPath)}`);
+console.log(`wrote: ${path.relative(repoRoot, logPath)}`);
 
-await browser.close();
-process.exit(errors.length > 0 ? 1 : 0);
+dom.window.close();
+process.exit(errorLines.length > 0 ? 1 : 0);
