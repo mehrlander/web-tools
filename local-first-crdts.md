@@ -1,79 +1,85 @@
-# Local-first CRDTs in 2026: convergence is the easy part
+# Local-first without multiplayer: when (and when not) to reach for a CRDT
 
-CRDTs have a marketing problem. Pitch decks promise "automatic conflict resolution," and the demos always show two cursors typing into the same paragraph. Then you try to ship a real product and discover that *converging on a single state* and *converging on the state the user wanted* are different problems. The first is solved. The second is not.
+I build single-user browser tools — compression helpers, repo viewers, bookmarklet packers, table dumpers. They run entirely in the page; state lives in IndexedDB through a small `persistence.js` kit that maps string paths like `"compress.input"` to structured-cloned blobs. No server, no accounts, no merge problem. Already local-first by the definition that matters: the data is mine, on my device, available offline by default.
 
-This is a survey of where the field actually stands — what CRDTs do well, where they break down, and which categories of web tools should and shouldn't reach for them.
+So I went looking at the CRDT discourse expecting it to be relevant to me, and came back convinced of the opposite — that "local-first" has been quietly redefined as "multi-device collaborative editing," and the conflation makes it harder, not easier, to build solo tools well. This is what I learned, framed for someone in roughly my position.
 
-## The libraries are good now
+## Local-first and collaborative are orthogonal
 
-Three libraries dominate the JavaScript-flavored CRDT world, and they've converged enough that the choice is largely about ergonomics and history.
+The 2019 Ink & Switch paper listed seven ideals for local-first software. Three of them are about *where data lives* (on your device, offline-capable, long-lived). Four are about *how multiple people or devices see it* (sync, collaboration, security, user control). CRDTs address the second cluster. They're irrelevant to the first.
 
-**Yjs** is the production workhorse. JupyterLab, Serenity Notes, and a long tail of collaborative editors run on it. It uses the YATA algorithm for sequences and stores state as a flat operation log plus a delete set. That keeps the runtime fast, but it means Yjs doesn't natively retain a full DAG of edit history — you reconstruct history from snapshots.
+This matters because most of the writing about local-first in 2024–26 collapses the two. "Build a local-first app" almost always means "pick a CRDT library." But a tool that runs offline in a single tab, with no sync surface at all, is already local-first. It just isn't *collaborative*. The CRDT question only kicks in if you're crossing a device boundary.
 
-**Automerge** is the JSON-shaped one. It keeps the full operation DAG, which is genuinely useful for time travel and audit, at the cost of more storage. Its sequence algorithm is RGA. Automerge Repo (the "batteries-included" wrapper) splits cleanly into a `Repo` plus pluggable `StorageAdapter` (IndexedDB, NodeFS, S3) and `NetworkAdapter` (WebSocket, MessageChannel, BroadcastChannel) — so the boring parts of "where does this document live and how does it sync" are no longer your problem.
+## What CRDTs actually solve
 
-**Loro** is the new entrant. It implements **Fugue** for text, supports movable trees and lists natively (a real pain point in Yjs/Automerge — try modeling an outliner), and stores the full history DAG like Automerge. Maintainers describe it as not yet production-ready, but the algorithm choices are forward-looking.
+If you do cross that boundary, three libraries dominate the JS world:
 
-The thing nobody told me until I went looking: most CRDT and OT algorithms exhibit an **interleaving anomaly**. When two users insert text at the same position concurrently, the merge can interleave their characters into garbage. Weidner & Kleppmann's 2023 paper *The Art of the Fugue* introduced the formal property of "maximal non-interleaving" and showed that almost every popular algorithm fails it. Yjs's YATA mitigates the problem in practice; Fugue (now in Loro) is the first to provably solve it. If your product is text-heavy, this matters.
+**Yjs** is the production workhorse — JupyterLab, Serenity Notes, a long tail of editors. YATA algorithm for sequences, flat operation log plus delete set, fast.
 
-## Where CRDTs actually break down
+**Automerge** is the JSON-shaped one. Full operation DAG (good for time travel, costly in storage), RGA for sequences. Automerge Repo wraps it in a `Repo` + pluggable `StorageAdapter` (IndexedDB, NodeFS, S3) + `NetworkAdapter` (WebSocket, MessageChannel) so the plumbing is solved.
 
-The 2019 Ink & Switch paper made CRDTs sound like a finished product. The follow-up lessons from teams that shipped on top of them tell a more complicated story.
+**Loro** is the new entrant. Implements **Fugue** for text, supports movable trees and lists natively, full history DAG. Maintainers say it's not yet production-ready, but the algorithm choices are the most forward-looking of the three.
 
-**1. Convergence ≠ correctness.** A CRDT guarantees every replica ends up with the same state. It does not guarantee that state is what either user wanted. Two users edit the same JSON field; last-write-wins picks one deterministically; the loser's intent is silently dropped. The merge "succeeded." That's a semantic conflict, and the CRDT can't see it.
+One detail worth surfacing: most CRDT and OT algorithms exhibit an *interleaving anomaly* — when two users insert at the same position concurrently, characters can interleave into garbage. Weidner & Kleppmann's 2023 *Art of the Fugue* paper formalized "maximal non-interleaving" and showed almost every popular algorithm fails it. Yjs mitigates in practice; Fugue (in Loro) is the first to provably solve it. Matters if you're doing rich text. Doesn't matter at all if you're not.
 
-**2. Hard invariants are unenforceable.** The canonical example is a bank balance. A CRDT counter merges, it doesn't reject. Two concurrent $80 withdrawals on a $100 balance both succeed locally, and after merge the balance is -$60. There is no application-level fix — the data structure cannot represent the constraint "≥ 0." Anything with a hard invariant (inventory counts, seat reservations, unique usernames, double-entry bookkeeping) needs server-side coordination, period.
+## What CRDTs don't solve, and why most tools don't need them
 
-**3. Schema migrations are an open problem.** Once a CRDT document has months of history, changing its shape is genuinely hard. You can't just run a migration — old peers may still be holding ops against the old schema, and merging them into the new one is undefined behavior unless you've planned for it. This is the part the demos never show.
+Three failure modes are worth knowing even if you never write a CRDT line:
 
-## Who's actually shipping what
+**1. Convergence ≠ semantic correctness.** Every replica ends up with the same state, but that state isn't necessarily what either user wanted. Last-write-wins on a JSON field silently drops the loser's intent. The merge "succeeded." For free-form text or ink that's fine; for structured data with meaning attached to fields, it's a UX bug the algorithm can't see.
 
-The interesting pattern in 2025–26 is how few of the visible "real-time collaborative" products are pure-CRDT.
+**2. Hard invariants are unenforceable.** A CRDT counter merges, it doesn't reject. Two concurrent withdrawals on a $100 balance both succeed locally, and after merge the balance is -$60. There is no application-level fix — you can't represent "≥ 0" as a CRDT property. Anything with a hard invariant (counts, quotas, uniqueness, capacity) needs server-side coordination.
 
-**Figma** built its own thing. They started with operational transforms, looked at CRDTs, and ended up with a hybrid: object-creation looks like a last-writer-wins set, per-property edits use last-writer-wins registers, and the genuinely hard problem (the layer tree, with reparenting) gets a custom non-CRDT algorithm. Their stated reason is that for design tools, semantic correctness on the tree matters more than offline-first.
+**3. Schema evolution is an open problem.** Imagine `persistence.save('compress.input', { text, mode })` synced between devices. Six months later, `mode` becomes `{ kind, level }`. Old peers may still be holding ops against the old shape. CRDTs mostly assume an immortal schema, and the migration story is basically "design it before you have data" — exactly the moment when you don't yet know what you need.
 
-**Linear** explicitly does not use CRDTs. Their sync engine ships every change as a "mutation" to a server that linearizes them, then clients rebase against the server's authoritative log. IndexedDB is the local cache; the server is the truth. They get the local-first feel (instant search, offline reads) without the semantic-merge headaches, at the cost of needing a server for writes.
+These aren't reasons not to use CRDTs. They're reasons most tools shouldn't *start* there.
 
-**Automerge-shaped products** (Trail Runner, Triplit, the Ink & Switch sketches) lean into the CRDT all the way and accept the constraint that their domain is one where last-write-wins on a field is genuinely fine — notes, outlines, drawings.
+## What teams actually ship
 
-The pattern: the more your data has hard invariants, the further from pure CRDTs you end up. The more your data is genuinely commutative (text, ink, free-form trees), the more CRDTs are a gift.
+The interesting pattern is how few visible "real-time collaborative" products are pure-CRDT.
 
-## A decision tree for the rest of us
+**Linear** explicitly isn't. Their sync engine ships every change as a *mutation* to a server that linearizes it, then clients rebase against the server's authoritative log. IndexedDB is the local cache, the server is the truth. They get the local-first feel — instant search, offline reads, optimistic writes — without the semantic-merge headaches.
 
-If you're picking an architecture for a collaborative web tool, the question isn't "should I use a CRDT." It's "which axis of correctness am I willing to compromise on."
+**Figma** went hybrid. Started with OT, looked at CRDTs, ended up with a custom design: object-creation as a last-writer-wins set, per-property edits as LWW registers, and a bespoke non-CRDT algorithm for the genuinely hard problem (the layer tree with reparenting). Their reason: for design tools, semantic correctness on the tree mattered more than offline-first.
 
-- **Domain is text, ink, or free-form structure; offline matters; no hard invariants** → reach for Yjs (mature) or Loro (if rich text and movable trees are central). Use Automerge Repo if you want the storage/network plumbing solved for you.
-- **Domain has a tree with reparenting (outliners, file managers, design canvases)** → either Loro's tree CRDT, or a custom algorithm in the Figma vein. Yjs and Automerge will fight you here.
-- **Domain has hard invariants (money, inventory, uniqueness, capacity)** → server-authoritative with a mutation log (Linear's model). You can still be local-first for reads and optimistic for writes, but the server has to be able to reject.
-- **Domain is "Google Docs but for X"** → honestly, OT with a server is still fine. CRDTs win on offline and on P2P; if you don't need either, the complexity isn't free.
+**Pure CRDT shops** (Trail Runner, Triplit, Ink & Switch's various sketches) lean in fully and accept the constraint: their domain is one where last-write-wins on a field is genuinely fine. Notes. Outlines. Drawings.
 
-## What I'd actually research next
+The pattern is consistent. The more your data has hard invariants or structural meaning, the further from pure CRDTs production teams end up. The more your data is genuinely commutative — text, ink, free-form trees — the more CRDTs are a gift.
 
-The interesting open questions, in rough order of how much I'd want to read about them:
+## Decision tree, framed for solo local-first tools
 
-1. **Schema evolution in long-lived CRDT documents.** What happens to a five-year-old Automerge doc when you change its shape? Nobody has a clean answer.
-2. **Auth and access control on top of CRDTs.** The merge function doesn't know who you are. End-to-end encrypted CRDTs (Matrix's experiments, Keyhive) are early.
-3. **Hybrid models in production.** Linear's mutation log + IndexedDB approach seems to be quietly winning over pure CRDTs for app-shaped products. Is that just because the domain has invariants, or is it a sign that the CRDT abstraction leaks too much for general use?
-4. **Sync-server economics.** Self-hosting y-websocket or automerge-repo's WebSocket server is straightforward. The hard part is multi-tenant auth, presence, and storage at scale — and there's no obvious open-source story for it yet.
+Reframing all of this from the angle of someone with a working IndexedDB-backed toolkit, asking "what would I do if I ever wanted sync":
 
-The headline I'd put on the field: CRDTs solved the algorithm. The product problems — invariants, schema, auth, semantic merges — are where the next decade goes.
+- **No sync needed (the current state of every tool I build).** IndexedDB through `persistence.js`. Already done. CRDT consideration: skip.
+- **Sync between my own devices, no concurrent edits expected.** This is the case for things like compression-helper state or repo-viewer settings — I'm not editing them on two devices at once. A Linear-style mutation log to a personal sync server, replayed against `persistence.save` on each device, is dramatically simpler than a CRDT and gives me what I actually want. Even simpler: a "push current state" button that uploads a blob and a "pull" button that overwrites.
+- **Sync where two devices might genuinely conflict on free-form content.** Shared notes, drawings, outliners. Yjs (mature) or Loro (if rich text and movable trees are central). This is the only case where the CRDT premium is paid for honestly.
+- **Sync with hard invariants.** Server-authoritative, period. Not a CRDT job.
+
+For my situation specifically, the second branch is the only one that matters in practice, and it doesn't lead to a CRDT.
+
+## What this would look like in this repo
+
+If sync ever lands here, the shape is already mostly visible. `persistence.js` is the local half of any local-first sync layer — string paths into IndexedDB with structured-clone fidelity, exactly the substrate Linear's engine sits on. `messaging.js` is the in-process version of the wire protocol: subscribe to a path, receive `(occasion, data, path)` callbacks. Swap the in-memory `Map` for a network adapter and the API surface barely changes.
+
+The thing that would need to be designed *before* sync, not after, is schema versioning on persisted blobs. Right now `persistence.save('compress.input', { ... })` writes whatever shape the page happens to use today. The moment two devices hold blobs of different generations, that becomes a migration. A version field plus a migration registry, added now, is cheap; added after divergence, painful.
+
+The CRDT discourse has very little to teach me about that problem, because it isn't a CRDT problem. It's a "long-lived structured data on disk" problem, and it predates CRDTs by decades. The honest summary of the field, from where I'm standing, is: CRDTs solved an algorithm I don't need; the product problems they didn't solve are the same product problems I have anyway.
 
 ---
 
 ## Sources
 
+- [Local-first software: you own your data, in spite of the cloud](https://www.inkandswitch.com/essay/local-first/) — Ink & Switch, 2019
+- [Local, first, forever](https://tonsky.me/blog/crdt-filesync/) — Nikita Prokopov
 - [Yjs vs Loro discussion thread](https://discuss.yjs.dev/t/yjs-vs-loro-new-crdt-lib/2567) — Yjs Community
 - [JS/WASM CRDT Benchmarks](https://loro.dev/docs/performance) — Loro
 - [crdt-benchmarks repository](https://github.com/dmonad/crdt-benchmarks) — Kevin Jahns
 - [The Art of the Fugue: Minimizing Interleaving in Collaborative Text Editing](https://arxiv.org/abs/2305.00583) — Weidner & Kleppmann, 2023
 - [Interleaving anomalies in collaborative text editors](https://martin.kleppmann.com/papers/interleaving-papoc19.pdf) — Kleppmann, 2019
 - [When Not to Use CRDTs](https://loro.dev/docs/concepts/when_not_crdt) — Loro docs
-- [Local-first software: you own your data, in spite of the cloud](https://www.inkandswitch.com/essay/local-first/) — Ink & Switch, 2019
-- [Local, first, forever](https://tonsky.me/blog/crdt-filesync/) — Nikita Prokopov
 - [Automerge Repo: a "batteries-included" toolkit for building local-first applications](https://automerge.org/blog/automerge-repo/) — Automerge team
 - [Automerge Repo on GitHub](https://github.com/automerge/automerge-repo)
 - [How Figma's multiplayer technology works](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/) — Figma blog
 - [Linear's sync engine architecture](https://www.fujimon.com/blog/linear-sync-engine) — Fujimon
 - [Linear sent me down a local-first rabbit hole](https://bytemash.net/posts/i-went-down-the-linear-rabbit-hole/) — Bytemash
-- [OT vs CRDT in 2026: Multiplayer Algorithm Comparison](https://www.taskade.com/blog/ot-vs-crdt) — Taskade
 - [A Pragmatic Approach to Live Collaboration](https://hex.tech/blog/a-pragmatic-approach-to-live-collaboration/) — Hex
