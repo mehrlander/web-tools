@@ -20,13 +20,31 @@
       <i class="ph ph-arrow-left"></i> demos
     </a>
   </div>
-  <p class="opacity-60 text-xs mb-6">
+  <p class="opacity-60 text-xs mb-3">
     <code class="text-xs">window.component.defineComponent(name, tpl, data)</code>
     registers a custom element backed by an Alpine <code>x-data</code> factory.
-    Three demos below: a self-contained counter, attribute passing, and two
-    components coordinating via <code>kits/messaging.js</code> instead of
-    knowing about each other directly.
+    Once defined, instances appear in markup as a tag —
+    <code>&lt;my-thing attr="…"&gt;</code> — with attributes available to both
+    the template function and the data factory. After Alpine binds, the
+    reactive data object is stashed on the host as <code>host.__data</code>,
+    and an optional <code>onMount(host)</code> on that object runs once.
     (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/component.js" class="link link-hover">kit source</a>)
+  </p>
+  <p class="opacity-60 text-xs mb-3">
+    This sits alongside the other path the repo uses for reusable Alpine
+    pieces: files under <code>alpineComponents/</code> that call
+    <code>Alpine.data('name', fn)</code> inside an <code>alpine:init</code>
+    listener, mounted in the page by writing
+    <code>&lt;div x-data="name()"&gt;…&lt;/div&gt;</code>. Both paths register
+    the same shape of Alpine factory; what differs is the surface — a
+    custom-element tag vs. an <code>x-data</code> attribute — and where
+    the template HTML lives (passed to <code>defineComponent</code> vs.
+    written in the page body).
+  </p>
+  <p class="opacity-60 text-xs mb-6">
+    Demos below: a self-contained counter, attribute passing, two components
+    coordinating via <code>kits/messaging.js</code>, and reaching into a
+    bound instance from outside.
   </p>
 
   <section class="mb-8">
