@@ -23,6 +23,7 @@
   });
 
   let copyAbort = null;
+  let pasteAbort = null;
 
   const fallbackCopy = (text) => {
     const ta = document.createElement('textarea');
@@ -34,6 +35,22 @@
     document.body.removeChild(ta);
     return success;
   };
+
+  const fallbackPaste = () => new Promise((resolve) => {
+    const ta = document.createElement('textarea');
+    ta.setAttribute('inputmode', 'none');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    setTimeout(() => {
+      const ok = document.execCommand('paste');
+      setTimeout(() => {
+        const value = ok ? ta.value : null;
+        ta.remove();
+        resolve(value);
+      }, 50);
+    }, 0);
+  });
 
   const io = {
     pick: async (accept = '*/*') => (await pickFile(accept)).arrayBuffer(),
@@ -101,7 +118,38 @@
       }
     },
 
-    paste: async () => await navigator.clipboard.readText()
+    paste: async () => {
+      if (!document.hasFocus()) {
+        if (pasteAbort) pasteAbort.abort();
+        pasteAbort = new AbortController();
+
+        console.log("%c🖱️ Click the page document to paste...", "color: orange; font-weight: bold;");
+
+        return new Promise((resolve) => {
+          document.addEventListener('click', async () => {
+            pasteAbort = null;
+            resolve(await io.paste());
+          }, { once: true, signal: pasteAbort.signal });
+        });
+      }
+
+      if (navigator.clipboard?.readText && window.isSecureContext) {
+        try {
+          const text = await navigator.clipboard.readText();
+          console.log("%c✅ Pasted via Navigator API", "color: green; font-weight: bold;");
+          return text;
+        } catch (err) {}
+      }
+
+      const text = await fallbackPaste();
+      if (text != null) {
+        console.log("%c✅ Pasted via Legacy DOM", "color: green; font-weight: bold;");
+        return text;
+      }
+
+      console.error("❌ Paste failed.");
+      throw new Error('Paste unavailable in this context');
+    }
   };
 
   window.io = io;

@@ -82,8 +82,10 @@
       </div>
       <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]" x-text="clipResult"></pre>
       <p class="opacity-50 text-xs">
-        Try <code>await io.copy('hi')</code> from the devtools console — focus
-        is on devtools, so the kit waits for you to click the page first.
+        Try <code>await io.copy('hi')</code> or <code>await io.paste()</code>
+        from the devtools console — focus is on devtools, so the kit waits
+        for you to click the page first. Watch the console to see which
+        branch (Navigator API vs. Legacy DOM) handled it.
       </p>
     </div>
 
