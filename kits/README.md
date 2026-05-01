@@ -103,6 +103,34 @@ namespace so devtools shows separate IndexedDB databases and data from
 different pages can't collide. `createStore` handles are cached per
 `db|store`. See `pages/demos/persistence.html` for live examples.
 
+### io.js
+
+User-data ingress/egress: file picker, file download, blob preview, and
+clipboard. JSZip is loaded lazily from
+`cdn.jsdelivr.net/npm/jszip@3.10.1/+esm` only when `saveZip` is called.
+
+```js
+await window.io.pick('image/*')                 // → ArrayBuffer
+await window.io.pickText('.json')               // → string
+window.io.save(blob, 'out.bin')                 // download Blob/typed-array
+window.io.saveJson({ a: 1 }, 'data.json')       // download as JSON
+await window.io.saveZip([
+  { path: 'a.txt', data: 'hello' },
+  { path: 'remote.png', url: '/foo.png' }
+], 'bundle.zip')
+window.io.show(blob, 'application/pdf')         // open in popup window
+await window.io.copy('text')                    // clipboard write
+await window.io.paste()                         // clipboard read
+```
+
+`copy()` deliberately covers two awkward situations: invoking from the
+devtools console (where `document.hasFocus()` is false — it waits for
+the next page click and retries), and running in a non-secure context
+like a `data:` URL (where `navigator.clipboard` is unavailable — it
+falls back to a hidden `<textarea>` + `execCommand('copy')`). `pick` /
+`pickText` reject on dialog cancel via the `cancel` event. See
+`pages/demos/io.html` for live examples.
+
 ### messaging.js
 
 In-memory pub/sub keyed on opaque path strings. No parent/child path
@@ -168,5 +196,6 @@ the external Alp CDN reference goes away.
 | `fills.js` | `pages/demos/fills.html` | done |
 | `persistence.js` | `pages/demos/persistence.html` | done |
 | `messaging.js` | `pages/demos/messaging.html` | done |
+| `io.js` | `pages/demos/io.html` | done |
 | `component.js` | `pages/demos/component.html` | done |
 | (integration) | `pages/compression-helper-v2.html` | done — needs browser verification |
