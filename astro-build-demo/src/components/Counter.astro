@@ -1,0 +1,15 @@
+---
+---
+<div x-data="{ n: 0 }" class="card bg-base-200 border border-base-300">
+  <div class="card-body items-start gap-4">
+    <h3 class="card-title text-base">A small Alpine island</h3>
+    <p class="text-sm text-base-content/70">
+      Everything else on this page is static. This counter is the one piece of
+      JavaScript running in your browser.
+    </p>
+    <div class="flex items-center gap-3">
+      <button class="btn btn-primary btn-sm" @click="n++">Increment</button>
+      <span class="text-sm">Count: <span class="font-mono" x-text="n"></span></span>
+    </div>
+  </div>
+</div>

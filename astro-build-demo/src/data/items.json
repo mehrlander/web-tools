@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Astro read this JSON",
+    "blurb": "These cards started life as a JSON file. The build process read it, looped over the entries, and stamped each one into the HTML before you arrived."
+  },
+  {
+    "title": "Tailwind compiled to CSS",
+    "blurb": "The classes on every element got scanned, matched against the Tailwind config, and turned into a small stylesheet. None of that work happens in your browser."
+  },
+  {
+    "title": "Components flattened into HTML",
+    "blurb": "The source has a Layout, an index page, and these card components. The output is one HTML file with no trace of the composition. The seams disappeared at build time."
+  },
+  {
+    "title": "What you see is what shipped",
+    "blurb": "Open the page source. The text of this card is right there as a string. Nothing fetched it, nothing rendered it on the fly. It was decided in advance."
+  }
+]
