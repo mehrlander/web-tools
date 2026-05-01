@@ -1,0 +1,41 @@
+---
+import { builtAt } from '../lib/builtAt.js';
+
+export interface Props {
+  title?: string;
+}
+
+const { title = 'astro-build-demo' } = Astro.props;
+const builtAtDisplay = new Date(builtAt).toLocaleString();
+const base = import.meta.env.BASE_URL;
+---
+<!doctype html>
+<html lang="en" data-theme="corporate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+  </head>
+  <body class="min-h-screen flex flex-col bg-base-100 text-base-content">
+    <header class="border-b border-base-300">
+      <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+        <a href={base} class="text-lg font-semibold">astro-build-demo</a>
+        <nav class="flex gap-4 text-sm">
+          <a href={base} class="link link-hover">Home</a>
+          <a href={`${base}/about`} class="link link-hover">About</a>
+        </nav>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <slot />
+      </div>
+    </main>
+    <footer class="border-t border-base-300">
+      <div class="max-w-4xl mx-auto px-4 py-4 text-sm text-base-content/70">
+        Built at {builtAtDisplay}
+      </div>
+    </footer>
+  </body>
+</html>
