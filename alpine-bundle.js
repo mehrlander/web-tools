@@ -30,6 +30,19 @@
                 t.focus()
             })
         })
+
+        // Outside click always closes any open <details class="dropdown">.
+        // Inside-click closing is opt-in via `data-auto-close` on the <details>
+        // — use it for picker/menu dropdowns; omit it for panel dropdowns that
+        // contain inputs or other interactive content (those self-close on action).
+        document.addEventListener('click', (e) => {
+            document.querySelectorAll('details.dropdown[open]').forEach(d => {
+                if (!d.contains(e.target)) { d.open = false; return }
+                if (!d.hasAttribute('data-auto-close')) return
+                const summary = d.querySelector(':scope > summary')
+                if (!summary.contains(e.target)) d.open = false
+            })
+        })
     }
 
     document.addEventListener('alpine:init', registerMagics)
