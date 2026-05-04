@@ -83,6 +83,22 @@ export default class GH {
     };
   }
 
+  async branches(per = 100) {
+    return this.req(`branches?per_page=${per}`);
+  }
+
+  async tags(per = 100) {
+    return this.req(`tags?per_page=${per}`);
+  }
+
+  async commit(sha) {
+    return this.req(`commits/${sha}`);
+  }
+
+  async compare(base, head) {
+    return this.req(`compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`);
+  }
+
   async history(path, limit = 20) {
     const data = await this.req(`commits?path=${encodeURIComponent(path)}&sha=${this.ref}&per_page=${limit}`);
     return data.map(c => ({

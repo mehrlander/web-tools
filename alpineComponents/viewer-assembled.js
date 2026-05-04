@@ -56,6 +56,7 @@ document.addEventListener('alpine:init', function() {
       },
 
       get repo() { return Alpine.store('browser').repo; },
+      get ref() { return Alpine.store('browser').ref || 'main'; },
       get ext() { return this.file ? this.file.split('.').pop().toLowerCase() : ''; },
       get fileContext() { return { name: this.file, ext: this.ext, content: this.content }; },
       get availableModes() { return window.ViewRegistry ? window.ViewRegistry.getModes(this.fileContext) : []; },
@@ -75,11 +76,12 @@ document.addEventListener('alpine:init', function() {
       },
       get fileUrls() {
         const r = this.repo;
+        const ref = this.ref;
         if (!r || !this.file) return [];
         return [
-          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r + '/blob/main/' + this.file },
-          { l: 'Raw',    i: 'ph-file-text',   u: 'https://raw.githubusercontent.com/' + r + '/main/' + this.file },
-          { l: 'CDN',    i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '/' + this.file }
+          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r + '/blob/' + ref + '/' + this.file },
+          { l: 'Raw',    i: 'ph-file-text',   u: 'https://raw.githubusercontent.com/' + r + '/' + ref + '/' + this.file },
+          { l: 'CDN',    i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + '/' + this.file }
         ];
       },
 
