@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html class="h-full bg-base-100" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Iframe Tracker</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="h-full flex flex-col overflow-hidden" x-data="navigatorApp()">
+  <header class="navbar bg-base-200 border-b border-base-300 px-4 flex-none gap-4">
+    <div class="flex-none">
+      <div class="p-2 bg-primary text-primary-content rounded-lg">
+        <i class="ph ph-globe text-xl"></i>
+      </div>
+    </div>
+    <div class="flex-grow">
+      <input type="text" class="input input-sm w-full font-mono text-xs bg-base-100 border-base-300" :value="displayUrl" readonly />
+    </div>
+    <div class="flex-none flex items-center gap-2">
+      <span class="badge badge-ghost gap-1" x-show="urlCount">
+        <i class="ph ph-tree-structure"></i>
+        <span x-text="urlCount"></span>
+      </span>
+      <button class="btn btn-sm btn-primary" :disabled="isBlocked" @click="captureLinks">
+        <i class="ph ph-plus-circle"></i> Capture
+      </button>
+      <button class="btn btn-sm btn-ghost" @click="reset" x-show="urlCount">
+        <i class="ph ph-trash"></i>
+      </button>
+      <div class="badge badge-error gap-2" x-show="isBlocked">
+        <i class="ph ph-warning-circle"></i> CORS
+      </div>
+    </div>
+  </header>
+  <main class="flex-grow relative bg-base-300">
+    <iframe id="contentFrame" :src="initialUrl" class="w-full h-full bg-white" @load="syncUrl"></iframe>
+  </main>
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('navigatorApp', () => ({
+        initialUrl: window.location.href,
+        displayUrl: window.location.href,
+        isBlocked: false,
+        tree: {},
+        urlCount: 0,
+        isObj(x) { return x && typeof x === 'object' && !(x instanceof Set); },
+        syncUrl(e) {
+          try {
+            const iframe = e.target;
+            this.displayUrl = iframe.contentWindow.location.href;
+            this.isBlocked = false;
+            iframe.contentDocument.body.addEventListener('click', (ev) => {
+              const link = ev.target.closest('a');
+              if (link && link.href) this.displayUrl = link.href;
+            });
+          } catch {
+            this.isBlocked = true;
+          }
+        },
+        captureLinks() {
+          const doc = document.getElementById('contentFrame').contentDocument;
+          if (!doc) return;
+          let added = 0;
+          for (const a of doc.querySelectorAll('a[href]')) {
+            const text = a.textContent.trim();
+            if (!text) continue;
+            let segs;
+            try {
+              const u = new URL(a.href, doc.location.href);
+              if (u.protocol === 'mailto:' || u.protocol === 'tel:') {
+                segs = [u.protocol.slice(0, -1), u.pathname];
+              } else if (u.protocol === 'http:' || u.protocol === 'https:') {
+                const path = u.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+                const tail = u.search + u.hash;
+                if (path.length) path[path.length - 1] += tail;
+                else if (tail) path.push(tail);
+                segs = [u.hostname, ...path];
+              } else continue;
+            } catch { continue; }
+            let n = this.tree;
+            for (const p of segs) {
+              n[p] = this.isObj(n[p]) ? n[p] : { _text: new Set() };
+              n = n[p];
+            }
+            n._text ??= new Set();
+            if (!n._text.has(text)) added++;
+            n._text.add(text);
+          }
+          const display = this.finalize(this.tree);
+          this.urlCount = this.countLabels(this.tree);
+          window.linkTree = display;
+          console.log(`+${added} new from ${doc.location.href}. Total URLs: ${this.urlCount}`);
+          console.log(JSON.stringify(display, null, 2));
+        },
+        finalize(obj) {
+          const isObj = this.isObj.bind(this);
+          const xform = (node) => {
+            if (node instanceof Set) {
+              const arr = [...node];
+              return arr.length === 1 ? arr[0] : arr;
+            }
+            if (isObj(node)) {
+              const entries = Object.entries(node).map(([k, v]) => {
+                let processed = xform(v);
+                while (isObj(processed) && Object.keys(processed).length === 1 && !processed._text) {
+                  const [ck, cv] = Object.entries(processed)[0];
+                  k += '/' + ck;
+                  processed = cv;
+                }
+                return [k, processed];
+              });
+              return Object.fromEntries(entries);
+            }
+            return node;
+          };
+          const clean = (node) => {
+            if (!isObj(node)) return node;
+            if (node._text) {
+              const textVal = xform(node._text);
+              if (Object.keys(node).length === 1) return textVal;
+              node['(self)'] = textVal;
+              delete node._text;
+            }
+            for (const k in node) node[k] = clean(node[k]);
+            return node;
+          };
+          return clean(xform(obj));
+        },
+        countLabels(obj) {
+          if (!this.isObj(obj)) return 0;
+          let n = obj._text ? 1 : 0;
+          for (const [k, v] of Object.entries(obj)) {
+            if (k === '_text') continue;
+            n += this.countLabels(v);
+          }
+          return n;
+        },
+        reset() {
+          this.tree = {};
+          this.urlCount = 0;
+          window.linkTree = {};
+          console.log('Tree cleared');
+        }
+      }));
+    });
+  </script>
+</body>
+</html>

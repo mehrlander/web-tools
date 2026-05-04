@@ -1,0 +1,35 @@
+---
+import items from '../data/items.json';
+import Layout from '../layouts/Layout.astro';
+import Counter from '../components/Counter.astro';
+import { builtAt } from '../lib/builtAt.js';
+---
+<Layout title="astro-build-demo">
+  <section class="py-8">
+    <h1 class="text-3xl font-bold tracking-tight">
+      Built at {builtAt}
+    </h1>
+    <p class="mt-2 text-base-content/70">
+      A short lesson on what a build step is, rendered by a build step.
+    </p>
+  </section>
+
+  <section class="grid gap-4 sm:grid-cols-2 mt-4">
+    {items.map((item) => (
+      <article class="card bg-base-200 border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title">{item.title}</h2>
+          <p class="text-sm text-base-content/80">{item.blurb}</p>
+        </div>
+      </article>
+    ))}
+  </section>
+
+  <section class="mt-8">
+    <Counter />
+  </section>
+
+  <p class="mt-8 text-sm text-base-content/70">
+    View source. Everything you just read is sitting in the HTML as plain text.
+  </p>
+</Layout>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="nord">
+<head>
+  <meta charset="UTF-8">
+  <title>File Drop</title>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-200 min-h-screen flex items-center justify-center p-6">
+
+  <div x-data="{
+    hot: false,
+    name: '',
+    size: 0,
+    async drop(e) {
+      this.hot = false;
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      this.name = file.name;
+      this.size = file.size;
+      const buf = await file.arrayBuffer();
+      window.lastFile = { file, buf, bytes: new Uint8Array(buf) };
+      console.log('Dropped:', file.name, `${file.size.toLocaleString()} bytes`);
+      console.log('ArrayBuffer:', buf);
+      console.log('First 16 bytes:', [...new Uint8Array(buf, 0, Math.min(16, buf.byteLength))]
+        .map(b => b.toString(16).padStart(2, '0')).join(' '));
+      console.log('Available as window.lastFile');
+    }
+  }" class="w-full max-w-md">
+
+    <div
+      @dragenter.prevent="hot = true"
+      @dragover.prevent
+      @dragleave.prevent="hot = false"
+      @drop.prevent="drop($event)"
+      :class="hot ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100'"
+      class="border-2 border-dashed rounded-xl p-12 text-center transition-colors">
+
+      <div class="pointer-events-none">
+        <i class="ph ph-file-arrow-down text-5xl opacity-50"
+           :class="hot ? 'text-primary opacity-100' : ''"></i>
+        <p class="mt-4 text-sm font-medium" x-text="name || 'Drop a file here'"></p>
+        <p class="mt-1 text-xs opacity-60"
+           x-text="size ? `${size.toLocaleString()} bytes. See console.` : 'Binary logged to console'"></p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

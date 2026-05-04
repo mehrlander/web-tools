@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Word Frequency & POS APIs</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/clipboard@2"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="p-8 max-w-6xl mx-auto">
+  <h1 class="text-2xl font-bold">Word Frequency & POS APIs</h1>
+  <p class="text-base-content/60 mb-4">Structured JSON documentation with CORS status, response shapes, and samples.</p>
+  <div class="flex gap-2 mb-4">
+    <button id="run" class="btn btn-primary">Run Analysis</button>
+    <button id="copy" class="btn btn-outline">Copy</button>
+  </div>
+  <div id="status" class="alert mb-4">Click "Run Analysis"...</div>
+  <div id="pills" class="flex flex-wrap gap-2 mb-4"></div>
+  <pre id="output" class="bg-neutral text-neutral-content p-4 rounded-lg text-sm overflow-auto whitespace-pre font-mono max-h-[70vh]"></pre>
+
+<script type="module">
+const $ = s => document.querySelector(s)
+const WORDS = ["you","the","and","zebra","budget","wring"]
+const freqSources = []
+const doc = { generated: "", purpose: "Word frequency and POS API documentation", apis: [] }
+const fullData = new Map()  // stores raw API responses
+let currentView = null
+
+const topN = (pairs, n=5) => pairs.slice(0,n).map(([w,v])=>`${w} ${v}`).join(" · ")
+const topFromObj = (obj, n=5) => Object.entries(obj)
+  .map(([w,v])=>[w,+v]).filter(([,v])=>Number.isFinite(v))
+  .sort((a,b)=>b[1]-a[1]).slice(0,n)
+
+const sampleLookup = (get, fmt=v=>v) => WORDS.map(w=>`${w}:${get(w)!=null?fmt(get(w)):"—"}`).join(" · ")
+
+const test = (name, kind, url, analyze) => ({ name, kind, url, analyze })
+
+const tests = [
+  test("Datamuse API", "json", "https://api.datamuse.com/words?sp=example&qe=sp&md=fpd&max=1", d => {
+    const w = d[0] || {}
+    const pos = w.tags?.find(t => /^[nvadj]+$/.test(t)) || '?'
+    const freq = w.tags?.find(t => t.startsWith('f:'))?.slice(2) || '?'
+    return { unit: "per-million (Google Books)", shape: `[{word,score,tags[],defs[]}]`,
+      top: `"${w.word}" → ${pos}, ${freq}/M`, sample: `tags: ${(w.tags||[]).join(', ')}` }
+  }),
+
+  test("SUBTLEX", "json", "https://cdn.jsdelivr.net/npm/subtlex-word-frequencies@2.0.0/index.json", d => {
+    const map = new Map(d.map(x => [x.word?.toLowerCase(), +x.count]))
+    freqSources.push({ name:"SUBTLEX", unit:"count", get:w=>map.get(w.toLowerCase())??null })
+    return { unit: "subtitle count", shape: `array(${d.length.toLocaleString()})`,
+      top: topN(d.slice(0,5).map(x=>[x.word,x.count])), sample: sampleLookup(w=>map.get(w)) }
+  }),
+
+  test("wordfreq-en-25k", "json", "https://cdn.jsdelivr.net/gh/aparrish/wordfreq-en-25000@main/wordfreq-en-25000-log.json", d => {
+    const map = new Map(d.map(([w,v]) => [w.toLowerCase(), +v]))
+    freqSources.push({ name:"wordfreq-25k", unit:"log10", get:w=>map.get(w.toLowerCase())??null })
+    return { unit: "log10 freq", shape: `array(${d.length.toLocaleString()}) [word,score]`,
+      top: topN(d.slice(0,5).map(([w,v])=>[w,v.toFixed(2)])), sample: sampleLookup(w=>map.get(w),v=>v?.toFixed(2)) }
+  }),
+
+  test("google-10k-english", "text", "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english.txt", t => {
+    const words = t.trim().split(/\r?\n/)
+    const map = new Map(words.map((w,i) => [w.toLowerCase(), i+1]))
+    freqSources.push({ name:"google-10k", unit:"rank", get:w=>map.get(w.toLowerCase())??null })
+    return { unit: "rank (1=most common)", shape: `lines=${words.length.toLocaleString()}`,
+      top: words.slice(0,8).join(", "), sample: sampleLookup(w=>map.get(w),v=>`#${v}`) }
+  }),
+
+  test("FrequencyWords en_50k", "text", "https://cdn.jsdelivr.net/gh/hermitdave/FrequencyWords@master/content/2018/en/en_50k.txt", t => {
+    const lines = t.trim().split(/\r?\n/)
+    const map = new Map(lines.map(s=>{ const [w,c]=s.split(/\s+/); return [w.toLowerCase(),+c] }))
+    freqSources.push({ name:"FreqWords", unit:"count", get:w=>map.get(w.toLowerCase())??null })
+    return { unit: "OpenSubtitles count", shape: `lines=${lines.length.toLocaleString()}`,
+      top: topN([...map].slice(0,5)), sample: sampleLookup(w=>map.get(w),v=>v?.toLocaleString()) }
+  }),
+
+  test("dwyl/english-words", "json", "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json", d => {
+    const keys = Object.keys(d), set = new Set(keys.map(k=>k.toLowerCase()))
+    return { unit: "boolean exists", shape: `keys=${keys.length.toLocaleString()}`,
+      top: keys.slice(0,8).join(", "), sample: sampleLookup(w=>set.has(w)?"✓":null) }
+  }),
+
+  test("WebstersDictionary", "json", "https://raw.githubusercontent.com/ssvivian/WebstersDictionary/master/dictionary.json", d => {
+    const keys = Object.keys(d)
+    const posSet = new Set(keys.slice(0,5000).map(k=>d[k]?.pos).filter(Boolean))
+    return { unit: "dict entry (POS,defs)", shape: `keys=${keys.length.toLocaleString()}`,
+      top: `POS: ${[...posSet].slice(0,8).join(", ")}`, sample: sampleLookup(w=>d[w.toUpperCase()]?.pos) }
+  }),
+
+  test("word_freq_32k", "json", "https://cdn.jsdelivr.net/gh/BilboBlockins/word-frequency-list-json@master/word_freq_32k.json", d => {
+    const get = w => d[w.toLowerCase()] ?? d[w] ?? null
+    freqSources.push({ name:"word_freq_32k", unit:"count", get })
+    return { unit: "raw count", shape: `keys=${Object.keys(d).length.toLocaleString()}`,
+      top: topN(topFromObj(d,5).map(([w,v])=>[w,v.toLocaleString()])), sample: sampleLookup(get,v=>v?.toLocaleString()) }
+  }),
+
+  test("compromise (POS)", "esm", "https://esm.sh/compromise@14.14.3", async m => {
+    const nlp = m.default || m
+    const doc = nlp("The quick brown fox jumps over 13 lazy dogs.")
+    const terms = doc.terms().out("json")
+    const tags = [...new Set(terms.flatMap(t=>Object.keys(t.tags||{})))].sort()
+    return { unit: "compromise tags", shape: `terms=${terms.length}`,
+      top: terms.slice(0,6).map(t=>`${t.text}/${Object.keys(t.tags||{})[0]||"?"}`).join(" "), sample: `tags: ${tags.slice(0,12).join(",")}` }
+  }),
+
+  test("wink-pos-tagger", "esm", "https://esm.sh/wink-pos-tagger@2.2.2", async m => {
+    const out = (m.default || m)().tagSentence("The quick brown fox jumps over 13 lazy dogs.")
+    return { unit: "Penn Treebank", shape: `tokens=${out.length}`,
+      top: out.slice(0,6).map(x=>`${x.value}/${x.pos}`).join(" "), sample: out.map(x=>`${x.value}/${x.pos}`).join(" ") }
+  }),
+]
+
+const pill = (label, active, onclick) => {
+  const btn = document.createElement("button")
+  btn.className = `btn btn-sm ${active ? "btn-primary" : "btn-outline"}`
+  btn.textContent = label
+  btn.onclick = onclick
+  return btn
+}
+
+function renderPills() {
+  const container = $("#pills")
+  container.innerHTML = ""
+  container.appendChild(pill("Summary", currentView === null, () => showView(null)))
+  doc.apis.forEach((api, i) => {
+    const status = api.status === "ok" ? "" : " ⚠"
+    container.appendChild(pill(api.name + status, currentView === i, () => showView(i)))
+  })
+}
+
+function showView(index) {
+  currentView = index
+  renderPills()
+  if (index === null) {
+    $("#output").textContent = JSON.stringify(doc, null, 2)
+  } else {
+    const api = doc.apis[index]
+    const full = fullData.get(api.name)
+    const display = { ...api, rawData: full }
+    $("#output").textContent = JSON.stringify(display, null, 2)
+  }
+}
+
+async function fetchData(url, kind) {
+  const t0 = performance.now()
+  if (kind === "esm") {
+    const m = await import(url)
+    return { data: m, ms: Math.round(performance.now()-t0) }
+  }
+  const res = await fetch(url, { cache:"no-store" })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = kind === "json" ? await res.json() : await res.text()
+  const bytes = new TextEncoder().encode(typeof data === "string" ? data : JSON.stringify(data)).length
+  return { data, ms: Math.round(performance.now()-t0), bytes, ct: res.headers.get("content-type") }
+}
+
+async function runOne(t) {
+  try {
+    const { data, ms, bytes, ct } = await fetchData(t.url, t.kind)
+    fullData.set(t.name, data)
+    const a = await t.analyze(data)
+    return { name: t.name, status: "ok", url: t.url, ms, bytes, ct, ...a, cors: true }
+  } catch (e) {
+    return { name: t.name, status: "error", url: t.url, error: e.message }
+  }
+}
+
+async function runAll() {
+  freqSources.length = 0
+  fullData.clear()
+  doc.apis = []
+  doc.generated = new Date().toISOString()
+  currentView = null
+  $("#status").textContent = "Running..."
+  $("#output").textContent = ""
+  $("#pills").innerHTML = ""
+
+  for (let i = 0; i < tests.length; i++) {
+    $("#status").textContent = `${i+1}/${tests.length}: ${tests[i].name}...`
+    doc.apis.push(await runOne(tests[i]))
+  }
+
+  doc.comparison = { sources: freqSources.map(s=>s.name), words: WORDS.map(w=>({
+    word: w, values: Object.fromEntries(freqSources.map(s=>[s.name, s.get(w)]))
+  }))}
+
+  const ok = doc.apis.filter(a=>a.status==="ok").length
+  $("#status").textContent = `✓ ${ok}/${tests.length} successful`
+  renderPills()
+  showView(null)
+}
+
+$("#run").onclick = runAll
+
+const clip = new ClipboardJS("#copy", { text: () => $("#output").textContent })
+clip.on("success", () => {
+  $("#copy").textContent = "Copied!"
+  setTimeout(() => $("#copy").textContent = "Copy", 1500)
+})
+
+runAll()
+</script>
+</body>
+</html>

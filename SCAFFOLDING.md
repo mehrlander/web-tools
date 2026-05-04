@@ -3,13 +3,14 @@
 The repo currently has two tiers of pages:
 
 - **Simple pages** (`pages/index.html`, `compression-helper.html`,
-  `bookmarklets-story.html`, `quick-dump.html`, `repo-drag.html`,
-  `table-compress*.html`) — each is self-contained: CDN Tailwind + Phosphor
-  + Alpine (via `<script defer>`), then an inline `<script>` with the page's
-  Alpine components. No shared scaffolding at all.
-- **Scaffolded pages** (`show-repo.html`, `demo.html`, `demo-viewer.html`,
-  `demo-spacex.html`) — use `gh-fetch.js` + `alpine-bundle.js` to load
-  reusable components off CDN at runtime.
+  `bookmarklets-story.html`, `quick-dump.html`,
+  `repo-viewers/repo-drag.html`, `table-compress*.html`) — each is
+  self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
+  then an inline `<script>` with the page's Alpine components. No shared
+  scaffolding at all.
+- **Scaffolded pages** (`repo-viewers/show-repo.html`,
+  `repo-viewers/demo-viewer.html`, `demo-spacex.html`) — use `gh-fetch.js`
+  + `alpine-bundle.js` to load reusable components off CDN at runtime.
 
 This doc is about the second tier — the loader contract those pages depend
 on, and what can and can't be added to it without breaking it.
@@ -119,7 +120,7 @@ anything we add:
    exist, and only then does Alpine walk the DOM and call `init()` on each
    `x-data` component. By that point `Alpine.store('browser')` is defined.
 4. **`x-init="init()"` on the body still races the module script.** That's
-   why `show-repo.html`'s `app.init()` opens with
+   why `repo-viewers/show-repo.html`'s `app.init()` opens with
    `while(!window.GH || !window.ViewRegistry) await new Promise(r => setTimeout(r, 50));`.
    Alpine can reach `init()` before the module script's final
    `await gh.load('view-registry.js')` resolves, because the two tasks
@@ -183,7 +184,7 @@ Cost: adds one line per page; fine for a handful of additions.
 Best for: things every scaffolded page wants (retry/backoff for rate
 limits, a batch loader, a tiny pub-sub, a token-picker UI helper, a
 `persist(key, data)` helper that saves to the user's home repo the way
-`show-repo.html` currently does).
+`repo-viewers/show-repo.html` currently does).
 
 Rules:
 - `gh-fetch.js` is already an ESM class with a default export. Adding

@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="About — astro-build-demo">
+  <article class="prose max-w-none py-8">
+    <h1>About</h1>
+    <p>
+      This repo holds an Astro project. The source lives in
+      <code>astro-build-demo/src</code>, the compiled site lives in
+      <code>pages/astro-build-demo</code>, and both are committed so the
+      pre-build and post-build content live side by side.
+    </p>
+    <p>
+      To change something, edit any file under
+      <code>astro-build-demo/src</code> via the GitHub web UI, then ask
+      Claude Code to pull the repo and rebuild. It runs
+      <code>npm run build</code> in its sandbox and commits the updated
+      <code>pages/astro-build-demo</code>.
+    </p>
+    <p>
+      Never edit <code>pages/astro-build-demo</code> by hand. It is
+      generated output, and the next build will quietly overwrite your
+      changes.
+    </p>
+  </article>
+</Layout>

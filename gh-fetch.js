@@ -19,6 +19,22 @@
     });
   };
 
+  proto.branches = async function(per = 100) {
+    return this.req(`branches?per_page=${per}`);
+  };
+
+  proto.tags = async function(per = 100) {
+    return this.req(`tags?per_page=${per}`);
+  };
+
+  proto.commit = async function(sha) {
+    return this.req(`commits/${sha}`);
+  };
+
+  proto.compare = async function(base, head) {
+    return this.req(`compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`);
+  };
+
   proto.history = async function(path, limit = 20) {
     const data = await this.req(`commits?path=${encodeURIComponent(path)}&sha=${this.ref}&per_page=${limit}`);
     return data.map(c => ({

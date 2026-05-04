@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>io demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/io.js"></script>
+<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="flex items-baseline justify-between mb-1">
+    <h1 class="text-2xl font-bold tracking-tight">io</h1>
+    <a href="./" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+      <i class="ph ph-arrow-left"></i> demos
+    </a>
+  </div>
+  <p class="opacity-60 text-xs mb-6">
+    <code class="text-xs">window.io</code> wraps file pick/save, blob preview,
+    and clipboard. JSZip is fetched lazily on first <code>saveZip</code>.
+    (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/io.js" class="link link-hover">kit source</a>)
+  </p>
+
+  <div x-data="ioDemo()" class="space-y-4">
+
+    <!-- pick -->
+    <div class="bg-base-200/40 rounded p-4 space-y-2">
+      <h3 class="font-bold text-xs uppercase opacity-60">pick / pickText</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-sm" @click="doPick()">io.pick()</button>
+        <button class="btn btn-sm" @click="doPickText()">io.pickText()</button>
+      </div>
+      <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]" x-text="pickResult"></pre>
+    </div>
+
+    <!-- save -->
+    <div class="bg-base-200/40 rounded p-4 space-y-2">
+      <h3 class="font-bold text-xs uppercase opacity-60">save / saveJson</h3>
+      <div class="flex items-center gap-2">
+        <span class="opacity-60 text-xs">text:</span>
+        <input x-model="saveText" class="input input-xs input-bordered flex-1">
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-sm" @click="doSave()">save as .txt</button>
+        <button class="btn btn-sm" @click="doSaveJson()">saveJson({ value: text })</button>
+      </div>
+    </div>
+
+    <!-- saveZip -->
+    <div class="bg-base-200/40 rounded p-4 space-y-2">
+      <h3 class="font-bold text-xs uppercase opacity-60">saveZip</h3>
+      <p class="opacity-60 text-xs">
+        Bundles two inline files plus a remote URL fetch. Loads JSZip on first click.
+      </p>
+      <button class="btn btn-sm" @click="doSaveZip()">build &amp; download bundle.zip</button>
+      <div class="text-xs opacity-60" x-text="zipStatus"></div>
+    </div>
+
+    <!-- show -->
+    <div class="bg-base-200/40 rounded p-4 space-y-2">
+      <h3 class="font-bold text-xs uppercase opacity-60">show</h3>
+      <p class="opacity-60 text-xs">
+        Opens a Blob in a popup window. (Allow popups for this origin.)
+      </p>
+      <button class="btn btn-sm" @click="doShow()">show HTML in popup</button>
+    </div>
+
+    <!-- copy / paste -->
+    <div class="bg-base-200/40 rounded p-4 space-y-2">
+      <h3 class="font-bold text-xs uppercase opacity-60">copy / paste</h3>
+      <div class="flex items-center gap-2">
+        <span class="opacity-60 text-xs">text:</span>
+        <input x-model="clipText" class="input input-xs input-bordered flex-1">
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-sm" @click="doCopy()">io.copy(text)</button>
+        <button class="btn btn-sm" @click="doPaste()">io.paste()</button>
+      </div>
+      <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]" x-text="clipResult"></pre>
+      <p class="opacity-50 text-xs">
+        Try <code>await io.copy('hi')</code> or <code>await io.paste()</code>
+        from the devtools console — focus is on devtools, so the kit waits
+        for you to click the page first. Watch the console to see which
+        branch (Navigator API vs. Legacy DOM) handled it.
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function ioDemo() { return {
+  pickResult: '(no file picked)',
+  saveText: 'hello from io kit',
+  zipStatus: '',
+  clipText: 'paste me somewhere',
+  clipResult: '',
+
+  async doPick() {
+    try {
+      const buf = await window.io.pick();
+      this.pickResult = `ArrayBuffer of ${buf.byteLength} bytes`;
+    } catch (e) { this.pickResult = `(${e.message})`; }
+  },
+  async doPickText() {
+    try {
+      const text = await window.io.pickText();
+      this.pickResult = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
+    } catch (e) { this.pickResult = `(${e.message})`; }
+  },
+  doSave() {
+    window.io.save(this.saveText, 'note.txt', 'text/plain');
+  },
+  doSaveJson() {
+    window.io.saveJson({ value: this.saveText, when: new Date().toISOString() }, 'note.json');
+  },
+  async doSaveZip() {
+    this.zipStatus = 'building…';
+    try {
+      await window.io.saveZip([
+        { path: 'hello.txt', data: this.saveText },
+        { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
+        { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
+      ], 'bundle.zip');
+      this.zipStatus = 'downloaded bundle.zip';
+    } catch (e) { this.zipStatus = `error: ${e.message}`; }
+  },
+  doShow() {
+    const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
+      <body style="font:14px system-ui;padding:2rem">
+      <h1>io.show()</h1>
+      <p>This document was created from a Blob and opened with
+      <code>window.open(URL.createObjectURL(blob))</code>.</p>
+      <p>Time: ${new Date().toString()}</p>`;
+    window.io.show(html, 'text/html');
+  },
+  async doCopy() {
+    const ok = await window.io.copy(this.clipText);
+    this.clipResult = ok ? `copied: ${this.clipText}` : 'copy failed';
+  },
+  async doPaste() {
+    try {
+      this.clipResult = `pasted: ${await window.io.paste()}`;
+    } catch (e) { this.clipResult = `paste error: ${e.message}`; }
+  }
+}}
+</script>
+</body>
+</html>
