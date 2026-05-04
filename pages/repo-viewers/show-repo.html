@@ -70,7 +70,7 @@
       <div class="flex items-baseline gap-2 text-xl font-bold font-mono">
         <span class="text-base-content/70" x-text="owner||'Select'"></span>
         <span class="text-base-content/30">/</span>
-        <details class="dropdown dropdown-bottom">
+        <details class="dropdown dropdown-bottom" data-auto-close>
           <summary class="hover:text-primary hover:underline decoration-2 underline-offset-4 cursor-pointer flex items-center gap-1">
             <span x-text="name||'Repository...'"></span>
             <i class="ph ph-caret-down text-xs opacity-50"></i>
@@ -210,7 +210,7 @@
               <div class="text-xs text-base-content/50" x-text="stats"></div>
             </div>
             <div class="flex items-center gap-0.5" x-show="file">
-              <details class="dropdown dropdown-end">
+              <details class="dropdown dropdown-end" data-auto-close>
                 <summary class="btn btn-sm btn-square btn-ghost hover:text-primary">
                   <i class="ph text-lg" :class="modeIcon"></i>
                 </summary>

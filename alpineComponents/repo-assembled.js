@@ -7,7 +7,7 @@ document.addEventListener('alpine:init', function() {
             <div class="flex items-baseline gap-2 text-xl font-bold font-mono flex-wrap">
               <span class="text-base-content/70" x-text="owner||'Select'"></span>
               <span class="text-base-content/30">/</span>
-              <details class="dropdown dropdown-bottom">
+              <details class="dropdown dropdown-bottom" data-auto-close>
                 <summary class="hover:text-primary hover:underline decoration-2 underline-offset-4 cursor-pointer flex items-center gap-1">
                   <span x-text="name||'Repository...'"></span>
                   <i class="ph ph-caret-down text-xs opacity-50"></i>
@@ -29,11 +29,11 @@ document.addEventListener('alpine:init', function() {
                   <div class="flex gap-1.5 mb-2">
                     <input type="text" x-model="refInput" placeholder="branch-name or sha or full URL"
                       class="input input-xs input-bordered flex-1 font-mono text-xs"
-                      @keyup.enter="applyRefInput()">
-                    <button @click="applyRefInput()" :disabled="!refInput.trim()" class="btn btn-xs btn-primary">Go</button>
+                      @keyup.enter="applyRefInput(); $el.closest('details').open = false">
+                    <button @click="applyRefInput(); $el.closest('details').open = false" :disabled="!refInput.trim()" class="btn btn-xs btn-primary">Go</button>
                   </div>
                   <div x-show="defaultRef && ref !== defaultRef" class="mb-2">
-                    <button @click="setRef(defaultRef)" class="btn btn-xs btn-ghost gap-1 w-full">
+                    <button @click="setRef(defaultRef); $el.closest('details').open = false" class="btn btn-xs btn-ghost gap-1 w-full">
                       <i class="ph ph-arrow-counter-clockwise"></i>
                       Back to <span class="font-mono" x-text="defaultRef"></span>
                     </button>
@@ -44,7 +44,7 @@ document.addEventListener('alpine:init', function() {
                   </div>
                   <div x-show="!branchesLoading" class="max-h-48 overflow-y-auto">
                     <template x-for="b in branchList" :key="b.name">
-                      <a @click="setRef(b.name)" class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-xs font-mono"
+                      <a @click="setRef(b.name); $el.closest('details').open = false" class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-xs font-mono"
                         :class="b.name === ref ? 'bg-primary/10 text-primary font-bold' : ''">
                         <i class="ph ph-git-branch text-xs opacity-50"></i>
                         <span class="truncate" x-text="b.name"></span>

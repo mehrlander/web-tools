@@ -14,7 +14,7 @@ document.addEventListener('alpine:init', function() {
             <button x-show="showCopy" @click="copy()" class="btn btn-sm btn-square btn-ghost hover:text-primary">
               <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i>
             </button>
-            <details class="dropdown dropdown-end">
+            <details class="dropdown dropdown-end" data-auto-close>
               <summary class="btn btn-sm btn-square btn-ghost hover:text-primary">
                 <i class="ph text-lg" :class="modeIcon"></i>
               </summary>
