@@ -30,9 +30,11 @@
   };
 
   try {
-  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-fetch.js');
+  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
   window.GH = mod.default;
   const gh = new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
+  await gh.load('gh-fetch.js');
+  await gh.load('gh-store.js');
   window.ViewRegistry = await gh.load('view-registry.js');
   await gh.load('alpineComponents/repo-assembled.js');
   await gh.load('alpineComponents/navigator-assembled.js');
