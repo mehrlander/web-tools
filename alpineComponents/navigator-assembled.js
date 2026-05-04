@@ -67,6 +67,10 @@ document.addEventListener('alpine:init', function() {
         this.$root.__navigator = this;
         this.$el.innerHTML = this.template;
         this.$nextTick(() => Alpine.initTree(this.$el));
+        this.$watch(
+          () => Alpine.store('browser').ref,
+          () => { if (this.gh && Alpine.store('browser').repo) this.reloadForRef(); }
+        );
       },
 
       get gh() {
@@ -105,6 +109,14 @@ document.addEventListener('alpine:init', function() {
         this.persist('database', label);
       },
 
+      async reloadForRef() {
+        this.gh.ref = Alpine.store('browser').ref;
+        const currentPath = this.path;
+        const active = Alpine.store('browser').activeFile?.path;
+        await this.load(currentPath, true);
+        if (active) await this.sel(active, true);
+      },
+
       async sel(p, silent) {
         try {
           const res = await this.gh.get(p);
@@ -121,6 +133,7 @@ document.addEventListener('alpine:init', function() {
         const store = Alpine.store('browser');
         const state = {
           repo: store.repo,
+          ref: store.ref || '',
           path: this.path,
           file: store.activeFile?.path || ''
         };

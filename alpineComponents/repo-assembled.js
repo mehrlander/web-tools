@@ -2,24 +2,74 @@ document.addEventListener('alpine:init', function() {
   Alpine.data('repo', function() {
     return {
       template: `
-        <div class="mb-4 flex items-center justify-between border-b border-base-200 pb-3">
-          <div class="flex items-baseline gap-2 text-xl font-bold font-mono">
-            <span class="text-base-content/70" x-text="owner||'Select'"></span>
-            <span class="text-base-content/30">/</span>
-            <details class="dropdown dropdown-bottom">
-              <summary class="hover:text-primary hover:underline decoration-2 underline-offset-4 cursor-pointer flex items-center gap-1">
-                <span x-text="name||'Repository...'"></span>
-                <i class="ph ph-caret-down text-xs opacity-50"></i>
-              </summary>
-              <ul class="dropdown-content z-10 menu p-2 shadow-lg bg-base-200 rounded-box w-64 max-h-96 overflow-y-auto mt-1 border border-base-300">
-                <template x-for="r in repos"><li><a @click="pick(r)" class="font-mono text-xs" x-text="(r.private?'🔒 ':'')+r.name"></a></li></template>
-              </ul>
-            </details>
+        <div class="mb-4 border-b border-base-200 pb-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-baseline gap-2 text-xl font-bold font-mono flex-wrap">
+              <span class="text-base-content/70" x-text="owner||'Select'"></span>
+              <span class="text-base-content/30">/</span>
+              <details class="dropdown dropdown-bottom">
+                <summary class="hover:text-primary hover:underline decoration-2 underline-offset-4 cursor-pointer flex items-center gap-1">
+                  <span x-text="name||'Repository...'"></span>
+                  <i class="ph ph-caret-down text-xs opacity-50"></i>
+                </summary>
+                <ul class="dropdown-content z-10 menu p-2 shadow-lg bg-base-200 rounded-box w-64 max-h-96 overflow-y-auto mt-1 border border-base-300">
+                  <template x-for="r in repos"><li><a @click="pick(r)" class="font-mono text-xs" x-text="(r.private?'🔒 ':'')+r.name"></a></li></template>
+                </ul>
+              </details>
+              <span class="text-base-content/30 text-sm" x-show="repo">@</span>
+              <details class="dropdown dropdown-bottom" x-show="repo" @toggle="if($event.target.open) loadBranches()">
+                <summary class="cursor-pointer flex items-center gap-1 text-sm hover:underline decoration-2 underline-offset-4"
+                  :class="offMain ? 'text-warning' : 'text-base-content/70'">
+                  <i class="ph" :class="offMain ? 'ph-git-branch' : 'ph-git-commit'"></i>
+                  <span x-text="ref||'main'"></span>
+                  <i class="ph ph-caret-down text-xs opacity-50"></i>
+                </summary>
+                <div class="dropdown-content z-10 p-3 shadow-lg bg-base-200 rounded-box w-80 mt-1 border border-base-300">
+                  <div class="text-xs font-bold mb-1.5 opacity-70">Switch ref (branch / tag / SHA)</div>
+                  <div class="flex gap-1.5 mb-2">
+                    <input type="text" x-model="refInput" placeholder="branch-name or sha or full URL"
+                      class="input input-xs input-bordered flex-1 font-mono text-xs"
+                      @keyup.enter="applyRefInput()">
+                    <button @click="applyRefInput()" :disabled="!refInput.trim()" class="btn btn-xs btn-primary">Go</button>
+                  </div>
+                  <div x-show="defaultRef && ref !== defaultRef" class="mb-2">
+                    <button @click="setRef(defaultRef)" class="btn btn-xs btn-ghost gap-1 w-full">
+                      <i class="ph ph-arrow-counter-clockwise"></i>
+                      Back to <span class="font-mono" x-text="defaultRef"></span>
+                    </button>
+                  </div>
+                  <div class="text-xs font-bold mb-1 opacity-70">Branches</div>
+                  <div x-show="branchesLoading" class="flex justify-center py-2">
+                    <span class="loading loading-dots loading-xs opacity-50"></span>
+                  </div>
+                  <div x-show="!branchesLoading" class="max-h-48 overflow-y-auto">
+                    <template x-for="b in branchList" :key="b.name">
+                      <a @click="setRef(b.name)" class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-xs font-mono"
+                        :class="b.name === ref ? 'bg-primary/10 text-primary font-bold' : ''">
+                        <i class="ph ph-git-branch text-xs opacity-50"></i>
+                        <span class="truncate" x-text="b.name"></span>
+                      </a>
+                    </template>
+                    <div x-show="!branchesLoading && !branchList.length" class="text-xs opacity-50 py-1">No branches loaded.</div>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <button @click="repoModal.showModal()" class="tooltip tooltip-left flex items-center gap-1 btn btn-ghost btn-sm" :data-tip="auth?'Authenticated: '+user:(tokenExpired?'Token expired':'Public only')">
+              <i class="ph text-xl" :class="auth?'ph-shield-check text-success':(tokenExpired?'ph-warning text-warning':'ph-globe text-base-content/50')"></i>
+              <span x-show="auth" class="text-xs text-base-content/50 hidden sm:inline" x-text="user"></span>
+            </button>
           </div>
-          <button @click="repoModal.showModal()" class="tooltip tooltip-left flex items-center gap-1 btn btn-ghost btn-sm" :data-tip="auth?'Authenticated: '+user:(tokenExpired?'Token expired':'Public only')">
-            <i class="ph text-xl" :class="auth?'ph-shield-check text-success':(tokenExpired?'ph-warning text-warning':'ph-globe text-base-content/50')"></i>
-            <span x-show="auth" class="text-xs text-base-content/50 hidden sm:inline" x-text="user"></span>
-          </button>
+          <div x-show="offMain" class="mt-2 alert alert-warning py-1.5 px-3 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-warning"></i>
+              <span>On <span class="font-mono font-bold" x-text="ref"></span>, not <span class="font-mono" x-text="defaultRef"></span>.</span>
+            </div>
+            <button @click="openCompare()" class="btn btn-xs btn-ghost gap-1">
+              <i class="ph ph-git-pull-request"></i>
+              Compare to <span class="font-mono" x-text="defaultRef"></span>
+            </button>
+          </div>
         </div>
 
         <dialog id="repoModal" class="modal" onclick="if(event.target===this)this.close()">
@@ -81,6 +131,12 @@ document.addEventListener('alpine:init', function() {
       user: '',
       tokenInput: '',
       tokenExpired: false,
+      ref: '',
+      defaultRef: '',
+      refInput: '',
+      branchList: [],
+      branchesLoading: false,
+      branchesLoaded: false,
 
       init() {
         this.$root.__repo = this;
@@ -91,12 +147,16 @@ document.addEventListener('alpine:init', function() {
       get gh() {
         return Alpine.store('browser').gh;
       },
+      get offMain() {
+        return !!(this.ref && this.defaultRef && this.ref !== this.defaultRef);
+      },
       get repoUrls() {
         const r = this.repo;
+        const ref = Alpine.store('browser').ref || 'main';
         return [
-          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r },
-          { l: 'jsDelivr CDN', i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '/' },
-          { l: 'Flat tree JSON', i: 'ph-tree-structure', u: 'https://data.jsdelivr.com/v1/packages/gh/' + r + '@main?structure=flat' }
+          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r + '/tree/' + ref },
+          { l: 'jsDelivr CDN', i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + '/' },
+          { l: 'Flat tree JSON', i: 'ph-tree-structure', u: 'https://data.jsdelivr.com/v1/packages/gh/' + r + '@' + ref + '?structure=flat' }
         ];
       },
 
@@ -148,19 +208,77 @@ document.addEventListener('alpine:init', function() {
         await this.setup(this.gh);
       },
 
-      async pick(r) {
+      async pick(r, opts = {}) {
         this.repo = r.full_name;
         this.owner = r.owner.login;
         this.name = r.name;
         this.repoObj = r;
+        this.defaultRef = r.default_branch || 'main';
+        this.ref = opts.ref || this.defaultRef;
+        this.branchList = [];
+        this.branchesLoaded = false;
         const gh = Alpine.store('browser').gh;
         gh.repo = r.full_name;
+        gh.ref = this.ref;
         Alpine.store('browser').repo = r.full_name;
         Alpine.store('browser').repoObj = r;
         Alpine.store('browser').activeFile = null;
+        Alpine.store('browser').ref = this.ref;
+        Alpine.store('browser').defaultRef = this.defaultRef;
         const navEl = document.getElementById('navigator');
         while(!navEl.__navigator) await new Promise(r => setTimeout(r, 50));
         navEl.__navigator.reset();
+      },
+
+      setRef(ref) {
+        if (!ref || ref === this.ref) return;
+        this.ref = ref;
+        const gh = Alpine.store('browser').gh;
+        if (gh) gh.ref = ref;
+        Alpine.store('browser').ref = ref;
+        Alpine.store('toast')('git-branch', 'ref: ' + ref, 'alert-info', 2000);
+        const store = Alpine.store('browser');
+        if (store.save) {
+          store.save({ repo: store.repo, ref, path: store.path || '', file: store.activeFile?.path || '' });
+        }
+      },
+
+      applyRefInput() {
+        const v = this.refInput.trim();
+        if (!v) return;
+        if (v.startsWith('http')) {
+          const gh = Alpine.store('browser').gh;
+          const parsed = gh && gh.parseUrl ? gh.parseUrl(v) : null;
+          if (parsed && parsed.repo === this.repo) {
+            this.setRef(parsed.ref || this.defaultRef);
+          } else if (parsed) {
+            Alpine.store('toast')('warning',
+              'URL points to ' + parsed.repo + ', current repo is ' + this.repo, 'alert-warning', 4000);
+          }
+        } else {
+          this.setRef(v);
+        }
+        this.refInput = '';
+      },
+
+      async loadBranches() {
+        if (this.branchesLoaded || this.branchesLoading) return;
+        this.branchesLoading = true;
+        try {
+          const list = await this.gh.branches();
+          this.branchList = list.map(b => ({ name: b.name, sha: b.commit?.sha }));
+          this.branchesLoaded = true;
+        } catch (e) {
+          Alpine.store('toast')('warning', 'Could not load branches: ' + (e.message || e), 'alert-error', 4000);
+        }
+        this.branchesLoading = false;
+      },
+
+      openCompare() {
+        const cmpEl = document.getElementById('compare');
+        if (cmpEl && cmpEl.__compare) {
+          cmpEl.__compare.openWith(this.defaultRef, this.ref);
+        }
       }
     };
   });

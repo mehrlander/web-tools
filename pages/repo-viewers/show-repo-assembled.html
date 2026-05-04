@@ -37,6 +37,7 @@
   await gh.load('alpineComponents/repo-assembled.js');
   await gh.load('alpineComponents/navigator-assembled.js');
   await gh.load('alpineComponents/viewer-assembled.js');
+  await gh.load('alpineComponents/compare-assembled.js');
   await gh.load('alpine-bundle.js');
   } catch (e) {
   console.error('boot:', e);
@@ -63,14 +64,17 @@
 
   <div id="navigator" x-data="navigator()" class="lg:col-span-1 flex flex-col gap-4"></div>
 
-  <div class="lg:col-span-3">
+  <div class="lg:col-span-3 flex flex-col gap-4">
+    <div>
     <button @click="ui.content=!ui.content" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
-    <i class="ph" :class="ui.content?'ph-caret-down':'ph-caret-right'"></i>Content
+      <i class="ph" :class="ui.content?'ph-caret-down':'ph-caret-right'"></i>Content
     </button>
     <div x-show="ui.content" x-collapse>
-
-    <div id="viewer" x-data="viewer()"></div>
+      <div id="viewer" x-data="viewer()"></div>
     </div>
+    </div>
+
+    <div id="compare" x-data="compare()"></div>
   </div>
   </div>
 </div>
@@ -134,7 +138,7 @@ function app(){ return {
     if (saved?.repo) {
     const target = repoEl.__repo.repos.find(r => r.full_name === saved.repo);
     if (target) {
-      await repoEl.__repo.pick(target);
+      await repoEl.__repo.pick(target, { ref: saved.ref || '' });
       const navEl = document.getElementById('navigator');
       if (await waitFor(() => navEl.__navigator) && saved.file) {
       const folder = saved.file.split('/').slice(0, -1).join('/');
