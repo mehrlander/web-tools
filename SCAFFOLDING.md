@@ -4,13 +4,15 @@ The repo currently has two tiers of pages:
 
 - **Simple pages** (`pages/index.html`, `compression-helper.html`,
   `bookmarklets-story.html`, `quick-dump.html`,
-  `repo-viewers/repo-drag.html`, `table-compress*.html`) — each is
+  `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
   then an inline `<script>` with the page's Alpine components. No shared
   scaffolding at all.
-- **Scaffolded pages** (`repo-viewers/show-repo.html`,
-  `repo-viewers/demo-viewer.html`, `demo-spacex.html`) — use `gh-fetch.js`
-  + `alpine-bundle.js` to load reusable components off CDN at runtime.
+- **Scaffolded pages** (`show-repo/show-repo.html`,
+  `show-repo/demo-viewer.html`, `demo-spacex.html`, `demo-viewer-2.html`) —
+  use `gh-api.js` (with `gh-fetch.js` and optionally `gh-store.js` loaded as
+  augmentations) + `alpine-bundle.js` to load reusable components off CDN
+  at runtime.
 
 This doc is about the second tier — the loader contract those pages depend
 on, and what can and can't be added to it without breaking it.
@@ -23,9 +25,11 @@ Every scaffolded page's `<head>` looks like this, with minor variation:
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href=".../daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script type="module">
-  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-fetch.js');
+  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
   window.GH = mod.default;
   const gh = new window.GH({ token: TOKEN, repo: 'mehrlander/web-tools' });
+  await gh.load('gh-fetch.js');                   // 0) augment GH with read methods
+  // await gh.load('gh-store.js');                //    optional: write methods
 
   await gh.load('alpineComponents/repo.js');      // 1) register Alpine.data('repo', ...)
   await gh.load('alpineComponents/navigator.js'); // 2) register Alpine.data('navigator', ...)
@@ -41,9 +45,12 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
 
 ### What each piece contributes
 
-- `gh-fetch.js` — ESM default export, `class GH`. Imported via
+- `gh-api.js` — ESM default export, `class GH`. Imported via
   `<script type="module">`, not `gh.load` (bootstrap: it *is* the loader).
-  Provides `ls / get / req / history / repos / parseUrl / ago / load`.
+  Minimal cached root: provides `req / get / parseUrl / ago / load` and the
+  request/cache plumbing. Read methods (`ls / repos / history / …`) live in
+  `gh-fetch.js`; write methods live in `gh-store.js`. Both are loaded via
+  `gh.load(...)` and patch `GH.prototype` in place.
 - `alpine-bundle.js` — IIFE. Inside an `alpine:init` handler it creates
   `Alpine.store('browser')`, `Alpine.store('toasts')`, and magics `$clip`,
   `$paste`, `$toast`. After registering the listener it injects two
@@ -60,7 +67,7 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
 
 ## The load mechanism (the fragile bit)
 
-`GH.prototype.load`, from `gh-fetch.js:8-30`:
+`GH.prototype.load`, from `gh-api.js`:
 
 ```js
 const clean = text
@@ -107,8 +114,10 @@ via native `import()` instead.
 These hold in the current scaffolded pages and must not be broken by
 anything we add:
 
-1. **`gh-fetch.js` is imported first**, via native `import()`. Nothing else
-   has dependencies.
+1. **`gh-api.js` is imported first**, via native `import()`. Nothing else
+   has dependencies. `gh-fetch.js` / `gh-store.js` are then loaded through
+   `gh.load(...)`; they require `window.GH` to already exist and will throw
+   if pulled directly from a `<script type="module">`.
 2. **Any `alpine:init` handler must be registered before Alpine boots.**
    Concretely: every `gh.load('alpineComponents/*.js')` call must happen
    *before* `gh.load('alpine-bundle.js')`. Alpine doesn't start until
@@ -120,7 +129,7 @@ anything we add:
    exist, and only then does Alpine walk the DOM and call `init()` on each
    `x-data` component. By that point `Alpine.store('browser')` is defined.
 4. **`x-init="init()"` on the body still races the module script.** That's
-   why `repo-viewers/show-repo.html`'s `app.init()` opens with
+   why `show-repo/show-repo.html`'s `app.init()` opens with
    `while(!window.GH || !window.ViewRegistry) await new Promise(r => setTimeout(r, 50));`.
    Alpine can reach `init()` before the module script's final
    `await gh.load('view-registry.js')` resolves, because the two tasks
@@ -129,7 +138,7 @@ anything we add:
    `init() { this.$root.__navigator = this }` in `navigator.js`, and other
    pages do `while(!navEl.__navigator) await new Promise(r => setTimeout(r, 50));`
    to wait for it. This is the current idiom for "have I mounted yet?".
-6. **Token sentinel `🎟️GitHubToken`.** Both `gh-fetch.js` (in `headers`) and
+6. **Token sentinel `🎟️GitHubToken`.** Both `gh-api.js` (in `headers`) and
    pages look for that exact string and replace it (or fall back to
    `localStorage.ghToken`). Anything we add that touches tokens must use
    the same sentinel.
@@ -179,18 +188,22 @@ Rules:
 
 Cost: adds one line per page; fine for a handful of additions.
 
-### Option B — make `gh-fetch.js` richer
+### Option B — extend `gh-api.js` (or its augmentations)
 
 Best for: things every scaffolded page wants (retry/backoff for rate
 limits, a batch loader, a tiny pub-sub, a token-picker UI helper, a
 `persist(key, data)` helper that saves to the user's home repo the way
-`repo-viewers/show-repo.html` currently does).
+`show-repo/show-repo.html` currently does).
 
 Rules:
-- `gh-fetch.js` is already an ESM class with a default export. Adding
-  methods is cheap.
-- Keep it import-only (no side effects at module level). The page decides
-  when to instantiate.
+- `gh-api.js` is the ESM root (default export `class GH`); `gh-fetch.js`
+  and `gh-store.js` are augmentations loaded via `gh.load(...)` that patch
+  `GH.prototype`. Adding methods to either is cheap.
+- Put read-only / cached helpers in `gh-fetch.js`; put mutation helpers in
+  `gh-store.js`; only put true plumbing (request, cache, parseUrl, load)
+  in `gh-api.js`.
+- Keep all three import-only / side-effect-free at module level. The page
+  decides when to instantiate and which augmentations to load.
 - Anything that reaches into Alpine (stores, magics) does *not* belong
   here — that's alpine-bundle's job.
 
@@ -215,9 +228,11 @@ Rules:
   for side-effect-only scripts meant for `gh.load`, or similar.
 
 Current precedent: `view-registry.js` is a plain-script file loaded via
-`gh.load` that returns the registry object. `gh-fetch.js` is native ESM.
-Pick the style deliberately; the two can't be interchanged freely because
-of the `new Function()` constraint.
+`gh.load` that returns the registry object. `gh-api.js` is native ESM.
+`gh-fetch.js` and `gh-store.js` are plain-script augmentations loaded via
+`gh.load` that mutate `GH.prototype`. Pick the style deliberately; ESM
+and `gh.load`-style files can't be interchanged freely because of the
+`new Function()` constraint.
 
 ### Option D — step outside the pattern for one-off pages
 
@@ -286,9 +301,10 @@ If any "No" above is a hard requirement, use a native `import()` instead
 of `gh.load()` for that file. Mixing is fine: a page can do
 
 ```js
-import GH from '.../gh-fetch.js';
+import GH from '.../gh-api.js';
 const { text } = await import('.../compression/text.js');
 const gh = new GH({ token, repo });
+await gh.load('gh-fetch.js');
 await gh.load('alpineComponents/foo.js');
 await gh.load('alpine-bundle.js');
 ```
