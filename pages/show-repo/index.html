@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>repo viewers</title>
+<title>show-repo</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
@@ -13,14 +13,15 @@
 <div class="max-w-2xl mx-auto px-4 py-10">
 
   <div class="flex items-baseline justify-between mb-1">
-    <h1 class="text-2xl font-bold tracking-tight">repo viewers</h1>
+    <h1 class="text-2xl font-bold tracking-tight">show-repo</h1>
     <a href="../index.html" class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1 transition-colors">
       <i class="ph ph-arrow-left"></i> web-tools
     </a>
   </div>
   <p class="text-base-content/50 text-sm mb-8">
     Pages that browse a GitHub repository's files. They share the
-    <code class="text-xs">gh-fetch.js</code> loader and the Alpine
+    <code class="text-xs">gh-api.js</code> loader (augmented with
+    <code class="text-xs">gh-fetch.js</code>) and the Alpine
     <code class="text-xs">repo</code>/<code class="text-xs">navigator</code>/<code class="text-xs">viewer</code> components.
   </p>
 
@@ -29,23 +30,10 @@
     <li class="py-3 flex items-start gap-3 group">
       <i class="ph ph-tree-structure text-base-content/30 text-lg mt-0.5 shrink-0 group-hover:text-primary transition-colors"></i>
       <div class="min-w-0">
-        <a href="show-repo-assembled.html" class="font-semibold text-base-content hover:text-primary transition-colors text-sm">show-repo-assembled</a>
-        <span class="block text-xs text-base-content/40 mt-0.5">Leading-edge GH browser. Uses the <code>*-assembled.js</code> components and a boot-error fallback.</span>
-      </div>
-      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/repo-viewers/show-repo-assembled.html"
-         class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View on GitHub" target="_blank">
-        <i class="ph ph-code text-sm"></i>
-      </a>
-    </li>
-
-    <li class="py-3 flex items-start gap-3 group">
-      <i class="ph ph-folder-open text-base-content/30 text-lg mt-0.5 shrink-0 group-hover:text-primary transition-colors"></i>
-      <div class="min-w-0">
         <a href="show-repo.html" class="font-semibold text-base-content hover:text-primary transition-colors text-sm">show-repo</a>
-        <span class="block text-xs text-base-content/40 mt-0.5">Original GH browser, on the older non-assembled <code>repo.js</code>/<code>navigator.js</code>/<code>viewer.js</code>.</span>
+        <span class="block text-xs text-base-content/40 mt-0.5">GH browser. Uses the <code>*-assembled.js</code> components and a boot-error fallback.</span>
       </div>
-      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/repo-viewers/show-repo.html"
+      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
          title="View on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
@@ -58,7 +46,7 @@
         <a href="repo-drag.html" class="font-semibold text-base-content hover:text-primary transition-colors text-sm">repo-drag</a>
         <span class="block text-xs text-base-content/40 mt-0.5">Drag-and-drop repo file viewer.</span>
       </div>
-      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/repo-viewers/repo-drag.html"
+      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
          title="View on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
@@ -71,7 +59,7 @@
         <a href="demo-viewer.html" class="font-semibold text-base-content hover:text-primary transition-colors text-sm">demo-viewer</a>
         <span class="block text-xs text-base-content/40 mt-0.5">Smallest demo of <code>viewer-assembled.js</code>, picking files from this repo.</span>
       </div>
-      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/repo-viewers/demo-viewer.html"
+      <a href="https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
          title="View on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
