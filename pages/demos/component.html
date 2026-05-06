@@ -6,9 +6,50 @@
 <title>component demo</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/component.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/messaging.js"></script>
-<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<script type="module">
+  try {
+    const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
+    window.GH = GH;
+    const gh = new GH({ repo: 'mehrlander/web-tools' });
+    await gh.load('gh-auth.js');
+    await gh.load('kits/component.js');
+    await gh.load('kits/messaging.js');
+
+    const { defineComponent } = window.component;
+
+    defineComponent('demo-counter',
+      () => `<button class="btn btn-sm" @click="inc()" x-text="\`Count: \${count}\`"></button>`,
+      () => ({ count: 0, inc() { this.count++; } })
+    );
+
+    defineComponent('demo-greeting',
+      attrs => `<div>Hello, <b x-text="name"></b>! (passed start=${attrs.start ?? 0})</div>`,
+      attrs => ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
+    );
+
+    defineComponent('demo-knob',
+      () => `<input type="range" min="0" max="100" x-model.number="v" class="range range-sm range-primary">`,
+      () => ({
+        v: 50,
+        onMount() { this.$watch('v', n => window.messaging.publish('demo.knob', 'change', n)); }
+      })
+    );
+
+    defineComponent('demo-gauge',
+      () => `<div class="text-3xl font-bold" x-text="n"></div>`,
+      () => ({
+        n: 50,
+        off: null,
+        onMount() { this.off = window.messaging.subscribe('demo.knob', (_, n) => this.n = n); }
+      })
+    );
+
+    await gh.load('alpine-bundle.js');
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerText = 'Boot failed: ' + (e?.message || e);
+  }
+</script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
@@ -110,35 +151,5 @@ defineComponent('demo-gauge',
 
 </div>
 
-<script>
-const { defineComponent } = window.component;
-
-defineComponent('demo-counter',
-  () => `<button class="btn btn-sm" @click="inc()" x-text="\`Count: \${count}\`"></button>`,
-  () => ({ count: 0, inc() { this.count++; } })
-);
-
-defineComponent('demo-greeting',
-  attrs => `<div>Hello, <b x-text="name"></b>! (passed start=${attrs.start ?? 0})</div>`,
-  attrs => ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
-);
-
-defineComponent('demo-knob',
-  () => `<input type="range" min="0" max="100" x-model.number="v" class="range range-sm range-primary">`,
-  () => ({
-    v: 50,
-    onMount() { this.$watch('v', n => window.messaging.publish('demo.knob', 'change', n)); }
-  })
-);
-
-defineComponent('demo-gauge',
-  () => `<div class="text-3xl font-bold" x-text="n"></div>`,
-  () => ({
-    n: 50,
-    off: null,
-    onMount() { this.off = window.messaging.subscribe('demo.knob', (_, n) => this.n = n); }
-  })
-);
-</script>
 </body>
 </html>
