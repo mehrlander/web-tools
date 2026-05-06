@@ -6,8 +6,19 @@
 <title>fills demo</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/fills.js"></script>
-<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<script type="module">
+  try {
+    const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
+    window.GH = GH;
+    const gh = new GH({ repo: 'mehrlander/web-tools' });
+    await gh.load('gh-auth.js');
+    await gh.load('kits/fills.js');
+    await gh.load('alpine-bundle.js');
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerText = 'Boot failed: ' + (e?.message || e);
+  }
+</script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 

@@ -9,10 +9,11 @@ The repo currently has two tiers of pages:
   then an inline `<script>` with the page's Alpine components. No shared
   scaffolding at all.
 - **Scaffolded pages** (`show-repo/show-repo.html`,
-  `show-repo/demo-viewer.html`, `demo-spacex.html`) —
-  use `gh-api.js` (with `gh-fetch.js` and optionally `gh-store.js` loaded as
-  augmentations) + `alpine-bundle.js` to load reusable components off CDN
-  at runtime.
+  `show-repo/demo-viewer.html`, `demo-spacex.html`,
+  `pages/demos/{fills,persistence,messaging,io,component}.html`) —
+  use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
+  as augmentations) + `alpine-bundle.js` to load reusable components off
+  CDN at runtime.
 
 This doc is about the second tier — the loader contract those pages depend
 on, and what can and can't be added to it without breaking it.
@@ -48,8 +49,17 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
   `<script type="module">`, not `gh.load` (bootstrap: it *is* the loader).
   Minimal cached root: provides `req / get / parseUrl / ago / load` and the
   request/cache plumbing. Read methods (`ls / repos / history / …`) live in
-  `gh-fetch.js`; write methods live in `gh-store.js`. Both are loaded via
-  `gh.load(...)` and patch `GH.prototype` in place.
+  `gh-fetch.js`; write methods live in `gh-store.js`; token resolution
+  lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
+  `GH.prototype` in place.
+- `gh-auth.js` — optional augmentation. Patches the `headers` getter so
+  that any request with a missing or sentinel-bearing token (`🎟️GitHubToken`)
+  lazily resolves from `localStorage.ghToken`. Lets a page do
+  `new GH({ repo })` without plumbing tokens through the constructor while
+  still preserving the iOS-Shortcut data-URL substitution path. Also
+  exposes `window.ghAuth.{resolve,save,clear}` for explicit token
+  management. Currently used by `pages/demos/*.html`; experimental, may
+  fold into `gh-api.js` proper later.
 - `alpine-bundle.js` — IIFE. Inside an `alpine:init` handler it creates
   `Alpine.store('browser')`, `Alpine.store('toasts')`, and magics `$clip`,
   `$paste`, `$toast`. After registering the listener it injects two
