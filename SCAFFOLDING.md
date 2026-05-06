@@ -9,7 +9,7 @@ The repo currently has two tiers of pages:
   then an inline `<script>` with the page's Alpine components. No shared
   scaffolding at all.
 - **Scaffolded pages** (`show-repo/show-repo.html`,
-  `show-repo/demo-viewer.html`, `demo-spacex.html`, `demo-viewer-2.html`) —
+  `show-repo/demo-viewer.html`, `demo-spacex.html`) —
   use `gh-api.js` (with `gh-fetch.js` and optionally `gh-store.js` loaded as
   augmentations) + `alpine-bundle.js` to load reusable components off CDN
   at runtime.
@@ -33,9 +33,8 @@ Every scaffolded page's `<head>` looks like this, with minor variation:
 
   await gh.load('alpineComponents/repo.js');      // 1) register Alpine.data('repo', ...)
   await gh.load('alpineComponents/navigator.js'); // 2) register Alpine.data('navigator', ...)
-  await gh.load('alpineComponents/viewer.js');    // 3) register Alpine.data('viewer', ...)
+  await gh.load('alpineComponents/viewer-assembled.js'); // 3) register Alpine.data('viewer', ...)
   await gh.load('alpine-bundle.js');              // 4) register magics + boot Alpine
-  window.ViewRegistry = await gh.load('view-registry.js'); // 5) stash registry
 </script>
 ```
 
@@ -61,9 +60,9 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
   with `Alpine.data('name', fn)` inside. They reach across to other
   components via `Alpine.store('browser')` and via per-element back-pointers
   (`this.$root.__navigator = this`).
-- `view-registry.js` — a `const ViewRegistry = { … }` object, then a literal
-  `return ViewRegistry;` at the top level. Used by pages as
-  `window.ViewRegistry = await gh.load('view-registry.js')`.
+- The view registry (Tabulator/Prism/Marked render modes) lives inside
+  `alpineComponents/viewer-assembled.js` as a module-private constant.
+  Pages don't load it separately.
 
 ## The load mechanism (the fragile bit)
 
@@ -92,9 +91,8 @@ Unpacked, this is the contract any file fed through `gh.load()` must honor:
    matches, `gh.load()` returns that named binding. Multiple top-level
    declarations → only the first is returned.
 3. **If no `class Name` / `function Name` match, the file must `return X`
-   explicitly** if the caller expects a value. This is how `view-registry.js`
-   works — it ends with `return ViewRegistry;` and has a load-bearing
-   comment saying so.
+   explicitly** if the caller expects a value. The pattern is to end the
+   file with a literal `return SomeObject;`.
 4. **Side-effect files return `undefined`.** This is the normal case for
    files that just want to run `document.addEventListener('alpine:init', …)`
    or `customElements.define(…)`. The caller uses them for side effects and
@@ -130,10 +128,10 @@ anything we add:
    `x-data` component. By that point `Alpine.store('browser')` is defined.
 4. **`x-init="init()"` on the body still races the module script.** That's
    why `show-repo/show-repo.html`'s `app.init()` opens with
-   `while(!window.GH || !window.ViewRegistry) await new Promise(r => setTimeout(r, 50));`.
+   `while(!window.GH) await new Promise(r => setTimeout(r, 50));`.
    Alpine can reach `init()` before the module script's final
-   `await gh.load('view-registry.js')` resolves, because the two tasks
-   (module script vs. Alpine boot) aren't coordinated.
+   `gh.load(...)` resolves, because the two tasks (module script vs.
+   Alpine boot) aren't coordinated.
 5. **Component-to-component handles rely on element back-pointers.**
    `init() { this.$root.__navigator = this }` in `navigator.js`, and other
    pages do `while(!navEl.__navigator) await new Promise(r => setTimeout(r, 50));`
@@ -160,7 +158,7 @@ A short list of footguns to avoid when adding new files:
 - **Declaring top-level `const X = …` and expecting `gh.load()` to return
   it.** It won't — `const` is local to the eval'd function body. Either
   assign to `window.X`, use `class X {}`, or append `return X;` at the
-  bottom (see `view-registry.js`).
+  bottom.
 - **Forgetting the `🎟️GitHubToken` sentinel.** Any new file that wants a
   token should look for that exact sentinel and fall back via
   `try { localStorage.getItem('ghToken') } catch {}` to stay data-URL-safe.
@@ -213,8 +211,8 @@ Good rule of thumb: only add a method if at least two pages would use it.
 ### Option C — add a third scaffolding file
 
 Best for: a concern that is not "GitHub access" and not "Alpine init" —
-e.g., a view-registry expansion, a component loader convention, a
-compression kit, a persistent storage helper.
+e.g., a component loader convention, a compression kit, a persistent
+storage helper.
 
 Rules:
 - Decide up front whether it's ESM (loaded via native `import()`) or
@@ -227,12 +225,12 @@ Rules:
 - Name it clearly: `foo-kit.js` for ESM with exports, `foo-register.js`
   for side-effect-only scripts meant for `gh.load`, or similar.
 
-Current precedent: `view-registry.js` is a plain-script file loaded via
-`gh.load` that returns the registry object. `gh-api.js` is native ESM.
-`gh-fetch.js` and `gh-store.js` are plain-script augmentations loaded via
-`gh.load` that mutate `GH.prototype`. Pick the style deliberately; ESM
-and `gh.load`-style files can't be interchanged freely because of the
-`new Function()` constraint.
+Current precedent: `gh-api.js` is native ESM. `gh-fetch.js` and
+`gh-store.js` are plain-script augmentations loaded via `gh.load` that
+mutate `GH.prototype`. `alpineComponents/*.js` are plain-script
+side-effect files loaded via `gh.load`. Pick the style deliberately;
+ESM and `gh.load`-style files can't be interchanged freely because of
+the `new Function()` constraint.
 
 ### Option D — step outside the pattern for one-off pages
 
@@ -260,7 +258,8 @@ Mapping the options to what Alp offered:
 
 - **Tabulator helpers (`kits/tb.js` — `downloadJson`, `downloadZip`)** —
   same thing, ESM helpers. Either **Option C** or inline into
-  `view-registry.js` since that's where Tabulator is used today.
+  `alpineComponents/viewer-assembled.js` since that's where Tabulator
+  is used today.
 
 - **Dexie key-value wrapper (`kits/dexie.js`)** — ESM, fits **Option C**.
   Useful enough to live in its own `storage.js` or similar and be imported

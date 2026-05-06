@@ -35,7 +35,6 @@
   const gh = new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
   await gh.load('gh-fetch.js');
   await gh.load('gh-store.js');
-  window.ViewRegistry = await gh.load('view-registry.js');
   await gh.load('alpineComponents/repo-assembled.js');
   await gh.load('alpineComponents/navigator-assembled.js');
   await gh.load('alpineComponents/viewer-assembled.js');
@@ -110,7 +109,7 @@ function app(){ return {
   stateSha: null,
 
   async init(){
-  const ready = await waitFor(() => window.GH && window.ViewRegistry);
+  const ready = await waitFor(() => window.GH);
   if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
   try {
     const gh = new window.GH({ token: window.TOKEN });

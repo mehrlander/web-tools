@@ -8,8 +8,7 @@ Themed logic libraries loaded via `gh.load`. Each kit is a plain script
 A **kit** is the third category of file in this repo, alongside:
 
 - **Root-level scaffolding** — `gh-fetch.js`, `alpine-bundle.js`,
-  `view-registry.js`, `page-toggle.js`, `beam-in.js`. One-of-a-kind
-  singletons.
+  `page-toggle.js`, `beam-in.js`. One-of-a-kind singletons.
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
 - **`kits/*.js`** — non-UI logic libraries that register a namespace on
