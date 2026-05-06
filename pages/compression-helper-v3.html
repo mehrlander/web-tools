@@ -9,18 +9,42 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  v3: same UI as v2, but the two compression components are registered as
-  Alpine.data() factories in alpineComponents/ instead of being defined
-  inline as custom elements via kits/component.js. The remaining kits
-  (compression, fills, persistence, messaging) are still used.
+  v3: same UI as v2, but bootstrapped show-repo style. We import gh-api.js
+  once via dynamic ES-module import, then pull every other piece from this
+  repo through gh.load(). Alpine itself is appended last so the component
+  registrations run before alpine:init fires.
+
+  The bootstrap URL is branch-pinned while this lives on a feature branch
+  so jsdelivr serves the post-cleanup gh-api.js. Drop the @<branch> suffix
+  once this is merged to main.
 -->
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/compression.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/fills.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/persistence.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/kits/messaging.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/alpineComponents/compress-output-assembled.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/mehrlander/web-tools/alpineComponents/compress-input-assembled.js"></script>
-<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<script type="module">
+  const REPO   = 'mehrlander/web-tools';
+  const BRANCH = 'claude/update-compression-helpers-L7M4x';
+  const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
+
+  try {
+    const mod = await import(BOOT);
+    window.GH = mod.default;
+    const gh = new window.GH({ repo: REPO, ref: BRANCH });
+
+    await gh.load('kits/compression.js');
+    await gh.load('kits/fills.js');
+    await gh.load('kits/persistence.js');
+    await gh.load('kits/messaging.js');
+    await gh.load('alpineComponents/compress-output-assembled.js');
+    await gh.load('alpineComponents/compress-input-assembled.js');
+
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/alpinejs/dist/cdn.min.js';
+    s.defer = true;
+    document.head.appendChild(s);
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerHTML =
+      `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
+  }
+</script>
 </head>
 <body class="h-dvh font-mono text-sm">
 
@@ -28,19 +52,23 @@
      :class="resizing && 'select-none cursor-ns-resize'"
      @mouseup.window="resizing = false"
      @mousemove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
-     x-effect="$refs.output.style.height = outHeight + 'px'">
+     x-effect="$refs.output && ($refs.output.style.height = outHeight + 'px')">
 
   <div class="flex items-center gap-2 mb-4">
-    <h1 class="text-xl">Compression Helper <span class="text-xs opacity-60">(v3 — assembled components)</span></h1>
+    <h1 class="text-xl">Compression Helper <span class="text-xs opacity-60">(v3 — repo-loaded)</span></h1>
     <a href="compression-helper-v2.html" class="text-xs opacity-50 hover:opacity-100 ml-auto">← v2</a>
   </div>
 
-  <div x-data="compressOutput()" x-ref="output" class="block relative overflow-hidden flex-none mb-1"></div>
+  <div x-ref="output" class="relative overflow-hidden flex-none mb-1">
+    <div x-data="compressOutput()"></div>
+  </div>
 
   <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none"
        @mousedown.prevent="resizing = true; startY = $event.clientY; startH = outHeight"></div>
 
-  <div x-data="compressInput()" class="block relative overflow-hidden flex-1 min-h-0 mt-1"></div>
+  <div class="relative overflow-hidden flex-1 min-h-0 mt-1">
+    <div x-data="compressInput()"></div>
+  </div>
 </div>
 
 </body>
