@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Literate Solo Editor</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-200 min-h-screen w-full flex flex-col text-base-content font-mono text-sm overflow-hidden">
+
+  <header class="flex items-center justify-between px-6 py-3 bg-base-100 border-b border-base-300 shadow-sm z-50">
+    <div class="flex items-center gap-4">
+      <h1 class="text-lg font-bold tracking-tight">Literate<span class="text-primary opacity-60">Solo</span></h1>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 lg:p-8 flex flex-col items-center justify-start overflow-hidden">
+    <section x-data="soloEditor()" class="w-full max-w-5xl bg-base-100 rounded-xl overflow-hidden shadow-2xl border border-base-300 flex flex-col h-[80vh]">
+      
+      <div class="p-3 border-b border-base-300 bg-base-100 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="tabs tabs-box tabs-sm font-bold uppercase text-[10px] tracking-widest bg-base-200 p-1 rounded-lg">
+            <button class="tab" :class="activeTab === 'html' ? 'tab-active' : ''" @click="activeTab = 'html'">HTML</button>
+            <button class="tab" :class="activeTab === 'javascript' ? 'tab-active' : ''" @click="activeTab = 'javascript'">JS</button>
+          </div>
+          
+          <div class="h-4 w-px bg-base-300 mx-1"></div>
+          
+          <button @click="runCode" class="btn btn-sm btn-primary gap-2">
+            <i class="ph-bold ph-play"></i> Run
+          </button>
+          
+          <button x-show="activeTab === 'html'" @click="openPreview" class="btn btn-sm btn-ghost gap-2">
+            <i class="ph-bold ph-browser"></i> Preview
+          </button>
+        </div>
+        
+        <button @click="showConsole = !showConsole" 
+                class="btn btn-sm btn-ghost" 
+                :class="showConsole ? 'text-primary' : 'opacity-50'">
+          <i class="ph-fill ph-terminal-window text-lg"></i>
+          <span x-text="showConsole ? 'Hide Console' : 'Show Console'"></span>
+        </button>
+      </div>
+
+      <div class="flex-1 flex flex-col relative min-h-0 bg-base-100">
+        
+        <div x-show="activeTab === 'html'" x-ref="htmlEditor" class="absolute inset-0 overflow-hidden text-[14px] [&_.cm-editor]:h-full [&_.cm-editor]:outline-none [&_.cm-scroller]:overflow-auto [&_.cm-gutters]:bg-base-200/30 [&_.cm-gutters]:border-none"></div>
+        <div x-show="activeTab === 'javascript'" x-ref="jsEditor" class="absolute inset-0 overflow-hidden text-[14px] [&_.cm-editor]:h-full [&_.cm-editor]:outline-none [&_.cm-scroller]:overflow-auto [&_.cm-gutters]:bg-base-200/30 [&_.cm-gutters]:border-none"></div>
+
+        <div x-show="showConsole" 
+             class="absolute bottom-0 left-0 right-0 flex flex-col bg-[#0d1117] text-slate-300 border-t border-white/10 z-20"
+             :class="consoleExpanded ? 'h-1/2' : 'h-32'">
+          
+          <div class="bg-black/40 px-4 py-1.5 flex justify-between items-center shrink-0 cursor-pointer select-none" @click="consoleExpanded = !consoleExpanded">
+            <span class="text-[10px] font-bold uppercase tracking-widest opacity-60">Console</span>
+            <div class="flex items-center gap-3">
+              <button @click.stop="logs = []" class="text-[10px] uppercase font-bold hover:text-white transition-colors">Clear</button>
+              <i class="ph-bold" :class="consoleExpanded ? 'ph-caret-double-down' : 'ph-caret-double-up'"></i>
+            </div>
+          </div>
+
+          <div x-ref="consoleBody" class="p-4 overflow-y-auto flex-1 font-mono text-xs space-y-1">
+            <template x-for="(log, i) in logs" :key="i">
+              <div :class="{
+                'text-red-400': log.method === 'error', 
+                'text-yellow-400': log.method === 'warn', 
+                'text-slate-300': log.method === 'log'
+              }">
+                <span class="opacity-50 mr-2" x-text="'>'"></span><span x-text="log.text"></span>
+              </div>
+            </template>
+            <div x-show="logs.length === 0" class="opacity-30 italic">No output...</div>
+          </div>
+        </div>
+      </div>
+      
+      <iframe x-ref="hiddenRunner" class="hidden"></iframe>
+    </section>
+  </main>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('soloEditor', () => ({
+        id: Math.random().toString(36).substring(2, 9),
+        activeTab: 'html',
+        showConsole: true,
+        consoleExpanded: false,
+        logs: [],
+        views: { html: null, javascript: null },
+        
+        defaultCode: {
+          html: "<div class=\"p-10 text-center\">\n  <h1 class=\"text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-violet-500\">Hello World</h1>\n  <p class=\"mt-4\">This is a preview window test.</p>\n  <button class=\"btn btn-secondary mt-4\" onclick=\"pingConsole()\">Click Me</button>\n</div>",
+          javascript: "console.log('Environment initialized.');\n\nfunction pingConsole() {\n  console.warn('Button clicked! Interaction registered.');\n}"
+        },
+
+        async init() {
+          const [
+            { EditorView, basicSetup },
+            { EditorState },
+            { javascript },
+            { html: htmlLang }
+          ] = await Promise.all([
+            import("https://esm.sh/codemirror"),
+            import("https://esm.sh/@codemirror/state"),
+            import("https://esm.sh/@codemirror/lang-javascript"),
+            import("https://esm.sh/@codemirror/lang-html")
+          ]);
+
+          this.views.html = new EditorView({
+            state: EditorState.create({ doc: this.defaultCode.html, extensions: [basicSetup, htmlLang()] }),
+            parent: this.$refs.htmlEditor
+          });
+
+          this.views.javascript = new EditorView({
+            state: EditorState.create({ doc: this.defaultCode.javascript, extensions: [basicSetup, javascript()] }),
+            parent: this.$refs.jsEditor
+          });
+
+          window.addEventListener('message', (e) => {
+            if (e.data?.demoId === this.id && e.data?.type === 'console') {
+              this.logs.push({ method: e.data.method, text: e.data.text });
+              this.$nextTick(() => {
+                this.$refs.consoleBody.scrollTop = this.$refs.consoleBody.scrollHeight;
+              });
+            }
+          });
+        },
+
+        getRunnerHtml() {
+          const htmlCode = this.views.html.state.doc.toString();
+          const jsCode = this.views.javascript.state.doc.toString();
+
+          return `
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"><\/script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script>
+    ['log', 'warn', 'error'].forEach(method => {
+      const original = console[method];
+      console[method] = (...args) => {
+        const text = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        window.parent.postMessage({ demoId: '${this.id}', type: 'console', method, text }, '*');
+        original.apply(console, args);
+      };
+    });
+    window.addEventListener('error', (e) => console.error(e.message));
+  <\/script>
+</head>
+<body class="p-4 bg-transparent text-base-content font-sans">
+  ${htmlCode}
+  <script>${jsCode}<\/script>
+</body>
+</html>`;
+        },
+
+        runCode() {
+          const blobHtml = this.getRunnerHtml();
+          const url = URL.createObjectURL(new Blob([blobHtml], { type: 'text/html' }));
+          this.$refs.hiddenRunner.src = url;
+        },
+
+        openPreview() {
+          const blobHtml = this.getRunnerHtml();
+          const url = URL.createObjectURL(new Blob([blobHtml], { type: 'text/html' }));
+          window.open(url, '_blank', 'width=800,height=600');
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
