@@ -23,10 +23,7 @@ export default class GH {
       .replace(/export\s+default\s+/g, '')
       .replace(/export\s+/g, '');
 
-    const match = clean.match(/(?:class|function)\s+(\w+)/);
-    const name = match ? match[1] : null;
-    const body = name ? `${clean}; return ${name};` : clean;
-    return new Function(body)();
+    new Function(clean)();
   }
 
   get headers() {
