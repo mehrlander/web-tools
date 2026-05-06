@@ -12,7 +12,6 @@
   const gh = new window.GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-fetch.js');
 
-  window.ViewRegistry = await gh.load('view-registry.js');
   await gh.load('alpineComponents/viewer-assembled.js');
   await gh.load('alpine-bundle.js');
 </script>
