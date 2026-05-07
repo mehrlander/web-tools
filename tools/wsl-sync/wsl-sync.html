@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSL Sync</title>
+    <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/combine/npm/jquery,npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/tabulator-tables"></script>
+</head>
+<body class="h-screen flex flex-col bg-base-100 overflow-hidden text-[16px]">
+
+<div id="sync-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-base-100 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 border border-base-300">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <div class="text-center">
+            <div class="font-black text-2xl tracking-tighter uppercase" id="sync-msg">Processing</div>
+            <div class="font-mono text-sm opacity-60 mt-1" id="sync-count"></div>
+        </div>
+    </div>
+</div>
+
+<div id="paste-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-base-100 rounded-2xl shadow-2xl border border-base-300 p-6 max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col gap-4">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-black text-lg tracking-tight">Paste-mode Sync (<span id="paste-mode-label"></span>)</div>
+                <div class="text-xs text-base-content/60 mt-1 max-w-2xl">
+                    Browsers block direct fetches from this page to <code>wslwebservices.leg.wa.gov</code> by CORS. Open that host in a new tab, run the snippet below in DevTools console (it will copy the response to your clipboard), then paste it here.
+                </div>
+            </div>
+            <button id="paste-close" class="btn btn-sm btn-ghost"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div>
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold">1. Open <a href="https://wslwebservices.leg.wa.gov" target="_blank" class="link link-primary">wslwebservices.leg.wa.gov</a>, open DevTools console, paste &amp; run:</span>
+                <button id="paste-copy-snippet" class="btn btn-xs btn-outline gap-1"><i class="ph-bold ph-copy"></i> Copy snippet</button>
+            </div>
+            <pre id="paste-snippet" class="bg-base-200 p-3 rounded text-[11px] font-mono overflow-auto max-h-48 whitespace-pre-wrap"></pre>
+        </div>
+        <div class="flex-1 flex flex-col min-h-0">
+            <span class="text-xs font-bold mb-1">2. Paste response from clipboard:</span>
+            <textarea id="paste-input" class="textarea textarea-bordered flex-1 font-mono text-[11px] min-h-[150px]" placeholder="Paste XML or JSON response..."></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2">
+            <span id="paste-status" class="text-xs text-base-content/50 mr-auto"></span>
+            <button id="paste-cancel" class="btn btn-sm btn-ghost">Cancel</button>
+            <button id="paste-load" class="btn btn-sm btn-primary gap-1"><i class="ph-bold ph-arrow-down-to-bracket"></i> Load</button>
+        </div>
+    </div>
+</div>
+
+<header class="flex items-center gap-6 px-6 h-14 border-b border-base-300 shrink-0 bg-base-100">
+    <div class="font-black text-lg tracking-tight">WSL Sync</div>
+    <div class="flex gap-1" id="nav"></div>
+    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer ml-2" title="Enable if direct fetches fail due to CORS">
+        <input type="checkbox" id="pasteMode" class="toggle toggle-xs toggle-warning">
+        <span>Paste mode</span>
+    </label>
+    <div class="ml-auto flex items-center gap-3" id="stats"></div>
+</header>
+
+<main class="flex-1 flex flex-col min-h-0">
+    <div class="flex items-center gap-3 px-4 h-11 border-b border-base-300 shrink-0 bg-base-100" id="toolbar"></div>
+    <div class="flex-1 flex min-h-0">
+        <div class="flex-1 overflow-hidden relative">
+            <pre id="out" class="absolute inset-0 p-4 bg-base-200 text-base-content font-mono text-[11px] overflow-auto outline-none" tabindex="0"></pre>
+            <div id="summary-table" class="hidden absolute inset-0"></div>
+        </div>
+        <div id="grid" class="w-96 border-l border-base-300 bg-base-100"></div>
+    </div>
+</main>
+
+<script type="module">
+import { get, set } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+import {
+    getLegislation, getPrefiles, getSponsors, getRcwFor, getHistoryFor, getActionsFor,
+    parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+    parseRcwXml, parseHistoryXml, parseActionsXml,
+    consolidate, groupWithCompanions,
+    classifyPensionBill, preload,
+    linkifyTitles, titleTooltip,
+    buildPensionPopup, buildAdjacentPopup
+} from './wsl-api.js';
+
+const BIENNIUM = '2025-26', STORES = ['legislation','prefiles','rcws','sponsors','history','actions'];
+const store = { legislation: [], prefiles: [], rcws: {}, sponsors: [], history: {}, actions: {} };
+const view = { mode: 'legislation', format: 'json', limitSync: true, limitN: 20, showAllBills: false, pasteMode: false };
+let syncing = false, table = null;
+
+const dbKey = k => `wsl-${BIENNIUM}-${k}`;
+const save = async k => set(dbKey(k), store[k]);
+const load = async () => { for (const k of STORES) store[k] = await get(dbKey(k)) || (Array.isArray(store[k]) ? [] : {}); };
+
+const uniq = (arr, fn) => [...new Set(arr.map(fn))];
+const toChapters = rcws => uniq(rcws, r => r.split('.').slice(0,2).join('.')).join(', ');
+const toTitles = rcws => uniq(rcws, r => r.split('.')[0]).sort((a,b) => +a - +b).join(', ');
+const allBills = () => [...store.legislation, ...store.prefiles];
+
+const heatBadge = (val, min, max) => {
+    if (val === 0) return `<span class="text-[10px] font-mono opacity-30">0</span>`;
+    const pct = max === min ? 0 : (val - min) / (max - min);
+    const gray = Math.round(255 - pct * 180);
+    const textColor = pct > 0.4 ? 'white' : '#666';
+    return `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded" style="background:rgb(${gray},${gray},${gray});color:${textColor}">${val}</span>`;
+};
+
+const FISCAL = ['WAYS', 'APP', 'APPRS', 'WM', 'CAP', 'CB', 'TR'], RULES = ['RULE', 'RULES'];
+const getCommitteeType = code => !code ? 'policy' : FISCAL.includes(code.toUpperCase()) ? 'fiscal' : RULES.includes(code.toUpperCase()) ? 'rules' : 'policy';
+const getOutcomeIcon = code => !code ? '' : ['DP', 'DPS', 'DPSA', 'DPA'].some(c => code.toUpperCase().startsWith(c)) ? '✓' : code.toUpperCase() === 'DNP' ? '✗' : ['W/OREC', 'WOREC'].includes(code.toUpperCase().replace(/\s/g, '')) ? '–' : '';
+const getOutcomeClass = code => !code ? '' : ['DP', 'DPS', 'DPSA', 'DPA'].some(c => code.toUpperCase().startsWith(c)) ? 'text-success' : code.toUpperCase() === 'DNP' ? 'text-error' : 'opacity-60';
+const getCommitteeColor = type => type === 'fiscal' ? 'bg-amber-100 border-amber-300 text-amber-800' : type === 'rules' ? 'bg-violet-100 border-violet-300 text-violet-800' : 'bg-base-200 border-base-300';
+
+const formatActionBadge = a => {
+    const committee = a?.Committee || '', code = a?.['r.MajorityCode'] || '';
+    const icon = getOutcomeIcon(code), outcomeClass = getOutcomeClass(code);
+    const colorClass = getCommitteeColor(getCommitteeType(committee));
+    const label = icon ? `${committee}<span class="${outcomeClass} ml-0.5">${icon}</span>` : committee || '?';
+    return `<span class="badge badge-xs border ${colorClass}">${label}</span>`;
+};
+
+const trimSigners = str => str ? str.replace(/^Signed by (Representatives?|Senators?)[,:]?\s*/i, '') : '';
+
+const buildActionsPopup = actions => {
+    if (!actions?.length) return '<div class="p-3 text-sm opacity-60">No committee actions</div>';
+    return `<div class="p-2 max-w-lg max-h-72 overflow-auto">${actions.map(a => {
+        const committee = a?.Committee || '', commLong = a?.CommitteeLong || '', date = a?.HearingDate || '';
+        const majCode = a?.['r.MajorityCode'] || '', majSigned = trimSigners(a?.['r.MajoritySigned'] || '');
+        const minCode = a?.['r.MinorityCode'] || '', minSigned = trimSigners(a?.['r.MinoritySigned'] || '');
+        const icon = getOutcomeIcon(majCode), outcomeClass = getOutcomeClass(majCode);
+        const colorClass = getCommitteeColor(getCommitteeType(committee));
+        let html = `<div class="py-2 border-b border-base-200 last:border-0">
+            <div class="flex items-center gap-2"><span class="badge badge-sm border ${colorClass}">${committee}</span><span class="text-sm opacity-70 flex-1">${commLong}</span><span class="text-xs opacity-50">${date}</span></div>`;
+        if (majCode) {
+            html += `<div class="mt-1 flex items-center gap-1"><span class="${outcomeClass} font-bold">${icon}</span>`;
+            if (majSigned) html += `<span class="text-xs opacity-60">${majSigned}</span>`;
+            html += '</div>';
+        }
+        if (minCode) {
+            html += `<div class="mt-1 flex items-center gap-1 opacity-70"><span class="${getOutcomeClass(minCode)}">${getOutcomeIcon(minCode) || '–'}</span>`;
+            if (minSigned) html += `<span class="text-xs opacity-50">${minSigned}</span>`;
+            html += '</div>';
+        }
+        return html + '</div>';
+    }).join('')}</div>`;
+};
+
+const getSummaryBills = () => {
+    const sponsorById = Object.fromEntries(store.sponsors.map(s => [s.SponsorId, s]));
+    return allBills().map(b => {
+        const rcwList = (store.rcws[b.BillId]?.Rcws || '').split('|').filter(Boolean);
+        const c = rcwList.length ? classifyPensionBill(rcwList) : {};
+        if (!view.showAllBills && !c.hasPension && !c.hasAdjacent) return null;
+        const hist = (store.history[b.BillNumber] || []).slice().sort((a,b) => new Date(b.ActionDate) - new Date(a.ActionDate));
+        const actions = store.actions[b.BillNumber] || [];
+        const other = rcwList.filter(r => !(c.PensionRcws||[]).includes(r) && !(c.AdjacentRcws||[]).includes(r));
+        const sp = sponsorById[b.PrimeSponsorID];
+        const latestDate = hist[0]?.ActionDate || '';
+        let isCurrent = false;
+        if (latestDate) {
+            const [m, day, y] = latestDate.split('/').map(Number);
+            isCurrent = new Date(y, m-1, day) > new Date(2025, 10, 1);
+        }
+        return {
+            BillId: b.BillId, BillNumber: b.BillNumber,
+            ShortDesc: b.ShortDescription || '', LongDesc: b.LongDescription || '', LegalTitle: b.LegalTitle || '',
+            PrimeSponsorID: b.PrimeSponsorID || '',
+            'ps.LongName': sp?.LongName || '', 'ps.Agency': sp?.Agency || '', 'ps.Acronym': sp?.Acronym || '',
+            Active: b.Active, Companion: b['c.BillId'] || '',
+            RcwCt: rcwList.length, AllRcws: rcwList,
+            HistCt: hist.length,
+            Actions: actions,
+            CommitteeList: [...new Set((actions || []).map(a => a.Committee).filter(Boolean))].join(', '),
+            IsPension: !!c.hasPension, IsAdjacent: !!c.hasAdjacent,
+            PensionArea: (c.PensionLabels||[]).join(', '), AdjacentArea: (c.AdjacentLabels||[]).join(', '),
+            IsCurrent: isCurrent,
+            LatestDate: latestDate, LatestAction: hist[0]?.HistoryLine || '',
+            PensionRcws: toChapters(c.PensionRcws||[]), PensionRcwsFull: (c.PensionRcws||[]).join('|'),
+            AdjacentRcws: toChapters(c.AdjacentRcws||[]), AdjacentRcwsFull: (c.AdjacentRcws||[]).join('|'),
+            OtherTitles: toTitles(other)
+        };
+    }).filter(Boolean).sort((a,b) => (+a.BillNumber||0) - (+b.BillNumber||0));
+};
+
+const parseMDY = s => {
+    if (!s) return null;
+    const [m, d, y] = s.split('/').map(Number);
+    return new Date(y, m-1, d);
+};
+const parseYMD = s => {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m-1, d);
+};
+const sinceDateEditor = (cell, onRendered, success, cancel) => {
+    const i = document.createElement('input');
+    i.type = 'date';
+    i.value = cell.getValue() || '';
+    i.style.cssText = 'width:100%;padding:2px 4px';
+    const apply = () => success(i.value);
+    i.addEventListener('change', apply);
+    i.addEventListener('blur', apply);
+    i.addEventListener('keydown', e => e.key === 'Enter' ? apply() : e.key === 'Escape' ? cancel() : 0);
+    return i;
+};
+const sinceDateFunc = (headerValue, rowValue) => {
+    const since = parseYMD(headerValue);
+    if (!since) return true;
+    const r = parseMDY(rowValue);
+    return r && r >= since;
+};
+const getProfile = rows => rows?.length ? uniq(rows.flatMap(Object.keys), k=>k).map(k => {
+    const vals = rows.map(r => r[k]).filter(v => v != null && String(v).trim());
+    return { column: k, count: vals.length, unique: uniq(vals, v=>v).length, pct: ((vals.length/rows.length)*100).toFixed(0)+'%' };
+}) : [];
+
+const getData = () => view.mode === 'rcws' ? Object.values(store.rcws) : view.mode === 'summary' ? getSummaryBills() : store[view.mode];
+
+const render = () => {
+    const all = allBills(), rcwCount = Object.keys(store.rcws).length, summary = getSummaryBills();
+    const pensionCount = summary.filter(b => b.IsPension).length, adjCount = summary.filter(b => b.IsAdjacent && !b.IsPension).length;
+    const data = getData(), isSummary = view.mode === 'summary', isRcw = view.mode === 'rcws';
+
+    $('#nav').html(['legislation','prefiles','rcws','sponsors','summary'].map(m =>
+        `<button data-mode="${m}" class="btn btn-sm font-bold ${view.mode===m?'btn-primary':'btn-ghost'}">${m[0].toUpperCase()+m.slice(1)}</button>`
+    ).join(''));
+
+    $('#stats').html(`<span class="text-xs text-base-content/50">Bills: <b class="text-primary">${all.length}</b></span>
+        <span class="text-xs text-base-content/50">RCW: <b class="text-primary">${rcwCount}/${all.length}</b></span>
+        <span class="badge badge-primary badge-sm font-bold">${pensionCount} pension</span>`);
+
+    const maxDate = (arr, f) => arr.length ? arr.reduce((a,b) => b[f] > a ? b[f] : a, '') : '—';
+    const summaryNums = uniq(summary.filter(b => b.IsPension || b.IsAdjacent), b => b.BillNumber);
+    const missHist = summaryNums.filter(n => !store.history[n]).length, missAct = summaryNums.filter(n => !store.actions[n]).length;
+
+    $('#toolbar').html(`
+        <button data-action="sync" ${syncing?'disabled':''} class="btn btn-sm font-bold gap-2 ${syncing?'btn-disabled':'btn-primary'}"><i class="ph-bold ph-arrows-clockwise"></i> Sync</button>
+        ${view.mode === 'legislation' ? `<input type="date" id="sinceDate" value="2025-01-01" class="input input-sm input-bordered w-36">
+            <div class="flex flex-col text-[10px] leading-tight text-base-content/50"><span>Intro: <b>${maxDate(store.legislation,'IntroducedDate')}</b></span><span>Action: <b>${maxDate(store.legislation,'ActionDate')}</b></span></div>` : ''}
+        ${isRcw ? `<label class="flex items-center gap-2"><input type="checkbox" id="limitSync" class="checkbox checkbox-xs" ${view.limitSync?'checked':''}><span class="text-xs">Limit</span></label>
+            <input type="number" id="limitN" value="${view.limitN}" class="input input-sm input-bordered w-16 font-mono">
+            <span class="text-xs text-base-content/50">(${all.filter(b => !store.rcws[b.BillId]).length} missing)</span>` : ''}
+        ${isSummary ? `<label class="flex items-center gap-2"><input type="checkbox" id="showAllBills" class="checkbox checkbox-xs" ${view.showAllBills?'checked':''}><span class="text-xs">Show all bills</span></label>
+            <span class="text-xs text-base-content/50">Pension: ${pensionCount} · Adjacent: ${adjCount} · Showing: ${data.length} · Hist: ${missHist} missing · Act: ${missAct} missing</span>
+            <button id="open-dash" class="btn btn-sm btn-ghost gap-1"><i class="ph-bold ph-chart-line"></i> Dashboard</button>` : ''}
+        <div class="ml-auto flex gap-2">
+            ${!isSummary ? `<div class="join">${['json','tsv'].map(f => `<button data-fmt="${f}" class="btn btn-sm join-item font-bold ${view.format===f?'btn-primary':'btn-ghost'}">${f.toUpperCase()}</button>`).join('')}</div>` : ''}
+            <button data-action="copy" class="btn btn-ghost btn-sm gap-1 tooltip tooltip-bottom" data-tip="Copy to clipboard"><i class="ph-bold ph-copy"></i> Copy</button>
+            <button data-action="clear" class="btn btn-ghost btn-sm gap-1 tooltip tooltip-bottom" data-tip="Clear current dataset"><i class="ph-bold ph-trash"></i> Clear</button>
+        </div>`);
+
+    $('#out, #summary-table, #grid').addClass('hidden');
+    if (isSummary) {
+        $('#summary-table').removeClass('hidden');
+        
+        const groups = groupWithCompanions(allBills());
+        const summaryByBillId = Object.fromEntries(data.map(r => [r.BillId, r]));
+        
+        const grouped = [];
+        groups.forEach(g => {
+            const groupKey = g.numbers.sort((a,b) => +a - +b).join(' / ');
+            g.bills.forEach(b => { const s = summaryByBillId[b.BillId]; if (s) grouped.push({ ...s, _group: groupKey }); });
+        });
+        
+        const rcwVals = grouped.map(r => r.RcwCt).filter(v => v > 0);
+        const rcwRange = { min: Math.min(...rcwVals, 1), max: Math.max(...rcwVals, 1) };
+        
+const cols = [
+    { title: 'BillId', field: 'BillId', width: 110,
+        formatter: cell => {
+            const r = cell.getRow().getData(), num = r.BillId.match(/\d+/)?.[0] || r.BillNumber;
+            return `<span class="pl-4"><a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary">${r.BillId}</a></span>`;
+        }},
+ { title: 'Active', field: 'Active', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+    { title: 'Pension', field: 'IsPension', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+    { title: 'Adjacent', field: 'IsAdjacent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+    { title: 'Current', field: 'IsCurrent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+{ title: 'Latest', field: 'LatestDate', width: 120, tooltip: cell => cell.getRow().getData().LatestAction, headerFilter: sinceDateEditor, headerFilterFunc: sinceDateFunc },
+    { title: 'Rcws', field: 'RcwCt', hozAlign: 'center', width: 55, headerFilter: false,
+        formatter: cell => heatBadge(cell.getValue(), rcwRange.min, rcwRange.max) },
+    { title: 'Committee', field: 'CommitteeList', minWidth: 150,
+        formatter: cell => (cell.getRow().getData().Actions || []).map(formatActionBadge).join(' '),
+        clickPopup: (e, cell) => buildActionsPopup(cell.getRow().getData().Actions) },
+    { title: 'PensionArea', field: 'PensionArea', clickPopup: (e, cell) => buildPensionPopup(cell.getRow().getData().PensionRcwsFull) },
+    { title: 'AdjacentArea', field: 'AdjacentArea', clickPopup: (e, cell) => buildAdjacentPopup(cell.getRow().getData().AdjacentRcwsFull) },
+    { title: 'OtherTitles', field: 'OtherTitles', minWidth: 120, formatter: cell => linkifyTitles(cell.getValue()), tooltip: titleTooltip }
+];
+        
+        const groupHeader = (value, count, data) => {
+            const nums = value.split(' / ');
+            const links = nums.map(num => {
+                const histCt = (store.history[num] || []).length;
+                const indicator = histCt ? `<span class="indicator-item text-[10px] font-mono opacity-70">${histCt}</span>` : '';
+                return `<span class="indicator mr-2">${indicator}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
+            }).join(' / ');
+            const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
+            const desc = long && long !== short 
+                ? `<span class="font-medium">${short}</span><span class="ml-2 text-xs font-light">${long}</span>`
+                : `<span class="font-medium">${short}</span>`;
+            return `${links} <span class="ml-4">${desc}</span>`;
+        };
+        
+        if (!table || table._config !== 'summary') { 
+            table = new Tabulator('#summary-table', { data: grouped, layout: 'fitDataFill', height: '100%', columns: cols, columnDefaults: { headerFilter: 'input' }, groupBy: '_group', groupHeader, groupStartOpen: true }); 
+            table._config = 'summary';
+            table.on('renderComplete', () => table.getGroups().forEach(g => {
+                const d = g.getRows()[0]?.getData();
+                const color = d?.IsPension ? ['oklch(0.98 0.01 145)', 'oklch(0.65 0.2 145)'] : d?.IsAdjacent ? ['oklch(0.99 0.008 85)', 'oklch(0.7 0.15 85)'] : ['oklch(0.98 0.005 260)', 'oklch(0.7 0.02 260)'];
+                Object.assign(g.getElement().style, { backgroundColor: color[0], borderLeft: `4px solid ${color[1]}` });
+            }));
+        } else table.setData(grouped);
+    } else {
+        $('#out, #grid').removeClass('hidden');
+        const text = view.format === 'json' ? JSON.stringify(data, null, 2)
+            : data.length ? [Object.keys(data[0]).join('\t'), ...data.map(r => Object.values(r).map(v => Array.isArray(v) ? v.join('; ') : v).join('\t'))].join('\n') : '';
+        $('#out').text(text);
+        const profileCols = [{ title: 'Column', field: 'column', headerFilter: 'input' }, { title: '#', field: 'count', width: 60 }, { title: 'Uniq', field: 'unique', width: 60 }, { title: '%', field: 'pct', width: 60 }];
+        if (!table || table._config !== 'profile') { table = new Tabulator('#grid', { data: getProfile(data), layout: 'fitColumns', height: '100%', columns: profileCols }); table._config = 'profile'; }
+        else table.setData(getProfile(data));
+    }
+};
+
+const progress = (msg, count) => { $('#sync-modal').removeClass('hidden'); $('#sync-msg').text(msg); $('#sync-count').text(count || ''); };
+
+// -----------------------------------------------------------------------------
+// Paste-mode: when direct fetch is blocked by CORS, user runs a console snippet
+// on wslwebservices.leg.wa.gov and pastes the response back here.
+// -----------------------------------------------------------------------------
+
+const getPasteContext = () => {
+    if (view.mode === 'rcws') {
+        let miss = allBills().filter(b => !store.rcws[b.BillId]);
+        if (view.limitSync) miss = miss.slice(0, view.limitN);
+        return { billIds: miss.map(b => b.BillId) };
+    }
+    if (view.mode === 'summary') {
+        const nums = uniq(getSummaryBills().filter(b => b.IsPension || b.IsAdjacent), b => b.BillNumber);
+        const needH = nums.filter(n => !store.history[n]);
+        const needA = nums.filter(n => !store.actions[n]);
+        return { history: needH, actions: needA };
+    }
+    if (view.mode === 'legislation') return { sinceDate: $('#sinceDate').val() };
+    return {};
+};
+
+const buildPasteSnippet = (mode, ctx) => {
+    const header = "// Run this at https://wslwebservices.leg.wa.gov in DevTools console.\n// 'copy' is a devtools helper that writes its argument to the clipboard.\n";
+    if (mode === 'legislation') return `${header}(async () => {
+    const r = await fetch('/LegislationService.asmx/GetLegislationIntroducedSince?sinceDate=${ctx.sinceDate}');
+    const text = await r.text();
+    copy(text);
+    console.log('Copied', text.length, 'chars. Paste into WSL Sync.');
+})();`;
+    if (mode === 'prefiles') return `${header}(async () => {
+    const r = await fetch('/LegislationService.asmx/GetPrefiledLegislation');
+    const text = await r.text();
+    copy(text);
+    console.log('Copied', text.length, 'chars. Paste into WSL Sync.');
+})();`;
+    if (mode === 'sponsors') return `${header}(async () => {
+    const r = await fetch('/SponsorService.asmx/GetSponsors?biennium=${BIENNIUM}');
+    const text = await r.text();
+    copy(text);
+    console.log('Copied', text.length, 'chars. Paste into WSL Sync.');
+})();`;
+    if (mode === 'rcws') return `${header}(async () => {
+    const ids = ${JSON.stringify(ctx.billIds)};
+    const out = {};
+    for (let i = 0; i < ids.length; i++) {
+        const r = await fetch('/LegislationService.asmx/GetRcwCitesAffected?biennium=${BIENNIUM}&billId=' + encodeURIComponent(ids[i]));
+        out[ids[i]] = await r.text();
+        if ((i + 1) % 10 === 0 || i === ids.length - 1) console.log(\`\${i + 1}/\${ids.length}\`);
+    }
+    copy(JSON.stringify(out));
+    console.log('Copied RCW XML for', ids.length, 'bills. Paste into WSL Sync.');
+})();`;
+    if (mode === 'summary') return `${header}(async () => {
+    const historyNums = ${JSON.stringify(ctx.history)};
+    const actionsNums = ${JSON.stringify(ctx.actions)};
+    const out = { history: {}, actions: {} };
+    for (let i = 0; i < historyNums.length; i++) {
+        const n = historyNums[i];
+        const r = await fetch('/LegislationService.asmx/GetLegislativeStatusChangesByBillNumber?biennium=${BIENNIUM}&billNumber=' + n + '&beginDate=1/1/2025&endDate=12/31/2026');
+        out.history[n] = await r.text();
+        if ((i + 1) % 10 === 0 || i === historyNums.length - 1) console.log('history', \`\${i + 1}/\${historyNums.length}\`);
+    }
+    for (let i = 0; i < actionsNums.length; i++) {
+        const n = actionsNums[i];
+        const r = await fetch('/CommitteeActionService.asmx/GetCommitteeExecutiveActionsByBill?biennium=${BIENNIUM}&billNumber=' + n);
+        out.actions[n] = await r.text();
+        if ((i + 1) % 10 === 0 || i === actionsNums.length - 1) console.log('actions', \`\${i + 1}/\${actionsNums.length}\`);
+    }
+    copy(JSON.stringify(out));
+    console.log('Copied history+actions. Paste into WSL Sync.');
+})();`;
+    return header + '// No paste snippet for this mode.';
+};
+
+const processPastedData = async (mode, text) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) throw new Error('Empty paste.');
+    if (mode === 'legislation') {
+        store.legislation = consolidate(parseLegislationXml(trimmed));
+        await save('legislation');
+        return `Loaded ${store.legislation.length} bills.`;
+    }
+    if (mode === 'prefiles') {
+        store.prefiles = consolidate(parsePrefilesXml(trimmed));
+        await save('prefiles');
+        return `Loaded ${store.prefiles.length} prefiles.`;
+    }
+    if (mode === 'sponsors') {
+        store.sponsors = parseSponsorsXml(trimmed);
+        await save('sponsors');
+        return `Loaded ${store.sponsors.length} sponsors.`;
+    }
+    if (mode === 'rcws') {
+        const obj = JSON.parse(trimmed);
+        let n = 0;
+        for (const [id, xml] of Object.entries(obj)) {
+            const r = parseRcwXml(xml, id);
+            if (r) { store.rcws[r.BillId] = r; n++; }
+        }
+        await save('rcws');
+        return `Loaded RCW data for ${n} bills.`;
+    }
+    if (mode === 'summary') {
+        const obj = JSON.parse(trimmed);
+        let h = 0, a = 0;
+        for (const [num, xml] of Object.entries(obj.history || {})) {
+            store.history[num] = parseHistoryXml(xml, num) || []; h++;
+        }
+        await save('history');
+        for (const [num, xml] of Object.entries(obj.actions || {})) {
+            store.actions[num] = parseActionsXml(xml, num) || []; a++;
+        }
+        await save('actions');
+        return `Loaded history for ${h} bills, actions for ${a} bills.`;
+    }
+    throw new Error(`No paste handler for mode '${mode}'.`);
+};
+
+const openPasteModal = () => {
+    const ctx = getPasteContext();
+    $('#paste-mode-label').text(view.mode);
+    $('#paste-snippet').text(buildPasteSnippet(view.mode, ctx));
+    $('#paste-input').val('');
+    $('#paste-status').text('');
+    $('#paste-modal').removeClass('hidden');
+};
+
+const closePasteModal = () => $('#paste-modal').addClass('hidden');
+
+const runSync = async () => {
+    if (view.pasteMode) { openPasteModal(); return; }
+    syncing = true; render();
+    try {
+        if (view.mode === 'legislation') {
+            progress('Fetching Legislation');
+            store.legislation = consolidate(await getLegislation($('#sinceDate').val()));
+            await save('legislation');
+        } else if (view.mode === 'prefiles') {
+            progress('Fetching Prefiles');
+            store.prefiles = consolidate(await getPrefiles());
+            await save('prefiles');
+        } else if (view.mode === 'sponsors') {
+            progress('Fetching Sponsors');
+            store.sponsors = await getSponsors(BIENNIUM);
+            await save('sponsors');
+        } else if (view.mode === 'rcws') {
+            let miss = allBills().filter(b => !store.rcws[b.BillId]);
+            if (view.limitSync) miss = miss.slice(0, view.limitN);
+            const done = Object.keys(store.rcws).length, total = allBills().length;
+            for (let i = 0; i < miss.length; i++) {
+                progress('Fetching RCW', `${done+i+1}/${total} [${miss[i].BillId}]`);
+                const r = await getRcwFor(miss[i], BIENNIUM);
+                if (r) store.rcws[r.BillId] = r;
+            }
+            await save('rcws');
+        } else if (view.mode === 'summary') {
+            const nums = uniq(getSummaryBills().filter(b => b.IsPension || b.IsAdjacent), b => b.BillNumber);
+            const byNum = Object.fromEntries(allBills().map(b => [b.BillNumber, b]));
+            const needH = nums.filter(n => !store.history[n]), needA = nums.filter(n => !store.actions[n]);
+            let p = 0, total = needH.length + needA.length;
+            for (const n of needH) { progress('Fetching History', `${++p}/${total} [${n}]`); store.history[n] = await getHistoryFor(byNum[n], BIENNIUM) || []; }
+            await save('history');
+            for (const n of needA) { progress('Fetching Actions', `${++p}/${total} [${n}]`); store.actions[n] = await getActionsFor(byNum[n], BIENNIUM) || []; }
+            await save('actions');
+        }
+    } catch (e) {
+        console.error(e);
+        alert(`${e.message}\n\nIf this is a CORS error, enable "Paste mode" in the header to use the manual-fetch fallback.`);
+    }
+    $('#sync-modal').addClass('hidden'); syncing = false; render();
+};
+
+$(document).on('click', '[data-mode]', e => { view.mode = $(e.currentTarget).data('mode'); render(); })
+    .on('click', '[data-fmt]', e => { view.format = $(e.currentTarget).data('fmt'); render(); })
+    .on('change', '#limitSync', e => { view.limitSync = e.target.checked; })
+    .on('change', '#limitN', e => { view.limitN = +e.target.value || 20; })
+    .on('change', '#showAllBills', e => { view.showAllBills = e.target.checked; render(); })
+    .on('change', '#pasteMode', e => { view.pasteMode = e.target.checked; })
+    .on('click', '#open-dash', () => window.open('pension-dash.html', '_blank'))
+    .on('click', '#paste-close, #paste-cancel', closePasteModal)
+    .on('click', '#paste-copy-snippet', async () => {
+        try { await navigator.clipboard.writeText($('#paste-snippet').text()); $('#paste-status').text('Snippet copied to clipboard.'); }
+        catch (e) { $('#paste-status').text('Copy failed: ' + e.message); }
+    })
+    .on('click', '#paste-load', async () => {
+        const text = $('#paste-input').val();
+        $('#paste-status').text('Parsing...');
+        try {
+            const msg = await processPastedData(view.mode, text);
+            $('#paste-status').text(msg);
+            setTimeout(() => { closePasteModal(); render(); }, 600);
+        } catch (e) {
+            console.error(e);
+            $('#paste-status').text('Error: ' + e.message);
+        }
+    })
+    .on('click', '[data-action]', async e => {
+        const a = $(e.currentTarget).data('action');
+        if (a === 'sync') runSync();
+        else if (a === 'copy') navigator.clipboard.writeText($('#out').text());
+        else if (a === 'clear') {
+            if (view.mode === 'rcws') store.rcws = {};
+            else if (view.mode === 'summary') { store.history = {}; store.actions = {}; await save('history'); }
+            else store[view.mode] = [];
+            await save(view.mode === 'summary' ? 'actions' : view.mode); render();
+        }
+    });
+
+await load(); 
+await preload();
+render();
+</script>
+</body>
+</html>

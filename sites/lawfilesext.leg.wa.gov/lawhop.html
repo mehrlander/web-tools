@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+  <title>Law Hop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="h-screen bg-base-200 overflow-hidden">
+
+<div x-data="lawHop()" x-init="init()" class="h-full flex flex-row">
+
+  <!-- LEFT SIDEBAR: bill browser -->
+  <div class="flex flex-col bg-base-100 border-r border-base-200 w-44 shrink-0 h-full">
+    <div class="p-2 border-b border-base-200 space-y-1.5">
+      <div class="join w-full">
+        <button class="btn btn-xs join-item flex-1"
+                :class="billChamber==='House'?'btn-primary':'btn-soft'"
+                @click="setChamber('House')">H</button>
+        <button class="btn btn-xs join-item flex-1"
+                :class="billChamber==='Senate'?'btn-primary':'btn-soft'"
+                @click="setChamber('Senate')">S</button>
+      </div>
+      <input type="text" class="input input-xs w-full"
+             placeholder="Filter..." x-model="billFilter"
+             @input="applyFilter()">
+      <div class="text-[10px] opacity-40 text-right"
+           x-text="filteredBills.length + ' / ' + billList.length"></div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-1">
+      <div class="text-xs opacity-40 text-center py-4" x-show="billListLoading">
+        <span class="loading loading-spinner loading-xs"></span> Loading...
+      </div>
+      <div class="text-xs opacity-40 text-center py-4"
+           x-show="!billListLoading && billList.length === 0">No bills found</div>
+      <div class="flex flex-col gap-0.5" x-show="!billListLoading">
+        <template x-for="num in filteredBills" :key="num">
+          <button class="btn btn-xs font-mono justify-start w-full normal-case"
+                  :class="num === billNum ? 'btn-primary' : 'btn-ghost'"
+                  @click="jumpToBill(num)"
+                  x-text="num"></button>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT MAIN -->
+  <div class="flex flex-col flex-1 min-w-0 h-full">
+
+    <!-- Header -->
+    <div class="navbar bg-base-300 border-b border-base-content/10 min-h-10 px-3 shrink-0">
+      <div class="flex-1 flex items-baseline gap-2 min-w-0">
+        <span class="font-bold text-primary" x-text="billLabel"></span>
+        <span class="text-xs opacity-40 truncate" x-text="biennium + ' · ' + chamber"></span>
+      </div>
+      <div class="flex-none flex items-center gap-1">
+        <span class="loading loading-spinner loading-xs text-primary" x-show="loading"></span>
+        <span class="text-xs text-error truncate max-w-32" x-show="error" x-text="error"></span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div role="tablist" class="tabs tabs-border bg-base-100 px-3 pt-1 shrink-0">
+      <button role="tab" class="tab tab-sm"
+              :class="tab==='versions'?'tab-active':''"
+              @click="tab='versions'">Versions</button>
+      <button role="tab" class="tab tab-sm"
+              :class="tab==='amendments'?'tab-active':''"
+              @click="tab='amendments'">
+        Amend.
+        <span class="badge badge-xs badge-primary ml-1"
+              x-show="amendments.length" x-text="amendments.length"></span>
+      </button>
+      <button role="tab" class="tab tab-sm"
+              :class="tab==='diff'?'tab-active':''"
+              @click="tab='diff'">Diff</button>
+    </div>
+
+    <!-- Tab: Versions -->
+    <div class="flex-1 overflow-y-auto p-3" x-show="tab==='versions'">
+      <div class="text-xs opacity-40 text-center py-6" x-show="versions.length===0 && !loading">
+        No versions found.
+      </div>
+      <div class="flex flex-col gap-2">
+        <template x-for="v in versions" :key="v.suffix">
+          <div class="rounded-lg border px-3 py-2"
+               :class="v.suffix===currentSuffix ? 'border-primary bg-primary/5' : 'border-base-200 bg-base-100'">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="font-semibold text-xs" x-text="v.label"></span>
+              <span class="badge badge-xs badge-primary"
+                    x-show="v.suffix===currentSuffix">current</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <template x-for="fmt in fmtOrder" :key="fmt">
+                <template x-if="v.fmts.includes(fmt)">
+                  <button class="btn btn-xs"
+                          :class="fmt===currentFmt && v.suffix===currentSuffix ? 'btn-primary' : 'btn-soft'"
+                          @click="openVersion(fmt, v.suffix)"
+                          x-text="fmtLabel[fmt]"></button>
+                </template>
+              </template>
+              <button class="btn btn-xs btn-ghost ml-auto text-[10px] opacity-50"
+                      x-show="v.suffix !== currentSuffix && v.fmts.includes('Htm')"
+                      @click="setDiffPair(v.suffix); tab='diff'"
+                      title="Diff against current">diff →</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Tab: Amendments -->
+    <div class="flex-1 overflow-y-auto p-3" x-show="tab==='amendments'">
+      <div class="text-xs opacity-40 text-center py-6"
+           x-show="amendments.length===0 && !loading">
+        No amendments found for this bill.
+      </div>
+      <div class="flex flex-col gap-1">
+        <template x-for="a in amendments" :key="a.file">
+          <a :href="a.url" target="_blank"
+             class="btn btn-xs btn-ghost justify-start font-mono normal-case text-left truncate"
+             x-text="a.label"></a>
+        </template>
+      </div>
+    </div>
+
+    <!-- Tab: Diff -->
+    <div class="flex-1 overflow-hidden flex flex-col p-3 gap-2" x-show="tab==='diff'">
+      <div class="flex items-center gap-1.5 flex-wrap shrink-0">
+        <select class="select select-xs flex-1 min-w-0" x-model="diffA">
+          <template x-for="v in htmVersions" :key="v.suffix">
+            <option :value="v.suffix" x-text="v.label"></option>
+          </template>
+        </select>
+        <span class="text-base-content/30 text-xs shrink-0">vs</span>
+        <select class="select select-xs flex-1 min-w-0" x-model="diffB">
+          <template x-for="v in htmVersions" :key="v.suffix">
+            <option :value="v.suffix" x-text="v.label"></option>
+          </template>
+        </select>
+        <button class="btn btn-xs btn-primary shrink-0"
+                @click="runDiff()" :disabled="diffRunning">
+          <span class="loading loading-spinner loading-xs" x-show="diffRunning"></span>
+          <span x-show="!diffRunning">Go</span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto rounded bg-base-100 border border-base-200 p-2 font-mono text-[11px] leading-relaxed"
+           x-show="diffHtml" x-html="diffHtml"></div>
+      <div class="text-xs opacity-40 text-center py-6"
+           x-show="!diffHtml && !diffRunning">
+        Select two versions and tap Go.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
+
+const IDB = (() => {
+  const NAME = 'lawHop2', VER = 2, STORE = 'docs';
+  let _db = null;
+  const open = () => new Promise((res, rej) => {
+    if (_db) return res(_db);
+    const r = indexedDB.open(NAME, VER);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'url' });
+    };
+    r.onsuccess = e => { _db = e.target.result; res(_db); };
+    r.onerror = e => rej(e.target.error);
+  });
+  const get = async (url) => {
+    try {
+      const db = await open();
+      return await new Promise((res, rej) => {
+        const r = db.transaction(STORE, 'readonly').objectStore(STORE).get(url);
+        r.onsuccess = e => res(e.target.result?.html || null);
+        r.onerror = e => rej(e.target.error);
+      });
+    } catch(e) { return null; }
+  };
+  const put = async (url, html) => {
+    try {
+      const db = await open();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put({ url, html, ts: Date.now() });
+        tx.oncomplete = res;
+        tx.onerror = e => rej(e.target.error);
+      });
+    } catch(e) { /* ignore */ }
+  };
+  const fetchCached = async (url) => {
+    let html = await get(url);
+    if (!html) {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      html = await r.text();
+      await put(url, html);
+    }
+    return html;
+  };
+  return { fetchCached };
+})();
+
+const SFX_ORDER = ['', '-S', '-S2', '-S3', '.E', '-S.E', '-S2.E', '-S3.E', '-S.E2'];
+const VER_NAMES = {
+  '': 'Original', '-S': 'Substitute', '-S2': '2nd Substitute', '-S3': '3rd Substitute',
+  '.E': 'Engrossed', '-S.E': 'Sub Engrossed', '-S2.E': '2nd Sub Engrossed',
+  '-S3.E': '3rd Sub Engrossed', '-S.E2': 'Sub 2nd Engrossed'
+};
+const FMT_EXT = { Htm: 'htm', Xml: 'xml', Pdf: 'pdf' };
+
+const parseSuffix = (filename) => {
+  const m = filename.match(/^[0-9]+((?:[-.](?!htm$|xml$|pdf$)[^./]*)*)(?:\.(htm|xml|pdf))$/i);
+  return m ? m[1] : null;
+};
+
+const parseUrl = (href) => {
+  try {
+    const path = decodeURIComponent(new URL(href).pathname);
+    const m = path.match(/\/Biennium\/([^/]+)\/(Htm|Xml|Pdf)\/Bills\/(House Bills|Senate Bills|House Passed Legislature|Senate Passed Legislature|Session Laws|Vetoes)\/([0-9]+)((?:[-.](?!htm$|xml$|pdf$)[^./]*)*)(?:\.(htm|xml|pdf))$/i);
+    if (!m) return null;
+    const [, biennium, fmt, chamber, billNum, suffix] = m;
+    return { biennium, fmt, chamber, billNum, suffix };
+  } catch(e) { return null; }
+};
+
+const scanDir = async (url, billNum) => {
+  const html = await IDB.fetchCached(url);
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return $$('a[href]', doc)
+    .map(a => decodeURIComponent(a.getAttribute('href')).split('/').pop())
+    .filter(f => f.length > 0 && f.match(new RegExp('^' + billNum + '([\\s\\-\\.]|$)')));
+};
+
+const getBillList = async (biennium, chamberBase) => {
+  const url = '/Biennium/' + biennium + '/Htm/Bills/' + encodeURIComponent(chamberBase + ' Bills') + '/';
+  const html = await IDB.fetchCached(url);
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return [...new Set(
+    $$('a[href]', doc)
+      .map(a => decodeURIComponent(a.getAttribute('href')).split('/').pop())
+      .filter(f => f.match(/^\d+\.htm$/i))
+      .map(f => f.replace(/\.htm$/i, ''))
+  )].sort((a, b) => +a - +b);
+};
+
+const myersDiff = (a, b) => {
+  const m=a.length,n=b.length,max=m+n;
+  const v=new Array(2*max+1).fill(0),trace=[];
+  outer:for(let d=0;d<=max;d++){
+    trace.push([...v]);
+    for(let k=-d;k<=d;k+=2){
+      const ki=k+max;
+      let x=(k===-d||(k!==d&&v[ki-1]<v[ki+1]))?v[ki+1]:v[ki-1]+1,y=x-k;
+      while(x<m&&y<n&&a[x]===b[y]){x++;y++;}
+      v[ki]=x;if(x>=m&&y>=n)break outer;
+    }
+  }
+  let x=m,y=n;const ops=[];
+  for(let d=trace.length-1;d>=0;d--){
+    const vd=trace[d],k=x-y,ki=k+max;
+    const kP=(k===-d||(k!==d&&vd[ki-1]<vd[ki+1]))?k+1:k-1;
+    const xP=vd[kP+max],yP=xP-kP;
+    while(x>xP+1&&y>yP+1){ops.unshift({t:'eq',a:a[x-1]});x--;y--;}
+    if(d>0){
+      if(x>xP+1||y>yP+1)ops.unshift({t:'eq',a:a[x-1]});
+      if(x>xP){ops.unshift({t:'del',val:a[x-1]});x--;}
+      else if(y>yP){ops.unshift({t:'ins',val:b[y-1]});y--;}
+    }
+    x=xP;y=yP;
+  }
+  return ops;
+};
+
+const extractLines = (html) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return [...doc.body.children]
+    .filter(el => el.tagName !== 'BUTTON')
+    .map(el => el.textContent.trim())
+    .filter(t => t.length > 0);
+};
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const renderDiff = (ops, labelA, labelB) => {
+  const parts = ['<div class="mb-1.5 text-[10px] opacity-50"><span class="text-error">\u2212 '+esc(labelA)+'</span> &nbsp; <span class="text-success">+ '+esc(labelB)+'</span></div>'];
+  let eq=[];
+  const flush=()=>{
+    if(eq.length>6){
+      eq.slice(0,2).forEach(l=>parts.push('<div class="opacity-50 px-1">'+esc(l)+'</div>'));
+      parts.push('<div class="opacity-25 italic px-1">\u22ef '+(eq.length-4)+' unchanged \u22ef</div>');
+      eq.slice(-2).forEach(l=>parts.push('<div class="opacity-50 px-1">'+esc(l)+'</div>'));
+    } else eq.forEach(l=>parts.push('<div class="opacity-50 px-1">'+esc(l)+'</div>'));
+    eq=[];
+  };
+  ops.forEach(op=>{
+    if(op.t==='eq'){eq.push(op.a);}
+    else{
+      flush();
+      if(op.t==='del')parts.push('<div class="text-error bg-error/10 rounded px-1">\u2212 '+esc(op.val)+'</div>');
+      else parts.push('<div class="text-success bg-success/10 rounded px-1">+ '+esc(op.val)+'</div>');
+    }
+  });
+  flush();
+  return parts.join('');
+};
+
+function lawHop() {
+  return {
+    loading: true, error: '',
+    tab: 'versions',
+    biennium: '', chamber: '', billNum: '', billLabel: '',
+    currentSuffix: '', currentFmt: '',
+    versions: [], amendments: [],
+    diffA: '', diffB: '', diffRunning: false, diffHtml: '',
+    billChamber: '', billList: [], filteredBills: [],
+    billFilter: '', billListLoading: false,
+    fmtOrder: ['Htm','Xml','Pdf'],
+    fmtLabel: { Htm:'HTML', Xml:'XML', Pdf:'PDF' },
+
+    get htmVersions() { return this.versions.filter(v => v.fmts.includes('Htm')); },
+
+    async init() {
+      const src = window.opener?.location.href || location.href;
+      const parsed = parseUrl(src);
+      if (!parsed) { this.error = 'Not on a bill page'; this.loading = false; return; }
+      const { biennium, fmt, chamber, billNum, suffix } = parsed;
+      this.biennium = biennium;
+      this.chamber = chamber.replace(' Bills','');
+      this.billNum = billNum;
+      this.currentSuffix = suffix;
+      this.currentFmt = fmt;
+      this.billChamber = this.chamber;
+      this.billLabel = (chamber.startsWith('House') ? 'HB ' : 'SB ') + billNum;
+      document.title = 'Law Hop \u2014 ' + this.billLabel;
+      await Promise.all([
+        this._loadBillList(biennium, this.chamber),
+        this._loadVersions(biennium, chamber, billNum, suffix)
+      ]);
+    },
+
+    async _loadBillList(biennium, chamberBase) {
+      this.billListLoading = true;
+      try {
+        this.billList = await getBillList(biennium, chamberBase);
+        this.filteredBills = this.billList;
+      } catch(e) { this.billList = []; this.filteredBills = []; }
+      this.billListLoading = false;
+    },
+
+    async _loadVersions(biennium, chamber, billNum, suffix) {
+      this.loading = true;
+      try {
+        const fmts = ['Htm','Xml','Pdf'];
+        const [fmtResults, hAmends, sAmends] = await Promise.all([
+          Promise.all(fmts.map(f =>
+            scanDir('/Biennium/'+biennium+'/'+f+'/Bills/'+encodeURIComponent(chamber)+'/', billNum)
+              .then(files => ({ fmt: f, files }))
+          )),
+          scanDir('/Biennium/'+biennium+'/Htm/Amendments/House/', billNum)
+            .then(files => files.map(f => this._makeAmendment(f, biennium, 'House'))),
+          scanDir('/Biennium/'+biennium+'/Htm/Amendments/Senate/', billNum)
+            .then(files => files.map(f => this._makeAmendment(f, biennium, 'Senate')))
+        ]);
+        const vm = {};
+        fmtResults.forEach(({ fmt: f, files }) => {
+          files.forEach(file => {
+            const sfx = parseSuffix(file);
+            if (sfx === null) return;
+            if (!vm[sfx]) vm[sfx] = [];
+            vm[sfx].push(f);
+          });
+        });
+        this.versions = [
+          ...SFX_ORDER.filter(s => vm[s]).map(s => ({ suffix: s, label: VER_NAMES[s]||s||'Original', fmts: vm[s] })),
+          ...Object.keys(vm).filter(s => !SFX_ORDER.includes(s)).map(s => ({ suffix: s, label: s, fmts: vm[s] }))
+        ];
+        this.amendments = [...hAmends, ...sAmends];
+        if (this.htmVersions.length >= 2) {
+          this.diffA = this.htmVersions[0].suffix;
+          this.diffB = suffix || this.htmVersions[this.htmVersions.length-1].suffix;
+          if (this.diffA === this.diffB) this.diffB = this.htmVersions[this.htmVersions.length-1].suffix;
+        }
+      } catch(e) { this.error = e.message; }
+      this.loading = false;
+    },
+
+    _makeAmendment(filename, biennium, house) {
+      const url = '/Biennium/'+biennium+'/Htm/Amendments/'+house+'/'+encodeURIComponent(filename);
+      const clean = filename.replace(/\.htm$/i,'').replace(/^\S+\s+/,'');
+      const m = clean.match(/^(AM[HS])\s+(\w+)\s+(\w+)\s+(.+)$/);
+      return { file: filename, url, label: m ? m[1]+' \u2014 '+m[2]+' ('+m[4]+')' : clean, house };
+    },
+
+    makeUrl(fmt, suffix) {
+      return '/Biennium/'+this.biennium+'/'+fmt+'/Bills/'+
+        encodeURIComponent(this.chamber+' Bills')+'/'+
+        this.billNum+suffix+'.'+FMT_EXT[fmt];
+    },
+
+    openVersion(fmt, suffix) {
+      this.currentFmt = fmt;
+      this.currentSuffix = suffix;
+      const url = this.makeUrl(fmt, suffix);
+      if (window.opener) window.opener.location.href = url;
+      else window.open(url, '_blank');
+    },
+
+    setDiffPair(otherSuffix) {
+      this.diffA = this.currentSuffix;
+      this.diffB = otherSuffix;
+    },
+
+    setChamber(ch) {
+      if (ch === this.billChamber) return;
+      this.billChamber = ch;
+      this.billList = [];
+      this.filteredBills = [];
+      this.billFilter = '';
+      this._loadBillList(this.biennium, ch);
+    },
+
+    applyFilter() {
+      const f = this.billFilter.trim();
+      this.filteredBills = f ? this.billList.filter(n => n.startsWith(f)) : this.billList;
+    },
+
+    jumpToBill(num) {
+      this.billNum = num;
+      this.currentSuffix = '';
+      this.currentFmt = 'Htm';
+      this.chamber = this.billChamber;
+      this.billLabel = (this.billChamber==='House' ? 'HB ' : 'SB ') + num;
+      document.title = 'Law Hop \u2014 ' + this.billLabel;
+      this.versions = []; this.amendments = [];
+      this.diffHtml = ''; this.error = '';
+      const url = '/Biennium/'+this.biennium+'/Htm/Bills/'+
+        encodeURIComponent(this.billChamber+' Bills')+'/'+num+'.htm';
+      if (window.opener) window.opener.location.href = url;
+      else window.open(url, '_blank');
+      this._loadVersions(this.biennium, this.billChamber+' Bills', num, '');
+      this.tab = 'versions';
+    },
+
+    async runDiff() {
+      if (this.diffA === this.diffB) return;
+      this.diffRunning = true; this.diffHtml = '';
+      try {
+        const [hA, hB] = await Promise.all([
+          IDB.fetchCached(this.makeUrl('Htm', this.diffA)),
+          IDB.fetchCached(this.makeUrl('Htm', this.diffB))
+        ]);
+        if (!hA || !hB) throw new Error('Could not load one or both versions');
+        const ops = myersDiff(extractLines(hA), extractLines(hB));
+        const lA = VER_NAMES[this.diffA]||this.diffA||'Original';
+        const lB = VER_NAMES[this.diffB]||this.diffB||'Original';
+        this.diffHtml = renderDiff(ops, lA, lB);
+      } catch(e) { this.diffHtml = '<div class="text-error">'+esc(e.message)+'</div>'; }
+      this.diffRunning = false;
+    }
+  };
+}
+</script>
+</body>
+             </html>
