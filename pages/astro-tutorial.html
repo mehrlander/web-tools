@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Astro for Devs — A Practical Intro</title>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <style>
+    pre code { display: block; }
+    .code-block {
+      background: oklch(0.18 0.02 260);
+      color: oklch(0.92 0.01 260);
+      border: 1px solid oklch(0.28 0.02 260);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .code-block .k { color: #c084fc; }    /* keyword */
+    .code-block .s { color: #fcd34d; }    /* string */
+    .code-block .c { color: #64748b; font-style: italic; }  /* comment */
+    .code-block .t { color: #67e8f9; }    /* tag */
+    .code-block .a { color: #93c5fd; }    /* attribute */
+    .code-block .v { color: #fcd34d; }    /* value */
+    .code-block .p { color: #f87171; }    /* punctuation/special */
+    .code-block .f { color: #86efac; }    /* function */
+    h2 { scroll-margin-top: 4rem; }
+    .toc a { transition: color .15s; }
+    .toc a:hover { color: oklch(0.85 0.15 200); }
+    .lead { color: oklch(0.75 0.03 260); }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen">
+
+<div class="max-w-4xl mx-auto px-6 py-10">
+
+  <!-- Header -->
+  <header class="mb-10 border-b border-base-content/10 pb-8">
+    <div class="flex items-center gap-2 text-xs text-base-content/50 mb-3">
+      <i class="ph ph-rocket-launch"></i>
+      <span>Web framework tutorial</span>
+      <span>·</span>
+      <span>~15 min read</span>
+    </div>
+    <h1 class="text-4xl font-bold tracking-tight mb-3">Astro, for Devs Who Already Know Web</h1>
+    <p class="lead text-lg">
+      A practical tour of what Astro actually <em>is</em>, the mental model it asks you to adopt,
+      its <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.astro</code> syntax, and where the line
+      sits between <strong>what the framework gives you</strong> and <strong>what you write yourself</strong>.
+    </p>
+  </header>
+
+  <!-- TOC -->
+  <nav class="toc bg-base-200/40 rounded-lg p-5 mb-10 text-sm">
+    <div class="font-semibold mb-2 text-base-content/70 uppercase tracking-wide text-xs">Contents</div>
+    <ol class="space-y-1.5 list-decimal list-inside marker:text-base-content/40">
+      <li><a href="#what" class="link link-hover">What Astro is (and isn't)</a></li>
+      <li><a href="#mental" class="link link-hover">The mental model: islands &amp; zero-JS by default</a></li>
+      <li><a href="#install" class="link link-hover">Getting started</a></li>
+      <li><a href="#layout" class="link link-hover">Project layout</a></li>
+      <li><a href="#syntax" class="link link-hover">The .astro file format</a></li>
+      <li><a href="#routing" class="link link-hover">File-based routing &amp; dynamic routes</a></li>
+      <li><a href="#data" class="link link-hover">Data fetching &amp; content collections</a></li>
+      <li><a href="#islands" class="link link-hover">Adding interactivity (islands)</a></li>
+      <li><a href="#layouts" class="link link-hover">Layouts, slots &amp; props</a></li>
+      <li><a href="#ssr" class="link link-hover">Static vs server output</a></li>
+      <li><a href="#you" class="link link-hover">What you're responsible for</a></li>
+      <li><a href="#when" class="link link-hover">When to pick Astro</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. What is Astro -->
+  <section id="what" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">01.</span> What Astro is (and isn't)
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      Astro is a <strong>web framework for content-driven sites</strong>. Think marketing pages, docs sites,
+      blogs, portfolios, e-commerce storefronts — anywhere most of the page is HTML and only <em>some</em>
+      bits need to be interactive.
+    </p>
+    <p class="mb-4 leading-relaxed">
+      Mechanically: you write <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.astro</code> components
+      that look like JSX-flavored HTML, plus optional React / Vue / Svelte / Solid / Preact components for
+      the interactive parts. Astro ships zero JavaScript to the browser by default and only hydrates the
+      components you explicitly opt in.
+    </p>
+
+    <div class="grid md:grid-cols-2 gap-4 mt-6">
+      <div class="card bg-success/10 border border-success/30">
+        <div class="card-body p-5">
+          <div class="text-success font-semibold flex items-center gap-2 mb-2">
+            <i class="ph ph-check-circle"></i> Astro IS
+          </div>
+          <ul class="text-sm space-y-1.5 text-base-content/80">
+            <li>• A static-site generator with optional SSR</li>
+            <li>• HTML-first, with a JSX-like component syntax</li>
+            <li>• A multi-framework host (React + Vue + Svelte coexist)</li>
+            <li>• Built on Vite — fast dev, ESM everywhere</li>
+            <li>• Great for content + occasional interactivity</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card bg-error/10 border border-error/30">
+        <div class="card-body p-5">
+          <div class="text-error font-semibold flex items-center gap-2 mb-2">
+            <i class="ph ph-x-circle"></i> Astro is NOT
+          </div>
+          <ul class="text-sm space-y-1.5 text-base-content/80">
+            <li>• A SPA framework (no client-side router by default)</li>
+            <li>• A great fit for highly stateful apps (use Next/Remix/SvelteKit)</li>
+            <li>• Tied to React — JSX-ish, but not React</li>
+            <li>• An app shell with global state baked in</li>
+            <li>• A drop-in replacement for Next.js</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Mental model -->
+  <section id="mental" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">02.</span> The mental model: islands &amp; zero-JS by default
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      The single most important Astro concept is the <strong>islands architecture</strong>:
+    </p>
+    <ul class="list-disc list-inside space-y-2 ml-2 mb-4 text-base-content/85">
+      <li>A page is mostly server-rendered static HTML — no JS framework runtime in sight.</li>
+      <li>You sprinkle <em>islands</em> of interactivity (a search box, a cart icon, a chart) where you actually need them.</li>
+      <li>Each island ships only its own JS, hydrates independently, and doesn't block the rest of the page.</li>
+    </ul>
+    <p class="mb-4 leading-relaxed">
+      Compare to a typical SPA where the whole page is React/Vue, and even static text gets re-rendered
+      on the client. Astro flips that: <strong>HTML is the default, JS is opt-in, per component.</strong>
+    </p>
+    <div class="alert alert-info bg-info/10 border-info/30 text-base-content text-sm">
+      <i class="ph ph-info"></i>
+      <span>If your page is 95% content and 5% interactive widgets, Astro's defaults will produce a much smaller payload than a SPA framework with the same UI.</span>
+    </div>
+  </section>
+
+  <!-- 3. Install -->
+  <section id="install" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">03.</span> Getting started
+    </h2>
+    <p class="mb-3">Spin up a project with the CLI:</p>
+    <pre class="code-block"><code><span class="c"># Node 18.17+ or 20+</span>
+<span class="f">npm</span> create astro@latest my-site
+<span class="f">cd</span> my-site
+<span class="f">npm</span> run dev      <span class="c"># http://localhost:4321</span>
+<span class="f">npm</span> run build    <span class="c"># static output in ./dist</span></code></pre>
+
+    <p class="mt-4 mb-3">Add a UI framework as an integration when you need interactivity:</p>
+    <pre class="code-block"><code><span class="f">npx</span> astro add react        <span class="c"># or vue, svelte, solid, preact</span>
+<span class="f">npx</span> astro add tailwind     <span class="c"># official integrations exist for most tooling</span>
+<span class="f">npx</span> astro add mdx</code></pre>
+  </section>
+
+  <!-- 4. Project layout -->
+  <section id="layout" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">04.</span> Project layout
+    </h2>
+    <pre class="code-block"><code>my-site/
+├─ <span class="t">astro.config.mjs</span>     <span class="c"># integrations, output mode, adapters</span>
+├─ <span class="t">package.json</span>
+├─ <span class="t">public/</span>              <span class="c"># static assets, copied as-is (favicon, robots.txt)</span>
+└─ <span class="t">src/</span>
+   ├─ <span class="t">pages/</span>            <span class="c"># 🔥 file-based routing lives here</span>
+   │  ├─ index.astro      <span class="c"># → /</span>
+   │  ├─ about.astro      <span class="c"># → /about</span>
+   │  └─ blog/
+   │     └─ [slug].astro  <span class="c"># → /blog/:slug  (dynamic route)</span>
+   ├─ <span class="t">layouts/</span>          <span class="c"># shared shells (header/footer wrappers)</span>
+   ├─ <span class="t">components/</span>       <span class="c"># reusable .astro / .jsx / .vue / .svelte</span>
+   ├─ <span class="t">content/</span>          <span class="c"># typed content collections (markdown, mdx, json)</span>
+   └─ <span class="t">styles/</span></code></pre>
+    <p class="mt-4 leading-relaxed">
+      Anything in <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">src/pages/</code> with an
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.astro</code>,
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.md</code>, or
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.mdx</code> extension automatically
+      becomes a route. No router config to write.
+    </p>
+  </section>
+
+  <!-- 5. Syntax -->
+  <section id="syntax" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">05.</span> The .astro file format
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      An <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.astro</code> file has two parts: a
+      <strong>component script</strong> at the top (TypeScript, runs at build time on the server),
+      and a <strong>component template</strong> below (HTML with JSX-style expressions).
+    </p>
+
+    <pre class="code-block"><code><span class="p">---</span>
+<span class="c">// Component script — runs on the server only</span>
+<span class="k">import</span> Card <span class="k">from</span> <span class="s">'../components/Card.astro'</span>;
+<span class="k">const</span> title = <span class="s">'Hello, Astro'</span>;
+<span class="k">const</span> posts = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">'https://api.example.com/posts'</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>());
+<span class="p">---</span>
+
+<span class="t">&lt;html&gt;</span>
+  <span class="t">&lt;head&gt;</span><span class="t">&lt;title&gt;</span>{title}<span class="t">&lt;/title&gt;</span><span class="t">&lt;/head&gt;</span>
+  <span class="t">&lt;body&gt;</span>
+    <span class="t">&lt;h1&gt;</span>{title}<span class="t">&lt;/h1&gt;</span>
+    <span class="t">&lt;ul&gt;</span>
+      {posts.<span class="f">map</span>(p =&gt; (
+        <span class="t">&lt;li&gt;</span>
+          <span class="t">&lt;Card</span> <span class="a">title</span>={p.title} <span class="a">href</span>={<span class="s">`/blog/</span>${p.slug}<span class="s">`</span>} <span class="t">/&gt;</span>
+        <span class="t">&lt;/li&gt;</span>
+      ))}
+    <span class="t">&lt;/ul&gt;</span>
+
+    {posts.length === <span class="v">0</span> &amp;&amp; <span class="t">&lt;p&gt;</span>No posts yet.<span class="t">&lt;/p&gt;</span>}
+  <span class="t">&lt;/body&gt;</span>
+<span class="t">&lt;/html&gt;</span>
+
+<span class="t">&lt;style&gt;</span>
+  <span class="c">/* scoped to this component automatically */</span>
+  h1 { font-size: <span class="v">2rem</span>; }
+<span class="t">&lt;/style&gt;</span></code></pre>
+
+    <h3 class="font-semibold mt-6 mb-2 text-lg">Things worth noticing</h3>
+    <ul class="list-disc list-inside space-y-2 ml-2 text-base-content/85">
+      <li>The frontmatter (<code class="text-sm bg-base-200 px-1 rounded">---</code> fences) is normal TypeScript. <code class="text-sm bg-base-200 px-1 rounded">await</code> at the top level is fine.</li>
+      <li>Expressions in the template use <code class="text-sm bg-base-200 px-1 rounded">{ }</code>, like JSX.</li>
+      <li><strong>HTML attributes are HTML</strong> — it's <code class="text-sm bg-base-200 px-1 rounded">class</code>, not <code class="text-sm bg-base-200 px-1 rounded">className</code>; <code class="text-sm bg-base-200 px-1 rounded">for</code>, not <code class="text-sm bg-base-200 px-1 rounded">htmlFor</code>.</li>
+      <li><code class="text-sm bg-base-200 px-1 rounded">&lt;style&gt;</code> tags are scoped to the component by default. <code class="text-sm bg-base-200 px-1 rounded">&lt;style is:global&gt;</code> opts out.</li>
+      <li><code class="text-sm bg-base-200 px-1 rounded">&lt;script&gt;</code> tags in <code class="text-sm bg-base-200 px-1 rounded">.astro</code> files are processed by Vite, bundled, and shipped to the browser.</li>
+      <li>The script runs <strong>once at build time</strong> (or per request, in SSR mode). It never runs in the browser.</li>
+    </ul>
+  </section>
+
+  <!-- 6. Routing -->
+  <section id="routing" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">06.</span> File-based routing &amp; dynamic routes
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      Static routes are just files. Dynamic routes use bracket syntax and a
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">getStaticPaths()</code> export that tells
+      Astro which paths to generate.
+    </p>
+
+    <pre class="code-block"><code><span class="c">// src/pages/blog/[slug].astro</span>
+<span class="p">---</span>
+<span class="k">export async function</span> <span class="f">getStaticPaths</span>() {
+  <span class="k">const</span> posts = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">'https://cms.example.com/posts'</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>());
+  <span class="k">return</span> posts.<span class="f">map</span>(post =&gt; ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+<span class="k">const</span> { post } = Astro.props;
+<span class="p">---</span>
+
+<span class="t">&lt;article&gt;</span>
+  <span class="t">&lt;h1&gt;</span>{post.title}<span class="t">&lt;/h1&gt;</span>
+  <span class="t">&lt;div</span> <span class="a">set:html</span>={post.bodyHtml} <span class="t">/&gt;</span>
+<span class="t">&lt;/article&gt;</span></code></pre>
+
+    <p class="mt-4 leading-relaxed">
+      In SSR mode, dynamic routes don't need <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">getStaticPaths</code> —
+      they run per request and read params from <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">Astro.params</code>.
+    </p>
+  </section>
+
+  <!-- 7. Data fetching -->
+  <section id="data" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">07.</span> Data fetching &amp; content collections
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      In a <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.astro</code> file, you can
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">await</code> anything in the frontmatter:
+      hit a database, read the filesystem, call an API. There's no <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">getServerSideProps</code> or
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">loader()</code> ceremony — just write async code.
+    </p>
+
+    <p class="mb-3">For local Markdown / MDX content, Astro provides <strong>content collections</strong> with
+      Zod-validated schemas:</p>
+
+    <pre class="code-block"><code><span class="c">// src/content/config.ts</span>
+<span class="k">import</span> { defineCollection, z } <span class="k">from</span> <span class="s">'astro:content'</span>;
+
+<span class="k">const</span> blog = <span class="f">defineCollection</span>({
+  type: <span class="s">'content'</span>,
+  schema: z.<span class="f">object</span>({
+    title: z.<span class="f">string</span>(),
+    pubDate: z.<span class="f">date</span>(),
+    draft: z.<span class="f">boolean</span>().<span class="f">default</span>(<span class="k">false</span>),
+    tags: z.<span class="f">array</span>(z.<span class="f">string</span>()).<span class="f">optional</span>()
+  })
+});
+
+<span class="k">export const</span> collections = { blog };</code></pre>
+
+    <pre class="code-block mt-4"><code><span class="c">// src/pages/blog/index.astro</span>
+<span class="p">---</span>
+<span class="k">import</span> { getCollection } <span class="k">from</span> <span class="s">'astro:content'</span>;
+<span class="k">const</span> posts = (<span class="k">await</span> <span class="f">getCollection</span>(<span class="s">'blog'</span>))
+  .<span class="f">filter</span>(p =&gt; !p.data.draft)
+  .<span class="f">sort</span>((a, b) =&gt; +b.data.pubDate - +a.data.pubDate);
+<span class="p">---</span>
+
+<span class="t">&lt;ul&gt;</span>
+  {posts.<span class="f">map</span>(p =&gt; <span class="t">&lt;li&gt;</span><span class="t">&lt;a</span> <span class="a">href</span>={<span class="s">`/blog/</span>${p.slug}<span class="s">`</span>}&gt;{p.data.title}<span class="t">&lt;/a&gt;</span><span class="t">&lt;/li&gt;</span>)}
+<span class="t">&lt;/ul&gt;</span></code></pre>
+
+    <p class="mt-4 text-base-content/70 text-sm">
+      You get autocompletion and validation errors at build time when frontmatter doesn't match the schema.
+    </p>
+  </section>
+
+  <!-- 8. Islands -->
+  <section id="islands" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">08.</span> Adding interactivity (islands)
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      Drop a React/Vue/Svelte component into the page like any other component. The crucial bit is the
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">client:*</code> directive — without it, the
+      component is rendered to static HTML on the server and ships zero JS.
+    </p>
+
+    <pre class="code-block"><code><span class="p">---</span>
+<span class="k">import</span> Counter <span class="k">from</span> <span class="s">'../components/Counter.jsx'</span>;
+<span class="k">import</span> Search <span class="k">from</span> <span class="s">'../components/Search.svelte'</span>;
+<span class="p">---</span>
+
+<span class="c">&lt;!-- Static HTML only — no JS shipped --&gt;</span>
+<span class="t">&lt;Counter</span> <span class="a">start</span>={<span class="v">0</span>} <span class="t">/&gt;</span>
+
+<span class="c">&lt;!-- Hydrate immediately on load --&gt;</span>
+<span class="t">&lt;Counter</span> <span class="a">start</span>={<span class="v">0</span>} <span class="a">client:load</span> <span class="t">/&gt;</span>
+
+<span class="c">&lt;!-- Hydrate when the browser is idle --&gt;</span>
+<span class="t">&lt;Counter</span> <span class="a">start</span>={<span class="v">0</span>} <span class="a">client:idle</span> <span class="t">/&gt;</span>
+
+<span class="c">&lt;!-- Hydrate when scrolled into view --&gt;</span>
+<span class="t">&lt;Search</span> <span class="a">client:visible</span> <span class="t">/&gt;</span>
+
+<span class="c">&lt;!-- Hydrate only on a media query match --&gt;</span>
+<span class="t">&lt;Search</span> <span class="a">client:media</span>=<span class="s">"(max-width: 768px)"</span> <span class="t">/&gt;</span>
+
+<span class="c">&lt;!-- Render only on the client, never on the server --&gt;</span>
+<span class="t">&lt;Counter</span> <span class="a">client:only</span>=<span class="s">"react"</span> <span class="t">/&gt;</span></code></pre>
+
+    <div class="alert mt-5 bg-base-200 text-sm">
+      <i class="ph ph-lightbulb"></i>
+      <div>
+        <strong>Default to no directive.</strong> Reach for <code class="text-sm bg-base-300 px-1 rounded">client:visible</code>
+        or <code class="text-sm bg-base-300 px-1 rounded">client:idle</code> before <code class="text-sm bg-base-300 px-1 rounded">client:load</code>.
+        Most "interactive" UI doesn't need to hydrate before the user can see it.
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Layouts -->
+  <section id="layouts" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">09.</span> Layouts, slots &amp; props
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      Components accept props via TypeScript-typed <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">Astro.props</code>,
+      and children via <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">&lt;slot /&gt;</code> (web-component style, not JSX-children style).
+    </p>
+
+    <pre class="code-block"><code><span class="c">// src/layouts/BaseLayout.astro</span>
+<span class="p">---</span>
+<span class="k">interface</span> Props { title: <span class="k">string</span>; description?: <span class="k">string</span>; }
+<span class="k">const</span> { title, description = <span class="s">''</span> } = Astro.props;
+<span class="p">---</span>
+
+<span class="t">&lt;html</span> <span class="a">lang</span>=<span class="s">"en"</span><span class="t">&gt;</span>
+  <span class="t">&lt;head&gt;</span>
+    <span class="t">&lt;title&gt;</span>{title}<span class="t">&lt;/title&gt;</span>
+    <span class="t">&lt;meta</span> <span class="a">name</span>=<span class="s">"description"</span> <span class="a">content</span>={description} <span class="t">/&gt;</span>
+    <span class="t">&lt;slot</span> <span class="a">name</span>=<span class="s">"head"</span> <span class="t">/&gt;</span>
+  <span class="t">&lt;/head&gt;</span>
+  <span class="t">&lt;body&gt;</span>
+    <span class="t">&lt;header&gt;</span>...<span class="t">&lt;/header&gt;</span>
+    <span class="t">&lt;main&gt;</span><span class="t">&lt;slot</span> <span class="t">/&gt;</span><span class="t">&lt;/main&gt;</span>     <span class="c">// default slot</span>
+    <span class="t">&lt;footer&gt;</span><span class="t">&lt;slot</span> <span class="a">name</span>=<span class="s">"footer"</span> <span class="t">/&gt;</span><span class="t">&lt;/footer&gt;</span>
+  <span class="t">&lt;/body&gt;</span>
+<span class="t">&lt;/html&gt;</span></code></pre>
+
+    <pre class="code-block mt-4"><code><span class="c">// src/pages/about.astro</span>
+<span class="p">---</span>
+<span class="k">import</span> BaseLayout <span class="k">from</span> <span class="s">'../layouts/BaseLayout.astro'</span>;
+<span class="p">---</span>
+
+<span class="t">&lt;BaseLayout</span> <span class="a">title</span>=<span class="s">"About"</span> <span class="a">description</span>=<span class="s">"Who we are"</span><span class="t">&gt;</span>
+  <span class="t">&lt;link</span> <span class="a">slot</span>=<span class="s">"head"</span> <span class="a">rel</span>=<span class="s">"canonical"</span> <span class="a">href</span>=<span class="s">"https://example.com/about"</span> <span class="t">/&gt;</span>
+  <span class="t">&lt;h1&gt;</span>About<span class="t">&lt;/h1&gt;</span>
+  <span class="t">&lt;p&gt;</span>...<span class="t">&lt;/p&gt;</span>
+<span class="t">&lt;/BaseLayout&gt;</span></code></pre>
+  </section>
+
+  <!-- 10. Static vs SSR -->
+  <section id="ssr" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">10.</span> Static vs server output
+    </h2>
+    <p class="mb-4 leading-relaxed">
+      Astro can output <strong>static HTML</strong> (default), <strong>SSR</strong> (rendered per request),
+      or a hybrid. The mode is set in <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">astro.config.mjs</code>:
+    </p>
+
+    <pre class="code-block"><code><span class="c">// astro.config.mjs</span>
+<span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">'astro/config'</span>;
+<span class="k">import</span> node <span class="k">from</span> <span class="s">'@astrojs/node'</span>;
+
+<span class="k">export default</span> <span class="f">defineConfig</span>({
+  output: <span class="s">'server'</span>,           <span class="c">// 'static' | 'server' | 'hybrid'</span>
+  adapter: <span class="f">node</span>({ mode: <span class="s">'standalone'</span> }),  <span class="c">// or vercel, netlify, cloudflare…</span>
+});</code></pre>
+
+    <p class="mt-4 mb-3">In SSR mode, individual pages can opt out of pre-rendering:</p>
+    <pre class="code-block"><code><span class="p">---</span>
+<span class="k">export const</span> prerender = <span class="k">false</span>;   <span class="c">// this page renders per request</span>
+
+<span class="k">if</span> (Astro.request.method === <span class="s">'POST'</span>) {
+  <span class="k">const</span> form = <span class="k">await</span> Astro.request.<span class="f">formData</span>();
+  <span class="c">// handle the submission, then redirect</span>
+  <span class="k">return</span> Astro.<span class="f">redirect</span>(<span class="s">'/thanks'</span>);
+}
+<span class="p">---</span></code></pre>
+
+    <p class="mt-4 leading-relaxed">
+      You can also expose API routes by putting a <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">.ts</code>
+      file in <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">src/pages/api/</code> that exports
+      <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">GET</code>, <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">POST</code>, etc.
+      handlers returning a standard <code class="text-sm bg-base-200 px-1.5 py-0.5 rounded">Response</code>.
+    </p>
+  </section>
+
+  <!-- 11. Responsibilities -->
+  <section id="you" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">11.</span> What you're responsible for
+    </h2>
+    <p class="mb-5 leading-relaxed">
+      The framework is intentionally minimal. Here's the line between what Astro hands you and what you wire up yourself.
+    </p>
+
+    <div class="overflow-x-auto">
+      <table class="table table-sm">
+        <thead>
+          <tr class="text-base-content/60">
+            <th class="w-1/2">Astro gives you</th>
+            <th class="w-1/2">You provide</th>
+          </tr>
+        </thead>
+        <tbody class="text-sm">
+          <tr>
+            <td>File-based routing, dynamic params, redirects</td>
+            <td>Information architecture, URL design, sitemap entries</td>
+          </tr>
+          <tr>
+            <td>Build pipeline (Vite), bundling, dev server, HMR</td>
+            <td>Choosing integrations (React, Tailwind, MDX, image, sitemap)</td>
+          </tr>
+          <tr>
+            <td>The .astro component model + slots + scoped styles</td>
+            <td>Designing components, prop shapes, layout hierarchy</td>
+          </tr>
+          <tr>
+            <td>Content collections + Zod schemas + type-safe queries</td>
+            <td>Writing the content (Markdown / MDX), defining the schemas</td>
+          </tr>
+          <tr>
+            <td>Islands &amp; <code class="text-xs bg-base-300 px-1 rounded">client:*</code> hydration directives</td>
+            <td>Choosing the right directive per component (perf budget)</td>
+          </tr>
+          <tr>
+            <td>Image optimization (<code class="text-xs bg-base-300 px-1 rounded">&lt;Image /&gt;</code>), font handling</td>
+            <td>Source images, alt text, content sources</td>
+          </tr>
+          <tr>
+            <td>SSR adapters for Node, Vercel, Netlify, Cloudflare, Deno</td>
+            <td>Hosting choice, env vars, deploy config</td>
+          </tr>
+          <tr>
+            <td>Form actions, middleware, API endpoints</td>
+            <td>Auth, sessions, DB connections, business logic</td>
+          </tr>
+          <tr>
+            <td>Zero default client JS</td>
+            <td>Any global state, client-side routing, store wiring</td>
+          </tr>
+          <tr>
+            <td>View Transitions API integration</td>
+            <td>Deciding which routes participate &amp; the actual transitions</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-6 leading-relaxed">
+      Notably absent from the framework: <strong>state management, auth, a CSS solution, an ORM</strong>, or a
+      blessed UI library. Astro stays out of those choices. You bring (or don't bring) tools like Tailwind,
+      Lucia, Drizzle, nanostores, etc.
+    </p>
+  </section>
+
+  <!-- 12. When to pick -->
+  <section id="when" class="mb-12">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      <span class="text-base-content/30">12.</span> When to pick Astro
+    </h2>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-base-200/50">
+        <div class="card-body p-5">
+          <div class="font-semibold mb-2 flex items-center gap-2">
+            <i class="ph ph-thumbs-up text-success"></i> Reach for it when
+          </div>
+          <ul class="text-sm space-y-1.5 text-base-content/85">
+            <li>• The site is content-heavy (blog, docs, marketing, landing).</li>
+            <li>• You want SEO + small payload + fast TTFB without fighting the framework.</li>
+            <li>• You want to mix React for one widget and Svelte for another without religion.</li>
+            <li>• Markdown / MDX is a first-class part of the project.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card bg-base-200/50">
+        <div class="card-body p-5">
+          <div class="font-semibold mb-2 flex items-center gap-2">
+            <i class="ph ph-thumbs-down text-error"></i> Look elsewhere when
+          </div>
+          <ul class="text-sm space-y-1.5 text-base-content/85">
+            <li>• You're building a SPA-style app (dashboard, editor, chat).</li>
+            <li>• You need deep client-side routing and shared state across many views.</li>
+            <li>• Most of the page is interactive and the "content" is a thin shell.</li>
+            <li>• Your team is heavily invested in Next/Remix/SvelteKit conventions.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-16 pt-8 border-t border-base-content/10 text-sm text-base-content/50">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        Further reading:
+        <a class="link link-hover" href="https://docs.astro.build/">docs.astro.build</a> ·
+        <a class="link link-hover" href="https://docs.astro.build/en/concepts/islands/">Islands architecture</a> ·
+        <a class="link link-hover" href="https://docs.astro.build/en/guides/content-collections/">Content collections</a>
+      </div>
+      <a href="./" class="link link-hover flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> back to web-tools
+      </a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>
