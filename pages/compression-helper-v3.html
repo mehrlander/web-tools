@@ -13,14 +13,10 @@
   once via dynamic ES-module import, then pull every other piece from this
   repo through gh.load(). Alpine itself is appended last so the component
   registrations run before alpine:init fires.
-
-  The bootstrap URL is branch-pinned while this lives on a feature branch
-  so jsdelivr serves the post-cleanup gh-api.js. Drop the @<branch> suffix
-  once this is merged to main.
 -->
 <script type="module">
   const REPO   = 'mehrlander/web-tools';
-  const BRANCH = 'claude/update-compression-helpers-L7M4x';
+  const BRANCH = 'main';
   const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
 
   try {
