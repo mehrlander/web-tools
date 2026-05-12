@@ -12,13 +12,30 @@ document.addEventListener('alpine:init', function() {
       `<label class="flex items-center gap-1"><input type="checkbox" x-model="${model}" class="checkbox checkbox-xs">${label}</label>`,
       `<strong>${header}</strong>${lines(['xs'], lns)}`
     );
+    const packedSelect = tip(
+      ['bottom', 'xs'],
+      `<select x-model="packed" class="select select-xs w-auto">
+         <option value="none">Raw</option>
+         <option value="bookmarklet">Bookmarklet</option>
+         <option value="data-url">Data URL</option>
+       </select>`,
+      `<strong>Wrap output</strong>${lines(['xs'], [
+        '• Raw: payload only, no wrapper',
+        '• Bookmarklet: javascript: URL that decompresses + runs',
+        '• Data URL: data:text/html base64 URL — open via link, address-bar paste is blocked in most browsers'
+      ])}`
+    );
+
+    // ~1 MB. Safari historically caps data: URLs near this size; Chrome
+    // tolerates more but slows down. Anything past this gets a warning class.
+    const DATA_URL_SOFT_CAP = 1_000_000;
 
     return {
       template: `
         <div class="absolute inset-0 flex flex-col">
           <div class="flex flex-wrap items-center gap-3 mb-2 flex-none">
             <b>Output</b>
-            <a :href="output" class="link link-primary" draggable="true" x-text="name"></a>
+            <a :href="output" target="_blank" rel="noopener" class="link link-primary" draggable="true" x-text="name"></a>
             <input x-model="name" @change="saveOpts()" class="input input-xs w-24" placeholder="Name">
             <div class="ml-auto flex flex-wrap items-center gap-3">
               <span>${tog('compressed','Compressed','Toggle Brotli (BR64:) or Gzip (GZ64:) → Base64 → prefix',['• Has prefix: Uncheck to decompress','• No prefix: Check to compress','Applied before packing'])}</span>
@@ -27,8 +44,8 @@ document.addEventListener('alpine:init', function() {
                 <option value="gzip">Gzip</option>
               </select>
               <input x-model="label" :disabled="!compressed||inComp" @change="saveOpts()" class="input input-xs w-24" :class="(!compressed||inComp) && 'opacity-50'" placeholder="Label">
-              <span>${tog('packed','Packed','Wraps in javascript:() IIFE',['• JavaScript: Executes directly with eval()','• HTML/Text: Opens content in new window','Adds decompression if compressed'])}</span>
-              <select x-model="format" :disabled="!packed" class="select select-xs w-auto" :class="!packed && 'opacity-50'">
+              <span>${packedSelect}</span>
+              <select x-model="target" :disabled="packed !== 'bookmarklet'" class="select select-xs w-auto" :class="packed !== 'bookmarklet' && 'opacity-50'">
                 <option value="popup">Popup</option>
                 <option value="tab">New Tab</option>
               </select>
@@ -38,7 +55,7 @@ document.addEventListener('alpine:init', function() {
           <div class="flex gap-4 text-xs mb-2 flex-none">
             <span class="text-info">■ packing</span>
             <span class="bg-warning/20 text-warning-content px-1">■ payload</span>
-            <span class="opacity-60 ml-auto" x-text="metrics"></span>
+            <span class="ml-auto" :class="sizeWarn ? 'text-warning' : 'opacity-60'" x-text="metrics"></span>
           </div>
           <pre tabindex="0" @click="$el.focus()"
             @keydown.ctrl.a.prevent="selectAllPre($el)"
@@ -49,15 +66,16 @@ document.addEventListener('alpine:init', function() {
 
       name: 'Test',
       compressed: true,
-      packed: true,
+      packed: 'bookmarklet',
       alg: 'gzip',
-      format: 'popup',
+      target: 'popup',
       label: '',
       input: '',
       sel: null,
       output: '',
       packingSegments: [],
       metrics: '',
+      sizeWarn: false,
       inComp: false,
       copyText: 'Copy',
       cls: { packing: 'text-info', payload: 'bg-warning/20', error: 'text-error bg-error/10' },
@@ -82,14 +100,25 @@ document.addEventListener('alpine:init', function() {
 
         (async () => {
           const saved = await persistence.load(PATH_OUTPUT);
-          if (saved) ['name','compressed','packed','alg','format','label'].forEach(k => {
-            if (k in saved) this[k] = saved[k];
-          });
+          if (saved) {
+            ['name','compressed','alg','label'].forEach(k => {
+              if (k in saved) this[k] = saved[k];
+            });
+            // Migrate boolean `packed` → enum.
+            if ('packed' in saved) {
+              this.packed = typeof saved.packed === 'boolean'
+                ? (saved.packed ? 'bookmarklet' : 'none')
+                : saved.packed;
+            }
+            // Migrate old `format` field → `target`.
+            if ('target' in saved) this.target = saved.target;
+            else if ('format' in saved) this.target = saved.format;
+          }
           if (!this.input) {
             const inp = await persistence.load(PATH_INPUT);
             if (inp?.input) this.input = inp.input;
           }
-          ['compressed','packed','alg','format','label'].forEach(p => {
+          ['compressed','packed','alg','target','label'].forEach(p => {
             this.$watch(p, () => { this.process(); this.saveOpts(); });
           });
           await this.process();
@@ -99,7 +128,7 @@ document.addEventListener('alpine:init', function() {
       async saveOpts() {
         await window.persistence.save(PATH_OUTPUT, {
           name: this.name, compressed: this.compressed, packed: this.packed,
-          alg: this.alg, format: this.format, label: this.label
+          alg: this.alg, target: this.target, label: this.label
         });
       },
 
@@ -110,18 +139,22 @@ document.addEventListener('alpine:init', function() {
 
       async process() {
         if (!this.input.trim()) {
-          this.output = ''; this.packingSegments = []; this.metrics = ''; this.inComp = false; return;
+          this.output = ''; this.packingSegments = []; this.metrics = '';
+          this.sizeWarn = false; this.inComp = false; return;
         }
         const effective = this.sel?.text || this.input;
         try {
           const r = await window.compression.text.process(effective, {
             compressed: this.compressed, packed: this.packed, alg: this.alg,
-            popup: this.format === 'popup', label: this.label
+            target: this.target, label: this.label
           });
           this.inComp = r.isCompressed;
           this.output = r.output;
           this.packingSegments = r.packingSegments;
-          this.metrics = `Raw:${r.sizes.raw} Br:${r.sizes.brotli} Gz:${r.sizes.gzip} Out:${r.outSize}`;
+          const overCap = this.packed === 'data-url' && r.outSize > DATA_URL_SOFT_CAP;
+          this.sizeWarn = overCap;
+          this.metrics = `Raw:${r.sizes.raw} Br:${r.sizes.brotli} Gz:${r.sizes.gzip} Out:${r.outSize}` +
+                         (overCap ? ' ⚠ over ~1MB data: URL cap' : '');
         } catch (e) {
           console.error(e);
           this.output = 'Error: ' + e.message;

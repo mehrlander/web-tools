@@ -12,14 +12,10 @@
   v4: same UI as v3, but the input textarea is replaced by a CodeMirror 6
   editor (compressInputCm). The output side is unchanged — it still talks
   to the input via the messaging kit's PATH_INPUT / PATH_SEL paths.
-
-  Branch-pinned bootstrap while this lives on a feature branch so jsdelivr
-  serves the new compress-input-cm-assembled.js. Drop the @<branch> suffix
-  once this is merged to main.
 -->
 <script type="module">
   const REPO   = 'mehrlander/web-tools';
-  const BRANCH = 'claude/name-reference-folder-KlV4g';
+  const BRANCH = 'main';
   const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
 
   try {
