@@ -39,6 +39,18 @@
       m.decompress(new Uint8Array(atob(str.replace(brRe, '')).split('').map(c => c.charCodeAt(0))))
     );
   };
+  // Prefixless variants — emit/consume bare base64. Useful when the caller owns
+  // the format and doesn't need the BR64: self-describing tag.
+  brotli.compressRaw = async text => {
+    const m = await loadBrotli();
+    return btoa(String.fromCharCode(...m.compress(new TextEncoder().encode(text))));
+  };
+  brotli.decompressRaw = async b64 => {
+    const m = await loadBrotli();
+    return new TextDecoder().decode(
+      m.decompress(new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0))))
+    );
+  };
   brotli.detect = str => {
     const m = str.match(brRe);
     return m ? { alg: 'brotli', label: m[1] ?? null, prefixLen: m[0].length } : null;
@@ -94,6 +106,13 @@
     return chunks;
   };
   gzip.sizeOf = async text => (await gzStream(true, new TextEncoder().encode(text))).length;
+  // Prefixless variants — emit/consume bare base64. Useful when the caller owns
+  // the format and doesn't need the GZ64: self-describing tag.
+  gzip.compressRaw = async text =>
+    btoa(String.fromCharCode(...await gzStream(true, new TextEncoder().encode(text))));
+  gzip.decompressRaw = async b64 => new TextDecoder().decode(
+    await gzStream(false, new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0))))
+  );
 
   // ============== ACORN ==============
   let acornMod;
@@ -143,18 +162,20 @@
     }
 
     let seed = null;
+    let seedRaw = null;
     if (mediaType.startsWith('text/html')) {
       try {
         const doc = new DOMParser().parseFromString(body, 'text/html');
         const seedEl = doc.getElementById('seed');
         if (seedEl) {
           const seedText = seedEl.textContent.trim();
+          seedRaw = seedText;
           if (text.detectCompressionType(seedText)) seed = seedText;
         }
       } catch {}
     }
 
-    return { mediaType, params, body, seed };
+    return { mediaType, params, body, seed, seedRaw };
   };
 
   // Snippets parameterized by prefix length, target option, and alg. Used by
@@ -199,8 +220,11 @@
   // packed: 'none' | 'bookmarklet' | 'data-url'. Booleans accepted for
   // backcompat (true → 'bookmarklet', false → 'none'). target: 'popup' | 'tab'
   // — bookmarklet-only sub-option. Legacy `popup: bool` accepted as alias.
+  // alg: 'brotli' | 'gzip' — only consulted when packed === 'data-url' and the
+  // content has no BR64:/GZ64: prefix; explicit alg triggers the prefixless
+  // shell wrap (content is treated as bare base64 of compressed bytes).
   text.pack = (content, opts = {}) => {
-    let { isJavaScript = false, target, packed = 'bookmarklet', popup } = opts;
+    let { isJavaScript = false, target, packed = 'bookmarklet', popup, alg } = opts;
     if (typeof packed === 'boolean') packed = packed ? 'bookmarklet' : 'none';
     if (target === undefined) target = popup === false ? 'tab' : 'popup';
 
@@ -217,9 +241,14 @@
 
     if (packed === 'data-url') {
       const prefix = 'data:text/html;charset=utf-8;base64,';
-      const html = det
-        ? text.templates.dataShell({ alg: det.alg, prefixLen: det.prefixLen }).replace('__SEED__', content)
-        : content;
+      let html;
+      if (det) {
+        html = text.templates.dataShell({ alg: det.alg, prefixLen: det.prefixLen }).replace('__SEED__', content);
+      } else if (alg === 'brotli' || alg === 'gzip') {
+        html = text.templates.dataShell({ alg, prefixLen: 0 }).replace('__SEED__', content);
+      } else {
+        html = content;
+      }
       return mkResult([
         { t: 'packing', v: prefix },
         { t: 'payload', v: btoa(unescape(encodeURIComponent(html))) }
