@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html data-theme="light" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <title>Render Engine Editor</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="p-8 bg-base-200 h-full flex flex-col gap-6 font-sans overflow-hidden">
+
+<div x-data="editor" class="contents">
+  <div class="flex justify-between items-center shrink-0">
+    <div>
+      <div class="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Operation</div>
+      <div class="badge badge-primary badge-sm font-bold" x-text="label"></div>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] font-black opacity-30 uppercase tracking-widest mb-1">Weight</div>
+      <div class="font-mono font-bold" x-text="weight"></div>
+    </div>
+  </div>
+
+  <div class="flex-1 flex flex-col gap-2 overflow-hidden">
+    <div class="flex justify-between items-center ml-1">
+      <label class="text-[10px] font-black uppercase opacity-40" x-text="urlView === 'url' ? 'Bookmark URL' : 'Compiled HTML'"></label>
+      <button @click="toggleUrlView" class="btn btn-xs btn-ghost text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100">
+        <template x-if="urlView === 'url'"><span><i class="ph ph-code"></i> Show Source</span></template>
+        <template x-if="urlView === 'html'"><span><i class="ph ph-link"></i> Show URL</span></template>
+      </button>
+    </div>
+    <div class="relative flex-1 min-h-0">
+      <textarea readonly :value="urlView === 'url' ? url : urlAsHtml"
+        class="textarea textarea-bordered w-full h-full font-mono text-[10px] bg-base-100 focus:outline-none resize-none shadow-sm border-base-300"></textarea>
+      <button @click="copyUrl" class="btn btn-primary btn-sm absolute bottom-3 right-3 shadow-md" :class="copied && '!btn-success'">
+        <i :class="copied ? 'ph ph-check' : 'ph ph-copy'"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex-1 flex flex-col gap-2 overflow-hidden">
+    <div class="flex justify-between items-center ml-1">
+      <label class="text-[10px] font-black uppercase opacity-40">Raw Source</label>
+      <button @click="apply" class="btn btn-sm text-[10px] font-black uppercase tracking-widest"
+              :class="applied ? 'btn-success' : 'btn-primary'">
+        <i :class="applied ? 'ph ph-check' : 'ph ph-play'"></i>
+        <span x-text="applied ? 'Success' : 'Render Content'"></span>
+      </button>
+    </div>
+    <div x-data="cmEditor({
+           value: html,
+           language: 'html',
+           wrap: true,
+           onChange: v => { html = v }
+         })"
+         class="flex-1 min-h-0 w-full text-xs rounded-box border border-base-300 overflow-hidden bg-base-100 shadow-sm
+                [&_.cm-editor]:h-full [&_.cm-editor]:outline-none
+                [&_.cm-scroller]:overflow-auto [&_.cm-scroller]:font-mono
+                [&_.cm-gutters]:bg-base-200/30 [&_.cm-gutters]:border-none"></div>
+  </div>
+</div>
+
+<script type="module">
+  const REPO = 'mehrlander/web-tools';
+  const BRANCH = 'main';
+  const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
+
+  try {
+    const mod = await import(`${CDN}/gh-api.js`);
+    window.GH = mod.default;
+    const gh = new window.GH({ repo: REPO, ref: BRANCH });
+    await gh.load('kits/compression.js');
+    await gh.load('kits/io.js');
+    await gh.load('alpineComponents/cm-editor.js');
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('editor', () => {
+        // Read from window.opener at factory time so nested cmEditor's x-data
+        // expression sees populated `html`/`url` when it evaluates.
+        const data = window.opener?._renderEngine;
+        return {
+          label: data?.url ? 'Inspect' : 'New',
+          url:   data?.url  || '',
+          html:  data?.html || '',
+          urlView: 'url',
+          copied: false,
+          applied: false,
+
+          get urlAsHtml() {
+            if (!this.url) return '';
+            try {
+              return decodeURIComponent(escape(atob(this.url.split('base64,')[1])));
+            } catch { return ''; }
+          },
+
+          get weight() {
+            return new Blob([this.html]).size.toLocaleString() + ' B';
+          },
+
+          toggleUrlView() {
+            this.urlView = this.urlView === 'url' ? 'html' : 'url';
+          },
+
+          async copyUrl() {
+            const content = this.urlView === 'url' ? this.url : this.urlAsHtml;
+            if (!content) return;
+            try {
+              await window.io.copy(content);
+              this.copied = true;
+              setTimeout(() => this.copied = false, 2000);
+            } catch (e) {
+              console.error(e);
+            }
+          },
+
+          async apply() {
+            const fn = window.opener?._renderEngine?.applyHtml;
+            if (!fn) return;
+            try {
+              const newUrl = await fn(this.html);
+              if (newUrl) this.url = newUrl;
+              this.label = 'Inspect';
+              this.applied = true;
+              setTimeout(() => this.applied = false, 2000);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        };
+      });
+    });
+
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js';
+    s.defer = true;
+    document.head.appendChild(s);
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerHTML =
+      `<pre style="padding:2rem;color:#c00;font-family:sans-serif">Boot failed: ${e?.message || e}</pre>`;
+  }
+</script>
+
+</body>
+</html>

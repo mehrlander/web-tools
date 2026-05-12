@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 Render Engine</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="h-screen overflow-hidden bg-base-100 text-base-content">
+
+<script id="seed" type="text/plain">H4sIAAAAAAAACgsuKU1LAwA614CYBQAAAA==</script>
+
+<script type="text/template" id="blueprint">
+  <div x-data="renderEngine" @paste.window="handlePaste($event)" class="w-full h-full">
+    <iframe x-ref="canvas" class="w-full h-full border-0" srcdoc="
+      <html><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8f8f8;color:#ccc'>
+        <div style='text-align:center'>
+          <div style='font-size:4rem;margin-bottom:1rem'>◈</div>
+          <div style='font-size:.65rem;font-weight:900;letter-spacing:.3em;text-transform:uppercase'>Click the drop to begin</div>
+        </div>
+      </body></html>
+    "></iframe>
+
+    <div class="tooltip tooltip-left fixed bottom-6 right-6 group" data-tip="Open Editor" style="z-index:9999">
+      <div tabindex="0" @click="openEditor()" class="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-pointer outline-none transition-all duration-300 hover:bg-primary/20 hover:border-primary/40 focus:bg-primary focus:border-primary focus:shadow-lg focus:shadow-primary/30">
+        <i class="ph ph-drop text-2xl text-primary/40 group-hover:text-primary/70 group-focus:text-primary-content transition-colors"></i>
+      </div>
+    </div>
+  </div>
+</script>
+
+<div id="mount" class="w-full h-full"></div>
+
+<script id="engine">
+(async () => {
+  const REPO = 'mehrlander/web-tools';
+  const BRANCH = 'main';
+  const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
+  const POPUP_URL = `${CDN}/popups/render-engine-editor.html`;
+
+  // Boot kits, then mount blueprint, then register Alpine component, then
+  // load Alpine. Ordering matters: Alpine.start() must see the component
+  // definition, so we register the listener before injecting Alpine's <script>.
+  const mod = await import(`${CDN}/gh-api.js`);
+  window.GH = mod.default;
+  const gh = new window.GH({ repo: REPO, ref: BRANCH });
+  await gh.load('kits/compression.js');
+
+  document.getElementById('mount').innerHTML = document.getElementById('blueprint').innerHTML;
+
+  function snapshotUrl(seed) {
+    const blueprintText = document.getElementById('blueprint').innerHTML;
+    const engineText = document.getElementById('engine').textContent;
+    const html = `<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 Render Engine</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"><\/script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="h-screen overflow-hidden bg-base-100 text-base-content">
+<script id="seed" type="text/plain">${seed}<\/script>
+<script type="text/template" id="blueprint">${blueprintText}<\/script>
+<div id="mount" class="w-full h-full"></div>
+<script id="engine">${engineText}<\/script>
+</body>
+</html>`;
+    return 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(html)));
+  }
+
+  // Decompress a seed string. Accepts BR64:/GZ64: prefixed (via kit's labeled
+  // path) or bare base64 (assumed gzip — the format this page emits).
+  async function decompressSeed(seed) {
+    const det = window.compression.text.detectCompressionType(seed);
+    if (det?.alg === 'brotli') return window.compression.brotli.decompress(seed);
+    if (det?.alg === 'gzip')   return window.compression.gzip.decompress(seed);
+    return window.compression.gzip.decompressRaw(seed);
+  }
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('renderEngine', () => ({
+      async init() {
+        const seed = document.getElementById('seed').textContent.trim();
+        if (!seed) return; // keep template's placeholder srcdoc
+        try {
+          this.$refs.canvas.srcdoc = await decompressSeed(seed);
+        } catch (e) {
+          this.$refs.canvas.srcdoc =
+            `<pre style="padding:2rem;font-family:sans-serif">Decompression error: ${e.message}</pre>`;
+        }
+      },
+
+      async handlePaste(e) {
+        e.preventDefault();
+        const raw = (e.clipboardData.getData('text/plain') || '').trim();
+        if (!raw) return;
+
+        let html;
+        if (raw.startsWith('data:')) {
+          const parsed = window.compression.text.fromDataUrl(raw);
+          if (parsed && parsed.mediaType.startsWith('text/html')) {
+            if (parsed.seed)         html = await decompressSeed(parsed.seed);
+            else if (parsed.seedRaw) html = await decompressSeed(parsed.seedRaw);
+            else                     html = parsed.body;
+          } else {
+            html = raw;
+          }
+        } else {
+          html = raw;
+        }
+
+        const newSeed = await window.compression.gzip.compressRaw(html);
+        document.getElementById('seed').textContent = newSeed;
+        this.$refs.canvas.srcdoc = html;
+        this.openEditor();
+      },
+
+      async openEditor() {
+        const seed = document.getElementById('seed').textContent.trim();
+        const html = seed ? await decompressSeed(seed) : '';
+        const url  = seed ? snapshotUrl(seed) : '';
+
+        window._renderEngine = {
+          seed, html, url,
+          applyHtml: async (newHtml) => {
+            const newSeed = await window.compression.gzip.compressRaw(newHtml);
+            document.getElementById('seed').textContent = newSeed;
+            this.$refs.canvas.srcdoc = newHtml;
+            return snapshotUrl(newSeed);
+          }
+        };
+
+        window.open(POPUP_URL, '_blank', 'width=580,height=800');
+      }
+    }));
+  });
+
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js';
+  s.defer = true;
+  document.head.appendChild(s);
+})().catch(e => {
+  document.body.innerHTML =
+    `<pre style="padding:2rem;font-family:sans-serif;color:#c00">Boot failed: ${e?.message || e}</pre>`;
+});
+</script>
+</body>
+</html>
