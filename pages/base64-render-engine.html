@@ -37,7 +37,6 @@
   const REPO = 'mehrlander/web-tools';
   const BRANCH = 'main';
   const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
-  const POPUP_URL = `${CDN}/popups/render-engine-editor.html`;
 
   // Boot kits, then mount blueprint, then register Alpine component, then
   // load Alpine. Ordering matters: Alpine.start() must see the component
@@ -133,7 +132,15 @@
           }
         };
 
-        window.open(POPUP_URL, '_blank', 'width=580,height=800');
+        // jsdelivr serves /gh/ HTML with Content-Type: text/plain, so we can't
+        // window.open() the popup URL directly — fetch via GH API and write it
+        // into a blank popup instead. about:blank preserves window.opener.
+        const w = window.open('', '_blank', 'width=580,height=800');
+        if (!w) return;
+        const { text } = await gh.get('popups/render-engine-editor.html');
+        w.document.open();
+        w.document.write(text);
+        w.document.close();
       }
     }));
   });
