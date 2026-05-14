@@ -56,10 +56,7 @@
      @pointermove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
      x-effect="$refs.output && ($refs.output.style.height = outHeight + 'px')">
 
-  <div class="flex items-center gap-2 mb-4">
-    <h1 class="text-xl">Compression Helper</h1>
-    <a href="compression-helper-v4.html" class="text-xs opacity-50 hover:opacity-100 ml-auto">← v4</a>
-  </div>
+  <h1 class="text-xl mb-4">Compression Helper</h1>
 
   <div x-ref="output" class="relative overflow-hidden flex-none mb-1">
     <div x-data="compressOutput()"></div>
