@@ -97,5 +97,97 @@
     await clear(await storeFor(db, store));
   };
 
-  window.persistence = { save, load, remove, list, entries, clearStore, parsePath };
+  // collection(path) — record bag layered on top of idb-keyval.
+  //
+  //   const items = persistence.collection('dataShelf.items');
+  //   const saved = await items.put({ name: 'foo', code: '...' });  // id auto-assigned
+  //   await items.get(saved.id);
+  //   await items.delete(saved.id);
+  //   await items.all();         // [{id, ...}, ...]
+  //   await items.find(pred);    // filter in JS
+  //   await items.count();
+  //   await items.clear();
+  //
+  // The collection is just an idb-keyval store (db=<db>, store=<store>); each
+  // record is one entry keyed by its id. Records without an id get a fresh
+  // crypto.randomUUID(). Importing legacy records with numeric ids (e.g. from
+  // a Dexie ++id table) preserves the id, so re-imports overwrite cleanly.
+  const collection = (path) => {
+    const parts = path.split('.').map(s => s.trim()).filter(Boolean);
+    if (parts.length !== 2) {
+      throw new Error(`persistence: collection path "${path}" must be "<db>.<store>"`);
+    }
+    const [db, store] = parts;
+    const keyPath = (id) => `${db}.${store}.${id}`;
+    // For list/entries/clearStore the key segment is ignored; this sentinel
+    // just satisfies parsePath's 3-segment shape.
+    const scanPath = `${db}.${store}.x`;
+    const genId = () => (globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random().toString(36).slice(2));
+
+    return {
+      async put(record) {
+        const id = record?.id ?? genId();
+        const stored = { ...record, id };
+        await save(keyPath(id), stored);
+        return stored;
+      },
+      async get(id) { return load(keyPath(id)); },
+      async delete(id) { await remove(keyPath(id)); },
+      async all() {
+        return (await entries(scanPath)).map(([, v]) => v);
+      },
+      async find(pred) { return (await this.all()).filter(pred); },
+      async count() { return (await list(scanPath)).length; },
+      async clear() { await clearStore(scanPath); }
+    };
+  };
+
+  // idb — native IndexedDB introspection. Read-only by design: list databases
+  // and stores on this origin, peek at record counts, pull all records out of
+  // a store. Used by the data-shelf importer to migrate from legacy Dexie
+  // databases (DataJarDB, DataShelfDB) and to surface anything else IDB is
+  // holding for this origin. No Dexie dependency; pure indexedDB API.
+  const openDb = (dbName) => new Promise((resolve, reject) => {
+    const req = indexedDB.open(dbName);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+    req.onblocked = () => reject(new Error(`idb: open blocked for "${dbName}"`));
+  });
+
+  const idb = {
+    async databases() {
+      // indexedDB.databases() is supported in Chromium and Safari; Firefox
+      // gained it in 125. Returns [] on older Firefox — callers should treat
+      // an empty list as "unknown, not necessarily zero".
+      if (typeof indexedDB.databases !== 'function') return [];
+      try { return await indexedDB.databases(); }
+      catch { return []; }
+    },
+    async stores(dbName) {
+      const db = await openDb(dbName);
+      const names = Array.from(db.objectStoreNames);
+      db.close();
+      return names;
+    },
+    async count(dbName, storeName) {
+      const db = await openDb(dbName);
+      if (!db.objectStoreNames.contains(storeName)) { db.close(); return 0; }
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(storeName, 'readonly').objectStore(storeName).count();
+        req.onsuccess = () => { db.close(); resolve(req.result); };
+        req.onerror = () => { db.close(); reject(req.error); };
+      });
+    },
+    async readAll(dbName, storeName) {
+      const db = await openDb(dbName);
+      if (!db.objectStoreNames.contains(storeName)) { db.close(); return []; }
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+        req.onsuccess = () => { db.close(); resolve(req.result); };
+        req.onerror = () => { db.close(); reject(req.error); };
+      });
+    }
+  };
+
+  window.persistence = { save, load, remove, list, entries, clearStore, parsePath, collection, idb };
 })();
