@@ -10,7 +10,10 @@ document.addEventListener('alpine:init', function() {
 
         <dialog id="fabModal" class="modal" onclick="if(event.target===this)this.close()">
           <div class="modal-box shadow-none border border-base-300 bg-base-100 p-4 max-w-lg">
-            <div class="mb-1 px-1 font-mono text-sm font-bold" x-text="repo || 'Source unknown'"></div>
+            <template x-if="repo">
+              <a :href="'https://github.com/' + repo" target="_blank" class="mb-1 px-1 font-mono text-sm font-bold link link-hover block" x-text="repo"></a>
+            </template>
+            <div x-show="!repo" class="mb-1 px-1 font-mono text-sm font-bold">Source unknown</div>
             <div x-show="path" class="mb-3 px-1 font-mono text-xs text-base-content/60 truncate" x-text="path"></div>
             <div x-show="!repo" class="mb-3 px-1 text-xs text-base-content/60 italic">
               Could not infer repo from URL. Set <code class="font-mono">data-repo</code> on the FAB element to override.
@@ -79,13 +82,13 @@ document.addEventListener('alpine:init', function() {
         const params = new URLSearchParams({ repo: r, ref });
         if (p) params.set('file', p);
         return [
-          { l: 'View source on GitHub', i: 'ph-github-logo',
+          { l: 'Source', i: 'ph-github-logo',
             u: 'https://github.com/' + r + '/blob/' + ref + (p ? '/' + p : '') },
-          { l: 'Open in repo browser', i: 'ph-tree-structure',
+          { l: 'show-repo', i: 'ph-tree-structure',
             u: this.showRepoBase + '?' + params.toString() },
-          { l: 'Edit in github.dev', i: 'ph-pencil-simple',
+          { l: 'github.dev', i: 'ph-pencil-simple',
             u: 'https://github.dev/' + r + '/blob/' + ref + (p ? '/' + p : '') },
-          { l: 'Raw on jsDelivr', i: 'ph-cloud-arrow-down',
+          { l: 'jsDelivr', i: 'ph-cloud-arrow-down',
             u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + (p ? '/' + p : '/') }
         ];
       }
