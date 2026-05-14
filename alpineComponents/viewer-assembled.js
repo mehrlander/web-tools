@@ -129,11 +129,9 @@ document.addEventListener('alpine:init', function() {
         <div class="flex items-center justify-between mb-2" x-show="file">
           <span class="text-xs text-base-content/50 font-mono" x-text="stats"></span>
           <div class="flex items-center gap-0.5">
-            <template x-for="u in fileUrls">
-              <a :href="u.u" target="_blank" class="btn btn-sm btn-square btn-ghost hover:text-primary">
-                <i class="ph text-lg" :class="u.i"></i>
-              </a>
-            </template>
+            <button @click="openUrls()" class="btn btn-sm btn-square btn-ghost hover:text-primary" title="Open file links">
+              <i class="ph text-lg ph-arrow-square-out"></i>
+            </button>
             <button x-show="showCopy" @click="copy()" class="btn btn-sm btn-square btn-ghost hover:text-primary">
               <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i>
             </button>
@@ -157,7 +155,15 @@ document.addEventListener('alpine:init', function() {
         </div>
         <div x-show="!viewLoading" class="h-[calc(100vh-180px)] border border-base-300 rounded-lg bg-base-100 overflow-hidden">
           <div class="h-full" x-html="viewHtml"></div>
-        </div>`,
+        </div>
+        <dialog class="viewer-urls modal" onclick="if(event.target===this)this.close()">
+          <div class="modal-box shadow-none border border-base-300 bg-base-100 p-4 max-w-lg">
+            <div class="mb-1 px-1 font-mono text-sm font-bold" x-text="repo"></div>
+            <div x-show="file" class="mb-3 px-1 font-mono text-xs text-base-content/60 truncate" x-text="file"></div>
+            <div x-data="linksList()"></div>
+            <div class="modal-action mt-3"><button @click="$root.querySelector('dialog.viewer-urls').close()" class="btn btn-ghost btn-sm text-xs">Done</button></div>
+          </div>
+        </dialog>`,
 
       file: '',
       content: '',
@@ -196,15 +202,14 @@ document.addEventListener('alpine:init', function() {
         const mod = ViewRegistry.modules.find(m => m.id === this.mode) || ViewRegistry.modules[0];
         return mod.render(this.fileContext);
       },
-      get fileUrls() {
-        const r = this.repo;
-        const ref = this.ref;
-        if (!r || !this.file) return [];
-        return [
-          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r + '/blob/' + ref + '/' + this.file },
-          { l: 'Raw',    i: 'ph-file-text',   u: 'https://raw.githubusercontent.com/' + r + '/' + ref + '/' + this.file },
-          { l: 'CDN',    i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + '/' + this.file }
-        ];
+      get links() {
+        if (!this.repo || !this.file) return [];
+        return LinkKit.fill(LinkKit.FILE_LINKS, {
+          repo: this.repo,
+          ref: this.ref,
+          path: this.file,
+          showRepoBase: 'https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html'
+        });
       },
 
       async show(file, content) {

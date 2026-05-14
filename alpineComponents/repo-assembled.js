@@ -102,22 +102,7 @@ document.addEventListener('alpine:init', function() {
                 </div>
               </div>
             </div>
-            <div class="flex flex-col gap-1.5">
-              <template x-for="url in repoUrls">
-                <div class="flex items-center bg-base-200 rounded-lg overflow-hidden">
-                  <a :href="url.u" target="_blank" class="flex-1 flex items-center gap-2.5 px-3 py-2 min-w-0 hover:bg-base-300">
-                    <i class="ph shrink-0 text-sm" :class="url.i"></i>
-                    <div class="flex flex-col min-w-0">
-                      <span class="text-xs font-semibold leading-tight" x-text="url.l"></span>
-                      <span class="text-[10px] font-mono opacity-50 truncate leading-tight mt-0.5" x-text="url.u.replace('https://','')"></span>
-                    </div>
-                  </a>
-                  <button class="px-3 py-2 border-l border-base-300 hover:bg-base-300" @click="$clip(url.u)">
-                    <i class="ph ph-copy text-sm opacity-40"></i>
-                  </button>
-                </div>
-              </template>
-            </div>
+            <div x-data="linksList()"></div>
             <div class="modal-action mt-3"><button onclick="repoModal.close()" class="btn btn-ghost btn-sm text-xs">Done</button></div>
           </div>
         </dialog>`,
@@ -150,14 +135,10 @@ document.addEventListener('alpine:init', function() {
       get offMain() {
         return !!(this.ref && this.defaultRef && this.ref !== this.defaultRef);
       },
-      get repoUrls() {
-        const r = this.repo;
+      get links() {
+        if (!this.repo) return [];
         const ref = Alpine.store('browser').ref || 'main';
-        return [
-          { l: 'GitHub', i: 'ph-github-logo', u: 'https://github.com/' + r + '/tree/' + ref },
-          { l: 'jsDelivr CDN', i: 'ph-cloud-arrow-down', u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + '/' },
-          { l: 'Flat tree JSON', i: 'ph-tree-structure', u: 'https://data.jsdelivr.com/v1/packages/gh/' + r + '@' + ref + '?structure=flat' }
-        ];
+        return LinkKit.fill(LinkKit.REPO_LINKS, { repo: this.repo, ref });
       },
 
       async setup(gh) {

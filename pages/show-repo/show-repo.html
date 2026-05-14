@@ -35,6 +35,7 @@
   const gh = new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
   await gh.load('gh-fetch.js');
   await gh.load('gh-store.js');
+  await gh.load('alpineComponents/links-kit.js');
   await gh.load('alpineComponents/repo-assembled.js');
   await gh.load('alpineComponents/navigator-assembled.js');
   await gh.load('alpineComponents/viewer-assembled.js');

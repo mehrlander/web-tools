@@ -19,23 +19,7 @@ document.addEventListener('alpine:init', function() {
               Could not infer repo from URL. Set <code class="font-mono">data-repo</code> on the FAB element to override.
             </div>
 
-            <div x-show="repo" class="flex flex-col gap-1.5">
-              <template x-for="link in links" :key="link.l">
-                <div class="flex items-center bg-base-200 rounded-lg overflow-hidden">
-                  <a :href="link.u" target="_blank" class="flex-1 flex items-center gap-2.5 px-3 py-2 min-w-0 hover:bg-base-300">
-                    <i class="ph shrink-0 text-sm" :class="link.i"></i>
-                    <div class="flex flex-col min-w-0">
-                      <span class="text-xs font-semibold leading-tight" x-text="link.l"></span>
-                      <span class="text-[10px] font-mono opacity-50 truncate leading-tight mt-0.5" x-text="link.u.replace('https://','')"></span>
-                    </div>
-                  </a>
-                  <button class="px-3 py-2 border-l border-base-300 hover:bg-base-300"
-                    @click="navigator.clipboard.writeText(link.u).then(()=>Alpine.store('toast')?.('check','Copied','alert-success',1500))">
-                    <i class="ph ph-copy text-sm opacity-40"></i>
-                  </button>
-                </div>
-              </template>
-            </div>
+            <div x-show="repo" x-data="linksList()"></div>
 
             <div class="modal-action mt-3"><button onclick="fabModal.close()" class="btn btn-ghost btn-sm text-xs">Done</button></div>
           </div>
@@ -78,19 +62,9 @@ document.addEventListener('alpine:init', function() {
 
       get links() {
         if (!this.repo) return [];
-        const r = this.repo, ref = this.ref, p = this.path;
-        const params = new URLSearchParams({ repo: r, ref });
-        if (p) params.set('file', p);
-        return [
-          { l: 'Source', i: 'ph-github-logo',
-            u: 'https://github.com/' + r + '/blob/' + ref + (p ? '/' + p : '') },
-          { l: 'show-repo', i: 'ph-tree-structure',
-            u: this.showRepoBase + '?' + params.toString() },
-          { l: 'github.dev', i: 'ph-pencil-simple',
-            u: 'https://github.dev/' + r + '/blob/' + ref + (p ? '/' + p : '') },
-          { l: 'jsDelivr', i: 'ph-cloud-arrow-down',
-            u: 'https://cdn.jsdelivr.net/gh/' + r + '@' + ref + (p ? '/' + p : '/') }
-        ];
+        const vars = { repo: this.repo, ref: this.ref, path: this.path, showRepoBase: this.showRepoBase };
+        const kit = this.path ? LinkKit.FILE_LINKS : LinkKit.REPO_LINKS;
+        return LinkKit.fill(kit, vars);
       }
     };
   });
