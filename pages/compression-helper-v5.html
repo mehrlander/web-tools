@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Compression Helper (v5)</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🐈‍⬛</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  v5: same UI as v4, plus a floating action button (bottom-right) that
+  opens a modal with links to the source on GitHub, the repo browser
+  (show-repo) deep-linked to this file, github.dev, and jsDelivr raw.
+  The FAB infers {repo, path} from location.hostname/pathname assuming
+  a *.github.io/<repo>/<path> layout; override via data-repo / data-path
+  on the <div x-data="fab()"> element.
+-->
+<script type="module">
+  const REPO   = 'mehrlander/web-tools';
+  const BRANCH = 'main';
+  const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
+
+  try {
+    const mod = await import(BOOT);
+    window.GH = mod.default;
+    const gh = new window.GH({ repo: REPO, ref: BRANCH });
+
+    await gh.load('kits/compression.js');
+    await gh.load('kits/fills.js');
+    await gh.load('kits/persistence.js');
+    await gh.load('kits/messaging.js');
+    await gh.load('alpineComponents/compress-output-assembled.js');
+    await gh.load('alpineComponents/compress-input-cm-assembled.js');
+    await gh.load('alpineComponents/fab-assembled.js');
+
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/alpinejs/dist/cdn.min.js';
+    s.defer = true;
+    document.head.appendChild(s);
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerHTML =
+      `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
+  }
+</script>
+</head>
+<body class="h-dvh font-mono text-sm">
+
+<div class="h-full flex flex-col p-4" x-data="{ outHeight: 150, resizing: false, startY: 0, startH: 0 }"
+     :class="resizing && 'select-none cursor-ns-resize'"
+     @pointerup.window="resizing = false"
+     @pointercancel.window="resizing = false"
+     @pointermove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
+     x-effect="$refs.output && ($refs.output.style.height = outHeight + 'px')">
+
+  <div class="flex items-center gap-2 mb-4">
+    <h1 class="text-xl">Compression Helper</h1>
+    <a href="compression-helper-v4.html" class="text-xs opacity-50 hover:opacity-100 ml-auto">← v4</a>
+  </div>
+
+  <div x-ref="output" class="relative overflow-hidden flex-none mb-1">
+    <div x-data="compressOutput()"></div>
+  </div>
+
+  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none"
+       @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
+
+  <div class="relative overflow-hidden flex-1 min-h-0 mt-1">
+    <div x-data="compressInputCm()"></div>
+  </div>
+</div>
+
+<div x-data="fab()"></div>
+
+</body>
+</html>

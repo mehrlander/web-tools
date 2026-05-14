@@ -117,7 +117,9 @@ function app(){ return {
     const repoEl = document.getElementById('repo');
     if (!await waitFor(() => repoEl.__repo)) return notify('Repo component never mounted.');
 
-    const saved = await this.loadState();
+    const urlState = this.parseUrlState();
+    const saved = urlState ? null : await this.loadState();
+    const state = urlState || saved;
 
     try {
     await repoEl.__repo.setup(gh);
@@ -136,15 +138,19 @@ function app(){ return {
     return;
     }
 
-    if (saved?.repo) {
-    const target = repoEl.__repo.repos.find(r => r.full_name === saved.repo);
+    if (state?.repo) {
+    let target = repoEl.__repo.repos.find(r => r.full_name === state.repo);
+    if (!target) {
+      try { target = await gh.req('/repos/' + state.repo); }
+      catch (e) { notify('Could not load repo ' + state.repo + ': ' + (e?.message || e)); }
+    }
     if (target) {
-      await repoEl.__repo.pick(target, { ref: saved.ref || '' });
+      await repoEl.__repo.pick(target, { ref: state.ref || '' });
       const navEl = document.getElementById('navigator');
-      if (await waitFor(() => navEl.__navigator) && saved.file) {
-      const folder = saved.file.split('/').slice(0, -1).join('/');
+      if (await waitFor(() => navEl.__navigator) && state.file) {
+      const folder = state.file.split('/').slice(0, -1).join('/');
       if (folder) await navEl.__navigator.load(folder, true);
-      await navEl.__navigator.sel(saved.file, true);
+      await navEl.__navigator.sel(state.file, true);
       }
     }
     }
@@ -155,6 +161,15 @@ function app(){ return {
     console.error('init:', e);
     notify('Startup failed: ' + (e?.message || e));
   }
+  },
+
+  parseUrlState() {
+  const p = new URLSearchParams(location.search);
+  const out = {};
+  for (const k of ['repo', 'ref', 'path', 'file']) {
+    if (p.has(k)) out[k] = p.get(k);
+  }
+  return Object.keys(out).length ? out : null;
   },
 
   async loadState() {
