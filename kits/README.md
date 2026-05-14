@@ -102,6 +102,49 @@ namespace so devtools shows separate IndexedDB databases and data from
 different pages can't collide. `createStore` handles are cached per
 `db|store`. See `pages/demos/persistence.html` for live examples.
 
+#### Collections
+
+`collection(path)` is a record-bag API on top of the same idb-keyval store.
+Use it when you have a list of records (with ids) instead of a single
+blob. The path is `"<db>.<store>"` — the store IS the collection; each
+record is one entry keyed by its id.
+
+```js
+const items = persistence.collection('dataShelf.items');
+const saved = await items.put({ name: 'foo', code: '...' });  // id auto-assigned
+await items.get(saved.id);
+await items.delete(saved.id);
+await items.all();         // [{id, ...}, ...]
+await items.find(r => r.tags?.includes('snippet'));
+await items.count();
+await items.clear();
+```
+
+`put` preserves an incoming `id` if present (so re-imports overwrite
+cleanly) and assigns a `crypto.randomUUID()` otherwise. There are no
+schemas, indexes, or migrations — queries are JS over `all()`. For
+collections that outgrow that (millions of records, indexed lookups),
+extend the kit with raw-IDB helpers rather than introducing a second
+library.
+
+#### IndexedDB introspection
+
+`persistence.idb` is a read-only window into whatever IndexedDB on this
+origin holds — including databases this kit didn't create. Used by the
+data-shelf importer to migrate from legacy Dexie databases, and useful
+anywhere a page wants to surface "what's in IDB?"
+
+```js
+await persistence.idb.databases();           // [{name, version}, ...]
+await persistence.idb.stores('DataJarDB');   // ['items', 'meta', ...]
+await persistence.idb.count('DataJarDB', 'items');
+await persistence.idb.readAll('DataJarDB', 'items');  // records[]
+```
+
+No writes, no deletes — read-only is the trust boundary. `databases()`
+returns `[]` on older Firefox where `indexedDB.databases()` isn't
+implemented; treat that as "unknown" not "empty".
+
 ### io.js
 
 User-data ingress/egress: file picker, file download, blob preview, and

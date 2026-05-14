@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html data-theme="emerald">
+<head>
+  <base href="." target="_blank">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Data Shelf v2</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🗄️</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/clipboard"></script>
+
+  <!--
+    v2: same shelf UX, with the engine swapped from Dexie to persistence.collection
+    (idb-keyval under the hood), the modal textarea replaced by cmEditor, the
+    right pane handed to the viewer component, an importer that pulls records
+    forward from legacy DataJarDB / DataShelfDB (or anything else in IDB),
+    a sidebar filter, and a FAB for source links.
+  -->
+  <script type="module">
+    const REPO = 'mehrlander/web-tools';
+    const BRANCH = 'main';
+    const BOOT = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
+
+    try {
+      const mod = await import(BOOT);
+      window.GH = mod.default;
+      const gh = new window.GH({ repo: REPO, ref: BRANCH });
+
+      await gh.load('kits/persistence.js');
+      await gh.load('alpineComponents/cm-editor.js');
+      await gh.load('alpineComponents/viewer-assembled.js');
+      await gh.load('alpineComponents/fab-assembled.js');
+      await gh.load('alpineComponents/idb-importer.js');
+      await gh.load('alpine-bundle.js');
+    } catch (e) {
+      console.error('boot:', e);
+      document.body.innerHTML =
+        `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
+    }
+  </script>
+</head>
+
+<body class="h-screen overflow-hidden bg-base-200/50" x-data="appData" @keydown.f5.prevent.window="if (editingItem.id || editingItem.name) editorRunCode()">
+
+  <!-- toasts (alpine-bundle wires the store; this just renders) -->
+  <div class="toast toast-top toast-end z-50" x-data x-show="$store.toasts && $store.toasts.length">
+    <template x-for="t in ($store.toasts || [])" :key="t.id">
+      <div class="alert text-sm gap-2" :class="t.cls">
+        <i class="ph" :class="'ph-'+t.icon"></i>
+        <span x-text="t.msg"></span>
+      </div>
+    </template>
+  </div>
+
+  <div class="flex h-screen">
+    <!-- sidebar -->
+    <aside class="w-80 h-full border-r border-base-300 flex flex-col bg-base-100 shrink-0">
+      <header class="p-4 pb-2 border-b border-base-300 flex justify-between items-center gap-2">
+        <h2 class="text-xl font-semibold text-primary/80 truncate" x-text="appContext"></h2>
+        <div class="flex items-center gap-1 shrink-0">
+          <button @click="$refs.importer.__importer?.open()"
+                  class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom"
+                  data-tip="Import from IndexedDB">
+            <i class="ph ph-tray-arrow-down"></i>
+          </button>
+          <button @click="editItem()" class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom" data-tip="New item">
+            <i class="ph ph-plus"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="px-3 py-2 border-b border-base-300">
+        <label class="input input-sm input-bordered flex items-center gap-2 bg-base-200/50">
+          <i class="ph ph-magnifying-glass opacity-50"></i>
+          <input type="text" x-model="filterText" placeholder="Filter name, tag, notes…" class="grow bg-transparent" />
+          <button x-show="filterText" @click="filterText = ''" class="opacity-50 hover:opacity-100">
+            <i class="ph ph-x-circle"></i>
+          </button>
+        </label>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-2">
+        <template x-for="item in filteredItems" :key="item.id">
+          <div @click="selectItem(item)"
+               class="flex items-center justify-between mb-1 px-2 py-1 rounded-lg cursor-pointer transition-colors group"
+               :class="selectedItem?.id === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-base-200'">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="badge badge-soft badge-xs !w-8 shrink-0" :class="cfg.types[item.type]?.badge" x-text="item.type"></span>
+              <span class="truncate text-sm font-medium" x-text="item.name || '(unnamed)'"></span>
+              <span x-show="item.autorun" class="text-primary font-bold">»</span>
+            </div>
+            <div class="flex opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click.stop="executeItem(item)" class="btn btn-ghost btn-xs btn-circle" :disabled="!cfg.types[item.type]?.exec">
+                <i class="ph ph-play"></i>
+              </button>
+            </div>
+          </div>
+        </template>
+        <div x-show="!filteredItems.length && items.length" class="text-center text-xs opacity-50 italic py-4">
+          No matches.
+        </div>
+        <div x-show="!items.length" class="text-center text-xs opacity-50 italic py-6 px-3 leading-relaxed">
+          Empty shelf.<br>
+          Click <i class="ph ph-tray-arrow-down"></i> to import from IndexedDB,<br>
+          or <i class="ph ph-plus"></i> to add an item.
+        </div>
+      </div>
+    </aside>
+
+    <!-- main pane -->
+    <main class="flex-1 h-full bg-base-100 flex flex-col overflow-hidden">
+      <template x-if="selectedItem">
+        <div class="flex flex-col h-full">
+          <nav class="navbar bg-base-100 border-b border-base-300 px-4 min-h-12 shrink-0">
+            <div class="flex-1 gap-3 min-w-0">
+              <h3 class="font-bold truncate" x-text="selectedItem.name || '(unnamed)'"></h3>
+              <span class="badge badge-outline badge-sm uppercase opacity-50 shrink-0" x-text="selectedItem.type"></span>
+              <template x-if="selectedItem.tags && selectedItem.tags.length">
+                <div class="flex gap-1 overflow-hidden">
+                  <template x-for="tag in selectedItem.tags" :key="tag">
+                    <span class="badge badge-ghost badge-xs whitespace-nowrap" x-text="tag"></span>
+                  </template>
+                </div>
+              </template>
+            </div>
+            <div class="flex-none gap-2">
+              <button @click="executeItem(selectedItem)" class="btn btn-ghost btn-sm gap-2" x-show="canExecute(selectedItem.type)">
+                <i class="ph ph-play text-primary"></i> Run
+              </button>
+              <button @click="copyItemCode(selectedItem)" class="btn btn-ghost btn-sm btn-square">
+                <i class="ph text-lg" :class="copiedId === selectedItem.id ? 'ph-check text-success' : 'ph-copy'"></i>
+              </button>
+              <button @click="editItem(selectedItem)" class="btn btn-primary btn-sm gap-2 px-4">
+                <i class="ph ph-pencil"></i> Edit
+              </button>
+            </div>
+          </nav>
+          <div class="flex-1 relative overflow-hidden">
+            <div class="absolute inset-0 px-4 py-3 overflow-hidden" x-data="viewer({ copy: false })"></div>
+          </div>
+          <div x-show="selectedItem.notes" class="px-4 py-2 border-t border-base-200 bg-base-50 text-xs text-base-content/70" x-text="selectedItem.notes"></div>
+        </div>
+      </template>
+
+      <template x-if="!selectedItem">
+        <div class="flex-1 flex items-center justify-center text-base-content/30 italic">
+          Select an item to view data
+        </div>
+      </template>
+    </main>
+  </div>
+
+  <!-- editor modal -->
+  <dialog x-ref="editorModal" class="modal modal-bottom sm:modal-middle backdrop-blur-md">
+    <div class="modal-box w-11/12 max-w-4xl h-[92vh] flex flex-col p-0 overflow-hidden border border-base-300 bg-base-100 shadow-2xl">
+      <div class="navbar bg-base-200/50 border-b border-base-300 px-3 min-h-12 shrink-0 gap-2">
+        <div class="flex-none text-primary"><i class="ph-fill ph-pencil-circle text-2xl"></i></div>
+        <div class="flex-1">
+          <input type="text" x-model="editingItem.name" placeholder="Unnamed Item…"
+                 class="input input-ghost input-sm w-full font-bold text-base focus:bg-base-100 focus:outline-none p-0" />
+        </div>
+        <div class="flex-none flex items-center gap-1">
+          <select x-model="editingItem.type"
+                  class="select select-ghost select-xs font-bold opacity-70 w-20 px-1 border-none focus:bg-base-100 focus:ring-0 appearance-none">
+            <template x-for="[key, t] in Object.entries(cfg.types)" :key="key">
+              <option :value="key" x-text="key.toUpperCase()"></option>
+            </template>
+          </select>
+          <div class="divider divider-horizontal mx-1 h-6 opacity-20"></div>
+          <div class="flex items-center gap-2">
+            <button @click="editorCancel()" class="btn btn-ghost btn-sm h-8 min-h-8 px-3 text-xs font-medium opacity-60 hover:opacity-100 lowercase">cancel</button>
+            <button @click="editorSave()" class="btn btn-primary btn-sm h-8 min-h-8 px-4 shadow-sm gap-2" :disabled="!editingItem.name?.trim()">
+              <i class="ph ph-floppy-disk"></i> Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 px-4 py-2 bg-base-100 border-b border-base-200 shrink-0">
+        <div class="flex items-center gap-2 flex-1">
+          <span class="text-[9px] font-black uppercase opacity-30 tracking-widest">Tags</span>
+          <input type="text" x-model="editingItem.tags" placeholder="Add tags…" class="input input-xs bg-transparent border-none focus:ring-0 w-full p-0 text-xs" />
+        </div>
+        <div class="flex items-center gap-2 flex-[2] border-x border-base-200 px-4">
+          <span class="text-[9px] font-black uppercase opacity-30 tracking-widest">Notes</span>
+          <input type="text" x-model="editingItem.notes" placeholder="Short description…" class="input input-xs bg-transparent border-none focus:ring-0 w-full p-0 text-xs" />
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="flex items-center gap-2 cursor-pointer group" x-show="canExecute(editingItem.type)">
+            <span class="text-[9px] font-black uppercase opacity-30 group-hover:opacity-60 transition-opacity">Autorun</span>
+            <input type="checkbox" x-model="editingItem.autorun" class="toggle toggle-primary toggle-xs" />
+          </label>
+          <button x-show="editingItem.id" @click="editorDelete()" class="btn btn-ghost btn-xs text-error/40 hover:text-error">
+            <i class="ph ph-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 relative bg-base-100 overflow-hidden">
+        <div x-data="cmEditor({ value: editingItem.code || '', language: cmLang(editingItem.type), onChange: v => editingItem.code = v })"
+             x-effect="if ($el.__cm) { if ((editingItem.code || '') !== $el.__cm.value) $el.__cm.value = editingItem.code || ''; $el.__cm.language = cmLang(editingItem.type); }"
+             class="absolute inset-0 [&_.cm-editor]:h-full [&_.cm-editor]:w-full [&_.cm-scroller]:font-mono">
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- importer (lives inside appData so $refs resolves) -->
+  <div x-data="idbImporter({ target: 'dataShelf.items', onImported: () => loadItems() })" x-ref="importer"></div>
+
+  <!-- FAB for source / repo links -->
+  <div x-data="fab()" data-path="pages/data-shelf-v2.html"></div>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('appData', () => ({
+        items: [],
+        filterText: '',
+        selectedItem: null,
+        editingItem: { name: '', type: 'js', tags: '', notes: '', autorun: false, code: '' },
+        copiedId: null,
+        appContext: 'Global Context',
+        store: null,
+
+        cfg: {
+          types: {
+            js:   { label: 'JavaScript', badge: 'btn-primary',   exec: true },
+            html: { label: 'HTML',       badge: 'btn-secondary', exec: true },
+            json: { label: 'JSON',       badge: 'btn-accent',    exec: true },
+            text: { label: 'Text',       badge: 'btn-neutral',   exec: false }
+          }
+        },
+
+        get filteredItems() {
+          if (!this.filterText.trim()) return this.items;
+          const q = this.filterText.toLowerCase();
+          return this.items.filter(i =>
+            (i.name || '').toLowerCase().includes(q) ||
+            (Array.isArray(i.tags) ? i.tags : []).some(t => t.toLowerCase().includes(q)) ||
+            (i.notes || '').toLowerCase().includes(q)
+          );
+        },
+
+        async init() {
+          this.appContext = this.getAppContext();
+          this.store = persistence.collection('dataShelf.items');
+          await this.loadItems();
+        },
+
+        getAppContext() {
+          try {
+            const paramCtx = new URLSearchParams(window.location.search).get('ctx');
+            if (paramCtx) return paramCtx;
+            if (window.opener && window.opener.location.protocol === 'file:') {
+              const loc = window.opener.location;
+              return loc.pathname.split('/').pop() || loc.pathname;
+            }
+          } catch (e) {}
+          return 'Global Context';
+        },
+
+        async loadItems() {
+          const all = await this.store.all();
+          this.items = all
+            .filter(i => this.appContext === 'Global Context' || i.context === this.appContext)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+          if (this.items.length && !this.selectedItem) {
+            this.selectItem(this.items[0]);
+          } else if (this.selectedItem) {
+            const fresh = this.items.find(i => i.id === this.selectedItem.id);
+            if (fresh) this.selectItem(fresh);
+            else this.selectedItem = null;
+          }
+        },
+
+        selectItem(item) {
+          this.selectedItem = item;
+          // Hand off to the viewer via the browser store. The viewer's
+          // watcher takes the new {path, content} and re-renders.
+          const ext = item.type === 'text' ? 'txt' : item.type;
+          const filename = `${item.name || 'item'}.${ext}`;
+          Alpine.store('browser').activeFile = { path: filename, content: item.code ?? '' };
+        },
+
+        executeItem(item) {
+          const target = window.opener || window;
+          try {
+            ({
+              js:   () => new target.Function(item.code)(),
+              html: () => { const w = target.open('', '_blank', 'width=600,height=400'); w.document.write(item.code); w.document.close(); },
+              json: () => { target[item.name] = JSON.parse(item.code); }
+            }[item.type]?.());
+            Alpine.store('toast')?.('play', `Ran ${item.name}`, 'alert-info', 1500);
+          } catch (e) {
+            console.error(e);
+            Alpine.store('toast')?.('warning', e.message, 'alert-error', 3000);
+          }
+        },
+
+        editItem(item = null) {
+          this.editingItem = item
+            ? { ...item, tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || '') }
+            : { name: '', type: 'js', autorun: false, tags: '', notes: '', code: '' };
+          this.$refs.editorModal.showModal();
+        },
+
+        copyItemCode(item) {
+          const btn = document.createElement('button');
+          new ClipboardJS(btn, { text: () => item.code ?? '' }).on('success', () => {
+            this.copiedId = item.id;
+            setTimeout(() => this.copiedId = null, 1000);
+            Alpine.store('toast')?.('copy', 'Copied', 'alert-success', 1200);
+          });
+          btn.click();
+        },
+
+        async editorSave() {
+          const tags = this.editingItem.tags
+            ? this.editingItem.tags.split(',').map(t => t.trim()).filter(Boolean)
+            : [];
+          const saved = await this.store.put({
+            ...this.editingItem,
+            context: this.appContext,
+            tags
+          });
+          await this.loadItems();
+          const found = this.items.find(i => i.id === saved.id);
+          if (found) this.selectItem(found);
+          this.$refs.editorModal.close();
+          Alpine.store('toast')?.('floppy-disk', 'Saved', 'alert-success', 1200);
+        },
+
+        async editorDelete() {
+          if (!confirm('Delete this item?')) return;
+          await this.store.delete(this.editingItem.id);
+          this.selectedItem = null;
+          await this.loadItems();
+          this.$refs.editorModal.close();
+          Alpine.store('toast')?.('trash', 'Deleted', 'alert-info', 1200);
+        },
+
+        editorCancel() { this.$refs.editorModal.close(); },
+        editorRunCode() { if (this.editingItem.code) this.executeItem({...this.editingItem}); },
+        canExecute(type) { return this.cfg.types[type]?.exec; },
+        cmLang(t) { return t === 'js' ? 'js' : t === 'html' ? 'html' : 'plain'; }
+      }));
+    });
+  </script>
+</body>
+</html>
