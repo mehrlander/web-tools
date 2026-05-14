@@ -47,12 +47,13 @@
 
 <div class="h-full flex flex-col p-4" x-data="{ outHeight: 150, resizing: false, startY: 0, startH: 0 }"
      :class="resizing && 'select-none cursor-ns-resize'"
-     @mouseup.window="resizing = false"
-     @mousemove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
+     @pointerup.window="resizing = false"
+     @pointercancel.window="resizing = false"
+     @pointermove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
      x-effect="$refs.output && ($refs.output.style.height = outHeight + 'px')">
 
   <div class="flex items-center gap-2 mb-4">
-    <h1 class="text-xl">Compression Helper <span class="text-xs opacity-60">(v4 — CodeMirror input)</span></h1>
+    <h1 class="text-xl">Compression Helper</h1>
     <a href="compression-helper-v3.html" class="text-xs opacity-50 hover:opacity-100 ml-auto">← v3</a>
   </div>
 
@@ -60,8 +61,8 @@
     <div x-data="compressOutput()"></div>
   </div>
 
-  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none"
-       @mousedown.prevent="resizing = true; startY = $event.clientY; startH = outHeight"></div>
+  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none"
+       @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
 
   <div class="relative overflow-hidden flex-1 min-h-0 mt-1">
     <div x-data="compressInputCm()"></div>
