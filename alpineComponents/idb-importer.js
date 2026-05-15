@@ -1,8 +1,12 @@
-// alpineComponents/idb-importer.js — modal for importing records from any
-// IndexedDB database on this origin into a persistence.collection.
+// alpineComponents/idb-importer.js — modal for pulling records from any
+// IndexedDB database on this origin into the data shelf collection.
 //
 // Usage:
-//   <div x-data="idbImporter({ target: 'dataShelf.items', onImported: n => loadItems() })"></div>
+//   <div x-data="idbImporter({
+//     target: 'dataShelf.items',
+//     getContext: () => appContext,
+//     onImported: n => loadItems()
+//   })"></div>
 //
 //   <button @click="$dispatch('open-importer')">Import…</button>
 //
@@ -10,7 +14,12 @@
 // window event so any button on the page can trigger it without needing a
 // DOM ref into the component's scope. Steps: pick database → pick store →
 // preview & import. Reads go through persistence.idb (native IndexedDB,
-// read-only); writes go through persistence.collection. No Dexie dependency.
+// read-only); writes go through persistence.collection.
+//
+// Intake is shelf-shape-gated: each record is run through
+// dataShelf.coerceShelfRecord then validated with dataShelf.isShelfShaped.
+// Only recognized records are written; the preview surfaces a split count
+// and a sample of each bucket. For arbitrary IDB browsing, see idb-nav.
 
 document.addEventListener('alpine:init', function () {
   Alpine.data('idbImporter', function (opts) {
@@ -23,7 +32,7 @@ document.addEventListener('alpine:init', function () {
             <div class="navbar bg-base-200/50 border-b border-base-300 px-4 min-h-12 shrink-0 gap-2">
               <div class="flex-none text-primary"><i class="ph-fill ph-tray-arrow-down-fill text-2xl"></i></div>
               <div class="flex-1">
-                <h3 class="font-bold text-base">Import from IndexedDB</h3>
+                <h3 class="font-bold text-base">Import to data shelf</h3>
                 <div class="text-[10px] font-mono opacity-50">→ <span x-text="target"></span></div>
               </div>
               <button @click="close()" class="btn btn-ghost btn-sm btn-square">
@@ -95,23 +104,41 @@ document.addEventListener('alpine:init', function () {
                   <span x-text="picked.db"></span> / <span x-text="picked.store"></span>
                 </span>
               </div>
-              <div class="flex-1 overflow-y-auto px-4 py-3">
-                <div class="text-sm mb-2">
-                  Found <span class="font-bold text-primary" x-text="records.length"></span>
-                  record<span x-show="records.length !== 1">s</span>.
-                  <span class="opacity-50 text-xs ml-1" x-show="records.length">Sample below.</span>
+              <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+                <div class="text-sm">
+                  Found <span class="font-bold" x-text="records.length"></span>
+                  record<span x-show="records.length !== 1">s</span>:
+                  <span class="font-bold text-success" x-text="recognized.length"></span> recognized,
+                  <span class="font-bold" :class="unrecognized.length ? 'text-warning' : 'opacity-50'" x-text="unrecognized.length"></span> not shelf-shaped.
                 </div>
-                <pre x-show="sample" class="bg-base-200 rounded-lg p-3 text-[11px] font-mono overflow-auto max-h-64 whitespace-pre-wrap" x-text="sample"></pre>
-                <div x-show="result" class="mt-3 alert alert-success py-2 text-sm">
+
+                <div x-show="recognized.length">
+                  <div class="text-[10px] uppercase font-bold opacity-50 tracking-widest mb-1">Recognized sample</div>
+                  <pre class="bg-base-200 rounded-lg p-3 text-[11px] font-mono overflow-auto max-h-48 whitespace-pre-wrap" x-text="recognizedSample"></pre>
+                </div>
+
+                <div x-show="unrecognized.length">
+                  <div class="text-[10px] uppercase font-bold opacity-50 tracking-widest mb-1">
+                    Not shelf-shaped <span class="text-warning normal-case" x-show="firstReason">— <span x-text="firstReason"></span></span>
+                  </div>
+                  <pre class="bg-base-200 rounded-lg p-3 text-[11px] font-mono overflow-auto max-h-48 whitespace-pre-wrap" x-text="unrecognizedSample"></pre>
+                  <div class="text-[11px] opacity-50 mt-1">These records will be skipped. Use idb-nav to browse arbitrary IDB content.</div>
+                </div>
+
+                <div x-show="!records.length && !loading" class="text-sm opacity-50 italic">
+                  This store is empty.
+                </div>
+
+                <div x-show="result" class="alert alert-success py-2 text-sm">
                   <i class="ph ph-check-circle"></i>
                   <span x-text="result"></span>
                 </div>
               </div>
               <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-base-200 bg-base-50">
                 <button @click="close()" class="btn btn-ghost btn-sm">Done</button>
-                <button @click="doImport()" :disabled="importing || !records.length"
+                <button @click="doImport()" :disabled="importing || !recognized.length"
                         class="btn btn-primary btn-sm gap-2">
-                  <span x-show="!importing"><i class="ph ph-tray-arrow-down"></i> Import <span x-text="records.length"></span></span>
+                  <span x-show="!importing"><i class="ph ph-tray-arrow-down"></i> Import <span x-text="recognized.length"></span></span>
                   <span x-show="importing"><span class="loading loading-spinner loading-xs"></span> Importing…</span>
                 </button>
               </div>
@@ -120,6 +147,7 @@ document.addEventListener('alpine:init', function () {
         </dialog>`,
 
       target: opts.target || '',
+      getContext: typeof opts.getContext === 'function' ? opts.getContext : null,
       onImported: opts.onImported,
 
       step: 'pick',
@@ -127,7 +155,11 @@ document.addEventListener('alpine:init', function () {
       stores: [],
       storeCounts: {},
       records: [],
-      sample: '',
+      recognized: [],
+      unrecognized: [],
+      recognizedSample: '',
+      unrecognizedSample: '',
+      firstReason: '',
       picked: { db: '', store: '' },
       loading: false,
       importing: false,
@@ -142,7 +174,11 @@ document.addEventListener('alpine:init', function () {
         this.step = 'pick';
         this.result = '';
         this.records = [];
-        this.sample = '';
+        this.recognized = [];
+        this.unrecognized = [];
+        this.recognizedSample = '';
+        this.unrecognizedSample = '';
+        this.firstReason = '';
         this.loading = true;
         this.$refs.modal.showModal();
         try {
@@ -189,32 +225,70 @@ document.addEventListener('alpine:init', function () {
         this.picked.store = storeName;
         this.loading = true;
         this.result = '';
+        this.recognized = [];
+        this.unrecognized = [];
+        this.recognizedSample = '';
+        this.unrecognizedSample = '';
+        this.firstReason = '';
         try {
           this.records = await persistence.idb.readAll(this.picked.db, storeName);
-          this.sample = this.records.slice(0, 3)
-            .map(r => JSON.stringify(r, null, 2))
-            .join('\n\n');
+          this.classify();
         } catch (e) {
           console.error('importer: readAll()', e);
           this.records = [];
-          this.sample = String(e?.message || e);
+          this.unrecognizedSample = String(e?.message || e);
         }
         this.loading = false;
         this.step = 'preview';
       },
 
+      // Split records into recognized / unrecognized buckets and build the
+      // sample strings shown in the preview pane. Coercion runs first so a
+      // legacy row with e.g. a comma-string `tags` field is judged on its
+      // normalized shape, not its raw shape.
+      classify() {
+        const ds = window.dataShelf;
+        if (!ds) {
+          // Kit not loaded — nothing we can validate, treat all as unrecognized.
+          this.recognized = [];
+          this.unrecognized = this.records.slice();
+          this.firstReason = 'data-shelf kit not loaded';
+          this.unrecognizedSample = this.records.slice(0, 1)
+            .map(r => JSON.stringify(r, null, 2)).join('\n\n');
+          return;
+        }
+        const defaultContext = this.getContext?.() || '';
+        const recognized = [];
+        const unrecognized = [];
+        for (const r of this.records) {
+          const coerced = ds.coerceShelfRecord(r, { defaultContext });
+          if (ds.isShelfShaped(coerced)) recognized.push(coerced);
+          else unrecognized.push(r);
+        }
+        this.recognized = recognized;
+        this.unrecognized = unrecognized;
+        this.recognizedSample = recognized.slice(0, 1)
+          .map(r => JSON.stringify(r, null, 2)).join('\n\n');
+        this.unrecognizedSample = unrecognized.slice(0, 1)
+          .map(r => JSON.stringify(r, null, 2)).join('\n\n');
+        this.firstReason = unrecognized.length
+          ? ds.describeRejection(ds.coerceShelfRecord(unrecognized[0], { defaultContext }))
+          : '';
+      },
+
       async doImport() {
-        if (!this.target || !this.records.length) return;
+        if (!this.target || !this.recognized.length) return;
         this.importing = true;
         const col = persistence.collection(this.target);
         let imported = 0, skipped = 0;
-        for (const r of this.records) {
+        for (const r of this.recognized) {
           try { await col.put(r); imported++; }
           catch (e) { skipped++; console.error('importer: put', e); }
         }
         this.importing = false;
+        const skippedTotal = skipped + this.unrecognized.length;
         this.result = `Imported ${imported} record${imported === 1 ? '' : 's'}` +
-                      (skipped ? `, skipped ${skipped}.` : '.');
+                      (skippedTotal ? `, skipped ${skippedTotal}.` : '.');
         Alpine.store('toast')?.('check-circle', `Imported ${imported}`, 'alert-success', 2000);
         this.onImported?.(imported);
       }
