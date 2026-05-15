@@ -48,32 +48,23 @@
     </template>
   </div>
 
-  <div class="flex h-full">
-
-    <!-- Sidebar -->
-    <aside class="w-80 bg-base-100 flex flex-col border-r border-base-300 shrink-0">
-      <header class="p-3 border-b border-base-300 flex items-center justify-between gap-2">
-        <h1 class="text-xl font-bold">IndexedDB</h1>
-        <button class="btn btn-ghost btn-sm btn-circle tooltip tooltip-left"
-                data-tip="Refresh"
-                @click="refreshTree()">
-          <i class="ph ph-arrows-clockwise"></i>
-        </button>
-      </header>
-      <div class="flex-1 min-h-0"
-           x-data="idbTree({
-             onSelect: (db, store) => loadStore(db, store)
-           })">
-      </div>
-    </aside>
+  <div class="drawer lg:drawer-open h-full">
+    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" x-ref="sidebarToggle" />
 
     <!-- Main -->
-    <main class="flex-1 flex flex-col min-w-0">
+    <main class="drawer-content flex flex-col min-w-0 h-full bg-base-100">
       <header class="px-3 py-2 border-b border-base-300 flex justify-between items-center gap-3 bg-base-100">
-        <div class="min-w-0">
-          <div class="font-mono font-bold text-lg truncate"
-               x-text="currentStore ? `${currentDB}.${currentStore}` : 'No store selected'"></div>
-          <div class="text-sm opacity-60 truncate" x-show="currentInfo" x-text="currentInfo"></div>
+        <div class="flex items-center gap-2 min-w-0">
+          <label for="sidebar-toggle"
+                 class="btn btn-ghost btn-sm btn-square lg:hidden shrink-0"
+                 aria-label="Open sidebar">
+            <i class="ph ph-list text-xl"></i>
+          </label>
+          <div class="min-w-0">
+            <div class="font-mono font-bold text-lg truncate"
+                 x-text="currentStore ? `${currentDB}.${currentStore}` : 'No store selected'"></div>
+            <div class="text-sm opacity-60 truncate" x-show="currentInfo" x-text="currentInfo"></div>
+          </div>
         </div>
         <div class="flex gap-1.5 shrink-0" x-show="currentStore">
           <button class="btn btn-sm btn-success" x-show="dirty" @click="save()">
@@ -105,6 +96,33 @@
         </template>
       </div>
     </main>
+
+    <!-- Sidebar -->
+    <aside class="drawer-side z-40">
+      <label for="sidebar-toggle" aria-label="Close sidebar" class="drawer-overlay"></label>
+      <div class="w-80 h-full bg-base-100 flex flex-col border-r border-base-300">
+        <header class="p-3 border-b border-base-300 flex items-center justify-between gap-2">
+          <h1 class="text-xl font-bold">IndexedDB</h1>
+          <div class="flex items-center gap-1">
+            <button class="btn btn-ghost btn-sm btn-circle tooltip tooltip-left"
+                    data-tip="Refresh"
+                    @click="refreshTree()">
+              <i class="ph ph-arrows-clockwise"></i>
+            </button>
+            <label for="sidebar-toggle"
+                   class="btn btn-ghost btn-sm btn-circle lg:hidden"
+                   aria-label="Close sidebar">
+              <i class="ph ph-x"></i>
+            </label>
+          </div>
+        </header>
+        <div class="flex-1 min-h-0"
+             x-data="idbTree({
+               onSelect: (db, store) => loadStore(db, store)
+             })">
+        </div>
+      </div>
+    </aside>
   </div>
 
   <!-- Confirm modal -->
@@ -161,6 +179,13 @@
             path: `${dbName}.${storeName}.json`,
             content: JSON.stringify(records, null, 2)
           };
+          this.closeSidebarOnMobile();
+        },
+
+        closeSidebarOnMobile() {
+          if (window.matchMedia('(max-width: 1023.98px)').matches && this.$refs.sidebarToggle) {
+            this.$refs.sidebarToggle.checked = false;
+          }
         },
 
         async reload() {

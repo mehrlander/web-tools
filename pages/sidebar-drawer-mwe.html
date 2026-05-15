@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html data-theme="emerald">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sidebar Drawer MWE</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📱</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/alpinejs" defer></script>
+
+  <!--
+    Minimum working example of the collapsible-sidebar pattern intended for
+    pages/idb-nav.html and pages/data-shelf-v2.html.
+
+    Layout: the DaisyUI `drawer` component, which renders the sidebar as a
+    normal column at >= lg breakpoint (lg:drawer-open) and as a slide-in
+    overlay below that. The hamburger toggle in the header only shows up on
+    small screens (lg:hidden); the backdrop and item-tap both auto-close it.
+  -->
+</head>
+
+<body class="h-screen overflow-hidden bg-base-200/50" x-data="mwe()">
+
+  <div class="drawer lg:drawer-open h-full">
+    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" x-ref="toggle" />
+
+    <!-- Main pane (drawer-content holds the page body) -->
+    <div class="drawer-content flex flex-col min-w-0 h-full bg-base-100">
+      <header class="px-3 py-2 border-b border-base-300 flex items-center gap-2 bg-base-100 shrink-0">
+        <!-- Hamburger: only visible below lg -->
+        <label for="sidebar-toggle"
+               class="btn btn-ghost btn-sm btn-square lg:hidden"
+               aria-label="Open sidebar">
+          <i class="ph ph-list text-xl"></i>
+        </label>
+        <div class="font-mono font-bold text-lg truncate"
+             x-text="selected ? selected.name : 'No item selected'"></div>
+      </header>
+
+      <div class="flex-1 overflow-auto p-4">
+        <template x-if="selected">
+          <div>
+            <p class="opacity-60 mb-2">Selected from sidebar:</p>
+            <pre class="bg-base-200 p-3 rounded text-sm" x-text="JSON.stringify(selected, null, 2)"></pre>
+          </div>
+        </template>
+        <template x-if="!selected">
+          <div class="h-full flex items-center justify-center text-base-content/30 italic">
+            Tap the
+            <i class="ph ph-list text-xl mx-1 lg:hidden"></i>
+            <span class="lg:hidden">to open the sidebar.</span>
+            <span class="hidden lg:inline">item in the sidebar to load it.</span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Sidebar (drawer-side is the slide-in surface) -->
+    <aside class="drawer-side z-40">
+      <!-- Tappable backdrop (only meaningful below lg, where drawer overlays) -->
+      <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+
+      <div class="w-80 h-full bg-base-100 border-r border-base-300 flex flex-col">
+        <header class="p-3 border-b border-base-300 flex items-center justify-between gap-2">
+          <h1 class="text-xl font-bold">Sidebar</h1>
+          <!-- Close button only shows below lg -->
+          <label for="sidebar-toggle"
+                 class="btn btn-ghost btn-sm btn-circle lg:hidden"
+                 aria-label="Close sidebar">
+            <i class="ph ph-x"></i>
+          </label>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-2">
+          <template x-for="item in items" :key="item.id">
+            <div @click="select(item)"
+                 class="px-2 py-2 rounded-lg cursor-pointer mb-1 transition-colors"
+                 :class="selected?.id === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-base-200'">
+              <span class="text-sm font-medium" x-text="item.name"></span>
+            </div>
+          </template>
+        </div>
+
+        <footer class="p-3 border-t border-base-300 text-xs opacity-60">
+          Resize the window past <code>lg</code> (1024px) to see the sidebar
+          dock open permanently.
+        </footer>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    function mwe() {
+      return {
+        selected: null,
+        items: Array.from({ length: 12 }, (_, i) => ({
+          id: i + 1,
+          name: `Item ${i + 1}`,
+          payload: { ts: Date.now(), n: i + 1 }
+        })),
+        select(item) {
+          this.selected = item;
+          // Auto-close the drawer on small screens after a pick (matches
+          // typical mobile drawer UX). The checkbox is the source of truth.
+          if (window.matchMedia('(max-width: 1023.98px)').matches) {
+            this.$refs.toggle.checked = false;
+          }
+        }
+      };
+    }
+  </script>
+</body>
+</html>
