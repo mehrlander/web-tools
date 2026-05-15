@@ -2,16 +2,15 @@
 // IndexedDB database on this origin into a persistence.collection.
 //
 // Usage:
-//   <div x-data="idbImporter({ target: 'dataShelf.items', onImported: n => loadItems() })"
-//        x-ref="importer"></div>
+//   <div x-data="idbImporter({ target: 'dataShelf.items', onImported: n => loadItems() })"></div>
 //
-//   $refs.importer.__importer.open()
+//   <button @click="$dispatch('open-importer')">Import…</button>
 //
-// The component renders its own <dialog>, exposes `open()` / `close()` on
-// the host element via $el.__importer, and walks the user through three
-// steps: pick database → pick store → preview & import. Reads are done
-// via persistence.idb (native IndexedDB, read-only); writes go through
-// persistence.collection. No Dexie dependency.
+// The component renders its own <dialog> and listens for an `open-importer`
+// window event so any button on the page can trigger it without needing a
+// DOM ref into the component's scope. Steps: pick database → pick store →
+// preview & import. Reads go through persistence.idb (native IndexedDB,
+// read-only); writes go through persistence.collection. No Dexie dependency.
 
 document.addEventListener('alpine:init', function () {
   Alpine.data('idbImporter', function (opts) {
@@ -19,7 +18,7 @@ document.addEventListener('alpine:init', function () {
 
     return {
       template: `
-        <dialog x-ref="modal" class="modal modal-bottom sm:modal-middle backdrop-blur-md" @close="onClose()">
+        <dialog x-ref="modal" class="modal modal-bottom sm:modal-middle backdrop-blur-md" @close="onClose()" @open-importer.window="open()">
           <div class="modal-box w-11/12 max-w-2xl flex flex-col p-0 overflow-hidden border border-base-300 bg-base-100 shadow-2xl">
             <div class="navbar bg-base-200/50 border-b border-base-300 px-4 min-h-12 shrink-0 gap-2">
               <div class="flex-none text-primary"><i class="ph-fill ph-tray-arrow-down-fill text-2xl"></i></div>
@@ -137,7 +136,6 @@ document.addEventListener('alpine:init', function () {
       init() {
         this.$el.innerHTML = this.template;
         this.$nextTick(() => Alpine.initTree(this.$el));
-        this.$el.__importer = this;
       },
 
       async open() {
