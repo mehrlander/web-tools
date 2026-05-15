@@ -89,6 +89,48 @@ const ViewRegistry = {
       }
     },
     {
+      // Tree mode mounts vanilla-jsoneditor in 'tree' mode. The editor is
+      // editable; changes fire a `viewer:tree-change` CustomEvent on document
+      // with the editor's updated content ({ json } when valid, { text } when
+      // mid-edit and not parseable). Pages that want to persist edits listen
+      // for that event. The editor instance is stashed on the mount element
+      // as `el.__jse` so callers that need imperative access can find it.
+      id: 'tree', label: 'Tree', icon: 'ph-tree-view',
+      test: (f) => f.ext === 'json',
+      render: () => `<div class="jse-mount h-full w-full bg-base-100"></div>`,
+      after: (f) => {
+        requestAnimationFrame(async () => {
+          const target = document.querySelector('.jse-mount');
+          if (!target) return;
+          try {
+            ViewRegistry._jseMod ??= await import('https://cdn.jsdelivr.net/npm/vanilla-jsoneditor/standalone.js');
+          } catch (e) {
+            target.innerHTML = `<pre class="p-4 text-error font-mono text-xs">Failed to load JSON editor: ${ViewRegistry.esc(e?.message || e)}</pre>`;
+            return;
+          }
+          let parsed;
+          try { parsed = JSON.parse(f.content); }
+          catch (e) {
+            target.innerHTML = `<pre class="p-4 text-error font-mono text-xs">Invalid JSON: ${ViewRegistry.esc(e.message)}</pre>`;
+            return;
+          }
+          const editor = ViewRegistry._jseMod.createJSONEditor({
+            target,
+            props: {
+              content: { json: parsed },
+              mode: 'tree',
+              onChange: (updatedContent) => {
+                document.dispatchEvent(new CustomEvent('viewer:tree-change', {
+                  detail: { content: updatedContent, file: f.name }
+                }));
+              }
+            }
+          });
+          target.__jse = editor;
+        });
+      }
+    },
+    {
       id: 'codepen', label: 'CodePen', icon: 'ph-codepen-logo',
       test: (f) => ['html', 'js', 'css'].includes(f.ext),
       assets: ['https://public.codepenassets.com/embed/index.js'],
@@ -166,6 +208,7 @@ document.addEventListener('alpine:init', function() {
       commits: [],
       commitsFor: '',
       showCopy: opts.copy !== false,
+      defaultMode: opts.defaultMode || 'raw',
       copied: false,
 
       init() {
@@ -214,7 +257,7 @@ document.addEventListener('alpine:init', function() {
         this.commitsFor = '';
         this.viewLoading = true;
         const modes = this.availableModes;
-        const preferred = modes.find(m => m.id === 'raw');
+        const preferred = modes.find(m => m.id === this.defaultMode) || modes.find(m => m.id === 'raw');
         await this.switchMode(preferred ? preferred.id : modes[0].id);
       },
 

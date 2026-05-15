@@ -184,16 +184,23 @@
     };
   };
 
-  // idb — native IndexedDB introspection. Read-only by design: list databases
-  // and stores on this origin, peek at record counts, pull all records out of
-  // a store. Used by the data-shelf importer to migrate from legacy Dexie
-  // databases (DataJarDB, DataShelfDB) and to surface anything else IDB is
-  // holding for this origin. No Dexie dependency; pure indexedDB API.
+  // idb — native IndexedDB introspection. The base namespace is read-only:
+  // list databases and stores on this origin, peek at record counts, pull all
+  // records out of a store. Used by the data-shelf importer to migrate from
+  // legacy Dexie databases (DataJarDB, DataShelfDB) and to surface anything
+  // else IDB is holding for this origin. Mutating operations live under
+  // `idb.admin` so callers that only want the read surface can ignore them.
+  // No Dexie dependency; pure indexedDB API.
   const openDb = (dbName) => new Promise((resolve, reject) => {
     const req = indexedDB.open(dbName);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
     req.onblocked = () => reject(new Error(`idb: open blocked for "${dbName}"`));
+  });
+
+  const reqPromise = (r) => new Promise((res, rej) => {
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
   });
 
   const idb = {
@@ -210,6 +217,26 @@
       const names = Array.from(db.objectStoreNames);
       db.close();
       return names;
+    },
+    // Like stores(), but returns one record per store with count + key shape.
+    // Single open per database, so cheaper than stores()+count() in a loop
+    // when a UI needs to render a tree of databases and stores.
+    async storesDetail(dbName) {
+      const db = await openDb(dbName);
+      const names = Array.from(db.objectStoreNames);
+      const out = [];
+      for (const sn of names) {
+        const s = db.transaction(sn, 'readonly').objectStore(sn);
+        const count = await reqPromise(s.count());
+        out.push({
+          name: sn,
+          count,
+          keyPath: s.keyPath || '(key)',
+          autoIncrement: s.autoIncrement
+        });
+      }
+      db.close();
+      return out;
     },
     async count(dbName, storeName) {
       const db = await openDb(dbName);
@@ -228,6 +255,57 @@
         req.onsuccess = () => { db.close(); resolve(req.result); };
         req.onerror = () => { db.close(); reject(req.error); };
       });
+    },
+
+    // Destructive ops, kept under a sub-namespace so the read surface stays
+    // boring. clearStore/deleteStore/deleteDb wrap the obvious indexedDB
+    // calls; deleteStore bumps the database version since object stores can
+    // only be removed during an upgrade. replaceAll wipes a store and re-adds
+    // records inside one transaction — the records must carry whatever key
+    // the store's keyPath expects (or omit it if the store auto-increments).
+    admin: {
+      async clearStore(dbName, storeName) {
+        const db = await openDb(dbName);
+        if (!db.objectStoreNames.contains(storeName)) { db.close(); return; }
+        try {
+          await reqPromise(db.transaction(storeName, 'readwrite').objectStore(storeName).clear());
+        } finally { db.close(); }
+      },
+      async deleteStore(dbName, storeName) {
+        const probe = await openDb(dbName);
+        const nextVer = probe.version + 1;
+        probe.close();
+        await new Promise((resolve, reject) => {
+          const r = indexedDB.open(dbName, nextVer);
+          r.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (d.objectStoreNames.contains(storeName)) d.deleteObjectStore(storeName);
+          };
+          r.onsuccess = e => { e.target.result.close(); resolve(); };
+          r.onerror = () => reject(r.error);
+          r.onblocked = () => reject(new Error(`idb: delete store blocked for "${dbName}.${storeName}"`));
+        });
+      },
+      async deleteDb(dbName) {
+        await new Promise((resolve, reject) => {
+          const r = indexedDB.deleteDatabase(dbName);
+          r.onsuccess = () => resolve();
+          r.onerror = () => reject(r.error);
+          r.onblocked = () => reject(new Error(`idb: delete database blocked for "${dbName}"`));
+        });
+      },
+      async replaceAll(dbName, storeName, records) {
+        const db = await openDb(dbName);
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.close();
+          throw new Error(`idb: store "${storeName}" not in "${dbName}"`);
+        }
+        try {
+          const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
+          await reqPromise(store.clear());
+          for (const rec of records) await reqPromise(store.add(rec));
+        } finally { db.close(); }
+      }
     }
   };
 
