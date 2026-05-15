@@ -58,7 +58,7 @@
       <header class="p-4 pb-2 border-b border-base-300 flex justify-between items-center gap-2">
         <h2 class="text-xl font-semibold text-primary/80 truncate" x-text="appContext"></h2>
         <div class="flex items-center gap-1 shrink-0">
-          <button @click="$refs.importer.__importer?.open()"
+          <button @click="$dispatch('open-importer')"
                   class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom"
                   data-tip="Import from IndexedDB">
             <i class="ph ph-tray-arrow-down"></i>
@@ -205,8 +205,8 @@
     </div>
   </dialog>
 
-  <!-- importer (lives inside appData so $refs resolves) -->
-  <div x-data="idbImporter({ target: 'dataShelf.items', onImported: () => loadItems() })" x-ref="importer"></div>
+  <!-- importer (listens for 'open-importer' window event; see idb-importer.js) -->
+  <div x-data="idbImporter({ target: 'dataShelf.items', onImported: () => loadItems() })"></div>
 
   <!-- FAB for source / repo links -->
   <div x-data="fab()" data-path="pages/data-shelf-v2.html"></div>

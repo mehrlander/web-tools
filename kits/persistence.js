@@ -27,8 +27,8 @@
   const loadIdb = async () =>
     mod ??= await import('https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm');
 
-  // Cache createStore() handles by "<db>|<store>" so repeated save/load
-  // calls on the same path don't spin up new transactions per call.
+  // Cache store thunks by "<db>|<store>" so repeated save/load calls on the
+  // same path don't spin up new transactions per call.
   const stores = new Map();
 
   const parsePath = (path) => {
@@ -45,12 +45,54 @@
     return { db: parts[0], store: parts[1], key: parts.slice(2).join('.') };
   };
 
+  // Build an idb-keyval-compatible store thunk: (txMode, callback) => Promise.
+  // Unlike idb-keyval's built-in createStore (which opens with no version and
+  // only fires onupgradeneeded for brand-new databases), this opens the DB,
+  // checks whether the target store exists, and if not, reopens at version+1
+  // with an upgrade that adds it. Lets us layer collections onto databases
+  // that other tools on the same origin already created at higher versions.
+  const buildStore = (dbName, storeName) => {
+    let dbp = null;
+
+    const ensureDb = () => new Promise((resolve, reject) => {
+      const req = indexedDB.open(dbName);
+      req.onerror = () => reject(req.error);
+      req.onblocked = () => reject(new Error(`persistence: open blocked for "${dbName}"`));
+      req.onupgradeneeded = () => {
+        // Fresh database — create the store now so we don't need a second open.
+        req.result.createObjectStore(storeName);
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        if (db.objectStoreNames.contains(storeName)) { resolve(db); return; }
+        // DB exists at some version but is missing our store. Reopen with
+        // version+1 and add the store in onupgradeneeded.
+        const v = db.version;
+        db.close();
+        const up = indexedDB.open(dbName, v + 1);
+        up.onerror = () => reject(up.error);
+        up.onblocked = () => reject(new Error(`persistence: upgrade blocked for "${dbName}"`));
+        up.onupgradeneeded = () => {
+          const db2 = up.result;
+          if (!db2.objectStoreNames.contains(storeName)) db2.createObjectStore(storeName);
+        };
+        up.onsuccess = () => resolve(up.result);
+      };
+    });
+
+    return (txMode, callback) => {
+      dbp ??= ensureDb();
+      return dbp.then((db) =>
+        callback(db.transaction(storeName, txMode).objectStore(storeName))
+      );
+    };
+  };
+
   const storeFor = async (db, store) => {
     const id = `${db}|${store}`;
     let s = stores.get(id);
     if (!s) {
-      const { createStore } = await loadIdb();
-      s = createStore(db, store);
+      s = buildStore(db, store);
       stores.set(id, s);
     }
     return s;
