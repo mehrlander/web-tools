@@ -52,71 +52,19 @@
     </template>
   </div>
 
-  <div class="flex h-screen">
-    <!-- sidebar -->
-    <aside class="w-80 h-full border-r border-base-300 flex flex-col bg-base-100 shrink-0">
-      <header class="p-4 pb-2 border-b border-base-300 flex justify-between items-center gap-2">
-        <h2 class="text-xl font-semibold text-primary/80 truncate" x-text="appContext"></h2>
-        <div class="flex items-center gap-1 shrink-0">
-          <button @click="$dispatch('open-importer')"
-                  class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom"
-                  data-tip="Import from IndexedDB">
-            <i class="ph ph-tray-arrow-down"></i>
-          </button>
-          <button @click="editItem()" class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom" data-tip="New item">
-            <i class="ph ph-plus"></i>
-          </button>
-        </div>
-      </header>
-
-      <div class="px-3 py-2 border-b border-base-300">
-        <label class="input input-sm input-bordered flex items-center gap-2 bg-base-200/50">
-          <i class="ph ph-magnifying-glass opacity-50"></i>
-          <input type="text" x-model="filterText" placeholder="Filter name, tag, notes…" class="grow bg-transparent" />
-          <button x-show="filterText" @click="filterText = ''" class="opacity-50 hover:opacity-100">
-            <i class="ph ph-x-circle"></i>
-          </button>
-        </label>
-      </div>
-
-      <div class="flex-1 overflow-y-auto p-2">
-        <template x-for="item in filteredItems" :key="item.id">
-          <div @click="selectItem(item)"
-               @mouseenter="hoveredId = item.id"
-               @mouseleave="if (hoveredId === item.id) hoveredId = null"
-               class="flex items-center justify-between mb-1 px-2 py-1 rounded-lg cursor-pointer transition-colors"
-               :class="{
-                 'bg-primary/10 text-primary': selectedItem?.id === item.id,
-                 'bg-base-200': hoveredId === item.id && selectedItem?.id !== item.id
-               }">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="badge badge-soft badge-xs !w-8 shrink-0" :class="cfg.types[item.type]?.badge" x-text="item.type"></span>
-              <span class="truncate text-sm font-medium" x-text="item.name || '(unnamed)'"></span>
-              <span x-show="item.autorun" class="text-primary font-bold">»</span>
-            </div>
-            <div class="flex transition-opacity" :class="hoveredId === item.id ? 'opacity-100' : 'opacity-0'">
-              <button @click.stop="executeItem(item)" class="btn btn-ghost btn-xs btn-circle" :disabled="!cfg.types[item.type]?.exec">
-                <i class="ph ph-play"></i>
-              </button>
-            </div>
-          </div>
-        </template>
-        <div x-show="!filteredItems.length && items.length" class="text-center text-xs opacity-50 italic py-4">
-          No matches.
-        </div>
-        <div x-show="!items.length" class="text-center text-xs opacity-50 italic py-6 px-3 leading-relaxed">
-          Empty shelf.<br>
-          Click <i class="ph ph-tray-arrow-down"></i> to import from IndexedDB,<br>
-          or <i class="ph ph-plus"></i> to add an item.
-        </div>
-      </div>
-    </aside>
+  <div class="drawer lg:drawer-open h-screen">
+    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" x-ref="sidebarToggle" />
 
     <!-- main pane -->
-    <main class="flex-1 h-full bg-base-100 flex flex-col overflow-hidden">
+    <main class="drawer-content h-full bg-base-100 flex flex-col overflow-hidden min-w-0">
       <template x-if="selectedItem">
         <div class="flex flex-col h-full">
-          <nav class="navbar bg-base-100 border-b border-base-300 px-4 min-h-12 shrink-0">
+          <nav class="navbar bg-base-100 border-b border-base-300 px-3 min-h-12 shrink-0 gap-2">
+            <label for="sidebar-toggle"
+                   class="btn btn-ghost btn-sm btn-square lg:hidden shrink-0"
+                   aria-label="Open sidebar">
+              <i class="ph ph-list text-xl"></i>
+            </label>
             <div class="flex-1 gap-3 min-w-0">
               <h3 class="font-bold truncate" x-text="selectedItem.name || '(unnamed)'"></h3>
               <span class="badge badge-outline badge-sm uppercase opacity-50 shrink-0" x-text="selectedItem.type"></span>
@@ -148,11 +96,87 @@
       </template>
 
       <template x-if="!selectedItem">
-        <div class="flex-1 flex items-center justify-center text-base-content/30 italic">
-          Select an item to view data
+        <div class="flex-1 flex flex-col">
+          <nav class="navbar bg-base-100 border-b border-base-300 px-3 min-h-12 shrink-0 lg:hidden">
+            <label for="sidebar-toggle"
+                   class="btn btn-ghost btn-sm btn-square"
+                   aria-label="Open sidebar">
+              <i class="ph ph-list text-xl"></i>
+            </label>
+          </nav>
+          <div class="flex-1 flex items-center justify-center text-base-content/30 italic">
+            Select an item to view data
+          </div>
         </div>
       </template>
     </main>
+
+    <!-- sidebar -->
+    <aside class="drawer-side z-40">
+      <label for="sidebar-toggle" aria-label="Close sidebar" class="drawer-overlay"></label>
+      <div class="w-80 h-full border-r border-base-300 flex flex-col bg-base-100">
+        <header class="p-4 pb-2 border-b border-base-300 flex justify-between items-center gap-2">
+          <h2 class="text-xl font-semibold text-primary/80 truncate" x-text="appContext"></h2>
+          <div class="flex items-center gap-1 shrink-0">
+            <button @click="$dispatch('open-importer')"
+                    class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom"
+                    data-tip="Import from IndexedDB">
+              <i class="ph ph-tray-arrow-down"></i>
+            </button>
+            <button @click="editItem()" class="btn btn-ghost btn-sm btn-circle tooltip tooltip-bottom" data-tip="New item">
+              <i class="ph ph-plus"></i>
+            </button>
+            <label for="sidebar-toggle"
+                   class="btn btn-ghost btn-sm btn-circle lg:hidden"
+                   aria-label="Close sidebar">
+              <i class="ph ph-x"></i>
+            </label>
+          </div>
+        </header>
+
+        <div class="px-3 py-2 border-b border-base-300">
+          <label class="input input-sm input-bordered flex items-center gap-2 bg-base-200/50">
+            <i class="ph ph-magnifying-glass opacity-50"></i>
+            <input type="text" x-model="filterText" placeholder="Filter name, tag, notes…" class="grow bg-transparent" />
+            <button x-show="filterText" @click="filterText = ''" class="opacity-50 hover:opacity-100">
+              <i class="ph ph-x-circle"></i>
+            </button>
+          </label>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-2">
+          <template x-for="item in filteredItems" :key="item.id">
+            <div @click="selectItem(item)"
+                 @mouseenter="hoveredId = item.id"
+                 @mouseleave="if (hoveredId === item.id) hoveredId = null"
+                 class="flex items-center justify-between mb-1 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                 :class="{
+                   'bg-primary/10 text-primary': selectedItem?.id === item.id,
+                   'bg-base-200': hoveredId === item.id && selectedItem?.id !== item.id
+                 }">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="badge badge-soft badge-xs !w-8 shrink-0" :class="cfg.types[item.type]?.badge" x-text="item.type"></span>
+                <span class="truncate text-sm font-medium" x-text="item.name || '(unnamed)'"></span>
+                <span x-show="item.autorun" class="text-primary font-bold">»</span>
+              </div>
+              <div class="flex transition-opacity" :class="hoveredId === item.id ? 'opacity-100' : 'opacity-0'">
+                <button @click.stop="executeItem(item)" class="btn btn-ghost btn-xs btn-circle" :disabled="!cfg.types[item.type]?.exec">
+                  <i class="ph ph-play"></i>
+                </button>
+              </div>
+            </div>
+          </template>
+          <div x-show="!filteredItems.length && items.length" class="text-center text-xs opacity-50 italic py-4">
+            No matches.
+          </div>
+          <div x-show="!items.length" class="text-center text-xs opacity-50 italic py-6 px-3 leading-relaxed">
+            Empty shelf.<br>
+            Click <i class="ph ph-tray-arrow-down"></i> to import from IndexedDB,<br>
+            or <i class="ph ph-plus"></i> to add an item.
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <!-- editor modal -->
@@ -287,6 +311,13 @@
           const ext = item.type === 'text' ? 'txt' : item.type;
           const filename = `${item.name || 'item'}.${ext}`;
           Alpine.store('browser').activeFile = { path: filename, content: item.code ?? '' };
+          this.closeSidebarOnMobile();
+        },
+
+        closeSidebarOnMobile() {
+          if (window.matchMedia('(max-width: 1023.98px)').matches && this.$refs.sidebarToggle) {
+            this.$refs.sidebarToggle.checked = false;
+          }
         },
 
         executeItem(item) {
