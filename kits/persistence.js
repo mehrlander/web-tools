@@ -300,10 +300,16 @@
           db.close();
           throw new Error(`idb: store "${storeName}" not in "${dbName}"`);
         }
+        // JSON round-trip strips proxy wrappers (vanilla-jsoneditor exposes
+        // Svelte 5 $state proxies that structured-clone refuses with
+        // DataCloneError) and forces plain JSON shape. put() rather than
+        // add() so duplicate keys within `records` don't abort the
+        // transaction mid-write — last-write-wins matches "replace all".
+        const plain = JSON.parse(JSON.stringify(records));
         try {
           const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
           await reqPromise(store.clear());
-          for (const rec of records) await reqPromise(store.add(rec));
+          for (const rec of plain) await reqPromise(store.put(rec));
         } finally { db.close(); }
       }
     }
