@@ -82,14 +82,19 @@
       <div class="flex-1 overflow-y-auto p-2">
         <template x-for="item in filteredItems" :key="item.id">
           <div @click="selectItem(item)"
-               class="flex items-center justify-between mb-1 px-2 py-1 rounded-lg cursor-pointer transition-colors group"
-               :class="selectedItem?.id === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-base-200'">
+               @mouseenter="hoveredId = item.id"
+               @mouseleave="if (hoveredId === item.id) hoveredId = null"
+               class="flex items-center justify-between mb-1 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+               :class="{
+                 'bg-primary/10 text-primary': selectedItem?.id === item.id,
+                 'bg-base-200': hoveredId === item.id && selectedItem?.id !== item.id
+               }">
             <div class="flex items-center gap-2 min-w-0">
               <span class="badge badge-soft badge-xs !w-8 shrink-0" :class="cfg.types[item.type]?.badge" x-text="item.type"></span>
               <span class="truncate text-sm font-medium" x-text="item.name || '(unnamed)'"></span>
               <span x-show="item.autorun" class="text-primary font-bold">»</span>
             </div>
-            <div class="flex opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="flex transition-opacity" :class="hoveredId === item.id ? 'opacity-100' : 'opacity-0'">
               <button @click.stop="executeItem(item)" class="btn btn-ghost btn-xs btn-circle" :disabled="!cfg.types[item.type]?.exec">
                 <i class="ph ph-play"></i>
               </button>
@@ -217,6 +222,7 @@
         items: [],
         filterText: '',
         selectedItem: null,
+        hoveredId: null,
         editingItem: { name: '', type: 'js', tags: '', notes: '', autorun: false, code: '' },
         copiedId: null,
         appContext: 'Global Context',
