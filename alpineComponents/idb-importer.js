@@ -280,8 +280,12 @@ document.addEventListener('alpine:init', function () {
         if (!this.target || !this.recognized.length) return;
         this.importing = true;
         const col = persistence.collection(this.target);
+        // JSON round-trip strips Alpine's reactive Proxy wrappers (which
+        // structured-clone refuses with DataCloneError on .put). Shelf
+        // records are JSON-safe by schema; mirrors the d9f036a fix.
+        const plain = JSON.parse(JSON.stringify(this.recognized));
         let imported = 0, skipped = 0;
-        for (const r of this.recognized) {
+        for (const r of plain) {
           try { await col.put(r); imported++; }
           catch (e) { skipped++; console.error('importer: put', e); }
         }
