@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html data-theme="emerald">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IndexedDB Explorer</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+  <script type="module">
+    window.jse = opts => import('https://unpkg.com/vanilla-jsoneditor/standalone.js')
+      .then(({createJSONEditor}) => createJSONEditor(opts));
+  </script>
+</head>
+<body class="h-screen overflow-hidden" x-data="explorer()" x-init="init()">
+  <div class="flex h-full">
+
+    <!-- Sidebar -->
+    <aside class="w-80 bg-base-100 flex flex-col border-r border-base-300">
+      <div class="p-3 border-b border-base-300 space-y-2">
+        <h1 class="text-xl font-bold">IndexedDB Explorer</h1>
+        <input type="text" x-model="filter" placeholder="Search..." class="input input-sm input-ghost w-full">
+      </div>
+      <div class="flex-1 overflow-y-auto p-3 space-y-3">
+        <template x-for="db in visibleDBs()" :key="db.name">
+          <div>
+            <div class="flex items-center gap-1.5 mb-1">
+              <h2 class="font-bold" x-text="db.name"></h2>
+              <span class="badge badge-sm opacity-60" x-text="`v${db.version}`"></span>
+            </div>
+            <div class="space-y-0.5">
+              <template x-for="s in db.stores" :key="s.name">
+                <button class="w-full text-left px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                        :class="currentDB === db.name && currentStore === s.name ? 'bg-base-200' : ''"
+                        @click="loadStore(db.name, s.name)">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="font-medium truncate" x-text="s.name"></span>
+                    <span class="badge badge-sm badge-ghost" x-text="s.count"></span>
+                  </div>
+                  <div class="text-sm opacity-60 truncate" x-text="keyDesc(s)"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col min-w-0">
+      <header class="px-3 py-2 border-b border-base-300 flex justify-between items-center gap-3">
+        <div class="min-w-0">
+          <div class="font-mono font-bold text-lg truncate"
+               x-text="currentStore ? `${currentDB}.${currentStore}` : ''"></div>
+          <div class="text-sm opacity-60 truncate" x-show="currentInfo" x-text="currentInfo"></div>
+        </div>
+        <div class="flex gap-1.5 shrink-0" x-show="currentStore">
+          <button class="btn btn-sm btn-ghost" @click="copy()">
+            <i class="ph ph-copy"></i><span x-text="copyLabel"></span>
+          </button>
+          <button class="btn btn-sm btn-warning" @click="askClear()">
+            <i class="ph ph-eraser"></i>Clear
+          </button>
+          <button class="btn btn-sm btn-error" @click="askDeleteStore()">
+            <i class="ph ph-trash"></i>Store
+          </button>
+          <button class="btn btn-sm btn-error" @click="askDeleteDB()">
+            <i class="ph ph-database"></i>DB
+          </button>
+          <button class="btn btn-sm btn-primary" @click="refresh()">
+            <i class="ph ph-arrows-clockwise"></i>Refresh
+          </button>
+          <button class="btn btn-sm btn-success" x-show="dirty" @click="save()">
+            <i class="ph ph-floppy-disk"></i>Save
+          </button>
+        </div>
+      </header>
+      <div class="flex-1" x-ref="editor"></div>
+    </main>
+  </div>
+
+  <!-- Confirm modal -->
+  <dialog class="modal" :class="modal.open && 'modal-open'">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg" x-text="modal.title"></h3>
+      <p class="py-4" x-text="modal.message"></p>
+      <div class="modal-action">
+        <button class="btn btn-error btn-sm" @click="modal.confirm()">Delete</button>
+        <button class="btn btn-sm" @click="modal.open = false">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    function explorer() {
+      return {
+        dbs: {},
+        filter: '',
+        currentDB: null,
+        currentStore: null,
+        currentInfo: '',
+        editor: null,
+        dirty: false,
+        copyLabel: 'Copy',
+        modal: { open: false, title: '', message: '', confirm: () => {} },
+
+        async init() {
+          await this.$nextTick();
+          this.editor = await window.jse({
+            target: this.$refs.editor,
+            props: {
+              content: { json: [] },
+              mode: 'tree',
+              onChange: () => this.dirty = true
+            }
+          });
+          await this.scan();
+        },
+
+        openDB(name, version) {
+          return new Promise((res, rej) => {
+            const r = version ? indexedDB.open(name, version) : indexedDB.open(name);
+            r.onsuccess = e => res(e.target.result);
+            r.onerror = r.onblocked = rej;
+          });
+        },
+
+        req(r) {
+          return new Promise(res => r.onsuccess = () => res(r.result));
+        },
+
+        async scan() {
+          const out = {};
+          for (const {name} of await indexedDB.databases()) {
+            if (!name) continue;
+            const db = await this.openDB(name);
+            out[name] = {
+              version: db.version,
+              stores: await Promise.all([...db.objectStoreNames].map(async sn => {
+                const s = db.transaction(sn, 'readonly').objectStore(sn);
+                return {
+                  name: sn,
+                  count: await this.req(s.count()),
+                  keyPath: s.keyPath || '(key)',
+                  autoIncrement: s.autoIncrement
+                };
+              }))
+            };
+            db.close();
+          }
+          this.dbs = out;
+        },
+
+        visibleDBs() {
+          const f = this.filter.toLowerCase();
+          return Object.entries(this.dbs).flatMap(([name, info]) => {
+            const stores = f
+              ? info.stores.filter(s => name.toLowerCase().includes(f) || s.name.toLowerCase().includes(f))
+              : info.stores;
+            return stores.length ? [{name, version: info.version, stores}] : [];
+          });
+        },
+
+        keyDesc(s) {
+          const k = Array.isArray(s.keyPath) ? `[${s.keyPath.join('+')}]` : s.keyPath;
+          return `${s.autoIncrement ? '++' : ''}${k}`;
+        },
+
+        async loadStore(dbName, storeName) {
+          this.currentDB = dbName;
+          this.currentStore = storeName;
+          const db = await this.openDB(dbName);
+          const s = db.transaction(storeName, 'readonly').objectStore(storeName);
+          const [count, data] = await Promise.all([this.req(s.count()), this.req(s.getAll())]);
+          const props = [...new Set(data.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
+          this.currentInfo = `v${db.version} • ${count} records • ${props.join(', ')}`;
+          this.editor.update({ json: data });
+          this.dirty = false;
+          db.close();
+        },
+
+        refresh() {
+          if (this.currentDB && this.currentStore) return this.loadStore(this.currentDB, this.currentStore);
+        },
+
+        async copy() {
+          await navigator.clipboard.writeText(JSON.stringify(this.editor.get().json, null, 2));
+          this.copyLabel = 'Copied!';
+          setTimeout(() => this.copyLabel = 'Copy', 1000);
+        },
+
+        async save() {
+          const data = this.editor.get().json;
+          const db = await this.openDB(this.currentDB);
+          const store = db.transaction(this.currentStore, 'readwrite').objectStore(this.currentStore);
+          await this.req(store.clear());
+          for (const item of data) await this.req(store.add(item));
+          db.close();
+          this.dirty = false;
+          await this.scan();
+        },
+
+        ask(title, message, confirm) {
+          this.modal = { open: true, title, message, confirm };
+        },
+
+        askClear() {
+          this.ask('Clear Store', `Remove all records from ${this.currentStore}?`, async () => {
+            this.modal.open = false;
+            const db = await this.openDB(this.currentDB);
+            await this.req(db.transaction(this.currentStore, 'readwrite').objectStore(this.currentStore).clear());
+            db.close();
+            await this.scan();
+            await this.loadStore(this.currentDB, this.currentStore);
+          });
+        },
+
+        askDeleteStore() {
+          this.ask('Delete Store', `Delete ${this.currentStore} from ${this.currentDB}? Cannot be undone.`, async () => {
+            this.modal.open = false;
+            const dbName = this.currentDB, storeName = this.currentStore;
+            const probe = await this.openDB(dbName);
+            const nextVer = probe.version + 1;
+            probe.close();
+            await new Promise((res, rej) => {
+              const r = indexedDB.open(dbName, nextVer);
+              r.onupgradeneeded = e => {
+                const d = e.target.result;
+                if (d.objectStoreNames.contains(storeName)) d.deleteObjectStore(storeName);
+              };
+              r.onsuccess = e => { e.target.result.close(); res(); };
+              r.onerror = r.onblocked = rej;
+            });
+            this.currentStore = null;
+            this.currentInfo = '';
+            this.editor.update({ json: [] });
+            await this.scan();
+          });
+        },
+
+        askDeleteDB() {
+          this.ask('Delete Database', `Delete ${this.currentDB}? Cannot be undone.`, async () => {
+            this.modal.open = false;
+            await new Promise((res, rej) => {
+              const r = indexedDB.deleteDatabase(this.currentDB);
+              r.onsuccess = res;
+              r.onerror = r.onblocked = rej;
+            });
+            this.currentDB = null;
+            this.currentStore = null;
+            this.currentInfo = '';
+            this.editor.update({ json: [] });
+            await this.scan();
+          });
+        }
+      };
+    }
+  </script>
+</body>
+</html>
