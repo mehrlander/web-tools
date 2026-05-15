@@ -27,6 +27,7 @@
       const gh = new window.GH({ repo: REPO, ref: BRANCH });
 
       await gh.load('kits/persistence.js');
+      await gh.load('kits/data-shelf.js');
       await gh.load('alpineComponents/cm-editor.js');
       await gh.load('alpineComponents/viewer-assembled.js');
       await gh.load('alpineComponents/fab-assembled.js');
@@ -235,7 +236,11 @@
   </dialog>
 
   <!-- importer (listens for 'open-importer' window event; see idb-importer.js) -->
-  <div x-data="idbImporter({ target: 'dataShelf.items', onImported: () => loadItems() })"></div>
+  <div x-data="idbImporter({
+    target: 'dataShelf.items',
+    getContext: () => appContext,
+    onImported: () => loadItems()
+  })"></div>
 
   <!-- FAB for source / repo links -->
   <div x-data="fab()" data-path="pages/data-shelf-v2.html"></div>
