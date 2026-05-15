@@ -53,7 +53,7 @@ When asked for a handoff prompt (HP):
 
 **Shape each issue as symptom, cause, fixes.** Label causes *suspected* or *confirmed*. Label fixes *possible* or *likely*. The labels are the hedge: don't soften the prose around them.
 
-**Propose diagnostic tests where they'd move a cause from suspected to confirmed.** The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome. Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
+**Propose diagnostic tests where they'd move a cause from suspected to confirmed.** The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome (you can also offer an test with a draft prompt that could be used to firm up some piece of it). Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
 
 **Close with: "Look through the relevant files, assess, and propose how to proceed."** Or near-equivalent. The new session's first move is to form a view and bring it to the user, not to start changing things.
 
