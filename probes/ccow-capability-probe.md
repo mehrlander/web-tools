@@ -1,129 +1,294 @@
-# CCOW Capability Probe
+# Building and Testing HTML in Claude Code on the Web — A Practical Guide
 
-Date: 2026-05-15. Sandbox: Claude Code on the web, cloud_default environment.
-Each test run from `/tmp/probe/`; raw logs preserved under `/tmp/probe/*.log`.
+This is a working guide for what you can actually do inside this sandbox,
+written after probing it directly on 2026-05-15. Where it matters I've
+flagged what's confirmed vs. assumed. If something here surprises you,
+re-probe — the network policy can change.
 
-## 0. Environment
+## The 30-second version
 
-| Item | Value |
-|---|---|
-| Kernel | Linux 6.18.5 x86_64 |
-| Node | v22.22.2 |
-| Python | 3.11.15 |
-| Ruby | 3.3.6 |
-| Go | go1.24.7 linux/amd64 |
-| `http_proxy` / `https_proxy` | not set |
-| DNS | nameserver 8.8.8.8 |
-| Suggestive env | `CLAUDE_CODE_PROXY_RESOLVES_HOSTS=true`, `CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE=cloud_default` |
+You have a Linux VM with Node 22, Python 3.11, Ruby 3.3, Go 1.24, npm, pip,
+git, a real Chromium pre-installed, and unrestricted localhost networking.
+You **can**:
 
-No standard proxy env vars are set, yet outbound TLS connections present a cert chain signed by `O=Anthropic, CN=sandbox-egress-production TLS Inspection CA` (confirmed via `openssl s_client` against both allowed and denied hosts). The system CA bundle at `/etc/ssl/certs/ca-certificates.crt` trusts that root, which is why curl/python/node work without complaint. The interception happens transparently — likely via iptables redirect and DNS rewriting, not via HTTP\_PROXY env. Calling this "Limited" is consistent with what I see, but I'm describing observations, not claiming the label.
+- install any package from npm or pypi,
+- write HTML/JS/CSS files and serve them locally,
+- load those pages in a real headless Chromium (puppeteer or playwright),
+- parse HTML in-process with jsdom, happy-dom, cheerio, or linkedom,
+- pull files from GitHub, GitHub raw, GitHub release assets, S3, and Google Cloud Storage.
 
-## A. Reachability matrix
+You **cannot** reach most of the open internet. The sandbox runs every
+outbound TLS connection through a proxy that allows a curated list of hosts
+(registries, GitHub, a few clouds) and returns `HTTP 403 "Host not in allowlist"`
+for everything else — including the big browser CDNs (jsdelivr, esm.sh,
+unpkg, cdnjs, skypack), Wikipedia, MDN, Stack Overflow, Google search,
+example.com, httpbin, and effectively any random website you'd want to scrape.
 
-Probes: HEAD via curl, `urllib.request.urlopen` via python, `fetch` via node. Each host hit 3 times. Numbers below are the curl HTTP code (the three tools agreed in every case).
+Practical implication: **bundle your dependencies into your project; do not
+reach for `<script src="https://cdn...">`.**
 
-| Host | curl/py/node | Notes |
-|---|---|---|
-| registry.npmjs.org | 200 | allowed |
-| pypi.org | 200 | allowed |
-| github.com | 200 | allowed |
-| raw.githubusercontent.com | 301→200 | allowed (curl HEAD got 301, follow-throughs work) |
-| api.anthropic.com | 405 on `/v1/messages` HEAD | allowed (origin returns 405 for HEAD; that's not a block) |
-| storage.googleapis.com | 400 on `/` (proxy passed it through; origin requires bucket) | **allowed** (not on the original "expected denied" mental model) |
-| cdn.jsdelivr.net | 403 `host_not_allowed` | denied |
-| esm.sh | 403 `host_not_allowed` | denied |
-| unpkg.com | 403 `host_not_allowed` | denied |
-| cdn.playwright.dev | 403 `host_not_allowed` | denied |
-| playwright.azureedge.net | 403 `host_not_allowed` | denied |
-| en.wikipedia.org | 403 `host_not_allowed` | denied |
-| leg.wa.gov | 403 `host_not_allowed` | denied |
-| app.leg.wa.gov | 403 `host_not_allowed` | denied |
-| wsdot.wa.gov | 403 `host_not_allowed` | denied |
+## The allowlist, as observed
 
-Denied responses share the signature `HTTP/2 403 + x-deny-reason: host_not_allowed + body "Host not in allowlist"`. No curl-vs-node-vs-python divergence: all three tools used the same proxy and saw the same result.
+I probed each of these directly. "Allowed" means the proxy let the request
+through to the real origin (the origin then returned whatever it returned).
+"Denied" means the proxy returned `403 x-deny-reason: host_not_allowed`.
+This list is not exhaustive — it's what I tested. Anything I didn't try is
+unknown.
 
-## B. Package installs
+**Allowed — package and code registries:**
+`registry.npmjs.org`, `registry.yarnpkg.com`, `pypi.org`,
+`files.pythonhosted.org`, `rubygems.org`, `index.crates.io`,
+`static.crates.io`, `proxy.golang.org`, `sum.golang.org`, `nodejs.org`,
+`archive.ubuntu.com`, `security.ubuntu.com`.
 
-| Manager | Packages | Time | Outcome |
+**Allowed — GitHub ecosystem (full):**
+`github.com`, `api.github.com`, `raw.githubusercontent.com`,
+`codeload.github.com`, `objects.githubusercontent.com`,
+`release-assets.githubusercontent.com`.
+
+**Allowed — container registries:**
+`ghcr.io`, `registry-1.docker.io`, `auth.docker.io`.
+
+**Allowed — cloud object storage and Google infra:**
+`s3.amazonaws.com`, `storage.googleapis.com`, `fonts.googleapis.com`,
+`fonts.gstatic.com`, `ajax.googleapis.com`, `www.googleapis.com`,
+`cloud.google.com`.
+
+**Allowed — Anthropic:**
+`api.anthropic.com`, `claude.ai`. (Notably `docs.anthropic.com` and
+`console.anthropic.com` are **not** allowed.)
+
+**Denied — everything else I tried**, including: `cdn.jsdelivr.net`,
+`esm.sh`, `unpkg.com`, `cdnjs.cloudflare.com`, `skypack.dev`, `jspm.dev`,
+`cdn.playwright.dev`, `playwright.azureedge.net`, `huggingface.co`,
+`go.dev`, `deb.debian.org`, `docs.anthropic.com`, `developer.mozilla.org`,
+`en.wikipedia.org`, `stackoverflow.com`, `google.com`, `youtube.com`,
+`example.com`, `httpbin.org`, `jsonplaceholder.typicode.com`,
+`leg.wa.gov`, `wsdot.wa.gov`.
+
+A few useful shortcuts that follow from this:
+
+- **Need a JS library in a page?** `npm install` it and reference the file
+  from `node_modules/`. The CDN URLs you'd normally copy off of jsdelivr
+  won't load.
+- **Need Google Fonts?** Works. `fonts.googleapis.com` and
+  `fonts.gstatic.com` are both allowed.
+- **Need a file from a project on GitHub?** `raw.githubusercontent.com`
+  works for source files and `release-assets.githubusercontent.com` works
+  for binaries attached to releases.
+- **Need a sample REST API for testing?** `httpbin.org` and
+  `jsonplaceholder.typicode.com` are blocked. Spin up your own:
+  `python3 -m http.server`, a tiny `express` app, or the snippet at the
+  bottom of this doc.
+
+## Building HTML pages
+
+Write files anywhere in the repo or under `/tmp`. To preview, serve them
+locally — there's no built-in HTTP preview, but loopback works fine.
+
+```bash
+cd /path/to/your/static/files
+python3 -m http.server 8000     # or: npx serve -p 8000
+```
+
+Confirmed working: curl, `requests.get`, `fetch(...)` from Node, and Chromium
+(via puppeteer/playwright) can all hit `http://localhost:8000/...` with no
+restrictions.
+
+If you want the result visible to the user **outside** the sandbox, commit
+the file and link to its GitHub blob URL (`https://github.com/<owner>/<repo>/blob/<branch>/<path>`).
+That's the canonical "show the user a file" path for this environment.
+
+## Testing pages in a real browser
+
+A real Chromium is pre-installed at `/opt/pw-browsers/chromium-1194/`. You
+have two ways to drive it:
+
+### Puppeteer (simplest)
+
+```bash
+npm install puppeteer
+# First run downloads chrome (~280 MB) from storage.googleapis.com.
+# It's allowed and takes seconds.
+```
+
+```js
+// test.mjs
+import puppeteer from 'puppeteer';
+const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+const page = await browser.newPage();
+await page.goto('http://localhost:8000/my-page.html');
+const title = await page.title();
+const items = await page.$$eval('li.item', els => els.map(e => e.textContent));
+console.log({ title, items });
+await browser.close();
+```
+
+This is the path of least friction. Works out of the box for any `file://`
+or `http://localhost:.../` URL. JavaScript runs, the DOM is real.
+
+### Playwright (use only if you specifically need it)
+
+Playwright clients are version-pinned to a specific Chromium build. The
+pre-installed browser is build **1194**, which matches **`playwright@1.56.x`**.
+Any other client version will fail with "executable doesn't exist". `npx
+playwright install chromium` does nothing useful here — its download CDN is
+blocked, and you don't need it anyway.
+
+```bash
+npm install playwright@1.56.0
+```
+
+```js
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage();
+await page.goto('http://localhost:8000/my-page.html');
+// ...
+```
+
+### When the browser tries to hit an external URL
+
+Two things to know:
+
+1. **Chromium doesn't trust the sandbox's TLS proxy by default.** Any
+   `https://` URL — even to an allowed host like `github.com` — will fail
+   with `net::ERR_CERT_AUTHORITY_INVALID` unless you launch with
+   `args: ['--no-sandbox', '--ignore-certificate-errors']`. System tools
+   (`curl`, Python `requests`, Node `fetch`) don't have this problem; they
+   use the system CA bundle, which already trusts the proxy.
+2. **`--ignore-certificate-errors` doesn't bypass the host allowlist.**
+   Denied hosts still return the proxy's 403 page; you just see it as the
+   page content instead of as a TLS error.
+
+So: for pages that load assets from your own server or from allowed hosts,
+add the flag and you're done. For pages that *need* an off-allowlist asset,
+you'll need to vendor that asset into your project first.
+
+## Parsing HTML without a browser
+
+If you don't need to *run* the JS — you just want to look at the structure
+of an HTML page — you have lighter options. From fastest/simplest to
+heaviest:
+
+| Tool | Lang | Runs `<script>`? | Use when |
 |---|---|---|---|
-| npm | jsdom, happy-dom, cheerio, linkedom, parse5 | 7.7 s | OK (versions: jsdom@29.1.1, happy-dom@20.9.0, cheerio@1.2.0, linkedom@0.18.12, parse5@8.0.1) |
-| pip | requests, httpx, beautifulsoup4, lxml, parsel, selectolax | 5.0 s | OK |
+| **cheerio** | Node | No | jQuery-style traversal of static markup |
+| **linkedom** | Node | No | DOM API on static markup |
+| **happy-dom** | Node | Sometimes (construction-dependent) | Lighter DOM with partial JS support |
+| **jsdom** | Node | Yes (with `runScripts: 'dangerously'`) | You need inline scripts to execute |
+| **BeautifulSoup + lxml** | Python | No | Python-side HTML traversal |
+| **selectolax / parsel** | Python | No | Faster Python HTML parsing |
 
-Registry-backed installs are fast and reliable. No package needed to fetch a non-allowed CDN at install time.
+In my probe, jsdom executed an inline `<script>` and set `document.body.dataset.loaded = '1'`. happy-dom did not (with the construction I used — `doc.write(html)`). cheerio and linkedom never claim to run JS; they just parse markup. If you have any doubt about whether script execution happened, use puppeteer instead — it's a real browser.
 
-## C. In-process DOM
+All six tools above are confirmed installable via npm/pip in this sandbox.
 
-Fixture: `<h1>`, three `<li class="item">`, and an inline `<script>` that sets `document.body.dataset.loaded = '1'`.
+## Common gotchas
 
-| Engine | `data-loaded` after parse | Item count | CSS query | Inline script ran? |
-|---|---|---|---|---|
-| happy-dom (via `Window` + `document.write(html)`) | `null` | 3 | works | No (with this construction) |
-| jsdom (`new JSDOM(html, {runScripts:'dangerously'})`) | `"1"` | 3 | works | Yes |
-| cheerio | `null` | 3 | works | N/A (no JS) |
-| linkedom | `null` | 3 | works | N/A (no JS) |
+- **`<script src="https://cdn.jsdelivr.net/...">` will not load.** Vendor
+  the script: `npm install lodash-es`, then reference
+  `./node_modules/lodash-es/lodash.js` from your page (or bundle).
+- **Dynamic `await import('https://...')` in Node fails** even for allowed
+  hosts. That's a Node restriction (`Only URLs with a scheme in: file and
+  data are supported`), not a network one. If you need to load an ESM
+  module from a URL in Node, use `fetch` + `vm.Module`, or install the
+  package and `import` it locally.
+- **The sandbox is ephemeral.** When the session ends, everything outside
+  the git repo is gone — including `/tmp/probe`, downloaded browsers (in
+  `~/.cache/puppeteer/`), and any uncommitted files. Commit anything you
+  want to keep before the session times out.
+- **Localhost doesn't reach the user's browser.** `http://localhost:8000`
+  works inside the sandbox; the user can't see it. To show a rendered page
+  to the user, either take a screenshot with puppeteer (`page.screenshot()`)
+  and surface the PNG, or commit the static files and link to the GitHub
+  blob view.
+- **`api.anthropic.com` is allowed**, but the keys/auth context for the
+  agent are session-bound — don't assume you can call the API from arbitrary
+  scripts without setting up auth.
+- **The Chromium binary is 276 MB.** First puppeteer install adds a few
+  seconds. After that it's cached for the session.
 
-`await import('https://esm.sh/...')` and `await import('https://cdn.jsdelivr.net/.../+esm')` both fail in **both** happy-dom and jsdom runs with `Only URLs with a scheme in: file and data are supported by the default ESM loader`. That's a Node ESM-loader restriction (would block even with no firewall), independent of the host allowlist. To pull an ESM module from a URL you'd need a loader hook or to fetch+`vm.Module` manually. Since the relevant CDNs are also denied at the proxy, this is moot in this environment.
+## Quick recipes
 
-`win.fetch('https://leg.wa.gov')` inside happy-dom: `Cross-Origin Request Blocked` (happy-dom enforces same-origin against the fake `http://localhost/` URL I gave it). `dom.window.fetch` in jsdom: undefined (jsdom doesn't ship a `fetch` on its window by default).
+**Serve a local site and screenshot it:**
 
-Caveat for happy-dom: I parsed via `doc.write(html)`. Inline scripts may execute when an HTML page is constructed via the higher-level loader API (`Window.fetch` + `Document.open()`/`Document.close()`) or by going through `new Browser().newPage().goto(file://…)`. The result above is specific to the construction path I used. If inline-script execution matters, use jsdom or test the alternative happy-dom path.
+```bash
+cd /tmp/site && python3 -m http.server 8000 &
+node -e "
+  import('puppeteer').then(async ({default: p}) => {
+    const b = await p.launch({args:['--no-sandbox']});
+    const pg = await b.newPage();
+    await pg.setViewport({width: 1280, height: 800});
+    await pg.goto('http://localhost:8000/index.html');
+    await pg.screenshot({path: '/tmp/site/preview.png', fullPage: true});
+    await b.close();
+  })
+"
+```
 
-## D. Browser binaries
+Then commit `preview.png` and surface it to the user via its GitHub blob URL.
 
-This is where the original assumption ("expected to fail") was wrong.
+**Tiny mock JSON API (since httpbin/jsonplaceholder are blocked):**
 
-| Action | Outcome |
-|---|---|
-| `npx playwright install chromium` | Silent no-op. Pre-installed at `/opt/pw-browsers/chromium-1194` (build 1194, chromium 141). Headless shell, firefox, webkit also listed but the headless-shell binary I saw on disk is `chromium-1194`'s `chrome` only. |
-| `npx puppeteer browsers install chrome` | Succeeds: downloads `chrome-linux64.zip` from `https://storage.googleapis.com/chrome-for-testing-public/148.0.7778.167/...` and unpacks to `/root/.cache/puppeteer/chrome/linux-148.0.7778.167/chrome-linux64/chrome` (276 MB). Download itself reported by puppeteer as 950 ms — fast enough that a proxy-side cache is plausible, but I didn't isolate that. |
-| Puppeteer launch + `file:///tmp/probe/fixture.html` | `data_loaded="1"`, `item_count=3`. Inline script runs. |
-| Playwright (`playwright@1.55.0`) launch | Fails — client expects build 1187, finds 1194. |
-| Playwright pinned to `playwright@1.56.0` launch | `data_loaded="1"`, `item_count=3`. Works. |
+```bash
+cat > /tmp/mock.py <<'EOF'
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200); self.send_header('content-type','application/json'); self.end_headers()
+        self.wfile.write(json.dumps({"path": self.path, "ok": True}).encode())
+HTTPServer(('127.0.0.1', 9000), H).serve_forever()
+EOF
+python3 /tmp/mock.py &
+```
 
-So the practical pattern for playwright is: pin to the version whose chromium build matches `/opt/pw-browsers/chromium-*`. For build 1194 that's `playwright@1.56.x`. For puppeteer there's no pin needed — the matching chrome downloads from a host that turns out to be allowed.
+**Fetch a file from a public GitHub repo (works):**
 
-TLS behaviour with Chromium: by default Chromium does **not** trust the Anthropic sandbox CA, so even fetching an allowed host (`https://github.com/`) errors `net::ERR_CERT_AUTHORITY_INVALID`. Passing `--ignore-certificate-errors` lets allowed hosts load (github.com → 200). Denied hosts still return the proxy's 403 page even with that flag — the deny is upstream of the TLS handshake from Chrome's perspective.
+```bash
+curl -O https://raw.githubusercontent.com/torvalds/linux/master/README
+```
 
-## E. Local server roundtrip
+**Install a JS library for use in a page without a CDN:**
 
-`python3 -m http.server 8000` serving the fixture; bound to `0.0.0.0:8000` (visible in `/proc/net/tcp`). All three clients reached it cleanly:
+```bash
+npm install d3
+# then in your HTML, reference ./node_modules/d3/dist/d3.min.js
+```
 
-| Client | HTTP | Bytes | Time |
-|---|---|---|---|
-| curl | 200 | 319 | 13 ms |
-| python requests | 200 | 319 | 197 ms |
-| node fetch | 200 | 319 | 138 ms |
+---
 
-Localhost networking is unrestricted (the proxy doesn't sit in front of loopback).
+## Appendix: what the sandbox actually is, briefly
 
-## F. Static fetch + parse for a denied host
+There's a transparent TLS-inspecting proxy on the egress path. It enforces
+a host allowlist and presents a CA chain signed by `Anthropic /
+sandbox-egress-production TLS Inspection CA`. The system CA bundle trusts
+that root, so curl/python/node treat the proxy invisibly. Chromium ships
+its own trust store and doesn't, hence the `--ignore-certificate-errors`
+flag for browser fetches.
 
-| Path | Outcome |
-|---|---|
-| `requests.get('https://app.leg.wa.gov/...')` | HTTP 403, 21 bytes, 0.32 s |
-| `fetch('https://app.leg.wa.gov/...')` + cheerio/linkedom | HTTP 403, 39 ms (parse never reached) |
-| Puppeteer `page.goto(...)` (no flags) | `net::ERR_CERT_AUTHORITY_INVALID` |
-| Puppeteer `page.goto(...)` with `--ignore-certificate-errors` | HTTP 403, body `Host not in allowlist` |
+Local networking (loopback, `127.0.0.1`) is not policed at all.
 
-The browser path doesn't get around the allowlist — the proxy denies it the same way it denies curl. The CA error from the no-flag Chromium case is a Chrome-trust-store detail, not a separate block.
+## Appendix: raw probe data
 
-## Summary
+Logs and test scripts from the sweep that produced this guide live in
+`/tmp/probe/` during the active session: `00-environment.log`,
+`A-reach.log`, `A-expanded.log`, `A-headers.log`, `A-routing.log`,
+`A-tls.log`, `B-install.log`, `B-pip.log`, `C-dom.log`, `D-browsers.log`,
+`E-local.log`, `F-static.log`. They vanish when the sandbox is reclaimed;
+re-run the probes to refresh.
 
-What works: package installs (npm, pip), local file parsing with happy-dom/jsdom/cheerio/linkedom/parse5/bs4/lxml/parsel/selectolax, local TCP servers and loopback HTTP, headless **Chromium** (both via the puppeteer-installed chrome and via the pre-staged `/opt/pw-browsers/chromium-1194` when playwright is pinned to a matching client version), and any TLS request to a host the proxy's allowlist permits (npm, pypi, github, raw.githubusercontent, api.anthropic, storage.googleapis among those tested). System tools (curl/python/node) trust the sandbox MITM CA out of the box.
+## Things worth double-checking later
 
-What's blocked: arbitrary internet hosts not on the allowlist. The denial is enforced by an egress proxy that returns `HTTP 403 + x-deny-reason: host_not_allowed` regardless of client. CDNs that "feel essential" like cdn.jsdelivr.net, esm.sh, unpkg.com, en.wikipedia.org, and the WA gov hosts I tested all hit this. Browser automation doesn't change that — the proxy sits upstream of Chromium.
-
-Surprises:
-- `storage.googleapis.com` is allowed, which is what makes `puppeteer browsers install chrome` work despite cdn.playwright.dev being denied. This was opposite to my prior of "all third-party CDNs are blocked."
-- Playwright browsers are pre-staged at `/opt/pw-browsers/`, so `playwright install` is unnecessary if the client version matches the staged build.
-- The sandbox's egress is a transparent TLS-inspecting proxy, not a CONNECT proxy. Anything that uses Chrome's bundled trust store needs `--ignore-certificate-errors` or an injected CA, even for allowed hosts.
-
-These conclusions cover only what I tested in this session.
-
-## Follow-up tests worth running
-
-1. **What's on the allowlist that I didn't try?** Probe pypi-mirror, cdn.npmjs.com, deb.debian.org, security.ubuntu.com, googleapis.com subdomains, fonts.gstatic.com, sentry.io, huggingface.co, anthropic.com (root vs api.). The list of allowed hosts shapes which workflows are feasible without a proxy escape hatch.
-
-2. **Does NODE_EXTRA_CA_CERTS / a Chromium policy file let me trust the sandbox CA cleanly?** Extract the CA from a live handshake (`openssl s_client -showcerts` against github.com), feed it to Chromium via `--ignore-certificate-errors-spki-list` or a NSS DB and confirm allowed hosts load without `--ignore-certificate-errors`. That would make automated browser flows safer (`--ignore-certificate-errors` also hides real cert mistakes).
-
-3. **Speed of `storage.googleapis.com` — is there a transparent cache?** Re-download a large known-good asset two ways: cold (different object) vs warm (same object after a sleep). If the warm hit is dramatically faster than wire speed, the proxy is caching; if not, the network is just fast. Result tells you whether one-shot CI installs will be reliably quick.
+- **Map more of the allowlist.** I didn't try AWS S3 subdomains
+  (`<bucket>.s3.amazonaws.com`), Cloudflare R2, `ghcr.io` blob storage,
+  or specific GCS buckets. If you depend on one, probe it before relying
+  on it: `curl -sS -o /dev/null -w "%{http_code}\n" -I https://HOST/`.
+  A response without `x-deny-reason` means allowed.
+- **Trust the sandbox CA in Chromium properly.** It's possible to extract
+  `Anthropic / sandbox-egress-production TLS Inspection CA` from a live
+  handshake and feed it to Chromium via an NSS DB or policy file, which
+  would remove the need for `--ignore-certificate-errors`. Worth doing
+  only if you find yourself debugging real cert problems that the flag
+  is hiding.
