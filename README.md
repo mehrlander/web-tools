@@ -81,8 +81,30 @@ This is the newest output category and the one most likely to grow.
 
 ## The library
 
-For new pages and the rest of the building-block side of the repo, two docs
-cover the machinery:
+A small set of concerns comes up over and over when you build tools this
+way. The library exists to handle them:
+
+- **Loading our own code into a page reliably.** Authenticated reads against
+  private repos (the `🎟️GitHubToken` sentinel plus `localStorage.ghToken`
+  fallback in `gh-auth.js`), and cache-busting so a freshly-edited file
+  actually shows up. This is the whole reason there's a runtime loader at
+  all instead of plain `<script src>` tags.
+- **Persistent storage that survives reloads and keeps rich types intact.**
+  `Uint8Array`, `Date`, `Map`, `Blob` round-trip without manual
+  serialization. `kits/persistence.js` over idb-keyval.
+- **Compressing text small enough to ship inside a bookmarklet URL.**
+  Brotli/gzip plus self-decompressing packers. `kits/compression.js`.
+- **Moving bytes in and out of the browser.** File picker, download,
+  clipboard, with the quirks handled (devtools focus, iOS gesture chain,
+  Firefox `readText` gates). `kits/io.js`.
+- **Loose coupling between independent components on the same page.**
+  Pub/sub keyed on opaque paths so a component can publish a selection
+  without knowing who's listening. `kits/messaging.js`.
+- **Composing UI without a build step.** Tailwind/daisyUI string helpers
+  (`kits/fills.js`) and an Alpine-backed custom-element wrapper
+  (`kits/component.js`) so we don't reach for bundlers.
+
+Two docs go deeper:
 
 - **[SCAFFOLDING.md](SCAFFOLDING.md)**: the loader contract. The canonical
   `<head>` block, what each piece contributes (`gh-api.js`, `gh-fetch.js`,
