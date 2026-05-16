@@ -17,10 +17,9 @@ canonical set of valid type names lives in `kits/data-shelf.js`.
 
 Two pages exist:
 
-- `pages/data-shelf.html` — v1, Dexie-backed (`DataShelfDB`). Still in the
-  index. Kept for now as a fallback.
-- `pages/data-shelf-v2.html` — current, rebuilt on the in-repo kits/. Not
-  yet in the index notes block.
+- `pages/data-shelf/v1.html` — Dexie-backed (`DataShelfDB`). Kept for now
+  as a fallback.
+- `pages/data-shelf/index.html` — current, rebuilt on the in-repo kits/.
 
 The importer (`alpineComponents/idb-importer.js`) is a modal owned by v2.
 It walks IndexedDB on this origin, lets you pick a database and store, and
@@ -67,9 +66,9 @@ tree-mode editing via vanilla-jsoneditor).
   duplicates the validation surface; (a) is simpler and closes the loop
   on the use cases we actually have (back up my shelf, move it between
   origins). Probably do (a) first.
-- **Index notes for v2 and idb-nav.** `pages/index.html` still lists only
-  `data-shelf.html` (v1) in its notes block. v2 and idb-nav should each
-  get an entry once we're confident in their roles.
+- **Index notes for idb-nav.** Once we're confident in the role, give it
+  an entry in the `pages/index.html` notes block alongside the other
+  canonical pages.
 - **v1 sunset.** Once v2 has full feature parity (it does) and an export
   path (it doesn't yet), v1 can be archived. Until then it's a safety net.
 - **Deduplicate the type registry.** v2's `cfg.types` re-states the type

@@ -1,51 +1,96 @@
 # web-tools
 
-Browser-side utilities for stashing, viewing, compressing, and shipping small
-bits of data. Every page runs straight from GitHub Pages — no install, no
-build. Some pages are one-off appliances you can pin and forget; the rest
-share a small runtime loader that pulls components and kits off this repo on
-demand.
+Two patterns recur when you build tools in a browser: a small set of output
+formats they tend to take, and a small set of building blocks you reach for
+to produce them. This repo is the working record of both.
 
-Two ways in:
+The outputs come in three shapes:
 
-- **À la carte** — grab a single page or bookmarklet and use it.
-- **The full setup** — build a new page on the scaffolding.
+- **Pages.** Full-screen browser tabs you navigate to.
+- **Bookmarklets.** Snippets that run on whatever tab is already open.
+- **Popups.** Small windows opened from another tab to act as a side-helper
+  on a specific origin. The newest category, still forming.
 
-## À la carte
+The building blocks are one library, used together:
 
-Pages, live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
+- **Scaffolding** at the repo root (`gh-api.js` and its augmentations,
+  `alpine-bundle.js`) bootstraps a page and loads everything else off
+  this repo at runtime.
+- **Kits** in `kits/` are non-UI logic libraries (compression, persistence,
+  messaging, io, file shapes).
+- **Alpine components** in `alpineComponents/` are reusable UI pieces
+  registered as `Alpine.data(...)`.
+
+You don't pick one of the three. A scaffolded page loads the scaffolding,
+then loads whichever kits and components it needs, in that order. Kits and
+components are written in a specific shape (IIFE, `window.foo =`, no
+`import`/`export`) so they can be pulled in by the scaffolding's runtime
+loader. Reaching for them without the scaffolding is possible but cuts
+across the grain.
+
+## Outputs
+
+### Pages
+
+Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 
 | Page | What it does |
 |---|---|
 | [index](https://mehrlander.github.io/web-tools/pages/) | Auto-generated directory of everything in `pages/`. |
-| [data-shelf-v2](https://mehrlander.github.io/web-tools/pages/data-shelf-v2.html) | Persistent scratch shelf — paste records, edit, view, run, export. Imports from legacy IDB databases. |
-| [idb-nav](https://mehrlander.github.io/web-tools/pages/idb-nav.html) | IndexedDB explorer — browse every database on the origin, edit records, delete what you don't want. |
-| [compression-helper-v5](https://mehrlander.github.io/web-tools/pages/compression-helper-v5.html) | Paste text → brotli/gzip → out comes a compact blob or a self-decompressing bookmarklet. |
+| [data-shelf](https://mehrlander.github.io/web-tools/pages/data-shelf/) | Persistent scratch shelf. Paste records, edit, view, run, export. Imports records forward from legacy IDB databases. |
+| [idb-nav](https://mehrlander.github.io/web-tools/pages/idb-nav.html) | IndexedDB explorer. Every database on the origin, every store, edit records, delete what you don't want. |
+| [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper/) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
-| [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | Tiny live demo per kit (`fills`, `persistence`, `messaging`, `io`, `component`). |
+| [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | One small demo page per kit (`fills`, `persistence`, `messaging`, `io`, `component`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 
-Bookmarklets — copy the file's contents into a new bookmark (GitHub strips
-`javascript:` from rendered links, so direct drag from this README won't
-work):
+The `compression-helper/` and `data-shelf/` folders each contain the current
+version as `index.html` plus older iterations alongside. The auto-listed
+index at `pages/` is the full directory if you want to see everything,
+including development scratchpads not curated above.
 
-- [`page-toggle`](bookmarklets/page-toggle.js) — flip a tab between its
+### Bookmarklets
+
+GitHub strips `javascript:` from rendered markdown, so direct drag from this
+README won't work. Open the source, copy the file's contents, paste into a
+new bookmark.
+
+- [`page-toggle`](bookmarklets/page-toggle.js): flip a tab between its
   rendered URL on github.io and its source on github.com. From anywhere
   else, jumps to this repo's index.
 
-## The full setup
+The compression-helper page also generates bookmarklets on demand: paste
+text in, get a self-decompressing `javascript:` URL out. Same output
+format, different lifecycle.
 
-For new pages that want repo browsing, compression, persistence, messaging,
-or shared UI components, two docs cover the machinery:
+### Popups
 
-- **[SCAFFOLDING.md](SCAFFOLDING.md)** — the loader contract. The canonical
+Pages designed to be opened in a small window from another tab, usually by
+a bookmarklet or `window.open` from a specific origin. Live at
+`https://mehrlander.github.io/web-tools/popups/<name>.html`:
+
+- [`drop-file`](popups/drop-file.html): drop a file in, get its bytes on
+  `window.lastFile` for inspection in the console.
+- [`link-capture`](popups/link-capture.html): iframe link tracker for
+  walking a site's navigation.
+- [`render-engine-editor`](popups/render-engine-editor.html): editor for
+  bookmarklet render-engine operations.
+
+This is the newest output category and the one most likely to grow.
+
+## The library
+
+For new pages and the rest of the building-block side of the repo, two docs
+cover the machinery:
+
+- **[SCAFFOLDING.md](SCAFFOLDING.md)**: the loader contract. The canonical
   `<head>` block, what each piece contributes (`gh-api.js`, `gh-fetch.js`,
   `gh-store.js`, `gh-auth.js`, `alpine-bundle.js`), how `gh.load()` works,
   the timing rules, the footgun list.
-- **[kits/README.md](kits/README.md)** — the logic libraries (`compression`,
-  `fills`, `persistence`, `messaging`, `io`, `component`). What each one
-  exposes on `window`, with usage examples.
+- **[kits/README.md](kits/README.md)**: the logic libraries (`compression`,
+  `fills`, `persistence`, `messaging`, `io`, `component`, `data-shelf`).
+  What each one exposes on `window`, with usage examples.
 
 The shape of a scaffolded page in one block:
 
@@ -64,21 +109,30 @@ The shape of a scaffolded page in one block:
 
 Recent pages that make good templates:
 
-- [`pages/data-shelf-v2.html`](pages/data-shelf-v2.html) — multiple kits +
-  components, importer, FAB.
-- [`pages/idb-nav.html`](pages/idb-nav.html) — kits + viewer + custom
+- [`pages/data-shelf/index.html`](pages/data-shelf/index.html) for multiple
+  kits and components with an importer and a FAB.
+- [`pages/idb-nav.html`](pages/idb-nav.html) for kits, viewer, and a custom
   sidebar.
-- [`pages/compression-helper-v5.html`](pages/compression-helper-v5.html) —
-  compression kits + Alpine without alpine-bundle.
+- [`pages/compression-helper/index.html`](pages/compression-helper/index.html)
+  for the compression kits with Alpine loaded directly, not via
+  `alpine-bundle.js`.
 
 ## Where to start
 
-- **Use a tool.** Pick from the menu. Every page is a single URL; pin or
-  bookmark it.
-- **Add a page.** Copy one of the template pages above, swap the
-  `gh.load(...)` list for the kits and components you need, write your
-  `x-data` factory in an inline `<script>`. Read
-  [SCAFFOLDING.md](SCAFFOLDING.md) first — the loader has rules.
-- **Add a kit or component.** Read [kits/README.md](kits/README.md) for the
-  file-shape rules, drop the file in `kits/` or `alpineComponents/`, and
-  add it to the page's `gh.load(...)` chain. No build step.
+- **Use a tool.** Pick from the outputs above. Each page or popup is a
+  single URL; each bookmarklet is a one-time install.
+- **Build a tool.** Read [SCAFFOLDING.md](SCAFFOLDING.md), copy one of the
+  template pages, edit the `gh.load(...)` list for the kits and components
+  you need, write your `x-data` factory in an inline `<script>`. The kits
+  and components are your library, not a separate path.
+- **Extend the library.** When an existing kit or component doesn't cover
+  what you need, add one. The file-shape rules are in
+  [kits/README.md](kits/README.md). Drop the new file in `kits/` or
+  `alpineComponents/` and add it to a page's `gh.load(...)` chain. No
+  build step.
+
+## A note on `archive/`
+
+The repo's top-level `archive/` folder is reference material from earlier
+iterations, kept on disk for grep value. Not part of the current library or
+the menu above.
