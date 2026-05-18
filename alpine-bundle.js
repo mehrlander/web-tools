@@ -45,14 +45,14 @@
         })
     }
 
-    // Directive set ("fits") — small Alpine directives that decorate the host
-    // element via dot-modifiers. Three tiers: class shortcuts (x-tip, x-lines,
-    // x-btn, x-toolbar), reactive renderers (x-save-indicator, x-metric), and
-    // behavior wrappers (x-action). The class-shortcut tier mirrors helpers
-    // in kits/fills.js; the others are new. Modifier convention: known
-    // variant tokens get the directive-name prefix (e.g. 'primary' →
-    // 'btn-primary'); unknown tokens pass through as raw classes so callers
-    // can sprinkle in Tailwind utilities (x-btn.xs.shadow-md).
+    // Small Alpine directives that decorate the host element via
+    // dot-modifiers. Three tiers: class shortcuts (x-tip, x-lines, x-btn,
+    // x-toolbar), reactive renderers (x-save-indicator, x-metric), and
+    // behavior wrappers (x-action). The class-shortcut tier mirrors
+    // helpers in kits/fills.js; the others are new. Modifier convention:
+    // known variant tokens get the directive-name prefix (e.g. 'primary'
+    // → 'btn-primary'); unknown tokens pass through as raw classes so
+    // callers can sprinkle in Tailwind utilities (x-btn.xs.shadow-md).
     const registerDirectives = () => {
 
         const BTN_VARIANTS = new Set([
