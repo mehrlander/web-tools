@@ -1,4 +1,7 @@
 (function() {
+    const _diag = (cls, msg) => { (window._alpineBundleDiag ||= []).push([cls, msg]) }
+    _diag('info', `bundle IIFE entered; Alpine = ${typeof window.Alpine}`)
+
     const registerMagics = () => {
         Alpine.store('browser', { activeFile: null, repo: '', repoObj: null, gh: null, path: '', ref: '', defaultRef: '' })
         const toasts = Alpine.reactive([])
@@ -159,7 +162,7 @@
         })
     }
 
-    document.addEventListener('alpine:init', () => {
+    const initBundle = () => {
         const diag = (cls, msg) => {
             (window._alpineBundleDiag ||= []).push([cls, msg])
         }
@@ -167,7 +170,18 @@
         catch (e) { diag('err', 'registerMagics: ' + (e?.message || e)) }
         try { registerDirectives(); diag('ok', 'directives registered') }
         catch (e) { diag('err', 'registerDirectives: ' + (e?.message || e)) }
-    })
+    }
+
+    // If Alpine already loaded (e.g. another script raced ahead and
+    // alpine:init has already fired), register synchronously.
+    // Otherwise wait for the event.
+    if (window.Alpine && typeof window.Alpine.directive === 'function') {
+        _diag('info', 'Alpine already present at IIFE time; registering synchronously')
+        initBundle()
+    } else {
+        _diag('info', 'Alpine not yet present; subscribing to alpine:init')
+        document.addEventListener('alpine:init', initBundle)
+    }
 
     const load = (src, cb) => {
         const s = document.createElement('script')
@@ -176,7 +190,12 @@
         document.head.appendChild(s)
     }
 
-    load('https://unpkg.com/@alpinejs/collapse', () => {
-        load('https://unpkg.com/alpinejs')
-    })
+    if (window.Alpine) {
+        _diag('info', 'Alpine already present; skipping CDN load chain')
+    } else {
+        _diag('info', 'starting CDN load chain (collapse → alpine)')
+        load('https://unpkg.com/@alpinejs/collapse', () => {
+            load('https://unpkg.com/alpinejs')
+        })
+    }
 })()
