@@ -1,6 +1,7 @@
-(function() {
+window._alpineBundleVersion = 'YSC8K-branch-rev3'
+;(function() {
     const _diag = (cls, msg) => { (window._alpineBundleDiag ||= []).push([cls, msg]) }
-    _diag('info', `bundle IIFE entered; Alpine = ${typeof window.Alpine}`)
+    _diag('info', `bundle IIFE entered; version=${window._alpineBundleVersion}; Alpine = ${typeof window.Alpine}`)
 
     const registerMagics = () => {
         Alpine.store('browser', { activeFile: null, repo: '', repoObj: null, gh: null, path: '', ref: '', defaultRef: '' })
