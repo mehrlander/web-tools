@@ -1,11 +1,4 @@
-window._alpineBundleVersion = 'YSC8K-branch-rev5'
-;(function() {
-    const _diag = (cls, msg) => {
-        (window._alpineBundleDiag ||= []).push([cls, msg])
-        if (typeof window.diag === 'function') window.diag(cls, 'bundle: ' + msg)
-    }
-    _diag('info', `bundle IIFE entered; version=${window._alpineBundleVersion}; Alpine = ${typeof window.Alpine}`)
-
+(function() {
     const registerMagics = () => {
         Alpine.store('browser', { activeFile: null, repo: '', repoObj: null, gh: null, path: '', ref: '', defaultRef: '' })
         const toasts = Alpine.reactive([])
@@ -178,23 +171,18 @@ window._alpineBundleVersion = 'YSC8K-branch-rev5'
     }
 
     const initBundle = () => {
-        const diag = (cls, msg) => {
-            (window._alpineBundleDiag ||= []).push([cls, msg])
-        }
-        try { registerMagics();     diag('ok', 'magics registered') }
-        catch (e) { diag('err', 'registerMagics: ' + (e?.message || e)) }
-        try { registerDirectives(); diag('ok', 'directives registered') }
-        catch (e) { diag('err', 'registerDirectives: ' + (e?.message || e)) }
+        try { registerMagics() }
+        catch (e) { console.warn('alpine-bundle: registerMagics failed:', e) }
+        try { registerDirectives() }
+        catch (e) { console.warn('alpine-bundle: registerDirectives failed:', e) }
     }
 
     // If Alpine already loaded (e.g. another script raced ahead and
     // alpine:init has already fired), register synchronously.
     // Otherwise wait for the event.
-    if (window.Alpine && typeof window.Alpine.directive === 'function') {
-        _diag('info', 'Alpine already present at IIFE time; registering synchronously')
+    if (window.Alpine?.directive) {
         initBundle()
     } else {
-        _diag('info', 'Alpine not yet present; subscribing to alpine:init')
         document.addEventListener('alpine:init', initBundle)
     }
 
@@ -205,10 +193,7 @@ window._alpineBundleVersion = 'YSC8K-branch-rev5'
         document.head.appendChild(s)
     }
 
-    if (window.Alpine) {
-        _diag('info', 'Alpine already present; skipping CDN load chain')
-    } else {
-        _diag('info', 'starting CDN load chain (collapse → alpine)')
+    if (!window.Alpine) {
         load('https://unpkg.com/@alpinejs/collapse', () => {
             load('https://unpkg.com/alpinejs')
         })

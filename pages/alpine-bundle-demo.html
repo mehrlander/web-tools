@@ -10,9 +10,7 @@
   try {
     const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
     window.GH = GH;
-    // Pinned to the feature branch while these directives don't exist on main yet.
-    // After merge, drop the `ref` and gh.load will use main as default.
-    const gh = new GH({ repo: 'mehrlander/web-tools', ref: 'claude/clarify-kit-dependencies-YSC8K' });
+    const gh = new GH({ repo: 'mehrlander/web-tools' });
     await gh.load('gh-auth.js');
     await gh.load('alpine-bundle.js');
   } catch (e) {
