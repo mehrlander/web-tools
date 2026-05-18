@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>alpine-bundle — demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  try {
+    const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
+    window.GH = GH;
+    const gh = new GH({ repo: 'mehrlander/web-tools' });
+    await gh.load('gh-auth.js');
+    await gh.load('alpine-bundle.js');
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerText = 'Boot failed: ' + (e?.message || e);
+  }
+</script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<!-- Toast renderer — reads the toast store the bundle exposes -->
+<div x-data class="toast toast-top toast-end z-50">
+  <template x-for="t in $store.toasts" :key="t.id">
+    <div :class="['alert', t.cls, 'shadow-lg']">
+      <i :class="['ph', 'ph-' + t.icon]"></i>
+      <span x-text="t.msg"></span>
+    </div>
+  </template>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-10" x-data="{
+  count: 0,
+  msg: '',
+  saving: false,
+  pasted: '',
+  toCopy: 'edit me, then click copy',
+  rev: 1420000, prevRev: 1350000,
+  exp: 840000,  prevExp: 900000
+}">
+
+  <header>
+    <div class="flex items-baseline justify-between mb-1">
+      <h1 class="text-2xl font-bold tracking-tight">alpine-bundle</h1>
+      <a href="index.html" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> web-tools
+      </a>
+    </div>
+    <p class="opacity-60 text-xs">
+      Demo of what
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>
+      registers on top of Alpine: magic properties, behaviors, and custom
+      directives. The bundle also loads Alpine itself (and
+      <code>@alpinejs/collapse</code>) from unpkg.
+    </p>
+  </header>
+
+  <!-- ==================================================================
+       Magics
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Magics</h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">$toast</h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>$toast(icon, msg, cls?, ms?)</code> → push a transient toast.
+        Backed by <code>$store.toasts</code>; the renderer at the top-right
+        of this page reads from that store.
+      </p>
+      <div class="flex gap-2 flex-wrap">
+        <button x-btn.xs.success @click="$toast('check', 'Saved!', 'alert-success')">success</button>
+        <button x-btn.xs.info    @click="$toast('info', 'Heads up', 'alert-info')">info</button>
+        <button x-btn.xs.warning @click="$toast('warning', 'Careful…', 'alert-warning')">warning</button>
+        <button x-btn.xs.error   @click="$toast('x-circle', 'Something broke', 'alert-error')">error</button>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">$clip</h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>$clip(text)</code> → copy text via a hidden textarea +
+        <code>execCommand('copy')</code>. Also fires a toast. Works on
+        mobile and inside <code>data:</code> URLs where the modern
+        clipboard API is gated.
+      </p>
+      <div class="flex gap-2 items-center">
+        <input x-model="toCopy" class="input input-xs input-bordered w-64">
+        <button x-btn.xs @click="$clip(toCopy)">copy</button>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">$paste</h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>$paste(cb)</code> → focus a hidden textarea, wait for the
+        next paste, call <code>cb(text)</code>. Tap the button then paste
+        (long-press → Paste on iOS, ⌘V on desktop).
+      </p>
+      <div class="flex gap-2 items-center">
+        <button x-btn.xs @click="$paste(t => pasted = t)">paste here</button>
+        <span class="text-xs opacity-70">got: <span x-text="pasted || '(nothing yet)'"></span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Behaviors
+       ================================================================== -->
+  <section class="space-y-4">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Behaviors</h2>
+    <div>
+      <h3 class="font-semibold mb-1">Dropdown auto-close</h3>
+      <p class="opacity-60 text-xs mb-3">
+        The bundle installs a document-level click handler: any open
+        <code>&lt;details class="dropdown"&gt;</code> closes when you
+        click outside it. Inside-click closing is opt-in via
+        <code>data-auto-close</code> — useful for picker menus, omitted
+        for panel-style dropdowns that contain inputs.
+      </p>
+      <div class="flex gap-6">
+        <details class="dropdown" data-auto-close>
+          <summary class="btn btn-sm">auto-close menu</summary>
+          <ul class="menu dropdown-content bg-base-100 rounded-box shadow w-40 z-10 mt-1 p-1">
+            <li><a>Item one</a></li>
+            <li><a>Item two</a></li>
+            <li><a>Item three</a></li>
+          </ul>
+        </details>
+
+        <details class="dropdown">
+          <summary class="btn btn-sm btn-outline">sticky panel</summary>
+          <div class="dropdown-content bg-base-100 rounded-box shadow p-3 w-56 z-10 mt-1 space-y-2">
+            <input class="input input-xs input-bordered w-full" placeholder="type freely">
+            <button class="btn btn-xs btn-primary w-full">Submit (closes itself)</button>
+            <p class="text-[10px] opacity-50">Clicks inside stay open.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Directives
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Directives</h2>
+    <p class="opacity-60 text-xs">
+      Custom Alpine directives that decorate the host element via
+      dot-modifiers. Three flavors: class shortcuts (mirror helpers in
+      <code>kits/fills.js</code>), reactive renderers, and behavior
+      wrappers.
+    </p>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-btn <span class="opacity-50 font-normal text-xs">— class shortcut</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-btn.xs.primary="count++"</code> → adds <code>btn btn-xs btn-primary</code>
+        and wires the expression as a click handler. Unknown modifiers
+        pass through as raw classes (<code>x-btn.xs.shadow-md</code>).
+      </p>
+      <div class="flex gap-2 flex-wrap items-center">
+        <button x-btn.xs.primary="count++">+1</button>
+        <button x-btn.xs.ghost="count = 0">reset</button>
+        <button x-btn.sm.secondary="msg = 'tick @ ' + new Date().toLocaleTimeString()">tick</button>
+        <button x-btn.lg.outline.accent.shadow-md="msg = ''">lg outline accent + shadow</button>
+      </div>
+      <div class="mt-4 flex items-baseline gap-8 bg-base-200 rounded-lg px-4 py-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">count</div>
+          <div class="text-3xl font-bold tabular-nums leading-none" x-text="count"></div>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">msg</div>
+          <div class="text-sm font-mono truncate" x-text="msg || '—'"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-tip <span class="opacity-50 font-normal text-xs">— class shortcut</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → daisyUI tooltip; modifier
+        picks the position; expression is the body (HTML allowed).
+      </p>
+      <div class="flex gap-8 items-center py-4">
+        <span x-tip.top="'<b>top</b> tip body'"     class="cursor-help underline decoration-dotted">hover top</span>
+        <span x-tip.right="'a <i>right</i>-side tip'" class="cursor-help underline decoration-dotted">hover right</span>
+        <span x-tip.bottom="'plain bottom tip'"     class="cursor-help underline decoration-dotted">hover bottom</span>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-lines <span class="opacity-50 font-normal text-xs">— class shortcut</span></h3>
+      <p class="opacity-60 text-xs mb-3"><code>x-lines.gap-2</code> → flex column with gap.</p>
+      <div x-lines.gap-2 class="max-w-xs">
+        <div class="bg-base-200 px-2 py-1 rounded">first</div>
+        <div class="bg-base-200 px-2 py-1 rounded">second</div>
+        <div class="bg-base-200 px-2 py-1 rounded">third</div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-toolbar <span class="opacity-50 font-normal text-xs">— class shortcut</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-toolbar</code> → flex row with default toolbar spacing
+        (<code>flex gap-2 items-center justify-between</code>).
+      </p>
+      <div x-toolbar class="bg-base-200 px-3 py-2 rounded">
+        <span class="font-semibold">Section title</span>
+        <button x-btn.xs.primary="$toast('check', 'Toolbar action fired', 'alert-success')">Action</button>
+      </div>
+      <p class="opacity-50 text-[11px] mt-2">Tip: tapping the Action button fires a toast in the top-right.</p>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-save-indicator <span class="opacity-50 font-normal text-xs">— reactive</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-save-indicator</code> → spinner that auto-shows when
+        <code>saving</code> is truthy in the surrounding scope. Reads via
+        <code>evaluateLater</code> + <code>effect</code>.
+      </p>
+      <div class="flex gap-3 items-center">
+        <button x-btn.xs.primary="saving = !saving">toggle saving</button>
+        <span class="text-xs opacity-70">saving = <span x-text="saving"></span></span>
+        <span x-save-indicator></span>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-metric <span class="opacity-50 font-normal text-xs">— formatter + reactive</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-metric.currency.trend="{ label, val, prev }"</code> → renders a
+        metric card with Intl-formatted value and a trend indicator. Modifiers
+        shape the rendering pipeline: <code>.currency</code> / <code>.percent</code>
+        for formatting, <code>.trend</code> to enable the diff arrow,
+        <code>.invert</code> to swap the favorable direction.
+      </p>
+      <div class="flex gap-3 flex-wrap mb-3">
+        <div x-metric.currency.trend         ="{ label: 'Revenue YTD',  val: rev, prev: prevRev }"></div>
+        <div x-metric.currency.trend.invert  ="{ label: 'Expenditures', val: exp, prev: prevExp }"></div>
+        <div x-metric.percent                ="{ label: 'Budget util',  val: 0.85 }"></div>
+      </div>
+      <div class="flex gap-2">
+        <button x-btn.xs="rev += 10000">rev +$10K</button>
+        <button x-btn.xs="exp += 10000">exp +$10K</button>
+        <button x-btn.xs.ghost="rev = 1420000; exp = 840000">reset</button>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">x-action.confirm <span class="opacity-50 font-normal text-xs">— behavior wrapper</span></h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>x-action.confirm="..."</code> → confirmation-gated click. First
+        tap arms (turns red, swaps label to "Are you sure?"); second tap
+        within 3s executes; otherwise reverts. Without
+        <code>.confirm</code> it's a plain click.
+      </p>
+      <div class="flex gap-2">
+        <button class="btn btn-sm"             x-action        ="$toast('check', 'Fired immediately')">no confirm</button>
+        <button class="btn btn-sm btn-outline" x-action.confirm="$toast('check', 'Confirmed!')">confirmed action</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
+    <p>
+      Magics + directives + dropdown handler all live in
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>,
+      registered from a single <code>alpine:init</code> listener.
+      <code>kits/fills.js</code> is unchanged.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>
