@@ -1,182 +1,225 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="emerald">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>alpine modifier directives — MWE</title>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<title>modifier-directive pattern — MWE</title>
 
 <style>
-  /* On-page diagnostic panel — visible even if everything else breaks. */
-  #diag {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-    font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.4;
-    background: #111; color: #ddd; max-height: 50vh; overflow: auto;
-    padding: 6px 10px; border-bottom: 1px solid #444;
+  /* Self-contained — no external CSS, so the page works even when loaded
+     as a data: URL where CDN requests are blocked. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #fafaf9; color: #1c1917; padding: 110px 20px 40px;
+    max-width: 720px; margin: 0 auto;
   }
-  #diag .ok  { color: #6f6; }
-  #diag .err { color: #f88; }
-  #diag .info{ color: #8cf; }
-  #diag h3 { font-weight: bold; margin-bottom: 4px; }
-  body { padding-top: 0; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 8px; }
+  section { margin-bottom: 28px; padding: 16px; background: white;
+            border: 1px solid #e7e5e4; border-radius: 6px; }
+  code { font-family: inherit; background: #f5f5f4; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .muted { opacity: 0.6; font-size: 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* "btn" component classes — hand-rolled, mimicking daisyUI shape. */
+  .btn { display: inline-flex; align-items: center; gap: 6px;
+         padding: 8px 14px; border: 1px solid #d6d3d1; border-radius: 6px;
+         background: white; color: #1c1917; cursor: pointer;
+         font: inherit; font-weight: 500; transition: all .12s; }
+  .btn:hover { background: #f5f5f4; }
+  .btn-xs { padding: 4px 8px; font-size: 11px; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .btn-lg { padding: 12px 18px; font-size: 16px; }
+  .btn-primary { background: #6366f1; border-color: #6366f1; color: white; }
+  .btn-primary:hover { background: #4f46e5; }
+  .btn-secondary { background: #ec4899; border-color: #ec4899; color: white; }
+  .btn-secondary:hover { background: #db2777; }
+  .btn-accent { background: #14b8a6; border-color: #14b8a6; color: white; }
+  .btn-ghost { background: transparent; border-color: transparent; }
+  .btn-ghost:hover { background: #f5f5f4; }
+  .btn-outline { background: transparent; }
+  .btn-outline.btn-accent { color: #14b8a6; border-color: #14b8a6; }
+  .btn-outline.btn-accent:hover { background: #14b8a6; color: white; }
+
+  /* "tooltip" component classes. */
+  .tip { position: relative; display: inline-block; cursor: help;
+         border-bottom: 1px dotted #78716c; }
+  .tip-body { position: absolute; visibility: hidden; opacity: 0;
+              background: #1c1917; color: #fafaf9; padding: 6px 10px;
+              border-radius: 4px; font-size: 12px; white-space: nowrap;
+              transition: opacity .15s; z-index: 10; }
+  .tip:hover .tip-body { visibility: visible; opacity: 1; }
+  .tip-top    .tip-body { bottom: 130%; left: 50%; transform: translateX(-50%); }
+  .tip-bottom .tip-body { top: 130%; left: 50%; transform: translateX(-50%); }
+  .tip-right  .tip-body { left: 130%; top: 50%; transform: translateY(-50%); }
+  .tip-left   .tip-body { right: 130%; top: 50%; transform: translateY(-50%); }
+
+  /* "lines" — flex column with gap. */
+  .lines { display: flex; flex-direction: column; }
+  .gap-0 { gap: 0; } .gap-1 { gap: 4px; } .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+  .lines > div { padding: 4px 8px; background: #f5f5f4; border-radius: 3px; }
+
+  /* Diagnostic panel. */
+  #diag { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+          font: 11px/1.4 ui-monospace, monospace;
+          background: #1c1917; color: #d6d3d1; max-height: 40vh; overflow: auto;
+          padding: 8px 12px; border-bottom: 1px solid #44403c; }
+  #diag h3 { color: white; font-size: 11px; margin: 0 0 4px; }
+  #diag .ok  { color: #86efac; }
+  #diag .err { color: #fca5a5; }
+  #diag .info{ color: #93c5fd; }
 </style>
+</head>
+<body>
+
+<div id="diag"><h3>boot diagnostics</h3><div id="diag-log"></div></div>
+
+<header>
+  <h1>modifier-directive pattern — MWE</h1>
+  <p class="muted">
+    Zero external dependencies. The whole directive engine is ~40 lines of vanilla JS
+    in this page's &lt;script&gt; tag. Demonstrates the same shape Alpine uses:
+    dot-modifiers parsed from attribute names, mapped to classes by hand-coded logic.
+  </p>
+</header>
+
+<section>
+  <h2>x-btn</h2>
+  <p class="muted">
+    <code>x-btn.xs.primary="count++"</code> → adds <code>btn btn-xs btn-primary</code> and runs the
+    expression on click. Modifier order doesn't matter — the directive uses <code>.includes()</code>.
+  </p>
+  <div class="row">
+    <button x-btn.xs.primary="state.count++; render()">+1</button>
+    <button x-btn.xs.ghost="state.count = 0; render()">reset</button>
+    <button x-btn.sm.secondary="state.msg = 'hi @ ' + new Date().toLocaleTimeString(); render()">sm secondary</button>
+    <button x-btn.lg.outline.accent="state.msg = ''; render()">lg outline accent</button>
+  </div>
+  <div class="muted" style="margin-top: 10px;">
+    count = <span id="out-count">0</span> · msg = <span id="out-msg">(none)</span>
+  </div>
+</section>
+
+<section>
+  <h2>x-tip</h2>
+  <p class="muted">
+    <code>x-tip.top="'tooltip text'"</code> → wraps in a tooltip. Modifier picks the position.
+  </p>
+  <div class="row" style="gap: 24px; padding: 20px 0;">
+    <span x-tip.top="'top tooltip body'">hover top</span>
+    <span x-tip.right="'right-side tip'">hover right</span>
+    <span x-tip.bottom="'plain bottom tip'">hover bottom</span>
+  </div>
+</section>
+
+<section>
+  <h2>x-lines</h2>
+  <p class="muted">
+    <code>x-lines.gap-2</code> → flex column with gap. Modifier maps directly to a gap class.
+  </p>
+  <div x-lines.gap-2 style="max-width: 240px;">
+    <div>first line</div>
+    <div>second line</div>
+    <div>third line</div>
+  </div>
+</section>
+
+<section style="background: #fef3c7; border-color: #fde68a;">
+  <h2>what's actually happening</h2>
+  <p class="muted">
+    For each element, the scanner reads attributes whose name starts with <code>x-</code>,
+    splits the name on dots to extract the directive and modifiers, and calls the registered
+    callback with <code>{ el, modifiers, expression }</code>. The mapping from modifier strings
+    to CSS classes is hand-coded inside each directive — no proxy, no Alpine internals.
+    This is the same pattern Alpine uses; Alpine just adds reactivity, lifecycle, and a much
+    bigger built-in directive set on top of it.
+  </p>
+</section>
 
 <script>
   // ---- Diagnostic panel ------------------------------------------------
-  (function setupDiag() {
-    const ready = () => {
-      const d = document.createElement('div');
-      d.id = 'diag';
-      d.innerHTML = '<h3>boot diagnostics</h3><div id="diag-log"></div>';
-      document.body.prepend(d);
-      flushBuffer();
-    };
-    const buf = [];
-    const flushBuffer = () => {
-      const log = document.getElementById('diag-log');
-      if (!log) return;
-      buf.forEach(([cls, msg]) => {
-        const line = document.createElement('div');
-        line.className = cls;
-        line.textContent = msg;
-        log.appendChild(line);
-      });
-      buf.length = 0;
-    };
-    window.diag = (cls, msg) => {
-      buf.push([cls, msg]);
-      flushBuffer();
-      console.log(`[diag ${cls}]`, msg);
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', ready, { once: true });
-    } else {
-      ready();
-    }
+  const log = (cls, msg) => {
+    const el = document.getElementById('diag-log');
+    const line = document.createElement('div');
+    line.className = cls; line.textContent = msg;
+    el.appendChild(line);
+    console.log(`[${cls}]`, msg);
+  };
+  window.addEventListener('error', (e) =>
+    log('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`));
+  log('info', 'inline script running');
 
-    window.addEventListener('error', (e) => {
-      diag('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`);
+  // ---- Tiny directive engine (~30 LOC) ---------------------------------
+  // Same shape as Alpine.directive: callback receives the element and a
+  // parsed { modifiers, expression }. No reactivity, no lifecycle —
+  // just the modifier-parsing pattern in isolation.
+  const registry = new Map();
+
+  const directive = (name, fn) => registry.set(name, fn);
+
+  const evaluate = (expression, scope) => {
+    try { return new Function('scope', `with(scope){return (${expression})}`)(scope); }
+    catch (e) { log('err', `evaluate "${expression}": ${e.message}`); }
+  };
+
+  const scan = (root, scope) => {
+    root.querySelectorAll('*').forEach(el => {
+      for (const attr of [...el.attributes]) {
+        if (!attr.name.startsWith('x-')) continue;
+        const parts = attr.name.slice(2).split('.');   // strip "x-", split on dots
+        const name = parts.shift();
+        const modifiers = parts;                       // everything after first dot
+        const fn = registry.get(name);
+        if (!fn) continue;
+        fn({ el, modifiers, expression: attr.value, scope, evaluate });
+      }
     });
-    window.addEventListener('unhandledrejection', (e) => {
-      diag('err', `promise rejection: ${e.reason?.message || e.reason}`);
+  };
+
+  // ---- Register directives --------------------------------------------
+  directive('btn', ({ el, modifiers, expression, scope }) => {
+    el.classList.add('btn');
+    const sizes    = ['xs','sm','md','lg','xl'];
+    const variants = ['primary','secondary','accent','ghost','outline'];
+    modifiers.forEach(m => {
+      if (sizes.includes(m))    el.classList.add(`btn-${m}`);
+      if (variants.includes(m)) el.classList.add(`btn-${m}`);
     });
-
-    diag('info', 'inline script running, error handlers installed');
-  })();
-
-  // ---- Alpine directive registration -----------------------------------
-  document.addEventListener('alpine:init', () => {
-    diag('info', `alpine:init fired, Alpine = ${typeof window.Alpine}`);
-    try {
-
-      Alpine.directive('btn', (el, { expression, modifiers }, { evaluate }) => {
-        el.classList.add('btn');
-        const sizes    = ['xs','sm','md','lg','xl'];
-        const variants = ['primary','secondary','accent','info','success','warning','error','ghost','outline','soft'];
-        modifiers.forEach(m => {
-          if (sizes.includes(m))    el.classList.add(`btn-${m}`);
-          if (variants.includes(m)) el.classList.add(`btn-${m}`);
-        });
-        if (expression) el.addEventListener('click', () => {
-          try { evaluate(expression); }
-          catch (e) { diag('err', `x-btn click "${expression}": ${e.message}`); }
-        });
-      });
-      diag('ok', 'registered x-btn');
-
-      Alpine.directive('tip', (el, { expression, modifiers }, { evaluate }) => {
-        const pos = ['top','bottom','left','right'].find(p => modifiers.includes(p)) || 'bottom';
-        el.classList.add('tooltip', `tooltip-${pos}`);
-        const body = document.createElement('div');
-        body.className = 'tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-xs text-left';
-        body.innerHTML = expression ? evaluate(expression) : '';
-        el.prepend(body);
-      });
-      diag('ok', 'registered x-tip');
-
-      Alpine.directive('lines', (el, { modifiers }) => {
-        el.classList.add('flex', 'flex-col');
-        const gap = modifiers.find(m => /^gap-\d$/.test(m)) || 'gap-0';
-        el.classList.add(gap);
-      });
-      diag('ok', 'registered x-lines');
-
-    } catch (e) {
-      diag('err', `directive registration threw: ${e.message}`);
-    }
+    if (expression) el.addEventListener('click', () => evaluate(expression, scope));
   });
+  log('ok', 'registered x-btn');
 
-  // Watch for Alpine arriving.
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      window.diag && diag(window.Alpine ? 'ok' : 'err',
-        `after load: window.Alpine = ${typeof window.Alpine}`);
-    }, 200);
+  directive('tip', ({ el, modifiers, expression, scope }) => {
+    const pos = ['top','bottom','left','right'].find(p => modifiers.includes(p)) || 'bottom';
+    el.classList.add('tip', `tip-${pos}`);
+    const body = document.createElement('span');
+    body.className = 'tip-body';
+    body.innerHTML = expression ? evaluate(expression, scope) : '';
+    el.appendChild(body);
   });
+  log('ok', 'registered x-tip');
+
+  directive('lines', ({ el, modifiers }) => {
+    el.classList.add('lines');
+    const gap = modifiers.find(m => /^gap-\d$/.test(m)) || 'gap-0';
+    el.classList.add(gap);
+  });
+  log('ok', 'registered x-lines');
+
+  // ---- Boot ------------------------------------------------------------
+  const state = { count: 0, msg: '' };
+  const render = () => {
+    document.getElementById('out-count').textContent = state.count;
+    document.getElementById('out-msg').textContent = state.msg || '(none)';
+  };
+  window.state = state; window.render = render;
+
+  scan(document.body, { state, render });
+  render();
+  log('ok', 'scanned and bound');
 </script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs"></script>
-</head>
-<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
-
-<div class="max-w-2xl mx-auto px-4 py-8 space-y-8 mt-32" x-data="{ count: 0, msg: '' }">
-
-  <header>
-    <h1 class="text-2xl font-bold">alpine modifier directives — MWE</h1>
-    <p class="opacity-60 text-xs mt-1">
-      Boot diagnostics pinned at the top. If something goes wrong it shows up there.
-    </p>
-  </header>
-
-  <section>
-    <h2 class="font-semibold mb-2">x-btn</h2>
-    <p class="opacity-60 text-xs mb-3">
-      <code>x-btn.xs.primary="count++"</code> → daisyUI <code>btn btn-xs btn-primary</code> + click handler.
-    </p>
-    <div class="flex gap-2 flex-wrap">
-      <button x-btn.xs.primary="count++">+1</button>
-      <button x-btn.xs.ghost="count = 0">reset</button>
-      <button x-btn.sm.secondary="msg = 'hi @ ' + new Date().toLocaleTimeString()">sm secondary</button>
-      <button x-btn.lg.outline.accent="msg = ''">lg outline accent</button>
-    </div>
-    <div class="mt-3 text-xs opacity-70">
-      count = <span x-text="count"></span> · msg = <span x-text="msg || '(none)'"></span>
-    </div>
-  </section>
-
-  <section>
-    <h2 class="font-semibold mb-2">x-tip</h2>
-    <p class="opacity-60 text-xs mb-3">
-      <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → wraps element as daisyUI tooltip.
-    </p>
-    <div class="flex gap-6 items-center">
-      <span x-tip.top="'<b>top</b> tooltip body'"    class="cursor-help underline decoration-dotted">hover top</span>
-      <span x-tip.right="'a <i>right</i>-side tip'"  class="cursor-help underline decoration-dotted">hover right</span>
-      <span x-tip.bottom="'plain bottom tip'"        class="cursor-help underline decoration-dotted">hover bottom</span>
-    </div>
-  </section>
-
-  <section>
-    <h2 class="font-semibold mb-2">x-lines</h2>
-    <p class="opacity-60 text-xs mb-3">
-      <code>x-lines.gap-2</code> → adds <code>flex flex-col gap-2</code> to the container.
-    </p>
-    <div x-lines.gap-2 class="border border-base-300 rounded p-3 max-w-xs">
-      <div>first line</div>
-      <div>second line</div>
-      <div>third line</div>
-    </div>
-  </section>
-
-  <section class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
-    <p>
-      The directive callback gets <code>{ modifiers, expression }</code>. Modifiers is just an array
-      of strings parsed from the dot-separated attribute name; expression is the attribute value,
-      evaluated against the surrounding Alpine scope on demand. Mapping from modifier strings to
-      daisyUI classes is hand-coded inside each directive — no proxy, no magic.
-    </p>
-  </section>
-
-</div>
 </body>
 </html>
