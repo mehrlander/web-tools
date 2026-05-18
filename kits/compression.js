@@ -15,10 +15,10 @@
 //
 // brotli/gzip use a "BR64:" / "GZ64:" prefix protocol (with optional label)
 // to mark base64-encoded compressed payloads. text.process drives the full
-// compression-helper.html UI: assess input, optionally compress, optionally
-// pack as a `javascript:` bookmarklet or a `data:text/html` URL (eager or
-// self-extracting) that decompresses on load. text.fromDataUrl is the inverse
-// for the data: form.
+// compression-helper UI (pages/compression-helper/): assess input, optionally
+// compress, optionally pack as a `javascript:` bookmarklet or a
+// `data:text/html` URL (eager or self-extracting) that decompresses on load.
+// text.fromDataUrl is the inverse for the data: form.
 
 (() => {
   // ============== BROTLI ==============

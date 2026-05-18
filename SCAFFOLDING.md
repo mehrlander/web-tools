@@ -2,7 +2,8 @@
 
 The repo currently has two tiers of pages:
 
-- **Simple pages** (`pages/index.html`, `compression-helper.html`,
+- **Simple pages** (`pages/index.html`,
+  `compression-helper/compression-helper-v1.html`,
   `bookmarklets-story.html`, `quick-dump.html`,
   `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
@@ -10,7 +11,7 @@ The repo currently has two tiers of pages:
   scaffolding at all.
 - **Scaffolded pages** (`show-repo/show-repo.html`,
   `show-repo/demo-viewer.html`, `demo-spacex.html`,
-  `pages/demos/{fills,persistence,messaging,io,component}.html`) —
+  `pages/demos/{fills,persistence,messaging,io}.html`) —
   use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
   as augmentations) + `alpine-bundle.js` to load reusable components off
   CDN at runtime.
@@ -244,8 +245,8 @@ the `new Function()` constraint.
 
 ### Option D — step outside the pattern for one-off pages
 
-Best for: pages that don't need repo browsing at all (e.g., the current
-`compression-helper.html`).
+Best for: pages that don't need repo browsing at all (e.g., the legacy
+`compression-helper/compression-helper-v1.html`).
 
 Rules:
 - Just use CDN Alpine + inline components, like the existing simple pages.
