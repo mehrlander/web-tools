@@ -44,6 +44,7 @@
       `<div class="${cls}">${msg.replace(/</g, '&lt;')}</div>`).join('');
   };
   const diag = (cls, msg) => { _diagLines.push([cls, msg]); renderDiag(); };
+  window.diag = diag;  // expose so alpine-bundle can stream into the same panel
 
   window.addEventListener('error', e =>
     diag('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`));

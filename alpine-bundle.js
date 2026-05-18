@@ -1,6 +1,9 @@
-window._alpineBundleVersion = 'YSC8K-branch-rev3'
+window._alpineBundleVersion = 'YSC8K-branch-rev4'
 ;(function() {
-    const _diag = (cls, msg) => { (window._alpineBundleDiag ||= []).push([cls, msg]) }
+    const _diag = (cls, msg) => {
+        (window._alpineBundleDiag ||= []).push([cls, msg])
+        if (typeof window.diag === 'function') window.diag(cls, 'bundle: ' + msg)
+    }
     _diag('info', `bundle IIFE entered; version=${window._alpineBundleVersion}; Alpine = ${typeof window.Alpine}`)
 
     const registerMagics = () => {
@@ -89,7 +92,14 @@ window._alpineBundleVersion = 'YSC8K-branch-rev3'
             modifiers.forEach(m => el.classList.add(BTN_VARIANTS.has(m) ? `btn-${m}` : m))
             if (expression) {
                 const exec = evaluateLater(expression)
-                el.addEventListener('click', () => exec())
+                el.addEventListener('click', () => {
+                    _diag('info', `x-btn click → "${expression}"`)
+                    try {
+                        exec(v => _diag('ok', `x-btn result for "${expression}": ${JSON.stringify(v)}`))
+                    } catch (e) {
+                        _diag('err', `x-btn threw for "${expression}": ${e?.message || e}`)
+                    }
+                })
             }
         })
 
