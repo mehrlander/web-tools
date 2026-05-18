@@ -7,57 +7,124 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
+<style>
+  /* On-page diagnostic panel — visible even if everything else breaks. */
+  #diag {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.4;
+    background: #111; color: #ddd; max-height: 50vh; overflow: auto;
+    padding: 6px 10px; border-bottom: 1px solid #444;
+  }
+  #diag .ok  { color: #6f6; }
+  #diag .err { color: #f88; }
+  #diag .info{ color: #8cf; }
+  #diag h3 { font-weight: bold; margin-bottom: 4px; }
+  body { padding-top: 0; }
+</style>
+
 <script>
-  // Register custom Alpine directives BEFORE Alpine loads.
-  // Each directive reads dot-modifiers off the attribute name and maps them
-  // to daisyUI/Tailwind classes. Same idea as fills.btn(['xs','primary'], …)
-  // but delivered through the HTML attribute instead of a JS argument list.
-  document.addEventListener('alpine:init', () => {
-
-    // x-btn.<size>.<variant>.<...>  →  adds daisyUI classes; expression runs on click.
-    Alpine.directive('btn', (el, { expression, modifiers }, { evaluate }) => {
-      console.log('[x-btn] modifiers:', modifiers, '· expr:', expression);
-      el.classList.add('btn');
-      const sizes    = ['xs','sm','md','lg','xl'];
-      const variants = ['primary','secondary','accent','info','success','warning','error','ghost','outline','soft'];
-      modifiers.forEach(m => {
-        if (sizes.includes(m))    el.classList.add(`btn-${m}`);
-        if (variants.includes(m)) el.classList.add(`btn-${m}`);
+  // ---- Diagnostic panel ------------------------------------------------
+  (function setupDiag() {
+    const ready = () => {
+      const d = document.createElement('div');
+      d.id = 'diag';
+      d.innerHTML = '<h3>boot diagnostics</h3><div id="diag-log"></div>';
+      document.body.prepend(d);
+      flushBuffer();
+    };
+    const buf = [];
+    const flushBuffer = () => {
+      const log = document.getElementById('diag-log');
+      if (!log) return;
+      buf.forEach(([cls, msg]) => {
+        const line = document.createElement('div');
+        line.className = cls;
+        line.textContent = msg;
+        log.appendChild(line);
       });
-      if (expression) el.addEventListener('click', () => evaluate(expression));
+      buf.length = 0;
+    };
+    window.diag = (cls, msg) => {
+      buf.push([cls, msg]);
+      flushBuffer();
+      console.log(`[diag ${cls}]`, msg);
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ready, { once: true });
+    } else {
+      ready();
+    }
+
+    window.addEventListener('error', (e) => {
+      diag('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      diag('err', `promise rejection: ${e.reason?.message || e.reason}`);
     });
 
-    // x-tip.<pos>  →  wraps element as a daisyUI tooltip; expression is the body (HTML allowed).
-    Alpine.directive('tip', (el, { expression, modifiers }, { evaluate }) => {
-      console.log('[x-tip] modifiers:', modifiers, '· expr:', expression);
-      const pos = ['top','bottom','left','right'].find(p => modifiers.includes(p)) || 'bottom';
-      el.classList.add('tooltip', `tooltip-${pos}`);
-      const body = document.createElement('div');
-      body.className = 'tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-xs text-left';
-      body.innerHTML = expression ? evaluate(expression) : '';
-      el.prepend(body);
-    });
+    diag('info', 'inline script running, error handlers installed');
+  })();
 
-    // x-lines.<gap-N>  →  flex column container with optional gap.
-    Alpine.directive('lines', (el, { modifiers }) => {
-      console.log('[x-lines] modifiers:', modifiers);
-      el.classList.add('flex', 'flex-col');
-      const gap = modifiers.find(m => /^gap-\d$/.test(m)) || 'gap-0';
-      el.classList.add(gap);
-    });
+  // ---- Alpine directive registration -----------------------------------
+  document.addEventListener('alpine:init', () => {
+    diag('info', `alpine:init fired, Alpine = ${typeof window.Alpine}`);
+    try {
 
+      Alpine.directive('btn', (el, { expression, modifiers }, { evaluate }) => {
+        el.classList.add('btn');
+        const sizes    = ['xs','sm','md','lg','xl'];
+        const variants = ['primary','secondary','accent','info','success','warning','error','ghost','outline','soft'];
+        modifiers.forEach(m => {
+          if (sizes.includes(m))    el.classList.add(`btn-${m}`);
+          if (variants.includes(m)) el.classList.add(`btn-${m}`);
+        });
+        if (expression) el.addEventListener('click', () => {
+          try { evaluate(expression); }
+          catch (e) { diag('err', `x-btn click "${expression}": ${e.message}`); }
+        });
+      });
+      diag('ok', 'registered x-btn');
+
+      Alpine.directive('tip', (el, { expression, modifiers }, { evaluate }) => {
+        const pos = ['top','bottom','left','right'].find(p => modifiers.includes(p)) || 'bottom';
+        el.classList.add('tooltip', `tooltip-${pos}`);
+        const body = document.createElement('div');
+        body.className = 'tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-xs text-left';
+        body.innerHTML = expression ? evaluate(expression) : '';
+        el.prepend(body);
+      });
+      diag('ok', 'registered x-tip');
+
+      Alpine.directive('lines', (el, { modifiers }) => {
+        el.classList.add('flex', 'flex-col');
+        const gap = modifiers.find(m => /^gap-\d$/.test(m)) || 'gap-0';
+        el.classList.add(gap);
+      });
+      diag('ok', 'registered x-lines');
+
+    } catch (e) {
+      diag('err', `directive registration threw: ${e.message}`);
+    }
+  });
+
+  // Watch for Alpine arriving.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      window.diag && diag(window.Alpine ? 'ok' : 'err',
+        `after load: window.Alpine = ${typeof window.Alpine}`);
+    }, 200);
   });
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs"></script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
-<div class="max-w-2xl mx-auto px-4 py-8 space-y-8" x-data="{ count: 0, msg: '' }">
+<div class="max-w-2xl mx-auto px-4 py-8 space-y-8 mt-32" x-data="{ count: 0, msg: '' }">
 
   <header>
     <h1 class="text-2xl font-bold">alpine modifier directives — MWE</h1>
     <p class="opacity-60 text-xs mt-1">
-      Open devtools console to see what each directive receives as <code>modifiers</code>.
+      Boot diagnostics pinned at the top. If something goes wrong it shows up there.
     </p>
   </header>
 
@@ -80,7 +147,7 @@
   <section>
     <h2 class="font-semibold mb-2">x-tip</h2>
     <p class="opacity-60 text-xs mb-3">
-      <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → wraps the element as a daisyUI tooltip.
+      <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → wraps element as daisyUI tooltip.
     </p>
     <div class="flex gap-6 items-center">
       <span x-tip.top="'<b>top</b> tooltip body'"    class="cursor-help underline decoration-dotted">hover top</span>
@@ -103,12 +170,10 @@
 
   <section class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
     <p>
-      The directive callback gets <code>{ modifiers, expression }</code> — modifiers is just an array
+      The directive callback gets <code>{ modifiers, expression }</code>. Modifiers is just an array
       of strings parsed from the dot-separated attribute name; expression is the attribute value,
-      evaluated against the surrounding Alpine scope on demand. The mapping from modifier strings to
-      daisyUI classes lives inside each directive's body — hand-coded, no proxy, no magic. Same logic
-      we'd have written inside <code>fills.btn(['xs','primary'], …, 'count++')</code>, just delivered
-      through HTML attributes.
+      evaluated against the surrounding Alpine scope on demand. Mapping from modifier strings to
+      daisyUI classes is hand-coded inside each directive — no proxy, no magic.
     </p>
   </section>
 
