@@ -177,6 +177,67 @@
         catch (e) { console.warn('alpine-bundle: registerDirectives failed:', e) }
     }
 
+    // window.component — thin wrapper for registering an Alpine-backed
+    // custom element. Lets a page declare <my-tag> via defineComponent(name,
+    // tplFn, dataFactory) without managing the custom-elements class or the
+    // x-data/x-init plumbing. After Alpine binds, the reactive data is
+    // stashed on the host as host.__data; an optional onMount(host) on that
+    // data runs once. Lives in this bundle (rather than kits/) because it
+    // depends on Alpine — kits stay Alpine-free by convention.
+    ;(() => {
+        const registry = new Map() // name -> { tplFn, dataFactory }
+
+        const defineComponent = (name, tplFn, dataFactory = () => ({})) => {
+            name = String(name).toLowerCase()
+            if (!name.includes('-')) {
+                throw new Error(`component: tag name "${name}" needs a hyphen`)
+            }
+            if (customElements.get(name)) {
+                console.warn(`component: <${name}> already defined; ignoring`)
+                return
+            }
+            registry.set(name, { tplFn, dataFactory })
+
+            class C extends HTMLElement {
+                connectedCallback() {
+                    if (this._kitMounted) return
+                    this._kitMounted = true
+                    const attrs = {}
+                    for (const a of this.attributes) attrs[a.name] = a.value
+                    this.innerHTML =
+                        `<div x-data="window.component.mk($el.closest('${name}'))"
+                              x-init="window.component.bind($el.closest('${name}'), $data)">
+                            ${tplFn(attrs)}
+                        </div>`
+                    const init = () => window.Alpine.initTree(this)
+                    window.Alpine ? init() : document.addEventListener('alpine:init', init, { once: true })
+                }
+            }
+            customElements.define(name, C)
+        }
+
+        const mk = (host) => {
+            const name = host.tagName.toLowerCase()
+            const entry = registry.get(name)
+            if (!entry) throw new Error(`component: no factory registered for <${name}>`)
+            const attrs = {}
+            for (const a of host.attributes) attrs[a.name] = a.value
+            return { ...entry.dataFactory(attrs), $attrs: attrs }
+        }
+
+        const bind = (host, data) => {
+            host.__data = data
+            if (typeof data.onMount === 'function') {
+                try { data.onMount(host) }
+                catch (e) { console.error(`component: onMount for <${host.tagName.toLowerCase()}> threw`, e) }
+            }
+        }
+
+        const find = (selector, root = document) => root.querySelector(selector)?.__data ?? null
+
+        window.component = { defineComponent, mk, bind, find }
+    })()
+
     // If Alpine already loaded (e.g. another script raced ahead and
     // alpine:init has already fired), register synchronously.
     // Otherwise wait for the event.

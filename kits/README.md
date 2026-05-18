@@ -8,12 +8,15 @@ Themed logic libraries loaded via `gh.load`. Each kit is a plain script
 A **kit** is the third category of file in this repo, alongside:
 
 - **Root-level scaffolding** — `gh-fetch.js`, `alpine-bundle.js`,
-  `page-toggle.js`, `beam-in.js`. One-of-a-kind singletons.
+  `beam-in.js`. One-of-a-kind singletons. `alpine-bundle.js` also owns
+  the Alpine-coupled `window.component.defineComponent` wrapper, so kits
+  can stay Alpine-free.
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
-- **`kits/*.js`** — non-UI logic libraries that register a namespace on
-  `window`. No Alpine involvement, no rendering. Pure functions and/or
-  stateful service objects.
+- **`kits/*.js`** — logic libraries that register a namespace on
+  `window`. No Alpine coupling. Mostly pure functions or stateful
+  service objects; `fills.js` is the one exception that renders, but
+  only as Alpine-free HTML strings.
 
 The shape rules (so the file works through `gh.load`):
 
@@ -199,53 +202,35 @@ Path strings are conventionally the same shape as `persistence.js`
 (`"<db>.<store>.<key>"`) but this kit doesn't parse them — keys are
 matched verbatim. See `pages/demos/messaging.html` for live examples.
 
-### component.js
+### data-shelf.js
 
-Thin wrapper for registering an Alpine-backed custom element.
+Record-shape conventions for the persistent scratch shelf used by
+`pages/data-shelf/`. Records live in `persistence.collection('dataShelf.items')`;
+this kit defines the valid record shape, the `SHELF_TYPES` enum
+(`js | html | json | text`), and the predicates / coercion used by the
+data-shelf importer when ingesting records from legacy IndexedDB
+databases.
 
 ```js
-window.component.defineComponent('my-counter',
-  attrs => `<button @click="inc()" x-text="count"></button>`,
-  attrs => ({ count: Number(attrs.start ?? 0), inc() { this.count++ } })
-);
-<my-counter start="5"></my-counter>
-window.component.find('my-counter').inc();   // reach in from outside
+window.dataShelf.SHELF_TYPES        // ['js','html','json','text']
+window.dataShelf.isShelfShaped(r)   // boolean — minimal shape check
 ```
 
-Tag names must contain a hyphen (custom-element rule). After Alpine
-binds, the data object is stashed on the host as `host.__data`. If the
-data factory's object has an `onMount(host)` method it's called once
-after binding — that's where you'd subscribe to `messaging` or load
-`persistence`.
-
-No path registry, no implicit message bus, no schema. Consumers wire
-persistence/messaging in by hand. See `pages/demos/component.html` for
-live examples; see `pages/compression-helper-v2.html` for the
-integration test wiring all kits together.
+UI metadata for each type (label, badge, exec) lives on the data-shelf
+page in `cfg.types`; the canonical set of valid type names lives here so
+the importer doesn't drift from the page.
 
 ## Salvage status
 
-The original `pages/compression-helper.html` still loads Alp directly
-(`<script src=".../mehrlander/Alp@.../alp.js">`) and continues to work.
-`pages/compression-helper-v2.html` is the in-repo reimplementation
-that replaces every Alp dependency with `kits/` modules:
+Every kit is in active use. The custom-element wrapper that used to live
+here as `component.js` now lives in `alpine-bundle.js` — see the bundle
+demo at `pages/alpine-bundle-demo.html` for `defineComponent` examples.
 
-- `alp.kit.text` / `alp.kit.acorn` → `compression.text` / `compression.acorn`
-- `alp.fills.tip|lines` → `fills.tip|lines`
-- `alp.define` → `component.defineComponent`
-- IndexedDB-backed `save()`/`load()` → `persistence.save/load` (idb-keyval)
-- `ping('sel')` / `onPing('sel', sender)` → `messaging.publish/subscribe`
-
-The original page is the safety net; v2 lives next to it until verified
-end-to-end in a browser. After that, the original can be retired and
-the external Alp CDN reference goes away.
-
-| Kit | Demo | Status |
+| Kit | Demo | Notes |
 |---|---|---|
-| `compression.js` | (used in `compression-helper-v2.html`) | done |
-| `fills.js` | `pages/demos/fills.html` | done |
-| `persistence.js` | `pages/demos/persistence.html` | done |
-| `messaging.js` | `pages/demos/messaging.html` | done |
-| `io.js` | `pages/demos/io.html` | done |
-| `component.js` | `pages/demos/component.html` | done |
-| (integration) | `pages/compression-helper-v2.html` | done — needs browser verification |
+| `compression.js` | (used in `pages/compression-helper/`) | brotli + gzip + acorn |
+| `fills.js` | `pages/demos/fills.html` | pure HTML string helpers, no Alpine |
+| `persistence.js` | `pages/demos/persistence.html` | idb-keyval + collections |
+| `messaging.js` | `pages/demos/messaging.html` | exact-match pub/sub |
+| `io.js` | `pages/demos/io.html` | pick / save / clipboard |
+| `data-shelf.js` | `pages/data-shelf/` | record shape + importer support |

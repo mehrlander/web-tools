@@ -13,6 +13,20 @@
     const gh = new GH({ repo: 'mehrlander/web-tools' });
     await gh.load('gh-auth.js');
     await gh.load('alpine-bundle.js');
+
+    // Component exhibit: a couple of custom elements registered via the
+    // window.component facility the bundle exposes.
+    const { defineComponent } = window.component;
+
+    defineComponent('demo-counter',
+      () => `<button class="btn btn-sm" @click="inc()" x-text="\`Count: \${count}\`"></button>`,
+      () => ({ count: 0, inc() { this.count++; } })
+    );
+
+    defineComponent('demo-greeting',
+      attrs => `<div>Hello, <b x-text="name"></b>! (passed start=${attrs.start ?? 0})</div>`,
+      attrs => ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
+    );
   } catch (e) {
     console.error('boot:', e);
     document.body.innerText = 'Boot failed: ' + (e?.message || e);
@@ -265,12 +279,75 @@
     </div>
   </section>
 
+  <!-- ==================================================================
+       Component wrapper
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Component wrapper</h2>
+    <p class="opacity-60 text-xs">
+      <code>window.component.defineComponent(name, tplFn, dataFactory)</code>
+      registers a custom element backed by an Alpine <code>x-data</code>
+      factory. Lets a page declare <code>&lt;my-tag&gt;</code> without
+      writing a custom-elements class or wiring <code>x-data</code>/<code>x-init</code>.
+      After Alpine binds, the reactive data is stashed on the host as
+      <code>host.__data</code>; an optional <code>onMount(host)</code> on
+      that data runs once.
+    </p>
+    <p class="opacity-60 text-xs">
+      Sits alongside the other path the repo uses for reusable Alpine
+      pieces: files under <code>alpineComponents/</code> that call
+      <code>Alpine.data('name', fn)</code> inside <code>alpine:init</code>,
+      mounted by writing <code>&lt;div x-data="name()"&gt;…&lt;/div&gt;</code>.
+      Same Alpine factory shape; what differs is the surface
+      (custom-element tag vs. <code>x-data</code> attribute) and where the
+      template HTML lives.
+    </p>
+
+    <div>
+      <h3 class="font-semibold mb-1">Self-contained counter</h3>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">defineComponent('demo-counter',
+  () =&gt; `&lt;button class="btn btn-sm" @click="inc()" x-text="`Count: ${count}`"&gt;&lt;/button&gt;`,
+  () =&gt; ({ count: 0, inc() { this.count++ } })
+);
+&lt;demo-counter&gt;&lt;/demo-counter&gt;</pre>
+      <div class="bg-base-200/40 rounded p-4">
+        <demo-counter></demo-counter>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">Reading attributes</h3>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">defineComponent('demo-greeting',
+  attrs =&gt; `&lt;div&gt;Hello, &lt;b x-text="name"&gt;&lt;/b&gt;! (passed start=${attrs.start ?? 0})&lt;/div&gt;`,
+  attrs =&gt; ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
+);
+&lt;demo-greeting name="Ada" start="42"&gt;&lt;/demo-greeting&gt;</pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-1">
+        <demo-greeting name="Ada" start="42"></demo-greeting>
+        <demo-greeting name="Grace" start="7"></demo-greeting>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">Reaching into a component from outside</h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>window.component.find(selector)</code> returns the bound
+        data object so other code can call its methods directly.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 flex items-center gap-3 flex-wrap">
+        <demo-counter id="external-target"></demo-counter>
+        <button class="btn btn-xs btn-primary" onclick="window.component.find('#external-target').inc()">+1 from outside</button>
+        <button class="btn btn-xs" onclick="alert(JSON.stringify({ count: window.component.find('#external-target').count }))">peek state</button>
+      </div>
+    </div>
+  </section>
+
   <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
     <p>
-      Magics + directives + dropdown handler all live in
-      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>,
-      registered from a single <code>alpine:init</code> listener.
-      <code>kits/fills.js</code> is unchanged.
+      Magics, directives, dropdown handler, and the <code>window.component</code>
+      wrapper all live in
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>.
+      <code>kits/fills.js</code> is the Alpine-free string-helper counterpart.
     </p>
   </footer>
 
