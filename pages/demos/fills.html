@@ -55,20 +55,10 @@
       <div class="bg-base-200/40 rounded p-4" x-html="rendered.lines"></div>
     </section>
 
-    <!-- btn -->
-    <section>
-      <h2 class="font-bold mb-1">btn(mods, label, click, iconClasses?, extraClasses?)</h2>
-      <p class="opacity-60 text-xs mb-2">daisyUI button. <code>mods</code> carries size + variant
-      (<code>xs|sm</code>, <code>primary|ghost|...</code>). <code>iconClasses</code> is a phosphor class.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code x-text="snippets.btn"></code></pre>
-      <div class="bg-base-200/40 rounded p-4 flex gap-2 flex-wrap" x-html="rendered.btn"></div>
-      <p class="opacity-60 text-xs mt-1">Click count: <span x-text="clicks" class="font-bold"></span></p>
-    </section>
-
     <!-- toolbar -->
     <section>
       <h2 class="font-bold mb-1">toolbar(mods, ...items)</h2>
-      <p class="opacity-60 text-xs mb-2">Horizontal flex wrapper. Items are HTML strings; usually nested fills.</p>
+      <p class="opacity-60 text-xs mb-2">Horizontal flex wrapper. Items are HTML strings.</p>
       <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code x-text="snippets.toolbar"></code></pre>
       <div class="bg-base-200/40 rounded p-4" x-html="rendered.toolbar"></div>
     </section>
@@ -86,38 +76,11 @@
       </div>
     </section>
 
-    <!-- saveIndicator -->
-    <section>
-      <h2 class="font-bold mb-1">saveIndicator()</h2>
-      <p class="opacity-60 text-xs mb-2">Spinner shown while <code>saving</code> is truthy in the surrounding x-data.
-      Toggle below to fake a save.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code x-text="snippets.saveIndicator"></code></pre>
-      <div class="bg-base-200/40 rounded p-4 flex items-center gap-3">
-        <button class="btn btn-xs" @click="fakeSave()">Fake save (1s)</button>
-        <span x-html="rendered.saveIndicator"></span>
-        <span class="opacity-60 text-xs" x-text="saving ? 'saving…' : 'idle'"></span>
-      </div>
-    </section>
-
-    <!-- pathInput -->
-    <section>
-      <h2 class="font-bold mb-1">pathInput()</h2>
-      <p class="opacity-60 text-xs mb-2">Edits a <code>_path</code> field; commits to <code>path</code> on blur/Enter.
-      Designed to pair with <code>kits/persistence.js</code> (next demo). Here it just round-trips strings.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code x-text="snippets.pathInput"></code></pre>
-      <div class="bg-base-200/40 rounded p-4 flex items-center gap-3 justify-end" x-html="rendered.pathInput"></div>
-      <p class="opacity-60 text-xs mt-1">Committed path: <code class="font-bold" x-text="path"></code></p>
-    </section>
-
   </div>
 </div>
 
 <script>
 function demo() { return {
-  clicks: 0,
-  saving: false,
-  _path: 'demo.fills.example',
-  path:  'demo.fills.example',
   snippets: {},
   rendered: {},
 
@@ -136,20 +99,12 @@ function demo() { return {
     this.rendered.lines = f.lines(['gap-1','xs','muted'],
       ['First line', 'Second line', 'Third line']);
 
-    this.snippets.btn = `btn(['xs','primary'],   'Save',  'clicks++', 'ph-floppy-disk')
-btn(['sm','ghost'],     'Discard', 'clicks++', 'ph-trash')
-btn(['xs'],             '',        'clicks++', 'ph-copy')`;
-    this.rendered.btn =
-      f.btn(['xs','primary'], 'Save',    'clicks++', 'ph-floppy-disk') +
-      f.btn(['sm','ghost'],   'Discard', 'clicks++', 'ph-trash') +
-      f.btn(['xs'],           '',        'clicks++', 'ph-copy');
-
     this.snippets.toolbar = `toolbar([],
   '<b>Title</b>',
-  btn(['xs','primary'], 'Action', 'clicks++'))`;
+  '<button class="btn btn-xs btn-primary">Action</button>')`;
     this.rendered.toolbar = f.toolbar([],
       '<b>Title</b>',
-      f.btn(['xs','primary'], 'Action', 'clicks++'));
+      '<button class="btn btn-xs btn-primary">Action</button>');
 
     this.snippets.modal = `modal(\`
   <div class="p-6">
@@ -161,19 +116,6 @@ btn(['xs'],             '',        'clicks++', 'ph-copy')`;
         <h3 class="font-bold text-lg">Modal contents</h3>
         <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
       </div>`);
-
-    this.snippets.saveIndicator = `saveIndicator()
-// renders <span x-show="saving" class="loading loading-spinner loading-xs"></span>`;
-    this.rendered.saveIndicator = f.saveIndicator();
-
-    this.snippets.pathInput = `pathInput()
-// x-models against _path; commits to path on blur/Enter`;
-    this.rendered.pathInput = f.pathInput();
-  },
-
-  fakeSave() {
-    this.saving = true;
-    setTimeout(() => { this.saving = false; }, 1000);
   }
 }}
 </script>

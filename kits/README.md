@@ -62,22 +62,24 @@ embedded in arbitrary text. Detection regexes accept an optional label:
 
 daisyUI/Tailwind template-string helpers salvaged from
 `archive/alp/repo/utils/fills.js`. Pure functions returning HTML
-strings; zero runtime deps. Designed to be composed inside Alpine
-`x-data` templates or anywhere HTML is built by string concatenation.
+strings; zero runtime deps and zero Alpine coupling. Compose
+wherever HTML is built by string concatenation.
 
 ```js
 window.fills.tip(mods, trigger, content)
 window.fills.lines(mods, arr)
-window.fills.btn(mods, label, click, iconClasses?, extraClasses?)
 window.fills.toolbar(mods, ...items)
 window.fills.modal(inner)
-window.fills.saveIndicator()  // assumes `saving` in surrounding x-data
-window.fills.pathInput()      // assumes `_path`/`path` in surrounding x-data
 ```
 
 `mods` is an array of short tokens (e.g. `['xs','bottom']`). Recognized
 tokens map to daisyUI/Tailwind classes; unrecognized tokens are ignored.
 See `pages/demos/fills.html` for live examples.
+
+For Alpine-flavored equivalents that decorate elements (rather than
+return string fragments), see the directives in `alpine-bundle.js`:
+`x-tip`, `x-lines`, `x-toolbar`, `x-btn`, `x-save-indicator`,
+`x-action`, `x-metric`.
 
 ### persistence.js
 
