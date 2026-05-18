@@ -22,8 +22,8 @@
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
 <!-- Toast renderer — reads the toast store the bundle exposes -->
-<div class="toast toast-top toast-end z-50">
-  <template x-data x-for="t in $store.toasts" :key="t.id">
+<div x-data class="toast toast-top toast-end z-50">
+  <template x-for="t in $store.toasts" :key="t.id">
     <div :class="['alert', t.cls, 'shadow-lg']">
       <i :class="['ph', 'ph-' + t.icon]"></i>
       <span x-text="t.msg"></span>
