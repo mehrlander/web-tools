@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>alpine modifier directives — MWE</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<script>
+  // Register custom Alpine directives BEFORE Alpine loads.
+  // Each directive reads dot-modifiers off the attribute name and maps them
+  // to daisyUI/Tailwind classes. Same idea as fills.btn(['xs','primary'], …)
+  // but delivered through the HTML attribute instead of a JS argument list.
+  document.addEventListener('alpine:init', () => {
+
+    // x-btn.<size>.<variant>.<...>  →  adds daisyUI classes; expression runs on click.
+    Alpine.directive('btn', (el, { expression, modifiers }, { evaluate }) => {
+      console.log('[x-btn] modifiers:', modifiers, '· expr:', expression);
+      el.classList.add('btn');
+      const sizes    = ['xs','sm','md','lg','xl'];
+      const variants = ['primary','secondary','accent','info','success','warning','error','ghost','outline','soft'];
+      modifiers.forEach(m => {
+        if (sizes.includes(m))    el.classList.add(`btn-${m}`);
+        if (variants.includes(m)) el.classList.add(`btn-${m}`);
+      });
+      if (expression) el.addEventListener('click', () => evaluate(expression));
+    });
+
+    // x-tip.<pos>  →  wraps element as a daisyUI tooltip; expression is the body (HTML allowed).
+    Alpine.directive('tip', (el, { expression, modifiers }, { evaluate }) => {
+      console.log('[x-tip] modifiers:', modifiers, '· expr:', expression);
+      const pos = ['top','bottom','left','right'].find(p => modifiers.includes(p)) || 'bottom';
+      el.classList.add('tooltip', `tooltip-${pos}`);
+      const body = document.createElement('div');
+      body.className = 'tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-xs text-left';
+      body.innerHTML = expression ? evaluate(expression) : '';
+      el.prepend(body);
+    });
+
+    // x-lines.<gap-N>  →  flex column container with optional gap.
+    Alpine.directive('lines', (el, { modifiers }) => {
+      console.log('[x-lines] modifiers:', modifiers);
+      el.classList.add('flex', 'flex-col');
+      const gap = modifiers.find(m => /^gap-\d$/.test(m)) || 'gap-0';
+      el.classList.add(gap);
+    });
+
+  });
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<div class="max-w-2xl mx-auto px-4 py-8 space-y-8" x-data="{ count: 0, msg: '' }">
+
+  <header>
+    <h1 class="text-2xl font-bold">alpine modifier directives — MWE</h1>
+    <p class="opacity-60 text-xs mt-1">
+      Open devtools console to see what each directive receives as <code>modifiers</code>.
+    </p>
+  </header>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-btn</h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-btn.xs.primary="count++"</code> → daisyUI <code>btn btn-xs btn-primary</code> + click handler.
+    </p>
+    <div class="flex gap-2 flex-wrap">
+      <button x-btn.xs.primary="count++">+1</button>
+      <button x-btn.xs.ghost="count = 0">reset</button>
+      <button x-btn.sm.secondary="msg = 'hi @ ' + new Date().toLocaleTimeString()">sm secondary</button>
+      <button x-btn.lg.outline.accent="msg = ''">lg outline accent</button>
+    </div>
+    <div class="mt-3 text-xs opacity-70">
+      count = <span x-text="count"></span> · msg = <span x-text="msg || '(none)'"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-tip</h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → wraps the element as a daisyUI tooltip.
+    </p>
+    <div class="flex gap-6 items-center">
+      <span x-tip.top="'<b>top</b> tooltip body'"    class="cursor-help underline decoration-dotted">hover top</span>
+      <span x-tip.right="'a <i>right</i>-side tip'"  class="cursor-help underline decoration-dotted">hover right</span>
+      <span x-tip.bottom="'plain bottom tip'"        class="cursor-help underline decoration-dotted">hover bottom</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-lines</h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-lines.gap-2</code> → adds <code>flex flex-col gap-2</code> to the container.
+    </p>
+    <div x-lines.gap-2 class="border border-base-300 rounded p-3 max-w-xs">
+      <div>first line</div>
+      <div>second line</div>
+      <div>third line</div>
+    </div>
+  </section>
+
+  <section class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
+    <p>
+      The directive callback gets <code>{ modifiers, expression }</code> — modifiers is just an array
+      of strings parsed from the dot-separated attribute name; expression is the attribute value,
+      evaluated against the surrounding Alpine scope on demand. The mapping from modifier strings to
+      daisyUI classes lives inside each directive's body — hand-coded, no proxy, no magic. Same logic
+      we'd have written inside <code>fills.btn(['xs','primary'], …, 'count++')</code>, just delivered
+      through HTML attributes.
+    </p>
+  </section>
+
+</div>
+</body>
+</html>
