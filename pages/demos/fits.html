@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fits — directives demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  try {
+    const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
+    window.GH = GH;
+    const gh = new GH({ repo: 'mehrlander/web-tools' });
+    await gh.load('gh-auth.js');
+    await gh.load('alpine-bundle.js');
+  } catch (e) {
+    console.error('boot:', e);
+    document.body.innerText = 'Boot failed: ' + (e?.message || e);
+  }
+</script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-8" x-data="{
+  count: 0,
+  msg: '',
+  saving: false,
+  rev: 1420000, prevRev: 1350000,
+  exp: 840000,  prevExp: 900000
+}">
+
+  <header>
+    <div class="flex items-baseline justify-between mb-1">
+      <h1 class="text-2xl font-bold tracking-tight">fits</h1>
+      <a href="./" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> demos
+      </a>
+    </div>
+    <p class="opacity-60 text-xs">
+      Alpine directives registered in
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>.
+      Each decorates the host element — adds classes, wires behavior, or
+      renders reactive content — based on dot-modifiers parsed from the
+      attribute name. The class-shortcut tier mirrors helpers in
+      <code class="text-xs">kits/fills.js</code>; the reactive and behavior
+      tiers are new.
+    </p>
+  </header>
+
+  <!-- Tier 1: class shortcuts ----------------------------------------- -->
+
+  <section>
+    <h2 class="font-semibold mb-2">x-btn <span class="opacity-50 font-normal">— class shortcut</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-btn.xs.primary="count++"</code> → adds <code>btn btn-xs btn-primary</code>
+      and wires the expression as a click handler. Unknown modifiers
+      pass through as raw classes, so <code>x-btn.xs.shadow-md</code> works too.
+    </p>
+    <div class="flex gap-2 flex-wrap items-center">
+      <button x-btn.xs.primary="count++">+1</button>
+      <button x-btn.xs.ghost="count = 0">reset</button>
+      <button x-btn.sm.secondary="msg = 'tick @ ' + new Date().toLocaleTimeString()">tick</button>
+      <button x-btn.lg.outline.accent.shadow-md="msg = ''">lg outline accent + shadow</button>
+    </div>
+    <div class="mt-3 text-xs opacity-70">
+      count = <span x-text="count"></span> · msg = <span x-text="msg || '(none)'"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-tip <span class="opacity-50 font-normal">— class shortcut</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-tip.top="'&lt;b&gt;rich&lt;/b&gt; body'"</code> → wraps the element as a daisyUI
+      tooltip; modifier picks the position; expression is the body (HTML allowed).
+    </p>
+    <div class="flex gap-8 items-center py-4">
+      <span x-tip.top="'<b>top</b> tip body'"     class="cursor-help underline decoration-dotted">hover top</span>
+      <span x-tip.right="'a <i>right</i>-side tip'" class="cursor-help underline decoration-dotted">hover right</span>
+      <span x-tip.bottom="'plain bottom tip'"     class="cursor-help underline decoration-dotted">hover bottom</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-lines <span class="opacity-50 font-normal">— class shortcut</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-lines.gap-2</code> → flex column with gap.
+    </p>
+    <div x-lines.gap-2 class="max-w-xs">
+      <div class="bg-base-200 px-2 py-1 rounded">first</div>
+      <div class="bg-base-200 px-2 py-1 rounded">second</div>
+      <div class="bg-base-200 px-2 py-1 rounded">third</div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-2">x-toolbar <span class="opacity-50 font-normal">— class shortcut</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-toolbar</code> → flex row with default toolbar spacing
+      (<code>flex gap-2 items-center justify-between</code>).
+    </p>
+    <div x-toolbar class="bg-base-200 px-3 py-2 rounded">
+      <span class="font-semibold">Section title</span>
+      <button x-btn.xs.primary="msg = 'toolbar action'">Action</button>
+    </div>
+  </section>
+
+  <!-- Tier 1+ reactive ------------------------------------------------- -->
+
+  <section>
+    <h2 class="font-semibold mb-2">x-save-indicator <span class="opacity-50 font-normal">— reactive</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-save-indicator</code> → spinner that auto-shows when
+      <code>saving</code> is truthy in the surrounding scope. Reads via
+      <code>evaluateLater</code> + <code>effect</code>.
+    </p>
+    <div class="flex gap-3 items-center">
+      <button x-btn.xs.primary="saving = !saving">toggle saving</button>
+      <span class="text-xs opacity-70">saving = <span x-text="saving"></span></span>
+      <span x-save-indicator></span>
+    </div>
+  </section>
+
+  <!-- Tier 2: format + reactive render -------------------------------- -->
+
+  <section>
+    <h2 class="font-semibold mb-2">x-metric <span class="opacity-50 font-normal">— formatter + reactive</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-metric.currency.trend="{ label, val, prev }"</code> → renders a
+      metric card with Intl-formatted value and a trend indicator. Modifiers
+      shape the rendering pipeline: <code>.currency</code> / <code>.percent</code>
+      for formatting, <code>.trend</code> to enable the diff arrow,
+      <code>.invert</code> to swap the favorable direction.
+    </p>
+    <div class="flex gap-3 flex-wrap mb-3">
+      <div x-metric.currency.trend         ="{ label: 'Revenue YTD',     val: rev,  prev: prevRev }"></div>
+      <div x-metric.currency.trend.invert  ="{ label: 'Expenditures',    val: exp,  prev: prevExp }"></div>
+      <div x-metric.percent                ="{ label: 'Budget util',     val: 0.85 }"></div>
+    </div>
+    <div class="flex gap-2">
+      <button x-btn.xs="rev += 10000">rev +$10K</button>
+      <button x-btn.xs="exp += 10000">exp +$10K</button>
+      <button x-btn.xs.ghost="rev = 1420000; exp = 840000">reset</button>
+    </div>
+  </section>
+
+  <!-- Tier 3: behavior ------------------------------------------------- -->
+
+  <section>
+    <h2 class="font-semibold mb-2">x-action.confirm <span class="opacity-50 font-normal">— behavior wrapper</span></h2>
+    <p class="opacity-60 text-xs mb-3">
+      <code>x-action.confirm="..."</code> → confirmation-gated click. First
+      tap arms (turns red, swaps label to "Are you sure?"); second tap
+      within 3s executes; otherwise reverts. Without
+      <code>.confirm</code> it's a plain click.
+    </p>
+    <div class="flex gap-2">
+      <button class="btn btn-sm"                 x-action        ="msg = 'fired immediately'">no confirm</button>
+      <button class="btn btn-sm btn-outline"     x-action.confirm="msg = 'confirmed!'">confirmed action</button>
+    </div>
+    <div class="mt-2 text-xs opacity-70">msg = <span x-text="msg || '(none)'"></span></div>
+  </section>
+
+  <!-- footer ---------------------------------------------------------- -->
+
+  <section class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
+    <p>
+      All seven directives are registered in
+      <code>registerDirectives()</code> inside
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>,
+      called from the same <code>alpine:init</code> handler that registers
+      the bundle's magics (<code>$toast</code>, <code>$clip</code>, <code>$paste</code>).
+      The original <code>kits/fills.js</code> is unchanged.
+    </p>
+  </section>
+
+</div>
+</body>
+</html>
