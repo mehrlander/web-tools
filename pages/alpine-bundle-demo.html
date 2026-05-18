@@ -20,87 +20,6 @@
     document.body.innerText = 'Boot failed: ' + (e?.message || e);
   }
 </script>
-
-<style>
-  #diag { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-          font: 11px/1.4 ui-monospace, monospace;
-          background: #1c1917; color: #d6d3d1; max-height: 45vh; overflow: auto;
-          padding: 8px 12px; border-bottom: 1px solid #44403c; }
-  #diag h3 { color: white; font-size: 11px; margin: 0 0 4px; font-weight: bold; }
-  #diag .ok  { color: #86efac; }
-  #diag .err { color: #fca5a5; }
-  #diag .info{ color: #93c5fd; }
-  #diag pre { margin: 0; white-space: pre-wrap; }
-  body { padding-top: 160px; }
-</style>
-<script>
-  // Diagnostic panel — surfaces bundle errors and checks whether directives
-  // actually applied to elements after Alpine walks the DOM.
-  const _diagLines = [['info', 'inline diag script running']];
-  const renderDiag = () => {
-    const el = document.getElementById('diag-log');
-    if (!el) return;
-    el.innerHTML = _diagLines.map(([cls, msg]) =>
-      `<div class="${cls}">${msg.replace(/</g, '&lt;')}</div>`).join('');
-  };
-  const diag = (cls, msg) => { _diagLines.push([cls, msg]); renderDiag(); };
-  window.diag = diag;  // expose so alpine-bundle can stream into the same panel
-
-  window.addEventListener('error', e =>
-    diag('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`));
-  window.addEventListener('unhandledrejection', e =>
-    diag('err', `rejection: ${e.reason?.message || e.reason}`));
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const d = document.createElement('div');
-    d.id = 'diag';
-    d.innerHTML = '<h3>boot diagnostics</h3><div id="diag-log"></div>';
-    document.body.prepend(d);
-    renderDiag();
-  });
-
-  document.addEventListener('alpine:init', () => {
-    diag('info', `alpine:init fired; Alpine = ${typeof window.Alpine}; .directive = ${typeof window.Alpine?.directive}`);
-  });
-
-  // Two seconds after load: drain the bundle's diag log, report the
-  // bundle version marker, do an independent fetch to verify what the
-  // network is actually returning, and probe known directives.
-  const BRANCH = 'claude/clarify-kit-dependencies-YSC8K';
-  window.addEventListener('load', () => setTimeout(async () => {
-    diag(window._alpineBundleVersion ? 'ok' : 'err',
-      `_alpineBundleVersion = ${window._alpineBundleVersion || '(undefined — branch bundle did not load)'}`);
-    (window._alpineBundleDiag || []).forEach(([c, m]) => diag(c, 'bundle: ' + m));
-
-    // Independent network probe: fetch the same URL gh.load would use,
-    // with cache-busting, to see what we'd actually get from the API.
-    try {
-      const url = `https://api.github.com/repos/mehrlander/web-tools/contents/alpine-bundle.js?ref=${BRANCH}&t=${Date.now()}`;
-      const r = await fetch(url, { cache: 'no-store' });
-      const d = await r.json();
-      const decoded = atob((d.content || '').replace(/\s/g, ''));
-      const firstLine = decoded.split('\n')[0].slice(0, 120);
-      const hasVersion = decoded.includes('_alpineBundleVersion');
-      diag(r.ok ? (hasVersion ? 'ok' : 'err') : 'err',
-        `probe @ ref="${BRANCH}": status=${r.status}, sha=${(d.sha || '').slice(0,7)}, size=${d.size}, hasVersionMarker=${hasVersion}`);
-      diag('info', `probe first line: "${firstLine}"`);
-    } catch (e) {
-      diag('err', `probe fetch failed: ${e.message}`);
-    }
-
-    const tested = [
-      ['x-btn',  '[x-btn\\.xs\\.primary]', 'btn'],
-      ['x-tip',  '[x-tip\\.top]',          'tooltip'],
-      ['x-lines','[x-lines\\.gap-2]',      'flex'],
-    ];
-    tested.forEach(([name, sel, cls]) => {
-      const el = document.querySelector(sel);
-      if (!el) return diag('err', `${name}: no test element found`);
-      diag(el.classList.contains(cls) ? 'ok' : 'err',
-           `${name}: applied=${el.classList.contains(cls)}; classes="${el.className}"`);
-    });
-  }, 2000));
-</script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
@@ -250,8 +169,15 @@
         <button x-btn.sm.secondary="msg = 'tick @ ' + new Date().toLocaleTimeString()">tick</button>
         <button x-btn.lg.outline.accent.shadow-md="msg = ''">lg outline accent + shadow</button>
       </div>
-      <div class="mt-3 text-xs opacity-70">
-        count = <span x-text="count"></span> · msg = <span x-text="msg || '(none)'"></span>
+      <div class="mt-4 flex items-baseline gap-8 bg-base-200 rounded-lg px-4 py-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">count</div>
+          <div class="text-3xl font-bold tabular-nums leading-none" x-text="count"></div>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">msg</div>
+          <div class="text-sm font-mono truncate" x-text="msg || '—'"></div>
+        </div>
       </div>
     </div>
 
@@ -286,8 +212,9 @@
       </p>
       <div x-toolbar class="bg-base-200 px-3 py-2 rounded">
         <span class="font-semibold">Section title</span>
-        <button x-btn.xs.primary="msg = 'toolbar action'">Action</button>
+        <button x-btn.xs.primary="$toast('check', 'Toolbar action fired', 'alert-success')">Action</button>
       </div>
+      <p class="opacity-50 text-[11px] mt-2">Tip: tapping the Action button fires a toast in the top-right.</p>
     </div>
 
     <div>

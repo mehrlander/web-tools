@@ -1,4 +1,4 @@
-window._alpineBundleVersion = 'YSC8K-branch-rev4'
+window._alpineBundleVersion = 'YSC8K-branch-rev5'
 ;(function() {
     const _diag = (cls, msg) => {
         (window._alpineBundleDiag ||= []).push([cls, msg])
@@ -17,8 +17,8 @@ window._alpineBundleVersion = 'YSC8K-branch-rev4'
         Alpine.store('toast', toast)
         Alpine.magic('toast', () => toast)
 
-        const ta = (el, fn) => {
-            const t = Object.assign(document.createElement('textarea'), { readOnly: true })
+        const ta = (el, fn, readOnly = true) => {
+            const t = Object.assign(document.createElement('textarea'), { readOnly })
             t.className = 'absolute w-0 h-0 opacity-0'
             el.appendChild(t)
             fn(t)
@@ -30,12 +30,23 @@ window._alpineBundleVersion = 'YSC8K-branch-rev4'
             toast('clipboard', 'Copied ' + text.split('\n').length + ' lines', 'alert-success')
         })
 
-        Alpine.magic('paste', (el) => (cb) => {
+        // $paste tries the modern clipboard API first — on iOS Safari this
+        // shows the system "Paste from X" pill. Falls back to the hidden
+        // textarea + paste-event approach when readText is unavailable or
+        // permission is denied (older browsers, data: URLs, etc.).
+        Alpine.magic('paste', (el) => async (cb) => {
+            if (navigator.clipboard?.readText) {
+                try {
+                    const text = await navigator.clipboard.readText()
+                    cb(text)
+                    return
+                } catch { /* fall through to legacy textarea path */ }
+            }
             ta(el, t => {
                 t.addEventListener('paste', () => setTimeout(() => cb(t.value), 0))
                 t.addEventListener('focusout', () => t.remove(), { once: true })
                 t.focus()
-            })
+            }, false)
         })
 
         // Outside click always closes any open <details class="dropdown">.
@@ -92,14 +103,7 @@ window._alpineBundleVersion = 'YSC8K-branch-rev4'
             modifiers.forEach(m => el.classList.add(BTN_VARIANTS.has(m) ? `btn-${m}` : m))
             if (expression) {
                 const exec = evaluateLater(expression)
-                el.addEventListener('click', () => {
-                    _diag('info', `x-btn click → "${expression}"`)
-                    try {
-                        exec(v => _diag('ok', `x-btn result for "${expression}": ${JSON.stringify(v)}`))
-                    } catch (e) {
-                        _diag('err', `x-btn threw for "${expression}": ${e?.message || e}`)
-                    }
-                })
+                el.addEventListener('click', () => exec())
             }
         })
 
