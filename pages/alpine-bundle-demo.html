@@ -18,6 +18,65 @@
     document.body.innerText = 'Boot failed: ' + (e?.message || e);
   }
 </script>
+
+<style>
+  #diag { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+          font: 11px/1.4 ui-monospace, monospace;
+          background: #1c1917; color: #d6d3d1; max-height: 45vh; overflow: auto;
+          padding: 8px 12px; border-bottom: 1px solid #44403c; }
+  #diag h3 { color: white; font-size: 11px; margin: 0 0 4px; font-weight: bold; }
+  #diag .ok  { color: #86efac; }
+  #diag .err { color: #fca5a5; }
+  #diag .info{ color: #93c5fd; }
+  #diag pre { margin: 0; white-space: pre-wrap; }
+  body { padding-top: 160px; }
+</style>
+<script>
+  // Diagnostic panel — surfaces bundle errors and checks whether directives
+  // actually applied to elements after Alpine walks the DOM.
+  const _diagLines = [['info', 'inline diag script running']];
+  const renderDiag = () => {
+    const el = document.getElementById('diag-log');
+    if (!el) return;
+    el.innerHTML = _diagLines.map(([cls, msg]) =>
+      `<div class="${cls}">${msg.replace(/</g, '&lt;')}</div>`).join('');
+  };
+  const diag = (cls, msg) => { _diagLines.push([cls, msg]); renderDiag(); };
+
+  window.addEventListener('error', e =>
+    diag('err', `error: ${e.message} @ ${e.filename || '?'}:${e.lineno || '?'}`));
+  window.addEventListener('unhandledrejection', e =>
+    diag('err', `rejection: ${e.reason?.message || e.reason}`));
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const d = document.createElement('div');
+    d.id = 'diag';
+    d.innerHTML = '<h3>boot diagnostics</h3><div id="diag-log"></div>';
+    document.body.prepend(d);
+    renderDiag();
+  });
+
+  document.addEventListener('alpine:init', () => {
+    diag('info', `alpine:init fired; Alpine = ${typeof window.Alpine}; .directive = ${typeof window.Alpine?.directive}`);
+  });
+
+  // Two seconds after load, drain the bundle's own diag log and check
+  // whether known directives actually applied classes to test elements.
+  window.addEventListener('load', () => setTimeout(() => {
+    (window._alpineBundleDiag || []).forEach(([c, m]) => diag(c, 'bundle: ' + m));
+    const tested = [
+      ['x-btn',  '[x-btn\\.xs\\.primary]', 'btn'],
+      ['x-tip',  '[x-tip\\.top]',          'tooltip'],
+      ['x-lines','[x-lines\\.gap-2]',      'flex'],
+    ];
+    tested.forEach(([name, sel, cls]) => {
+      const el = document.querySelector(sel);
+      if (!el) return diag('err', `${name}: no test element found`);
+      diag(el.classList.contains(cls) ? 'ok' : 'err',
+           `${name}: applied=${el.classList.contains(cls)}; classes="${el.className}"`);
+    });
+  }, 2000));
+</script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 

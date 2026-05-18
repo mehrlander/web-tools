@@ -160,8 +160,13 @@
     }
 
     document.addEventListener('alpine:init', () => {
-        registerMagics()
-        registerDirectives()
+        const diag = (cls, msg) => {
+            (window._alpineBundleDiag ||= []).push([cls, msg])
+        }
+        try { registerMagics();     diag('ok', 'magics registered') }
+        catch (e) { diag('err', 'registerMagics: ' + (e?.message || e)) }
+        try { registerDirectives(); diag('ok', 'directives registered') }
+        catch (e) { diag('err', 'registerDirectives: ' + (e?.message || e)) }
     })
 
     const load = (src, cb) => {
