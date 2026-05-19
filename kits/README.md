@@ -9,8 +9,8 @@ A **kit** is the third category of file in this repo, alongside:
 
 - **Root-level scaffolding** — `gh-fetch.js`, `alpine-bundle.js`,
   `beam-in.js`. One-of-a-kind singletons. `alpine-bundle.js` also owns
-  the Alpine-coupled `window.component.defineComponent` wrapper, so kits
-  can stay Alpine-free.
+  the Alpine-coupled `x-define` directive (custom-element registration
+  from a `<template>`), so kits can stay Alpine-free.
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
 - **`kits/*.js`** — logic libraries that register a namespace on
@@ -223,8 +223,9 @@ the importer doesn't drift from the page.
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
-here as `component.js` now lives in `alpine-bundle.js` — see the bundle
-demo at `pages/alpine-bundle-demo.html` for `defineComponent` examples.
+here as `component.js` now lives in `alpine-bundle.js` as the `x-define`
+directive — see the bundle demo at `pages/alpine-bundle-demo.html` for
+examples.
 
 | Kit | Demo | Notes |
 |---|---|---|

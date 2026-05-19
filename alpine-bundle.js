@@ -10,6 +10,16 @@
         Alpine.store('toast', toast)
         Alpine.magic('toast', () => toast)
 
+        // $attrs — reactive read of the host custom element's attributes,
+        // for templates registered via <template x-define="...">. Walks up
+        // to the nearest host whose connectedCallback stashed a reactive
+        // attrs object; outside such a host, returns {}.
+        Alpine.magic('attrs', (el) => {
+            let host = el
+            while (host && !host._defineAttrs) host = host.parentElement
+            return host?._defineAttrs ?? {}
+        })
+
         const ta = (el, fn, readOnly = true) => {
             const t = Object.assign(document.createElement('textarea'), { readOnly })
             t.className = 'absolute w-0 h-0 opacity-0'
@@ -56,14 +66,15 @@
         })
     }
 
-    // Small Alpine directives that decorate the host element via
-    // dot-modifiers. Three tiers: class shortcuts (x-tip, x-lines, x-btn,
-    // x-toolbar), reactive renderers (x-save-indicator, x-metric), and
-    // behavior wrappers (x-action). The class-shortcut tier mirrors
-    // helpers in kits/fills.js; the others are new. Modifier convention:
-    // known variant tokens get the directive-name prefix (e.g. 'primary'
-    // → 'btn-primary'); unknown tokens pass through as raw classes so
-    // callers can sprinkle in Tailwind utilities (x-btn.xs.shadow-md).
+    // Small Alpine directives. Four tiers: class shortcuts (x-tip, x-lines,
+    // x-btn, x-toolbar), reactive renderers (x-save-indicator, x-metric),
+    // behavior wrappers (x-action), and registration (x-define — custom
+    // element from a <template>). The class-shortcut tier mirrors helpers
+    // in kits/fills.js; the others are new. Modifier convention for
+    // decorating directives: known variant tokens get the directive-name
+    // prefix (e.g. 'primary' → 'btn-primary'); unknown tokens pass through
+    // as raw classes so callers can sprinkle in Tailwind utilities
+    // (x-btn.xs.shadow-md).
     const registerDirectives = () => {
 
         const BTN_VARIANTS = new Set([
@@ -139,6 +150,45 @@
             }))
         })
 
+        // x-define="kebab-tag"  — on a <template>, registers a custom
+        // element whose instances clone the template content and let Alpine
+        // initialize them in place. Host attributes flow in reactively via
+        // the $attrs magic. Data factories use the standard Alpine path
+        // (Alpine.data('name', fn) referenced by x-data inside the template).
+        // Warns if nested in an x-data subtree — custom-element registration
+        // is global, so scope-implied positioning is misleading.
+        Alpine.directive('define', (el, { expression }) => {
+            if (el.tagName !== 'TEMPLATE') {
+                console.warn(`x-define on <${el.tagName.toLowerCase()}>: expected <template>`)
+                return
+            }
+            const name = String(expression).toLowerCase()
+            if (!name.includes('-')) {
+                console.warn(`x-define="${name}": tag name needs a hyphen`)
+                return
+            }
+            if (customElements.get(name)) return
+            if (el.closest('[x-data]')) {
+                console.warn(`x-define="${name}": <template x-define> nested inside x-data; the registration is global, so the apparent scope is misleading. Move to top level.`)
+            }
+            const html = el.innerHTML
+
+            customElements.define(name, class extends HTMLElement {
+                connectedCallback() {
+                    if (this._defined) return
+                    this._defined = true
+                    const attrs = Alpine.reactive({})
+                    for (const a of this.attributes) attrs[a.name] = a.value
+                    this._defineAttrs = attrs
+                    new MutationObserver(() => {
+                        for (const a of this.attributes) attrs[a.name] = a.value
+                    }).observe(this, { attributes: true })
+                    this.innerHTML = html
+                    Alpine.initTree(this)
+                }
+            })
+        })
+
         // x-action[.confirm]="expr"  — wired click. With .confirm, first tap
         // arms (red, "Are you sure?") and second tap within 3s executes;
         // otherwise reverts.
@@ -176,67 +226,6 @@
         try { registerDirectives() }
         catch (e) { console.warn('alpine-bundle: registerDirectives failed:', e) }
     }
-
-    // window.component — thin wrapper for registering an Alpine-backed
-    // custom element. Lets a page declare <my-tag> via defineComponent(name,
-    // tplFn, dataFactory) without managing the custom-elements class or the
-    // x-data/x-init plumbing. After Alpine binds, the reactive data is
-    // stashed on the host as host.__data; an optional onMount(host) on that
-    // data runs once. Lives in this bundle (rather than kits/) because it
-    // depends on Alpine — kits stay Alpine-free by convention.
-    ;(() => {
-        const registry = new Map() // name -> { tplFn, dataFactory }
-
-        const defineComponent = (name, tplFn, dataFactory = () => ({})) => {
-            name = String(name).toLowerCase()
-            if (!name.includes('-')) {
-                throw new Error(`component: tag name "${name}" needs a hyphen`)
-            }
-            if (customElements.get(name)) {
-                console.warn(`component: <${name}> already defined; ignoring`)
-                return
-            }
-            registry.set(name, { tplFn, dataFactory })
-
-            class C extends HTMLElement {
-                connectedCallback() {
-                    if (this._kitMounted) return
-                    this._kitMounted = true
-                    const attrs = {}
-                    for (const a of this.attributes) attrs[a.name] = a.value
-                    this.innerHTML =
-                        `<div x-data="window.component.mk($el.closest('${name}'))"
-                              x-init="window.component.bind($el.closest('${name}'), $data)">
-                            ${tplFn(attrs)}
-                        </div>`
-                    const init = () => window.Alpine.initTree(this)
-                    window.Alpine ? init() : document.addEventListener('alpine:init', init, { once: true })
-                }
-            }
-            customElements.define(name, C)
-        }
-
-        const mk = (host) => {
-            const name = host.tagName.toLowerCase()
-            const entry = registry.get(name)
-            if (!entry) throw new Error(`component: no factory registered for <${name}>`)
-            const attrs = {}
-            for (const a of host.attributes) attrs[a.name] = a.value
-            return { ...entry.dataFactory(attrs), $attrs: attrs }
-        }
-
-        const bind = (host, data) => {
-            host.__data = data
-            if (typeof data.onMount === 'function') {
-                try { data.onMount(host) }
-                catch (e) { console.error(`component: onMount for <${host.tagName.toLowerCase()}> threw`, e) }
-            }
-        }
-
-        const find = (selector, root = document) => root.querySelector(selector)?.__data ?? null
-
-        window.component = { defineComponent, mk, bind, find }
-    })()
 
     // If Alpine already loaded (e.g. another script raced ahead and
     // alpine:init has already fired), register synchronously.
