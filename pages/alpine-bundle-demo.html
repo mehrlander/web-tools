@@ -13,20 +13,6 @@
     const gh = new GH({ repo: 'mehrlander/web-tools' });
     await gh.load('gh-auth.js');
     await gh.load('alpine-bundle.js');
-
-    // Component exhibit: a couple of custom elements registered via the
-    // window.component facility the bundle exposes.
-    const { defineComponent } = window.component;
-
-    defineComponent('demo-counter',
-      () => `<button class="btn btn-sm" @click="inc()" x-text="\`Count: \${count}\`"></button>`,
-      () => ({ count: 0, inc() { this.count++; } })
-    );
-
-    defineComponent('demo-greeting',
-      attrs => `<div>Hello, <b x-text="name"></b>! (passed start=${attrs.start ?? 0})</div>`,
-      attrs => ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
-    );
   } catch (e) {
     console.error('boot:', e);
     document.body.innerText = 'Boot failed: ' + (e?.message || e);
@@ -44,6 +30,21 @@
     </div>
   </template>
 </div>
+
+<!-- Custom-element registrations via x-define. Templates render nothing
+     visible; their <template> bodies become the cloned innerHTML of each
+     instance. -->
+<template x-define="demo-counter">
+  <div x-data="{ count: 0, inc() { this.count++ } }">
+    <button class="btn btn-sm" @click="inc()" x-text="`Count: ${count}`"></button>
+  </div>
+</template>
+
+<template x-define="demo-greeting">
+  <div x-data="{ name: $attrs.name ?? 'world' }">
+    Hello, <b x-text="name"></b>! (passed start=<span x-text="$attrs.start ?? 0"></span>)
+  </div>
+</template>
 
 <div class="max-w-3xl mx-auto px-4 py-8 space-y-10" x-data="{
   count: 0,
@@ -280,18 +281,23 @@
   </section>
 
   <!-- ==================================================================
-       Component wrapper
+       x-define
        ================================================================== -->
   <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Component wrapper</h2>
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">x-define <span class="opacity-50 font-normal text-sm">— custom-element registration</span></h2>
     <p class="opacity-60 text-xs">
-      <code>window.component.defineComponent(name, tplFn, dataFactory)</code>
-      registers a custom element backed by an Alpine <code>x-data</code>
-      factory. Lets a page declare <code>&lt;my-tag&gt;</code> without
-      writing a custom-elements class or wiring <code>x-data</code>/<code>x-init</code>.
-      After Alpine binds, the reactive data is stashed on the host as
-      <code>host.__data</code>; an optional <code>onMount(host)</code> on
-      that data runs once.
+      <code>&lt;template x-define="kebab-tag"&gt;…&lt;/template&gt;</code>
+      registers a custom element whose instances clone the template content
+      and let Alpine initialize them in place. Host attributes flow in
+      reactively via the <code>$attrs</code> magic. Data factories use the
+      standard Alpine path — <code>x-data</code> inside the template (with
+      <code>Alpine.data('name', fn)</code> for shared logic).
+    </p>
+    <p class="opacity-60 text-xs">
+      Custom-element registration is global; the directive warns if a
+      <code>&lt;template x-define&gt;</code> is nested inside an
+      <code>x-data</code> subtree, since the scope-implied positioning
+      would be misleading. Templates live at document level.
     </p>
     <p class="opacity-60 text-xs">
       Sits alongside the other path the repo uses for reusable Alpine
@@ -305,10 +311,12 @@
 
     <div>
       <h3 class="font-semibold mb-1">Self-contained counter</h3>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">defineComponent('demo-counter',
-  () =&gt; `&lt;button class="btn btn-sm" @click="inc()" x-text="`Count: ${count}`"&gt;&lt;/button&gt;`,
-  () =&gt; ({ count: 0, inc() { this.count++ } })
-);
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">&lt;template x-define="demo-counter"&gt;
+  &lt;div x-data="{ count: 0, inc() { this.count++ } }"&gt;
+    &lt;button class="btn btn-sm" @click="inc()" x-text="`Count: ${count}`"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
 &lt;demo-counter&gt;&lt;/demo-counter&gt;</pre>
       <div class="bg-base-200/40 rounded p-4">
         <demo-counter></demo-counter>
@@ -316,11 +324,19 @@
     </div>
 
     <div>
-      <h3 class="font-semibold mb-1">Reading attributes</h3>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">defineComponent('demo-greeting',
-  attrs =&gt; `&lt;div&gt;Hello, &lt;b x-text="name"&gt;&lt;/b&gt;! (passed start=${attrs.start ?? 0})&lt;/div&gt;`,
-  attrs =&gt; ({ name: attrs.name ?? 'world', start: Number(attrs.start ?? 0) })
-);
+      <h3 class="font-semibold mb-1">Reading attributes via $attrs</h3>
+      <p class="opacity-60 text-xs mb-3">
+        <code>$attrs</code> is a magic that returns the host element's
+        attributes as a reactive object. Use it inside any Alpine
+        expression in the template — <code>x-data</code> seed values,
+        <code>x-text</code>, <code>:class</code>, etc.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2">&lt;template x-define="demo-greeting"&gt;
+  &lt;div x-data="{ name: $attrs.name ?? 'world' }"&gt;
+    Hello, &lt;b x-text="name"&gt;&lt;/b&gt;! (passed start=&lt;span x-text="$attrs.start ?? 0"&gt;&lt;/span&gt;)
+  &lt;/div&gt;
+&lt;/template&gt;
+
 &lt;demo-greeting name="Ada" start="42"&gt;&lt;/demo-greeting&gt;</pre>
       <div class="bg-base-200/40 rounded p-4 space-y-1">
         <demo-greeting name="Ada" start="42"></demo-greeting>
@@ -331,21 +347,21 @@
     <div>
       <h3 class="font-semibold mb-1">Reaching into a component from outside</h3>
       <p class="opacity-60 text-xs mb-3">
-        <code>window.component.find(selector)</code> returns the bound
-        data object so other code can call its methods directly.
+        Each instance's reactive state lives in its inner
+        <code>x-data</code> scope. <code>Alpine.$data(el)</code> returns
+        that scope so other code can read or call into it directly.
       </p>
       <div class="bg-base-200/40 rounded p-4 flex items-center gap-3 flex-wrap">
         <demo-counter id="external-target"></demo-counter>
-        <button class="btn btn-xs btn-primary" onclick="window.component.find('#external-target').inc()">+1 from outside</button>
-        <button class="btn btn-xs" onclick="alert(JSON.stringify({ count: window.component.find('#external-target').count }))">peek state</button>
+        <button class="btn btn-xs btn-primary" onclick="Alpine.$data(document.querySelector('#external-target [x-data]')).inc()">+1 from outside</button>
+        <button class="btn btn-xs" onclick="alert(JSON.stringify({ count: Alpine.$data(document.querySelector('#external-target [x-data]')).count }))">peek state</button>
       </div>
     </div>
   </section>
 
   <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
     <p>
-      Magics, directives, dropdown handler, and the <code>window.component</code>
-      wrapper all live in
+      Magics, directives, and the dropdown handler all live in
       <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>.
       <code>kits/fills.js</code> is the Alpine-free string-helper counterpart.
     </p>
