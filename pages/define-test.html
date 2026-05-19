@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>x-define — isolated test</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<script>
+  // Capture console output before anything else runs so we can show it
+  // on the page. Mirrors to the original console too.
+  window.__log = []
+  const __push = (level, args) => {
+    try {
+      window.__log.push({
+        t: performance.now().toFixed(1),
+        level,
+        msg: args.map(a => {
+          if (a instanceof Error) return a.stack || a.message
+          if (typeof a === 'object') {
+            try { return JSON.stringify(a) } catch { return String(a) }
+          }
+          return String(a)
+        }).join(' ')
+      })
+    } catch {}
+  }
+  ;['log','info','warn','error','debug'].forEach(k => {
+    const orig = console[k].bind(console)
+    console[k] = (...a) => { __push(k, a); orig(...a) }
+  })
+  window.addEventListener('error', e => __push('error', ['window.onerror:', e.message, 'at', e.filename + ':' + e.lineno]))
+  window.addEventListener('unhandledrejection', e => __push('error', ['unhandledrejection:', e.reason?.stack || e.reason]))
+</script>
+
+<script type="module">
+  // Match the boot pattern used by alpine-bundle-demo.html so this page
+  // exercises the exact same load path. URL ?ref=<branch|sha> lets us
+  // point at a feature branch instead of main.
+  try {
+    const params = new URLSearchParams(location.search)
+    const ref = params.get('ref') || 'main'
+    window.__bundleRef = ref
+    const { default: GH } = await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`)
+    window.GH = GH
+    const gh = new GH({ repo: 'mehrlander/web-tools', ref })
+    await gh.load('gh-auth.js')
+    await gh.load('alpine-bundle.js')
+    window.__bundleLoaded = true
+  } catch (e) {
+    console.error('boot:', e)
+    window.__bundleError = e?.message || String(e)
+  }
+</script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<!-- Vanilla-JS pre-Alpine boot strip. Stays visible if Alpine never loads
+     so the page can still report what went wrong. -->
+<div id="pre-boot" style="position:sticky;top:0;z-index:60;background:#111;color:#eee;padding:6px 12px;font:11px/1.4 ui-monospace,monospace;border-bottom:1px solid #333">
+  <span id="pre-boot-text">booting…</span>
+</div>
+<script>
+  (function () {
+    const el = document.getElementById('pre-boot-text')
+    const fmt = () => {
+      const ref = window.__bundleRef || '(unknown)'
+      const bundle = window.__bundleLoaded ? 'loaded' : (window.__bundleError ? 'error: ' + window.__bundleError : 'pending')
+      const alpine = window.Alpine ? ('v' + (window.Alpine.version || '?')) : 'missing'
+      const defReg = !!customElements.get('define-counter')
+      const errCount = (window.__log || []).filter(e => e.level === 'error' || e.level === 'warn').length
+      el.textContent = `boot · ref=${ref} · bundle=${bundle} · Alpine=${alpine} · define-counter=${defReg ? 'registered' : 'NOT registered'} · warn/err=${errCount}`
+    }
+    fmt()
+    const t = setInterval(fmt, 250)
+    setTimeout(() => clearInterval(t), 8000)
+  })()
+</script>
+
+<!-- Toast renderer -->
+<div x-data class="toast toast-top toast-end z-50">
+  <template x-for="t in $store.toasts" :key="t.id">
+    <div :class="['alert', t.cls, 'shadow-lg']">
+      <i :class="['ph', 'ph-' + t.icon]"></i>
+      <span x-text="t.msg"></span>
+    </div>
+  </template>
+</div>
+
+<!-- ===== x-define registrations (top-level, outside any x-data) ===== -->
+
+<template x-define="define-counter">
+  <div x-data="{ count: 0, inc() { this.count++ } }" data-marker="define-counter-root">
+    <button class="btn btn-sm btn-primary" @click="inc()" x-text="`Count: ${count}`"></button>
+  </div>
+</template>
+
+<template x-define="define-greeting">
+  <div x-data="{ name: $attrs.name ?? 'world' }" data-marker="define-greeting-root">
+    Hello, <b x-text="name"></b>! (start=<span x-text="$attrs.start ?? 0"></span>)
+  </div>
+</template>
+
+<template x-define="define-static">
+  <div data-marker="define-static-root">
+    <span class="badge badge-success">static-rendered</span> no x-data, no $attrs — just template content.
+  </div>
+</template>
+
+<!-- Edge case: missing hyphen. The directive should warn and not register. -->
+<template x-define="badnodash">
+  <div>this should never render — name has no hyphen</div>
+</template>
+
+<!-- Edge case: nested inside x-data. Should still register, but warn. -->
+<div x-data="{ outerLabel: 'outer-scope' }">
+  <template x-define="define-nested">
+    <div data-marker="define-nested-root">
+      <span class="badge badge-warning">defined-while-nested</span>
+      <span class="ml-2">(was registered from inside an x-data subtree)</span>
+    </div>
+  </template>
+</div>
+
+<div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
+
+  <header>
+    <div class="flex items-baseline justify-between mb-1">
+      <h1 class="text-2xl font-bold tracking-tight">x-define — isolated test</h1>
+      <a href="index.html" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> web-tools
+      </a>
+    </div>
+    <p class="opacity-60 text-xs">
+      Strips everything but
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">x-define</a>
+      and runs a battery of cases with on-page diagnostics. Append
+      <code>?ref=&lt;branch-or-sha&gt;</code> to load the bundle from a feature branch instead of main.
+    </p>
+  </header>
+
+  <!-- ============ Diagnostics panel ============ -->
+  <section x-data="diag()" x-init="run()" class="border border-base-300 rounded-lg">
+    <header class="px-4 py-2 bg-base-200 flex items-center justify-between rounded-t-lg">
+      <h2 class="font-bold">Diagnostics</h2>
+      <div class="flex gap-2">
+        <button class="btn btn-xs" @click="run()">re-check</button>
+        <button class="btn btn-xs btn-ghost" @click="showLog = !showLog" x-text="showLog ? 'hide log' : 'show log'"></button>
+      </div>
+    </header>
+
+    <div class="p-4 space-y-3">
+      <!-- Boot status -->
+      <div>
+        <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">Boot</div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+          <template x-for="row in boot" :key="row.k">
+            <div class="flex justify-between gap-2 border-b border-base-200 py-0.5">
+              <span class="opacity-70" x-text="row.k"></span>
+              <span :class="row.ok === true ? 'text-success' : row.ok === false ? 'text-error' : 'opacity-70'"
+                    x-text="row.v"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Custom-element registry view -->
+      <div>
+        <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">Custom elements (whatwg registry)</div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+          <template x-for="row in registry" :key="row.name">
+            <div class="flex justify-between gap-2 border-b border-base-200 py-0.5">
+              <span class="opacity-70" x-text="row.name"></span>
+              <span :class="row.ok ? 'text-success' : 'text-error'" x-text="row.label"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Per-instance inspection -->
+      <div>
+        <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">Live instances (querySelector after init)</div>
+        <div class="space-y-1 text-xs">
+          <template x-for="row in instances" :key="row.sel">
+            <div class="border-b border-base-200 py-0.5">
+              <div class="flex justify-between gap-2">
+                <span class="opacity-70" x-text="row.sel"></span>
+                <span :class="row.upgraded ? 'text-success' : 'text-error'"
+                      x-text="row.found ? (row.upgraded ? 'upgraded ✓' : 'NOT upgraded') : 'not in DOM'"></span>
+              </div>
+              <div class="pl-3 text-[10px] opacity-60 space-y-0.5" x-show="row.found">
+                <div>connected: <span x-text="row.connected"></span></div>
+                <div>has children: <span x-text="row.hasKids"></span> (count: <span x-text="row.kidCount"></span>)</div>
+                <div>has $data: <span x-text="row.hasData"></span></div>
+                <div x-show="row.dataPeek">$data peek: <span x-text="row.dataPeek"></span></div>
+                <div x-show="row.error" class="text-error">error: <span x-text="row.error"></span></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Console capture -->
+      <div x-show="showLog">
+        <div class="text-[10px] uppercase tracking-wider opacity-50 mb-1">Console capture (since page load)</div>
+        <pre class="bg-base-300 rounded p-2 text-[10px] whitespace-pre-wrap max-h-64 overflow-auto" x-text="logText"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Test cases ============ -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Test cases</h2>
+
+    <!-- Case 1: basic counter -->
+    <div>
+      <h3 class="font-semibold mb-1">1. Basic counter (internal x-data)</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: a button labeled "Count: 0" that increments on click. If the box
+        renders empty, the host element exists but its template body never landed.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 min-h-[3rem]">
+        <define-counter id="t-counter"></define-counter>
+      </div>
+    </div>
+
+    <!-- Case 2: $attrs -->
+    <div>
+      <h3 class="font-semibold mb-1">2. $attrs reactive read</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: two greetings — "Hello, Ada! (start=42)" and "Hello, Grace! (start=7)".
+      </p>
+      <div class="bg-base-200/40 rounded p-4 space-y-1 min-h-[3rem]">
+        <define-greeting id="t-greet-1" name="Ada" start="42"></define-greeting>
+        <define-greeting id="t-greet-2" name="Grace" start="7"></define-greeting>
+      </div>
+      <div class="mt-2 flex gap-2">
+        <button class="btn btn-xs" onclick="document.getElementById('t-greet-1').setAttribute('name', 'Lovelace-' + Date.now() % 1000)">mutate name on #1</button>
+        <span class="text-xs opacity-60 self-center">— $attrs should react via the MutationObserver.</span>
+      </div>
+    </div>
+
+    <!-- Case 3: pure static template (no x-data) -->
+    <div>
+      <h3 class="font-semibold mb-1">3. Static template (no inner x-data)</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: the template body renders even without an inner x-data block.
+        If this case works but case 1 doesn't, the issue is with Alpine.initTree of
+        the cloned content, not with the upgrade itself.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 min-h-[3rem]">
+        <define-static id="t-static"></define-static>
+      </div>
+    </div>
+
+    <!-- Case 4: external Alpine.$data reach-in -->
+    <div>
+      <h3 class="font-semibold mb-1">4. External Alpine.$data() reach-in</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: clicking "+1 from outside" increments the inner counter. Verifies
+        that the cloned content's x-data scope was actually initialized.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 flex items-center gap-3 flex-wrap min-h-[3rem]">
+        <define-counter id="t-ext"></define-counter>
+        <button class="btn btn-xs btn-primary"
+                onclick="try {
+                  const inner = document.querySelector('#t-ext [x-data]')
+                  if (!inner) { alert('no [x-data] child found inside #t-ext'); return }
+                  Alpine.$data(inner).inc()
+                } catch (e) { alert('reach-in failed: ' + e.message) }">+1 from outside</button>
+        <button class="btn btn-xs"
+                onclick="try {
+                  const inner = document.querySelector('#t-ext [x-data]')
+                  alert(inner ? JSON.stringify({ count: Alpine.$data(inner).count }) : 'no [x-data] child')
+                } catch (e) { alert('peek failed: ' + e.message) }">peek state</button>
+      </div>
+    </div>
+
+    <!-- Case 5: nested-template warning -->
+    <div>
+      <h3 class="font-semibold mb-1">5. Defined while nested inside x-data</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: the directive warns to the console but still registers the element.
+        Look for the warning in the Diagnostics → Console capture panel above.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 min-h-[3rem]">
+        <define-nested id="t-nested"></define-nested>
+      </div>
+    </div>
+
+    <!-- Case 6: invalid name (no hyphen) -->
+    <div>
+      <h3 class="font-semibold mb-1">6. Invalid name (no hyphen)</h3>
+      <p class="opacity-60 text-xs mb-2">
+        Expected: the directive warns and does NOT register. The tag below should
+        remain an HTMLUnknownElement and the box stays empty.
+      </p>
+      <div class="bg-base-200/40 rounded p-4 min-h-[2rem]">
+        <badnodash id="t-bad"></badnodash>
+      </div>
+    </div>
+
+    <!-- Raw DOM inspection -->
+    <div>
+      <h3 class="font-semibold mb-1">Raw DOM snapshot</h3>
+      <p class="opacity-60 text-xs mb-2">
+        innerHTML of each test host as the browser sees it after init. If a host's
+        innerHTML is empty, the template body never made it in.
+      </p>
+      <div x-data="{ snaps: [], grab() {
+              this.snaps = ['#t-counter','#t-greet-1','#t-greet-2','#t-static','#t-ext','#t-nested','#t-bad'].map(sel => {
+                const el = document.querySelector(sel)
+                return { sel, html: el ? (el.innerHTML.trim() || '(empty)') : '(missing)' }
+              })
+            }" x-init="setTimeout(() => grab(), 200)">
+        <button class="btn btn-xs mb-2" @click="grab()">re-snapshot</button>
+        <pre class="bg-base-300 rounded p-2 text-[10px] whitespace-pre-wrap max-h-72 overflow-auto"><template x-for="s in snaps" :key="s.sel"><span><span x-text="s.sel + ':\n'"></span><span x-text="s.html + '\n\n'"></span></span></template></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
+    <p>
+      Bundle source:
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>.
+      Loaded from <code x-data x-text="window.__bundleRef || '(unknown)'"></code> branch via
+      jsDelivr (override with <code>?ref=…</code>).
+    </p>
+  </footer>
+</div>
+
+<script>
+  // Diagnostics factory. Registered after alpine:init, before walk.
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('diag', () => ({
+      boot: [],
+      registry: [],
+      instances: [],
+      showLog: false,
+      logText: '',
+      run() {
+        const A = window.Alpine
+        this.boot = [
+          { k: 'window.Alpine',           v: A ? 'present' : 'missing',                                                ok: !!A },
+          { k: 'Alpine.version',          v: A?.version ?? '(none)',                                                   ok: !!A?.version },
+          { k: 'Alpine.directive',        v: typeof A?.directive,                                                      ok: typeof A?.directive === 'function' },
+          { k: 'Alpine.initTree',         v: typeof A?.initTree,                                                       ok: typeof A?.initTree === 'function' },
+          { k: 'Alpine.$data',            v: typeof A?.$data,                                                          ok: typeof A?.$data === 'function' },
+          { k: 'Alpine.store("toasts")',  v: Array.isArray(A?.store?.('toasts')) ? 'array' : '(not array)',            ok: Array.isArray(A?.store?.('toasts')) },
+          { k: 'alpine-bundle loaded',    v: window.__bundleLoaded ? 'yes' : (window.__bundleError || 'no'),           ok: !!window.__bundleLoaded },
+          { k: 'bundle ref',              v: window.__bundleRef ?? '(unknown)',                                        ok: null }
+        ]
+
+        const want = { 'define-counter': true, 'define-greeting': true, 'define-static': true, 'define-nested': true, 'badnodash': false }
+        this.registry = Object.keys(want).map(name => {
+          const got = !!customElements.get(name)
+          const expected = want[name]
+          return {
+            name: name + (expected ? '' : ' (should NOT register)'),
+            ok: got === expected,
+            label: got ? 'registered' : 'not registered'
+          }
+        })
+
+        const selectors = [
+          '#t-counter', '#t-greet-1', '#t-greet-2',
+          '#t-static',  '#t-ext',     '#t-nested',  '#t-bad'
+        ]
+        this.instances = selectors.map(sel => {
+          const el = document.querySelector(sel)
+          if (!el) return { sel, found: false }
+          const inner = el.querySelector('[x-data]')
+          let dataPeek = '', hasData = false, error = ''
+          try {
+            if (inner && A?.$data) {
+              const d = A.$data(inner)
+              hasData = !!d
+              const keys = Object.keys(d || {}).filter(k => !k.startsWith('_') && !k.startsWith('$'))
+              dataPeek = keys.slice(0, 4).map(k => {
+                let v
+                try { v = d[k]; if (typeof v === 'function') v = '[fn]' } catch { v = '?' }
+                return `${k}=${JSON.stringify(v)}`
+              }).join(', ')
+            }
+          } catch (e) { error = e.message }
+          return {
+            sel,
+            found: true,
+            connected: el.isConnected,
+            upgraded: !!el._defined,
+            hasKids: el.children.length > 0,
+            kidCount: el.children.length,
+            hasData,
+            dataPeek,
+            error
+          }
+        })
+
+        this.logText = (window.__log || []).map(e => `[${e.t.padStart(7)} ${e.level.padEnd(5)}] ${e.msg}`).join('\n')
+      }
+    }))
+  })
+
+  // Re-run the diag panel a moment after load so upgrade + initTree have settled.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const root = document.querySelector('[x-data^="diag"]')
+      if (root && window.Alpine) {
+        try { Alpine.$data(root).run() } catch {}
+      }
+    }, 300)
+  })
+</script>
+
+</body>
+</html>
