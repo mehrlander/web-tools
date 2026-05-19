@@ -13,11 +13,7 @@ Three shapes have emerged:
   Interacts with `window.opener` and makes HTTP requests where an
   independent page would trip over CORS restrictions.
 
-The categories interconnect. Console snippets, kept in DevTools rather
-than the bookmark bar, could be considered a fourth. Popups are
-themselves a hybrid: the page is the artifact, but it usually ships as a
-bookmarklet that writes the HTML into a new window and closes the
-document.
+Console snippets kept in DevTools could be considered a fourth. Popups are essentially a page launched as a bookmarklet:
 
 ```js
 const launchPopup = h => {
@@ -28,6 +24,12 @@ const launchPopup = h => {
 
 launchPopup('<h1>Test</h1><button onclick="window.opener.document.body.style.background=\'red\'">Red</button>');
 ```
+
+These formats are fundamentally awkward.  Challenges arise:
+- Workflow (storing and updating code), given size limits and needed escapement
+- Functionality (persisting data, reaching other files, and communicating between domains or windows).
+
+The workflow constraint can be addressed with a helper page for converting to and from.
 
 As a library, the base is a module that reads and writes against this
 repo, using an API token (the `🎟️GitHubToken` sentinel or
