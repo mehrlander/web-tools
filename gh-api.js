@@ -71,23 +71,13 @@ export default class GH {
   }
 }
 
-// Auto-bootstrap when loaded from a jsDelivr @<ref> URL. Parses owner/
-// repo/ref out of import.meta.url, instantiates window.gh ready to use,
-// and chains gh-auth.js so pages can collapse boot to:
-//
-//   <script type="module">
-//     const r = new URLSearchParams(location.search).get('use') || 'main'
-//     await import(`https://cdn.jsdelivr.net/gh/<owner>/<repo>@${r}/gh-api.js`)
-//     await gh.load(...)   // page-specific from here
-//   </script>
-//
-// The ?use=<branch|tag|sha> convention is page-side: each page reads it
-// and embeds it into the import URL. Subsequent gh.load() calls inherit
-// the ref through this.ref on the GH instance. Skipped silently in
-// non-browser contexts and when not loaded via a jsDelivr @<ref> URL.
-const __m = import.meta.url.match(/\/\/cdn\.jsdelivr\.net\/gh\/([^/]+\/[^/@]+)@(.+?)\/gh-api\.js/);
-if (__m && typeof window !== 'undefined') {
-  const [, repo, ref] = __m;
+// Auto-bootstrap when loaded from a jsDelivr @<ref> URL: parses the
+// ref out of import.meta.url and exposes a ready-to-use window.gh.
+// See README.md for the ?use= page convention.
+const m = typeof window !== 'undefined' &&
+  import.meta.url.match(/\/\/cdn\.jsdelivr\.net\/gh\/([^/]+\/[^/@]+)@(.+?)\/gh-api\.js/);
+if (m) {
+  const [, repo, ref] = m;
   window.GH = GH;
   window.gh = new GH({ repo, ref });
   window.__bundleRef = ref;

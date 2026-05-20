@@ -28,11 +28,7 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 > Session diff: [main...feature-name-abc12](https://github.com/<owner>/<repo>/compare/main...claude/feature-name-abc12)
 
-**Live demo on the branch.** When the change affects a runtime-loaded module (anything `gh.load`-ed by a page), include a link to a demo page that exercises it, with the branch pinned via the `?use=` query parameter. The HTML always comes from main on GitHub Pages, but pages that honor the `?use=<branch|tag|sha>` convention will load their bundle modules from that ref at runtime — so the user taps one link and sees the change running, no merge required.
-
-> Demo: [pages/define-test.html on this branch](https://mehrlander.github.io/web-tools/pages/define-test.html?use=claude/feature-name-abc12)
-
-The convention is opt-in per page. Pages that adopt it read `?use=` at boot and embed it into the bundle's import URL; everything downstream of `gh-api.js` inherits the ref. For freshly-pushed commits, pass the commit SHA in `?use=` instead of the branch name — jsDelivr caches branch tips for ~12h. See `README.md` for the canonical boot block.
+**Test page on the branch.** GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
 
 **Don't reach for external preview services.** If the repo is private, render proxies (htmlpreview.github.io, raw.githack.com, and similar) won't resolve. The blob view via `[new]` is the canonical file view for every file type. Markdown renders directly there; code gets syntax highlighting.
 
@@ -42,7 +38,7 @@ The convention is opt-in per page. Pages that adopt it read `?use=` at boot and 
 - Commit diff: `https://github.com/<owner>/<repo>/commit/<sha>`
 - Branch tree: `https://github.com/<owner>/<repo>/tree/<branch>`
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
-- Live demo on a ref: `https://mehrlander.github.io/web-tools/pages/<demo>.html?use=<ref>`
+- Page on a ref: `https://mehrlander.github.io/web-tools/pages/<page>.html?use=<ref>`
 
 ## Post-merge handoff
 

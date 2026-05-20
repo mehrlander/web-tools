@@ -167,7 +167,7 @@ The shape of a loaded page in one block:
 </script>
 ```
 
-The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every module the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a demo for review is a one-URL change with no per-branch hosting — append `?use=feature-x` to any page that adopts the convention. For freshly-pushed commits, prefer the SHA — jsDelivr caches branch tips for ~12h.
+The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any page that adopts the convention. For freshly-pushed commits, prefer the SHA, since jsDelivr caches branch tips for ~12h.
 
 Recent pages that make good templates:
 

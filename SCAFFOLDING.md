@@ -49,11 +49,11 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
 `x-data="viewer()"`.
 
 The `?use=` convention is opt-in per page. Pages that adopt it gain a runtime
-ref-pinning hatch: append `?use=<branch-or-sha>` to the URL and every module
+ref-pinning hatch: append `?use=<branch-or-sha>` to the URL and every file
 loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
-still comes from GitHub Pages on main; only the modules under test are
+still comes from GitHub Pages on main; only the runtime-loaded files are
 ref-pinned. Older pages that hard-code the bundle URL without `@<ref>` are
-unaffected — the auto-bootstrap inside `gh-api.js` only triggers when the
+unaffected; the auto-bootstrap inside `gh-api.js` only triggers when the
 import URL carries an `@<ref>` segment.
 
 ### What each piece contributes
@@ -68,8 +68,8 @@ import URL carries an `@<ref>` segment.
   `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/gh-api.js` URL, the file parses
   owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
   `window.__bundleRef`, and chains in `gh-auth.js`. Pages can then skip
-  `new GH(...)` and `gh.load('gh-auth.js')` boilerplate — read `?use=` from
-  the page URL, embed it in the bundle's import URL, and the rest follows.
+  `new GH(...)` and `gh.load('gh-auth.js')` boilerplate by reading `?use=`
+  from the page URL and embedding it in the bundle's import URL.
 - `gh-auth.js` — optional augmentation. Patches the `headers` getter so
   that any request with a missing or sentinel-bearing token (`🎟️GitHubToken`)
   lazily resolves from `localStorage.ghToken`. Lets a page do
