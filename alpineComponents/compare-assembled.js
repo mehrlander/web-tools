@@ -47,6 +47,16 @@ document.addEventListener('alpine:init', function() {
               <button @click="run()" :disabled="loading || !base || !head" class="btn btn-xs btn-primary gap-1">
                 <i class="ph ph-git-pull-request"></i>Compare
               </button>
+              <button x-show="currentRef && defaultRef && currentRef !== defaultRef"
+                @click="openWith(defaultRef, currentRef)"
+                :disabled="loading"
+                class="btn btn-xs btn-ghost gap-1"
+                :title="'Compare ' + currentRef + ' to ' + defaultRef">
+                <i class="ph ph-git-pull-request"></i>
+                <span class="font-mono" x-text="currentRef"></span>
+                <i class="ph ph-arrow-right opacity-50"></i>
+                <span class="font-mono" x-text="defaultRef"></span>
+              </button>
               <a x-show="data" :href="ghCompareUrl" target="_blank" class="btn btn-xs btn-ghost gap-1">
                 <i class="ph ph-arrow-square-out"></i>on GitHub
               </a>
@@ -141,7 +151,7 @@ document.addEventListener('alpine:init', function() {
             </template>
 
             <div x-show="!data && !loading && !error" class="text-xs opacity-60 italic">
-              Pick base + head and click Compare. Defaults to <span class="font-mono" x-text="defaultRef||'main'"></span> ... <span class="font-mono" x-text="currentRef||'main'"></span>.
+              Type Base and Head, then click Compare. Use the shortcut above to compare the current ref to the default branch.
             </div>
 
           </div>
@@ -167,15 +177,7 @@ document.addEventListener('alpine:init', function() {
         this.$nextTick(() => Alpine.initTree(this.$el));
         this.$watch(
           () => Alpine.store('browser').repo,
-          () => { this.data = null; this.error = ''; this.base = this.defaultRef; this.head = this.currentRef; }
-        );
-        this.$watch(
-          () => Alpine.store('browser').defaultRef,
-          (v) => { if (!this.base) this.base = v; }
-        );
-        this.$watch(
-          () => Alpine.store('browser').ref,
-          (v) => { if (v && (!this.head || this.head === Alpine.store('browser').defaultRef)) this.head = v; }
+          () => { this.data = null; this.error = ''; this.base = ''; this.head = ''; }
         );
       },
 
