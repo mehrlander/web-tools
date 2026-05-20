@@ -21,6 +21,8 @@ document.addEventListener('alpine:init', function() {
     };
 
     return {
+      description: 'GitHub branch/ref compare viewer with per-file diff status',
+
       template: `
         <button @click="open=!open" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
           <i class="ph" :class="open?'ph-caret-down':'ph-caret-right'"></i>Compare

@@ -167,6 +167,8 @@ document.addEventListener('alpine:init', function() {
   Alpine.data('viewer', function(opts) {
     opts = opts || {};
     return {
+      description: 'Multi-mode file viewer (raw, code, preview, image, etc.) with pluggable render modules',
+
       template: `
         <div class="flex items-center justify-between mb-2 gap-2" x-show="file">
           <div class="flex items-baseline gap-2 min-w-0">

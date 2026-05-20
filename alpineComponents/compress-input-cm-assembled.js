@@ -6,6 +6,8 @@ document.addEventListener('alpine:init', function() {
     const PATH_SEL   = ns + '.sel';
 
     return {
+      description: 'CodeMirror input panel for the compression helper with selection chunks',
+
       template: `
         <div class="absolute inset-0 flex flex-col">
           <div class="flex flex-wrap items-center gap-2 mb-2 flex-none">
