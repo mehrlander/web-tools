@@ -17,6 +17,8 @@ document.addEventListener('alpine:init', function () {
     opts = opts || {};
 
     return {
+      description: 'Sidebar tree of IndexedDB databases on this origin with store counts and filter',
+
       template: `
         <div class="flex flex-col h-full">
           <div class="p-3 border-b border-base-300">

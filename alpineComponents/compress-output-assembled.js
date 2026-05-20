@@ -31,6 +31,8 @@ document.addEventListener('alpine:init', function() {
     const DATA_URL_SOFT_CAP = 1_000_000;
 
     return {
+      description: 'Output panel for the compression helper; toggles raw, bookmarklet, or data URL',
+
       template: `
         <div class="absolute inset-0 flex flex-col">
           <div class="flex flex-wrap items-center gap-3 mb-2 flex-none">

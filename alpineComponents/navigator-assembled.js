@@ -5,6 +5,8 @@ document.addEventListener('alpine:init', function() {
     const stat = t => t.split('\n').length + ' lines · ' + (new Blob([t]).size / 1024).toFixed(1) + ' KB';
 
     return {
+      description: 'Repo file tree browser; loads directories and selects files via the browser store',
+
       template: `
         <div>
           <button @click="open=!open" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">

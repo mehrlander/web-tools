@@ -193,6 +193,11 @@ Recent pages that make good templates:
   `alpineComponents/` and add it to a page's `gh.load(...)` chain. No
   build step.
 
+Components can include an opt-in `description: '...'` field on the object
+returned from the factory. The FAB modal scans the page for `[x-data]`
+elements and surfaces the description next to the component name, so a
+one-sentence summary is enough.
+
 ## A note on `archive/`
 
 The repo's top-level `archive/` folder is reference material from earlier

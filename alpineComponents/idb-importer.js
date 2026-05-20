@@ -26,6 +26,8 @@ document.addEventListener('alpine:init', function () {
     opts = opts || {};
 
     return {
+      description: 'Modal that pulls records from any IndexedDB store into the data shelf collection',
+
       template: `
         <dialog x-ref="modal" class="modal modal-bottom sm:modal-middle backdrop-blur-md" @close="onClose()" @open-importer.window="open()">
           <div class="modal-box w-11/12 max-w-2xl flex flex-col p-0 overflow-hidden border border-base-300 bg-base-100 shadow-2xl">

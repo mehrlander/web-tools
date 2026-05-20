@@ -23,6 +23,8 @@ document.addEventListener('alpine:init', function () {
     opts = opts || {};
 
     return {
+      description: 'Minimal CodeMirror 6 editor; host wires toolbar, persistence, and language',
+
       value: opts.value ?? '',
       language: opts.language ?? 'plain',
       wrap: opts.wrap ?? true,

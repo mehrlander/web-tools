@@ -1,6 +1,8 @@
 document.addEventListener('alpine:init', function() {
     Alpine.data('repo', function() {
         return {
+            description: 'Repo picker with branch/tag/SHA switching for the GitHub browser store',
+
             repos: [],
             owner: '',
             name: '',

@@ -5,6 +5,8 @@ document.addEventListener('alpine:init', function() {
         const stat = t => t.split('\n').length + ' lines · ' + (new Blob([t]).size / 1024).toFixed(1) + ' KB';
 
         return {
+            description: 'Repo file tree browser; loads directories and selects files via the browser store',
+
             path: '',
             tree: [],
             loading: false,

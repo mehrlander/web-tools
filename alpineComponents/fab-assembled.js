@@ -47,19 +47,21 @@ document.addEventListener('alpine:init', function() {
               <div class="flex flex-col gap-1.5">
                 <template x-for="c in components" :key="c.name">
                   <div class="bg-base-200 rounded-lg p-2.5">
-                    <div class="flex items-baseline justify-between mb-0.5">
-                      <span class="font-mono text-sm font-semibold" x-text="c.name"></span>
-                      <span class="text-[10px] font-mono text-base-content/50">&times;<span x-text="c.count"></span></span>
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-baseline gap-1.5 min-w-0">
+                        <span class="font-mono text-sm font-semibold truncate" x-text="c.name"></span>
+                        <span class="text-[10px] font-mono text-base-content/50 shrink-0">&times;<span x-text="c.count"></span></span>
+                      </div>
+                      <div class="flex gap-0.5 shrink-0">
+                        <template x-for="link in linksFor(componentPath(c.name))" :key="link.l">
+                          <a :href="link.u" target="_blank" :title="link.l"
+                             class="size-7 flex items-center justify-center bg-base-100 hover:bg-base-300 rounded">
+                            <i class="ph text-sm" :class="link.i"></i>
+                          </a>
+                        </template>
+                      </div>
                     </div>
-                    <div x-show="c.description" class="text-xs text-base-content/70 mb-1.5" x-text="c.description"></div>
-                    <div class="flex gap-1">
-                      <template x-for="link in linksFor(componentPath(c.name))" :key="link.l">
-                        <a :href="link.u" target="_blank" :title="link.l"
-                           class="flex-1 flex items-center justify-center bg-base-100 hover:bg-base-300 rounded py-1.5">
-                          <i class="ph text-sm" :class="link.i"></i>
-                        </a>
-                      </template>
-                    </div>
+                    <div x-show="c.description" class="text-xs text-base-content/70 mt-1" x-text="c.description"></div>
                   </div>
                 </template>
               </div>
