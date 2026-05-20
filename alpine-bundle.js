@@ -157,7 +157,12 @@
         // (Alpine.data('name', fn) referenced by x-data inside the template).
         // Warns if nested in an x-data subtree — custom-element registration
         // is global, so scope-implied positioning is misleading.
-        Alpine.directive('define', (el, { expression }) => {
+        //
+        // Alpine only walks x-data subtrees, so top-level <template x-define>
+        // outside any x-data ancestor never triggers the directive. The
+        // post-init sweep below handles those; the directive itself covers
+        // templates inserted into an x-data subtree after walk time.
+        const defineFromTemplate = (el, expression) => {
             if (el.tagName !== 'TEMPLATE') {
                 console.warn(`x-define on <${el.tagName.toLowerCase()}>: expected <template>`)
                 return
@@ -187,6 +192,16 @@
                     Alpine.initTree(this)
                 }
             })
+        }
+
+        Alpine.directive('define', (el, { expression }) => defineFromTemplate(el, expression))
+
+        // Sweep the document for <template x-define> at init time. Alpine's
+        // walk skips anything outside an x-data subtree, so without this
+        // pass top-level definitions would silently no-op. The customElements
+        // guard above makes overlap with the directive path harmless.
+        document.querySelectorAll('template[x-define]').forEach(el => {
+            defineFromTemplate(el, el.getAttribute('x-define'))
         })
 
         // x-action[.confirm]="expr"  — wired click. With .confirm, first tap

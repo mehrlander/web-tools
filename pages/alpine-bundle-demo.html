@@ -7,11 +7,12 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own
+  // import URL and exposes window.gh; we just chain gh.load() from there.
   try {
-    const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
-    window.GH = GH;
-    const gh = new GH({ repo: 'mehrlander/web-tools' });
-    await gh.load('gh-auth.js');
+    const ref = new URLSearchParams(location.search).get('use') || 'main';
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
     await gh.load('alpine-bundle.js');
   } catch (e) {
     console.error('boot:', e);

@@ -154,16 +154,20 @@ The shape of a loaded page in one block:
 
 ```html
 <script type="module">
-  const REPO = 'mehrlander/web-tools', BRANCH = 'main';
-  const mod = await import(`https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`);
-  window.GH = mod.default;
-  const gh = new window.GH({ repo: REPO, ref: BRANCH });
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from;
+  // defaults to main. gh-api.js's auto-bootstrap parses owner/repo/ref
+  // from its own import URL, instantiates window.gh, and chains in
+  // gh-auth.js — so the page just calls gh.load() from here on.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
 
   await gh.load('kits/persistence.js');                   // logic kits
   await gh.load('alpineComponents/viewer-assembled.js');  // UI components
   await gh.load('alpine-bundle.js');                      // boots Alpine
 </script>
 ```
+
+The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any page that adopts the convention. For freshly-pushed commits, prefer the SHA, since jsDelivr caches branch tips for ~12h.
 
 Recent pages that make good templates:
 

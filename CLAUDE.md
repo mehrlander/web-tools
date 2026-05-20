@@ -28,6 +28,8 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 > Session diff: [main...feature-name-abc12](https://github.com/<owner>/<repo>/compare/main...claude/feature-name-abc12)
 
+**Test page on the branch.** GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
+
 **Don't reach for external preview services.** If the repo is private, render proxies (htmlpreview.github.io, raw.githack.com, and similar) won't resolve. The blob view via `[new]` is the canonical file view for every file type. Markdown renders directly there; code gets syntax highlighting.
 
 **URL templates for reference:**
@@ -36,6 +38,7 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 - Commit diff: `https://github.com/<owner>/<repo>/commit/<sha>`
 - Branch tree: `https://github.com/<owner>/<repo>/tree/<branch>`
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
+- Page on a ref: `https://mehrlander.github.io/web-tools/pages/<page>.html?use=<ref>`
 
 ## Post-merge handoff
 

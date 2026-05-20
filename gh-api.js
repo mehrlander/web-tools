@@ -70,3 +70,16 @@ export default class GH {
     return new TextDecoder().decode(Uint8Array.from(binString, c => c.charCodeAt(0)));
   }
 }
+
+// Auto-bootstrap when loaded from a jsDelivr @<ref> URL: parses the
+// ref out of import.meta.url and exposes a ready-to-use window.gh.
+// See README.md for the ?use= page convention.
+const m = typeof window !== 'undefined' &&
+  import.meta.url.match(/\/\/cdn\.jsdelivr\.net\/gh\/([^/]+\/[^/@]+)@(.+?)\/gh-api\.js/);
+if (m) {
+  const [, repo, ref] = m;
+  window.GH = GH;
+  window.gh = new GH({ repo, ref });
+  window.__bundleRef = ref;
+  await window.gh.load('gh-auth.js');
+}
