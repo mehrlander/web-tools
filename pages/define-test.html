@@ -35,17 +35,12 @@
 </script>
 
 <script type="module">
-  // Match the boot pattern used by alpine-bundle-demo.html so this page
-  // exercises the exact same load path. URL ?ref=<branch|sha> lets us
-  // point at a feature branch instead of main.
+  // ?use=<branch|tag|sha> picks where the bundle is loaded from. The
+  // auto-bootstrap inside gh-api.js parses owner/repo/ref from its own
+  // import URL and exposes window.gh, so the page just chains gh.load().
   try {
-    const params = new URLSearchParams(location.search)
-    const ref = params.get('ref') || 'main'
-    window.__bundleRef = ref
-    const { default: GH } = await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`)
-    window.GH = GH
-    const gh = new GH({ repo: 'mehrlander/web-tools', ref })
-    await gh.load('gh-auth.js')
+    const ref = new URLSearchParams(location.search).get('use') || 'main'
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`)
     await gh.load('alpine-bundle.js')
     window.__bundleLoaded = true
   } catch (e) {
@@ -136,7 +131,7 @@
       Strips everything but
       <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">x-define</a>
       and runs a battery of cases with on-page diagnostics. Append
-      <code>?ref=&lt;branch-or-sha&gt;</code> to load the bundle from a feature branch instead of main.
+      <code>?use=&lt;branch|tag|sha&gt;</code> to load the bundle from a feature branch instead of main.
     </p>
   </header>
 

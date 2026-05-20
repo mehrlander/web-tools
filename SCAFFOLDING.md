@@ -27,9 +27,13 @@ Every scaffolded page's `<head>` looks like this, with minor variation:
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href=".../daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script type="module">
-  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
-  window.GH = mod.default;
-  const gh = new window.GH({ token: TOKEN, repo: 'mehrlander/web-tools' });
+  // ?use=<branch|tag|sha> picks which ref the bundle loads from; defaults to main.
+  // gh-api.js auto-bootstraps from the URL it was imported by (parses owner/repo/ref
+  // out of import.meta.url, sets window.gh, loads gh-auth.js), so the page just
+  // chains gh.load() calls below.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+
   await gh.load('gh-fetch.js');                   // 0) augment GH with read methods
   // await gh.load('gh-store.js');                //    optional: write methods
 
@@ -44,6 +48,14 @@ The page body then has `<body x-data="app()" x-init="init()">` and the
 components each use `x-data="repo()"`, `x-data="navigator()"`,
 `x-data="viewer()"`.
 
+The `?use=` convention is opt-in per page. Pages that adopt it gain a runtime
+ref-pinning hatch: append `?use=<branch-or-sha>` to the URL and every module
+loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
+still comes from GitHub Pages on main; only the modules under test are
+ref-pinned. Older pages that hard-code the bundle URL without `@<ref>` are
+unaffected — the auto-bootstrap inside `gh-api.js` only triggers when the
+import URL carries an `@<ref>` segment.
+
 ### What each piece contributes
 
 - `gh-api.js` — ESM default export, `class GH`. Imported via
@@ -52,7 +64,12 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
   request/cache plumbing. Read methods (`ls / repos / history / …`) live in
   `gh-fetch.js`; write methods live in `gh-store.js`; token resolution
   lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
-  `GH.prototype` in place.
+  `GH.prototype` in place. **Auto-bootstrap:** when imported from a
+  `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/gh-api.js` URL, the file parses
+  owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
+  `window.__bundleRef`, and chains in `gh-auth.js`. Pages can then skip
+  `new GH(...)` and `gh.load('gh-auth.js')` boilerplate — read `?use=` from
+  the page URL, embed it in the bundle's import URL, and the rest follows.
 - `gh-auth.js` — optional augmentation. Patches the `headers` getter so
   that any request with a missing or sentinel-bearing token (`🎟️GitHubToken`)
   lazily resolves from `localStorage.ghToken`. Lets a page do
