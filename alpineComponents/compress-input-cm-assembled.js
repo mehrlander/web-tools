@@ -5,6 +5,27 @@ document.addEventListener('alpine:init', function() {
     const PATH_INPUT = ns + '.input';
     const PATH_SEL   = ns + '.sel';
 
+    const { tip } = window.fills;
+    const typeBadge = tip(
+      ['bottom', 'xs'],
+      `<span class="badge badge-sm badge-neutral" x-text="inputType"></span>`,
+      `<strong>Detected: <span x-text="inputType"></span></strong>
+       <div class="mt-2 flex flex-col gap-1">
+         <div :class="inputKind === 'compressed' && 'font-bold'">• Compressed: BR64: / GZ64: prefix</div>
+         <div :class="inputKind === 'dataUrl' && 'font-bold'">• Data URL: data: scheme</div>
+         <div :class="inputKind === 'js' && 'font-bold'">• JavaScript: parses as JS</div>
+         <div :class="inputKind === 'text' && 'font-bold'">• Text/HTML: fallback</div>
+       </div>
+       <template x-if="inputKind === 'dataUrl' && inputDetails">
+         <div class="mt-2 pt-2 border-t border-base-300 flex flex-col gap-1">
+           <div>Media: <span x-text="inputDetails.mediaType"></span></div>
+           <div>Encoding: <span x-text="inputDetails.encoding"></span></div>
+           <div>Body size: <span x-text="inputDetails.bodySize + ' bytes'"></span></div>
+           <div x-show="inputDetails.seed">Seed: <span x-text="inputDetails.seed?.alg"></span></div>
+         </div>
+       </template>`
+    );
+
     return {
       description: 'CodeMirror input panel for the compression helper with selection chunks',
 
@@ -12,7 +33,7 @@ document.addEventListener('alpine:init', function() {
         <div class="absolute inset-0 flex flex-col">
           <div class="flex flex-wrap items-center gap-2 mb-2 flex-none">
             <b>Input</b>
-            <span class="badge badge-sm badge-neutral" x-text="inputType"></span>
+            ${typeBadge}
             <div class="flex-1"></div>
             <button class="btn btn-xs" :class="sel ? 'btn-primary' : 'btn-ghost opacity-50'"
               x-text="sel ? 'Selection ('+sel.start+'-'+sel.end+')' : 'Selection'"></button>
@@ -37,7 +58,9 @@ document.addEventListener('alpine:init', function() {
       sel: null,
       chunks: [],
       isWrapped: true,
-      inputType: 'Text',
+      inputType: 'Text/HTML',
+      inputKind: 'text',
+      inputDetails: null,
 
       view: null,
       _modules: null,
@@ -154,17 +177,64 @@ document.addEventListener('alpine:init', function() {
       async detectType() {
         const { compression } = window;
         const effective = this.sel?.text || this.input;
-        const det = compression.text.detectCompressionType(effective.trim());
-        if (det) {
-          this.inputType = `Compressed (${det.alg === 'brotli' ? 'Brotli' : 'Gzip'})`;
+        const trimmed = effective.trim();
+
+        if (compression.text.detectCompressionType(trimmed)) {
+          this.inputKind = 'compressed';
+          this.applyLanguage('plain');
+        } else if (trimmed.startsWith('data:')) {
+          this.inputKind = 'dataUrl';
           this.applyLanguage('plain');
         } else if (await compression.acorn.isJS(effective)) {
-          this.inputType = 'JavaScript';
+          this.inputKind = 'js';
           this.applyLanguage('js');
         } else {
-          this.inputType = 'Text/HTML';
+          this.inputKind = 'text';
           this.applyLanguage('html');
         }
+
+        this.inspect();
+        return { kind: this.inputKind, label: this.inputType };
+      },
+
+      inspect() {
+        const { compression } = window;
+        const effective = this.sel?.text || this.input;
+        const trimmed = effective.trim();
+
+        if (this.inputKind === 'compressed') {
+          const det = compression.text.detectCompressionType(trimmed);
+          this.inputDetails = det;
+          this.inputType = `Compressed (${det.alg === 'brotli' ? 'Brotli' : 'Gzip'})`;
+        } else if (this.inputKind === 'dataUrl') {
+          const parsed = compression.text.fromDataUrl(trimmed);
+          if (parsed) {
+            const header = trimmed.slice(5, trimmed.indexOf(','));
+            const encoding = header.split(';').includes('base64') ? 'base64' : 'urlencoded';
+            const seed = parsed.seed ? compression.text.detectCompressionType(parsed.seed) : null;
+            this.inputDetails = {
+              mediaType: parsed.mediaType,
+              encoding,
+              params: parsed.params,
+              bodySize: parsed.body.length,
+              seed,
+            };
+            const bits = [parsed.mediaType];
+            if (seed) bits.push(`+${seed.alg} seed`);
+            this.inputType = `Data URL (${bits.join(', ')})`;
+          } else {
+            this.inputDetails = null;
+            this.inputType = 'Data URL (invalid)';
+          }
+        } else if (this.inputKind === 'js') {
+          this.inputDetails = null;
+          this.inputType = 'JavaScript';
+        } else {
+          this.inputDetails = null;
+          this.inputType = 'Text/HTML';
+        }
+
+        return this.inputDetails;
       },
 
       selectChunk(c) {
