@@ -168,9 +168,12 @@ document.addEventListener('alpine:init', function() {
     opts = opts || {};
     return {
       template: `
-        <div class="flex items-center justify-between mb-2" x-show="file">
-          <span class="text-xs text-base-content/50 font-mono" x-text="stats"></span>
-          <div class="flex items-center gap-0.5">
+        <div class="flex items-center justify-between mb-2 gap-2" x-show="file">
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-xs font-mono truncate" x-text="file" :title="file"></span>
+            <span class="text-xs text-base-content/50 font-mono whitespace-nowrap" x-text="stats"></span>
+          </div>
+          <div class="flex items-center gap-0.5 shrink-0">
             <template x-for="u in fileUrls">
               <a :href="u.u" target="_blank" class="btn btn-sm btn-square btn-ghost hover:text-primary">
                 <i class="ph text-lg" :class="u.i"></i>
