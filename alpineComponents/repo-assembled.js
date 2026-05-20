@@ -17,7 +17,7 @@ document.addEventListener('alpine:init', function() {
                 </ul>
               </details>
               <span class="text-base-content/30 text-sm" x-show="repo">@</span>
-              <details class="dropdown dropdown-bottom" x-show="repo" @toggle="if($event.target.open) loadBranches()">
+              <details class="dropdown dropdown-bottom" x-show="repo" @toggle="if($event.target.open) $store.browser.ensureBranches()">
                 <summary class="cursor-pointer flex items-center gap-1 text-sm hover:underline decoration-2 underline-offset-4"
                   :class="offMain ? 'text-warning' : 'text-base-content/70'">
                   <i class="ph" :class="offMain ? 'ph-git-branch' : 'ph-git-commit'"></i>
@@ -39,18 +39,18 @@ document.addEventListener('alpine:init', function() {
                     </button>
                   </div>
                   <div class="text-xs font-bold mb-1 opacity-70">Branches</div>
-                  <div x-show="branchesLoading" class="flex justify-center py-2">
+                  <div x-show="$store.browser.branchesLoading" class="flex justify-center py-2">
                     <span class="loading loading-dots loading-xs opacity-50"></span>
                   </div>
-                  <div x-show="!branchesLoading" class="max-h-48 overflow-y-auto">
-                    <template x-for="b in branchList" :key="b.name">
+                  <div x-show="!$store.browser.branchesLoading" class="max-h-48 overflow-y-auto">
+                    <template x-for="b in $store.browser.branches" :key="b.name">
                       <a @click="setRef(b.name); $el.closest('details').open = false" class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-xs font-mono"
                         :class="b.name === ref ? 'bg-primary/10 text-primary font-bold' : ''">
                         <i class="ph ph-git-branch text-xs opacity-50"></i>
                         <span class="truncate" x-text="b.name"></span>
                       </a>
                     </template>
-                    <div x-show="!branchesLoading && !branchList.length" class="text-xs opacity-50 py-1">No branches loaded.</div>
+                    <div x-show="!$store.browser.branchesLoading && !$store.browser.branches.length" class="text-xs opacity-50 py-1">No branches loaded.</div>
                   </div>
                 </div>
               </details>
@@ -134,9 +134,6 @@ document.addEventListener('alpine:init', function() {
       ref: '',
       defaultRef: '',
       refInput: '',
-      branchList: [],
-      branchesLoading: false,
-      branchesLoaded: false,
 
       init() {
         this.$root.__repo = this;
@@ -215,8 +212,6 @@ document.addEventListener('alpine:init', function() {
         this.repoObj = r;
         this.defaultRef = r.default_branch || 'main';
         this.ref = opts.ref || this.defaultRef;
-        this.branchList = [];
-        this.branchesLoaded = false;
         const gh = Alpine.store('browser').gh;
         gh.repo = r.full_name;
         gh.ref = this.ref;
@@ -225,6 +220,7 @@ document.addEventListener('alpine:init', function() {
         Alpine.store('browser').activeFile = null;
         Alpine.store('browser').ref = this.ref;
         Alpine.store('browser').defaultRef = this.defaultRef;
+        Alpine.store('browser').resetBranches();
         const navEl = document.getElementById('navigator');
         while(!navEl.__navigator) await new Promise(r => setTimeout(r, 50));
         navEl.__navigator.reset();
@@ -259,19 +255,6 @@ document.addEventListener('alpine:init', function() {
           this.setRef(v);
         }
         this.refInput = '';
-      },
-
-      async loadBranches() {
-        if (this.branchesLoaded || this.branchesLoading) return;
-        this.branchesLoading = true;
-        try {
-          const list = await this.gh.branches();
-          this.branchList = list.map(b => ({ name: b.name, sha: b.commit?.sha }));
-          this.branchesLoaded = true;
-        } catch (e) {
-          Alpine.store('toast')('warning', 'Could not load branches: ' + (e.message || e), 'alert-error', 4000);
-        }
-        this.branchesLoading = false;
       },
 
       openCompare() {

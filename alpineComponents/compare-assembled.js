@@ -35,15 +35,22 @@ document.addEventListener('alpine:init', function() {
             <div class="flex flex-wrap items-end gap-2">
               <div class="flex flex-col">
                 <label class="text-[10px] font-bold opacity-70 uppercase">Base</label>
-                <input x-model="base" placeholder="main"
+                <input x-model="base" placeholder="main" list="compare-branches"
+                  @focus="$store.browser.ensureBranches()"
                   class="input input-xs input-bordered font-mono text-xs w-44">
               </div>
               <div class="flex items-center pb-1.5 opacity-50">...</div>
               <div class="flex flex-col">
                 <label class="text-[10px] font-bold opacity-70 uppercase">Head</label>
-                <input x-model="head" placeholder="branch / sha"
+                <input x-model="head" placeholder="branch / tag / sha" list="compare-branches"
+                  @focus="$store.browser.ensureBranches()"
                   class="input input-xs input-bordered font-mono text-xs w-56">
               </div>
+              <datalist id="compare-branches">
+                <template x-for="b in $store.browser.branches" :key="b.name">
+                  <option :value="b.name"></option>
+                </template>
+              </datalist>
               <button @click="run()" :disabled="loading || !base || !head" class="btn btn-xs btn-primary gap-1">
                 <i class="ph ph-git-pull-request"></i>Compare
               </button>

@@ -1,6 +1,29 @@
 (function() {
     const registerMagics = () => {
-        Alpine.store('browser', { activeFile: null, repo: '', repoObj: null, gh: null, path: '', ref: '', defaultRef: '' })
+        Alpine.store('browser', {
+            activeFile: null, repo: '', repoObj: null, gh: null, path: '', ref: '', defaultRef: '',
+            branches: [], branchesLoading: false, branchesLoaded: false,
+            async ensureBranches() {
+                if (this.branchesLoaded || this.branchesLoading || !this.gh) return
+                this.branchesLoading = true
+                try {
+                    // gh.branches() is capped at 100 with no pagination; on repos with
+                    // more branches the picker will silently truncate.
+                    const list = await this.gh.branches()
+                    this.branches = list.map(b => ({ name: b.name, sha: b.commit?.sha }))
+                    this.branchesLoaded = true
+                } catch (e) {
+                    const toast = Alpine.store('toast')
+                    if (toast) toast('warning', 'Could not load branches: ' + (e.message || e), 'alert-error', 4000)
+                }
+                this.branchesLoading = false
+            },
+            resetBranches() {
+                this.branches = []
+                this.branchesLoading = false
+                this.branchesLoaded = false
+            }
+        })
         const toasts = Alpine.reactive([])
         Alpine.store('toasts', toasts)
         const toast = (icon, msg, cls = 'alert-info', ms = 3000) => {
