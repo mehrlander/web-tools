@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAB sidebar test</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧩</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+  <script type="module">
+    try {
+      const ref = new URLSearchParams(location.search).get('use') || 'main';
+      await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+      await gh.load('alpineComponents/counter.js');
+      await gh.load('alpineComponents/fab-sidebar-assembled.js');
+      await gh.load('alpine-bundle.js');
+    } catch (e) {
+      console.error('boot:', e);
+      document.body.innerHTML = `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
+    }
+  </script>
+
+  <style>
+    .demo-card { scroll-margin-top: 4rem; }
+  </style>
+</head>
+
+<body class="bg-base-200/40 text-base-content min-h-screen">
+
+  <header class="border-b border-base-300 bg-base-100/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-baseline justify-between gap-3">
+      <div class="min-w-0">
+        <h1 class="text-lg font-bold tracking-tight truncate">FAB sidebar test</h1>
+        <p class="text-xs opacity-60 leading-snug">
+          Drag the FAB anywhere; tap it to open the right-side drawer. Each instance row scrolls + outlines its element.
+          Append <code>?use=&lt;branch&gt;</code> to load from a different ref.
+        </p>
+      </div>
+      <a href="index.html" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1 shrink-0">
+        <i class="ph ph-arrow-left"></i> web-tools
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">Counters (component reuse)</h2>
+      <p class="text-xs opacity-60 mb-3">
+        Three <code>counter</code> instances grouped under one heading in the sidebar.
+        Each row points to a different element on the page.
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div id="counter-alpha" x-data="counter" class="bg-base-200 rounded p-3 flex flex-col items-center gap-2">
+          <div class="text-xs opacity-60">alpha</div>
+          <div class="font-mono text-2xl" x-text="count"></div>
+          <div class="flex gap-1">
+            <button class="btn btn-xs" @click="dec">-</button>
+            <button class="btn btn-xs" @click="reset">0</button>
+            <button class="btn btn-xs btn-primary" @click="inc">+</button>
+          </div>
+        </div>
+        <div id="counter-beta" x-data="counter" class="bg-base-200 rounded p-3 flex flex-col items-center gap-2">
+          <div class="text-xs opacity-60">beta</div>
+          <div class="font-mono text-2xl" x-text="count"></div>
+          <div class="flex gap-1">
+            <button class="btn btn-xs" @click="dec">-</button>
+            <button class="btn btn-xs" @click="reset">0</button>
+            <button class="btn btn-xs btn-primary" @click="inc">+</button>
+          </div>
+        </div>
+        <div id="counter-gamma" x-data="counter" class="bg-base-200 rounded p-3 flex flex-col items-center gap-2">
+          <div class="text-xs opacity-60">gamma</div>
+          <div class="font-mono text-2xl" x-text="count"></div>
+          <div class="flex gap-1">
+            <button class="btn btn-xs" @click="dec">-</button>
+            <button class="btn btn-xs" @click="reset">0</button>
+            <button class="btn btn-xs btn-primary" @click="inc">+</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">Spacer block</h2>
+      <p class="text-xs opacity-60">
+        Filler to make the page tall enough that the FAB has to scroll instances into view.
+        Tap a counter row in the sidebar after scrolling away — the outline + smooth-scroll should land you on it.
+      </p>
+      <div class="h-72"></div>
+    </section>
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">Inline component (anonymous)</h2>
+      <p class="text-xs opacity-60 mb-3">
+        Inline <code>x-data="{ ... }"</code> blocks don't have a named factory, so the sidebar
+        ignores them. Only named components (registered via <code>Alpine.data(name, ...)</code>) show up.
+      </p>
+      <div x-data="{ msg: 'hello' }" data-marker="inline-anon" class="bg-base-200 rounded p-3 text-sm">
+        Inline x-data: <span class="font-mono" x-text="msg"></span>
+      </div>
+    </section>
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">Late-mounted counter</h2>
+      <p class="text-xs opacity-60 mb-3">
+        Click "mount" to add a new <code>counter</code> instance, then hit the rescan button (<i class="ph ph-arrows-clockwise"></i>) in the drawer header — the new instance should appear.
+      </p>
+      <div x-data="{
+              n: 0,
+              add() {
+                this.n++;
+                const host = document.getElementById('late-mount-host');
+                const wrap = document.createElement('div');
+                wrap.id = 'counter-late-' + this.n;
+                wrap.setAttribute('x-data', 'counter');
+                wrap.className = 'bg-base-200 rounded p-3 flex items-center justify-between gap-2';
+                wrap.innerHTML = `
+                  <span class='text-xs opacity-60'>late #${this.n}</span>
+                  <span class='font-mono text-lg' x-text='count'></span>
+                  <div class='flex gap-1'>
+                    <button class='btn btn-xs' @click='dec'>-</button>
+                    <button class='btn btn-xs btn-primary' @click='inc'>+</button>
+                  </div>`;
+                host.appendChild(wrap);
+                Alpine.initTree(wrap);
+              }
+            }" class="space-y-2">
+        <button class="btn btn-sm btn-primary" @click="add()">mount another counter</button>
+        <div id="late-mount-host" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">Tall spacer</h2>
+      <div class="h-[60vh] flex items-center justify-center text-base-content/30 italic text-sm">
+        Scroll down, then pick an instance up top via the sidebar.
+      </div>
+    </section>
+
+    <section class="bg-base-100 rounded-lg border border-base-300 p-4 demo-card">
+      <h2 class="font-bold mb-1">One more counter at the bottom</h2>
+      <div id="counter-omega" x-data="counter" class="bg-base-200 rounded p-3 flex items-center justify-between gap-2">
+        <span class="text-xs opacity-60">omega</span>
+        <span class="font-mono text-2xl" x-text="count"></span>
+        <div class="flex gap-1">
+          <button class="btn btn-xs" @click="dec">-</button>
+          <button class="btn btn-xs" @click="reset">0</button>
+          <button class="btn btn-xs btn-primary" @click="inc">+</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-xs opacity-60 pt-2 pb-12 leading-relaxed">
+      Source:
+      <a href="https://github.com/mehrlander/web-tools/blob/main/alpineComponents/fab-sidebar-assembled.js" class="link link-hover">alpineComponents/fab-sidebar-assembled.js</a>.
+      The drawer adds no backdrop so the page stays interactive while an instance is highlighted; clear with the link in the drawer header.
+    </footer>
+
+  </main>
+
+  <div x-data="fabSidebar" data-path="pages/fab-sidebar-test.html"></div>
+
+</body>
+</html>
