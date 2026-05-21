@@ -197,6 +197,9 @@ document.addEventListener('alpine:init', function() {
         return { kind: this.inputKind, label: this.inputType };
       },
 
+      // Cheap, per-keystroke wrapper sniff for the badge. Mirrors the layer
+      // taxonomy of compression.text.assess but does no decompression — assess
+      // runs in the output pane where the cost is paid once per process().
       inspect() {
         const { compression } = window;
         const effective = this.sel?.text || this.input;
