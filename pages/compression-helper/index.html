@@ -58,16 +58,12 @@
 
   <h1 class="text-xl mb-4">Compression Helper</h1>
 
-  <div x-ref="output" class="relative overflow-hidden flex-none mb-1">
-    <div x-data="compressOutput()"></div>
-  </div>
+  <div x-data="compressOutput()" x-ref="output" class="relative overflow-hidden flex-none mb-1"></div>
 
   <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none"
        @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
 
-  <div class="relative overflow-hidden flex-1 min-h-0 mt-1">
-    <div x-data="compressInputCm()"></div>
-  </div>
+  <div x-data="compressInputCm()" class="relative overflow-hidden flex-1 min-h-0 mt-1"></div>
 </div>
 
 <div x-data="fab()"></div>
