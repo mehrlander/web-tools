@@ -269,9 +269,13 @@ document.addEventListener('alpine:init', function() {
         style.textContent =
           '.__fab-highlight {' +
           '  outline: 3px dashed var(--color-primary, #f59e0b) !important;' +
+          '  background-color: color-mix(in srgb, var(--color-primary, #f59e0b) 18%, transparent) !important;' +
+          '  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--color-primary, #f59e0b) 65%, transparent) !important;' +
           '}' +
           '.__fab-highlight-multi {' +
           '  outline: 3px dashed var(--color-warning, #f59e0b) !important;' +
+          '  background-color: color-mix(in srgb, var(--color-warning, #f59e0b) 18%, transparent) !important;' +
+          '  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--color-warning, #f59e0b) 65%, transparent) !important;' +
           '}';
         document.head.appendChild(style);
       },
