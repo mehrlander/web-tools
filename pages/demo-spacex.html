@@ -12,6 +12,7 @@
   const gh = new window.GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-fetch.js');
   await gh.load('alpineComponents/viewer-assembled.js');
+  await gh.load('alpineComponents/fab-assembled.js');
   await gh.load('alpine-bundle.js');
 </script>
 </head>
@@ -77,5 +78,6 @@ document.addEventListener('alpine:init', () => {
   }));
 });
 </script>
+<div x-data="fab()" data-path="pages/demo-spacex.html"></div>
 </body>
 </html>

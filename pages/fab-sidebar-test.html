@@ -13,7 +13,7 @@
       const ref = new URLSearchParams(location.search).get('use') || 'main';
       await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
       await gh.load('alpineComponents/counter.js');
-      await gh.load('alpineComponents/fab-sidebar-assembled.js');
+      await gh.load('alpineComponents/fab-assembled.js');
       await gh.load('alpine-bundle.js');
     } catch (e) {
       console.error('boot:', e);
@@ -160,7 +160,7 @@
 
   </main>
 
-  <div x-data="fabSidebar" data-path="pages/fab-sidebar-test.html"></div>
+  <div x-data="fab()" data-path="pages/fab-sidebar-test.html"></div>
 
 </body>
 </html>
