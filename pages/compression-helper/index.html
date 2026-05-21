@@ -23,28 +23,22 @@
   const BRANCH = 'main';
   const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
 
-  try {
-    const mod = await import(BOOT);
-    window.GH = mod.default;
-    const gh = new window.GH({ repo: REPO, ref: BRANCH });
+  const mod = await import(BOOT);
+  window.GH = mod.default;
+  const gh = new window.GH({ repo: REPO, ref: BRANCH });
 
-    await gh.load('kits/compression.js');
-    await gh.load('kits/fills.js');
-    await gh.load('kits/persistence.js');
-    await gh.load('kits/messaging.js');
-    await gh.load('alpineComponents/compress-output-assembled.js');
-    await gh.load('alpineComponents/compress-input-cm-assembled.js');
-    await gh.load('alpineComponents/fab-assembled.js');
+  await gh.load('kits/compression.js');
+  await gh.load('kits/fills.js');
+  await gh.load('kits/persistence.js');
+  await gh.load('kits/messaging.js');
+  await gh.load('alpineComponents/compress-output-assembled.js');
+  await gh.load('alpineComponents/compress-input-cm-assembled.js');
+  await gh.load('alpineComponents/fab-assembled.js');
 
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/alpinejs/dist/cdn.min.js';
-    s.defer = true;
-    document.head.appendChild(s);
-  } catch (e) {
-    console.error('boot:', e);
-    document.body.innerHTML =
-      `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
-  }
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/alpinejs/dist/cdn.min.js';
+  s.defer = true;
+  document.head.appendChild(s);
 </script>
 </head>
 <body class="h-dvh font-mono text-sm">

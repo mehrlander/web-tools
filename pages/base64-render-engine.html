@@ -32,26 +32,28 @@
 
 <div id="mount" class="w-full h-full"></div>
 
-<script id="engine">
-(async () => {
-  const REPO = 'mehrlander/web-tools';
-  const BRANCH = 'main';
-  const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
+<script id="engine" type="module">
+const REPO = 'mehrlander/web-tools';
+const BRANCH = 'main';
+const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
 
-  // Boot kits, then mount blueprint, then register Alpine component, then
-  // load Alpine. Ordering matters: Alpine.start() must see the component
-  // definition, so we register the listener before injecting Alpine's <script>.
-  const mod = await import(`${CDN}/gh-api.js`);
-  window.GH = mod.default;
-  const gh = new window.GH({ repo: REPO, ref: BRANCH });
-  await gh.load('kits/compression.js');
+// Boot kits, then mount blueprint, then register Alpine component, then
+// load Alpine. Ordering matters: Alpine.start() must see the component
+// definition, so we register the listener before injecting Alpine's <script>.
+// Module top-level await keeps document.readyState === 'loading' until the
+// chain settles, so gh-auth.js's unhandledrejection handler can render a
+// boot-failed UI without a per-page try/catch.
+const mod = await import(`${CDN}/gh-api.js`);
+window.GH = mod.default;
+const gh = new window.GH({ repo: REPO, ref: BRANCH });
+await gh.load('kits/compression.js');
 
-  document.getElementById('mount').innerHTML = document.getElementById('blueprint').innerHTML;
+document.getElementById('mount').innerHTML = document.getElementById('blueprint').innerHTML;
 
-  function snapshotUrl(seed) {
-    const blueprintText = document.getElementById('blueprint').innerHTML;
-    const engineText = document.getElementById('engine').textContent;
-    const html = `<!DOCTYPE html>
+function snapshotUrl(seed) {
+  const blueprintText = document.getElementById('blueprint').innerHTML;
+  const engineText = document.getElementById('engine').textContent;
+  const html = `<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -64,95 +66,91 @@
 <script id="seed" type="text/plain">${seed}<\/script>
 <script type="text/template" id="blueprint">${blueprintText}<\/script>
 <div id="mount" class="w-full h-full"></div>
-<script id="engine">${engineText}<\/script>
+<script id="engine" type="module">${engineText}<\/script>
 </body>
 </html>`;
-    return 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(html)));
-  }
+  return 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(html)));
+}
 
-  // Decompress a seed string. Accepts BR64:/GZ64: prefixed (via kit's labeled
-  // path) or bare base64 (assumed gzip — the format this page emits).
-  async function decompressSeed(seed) {
-    const det = window.compression.text.detectCompressionType(seed);
-    if (det?.alg === 'brotli') return window.compression.brotli.decompress(seed);
-    if (det?.alg === 'gzip')   return window.compression.gzip.decompress(seed);
-    return window.compression.gzip.decompressRaw(seed);
-  }
+// Decompress a seed string. Accepts BR64:/GZ64: prefixed (via kit's labeled
+// path) or bare base64 (assumed gzip — the format this page emits).
+async function decompressSeed(seed) {
+  const det = window.compression.text.detectCompressionType(seed);
+  if (det?.alg === 'brotli') return window.compression.brotli.decompress(seed);
+  if (det?.alg === 'gzip')   return window.compression.gzip.decompress(seed);
+  return window.compression.gzip.decompressRaw(seed);
+}
 
-  document.addEventListener('alpine:init', () => {
-    Alpine.data('renderEngine', () => ({
-      async init() {
-        const seed = document.getElementById('seed').textContent.trim();
-        if (!seed) return; // keep template's placeholder srcdoc
-        try {
-          this.$refs.canvas.srcdoc = await decompressSeed(seed);
-        } catch (e) {
-          this.$refs.canvas.srcdoc =
-            `<pre style="padding:2rem;font-family:sans-serif">Decompression error: ${e.message}</pre>`;
-        }
-      },
+document.addEventListener('alpine:init', () => {
+  Alpine.data('renderEngine', () => ({
+    async init() {
+      const seed = document.getElementById('seed').textContent.trim();
+      if (!seed) return; // keep template's placeholder srcdoc
+      try {
+        this.$refs.canvas.srcdoc = await decompressSeed(seed);
+      } catch (e) {
+        this.$refs.canvas.srcdoc =
+          `<pre style="padding:2rem;font-family:sans-serif">Decompression error: ${e.message}</pre>`;
+      }
+    },
 
-      async handlePaste(e) {
-        e.preventDefault();
-        const raw = (e.clipboardData.getData('text/plain') || '').trim();
-        if (!raw) return;
+    async handlePaste(e) {
+      e.preventDefault();
+      const raw = (e.clipboardData.getData('text/plain') || '').trim();
+      if (!raw) return;
 
-        let html;
-        if (raw.startsWith('data:')) {
-          const parsed = window.compression.text.fromDataUrl(raw);
-          if (parsed && parsed.mediaType.startsWith('text/html')) {
-            if (parsed.seed)         html = await decompressSeed(parsed.seed);
-            else if (parsed.seedRaw) html = await decompressSeed(parsed.seedRaw);
-            else                     html = parsed.body;
-          } else {
-            html = raw;
-          }
+      let html;
+      if (raw.startsWith('data:')) {
+        const parsed = window.compression.text.fromDataUrl(raw);
+        if (parsed && parsed.mediaType.startsWith('text/html')) {
+          if (parsed.seed)         html = await decompressSeed(parsed.seed);
+          else if (parsed.seedRaw) html = await decompressSeed(parsed.seedRaw);
+          else                     html = parsed.body;
         } else {
           html = raw;
         }
-
-        const newSeed = await window.compression.gzip.compressRaw(html);
-        document.getElementById('seed').textContent = newSeed;
-        this.$refs.canvas.srcdoc = html;
-        this.openEditor();
-      },
-
-      async openEditor() {
-        const seed = document.getElementById('seed').textContent.trim();
-        const html = seed ? await decompressSeed(seed) : '';
-        const url  = seed ? snapshotUrl(seed) : '';
-
-        window._renderEngine = {
-          seed, html, url,
-          applyHtml: async (newHtml) => {
-            const newSeed = await window.compression.gzip.compressRaw(newHtml);
-            document.getElementById('seed').textContent = newSeed;
-            this.$refs.canvas.srcdoc = newHtml;
-            return snapshotUrl(newSeed);
-          }
-        };
-
-        // jsdelivr serves /gh/ HTML with Content-Type: text/plain, so we can't
-        // window.open() the popup URL directly — fetch via GH API and write it
-        // into a blank popup instead. about:blank preserves window.opener.
-        const w = window.open('', '_blank', 'width=580,height=800');
-        if (!w) return;
-        const { text } = await gh.get('popups/render-engine-editor.html');
-        w.document.open();
-        w.document.write(text);
-        w.document.close();
+      } else {
+        html = raw;
       }
-    }));
-  });
 
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js';
-  s.defer = true;
-  document.head.appendChild(s);
-})().catch(e => {
-  document.body.innerHTML =
-    `<pre style="padding:2rem;font-family:sans-serif;color:#c00">Boot failed: ${e?.message || e}</pre>`;
+      const newSeed = await window.compression.gzip.compressRaw(html);
+      document.getElementById('seed').textContent = newSeed;
+      this.$refs.canvas.srcdoc = html;
+      this.openEditor();
+    },
+
+    async openEditor() {
+      const seed = document.getElementById('seed').textContent.trim();
+      const html = seed ? await decompressSeed(seed) : '';
+      const url  = seed ? snapshotUrl(seed) : '';
+
+      window._renderEngine = {
+        seed, html, url,
+        applyHtml: async (newHtml) => {
+          const newSeed = await window.compression.gzip.compressRaw(newHtml);
+          document.getElementById('seed').textContent = newSeed;
+          this.$refs.canvas.srcdoc = newHtml;
+          return snapshotUrl(newSeed);
+        }
+      };
+
+      // jsdelivr serves /gh/ HTML with Content-Type: text/plain, so we can't
+      // window.open() the popup URL directly — fetch via GH API and write it
+      // into a blank popup instead. about:blank preserves window.opener.
+      const w = window.open('', '_blank', 'width=580,height=800');
+      if (!w) return;
+      const { text } = await gh.get('popups/render-engine-editor.html');
+      w.document.open();
+      w.document.write(text);
+      w.document.close();
+    }
+  }));
 });
+
+const s = document.createElement('script');
+s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js';
+s.defer = true;
+document.head.appendChild(s);
 </script>
 </body>
 </html>

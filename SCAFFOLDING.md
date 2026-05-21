@@ -75,9 +75,17 @@ import URL carries an `@<ref>` segment.
   lazily resolves from `localStorage.ghToken`. Lets a page do
   `new GH({ repo })` without plumbing tokens through the constructor while
   still preserving the iOS-Shortcut data-URL substitution path. Also
-  exposes `window.ghAuth.{resolve,save,clear}` for explicit token
-  management. Currently used by `pages/demos/*.html`; experimental, may
-  fold into `gh-api.js` proper later.
+  patches `req` so a 401/403 takes over the page with a token-entry form
+  (idempotent), and installs a window `unhandledrejection` handler that
+  renders a generic "Boot failed" UI for other rejections that fire while
+  `document.readyState === 'loading'` (the heuristic for "boot in
+  progress"). Pages whose boot doesn't fit the module-top-level-await
+  model can call `window.ghAuth.bootDone()` at the end of their chain to
+  suppress the handler. Also exposes
+  `window.ghAuth.{resolve,save,clear,prompt,bootDone}` for explicit use.
+  Loaded automatically by `gh-api.js`'s `@<ref>` auto-bootstrap; pages
+  that import `gh-api.js` without `@<ref>` must `await gh.load('gh-auth.js')`
+  themselves.
 - `alpine-bundle.js` — IIFE. Inside an `alpine:init` handler it creates
   `Alpine.store('browser')`, `Alpine.store('toasts')`, and magics `$clip`,
   `$paste`, `$toast`. After registering the listener it injects two
@@ -168,6 +176,19 @@ anything we add:
    pages look for that exact string and replace it (or fall back to
    `localStorage.ghToken`). Anything we add that touches tokens must use
    the same sentinel.
+7. **Boot failures are handled centrally by `gh-auth.js`.** Scaffolded
+   pages no longer wrap their module script in `try { ... } catch { ... }`.
+   The boot chain is just a sequence of `await` calls. Failures propagate
+   as unhandled rejections; gh-auth.js's `unhandledrejection` handler
+   renders either the 401/403 token-entry form (via the `req` patch) or a
+   generic "Boot failed" UI (gated on `document.readyState === 'loading'`).
+   Module top-level await keeps readyState at `'loading'` until the chain
+   settles, so the gate cleanly distinguishes boot-time rejections from
+   later ones (e.g., from a click handler). Pages whose boot lives in a
+   classic-script IIFE — where readyState transitions before the IIFE
+   awaits resolve — should either convert to `<script type="module">` or
+   call `window.ghAuth.bootDone()` at the end of their chain to opt into
+   "boot is over, stop showing boot UI" semantics.
 
 ## What breaks the pattern
 
