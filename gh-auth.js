@@ -19,8 +19,15 @@
 // happened, this.token won't contain 🎟 and the patched getter is a
 // no-op; if it didn't, the localStorage fallback fires.
 //
+// Also patches GH.prototype.req so that a 401/403 from the GitHub API
+// automatically takes over the page with a token-entry form. This is
+// what makes a stale token recoverable on mobile — without it, pages
+// just die mid-load with no UI to paste a new token. The prompt is
+// idempotent: a cascade of failed requests won't thrash the DOM.
+//
 // Also exposes a small window.ghAuth helper for pages that want to
-// manage the saved token explicitly (e.g. a paste-and-reload form).
+// manage the saved token explicitly (e.g. a paste-and-reload form, or
+// raising the prompt before any failure).
 
 (() => {
   if (!window.GH) {
@@ -49,9 +56,48 @@
     }
   });
 
+  let promptShown = false;
+  const showPrompt = (msg) => {
+    if (promptShown || typeof document === 'undefined' || !document.body) return;
+    promptShown = true;
+    const safe = String(msg || '').replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
+    document.body.innerHTML = `
+      <form id="__ghAuthForm" class="max-w-md mx-auto mt-10 p-4">
+        <h2 class="font-semibold text-lg mb-2">GitHub token needed</h2>
+        <p class="text-sm opacity-70 mb-4 break-words">${safe}</p>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <input name="t" type="password" placeholder="GitHub token"
+            class="input input-bordered input-sm flex-1 min-w-56 font-mono"
+            autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="btn btn-sm">Save &amp; retry</button>
+        </div>
+        <button name="clear" class="btn btn-link btn-xs opacity-60 px-0">Retry without token</button>
+      </form>
+    `;
+    const f = document.getElementById('__ghAuthForm');
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      const clear = e.submitter?.name === 'clear';
+      const t = clear ? '' : f.querySelector('[name=t]').value.trim();
+      try { t ? localStorage.setItem('ghToken', t) : localStorage.removeItem('ghToken'); } catch {}
+      location.reload();
+    };
+  };
+
+  const origReq = proto.req;
+  proto.req = async function (path, opts = {}) {
+    try {
+      return await origReq.call(this, path, opts);
+    } catch (e) {
+      if (e && (e.status === 401 || e.status === 403)) showPrompt(e.message);
+      throw e;
+    }
+  };
+
   window.ghAuth = {
     resolve() { return readSaved(); },
     save(t)   { try { localStorage.setItem('ghToken', String(t).trim()); } catch {} },
-    clear()   { try { localStorage.removeItem('ghToken'); } catch {} }
+    clear()   { try { localStorage.removeItem('ghToken'); } catch {} },
+    prompt(msg) { showPrompt(msg); }
   };
 })();
