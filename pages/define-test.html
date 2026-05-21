@@ -41,7 +41,7 @@
   try {
     const ref = new URLSearchParams(location.search).get('use') || 'main'
     await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`)
-    await gh.load('alpineComponents/fab-assembled.js')
+    await gh.load('alpineComponents/fab.js')
     await gh.load('alpine-bundle.js')
     window.__bundleLoaded = true
   } catch (e) {

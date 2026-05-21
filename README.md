@@ -162,7 +162,7 @@ The shape of a loaded page in one block:
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
 
   await gh.load('kits/persistence.js');                   // logic kits
-  await gh.load('alpineComponents/viewer-assembled.js');  // UI components
+  await gh.load('alpineComponents/viewer.js');            // UI components
   await gh.load('alpine-bundle.js');                      // boots Alpine
 </script>
 ```
