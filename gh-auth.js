@@ -25,6 +25,15 @@
 // just die mid-load with no UI to paste a new token. The prompt is
 // idempotent: a cascade of failed requests won't thrash the DOM.
 //
+// Also installs a window 'unhandledrejection' handler that renders a
+// generic "Boot failed" UI when a page's boot chain rejects. Gated by
+// document.readyState === 'loading' so it only fires for failures that
+// happen before the module top-level await settles; late rejections
+// from click handlers etc. don't replace a running page. Pages whose
+// boot doesn't fit that model (e.g. classic-script IIFEs that finish
+// after DCL) can call ghAuth.bootDone() at the end of their chain to
+// explicitly suppress the handler from that point on.
+//
 // Also exposes a small window.ghAuth helper for pages that want to
 // manage the saved token explicitly (e.g. a paste-and-reload form, or
 // raising the prompt before any failure).
@@ -94,10 +103,33 @@
     }
   };
 
+  let bootFailedShown = false;
+  let bootDoneCalled  = false;
+  const showBootFailed = (reason) => {
+    if (bootFailedShown || typeof document === 'undefined' || !document.body) return;
+    bootFailedShown = true;
+    const msg = reason && reason.message ? reason.message : String(reason || '');
+    const safe = msg.replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
+    document.body.innerHTML = `
+      <div class="max-w-2xl mx-auto p-4 font-mono text-sm">
+        <h2 class="font-semibold text-lg text-error mb-2">Boot failed</h2>
+        <pre class="opacity-70 whitespace-pre-wrap break-words">${safe}</pre>
+      </div>
+    `;
+  };
+
+  window.addEventListener('unhandledrejection', (ev) => {
+    if (bootDoneCalled) return;
+    if (promptShown)    return; // 401/403 prompt already took over
+    if (typeof document !== 'undefined' && document.readyState !== 'loading') return;
+    showBootFailed(ev.reason);
+  });
+
   window.ghAuth = {
-    resolve() { return readSaved(); },
-    save(t)   { try { localStorage.setItem('ghToken', String(t).trim()); } catch {} },
-    clear()   { try { localStorage.removeItem('ghToken'); } catch {} },
-    prompt(msg) { showPrompt(msg); }
+    resolve()   { return readSaved(); },
+    save(t)     { try { localStorage.setItem('ghToken', String(t).trim()); } catch {} },
+    clear()     { try { localStorage.removeItem('ghToken'); } catch {} },
+    prompt(msg) { showPrompt(msg); },
+    bootDone()  { bootDoneCalled = true; }
   };
 })();

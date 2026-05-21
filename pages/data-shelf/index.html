@@ -21,23 +21,17 @@
     const BRANCH = 'main';
     const BOOT = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
 
-    try {
-      const mod = await import(BOOT);
-      window.GH = mod.default;
-      const gh = new window.GH({ repo: REPO, ref: BRANCH });
+    const mod = await import(BOOT);
+    window.GH = mod.default;
+    const gh = new window.GH({ repo: REPO, ref: BRANCH });
 
-      await gh.load('kits/persistence.js');
-      await gh.load('kits/data-shelf.js');
-      await gh.load('alpineComponents/cm-editor.js');
-      await gh.load('alpineComponents/viewer-assembled.js');
-      await gh.load('alpineComponents/fab-assembled.js');
-      await gh.load('alpineComponents/idb-importer.js');
-      await gh.load('alpine-bundle.js');
-    } catch (e) {
-      console.error('boot:', e);
-      document.body.innerHTML =
-        `<pre class="p-4 text-error whitespace-pre-wrap">Boot failed: ${String(e?.message || e)}</pre>`;
-    }
+    await gh.load('kits/persistence.js');
+    await gh.load('kits/data-shelf.js');
+    await gh.load('alpineComponents/cm-editor.js');
+    await gh.load('alpineComponents/viewer-assembled.js');
+    await gh.load('alpineComponents/fab-assembled.js');
+    await gh.load('alpineComponents/idb-importer.js');
+    await gh.load('alpine-bundle.js');
   </script>
 </head>
 

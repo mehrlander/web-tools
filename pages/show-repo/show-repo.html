@@ -7,33 +7,12 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
 <script type="module">
-  window.__showBootError = (msg) => {
-  const safe = String(msg).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
-  document.body.innerHTML = `
-    <form id="be" class="max-w-md mx-auto mt-10 p-4">
-    <h2 class="font-semibold text-lg mb-2">Couldn't load GH Browse</h2>
-    <p class="text-sm opacity-70 mb-4 break-words">${safe}</p>
-    <div class="flex flex-wrap gap-2 mb-2">
-      <input name="t" type="password" placeholder="GitHub token (optional)"
-      class="input input-bordered input-sm flex-1 min-w-56 font-mono">
-      <button class="btn btn-sm">Save &amp; retry</button>
-    </div>
-    <button name="clear" class="btn btn-link btn-xs opacity-60 px-0">Retry without token</button>
-    </form>
-  `;
-  document.getElementById('be').onsubmit = e => {
-    e.preventDefault();
-    const t = e.submitter?.name === 'clear' ? '' : document.querySelector('[name=t]').value.trim();
-    try { t ? localStorage.setItem('ghToken', t) : localStorage.removeItem('ghToken'); } catch {}
-    location.reload();
-  };
-  };
-
-  try {
-  const mod = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
-  window.GH = mod.default;
-  const gh = new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' });
-  await gh.load('gh-auth.js');
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import URL,
+  // exposes window.gh, and loads gh-auth.js (which installs the boot-error
+  // handler). No per-page try/catch needed.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
   await gh.load('gh-fetch.js');
   await gh.load('gh-store.js');
   await gh.load('alpineComponents/repo-assembled.js');
@@ -41,10 +20,6 @@
   await gh.load('alpineComponents/viewer-assembled.js');
   await gh.load('alpineComponents/compare-assembled.js');
   await gh.load('alpine-bundle.js');
-  } catch (e) {
-  console.error('boot:', e);
-  (window.ghAuth?.prompt ?? window.__showBootError)(e?.message || String(e));
-  }
 </script>
 </head>
 <body class="min-h-screen bg-base-100" x-data="app()" x-init="init()">
