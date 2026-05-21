@@ -229,98 +229,37 @@ document.addEventListener('alpine:init', function() {
         this.clearHighlight();
         const el = this._elById.get(id);
         if (!el) return;
+
+        const rect = el.getBoundingClientRect();
+        const tagged = [];
+        if (rect.width > 0 && rect.height > 0) {
+          el.classList.add('__fab-highlight');
+          tagged.push({ el, cls: '__fab-highlight' });
+        } else {
+          const kids = Array.from(el.children);
+          if (kids.length === 1) {
+            kids[0].classList.add('__fab-highlight');
+            tagged.push({ el: kids[0], cls: '__fab-highlight' });
+          } else {
+            kids.forEach(k => {
+              k.classList.add('__fab-highlight-multi');
+              tagged.push({ el: k, cls: '__fab-highlight-multi' });
+            });
+          }
+        }
+
         this.highlighted = id;
-        this._highlightTarget = el;
-        this._highlightOverlay = document.createElement('div');
-        this._highlightOverlay.className = '__fab-highlight';
-        document.body.appendChild(this._highlightOverlay);
-        this._repositionHighlight();
-        this._attachHighlightListeners();
-        const scrollTarget = el.getBoundingClientRect().height > 0
-          ? el
-          : (this._firstVisibleDescendant(el) || el);
-        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this._highlightEls = tagged;
+        if (tagged.length) tagged[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       },
 
       clearHighlight() {
         if (!this.highlighted) return;
-        this._detachHighlightListeners();
-        if (this._highlightOverlay) {
-          this._highlightOverlay.remove();
-          this._highlightOverlay = null;
+        if (this._highlightEls) {
+          this._highlightEls.forEach(({ el, cls }) => el.classList.remove(cls));
+          this._highlightEls = null;
         }
-        this._highlightTarget = null;
         this.highlighted = null;
-      },
-
-      _repositionHighlight() {
-        if (!this._highlightTarget || !this._highlightOverlay) return;
-        const rect = this._measureTarget(this._highlightTarget);
-        const o = this._highlightOverlay;
-        if (!rect) { o.style.display = 'none'; return; }
-        o.style.display = '';
-        o.style.left = rect.left + 'px';
-        o.style.top = rect.top + 'px';
-        o.style.width = rect.width + 'px';
-        o.style.height = rect.height + 'px';
-      },
-
-      _measureTarget(el) {
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) {
-          return { left: r.left, top: r.top, width: r.width, height: r.height };
-        }
-        return this._unionVisibleDescendants(el);
-      },
-
-      _unionVisibleDescendants(el) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
-        el.querySelectorAll('*').forEach(child => {
-          const tag = child.tagName;
-          if (tag === 'TEMPLATE' || tag === 'SCRIPT' || tag === 'STYLE') return;
-          const style = getComputedStyle(child);
-          if (style.display === 'none' || style.visibility === 'hidden') return;
-          const r = child.getBoundingClientRect();
-          if (r.width === 0 && r.height === 0) return;
-          if (r.left < minX) minX = r.left;
-          if (r.top < minY) minY = r.top;
-          if (r.right > maxX) maxX = r.right;
-          if (r.bottom > maxY) maxY = r.bottom;
-          found = true;
-        });
-        if (!found) return null;
-        return { left: minX, top: minY, width: maxX - minX, height: maxY - minY };
-      },
-
-      _firstVisibleDescendant(el) {
-        const kids = el.querySelectorAll('*');
-        for (let i = 0; i < kids.length; i++) {
-          const r = kids[i].getBoundingClientRect();
-          if (r.width > 0 && r.height > 0) return kids[i];
-        }
-        return null;
-      },
-
-      _attachHighlightListeners() {
-        this._onHighlightReflow = () => this._repositionHighlight();
-        window.addEventListener('scroll', this._onHighlightReflow, { capture: true, passive: true });
-        window.addEventListener('resize', this._onHighlightReflow, { passive: true });
-        if (typeof ResizeObserver !== 'undefined') {
-          this._highlightRO = new ResizeObserver(this._onHighlightReflow);
-          this._highlightRO.observe(this._highlightTarget);
-        }
-      },
-
-      _detachHighlightListeners() {
-        if (this._onHighlightReflow) {
-          window.removeEventListener('scroll', this._onHighlightReflow, { capture: true });
-          window.removeEventListener('resize', this._onHighlightReflow);
-          this._onHighlightReflow = null;
-        }
-        if (this._highlightRO) {
-          this._highlightRO.disconnect();
-          this._highlightRO = null;
-        }
       },
 
       _ensureHighlightStyle() {
@@ -329,16 +268,10 @@ document.addEventListener('alpine:init', function() {
         style.id = '__fab-highlight-style';
         style.textContent =
           '.__fab-highlight {' +
-          '  position: fixed;' +
-          '  pointer-events: none;' +
-          '  z-index: 30;' +
-          '  outline: 3px dashed var(--color-primary, #f59e0b);' +
-          '  outline-offset: 4px;' +
-          '  animation: __fab-pulse 1.4s ease-in-out infinite;' +
+          '  outline: 3px dashed var(--color-primary, #f59e0b) !important;' +
           '}' +
-          '@keyframes __fab-pulse {' +
-          '  0%, 100% { outline-offset: 4px; }' +
-          '  50% { outline-offset: 8px; }' +
+          '.__fab-highlight-multi {' +
+          '  outline: 3px dashed var(--color-warning, #f59e0b) !important;' +
           '}';
         document.head.appendChild(style);
       },
