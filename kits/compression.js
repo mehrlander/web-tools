@@ -200,18 +200,67 @@
     },
   };
 
+  // Unwraps every recognized layer and returns the fully decoded payload along
+  // with a wrapper description. Layers handled: outer `data:` URL, inner
+  // BR64:/GZ64: chunk (top-level or inside a data URL's seed). Round-trip
+  // property: assess(pack(payload, {packed:'data-url'})).raw === payload, for
+  // both compressed and plain variants. `compChunk` holds the BR64:/GZ64:
+  // chunk text when an inner compression layer is present — pass it to
+  // text.pack to re-emit the wrapper without re-wrapping the input.
   text.assess = async input => {
-    const det = text.detectCompressionType(input);
-    const raw = det?.alg === 'brotli' ? await brotli.decompress(input)
-              : det?.alg === 'gzip'   ? await gzip.decompress(input)
-              :                          input;
+    let raw = input;
+    let inner = null;
+    let outer = null;
+    let dataUrl = null;
+    let error = null;
+    let compChunk = null;
+
+    const trimmed = typeof input === 'string' ? input.trim() : '';
+
+    if (trimmed.startsWith('data:')) {
+      outer = 'dataUrl';
+      const parsed = text.fromDataUrl(trimmed);
+      if (!parsed) {
+        error = 'Malformed data URL';
+        raw = input;
+      } else {
+        const header = trimmed.slice(5, trimmed.indexOf(','));
+        const encoding = header.split(';').includes('base64') ? 'base64' : 'urlencoded';
+        dataUrl = {
+          mediaType: parsed.mediaType,
+          params: parsed.params,
+          encoding,
+          bodySize: parsed.body.length
+        };
+        if (parsed.seed) {
+          const det = text.detectCompressionType(parsed.seed);
+          inner = { alg: det.alg, label: det.label };
+          compChunk = parsed.seed;
+          raw = det.alg === 'brotli' ? await brotli.decompress(parsed.seed)
+                                     : await gzip.decompress(parsed.seed);
+        } else {
+          raw = parsed.body;
+        }
+      }
+    } else {
+      const det = text.detectCompressionType(input);
+      if (det) {
+        inner = { alg: det.alg, label: det.label };
+        compChunk = input;
+        raw = det.alg === 'brotli' ? await brotli.decompress(input)
+                                   : await gzip.decompress(input);
+      }
+    }
+
     const isJavaScript = await acorn.isJS(raw);
     const br = await brotli(raw);
     const gz = await gzip(raw);
     return {
       raw,
-      isCompressed: !!det,
-      compAlg: det?.alg ?? null,
+      isCompressed: !!inner,
+      compAlg: inner?.alg ?? null,
+      compChunk,
+      wrapper: { outer, inner, dataUrl, error },
       isJavaScript,
       sizes: { raw: raw.length, brotli: br.length, gzip: gz.length }
     };
@@ -295,9 +344,11 @@
 
     const info = await text.assess(input);
 
+    if (info.wrapper.error) throw new Error(info.wrapper.error);
+
     let work;
     if (info.isCompressed) {
-      work = compressed ? input : info.raw;
+      work = compressed ? info.compChunk : info.raw;
     } else {
       work = compressed
         ? (alg === 'gzip' ? await gzip(info.raw, label) : await brotli(info.raw, label))
