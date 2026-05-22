@@ -15,13 +15,12 @@ editor, and an executor for the three executable types. UI metadata for each
 type (`label`, `badge`, `exec`) lives on the page in `cfg.types`; the
 canonical set of valid type names lives in `kits/data-shelf.js`.
 
-Two pages exist, both under `pages/data-shelf/`:
+The page lives at `pages/data-shelf.html`, rebuilt on the in-repo `kits/`.
+(A v1 iteration, Dexie-backed `DataShelfDB`, lived alongside it until the
+v2 page reached parity; it's gone from the working tree but preserved in
+git history.)
 
-- `data-shelf-v1.html` — v1, Dexie-backed (`DataShelfDB`). Kept for now as
-  a fallback.
-- `index.html` — current (was v2), rebuilt on the in-repo kits/.
-
-The importer (`alpineComponents/idb-importer.js`) is a modal owned by v2.
+The importer (`alpineComponents/idb-importer.js`) is a modal owned by the page.
 It walks IndexedDB on this origin, lets you pick a database and store, and
 writes records into the shelf collection. Intake is shape-gated: every
 incoming record is run through `dataShelf.coerceShelfRecord` and validated
@@ -52,7 +51,7 @@ tree-mode editing via vanilla-jsoneditor).
   it loses the per-context structure of v1 data.
 - **Schema lives in a kit, not the page.** `kits/data-shelf.js` exports
   `SHELF_TYPES`, `isShelfShaped`, `describeRejection`, `coerceShelfRecord`
-  on `window.dataShelf`. The v2 page still owns UI metadata for each type
+  on `window.dataShelf`. The page still owns UI metadata for each type
   (label, badge, exec) since that's render concern, not schema concern.
 
 ## Open directions
@@ -69,9 +68,7 @@ tree-mode editing via vanilla-jsoneditor).
 - **Index notes for idb-nav.** `pages/index.html` doesn't yet have a
   notes-block entry for `idb-nav.html`. Should get one once we're
   confident in its role.
-- **v1 sunset.** Once v2 has full feature parity (it does) and an export
-  path (it doesn't yet), v1 can be archived. Until then it's a safety net.
-- **Deduplicate the type registry.** v2's `cfg.types` re-states the type
+- **Deduplicate the type registry.** The page's `cfg.types` re-states the type
   names already declared in `dataShelf.SHELF_TYPES`. If we add a new type,
   both places update. Low priority — the list rarely changes — but worth
   noting so a future addition doesn't drift.

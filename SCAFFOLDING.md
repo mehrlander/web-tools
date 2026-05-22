@@ -2,9 +2,7 @@
 
 The repo currently has two tiers of pages:
 
-- **Simple pages** (`pages/index.html`,
-  `compression-helper/archive/v1.html`,
-  `bookmarklets-story.html`, `quick-dump.html`,
+- **Simple pages** (`pages/index.html`, `bookmarklets-story.html`,
   `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
   then an inline `<script>` with the page's Alpine components. No shared
@@ -283,8 +281,8 @@ the `new Function()` constraint.
 
 ### Option D — step outside the pattern for one-off pages
 
-Best for: pages that don't need repo browsing at all (e.g., the legacy
-`compression-helper/archive/v1.html`).
+Best for: pages that don't need repo browsing at all (e.g., the simple
+`bookmarklets-story.html` or `table-compress.html`).
 
 Rules:
 - Just use CDN Alpine + inline components, like the existing simple pages.
