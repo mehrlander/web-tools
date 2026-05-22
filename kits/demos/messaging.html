@@ -12,31 +12,30 @@
   const gh = new GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-auth.js');
   await gh.load('kits/messaging.js');
+  await gh.load('vanilla-bundle.js');
 
   const messaging = window.messaging;
-  const $ = sel => document.querySelector(sel);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // Publisher
-  const pubPath     = $('#pub-path');
-  const pubOccasion = $('#pub-occasion');
-  const pubPayload  = $('#pub-payload');
-  const pubSubs     = $('#pub-subs');
+  const [pubPath]     = ea('#pub-path');
+  const [pubOccasion] = ea('#pub-occasion');
+  const [pubPayload]  = ea('#pub-payload');
+  const [pubSubs]     = ea('#pub-subs');
 
-  $('#pub-send').addEventListener('click', () => {
+  wire('#pub-send', { click: () => {
     messaging.publish(pubPath.value, pubOccasion.value, pubPayload.value);
-  });
+  }});
 
   setInterval(() => {
     pubSubs.textContent = `${messaging.subscriberCount(pubPath.value)} subscriber(s)`;
   }, 250);
 
   // Subscriber A — fixed listening path
-  const subPath    = 'demo.bus';
-  const subToggle  = $('#sub-toggle');
-  const subClear   = $('#sub-clear');
-  const subLog     = $('#sub-log');
-  $('#sub-path').textContent = subPath;
+  const subPath   = 'demo.bus';
+  const [subToggle] = ea('#sub-toggle');
+  const [subLog]    = ea('#sub-log');
+  ea('#sub-path', el => el.textContent = subPath);
 
   let subActive = false;
   let subOff = null;
@@ -69,15 +68,16 @@
   subscribe();
   renderLog();
 
-  subToggle.addEventListener('click', () => {
-    if (subActive) { subOff?.(); subOff = null; setActive(false); }
-    else { subscribe(); }
+  wire({
+    '#sub-toggle': { click: () => {
+      if (subActive) { subOff?.(); subOff = null; setActive(false); }
+      else { subscribe(); }
+    }},
+    '#sub-clear': { click: () => { log.length = 0; renderLog(); }},
   });
 
-  subClear.addEventListener('click', () => { log.length = 0; renderLog(); });
-
   // Inspector
-  const inspectorDump = $('#inspector-dump');
+  const [inspectorDump] = ea('#inspector-dump');
   const refresh = () => {
     const paths = messaging.activePaths();
     inspectorDump.textContent = paths.length
@@ -86,7 +86,7 @@
   };
   refresh();
   setInterval(refresh, 500);
-  $('#inspector-refresh').addEventListener('click', refresh);
+  wire('#inspector-refresh', { click: refresh });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">

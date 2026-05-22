@@ -12,69 +12,66 @@
   const gh = new GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-auth.js');
   await gh.load('kits/io.js');
+  await gh.load('vanilla-bundle.js');
 
   const io = window.io;
-  const $ = sel => document.querySelector(sel);
 
-  const pickResult = $('#pick-result');
-  const saveText   = $('#save-text');
-  const zipStatus  = $('#zip-status');
-  const clipText   = $('#clip-text');
-  const clipResult = $('#clip-result');
+  const [pickResult] = ea('#pick-result');
+  const [saveText]   = ea('#save-text');
+  const [zipStatus]  = ea('#zip-status');
+  const [clipText]   = ea('#clip-text');
+  const [clipResult] = ea('#clip-result');
 
-  $('#btn-pick').addEventListener('click', async () => {
-    try {
-      const buf = await io.pick();
-      pickResult.textContent = `ArrayBuffer of ${buf.byteLength} bytes`;
-    } catch (e) { pickResult.textContent = `(${e.message})`; }
-  });
+  wire({
+    '#btn-pick': { click: async () => {
+      try {
+        const buf = await io.pick();
+        pickResult.textContent = `ArrayBuffer of ${buf.byteLength} bytes`;
+      } catch (e) { pickResult.textContent = `(${e.message})`; }
+    }},
 
-  $('#btn-pick-text').addEventListener('click', async () => {
-    try {
-      const text = await io.pickText();
-      pickResult.textContent = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
-    } catch (e) { pickResult.textContent = `(${e.message})`; }
-  });
+    '#btn-pick-text': { click: async () => {
+      try {
+        const text = await io.pickText();
+        pickResult.textContent = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
+      } catch (e) { pickResult.textContent = `(${e.message})`; }
+    }},
 
-  $('#btn-save').addEventListener('click', () => {
-    io.save(saveText.value, 'note.txt', 'text/plain');
-  });
+    '#btn-save':      { click: () => io.save(saveText.value, 'note.txt', 'text/plain') },
+    '#btn-save-json': { click: () => io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json') },
 
-  $('#btn-save-json').addEventListener('click', () => {
-    io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json');
-  });
+    '#btn-save-zip': { click: async () => {
+      zipStatus.textContent = 'building…';
+      try {
+        await io.saveZip([
+          { path: 'hello.txt', data: saveText.value },
+          { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
+          { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
+        ], 'bundle.zip');
+        zipStatus.textContent = 'downloaded bundle.zip';
+      } catch (e) { zipStatus.textContent = `error: ${e.message}`; }
+    }},
 
-  $('#btn-save-zip').addEventListener('click', async () => {
-    zipStatus.textContent = 'building…';
-    try {
-      await io.saveZip([
-        { path: 'hello.txt', data: saveText.value },
-        { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
-        { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
-      ], 'bundle.zip');
-      zipStatus.textContent = 'downloaded bundle.zip';
-    } catch (e) { zipStatus.textContent = `error: ${e.message}`; }
-  });
+    '#btn-show': { click: () => {
+      const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
+        <body style="font:14px system-ui;padding:2rem">
+        <h1>io.show()</h1>
+        <p>This document was created from a Blob and opened with
+        <code>window.open(URL.createObjectURL(blob))</code>.</p>
+        <p>Time: ${new Date().toString()}</p>`;
+      io.show(html, 'text/html');
+    }},
 
-  $('#btn-show').addEventListener('click', () => {
-    const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
-      <body style="font:14px system-ui;padding:2rem">
-      <h1>io.show()</h1>
-      <p>This document was created from a Blob and opened with
-      <code>window.open(URL.createObjectURL(blob))</code>.</p>
-      <p>Time: ${new Date().toString()}</p>`;
-    io.show(html, 'text/html');
-  });
+    '#btn-copy': { click: async () => {
+      const ok = await io.copy(clipText.value);
+      clipResult.textContent = ok ? `copied: ${clipText.value}` : 'copy failed';
+    }},
 
-  $('#btn-copy').addEventListener('click', async () => {
-    const ok = await io.copy(clipText.value);
-    clipResult.textContent = ok ? `copied: ${clipText.value}` : 'copy failed';
-  });
-
-  $('#btn-paste').addEventListener('click', async () => {
-    try {
-      clipResult.textContent = `pasted: ${await io.paste()}`;
-    } catch (e) { clipResult.textContent = `paste error: ${e.message}`; }
+    '#btn-paste': { click: async () => {
+      try {
+        clipResult.textContent = `pasted: ${await io.paste()}`;
+      } catch (e) { clipResult.textContent = `paste error: ${e.message}`; }
+    }},
   });
 </script>
 </head>
