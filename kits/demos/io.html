@@ -12,7 +12,70 @@
   const gh = new GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-auth.js');
   await gh.load('kits/io.js');
-  await gh.load('alpine-bundle.js');
+
+  const io = window.io;
+  const $ = sel => document.querySelector(sel);
+
+  const pickResult = $('#pick-result');
+  const saveText   = $('#save-text');
+  const zipStatus  = $('#zip-status');
+  const clipText   = $('#clip-text');
+  const clipResult = $('#clip-result');
+
+  $('#btn-pick').addEventListener('click', async () => {
+    try {
+      const buf = await io.pick();
+      pickResult.textContent = `ArrayBuffer of ${buf.byteLength} bytes`;
+    } catch (e) { pickResult.textContent = `(${e.message})`; }
+  });
+
+  $('#btn-pick-text').addEventListener('click', async () => {
+    try {
+      const text = await io.pickText();
+      pickResult.textContent = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
+    } catch (e) { pickResult.textContent = `(${e.message})`; }
+  });
+
+  $('#btn-save').addEventListener('click', () => {
+    io.save(saveText.value, 'note.txt', 'text/plain');
+  });
+
+  $('#btn-save-json').addEventListener('click', () => {
+    io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json');
+  });
+
+  $('#btn-save-zip').addEventListener('click', async () => {
+    zipStatus.textContent = 'building…';
+    try {
+      await io.saveZip([
+        { path: 'hello.txt', data: saveText.value },
+        { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
+        { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
+      ], 'bundle.zip');
+      zipStatus.textContent = 'downloaded bundle.zip';
+    } catch (e) { zipStatus.textContent = `error: ${e.message}`; }
+  });
+
+  $('#btn-show').addEventListener('click', () => {
+    const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
+      <body style="font:14px system-ui;padding:2rem">
+      <h1>io.show()</h1>
+      <p>This document was created from a Blob and opened with
+      <code>window.open(URL.createObjectURL(blob))</code>.</p>
+      <p>Time: ${new Date().toString()}</p>`;
+    io.show(html, 'text/html');
+  });
+
+  $('#btn-copy').addEventListener('click', async () => {
+    const ok = await io.copy(clipText.value);
+    clipResult.textContent = ok ? `copied: ${clipText.value}` : 'copy failed';
+  });
+
+  $('#btn-paste').addEventListener('click', async () => {
+    try {
+      clipResult.textContent = `pasted: ${await io.paste()}`;
+    } catch (e) { clipResult.textContent = `paste error: ${e.message}`; }
+  });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
@@ -31,16 +94,16 @@
     (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/io.js" class="link link-hover">kit source</a>)
   </p>
 
-  <div x-data="ioDemo()" class="space-y-4">
+  <div class="space-y-4">
 
     <!-- pick -->
     <div class="bg-base-200/40 rounded p-4 space-y-2">
       <h3 class="font-bold text-xs uppercase opacity-60">pick / pickText</h3>
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-sm" @click="doPick()">io.pick()</button>
-        <button class="btn btn-sm" @click="doPickText()">io.pickText()</button>
+        <button id="btn-pick" class="btn btn-sm">io.pick()</button>
+        <button id="btn-pick-text" class="btn btn-sm">io.pickText()</button>
       </div>
-      <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]" x-text="pickResult"></pre>
+      <pre id="pick-result" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]">(no file picked)</pre>
     </div>
 
     <!-- save -->
@@ -48,11 +111,11 @@
       <h3 class="font-bold text-xs uppercase opacity-60">save / saveJson</h3>
       <div class="flex items-center gap-2">
         <span class="opacity-60 text-xs">text:</span>
-        <input x-model="saveText" class="input input-xs input-bordered flex-1">
+        <input id="save-text" value="hello from io kit" class="input input-xs input-bordered flex-1">
       </div>
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-sm" @click="doSave()">save as .txt</button>
-        <button class="btn btn-sm" @click="doSaveJson()">saveJson({ value: text })</button>
+        <button id="btn-save" class="btn btn-sm">save as .txt</button>
+        <button id="btn-save-json" class="btn btn-sm">saveJson({ value: text })</button>
       </div>
     </div>
 
@@ -62,8 +125,8 @@
       <p class="opacity-60 text-xs">
         Bundles two inline files plus a remote URL fetch. Loads JSZip on first click.
       </p>
-      <button class="btn btn-sm" @click="doSaveZip()">build &amp; download bundle.zip</button>
-      <div class="text-xs opacity-60" x-text="zipStatus"></div>
+      <button id="btn-save-zip" class="btn btn-sm">build &amp; download bundle.zip</button>
+      <div id="zip-status" class="text-xs opacity-60"></div>
     </div>
 
     <!-- show -->
@@ -72,7 +135,7 @@
       <p class="opacity-60 text-xs">
         Opens a Blob in a popup window. (Allow popups for this origin.)
       </p>
-      <button class="btn btn-sm" @click="doShow()">show HTML in popup</button>
+      <button id="btn-show" class="btn btn-sm">show HTML in popup</button>
     </div>
 
     <!-- copy / paste -->
@@ -80,13 +143,13 @@
       <h3 class="font-bold text-xs uppercase opacity-60">copy / paste</h3>
       <div class="flex items-center gap-2">
         <span class="opacity-60 text-xs">text:</span>
-        <input x-model="clipText" class="input input-xs input-bordered flex-1">
+        <input id="clip-text" value="paste me somewhere" class="input input-xs input-bordered flex-1">
       </div>
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-sm" @click="doCopy()">io.copy(text)</button>
-        <button class="btn btn-sm" @click="doPaste()">io.paste()</button>
+        <button id="btn-copy" class="btn btn-sm">io.copy(text)</button>
+        <button id="btn-paste" class="btn btn-sm">io.paste()</button>
       </div>
-      <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]" x-text="clipResult"></pre>
+      <pre id="clip-result" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]"></pre>
       <p class="opacity-50 text-xs">
         Try <code>await io.copy('hi')</code> or <code>await io.paste()</code>
         from the devtools console — focus is on devtools, so the kit waits
@@ -99,62 +162,5 @@
 
 </div>
 
-<script>
-function ioDemo() { return {
-  pickResult: '(no file picked)',
-  saveText: 'hello from io kit',
-  zipStatus: '',
-  clipText: 'paste me somewhere',
-  clipResult: '',
-
-  async doPick() {
-    try {
-      const buf = await window.io.pick();
-      this.pickResult = `ArrayBuffer of ${buf.byteLength} bytes`;
-    } catch (e) { this.pickResult = `(${e.message})`; }
-  },
-  async doPickText() {
-    try {
-      const text = await window.io.pickText();
-      this.pickResult = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
-    } catch (e) { this.pickResult = `(${e.message})`; }
-  },
-  doSave() {
-    window.io.save(this.saveText, 'note.txt', 'text/plain');
-  },
-  doSaveJson() {
-    window.io.saveJson({ value: this.saveText, when: new Date().toISOString() }, 'note.json');
-  },
-  async doSaveZip() {
-    this.zipStatus = 'building…';
-    try {
-      await window.io.saveZip([
-        { path: 'hello.txt', data: this.saveText },
-        { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
-        { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
-      ], 'bundle.zip');
-      this.zipStatus = 'downloaded bundle.zip';
-    } catch (e) { this.zipStatus = `error: ${e.message}`; }
-  },
-  doShow() {
-    const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
-      <body style="font:14px system-ui;padding:2rem">
-      <h1>io.show()</h1>
-      <p>This document was created from a Blob and opened with
-      <code>window.open(URL.createObjectURL(blob))</code>.</p>
-      <p>Time: ${new Date().toString()}</p>`;
-    window.io.show(html, 'text/html');
-  },
-  async doCopy() {
-    const ok = await window.io.copy(this.clipText);
-    this.clipResult = ok ? `copied: ${this.clipText}` : 'copy failed';
-  },
-  async doPaste() {
-    try {
-      this.clipResult = `pasted: ${await window.io.paste()}`;
-    } catch (e) { this.clipResult = `paste error: ${e.message}`; }
-  }
-}}
-</script>
 </body>
 </html>
