@@ -33,6 +33,16 @@
   ].filter(Boolean).join(' ');
 
   const fills = {
+    // Single daisyUI button. Markup only — wire behavior separately.
+    // For Alpine-scoped handlers use x-btn from alpine-bundle.js.
+    btn: (mods, label) => {
+      const variant = ['primary','secondary','accent','info','success','warning','error',
+        'ghost','outline','soft','neutral'].find(v => mods.includes(v));
+      const classes = ['btn', sz(mods) && `btn-${sz(mods)}`, variant && `btn-${variant}`]
+        .filter(Boolean).join(' ');
+      return `<button class="${classes}">${label}</button>`;
+    },
+
     // daisyUI tooltip with a custom rich content body.
     tip: (mods, trigger, content) => {
       const cls = ['tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-left',
