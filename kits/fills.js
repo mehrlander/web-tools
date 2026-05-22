@@ -33,6 +33,16 @@
   ].filter(Boolean).join(' ');
 
   const fills = {
+    // Single daisyUI button with optional native onclick handler.
+    // For Alpine-scoped handlers (evaluateLater, $store, etc.) use x-btn from alpine-bundle.js.
+    btn: (mods, label, click = '') => {
+      const variant = ['primary','secondary','accent','info','success','warning','error',
+        'ghost','outline','soft','neutral'].find(v => mods.includes(v));
+      const classes = ['btn', sz(mods) && `btn-${sz(mods)}`, variant && `btn-${variant}`]
+        .filter(Boolean).join(' ');
+      return `<button${click ? ` onclick="${click}"` : ''} class="${classes}">${label}</button>`;
+    },
+
     // daisyUI tooltip with a custom rich content body.
     tip: (mods, trigger, content) => {
       const cls = ['tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-left',

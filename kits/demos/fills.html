@@ -50,6 +50,17 @@
       <div class="bg-base-200/40 rounded p-4" x-html="rendered.lines"></div>
     </section>
 
+    <!-- btn -->
+    <section>
+      <h2 class="font-bold mb-1">btn(mods, label, click)</h2>
+      <p class="opacity-60 text-xs mb-2">daisyUI button. <code>mods</code> takes a size
+      (<code>xs|sm|md|lg|xl</code>) and variant (<code>primary|secondary|accent|...</code>).
+      <code>click</code> is a native <code>onclick</code> expression — for Alpine-scoped
+      handlers use <code>x-btn</code> from alpine-bundle.js.</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code x-text="snippets.btn"></code></pre>
+      <div class="bg-base-200/40 rounded p-4 flex justify-center" x-html="rendered.btn"></div>
+    </section>
+
     <!-- toolbar -->
     <section>
       <h2 class="font-bold mb-1">toolbar(mods, ...items)</h2>
@@ -94,12 +105,13 @@ function demo() { return {
     this.rendered.lines = f.lines(['gap-1','xs','muted'],
       ['First line', 'Second line', 'Third line']);
 
-    this.snippets.toolbar = `toolbar([],
-  '<b>Title</b>',
-  '<button class="btn btn-xs btn-primary">Action</button>')`;
+    this.snippets.btn = `btn(['xs','primary'], 'Action',\n  "this.textContent='Done!'")`;
+    this.rendered.btn = f.btn(['xs', 'primary'], 'Action', "this.textContent='Done!'");
+
+    this.snippets.toolbar = `toolbar([],\n  '<b>Title</b>',\n  btn(['xs','primary'], 'Action'))`;
     this.rendered.toolbar = f.toolbar([],
       '<b>Title</b>',
-      '<button class="btn btn-xs btn-primary">Action</button>');
+      f.btn(['xs', 'primary'], 'Action'));
 
     this.snippets.modal = `modal(\`
   <div class="p-6">
