@@ -104,7 +104,8 @@ everything else off this repo at runtime. Files it loads are written in
 a specific shape (IIFE, `window.foo =`, no `import`/`export`) so they
 can be pulled in without a build step. `alpine-bundle.js` handles
 Alpine's load-order quirks and the custom-element wrapper, so a page
-doesn't have to. A few libraries (Vanilla JSON Editor among them) get
+doesn't have to. `vanilla-bundle.js` is the Alpine-free counterpart —
+lightweight DOM helpers (no framework dependency) expected to grow. A few libraries (Vanilla JSON Editor among them) get
 loaded through small helpers in the repo, but the base stack is assumed
 already present on the page. Reaching for kits or components without
 the loader is possible but cuts across the grain.
