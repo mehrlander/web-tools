@@ -30,11 +30,9 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 **Test page on the branch.** GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
 
-**gh-api.js edits.** Any turn that modifies `gh-api.js` must end with a jsDelivr cache-busting link pinned to the commit SHA (branch tips are cached ~12h). Get the SHA with `git rev-parse HEAD` and format it as:
+**gh-api.js edits.** Any turn that modifies `gh-api.js` must end with the jsDelivr purge link so the user can flush the CDN cache with one tap:
 
-> `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@<full-sha>/gh-api.js`
-
-Include it as a tappable link in the reply so the user can immediately test the updated file from CDN.
+> [https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js](https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js)
 
 **Don't reach for external preview services.** If the repo is private, render proxies (htmlpreview.github.io, raw.githack.com, and similar) won't resolve. The blob view via `[new]` is the canonical file view for every file type. Markdown renders directly there; code gets syntax highlighting.
 
