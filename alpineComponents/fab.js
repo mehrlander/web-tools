@@ -300,7 +300,7 @@ document.addEventListener('alpine:init', function() {
       get pageLinks() { return this.linksFor(this.path); },
       get totalInstances() { return this.groups.reduce((s, g) => s + g.instances.length, 0); },
 
-      componentPath(name) { return 'alpineComponents/' + name + '-assembled.js'; }
+      componentPath(name) { return 'alpineComponents/' + name + '.js'; }
     };
   });
 });

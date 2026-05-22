@@ -7,10 +7,10 @@ Themed logic libraries loaded via `gh.load`. Each kit is a plain script
 
 A **kit** is the third category of file in this repo, alongside:
 
-- **Root-level scaffolding** — `gh-fetch.js`, `alpine-bundle.js`,
-  `beam-in.js`. One-of-a-kind singletons. `alpine-bundle.js` also owns
-  the Alpine-coupled `x-define` directive (custom-element registration
-  from a `<template>`), so kits can stay Alpine-free.
+- **Root-level scaffolding** — `gh-api.js`, `gh-auth.js`, `gh-fetch.js`,
+  `gh-store.js`, `alpine-bundle.js`. The boot chain. `alpine-bundle.js`
+  also owns the Alpine-coupled `x-define` directive (custom-element
+  registration from a `<template>`), so kits can stay Alpine-free.
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
 - **`kits/*.js`** — logic libraries that register a namespace on
@@ -205,7 +205,7 @@ matched verbatim. See `pages/demos/messaging.html` for live examples.
 ### data-shelf.js
 
 Record-shape conventions for the persistent scratch shelf used by
-`pages/data-shelf/`. Records live in `persistence.collection('dataShelf.items')`;
+`pages/data-shelf.html`. Records live in `persistence.collection('dataShelf.items')`;
 this kit defines the valid record shape, the `SHELF_TYPES` enum
 (`js | html | json | text`), and the predicates / coercion used by the
 data-shelf importer when ingesting records from legacy IndexedDB
@@ -229,9 +229,9 @@ examples.
 
 | Kit | Demo | Notes |
 |---|---|---|
-| `compression.js` | (used in `pages/compression-helper/`) | brotli + gzip + acorn |
+| `compression.js` | (used in `pages/compression-helper.html`) | brotli + gzip + acorn |
 | `fills.js` | `pages/demos/fills.html` | pure HTML string helpers, no Alpine |
 | `persistence.js` | `pages/demos/persistence.html` | idb-keyval + collections |
 | `messaging.js` | `pages/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `pages/demos/io.html` | pick / save / clipboard |
-| `data-shelf.js` | `pages/data-shelf/` | record shape + importer support |
+| `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |

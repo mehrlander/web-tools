@@ -2,9 +2,7 @@
 
 The repo currently has two tiers of pages:
 
-- **Simple pages** (`pages/index.html`,
-  `compression-helper/archive/v1.html`,
-  `bookmarklets-story.html`, `quick-dump.html`,
+- **Simple pages** (`pages/index.html`, `bookmarklets-story.html`,
   `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
   then an inline `<script>` with the page's Alpine components. No shared
@@ -39,7 +37,7 @@ Every scaffolded page's `<head>` looks like this, with minor variation:
 
   await gh.load('alpineComponents/repo.js');      // 1) register Alpine.data('repo', ...)
   await gh.load('alpineComponents/navigator.js'); // 2) register Alpine.data('navigator', ...)
-  await gh.load('alpineComponents/viewer-assembled.js'); // 3) register Alpine.data('viewer', ...)
+  await gh.load('alpineComponents/viewer.js');    // 3) register Alpine.data('viewer', ...)
   await gh.load('alpine-bundle.js');              // 4) register magics + boot Alpine
 </script>
 ```
@@ -97,7 +95,7 @@ import URL carries an `@<ref>` segment.
   components via `Alpine.store('browser')` and via per-element back-pointers
   (`this.$root.__navigator = this`).
 - The view registry (Tabulator/Prism/Marked render modes) lives inside
-  `alpineComponents/viewer-assembled.js` as a module-private constant.
+  `alpineComponents/viewer.js` as a module-private constant.
   Pages don't load it separately.
 
 ## The load mechanism (the fragile bit)
@@ -283,8 +281,8 @@ the `new Function()` constraint.
 
 ### Option D — step outside the pattern for one-off pages
 
-Best for: pages that don't need repo browsing at all (e.g., the legacy
-`compression-helper/archive/v1.html`).
+Best for: pages that don't need repo browsing at all (e.g., the simple
+`bookmarklets-story.html` or `table-compress.html`).
 
 Rules:
 - Just use CDN Alpine + inline components, like the existing simple pages.
@@ -307,7 +305,7 @@ Mapping the options to what Alp offered:
 
 - **Tabulator helpers (`kits/tb.js` — `downloadJson`, `downloadZip`)** —
   same thing, ESM helpers. Either **Option C** or inline into
-  `alpineComponents/viewer-assembled.js` since that's where Tabulator
+  `alpineComponents/viewer.js` since that's where Tabulator
   is used today.
 
 - **Dexie key-value wrapper (`kits/dexie.js`)** — ESM, fits **Option C**.

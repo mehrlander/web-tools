@@ -14,7 +14,7 @@
     delete DB). Composes:
       - kits/persistence.js — idb introspection + idb.admin writes
       - alpineComponents/idb-tree.js — sidebar
-      - alpineComponents/viewer-assembled.js — right pane (defaultMode: tree)
+      - alpineComponents/viewer.js — right pane (defaultMode: tree)
   -->
   <script type="module">
     const REPO = 'mehrlander/web-tools';
@@ -24,9 +24,9 @@
     window.GH = mod.default;
     const gh = new window.GH({ repo: REPO, ref: BRANCH });
     await gh.load('kits/persistence.js');
-    await gh.load('alpineComponents/viewer-assembled.js');
+    await gh.load('alpineComponents/viewer.js');
     await gh.load('alpineComponents/idb-tree.js');
-    await gh.load('alpineComponents/fab-assembled.js');
+    await gh.load('alpineComponents/fab.js');
     await gh.load('alpine-bundle.js');
   </script>
 </head>

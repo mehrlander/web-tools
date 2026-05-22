@@ -28,8 +28,8 @@
     await gh.load('kits/persistence.js');
     await gh.load('kits/data-shelf.js');
     await gh.load('alpineComponents/cm-editor.js');
-    await gh.load('alpineComponents/viewer-assembled.js');
-    await gh.load('alpineComponents/fab-assembled.js');
+    await gh.load('alpineComponents/viewer.js');
+    await gh.load('alpineComponents/fab.js');
     await gh.load('alpineComponents/idb-importer.js');
     await gh.load('alpine-bundle.js');
   </script>
@@ -237,7 +237,7 @@
   })"></div>
 
   <!-- FAB for source / repo links -->
-  <div x-data="fab()" data-path="pages/data-shelf/index.html"></div>
+  <div x-data="fab()" data-path="pages/data-shelf.html"></div>
 
   <script>
     document.addEventListener('alpine:init', () => {

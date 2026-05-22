@@ -53,18 +53,16 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | Page | What it does |
 |---|---|
 | [index](https://mehrlander.github.io/web-tools/pages/) | Auto-generated directory of everything in `pages/`. |
-| [data-shelf](https://mehrlander.github.io/web-tools/pages/data-shelf/) | Persistent scratch shelf. Paste records, edit, view, run, export. Imports records forward from legacy IDB databases. |
+| [data-shelf](https://mehrlander.github.io/web-tools/pages/data-shelf.html) | Persistent scratch shelf. Paste records, edit, view, run, export. Imports records forward from legacy IDB databases. |
 | [idb-nav](https://mehrlander.github.io/web-tools/pages/idb-nav.html) | IndexedDB explorer. Every database on the origin, every store, edit records, delete what you don't want. |
-| [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper/) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
+| [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
 | [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | One small demo page per kit (`fills`, `persistence`, `messaging`, `io`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 
-The `compression-helper/` and `data-shelf/` folders each contain the current
-version as `index.html` plus older iterations alongside. The auto-listed
-index at `pages/` is the full directory if you want to see everything,
-including development scratchpads not curated above.
+The auto-listed index at `pages/` is the full directory if you want to see
+everything, including development scratchpads not curated above.
 
 ### Bookmarklets
 
@@ -162,7 +160,7 @@ The shape of a loaded page in one block:
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
 
   await gh.load('kits/persistence.js');                   // logic kits
-  await gh.load('alpineComponents/viewer-assembled.js');  // UI components
+  await gh.load('alpineComponents/viewer.js');            // UI components
   await gh.load('alpine-bundle.js');                      // boots Alpine
 </script>
 ```
@@ -171,11 +169,11 @@ The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness i
 
 Recent pages that make good templates:
 
-- [`pages/data-shelf/index.html`](pages/data-shelf/index.html) for multiple
+- [`pages/data-shelf.html`](pages/data-shelf.html) for multiple
   kits and components with an importer and a FAB.
 - [`pages/idb-nav.html`](pages/idb-nav.html) for kits, viewer, and a custom
   sidebar.
-- [`pages/compression-helper/index.html`](pages/compression-helper/index.html)
+- [`pages/compression-helper.html`](pages/compression-helper.html)
   for the compression kits with Alpine loaded directly, not via
   `alpine-bundle.js`.
 
