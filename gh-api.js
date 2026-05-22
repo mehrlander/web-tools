@@ -1,3 +1,28 @@
+if (typeof window !== 'undefined' && !window.__consoleLogs) {
+  window.__consoleLogs = [];
+  ['log', 'warn', 'error', 'info'].forEach(level => {
+    const orig = console[level];
+    console[level] = (...args) => {
+      const entry = {
+        level,
+        msg: args.map(a => {
+          try { return typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a); }
+          catch (e) { return String(a); }
+        }).join(' '),
+        time: Date.now()
+      };
+      window.__consoleLogs.push(entry);
+      window.dispatchEvent(new CustomEvent('consolelog', { detail: entry }));
+      orig.apply(console, args);
+    };
+  });
+  window.addEventListener('error', e => {
+    const entry = { level: 'error', msg: e.message || String(e), time: Date.now() };
+    window.__consoleLogs.push(entry);
+    window.dispatchEvent(new CustomEvent('consolelog', { detail: entry }));
+  });
+}
+
 export default class GH {
   constructor(conf = {}) {
     this.token = conf.token || '';
