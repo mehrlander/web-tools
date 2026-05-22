@@ -77,7 +77,7 @@ window.fills.modal(inner)
 
 `mods` is an array of short tokens (e.g. `['xs','bottom']`). Recognized
 tokens map to daisyUI/Tailwind classes; unrecognized tokens are ignored.
-See `pages/demos/fills.html` for live examples.
+See `kits/demos/fills.html` for live examples.
 
 For Alpine-flavored equivalents that decorate elements (rather than
 return string fragments), see the directives in `alpine-bundle.js`:
@@ -105,7 +105,7 @@ Path syntax: `"<db>.<key>"` defaults `store="default"`; `"<db>.<store>.<key>"`
 is explicit. Single-segment paths throw — every caller picks its own
 namespace so devtools shows separate IndexedDB databases and data from
 different pages can't collide. `createStore` handles are cached per
-`db|store`. See `pages/demos/persistence.html` for live examples.
+`db|store`. See `kits/demos/persistence.html` for live examples.
 
 #### Collections
 
@@ -182,7 +182,7 @@ branch logs which path it took to the console. Note that wrapping
 `io.paste()` in `setTimeout` may break the user-gesture chain on iOS
 16+ — call it directly from the click handler. `pick` / `pickText`
 reject on dialog cancel via the `cancel` event. See
-`pages/demos/io.html` for live examples.
+`kits/demos/io.html` for live examples.
 
 ### messaging.js
 
@@ -200,7 +200,7 @@ off();
 
 Path strings are conventionally the same shape as `persistence.js`
 (`"<db>.<store>.<key>"`) but this kit doesn't parse them — keys are
-matched verbatim. See `pages/demos/messaging.html` for live examples.
+matched verbatim. See `kits/demos/messaging.html` for live examples.
 
 ### data-shelf.js
 
@@ -230,8 +230,8 @@ examples.
 | Kit | Demo | Notes |
 |---|---|---|
 | `compression.js` | (used in `pages/compression-helper.html`) | brotli + gzip + acorn |
-| `fills.js` | `pages/demos/fills.html` | pure HTML string helpers, no Alpine |
-| `persistence.js` | `pages/demos/persistence.html` | idb-keyval + collections |
-| `messaging.js` | `pages/demos/messaging.html` | exact-match pub/sub |
-| `io.js` | `pages/demos/io.html` | pick / save / clipboard |
+| `fills.js` | `kits/demos/fills.html` | pure HTML string helpers, no Alpine |
+| `persistence.js` | `kits/demos/persistence.html` | idb-keyval + collections |
+| `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
+| `io.js` | `kits/demos/io.html` | pick / save / clipboard |
 | `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |
