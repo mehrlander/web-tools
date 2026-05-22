@@ -129,10 +129,7 @@
       });
     });
 
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js';
-    s.defer = true;
-    document.head.appendChild(s);
+    await gh.load('alpine-bundle.js');
   } catch (e) {
     console.error('boot:', e);
     document.body.innerHTML =

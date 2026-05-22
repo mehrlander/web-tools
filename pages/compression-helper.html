@@ -34,11 +34,7 @@
   await gh.load('alpineComponents/compress-output.js');
   await gh.load('alpineComponents/compress-input-cm.js');
   await gh.load('alpineComponents/fab.js');
-
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/alpinejs/dist/cdn.min.js';
-  s.defer = true;
-  document.head.appendChild(s);
+  await gh.load('alpine-bundle.js');
 </script>
 </head>
 <body class="h-dvh font-mono text-sm">
@@ -47,12 +43,11 @@
      :class="resizing && 'select-none cursor-ns-resize'"
      @pointerup.window="resizing = false"
      @pointercancel.window="resizing = false"
-     @pointermove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }"
-     x-effect="$refs.output && ($refs.output.style.height = outHeight + 'px')">
+     @pointermove.window="if (resizing) { outHeight = Math.max(80, Math.min(startH + ($event.clientY - startY), $el.getBoundingClientRect().height - 200)) }">
 
   <h1 class="text-xl mb-4">Compression Helper</h1>
 
-  <div x-data="compressOutput()" x-ref="output" class="relative overflow-hidden flex-none mb-1"></div>
+  <div x-data="compressOutput()" :style="'height:'+outHeight+'px'" class="relative overflow-hidden flex-none mb-1"></div>
 
   <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none"
        @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
