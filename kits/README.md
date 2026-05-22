@@ -7,10 +7,10 @@ Themed logic libraries loaded via `gh.load`. Each kit is a plain script
 
 A **kit** is the third category of file in this repo, alongside:
 
-- **Root-level scaffolding** — `gh-fetch.js`, `alpine-bundle.js`,
-  `beam-in.js`. One-of-a-kind singletons. `alpine-bundle.js` also owns
-  the Alpine-coupled `x-define` directive (custom-element registration
-  from a `<template>`), so kits can stay Alpine-free.
+- **Root-level scaffolding** — `gh-api.js`, `gh-auth.js`, `gh-fetch.js`,
+  `gh-store.js`, `alpine-bundle.js`. The boot chain. `alpine-bundle.js`
+  also owns the Alpine-coupled `x-define` directive (custom-element
+  registration from a `<template>`), so kits can stay Alpine-free.
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
 - **`kits/*.js`** — logic libraries that register a namespace on
