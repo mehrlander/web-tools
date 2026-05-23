@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="nord">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIC Collection Browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+  <div id="app"></div>
+
+  <script>
+    /* ──────────────────────────────────────────────────────────────
+       fill: a tagged-template DOM helper
+
+       Two call forms, one engine.
+
+         fill`<p>${node}</p>`              build a DOM node from markup
+         fill.p`hello ${name}`             same, with an explicit tag
+         fill.p({ class:'x', onclick:fn })`...`   tag plus an attribute object
+
+       Interpolations are typed, not stringified blindly:
+         Node            spliced in place (via a comment placeholder)
+         Array           flattened, each item handled in turn
+         function        called, then its result handled (lazy thunks)
+         null / false    skipped, so `cond && node` reads cleanly
+         anything else   inserted as escaped text, never parsed as markup
+
+       The escaping is the quiet point. Text and attribute values land as
+       placeholders, the markup parses once, then values are written back
+       into text nodes and attributes. A quote in a title or a < in a
+       caption stays literal. The scaffold is static; the data rides in
+       through the DOM, not through the HTML string.
+
+       Helpers:
+         fill.when(cond, then, else?)   ternary that defaults else to null
+         fill.map(arr, fn)              map then flatten, for list output
+       ────────────────────────────────────────────────────────────── */
+    const fill = new Proxy(function () {}, {
+      get(_, tag) {
+        if (tag === 'when') return (c, a, b) => (c ? a : (b ?? null));
+        if (tag === 'map')  return (arr, fn) => arr.map(fn).flat(Infinity);
+
+        const build = (attrs, strings, values) => {
+          const el = document.createElement(tag);
+          for (const [k, v] of Object.entries(attrs)) {
+            if (k === 'class' || k === 'className') el.className = v;
+            else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
+            else if (v != null && v !== false) el.setAttribute(k, v === true ? '' : v);
+          }
+          el.append(fill(strings, ...values));
+          return el;
+        };
+
+        // fill.tag`...`  has a real strings array (it carries .raw).
+        // fill.tag({attrs})`...`  hands us the attribute object first,
+        // so we curry: return the actual tag function.
+        return (first, ...rest) =>
+          Array.isArray(first) && 'raw' in first
+            ? build({}, first, rest)
+            : (strings, ...values) => build(first || {}, strings, values);
+      },
+
+      apply(_, __, [strings, ...values]) {
+        const nodes = [], texts = [];
+        let html = '';
+
+        const push = v => {
+          while (typeof v === 'function') v = v();
+          if (v == null || v === false) return;
+          if (v instanceof Node) { nodes.push(v); html += `<!--n${nodes.length - 1}-->`; }
+          else if (Array.isArray(v)) v.flat(Infinity).forEach(push);
+          else { texts.push(String(v)); html += `\uE000${texts.length - 1}\uE001`; }
+        };
+        strings.forEach((s, i) => { html += s; if (i < values.length) push(values[i]); });
+
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html;
+        const root = tpl.content;
+
+        // Node placeholders parsed as HTML comments → splice the real node.
+        const comments = [];
+        const cw = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+        for (let c; (c = cw.nextNode());) comments.push(c);
+        for (const c of comments) {
+          const m = /^n(\d+)$/.exec(c.data);
+          if (m) c.replaceWith(nodes[+m[1]]);
+        }
+
+        // Text placeholders → written back as escaped text and attribute values.
+        const seen = s => /\uE000\d+\uE001/.test(s);
+        const sub  = s => s.replace(/\uE000(\d+)\uE001/g, (_, i) => texts[+i]);
+        const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let n; (n = tw.nextNode());) if (seen(n.data)) n.textContent = sub(n.data);
+        const ew = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+        for (let el; (el = ew.nextNode());) for (const a of el.attributes) if (seen(a.value)) a.value = sub(a.value);
+
+        return root.childNodes.length === 1 ? root.firstChild : root;
+      }
+    });
+
+    /* ── State ── */
+    const state = { artworks: [], filtered: [], loading: false, query: 'monet', filter: '', error: false };
+    const iiif = (id, w) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
+
+    /* ── Components: each is a pure function of data, returning a node ── */
+    const Card = a => fill.article({
+      class: 'card bg-base-100 border border-base-200 shadow-md hover:shadow-xl transition-all cursor-pointer group',
+      onclick: () => openDetail(a)
+    })`
+      <figure class="aspect-[4/3] overflow-hidden bg-base-300">
+        <img src="${iiif(a.image_id, 400)}" alt="${a.title}" loading="lazy"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+      </figure>
+      <div class="card-body p-4 gap-1">
+        <h3 class="card-title text-sm leading-tight line-clamp-2">${a.title}</h3>
+        <p class="text-xs text-base-content/70 line-clamp-1">${a.artist_display || 'Unknown artist'}</p>
+        <div class="card-actions justify-end mt-2">
+          <span class="badge badge-outline badge-primary badge-sm">${a.date_display || 'Undated'}</span>
+        </div>
+      </div>
+    `;
+
+    const Grid = items => fill.div({
+      class: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5'
+    })`${fill.map(items, Card)}`;
+
+    const Detail = a => {
+      const meta = [
+        ['Artist', a.artist_display],
+        ['Date', a.date_display],
+        ['Medium', a.medium_display],
+        ['Origin', a.place_of_origin],
+        ['Dimensions', a.dimensions],
+        ['Credit', a.credit_line]
+      ].filter(([, v]) => v);
+
+      return fill.div({ class: 'space-y-5' })`
+        <figure class="rounded-box overflow-hidden bg-base-300 shadow">
+          <img src="${iiif(a.image_id, 843)}" alt="${a.title}" class="w-full object-cover">
+        </figure>
+        <h1 class="text-2xl font-bold leading-tight">${a.title}</h1>
+        <div class="space-y-2">
+          ${fill.map(meta, ([k, v]) => fill.div({ class: 'flex gap-3 text-sm border-b border-base-300 pb-2' })`
+            <span class="w-28 shrink-0 font-semibold text-base-content/50">${k}</span>
+            <span class="text-base-content/90">${v}</span>
+          `)}
+        </div>
+        <a href="https://www.artic.edu/artworks/${a.id}" target="_blank" class="btn btn-primary btn-block">
+          <i class="ph ph-arrow-square-out text-lg"></i> View at the Art Institute
+        </a>
+      `;
+    };
+
+    const Loading = () => fill.div({ class: 'flex flex-col items-center gap-4 py-24' })`
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="text-sm text-base-content/60">Searching the collection…</p>
+    `;
+
+    const Notice = (msg, icon) => fill.div({ class: 'text-center py-24 space-y-3' })`
+      <i class="ph ph-${icon} text-6xl text-base-300 block"></i>
+      <p class="text-lg font-medium text-base-content/60">${msg}</p>
+    `;
+
+    const Shell = () => fill.div({ class: 'min-h-screen' })`
+      <header class="navbar bg-base-200/90 backdrop-blur sticky top-0 z-30 px-4 gap-3 flex-wrap shadow-sm">
+        <h1 class="flex-1 min-w-[180px] text-xl font-bold flex items-center gap-2 tracking-tight">
+          <i class="ph ph-bank text-2xl text-primary"></i> AIC Collection
+        </h1>
+        <div class="flex gap-2 flex-wrap items-center">
+          <div class="join shadow-sm">
+            <input id="search" class="input input-bordered join-item w-52 sm:w-64" placeholder="Search the collection…" value="monet">
+            <button id="go" class="btn btn-primary join-item"><i class="ph ph-magnifying-glass text-lg"></i></button>
+          </div>
+          <div class="join shadow-sm">
+            <span class="join-item btn btn-ghost no-animation px-3"><i class="ph ph-funnel text-lg"></i></span>
+            <input id="filter" class="input input-bordered join-item w-36 sm:w-48" placeholder="Filter shown…">
+          </div>
+          <span id="count" class="badge badge-primary badge-lg font-mono">0 / 0</span>
+        </div>
+      </header>
+
+      <main class="container mx-auto p-4"><div id="results"></div></main>
+
+      <footer class="text-center text-xs text-base-content/40 py-6">
+        Rendered with <code class="text-primary font-mono">fill</code>, a tagged-template DOM helper. Data from the Art Institute of Chicago.
+      </footer>
+
+      <div id="overlay" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
+      <aside id="drawer" class="fixed inset-y-0 right-0 w-full max-w-xl bg-base-200 shadow-2xl z-50
+             translate-x-full transition-transform duration-300 flex flex-col border-l border-base-300">
+        <div class="navbar bg-base-100 border-b border-base-300 px-4">
+          <span class="flex-1 font-bold flex items-center gap-2"><i class="ph ph-info text-primary"></i> Artwork detail</span>
+          <button id="close" class="btn btn-sm btn-circle btn-ghost"><i class="ph ph-x text-lg"></i></button>
+        </div>
+        <div id="detail" class="flex-1 overflow-y-auto p-6"></div>
+      </aside>
+    `;
+
+    /* ── Render: rebuild the results region from state ── */
+    function render() {
+      document.getElementById('count').textContent = `${state.filtered.length} / ${state.artworks.length}`;
+      document.getElementById('results').replaceChildren(
+        state.loading      ? Loading()
+        : state.error      ? Notice('Could not reach the collection API', 'warning-circle')
+        : !state.filtered.length ? Notice('No artworks match your filters', 'image')
+        : Grid(state.filtered)
+      );
+    }
+
+    function openDetail(a) {
+      document.getElementById('detail').replaceChildren(Detail(a));
+      document.getElementById('overlay').classList.remove('hidden');
+      requestAnimationFrame(() => document.getElementById('drawer').classList.remove('translate-x-full'));
+    }
+    function closeDetail() {
+      document.getElementById('drawer').classList.add('translate-x-full');
+      setTimeout(() => document.getElementById('overlay').classList.add('hidden'), 300);
+    }
+
+    async function search() {
+      state.loading = true;
+      state.filter = '';
+      document.getElementById('filter').value = '';
+      render();
+
+      const fields = 'id,title,artist_display,date_display,medium_display,image_id,place_of_origin,dimensions,credit_line';
+      try {
+        const res = await fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(state.query)}&fields=${fields}&limit=24`);
+        const { data } = await res.json();
+        state.artworks = data.filter(a => a.image_id);
+        state.error = false;
+      } catch {
+        state.artworks = [];
+        state.error = true;
+      }
+      state.filtered = [...state.artworks];
+      state.loading = false;
+      render();
+    }
+
+    function applyFilter() {
+      const t = state.filter.toLowerCase().trim();
+      state.filtered = !t ? [...state.artworks]
+        : state.artworks.filter(a =>
+            [a.title, a.artist_display, a.date_display, a.medium_display]
+              .some(f => (f || '').toLowerCase().includes(t)));
+      render();
+    }
+
+    /* ── Boot ── */
+    document.getElementById('app').append(Shell());
+    document.getElementById('go').onclick = search;
+    document.getElementById('search').addEventListener('input', e => { state.query = e.target.value; });
+    document.getElementById('search').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+    document.getElementById('filter').addEventListener('input', e => { state.filter = e.target.value; applyFilter(); });
+    document.getElementById('close').onclick = closeDetail;
+    document.getElementById('overlay').onclick = closeDetail;
+    addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+    search();
+  </script>
+</body>
+</html>
