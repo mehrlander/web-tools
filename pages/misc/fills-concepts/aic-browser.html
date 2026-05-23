@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en" data-theme="lofi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>fill · Art Institute of Chicago</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+<script>
+/* ── fill : a Proxy-based DOM builder ──────────────────────────────────
+   fill.div                  -> <div>
+   fill.div.card.lg(...)      -> <div class="card lg">   (first segment = tag, rest = classes)
+   factory(...args), read by type:
+     plain object (first arg) -> props   (on* = listener, class merges with chain, else attr/prop)
+     string | number          -> text
+     Node                     -> appended
+     array                    -> flattened + appended    (so .map drops straight in)
+   fill`<section>${node}</section>`  -> parse HTML; interpolated Nodes survive via comment markers
+   fill.frag(...kids)  /  fill.text(str)
+   Internals lean on createElement and a <template>: that is the sanctioned floor.
+   Everything built above this line speaks only fill.
+──────────────────────────────────────────────────────────────────────── */
+const fill = (() => {
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Node);
+  const esc   = s => new Option(String(s)).innerHTML;            // native HTML escape, text context
+
+  const add = (parent, kids) => {
+    for (const k of kids) {
+      if (k == null || k === false || k === true) continue;
+      if (Array.isArray(k)) add(parent, k);
+      else parent.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    }
+  };
+
+  const setProp = (el, k, v, classes) => {
+    if (k === 'class' || k === 'className')
+      classes.push(...(Array.isArray(v) ? v : String(v).split(/\s+/)).filter(Boolean));
+    else if (k === 'style'   && isObj(v)) Object.assign(el.style, v);
+    else if (k === 'dataset' && isObj(v)) Object.assign(el.dataset, v);
+    else if (k.startsWith('on') && typeof v === 'function')
+      el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k in el) el[k] = v;
+    else el.setAttribute(k, v);
+  };
+
+  const build = (tag, chainClasses, args) => {
+    const el = document.createElement(tag);
+    const classes = [...chainClasses];
+    let i = 0;
+    if (isObj(args[0])) { for (const [k, v] of Object.entries(args[0])) setProp(el, k, v, classes); i = 1; }
+    add(el, args.slice(i));
+    if (classes.length) el.className = classes.join(' ');
+    return el;
+  };
+
+  const factory = (tag, classes) => new Proxy(() => {}, {
+    apply: (_t, _this, args) => build(tag, classes, args),
+    get:   (_t, prop) => typeof prop === 'symbol' ? undefined : factory(tag, [...classes, prop]),
+  });
+
+  const frag = (...kids) => { const f = document.createDocumentFragment(); add(f, kids); return f; };
+  const text = s => document.createTextNode(String(s));
+
+  const parse = (strings, values) => {
+    const stash = [];
+    let html = '';
+    const slot = node => { stash.push(node); html += `<!--fill:${stash.length - 1}-->`; };
+    strings.forEach((s, i) => {
+      html += s;
+      if (i >= values.length) return;
+      const v = values[i];
+      if (v instanceof Node) slot(v);
+      else if (Array.isArray(v)) v.flat(Infinity).forEach(x => x instanceof Node ? slot(x) : x != null && (html += esc(x)));
+      else if (v != null) html += esc(v);
+    });
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    const walk = document.createTreeWalker(t.content, NodeFilter.SHOW_COMMENT);
+    const swaps = [];
+    for (let c; (c = walk.nextNode());) {
+      const m = c.nodeValue.match(/^fill:(\d+)$/);
+      if (m) swaps.push([c, stash[+m[1]]]);
+    }
+    swaps.forEach(([c, node]) => c.replaceWith(node));
+    return t.content.childNodes.length === 1 ? t.content.firstChild : t.content;
+  };
+
+  return new Proxy(() => {}, {
+    apply: (_t, _this, args) => parse(args[0], args.slice(1)),   // tagged template: args[0].raw present
+    get:   (_t, prop) => {
+      if (typeof prop === 'symbol') return undefined;
+      if (prop === 'frag') return frag;
+      if (prop === 'text') return text;
+      return factory(prop, []);
+    },
+  });
+})();
+
+/* ── the app : an Art Institute of Chicago collection browser ─────────── */
+const F = fill;
+const IIIF = (id, w) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
+
+let entries = [];   // [{ art, el, hay }]
+
+/* live grid + filter row (built once, refilled as searches land) */
+const grid = F.div({ class: 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5' });
+
+const countEl = F.span({ class: 'text-sm opacity-60 whitespace-nowrap' });
+
+const filterInput = F.input({ type: 'search', placeholder: 'Filter shown…', class: 'grow', onInput: applyFilter });
+
+const filterRow = F.div({ class: 'flex flex-wrap items-center gap-3 mb-5' },
+  F.label({ class: 'input input-sm flex-1 min-w-48' },
+    F.i({ class: 'ph ph-funnel opacity-50' }),
+    filterInput
+  ),
+  countEl
+);
+filterRow.style.display = 'none';
+
+/* search controls + theme picker */
+const searchField = F.input({
+  type: 'search', value: 'monet', placeholder: 'Search the collection…', class: 'grow',
+  onKeydown: e => { if (e.key === 'Enter') runSearch(searchField.value); },
+});
+const searchWrap = F.label({ class: 'input flex-1 min-w-0' },
+  F.i({ class: 'ph ph-magnifying-glass opacity-50' }),
+  searchField
+);
+const searchBtn = F.button.btn({ class: 'btn-primary', onClick: () => runSearch(searchField.value) }, 'Search');
+const controls  = F.div({ class: 'flex gap-2 w-full max-w-2xl' }, searchWrap, searchBtn);
+
+const themes = ['lofi', 'winter', 'nord', 'dim', 'autumn', 'dracula', 'cupcake', 'emerald'];
+const themeSelect = F.select(
+  { class: 'select select-sm w-auto', onChange: e => document.documentElement.dataset.theme = e.target.value },
+  themes.map(t => F.option({ value: t, selected: t === 'lofi' }, t[0].toUpperCase() + t.slice(1)))
+);
+
+/* hero : a static scaffold parsed from HTML, with two live Nodes spliced in */
+const hero = F`
+  <header class="border-b border-base-300 bg-base-200">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 py-7 flex flex-col gap-5">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <p class="text-xs uppercase tracking-[0.2em] opacity-50">Collection browser</p>
+          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Art Institute of Chicago</h1>
+        </div>
+        ${themeSelect}
+      </div>
+      ${controls}
+    </div>
+  </header>`;
+
+/* master-detail side panel */
+const panel = F.aside({ class: 'fixed top-0 right-0 z-50 h-full w-full sm:w-[440px] max-w-full overflow-y-auto bg-base-100 border-l border-base-300 shadow-2xl translate-x-full transition-transform duration-300 ease-out' });
+const scrim = F.div({ class: 'fixed inset-0 z-40 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300', onClick: closeDetail });
+
+function openDetail(art) {
+  panel.replaceChildren(detailView(art));
+  panel.classList.remove('translate-x-full');
+  scrim.classList.remove('opacity-0', 'pointer-events-none');
+}
+function closeDetail() {
+  panel.classList.add('translate-x-full');
+  scrim.classList.add('opacity-0', 'pointer-events-none');
+}
+
+const row = (label, value) => value ? F.div({ class: 'flex flex-col gap-0.5' },
+  F.span({ class: 'text-[11px] uppercase tracking-widest opacity-50' }, label),
+  F.span({ class: 'text-sm leading-snug' }, value)
+) : null;
+
+function detailView(art) {
+  return F.div({ class: 'flex flex-col gap-5 p-5 sm:p-6' },
+    F.div({ class: 'flex items-start justify-between gap-3' },
+      F.h2({ class: 'text-xl font-semibold leading-tight pr-2' }, art.title || 'Untitled'),
+      F.button.btn({ class: 'btn-ghost btn-sm btn-circle shrink-0 text-base', onClick: closeDetail }, F.text('✕'))
+    ),
+    F.figure({ class: 'overflow-hidden rounded-lg bg-base-200' },
+      F.img({ src: IIIF(art.image_id, 600), alt: art.title || '', class: 'w-full' })
+    ),
+    F.div({ class: 'flex flex-col gap-3' },
+      row('Artist', art.artist_display),
+      row('Date',   art.date_display),
+      row('Medium', art.medium_display)
+    ),
+    F.a.btn({ class: 'btn-primary mt-1', href: `https://www.artic.edu/artworks/${art.id}`, target: '_blank', rel: 'noopener' },
+      'View at artic.edu', F.i({ class: 'ph ph-arrow-square-out' })
+    )
+  );
+}
+
+/* a card */
+function card(art) {
+  return F.div.card({
+    class: 'group cursor-pointer overflow-hidden border border-base-300 bg-base-100 transition hover:-translate-y-0.5 hover:shadow-lg',
+    onClick: () => openDetail(art),
+  },
+    F.figure({ class: 'aspect-square overflow-hidden bg-base-200' },
+      F.img({ src: IIIF(art.image_id, 400), alt: art.title || '', loading: 'lazy',
+              class: 'h-full w-full object-cover transition duration-500 group-hover:scale-105' })
+    ),
+    F.div({ class: 'card-body gap-1 p-3 sm:p-4' },
+      F.h3({ class: 'card-title text-sm leading-snug line-clamp-2' }, art.title || 'Untitled'),
+      F.p({ class: 'text-xs opacity-60 line-clamp-1' }, art.artist_display || 'Unknown artist'),
+      art.date_display
+        ? F.div({ class: 'mt-1' }, F.span.badge({ class: 'badge-outline badge-sm' }, art.date_display))
+        : null
+    )
+  );
+}
+
+const skeleton = () => F.div.card({ class: 'overflow-hidden border border-base-300' },
+  F.div({ class: 'skeleton aspect-square w-full' }),
+  F.div({ class: 'card-body gap-2 p-4' },
+    F.div({ class: 'skeleton h-4 w-3/4' }),
+    F.div({ class: 'skeleton h-3 w-1/2' })
+  )
+);
+
+/* state */
+function applyFilter() {
+  const q = filterInput.value.trim().toLowerCase();
+  let shown = 0;
+  for (const e of entries) {
+    const match = !q || e.hay.includes(q);
+    e.el.style.display = match ? '' : 'none';   // inline display dodges any cascade question with .card{display:flex}
+    if (match) shown++;
+  }
+  countEl.replaceChildren(F.text(`${shown} of ${entries.length} shown`));
+}
+
+function showResults(arts, q) {
+  entries = arts.map(art => ({
+    art,
+    el: card(art),
+    hay: [art.title, art.artist_display, art.date_display, art.medium_display].filter(Boolean).join(' ').toLowerCase(),
+  }));
+  if (!entries.length) {
+    filterRow.style.display = 'none';
+    grid.replaceChildren(F.div({ class: 'col-span-full py-20 text-center opacity-60' },
+      F.i({ class: 'ph ph-image-broken text-4xl' }),
+      F.p({ class: 'mt-3' }, `Nothing found for “${q}”.`)
+    ));
+    return;
+  }
+  grid.replaceChildren(...entries.map(e => e.el));
+  filterInput.value = '';
+  filterRow.style.display = 'flex';
+  applyFilter();
+}
+
+function showLoading() {
+  filterRow.style.display = 'none';
+  grid.replaceChildren(...Array.from({ length: 8 }, skeleton));
+}
+
+async function runSearch(q) {
+  q = (q || '').trim();
+  if (!q) return;
+  showLoading();
+  const fields = 'id,title,artist_display,date_display,medium_display,image_id';
+  const res = await fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&fields=${fields}&limit=24`);
+  const { data } = await res.json();
+  showResults(data.filter(a => a.image_id), q);
+}
+
+/* mount + first load */
+const app = F.main({ class: 'mx-auto max-w-6xl px-4 sm:px-6 py-6' }, filterRow, grid);
+document.body.append(F.frag(hero, app, panel, scrim));
+runSearch('monet');
+</script>
+</body>
+</html>
