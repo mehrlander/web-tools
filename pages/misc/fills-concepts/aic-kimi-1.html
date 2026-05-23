@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html data-theme="coffee" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Art Institute Browser — fill()</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <style>
+    /* Ensure smooth drawer animation */
+    .drawer-enter { transform: translateX(100%); }
+    .drawer-enter-active { transform: translateX(0); }
+  </style>
+<base target="_blank">
+</head>
+<body>
+<script>
+// ── fill: Proxy-based DOM helper ──
+const fill = (() => {
+  const toClass = (seg) => {
+    let cls = seg.replace(/_/g, '-');
+    const variants = ['sm','md','lg','xl','2xl','hover','focus','active','group-hover','peer-focus','dark','light','first','last','before','after','odd','even'];
+    for (const v of variants) {
+      if (cls.startsWith(v + '-')) {
+        cls = v + ':' + cls.slice(v.length + 1);
+        break;
+      }
+    }
+    return cls;
+  };
+
+  const makeFactory = (path) => {
+    const factory = (...args) => {
+      const tag = path[0];
+      const classes = path.slice(1).map(toClass);
+      const el = document.createElement(tag);
+      if (classes.length) el.classList.add(...classes);
+
+      const append = (item) => {
+        if (item == null) return;
+        if (typeof item === 'string' || typeof item === 'number') {
+          el.appendChild(document.createTextNode(String(item)));
+        } else if (item instanceof Node) {
+          el.appendChild(item);
+        } else if (Array.isArray(item)) {
+          item.flat(Infinity).forEach(append);
+        }
+      };
+
+      let attrs = null;
+      if (args.length && args[0] != null && typeof args[0] === 'object' && args[0].constructor === Object && !(args[0] instanceof Node)) {
+        attrs = args[0];
+        args = args.slice(1);
+      }
+
+      if (attrs) {
+        for (const [key, val] of Object.entries(attrs)) {
+          if (key.startsWith('on') && typeof val === 'function') {
+            el.addEventListener(key.slice(2).toLowerCase(), val);
+          } else if (key === 'class') {
+            if (typeof val === 'string') {
+              val.split(/\s+/).forEach(c => c && el.classList.add(c));
+            } else if (Array.isArray(val)) {
+              val.forEach(c => c && el.classList.add(c));
+            }
+          } else if (key === 'style' && typeof val === 'object') {
+            Object.assign(el.style, val);
+          } else if (key in el) {
+            el[key] = val;
+          } else {
+            el.setAttribute(key, val);
+          }
+        }
+      }
+
+      args.forEach(append);
+      return el;
+    };
+
+    return new Proxy(factory, {
+      get(_, prop) {
+        return makeFactory([...path, prop]);
+      },
+      apply(_, thisArg, args) {
+        return factory.apply(thisArg, args);
+      }
+    });
+  };
+
+  const fill = new Proxy(function() {}, {
+    get(_, prop) {
+      if (prop === 'frag') {
+        return (...children) => {
+          const frag = document.createDocumentFragment();
+          const append = (item) => {
+            if (item == null) return;
+            if (typeof item === 'string' || typeof item === 'number') {
+              frag.appendChild(document.createTextNode(String(item)));
+            } else if (item instanceof Node) {
+              frag.appendChild(item);
+            } else if (Array.isArray(item)) {
+              item.flat(Infinity).forEach(append);
+            }
+          };
+          children.forEach(append);
+          return frag;
+        };
+      }
+      if (prop === 'text') {
+        return (str) => document.createTextNode(str != null ? String(str) : '');
+      }
+      if (prop === 'when') {
+        return (cond, ...children) => cond ? fill.frag(...children) : fill.frag();
+      }
+      if (prop === 'each') {
+        return (arr, fn) => fill.frag(...arr.map(fn));
+      }
+      return makeFactory([prop]);
+    },
+    apply(_, thisArg, args) {
+      const firstArg = args[0];
+      if (firstArg && typeof firstArg === 'object' && 'raw' in firstArg) {
+        const strings = firstArg;
+        const values = args.slice(1);
+        let html = '';
+        const nodeMap = new Map();
+        let nodeId = 0;
+
+        for (let i = 0; i < strings.length; i++) {
+          html += strings[i];
+          if (i < values.length) {
+            const val = values[i];
+            if (val instanceof Node) {
+              const id = `__fill-node-${nodeId++}__`;
+              nodeMap.set(id, val);
+              html += `<!--${id}-->`;
+            } else if (val != null) {
+              const div = document.createElement('div');
+              div.textContent = String(val);
+              html += div.innerHTML;
+            }
+          }
+        }
+
+        const template = document.createElement('template');
+        template.innerHTML = html.trim();
+        const content = template.content;
+
+        const comments = [];
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_COMMENT);
+        let comment;
+        while ((comment = walker.nextNode()) !== null) {
+          comments.push(comment);
+        }
+
+        for (const comment of comments) {
+          const id = comment.nodeValue.trim();
+          if (nodeMap.has(id)) {
+            comment.replaceWith(nodeMap.get(id));
+          }
+        }
+
+        return content.firstChild || content;
+      }
+      return fill.frag(...args);
+    }
+  });
+
+  return fill;
+})();
+
+// ── App ──
+let artworks = [];
+let filtered = [];
+let currentQuery = 'monet';
+
+let searchInput, filterInput, countBadge;
+let gridEl, loaderEl, emptyEl, statusEl;
+let detailBackdrop, detailPanel;
+
+function clear(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function buildUI() {
+  searchInput = fill.input.input.input_bordered.w_full.max_w_md({
+    type: 'text',
+    value: currentQuery,
+    placeholder: 'Search artworks...',
+    onKeydown: (e) => { if (e.key === 'Enter') doSearch(e.target.value); }
+  });
+
+  filterInput = fill.input.input.input_bordered.w_full.max_w_md({
+    type: 'text',
+    placeholder: 'Filter shown results...',
+    onInput: (e) => applyFilter(e.target.value)
+  });
+
+  countBadge = fill.span.badge.badge_secondary();
+
+  gridEl = fill.div.grid.grid_cols_1.sm_grid_cols_2.lg_grid_cols_3.xl_grid_cols_4.gap_6();
+
+  loaderEl = fill.div.flex.justify_center.items_center.py_20(
+    fill.span.loading.loading_spinner.loading_lg()
+  );
+
+  emptyEl = fill.div.text_center.py_20.hidden();
+
+  statusEl = fill.div.flex.gap_4.items_center.justify_center.flex_wrap.mb_6.hidden(
+    filterInput,
+    countBadge
+  );
+
+  detailBackdrop = fill.div.fixed.inset_0.z_40.bg_black.bg_opacity_60.backdrop_blur.hidden({
+    onClick: closeDetail
+  });
+
+  detailPanel = fill.div.fixed.right_0.top_0.bottom_0.z_50.w_full.max_w_2xl.bg_base_100.shadow_2xl.overflow_y_auto.translate_x_full.transition.transform.duration_300.ease_in_out({
+    onClick: (e) => e.stopPropagation()
+  });
+
+  const app = fill.div.min_h_screen.bg_base_100.text_base_content.p_4.md_p_8.pb_20(
+    fill.div.container.mx_auto.max_w_7xl(
+      fill.header.mb_8.text_center(
+        fill.h1.text_4xl.font_bold.mb_2('Art Institute of Chicago'),
+        fill.p.text_opacity_70('Explore the collection')
+      ),
+      fill.div.mb_6.flex.gap_4.items_center.justify_center.flex_wrap(
+        searchInput,
+        fill.button.btn.btn_primary({
+          onClick: () => doSearch(searchInput.value)
+        }, fill.i.ph.ph_magnifying_glass.mr_2(), 'Search'),
+        fill.button.btn.btn_ghost.btn_sm({
+          onClick: () => { searchInput.value = 'starry night'; doSearch('starry night'); }
+        }, 'Try "Starry Night"')
+      ),
+      statusEl,
+      loaderEl,
+      emptyEl,
+      gridEl
+    )
+  );
+
+  document.body.appendChild(app);
+  document.body.appendChild(detailBackdrop);
+  document.body.appendChild(detailPanel);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDetail();
+  });
+}
+
+async function doSearch(q) {
+  currentQuery = q;
+  loaderEl.classList.remove('hidden');
+  statusEl.classList.add('hidden');
+  emptyEl.classList.add('hidden');
+  clear(gridEl);
+
+  try {
+    const fields = 'id,title,artist_display,date_display,medium_display,image_id,thumbnail';
+    const res = await fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&fields=${fields}&limit=24`);
+    const data = await res.json();
+    artworks = (data.data || []).filter(a => a.image_id);
+    filtered = [...artworks];
+
+    loaderEl.classList.add('hidden');
+
+    if (artworks.length === 0) {
+      clear(emptyEl);
+      emptyEl.appendChild(fill.p.text_xl.text_opacity_60('No artworks found'));
+      emptyEl.classList.remove('hidden');
+    } else {
+      statusEl.classList.remove('hidden');
+      filterInput.value = '';
+      renderGrid();
+      updateCount();
+    }
+  } catch (err) {
+    loaderEl.classList.add('hidden');
+    clear(emptyEl);
+    emptyEl.appendChild(fill.p.text_error.text_xl('Failed to load artworks'));
+    emptyEl.appendChild(fill.p.text_opacity_60.mt_2(String(err.message)));
+    emptyEl.classList.remove('hidden');
+  }
+}
+
+function renderGrid() {
+  clear(gridEl);
+  filtered.forEach(art => gridEl.appendChild(makeCard(art)));
+}
+
+function makeCard(art) {
+  const imgUrl = `https://www.artic.edu/iiif/2/${art.image_id}/full/400,/0/default.jpg`;
+
+  return fill.div.card.bg_base_200.shadow_lg.hover_shadow_xl.transition_all.duration_300.cursor_pointer.group({
+    onClick: () => openDetail(art)
+  },
+    fill.figure.overflow_hidden({ style: { aspectRatio: '4/3' } },
+      fill.img.w_full.h_full.object_cover.transition_transform.duration_500.group_hover_scale_105({
+        src: imgUrl,
+        alt: art.title || '',
+        loading: 'lazy'
+      })
+    ),
+    fill.div.card_body.p_4(
+      fill.h3.card_title.text_lg.font_bold.line_clamp_2(art.title || 'Untitled'),
+      fill.p.text_sm.text_opacity_70.line_clamp_1(art.artist_display || 'Unknown Artist'),
+      fill.div.card_actions.justify_end.mt_2(
+        fill.span.badge.badge_outline.badge_sm(art.date_display || 'Unknown')
+      )
+    )
+  );
+}
+
+function applyFilter(text) {
+  const lower = text.toLowerCase();
+  filtered = artworks.filter(a => {
+    const hay = `${a.title || ''} ${a.artist_display || ''} ${a.date_display || ''} ${a.medium_display || ''}`.toLowerCase();
+    return hay.includes(lower);
+  });
+  renderGrid();
+  updateCount();
+}
+
+function updateCount() {
+  clear(countBadge);
+  countBadge.appendChild(fill.text(`${filtered.length} shown`));
+}
+
+function openDetail(art) {
+  const imgUrl = `https://www.artic.edu/iiif/2/${art.image_id}/full/800,/0/default.jpg`;
+
+  clear(detailPanel);
+  detailPanel.appendChild(
+    fill.div.p_6.md_p_8.space_y_6(
+      fill.div.flex.justify_between.items_start.gap_4(
+        fill.h2.text_2xl.md_text_3xl.font_bold.leading_tight(art.title || 'Untitled'),
+        fill.button.btn.btn_circle.btn_ghost.btn_sm({
+          onClick: closeDetail
+        }, fill.i.ph.ph_x.text_xl())
+      ),
+      fill.div.rounded_2xl.overflow_hidden.bg_base_300(
+        fill.img.w_full.h_auto.object_contain({
+          src: imgUrl,
+          alt: art.title || ''
+        })
+      ),
+      fill.div.space_y_3(
+        fill.p.text_lg.font_medium(art.artist_display || 'Unknown Artist'),
+        fill.p.text_opacity_70(art.medium_display || 'Medium not recorded'),
+        fill.div.flex.gap_2.flex_wrap.items_center(
+          fill.span.badge.badge_primary(art.date_display || 'Unknown Date'),
+          fill.a.btn.btn_sm.btn_outline({
+            href: `https://www.artic.edu/artworks/${art.id}`,
+            target: '_blank'
+          }, 'View on artic.edu ', fill.i.ph.ph_arrow_square_out())
+        )
+      )
+    )
+  );
+
+  detailBackdrop.classList.remove('hidden');
+  detailPanel.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    detailPanel.classList.remove('translate-x-full');
+  });
+}
+
+function closeDetail() {
+  detailPanel.classList.add('translate-x-full');
+  setTimeout(() => {
+    detailBackdrop.classList.add('hidden');
+    detailPanel.classList.add('hidden');
+    document.body.style.overflow = '';
+  }, 300);
+}
+
+buildUI();
+doSearch(currentQuery);
+</script>
+</body>
+</html>
