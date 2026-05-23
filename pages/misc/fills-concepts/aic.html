@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en" data-theme="dracula">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>fill · Art Institute Browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-base-200">
+<script>
+const fill = (() => {
+  const range = () => document.createRange()
+  const html = s => range().createContextualFragment(s)
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  const plain = x => x && x.constructor === Object
+  const dash = s => String(s).replace(/_/g, '-')
+
+  const append = (el, xs) => xs.flat(Infinity).forEach(x => {
+    if (x == null || x === false) return
+    el.append(x instanceof Node ? x : new Text(String(x)))
+  })
+
+  const attrs = (el, obj, chain) => {
+    const classes = [...chain]
+    for (const [k, v] of Object.entries(obj || {})) {
+      if (v == null || v === false) continue
+      if (k === 'class' || k === 'className') classes.push(...String(v).split(/\s+/).filter(Boolean))
+      else if (k === 'style' && plain(v)) Object.assign(el.style, v)
+      else if (k === 'dataset' && plain(v)) Object.assign(el.dataset, v)
+      else if (/^on[A-Z]/.test(k) && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v)
+      else if (v === true) el.setAttribute(dash(k), '')
+      else if (k in el) el[k] = v
+      else el.setAttribute(dash(k), v)
+    }
+    if (classes.length) el.classList.add(...classes.map(dash))
+  }
+
+  const make = parts => new Proxy(function (...args) {
+    const [tag, ...classes] = parts.map(dash)
+    const el = html(`<${tag}></${tag}>`).firstElementChild
+    const obj = plain(args[0]) ? args.shift() : null
+    attrs(el, obj, classes)
+    append(el, args)
+    return el
+  }, {
+    get(_, prop) {
+      if (prop === Symbol.toPrimitive) return () => parts.join('.')
+      return make([...parts, prop])
+    }
+  })
+
+  const tagged = (strings, vals) => {
+    let s = strings[0]
+    vals.forEach((v, i) => s += v instanceof Node ? `<!--fill:${i}-->` : esc(v) + strings[i + 1])
+    const frag = html(s)
+    const walk = document.createTreeWalker(frag, NodeFilter.SHOW_COMMENT)
+    const swaps = []
+    while (walk.nextNode()) {
+      const m = /^fill:(\d+)$/.exec(walk.currentNode.nodeValue)
+      if (m) swaps.push([walk.currentNode, vals[+m[1]]])
+    }
+    swaps.forEach(([marker, node]) => marker.replaceWith(node))
+    return frag.childNodes.length === 1 ? frag.firstChild : frag
+  }
+
+  return new Proxy(function (...args) {
+    return args[0]?.raw ? tagged(args[0], args.slice(1)) : make(['div'])(...args)
+  }, {
+    get(_, prop) {
+      if (prop === 'frag') return (...xs) => {
+        const f = html('')
+        append(f, xs)
+        return f
+      }
+      if (prop === 'text') return s => new Text(String(s))
+      return make([prop])
+    }
+  })
+})()
+
+const api = 'https://api.artic.edu/api/v1/artworks/search'
+const fields = 'id,title,artist_display,date_display,medium_display,image_id,thumbnail'
+const img = (id, size = 500) => `https://www.artic.edu/iiif/2/${id}/full/${size},/0/default.jpg`
+
+const state = { all: [], shown: [], selected: null, loading: false }
+
+const searchInput = fill.input.input.input_bordered.w_full({
+  value: 'monet',
+  placeholder: 'Search the collection',
+  name: 'q'
+})
+
+const filterInput = fill.input.input.input_bordered.w_full({
+  placeholder: 'Filter shown results',
+  disabled: true,
+  onInput: () => renderGrid()
+})
+
+const count = fill.span.badge.badge_ghost('0 shown')
+const grid = fill.div.grid.gap_4('')
+
+const detailBody = fill.div('')
+const panel = fill.aside.fixed.inset_y_0.right_0.z_40.w_full.max_w_2xl.bg_base_100.shadow_2xl.translate_x_full.transition_transform.duration_300.overflow_y_auto(
+  fill.div.sticky.top_0.z_10.flex.items_center.justify_between.gap_3.border_b.border_base_300.bg_base_100_90.backdrop_blur.p_4(
+    fill.div(
+      fill.div.text_xs.uppercase.tracking_widest.opacity_60('Selected work'),
+      fill.h2.font_black.text_lg('Detail')
+    ),
+    fill.button.btn.btn_circle.btn_ghost({onClick: closePanel},
+      fill.i({'class':'ph ph-x text-2xl'})
+    )
+  ),
+  detailBody
+)
+
+const shade = fill.button.fixed.inset_0.z_30.bg_black_60.hidden({'aria-label':'Close detail panel', onClick: closePanel})
+
+const form = fill.form.join.w_full.max_w_2xl({
+  onSubmit: e => {
+    e.preventDefault()
+    load(searchInput.value.trim() || 'monet')
+  }
+},
+  searchInput,
+  fill.button.btn.btn_primary.join_item(
+    fill.i({'class':'ph ph-magnifying-glass text-lg'}),
+    'Search'
+  )
+)
+
+const heroArt = fill.div.relative.min_h_48.overflow_hidden.rounded_3xl.bg_base_300.border.border_base_300(
+  fill.div.absolute.inset_0.opacity_30.bg_gradient_to_br.from_primary.to_secondary(''),
+  fill.div.relative.p_6.md_p_8(
+    fill.div.badge.badge_primary.badge_outline.mb_4('Proxy-flavored DOM'),
+    fill.h1.text_4xl.md_text_6xl.font_black.leading_none('Art Institute Browser'),
+    fill.p.mt_4.max_w_xl.text_base_content_70('A small collection browser built almost entirely as chained element factories. The page is the demo, and the helper is doing the dishes in public.')
+  )
+)
+
+const app = fill.main.min_h_screen(
+  fill.section.max_w_7xl.mx_auto.p_4.md_p_8.space_y_6(
+    fill`<div class="grid gap-4 lg:grid-cols-[1fr_22rem]">${heroArt}${fill.div.card.bg_base_100.shadow_sm.border.border_base_300(
+      fill.div.card_body.gap_4(
+        fill.h2.card_title('Search'),
+        form,
+        fill.div.form_control(
+          fill.label.label(fill.span.label_text('Filter shown')),
+          filterInput
+        ),
+        fill.div.flex.items_center.justify_between.text_sm.opacity_75(
+          fill.span('Client-side filter after the API returns.'),
+          count
+        )
+      )
+    )}</div>`,
+    fill.div.flex.items_center.justify_between.gap_3(
+      fill.div(
+        fill.h2.text_2xl.font_black('Results'),
+        fill.p.text_sm.opacity_60('Click any card for a larger image and source link.')
+      ),
+      fill.button.btn.btn_ghost.btn_sm({onClick: () => {
+        searchInput.value = 'van gogh'
+        load('van gogh')
+      }}, 'Try van gogh')
+    ),
+    grid
+  ),
+  shade,
+  panel
+)
+
+document.body.append(app)
+
+function card(a) {
+  const title = a.title || 'Untitled'
+  const artist = a.artist_display || 'Artist unknown'
+  return fill.button.card.bg_base_100.shadow_sm.hover_shadow_xl.transition.text_left.overflow_hidden.border.border_base_300.focus_outline.focus_outline_2.focus_outline_primary({
+    onClick: () => openPanel(a)
+  },
+    fill.figure.bg_base_300.aspect_4_3(
+      fill.img.w_full.h_full.object_cover({
+        src: img(a.image_id, 500),
+        alt: a.thumbnail?.alt_text || title,
+        loading: 'lazy'
+      })
+    ),
+    fill.div.card_body.gap_3(
+      fill.div.flex.items_start.justify_between.gap_3(
+        fill.h3.card_title.text_base.leading_tight(title),
+        a.date_display ? fill.span.badge.badge_secondary.badge_sm.shrink_0(a.date_display) : null
+      ),
+      fill.p.text_sm.opacity_70.line_clamp_3(artist),
+      fill.div.flex.items_center.gap_2.text_xs.opacity_50(
+        fill.i({'class':'ph ph-image-square text-base'}),
+        fill.span(`AIC #${a.id}`)
+      )
+    )
+  )
+}
+
+function openPanel(a) {
+  state.selected = a
+  detailBody.replaceChildren(
+    fill.figure.bg_base_300(
+      fill.img.w_full.max_h_96.object_contain({
+        src: img(a.image_id, 900),
+        alt: a.thumbnail?.alt_text || a.title || 'Artwork'
+      })
+    ),
+    fill.div.p_5.md_p_7.space_y_5(
+      fill.div.space_y_2(
+        fill.h2.text_3xl.font_black.leading_tight(a.title || 'Untitled'),
+        fill.p.text_base.opacity_75(a.artist_display || 'Artist unknown')
+      ),
+      fill.div.flex.flex_wrap.gap_2(
+        a.date_display ? fill.span.badge.badge_secondary(a.date_display) : null,
+        fill.span.badge.badge_outline(`Artwork ${a.id}`)
+      ),
+      fill.div.prose.prose_invert.max_w_none(
+        fill.h3('Medium'),
+        fill.p(a.medium_display || 'No medium listed in the search response.')
+      ),
+      fill.a.btn.btn_primary({
+        href: `https://www.artic.edu/artworks/${a.id}`,
+        target: '_blank',
+        rel: 'noreferrer'
+      },
+        fill.i({'class':'ph ph-arrow-square-out text-lg'}),
+        'Open at artic.edu'
+      )
+    )
+  )
+  shade.classList.remove('hidden')
+  panel.classList.remove('translate-x-full')
+}
+
+function closePanel() {
+  shade.classList.add('hidden')
+  panel.classList.add('translate-x-full')
+}
+
+function renderGrid() {
+  const q = filterInput.value.trim().toLowerCase()
+  state.shown = state.all.filter(a =>
+    [a.title, a.artist_display, a.date_display, a.medium_display].join(' ').toLowerCase().includes(q)
+  )
+  count.textContent = `${state.shown.length} shown`
+  grid.replaceChildren(
+    state.shown.length
+      ? fill.frag(state.shown.map(card))
+      : fill.div.col_span_full.rounded_3xl.border.border_dashed.border_base_300.bg_base_100.p_10.text_center(
+          fill.i({'class':'ph ph-empty text-5xl opacity-40'}),
+          fill.h3.mt_3.text_lg.font_bold('Nothing matches the current filter.'),
+          fill.p.opacity_60('The art is still there. Your filter is just being severe.')
+        )
+  )
+}
+
+function renderLoading(query) {
+  count.textContent = 'loading'
+  filterInput.disabled = true
+  grid.replaceChildren(
+    fill.div.col_span_full.rounded_3xl.bg_base_100.border.border_base_300.p_10.flex.flex_col.items_center.gap_4(
+      fill.span.loading.loading_spinner.loading_lg.text_primary(''),
+      fill.div.text_center(
+        fill.h3.font_bold.text_lg(`Searching “${query}”`),
+        fill.p.opacity_60('Asking the museum politely.')
+      )
+    )
+  )
+}
+
+async function load(query) {
+  state.loading = true
+  closePanel()
+  renderLoading(query)
+  const url = `${api}?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=24`
+  const res = await fetch(url)
+  const json = await res.json()
+  state.all = json.data.filter(x => x.image_id)
+  state.loading = false
+  filterInput.disabled = false
+  filterInput.value = ''
+  renderGrid()
+}
+
+load(searchInput.value)
+</script>
+</body>
+</html>
