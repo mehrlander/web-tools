@@ -12,7 +12,94 @@
   const gh = new GH({ repo: 'mehrlander/web-tools' });
   await gh.load('gh-auth.js');
   await gh.load('kits/persistence.js');
-  await gh.load('alpine-bundle.js');
+  await gh.load('vanilla-bundle.js');
+
+  const persistence = window.persistence;
+
+  const [parseInput] = ea('#parse-input');
+  const [parseOut]   = ea('#parse-out');
+  const [rtOut]      = ea('#rt-out');
+  const [listOut]    = ea('#list-out');
+  const [errOut]     = ea('#err-out');
+
+  const peek = v => Object.entries(v).map(([k, val]) => {
+    const t = val?.constructor?.name || typeof val;
+    let display;
+    if (val instanceof Uint8Array) display = `[${Array.from(val).join(', ')}]`;
+    else if (val instanceof Date)  display = val.toISOString();
+    else if (val instanceof Map)   display = `Map(${[...val.entries()].map(([a,b])=>`${a}→${b}`).join(', ')})`;
+    else                           display = JSON.stringify(val);
+    return `  ${k}: <${t}> ${display}`;
+  }).join('\n');
+
+  const doParse = () => {
+    try {
+      parseOut.textContent = JSON.stringify(persistence.parsePath(parseInput.value), null, 2);
+    } catch (e) {
+      parseOut.textContent = 'Error: ' + e.message;
+    }
+  };
+
+  doParse();
+
+  route(document, 'click', {
+    '#btn-parse': () => doParse(),
+
+    '#btn-save-sample': async () => {
+      const sample = {
+        label:     'mixed-type sample',
+        savedAt:   new Date(),
+        bytes:     new Uint8Array([1, 2, 3, 4, 5]),
+        tags:      new Map([['a', 1], ['b', 2]]),
+        nested:    { deep: { value: 42 } }
+      };
+      await persistence.save('demo-persistence.scratch.payload', sample);
+      rtOut.textContent = 'saved:\n' + peek(sample);
+    },
+
+    '#btn-load-sample': async () => {
+      const v = await persistence.load('demo-persistence.scratch.payload');
+      if (v === undefined) { rtOut.textContent = '(empty — save first)'; return; }
+      rtOut.textContent = 'loaded:\n' + peek(v);
+    },
+
+    '#btn-remove-sample': async () => {
+      await persistence.remove('demo-persistence.scratch.payload');
+      rtOut.textContent = '(removed)';
+    },
+
+    '#btn-seed': async () => {
+      const seeds = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
+      for (const k of seeds) {
+        await persistence.save(`demo-persistence.bag.${k}`, { name: k, ts: Date.now() });
+      }
+      listOut.textContent = `seeded ${seeds.length} keys`;
+    },
+
+    '#btn-list': async () => {
+      const keys = await persistence.list('demo-persistence.bag.x');
+      listOut.textContent = keys.length ? keys.join('\n') : '(empty)';
+    },
+
+    '#btn-dump': async () => {
+      const es = await persistence.entries('demo-persistence.bag.x');
+      listOut.textContent = es.map(([k, v]) => `${k}  →  ${JSON.stringify(v)}`).join('\n') || '(empty)';
+    },
+
+    '#btn-wipe': async () => {
+      await persistence.clearStore('demo-persistence.bag.x');
+      listOut.textContent = '(cleared)';
+    },
+
+    '#btn-bad': async () => {
+      try {
+        await persistence.save('oops', 1);
+        errOut.textContent = '(no error — bug?)';
+      } catch (e) {
+        errOut.textContent = 'Caught: ' + e.message;
+      }
+    },
+  });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
@@ -35,7 +122,7 @@
     (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/persistence.js" class="link link-hover">kit source</a>)
   </p>
 
-  <div x-data="demo()" x-init="init()" class="space-y-8">
+  <div class="space-y-8">
 
     <!-- path parsing -->
     <section>
@@ -45,10 +132,10 @@
       </p>
       <div class="bg-base-200/40 rounded p-4 space-y-2">
         <div class="flex items-center gap-2">
-          <input x-model="parseInput" class="input input-sm flex-1" placeholder="db.store.key">
-          <button class="btn btn-sm btn-primary" @click="doParse()">Parse</button>
+          <input id="parse-input" value="demo-persistence.scratch.payload" class="input input-sm flex-1" placeholder="db.store.key">
+          <button id="btn-parse" class="btn btn-sm btn-primary">Parse</button>
         </div>
-        <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap" x-text="parseOut"></pre>
+        <pre id="parse-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap"></pre>
       </div>
     </section>
 
@@ -65,11 +152,11 @@
           <code class="text-xs bg-base-300/50 px-2 py-1 rounded">demo-persistence.scratch.payload</code>
         </div>
         <div class="flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-primary" @click="saveSample()">save sample object</button>
-          <button class="btn btn-sm" @click="loadSample()">load it back</button>
-          <button class="btn btn-sm btn-ghost" @click="removeSample()">remove</button>
+          <button id="btn-save-sample" class="btn btn-sm btn-primary">save sample object</button>
+          <button id="btn-load-sample" class="btn btn-sm">load it back</button>
+          <button id="btn-remove-sample" class="btn btn-sm btn-ghost">remove</button>
         </div>
-        <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[5rem]" x-text="rtOut"></pre>
+        <pre id="rt-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[5rem]">(no value yet)</pre>
       </div>
     </section>
 
@@ -81,12 +168,12 @@
       </p>
       <div class="bg-base-200/40 rounded p-4 space-y-3">
         <div class="flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-primary" @click="seed()">seed 5 keys</button>
-          <button class="btn btn-sm" @click="refreshList()">list keys</button>
-          <button class="btn btn-sm" @click="dumpEntries()">dump entries</button>
-          <button class="btn btn-sm btn-ghost text-error" @click="wipe()">clearStore</button>
+          <button id="btn-seed" class="btn btn-sm btn-primary">seed 5 keys</button>
+          <button id="btn-list" class="btn btn-sm">list keys</button>
+          <button id="btn-dump" class="btn btn-sm">dump entries</button>
+          <button id="btn-wipe" class="btn btn-sm btn-ghost text-error">clearStore</button>
         </div>
-        <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[5rem]" x-text="listOut"></pre>
+        <pre id="list-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[5rem]">(seed first)</pre>
       </div>
     </section>
 
@@ -98,101 +185,13 @@
         accidentally lands in a shared store.
       </p>
       <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <button class="btn btn-sm" @click="badPath()">save('oops', 1)</button>
-        <pre class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap" x-text="errOut"></pre>
+        <button id="btn-bad" class="btn btn-sm">save('oops', 1)</button>
+        <pre id="err-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
       </div>
     </section>
 
   </div>
 </div>
 
-<script>
-function demo() { return {
-  parseInput: 'demo-persistence.scratch.payload',
-  parseOut: '(click Parse)',
-  rtOut: '(no value yet)',
-  listOut: '(seed first)',
-  errOut: '(click the button)',
-
-  init() {
-    this.doParse();
-  },
-
-  doParse() {
-    try {
-      this.parseOut = JSON.stringify(window.persistence.parsePath(this.parseInput), null, 2);
-    } catch (e) {
-      this.parseOut = 'Error: ' + e.message;
-    }
-  },
-
-  async saveSample() {
-    const sample = {
-      label:     'mixed-type sample',
-      savedAt:   new Date(),
-      bytes:     new Uint8Array([1, 2, 3, 4, 5]),
-      tags:      new Map([['a', 1], ['b', 2]]),
-      nested:    { deep: { value: 42 } }
-    };
-    await window.persistence.save('demo-persistence.scratch.payload', sample);
-    this.rtOut = 'saved:\n' + this.peek(sample);
-  },
-
-  async loadSample() {
-    const v = await window.persistence.load('demo-persistence.scratch.payload');
-    if (v === undefined) { this.rtOut = '(empty — save first)'; return; }
-    this.rtOut = 'loaded:\n' + this.peek(v);
-  },
-
-  async removeSample() {
-    await window.persistence.remove('demo-persistence.scratch.payload');
-    this.rtOut = '(removed)';
-  },
-
-  async seed() {
-    const seeds = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
-    for (const k of seeds) {
-      await window.persistence.save(`demo-persistence.bag.${k}`, { name: k, ts: Date.now() });
-    }
-    this.listOut = `seeded ${seeds.length} keys`;
-  },
-
-  async refreshList() {
-    const keys = await window.persistence.list('demo-persistence.bag.x');
-    this.listOut = keys.length ? keys.join('\n') : '(empty)';
-  },
-
-  async dumpEntries() {
-    const es = await window.persistence.entries('demo-persistence.bag.x');
-    this.listOut = es.map(([k, v]) => `${k}  →  ${JSON.stringify(v)}`).join('\n') || '(empty)';
-  },
-
-  async wipe() {
-    await window.persistence.clearStore('demo-persistence.bag.x');
-    this.listOut = '(cleared)';
-  },
-
-  async badPath() {
-    try {
-      await window.persistence.save('oops', 1);
-      this.errOut = '(no error — bug?)';
-    } catch (e) {
-      this.errOut = 'Caught: ' + e.message;
-    }
-  },
-
-  peek(v) {
-    return Object.entries(v).map(([k, val]) => {
-      const t = val?.constructor?.name || typeof val;
-      let display;
-      if (val instanceof Uint8Array) display = `[${Array.from(val).join(', ')}]`;
-      else if (val instanceof Date)  display = val.toISOString();
-      else if (val instanceof Map)   display = `Map(${[...val.entries()].map(([a,b])=>`${a}→${b}`).join(', ')})`;
-      else                           display = JSON.stringify(val);
-      return `  ${k}: <${t}> ${display}`;
-    }).join('\n');
-  }
-}}
-</script>
 </body>
 </html>

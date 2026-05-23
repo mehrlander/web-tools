@@ -37,12 +37,6 @@
     '<b>Title</b>',
     f.btn(['xs', 'primary'], 'Action')));
 
-  ea('#output-btn .btn, #output-toolbar .btn', el => el.addEventListener('click', () => {
-    const orig = el.textContent;
-    el.textContent = 'clicked';
-    setTimeout(() => { el.textContent = orig; }, 1000);
-  }));
-
   ea('#snippet-modal', el => el.textContent =
     `modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`);
   ea('#modal-slot', el => el.innerHTML = f.modal(`
@@ -50,9 +44,14 @@
       <h3 class="font-bold text-lg">Modal contents</h3>
       <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
     </div>`));
-  ea('#modal-open', el => el.addEventListener('click', () => {
-    document.querySelector('#modal-slot dialog').showModal();
-  }));
+  route(document, 'click', {
+    '#output-btn .btn, #output-toolbar .btn': (e, el) => {
+      const orig = el.textContent;
+      el.textContent = 'clicked';
+      setTimeout(() => { el.textContent = orig; }, 1000);
+    },
+    '#modal-open': () => document.querySelector('#modal-slot dialog').showModal(),
+  });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
