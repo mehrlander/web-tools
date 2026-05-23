@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fill · Art Institute of Chicago browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+</head>
+<body class="bg-base-200 text-base-content">
+<script>
+/* ============================================================================
+   fill — a tiny reactive DOM convention
+   ----------------------------------------------------------------------------
+   fill`...`               tagged template -> builder
+     ${d => d.title}       a function is an ACCESSOR: re-run every render with
+                           the data object. Its result is shown as TEXT (escaped)
+                           unless it returns a Node / another fill handle / an
+                           array of those, in which case they are MOUNTED as real
+                           DOM. That split is the whole list story: text is text,
+                           structure is nodes.
+     ${someValue}          a non-function is author-controlled scaffold: inlined
+                           raw, exactly once. This is where class names live.
+
+   .data(obj)              backing state. Wrapped in a reactive Proxy so reads
+                           during render are tracked and writes re-render only the
+                           handles that actually read the changed key. Returns the
+                           builder.
+   .on(type, sel, fn)      one delegated listener on the stable wrapper. Inside fn,
+                           `this` is the state, so `this.x = 1` triggers a render.
+                           Returns the builder.
+   .el                     the live wrapper node to mount. It is display:contents,
+                           so it never shows up in layout; it just holds a stable
+                           identity while its children are re-rendered in place.
+
+   Several handles can share one reactive object. Each subscribes to exactly the
+   keys it reads, which is what lets one input drive other regions while the input
+   itself never re-renders (and so never loses focus mid-type).
+   ========================================================================== */
+
+// --- reactive core: track on read, trigger on write, batch on a microtask ---
+let active = null;                                  // effect currently rendering
+const queue = new Set();
+let pending = false;
+const flush = () => { pending = false; const q = [...queue]; queue.clear(); q.forEach(e => e.active && e.run()); };
+const schedule = e => { queue.add(e); if (!pending) { pending = true; queueMicrotask(flush); } };
+
+const bucket = new WeakMap();                       // rawTarget -> key -> Set<effect>
+const track = (t, k) => {
+  if (!active) return;
+  let m = bucket.get(t); if (!m) bucket.set(t, m = new Map());
+  let s = m.get(k);      if (!s) m.set(k, s = new Set());
+  s.add(active); active.deps.push(s);
+};
+const trigger = (t, k) => { const s = bucket.get(t)?.get(k); if (s) [...s].forEach(schedule); };
+
+const proxies = new WeakMap();
+const reactive = o => {
+  if (!o || typeof o !== 'object') return o;
+  if (o.__r__) return o;                            // already wrapped
+  if (proxies.has(o)) return proxies.get(o);
+  const p = new Proxy(o, {
+    get(t, k, r) { if (k === '__r__') return true; track(t, k); return reactive(Reflect.get(t, k, r)); },
+    set(t, k, v, r) { const old = t[k]; const ok = Reflect.set(t, k, v, r); if (old !== v || k === 'length') trigger(t, k); return ok; },
+    deleteProperty(t, k) { const had = k in t; const ok = Reflect.deleteProperty(t, k); if (had) trigger(t, k); return ok; }
+  });
+  proxies.set(o, p); return p;
+};
+
+// --- the builder ---
+const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const fill = (strings, ...exprs) => {
+  const el = document.createElement('div');
+  el.style.display = 'contents';                    // layout-invisible, identity-stable
+  let state = {};
+
+  const eff = {
+    deps: [], owned: [], active: true,
+    run() {
+      this.owned.forEach(dispose); this.owned.length = 0;   // drop last render's children
+      this.deps.forEach(s => s.delete(this)); this.deps.length = 0;
+      const prev = active; active = this;
+      try { paint(); } finally { active = prev; }
+    }
+  };
+  if (active) active.owned.push(eff);               // nested handles are owned by their parent render
+
+  const paint = () => {
+    let html = '', n = 0; const slots = [];
+    strings.forEach((s, i) => {
+      html += s;
+      if (i >= exprs.length) return;
+      const e = exprs[i];
+      if (typeof e === 'function') {
+        const v = e(state);
+        if (v == null || v === false || v === '') return;
+        if (typeof v === 'object') { const id = 'f' + n++; slots.push([id, v]); html += `<i data-fs="${id}"></i>`; }
+        else html += esc(String(v));
+      } else if (e != null) html += String(e);       // scaffold: raw, trusted
+    });
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    slots.forEach(([id, v]) => { const ph = t.content.querySelector(`[data-fs="${id}"]`); if (ph) ph.replaceWith(mount(v)); });
+    el.replaceChildren(t.content);
+  };
+
+  const mount = v => {
+    if (Array.isArray(v)) { const f = document.createDocumentFragment(); v.forEach(x => f.append(mount(x))); return f; }
+    if (v && v.el instanceof Node) return v.el;       // a fill handle
+    if (v instanceof Node) return v;
+    return document.createTextNode(String(v));
+  };
+
+  const api = {
+    el,
+    data(o) { state = reactive(o); eff.run(); return api; },
+    on(type, sel, fn) {
+      el.addEventListener(type, e => { const m = e.target.closest?.(sel); if (m && el.contains(m)) fn.call(state, e, m); });
+      return api;
+    }
+  };
+  return api;
+};
+const dispose = e => { e.deps.forEach(s => s.delete(e)); e.deps.length = 0; e.owned.forEach(dispose); e.owned.length = 0; e.active = false; };
+
+/* ============================================================================
+   The page: an Art Institute of Chicago collection browser, every dynamic part
+   driven through fill.
+   ========================================================================== */
+
+const FIELDS = 'id,title,artist_display,date_display,medium_display,image_id';
+const img = (id, w = 400) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
+const matches = (a, f) => !f || ((a.title || '') + ' ' + (a.artist_display || '')).toLowerCase().includes(f.toLowerCase());
+
+// one shared, reactive state object; many handles read from it
+const S = reactive({ query: 'monet', loading: true, results: [], filter: '', selected: null });
+
+const doSearch = async () => {
+  S.loading = true;
+  S.selected = null;
+  const r = await fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(S.query || 'monet')}&fields=${FIELDS}&limit=24`);
+  const j = await r.json();
+  S.results = j.data.filter(a => a.image_id);        // skip the imageless
+  S.loading = false;
+};
+
+// --- per-item templates: each card is its own little fill handle ---
+const card = a => fill`
+  <button class="card bg-base-100 shadow-sm hover:shadow-xl transition-shadow text-left overflow-hidden group" data-id="${d => d.id}">
+    <figure class="aspect-[4/3] bg-base-200 overflow-hidden">
+      <img src="${d => img(d.image_id, 400)}" alt="${d => d.title}" loading="lazy"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+    </figure>
+    <div class="card-body p-3 gap-1">
+      <h3 class="text-sm font-medium leading-snug line-clamp-2">${d => d.title}</h3>
+      <p class="text-xs opacity-60 line-clamp-1">${d => d.artist_display || 'Unknown artist'}</p>
+      <span class="badge badge-ghost badge-sm self-start mt-1">${d => d.date_display || 'n.d.'}</span>
+    </div>
+  </button>`.data(a);
+
+const skeleton = () => fill`
+  <div class="card bg-base-100 shadow-sm overflow-hidden">
+    <div class="skeleton aspect-[4/3] w-full rounded-none"></div>
+    <div class="card-body p-3 gap-2">
+      <div class="skeleton h-4 w-3/4"></div>
+      <div class="skeleton h-3 w-1/2"></div>
+    </div>
+  </div>`.data({});
+
+const emptyState = () => fill`
+  <div class="col-span-full flex flex-col items-center justify-center gap-3 py-24 opacity-50">
+    <i class="ph ph-image text-6xl"></i>
+    <p class="text-sm">Nothing to show. Try another search, or clear the filter.</p>
+  </div>`.data({});
+
+const detailCard = it => fill`
+  <aside class="w-80 lg:w-96 shrink-0 h-full overflow-y-auto bg-base-100 border-l border-base-300">
+    <div class="sticky top-0 z-10 flex items-start justify-between gap-2 p-4 bg-base-100/90 backdrop-blur border-b border-base-300">
+      <h2 class="font-semibold leading-snug">${d => d.title}</h2>
+      <button class="btn btn-ghost btn-sm btn-circle detail-close shrink-0"><i class="ph ph-x text-lg"></i></button>
+    </div>
+    <figure class="bg-base-200 p-4 flex justify-center">
+      <img src="${d => img(d.image_id, 600)}" alt="${d => d.title}" class="max-h-[55vh] w-auto object-contain rounded shadow-md">
+    </figure>
+    <div class="p-4 flex flex-col gap-4 text-sm">
+      <div><div class="text-xs uppercase tracking-wide opacity-50 mb-1">Artist</div><div>${d => d.artist_display || 'Unknown'}</div></div>
+      <div><div class="text-xs uppercase tracking-wide opacity-50 mb-1">Date</div><div>${d => d.date_display || 'n.d.'}</div></div>
+      <div><div class="text-xs uppercase tracking-wide opacity-50 mb-1">Medium</div><div>${d => d.medium_display || 'Not listed'}</div></div>
+      <a href="${d => 'https://www.artic.edu/artworks/' + d.id}" target="_blank" rel="noopener"
+         class="btn btn-primary btn-sm gap-2 mt-1">View on artic.edu <i class="ph ph-arrow-square-out"></i></a>
+    </div>
+  </aside>`.data(it);
+
+// --- regions, each sharing S, each subscribing only to what it reads ---
+
+// search box: reads nothing reactive, so it never re-renders and never loses focus
+const searchBox = fill`
+  <label class="input flex items-center gap-2 flex-1 min-w-0 max-w-md">
+    <i class="ph ph-magnifying-glass opacity-50"></i>
+    <input type="text" class="grow" placeholder="Search the collection…" value="monet">
+  </label>`
+  .data(S)
+  .on('input', 'input', function (e) { this.query = e.target.value; })
+  .on('keydown', 'input', function (e) { if (e.key === 'Enter') doSearch(); });
+
+// search button: reads loading, so it swaps to a spinner while fetching
+const searchBtn = fill`
+  <button class="btn btn-primary min-w-28">
+    ${d => d.loading
+      ? fill`<span class="loading loading-spinner loading-sm"></span>`
+      : fill`<span class="inline-flex items-center gap-2"><i class="ph ph-magnifying-glass"></i>Search</span>`}
+  </button>`
+  .data(S)
+  .on('click', 'button', function () { doSearch(); });
+
+// filter box: writes filter, reads nothing -> stays focused while the grid narrows
+const filterBox = fill`
+  <label class="input input-sm flex items-center gap-2 w-full max-w-xs">
+    <i class="ph ph-funnel opacity-50"></i>
+    <input type="text" class="grow" placeholder="Filter shown…">
+  </label>`
+  .data(S)
+  .on('input', 'input', function (e) { this.filter = e.target.value; });
+
+// live count: reads loading, results, filter
+const count = fill`
+  <span class="text-sm opacity-70 whitespace-nowrap">${d =>
+    d.loading ? 'Searching…' : `${d.results.filter(a => matches(a, d.filter)).length} of ${d.results.length} shown`}</span>`
+  .data(S);
+
+// the grid: one accessor returns skeletons, an array of cards, or the empty note
+const grid = fill`
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+    ${d => d.loading
+      ? Array.from({ length: 8 }, skeleton)
+      : (shown => shown.length ? shown.map(card) : [emptyState()])(d.results.filter(a => matches(a, d.filter)))}
+  </div>`
+  .data(S)
+  .on('click', '.card', function (e, m) { this.selected = { ...this.results.find(a => a.id === +m.dataset.id) }; });
+
+// the detail panel: present only when something is selected
+const detail = fill`${d => d.selected ? detailCard(d.selected) : null}`
+  .data(S)
+  .on('click', '.detail-close', function () { this.selected = null; });
+
+// the shell: static scaffold that simply mounts the regions above
+const app = fill`
+  <div class="h-screen flex flex-col overflow-hidden">
+    <header class="flex items-center flex-wrap gap-3 px-4 py-3 bg-base-100 border-b border-base-300 shrink-0">
+      <div class="flex items-center gap-2 mr-2">
+        <i class="ph ph-bank text-2xl text-primary"></i>
+        <h1 class="text-lg font-semibold tracking-tight">AIC Collection Browser</h1>
+        <span class="badge badge-ghost badge-sm gap-1"><i class="ph ph-palette"></i>fill</span>
+      </div>
+      ${() => searchBox}
+      ${() => searchBtn}
+    </header>
+    <div class="flex items-center gap-4 px-4 py-2 bg-base-100 border-b border-base-300 shrink-0">
+      ${() => filterBox}
+      ${() => count}
+    </div>
+    <main class="flex flex-1 min-h-0 overflow-hidden">
+      <div class="flex-1 min-w-0 overflow-y-auto">${() => grid}</div>
+      ${() => detail}
+    </main>
+  </div>`.data({});
+
+document.body.append(app.el);
+doSearch();
+</script>
+</body>
+</html>
