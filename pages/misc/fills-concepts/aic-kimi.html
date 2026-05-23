@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Art Institute Collection — fill</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <style>
+    .detail-panel::-webkit-scrollbar { width: 6px; }
+    .detail-panel::-webkit-scrollbar-track { background: transparent; }
+    .detail-panel::-webkit-scrollbar-thumb { background: hsl(var(--p) / 0.3); border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+  <div id="root"></div>
+
+  <script>
+    /* ============================================================
+       fill — reactive DOM helper
+       ============================================================ */
+
+    const _reactiveStates = new WeakMap();
+
+    function _getReactiveState(obj) {
+      if (_reactiveStates.has(obj)) return _reactiveStates.get(obj);
+      const listeners = new Set();
+      const proxy = new Proxy(obj, {
+        set(target, prop, value) {
+          const old = target[prop];
+          target[prop] = value;
+          if (old !== value) listeners.forEach(fn => fn());
+          return true;
+        }
+      });
+      const state = { proxy, listeners, raw: obj };
+      _reactiveStates.set(obj, state);
+      _reactiveStates.set(proxy, state);
+      return state;
+    }
+
+    function _splitMarkers(text, markers) {
+      const parts = [];
+      let remaining = text;
+      while (remaining) {
+        let found = -1, pos = Infinity;
+        for (let i = 0; i < markers.length; i++) {
+          const p = remaining.indexOf(markers[i]);
+          if (p !== -1 && p < pos) { pos = p; found = i; }
+        }
+        if (found === -1) { parts.push({ type: 'text', text: remaining }); break; }
+        if (pos > 0) parts.push({ type: 'text', text: remaining.slice(0, pos) });
+        parts.push({ type: 'marker', index: found });
+        remaining = remaining.slice(pos + markers[found].length);
+      }
+      return parts;
+    }
+
+    class Builder {
+      constructor(root, slots, values) {
+        this.root = root;
+        this.slots = slots;
+        this.values = values;
+        this.proxy = null;
+        this.listeners = [];
+        this.el = null;
+        this._renderBound = this.render.bind(this);
+        this._queued = false;
+      }
+
+      data(obj) {
+        const state = _getReactiveState(obj);
+        this.proxy = state.proxy;
+        state.listeners.add(this._renderBound);
+        this.render();
+        return this;
+      }
+
+      on(type, selector, fn) {
+        this.listeners.push({ type, selector, fn });
+        if (this.el) this._attach(this.listeners[this.listeners.length - 1]);
+        return this;
+      }
+
+      _attach(l) {
+        this.el.addEventListener(l.type, e => {
+          const target = e.target.closest(l.selector);
+          if (target && this.el.contains(target)) l.fn.call(this.proxy, e, target);
+        });
+      }
+
+      _queue() {
+        if (this._queued) return;
+        this._queued = true;
+        queueMicrotask(() => { this._queued = false; this.render(); });
+      }
+
+      render() {
+        if (!this.el) {
+          this.el = this.root;
+          this.listeners.forEach(l => this._attach(l));
+        }
+
+        for (const slot of this.slots) {
+          if (slot.type === 'text') {
+            for (const node of slot.nodes) if (node.parentNode) node.remove();
+            slot.nodes = [];
+
+            const result = slot.accessor(this.proxy);
+            if (result == null) continue;
+
+            if (Array.isArray(result)) {
+              const nodes = result.map(r =>
+                r instanceof Node ? r : (r && r.el instanceof Node ? r.el : null)
+              ).filter(Boolean);
+              slot.nodes = nodes;
+              if (nodes.length) slot.anchor.after(...nodes);
+            } else if (result instanceof Node) {
+              slot.nodes = [result];
+              slot.anchor.after(result);
+            } else if (result && result.el instanceof Node) {
+              slot.nodes = [result.el];
+              slot.anchor.after(result.el);
+            } else {
+              const text = document.createTextNode(String(result));
+              slot.nodes = [text];
+              slot.anchor.after(text);
+            }
+          } else if (slot.type === 'attr') {
+            let value = '';
+            for (const part of slot.parts) {
+              if (typeof part === 'string') value += part;
+              else value += this.values[part.index](this.proxy) ?? '';
+            }
+
+            if (slot.name === 'value' && (slot.element.tagName === 'INPUT' || slot.element.tagName === 'TEXTAREA')) {
+              if (document.activeElement !== slot.element && slot.element.value !== value) {
+                slot.element.value = value;
+              }
+            } else if (slot.name === 'checked' && slot.element.tagName === 'INPUT' && slot.element.type === 'checkbox') {
+              slot.element.checked = Boolean(value);
+            } else {
+              slot.element.setAttribute(slot.name, value);
+            }
+          }
+        }
+      }
+    }
+
+    function fill(strings, ...values) {
+      const markers = values.map((_, i) => `__FILL_${i}__`);
+      let html = strings[0];
+      for (let i = 0; i < values.length; i++) {
+        if (typeof values[i] === 'function') html += markers[i] + strings[i + 1];
+        else html += String(values[i] ?? '') + strings[i + 1];
+      }
+
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.trim();
+      const children = Array.from(tpl.content.childNodes);
+      let root;
+      if (children.length === 1 && children[0].nodeType === Node.ELEMENT_NODE) {
+        root = children[0];
+      } else {
+        root = document.createElement('div');
+        root.append(...children);
+      }
+
+      const slots = [];
+
+      // Text nodes
+      const textNodes = [];
+      const w1 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (w1.nextNode()) textNodes.push(w1.currentNode);
+
+      for (const node of textNodes) {
+        const parts = _splitMarkers(node.textContent, markers);
+        if (!parts.some(p => p.type === 'marker')) continue;
+        const frag = document.createDocumentFragment();
+        for (const part of parts) {
+          if (part.type === 'text') frag.appendChild(document.createTextNode(part.text));
+          else {
+            const anchor = document.createComment(`fill:${part.index}`);
+            frag.appendChild(anchor);
+            slots.push({ type: 'text', anchor, index: part.index, accessor: values[part.index], nodes: [] });
+          }
+        }
+        node.parentNode.replaceChild(frag, node);
+      }
+
+      // Attributes
+      const elements = [];
+      const w2 = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+      while (w2.nextNode()) elements.push(w2.currentNode);
+
+      for (const el of elements) {
+        for (const attr of Array.from(el.attributes)) {
+          const parts = _splitMarkers(attr.value, markers);
+          if (!parts.some(p => p.type === 'marker')) continue;
+          const name = attr.name;
+          el.removeAttribute(name);
+          slots.push({
+            type: 'attr',
+            element: el,
+            name,
+            parts: parts.map(p => p.type === 'text' ? p.text : { index: p.index })
+          });
+        }
+      }
+
+      return new Builder(root, slots, values);
+    }
+
+    /* ============================================================
+       App: Art Institute of Chicago browser
+       ============================================================ */
+
+    function fetchArtworks(query) {
+      return fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(query)}&fields=id,title,artist_display,date_display,medium_display,image_id,thumbnail&limit=24`)
+        .then(r => r.json())
+        .then(json => json.data.filter(a => a.image_id));
+    }
+
+    const app = fill`
+      <div class="min-h-screen bg-base-100 p-4 md:p-8">
+        <div class="max-w-7xl mx-auto">
+          <header class="mb-8 flex items-center gap-3">
+            <i class="ph ph-paint-brush-broad text-4xl text-primary"></i>
+            <div>
+              <h1 class="text-3xl md:text-4xl font-bold">Art Institute of Chicago</h1>
+              <p class="text-base-content/60 text-sm mt-1">Collection browser</p>
+            </div>
+          </header>
+
+          <form class="join w-full max-w-2xl mb-6">
+            <input name="q" type="text" class="input input-bordered join-item flex-1" placeholder="Search artists, titles, mediums…" />
+            <button type="submit" class="btn btn-primary join-item">
+              <i class="ph ph-magnifying-glass text-lg"></i>
+            </button>
+          </form>
+
+          <div class="${d => d.artworks.length > 0 ? 'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6' : 'hidden'}">
+            <div class="join">
+              <input type="text" class="input input-bordered input-sm join-item w-64 filter-input" placeholder="Filter current results…" value="${d => d.filter}" />
+              <span class="join-item btn btn-sm btn-ghost no-animation">
+                <i class="ph ph-funnel"></i>
+              </span>
+            </div>
+            <div class="badge badge-lg badge-primary">
+              ${d => {
+                const term = (d.filter || '').toLowerCase();
+                const count = term
+                  ? d.artworks.filter(a => (a.title + ' ' + a.artist_display).toLowerCase().includes(term)).length
+                  : d.artworks.length;
+                return `${count} shown`;
+              }}
+            </div>
+          </div>
+
+          ${d => d.loading ? fill`
+            <div class="flex flex-col items-center justify-center py-20 gap-4">
+              <span class="loading loading-spinner loading-lg text-primary"></span>
+              <p class="text-base-content/50 text-sm">Searching the collection…</p>
+            </div>
+          `.el : ''}
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            ${d => {
+              if (d.loading) return '';
+              const term = (d.filter || '').toLowerCase();
+              const items = term
+                ? d.artworks.filter(a => (a.title + ' ' + a.artist_display).toLowerCase().includes(term))
+                : d.artworks;
+
+              if (d.hasSearched && items.length === 0) {
+                return fill`
+                  <div class="col-span-full text-center py-16">
+                    <i class="ph ph-image-broken text-5xl text-base-content/20 mb-4 block"></i>
+                    <p class="text-lg text-base-content/60">No artworks match your filter</p>
+                  </div>
+                `.el;
+              }
+
+              return items.map(artwork => fill`
+                <div class="card bg-base-200 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer group" data-id="${artwork.id}">
+                  <figure class="px-4 pt-4">
+                    <img
+                      src="${`https://www.artic.edu/iiif/2/${artwork.image_id}/full/400,/0/default.jpg`}"
+                      alt="${artwork.title}"
+                      class="rounded-xl w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <div class="card-body p-4">
+                    <h2 class="card-title text-sm line-clamp-2">${artwork.title}</h2>
+                    <p class="text-xs text-base-content/60 line-clamp-2">${artwork.artist_display || 'Unknown artist'}</p>
+                    <div class="card-actions justify-end mt-2">
+                      <div class="badge badge-sm badge-secondary">${artwork.date_display || 'Unknown date'}</div>
+                    </div>
+                  </div>
+                </div>
+              `.data(artwork).el);
+            }}
+          </div>
+
+          ${d => !d.loading && d.artworks.length === 0 && d.hasSearched ? fill`
+            <div class="text-center py-20">
+              <i class="ph ph-image-broken text-6xl text-base-content/20 mb-4 block"></i>
+              <p class="text-lg text-base-content/60">No artworks found for "${d.query}"</p>
+            </div>
+          `.el : ''}
+
+          ${d => d.selected ? fill`
+            <div class="fixed inset-y-0 right-0 w-full sm:w-[28rem] bg-base-300 shadow-2xl z-50 overflow-y-auto detail-panel p-6">
+              <button class="btn btn-sm btn-circle btn-ghost absolute top-4 right-4 close-detail">
+                <i class="ph ph-x text-lg"></i>
+              </button>
+
+              <img
+                src="${`https://www.artic.edu/iiif/2/${d.selected.image_id}/full/600,/0/default.jpg`}"
+                alt="${d.selected.title}"
+                class="w-full rounded-xl shadow-lg mb-6 mt-2"
+              />
+
+              <div class="space-y-4">
+                <div>
+                  <h2 class="text-2xl font-bold leading-tight">${d.selected.title}</h2>
+                  <p class="text-lg text-primary mt-1">${d.selected.artist_display || 'Unknown artist'}</p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <div class="badge badge-secondary">${d.selected.date_display || 'Unknown date'}</div>
+                </div>
+
+                <p class="text-sm text-base-content/80 leading-relaxed">${d.selected.medium_display || ''}</p>
+
+                <a
+                  href="${`https://www.artic.edu/artworks/${d.selected.id}`}"
+                  target="_blank"
+                  class="btn btn-outline btn-primary btn-sm"
+                >
+                  View on artic.edu
+                  <i class="ph ph-arrow-square-out"></i>
+                </a>
+              </div>
+            </div>
+
+            <div class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm close-detail"></div>
+          `.el : ''}
+        </div>
+      </div>
+    `.data({
+      query: 'monet',
+      artworks: [],
+      filter: '',
+      loading: false,
+      selected: null,
+      hasSearched: false
+    })
+    .on('submit', 'form', function(e) {
+      e.preventDefault();
+      const form = e.target;
+      this.query = form.q.value;
+      this.filter = '';
+      this.loading = true;
+      this.selected = null;
+      this.hasSearched = true;
+
+      fetchArtworks(this.query)
+        .then(data => {
+          this.artworks = data;
+          this.loading = false;
+        })
+        .catch(err => {
+          console.error(err);
+          this.loading = false;
+        });
+    })
+    .on('input', '.filter-input', function(e) {
+      this.filter = e.target.value;
+    })
+    .on('click', '.card', function(e) {
+      const card = e.target.closest('.card');
+      if (!card) return;
+      const id = Number(card.dataset.id);
+      this.selected = this.artworks.find(a => a.id === id);
+    })
+    .on('click', '.close-detail', function() {
+      this.selected = null;
+    });
+
+    document.getElementById('root').appendChild(app.el);
+
+    // Initial search
+    app.proxy.loading = true;
+    fetchArtworks('monet').then(data => {
+      app.proxy.artworks = data;
+      app.proxy.loading = false;
+      app.proxy.hasSearched = true;
+    });
+  </script>
+</body>
+</html>
