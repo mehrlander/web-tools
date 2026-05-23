@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en" data-theme="dracula">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>fill · Art Institute Browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-base-200">
+  <main id="app"></main>
+
+  <script type="module">
+    const fill = (() => {
+      const marker = i => `fill:${i}`
+
+      const flat = x =>
+        typeof x === 'function' ? flat(x()) :
+        Array.isArray(x) ? x.flatMap(flat) :
+        [x]
+
+      const esc = x => String(x)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+
+      const plain = x =>
+        x && typeof x === 'object' && x.constructor === Object
+
+      const text = s => document.createTextNode(String(s))
+
+      const frag = (...kids) => {
+        const f = document.createDocumentFragment()
+        flat(kids).forEach(k => {
+          if (k == null || k === false) return
+          f.append(k instanceof Node ? k : text(k))
+        })
+        return f
+      }
+
+      const parse = (strings, vals = [], skipFirst = false) => {
+        const held = []
+        let html = ''
+
+        const emit = v => flat(v).map(x => {
+          if (x == null || x === false) return ''
+          if (x instanceof Node) {
+            const id = held.push(x) - 1
+            return `<!--${marker(id)}-->`
+          }
+          return esc(x)
+        }).join('')
+
+        for (let i = 0; i < strings.length; i++) {
+          html += strings[i]
+          if (i < vals.length && !(skipFirst && i === 0)) html += emit(vals[i])
+        }
+
+        const t = document.createElement('template')
+        t.innerHTML = html.trim()
+
+        const walk = document.createTreeWalker(t.content, NodeFilter.SHOW_COMMENT)
+        const swaps = []
+        while (walk.nextNode()) {
+          const m = walk.currentNode.nodeValue.match(/^fill:(\d+)$/)
+          if (m) swaps.push([walk.currentNode, held[+m[1]]])
+        }
+        swaps.forEach(([c, n]) => c.replaceWith(n))
+
+        const nodes = [...t.content.childNodes]
+        return nodes.length === 1 ? nodes[0] : t.content
+      }
+
+      const attrs = (el, obj) => {
+        for (const [k, v] of Object.entries(obj || {})) {
+          if (v == null || v === false) continue
+          if (k.startsWith('on') && typeof v === 'function') {
+            el.addEventListener(k.slice(2).toLowerCase(), v)
+          } else if (k === 'class') {
+            el.classList.add(...String(v).split(/\s+/).filter(Boolean))
+          } else if (k in el && typeof v !== 'object') {
+            el[k] = v
+          } else {
+            el.setAttribute(k, v === true ? '' : String(v))
+          }
+        }
+        return el
+      }
+
+      const root = tag => (strings, ...vals) => {
+        const hasAttrs = strings?.raw && strings[0] === '' && plain(vals[0])
+        const el = parse([`<${tag}></${tag}>`])
+        if (hasAttrs) attrs(el, vals[0])
+        el.append(parse(strings, vals, hasAttrs))
+        return el
+      }
+
+      const callable = (strings, ...vals) =>
+        strings?.raw ? parse(strings, vals) : frag(strings, ...vals)
+
+      return new Proxy(callable, {
+        get(_, prop) {
+          if (prop === 'frag') return frag
+          if (prop === 'text') return text
+          return root(prop)
+        },
+        apply(_, __, args) {
+          return callable(...args)
+        }
+      })
+    })()
+
+    const $ = s => document.querySelector(s)
+    const api = q => `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&fields=id,title,artist_display,date_display,medium_display,image_id,thumbnail&limit=24`
+    const img = (id, size = 500) => `https://www.artic.edu/iiif/2/${id}/full/${size},/0/default.jpg`
+    const link = id => `https://www.artic.edu/artworks/${id}`
+
+    let works = []
+    let selected = null
+
+    const app = $('#app')
+
+    const state = {
+      query: 'monet',
+      filter: ''
+    }
+
+    const shell = fill.div`${[
+      fill.section`
+        <div class="navbar bg-base-100 border-b border-base-300 sticky top-0 z-20">
+          <div class="flex-1">
+            <div class="flex items-center gap-3 px-2">
+              <div class="avatar placeholder">
+                <div class="bg-primary text-primary-content rounded-2xl w-11">
+                  <i class="ph ph-paint-brush text-2xl"></i>
+                </div>
+              </div>
+              <div>
+                <h1 class="font-black tracking-tight text-lg sm:text-2xl">fill gallery</h1>
+                <p class="text-xs opacity-60">Art Institute of Chicago, rendered with one tiny DOM helper</p>
+              </div>
+            </div>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="https://api.artic.edu/docs/" target="_blank">
+            API <i class="ph ph-arrow-square-out"></i>
+          </a>
+        </div>
+      `,
+      fill.section({ class: 'p-3 sm:p-6 max-w-7xl mx-auto grid lg:grid-cols-[1fr_420px] gap-4' })`
+        <div>
+          <div class="card bg-base-100 shadow-sm border border-base-300 mb-4">
+            <div class="card-body gap-4">
+              <form id="searchForm" class="join w-full">
+                <label class="input join-item flex-1">
+                  <i class="ph ph-magnifying-glass opacity-60"></i>
+                  <input id="query" value="monet" placeholder="Search the collection">
+                </label>
+                <button class="btn btn-primary join-item">
+                  Search
+                </button>
+              </form>
+
+              <div class="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
+                <label class="input input-sm w-full">
+                  <i class="ph ph-funnel opacity-60"></i>
+                  <input id="filter" placeholder="Filter shown results">
+                </label>
+                <div id="count" class="badge badge-lg badge-outline justify-self-start sm:justify-self-end">0 shown</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="status"></div>
+          <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </div>
+
+        <aside id="detail" class="lg:sticky lg:top-24 self-start"></aside>
+      `
+    ]}`
+
+    app.append(shell)
+
+    const grid = $('#grid')
+    const status = $('#status')
+    const detail = $('#detail')
+    const count = $('#count')
+    const query = $('#query')
+    const filter = $('#filter')
+    const searchForm = $('#searchForm')
+
+    const clear = node => node.replaceChildren()
+
+    const loading = () => fill.div`
+      <div class="card bg-base-100 border border-base-300">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <span class="loading loading-spinner loading-md text-primary"></span>
+            <div>
+              <div class="font-semibold">Fetching artworks</div>
+              <div class="text-sm opacity-60">Waiting politely at the museum desk.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const empty = msg => fill.div`
+      <div class="card bg-base-100 border border-dashed border-base-300">
+        <div class="card-body items-center text-center py-14">
+          <i class="ph ph-frame-corners text-5xl opacity-30"></i>
+          <h2 class="card-title">${msg}</h2>
+          <p class="opacity-60 max-w-md">Try another collection search, or loosen the local filter.</p>
+        </div>
+      </div>
+    `
+
+    const card = art => fill.article({ class: 'card bg-base-100 shadow-sm hover:shadow-xl border border-base-300 overflow-hidden cursor-pointer transition', onClick: () => select(art) })`
+      <figure class="bg-base-300 aspect-[4/3]">
+        <img class="w-full h-full object-cover" src="${img(art.image_id, 500)}" alt="${art.thumbnail?.alt_text || art.title}" loading="lazy">
+      </figure>
+      <div class="card-body p-4 gap-2">
+        <div class="flex gap-2 items-start justify-between">
+          <h2 class="font-bold leading-tight">${art.title || 'Untitled'}</h2>
+          <span class="badge badge-secondary badge-sm shrink-0">${art.date_display || 'n.d.'}</span>
+        </div>
+        <p class="text-sm opacity-70 line-clamp-3">${art.artist_display || 'Artist unknown'}</p>
+      </div>
+    `
+
+    const detailBlank = () => fill.div`
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body min-h-96 items-center justify-center text-center">
+          <i class="ph ph-hand-tap text-6xl opacity-25"></i>
+          <h2 class="card-title">Pick a work</h2>
+          <p class="opacity-60">The detail panel opens here without leaving the grid.</p>
+        </div>
+      </div>
+    `
+
+    const detailCard = art => fill.div`
+      <div class="card bg-base-100 shadow-xl border border-base-300 overflow-hidden">
+        <figure class="bg-base-300">
+          <img class="w-full max-h-[58vh] object-contain" src="${img(art.image_id, 900)}" alt="${art.thumbnail?.alt_text || art.title}">
+        </figure>
+        <div class="card-body">
+          <div class="flex items-start justify-between gap-3">
+            <h2 class="card-title text-2xl leading-tight">${art.title || 'Untitled'}</h2>
+            <button class="btn btn-circle btn-ghost btn-sm lg:hidden" aria-label="Close detail">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+          <p class="font-medium opacity-80">${art.artist_display || 'Artist unknown'}</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="badge badge-secondary">${art.date_display || 'n.d.'}</span>
+            <span class="badge badge-outline">${art.medium_display || 'medium not listed'}</span>
+          </div>
+          <div class="card-actions pt-3">
+            <a class="btn btn-primary" href="${link(art.id)}" target="_blank">
+              Open at artic.edu <i class="ph ph-arrow-square-out"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    `
+
+    const visible = () => {
+      const f = state.filter.trim().toLowerCase()
+      return works.filter(a => !f || [
+        a.title,
+        a.artist_display,
+        a.date_display,
+        a.medium_display
+      ].some(x => String(x || '').toLowerCase().includes(f)))
+    }
+
+    const renderGrid = () => {
+      const shown = visible()
+      clear(grid)
+      clear(status)
+      count.textContent = `${shown.length} of ${works.length} shown`
+      if (!shown.length) {
+        status.append(empty(works.length ? 'Nothing matches the filter' : 'No image results found'))
+        return
+      }
+      grid.append(...shown.map(card))
+    }
+
+    const select = art => {
+      selected = art
+      clear(detail)
+      detail.append(detailCard(art))
+      detail.querySelector('button')?.addEventListener('click', () => {
+        selected = null
+        clear(detail)
+        detail.append(detailBlank())
+      })
+    }
+
+    const search = async q => {
+      state.query = q
+      selected = null
+      works = []
+      clear(grid)
+      clear(detail)
+      clear(status)
+      detail.append(detailBlank())
+      status.append(loading())
+      count.textContent = 'loading'
+
+      try {
+        const res = await fetch(api(q))
+        const json = await res.json()
+        works = (json.data || []).filter(x => x.image_id)
+        clear(status)
+        renderGrid()
+        if (works[0]) select(works[0])
+      } catch (e) {
+        clear(status)
+        status.append(empty('The museum desk did not answer'))
+        count.textContent = '0 shown'
+      }
+    }
+
+    searchForm.addEventListener('submit', e => {
+      e.preventDefault()
+      search(query.value.trim() || 'monet')
+    })
+
+    filter.addEventListener('input', e => {
+      state.filter = e.target.value
+      renderGrid()
+    })
+
+    search(state.query)
+  </script>
+</body>
+</html>
