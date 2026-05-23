@@ -3,16 +3,13 @@
 window.ea = (sel, cb = el => el) =>
   [...document.querySelectorAll(sel)].map(cb)
 
-window.wire = (sel, events) => {
-  if (sel && typeof sel === 'object') {
-    for (const [s, ev] of Object.entries(sel)) window.wire(s, ev)
-    return
-  }
-  const els = document.querySelectorAll(sel)
-  for (const el of els) {
-    for (const [type, fn] of Object.entries(events)) {
-      el.addEventListener(type, fn)
+window.on = (root, type, fn) =>
+  (root.addEventListener(type, fn), root)
+
+window.route = (root, type, routes) =>
+  window.on(root, type, e => {
+    for (const [sel, fn] of Object.entries(routes)) {
+      const el = e.target.closest(sel)
+      if (el) return fn(e, el)
     }
-  }
-  return els[0] || null
-}
+  })

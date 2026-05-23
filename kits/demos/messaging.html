@@ -23,10 +23,6 @@
   const [pubPayload]  = ea('#pub-payload');
   const [pubSubs]     = ea('#pub-subs');
 
-  wire('#pub-send', { click: () => {
-    messaging.publish(pubPath.value, pubOccasion.value, pubPayload.value);
-  }});
-
   setInterval(() => {
     pubSubs.textContent = `${messaging.subscriberCount(pubPath.value)} subscriber(s)`;
   }, 250);
@@ -51,9 +47,9 @@
     ).join('');
   };
 
-  const setActive = on => {
-    subActive = on;
-    subToggle.textContent = on ? 'unsubscribe' : 'subscribe';
+  const setActive = active => {
+    subActive = active;
+    subToggle.textContent = active ? 'unsubscribe' : 'subscribe';
   };
 
   const subscribe = () => {
@@ -68,14 +64,6 @@
   subscribe();
   renderLog();
 
-  wire({
-    '#sub-toggle': { click: () => {
-      if (subActive) { subOff?.(); subOff = null; setActive(false); }
-      else { subscribe(); }
-    }},
-    '#sub-clear': { click: () => { log.length = 0; renderLog(); }},
-  });
-
   // Inspector
   const [inspectorDump] = ea('#inspector-dump');
   const refresh = () => {
@@ -86,7 +74,13 @@
   };
   refresh();
   setInterval(refresh, 500);
-  wire('#inspector-refresh', { click: refresh });
+
+  route(document, 'click', {
+    '#pub-send':          () => messaging.publish(pubPath.value, pubOccasion.value, pubPayload.value),
+    '#sub-toggle':        () => { if (subActive) { subOff?.(); subOff = null; setActive(false); } else { subscribe(); } },
+    '#sub-clear':         () => { log.length = 0; renderLog(); },
+    '#inspector-refresh': () => refresh(),
+  });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">

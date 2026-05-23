@@ -22,25 +22,25 @@
   const [clipText]   = ea('#clip-text');
   const [clipResult] = ea('#clip-result');
 
-  wire({
-    '#btn-pick': { click: async () => {
+  route(document, 'click', {
+    '#btn-pick': async () => {
       try {
         const buf = await io.pick();
         pickResult.textContent = `ArrayBuffer of ${buf.byteLength} bytes`;
       } catch (e) { pickResult.textContent = `(${e.message})`; }
-    }},
+    },
 
-    '#btn-pick-text': { click: async () => {
+    '#btn-pick-text': async () => {
       try {
         const text = await io.pickText();
         pickResult.textContent = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
       } catch (e) { pickResult.textContent = `(${e.message})`; }
-    }},
+    },
 
-    '#btn-save':      { click: () => io.save(saveText.value, 'note.txt', 'text/plain') },
-    '#btn-save-json': { click: () => io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json') },
+    '#btn-save':      () => io.save(saveText.value, 'note.txt', 'text/plain'),
+    '#btn-save-json': () => io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json'),
 
-    '#btn-save-zip': { click: async () => {
+    '#btn-save-zip': async () => {
       zipStatus.textContent = 'building…';
       try {
         await io.saveZip([
@@ -50,9 +50,9 @@
         ], 'bundle.zip');
         zipStatus.textContent = 'downloaded bundle.zip';
       } catch (e) { zipStatus.textContent = `error: ${e.message}`; }
-    }},
+    },
 
-    '#btn-show': { click: () => {
+    '#btn-show': () => {
       const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
         <body style="font:14px system-ui;padding:2rem">
         <h1>io.show()</h1>
@@ -60,18 +60,18 @@
         <code>window.open(URL.createObjectURL(blob))</code>.</p>
         <p>Time: ${new Date().toString()}</p>`;
       io.show(html, 'text/html');
-    }},
+    },
 
-    '#btn-copy': { click: async () => {
+    '#btn-copy': async () => {
       const ok = await io.copy(clipText.value);
       clipResult.textContent = ok ? `copied: ${clipText.value}` : 'copy failed';
-    }},
+    },
 
-    '#btn-paste': { click: async () => {
+    '#btn-paste': async () => {
       try {
         clipResult.textContent = `pasted: ${await io.paste()}`;
       } catch (e) { clipResult.textContent = `paste error: ${e.message}`; }
-    }},
+    },
   });
 </script>
 </head>

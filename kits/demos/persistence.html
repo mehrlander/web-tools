@@ -42,10 +42,10 @@
 
   doParse();
 
-  wire({
-    '#btn-parse': { click: doParse },
+  route(document, 'click', {
+    '#btn-parse': () => doParse(),
 
-    '#btn-save-sample': { click: async () => {
+    '#btn-save-sample': async () => {
       const sample = {
         label:     'mixed-type sample',
         savedAt:   new Date(),
@@ -55,50 +55,50 @@
       };
       await persistence.save('demo-persistence.scratch.payload', sample);
       rtOut.textContent = 'saved:\n' + peek(sample);
-    }},
+    },
 
-    '#btn-load-sample': { click: async () => {
+    '#btn-load-sample': async () => {
       const v = await persistence.load('demo-persistence.scratch.payload');
       if (v === undefined) { rtOut.textContent = '(empty — save first)'; return; }
       rtOut.textContent = 'loaded:\n' + peek(v);
-    }},
+    },
 
-    '#btn-remove-sample': { click: async () => {
+    '#btn-remove-sample': async () => {
       await persistence.remove('demo-persistence.scratch.payload');
       rtOut.textContent = '(removed)';
-    }},
+    },
 
-    '#btn-seed': { click: async () => {
+    '#btn-seed': async () => {
       const seeds = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
       for (const k of seeds) {
         await persistence.save(`demo-persistence.bag.${k}`, { name: k, ts: Date.now() });
       }
       listOut.textContent = `seeded ${seeds.length} keys`;
-    }},
+    },
 
-    '#btn-list': { click: async () => {
+    '#btn-list': async () => {
       const keys = await persistence.list('demo-persistence.bag.x');
       listOut.textContent = keys.length ? keys.join('\n') : '(empty)';
-    }},
+    },
 
-    '#btn-dump': { click: async () => {
+    '#btn-dump': async () => {
       const es = await persistence.entries('demo-persistence.bag.x');
       listOut.textContent = es.map(([k, v]) => `${k}  →  ${JSON.stringify(v)}`).join('\n') || '(empty)';
-    }},
+    },
 
-    '#btn-wipe': { click: async () => {
+    '#btn-wipe': async () => {
       await persistence.clearStore('demo-persistence.bag.x');
       listOut.textContent = '(cleared)';
-    }},
+    },
 
-    '#btn-bad': { click: async () => {
+    '#btn-bad': async () => {
       try {
         await persistence.save('oops', 1);
         errOut.textContent = '(no error — bug?)';
       } catch (e) {
         errOut.textContent = 'Caught: ' + e.message;
       }
-    }},
+    },
   });
 </script>
 </head>
