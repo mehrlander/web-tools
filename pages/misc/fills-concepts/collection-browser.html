@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en" data-theme="lofi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Art Institute of Chicago · Collection Browser</title>
+
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+</head>
+
+<body class="min-h-screen bg-base-100 text-base-content antialiased">
+<footer class="border-t border-base-300 py-6 text-center text-xs opacity-50">
+  Images and data courtesy of the Art Institute of Chicago’s open API. Built on <code>fill</code>.
+</footer>
+
+<script>
+/* ===========================================================================
+   fill — a tiny reactive DOM helper
+   ---------------------------------------------------------------------------
+   fill`...`            tagged template -> builder
+     interpolated functions are accessors, called with the state on each render
+     non-functions inline once; arrays are joined (that is the list story)
+   .data(obj)           sets backing state (a Proxy) and renders; chainable
+   .on(type, sel, fn)   one delegated listener on .el; `this` is the state
+   .state               the live proxy (mutate it to re-render)
+   .el                  the live node to mount (a display:contents wrapper, so
+                        it never shows up as a box of its own)
+   Mutating the state — including `this.x = …` inside a handler — re-renders
+   .el in place. The wrapper is stable, so delegated listeners survive renders.
+=========================================================================== */
+const esc = s => new Option(s ?? '').innerHTML;          // browser-native escape
+
+const fill = (strings, ...slots) => {
+  const el = Object.assign(document.createElement('div'), { style: 'display:contents' });
+  let state;
+  const render = () => {
+    let out = strings[0];
+    slots.forEach((slot, i) => {
+      const v = typeof slot === 'function' ? slot.call(state, state) : slot;
+      out += (Array.isArray(v) ? v.join('') : v ?? '') + strings[i + 1];
+    });
+    el.innerHTML = out;
+  };
+  const api = {
+    data(obj) {
+      state = new Proxy(obj, { set: (t, k, v) => ((t[k] = v), render(), true) });
+      render();
+      return api;
+    },
+    on(type, sel, fn) {
+      el.addEventListener(type, e => {
+        const hit = e.target.closest(sel);
+        if (hit && el.contains(hit)) fn.call(state, e, hit);
+      });
+      return api;
+    },
+    get state() { return state; },
+    get el() { return el; },
+  };
+  return api;
+};
+
+/* ===========================================================================
+   domain helpers — item templates are just functions that return strings
+=========================================================================== */
+const FIELDS = 'id,title,artist_display,date_display,medium_display,image_id';
+const iiif = (id, w) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
+
+const matches = d => {
+  const q = (d.filter || '').toLowerCase();
+  return d.results.filter(a => `${a.title} ${a.artist_display || ''}`.toLowerCase().includes(q));
+};
+
+const card = (a, selId) => `
+  <div data-id="${a.id}" role="button" tabindex="0" class="group cursor-pointer focus:outline-none">
+    <figure class="relative overflow-hidden rounded-box bg-base-200 ${selId === a.id ? 'ring-2 ring-neutral ring-offset-2 ring-offset-base-100' : ''}">
+      <img loading="lazy" alt="" src="${iiif(a.image_id, 400)}"
+           class="aspect-[4/5] w-full object-cover transition duration-700 ease-out group-hover:scale-105 group-focus:scale-105">
+      ${a.date_display ? `<span class="badge badge-neutral badge-sm absolute left-2 top-2">${esc(a.date_display)}</span>` : ''}
+    </figure>
+    <h3 class="mt-2 font-[Fraunces,serif] text-sm leading-snug line-clamp-2 group-hover:underline">${esc(a.title)}</h3>
+    <p class="text-xs opacity-50 line-clamp-1">${esc(a.artist_display || 'Unknown')}</p>
+  </div>`;
+
+const skeleton = `
+  <div>
+    <div class="skeleton aspect-[4/5] w-full rounded-box"></div>
+    <div class="skeleton mt-2 h-4 w-3/4"></div>
+    <div class="skeleton mt-1 h-3 w-1/2"></div>
+  </div>`;
+
+const note = (icon, msg) => `
+  <div class="col-span-full flex flex-col items-center gap-3 py-20 text-center opacity-60">
+    <i class="ph ${icon} text-5xl"></i>
+    <p class="max-w-xs">${msg}</p>
+  </div>`;
+
+/* the list story: an accessor returns an array, fill joins it.
+   loading and empty states return arrays too, so the grid wrapper stays static */
+const cells = d => {
+  if (d.loading) return Array(8).fill(skeleton);
+  if (!d.results.length) return [note('ph-image-broken', `No works with images for &ldquo;${esc(d.q)}.&rdquo; Try another search.`)];
+  const vis = matches(d);
+  if (!vis.length) return [note('ph-funnel', `Nothing shown matches &ldquo;${esc(d.filter)}.&rdquo;`)];
+  return vis.map(a => card(a, d.selected?.id));
+};
+
+const countLine = d => d.loading
+  ? `<span class="loading loading-dots loading-sm align-middle"></span><span class="ml-2 text-sm opacity-60">Searching the collection…</span>`
+  : `<p class="text-sm"><span class="font-[Fraunces,serif] text-lg">${matches(d).length}</span><span class="opacity-50"> of ${d.results.length} works shown</span></p>`;
+
+const panel = d => {
+  if (!d.selected) return '';
+  const a = d.selected;
+  return `
+    <div class="close-backdrop fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"></div>
+    <aside class="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto bg-base-100 p-6 shadow-2xl
+                  lg:sticky lg:inset-auto lg:top-24 lg:z-0 lg:w-96 lg:shrink-0 lg:max-h-[calc(100vh-7rem)]
+                  lg:self-start lg:rounded-box lg:border lg:border-base-300 lg:shadow-sm">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs uppercase tracking-[0.25em] opacity-50">Selected work</span>
+        <button class="detail-close btn btn-sm btn-circle btn-ghost"><i class="ph ph-x text-lg"></i></button>
+      </div>
+      <figure class="my-4 flex justify-center overflow-hidden rounded-box bg-base-200">
+        <img alt="" src="${iiif(a.image_id, 843)}" class="max-h-[58vh] w-full object-contain">
+      </figure>
+      <h2 class="font-[Fraunces,serif] text-2xl leading-tight">${esc(a.title)}</h2>
+      <p class="mt-1 text-sm opacity-70">${esc(a.artist_display || 'Unknown artist')}</p>
+      <dl class="mt-5 space-y-3 text-sm">
+        ${a.date_display ? `<div><dt class="text-xs uppercase tracking-wide opacity-40">Date</dt><dd>${esc(a.date_display)}</dd></div>` : ''}
+        ${a.medium_display ? `<div><dt class="text-xs uppercase tracking-wide opacity-40">Medium</dt><dd>${esc(a.medium_display)}</dd></div>` : ''}
+      </dl>
+      <a href="https://www.artic.edu/artworks/${a.id}" target="_blank" rel="noopener"
+         class="btn btn-neutral btn-block mt-6">View at artic.edu <i class="ph ph-arrow-square-out"></i></a>
+    </aside>`;
+};
+
+const SUGGESTIONS = ['Monet', 'Hokusai', 'Van Gogh', 'O’Keeffe', 'samurai', 'Bauhaus'];
+
+/* ===========================================================================
+   the reactive view — grid + count + master/detail, one state object
+=========================================================================== */
+const view = fill`
+  <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:flex-row lg:items-start">
+    <section class="min-w-0 flex-1">
+      <div class="mb-6 flex h-7 items-center">${d => countLine(d)}</div>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">${d => cells(d)}</div>
+    </section>
+    ${d => panel(d)}
+  </div>
+`.data({ q: 'monet', results: [], filter: '', loading: true, selected: null })
+ .on('click', '[data-id]', function (e, m) { this.selected = this.results.find(a => a.id === +m.dataset.id); })
+ .on('keydown', '[data-id]', function (e, m) {
+   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.selected = this.results.find(a => a.id === +m.dataset.id); }
+ })
+ .on('click', '.detail-close', function () { this.selected = null; })
+ .on('click', '.close-backdrop', function () { this.selected = null; });
+
+/* a fetch writes straight into reactive state; every assignment re-renders */
+const search = async q => {
+  Object.assign(view.state, { loading: true, selected: null, filter: '', q });
+  document.getElementById('filter').value = '';
+  const url = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&fields=${FIELDS}&limit=24`;
+  const { data } = await (await fetch(url)).json();
+  Object.assign(view.state, { results: data.filter(a => a.image_id), loading: false });
+};
+
+/* ===========================================================================
+   the search bar — its own builder, so typing here never re-renders the grid
+   and the inputs keep their focus. Its handlers poke view.state.
+=========================================================================== */
+const bar = fill`
+  <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/85 backdrop-blur">
+    <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p class="text-[0.7rem] uppercase tracking-[0.35em] opacity-50">Collection Browser</p>
+          <h1 class="font-[Fraunces,serif] text-3xl font-semibold leading-none sm:text-4xl">The Art Institute of Chicago</h1>
+        </div>
+        <form class="search-form join w-full max-w-md">
+          <label class="input join-item flex flex-1 items-center gap-2">
+            <i class="ph ph-magnifying-glass opacity-50"></i>
+            <input id="q" name="q" type="search" value="monet" placeholder="Search the collection" class="grow" autocomplete="off">
+          </label>
+          <button type="submit" class="btn btn-neutral join-item">Search</button>
+        </form>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span class="text-xs opacity-50">Try</span>
+        ${SUGGESTIONS.map(q => `<button type="button" class="suggest btn btn-xs btn-outline" data-q="${q}">${q}</button>`)}
+        <label class="input input-sm ml-auto flex w-48 items-center gap-2">
+          <i class="ph ph-funnel opacity-50"></i>
+          <input id="filter" type="text" placeholder="Filter shown" class="grow" autocomplete="off">
+        </label>
+      </div>
+    </div>
+  </header>
+`.data({})
+ .on('submit', '.search-form', function (e, m) { e.preventDefault(); search(m.querySelector('#q').value.trim() || 'art'); })
+ .on('click', '.suggest', function (e, m) { document.getElementById('q').value = m.dataset.q; search(m.dataset.q); })
+ .on('input', '#filter', function (e) { view.state.filter = e.target.value; });
+
+document.body.prepend(bar.el, view.el);
+search('monet');
+</script>
+</body>
+</html>
