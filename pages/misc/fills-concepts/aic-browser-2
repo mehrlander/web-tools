@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en" data-theme="dim">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Art Institute Browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+</head>
+<body>
+<script>
+/* =========================================================================
+   fill: a template-per-tag DOM helper
+
+   - fill`<div>..</div>`            parses a literal into a Node (bare form)
+   - fill.div`<span>${x}</span>`    wraps the literal in a <div> (tagged form)
+
+   Interpolation inside a literal:
+     string / number   inlined as text (escaped, so it is text, not markup)
+     Node              spliced in: parsed as a comment marker, swapped back after
+     array             flattened, may freely mix strings and Nodes
+     function          called with no args, its result interpolated
+     null/undefined/false/true   skipped (so `cond && node` reads cleanly)
+
+   Sugar: a leading interpolated object on the root sets attributes on the
+   wrapper. class is additive, style/dataset take objects, on* take handlers.
+       fill.button`${{ class:'btn', onclick:go }}<i class="ph ph-play"></i>`
+   ========================================================================= */
+
+const esc = s => new Option(s).innerHTML;                 // & < > to text, zero-dep
+const isPlain = v => v != null && typeof v === 'object'
+  && !Array.isArray(v) && !(v instanceof Node);
+
+function expand(value, store) {
+  if (value == null || value === false || value === true) return '';
+  if (typeof value === 'function') return expand(value(), store);
+  if (Array.isArray(value))        return value.map(v => expand(v, store)).join('');
+  if (value instanceof Node)       return `<!--fill:${store.push(value) - 1}-->`;
+  return esc(value);
+}
+
+function setAttrs(el, attrs) {
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    else if (k === 'class' || k === 'className') el.className = `${el.className} ${v}`.trim();
+    else if (k === 'style'   && isPlain(v)) Object.assign(el.style, v);
+    else if (k === 'dataset' && isPlain(v)) Object.assign(el.dataset, v);
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (v === true) el.setAttribute(k, '');
+    else el.setAttribute(k, v);
+  }
+}
+
+function build(tag, strings, values) {
+  let attrs = null;
+  if (isPlain(values[0]) && strings[0].trim() === '') {        // leading object on root
+    [attrs] = values;
+    strings = strings.slice(1);
+    values  = values.slice(1);
+  }
+
+  const store = [];
+  let html = strings[0];
+  values.forEach((v, i) => { html += expand(v, store) + strings[i + 1]; });
+
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html.trim();
+
+  if (store.length) {                                          // swap markers for real Nodes
+    const walk = document.createTreeWalker(tpl.content, NodeFilter.SHOW_COMMENT);
+    const swaps = [];
+    for (let c; (c = walk.nextNode());) {
+      const m = /^fill:(\d+)$/.exec(c.nodeValue);
+      if (m) swaps.push([c, +m[1]]);
+    }
+    swaps.forEach(([c, i]) => c.replaceWith(store[i]));
+  }
+
+  let root;
+  if (tag) {
+    root = document.createElement(tag);
+    root.append(...tpl.content.childNodes);
+  } else {
+    root = tpl.content.childNodes.length === 1 ? tpl.content.firstChild : tpl.content;
+  }
+  if (attrs && root.nodeType === 1) setAttrs(root, attrs);
+  return root;
+}
+
+const fill = new Proxy(function () {}, {
+  apply: (_t, _s, args) => build(null, args[0], args.slice(1)),
+  get:   (_t, tag)      => (s, ...v) => build(tag, s, v),
+});
+
+/* =========================================================================
+   The Art Institute of Chicago collection browser, built only with fill.
+   ========================================================================= */
+
+const IIIF   = (id, w) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
+const PIECE  = id => `https://www.artic.edu/artworks/${id}`;
+const FIELDS = 'id,title,artist_display,date_display,medium_display,image_id';
+
+const state = { shown: [] };          // [{ art, node }]
+let els;
+
+/* ---- pieces ---- */
+
+function makeCard(art) {
+  return fill.div`${{
+      class: 'card bg-base-100 shadow transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer overflow-hidden',
+      onclick: () => openDetail(art),
+    }}
+    <figure class="aspect-[4/5] bg-base-200">
+      <img src="${IIIF(art.image_id, 400)}" alt="" loading="lazy" class="w-full h-full object-cover">
+    </figure>
+    <div class="card-body p-3 gap-1">
+      <h3 class="text-sm font-medium leading-snug line-clamp-2">${art.title}</h3>
+      <p class="text-xs opacity-60 line-clamp-1">${art.artist_display || 'Unknown'}</p>
+      <span class="badge badge-sm badge-ghost mt-1 self-start">${art.date_display || 'n.d.'}</span>
+    </div>
+  `;
+}
+
+function detailRow(icon, text) {
+  if (!text) return null;                                   // skipped by expand
+  return fill.div`${{ class: 'flex gap-3 items-start text-sm' }}
+    <i class="ph ph-${icon} text-lg opacity-50 mt-0.5 shrink-0"></i>
+    <span>${text}</span>
+  `;
+}
+
+function openDetail(art) {
+  const body = fill.div`${{ class: 'flex flex-col gap-4' }}
+    <img src="${IIIF(art.image_id, 600)}" alt="" class="w-full rounded-box bg-base-300 shadow-lg">
+    <h2 class="text-2xl font-semibold leading-tight">${art.title}</h2>
+    ${() => detailRow('paint-brush',   art.artist_display)}
+    ${() => detailRow('calendar-blank', art.date_display)}
+    ${() => detailRow('palette',        art.medium_display)}
+    <a href="${PIECE(art.id)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2 mt-2 self-start">
+      <i class="ph ph-arrow-square-out"></i> View at artic.edu
+    </a>
+  `;
+  els.detailBody.replaceChildren(body);
+  els.drawer.checked = true;
+}
+
+/* ---- search, render, filter ---- */
+
+async function search(q) {
+  els.toolbar.classList.add('hidden');
+  els.stage.replaceChildren(fill`
+    <div class="flex flex-col items-center justify-center gap-4 py-28 opacity-70">
+      <span class="loading loading-ring loading-lg"></span>
+      <p>Gathering the gallery&hellip;</p>
+    </div>
+  `);
+
+  const url = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&fields=${FIELDS}&limit=24`;
+  const { data } = await (await fetch(url)).json();
+  render(data.filter(a => a.image_id), q);
+}
+
+function render(arts, q) {
+  if (!arts.length) {
+    els.toolbar.classList.add('hidden');
+    els.stage.replaceChildren(fill`
+      <div class="text-center py-28 opacity-60">
+        <i class="ph ph-image-broken text-6xl"></i>
+        <p class="mt-4">No works with images for &ldquo;${q}&rdquo;. Try another search.</p>
+      </div>
+    `);
+    return;
+  }
+
+  state.shown = arts.map(art => ({ art, node: makeCard(art) }));
+
+  els.stage.replaceChildren(fill.div`${{
+      class: 'grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+    }}
+    ${state.shown.map(s => s.node)}
+  `);
+
+  els.filter.value = '';
+  els.toolbar.classList.remove('hidden');
+  applyFilter('');
+}
+
+function applyFilter(term) {
+  term = term.trim().toLowerCase();
+  let count = 0;
+  for (const { art, node } of state.shown) {
+    const hay = `${art.title} ${art.artist_display || ''}`.toLowerCase();
+    const hit = !term || hay.includes(term);
+    node.classList.toggle('hidden', !hit);
+    if (hit) count++;
+  }
+  els.count.textContent = `${count} of ${state.shown.length} showing`;
+}
+
+const runSearch = () => search(els.search.value.trim() || 'monet');
+
+/* ---- shell, assembled by interpolating fill nodes into parent literals ---- */
+
+const THEMES = ['dim', 'nord', 'lofi', 'dracula', 'autumn', 'night', 'corporate', 'synthwave'];
+
+function buildShell() {
+  const search = fill.input`${{
+    class: 'input input-bordered join-item w-full', type: 'search', value: 'monet',
+    placeholder: 'Search the collection\u2026',
+    onkeydown: e => e.key === 'Enter' && runSearch(),
+  }}`;
+
+  const searchBtn = fill.button`${{ class: 'btn btn-primary join-item', onclick: runSearch }}
+    <i class="ph ph-magnifying-glass text-lg"></i>
+  `;
+
+  const themes = fill.select`${{
+    class: 'select select-sm select-bordered',
+    onchange: e => document.documentElement.dataset.theme = e.target.value,
+  }}
+    ${THEMES.map(t => fill.option`${{ value: t }}${t}`)}
+  `;
+  themes.value = document.documentElement.dataset.theme;
+
+  const navbar = fill.div`${{ class: 'navbar bg-base-200 gap-3 px-4 sm:px-6 flex-wrap' }}
+    <div class="flex items-center gap-2 text-lg font-semibold whitespace-nowrap">
+      <i class="ph ph-bank text-2xl text-primary"></i> Art Institute
+    </div>
+    ${fill.div`${{ class: 'join flex-1 min-w-48 max-w-xl' }} ${search} ${searchBtn}`}
+    ${fill.div`${{ class: 'flex items-center gap-2 ml-auto' }}
+      <i class="ph ph-swatches text-lg opacity-50"></i> ${themes}
+    `}
+  `;
+
+  const filter = fill.input`${{
+    class: 'input input-bordered input-sm w-full max-w-xs', type: 'search',
+    placeholder: 'Filter shown\u2026',
+    oninput: e => applyFilter(e.target.value),
+  }}`;
+
+  const count = fill.span`${{ class: 'text-sm opacity-60 whitespace-nowrap ml-auto' }}`;
+
+  const toolbar = fill.div`${{
+      class: 'hidden items-center gap-3 bg-base-100/85 backdrop-blur px-4 sm:px-6 py-2.5 border-b border-base-300 flex',
+    }}
+    <i class="ph ph-funnel text-lg opacity-50"></i> ${filter} ${count}
+  `;
+
+  const stage = fill.main`${{ class: 'flex-1 px-4 sm:px-6 py-6' }}`;
+
+  const detailBody = fill.div`${{ class: 'mt-6' }}
+    <div class="text-center opacity-50 py-24">
+      <i class="ph ph-cursor-click text-5xl"></i>
+      <p class="mt-3 text-sm">Pick a work to see it up close.</p>
+    </div>
+  `;
+
+  const drawer = fill.input`${{ id: 'detail', type: 'checkbox', class: 'drawer-toggle' }}`;
+
+  const content = fill.div`${{ class: 'drawer-content flex flex-col min-h-screen' }}
+    ${fill.header`${{ class: 'sticky top-0 z-30' }} ${navbar} ${toolbar}`}
+    ${stage}
+  `;
+
+  const side = fill.div`${{ class: 'drawer-side z-40' }}
+    ${fill.label`${{ class: 'drawer-overlay', for: 'detail' }}`}
+    ${fill.aside`${{ class: 'w-full max-w-md min-h-full bg-base-200 p-6 overflow-y-auto relative' }}
+      ${fill.label`${{ class: 'btn btn-sm btn-circle btn-ghost absolute right-3 top-3', for: 'detail' }}\u2715`}
+      <h2 class="text-xs uppercase tracking-widest opacity-50">Detail</h2>
+      ${detailBody}
+    `}
+  `;
+
+  const shell = fill.div`${{ class: 'drawer drawer-end' }} ${drawer} ${content} ${side}`;
+
+  return { shell, stage, toolbar, filter, count, search, detailBody, drawer };
+}
+
+els = buildShell();
+document.body.append(els.shell);
+runSearch();
+</script>
+</body>
+</html>
