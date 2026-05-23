@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" data-theme="museum">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>fill · Art Institute Browser</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-base-200">
+<script>
+const esc = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]))
+
+const dom = html => new DOMParser().parseFromString(html, "text/html")
+
+const asNodes = value => {
+  if (value == null || value === false) return []
+  if (value?.el instanceof Node) return [value.el]
+  if (value instanceof Node) return [value]
+  if (Array.isArray(value)) return value.flatMap(asNodes)
+  return [new Text(String(value))]
+}
+
+const reactive = (value, ping, seen = new WeakMap()) => {
+  if (!value || typeof value !== "object") return value
+  if (seen.has(value)) return seen.get(value)
+  const p = new Proxy(value, {
+    get(t, k, r) {
+      const v = Reflect.get(t, k, r)
+      return typeof v === "object" && v ? reactive(v, ping, seen) : v
+    },
+    set(t, k, v, r) {
+      const old = t[k]
+      const ok = Reflect.set(t, k, v, r)
+      if (old !== v) ping()
+      return ok
+    },
+    deleteProperty(t, k) {
+      const ok = Reflect.deleteProperty(t, k)
+      ping()
+      return ok
+    }
+  })
+  seen.set(value, p)
+  return p
+}
+
+const syncRoot = (oldRoot, newRoot) => {
+  for (const a of [...oldRoot.attributes]) if (!newRoot.hasAttribute(a.name)) oldRoot.removeAttribute(a.name)
+  for (const a of [...newRoot.attributes]) oldRoot.setAttribute(a.name, a.value)
+  oldRoot.replaceChildren(...[...newRoot.childNodes])
+}
+
+class FillBuilder {
+  constructor(strings, values) {
+    this.strings = strings
+    this.values = values
+    this.listeners = []
+    this.queued = false
+    this._state = reactive({}, () => this.renderSoon())
+    this.el = this.make().root
+  }
+
+  get state() { return this._state }
+
+  data(obj) {
+    this._state = reactive(obj, () => this.renderSoon())
+    this.render()
+    return this
+  }
+
+  on(type, selector, fn) {
+    this.el.addEventListener(type, e => {
+      const hit = e.target.closest(selector)
+      if (hit && this.el.contains(hit)) fn.call(this._state, e, hit, this._state)
+    })
+    return this
+  }
+
+  renderSoon() {
+    if (this.queued) return
+    this.queued = true
+    queueMicrotask(() => {
+      this.queued = false
+      this.render()
+    })
+  }
+
+  html() {
+    return this.strings.reduce((s, part, i) => s + part + (i < this.values.length ? `<!--fill:${i}-->` : ""), "")
+  }
+
+  value(i) {
+    const v = this.values[i]
+    return typeof v === "function" ? v(this._state) : v
+  }
+
+  make() {
+    const doc = dom(this.html())
+    const root = doc.body.firstElementChild || doc.body.firstChild
+
+    const comments = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT)
+    const swap = []
+    while (comments.nextNode()) {
+      const c = comments.currentNode
+      const m = c.nodeValue.match(/^fill:(\d+)$/)
+      if (m) swap.push([c, this.value(+m[1])])
+    }
+
+    for (const [c, v] of swap) {
+      c.before(...asNodes(v))
+      c.remove()
+    }
+
+    const all = doc.body.querySelectorAll("*")
+    for (const el of all) {
+      for (const a of [...el.attributes]) {
+        const v = a.value.replace(/<!--fill:(\d+)-->/g, (_, i) => esc(this.value(+i)))
+        if (v !== a.value) el.setAttribute(a.name, v)
+      }
+    }
+
+    return { doc, root }
+  }
+
+  render() {
+    const next = this.make().root
+    syncRoot(this.el, next)
+    return this
+  }
+}
+
+const fill = (strings, ...values) => new FillBuilder(strings, values)
+
+fill.text = x => new Text(String(x ?? ""))
+fill.when = (test, yes, no = "") => d => test(d) ? (typeof yes === "function" ? yes(d) : yes) : (typeof no === "function" ? no(d) : no)
+fill.each = (list, map) => d => (typeof list === "function" ? list(d) : list).map((x, i) => map(x, i, d))
+fill.img = (image_id, size = 400) => `https://www.artic.edu/iiif/2/${image_id}/full/${size},/0/default.jpg`
+fill.debounce = (fn, ms = 250) => {
+  let t
+  return (...args) => (clearTimeout(t), t = setTimeout(() => fn(...args), ms))
+}
+
+const card = a => fill`
+  <article class="group card bg-base-100 shadow-sm hover:shadow-xl transition overflow-hidden cursor-pointer border border-base-300" data-id="${a.id}">
+    <figure class="aspect-[4/3] bg-base-300 overflow-hidden">
+      <img class="h-full w-full object-cover group-hover:scale-105 transition duration-500" src="${fill.img(a.image_id, 500)}" alt="${a.thumbnail?.alt_text || a.title}">
+    </figure>
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start gap-2">
+        <h3 class="card-title text-base leading-tight grow">${a.title}</h3>
+        <span class="badge badge-outline whitespace-nowrap">${a.date_display || "n.d."}</span>
+      </div>
+      <p class="text-sm opacity-70 line-clamp-2">${a.artist_display || "Artist unknown"}</p>
+    </div>
+  </article>
+`
+
+const detail = a => a ? fill`
+  <aside class="drawer-side z-20">
+    <label for="detail-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+    <section class="min-h-full w-full sm:w-[28rem] bg-base-100 shadow-2xl">
+      <div class="sticky top-0 z-10 navbar bg-base-100/90 backdrop-blur border-b border-base-300">
+        <div class="grow">
+          <div class="badge badge-primary badge-outline">Selected work</div>
+        </div>
+        <label for="detail-drawer" class="btn btn-ghost btn-circle">
+          <i class="ph ph-x text-xl"></i>
+        </label>
+      </div>
+      <div class="p-5 space-y-5">
+        <img class="w-full rounded-box shadow bg-base-300" src="${fill.img(a.image_id, 900)}" alt="${a.thumbnail?.alt_text || a.title}">
+        <div class="space-y-3">
+          <h2 class="text-2xl font-bold leading-tight">${a.title}</h2>
+          <p class="opacity-75">${a.artist_display || "Artist unknown"}</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="badge badge-neutral">${a.date_display || "date unknown"}</span>
+            <span class="badge badge-ghost">${a.medium_display || "medium unknown"}</span>
+          </div>
+          <a class="btn btn-primary w-full" href="https://www.artic.edu/artworks/${a.id}" target="_blank" rel="noreferrer">
+            Open on artic.edu <i class="ph ph-arrow-square-out"></i>
+          </a>
+        </div>
+      </div>
+    </section>
+  </aside>
+` : ""
+
+const app = fill`
+  <main class="drawer drawer-end">
+    <input id="detail-drawer" type="checkbox" class="drawer-toggle" ${d => d.selected ? "checked" : ""}>
+    <div class="drawer-content">
+      <section class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <header class="hero bg-base-100 rounded-box border border-base-300 shadow-sm">
+          <div class="hero-content w-full flex-col lg:flex-row lg:items-end lg:justify-between">
+            <div class="max-w-2xl">
+              <div class="badge badge-secondary badge-outline mb-3">Reactive fill demo</div>
+              <h1 class="text-4xl sm:text-5xl font-black tracking-tight">Art Institute browser</h1>
+              <p class="py-3 opacity-75">
+                Search public collection data, filter the shown results, and open a master-detail panel.
+                The page re-renders through one tiny tagged-template helper.
+              </p>
+            </div>
+            <div class="stats stats-vertical sm:stats-horizontal shadow bg-base-200">
+              <div class="stat">
+                <div class="stat-title">Loaded</div>
+                <div class="stat-value text-2xl">${d => d.items.length}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-title">Showing</div>
+                <div class="stat-value text-2xl">${d => d.visible.length}</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section class="card bg-base-100 border border-base-300 shadow-sm">
+          <div class="card-body gap-4">
+            <div class="grid md:grid-cols-[1fr_auto_1fr] gap-3 items-end">
+              <label class="form-control">
+                <div class="label"><span class="label-text font-medium">Search the collection</span></div>
+                <div class="join w-full">
+                  <input class="input input-bordered join-item w-full search" value="${d => d.query}" placeholder="monet, cats, textile, chicago">
+                  <button class="btn btn-primary join-item go">
+                    <i class="ph ph-magnifying-glass"></i>
+                    Search
+                  </button>
+                </div>
+              </label>
+
+              <div class="hidden md:flex justify-center pb-3 opacity-40">
+                <i class="ph ph-arrow-right text-2xl"></i>
+              </div>
+
+              <label class="form-control">
+                <div class="label">
+                  <span class="label-text font-medium">Filter shown</span>
+                  <span class="label-text-alt">${d => d.filter ? `matching “${d.filter}”` : "type after results load"}</span>
+                </div>
+                <input class="input input-bordered filter" value="${d => d.filter}" placeholder="artist, title, date, medium">
+              </label>
+            </div>
+
+            ${d => d.error ? fill`
+              <div class="alert alert-error">
+                <i class="ph ph-warning-circle text-xl"></i>
+                <span>${d.error}</span>
+              </div>
+            ` : ""}
+
+            ${d => d.loading ? fill`
+              <div class="flex items-center gap-3 rounded-box bg-base-200 p-4">
+                <span class="loading loading-spinner loading-md"></span>
+                <span>Loading artworks for “${d.query}”...</span>
+              </div>
+            ` : ""}
+          </div>
+        </section>
+
+        <section class="min-h-[20rem]">
+          ${d => !d.loading && d.items.length && !d.visible.length ? fill`
+            <div class="hero bg-base-100 rounded-box border border-base-300">
+              <div class="hero-content text-center py-16">
+                <div>
+                  <i class="ph ph-funnel text-5xl opacity-30"></i>
+                  <h2 class="text-2xl font-bold mt-3">No cards match that filter</h2>
+                  <p class="opacity-70">The collection is still loaded. The local filter is just being fussy.</p>
+                </div>
+              </div>
+            </div>
+          ` : ""}
+
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            ${fill.each(d => d.visible, a => card(a))}
+          </div>
+        </section>
+      </section>
+    </div>
+
+    ${d => detail(d.selected)}
+  </main>
+`.data({
+  query: "monet",
+  filter: "",
+  items: [],
+  loading: false,
+  error: "",
+  selected: null,
+  get visible() {
+    const q = this.filter.trim().toLowerCase()
+    if (!q) return this.items
+    return this.items.filter(a =>
+      [a.title, a.artist_display, a.date_display, a.medium_display]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    )
+  }
+}).on("input", ".search", function(e) {
+  this.query = e.target.value
+}).on("click", ".go", function() {
+  search(this)
+}).on("keydown", ".search", function(e) {
+  if (e.key === "Enter") search(this)
+}).on("input", ".filter", function(e) {
+  this.filter = e.target.value
+}).on("click", "[data-id]", function(e, card) {
+  this.selected = this.items.find(a => String(a.id) === card.dataset.id)
+}).on("change", "#detail-drawer", function(e) {
+  if (!e.target.checked) this.selected = null
+})
+
+document.body.append(app.el)
+
+async function search(state) {
+  const fields = "id,title,artist_display,date_display,medium_display,image_id,thumbnail"
+  state.loading = true
+  state.error = ""
+  state.selected = null
+  try {
+    const url = `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(state.query || "monet")}&fields=${fields}&limit=24`
+    const json = await fetch(url).then(r => r.json())
+    state.items = json.data.filter(a => a.image_id)
+    state.filter = ""
+  } catch {
+    state.error = "The collection API did not answer. The paintings may be having a union meeting."
+  } finally {
+    state.loading = false
+  }
+}
+
+search(app.state)
+</script>
+</body>
+</html>
