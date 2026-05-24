@@ -16,34 +16,31 @@
 
   const f = window.fills;
 
-  ea('#snippet-tip', el => el.textContent =
-    `tip(['top','xs'],\n  '<button class="btn btn-xs">Hover me</button>',\n  '<strong>Hover content</strong><div>Plain HTML body</div>')`);
-  ea('#output-tip', el => el.innerHTML = f.tip(['top','xs'],
-    '<button class="btn btn-xs">Hover me</button>',
-    '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>'));
+  fill(document, {
+    '#snippet-tip':  `tip(['top','xs'],\n  '<button class="btn btn-xs">Hover me</button>',\n  '<strong>Hover content</strong><div>Plain HTML body</div>')`,
+    '#output-tip':   { innerHTML: f.tip(['top','xs'],
+      '<button class="btn btn-xs">Hover me</button>',
+      '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>') },
 
-  ea('#snippet-lines', el => el.textContent =
-    `lines(['gap-1','xs','muted'],\n  ['First line', 'Second line', 'Third line'])`);
-  ea('#output-lines', el => el.innerHTML = f.lines(['gap-1','xs','muted'],
-    ['First line', 'Second line', 'Third line']));
+    '#snippet-lines': `lines(['gap-1','xs','muted'],\n  ['First line', 'Second line', 'Third line'])`,
+    '#output-lines':  { innerHTML: f.lines(['gap-1','xs','muted'],
+      ['First line', 'Second line', 'Third line']) },
 
-  ea('#snippet-btn', el => el.textContent =
-    `btn(['xs','primary'], 'Action')`);
-  ea('#output-btn', el => el.innerHTML = f.btn(['xs', 'primary'], 'Action'));
+    '#snippet-btn':  `btn(['xs','primary'], 'Action')`,
+    '#output-btn':   { innerHTML: f.btn(['xs', 'primary'], 'Action') },
 
-  ea('#snippet-toolbar', el => el.textContent =
-    `toolbar([],\n  '<b>Title</b>',\n  btn(['xs','primary'], 'Action'))`);
-  ea('#output-toolbar', el => el.innerHTML = f.toolbar([],
-    '<b>Title</b>',
-    f.btn(['xs', 'primary'], 'Action')));
+    '#snippet-toolbar': `toolbar([],\n  '<b>Title</b>',\n  btn(['xs','primary'], 'Action'))`,
+    '#output-toolbar':  { innerHTML: f.toolbar([],
+      '<b>Title</b>',
+      f.btn(['xs', 'primary'], 'Action')) },
 
-  ea('#snippet-modal', el => el.textContent =
-    `modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`);
-  ea('#modal-slot', el => el.innerHTML = f.modal(`
-    <div class="p-6">
-      <h3 class="font-bold text-lg">Modal contents</h3>
-      <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
-    </div>`));
+    '#snippet-modal': `modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`,
+    '#modal-slot':    { innerHTML: f.modal(`
+      <div class="p-6">
+        <h3 class="font-bold text-lg">Modal contents</h3>
+        <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
+      </div>`) },
+  });
   route(document, 'click', {
     '#output-btn .btn, #output-toolbar .btn': (e, el) => {
       const orig = el.textContent;

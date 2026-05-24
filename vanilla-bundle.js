@@ -4,6 +4,30 @@ window.ea = (sel, cb = el => el) =>
 
 window.el = new Proxy({}, { get: (_, k) => node => node[k] })
 
+// ── id / data-ui lookup ──
+const dash  = s => s.replace(/[A-Z]/g, c => '-' + c.toLowerCase())
+const camel = s => s.replace(/-+(.)/g, (_, c) => c.toUpperCase())
+
+// ids.fooBar → getElementById('foo-bar'). Keyed, so `const { a, b } = ids` is
+// order-independent. The then/symbol guard keeps the proxy await-safe.
+window.ids = new Proxy({}, {
+  get: (_, k) => typeof k === 'string' && k !== 'then'
+    ? document.getElementById(dash(k))
+    : undefined
+})
+
+// ui(root).fooBar → root.querySelector('[data-ui="foo-bar"]'). Scoped and not
+// id-unique, so the same name can repeat across component instances.
+window.ui = (root = document) => new Proxy({}, {
+  get: (_, k) => typeof k === 'string' && k !== 'then'
+    ? root.querySelector(`[data-ui="${CSS.escape(dash(k))}"]`)
+    : undefined
+})
+
+// grab(root) → eager { fooBar: el } snapshot of every [id] under root.
+window.grab = (root = document) => Object.fromEntries(
+  [...root.querySelectorAll('[id]')].map(el => [camel(el.id), el]))
+
 // ── structural write ──
 // function → run, array → run each on the matched el, object → assign, else → text
 window.fill = (root, spec) =>

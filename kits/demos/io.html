@@ -16,11 +16,7 @@
 
   const io = window.io;
 
-  const [pickResult] = ea('#pick-result');
-  const [saveText]   = ea('#save-text');
-  const [zipStatus]  = ea('#zip-status');
-  const [clipText]   = ea('#clip-text');
-  const [clipResult] = ea('#clip-result');
+  const { pickResult, saveText, zipStatus, clipText, clipResult } = ids;
 
   route(document, 'click', {
     '#btn-pick': async () => {
