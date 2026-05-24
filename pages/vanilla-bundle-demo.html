@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vanilla-bundle — demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import
+  // URL, exposes window.gh, and chains gh-auth.js; we just gh.load() from here.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+  await gh.load('vanilla-bundle.js');
+
+  // ── select + read: ea + el ──
+  const names = ea('#ea-list li', el.textContent);
+  fill(document, { '#ea-out': JSON.stringify(names) });
+
+  // ── ids ──
+  const { idsOut } = ids;
+  idsOut.textContent = 'resolved #ids-out by destructuring `ids` — keyed by name, never by document order';
+
+  // ── ui: two independent cards, same data-ui names ──
+  ea('.ui-card', card => {
+    const { count, inc } = ui(card);
+    let n = 0;
+    on(inc, 'click', () => count.textContent = ++n);
+  });
+
+  // ── grab: eager snapshot of one subtree ──
+  const bag = grab(document.querySelector('#grab-scope'));
+  fill(document, { '#grab-out': 'keys harvested: ' + Object.keys(bag).join(', ') });
+
+  // ── fill: the four value shapes ──
+  fill(document.querySelector('#fill-target'), {
+    '.t-string': 'string value → set as textContent',
+    '.t-object': { textContent: 'object → Object.assign(el, v)', className: 'text-success' },
+    '.t-fn':     node => node.textContent = 'function → run on <' + node.tagName.toLowerCase() + '>',
+    '.t-array':  [
+      cls('font-bold', true),
+      attr('title', 'this title was set via attr()'),
+      node => node.textContent = 'array → run each callback (made bold + given a title attr — hover me)'
+    ]
+  });
+
+  // ── callback helpers: cls + data + listen, applied together ──
+  fill(document, {
+    '#cb-btn': [
+      cls('btn-primary', true),
+      data({ role: 'demo', clicks: '0' }),
+      listen('click', e => {
+        const n = +e.currentTarget.dataset.clicks + 1;
+        e.currentTarget.dataset.clicks = n;
+        fill(document, { '#cb-out': `clicked ${n}× · data-role="${e.currentTarget.dataset.role}"` });
+      })
+    ]
+  });
+
+  // ── tpl: rows → markup → place ──
+  const rows = [
+    { icon: 'rocket-launch', label: 'launch' },
+    { icon: 'database',      label: 'store' },
+    { icon: 'broadcast',     label: 'publish' }
+  ];
+  tpl.html`
+    <li class="flex items-center gap-2 py-0.5">
+      <i class="ph ph-${r => r.icon} opacity-70"></i> ${r => r.label}
+    </li>`(rows)(ids.tplTarget);
+
+  // ── on: single listener, returns the element ──
+  let clicks = 0;
+  on(ids.onBtn, 'click', () => fill(document, { '#on-out': `clicked ${++clicks}×` }));
+
+  // ── route: one delegated listener fanning out by selector ──
+  route(ids.routeTarget, 'click', {
+    '[data-act="add"]':   () => fill(document, { '#route-out': 'matched [data-act="add"]' }),
+    '[data-act="clear"]': () => fill(document, { '#route-out': 'matched [data-act="clear"]' }),
+    '.route-item':        (e, match) => fill(document, { '#route-out': `matched .route-item → "${match.textContent.trim()}"` })
+  });
+</script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-10">
+
+  <header>
+    <div class="flex items-baseline justify-between mb-1">
+      <h1 class="text-2xl font-bold tracking-tight">vanilla-bundle</h1>
+      <a href="index.html" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> web-tools
+      </a>
+    </div>
+    <p class="opacity-60 text-xs">
+      The globals that
+      <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>
+      installs — terse, framework-free DOM shorthand. No behavior of its own;
+      each helper is a more direct way to write something you'd otherwise spell
+      out with <code>querySelector</code>, loops, and <code>addEventListener</code>.
+      Each block below shows the helper, a representative call, and the result it
+      produced live on this page.
+    </p>
+  </header>
+
+  <!-- ==================================================================
+       Select + read
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Select + read</h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">ea(sel, cb?) <span class="opacity-50 font-normal text-xs">— querySelectorAll → map</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        Selects all matches and maps each through <code>cb</code> (default: the
+        element itself), returning a real array. Paired with <code>el</code> it
+        reads a property off every match.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const names = ea('#ea-list li', el.textContent)
+// → ["alpha", "beta", "gamma"]</code></pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-2">
+        <ul id="ea-list" class="flex gap-3">
+          <li>alpha</li><li>beta</li><li>gamma</li>
+        </ul>
+        <pre id="ea-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(reading…)</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">el <span class="opacity-50 font-normal text-xs">— property-accessor proxy</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        <code>el.prop</code> is shorthand for the callback <code>node =&gt; node.prop</code>.
+        It exists to feed <code>ea</code> (and other map-callbacks) without writing
+        an arrow — see the <code>el.textContent</code> above.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Lookup
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Lookup <span class="opacity-50 font-normal text-sm">— populate variables from the DOM</span></h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">ids <span class="opacity-50 font-normal text-xs">— by id, document-global, live</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        <code>ids.fooBar</code> resolves <code>getElementById('foo-bar')</code> on
+        access. Because a Proxy turns property reads into lookups, destructuring is
+        keyed <em>by name</em>, not by position — so it can't silently bind the
+        wrong element if the markup is reordered.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const { idsOut } = ids   // ids.idsOut → getElementById('ids-out')
+idsOut.textContent = '…'</code></pre>
+      <div class="bg-base-200/40 rounded p-4">
+        <pre id="ids-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(resolving…)</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">ui(root?) <span class="opacity-50 font-normal text-xs">— by data-ui, scoped, live</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        The scoped sibling of <code>ids</code>. <code>ui(root).fooBar</code> finds
+        <code>[data-ui="foo-bar"]</code> within <code>root</code>. Since
+        <code>data-ui</code> carries no uniqueness rule, the same name can repeat
+        across instances — the thing <code>ids</code> can't do. Both cards below
+        use the identical <code>data-ui="count"</code>, each scoped to its own card.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>ea('.ui-card', card =&gt; {
+  const { count, inc } = ui(card)        // scoped to THIS card
+  let n = 0
+  on(inc, 'click', () =&gt; count.textContent = ++n)
+})</code></pre>
+      <div class="bg-base-200/40 rounded p-4 grid grid-cols-2 gap-3">
+        <div class="ui-card bg-base-100 rounded p-3 flex items-center justify-between gap-2">
+          <span data-ui="label" class="opacity-60">Card A</span>
+          <b data-ui="count" class="tabular-nums text-lg">0</b>
+          <button data-ui="inc" class="btn btn-xs">+1</button>
+        </div>
+        <div class="ui-card bg-base-100 rounded p-3 flex items-center justify-between gap-2">
+          <span data-ui="label" class="opacity-60">Card B</span>
+          <b data-ui="count" class="tabular-nums text-lg">0</b>
+          <button data-ui="inc" class="btn btn-xs">+1</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">grab(root?) <span class="opacity-50 font-normal text-xs">— by id, scoped, eager snapshot</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        One scan of a subtree into a plain object, keyed by camelCased id. Unlike
+        <code>ids</code> it's a snapshot taken once (won't see later-added ids), but
+        it hands you the whole bag in a single call. Scoped to
+        <code>#grab-scope</code> below, it sees only that subtree's ids.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const bag = grab(document.querySelector('#grab-scope'))
+// → { firstName: &lt;span&gt;, lastName: &lt;span&gt; }</code></pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-2">
+        <div id="grab-scope" class="flex gap-4 opacity-60">
+          <span id="first-name">Ada</span>
+          <span id="last-name">Lovelace</span>
+        </div>
+        <pre id="grab-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(scanning…)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Structural write
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Structural write</h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">fill(root, spec) <span class="opacity-50 font-normal text-xs">— selector → value map</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        A declarative batch write: for each <code>selector: value</code> pair, every
+        match gets the value applied. The value's <em>type</em> picks the action —
+        string sets text, object is <code>Object.assign</code>ed, a function runs on
+        the element, an array runs each callback in turn.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>fill(target, {
+  '.t-string': 'string → textContent',
+  '.t-object': { textContent: '…', className: 'text-success' },
+  '.t-fn':     node =&gt; node.textContent = node.tagName,
+  '.t-array':  [ cls('font-bold', true), attr('title', '…') ]
+})</code></pre>
+      <div id="fill-target" class="bg-base-200/40 rounded p-4 space-y-1">
+        <div class="t-string">(string branch)</div>
+        <div class="t-object">(object branch)</div>
+        <div class="t-fn">(function branch)</div>
+        <div class="t-array">(array branch)</div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">attr · cls · listen · data <span class="opacity-50 font-normal text-xs">— callback helpers</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        The writes that aren't a plain property set. Each returns an
+        <code>el =&gt; el</code> callback, so they slot straight into a
+        <code>fill</code> array (or any <code>ea</code> map). Here one button is
+        styled (<code>cls</code>), seeded with dataset (<code>data</code>), and wired
+        (<code>listen</code>) in a single spec.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>fill(document, {
+  '#cb-btn': [
+    cls('btn-primary', true),
+    data({ role: 'demo', clicks: '0' }),
+    listen('click', e =&gt; { /* read e.currentTarget.dataset … */ })
+  ]
+})</code></pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-2">
+        <button id="cb-btn" class="btn btn-xs">callback-wired button</button>
+        <pre id="cb-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Templates
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Templates</h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">tpl.html / append / prepend / replace <span class="opacity-50 font-normal text-xs">— rows → markup → place</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        A tagged template that builds one string from an array of rows, then a
+        placement step. Interpolations that are functions receive each row; the
+        four verbs differ only in how the result lands (<code>innerHTML</code>,
+        <code>append</code>, <code>prepend</code>, <code>replaceChildren</code>).
+        Call shape is <code>tpl.html`…`(rows)(targetEl)</code>.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const rows = [{ icon: 'rocket-launch', label: 'launch' }, …]
+
+tpl.html`
+  &lt;li&gt;&lt;i class="ph ph-${r =&gt; r.icon}"&gt;&lt;/i&gt; ${r =&gt; r.label}&lt;/li&gt;
+`(rows)(ids.tplTarget)</code></pre>
+      <div class="bg-base-200/40 rounded p-4">
+        <ul id="tpl-target" class="text-sm"><li class="opacity-50">(building…)</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       Events
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Events</h2>
+
+    <div>
+      <h3 class="font-semibold mb-1">on(root, type, fn) <span class="opacity-50 font-normal text-xs">— addEventListener, returns root</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        A thin <code>addEventListener</code> that returns the element, so it chains.
+        Use it when you have a single, known target.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>on(ids.onBtn, 'click', () =&gt; { /* … */ })</code></pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-2">
+        <button id="on-btn" class="btn btn-xs btn-primary">click me</button>
+        <pre id="on-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">route(root, type, routes) <span class="opacity-50 font-normal text-xs">— delegated dispatch</span></h3>
+      <p class="opacity-60 text-xs mb-2">
+        One listener on a container fans out by selector: on each event it walks
+        <code>e.target.closest(sel)</code> through the routes in order and calls the
+        first match's handler with <code>(event, matchedEl)</code>. Add or remove
+        children freely — no re-binding. All three controls below share one listener.
+      </p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>route(ids.routeTarget, 'click', {
+  '[data-act="add"]':   () =&gt; …,
+  '[data-act="clear"]': () =&gt; …,
+  '.route-item':        (e, match) =&gt; … match.textContent …
+})</code></pre>
+      <div class="bg-base-200/40 rounded p-4 space-y-2">
+        <div id="route-target" class="space-y-2">
+          <div class="flex gap-2">
+            <button data-act="add" class="btn btn-xs">data-act="add"</button>
+            <button data-act="clear" class="btn btn-xs btn-ghost">data-act="clear"</button>
+          </div>
+          <div class="flex gap-2">
+            <span class="route-item badge badge-outline cursor-pointer">item one</span>
+            <span class="route-item badge badge-outline cursor-pointer">item two</span>
+            <span class="route-item badge badge-outline cursor-pointer">item three</span>
+          </div>
+        </div>
+        <pre id="route-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click anything above)</pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
+    <p>
+      Every global shown here lives in
+      <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>.
+      The Alpine-flavored counterpart is
+      <a href="alpine-bundle-demo.html" class="link link-hover">alpine-bundle</a>.
+    </p>
+  </footer>
+
+</div>
+
+</body>
+</html>
