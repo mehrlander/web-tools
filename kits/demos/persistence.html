@@ -16,11 +16,7 @@
 
   const persistence = window.persistence;
 
-  const [parseInput] = ea('#parse-input');
-  const [parseOut]   = ea('#parse-out');
-  const [rtOut]      = ea('#rt-out');
-  const [listOut]    = ea('#list-out');
-  const [errOut]     = ea('#err-out');
+  const { parseInput, parseOut, rtOut, listOut, errOut } = ids;
 
   const peek = v => Object.entries(v).map(([k, val]) => {
     const t = val?.constructor?.name || typeof val;

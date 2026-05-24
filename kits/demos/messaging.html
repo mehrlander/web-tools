@@ -18,10 +18,7 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // Publisher
-  const [pubPath]     = ea('#pub-path');
-  const [pubOccasion] = ea('#pub-occasion');
-  const [pubPayload]  = ea('#pub-payload');
-  const [pubSubs]     = ea('#pub-subs');
+  const { pubPath, pubOccasion, pubPayload, pubSubs } = ids;
 
   setInterval(() => {
     pubSubs.textContent = `${messaging.subscriberCount(pubPath.value)} subscriber(s)`;
@@ -29,9 +26,8 @@
 
   // Subscriber A — fixed listening path
   const subPath   = 'demo.bus';
-  const [subToggle] = ea('#sub-toggle');
-  const [subLog]    = ea('#sub-log');
-  ea('#sub-path', el => el.textContent = subPath);
+  const { subToggle, subLog } = ids;
+  fill(document, { '#sub-path': subPath });
 
   let subActive = false;
   let subOff = null;
@@ -65,7 +61,7 @@
   renderLog();
 
   // Inspector
-  const [inspectorDump] = ea('#inspector-dump');
+  const { inspectorDump } = ids;
   const refresh = () => {
     const paths = messaging.activePaths();
     inspectorDump.textContent = paths.length
