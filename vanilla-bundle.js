@@ -45,6 +45,11 @@ window.listen = (ev, f) => el => (el.addEventListener(ev, f), el)
 window.data   = obj     => el => (Object.assign(el.dataset, obj), el)
 
 // ── tpl: build rows into markup, then place ──
+// Bare tpl`…`(rows)(el) parses the markup and replaceChildren's it — the
+// superset placement, preserving context-sensitive nodes (<tr>, <option>) that
+// bare innerHTML would drop. .append / .prepend are the other two placements.
+// Scope is element containers; for a raw-text target (textarea/style/title) set
+// text via fill or .value/.textContent. Interpolations are raw — caller escapes.
 const node = h => {
   const t = document.createElement('template')
   t.innerHTML = h
@@ -54,12 +59,10 @@ const build = (strings, ...fns) => rows =>
   rows.map(row => strings.reduce((s, seg, i) =>
     s + seg + (typeof fns[i] === 'function' ? fns[i](row) : fns[i] ?? ''), '')).join('')
 
-window.tpl = {
-  html:    (...a) => rows => el => el.innerHTML = build(...a)(rows),
-  append:  (...a) => rows => el => el.append(node(build(...a)(rows))),
-  prepend: (...a) => rows => el => el.prepend(node(build(...a)(rows))),
-  replace: (...a) => rows => el => el.replaceChildren(node(build(...a)(rows)))
-}
+const verb = method => (...a) => rows => el => el[method](node(build(...a)(rows)))
+window.tpl = verb('replaceChildren')
+window.tpl.append  = verb('append')
+window.tpl.prepend = verb('prepend')
 
 // ── events ──
 window.on = (root, type, fn) =>
