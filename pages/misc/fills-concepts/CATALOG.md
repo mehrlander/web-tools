@@ -14,128 +14,51 @@ It distills rather than ranks.
 
 ## Provenance — the three prompts
 
-The three families are not an emergent taxonomy; they are the experiment's design. Each
-convention was specified from scratch in its own prompt and handed the *same* build, so the only
-variable was the convention itself. **Family N corresponds exactly to Prompt N** — the API
-signatures in each prompt's examples are the API each page implements, which is why the grouping
-is unambiguous rather than a judgment call.
+The three families are the experiment's design, not an emergent taxonomy. Each convention was
+specified from scratch in its own prompt, handed an identical API block, build, and stack, and
+pasted into its own fresh session — so the only real variable is the convention plus its closing
+rule. **Family N corresponds exactly to Prompt N**; the API signatures in each prompt's examples
+are the API each page implements, which makes the grouping unambiguous rather than a judgment
+call. The full prompts live beside the pages they produced:
 
-Two things to keep in view while reading:
+- Prompt 1 · Chain Constructor — [`1-chain-constructor/PROMPT.md`](1-chain-constructor/PROMPT.md)
+  → `aic.html`, `aic-browser.html`, `aic-kimi-1.html`
+- Prompt 2 · Tagged Factory — [`2-tagged-factory/PROMPT.md`](2-tagged-factory/PROMPT.md)
+  → `aic-browse.html`, `aic-browser-2`, `aic-1.html`
+- Prompt 3 · Reactive Surface — [`3-reactive-surface/PROMPT.md`](3-reactive-surface/PROMPT.md)
+  → `aic-2.html`, `aic-kimi.html`, `collection-browser.html`, `collection-browser-2`
 
-- **The build in these prompts differs from the collected pages.** The prompts below specify a
-  hardcoded *People Directory* (filter + per-card detail toggle + live count). The pages in this
-  folder are *Art Institute of Chicago* browsers (live API, search, master/detail). The
-  conventions — and their node-handling clauses — line up exactly, so these prompts are the
-  convention source; the AIC pages are the same three conventions carried onto a different build.
+What the shared scaffolding fixes, and what it leaves open:
+
+- **The build, API, and stack are identical across all three.** Same AIC search → grid →
+  master/detail → "filter shown" + live count → loading state; same CDN stack; same "theme via
+  `data-theme`." So most of "Common ground" below is *prescribed*, not convergent — it is the
+  controlled constant against which the convention varies.
 - **The filter + live count are deliberate friction.** The eager conventions (1, 2) must
-  hand-roll them; the reactive one (3) gets them for free — "that friction is the data." And
-  Prompts 1 and 2 *prescribe* the comment-marker node swap, while Prompt 3 leaves node handling to
-  the author. That one difference is why eight pages agree on the splice and the reactive four
-  diverge (idea #2).
+  hand-roll them; the reactive one (3) gets them for free. That asymmetry is intentional — it is
+  where the conventions are meant to show their seams.
+- **"Extend the convention with whatever helpers or sugar make it sing… Don't hold back."** Every
+  prompt invited each thread to add its own helpers and push the flavor. So the spread in helper
+  surface (idea #10) and in ambition — from a couple of `.map` helpers to a full dependency-tracked
+  reactivity engine — is licensed by the prompt, not smuggled in.
+- **Node handling is prescribed for 1 and 2, open for 3.** Prompts 1 and 2 both say "parse with
+  comment-marker placeholders, then swap the real Nodes back"; Prompt 3 asks only for "a sensible
+  story for rendering a list… your choice." That single difference is why eight pages agree on the
+  splice and the reactive four diverge (idea #2).
+- **The detail panel is the designed-in tell.** It is the one component all three conventions must
+  build, and each builds it in its own idiom — the spot the author flagged as the sharpest design
+  signal. See idea #9.
 
-Each prompt closed by asking the thread to self-report where the convention helped and where it
-fought back.
-
-### Prompt 1 — Chain Constructor → Family 1 (`aic`, `aic-browser`, `aic-kimi-1`)
-
-````text
-I want you to implement a tiny DOM-creation helper called `fill`, then build a page that showcases it.
-
-The convention:
-- `fill` is a Proxy-based callable.
-- Property access builds an element factory. The FIRST property segment is the tag name; any FURTHER segments are CSS classes. So `fill.div` makes a div, and `fill.div.card.lg` makes a div with classes "card lg".
-- Calling a factory returns a real DOM Node. Its arguments are interpreted by type:
-  - a plain object in first position is attributes/props (keys starting with "on" become event listeners; "class" merges with the chain classes; everything else is set as attribute or property),
-  - strings become text nodes,
-  - Nodes are appended,
-  - arrays are flattened and appended (so `.map` works).
-- `fill` called as a tagged template, fill`<section>...</section>`, parses an HTML string and returns a Node. Any Node interpolated into the literal must be preserved (parse with comment-marker placeholders, then swap the real Nodes back in). Detect the tagged-template call by checking for `raw` on the first argument.
-- Reserve `fill.frag(...children)` and `fill.text(str)` as helpers.
-
-Examples:
-  const card = fill.div.card(fill.h3.title('Ada'), fill.button.btn.primary({onClick: f}, 'Wave'))
-  const row = fill.tr(cells.map(c => fill.td(c)))
-  const hero = fill`<header class="hero"><h1>Hi</h1>${card}</header>`
-
-The build:
-Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean). Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people. Style with Tailwind and daisyUI.
-
-Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
-
-Rule: use `fill` for every DOM node you create. No innerHTML assignment, no document.createElement, anywhere. Lean into the convention even where it feels awkward.
-
-Finish with three sentences on where the convention felt great and where it fought you.
-````
-
-### Prompt 2 — Tagged Factory → Family 2 (`aic-browse`, `aic-browser-2`, `aic-1`)
-
-````text
-I want you to implement a tiny DOM helper called `fill`, then build a page that showcases it.
-
-The convention is template-per-tag:
-- `fill` is a Proxy-based callable.
-- `fill` as a tagged template, fill`<div>...</div>`, parses an HTML string and returns a Node. Interpolation rules: strings and numbers inline as text; Nodes are spliced in (parse with comment-marker placeholders, then swap real Nodes back); arrays are flattened and may mix strings and Nodes; functions are called with no arguments and their result interpolated.
-- Property access yields a tagged-template factory whose ROOT element is that tag. So fill.div`<span>${x}</span>` returns a <div> whose content is the parsed literal. The property names the wrapper, the literal fills it.
-- Keep attributes inside the literal (write them in the markup). The root element's attributes can be written on the property tag by interpolating a leading object if you want, but the simple path is markup-only.
-
-Examples:
-  const badge = fill.span`<i class="ph ph-star"></i> ${'Pro'}`
-  const card = fill.article`
-    <header><h3>${name}</h3>${badge}</header>
-    <p>${bio}</p>
-  `
-  const list = fill.ul`${people.map(p => fill.li`${p.name}`)}`
-
-The build:
-Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean). Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people. Style with Tailwind and daisyUI.
-
-Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
-
-Rule: use `fill` for every DOM node you create. No innerHTML assignment, no document.createElement, anywhere. Build nested structures by interpolating `fill` results into parent literals.
-
-Finish with three sentences on where the convention felt great and where it fought you.
-````
-
-### Prompt 3 — Reactive Surface → Family 3 (`aic-2`, `aic-kimi`, `collection-browser`, `collection-browser-2`)
-
-````text
-I want you to implement a small reactive DOM helper called `fill`, then build a page that showcases it.
-
-The convention returns a live, re-rendering handle:
-- `fill` is called as a tagged template, fill`...`, and returns a builder.
-- Inside the literal, interpolated functions are accessors called with the data object, ${d => d.name}. They re-run on every render. Non-function values inline normally.
-- The builder chains: `.data(obj)` sets the backing state and returns the builder; `.on(type, selector, fn)` adds a delegated listener and returns the builder; `.el` is the live DOM node to mount.
-- Backing state is a Proxy. Mutating it, including from inside an `.on` handler where `this` is the state, triggers a re-render of `.el` in place.
-- Provide a sensible story for rendering lists from an array in state (your choice of approach; this is part of what I am testing).
-
-Example:
-  const counter = fill`
-    <div class="card">
-      <span>${d => d.n}</span>
-      <button class="inc">+1</button>
-    </div>
-  `.data({ n: 0 }).on('click', '.inc', function(){ this.n++ })
-  document.body.append(counter.el)
-
-The build:
-Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean) into state. Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people, all driven through reactive state. Style with Tailwind and daisyUI.
-
-Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
-
-Rule: use `fill` and its reactive state for every dynamic part of the page. No manual innerHTML assignment for content, no document.createElement, anywhere.
-
-Finish with three sentences on where the convention felt great and where it fought you.
-````
+Each prompt closed by asking the thread to self-report in three sentences: where the convention
+felt great, where it fought back, and one thing it would change. Those reports live in the
+originating chat threads, not in the page files.
 
 ---
 
 ## Common ground (all ten)
+
+Most of this is *prescribed* by the shared prompt scaffolding (see Provenance), so read it as the
+controlled constant rather than as something the conventions independently arrived at.
 
 - **CDN-only, no build step.** Tailwind browser build + daisyUI themes + Phosphor icons,
   loaded from jsDelivr. Each page is a single self-contained `.html`.
@@ -354,7 +277,26 @@ From coarsest to finest, a clean gradient of the same idea:
 4. **Per-key dependency tracking; only handles that read a changed key re-run** —
    `collection-browser-2`.
 
-### 9. Master/detail presentation
+### 9. The detail panel — the cross-convention tell
+
+The one component every page must build, and the spot the conventions read most differently — so
+it's the sharpest place to compare them. Each family solves it in its own idiom:
+
+- **Family 1 builds it node by node.** The panel is nested factory calls —
+  `F.div(F.figure(F.img({src})), F.div(row('Artist', a.artist_display), …))` — with small helpers
+  (`aic-browser`'s `row(label, value)` returns `null` for a missing field, and `null` is skipped on
+  append). Reads as a data structure; the optional-field logic is plain JS.
+- **Family 2 writes it as near-markup.** The panel is an HTML literal with values interpolated and
+  the optional metadata rows handled by `fill.map`/thunks (`aic-browse`'s `meta.filter(...)` then
+  `fill.map`; `aic-browser-2`'s `detailRow` thunks). Closest to hand-written HTML; missing fields
+  ride the typed-skip interpolation rules.
+- **Family 3 binds it to `selected` in state.** The panel collapses to
+  `${d => d.selected ? detailCard(d.selected) : ''}` (or a nested handle): set `this.selected` in a
+  card-click handler and it renders, set it to `null` and it vanishes — no open/close plumbing. All
+  four reactive pages reduce the panel to a function of one state field. This is exactly the
+  friction the reactive prompt is designed to remove.
+
+How it's *presented* varies independently of how it's built:
 
 - **Fixed slide-in panel + dimming scrim, `translate-x` toggle** — `aic`, `aic-browse`,
   `aic-browser`, `aic-kimi-1`, `collection-browser`, `aic-kimi`.
@@ -365,26 +307,29 @@ From coarsest to finest, a clean gradient of the same idea:
 
 ### 10. Helper surface
 
-Beyond element creation, the recurring extras: `fill.frag` (document fragment),
-`fill.text` (text node), `fill.when` (conditional), `fill.map` / `fill.each` (list),
-plus app-level `fill.img` / `fill.debounce` (`aic-2`). Family 1 tends to expose these as
-properties on the proxy; Family 3 tends to inline the same logic into accessor functions.
+The prompts explicitly invited this — *"extend the convention with whatever helpers or sugar make
+it sing… don't hold back"* — so the spread is licensed, not incidental. Beyond element creation,
+the recurring extras: `fill.frag` (document fragment), `fill.text` (text node), `fill.when`
+(conditional), `fill.map` / `fill.each` (list), plus app-level `fill.img` / `fill.debounce`
+(`aic-2`). Family 1 tends to expose these as properties on the proxy; Family 3 tends to inline the
+same logic into accessor functions — and at the far end `collection-browser-2` spends its
+extension budget on a full track-on-read reactivity core rather than on surface sugar.
 
 ---
 
 ## Page index
 
-Family N = Prompt N (see Provenance).
+Family N = Prompt N (see Provenance). Each page lives under its prompt's folder.
 
 | Page | Family / Prompt | One-line distinctive |
 |---|---|---|
-| `aic.html` | 1 · chained factory | `_`→`-` everywhere; factory + template hybrid |
-| `aic-browser.html` | 1 · chained factory | chain for simple classes, `{class}` for arbitrary utilities |
-| `aic-kimi-1.html` | 1 · chained factory | chain expands Tailwind variant prefixes (`sm_`→`sm:`) |
-| `aic-browse.html` | 2 · template, build-once | PUA sentinels separate escaped text from node splices |
-| `aic-browser-2` | 2 · template, build-once | attrs as leading interpolated object; deep template nesting; filter toggles `.hidden` |
-| `aic-1.html` | 2 · template, build-once | curried-attrs form intended but unwired (throws); `$('#id')` shell |
-| `aic-2.html` | 3 · reactive | rebuild subtree + `syncRoot` reconcile; one builder |
-| `aic-kimi.html` | 3 · reactive | fine-grained slot patching; focus-aware input writes |
-| `collection-browser.html` | 3 · reactive | innerHTML of `display:contents` wrapper; string templates; split builders for focus |
-| `collection-browser-2` | 3 · reactive | full track/trigger reactivity; shared state, per-key subscriptions; nested handles |
+| `1-chain-constructor/aic.html` | 1 · chained factory | `_`→`-` everywhere; factory + template hybrid |
+| `1-chain-constructor/aic-browser.html` | 1 · chained factory | chain for simple classes, `{class}` for arbitrary utilities |
+| `1-chain-constructor/aic-kimi-1.html` | 1 · chained factory | chain expands Tailwind variant prefixes (`sm_`→`sm:`) |
+| `2-tagged-factory/aic-browse.html` | 2 · template, build-once | PUA sentinels separate escaped text from node splices |
+| `2-tagged-factory/aic-browser-2` | 2 · template, build-once | attrs as leading interpolated object; deep template nesting; filter toggles `.hidden` |
+| `2-tagged-factory/aic-1.html` | 2 · template, build-once | curried-attrs form intended but unwired (throws); `$('#id')` shell |
+| `3-reactive-surface/aic-2.html` | 3 · reactive | rebuild subtree + `syncRoot` reconcile; one builder |
+| `3-reactive-surface/aic-kimi.html` | 3 · reactive | fine-grained slot patching; focus-aware input writes |
+| `3-reactive-surface/collection-browser.html` | 3 · reactive | innerHTML of `display:contents` wrapper; string templates; split builders for focus |
+| `3-reactive-surface/collection-browser-2` | 3 · reactive | full track/trigger reactivity; shared state, per-key subscriptions; nested handles |
