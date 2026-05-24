@@ -12,6 +12,129 @@ It distills rather than ranks.
 
 ---
 
+## Provenance — the three prompts
+
+The three families are not an emergent taxonomy; they are the experiment's design. Each
+convention was specified from scratch in its own prompt and handed the *same* build, so the only
+variable was the convention itself. **Family N corresponds exactly to Prompt N** — the API
+signatures in each prompt's examples are the API each page implements, which is why the grouping
+is unambiguous rather than a judgment call.
+
+Two things to keep in view while reading:
+
+- **The build in these prompts differs from the collected pages.** The prompts below specify a
+  hardcoded *People Directory* (filter + per-card detail toggle + live count). The pages in this
+  folder are *Art Institute of Chicago* browsers (live API, search, master/detail). The
+  conventions — and their node-handling clauses — line up exactly, so these prompts are the
+  convention source; the AIC pages are the same three conventions carried onto a different build.
+- **The filter + live count are deliberate friction.** The eager conventions (1, 2) must
+  hand-roll them; the reactive one (3) gets them for free — "that friction is the data." And
+  Prompts 1 and 2 *prescribe* the comment-marker node swap, while Prompt 3 leaves node handling to
+  the author. That one difference is why eight pages agree on the splice and the reactive four
+  diverge (idea #2).
+
+Each prompt closed by asking the thread to self-report where the convention helped and where it
+fought back.
+
+### Prompt 1 — Chain Constructor → Family 1 (`aic`, `aic-browser`, `aic-kimi-1`)
+
+````text
+I want you to implement a tiny DOM-creation helper called `fill`, then build a page that showcases it.
+
+The convention:
+- `fill` is a Proxy-based callable.
+- Property access builds an element factory. The FIRST property segment is the tag name; any FURTHER segments are CSS classes. So `fill.div` makes a div, and `fill.div.card.lg` makes a div with classes "card lg".
+- Calling a factory returns a real DOM Node. Its arguments are interpreted by type:
+  - a plain object in first position is attributes/props (keys starting with "on" become event listeners; "class" merges with the chain classes; everything else is set as attribute or property),
+  - strings become text nodes,
+  - Nodes are appended,
+  - arrays are flattened and appended (so `.map` works).
+- `fill` called as a tagged template, fill`<section>...</section>`, parses an HTML string and returns a Node. Any Node interpolated into the literal must be preserved (parse with comment-marker placeholders, then swap the real Nodes back in). Detect the tagged-template call by checking for `raw` on the first argument.
+- Reserve `fill.frag(...children)` and `fill.text(str)` as helpers.
+
+Examples:
+  const card = fill.div.card(fill.h3.title('Ada'), fill.button.btn.primary({onClick: f}, 'Wave'))
+  const row = fill.tr(cells.map(c => fill.td(c)))
+  const hero = fill`<header class="hero"><h1>Hi</h1>${card}</header>`
+
+The build:
+Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean). Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people. Style with Tailwind and daisyUI.
+
+Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+
+Rule: use `fill` for every DOM node you create. No innerHTML assignment, no document.createElement, anywhere. Lean into the convention even where it feels awkward.
+
+Finish with three sentences on where the convention felt great and where it fought you.
+````
+
+### Prompt 2 — Tagged Factory → Family 2 (`aic-browse`, `aic-browser-2`, `aic-1`)
+
+````text
+I want you to implement a tiny DOM helper called `fill`, then build a page that showcases it.
+
+The convention is template-per-tag:
+- `fill` is a Proxy-based callable.
+- `fill` as a tagged template, fill`<div>...</div>`, parses an HTML string and returns a Node. Interpolation rules: strings and numbers inline as text; Nodes are spliced in (parse with comment-marker placeholders, then swap real Nodes back); arrays are flattened and may mix strings and Nodes; functions are called with no arguments and their result interpolated.
+- Property access yields a tagged-template factory whose ROOT element is that tag. So fill.div`<span>${x}</span>` returns a <div> whose content is the parsed literal. The property names the wrapper, the literal fills it.
+- Keep attributes inside the literal (write them in the markup). The root element's attributes can be written on the property tag by interpolating a leading object if you want, but the simple path is markup-only.
+
+Examples:
+  const badge = fill.span`<i class="ph ph-star"></i> ${'Pro'}`
+  const card = fill.article`
+    <header><h3>${name}</h3>${badge}</header>
+    <p>${bio}</p>
+  `
+  const list = fill.ul`${people.map(p => fill.li`${p.name}`)}`
+
+The build:
+Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean). Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people. Style with Tailwind and daisyUI.
+
+Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+
+Rule: use `fill` for every DOM node you create. No innerHTML assignment, no document.createElement, anywhere. Build nested structures by interpolating `fill` results into parent literals.
+
+Finish with three sentences on where the convention felt great and where it fought you.
+````
+
+### Prompt 3 — Reactive Surface → Family 3 (`aic-2`, `aic-kimi`, `collection-browser`, `collection-browser-2`)
+
+````text
+I want you to implement a small reactive DOM helper called `fill`, then build a page that showcases it.
+
+The convention returns a live, re-rendering handle:
+- `fill` is called as a tagged template, fill`...`, and returns a builder.
+- Inside the literal, interpolated functions are accessors called with the data object, ${d => d.name}. They re-run on every render. Non-function values inline normally.
+- The builder chains: `.data(obj)` sets the backing state and returns the builder; `.on(type, selector, fn)` adds a delegated listener and returns the builder; `.el` is the live DOM node to mount.
+- Backing state is a Proxy. Mutating it, including from inside an `.on` handler where `this` is the state, triggers a re-render of `.el` in place.
+- Provide a sensible story for rendering lists from an array in state (your choice of approach; this is part of what I am testing).
+
+Example:
+  const counter = fill`
+    <div class="card">
+      <span>${d => d.n}</span>
+      <button class="inc">+1</button>
+    </div>
+  `.data({ n: 0 }).on('click', '.inc', function(){ this.n++ })
+  document.body.append(counter.el)
+
+The build:
+Make a single-file HTML page: a People Directory. Hardcode an array of ~8 people (name, role, team, a few tags, an `active` boolean) into state. Render a responsive card grid. Add a text input that filters visible cards as you type, a per-card detail toggle, and a live count of visible people, all driven through reactive state. Style with Tailwind and daisyUI.
+
+Stack (single file, no React, no Alpine, no other framework; the point is to test `fill` alone):
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+
+Rule: use `fill` and its reactive state for every dynamic part of the page. No manual innerHTML assignment for content, no document.createElement, anywhere.
+
+Finish with three sentences on where the convention felt great and where it fought you.
+````
+
+---
+
 ## Common ground (all ten)
 
 - **CDN-only, no build step.** Tailwind browser build + daisyUI themes + Phosphor icons,
@@ -22,10 +145,15 @@ It distills rather than ranks.
 - **`fill` is the only DOM API the app code touches.** Every page routes element creation
   through `fill`; the raw platform (`createElement`, `<template>`, `DOMParser`) is treated as
   the floor that `fill` sits on, and the app layer above speaks only `fill`.
-- **One shared splicing trick.** Every template-string variant solves the same core problem —
-  *how does a real DOM Node survive being embedded in an HTML string?* — the same way: replace
-  the node with a comment placeholder (`<!--fill:N-->`), parse the HTML, then walk the tree and
-  swap the placeholder back for the node. The variations are in everything around that.
+- **A mostly-shared splicing trick — because two prompts asked for it.** The template families
+  solve the same core problem — *how does a real DOM Node survive being embedded in an HTML
+  string?* — and eight of the ten pages land on a comment placeholder (`<!--fill:N-->`) that gets
+  parsed, then walked and swapped back. That near-uniformity is largely *seeded*: Prompts 1 and 2
+  prescribed it verbatim. The two pages that skip it (`collection-browser`, `collection-browser-2`)
+  come from Prompt 3, which left node handling open. See idea #2 for the full split.
+- **No custom elements.** No page used `customElements.define`, Shadow DOM, or `<template>`
+  components; where a stable mount identity was needed (the reactive family) it came from a
+  `display:contents` wrapper `<div>`, not a web component.
 
 ---
 
@@ -33,7 +161,7 @@ It distills rather than ranks.
 
 Three broad families, split by how the author *spells out structure*.
 
-### Family 1 — Chained Proxy element factory
+### Family 1 — Chained Proxy element factory  *(Prompt 1 · Chain Constructor)*
 
 Structure is written as JS property chains, no HTML strings for the scaffold.
 The first property is the tag; the rest become classes. A leading plain-object argument
@@ -55,7 +183,7 @@ no escaping question for text (it's all `createTextNode`). Where it strains: arb
 utilities (brackets, slashes, colons) don't fit a property identifier, so those leak into a
 `{class}` object or a template — visible in every page in this family.
 
-### Family 2 — Tagged-template literal, build-once (non-reactive)
+### Family 2 — Tagged-template literal, build-once (non-reactive)  *(Prompt 2 · Tagged Factory)*
 
 Structure is HTML written in a tagged template; `fill` parses it once into Nodes. No state
 layer — dynamic updates are done by the app imperatively (`replaceChildren`, toggling classes,
@@ -84,7 +212,7 @@ What this family makes easy: authoring real HTML, copy-pasteable markup, cheap m
 Where it strains: every update is hand-wired, and keeping spliced nodes + escaped text + live
 attributes straight is exactly where the implementations diverge most.
 
-### Family 3 — Tagged-template literal, reactive builder
+### Family 3 — Tagged-template literal, reactive builder  *(Prompt 3 · Reactive Surface)*
 
 `` fill`...` `` returns a *builder* with state. Interpolated **functions are accessors**
 (`${d => d.title}`), re-run against a reactive state object; non-function interpolations are
@@ -139,16 +267,35 @@ The single most-varied design decision.
   *Family 3 across the board.* Static class names become plain text in the template, which is why
   the reactive pages can treat scaffold as "inline once, trusted."
 
-### 2. How a Node survives an HTML string
+### 2. How a Node survives an HTML string — and why the eager pages agree
 
-- **Comment placeholder + TreeWalker swap** (`<!--fill:N-->`). *Near-universal* among
-  template families.
-- **Separate channel for escaped text** via PUA sentinels `N`. *`aic-browse`* — so a
-  `<` in a title can never be confused with a node placeholder.
+This is the place to read the prompts against the pages. **Prompts 1 and 2 both prescribed the
+mechanism** word for word — *"parse with comment-marker placeholders, then swap the real Nodes
+back in"* — so the agreement across the six eager pages is *seeded, not convergent*. **Prompt 3
+said nothing about it** (only "a sensible story for rendering lists, your choice"), and that one
+omission is where the genuine divergence lives: the four reactive pages each chose a different
+mechanism. Eight of ten use comments at all; two use none.
+
+- **Comment placeholder in the HTML, then `SHOW_COMMENT` walk + swap** (`<!--fill:N-->`). The
+  prescribed pattern: all six eager pages (`aic`, `aic-browser`, `aic-kimi-1`; `aic-1`,
+  `aic-browse`, `aic-browser-2`) plus `aic-2`, which carried it into the reactive family. Seven
+  pages, one mechanism.
+- **String marker -> split text/attr -> persistent comment *anchors*.** *`aic-kimi`* injects
+  `__FILL_N__` into the HTML, splits the text and attribute content on it, and drops a comment
+  *anchor* per dynamic slot — comments as stable re-insertion points across renders, not as
+  one-shot swap targets.
 - **Placeholder element** `<i data-fs="fN">` then `replaceWith`. *`collection-browser-2`* — a
-  spot a fragment can be mounted without a comment walk.
+  fragment is mounted without any comment walk.
 - **No splice at all; strings only.** *`collection-browser`* — children are HTML strings joined
-  into `innerHTML`, so there's nothing to swap (and nothing to keep identity across renders).
+  into `innerHTML`, so there's nothing to swap (and nothing keeps identity across renders).
+- **PUA sentinels as an *extra* channel (additive).** *`aic-browse`* still does the prescribed
+  comment-swap for Nodes, but routes escaped *text* through private-use sentinels so a literal
+  `<` in a title can never be confused with a node placeholder.
+
+**No custom elements anywhere.** No page reached for `customElements.define`, Shadow DOM, or
+`<template>`-based components. The stable-identity need in Family 3 was met with a
+`display:contents` wrapper `<div>` (`collection-browser`, `collection-browser-2`), not a web
+component.
 
 ### 3. Escaping
 
@@ -227,7 +374,9 @@ properties on the proxy; Family 3 tends to inline the same logic into accessor f
 
 ## Page index
 
-| Page | Family | One-line distinctive |
+Family N = Prompt N (see Provenance).
+
+| Page | Family / Prompt | One-line distinctive |
 |---|---|---|
 | `aic.html` | 1 · chained factory | `_`→`-` everywhere; factory + template hybrid |
 | `aic-browser.html` | 1 · chained factory | chain for simple classes, `{class}` for arbitrary utilities |
