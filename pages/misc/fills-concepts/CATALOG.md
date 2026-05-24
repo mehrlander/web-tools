@@ -317,6 +317,50 @@ extension budget on a full track-on-read reactivity core rather than on surface 
 
 ---
 
+## Comparison tables
+
+Two synthesis tables across the three families. Cells use whatever reads cleanest; where a
+family's pages diverge (mostly Family 3), the cell shows a range rather than a false single value.
+
+### Table 1 — structure of `fill` and what it returns
+
+The shape splits two ways, not three: Families 1 and 2 build the *same* object (a `Proxy` over a
+function) and differ only in what the traps *do*; Family 3 is a plain function whose return value —
+not `fill` itself — is where the structure lives.
+
+| | Chain Constructor (1) | Tagged Factory (2) | Reactive Surface (3) |
+|---|---|---|---|
+| `fill` is a… | **Proxy** wrapping a function | **Proxy** wrapping a function | **plain function** |
+| Proxy target | a dispatch function | a no-op function | — (the `Proxy` here wraps *state*, not `fill`) |
+| Own properties on `fill` | none | none | none — except `aic-2` (`.text`, `.when`, `.each`, `.img`, `.debounce`) |
+| Members reached via `fill.x` | synthesized by `get` trap (tag factory; `frag`/`text`/`when`/`each`) | synthesized by `get` trap (tag factory; `frag`/`text`/`when`/`map`) | only the literal props above; no trap |
+| `typeof fill` | `'function'` | `'function'` | `'function'` (the Proxy-vs-plain split is invisible from outside) |
+| Calling `fill(…)` returns | a DOM **Node** | a DOM **Node** | a stateful **builder** |
+| Return value's concrete type | element or `DocumentFragment` | element or `DocumentFragment` | class instance (`FillBuilder`, `Builder`) or `api` object literal |
+| Methods/props on the return value | none (raw Node) | none (raw Node) | `.data(obj)`, `.on(type, sel, fn)`, `.el` (+ `.state` getter on `aic-2`, `collection-browser`) |
+| Where the "magic" lives | `fill`'s Proxy traps | `fill`'s Proxy traps | the returned builder + a `Proxy` on the state object |
+
+### Table 2 — other relevant features
+
+Distilled from the "Catalog of ideas" axes. Family 3's cells carry the within-family spread, since
+its four pages diverge sharply on splicing, focus, and granularity.
+
+| | Chain Constructor (1) | Tagged Factory (2) | Reactive Surface (3) |
+|---|---|---|---|
+| Reactivity / who drives updates | none — eager construction; app updates imperatively | none — build-once; app updates imperatively | **state → DOM**; mutating the reactive state re-renders |
+| Attributes come from | chain classes + leading object arg | curried `({attrs})` or leading `${{…}}` object | written literally in markup; only values interpolated |
+| Node-splice mechanism | `<!--fill:N-->` comment + `SHOW_COMMENT` walk + swap | same comment-walk + swap | *varies:* comment **anchors** (`aic-kimi`) · subtree + `syncRoot` (`aic-2`) · innerHTML strings, no splice (`collection-browser`) · `<i data-fs>` + `replaceWith` (`collection-browser-2`) |
+| Escaping | char-map / `textContent` on the template path; child text is `createTextNode` (no escape needed) | escape text placeholders before write-back (`new Option`, char-map, or manual) | escape inside the accessor / component-fn path |
+| Events | inline handler props (`onClick`→`addEventListener`), bound to the node | inline handler props | one delegated `.on(type, sel, fn)` per builder; survives rebuilds |
+| List story | `map`→ array of Nodes, flattened | `map`→ Nodes (`fill.map`), or prebuilt cards | accessor returns a Node array (string array in `collection-browser`); one accessor covers loading/empty/list |
+| Filtering | rebuild each keystroke; `aic-browser` toggles `.hidden` over a prebuilt index | rebuild; `aic-browser-2` toggles `.hidden` | re-render from filtered state |
+| Focus preservation | inputs built once, never re-rendered | inputs built once, never re-rendered | *varies:* split builders (`collection-browser`, `collection-browser-2`) · skip-write-when-focused (`aic-kimi`) · whole-app reconcile (`aic-2`) |
+| Re-render granularity | n/a (no re-render) | n/a (no re-render) | *spectrum:* innerHTML wrapper → subtree + reconcile → slot patching → per-key dependency tracking |
+| Detail panel idiom | nested factory calls, node by node | HTML literal + thunks / `fill.map` | function of `selected` in state |
+| Helper surface | `frag`/`text`/`when`/`each` on the proxy | `frag`/`text`/`when`/`map` on the proxy | inlined into accessors; `aic-2` adds 5 props; `collection-browser-2` spends its budget on a reactivity core |
+
+---
+
 ## Page index
 
 Family N = Prompt N (see Provenance). Each page lives under its prompt's folder.
