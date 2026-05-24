@@ -1,6 +1,6 @@
 # Piano Pieces
 
-A running list of pieces learned by ear (mostly from YouTube), grouped by game. Add new ones as they come up.
+A running list of pieces. Game music is mostly learned by ear (from YouTube). Add new ones as they come up.
 
 ## The Legend of Zelda: The Wind Waker
 
@@ -17,6 +17,8 @@ A running list of pieces learned by ear (mostly from YouTube), grouped by game. 
 | Rito Village (Night) | |
 | Kass's Theme | |
 | Hateno Village | |
+| Mipha's Theme | |
+| Sidon's Theme | |
 
 ## Hollow Knight
 
@@ -24,9 +26,35 @@ A running list of pieces learned by ear (mostly from YouTube), grouped by game. 
 | --- | --- |
 | Resting Grounds | |
 | Dirtmouth | |
+| City of Tears | |
 
 ## Hollow Knight: Silksong
 
 | Piece | Notes |
 | --- | --- |
 | Choral Chambers | |
+| Bilewater | |
+
+## Ender Lilies: Quietus of the Knights
+
+| Piece | Notes |
+| --- | --- |
+| Accolade (intro) | |
+| Harmonious | |
+| Main Theme | |
+
+## Mario Kart
+
+| Piece | Notes |
+| --- | --- |
+| Coconut Mall | Mario Kart Wii |
+
+## Other (already learned)
+
+| Piece | Notes |
+| --- | --- |
+| Jolly Old Saint Nicholas | Traditional Christmas carol |
+| Not in Nottingham | Disney's Robin Hood |
+| Arabesque | Debussy |
+| Maple Leaf Rag | Scott Joplin |
+| Busy Sawmill | |
