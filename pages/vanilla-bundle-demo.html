@@ -64,7 +64,7 @@
     { icon: 'database',      label: 'store' },
     { icon: 'broadcast',     label: 'publish' }
   ];
-  tpl.html`
+  tpl`
     <li class="flex items-center gap-2 py-0.5">
       <i class="ph ph-${r => r.icon} opacity-70"></i> ${r => r.label}
     </li>`(rows)(ids.tplTarget);
@@ -263,17 +263,24 @@ idsOut.textContent = '…'</code></pre>
     <h2 class="font-bold text-lg border-b border-base-300 pb-1">Templates</h2>
 
     <div>
-      <h3 class="font-semibold mb-1">tpl.html / append / prepend / replace <span class="opacity-50 font-normal text-xs">— rows → markup → place</span></h3>
+      <h3 class="font-semibold mb-1">tpl / tpl.append / tpl.prepend <span class="opacity-50 font-normal text-xs">— rows → markup → place</span></h3>
       <p class="opacity-60 text-xs mb-2">
         A tagged template that builds one string from an array of rows, then a
-        placement step. Interpolations that are functions receive each row; the
-        four verbs differ only in how the result lands (<code>innerHTML</code>,
-        <code>append</code>, <code>prepend</code>, <code>replaceChildren</code>).
-        Call shape is <code>tpl.html`…`(rows)(targetEl)</code>.
+        placement step. Interpolations that are functions receive each row. Bare
+        <code>tpl`…`</code> parses the markup and <code>replaceChildren</code>'s
+        it — the superset placement, preserving context-sensitive nodes
+        (<code>&lt;tr&gt;</code>, <code>&lt;option&gt;</code>) that bare
+        <code>innerHTML</code> would drop; <code>.append</code> and
+        <code>.prepend</code> are the other two. Scope is element containers —
+        for a raw-text target (<code>&lt;textarea&gt;</code>,
+        <code>&lt;style&gt;</code>, <code>&lt;title&gt;</code>) set text with
+        <code>fill</code> or <code>.value</code>/<code>.textContent</code>.
+        Function interpolations are raw HTML, so the caller owns escaping.
+        Call shape is <code>tpl`…`(rows)(targetEl)</code>.
       </p>
       <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const rows = [{ icon: 'rocket-launch', label: 'launch' }, …]
 
-tpl.html`
+tpl`
   &lt;li&gt;&lt;i class="ph ph-${r =&gt; r.icon}"&gt;&lt;/i&gt; ${r =&gt; r.label}&lt;/li&gt;
 `(rows)(ids.tplTarget)</code></pre>
       <div class="bg-base-200/40 rounded p-4">
