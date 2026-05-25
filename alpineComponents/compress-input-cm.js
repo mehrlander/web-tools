@@ -5,7 +5,7 @@ document.addEventListener('alpine:init', function() {
     const PATH_INPUT = ns + '.input';
     const PATH_SEL   = ns + '.sel';
 
-    const { tip } = window.fills;
+    const { tip } = window.html;
     const typeBadge = tip(
       ['bottom', 'xs'],
       `<span class="badge badge-sm badge-neutral" x-text="inputType"></span>`,

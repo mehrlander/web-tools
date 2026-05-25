@@ -80,6 +80,41 @@
     '[data-act="clear"]': () => fill(document, { '#route-out': 'matched [data-act="clear"]' }),
     '.route-item':        (e, match) => fill(document, { '#route-out': `matched .route-item → "${match.textContent.trim()}"` })
   });
+
+  // ── fill templates: html.* presets minting configured branded values ──
+  fill(document, {
+    '#ht-tip-snippet': `html.tip(['top','xs'],\n  '<button class="btn btn-xs">Hover me</button>',\n  '<strong>Hover content</strong><div>Plain HTML body</div>')`,
+    '#ht-tip-out':     html.tip(['top','xs'],
+      '<button class="btn btn-xs">Hover me</button>',
+      '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>'),
+
+    '#ht-lines-snippet': `html.lines(['gap-1','xs','muted'],\n  ['First line', 'Second line', 'Third line'])`,
+    '#ht-lines-out':     html.lines(['gap-1','xs','muted'],
+      ['First line', 'Second line', 'Third line']),
+
+    '#ht-btn-snippet': `html.btn(['xs','primary'], 'Action')`,
+    '#ht-btn-out':     html.btn(['xs', 'primary'], 'Action'),
+
+    '#ht-toolbar-snippet': `html.toolbar([],\n  '<b>Title</b>',\n  html.btn(['xs','primary'], 'Action'))`,
+    '#ht-toolbar-out':     html.toolbar([],
+      '<b>Title</b>',
+      html.btn(['xs', 'primary'], 'Action')),
+
+    '#ht-modal-snippet': `html.modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`,
+    '#ht-modal-slot':    html.modal(`
+      <div class="p-6">
+        <h3 class="font-bold text-lg">Modal contents</h3>
+        <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
+      </div>`)
+  });
+  route(document, 'click', {
+    '#ht-btn-out .btn, #ht-toolbar-out .btn': (e, el) => {
+      const orig = el.textContent;
+      el.textContent = 'clicked';
+      setTimeout(() => { el.textContent = orig; }, 1000);
+    },
+    '#ht-modal-open': () => document.querySelector('#ht-modal-slot dialog').showModal()
+  });
 </script>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
@@ -256,6 +291,61 @@ idsOut.textContent = '…'</code></pre>
       <div class="bg-base-200/40 rounded p-4 space-y-2">
         <button id="cb-btn" class="btn btn-xs">callback-wired button</button>
         <pre id="cb-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       fill templates — html.* presets
+       ================================================================== -->
+  <section class="space-y-6">
+    <h2 class="font-bold text-lg border-b border-base-300 pb-1">fill templates</h2>
+    <p class="opacity-60 text-xs">
+      Methods on <code>html</code> that mint <em>configured</em> branded values — the same
+      kind <code>html('&lt;raw&gt;')</code> produces, but with daisyUI/Tailwind classes baked
+      in. Destructure them (<code>const { tip, lines } = html</code>) and drop the result into
+      any <code>fill</code> spec or string concatenation. Each takes a <code>mods</code> array
+      of short tokens; unrecognized tokens are ignored, so <code>[]</code> gives defaults.
+      These carry the daisyUI/Tailwind dependency that the base <code>html()</code> doesn't.
+    </p>
+
+    <div>
+      <h3 class="font-semibold mb-1">html.tip(mods, trigger, content) <span class="opacity-50 font-normal text-xs">— daisyUI tooltip</span></h3>
+      <p class="opacity-60 text-xs mb-2">Rich HTML body. <code>mods</code> takes a position
+        (<code>top|bottom|left|right</code>) and text mods (<code>xs|sm|bold|…</code>).</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-tip-snippet"></code></pre>
+      <div id="ht-tip-out" class="bg-base-200/40 rounded p-4 flex justify-center"></div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">html.lines(mods, arr) <span class="opacity-50 font-normal text-xs">— stacked column</span></h3>
+      <p class="opacity-60 text-xs mb-2"><code>mods</code> takes a gap (<code>gap-0..4</code>) and text mods.</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-lines-snippet"></code></pre>
+      <div id="ht-lines-out" class="bg-base-200/40 rounded p-4"></div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">html.btn(mods, label) <span class="opacity-50 font-normal text-xs">— daisyUI button</span></h3>
+      <p class="opacity-60 text-xs mb-2"><code>mods</code> takes a size (<code>xs|sm|md|lg|xl</code>)
+        and variant (<code>primary|secondary|accent|…</code>). Markup only — wire behavior separately.</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-btn-snippet"></code></pre>
+      <div id="ht-btn-out" class="bg-base-200/40 rounded p-4 flex justify-center"></div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">html.toolbar(mods, ...items) <span class="opacity-50 font-normal text-xs">— horizontal flex wrapper</span></h3>
+      <p class="opacity-60 text-xs mb-2">Items are HTML strings — including nested presets like <code>html.btn(…)</code>.</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-toolbar-snippet"></code></pre>
+      <div id="ht-toolbar-out" class="bg-base-200/40 rounded p-4"></div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mb-1">html.modal(inner) <span class="opacity-50 font-normal text-xs">— full-screen dialog</span></h3>
+      <p class="opacity-60 text-xs mb-2">Open via the dialog's <code>showModal()</code>.</p>
+      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-modal-snippet"></code></pre>
+      <div class="bg-base-200/40 rounded p-4">
+        <button id="ht-modal-open" class="btn btn-sm btn-primary">Open modal</button>
+        <div id="ht-modal-slot"></div>
       </div>
     </div>
   </section>

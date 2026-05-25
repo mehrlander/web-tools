@@ -15,9 +15,10 @@ A **kit** is the third category of file in this repo, alongside:
 - **`alpineComponents/*.js`** — UI components that register with
   `Alpine.data(name, fn)` inside `alpine:init`.
 - **`kits/*.js`** — logic libraries that register a namespace on
-  `window`. No Alpine coupling. Mostly pure functions or stateful
-  service objects; `fills.js` is the one exception that renders, but
-  only as Alpine-free HTML strings.
+  `window`. No Alpine coupling, no DOM rendering — pure functions or
+  stateful service objects. (The daisyUI/Tailwind string helpers that
+  used to live here as `fills.js` now hang off `window.html` in
+  `vanilla-bundle.js`.)
 
 The shape rules (so the file works through `gh.load`):
 
@@ -61,29 +62,6 @@ brotli or gzip, and optionally packs the result as a self-decompressing
 `text.findCompressedChunks(str)` scans for `BR64:` / `GZ64:` payloads
 embedded in arbitrary text. Detection regexes accept an optional label:
 `BR64("mylabel"):...`.
-
-### fills.js
-
-daisyUI/Tailwind template-string helpers salvaged from
-`archive/alp/repo/utils/fills.js`. Pure functions returning HTML
-strings; zero runtime deps and zero Alpine coupling. Compose
-wherever HTML is built by string concatenation.
-
-```js
-window.fills.tip(mods, trigger, content)
-window.fills.lines(mods, arr)
-window.fills.toolbar(mods, ...items)
-window.fills.modal(inner)
-```
-
-`mods` is an array of short tokens (e.g. `['xs','bottom']`). Recognized
-tokens map to daisyUI/Tailwind classes; unrecognized tokens are ignored.
-See `kits/demos/fills.html` for live examples.
-
-For Alpine-flavored equivalents that decorate elements (rather than
-return string fragments), see the directives in `alpine-bundle.js`:
-`x-tip`, `x-lines`, `x-toolbar`, `x-btn`, `x-save-indicator`,
-`x-action`, `x-metric`.
 
 ### persistence.js
 
@@ -231,7 +209,6 @@ examples.
 | Kit | Demo | Notes |
 |---|---|---|
 | `compression.js` | (used in `pages/compression-helper.html`) | brotli + gzip + acorn |
-| `fills.js` | `kits/demos/fills.html` | pure HTML string helpers, no Alpine |
 | `persistence.js` | `kits/demos/persistence.html` | idb-keyval + collections |
 | `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |

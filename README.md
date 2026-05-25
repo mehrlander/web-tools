@@ -58,7 +58,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
-| [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | One small demo page per kit (`fills`, `persistence`, `messaging`, `io`). Double-duty as a builder reference. |
+| [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 
 The auto-listed index at `pages/` is the full directory if you want to see
@@ -136,8 +136,9 @@ The same handful of concerns drove every piece of it:
   Pub/sub keyed on opaque paths so a component can publish a selection
   without knowing who's listening. `kits/messaging.js`.
 - **Composing UI without a build step.** Tailwind/daisyUI string helpers
-  in `kits/fills.js`, with the custom-element wrapper now living in
-  `alpine-bundle.js`.
+  hang off `window.html` as methods (`html.tip`, `html.btn`, …) in
+  `vanilla-bundle.js`, alongside the Alpine directive equivalents
+  (`x-tip`, `x-btn`, …) in `alpine-bundle.js`.
 
 Two docs go deeper:
 
@@ -146,7 +147,7 @@ Two docs go deeper:
   `gh-store.js`, `gh-auth.js`, `alpine-bundle.js`), how `gh.load()` works,
   the timing rules, the footgun list.
 - **[kits/README.md](kits/README.md)**: the logic libraries (`compression`,
-  `fills`, `persistence`, `messaging`, `io`, `data-shelf`). What each one
+  `persistence`, `messaging`, `io`, `data-shelf`). What each one
   exposes on `window`, with usage examples.
 
 The shape of a loaded page in one block:
