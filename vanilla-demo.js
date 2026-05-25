@@ -8,24 +8,39 @@
 // via gh.load. Not a logic kit (it renders), not an Alpine component (no
 // framework). Depends on kits/cm6.js for the editor, and on Tailwind +
 // daisyUI + Phosphor being present on the host page for styling. The proof
-// iframes are isolated and bring their own minimal CSS (plus Tailwind when a
-// block opts in via `tw: true`).
+// iframes are isolated (sandbox allow-scripts, opaque origin) and bring their
+// own minimal CSS — plus Tailwind (`tw:true`), the full daisyUI stack
+// (`daisy:true`), and any `inject` scripts a block opts into. The `parent`
+// kind is the deliberate exception: it runs in the host page, unsandboxed.
 //
-//   demo.mount({ sections, sectionsEl, displayEl?, legendEl? })
+//   demo.mount({ sections, sectionsEl, displayEl?, legendEl?, base? })
+//
+//   base — URL prefix that repo-relative `inject` paths resolve against, so
+//          injected <script src> honor the page's ?use=<ref> (e.g.
+//          'https://cdn.jsdelivr.net/gh/owner/repo@<ref>'). Absolute http(s)
+//          inject entries are used verbatim.
 //
 // Config shape:
 //   sections: [{ title, intro?, examples: [example] }]
 //   example:  { title, prose?, lang: 'html'|'js', code,
-//               kind: 'render'|'context'|'jsrender'|'console',
+//               kind: 'render'|'context'|'jsrender'|'console'|'parent',
 //               tw?: bool,        // inject Tailwind into the proof frame
+//               daisy?: bool,     // inject Tailwind + daisyUI + Phosphor (implies tw)
+//               inject?: string[],// <script src> loaded into the frame head, in order
 //               context?: string  // host template with a {{slot}} marker (kind:'context')
 //             }
 //
-// The four kinds:
+// The five kinds:
 //   render    — the snippet is body markup; the proof is what it renders.
 //   context   — the snippet is injected at {{slot}} inside a host template.
 //   jsrender  — the snippet is JS that builds nodes into the frame body.
-//   console   — the snippet is JS; the proof is captured console output (Run / Mod-Enter).
+//   console   — the snippet is JS run in a sandboxed frame; the proof is
+//                captured console output (Run / Mod-Enter). Wrapped in an async
+//                IIFE, so it can `await` and use any injected globals.
+//   parent    — the snippet is JS run in the HOST page (not isolated), for code
+//                that needs real storage, downloads, the clipboard, or the
+//                page's already-loaded kits. Runs only on Run / Mod-Enter,
+//                never on edit, so file dialogs don't fire while you type.
 
 (() => {
   const h = (tag, attrs = {}, ...kids) => {
@@ -40,6 +55,8 @@
   };
   const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   const guard = s => s.replace(/<\/script/gi, '<\\/script');
+  const AsyncFn = Object.getPrototypeOf(async function () {}).constructor;
+  const ser = a => { try { return a instanceof Error ? a.message : typeof a === 'object' ? JSON.stringify(a) : String(a); } catch { return String(a); } };
   const copyText = async t => {
     try { await navigator.clipboard.writeText(t); }
     catch { const ta = h('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select(); try { document.execCommand('copy'); } finally { ta.remove(); } }
@@ -51,21 +68,36 @@
   const applyTo = ed => { ed.setFontSize(settings.size); ed.setLineNumbers(settings.nums); ed.setWrap(settings.wrap); };
   const applySettings = () => editors.forEach(applyTo);
 
-  // ── isolated proof documents (theme-agnostic; daisyUI is NOT injected) ──
-  const REPORTER = `<scr`+`ipt>const p=()=>parent.postMessage({__h:document.documentElement.scrollHeight},'*');addEventListener('load',p);new ResizeObserver(p).observe(document.documentElement);setTimeout(p,60);setTimeout(p,350);<\/script>`;
-  const HEAD = tw => `<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
-    + (tw ? `<scr`+`ipt src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>` : ``)
-    + `<style>html,body{margin:0}body{padding:12px;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#27272a;background:transparent;font-size:13px;line-height:1.5}</style>`;
+  // ── isolated proof documents ──
+  // `base` (set by mount) prefixes repo-relative inject paths so injected
+  // <script src> load from the same ?use=<ref> as the host page.
+  let base = '';
+  const resolveSrc = s => /^https?:\/\//.test(s) ? s : `${base}/${String(s).replace(/^\//, '')}`;
+  const injectTags = list => (list || []).map(s => `<scr` + `ipt src="${resolveSrc(s)}"><\/scr` + `ipt>`).join('');
 
-  const docRender   = (code, tw) => `<!doctype html><html><head>${HEAD(tw)}</head><body>${code}${REPORTER}</body></html>`;
-  const docContext  = (code, ctx, tw) => `<!doctype html><html><head>${HEAD(tw)}</head><body>${ctx.replace('{{slot}}', code)}${REPORTER}</body></html>`;
-  const docJsRender = (code, tw) => `<!doctype html><html><head>${HEAD(tw)}</head><body><scr`+`ipt>try{${guard(code)}}catch(e){document.body.append(Object.assign(document.createElement('pre'),{textContent:e.message,style:'color:#dc2626;font:12px ui-monospace,monospace'}))}<\/script>${REPORTER}</body></html>`;
-  const docConsole  = code => `<!doctype html><html><body><scr`+`ipt>`
+  const REPORTER = `<scr`+`ipt>const p=()=>parent.postMessage({__h:document.documentElement.scrollHeight},'*');addEventListener('load',p);new ResizeObserver(p).observe(document.documentElement);setTimeout(p,60);setTimeout(p,350);<\/script>`;
+
+  // o: { tw?, daisy?, inject? }. daisy implies tw and adds the daisyUI theme
+  // sheet + Phosphor; inject scripts are blocking and ordered, so kit globals
+  // exist before any body/console snippet script runs.
+  const HEAD = (o = {}) => {
+    const tw = o.tw || o.daisy;
+    return `<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
+      + (o.daisy ? `<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">` : ``)
+      + (tw ? `<scr` + `ipt src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4${o.daisy ? ',npm/@phosphor-icons/web' : ''}"><\/scr` + `ipt>` : ``)
+      + `<style>html,body{margin:0}body{padding:12px;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#27272a;background:transparent;font-size:13px;line-height:1.5}</style>`
+      + injectTags(o.inject);
+  };
+
+  const docRender   = (code, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body>${code}${REPORTER}</body></html>`;
+  const docContext  = (code, ctx, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body>${ctx.replace('{{slot}}', code)}${REPORTER}</body></html>`;
+  const docJsRender = (code, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body><scr`+`ipt>(async()=>{try{${guard(code)}}catch(e){document.body.append(Object.assign(document.createElement('pre'),{textContent:e.message,style:'color:#dc2626;font:12px ui-monospace,monospace'}))}})()<\/script>${REPORTER}</body></html>`;
+  const docConsole  = (code, o) => `<!doctype html><html><head>${HEAD(o)}</head><body><scr`+`ipt>`
     + `const ser=a=>{try{return a instanceof Error?a.message:typeof a==='object'?JSON.stringify(a):String(a)}catch(_){return String(a)}};`
     + `const send=(level,args)=>parent.postMessage({__c:{level,text:args.map(ser).join(' ')}},'*');`
     + `['log','info','warn','error','debug'].forEach(l=>{const o=console[l];console[l]=(...a)=>{send(l,a);try{o.apply(console,a)}catch(_){}}});`
     + `addEventListener('error',e=>send('error',[e.message]));addEventListener('unhandledrejection',e=>send('error',[String(e.reason)]));`
-    + `try{${guard(code)}}catch(e){send('error',[e.message])}`
+    + `(async()=>{try{${guard(code)}}catch(e){send('error',[e.message])}})()`
     + `<\/script></body></html>`;
 
   const PROOF_META = {
@@ -73,6 +105,7 @@
     context:  { label: 'Render · context', icon: 'ph-frame-corners' },
     jsrender: { label: 'Render · JS',      icon: 'ph-chart-bar' },
     console:  { label: 'Console',          icon: 'ph-terminal-window' },
+    parent:   { label: 'Console · host',   icon: 'ph-browsers' },
   };
 
   const iconBtn = (icon, label, onClick, accent = false) => {
@@ -160,7 +193,9 @@
   //    the CM6 editor mounts async and wires the proof once ready. ──
   function block(cfg) {
     const meta = PROOF_META[cfg.kind];
-    const live = cfg.kind !== 'console';
+    const isParent = cfg.kind === 'parent';
+    const live = cfg.kind !== 'console' && !isParent;
+    const docOpts = { tw: cfg.tw, daisy: cfg.daisy, inject: cfg.inject };
 
     const card = h('div', { class: 'rounded-box overflow-hidden bg-base-100 border border-base-300 shadow-sm' });
 
@@ -193,6 +228,19 @@
     let ed = null;
     const getCode = () => ed ? ed.getValue() : cfg.code;
 
+    // console-style output area + line painter, shared by `console` and `parent`.
+    const consoleOut = () => {
+      const out = h('div', { class: 'mx-2 mb-2 rounded-box bg-base-100 border border-base-300 p-2 font-mono text-[11px] leading-relaxed min-h-[2.4rem] shadow-sm' });
+      const line = (level, text) => {
+        const tone = { log: 'text-base-content', info: 'text-info', warn: 'text-warning', error: 'text-error', debug: 'opacity-50' }[level] || 'text-base-content';
+        const mark = { log: '›', info: 'ℹ', warn: '⚠', error: '✗', debug: '·' }[level] || '›';
+        const markTone = level === 'error' ? 'text-error' : level === 'warn' ? 'text-warning' : 'opacity-30';
+        out.append(h('div', { class: 'flex gap-2 whitespace-pre-wrap break-words' },
+          h('span', { class: 'select-none ' + markTone }, mark), h('span', { class: tone }, text)));
+      };
+      return { out, line };
+    };
+
     if (live) {
       const frame = h('iframe', { class: 'w-full block bg-transparent', sandbox: 'allow-scripts', style: 'height:40px' });
       proofBody.append(frame);
@@ -202,9 +250,9 @@
       });
       const build = () => {
         const c = getCode();
-        frame.srcdoc = cfg.kind === 'context' ? docContext(c, cfg.context, cfg.tw)
-                     : cfg.kind === 'jsrender' ? docJsRender(c, cfg.tw)
-                     : docRender(c, cfg.tw);
+        frame.srcdoc = cfg.kind === 'context' ? docContext(c, cfg.context, docOpts)
+                     : cfg.kind === 'jsrender' ? docJsRender(c, docOpts)
+                     : docRender(c, docOpts);
       };
       build();
       seamActions.append(iconBtn('ph-arrow-clockwise', 'Refresh', ({ ic }) => {
@@ -213,16 +261,30 @@
         build();
       }, true));
       cfg._rebuild = build;
-    } else {
-      const out = h('div', { class: 'mx-2 mb-2 rounded-box bg-base-100 border border-base-300 p-2 font-mono text-[11px] leading-relaxed min-h-[2.4rem] shadow-sm' });
+      cfg._run = build;
+    } else if (isParent) {
+      // Runs in the host page — no iframe, full page capabilities. Never fires
+      // on edit; only Run / Mod-Enter execute it, so a real user gesture backs
+      // file dialogs, downloads, and clipboard calls. console is patched for
+      // the duration of the run and restored after.
+      const { out, line } = consoleOut();
+      out.append(h('div', { class: 'opacity-40' }, 'press Run to execute in this page'));
       proofBody.append(out);
-      const line = (level, text) => {
-        const tone = { log: 'text-base-content', info: 'text-info', warn: 'text-warning', error: 'text-error', debug: 'opacity-50' }[level] || 'text-base-content';
-        const mark = { log: '›', info: 'ℹ', warn: '⚠', error: '✗', debug: '·' }[level] || '›';
-        const markTone = level === 'error' ? 'text-error' : level === 'warn' ? 'text-warning' : 'opacity-30';
-        out.append(h('div', { class: 'flex gap-2 whitespace-pre-wrap break-words' },
-          h('span', { class: 'select-none ' + markTone }, mark), h('span', { class: tone }, text)));
+      const run = async () => {
+        out.replaceChildren();
+        const levels = ['log', 'info', 'warn', 'error', 'debug'];
+        const saved = {};
+        levels.forEach(l => { saved[l] = console[l]; console[l] = (...a) => { line(l, a.map(ser).join(' ')); try { saved[l].apply(console, a); } catch (_) {} }; });
+        try { await AsyncFn(getCode())(); }
+        catch (e) { line('error', e.message); }
+        finally { levels.forEach(l => { console[l] = saved[l]; }); }
       };
+      seamActions.append(iconBtn('ph-play-fill', 'Run', () => run(), true));
+      cfg._rebuild = () => {};   // edits don't re-run host code
+      cfg._run = run;
+    } else {
+      const { out, line } = consoleOut();
+      proofBody.append(out);
       let runFrame = null;
       addEventListener('message', e => {
         if (runFrame && e.source === runFrame.contentWindow && e.data && e.data.__c)
@@ -233,11 +295,12 @@
         if (runFrame) runFrame.remove();
         runFrame = h('iframe', { sandbox: 'allow-scripts', style: 'display:none' });
         document.body.append(runFrame);
-        runFrame.srcdoc = docConsole(getCode());
+        runFrame.srcdoc = docConsole(getCode(), docOpts);
       };
       run();
       seamActions.append(iconBtn('ph-play-fill', 'Run', run, true));
       cfg._rebuild = run;
+      cfg._run = run;
     }
 
     codeActions.append(copyBtn(getCode));
@@ -251,7 +314,7 @@
       language: cfg.lang === 'js' ? 'js' : 'html',
       wrap: settings.wrap, lineNumbers: settings.nums, fontSize: settings.size,
       onChange: debounce(() => cfg._rebuild(), 260),
-      onRun: live ? undefined : () => cfg._rebuild(),
+      onRun: live ? undefined : () => cfg._run(),
     }).then(handle => { ed = handle; editors.push(handle); applyTo(handle); });
 
     card.append(topBar, editorHost, proofZone);
@@ -287,16 +350,20 @@
     return wrap;
   }
 
-  function legend(mount) {
-    for (const k of ['render', 'context', 'jsrender', 'console']) {
+  function legend(mount, kinds) {
+    const order = Object.keys(PROOF_META);
+    const show = (kinds && kinds.length ? [...new Set(kinds)] : order).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    for (const k of show) {
       const m = PROOF_META[k];
+      if (!m) continue;
       mount.append(h('span', { class: 'inline-flex items-center gap-1.5 rounded-box bg-base-100 border border-base-300 px-2 py-0.5 font-mono text-[9.5px] tracking-widest uppercase opacity-70 shadow-sm' },
         h('i', { class: `ph ${m.icon} text-[11px]` }), h('span', {}, m.label)));
     }
   }
 
-  function mount({ sections, sectionsEl, displayEl, legendEl }) {
-    if (legendEl) legend(legendEl);
+  function mount({ sections, sectionsEl, displayEl, legendEl, base: baseUrl }) {
+    if (baseUrl) base = String(baseUrl).replace(/\/$/, '');
+    if (legendEl) legend(legendEl, sections.flatMap(s => s.examples.map(e => e.kind)));
     if (displayEl) buildDisplayControl(displayEl);
     sections.forEach((cfg, si) => sectionsEl.append(section(cfg, si)));
   }
