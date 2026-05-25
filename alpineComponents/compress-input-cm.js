@@ -62,10 +62,8 @@ document.addEventListener('alpine:init', function() {
       inputKind: 'text',
       inputDetails: null,
 
+      cm: null,
       view: null,
-      _modules: null,
-      _langCompartment: null,
-      _wrapCompartment: null,
       _currentLang: null,
 
       init() {
@@ -104,70 +102,34 @@ document.addEventListener('alpine:init', function() {
       },
 
       async mountEditor() {
-        const [
-          { EditorView, basicSetup },
-          { EditorState, Compartment },
-          { javascript },
-          { html: htmlLang }
-        ] = await Promise.all([
-          import('https://esm.sh/codemirror'),
-          import('https://esm.sh/@codemirror/state'),
-          import('https://esm.sh/@codemirror/lang-javascript'),
-          import('https://esm.sh/@codemirror/lang-html')
-        ]);
+        if (!window.cm6) {
+          console.error('compressInputCm: window.cm6 is missing — gh.load("kits/cm6.js") before this component');
+          return;
+        }
 
-        this._modules = { EditorView, EditorState, Compartment, javascript, htmlLang };
-        this._langCompartment = new Compartment();
-        this._wrapCompartment = new Compartment();
-
-        const onUpdate = EditorView.updateListener.of((u) => {
-          if (u.docChanged) {
-            this.input = u.state.doc.toString();
-          }
-          if (u.docChanged || u.selectionSet) {
-            const r = u.state.selection.main;
-            if (r.from !== r.to) {
-              this.sel = {
-                start: r.from,
-                end: r.to,
-                text: u.state.doc.sliceString(r.from, r.to)
-              };
-            } else {
-              this.sel = null;
-            }
+        this.cm = await cm6.create(this.$refs.editor, {
+          value: this.input,
+          language: 'plain',
+          wrap: this.isWrapped,
+          setup: 'basic',
+          onChange: (text) => { this.input = text; },
+          onSelection: (sel) => {
+            this.sel = sel;
             this.detectType();
             window.messaging.publish(PATH_SEL, 'change', this.sel);
           }
         });
-
-        this.view = new EditorView({
-          state: EditorState.create({
-            doc: this.input,
-            extensions: [
-              basicSetup,
-              this._langCompartment.of([]),
-              this._wrapCompartment.of(this.isWrapped ? EditorView.lineWrapping : []),
-              onUpdate
-            ]
-          }),
-          parent: this.$refs.editor
-        });
+        this.view = this.cm.view;
       },
 
       applyWrap() {
-        if (!this.view) return;
-        const { EditorView } = this._modules;
-        this.view.dispatch({
-          effects: this._wrapCompartment.reconfigure(this.isWrapped ? EditorView.lineWrapping : [])
-        });
+        this.cm?.setWrap(this.isWrapped);
       },
 
       applyLanguage(kind) {
-        if (!this.view || this._currentLang === kind) return;
+        if (!this.cm || this._currentLang === kind) return;
         this._currentLang = kind;
-        const { javascript, htmlLang } = this._modules;
-        const ext = kind === 'js' ? javascript() : kind === 'html' ? htmlLang() : [];
-        this.view.dispatch({ effects: this._langCompartment.reconfigure(ext) });
+        this.cm.setLanguage(kind === 'js' ? 'js' : kind === 'html' ? 'html' : 'plain');
       },
 
       async saveInput() {
