@@ -1,10 +1,13 @@
 // kits/fills.js — daisyUI/Tailwind template-string helpers.
 //
 // Salvaged from Alp (archive/alp/repo/utils/fills.js). Pure functions that
-// return HTML strings; zero runtime deps and zero Alpine coupling. Designed
-// to be composed wherever HTML is built by string concatenation — Alpine
-// `x-data` templates, vanilla DOM, anywhere. Loadable as a plain script
-// (no ES modules):
+// return branded HTML values — String wrappers tagged with a registry symbol
+// (Symbol.for('webtools.html')) so they coerce to their markup everywhere a
+// string is expected, while a knowing recipient like vanilla-bundle's `fill`
+// can tell them apart from plain text. Zero runtime deps and zero Alpine
+// coupling. Designed to be composed wherever HTML is built by string
+// concatenation — Alpine `x-data` templates, vanilla DOM, anywhere. Loadable
+// as a plain script (no ES modules):
 //
 //   <script src=".../kits/fills.js"></script>
 //   const { tip, lines } = window.fills;
@@ -18,6 +21,11 @@
 // x-toolbar, x-btn, x-save-indicator, x-action, x-metric).
 
 (() => {
+  // Brand a markup string so `fill` places it as nodes. Obtained via Symbol.for
+  // so this file and vanilla-bundle.js agree without referencing each other.
+  const HTML = Symbol.for('webtools.html');
+  const html = markup => { const h = new String(markup); h[HTML] = true; return h; };
+
   const sz  = mods => ['xs', 'sm', 'md', 'lg', 'xl'].find(s => mods.includes(s));
   const pos = mods => ['top', 'bottom', 'left', 'right'].find(p => mods.includes(p)) || 'bottom';
   const gap = mods => ['gap-0', 'gap-1', 'gap-2', 'gap-3', 'gap-4'].find(g => mods.includes(g)) || 'gap-0';
@@ -40,34 +48,34 @@
         'ghost','outline','soft','neutral'].find(v => mods.includes(v));
       const classes = ['btn', sz(mods) && `btn-${sz(mods)}`, variant && `btn-${variant}`]
         .filter(Boolean).join(' ');
-      return `<button class="${classes}">${label}</button>`;
+      return html(`<button class="${classes}">${label}</button>`);
     },
 
     // daisyUI tooltip with a custom rich content body.
     tip: (mods, trigger, content) => {
       const cls = ['tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-left',
         txt(mods) || 'text-xs'].filter(Boolean).join(' ');
-      return `<div class="tooltip tooltip-${pos(mods)}"><div class="${cls}">${content}</div>${trigger}</div>`;
+      return html(`<div class="tooltip tooltip-${pos(mods)}"><div class="${cls}">${content}</div>${trigger}</div>`);
     },
 
     // Stacked column of single-line items.
     lines: (mods, arr) => {
       const cls = ['flex flex-col', gap(mods), txt(mods)].filter(Boolean).join(' ');
-      return `<div class="${cls}">${arr.map(s => `<div>${s}</div>`).join('')}</div>`;
+      return html(`<div class="${cls}">${arr.map(s => `<div>${s}</div>`).join('')}</div>`);
     },
 
     // Horizontal toolbar wrapper. `mods` reserved for future use.
     toolbar: (mods, ...items) =>
-      `<div class="flex gap-2 items-center justify-between mb-2">${items.join('')}</div>`,
+      html(`<div class="flex gap-2 items-center justify-between mb-2">${items.join('')}</div>`),
 
     // Full-screen modal. Caller provides the inner box content.
-    modal: (inner) => `
+    modal: (inner) => html(`
       <dialog class="modal">
         <div class="modal-box w-full max-w-[95%] h-[80vh] p-0 shadow-lg flex flex-col overflow-hidden rounded-lg">
           ${inner}
         </div>
         <form method="dialog" class="modal-backdrop"><button>close</button></form>
-      </dialog>`
+      </dialog>`)
   };
 
   window.fills = fills;
