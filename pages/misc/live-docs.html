@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Living Documentation — daisyUI</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the modules load from; defaults
+  // to main. gh-api.js auto-boots window.gh from its own import URL.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
+
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+
+  const SECTIONS = [
+    {
+      title: 'Rendering markup',
+      intro: 'When the output is visual, the proof is the pixels. Show the markup, then let it render — on its own, or set into the page it belongs to.',
+      examples: [
+        {
+          title: 'A status pill',
+          prose: `The simplest proof is the literal one. A small inline badge for a reconciliation state. Swap <code class="${c()}">blue</code> for <code class="${c()}">green</code> and the proof redraws as you type.`,
+          lang: 'html', kind: 'render', tw: true,
+          code:
+`<span class="inline-flex items-center gap-1.5 rounded-sm
+  bg-blue-100 text-blue-800 border border-blue-200
+  px-2 py-0.5 text-xs font-medium">
+  <span class="w-1.5 h-1.5 rounded-sm bg-blue-500"></span>
+  Pending review
+</span>`
+        },
+        {
+          title: 'A field, in context',
+          prose: `A lone form control tells you little. The snippet here is only the highlighted field; the settings card around it is the host it drops into.`,
+          lang: 'html', kind: 'context', tw: true,
+          context:
+`<div class="max-w-sm mx-auto rounded-sm border border-zinc-200 bg-white p-4 shadow-sm">
+  <h3 class="text-sm font-semibold text-zinc-800 mb-1">Allotment settings</h3>
+  <p class="text-xs text-zinc-500 mb-4">Controls how the biennium splits across periods.</p>
+  <label class="block text-xs text-zinc-400 mb-1">Fund</label>
+  <div class="h-8 rounded-sm border border-zinc-200 bg-zinc-50 mb-3"></div>
+  <div class="rounded-sm ring-1 ring-zinc-300 bg-zinc-50/50 p-2.5">{{slot}}</div>
+</div>`,
+          code:
+`<label class="block text-xs font-medium text-zinc-700 mb-1">
+  Periods per year
+</label>
+<input type="number" value="12"
+  class="w-full h-8 rounded-sm border border-zinc-300 px-2
+         text-xs focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none">
+<p class="mt-1.5 text-[10px] text-zinc-500">
+  Most accounts use 12. LEOFF restatements may differ.
+</p>`
+        },
+      ],
+    },
+    {
+      title: 'Proving behaviour',
+      intro: 'When the output is logic, the proof is what the code returns. Run it and read the result, whether that result is a line of text or a picture it draws for itself.',
+      examples: [
+        {
+          title: 'Rolling up the ledger',
+          prose: `This rolls a flat list of expenditure rows into per-fund totals and logs them as currency. Edit a number, then press Run (or <code class="${c()}">⌘⏎</code>).`,
+          lang: 'js', kind: 'console',
+          code:
+`const rows = [
+  { fund: '001 General',     amount: 184200 },
+  { fund: '001 General',     amount:  92750 },
+  { fund: '874 OASI Revolv', amount: 311900 },
+  { fund: '874 OASI Revolv', amount:  47300 },
+];
+
+const usd = new Intl.NumberFormat('en-US',
+  { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+const totals = rows.reduce((acc, r) => {
+  acc[r.fund] = (acc[r.fund] || 0) + r.amount;
+  return acc;
+}, {});
+
+for (const [fund, sum] of Object.entries(totals))
+  console.log(fund.padEnd(18), usd.format(sum));
+
+console.log('total'.padEnd(18),
+  usd.format(rows.reduce((s, r) => s + r.amount, 0)));`
+        },
+        {
+          title: 'Proof by picture',
+          prose: `Sometimes the cleanest proof of a function is a picture it paints. This turns an array of monthly figures into a row of bars, building the nodes straight into the frame.`,
+          lang: 'js', kind: 'jsrender', tw: false,
+          code:
+`const data = [42, 58, 35, 71, 64, 88, 53, 96];
+const max = Math.max(...data);
+
+const row = document.createElement('div');
+row.style.cssText =
+  'display:flex;align-items:flex-end;gap:4px;height:100px';
+
+data.forEach((v, i) => {
+  const bar = document.createElement('div');
+  bar.style.cssText =
+    'flex:1;border-radius:2px 2px 0 0;background:#52525b;' +
+    'opacity:' + (0.4 + 0.6 * v / max) + ';' +
+    'height:' + (v / max * 100) + '%;' +
+    'transition:height .4s ' + (i * 40) + 'ms';
+  row.appendChild(bar);
+});
+
+document.body.appendChild(row);`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-3">A concept · Living documentation · daisyUI</p>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Show the code. <span class="opacity-50">Then prove it.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        A page is a stack of sections; each section gathers a few examples. Every example pairs prose with a snippet you can edit and a proof that follows in the same card: the markup rendering, the same markup in its habitat, or the console answering back.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount({ sections, sectionsEl, displayEl, legendEl })</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>, with the editor from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">kits/cm6.js</code>. Each example is one config object; only the section carries a large heading.</p>
+        <p>The proof is an isolated iframe, so a snippet cannot reach the page around it. Display preferences, pinned top-right, apply to every editor at once.</p>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>
