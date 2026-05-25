@@ -1,447 +1,295 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="emerald">
+<!doctype html>
+<html lang="en" data-theme="nord">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vanilla-bundle — demo</title>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vanilla-bundle — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
-  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import
-  // URL, exposes window.gh, and chains gh-auth.js; we just gh.load() from here.
+  // ?use=<branch|tag|sha> picks the ref; the same ref is handed to demo.mount
+  // as `base`, so vanilla-bundle.js injected into each proof frame matches.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
-  await gh.load('vanilla-bundle.js');
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
 
-  // ── select + read: ea + el ──
-  const names = ea('#ea-list li', el.textContent);
-  fill(document, { '#ea-out': JSON.stringify(names) });
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+  const inject = ['vanilla-bundle.js'];
 
-  // ── ids ──
-  const { idsOut } = ids;
-  idsOut.textContent = 'resolved #ids-out by destructuring `ids` — keyed by name, never by document order';
+  const SECTIONS = [
+    {
+      title: 'Select and read',
+      intro: 'Each block injects vanilla-bundle.js into its own frame, builds a little scene, then runs the helper on it — edit the code and watch the frame redraw.',
+      examples: [
+        {
+          title: 'ea(sel, cb?) + el',
+          prose: `<code class="${c()}">ea</code> is querySelectorAll → map, returning a real array; <code class="${c()}">el.prop</code> is shorthand for the callback <code class="${c()}">node =&gt; node.prop</code>.`,
+          lang: 'js', kind: 'jsrender', inject,
+          code:
+`document.body.innerHTML = '<ul id="list"><li>alpha</li><li>beta</li><li>gamma</li></ul>';
 
-  // ── ui: two independent cards, same data-ui names ──
-  ea('.ui-card', card => {
-    const { count, inc } = ui(card);
-    let n = 0;
-    on(inc, 'click', () => count.textContent = ++n);
-  });
-
-  // ── grab: eager snapshot of one subtree ──
-  const bag = grab(document.querySelector('#grab-scope'));
-  fill(document, { '#grab-out': 'keys harvested: ' + Object.keys(bag).join(', ') });
-
-  // ── fill: the four value shapes ──
-  fill(document.querySelector('#fill-target'), {
-    '.t-string': 'string value → set as textContent',
-    '.t-object': { textContent: 'object → Object.assign(el, v)', className: 'text-success' },
-    '.t-fn':     node => node.textContent = 'function → run on <' + node.tagName.toLowerCase() + '>',
-    '.t-array':  [
-      cls('font-bold', true),
-      attr('title', 'this title was set via attr()'),
-      node => node.textContent = 'array → run each callback (made bold + given a title attr — hover me)'
-    ],
-    '.t-html':   html('branded HTML → parsed &amp; placed as nodes (this <em class="text-primary not-italic font-bold">emphasis</em> is real markup, not escaped text)')
-  });
-
-  // ── callback helpers: cls + data + listen, applied together ──
-  fill(document, {
-    '#cb-btn': [
-      cls('btn-primary', true),
-      data({ role: 'demo', clicks: '0' }),
-      listen('click', e => {
-        const n = +e.currentTarget.dataset.clicks + 1;
-        e.currentTarget.dataset.clicks = n;
-        fill(document, { '#cb-out': `clicked ${n}× · data-role="${e.currentTarget.dataset.role}"` });
-      })
-    ]
-  });
-
-  // ── tpl: rows → markup → place ──
-  const rows = [
-    { icon: 'rocket-launch', label: 'launch' },
-    { icon: 'database',      label: 'store' },
-    { icon: 'broadcast',     label: 'publish' }
-  ];
-  tpl`
-    <li class="flex items-center gap-2 py-0.5">
-      <i class="ph ph-${r => r.icon} opacity-70"></i> ${r => r.label}
-    </li>`(rows)(ids.tplTarget);
-
-  // ── on: single listener, returns the element ──
-  let clicks = 0;
-  on(ids.onBtn, 'click', () => fill(document, { '#on-out': `clicked ${++clicks}×` }));
-
-  // ── route: one delegated listener fanning out by selector ──
-  route(ids.routeTarget, 'click', {
-    '[data-act="add"]':   () => fill(document, { '#route-out': 'matched [data-act="add"]' }),
-    '[data-act="clear"]': () => fill(document, { '#route-out': 'matched [data-act="clear"]' }),
-    '.route-item':        (e, match) => fill(document, { '#route-out': `matched .route-item → "${match.textContent.trim()}"` })
-  });
-
-  // ── fill templates: html.* presets minting configured branded values ──
-  fill(document, {
-    '#ht-tip-snippet': `html.tip(['top','xs'],\n  '<button class="btn btn-xs">Hover me</button>',\n  '<strong>Hover content</strong><div>Plain HTML body</div>')`,
-    '#ht-tip-out':     html.tip(['top','xs'],
-      '<button class="btn btn-xs">Hover me</button>',
-      '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>'),
-
-    '#ht-lines-snippet': `html.lines(['gap-1','xs','muted'],\n  ['First line', 'Second line', 'Third line'])`,
-    '#ht-lines-out':     html.lines(['gap-1','xs','muted'],
-      ['First line', 'Second line', 'Third line']),
-
-    '#ht-btn-snippet': `html.btn(['xs','primary'], 'Action')`,
-    '#ht-btn-out':     html.btn(['xs', 'primary'], 'Action'),
-
-    '#ht-toolbar-snippet': `html.toolbar([],\n  '<b>Title</b>',\n  html.btn(['xs','primary'], 'Action'))`,
-    '#ht-toolbar-out':     html.toolbar([],
-      '<b>Title</b>',
-      html.btn(['xs', 'primary'], 'Action')),
-
-    '#ht-modal-snippet': `html.modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`,
-    '#ht-modal-slot':    html.modal(`
-      <div class="p-6">
-        <h3 class="font-bold text-lg">Modal contents</h3>
-        <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
-      </div>`)
-  });
-  route(document, 'click', {
-    '#ht-btn-out .btn, #ht-toolbar-out .btn': (e, el) => {
-      const orig = el.textContent;
-      el.textContent = 'clicked';
-      setTimeout(() => { el.textContent = orig; }, 1000);
+const names = ea('#list li', el.textContent);
+document.body.append(Object.assign(document.createElement('pre'),
+  { textContent: 'ea(...) → ' + JSON.stringify(names) }));`
+        },
+      ],
     },
-    '#ht-modal-open': () => document.querySelector('#ht-modal-slot dialog').showModal()
-  });
-</script>
-</head>
-<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
+    {
+      title: 'Lookup',
+      intro: 'Three ways to turn the DOM into variables: by id document-wide, by data-ui within a scope, or a one-shot snapshot of a subtree.',
+      examples: [
+        {
+          title: 'ids — by id, live, keyed by name',
+          prose: `<code class="${c()}">ids.fooBar</code> resolves <code class="${c()}">getElementById('foo-bar')</code> on access, so destructuring binds by name, never by document order.`,
+          lang: 'js', kind: 'jsrender', inject,
+          code:
+`document.body.innerHTML = '<pre id="out"></pre>';
 
-<div class="max-w-3xl mx-auto px-4 py-8 space-y-10">
+const { out } = ids;
+out.textContent = 'resolved #out via ids — keyed by name, not document order';`
+        },
+        {
+          title: 'ui(root) — by data-ui, scoped, repeatable',
+          prose: `<code class="${c()}">ui(root).fooBar</code> finds <code class="${c()}">[data-ui="foo-bar"]</code> within <code class="${c()}">root</code> — the same name can repeat across instances. Click +1 in the frame.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <div class="card bg-base-200 p-3 inline-flex items-center gap-3">
+    <b data-ui="count" class="text-lg tabular-nums">0</b>
+    <button data-ui="inc" class="btn btn-xs btn-primary">+1</button>
+  </div>\`;
 
-  <header>
-    <div class="flex items-baseline justify-between mb-1">
-      <h1 class="text-2xl font-bold tracking-tight">vanilla-bundle</h1>
-      <a href="index.html" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
-        <i class="ph ph-arrow-left"></i> web-tools
-      </a>
-    </div>
-    <p class="opacity-60 text-xs">
-      The globals that
-      <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>
-      installs — terse, framework-free DOM shorthand. No behavior of its own;
-      each helper is a more direct way to write something you'd otherwise spell
-      out with <code>querySelector</code>, loops, and <code>addEventListener</code>.
-      Each block below shows the helper, a representative call, and the result it
-      produced live on this page.
-    </p>
-  </header>
+const card = document.querySelector('.card');
+const { count, inc } = ui(card);
+let n = 0;
+on(inc, 'click', () => count.textContent = ++n);`
+        },
+        {
+          title: 'grab(root) — eager snapshot of one subtree',
+          prose: `One scan into a plain object keyed by camelCased id. A snapshot, not live, but it hands you the whole bag in a single call.`,
+          lang: 'js', kind: 'jsrender', inject,
+          code:
+`document.body.innerHTML =
+  '<span id="first-name">Ada</span> <span id="last-name">Lovelace</span>';
 
-  <!-- ==================================================================
-       Select + read
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Select + read</h2>
+const bag = grab(document.body);
+document.body.append(Object.assign(document.createElement('pre'),
+  { textContent: 'grab keys: ' + Object.keys(bag).join(', ') }));`
+        },
+      ],
+    },
+    {
+      title: 'Structural write',
+      intro: 'fill is a declarative batch write: the value type picks the action. The callback helpers (attr/cls/listen/data) return el ⇒ el so they slot into a fill array.',
+      examples: [
+        {
+          title: 'fill(root, spec) — the value shapes',
+          prose: `A plain string sets escaped text; a branded <code class="${c()}">html()</code> value is parsed to nodes; an object is <code class="${c()}">Object.assign</code>ed; a function runs; an array runs each callback.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <div class="t-string"></div>
+  <div class="t-html"></div>
+  <div class="t-object"></div>
+  <div class="t-array"></div>\`;
 
-    <div>
-      <h3 class="font-semibold mb-1">ea(sel, cb?) <span class="opacity-50 font-normal text-xs">— querySelectorAll → map</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        Selects all matches and maps each through <code>cb</code> (default: the
-        element itself), returning a real array. Paired with <code>el</code> it
-        reads a property off every match.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const names = ea('#ea-list li', el.textContent)
-// → ["alpha", "beta", "gamma"]</code></pre>
-      <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <ul id="ea-list" class="flex gap-3">
-          <li>alpha</li><li>beta</li><li>gamma</li>
-        </ul>
-        <pre id="ea-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(reading…)</pre>
-      </div>
-    </div>
+fill(document, {
+  '.t-string': 'plain string → textContent (escaped)',
+  '.t-html':   html('branded <em class="text-primary not-italic font-bold">markup</em> → real nodes'),
+  '.t-object': { textContent: 'object → Object.assign', className: 't-object text-success' },
+  '.t-array':  [
+    cls('font-bold', true),
+    attr('title', 'set via attr() — hover me'),
+    node => node.textContent = 'array → each callback runs'
+  ]
+});`
+        },
+        {
+          title: 'attr · cls · listen · data',
+          prose: `The writes that aren't a plain property set. Here one button is styled, seeded with dataset, and wired in a single spec. Click it in the frame.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <button id="cb-btn" class="btn btn-xs">callback-wired button</button>
+  <pre id="cb-out" class="mt-2"></pre>\`;
 
-    <div>
-      <h3 class="font-semibold mb-1">el <span class="opacity-50 font-normal text-xs">— property-accessor proxy</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        <code>el.prop</code> is shorthand for the callback <code>node =&gt; node.prop</code>.
-        It exists to feed <code>ea</code> (and other map-callbacks) without writing
-        an arrow — see the <code>el.textContent</code> above.
-      </p>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       Lookup
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Lookup <span class="opacity-50 font-normal text-sm">— populate variables from the DOM</span></h2>
-
-    <div>
-      <h3 class="font-semibold mb-1">ids <span class="opacity-50 font-normal text-xs">— by id, document-global, live</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        <code>ids.fooBar</code> resolves <code>getElementById('foo-bar')</code> on
-        access. Because a Proxy turns property reads into lookups, destructuring is
-        keyed <em>by name</em>, not by position — so it can't silently bind the
-        wrong element if the markup is reordered.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const { idsOut } = ids   // ids.idsOut → getElementById('ids-out')
-idsOut.textContent = '…'</code></pre>
-      <div class="bg-base-200/40 rounded p-4">
-        <pre id="ids-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(resolving…)</pre>
-      </div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">ui(root?) <span class="opacity-50 font-normal text-xs">— by data-ui, scoped, live</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        The scoped sibling of <code>ids</code>. <code>ui(root).fooBar</code> finds
-        <code>[data-ui="foo-bar"]</code> within <code>root</code>. Since
-        <code>data-ui</code> carries no uniqueness rule, the same name can repeat
-        across instances — the thing <code>ids</code> can't do. Both cards below
-        use the identical <code>data-ui="count"</code>, each scoped to its own card.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>ea('.ui-card', card =&gt; {
-  const { count, inc } = ui(card)        // scoped to THIS card
-  let n = 0
-  on(inc, 'click', () =&gt; count.textContent = ++n)
-})</code></pre>
-      <div class="bg-base-200/40 rounded p-4 grid grid-cols-2 gap-3">
-        <div class="ui-card bg-base-100 rounded p-3 flex items-center justify-between gap-2">
-          <span data-ui="label" class="opacity-60">Card A</span>
-          <b data-ui="count" class="tabular-nums text-lg">0</b>
-          <button data-ui="inc" class="btn btn-xs">+1</button>
-        </div>
-        <div class="ui-card bg-base-100 rounded p-3 flex items-center justify-between gap-2">
-          <span data-ui="label" class="opacity-60">Card B</span>
-          <b data-ui="count" class="tabular-nums text-lg">0</b>
-          <button data-ui="inc" class="btn btn-xs">+1</button>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">grab(root?) <span class="opacity-50 font-normal text-xs">— by id, scoped, eager snapshot</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        One scan of a subtree into a plain object, keyed by camelCased id. Unlike
-        <code>ids</code> it's a snapshot taken once (won't see later-added ids), but
-        it hands you the whole bag in a single call. Scoped to
-        <code>#grab-scope</code> below, it sees only that subtree's ids.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const bag = grab(document.querySelector('#grab-scope'))
-// → { firstName: &lt;span&gt;, lastName: &lt;span&gt; }</code></pre>
-      <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <div id="grab-scope" class="flex gap-4 opacity-60">
-          <span id="first-name">Ada</span>
-          <span id="last-name">Lovelace</span>
-        </div>
-        <pre id="grab-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(scanning…)</pre>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       Structural write
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Structural write</h2>
-
-    <div>
-      <h3 class="font-semibold mb-1">fill(root, spec) <span class="opacity-50 font-normal text-xs">— selector → value map</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        A declarative batch write: for each <code>selector: value</code> pair, every
-        match gets the value applied. The value's <em>type</em> picks the action —
-        a plain string sets text (escaped), a branded <code>html()</code> value is
-        parsed and placed as nodes, an object is <code>Object.assign</code>ed, a
-        function runs on the element, and an array runs each callback in turn.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>fill(target, {
-  '.t-string': 'string → textContent (escaped)',
-  '.t-html':   html('&lt;em&gt;markup&lt;/em&gt; → parsed &amp; placed as nodes'),
-  '.t-object': { textContent: '…', className: 'text-success' },
-  '.t-fn':     node =&gt; node.textContent = node.tagName,
-  '.t-array':  [ cls('font-bold', true), attr('title', '…') ]
-})</code></pre>
-      <div id="fill-target" class="bg-base-200/40 rounded p-4 space-y-1">
-        <div class="t-string">(string branch)</div>
-        <div class="t-html">(branded-html branch)</div>
-        <div class="t-object">(object branch)</div>
-        <div class="t-fn">(function branch)</div>
-        <div class="t-array">(array branch)</div>
-      </div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">attr · cls · listen · data <span class="opacity-50 font-normal text-xs">— callback helpers</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        The writes that aren't a plain property set. Each returns an
-        <code>el =&gt; el</code> callback, so they slot straight into a
-        <code>fill</code> array (or any <code>ea</code> map). Here one button is
-        styled (<code>cls</code>), seeded with dataset (<code>data</code>), and wired
-        (<code>listen</code>) in a single spec.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>fill(document, {
+fill(document, {
   '#cb-btn': [
     cls('btn-primary', true),
     data({ role: 'demo', clicks: '0' }),
-    listen('click', e =&gt; { /* read e.currentTarget.dataset … */ })
+    listen('click', e => {
+      const n = +e.currentTarget.dataset.clicks + 1;
+      e.currentTarget.dataset.clicks = n;
+      ids.cbOut.textContent = \`clicked \${n}× · role="\${e.currentTarget.dataset.role}"\`;
+    })
   ]
-})</code></pre>
-      <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <button id="cb-btn" class="btn btn-xs">callback-wired button</button>
-        <pre id="cb-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
+});`
+        },
+      ],
+    },
+    {
+      title: 'fill templates — html.* presets',
+      intro: 'Methods on html that mint configured branded values — the same kind html("<raw>") produces, but with daisyUI/Tailwind classes baked in. Each takes a mods array of short tokens.',
+      examples: [
+        {
+          title: 'html.btn / toolbar / lines',
+          prose: `Markup-only presets. <code class="${c()}">btn</code> takes a size + variant; <code class="${c()}">toolbar</code> wraps items (including nested presets); <code class="${c()}">lines</code> stacks a column.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML =
+  '<div id="a"></div><div id="b" class="mt-3"></div><div id="c" class="mt-3"></div>';
+
+fill(document, {
+  '#a': html.btn(['sm', 'primary'], 'html.btn'),
+  '#b': html.toolbar([], '<b>html.toolbar</b>', html.btn(['xs', 'ghost'], 'Action')),
+  '#c': html.lines(['gap-1', 'sm'], ['html.lines —', 'one per row', 'three rows'])
+});`
+        },
+        {
+          title: 'html.tip — rich tooltip',
+          prose: `A daisyUI tooltip with an HTML body. <code class="${c()}">mods</code> takes a position and text mods. Hover the trigger in the frame.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = '<div id="t" class="flex justify-center p-2"></div>';
+
+fill(document, {
+  '#t': html.tip(['top', 'xs'],
+    '<button class="btn btn-sm">Hover me</button>',
+    '<strong>Tooltip body</strong><div class="opacity-60">rich HTML, not escaped text</div>')
+});`
+        },
+        {
+          title: 'html.modal — full-screen dialog',
+          prose: `Mints a <code class="${c()}">&lt;dialog&gt;</code>; open it via its <code class="${c()}">showModal()</code>. Click the button in the frame.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <button id="open" class="btn btn-sm btn-primary">Open modal</button>
+  <div id="slot"></div>\`;
+
+fill(document, {
+  '#slot': html.modal('<div class="p-6"><h3 class="font-bold text-lg">Modal contents</h3><p class="py-4 opacity-70">Click outside or hit Esc to close.</p></div>')
+});
+
+on(ids.open, 'click', () => document.querySelector('#slot dialog').showModal());`
+        },
+      ],
+    },
+    {
+      title: 'Templates',
+      intro: 'A tagged template that builds one string from an array of rows, then places it. Function interpolations receive each row.',
+      examples: [
+        {
+          title: 'tpl`…`(rows)(target)',
+          prose: `Bare <code class="${c()}">tpl\`…\`</code> parses the markup and replaceChildren's it — preserving context-sensitive nodes a bare innerHTML would drop. Function interpolations are raw HTML, so the caller owns escaping.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`const rows = [
+  { icon: 'rocket-launch', label: 'launch' },
+  { icon: 'database',      label: 'store' },
+  { icon: 'broadcast',     label: 'publish' }
+];
+
+document.body.innerHTML = '<ul id="list" class="text-sm"></ul>';
+
+tpl\`
+  <li class="flex items-center gap-2 py-0.5">
+    <i class="ph ph-\${r => r.icon} opacity-70"></i> \${r => r.label}
+  </li>\`(rows)(ids.list);`
+        },
+      ],
+    },
+    {
+      title: 'Events',
+      intro: 'A thin addEventListener that chains, and a delegated dispatcher that fans out by selector.',
+      examples: [
+        {
+          title: 'on(root, type, fn)',
+          prose: `Adds a listener and returns the element, so it chains. Use it for a single, known target. Click the button in the frame.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <button id="btn" class="btn btn-sm btn-primary">click me</button>
+  <pre id="out" class="mt-2">(click the button)</pre>\`;
+
+let clicks = 0;
+on(ids.btn, 'click', () => ids.out.textContent = 'clicked ' + (++clicks) + '×');`
+        },
+        {
+          title: 'route(root, type, routes)',
+          prose: `One listener on a container fans out by selector: on each event it walks <code class="${c()}">closest(sel)</code> through the routes in order and calls the first match. Add or remove children freely — no re-binding.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`document.body.innerHTML = \`
+  <div id="target" class="flex flex-col gap-2">
+    <div class="flex gap-2">
+      <button data-act="add" class="btn btn-xs">add</button>
+      <button data-act="clear" class="btn btn-xs btn-ghost">clear</button>
+    </div>
+    <pre id="out">(click a button)</pre>
+  </div>\`;
+
+route(ids.target, 'click', {
+  '[data-act="add"]':   () => ids.out.textContent = 'matched [data-act=add]',
+  '[data-act="clear"]': () => ids.out.textContent = 'matched [data-act=clear]'
+});`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · vanilla-bundle.js</p>
+        <a href="index.html" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> web-tools
+        </a>
       </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       fill templates — html.* presets
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">fill templates</h2>
-    <p class="opacity-60 text-xs">
-      Methods on <code>html</code> that mint <em>configured</em> branded values — the same
-      kind <code>html('&lt;raw&gt;')</code> produces, but with daisyUI/Tailwind classes baked
-      in. Destructure them (<code>const { tip, lines } = html</code>) and drop the result into
-      any <code>fill</code> spec or string concatenation. Each takes a <code>mods</code> array
-      of short tokens; unrecognized tokens are ignored, so <code>[]</code> gives defaults.
-      These carry the daisyUI/Tailwind dependency that the base <code>html()</code> doesn't.
-    </p>
-
-    <div>
-      <h3 class="font-semibold mb-1">html.tip(mods, trigger, content) <span class="opacity-50 font-normal text-xs">— daisyUI tooltip</span></h3>
-      <p class="opacity-60 text-xs mb-2">Rich HTML body. <code>mods</code> takes a position
-        (<code>top|bottom|left|right</code>) and text mods (<code>xs|sm|bold|…</code>).</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-tip-snippet"></code></pre>
-      <div id="ht-tip-out" class="bg-base-200/40 rounded p-4 flex justify-center"></div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">html.lines(mods, arr) <span class="opacity-50 font-normal text-xs">— stacked column</span></h3>
-      <p class="opacity-60 text-xs mb-2"><code>mods</code> takes a gap (<code>gap-0..4</code>) and text mods.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-lines-snippet"></code></pre>
-      <div id="ht-lines-out" class="bg-base-200/40 rounded p-4"></div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">html.btn(mods, label) <span class="opacity-50 font-normal text-xs">— daisyUI button</span></h3>
-      <p class="opacity-60 text-xs mb-2"><code>mods</code> takes a size (<code>xs|sm|md|lg|xl</code>)
-        and variant (<code>primary|secondary|accent|…</code>). Markup only — wire behavior separately.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-btn-snippet"></code></pre>
-      <div id="ht-btn-out" class="bg-base-200/40 rounded p-4 flex justify-center"></div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">html.toolbar(mods, ...items) <span class="opacity-50 font-normal text-xs">— horizontal flex wrapper</span></h3>
-      <p class="opacity-60 text-xs mb-2">Items are HTML strings — including nested presets like <code>html.btn(…)</code>.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-toolbar-snippet"></code></pre>
-      <div id="ht-toolbar-out" class="bg-base-200/40 rounded p-4"></div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">html.modal(inner) <span class="opacity-50 font-normal text-xs">— full-screen dialog</span></h3>
-      <p class="opacity-60 text-xs mb-2">Open via the dialog's <code>showModal()</code>.</p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code id="ht-modal-snippet"></code></pre>
-      <div class="bg-base-200/40 rounded p-4">
-        <button id="ht-modal-open" class="btn btn-sm btn-primary">Open modal</button>
-        <div id="ht-modal-slot"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       Templates
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Templates</h2>
-
-    <div>
-      <h3 class="font-semibold mb-1">tpl / tpl.append / tpl.prepend <span class="opacity-50 font-normal text-xs">— rows → markup → place</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        A tagged template that builds one string from an array of rows, then a
-        placement step. Interpolations that are functions receive each row. Bare
-        <code>tpl`…`</code> parses the markup and <code>replaceChildren</code>'s
-        it — the superset placement, preserving context-sensitive nodes
-        (<code>&lt;tr&gt;</code>, <code>&lt;option&gt;</code>) that bare
-        <code>innerHTML</code> would drop; <code>.append</code> and
-        <code>.prepend</code> are the other two. Scope is element containers —
-        for a raw-text target (<code>&lt;textarea&gt;</code>,
-        <code>&lt;style&gt;</code>, <code>&lt;title&gt;</code>) set text with
-        <code>fill</code> or <code>.value</code>/<code>.textContent</code>.
-        Function interpolations are raw HTML, so the caller owns escaping.
-        Call shape is <code>tpl`…`(rows)(targetEl)</code>.
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Terse DOM shorthand. <span class="opacity-50">Edit it, watch it run.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        The framework-free globals
+        <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>
+        installs — a more direct way to write what you'd otherwise spell out with
+        querySelector, loops, and addEventListener. Each block injects the bundle
+        into an isolated frame, builds a scene, and runs the helper live.
       </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>const rows = [{ icon: 'rocket-launch', label: 'launch' }, …]
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
 
-tpl`
-  &lt;li&gt;&lt;i class="ph ph-${r =&gt; r.icon}"&gt;&lt;/i&gt; ${r =&gt; r.label}&lt;/li&gt;
-`(rows)(ids.tplTarget)</code></pre>
-      <div class="bg-base-200/40 rounded p-4">
-        <ul id="tpl-target" class="text-sm"><li class="opacity-50">(building…)</li></ul>
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Each block injects <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-bundle.js</code> into its frame, so the globals are real, not stubbed.</p>
+        <p>The Alpine-flavored counterpart is <a href="alpine-bundle-demo.html" class="link link-hover">alpine-bundle</a>.</p>
       </div>
-    </div>
-  </section>
+    </footer>
 
-  <!-- ==================================================================
-       Events
-       ================================================================== -->
-  <section class="space-y-6">
-    <h2 class="font-bold text-lg border-b border-base-300 pb-1">Events</h2>
-
-    <div>
-      <h3 class="font-semibold mb-1">on(root, type, fn) <span class="opacity-50 font-normal text-xs">— addEventListener, returns root</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        A thin <code>addEventListener</code> that returns the element, so it chains.
-        Use it when you have a single, known target.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>on(ids.onBtn, 'click', () =&gt; { /* … */ })</code></pre>
-      <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <button id="on-btn" class="btn btn-xs btn-primary">click me</button>
-        <pre id="on-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click the button)</pre>
-      </div>
-    </div>
-
-    <div>
-      <h3 class="font-semibold mb-1">route(root, type, routes) <span class="opacity-50 font-normal text-xs">— delegated dispatch</span></h3>
-      <p class="opacity-60 text-xs mb-2">
-        One listener on a container fans out by selector: on each event it walks
-        <code>e.target.closest(sel)</code> through the routes in order and calls the
-        first match's handler with <code>(event, matchedEl)</code>. Add or remove
-        children freely — no re-binding. All three controls below share one listener.
-      </p>
-      <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>route(ids.routeTarget, 'click', {
-  '[data-act="add"]':   () =&gt; …,
-  '[data-act="clear"]': () =&gt; …,
-  '.route-item':        (e, match) =&gt; … match.textContent …
-})</code></pre>
-      <div class="bg-base-200/40 rounded p-4 space-y-2">
-        <div id="route-target" class="space-y-2">
-          <div class="flex gap-2">
-            <button data-act="add" class="btn btn-xs">data-act="add"</button>
-            <button data-act="clear" class="btn btn-xs btn-ghost">data-act="clear"</button>
-          </div>
-          <div class="flex gap-2">
-            <span class="route-item badge badge-outline cursor-pointer">item one</span>
-            <span class="route-item badge badge-outline cursor-pointer">item two</span>
-            <span class="route-item badge badge-outline cursor-pointer">item three</span>
-          </div>
-        </div>
-        <pre id="route-out" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap">(click anything above)</pre>
-      </div>
-    </div>
-  </section>
-
-  <footer class="text-xs opacity-60 border-t border-base-300 pt-4 leading-relaxed">
-    <p>
-      Every global shown here lives in
-      <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>.
-      The Alpine-flavored counterpart is
-      <a href="alpine-bundle-demo.html" class="link link-hover">alpine-bundle</a>.
-    </p>
-  </footer>
-
-</div>
-
+  </div>
 </body>
 </html>
