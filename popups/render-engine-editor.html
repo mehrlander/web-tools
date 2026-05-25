@@ -70,6 +70,7 @@
     const gh = new window.GH({ repo: REPO, ref: BRANCH });
     await gh.load('kits/compression.js');
     await gh.load('kits/io.js');
+    await gh.load('kits/cm6.js');
     await gh.load('alpineComponents/cm-editor.js');
 
     document.addEventListener('alpine:init', () => {

@@ -1,156 +1,136 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="emerald">
+<!doctype html>
+<html lang="en" data-theme="nord">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>messaging demo</title>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>messaging — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
-  window.GH = GH;
-  const gh = new GH({ repo: 'mehrlander/web-tools' });
-  await gh.load('gh-auth.js');
-  await gh.load('kits/messaging.js');
-  await gh.load('vanilla-bundle.js');
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
 
-  const messaging = window.messaging;
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+  const inject = ['kits/messaging.js'];
 
-  // Publisher
-  const { pubPath, pubOccasion, pubPayload, pubSubs } = ids;
+  const SECTIONS = [
+    {
+      title: 'Publish and subscribe',
+      intro: 'An in-memory bus keyed on opaque path strings. Each block injects the kit into its own frame, so subscriptions never leak between examples. Edit and Run to watch delivery.',
+      examples: [
+        {
+          title: 'Subscribe, publish, receive',
+          prose: `<code class="${c()}">subscribe(path, fn)</code> returns an unsubscribe function. The callback gets <code class="${c()}">(occasion, data, path)</code> — occasion is a free-form tag the publisher chooses.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const off = messaging.subscribe('demo.bus', (occasion, data, path) => {
+  console.log(\`heard on "\${path}"\`);
+  console.log('  occasion:', occasion);
+  console.log('  data:    ', JSON.stringify(data));
+});
 
-  setInterval(() => {
-    pubSubs.textContent = `${messaging.subscriberCount(pubPath.value)} subscriber(s)`;
-  }, 250);
+messaging.publish('demo.bus', 'change', { value: 42 });
 
-  // Subscriber A — fixed listening path
-  const subPath   = 'demo.bus';
-  const { subToggle, subLog } = ids;
-  fill(document, { '#sub-path': subPath });
+off();`
+        },
+        {
+          title: 'Exact-match only',
+          prose: `Paths are matched verbatim — no parent/child propagation. A subscriber on <code class="${c()}">a.b</code> hears <code class="${c()}">a.b</code> and nothing else. <code class="${c()}">publish</code> returns how many subscribers it reached.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`messaging.subscribe('a.b', () => console.log('  → a.b subscriber fired'));
 
-  let subActive = false;
-  let subOff = null;
-  const log = [];
+console.log('publish a     :', messaging.publish('a', 'x'), 'delivered');
+console.log('publish a.b.c :', messaging.publish('a.b.c', 'x'), 'delivered');
+console.log('publish a.b   :', messaging.publish('a.b', 'x'), 'delivered');`
+        },
+        {
+          title: 'Many subscribers, then unsubscribe',
+          prose: `Every active subscriber on a path receives each publication. Call the returned function to drop just that one subscriber.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const fire = tag => () => console.log('  ' + tag + ' fired');
+const offA = messaging.subscribe('demo.topic', fire('A'));
+const offB = messaging.subscribe('demo.topic', fire('B'));
 
-  const renderLog = () => {
-    if (!log.length) {
-      subLog.innerHTML = '<div class="opacity-50">(no messages)</div>';
-      return;
-    }
-    subLog.innerHTML = log.map(m =>
-      `<div><span class="opacity-50">${esc(m.t)}</span> <b>${esc(m.occ)}</b> <span>${esc(JSON.stringify(m.data))}</span></div>`
-    ).join('');
-  };
+console.log('both    →', messaging.publish('demo.topic'), 'delivered');
 
-  const setActive = active => {
-    subActive = active;
-    subToggle.textContent = active ? 'unsubscribe' : 'subscribe';
-  };
+offA();
+console.log('after offA →', messaging.publish('demo.topic'), 'delivered');`
+        },
+      ],
+    },
+    {
+      title: 'Inspect the bus',
+      intro: 'Two read-only helpers expose the current wiring — useful in tests and for debugging who is listening where.',
+      examples: [
+        {
+          title: 'activePaths and subscriberCount',
+          prose: `<code class="${c()}">activePaths()</code> lists every path with at least one subscriber; <code class="${c()}">subscriberCount(path)</code> counts them.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`messaging.subscribe('compress.input', () => {});
+messaging.subscribe('compress.sel',   () => {});
+messaging.subscribe('compress.input', () => {});
 
-  const subscribe = () => {
-    subOff = messaging.subscribe(subPath, (occ, data) => {
-      log.unshift({ t: new Date().toLocaleTimeString(), occ, data });
-      if (log.length > 20) log.pop();
-      renderLog();
-    });
-    setActive(true);
-  };
+for (const p of messaging.activePaths())
+  console.log(\`\${p.padEnd(16)} → \${messaging.subscriberCount(p)} sub(s)\`);`
+        },
+      ],
+    },
+  ];
 
-  subscribe();
-  renderLog();
-
-  // Inspector
-  const { inspectorDump } = ids;
-  const refresh = () => {
-    const paths = messaging.activePaths();
-    inspectorDump.textContent = paths.length
-      ? paths.map(p => `${p}  →  ${messaging.subscriberCount(p)} sub(s)`).join('\n')
-      : '(no active paths)';
-  };
-  refresh();
-  setInterval(refresh, 500);
-
-  route(document, 'click', {
-    '#pub-send':          () => messaging.publish(pubPath.value, pubOccasion.value, pubPayload.value),
-    '#sub-toggle':        () => { if (subActive) { subOff?.(); subOff = null; setActive(false); } else { subscribe(); } },
-    '#sub-clear':         () => { log.length = 0; renderLog(); },
-    '#inspector-refresh': () => refresh(),
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
   });
 </script>
 </head>
-<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
-<div class="max-w-3xl mx-auto px-4 py-8">
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
 
-  <div class="flex items-baseline justify-between mb-1">
-    <h1 class="text-2xl font-bold tracking-tight">messaging</h1>
-    <a href="./" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
-      <i class="ph ph-arrow-left"></i> demos
-    </a>
-  </div>
-  <p class="opacity-60 text-xs mb-6">
-    <code class="text-xs">window.messaging</code> is an in-memory pub/sub. Two
-    detached blocks below talk over the bus — neither knows about the
-    other directly, only the path string.
-    (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/messaging.js" class="link link-hover">kit source</a>)
-  </p>
-
-  <!-- Two independent components on path "demo.bus" -->
-  <div class="grid md:grid-cols-2 gap-4 mb-6">
-
-    <div class="bg-base-200/40 rounded p-4 space-y-3">
-      <h3 class="font-bold text-xs uppercase opacity-60">Publisher</h3>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">path:</span>
-        <input id="pub-path" value="demo.bus" class="input input-xs input-bordered flex-1">
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">occ:</span>
-        <input id="pub-occasion" value="change" class="input input-xs input-bordered flex-1">
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">data:</span>
-        <input id="pub-payload" value="hello" class="input input-xs input-bordered flex-1">
-      </div>
-      <div class="flex items-center justify-between gap-2">
-        <button id="pub-send" class="btn btn-sm btn-primary">publish</button>
-        <span id="pub-subs" class="opacity-60 text-xs">0 subscriber(s)</span>
-      </div>
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
     </div>
-
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">Subscriber A</h3>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">listening on:</span>
-        <code id="sub-path" class="text-xs bg-base-300/50 px-2 py-0.5 rounded"></code>
-      </div>
-      <div class="flex gap-2">
-        <button id="sub-toggle" class="btn btn-xs">subscribe</button>
-        <button id="sub-clear" class="btn btn-xs btn-ghost">clear</button>
-      </div>
-      <div id="sub-log" class="bg-base-300/50 rounded p-2 text-xs h-32 overflow-auto"></div>
-    </div>
-
   </div>
 
-  <!-- Bus inspector -->
-  <div class="bg-base-200/40 rounded p-4">
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">Bus inspector</h3>
-      <button id="inspector-refresh" class="btn btn-xs">refresh</button>
-    </div>
-    <pre id="inspector-dump" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[3rem]">(refresh)</pre>
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/messaging.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Publish it. <span class="opacity-50">Then see who hears.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.messaging</code>
+        is a tiny exact-match pub/sub bus that lets detached components coordinate
+        without a shared store. Each snippet runs in its own isolated frame with the
+        kit injected — edit it, press Run, read the console.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Each block injects <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">kits/messaging.js</code> into its frame; subscriptions are per-frame, so blocks can't interfere.</p>
+      </div>
+    </footer>
+
   </div>
-
-  <p class="opacity-50 text-xs mt-6">
-    Try changing the publisher's path while subscriber A still listens on
-    <code>demo.bus</code> — messages stop being delivered. Each path is a
-    distinct channel; subscribers on parent prefixes don't catch child
-    publications.
-  </p>
-
-</div>
-
 </body>
 </html>

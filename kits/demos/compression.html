@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>compression — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the modules load from; defaults
+  // to main. The same ref is handed to demo.mount as `base`, so the kit each
+  // proof frame injects (kits/compression.js) comes from the matching ref.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
+
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+  const inject = ['kits/compression.js'];
+
+  const SECTIONS = [
+    {
+      title: 'Compress and decompress',
+      intro: 'Every block below injects the kit into its own sandboxed frame and runs the snippet there. brotli and gzip emit a self-describing base64 chunk and read it straight back.',
+      examples: [
+        {
+          title: 'Brotli round-trip',
+          prose: `<code class="${c()}">compression.brotli(text)</code> returns a <code class="${c()}">BR64:</code>-prefixed base64 chunk; <code class="${c()}">.decompress</code> is the inverse. Edit the text, press Run, watch the round-trip hold.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const text = 'The quick brown fox jumps over the lazy dog. '.repeat(8);
+
+const packed = await compression.brotli(text);
+console.log('prefix    ', packed.slice(0, 22) + '…');
+console.log('raw chars ', text.length);
+console.log('brotli b64', packed.length);
+
+const back = await compression.brotli.decompress(packed);
+console.log('round-trip', back === text ? 'identical ✓' : 'MISMATCH ✗');`
+        },
+        {
+          title: 'Gzip, with a label',
+          prose: `Gzip runs on the native <code class="${c()}">CompressionStream</code> — no WASM. Pass a label and it rides inside the prefix as <code class="${c()}">GZ64("…"):</code>, which <code class="${c()}">detect</code> reads back out.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const text = 'allotment '.repeat(40);
+
+const gz = await compression.gzip(text, 'demo');
+console.log('output ', gz.slice(0, 26) + '…');
+console.log('detect ', JSON.stringify(compression.gzip.detect(gz)));
+console.log('back   ', (await compression.gzip.decompress(gz)).slice(0, 24) + '…');`
+        },
+        {
+          title: 'How small, each way',
+          prose: `Repetitive structured text is where these earn their keep. The percentages are output size over raw — for tiny inputs the prefix and base64 expansion can make "compressed" larger, which is the honest result.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const sample = JSON.stringify(
+  Array.from({ length: 40 }, (_, i) =>
+    ({ fund: '001 General', period: i, amount: 1000 + i }))
+);
+
+const br = await compression.brotli(sample);
+const gz = await compression.gzip(sample);
+const pct = n => (n / sample.length * 100).toFixed(0) + '%';
+
+console.log('raw   ', sample.length);
+console.log('brotli', br.length, pct(br.length));
+console.log('gzip  ', gz.length, pct(gz.length));`
+        },
+      ],
+    },
+    {
+      title: 'Detect and locate',
+      intro: 'The prefixes make compressed payloads self-describing, so the kit can spot them inside arbitrary text without being told. acorn answers the adjacent question: is this string even JavaScript?',
+      examples: [
+        {
+          title: 'Detect algorithm and label',
+          prose: `<code class="${c()}">text.detectCompressionType</code> recognises either prefix and reports the algorithm, the optional label, and how many characters the prefix occupies.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const tagged = await compression.brotli('config payload', 'settings');
+console.log('chunk ', tagged.slice(0, 28) + '…');
+
+const det = compression.text.detectCompressionType(tagged);
+console.log('alg   ', det.alg);
+console.log('label ', det.label);
+console.log('prefix', det.prefixLen, 'chars');`
+        },
+        {
+          title: 'Find chunks embedded in text',
+          prose: `<code class="${c()}">text.findCompressedChunks</code> scans a blob of mixed prose and returns every BR64/GZ64 run it finds, in order, with positions — the basis for the helper page's selection chips.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const a = await compression.brotli('first', 'a');
+const b = await compression.gzip('second', 'b');
+const doc = \`intro \${a} middle \${b} end\`;
+
+for (const ch of compression.text.findCompressedChunks(doc))
+  console.log(\`\${ch.alg.padEnd(7)} \${ch.label}  [\${ch.start}-\${ch.end}]\`);`
+        },
+        {
+          title: 'Is it JavaScript?',
+          prose: `<code class="${c()}">acorn.isJS</code> parses the string and reports whether it's valid JS — used to pick the right packing template (eval vs document.write).`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`console.log('valid JS   ', await compression.acorn.isJS('const x = [1,2,3].map(n => n*2)'));
+console.log('broken JS  ', await compression.acorn.isJS('const = ;'));
+console.log('plain prose', await compression.acorn.isJS('just some words here'));`
+        },
+      ],
+    },
+    {
+      title: 'Pack into a URL',
+      intro: 'The point of all this: ship code or markup as one self-contained URL that decompresses itself on open. text.pack builds the wrapper; text.process does assess → compress → pack in a single call.',
+      examples: [
+        {
+          title: 'A self-decompressing bookmarklet',
+          prose: `Compress some JS, then <code class="${c()}">text.pack</code> wraps it in a <code class="${c()}">javascript:</code> URL that decompresses and <code class="${c()}">eval</code>s on click.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const code = 'document.body.style.background = "tomato"';
+
+const compressed = await compression.brotli(code);
+const { output } = compression.text.pack(compressed,
+  { isJavaScript: true, packed: 'bookmarklet' });
+
+console.log('length', output.length);
+console.log(output.slice(0, 72) + '…');`
+        },
+        {
+          title: 'A self-extracting data: URL',
+          prose: `<code class="${c()}">text.process</code> assesses the input, compresses it, and packs a <code class="${c()}">data:text/html</code> URL whose inline script unpacks an inert seed and writes the document. Round-trips back through <code class="${c()}">assess</code>.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const html = '<h1>Hello from a self-extracting data URL</h1>';
+
+const r = await compression.text.process(html,
+  { compressed: true, alg: 'gzip', packed: 'data-url' });
+
+console.log('input bytes ', html.length);
+console.log('output bytes', r.outSize);
+console.log(r.output.slice(0, 58) + '…');`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/compression.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Compress it. <span class="opacity-50">Then prove it round-trips.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.compression</code>
+        wraps Brotli (WASM), Gzip (<code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">CompressionStream</code>),
+        acorn JS detection, and a bookmarklet/data-URL packer. Each snippet runs in
+        an isolated frame with the kit injected — edit it, press Run, read the console.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code> with the editor from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">kits/cm6.js</code>. Each block declares <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">inject: ['kits/compression.js']</code>; the proof frame loads it as a plain script before the snippet runs.</p>
+        <p>The full UI that composes these calls is <a href="../../pages/compression-helper.html" class="link link-hover">compression-helper.html</a>.</p>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -61,7 +61,8 @@ brotli or gzip, and optionally packs the result as a self-decompressing
 
 `text.findCompressedChunks(str)` scans for `BR64:` / `GZ64:` payloads
 embedded in arbitrary text. Detection regexes accept an optional label:
-`BR64("mylabel"):...`.
+`BR64("mylabel"):...`. See `kits/demos/compression.html` for live,
+editable examples.
 
 ### persistence.js
 
@@ -208,7 +209,7 @@ examples.
 
 | Kit | Demo | Notes |
 |---|---|---|
-| `compression.js` | (used in `pages/compression-helper.html`) | brotli + gzip + acorn |
+| `compression.js` | `kits/demos/compression.html` | brotli + gzip + acorn |
 | `persistence.js` | `kits/demos/persistence.html` | idb-keyval + collections |
 | `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |

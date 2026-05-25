@@ -1,159 +1,155 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="emerald">
+<!doctype html>
+<html lang="en" data-theme="nord">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>io demo</title>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>io — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  const { default: GH } = await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js');
-  window.GH = GH;
-  const gh = new GH({ repo: 'mehrlander/web-tools' });
-  await gh.load('gh-auth.js');
-  await gh.load('kits/io.js');
-  await gh.load('vanilla-bundle.js');
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
+  await gh.load('kits/io.js');   // parent-kind snippets call window.io
 
-  const io = window.io;
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
 
-  const { pickResult, saveText, zipStatus, clipText, clipResult } = ids;
-
-  route(document, 'click', {
-    '#btn-pick': async () => {
-      try {
-        const buf = await io.pick();
-        pickResult.textContent = `ArrayBuffer of ${buf.byteLength} bytes`;
-      } catch (e) { pickResult.textContent = `(${e.message})`; }
+  const SECTIONS = [
+    {
+      title: 'Files in',
+      intro: 'io needs a real user gesture, real downloads, and the real clipboard, so every block uses the host kind: pressing Run is the gesture that backs the file dialog or clipboard call. Edit the code, press Run, follow the prompt.',
+      examples: [
+        {
+          title: 'pick / pickText',
+          prose: `<code class="${c()}">io.pick()</code> opens a file dialog and resolves to an <code class="${c()}">ArrayBuffer</code>; <code class="${c()}">io.pickText()</code> resolves to a string. Cancelling the dialog rejects.`,
+          lang: 'js', kind: 'parent',
+          code:
+`// Press Run, then choose any file from the dialog.
+const buf = await io.pick();
+console.log('picked an ArrayBuffer of', buf.byteLength, 'bytes');`
+        },
+      ],
     },
+    {
+      title: 'Files out',
+      intro: 'Each of these triggers a download (or a popup) from the Run gesture.',
+      examples: [
+        {
+          title: 'save / saveJson',
+          prose: `<code class="${c()}">save</code> downloads a Blob or string; <code class="${c()}">saveJson</code> serialises and downloads as JSON.`,
+          lang: 'js', kind: 'parent',
+          code:
+`io.save('hello from the io kit\\n' + new Date().toISOString(),
+  'note.txt', 'text/plain');
 
-    '#btn-pick-text': async () => {
-      try {
-        const text = await io.pickText();
-        pickResult.textContent = text.slice(0, 500) + (text.length > 500 ? '\n…' : '');
-      } catch (e) { pickResult.textContent = `(${e.message})`; }
+io.saveJson({ value: 'edit me', when: new Date().toISOString() }, 'note.json');
+
+console.log('downloaded note.txt and note.json');`
+        },
+        {
+          title: 'saveZip',
+          prose: `Bundles several files into one archive, loading JSZip lazily on the first call. Each entry is <code class="${c()}">{ path, data }</code> (or <code class="${c()}">{ path, url }</code> to fetch).`,
+          lang: 'js', kind: 'parent',
+          code:
+`await io.saveZip([
+  { path: 'hello.txt', data: 'hello from io kit' },
+  { path: 'meta.json', data: JSON.stringify({ when: Date.now() }, null, 2) },
+], 'bundle.zip');
+
+console.log('built and downloaded bundle.zip');`
+        },
+        {
+          title: 'show: a Blob in a popup',
+          prose: `<code class="${c()}">io.show</code> opens a Blob in a new window via <code class="${c()}">URL.createObjectURL</code>. Allow popups for this origin.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const html = \`<!doctype html><meta charset=utf-8><title>io.show</title>
+<body style="font:14px system-ui;padding:2rem">
+<h1>io.show()</h1>
+<p>Opened from a Blob with window.open(URL.createObjectURL(blob)).</p>
+<p>\${new Date()}</p>\`;
+
+io.show(html, 'text/html');
+console.log('opened a popup window');`
+        },
+      ],
     },
-
-    '#btn-save':      () => io.save(saveText.value, 'note.txt', 'text/plain'),
-    '#btn-save-json': () => io.saveJson({ value: saveText.value, when: new Date().toISOString() }, 'note.json'),
-
-    '#btn-save-zip': async () => {
-      zipStatus.textContent = 'building…';
-      try {
-        await io.saveZip([
-          { path: 'hello.txt', data: saveText.value },
-          { path: 'meta.json', data: JSON.stringify({ when: new Date().toISOString() }, null, 2) },
-          { path: 'remote/jszip-readme.url', data: 'https://github.com/Stuk/jszip' }
-        ], 'bundle.zip');
-        zipStatus.textContent = 'downloaded bundle.zip';
-      } catch (e) { zipStatus.textContent = `error: ${e.message}`; }
+    {
+      title: 'Clipboard',
+      intro: 'copy and paste each try the modern Navigator API first, then a legacy execCommand fallback. Watch the browser console to see which branch handled it.',
+      examples: [
+        {
+          title: 'copy',
+          prose: `<code class="${c()}">io.copy(text)</code> resolves to <code class="${c()}">true</code> on success. The Run gesture satisfies the clipboard-write permission.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const ok = await io.copy('copied from the io demo at ' + new Date().toLocaleTimeString());
+console.log(ok ? 'copied to clipboard ✓ — paste somewhere to confirm' : 'copy failed');`
+        },
+        {
+          title: 'paste',
+          prose: `<code class="${c()}">io.paste()</code> reads the clipboard, or throws <code class="${c()}">Paste unavailable in this context</code> where the browser blocks it (e.g. Firefox desktop).`,
+          lang: 'js', kind: 'parent',
+          code:
+`const text = await io.paste();
+console.log('clipboard contains:', JSON.stringify(text));`
+        },
+      ],
     },
+  ];
 
-    '#btn-show': () => {
-      const html = `<!doctype html><meta charset=utf-8><title>io.show</title>
-        <body style="font:14px system-ui;padding:2rem">
-        <h1>io.show()</h1>
-        <p>This document was created from a Blob and opened with
-        <code>window.open(URL.createObjectURL(blob))</code>.</p>
-        <p>Time: ${new Date().toString()}</p>`;
-      io.show(html, 'text/html');
-    },
-
-    '#btn-copy': async () => {
-      const ok = await io.copy(clipText.value);
-      clipResult.textContent = ok ? `copied: ${clipText.value}` : 'copy failed';
-    },
-
-    '#btn-paste': async () => {
-      try {
-        clipResult.textContent = `pasted: ${await io.paste()}`;
-      } catch (e) { clipResult.textContent = `paste error: ${e.message}`; }
-    },
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
   });
 </script>
 </head>
-<body class="bg-base-100 text-base-content min-h-screen font-mono text-sm">
 
-<div class="max-w-3xl mx-auto px-4 py-8">
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
 
-  <div class="flex items-baseline justify-between mb-1">
-    <h1 class="text-2xl font-bold tracking-tight">io</h1>
-    <a href="./" class="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
-      <i class="ph ph-arrow-left"></i> demos
-    </a>
-  </div>
-  <p class="opacity-60 text-xs mb-6">
-    <code class="text-xs">window.io</code> wraps file pick/save, blob preview,
-    and clipboard. JSZip is fetched lazily on first <code>saveZip</code>.
-    (<a href="https://github.com/mehrlander/web-tools/blob/main/kits/io.js" class="link link-hover">kit source</a>)
-  </p>
-
-  <div class="space-y-4">
-
-    <!-- pick -->
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">pick / pickText</h3>
-      <div class="flex flex-wrap gap-2">
-        <button id="btn-pick" class="btn btn-sm">io.pick()</button>
-        <button id="btn-pick-text" class="btn btn-sm">io.pickText()</button>
-      </div>
-      <pre id="pick-result" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]">(no file picked)</pre>
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
     </div>
-
-    <!-- save -->
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">save / saveJson</h3>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">text:</span>
-        <input id="save-text" value="hello from io kit" class="input input-xs input-bordered flex-1">
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button id="btn-save" class="btn btn-sm">save as .txt</button>
-        <button id="btn-save-json" class="btn btn-sm">saveJson({ value: text })</button>
-      </div>
-    </div>
-
-    <!-- saveZip -->
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">saveZip</h3>
-      <p class="opacity-60 text-xs">
-        Bundles two inline files plus a remote URL fetch. Loads JSZip on first click.
-      </p>
-      <button id="btn-save-zip" class="btn btn-sm">build &amp; download bundle.zip</button>
-      <div id="zip-status" class="text-xs opacity-60"></div>
-    </div>
-
-    <!-- show -->
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">show</h3>
-      <p class="opacity-60 text-xs">
-        Opens a Blob in a popup window. (Allow popups for this origin.)
-      </p>
-      <button id="btn-show" class="btn btn-sm">show HTML in popup</button>
-    </div>
-
-    <!-- copy / paste -->
-    <div class="bg-base-200/40 rounded p-4 space-y-2">
-      <h3 class="font-bold text-xs uppercase opacity-60">copy / paste</h3>
-      <div class="flex items-center gap-2">
-        <span class="opacity-60 text-xs">text:</span>
-        <input id="clip-text" value="paste me somewhere" class="input input-xs input-bordered flex-1">
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button id="btn-copy" class="btn btn-sm">io.copy(text)</button>
-        <button id="btn-paste" class="btn btn-sm">io.paste()</button>
-      </div>
-      <pre id="clip-result" class="bg-base-300/50 rounded p-2 text-xs whitespace-pre-wrap min-h-[2rem]"></pre>
-      <p class="opacity-50 text-xs">
-        Try <code>await io.copy('hi')</code> or <code>await io.paste()</code>
-        from the devtools console — focus is on devtools, so the kit waits
-        for you to click the page first. Watch the console to see which
-        branch (Navigator API vs. Legacy DOM) handled it.
-      </p>
-    </div>
-
   </div>
 
-</div>
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
 
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/io.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Move the bytes. <span class="opacity-50">Press Run to prove it.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.io</code>
+        wraps file pick/save, blob preview, and clipboard, with the awkward parts
+        (devtools focus, iOS gesture chains, Firefox clipboard gates) handled.
+        These need a real gesture, so they use the
+        <span class="font-mono text-[0.8em]">Console · host</span> kind — the Run
+        click executes the snippet in this page.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">parent</code> kind runs from the Run click so downloads, the file dialog, and the clipboard all get a genuine user gesture.</p>
+      </div>
+    </footer>
+
+  </div>
 </body>
 </html>

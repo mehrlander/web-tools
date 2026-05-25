@@ -8,18 +8,22 @@
 //
 // Usage:
 //   const ed = await cm6.create(hostEl, {
-//     value, language, wrap, lineNumbers, readOnly, fontSize, onChange, onSelection, onRun
+//     value, language, wrap, lineNumbers, readOnly, fontSize, setup,
+//     onChange, onSelection, onRun
 //   });
 //   ed.getValue(); ed.setValue(str);
 //   ed.setLanguage('js'|'html'|'plain'); ed.setWrap(bool);
-//   ed.setLineNumbers(bool); ed.setReadOnly(bool); ed.setFontSize(px); ed.focus();
+//   ed.setLineNumbers(bool); ed.setReadOnly(bool); ed.setFontSize(px);
+//   ed.focus(); ed.destroy(); ed.view;
 //
 //   - onRun, if given, binds Mod-Enter (Cmd/Ctrl-Enter) to call it.
-//
-// Built on minimalSetup (history, default keymap, drawSelection, syntax
-// highlighting) — deliberately no fold gutter or autocomplete, for a clean
-// snippet editor. Line numbers ride a compartment so they can toggle live;
-// minimalSetup omits them by default.
+//   - setup: 'minimal' (default) or 'basic'. minimal is history + default
+//     keymap + drawSelection + syntax highlighting, for a clean snippet
+//     editor. 'basic' is CodeMirror's basicSetup (line numbers, fold gutter,
+//     autocomplete, search, bracket matching, …) — what the richer Alpine
+//     editors want. With 'basic', line numbers come from the setup itself, so
+//     leave setLineNumbers alone to avoid a duplicate gutter.
+//   - destroy() tears the view down (call on host teardown to avoid leaks).
 
 (() => {
   let modsPromise = null;
@@ -33,6 +37,7 @@
   ]).then(([cm, state, view, commands, js, html]) => ({
     EditorView: cm.EditorView,
     minimalSetup: cm.minimalSetup,
+    basicSetup: cm.basicSetup,
     EditorState: state.EditorState,
     Compartment: state.Compartment,
     Prec: state.Prec,
@@ -51,8 +56,9 @@
     const {
       value = '', language = 'plain', wrap = true,
       lineNumbers = false, readOnly = false, fontSize = 13,
-      onChange, onSelection, onRun,
+      setup = 'minimal', onChange, onSelection, onRun,
     } = opts;
+    const setupExt = setup === 'basic' ? m.basicSetup : m.minimalSetup;
 
     const cLang = new m.Compartment();
     const cWrap = new m.Compartment();
@@ -88,7 +94,7 @@
       state: m.EditorState.create({
         doc: value,
         extensions: [
-          m.minimalSetup,
+          setupExt,
           m.keymap.of([m.indentWithTab]),
           runKeys,
           cLang.of(langExt(m, language)),
@@ -117,6 +123,7 @@
       setReadOnly: r => reconf(cRead, m.EditorState.readOnly.of(r)),
       setFontSize: px => reconf(cTheme, themeExt(px)),
       focus: () => view.focus(),
+      destroy: () => view.destroy(),
     };
   }
 
