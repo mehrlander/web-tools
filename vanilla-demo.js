@@ -91,7 +91,9 @@
 
   const docRender   = (code, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body>${code}${REPORTER}</body></html>`;
   const docContext  = (code, ctx, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body>${ctx.replace('{{slot}}', code)}${REPORTER}</body></html>`;
-  const docJsRender = (code, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body><scr`+`ipt>(async()=>{try{${guard(code)}}catch(e){document.body.append(Object.assign(document.createElement('pre'),{textContent:e.message,style:'color:#dc2626;font:12px ui-monospace,monospace'}))}})()<\/script>${REPORTER}</body></html>`;
+  // REPORTER first: its ResizeObserver/listeners persist after execution, so a
+  // snippet that replaces document.body (e.g. body.innerHTML = …) still resizes.
+  const docJsRender = (code, o) => `<!doctype html><html${o.daisy ? ' data-theme="nord"' : ''}><head>${HEAD(o)}</head><body>${REPORTER}<scr`+`ipt>(async()=>{try{${guard(code)}}catch(e){document.body.append(Object.assign(document.createElement('pre'),{textContent:e.message,style:'color:#dc2626;font:12px ui-monospace,monospace'}))}})()<\/script></body></html>`;
   const docConsole  = (code, o) => `<!doctype html><html><head>${HEAD(o)}</head><body><scr`+`ipt>`
     + `const ser=a=>{try{return a instanceof Error?a.message:typeof a==='object'?JSON.stringify(a):String(a)}catch(_){return String(a)}};`
     + `const send=(level,args)=>parent.postMessage({__c:{level,text:args.map(ser).join(' ')}},'*');`
