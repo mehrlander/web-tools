@@ -42,7 +42,8 @@
       cls('font-bold', true),
       attr('title', 'this title was set via attr()'),
       node => node.textContent = 'array → run each callback (made bold + given a title attr — hover me)'
-    ]
+    ],
+    '.t-html':   html('branded HTML → parsed &amp; placed as nodes (this <em class="text-primary not-italic font-bold">emphasis</em> is real markup, not escaped text)')
   });
 
   // ── callback helpers: cls + data + listen, applied together ──
@@ -216,17 +217,20 @@ idsOut.textContent = '…'</code></pre>
       <p class="opacity-60 text-xs mb-2">
         A declarative batch write: for each <code>selector: value</code> pair, every
         match gets the value applied. The value's <em>type</em> picks the action —
-        string sets text, object is <code>Object.assign</code>ed, a function runs on
-        the element, an array runs each callback in turn.
+        a plain string sets text (escaped), a branded <code>html()</code> value is
+        parsed and placed as nodes, an object is <code>Object.assign</code>ed, a
+        function runs on the element, and an array runs each callback in turn.
       </p>
       <pre class="bg-base-200 rounded p-2 text-xs whitespace-pre-wrap mb-2"><code>fill(target, {
-  '.t-string': 'string → textContent',
+  '.t-string': 'string → textContent (escaped)',
+  '.t-html':   html('&lt;em&gt;markup&lt;/em&gt; → parsed &amp; placed as nodes'),
   '.t-object': { textContent: '…', className: 'text-success' },
   '.t-fn':     node =&gt; node.textContent = node.tagName,
   '.t-array':  [ cls('font-bold', true), attr('title', '…') ]
 })</code></pre>
       <div id="fill-target" class="bg-base-200/40 rounded p-4 space-y-1">
         <div class="t-string">(string branch)</div>
+        <div class="t-html">(branded-html branch)</div>
         <div class="t-object">(object branch)</div>
         <div class="t-fn">(function branch)</div>
         <div class="t-array">(array branch)</div>

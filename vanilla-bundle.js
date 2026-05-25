@@ -28,13 +28,28 @@ window.ui = (root = document) => new Proxy({}, {
 window.grab = (root = document) => Object.fromEntries(
   [...root.querySelectorAll('[id]')].map(el => [camel(el.id), el]))
 
+// ── branded HTML: a string value fill places as markup, not text ──
+// html(markup) tags a String wrapper with a registry symbol. It coerces to its
+// markup everywhere a string is expected (interpolation, join, innerHTML), so
+// producers keep composing by concatenation; fill (below) tests the brand to
+// parse and place it as nodes instead of escaping it. Independent loaders agree
+// via Symbol.for — no shared global, no load-order dependency.
+const HTML = Symbol.for('webtools.html')
+window.html = markup => {
+  const h = new String(markup)
+  h[HTML] = true
+  return h
+}
+
 // ── structural write ──
-// function → run, array → run each on the matched el, object → assign, else → text
+// function → run, array → run each on the matched el, branded HTML → parse +
+// place as nodes, object → assign, else → text
 window.fill = (root, spec) =>
   Object.entries(spec).forEach(([sel, v]) =>
     root.querySelectorAll(sel).forEach(
       typeof v === 'function' ? v
       : Array.isArray(v)      ? el => v.forEach(f => f(el))
+      : v?.[HTML]             ? el => el.replaceChildren(node('' + v))
       : typeof v === 'object' ? el => Object.assign(el, v)
       : el => el.textContent = v))
 

@@ -18,28 +18,28 @@
 
   fill(document, {
     '#snippet-tip':  `tip(['top','xs'],\n  '<button class="btn btn-xs">Hover me</button>',\n  '<strong>Hover content</strong><div>Plain HTML body</div>')`,
-    '#output-tip':   { innerHTML: f.tip(['top','xs'],
+    '#output-tip':   f.tip(['top','xs'],
       '<button class="btn btn-xs">Hover me</button>',
-      '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>') },
+      '<strong>Hover content</strong><div class="opacity-60">Plain HTML body</div>'),
 
     '#snippet-lines': `lines(['gap-1','xs','muted'],\n  ['First line', 'Second line', 'Third line'])`,
-    '#output-lines':  { innerHTML: f.lines(['gap-1','xs','muted'],
-      ['First line', 'Second line', 'Third line']) },
+    '#output-lines':  f.lines(['gap-1','xs','muted'],
+      ['First line', 'Second line', 'Third line']),
 
     '#snippet-btn':  `btn(['xs','primary'], 'Action')`,
-    '#output-btn':   { innerHTML: f.btn(['xs', 'primary'], 'Action') },
+    '#output-btn':   f.btn(['xs', 'primary'], 'Action'),
 
     '#snippet-toolbar': `toolbar([],\n  '<b>Title</b>',\n  btn(['xs','primary'], 'Action'))`,
-    '#output-toolbar':  { innerHTML: f.toolbar([],
+    '#output-toolbar':  f.toolbar([],
       '<b>Title</b>',
-      f.btn(['xs', 'primary'], 'Action')) },
+      f.btn(['xs', 'primary'], 'Action')),
 
     '#snippet-modal': `modal(\`\n  <div class="p-6">\n    <h3 class="font-bold text-lg">Modal contents</h3>\n    <p class="py-4">Anything you want.</p>\n  </div>\`)`,
-    '#modal-slot':    { innerHTML: f.modal(`
+    '#modal-slot':    f.modal(`
       <div class="p-6">
         <h3 class="font-bold text-lg">Modal contents</h3>
         <p class="py-4 opacity-70">Click outside or hit Esc to close.</p>
-      </div>`) },
+      </div>`),
   });
   route(document, 'click', {
     '#output-btn .btn, #output-toolbar .btn': (e, el) => {
