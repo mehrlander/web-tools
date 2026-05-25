@@ -29,17 +29,75 @@ window.grab = (root = document) => Object.fromEntries(
   [...root.querySelectorAll('[id]')].map(el => [camel(el.id), el]))
 
 // ── branded HTML: a string value fill places as markup, not text ──
-// html(markup) tags a String wrapper with a registry symbol. It coerces to its
-// markup everywhere a string is expected (interpolation, join, innerHTML), so
-// producers keep composing by concatenation; fill (below) tests the brand to
-// parse and place it as nodes instead of escaping it. Independent loaders agree
-// via Symbol.for — no shared global, no load-order dependency.
-const HTML = Symbol.for('webtools.html')
+// html(markup) tags a String wrapper with a module-local symbol. It coerces to
+// its markup everywhere a string is expected (interpolation, join, innerHTML),
+// so producers keep composing by concatenation; fill (below) tests the brand to
+// parse and place it as nodes instead of escaping it. Producer and consumer
+// share this file, so the brand is a plain local Symbol — no shared global.
+const HTML = Symbol('webtools.html')
 window.html = markup => {
   const h = new String(markup)
   h[HTML] = true
   return h
 }
+
+// ── html presets: daisyUI/Tailwind-configured branded values ──
+// The base html() above is style-neutral plumbing; these methods are not — they
+// emit daisyUI/Tailwind class strings, so the host page must load that CSS. Each
+// hangs off window.html and mints a branded value via html(), so html('<raw>')
+// and html.tip(...) yield the same kind of thing. `mods` is an array of short
+// tokens (e.g. ['xs','bottom']); recognized tokens map to classes, the rest are
+// ignored — pass [] for defaults. For Alpine-flavored decorators that wire
+// behavior instead of returning fragments, see x-tip/x-lines/x-btn/x-toolbar in
+// alpine-bundle.js.
+const sz  = mods => ['xs', 'sm', 'md', 'lg', 'xl'].find(s => mods.includes(s))
+const pos = mods => ['top', 'bottom', 'left', 'right'].find(p => mods.includes(p)) || 'bottom'
+const gap = mods => ['gap-0', 'gap-1', 'gap-2', 'gap-3', 'gap-4'].find(g => mods.includes(g)) || 'gap-0'
+
+const txt = mods => [
+  sz(mods) && `text-${sz(mods)}`,
+  ['left', 'center', 'right'].find(a => mods.includes(a)) && `text-${['left', 'center', 'right'].find(a => mods.includes(a))}`,
+  mods.includes('bold')     && 'font-bold',
+  mods.includes('semibold') && 'font-semibold',
+  mods.includes('italic')   && 'italic',
+  mods.includes('mono')     && 'font-mono',
+  mods.includes('muted')    && 'opacity-60'
+].filter(Boolean).join(' ')
+
+// Single daisyUI button. Markup only — wire behavior separately.
+window.html.btn = (mods, label) => {
+  const variant = ['primary','secondary','accent','info','success','warning','error',
+    'ghost','outline','soft','neutral'].find(v => mods.includes(v))
+  const classes = ['btn', sz(mods) && `btn-${sz(mods)}`, variant && `btn-${variant}`]
+    .filter(Boolean).join(' ')
+  return window.html(`<button class="${classes}">${label}</button>`)
+}
+
+// daisyUI tooltip with a custom rich content body.
+window.html.tip = (mods, trigger, content) => {
+  const cls = ['tooltip-content bg-base-100 text-base-content border border-base-300 rounded-box shadow-lg p-3 text-left',
+    txt(mods) || 'text-xs'].filter(Boolean).join(' ')
+  return window.html(`<div class="tooltip tooltip-${pos(mods)}"><div class="${cls}">${content}</div>${trigger}</div>`)
+}
+
+// Stacked column of single-line items.
+window.html.lines = (mods, arr) => {
+  const cls = ['flex flex-col', gap(mods), txt(mods)].filter(Boolean).join(' ')
+  return window.html(`<div class="${cls}">${arr.map(s => `<div>${s}</div>`).join('')}</div>`)
+}
+
+// Horizontal toolbar wrapper. `mods` reserved for future use.
+window.html.toolbar = (mods, ...items) =>
+  window.html(`<div class="flex gap-2 items-center justify-between mb-2">${items.join('')}</div>`)
+
+// Full-screen modal. Caller provides the inner box content.
+window.html.modal = (inner) => window.html(`
+  <dialog class="modal">
+    <div class="modal-box w-full max-w-[95%] h-[80vh] p-0 shadow-lg flex flex-col overflow-hidden rounded-lg">
+      ${inner}
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>`)
 
 // ── structural write ──
 // function → run, array → run each on the matched el, branded HTML → parse +

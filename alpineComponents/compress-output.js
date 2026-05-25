@@ -6,7 +6,7 @@ document.addEventListener('alpine:init', function() {
     const PATH_OUTPUT = ns + '.output';
     const PATH_SEL    = ns + '.sel';
 
-    const { tip, lines } = window.fills;
+    const { tip, lines } = window.html;
     const tog = (model, label, header, lns) => tip(
       ['bottom', 'xs'],
       `<label class="flex items-center gap-1"><input type="checkbox" x-model="${model}" class="checkbox checkbox-xs">${label}</label>`,

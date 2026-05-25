@@ -9,7 +9,7 @@ The repo currently has two tiers of pages:
   scaffolding at all.
 - **Scaffolded pages** (`show-repo/show-repo.html`,
   `show-repo/demo-viewer.html`, `demo-spacex.html`,
-  `pages/demos/{fills,persistence,messaging,io}.html`) —
+  `pages/demos/{persistence,messaging,io}.html`) —
   use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
   as augmentations) + `alpine-bundle.js` to load reusable components off
   CDN at runtime.

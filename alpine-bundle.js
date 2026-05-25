@@ -92,8 +92,8 @@
     // Small Alpine directives. Four tiers: class shortcuts (x-tip, x-lines,
     // x-btn, x-toolbar), reactive renderers (x-save-indicator, x-metric),
     // behavior wrappers (x-action), and registration (x-define — custom
-    // element from a <template>). The class-shortcut tier mirrors helpers
-    // in kits/fills.js; the others are new. Modifier convention for
+    // element from a <template>). The class-shortcut tier mirrors the
+    // html.* presets in vanilla-bundle.js; the others are new. Modifier convention for
     // decorating directives: known variant tokens get the directive-name
     // prefix (e.g. 'primary' → 'btn-primary'); unknown tokens pass through
     // as raw classes so callers can sprinkle in Tailwind utilities

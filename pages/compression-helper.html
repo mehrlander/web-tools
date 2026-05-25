@@ -27,8 +27,8 @@
   window.GH = mod.default;
   const gh = new window.GH({ repo: REPO, ref: BRANCH });
 
+  await gh.load('vanilla-bundle.js');
   await gh.load('kits/compression.js');
-  await gh.load('kits/fills.js');
   await gh.load('kits/persistence.js');
   await gh.load('kits/messaging.js');
   await gh.load('alpineComponents/compress-output.js');
