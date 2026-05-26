@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page; tapping one outlines it in place',
+      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log anchored to the bottom',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -23,29 +23,14 @@ document.addEventListener('alpine:init', function() {
              style="width: 22rem; max-width: 92vw;">
           <div class="h-full bg-base-100 border-l border-base-300 shadow-2xl flex flex-col pointer-events-auto">
             <header class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 shrink-0">
-              <div class="flex gap-1">
-                <button @click="tab='components'"
-                        class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-colors"
-                        :class="tab==='components' ? 'bg-primary/15 text-primary' : 'text-base-content/50 hover:text-base-content'">
-                  <i class="ph ph-puzzle-piece text-sm"></i>
-                  <span>Components</span>
-                  <span x-show="totalInstances" class="font-mono text-[10px] opacity-60" x-text="totalInstances"></span>
-                </button>
-                <button @click="tab='console'; scrollConsole()"
-                        class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-colors"
-                        :class="tab==='console' ? 'bg-primary/15 text-primary' : 'text-base-content/50 hover:text-base-content'">
-                  <i class="ph ph-terminal text-sm"></i>
-                  <span>Console</span>
-                  <span x-show="errorCount" x-text="errorCount"
-                        class="inline-flex items-center justify-center text-[9px] font-bold leading-none rounded-full bg-error text-error-content px-1 min-w-[14px]"></span>
-                </button>
+              <div class="flex items-center gap-1.5 px-1 text-xs font-semibold">
+                <i class="ph ph-puzzle-piece text-sm text-primary"></i>
+                <span>Components</span>
+                <span x-show="totalInstances" class="font-mono text-[10px] opacity-60" x-text="totalInstances"></span>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button x-show="tab==='components'" @click="detect()" class="btn btn-ghost btn-xs btn-square" title="Rescan page" aria-label="Rescan">
+                <button @click="detect()" class="btn btn-ghost btn-xs btn-square" title="Rescan page" aria-label="Rescan">
                   <i class="ph ph-arrows-clockwise"></i>
-                </button>
-                <button x-show="tab==='console'" @click="consoleLogs = []" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
-                  <i class="ph ph-trash"></i>
                 </button>
                 <button @click="close()" class="btn btn-ghost btn-xs btn-square" title="Close" aria-label="Close">
                   <i class="ph ph-x"></i>
@@ -53,7 +38,7 @@ document.addEventListener('alpine:init', function() {
               </div>
             </header>
 
-            <div x-show="tab==='components'" class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto">
               <div class="p-2 border-b border-base-300/60">
                 <template x-if="repo">
                   <a :href="'https://github.com/' + repo" target="_blank" class="px-1 font-mono text-xs font-bold link link-hover block" x-text="repo"></a>
@@ -112,18 +97,37 @@ document.addEventListener('alpine:init', function() {
               </div>
             </div>
 
-            <div x-show="tab==='console'" class="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5" id="__fab-console-panel">
-              <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
-              <template x-for="(entry, idx) in consoleLogs" :key="idx">
-                <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
-                     :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
-                             entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
-                                                       'border-base-300 bg-base-100'">
-                  <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
-                  <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
-                  <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
+            <div class="shrink-0 border-t border-base-300 flex flex-col">
+              <div @click="toggleConsole()" role="button" tabindex="0"
+                   class="flex items-center justify-between gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-base-200/60 transition-colors">
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-base-content/70">
+                  <i class="ph ph-terminal text-sm"></i>
+                  <span>Console</span>
+                  <span x-show="errorCount" x-text="errorCount"
+                        class="inline-flex items-center justify-center text-[9px] font-bold leading-none rounded-full bg-error text-error-content px-1 min-w-[14px]"></span>
+                  <span x-show="consoleLogs.length" class="font-mono text-[10px] opacity-50" x-text="consoleLogs.length"></span>
                 </div>
-              </template>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button x-show="consoleOpen && consoleLogs.length" @click.stop="consoleLogs = []" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
+                    <i class="ph ph-trash"></i>
+                  </button>
+                  <i class="ph text-base-content/40" :class="consoleOpen ? 'ph-caret-down' : 'ph-caret-up'"></i>
+                </div>
+              </div>
+              <div x-show="consoleOpen" class="overflow-y-auto p-1 flex flex-col gap-0.5 border-t border-base-300/60"
+                   id="__fab-console-panel" style="max-height: 40vh;">
+                <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
+                <template x-for="(entry, idx) in consoleLogs" :key="idx">
+                  <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
+                       :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
+                               entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
+                                                         'border-base-300 bg-base-100'">
+                    <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
+                    <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
+                    <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
+                  </div>
+                </template>
+              </div>
             </div>
 
           </div>
@@ -133,7 +137,7 @@ document.addEventListener('alpine:init', function() {
       down: false, dragged: false,
 
       open: false,
-      tab: 'components',
+      consoleOpen: false,
       groups: [],
       consoleLogs: [],
       highlighted: null,
@@ -153,12 +157,7 @@ document.addEventListener('alpine:init', function() {
         this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
         this._consoleListener = e => {
           this.consoleLogs.push(e.detail);
-          if (this.tab === 'console') {
-            this.$nextTick(() => {
-              const p = document.getElementById('__fab-console-panel');
-              if (p) p.scrollTop = p.scrollHeight;
-            });
-          }
+          if (this.open && this.consoleOpen) this.scrollConsole();
         };
         window.addEventListener('consolelog', this._consoleListener);
       },
@@ -349,6 +348,11 @@ document.addEventListener('alpine:init', function() {
       componentPath(name) { return 'alpineComponents/' + name + '.js'; },
 
       fmtTime(ts) { return new Date(ts).toTimeString().slice(0, 8); },
+
+      toggleConsole() {
+        this.consoleOpen = !this.consoleOpen;
+        if (this.consoleOpen) this.scrollConsole();
+      },
 
       scrollConsole() {
         this.$nextTick(() => {
