@@ -21,6 +21,14 @@ if (typeof window !== 'undefined' && !window.__consoleLogs) {
     window.__consoleLogs.push(entry);
     window.dispatchEvent(new CustomEvent('consolelog', { detail: entry }));
   });
+  // A rejected dynamic import() (e.g. cm6's module load) surfaces here, not via
+  // 'error'. Capturing it means __consoleLogs carries the cause next time.
+  window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    const entry = { level: 'error', msg: 'Unhandled rejection: ' + ((r && (r.message || r.stack)) || String(r)), time: Date.now() };
+    window.__consoleLogs.push(entry);
+    window.dispatchEvent(new CustomEvent('consolelog', { detail: entry }));
+  });
 }
 
 export default class GH {

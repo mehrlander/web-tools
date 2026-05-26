@@ -373,7 +373,30 @@
   // replace it with a plain message + a copyable diagnostics blob to bring back.
   const LOAD_CHECK_TIMEOUT = 5000;
 
-  function loadFailureNotice(payload) {
+  // Diagnostics-only re-fetch of a failed import URL: captures HTTP status,
+  // redirect, and content-type to tell an esm.sh serving fault (4xx/5xx/odd
+  // redirect) apart from a transient/parse failure (a clean 200 on refetch).
+  // Never throws and self-times-out, so a probe can't hang the notice.
+  async function probeUrl(url) {
+    const out = { url };
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      out.status = res.status;
+      out.ok = res.ok;
+      out.redirected = res.redirected;
+      out.type = res.type;
+      if (res.url !== url) out.finalUrl = res.url;
+      out.contentType = res.headers.get('content-type') || undefined;
+    } catch (e) {
+      out.fetchError = String((e && e.message) || e);
+    }
+    return out;
+  }
+
+  function loadFailureNotice(getPayload) {
     const wrap = h('div', { class: 'rounded-box border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12px] leading-relaxed' });
     const head = h('div', { class: 'flex items-center gap-2 font-semibold text-warning' },
       h('i', { class: 'ph ph-warning-circle text-[14px]' }), h('span', {}, 'Editor didn’t load'));
@@ -382,7 +405,7 @@
     const reload = h('button', { class: 'btn btn-xs btn-warning' }, 'Reload');
     reload.addEventListener('click', () => location.reload());
     const copy = iconBtn('ph-copy', 'Copy details', async ({ ic, tx }) => {
-      await copyText(payload);
+      await copyText(getPayload());
       ic.className = 'ph ph-check text-[13px]'; tx.textContent = 'Copied';
       setTimeout(() => { ic.className = 'ph ph-copy text-[13px]'; tx.textContent = 'Copy details'; }, 1300);
     });
@@ -393,10 +416,13 @@
   function verifyEditors(loadState, reason) {
     const missing = editorHosts.filter(host => host.isConnected && !host.querySelector('.cm-editor'));
     if (!missing.length) return;   // all editors rendered — nothing to do
-    const payload = JSON.stringify({
+    const failedImports = reason && reason.failedImports;
+    const payload = {
       issue: 'cm6 editors failed to load',
       loadState,
       reason: reason ? String(reason.message || reason) : undefined,
+      durationMs: reason && reason.durationMs,
+      failedImports,
       expected: editorHosts.length,
       mounted: editorHosts.length - missing.length,
       ref: window.__bundleRef,
@@ -404,9 +430,19 @@
       when: new Date().toISOString(),
       ua: navigator.userAgent,
       errors: (window.__consoleLogs || []).filter(l => l.level === 'error').slice(-12),
-    }, null, 2);
-    missing.forEach(host => host.replaceChildren(loadFailureNotice(payload)));
+    };
+    // The Copy button reads this getter at click time, so probe results that
+    // land after render are picked up without re-rendering the notice.
+    let payloadStr = JSON.stringify(payload, null, 2);
+    missing.forEach(host => host.replaceChildren(loadFailureNotice(() => payloadStr)));
     console.error('[vanilla-demo] editors failed to load:', loadState, reason || '');
+
+    if (failedImports && failedImports.length) {
+      Promise.all(failedImports.map(f => probeUrl(f.url))).then(probes => {
+        payload.probes = probes;
+        payloadStr = JSON.stringify(payload, null, 2);
+      });
+    }
   }
 
   // One verification pass, anchored to the shared load. preload() is the same
