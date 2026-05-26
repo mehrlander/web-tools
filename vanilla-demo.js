@@ -371,7 +371,7 @@
   // fails together and the hosts stay blank with no on-page hint. We don't
   // retry (yet): we verify once, and if any host never got a CM6 view, we
   // replace it with a plain message + a copyable diagnostics blob to bring back.
-  const LOAD_CHECK_TIMEOUT = 15000;
+  const LOAD_CHECK_TIMEOUT = 5000;
 
   function loadFailureNotice(payload) {
     const wrap = h('div', { class: 'rounded-box border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12px] leading-relaxed' });
