@@ -65,6 +65,7 @@
   // ── shared editor settings, applied across every block via the Display control ──
   const settings = { size: 13, nums: false, wrap: true };
   const editors = [];
+  const editorHosts = [];   // inline block hosts, checked once by the load fail-safe
   const applyTo = ed => { ed.setFontSize(settings.size); ed.setLineNumbers(settings.nums); ed.setWrap(settings.wrap); };
   const applySettings = () => editors.forEach(applyTo);
 
@@ -208,6 +209,7 @@
     const topBar = h('div', { class: 'flex items-center justify-between bg-base-200/40 pl-2.5 pr-1 py-1 border-b border-base-300' }, langTag, codeActions);
 
     const editorHost = h('div', { class: 'bg-base-100 px-2 py-1.5' });
+    editorHosts.push(editorHost);
 
     const proofZone = h('div', { class: 'bg-base-200/40 border-t border-base-300' });
     const chip = h('span', { class: 'inline-flex items-center gap-1 rounded-box bg-base-100 border border-base-300 px-1.5 py-0.5 font-mono text-[9px] tracking-widest uppercase opacity-70 shadow-sm' },
@@ -363,12 +365,68 @@
     }
   }
 
+  // ── editor load fail-safe ──────────────────────────────────────────────
+  // Every block's editor awaits one shared module load (cm6's modsPromise,
+  // surfaced as cm6.preload()). If that fetch fails — or hangs — every editor
+  // fails together and the hosts stay blank with no on-page hint. We don't
+  // retry (yet): we verify once, and if any host never got a CM6 view, we
+  // replace it with a plain message + a copyable diagnostics blob to bring back.
+  const LOAD_CHECK_TIMEOUT = 5000;
+
+  function loadFailureNotice(payload) {
+    const wrap = h('div', { class: 'rounded-box border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12px] leading-relaxed' });
+    const head = h('div', { class: 'flex items-center gap-2 font-semibold text-warning' },
+      h('i', { class: 'ph ph-warning-circle text-[14px]' }), h('span', {}, 'Editor didn’t load'));
+    const msg = h('p', { class: 'mt-1 opacity-80' },
+      'The code editor couldn’t load its modules — usually a temporary hiccup fetching them. Refreshing the page normally fixes it.');
+    const reload = h('button', { class: 'btn btn-xs btn-warning' }, 'Reload');
+    reload.addEventListener('click', () => location.reload());
+    const copy = iconBtn('ph-copy', 'Copy details', async ({ ic, tx }) => {
+      await copyText(payload);
+      ic.className = 'ph ph-check text-[13px]'; tx.textContent = 'Copied';
+      setTimeout(() => { ic.className = 'ph ph-copy text-[13px]'; tx.textContent = 'Copy details'; }, 1300);
+    });
+    wrap.append(head, msg, h('div', { class: 'mt-2 flex items-center gap-2' }, reload, copy));
+    return wrap;
+  }
+
+  function verifyEditors(loadState, reason) {
+    const missing = editorHosts.filter(host => host.isConnected && !host.querySelector('.cm-editor'));
+    if (!missing.length) return;   // all editors rendered — nothing to do
+    const payload = JSON.stringify({
+      issue: 'cm6 editors failed to load',
+      loadState,
+      reason: reason ? String(reason.message || reason) : undefined,
+      expected: editorHosts.length,
+      mounted: editorHosts.length - missing.length,
+      ref: window.__bundleRef,
+      url: location.href,
+      when: new Date().toISOString(),
+      ua: navigator.userAgent,
+      errors: (window.__consoleLogs || []).filter(l => l.level === 'error').slice(-12),
+    }, null, 2);
+    missing.forEach(host => host.replaceChildren(loadFailureNotice(payload)));
+    console.error('[vanilla-demo] editors failed to load:', loadState, reason || '');
+  }
+
+  // One verification pass, anchored to the shared load. preload() is the same
+  // promise the editors await, so its settle is exactly "they should be up by
+  // now"; the timeout covers a load that never settles at all.
+  function scheduleLoadCheck() {
+    if (!editorHosts.length || !(window.cm6 && cm6.preload)) return;
+    let done = false;
+    const once = (state, reason) => { if (done) return; done = true; verifyEditors(state, reason); };
+    cm6.preload().then(() => once('loaded'), err => once('failed', err));
+    setTimeout(() => once('timeout'), LOAD_CHECK_TIMEOUT);
+  }
+
   function mount({ sections, sectionsEl, displayEl, legendEl, base: baseUrl }) {
     if (baseUrl) base = String(baseUrl).replace(/\/$/, '');
     if (legendEl) legend(legendEl, sections.flatMap(s => s.examples.map(e => e.kind)));
     if (displayEl) buildDisplayControl(displayEl);
     sections.forEach((cfg, si) => sectionsEl.append(section(cfg, si)));
+    scheduleLoadCheck();
   }
 
-  window.demo = { mount, section, example, block, legend, displayControl: buildDisplayControl, PROOF_META, settings };
+  window.demo = { mount, section, example, block, legend, displayControl: buildDisplayControl, verifyEditors, PROOF_META, settings };
 })();
