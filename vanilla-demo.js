@@ -66,6 +66,7 @@
   const settings = { size: 13, nums: false, wrap: true };
   const editors = [];
   const editorHosts = [];   // inline block hosts, checked once by the load fail-safe
+  const loadIndicators = []; // per-host loading spinners, live-updated from cm6.loadStatus()
   const applyTo = ed => { ed.setFontSize(settings.size); ed.setLineNumbers(settings.nums); ed.setWrap(settings.wrap); };
   const applySettings = () => editors.forEach(applyTo);
 
@@ -210,6 +211,9 @@
 
     const editorHost = h('div', { class: 'bg-base-100 px-2 py-1.5' });
     editorHosts.push(editorHost);
+    const indicator = loadingPlaceholder();
+    editorHost.append(indicator.el);
+    loadIndicators.push(indicator);
 
     const proofZone = h('div', { class: 'bg-base-200/40 border-t border-base-300' });
     const chip = h('span', { class: 'inline-flex items-center gap-1 rounded-box bg-base-100 border border-base-300 px-1.5 py-0.5 font-mono text-[9px] tracking-widest uppercase opacity-70 shadow-sm' },
@@ -319,7 +323,7 @@
       wrap: settings.wrap, lineNumbers: settings.nums, fontSize: settings.size,
       onChange: debounce(() => cfg._rebuild(), 260),
       onRun: live ? undefined : () => cfg._run(),
-    }).then(handle => { ed = handle; editors.push(handle); applyTo(handle); });
+    }).then(handle => { ed = handle; editors.push(handle); applyTo(handle); indicator.el.remove(); });
 
     card.append(topBar, editorHost, proofZone);
     return card;
@@ -373,6 +377,28 @@
   // replace it with a plain message + a copyable diagnostics blob to bring back.
   const LOAD_CHECK_TIMEOUT = 5000;
 
+  // While the shared CM6 load is in flight, each editor host shows a spinner.
+  // A healthy load resolves well under a second, so the spinner barely flashes;
+  // if it lingers, it reveals how many modules have settled and names the ones
+  // still pending — making a stall visible live, before the fail-safe fires.
+  function loadingPlaceholder() {
+    const label = h('span', {}, 'Loading editor…');
+    const el = h('div', { class: 'flex items-center gap-2 py-2 text-[11px] opacity-50' },
+      h('span', { class: 'loading loading-spinner loading-xs' }), label);
+    return {
+      el,
+      update(status) {
+        if (!status || !status.imports || !(status.elapsedMs > 1200)) return;
+        const entries = Object.entries(status.imports);
+        const done = entries.filter(([, v]) => v.state === 'fulfilled').length;
+        if (done === entries.length) return;
+        const pending = entries.filter(([, v]) => v.state === 'pending').map(([k]) => k);
+        label.textContent = `Loading editor… ${done}/${entries.length} modules`
+          + (pending.length ? ` · waiting on ${pending.join(', ')}` : '');
+      },
+    };
+  }
+
   // Diagnostics-only re-fetch of a failed import URL: captures HTTP status,
   // redirect, and content-type to tell an esm.sh serving fault (4xx/5xx/odd
   // redirect) apart from a transient/parse failure (a clean 200 on refetch).
@@ -417,18 +443,31 @@
     const missing = editorHosts.filter(host => host.isConnected && !host.querySelector('.cm-editor'));
     if (!missing.length) return;   // all editors rendered — nothing to do
     const failedImports = reason && reason.failedImports;
+    const status = (window.cm6 && cm6.loadStatus) ? cm6.loadStatus() : null;
+    // A stall never rejects, so failedImports is absent; the still-pending set
+    // from loadStatus names the stuck URL(s) instead. Either path yields the
+    // `suspects` we probe below.
+    const pending = status && status.imports
+      ? Object.entries(status.imports).filter(([, v]) => v.state === 'pending').map(([key, v]) => ({ key, url: v.url }))
+      : [];
+    const conn = navigator.connection || {};
     const payload = {
       issue: 'cm6 editors failed to load',
       loadState,
       reason: reason ? String(reason.message || reason) : undefined,
-      durationMs: reason && reason.durationMs,
+      durationMs: (reason && reason.durationMs) || (status && status.elapsedMs) || undefined,
       failedImports,
+      pending: pending.length ? pending : undefined,
+      importStatus: status && status.imports,
       expected: editorHosts.length,
       mounted: editorHosts.length - missing.length,
       ref: window.__bundleRef,
       url: location.href,
       when: new Date().toISOString(),
       ua: navigator.userAgent,
+      // Rules a site-wide network stall in or out, independent of esm.sh.
+      // navigator.connection is absent on Safari; those fields just drop out.
+      net: { online: navigator.onLine, effectiveType: conn.effectiveType, rtt: conn.rtt, downlink: conn.downlink, saveData: conn.saveData },
       errors: (window.__consoleLogs || []).filter(l => l.level === 'error').slice(-12),
     };
     // The Copy button reads this getter at click time, so probe results that
@@ -437,11 +476,13 @@
     missing.forEach(host => host.replaceChildren(loadFailureNotice(() => payloadStr)));
     console.error('[vanilla-demo] editors failed to load:', loadState, reason || '');
 
-    if (failedImports && failedImports.length) {
-      Promise.all(failedImports.map(f => probeUrl(f.url))).then(probes => {
+    // Probe the suspects — URLs that rejected (mods() threw) or, on a stall,
+    // those still pending — to tell an esm.sh serving fault from a transient
+    // one, and re-snapshot errors, which can land after this synchronous build.
+    const suspects = (failedImports && failedImports.length) ? failedImports : pending;
+    if (suspects.length) {
+      Promise.all(suspects.map(f => probeUrl(f.url))).then(probes => {
         payload.probes = probes;
-        // Re-snapshot: unhandledrejection events (and any late esm.sh errors)
-        // fire after the synchronous build, but before these probes resolve.
         payload.errors = (window.__consoleLogs || []).filter(l => l.level === 'error').slice(-12);
         payloadStr = JSON.stringify(payload, null, 2);
       });
@@ -454,7 +495,13 @@
   function scheduleLoadCheck() {
     if (!editorHosts.length || !(window.cm6 && cm6.preload)) return;
     let done = false;
-    const once = (state, reason) => { if (done) return; done = true; verifyEditors(state, reason); };
+    const tick = setInterval(() => {
+      if (window.cm6 && cm6.loadStatus) {
+        const s = cm6.loadStatus();
+        loadIndicators.forEach(p => p.update(s));
+      }
+    }, 400);
+    const once = (state, reason) => { if (done) return; done = true; clearInterval(tick); verifyEditors(state, reason); };
     cm6.preload().then(() => once('loaded'), err => once('failed', err));
     setTimeout(() => once('timeout'), LOAD_CHECK_TIMEOUT);
   }

@@ -40,10 +40,32 @@
     html:     'https://esm.sh/@codemirror/lang-html',
   };
 
+  // Per-import settle state, so a stall stays attributable. A hung import()
+  // leaves Promise.allSettled (and thus mods()) pending forever — it never
+  // rejects, so failedImports never exists and unhandledrejection never fires.
+  // loadStatus() then names which URL(s) are still pending vs. which fulfilled
+  // (and how fast): the only signal a true hang leaves behind.
+  const loadStatus = {};
+  let loadStartedAt = null;
+
   const mods = () => modsPromise || (modsPromise = (async () => {
     const keys = Object.keys(CM6_URLS);
     const t0 = performance.now();
-    const settled = await Promise.allSettled(keys.map(k => import(CM6_URLS[k])));
+    loadStartedAt = Date.now();
+    // Diagnostic switch: ?cm6stall=<key|comma-list|all> makes the named import(s)
+    // hang forever, reproducing the observed timeout/stall on demand to confirm
+    // the load-failure attribution end to end. No effect without the param.
+    const stallParam = typeof location !== 'undefined' && new URLSearchParams(location.search).get('cm6stall');
+    const stalled = stallParam ? new Set(stallParam === 'all' ? keys : stallParam.split(',').map(s => s.trim())) : null;
+    keys.forEach(k => { loadStatus[k] = { url: CM6_URLS[k], state: 'pending' }; });
+    const settled = await Promise.allSettled(keys.map(k =>
+      stalled && stalled.has(k)
+        ? new Promise(() => {})   // never settles — leaves loadStatus[k] 'pending'
+        : import(CM6_URLS[k]).then(
+            m => { loadStatus[k] = { url: CM6_URLS[k], state: 'fulfilled', ms: Math.round(performance.now() - t0) }; return m; },
+            e => { loadStatus[k] = { url: CM6_URLS[k], state: 'rejected', ms: Math.round(performance.now() - t0), reason: String((e && e.message) || e) }; throw e; }
+          )
+    ));
     const durationMs = Math.round(performance.now() - t0);
 
     const got = {};
@@ -155,5 +177,13 @@
     };
   }
 
-  window.cm6 = { create, preload: mods };
+  window.cm6 = {
+    create,
+    preload: mods,
+    loadStatus: () => ({
+      startedAt: loadStartedAt,
+      elapsedMs: loadStartedAt != null ? Date.now() - loadStartedAt : null,
+      imports: { ...loadStatus },
+    }),
+  };
 })();
