@@ -48,23 +48,59 @@
   const loadStatus = {};
   let loadStartedAt = null;
 
+  // esm.sh occasionally drops one fetch in the shared CM6 module graph under
+  // Mobile Safari; because the packages share sub-deps, that one failure can
+  // reject several top-level imports at once (observed: five rejecting at the
+  // same ms, the URL healthy on re-probe, recovered on reload). We can't
+  // prevent the transient, so we absorb it — each import retries with backoff.
+  const MAX_ATTEMPTS = 3;
+  const RETRY_BASE_MS = 300;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
   const mods = () => modsPromise || (modsPromise = (async () => {
     const keys = Object.keys(CM6_URLS);
     const t0 = performance.now();
     loadStartedAt = Date.now();
-    // Diagnostic switch: ?cm6stall=<key|comma-list|all> makes the named import(s)
-    // hang forever, reproducing the observed timeout/stall on demand to confirm
-    // the load-failure attribution end to end. No effect without the param.
-    const stallParam = typeof location !== 'undefined' && new URLSearchParams(location.search).get('cm6stall');
+    // Diagnostic switches (no effect without the param):
+    //   ?cm6stall=<key|comma-list|all>  — named import(s) hang forever, to
+    //     reproduce the timeout/stall path and confirm attribution.
+    //   ?cm6fail=<key[:n],…>            — named import fails its first n
+    //     attempts (n omitted = every attempt), to exercise retry: :1/:2
+    //     should recover, a bare key should exhaust and surface the notice.
+    const params = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
+    const stallParam = params && params.get('cm6stall');
     const stalled = stallParam ? new Set(stallParam === 'all' ? keys : stallParam.split(',').map(s => s.trim())) : null;
+    const forceFail = new Map();
+    if (params && params.get('cm6fail')) params.get('cm6fail').split(',').forEach(s => {
+      const [k, n] = s.split(':');
+      forceFail.set(k.trim(), n === undefined ? Infinity : Number(n));
+    });
+
+    const loadOne = async (key) => {
+      const url = CM6_URLS[key];
+      let lastErr;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        loadStatus[key] = { url, state: 'pending', attempt };
+        try {
+          if (forceFail.has(key) && attempt <= forceFail.get(key)) throw new Error(`cm6fail: forced (attempt ${attempt})`);
+          const m = await import(url);
+          loadStatus[key] = { url, state: 'fulfilled', ms: Math.round(performance.now() - t0), attempt };
+          return m;
+        } catch (e) {
+          lastErr = e;
+          const exhausted = attempt >= MAX_ATTEMPTS;
+          loadStatus[key] = { url, state: exhausted ? 'rejected' : 'retrying', ms: Math.round(performance.now() - t0), attempt, reason: String((e && e.message) || e) };
+          if (!exhausted) await sleep(RETRY_BASE_MS * attempt + Math.random() * 150);  // jitter so retries don't re-align into one burst
+        }
+      }
+      throw lastErr;
+    };
+
     keys.forEach(k => { loadStatus[k] = { url: CM6_URLS[k], state: 'pending' }; });
     const settled = await Promise.allSettled(keys.map(k =>
       stalled && stalled.has(k)
         ? new Promise(() => {})   // never settles — leaves loadStatus[k] 'pending'
-        : import(CM6_URLS[k]).then(
-            m => { loadStatus[k] = { url: CM6_URLS[k], state: 'fulfilled', ms: Math.round(performance.now() - t0) }; return m; },
-            e => { loadStatus[k] = { url: CM6_URLS[k], state: 'rejected', ms: Math.round(performance.now() - t0), reason: String((e && e.message) || e) }; throw e; }
-          )
+        : loadOne(k)
     ));
     const durationMs = Math.round(performance.now() - t0);
 

@@ -371,10 +371,10 @@
 
   // ── editor load fail-safe ──────────────────────────────────────────────
   // Every block's editor awaits one shared module load (cm6's modsPromise,
-  // surfaced as cm6.preload()). If that fetch fails — or hangs — every editor
-  // fails together and the hosts stay blank with no on-page hint. We don't
-  // retry (yet): we verify once, and if any host never got a CM6 view, we
-  // replace it with a plain message + a copyable diagnostics blob to bring back.
+  // surfaced as cm6.preload()). cm6 retries transient import failures itself;
+  // this is the backstop for when retries are exhausted or the load hangs. We
+  // verify once, and if any host never got a CM6 view, we replace it with a
+  // plain message + a copyable diagnostics blob to bring back.
   const LOAD_CHECK_TIMEOUT = 5000;
 
   // While the shared CM6 load is in flight, each editor host shows a spinner.
@@ -392,9 +392,9 @@
         const entries = Object.entries(status.imports);
         const done = entries.filter(([, v]) => v.state === 'fulfilled').length;
         if (done === entries.length) return;
-        const pending = entries.filter(([, v]) => v.state === 'pending').map(([k]) => k);
+        const waiting = entries.filter(([, v]) => v.state === 'pending' || v.state === 'retrying').map(([k]) => k);
         label.textContent = `Loading editor… ${done}/${entries.length} modules`
-          + (pending.length ? ` · waiting on ${pending.join(', ')}` : '');
+          + (waiting.length ? ` · waiting on ${waiting.join(', ')}` : '');
       },
     };
   }
@@ -448,7 +448,7 @@
     // from loadStatus names the stuck URL(s) instead. Either path yields the
     // `suspects` we probe below.
     const pending = status && status.imports
-      ? Object.entries(status.imports).filter(([, v]) => v.state === 'pending').map(([key, v]) => ({ key, url: v.url }))
+      ? Object.entries(status.imports).filter(([, v]) => v.state === 'pending' || v.state === 'retrying').map(([key, v]) => ({ key, url: v.url }))
       : [];
     const conn = navigator.connection || {};
     const payload = {
