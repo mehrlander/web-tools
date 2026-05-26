@@ -440,6 +440,9 @@
     if (failedImports && failedImports.length) {
       Promise.all(failedImports.map(f => probeUrl(f.url))).then(probes => {
         payload.probes = probes;
+        // Re-snapshot: unhandledrejection events (and any late esm.sh errors)
+        // fire after the synchronous build, but before these probes resolve.
+        payload.errors = (window.__consoleLogs || []).filter(l => l.level === 'error').slice(-12);
         payloadStr = JSON.stringify(payload, null, 2);
       });
     }

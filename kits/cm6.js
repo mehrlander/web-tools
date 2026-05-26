@@ -40,12 +40,6 @@
     html:     'https://esm.sh/@codemirror/lang-html',
   };
 
-  // ╔═══ TEMPORARY DIAGNOSTIC TEST — REMOVE BEFORE MERGE ═══╗
-  // Forces the load-failure path so the richer payload (failedImports + probes)
-  // can be observed on a real page load. Delete this one line to restore.
-  CM6_URLS.view = 'https://esm.sh/@codemirror/view-DOES-NOT-EXIST-diagnostic-test';
-  // ╚══════════════════════════════════════════════════════╝
-
   const mods = () => modsPromise || (modsPromise = (async () => {
     const keys = Object.keys(CM6_URLS);
     const t0 = performance.now();
