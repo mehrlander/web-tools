@@ -27,26 +27,54 @@
 
 (() => {
   let modsPromise = null;
-  const mods = () => modsPromise || (modsPromise = Promise.all([
-    import('https://esm.sh/codemirror'),
-    import('https://esm.sh/@codemirror/state'),
-    import('https://esm.sh/@codemirror/view'),
-    import('https://esm.sh/@codemirror/commands'),
-    import('https://esm.sh/@codemirror/lang-javascript'),
-    import('https://esm.sh/@codemirror/lang-html'),
-  ]).then(([cm, state, view, commands, js, html]) => ({
-    EditorView: cm.EditorView,
-    minimalSetup: cm.minimalSetup,
-    basicSetup: cm.basicSetup,
-    EditorState: state.EditorState,
-    Compartment: state.Compartment,
-    Prec: state.Prec,
-    keymap: view.keymap,
-    lineNumbers: view.lineNumbers,
-    indentWithTab: commands.indentWithTab,
-    javascript: js.javascript,
-    htmlLang: html.html,
-  })));
+
+  // Keyed so a failure can name the URL it came from. allSettled (vs Promise.all)
+  // lets us report *every* failing import, not just the first to reject — the
+  // generic WebKit "Importing a module script failed." names none of the six.
+  const CM6_URLS = {
+    cm:       'https://esm.sh/codemirror',
+    state:    'https://esm.sh/@codemirror/state',
+    view:     'https://esm.sh/@codemirror/view',
+    commands: 'https://esm.sh/@codemirror/commands',
+    js:       'https://esm.sh/@codemirror/lang-javascript',
+    html:     'https://esm.sh/@codemirror/lang-html',
+  };
+
+  const mods = () => modsPromise || (modsPromise = (async () => {
+    const keys = Object.keys(CM6_URLS);
+    const t0 = performance.now();
+    const settled = await Promise.allSettled(keys.map(k => import(CM6_URLS[k])));
+    const durationMs = Math.round(performance.now() - t0);
+
+    const got = {};
+    const failedImports = [];
+    settled.forEach((r, i) => {
+      const key = keys[i];
+      if (r.status === 'fulfilled') got[key] = r.value;
+      else failedImports.push({ key, url: CM6_URLS[key], reason: String((r.reason && r.reason.message) || r.reason) });
+    });
+    if (failedImports.length) {
+      const err = new Error(`cm6: ${failedImports.length}/${keys.length} module imports failed (${durationMs}ms): ${failedImports.map(f => f.url).join(', ')}`);
+      err.failedImports = failedImports;
+      err.durationMs = durationMs;
+      throw err;
+    }
+
+    const { cm, state, view, commands, js, html } = got;
+    return {
+      EditorView: cm.EditorView,
+      minimalSetup: cm.minimalSetup,
+      basicSetup: cm.basicSetup,
+      EditorState: state.EditorState,
+      Compartment: state.Compartment,
+      Prec: state.Prec,
+      keymap: view.keymap,
+      lineNumbers: view.lineNumbers,
+      indentWithTab: commands.indentWithTab,
+      javascript: js.javascript,
+      htmlLang: html.html,
+    };
+  })());
 
   const langExt = (m, lang) =>
     lang === 'js' ? m.javascript() : lang === 'html' ? m.htmlLang() : [];
