@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log anchored to the bottom',
+      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log and a render box that hosts any repo page at any ref in an overlay iframe',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -98,6 +98,28 @@ document.addEventListener('alpine:init', function() {
             </div>
 
             <div class="shrink-0 border-t border-base-300 flex flex-col">
+              <div @click="toggleFrameControls()" role="button" tabindex="0"
+                   class="flex items-center justify-between gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-base-200/60 transition-colors">
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-base-content/70">
+                  <i class="ph ph-monitor-play text-sm"></i>
+                  <span>Render page</span>
+                </div>
+                <i class="ph text-base-content/40" :class="frameControls ? 'ph-caret-down' : 'ph-caret-up'"></i>
+              </div>
+              <div x-show="frameControls" class="p-2 flex flex-col gap-1.5 border-t border-base-300/60">
+                <input x-model="framePath" @keydown.enter="openFrame()" placeholder="pages/foo.html"
+                       class="input input-xs input-bordered font-mono text-[11px] w-full">
+                <div class="flex gap-1.5">
+                  <input x-model="frameRef" @keydown.enter="openFrame()" placeholder="main" title="branch / tag / sha"
+                         class="input input-xs input-bordered font-mono text-[11px] flex-1">
+                  <button @click="openFrame()" class="btn btn-xs btn-primary gap-1"><i class="ph ph-play"></i>Open</button>
+                </div>
+                <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
+                <div class="text-[10px] text-base-content/40 leading-snug">Renders the target into an overlay box on top of this page.</div>
+              </div>
+            </div>
+
+            <div class="shrink-0 border-t border-base-300 flex flex-col">
               <div @click="toggleConsole()" role="button" tabindex="0"
                    class="flex items-center justify-between gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-base-200/60 transition-colors">
                 <div class="flex items-center gap-1.5 text-xs font-semibold text-base-content/70">
@@ -131,6 +153,24 @@ document.addEventListener('alpine:init', function() {
             </div>
 
           </div>
+        </div>
+
+        <div x-show="frameOpen" style="display:none" class="fixed inset-0 z-[60] flex flex-col bg-base-300/40 backdrop-blur-sm">
+          <div class="shrink-0 bg-base-100 border-b border-base-300 px-3 py-1.5 flex items-center gap-2">
+            <i class="ph ph-monitor-play text-primary shrink-0"></i>
+            <span class="font-mono text-xs font-semibold truncate" x-text="frameLabel"></span>
+            <span x-show="frameLoading" class="loading loading-spinner loading-xs text-primary"></span>
+            <div class="ml-auto flex items-center gap-1 shrink-0">
+              <a :href="frameOpenUrl" target="_blank" class="btn btn-ghost btn-xs btn-square" title="Open render.html in a tab" aria-label="Open in tab">
+                <i class="ph ph-arrow-square-out"></i>
+              </a>
+              <button @click="closeFrame()" class="btn btn-ghost btn-xs btn-square" title="Close" aria-label="Close">
+                <i class="ph ph-x"></i>
+              </button>
+            </div>
+          </div>
+          <iframe x-ref="frame" class="flex-1 w-full border-0 bg-base-100"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"></iframe>
         </div>`,
 
       x: 0, y: 0, sx: 0, sy: 0,
@@ -141,6 +181,11 @@ document.addEventListener('alpine:init', function() {
       groups: [],
       consoleLogs: [],
       highlighted: null,
+
+      frameOpen: false,
+      frameControls: false,
+      framePath: '', frameRef: 'main', frameRepo: '',
+      frameLoading: false, frameError: '',
 
       repo: '',
       path: '',
@@ -154,6 +199,9 @@ document.addEventListener('alpine:init', function() {
         this._ensureHighlightStyle();
         this.$nextTick(() => Alpine.initTree(this.$el));
         this.infer();
+        this.frameRepo = this.repo || 'mehrlander/web-tools';
+        this.frameRef = this.ref || 'main';
+        this.framePath = this.path || '';
         this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
         this._consoleListener = e => {
           this.consoleLogs.push(e.detail);
@@ -352,6 +400,65 @@ document.addEventListener('alpine:init', function() {
       toggleConsole() {
         this.consoleOpen = !this.consoleOpen;
         if (this.consoleOpen) this.scrollConsole();
+      },
+
+      toggleFrameControls() { this.frameControls = !this.frameControls; },
+
+      get frameLabel() { return this.framePath + ' @ ' + (this.frameRef || 'main'); },
+
+      get frameOpenUrl() {
+        const repo = this.frameRepo || 'mehrlander/web-tools';
+        const owner = repo.split('/')[0], name = repo.split('/')[1];
+        const p = new URLSearchParams({ page: this.framePath, ref: this.frameRef || 'main' });
+        if (repo !== 'mehrlander/web-tools') p.set('repo', repo);
+        return 'https://' + owner + '.github.io/' + name + '/pages/render.html?' + p.toString();
+      },
+
+      async openFrame() {
+        if (!this.framePath) { this.frameError = 'Enter a page path'; return; }
+        if (!window.GH) { this.frameError = 'window.GH not available on this page'; return; }
+        this.frameError = '';
+        this.frameOpen = true;
+        this.frameLoading = true;
+        let token = '';
+        try { token = localStorage.getItem('ghToken') || ''; } catch (e) {}
+        try {
+          const gh = new window.GH({ repo: this.frameRepo || 'mehrlander/web-tools', ref: this.frameRef || 'main', token });
+          const { text } = await gh.get(this.framePath);
+          this.$nextTick(() => { if (this.$refs.frame) this.$refs.frame.srcdoc = this.frameHtml(text); });
+        } catch (e) {
+          this.frameError = (e && e.message) || String(e);
+          this.$nextTick(() => {
+            if (this.$refs.frame) this.$refs.frame.srcdoc =
+              '<pre style="padding:2rem;font:13px ui-monospace,monospace;color:#dc2626">' +
+              this.frameLabel + '\n\n' + this.frameError + '</pre>';
+          });
+        } finally {
+          this.frameLoading = false;
+        }
+      },
+
+      closeFrame() {
+        this.frameOpen = false;
+        if (this.$refs.frame) this.$refs.frame.srcdoc = '';
+      },
+
+      frameHtml(text) {
+        const repo = this.frameRepo || 'mehrlander/web-tools';
+        const ref = this.frameRef || 'main';
+        const path = this.framePath;
+        const owner = repo.split('/')[0], name = repo.split('/')[1];
+        const dir = path.indexOf('/') >= 0 ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+        const base = 'https://' + owner + '.github.io/' + name + '/' + dir;
+        const r = JSON.stringify(ref);
+        const prelude =
+          '<base href="' + base + '">' +
+          '<script>window.__ref=' + r + ';(function(){var R=' + r + ',g=URLSearchParams.prototype.get;' +
+          'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
+          'return (k===\'use\'&&(v==null||v===\'\'))?R:v;};})();<\/script>';
+        if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, function(m) { return m + prelude; });
+        if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, function(m) { return m + '<head>' + prelude + '</head>'; });
+        return '<head>' + prelude + '</head>' + text;
       },
 
       scrollConsole() {
