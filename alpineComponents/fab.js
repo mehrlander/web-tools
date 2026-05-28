@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log and a render box that hosts any repo page at any ref in an overlay iframe',
+      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log and a render box that re-loads the current page at any branch in an overlay iframe',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -106,16 +106,54 @@ document.addEventListener('alpine:init', function() {
                 </div>
                 <i class="ph text-base-content/40" :class="frameControls ? 'ph-caret-down' : 'ph-caret-up'"></i>
               </div>
-              <div x-show="frameControls" class="p-2 flex flex-col gap-1.5 border-t border-base-300/60">
-                <input x-model="framePath" @keydown.enter="openFrame()" placeholder="pages/foo.html"
-                       class="input input-xs input-bordered font-mono text-[11px] w-full">
-                <div class="flex gap-1.5">
-                  <input x-model="frameRef" @keydown.enter="openFrame()" placeholder="main" title="branch / tag / sha"
-                         class="input input-xs input-bordered font-mono text-[11px] flex-1">
-                  <button @click="openFrame()" class="btn btn-xs btn-primary gap-1"><i class="ph ph-play"></i>Open</button>
-                </div>
+              <div x-show="frameControls" class="p-2 flex flex-col gap-2 border-t border-base-300/60">
+                <div x-show="!path" class="text-[10px] text-base-content/50 italic">No page path detected on this URL.</div>
+                <template x-if="path">
+                  <div class="flex flex-col gap-2">
+                    <div>
+                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Page</div>
+                      <div class="font-mono text-[11px] truncate" x-text="path"></div>
+                    </div>
+                    <div>
+                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Branch</div>
+                      <details class="dropdown dropdown-bottom w-full" @toggle="if($event.target.open) loadFrameBranches()" data-auto-close>
+                        <summary class="btn btn-xs btn-outline w-full justify-between gap-1 font-mono normal-case font-normal">
+                          <span class="flex items-center gap-1 truncate">
+                            <i class="ph ph-git-branch text-xs opacity-60"></i>
+                            <span class="truncate" x-text="frameRef || 'main'"></span>
+                          </span>
+                          <i class="ph ph-caret-down text-xs opacity-50"></i>
+                        </summary>
+                        <div class="dropdown-content z-20 mt-1 p-2 shadow-lg bg-base-200 rounded-box border border-base-300" style="width: 18rem; max-width: 90vw;">
+                          <div class="flex gap-1 mb-2">
+                            <input x-model="frameRefInput" placeholder="branch / tag / sha"
+                                   @keyup.enter="applyFrameRef(); $el.closest('details').open = false"
+                                   class="input input-xs input-bordered flex-1 font-mono text-[11px]">
+                            <button @click="applyFrameRef(); $el.closest('details').open = false"
+                                    :disabled="!frameRefInput.trim()" class="btn btn-xs btn-primary">Set</button>
+                          </div>
+                          <div x-show="frameBranchesLoading" class="flex justify-center py-2">
+                            <span class="loading loading-dots loading-xs opacity-50"></span>
+                          </div>
+                          <div x-show="!frameBranchesLoading" class="max-h-48 overflow-y-auto">
+                            <template x-for="b in frameBranches" :key="b">
+                              <a @click="pickFrameRef(b); $el.closest('details').open = false"
+                                 class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-[11px] font-mono"
+                                 :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : ''">
+                                <i class="ph ph-git-branch text-xs opacity-50"></i>
+                                <span class="truncate" x-text="b"></span>
+                              </a>
+                            </template>
+                            <div x-show="!frameBranchesLoading && !frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                    <button @click="openFrame()" class="btn btn-xs btn-primary gap-1 w-full"><i class="ph ph-play"></i>Render</button>
+                  </div>
+                </template>
                 <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
-                <div class="text-[10px] text-base-content/40 leading-snug">Renders the target into an overlay box on top of this page.</div>
+                <div x-show="path" class="text-[10px] text-base-content/40 leading-snug">Re-renders this page at the selected branch in an overlay box.</div>
               </div>
             </div>
 
@@ -160,14 +198,9 @@ document.addEventListener('alpine:init', function() {
             <i class="ph ph-monitor-play text-primary shrink-0"></i>
             <span class="font-mono text-xs font-semibold truncate" x-text="frameLabel"></span>
             <span x-show="frameLoading" class="loading loading-spinner loading-xs text-primary"></span>
-            <div class="ml-auto flex items-center gap-1 shrink-0">
-              <a :href="frameOpenUrl" target="_blank" class="btn btn-ghost btn-xs btn-square" title="Open render.html in a tab" aria-label="Open in tab">
-                <i class="ph ph-arrow-square-out"></i>
-              </a>
-              <button @click="closeFrame()" class="btn btn-ghost btn-xs btn-square" title="Close" aria-label="Close">
-                <i class="ph ph-x"></i>
-              </button>
-            </div>
+            <button @click="closeFrame()" class="ml-auto btn btn-ghost btn-xs btn-square shrink-0" title="Close" aria-label="Close">
+              <i class="ph ph-x"></i>
+            </button>
           </div>
           <iframe x-ref="frame" class="flex-1 w-full border-0 bg-base-100"
                   sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"></iframe>
@@ -184,7 +217,8 @@ document.addEventListener('alpine:init', function() {
 
       frameOpen: false,
       frameControls: false,
-      framePath: '', frameRef: 'main', frameRepo: '',
+      frameRef: 'main', frameRefInput: '',
+      frameBranches: [], frameBranchesLoading: false, frameBranchesLoaded: false,
       frameLoading: false, frameError: '',
 
       repo: '',
@@ -199,9 +233,7 @@ document.addEventListener('alpine:init', function() {
         this._ensureHighlightStyle();
         this.$nextTick(() => Alpine.initTree(this.$el));
         this.infer();
-        this.frameRepo = this.repo || 'mehrlander/web-tools';
         this.frameRef = this.ref || 'main';
-        this.framePath = this.path || '';
         this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
         this._consoleListener = e => {
           this.consoleLogs.push(e.detail);
@@ -404,18 +436,41 @@ document.addEventListener('alpine:init', function() {
 
       toggleFrameControls() { this.frameControls = !this.frameControls; },
 
-      get frameLabel() { return this.framePath + ' @ ' + (this.frameRef || 'main'); },
+      get frameLabel() { return this.path + ' @ ' + (this.frameRef || 'main'); },
 
-      get frameOpenUrl() {
-        const repo = this.frameRepo || 'mehrlander/web-tools';
-        const owner = repo.split('/')[0], name = repo.split('/')[1];
-        const p = new URLSearchParams({ page: this.framePath, ref: this.frameRef || 'main' });
-        if (repo !== 'mehrlander/web-tools') p.set('repo', repo);
-        return 'https://' + owner + '.github.io/' + name + '/pages/render.html?' + p.toString();
+      async loadFrameBranches() {
+        if (this.frameBranchesLoaded || this.frameBranchesLoading) return;
+        if (!window.GH) { this.frameError = 'window.GH not available on this page'; return; }
+        this.frameError = '';
+        this.frameBranchesLoading = true;
+        let token = '';
+        try { token = localStorage.getItem('ghToken') || ''; } catch (e) {}
+        try {
+          const tmp = new window.GH({ repo: this.repo || 'mehrlander/web-tools', token });
+          if (typeof tmp.branches !== 'function') {
+            this.frameError = 'gh-fetch.js not loaded (branches() unavailable)';
+          } else {
+            const list = await tmp.branches();
+            this.frameBranches = list.map(b => b.name);
+            this.frameBranchesLoaded = true;
+          }
+        } catch (e) {
+          this.frameError = 'Branches: ' + ((e && e.message) || String(e));
+        }
+        this.frameBranchesLoading = false;
+      },
+
+      pickFrameRef(name) { this.frameRef = name; },
+
+      applyFrameRef() {
+        const v = (this.frameRefInput || '').trim();
+        if (!v) return;
+        this.frameRef = v;
+        this.frameRefInput = '';
       },
 
       async openFrame() {
-        if (!this.framePath) { this.frameError = 'Enter a page path'; return; }
+        if (!this.path) { this.frameError = 'No page path detected on this page'; return; }
         if (!window.GH) { this.frameError = 'window.GH not available on this page'; return; }
         this.frameError = '';
         this.frameOpen = true;
@@ -423,8 +478,8 @@ document.addEventListener('alpine:init', function() {
         let token = '';
         try { token = localStorage.getItem('ghToken') || ''; } catch (e) {}
         try {
-          const gh = new window.GH({ repo: this.frameRepo || 'mehrlander/web-tools', ref: this.frameRef || 'main', token });
-          const { text } = await gh.get(this.framePath);
+          const gh = new window.GH({ repo: this.repo || 'mehrlander/web-tools', ref: this.frameRef || 'main', token });
+          const { text } = await gh.get(this.path);
           this.$nextTick(() => { if (this.$refs.frame) this.$refs.frame.srcdoc = this.frameHtml(text); });
         } catch (e) {
           this.frameError = (e && e.message) || String(e);
@@ -444,9 +499,9 @@ document.addEventListener('alpine:init', function() {
       },
 
       frameHtml(text) {
-        const repo = this.frameRepo || 'mehrlander/web-tools';
+        const repo = this.repo || 'mehrlander/web-tools';
         const ref = this.frameRef || 'main';
-        const path = this.framePath;
+        const path = this.path;
         const owner = repo.split('/')[0], name = repo.split('/')[1];
         const dir = path.indexOf('/') >= 0 ? path.slice(0, path.lastIndexOf('/') + 1) : '';
         const base = 'https://' + owner + '.github.io/' + name + '/' + dir;
