@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place) and scripts pulled in via gh.load() (with per-entry status), plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list) and a render box that re-loads the current page at any branch in an overlay iframe',
+      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place), scripts pulled in via gh.load() (with per-entry status), and a Render tab that re-loads the current page at any branch/tag/sha in an overlay iframe, plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list)',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -37,6 +37,12 @@ document.addEventListener('alpine:init', function() {
                   <i class="ph ph-code text-sm"></i>
                   <span>Scripts</span>
                   <span x-show="loadedScripts.length" class="font-mono text-[10px] opacity-60" x-text="loadedScripts.length"></span>
+                </button>
+                <button @click="activeTab = 'render'; loadFrameBranches()"
+                        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold transition-colors"
+                        :class="activeTab === 'render' ? 'bg-primary/10 text-primary' : 'text-base-content/60 hover:bg-base-200'">
+                  <i class="ph ph-monitor-play text-sm"></i>
+                  <span>Render</span>
                 </button>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -130,65 +136,56 @@ document.addEventListener('alpine:init', function() {
                   </template>
                 </div>
               </div>
-            </div>
 
-            <div class="shrink-0 border-t border-base-300 flex flex-col">
-              <div @click="toggleFrameControls()" role="button" tabindex="0"
-                   class="flex items-center justify-between gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-base-200/60 transition-colors">
-                <div class="flex items-center gap-1.5 text-xs font-semibold text-base-content/70">
-                  <i class="ph ph-monitor-play text-sm"></i>
-                  <span>Render page</span>
+              <div x-show="activeTab === 'render'">
+                <div x-show="!path" class="text-xs text-base-content/50 italic px-3 py-6 text-center">
+                  No page path detected on this URL.
                 </div>
-                <i class="ph text-base-content/40" :class="frameControls ? 'ph-caret-down' : 'ph-caret-up'"></i>
-              </div>
-              <div x-show="frameControls" class="p-2 flex flex-col gap-2 border-t border-base-300/60">
-                <div x-show="!path" class="text-[10px] text-base-content/50 italic">No page path detected on this URL.</div>
                 <template x-if="path">
-                  <div class="flex flex-col gap-2">
+                  <div class="p-2 flex flex-col gap-2">
                     <div>
                       <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Page</div>
                       <div class="font-mono text-[11px] truncate" x-text="path"></div>
                     </div>
                     <div>
-                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Branch</div>
-                      <details class="dropdown dropdown-bottom w-full" @toggle="if($event.target.open) loadFrameBranches()" data-auto-close>
-                        <summary class="btn btn-xs btn-outline w-full justify-between gap-1 font-mono normal-case font-normal">
-                          <span class="flex items-center gap-1 truncate">
-                            <i class="ph ph-git-branch text-xs opacity-60"></i>
-                            <span class="truncate" x-text="frameRef || 'main'"></span>
-                          </span>
-                          <i class="ph ph-caret-down text-xs opacity-50"></i>
-                        </summary>
-                        <div class="dropdown-content z-20 mt-1 p-2 shadow-lg bg-base-200 rounded-box border border-base-300" style="width: 18rem; max-width: 90vw;">
-                          <div class="flex gap-1 mb-2">
-                            <input x-model="frameRefInput" placeholder="branch / tag / sha"
-                                   @keyup.enter="applyFrameRef(); $el.closest('details').open = false"
-                                   class="input input-xs input-bordered flex-1 font-mono text-[11px]">
-                            <button @click="applyFrameRef(); $el.closest('details').open = false"
-                                    :disabled="!frameRefInput.trim()" class="btn btn-xs btn-primary">Set</button>
-                          </div>
-                          <div x-show="frameBranchesLoading" class="flex justify-center py-2">
-                            <span class="loading loading-dots loading-xs opacity-50"></span>
-                          </div>
-                          <div x-show="!frameBranchesLoading" class="max-h-48 overflow-y-auto">
-                            <template x-for="b in frameBranches" :key="b">
-                              <a @click="pickFrameRef(b); $el.closest('details').open = false"
-                                 class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-[11px] font-mono"
-                                 :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : ''">
-                                <i class="ph ph-git-branch text-xs opacity-50"></i>
-                                <span class="truncate" x-text="b"></span>
-                              </a>
-                            </template>
-                            <div x-show="!frameBranchesLoading && !frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
-                          </div>
-                        </div>
-                      </details>
+                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Ref</div>
+                      <div class="flex gap-1">
+                        <input x-model="frameRefInput" placeholder="branch / tag / sha"
+                               @keyup.enter="applyFrameRef()"
+                               class="input input-xs input-bordered flex-1 font-mono text-[11px]">
+                        <button @click="applyFrameRef()" :disabled="!frameRefInput.trim()" class="btn btn-xs btn-primary">Set</button>
+                      </div>
+                      <div class="text-[10px] text-base-content/50 mt-1">
+                        Selected: <span class="font-mono text-base-content/80" x-text="frameRef || 'main'"></span>
+                      </div>
                     </div>
-                    <button @click="openFrame()" class="btn btn-xs btn-primary gap-1 w-full"><i class="ph ph-play"></i>Render</button>
+                    <button @click="openFrame()" class="btn btn-sm btn-primary gap-1 w-full"><i class="ph ph-play"></i>Render</button>
+                    <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
+                    <div class="border-t border-base-300/60 pt-2">
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold">Branches</div>
+                        <button @click="loadFrameBranches(true)" class="text-[10px] link link-hover"
+                                :class="frameBranchesLoading ? 'opacity-50 pointer-events-none' : ''">refresh</button>
+                      </div>
+                      <div x-show="frameBranchesLoading" class="flex justify-center py-3">
+                        <span class="loading loading-dots loading-sm opacity-50"></span>
+                      </div>
+                      <div x-show="!frameBranchesLoading" class="flex flex-col gap-0.5 overflow-y-auto" style="max-height: 50vh;">
+                        <template x-for="b in frameBranches" :key="b">
+                          <button @click="pickFrameRef(b)"
+                                  class="flex items-center gap-1.5 px-1.5 py-1 rounded text-[11px] font-mono text-left transition-colors"
+                                  :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-300/50'">
+                            <i class="ph ph-git-branch text-xs opacity-50 shrink-0"></i>
+                            <span class="truncate" x-text="b"></span>
+                            <i x-show="b === frameRef" class="ph ph-check text-xs ml-auto shrink-0"></i>
+                          </button>
+                        </template>
+                        <div x-show="!frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
+                      </div>
+                    </div>
+                    <div class="text-[10px] text-base-content/40 leading-snug">Re-renders this page at the selected ref in an overlay box.</div>
                   </div>
                 </template>
-                <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
-                <div x-show="path" class="text-[10px] text-base-content/40 leading-snug">Re-renders this page at the selected branch in an overlay box.</div>
               </div>
             </div>
 
@@ -258,7 +255,6 @@ document.addEventListener('alpine:init', function() {
       highlighted: null,
 
       frameOpen: false,
-      frameControls: false,
       frameRef: 'main', frameRefInput: '',
       frameBranches: [], frameBranchesLoading: false, frameBranchesLoaded: false,
       frameLoading: false, frameError: '',
@@ -534,11 +530,10 @@ document.addEventListener('alpine:init', function() {
         else this.consoleLogs = [];
       },
 
-      toggleFrameControls() { this.frameControls = !this.frameControls; },
-
       get frameLabel() { return this.path + ' @ ' + (this.frameRef || 'main'); },
 
-      async loadFrameBranches() {
+      async loadFrameBranches(force) {
+        if (force) this.frameBranchesLoaded = false;
         if (this.frameBranchesLoaded || this.frameBranchesLoading) return;
         if (!window.GH) { this.frameError = 'window.GH not available on this page'; return; }
         this.frameError = '';
