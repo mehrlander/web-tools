@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer listing every Alpine component instance on the page (tapping one outlines it in place), with a collapsible console log and a render box that re-loads the current page at any branch in an overlay iframe',
+      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place) and scripts pulled in via gh.load() (with per-entry status), plus a collapsible console log and a render box that re-loads the current page at any branch in an overlay iframe',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -22,14 +22,25 @@ document.addEventListener('alpine:init', function() {
              :class="open ? 'translate-x-0' : 'translate-x-full'"
              style="width: 22rem; max-width: 92vw;">
           <div class="h-full bg-base-100 border-l border-base-300 shadow-2xl flex flex-col pointer-events-auto">
-            <header class="px-3 py-2 border-b border-base-300 flex items-center justify-between gap-2 shrink-0">
-              <div class="flex items-center gap-1.5 px-1 text-xs font-semibold">
-                <i class="ph ph-puzzle-piece text-sm text-primary"></i>
-                <span>Components</span>
-                <span x-show="totalInstances" class="font-mono text-[10px] opacity-60" x-text="totalInstances"></span>
+            <header class="px-2 py-1.5 border-b border-base-300 flex items-center justify-between gap-2 shrink-0">
+              <div class="flex items-center gap-0.5">
+                <button @click="activeTab = 'components'"
+                        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold transition-colors"
+                        :class="activeTab === 'components' ? 'bg-primary/10 text-primary' : 'text-base-content/60 hover:bg-base-200'">
+                  <i class="ph ph-puzzle-piece text-sm"></i>
+                  <span>Components</span>
+                  <span x-show="totalInstances" class="font-mono text-[10px] opacity-60" x-text="totalInstances"></span>
+                </button>
+                <button @click="activeTab = 'scripts'"
+                        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold transition-colors"
+                        :class="activeTab === 'scripts' ? 'bg-primary/10 text-primary' : 'text-base-content/60 hover:bg-base-200'">
+                  <i class="ph ph-code text-sm"></i>
+                  <span>Scripts</span>
+                  <span x-show="loadedScripts.length" class="font-mono text-[10px] opacity-60" x-text="loadedScripts.length"></span>
+                </button>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button @click="detect()" class="btn btn-ghost btn-xs btn-square" title="Rescan page" aria-label="Rescan">
+                <button x-show="activeTab === 'components'" @click="detect()" class="btn btn-ghost btn-xs btn-square" title="Rescan page" aria-label="Rescan">
                   <i class="ph ph-arrows-clockwise"></i>
                 </button>
                 <button @click="close()" class="btn btn-ghost btn-xs btn-square" title="Close" aria-label="Close">
@@ -55,45 +66,69 @@ document.addEventListener('alpine:init', function() {
                 </div>
               </div>
 
-              <div x-show="groups.length > 0" class="p-2 space-y-2">
-                <div class="flex items-center justify-between px-1">
-                  <div class="text-[10px] uppercase tracking-wider text-base-content/50 font-semibold">Instances</div>
-                  <button @click="clearHighlight()" x-show="highlighted" class="text-[10px] font-normal link link-hover">clear</button>
-                </div>
-                <template x-for="g in groups" :key="g.name">
-                  <div class="bg-base-200/40 rounded-lg overflow-hidden border border-base-300/60">
-                    <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-base-200/80">
-                      <div class="flex items-baseline gap-1.5 min-w-0">
-                        <span class="font-mono text-sm font-semibold truncate" x-text="g.name"></span>
-                        <span class="text-[10px] font-mono text-base-content/50 shrink-0">&times;<span x-text="g.instances.length"></span></span>
+              <div x-show="activeTab === 'components'">
+                <div x-show="groups.length > 0" class="p-2 space-y-2">
+                  <div class="flex items-center justify-between px-1">
+                    <div class="text-[10px] uppercase tracking-wider text-base-content/50 font-semibold">Instances</div>
+                    <button @click="clearHighlight()" x-show="highlighted" class="text-[10px] font-normal link link-hover">clear</button>
+                  </div>
+                  <template x-for="g in groups" :key="g.name">
+                    <div class="bg-base-200/40 rounded-lg overflow-hidden border border-base-300/60">
+                      <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-base-200/80">
+                        <div class="flex items-baseline gap-1.5 min-w-0">
+                          <span class="font-mono text-sm font-semibold truncate" x-text="g.name"></span>
+                          <span class="text-[10px] font-mono text-base-content/50 shrink-0">&times;<span x-text="g.instances.length"></span></span>
+                        </div>
+                        <div class="flex gap-0.5 shrink-0">
+                          <template x-for="link in linksFor(componentPath(g.name))" :key="link.l">
+                            <a :href="link.u" target="_blank" :title="link.l"
+                               class="size-6 flex items-center justify-center bg-base-100 hover:bg-base-300 rounded">
+                              <i class="ph text-xs" :class="link.i"></i>
+                            </a>
+                          </template>
+                        </div>
                       </div>
-                      <div class="flex gap-0.5 shrink-0">
-                        <template x-for="link in linksFor(componentPath(g.name))" :key="link.l">
-                          <a :href="link.u" target="_blank" :title="link.l"
-                             class="size-6 flex items-center justify-center bg-base-100 hover:bg-base-300 rounded">
-                            <i class="ph text-xs" :class="link.i"></i>
-                          </a>
+                      <div x-show="g.description" class="text-[11px] text-base-content/70 px-2.5 py-1 border-t border-base-300/40" x-text="g.description"></div>
+                      <div class="flex flex-col">
+                        <template x-for="(inst, idx) in g.instances" :key="inst.id">
+                          <button @click="highlight(inst.id)"
+                                  class="text-left px-2.5 py-1.5 text-xs flex items-center gap-2 border-t border-base-300/40 transition-colors"
+                                  :class="highlighted === inst.id ? 'bg-primary/15 text-primary' : 'hover:bg-base-300/40'">
+                            <i class="ph shrink-0" :class="highlighted === inst.id ? 'ph-crosshair-simple text-sm' : 'ph-crosshair text-sm opacity-50'"></i>
+                            <span class="font-mono opacity-60 shrink-0" x-text="'#' + (idx + 1)"></span>
+                            <span class="truncate" x-text="inst.label"></span>
+                          </button>
                         </template>
                       </div>
                     </div>
-                    <div x-show="g.description" class="text-[11px] text-base-content/70 px-2.5 py-1 border-t border-base-300/40" x-text="g.description"></div>
-                    <div class="flex flex-col">
-                      <template x-for="(inst, idx) in g.instances" :key="inst.id">
-                        <button @click="highlight(inst.id)"
-                                class="text-left px-2.5 py-1.5 text-xs flex items-center gap-2 border-t border-base-300/40 transition-colors"
-                                :class="highlighted === inst.id ? 'bg-primary/15 text-primary' : 'hover:bg-base-300/40'">
-                          <i class="ph shrink-0" :class="highlighted === inst.id ? 'ph-crosshair-simple text-sm' : 'ph-crosshair text-sm opacity-50'"></i>
-                          <span class="font-mono opacity-60 shrink-0" x-text="'#' + (idx + 1)"></span>
-                          <span class="truncate" x-text="inst.label"></span>
-                        </button>
-                      </template>
-                    </div>
-                  </div>
-                </template>
+                  </template>
+                </div>
+
+                <div x-show="groups.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">
+                  No Alpine components detected on this page.
+                </div>
               </div>
 
-              <div x-show="groups.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">
-                No Alpine components detected on this page.
+              <div x-show="activeTab === 'scripts'">
+                <div x-show="loadedScripts.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">
+                  No scripts tracked. gh-boot.js installs the registry; older cached gh-api.js won't populate it.
+                </div>
+                <div x-show="loadedScripts.length > 0" class="p-2 space-y-1">
+                  <template x-for="(s, idx) in loadedScripts" :key="idx">
+                    <div class="rounded bg-base-200/40 border border-base-300/60 overflow-hidden">
+                      <div class="flex items-center gap-2 px-2 py-1.5">
+                        <i class="ph shrink-0 text-sm"
+                           :class="s.status === 'ok' ? 'ph-check-circle text-success' :
+                                   s.status === 'error' ? 'ph-x-circle text-error' :
+                                   'ph-circle-notch animate-spin text-warning'"></i>
+                        <a :href="scriptUrl(s.path)" target="_blank"
+                           class="flex-1 font-mono text-[11px] truncate link link-hover" x-text="s.path"></a>
+                        <span class="font-mono text-[10px] text-base-content/40 shrink-0" x-text="fmtElapsed(s)"></span>
+                      </div>
+                      <div x-show="s.error" class="px-2 pb-1.5 font-mono text-[10px] text-error break-all" x-text="s.error"></div>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
 
@@ -211,8 +246,10 @@ document.addEventListener('alpine:init', function() {
 
       open: false,
       consoleOpen: false,
+      activeTab: 'components',
       groups: [],
       consoleLogs: [],
+      loadedScripts: [],
       highlighted: null,
 
       frameOpen: false,
@@ -240,10 +277,17 @@ document.addEventListener('alpine:init', function() {
           if (this.open && this.consoleOpen) this.scrollConsole();
         };
         window.addEventListener('consolelog', this._consoleListener);
+
+        this.loadedScripts = window.__loadedScripts ? [...window.__loadedScripts] : [];
+        this._scriptsListener = () => {
+          this.loadedScripts = window.__loadedScripts ? [...window.__loadedScripts] : [];
+        };
+        window.addEventListener('loadedscripts', this._scriptsListener);
       },
 
       destroy() {
         if (this._consoleListener) window.removeEventListener('consolelog', this._consoleListener);
+        if (this._scriptsListener) window.removeEventListener('loadedscripts', this._scriptsListener);
       },
 
       infer() {
@@ -426,6 +470,18 @@ document.addEventListener('alpine:init', function() {
       get errorCount() { return this.consoleLogs.filter(e => e.level === 'error').length; },
 
       componentPath(name) { return 'alpineComponents/' + name + '.js'; },
+
+      scriptUrl(path) {
+        if (!path || /^https?:/.test(path)) return path || '#';
+        if (!this.repo) return '#';
+        return 'https://github.com/' + this.repo + '/blob/' + this.ref + '/' + path;
+      },
+
+      fmtElapsed(s) {
+        if (s.status === 'pending') return '…';
+        if (typeof s.endT === 'number' && typeof s.t === 'number') return (s.endT - s.t) + 'ms';
+        return '';
+      },
 
       fmtTime(ts) { return new Date(ts).toTimeString().slice(0, 8); },
 
