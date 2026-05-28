@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place) and scripts pulled in via gh.load() (with per-entry status), plus a collapsible console log and a render box that re-loads the current page at any branch in an overlay iframe',
+      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place) and scripts pulled in via gh.load() (with per-entry status), plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list) and a render box that re-loads the current page at any branch in an overlay iframe',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -203,25 +203,29 @@ document.addEventListener('alpine:init', function() {
                   <span x-show="consoleLogs.length" class="font-mono text-[10px] opacity-50" x-text="consoleLogs.length"></span>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                  <button x-show="consoleOpen && consoleLogs.length" @click.stop="consoleLogs = []" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
+                  <button x-show="consoleOpen && consoleLogs.length" @click.stop="clearConsole()" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
                     <i class="ph ph-trash"></i>
                   </button>
                   <i class="ph text-base-content/40" :class="consoleOpen ? 'ph-caret-down' : 'ph-caret-up'"></i>
                 </div>
               </div>
-              <div x-show="consoleOpen" class="overflow-y-auto p-1 flex flex-col gap-0.5 border-t border-base-300/60"
-                   id="__fab-console-panel" style="max-height: 40vh;">
-                <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
-                <template x-for="(entry, idx) in consoleLogs" :key="idx">
-                  <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
-                       :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
-                               entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
-                                                         'border-base-300 bg-base-100'">
-                    <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
-                    <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
-                    <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
-                  </div>
-                </template>
+              <div x-show="consoleOpen" class="border-t border-base-300/60 flex flex-col" style="max-height: 40vh;">
+                <div x-show="consolePanelReady" class="flex-1 min-h-0 flex flex-col">
+                  <div x-ref="consoleHost" class="flex-1 min-h-0 flex flex-col"></div>
+                </div>
+                <div x-show="!consolePanelReady" id="__fab-console-panel" class="overflow-y-auto p-1 flex flex-col gap-0.5" style="max-height: 40vh;">
+                  <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
+                  <template x-for="(entry, idx) in consoleLogs" :key="idx">
+                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
+                         :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
+                                 entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
+                                                           'border-base-300 bg-base-100'">
+                      <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
+                      <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
+                      <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
 
@@ -246,6 +250,7 @@ document.addEventListener('alpine:init', function() {
 
       open: false,
       consoleOpen: false,
+      consolePanelReady: false,
       activeTab: 'components',
       groups: [],
       consoleLogs: [],
@@ -271,12 +276,25 @@ document.addEventListener('alpine:init', function() {
         this.$nextTick(() => Alpine.initTree(this.$el));
         this.infer();
         this.frameRef = this.ref || 'main';
-        this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
-        this._consoleListener = e => {
-          this.consoleLogs.push(e.detail);
-          if (this.open && this.consoleOpen) this.scrollConsole();
-        };
-        window.addEventListener('consolelog', this._consoleListener);
+        // Console counts (header badges) + fallback list. Prefer the
+        // retention kit (kits/console.js); fall back to gh-api's raw
+        // __consoleLogs + 'consolelog' event. The rich panel, mounted
+        // below, is the primary renderer once it's available.
+        if (window.consoleKit) {
+          this._offConsole = console.subscribe(e => {
+            if (e.clear) { this.consoleLogs = []; return; }
+            this.consoleLogs.push({ level: e.level, msg: e.msg, time: e.time });
+            if (this.open && this.consoleOpen && !this.consolePanelReady) this.scrollConsole();
+          });
+        } else {
+          this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
+          this._consoleListener = e => {
+            this.consoleLogs.push(e.detail);
+            if (this.open && this.consoleOpen && !this.consolePanelReady) this.scrollConsole();
+          };
+          window.addEventListener('consolelog', this._consoleListener);
+        }
+        this._mountConsolePanel();
 
         this.loadedScripts = window.__loadedScripts ? [...window.__loadedScripts] : [];
         this._scriptsListener = () => {
@@ -286,6 +304,7 @@ document.addEventListener('alpine:init', function() {
       },
 
       destroy() {
+        if (this._offConsole) this._offConsole();
         if (this._consoleListener) window.removeEventListener('consolelog', this._consoleListener);
         if (this._scriptsListener) window.removeEventListener('loadedscripts', this._scriptsListener);
       },
@@ -488,6 +507,31 @@ document.addEventListener('alpine:init', function() {
       toggleConsole() {
         this.consoleOpen = !this.consoleOpen;
         if (this.consoleOpen) this.scrollConsole();
+      },
+
+      // Load + mount the rich debugConsole panel into the footer. Self-loads
+      // the kit and component via gh.load so pages that only pull fab.js
+      // still get the upgrade; on failure we keep the inline fallback list.
+      async _mountConsolePanel() {
+        if (this.consolePanelReady) return;
+        try {
+          if (window.gh) {
+            if (!window.consoleKit) { try { await window.gh.load('kits/console.js'); } catch (e) {} }
+            if (!window.__debugConsoleRegistered) { try { await window.gh.load('alpineComponents/console.js'); } catch (e) {} }
+          }
+          if (!window.__debugConsoleRegistered || !window.Alpine) return;
+          await this.$nextTick();
+          const host = this.$refs.consoleHost;
+          if (!host || host.getAttribute('x-data')) return;
+          host.setAttribute('x-data', 'debugConsole');
+          window.Alpine.initTree(host);
+          this.consolePanelReady = true;
+        } catch (e) {}
+      },
+
+      clearConsole() {
+        if (window.consoleKit) console.clear();
+        else this.consoleLogs = [];
       },
 
       toggleFrameControls() { this.frameControls = !this.frameControls; },

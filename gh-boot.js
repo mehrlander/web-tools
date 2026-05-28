@@ -46,4 +46,7 @@ return (async () => {
 
   await window.gh.load('gh-auth.js');
   await window.gh.load('gh-fetch.js');
+  // Console retention layer — extends console.* with history/subscribe/filter
+  // on top of gh-api.js's wrapper, so any page can render captured logs.
+  await window.gh.load('kits/console.js');
 })();

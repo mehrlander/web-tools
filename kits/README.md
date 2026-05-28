@@ -200,6 +200,36 @@ UI metadata for each type (label, badge, exec) lives on the data-shelf
 page in `cfg.types`; the canonical set of valid type names lives here so
 the importer doesn't drift from the page.
 
+### console.js
+
+Console retention/filter/subscribe layer, auto-loaded by `gh-boot.js` after
+`gh-fetch.js`. It wraps `console.{log,info,warn,error,debug,table}` *on top
+of* gh-api.js's existing hook (gh-api.js stays untouched — it's cache-shy)
+and retains structured entries so a renderer can show JSON trees / tables,
+not just flattened strings.
+
+```js
+console.history                       // live array of retained entries
+const off = console.subscribe(fn);    // replays history, then streams new
+                                      //   entries; fn gets { clear:true } on clear
+console.filter({ level:'error', text:'fetch' });  // query over history
+console.clear();                      // clears retained history too
+window.consoleKit.truncated;          // count dropped past the 1000-entry cap
+```
+
+Each entry is `{ level, args, msg, time, kind? }`: `args` is a
+`structuredClone` snapshot of the original call args (JSON-safe fallback,
+then `null`), `msg` is the pre-joined text (copy + no-structure fallback).
+`console.table` entries also carry `{ table:{data,columns}, kind:'table' }`.
+
+The renderer is `alpineComponents/console.js` (the `debugConsole` component),
+which the FAB embeds and `pages/console-kit-demo.html` exercises standalone.
+It falls back to gh-api's raw `window.__consoleLogs` when this kit is absent.
+Extending native `console` (rather than a separate `journal` global) keeps
+callers writing plain `console.log()`; it's the same additive tactic
+`console/base.js` uses for its formatting helpers, and the two are
+orthogonal (this kit owns retention; base.js owns `style/box/see`).
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -214,3 +244,4 @@ examples.
 | `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |
 | `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |
+| `console.js` | `pages/console-kit-demo.html` | console retention + `debugConsole` renderer |
