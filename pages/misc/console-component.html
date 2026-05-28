@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Console Web Component with Tabulator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex flex-col items-center p-6 bg-gray-50">
+
+<div class="w-full max-w-4xl">
+  <h1 class="text-2xl font-bold mb-4 text-gray-800">Web Component Console Demo with Table Support</h1>
+  <debug-console class="block w-full"></debug-console>
+  <div class="mt-6 space-y-2">
+    <button onclick="console.log('Regular log message')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Test console.log()</button>
+    <button onclick="console.log({name: 'Test Object', nested: {value: 42, array: [1,2,3]}, active: true})" class="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600">Test Object Log</button>
+    <button onclick="console.log([1, 2, 3, 'test', true])" class="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600">Test Array Log</button>
+    <button onclick="console.log('User:', {id: 123}, 'Status:', 'active')" class="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600">Test Multiple Args</button>
+    <button onclick="console.warn('Warning message!')" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">Test console.warn()</button>
+    <button onclick="console.error('Error occurred!')" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Test console.error()</button>
+    <button onclick="console.table([{name: 'John', age: 30, city: 'New York'}, {name: 'Jane', age: 25, city: 'San Francisco'}, {name: 'Bob', age: 35, city: 'Chicago'}])" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Test console.table()</button>
+    <button onclick="console.table({first: {name: 'Alice', score: 95}, second: {name: 'Bob', score: 87}, third: {name: 'Charlie', score: 92}})" class="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">Test console.table() with Object</button>
+    <button onclick="Promise.reject('Unhandled promise rejection')" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">Test Promise Rejection</button>
+    <button onclick="Promise.reject({error: 'API Error', status: 403, message: 'Forbidden'})" class="px-4 py-2 bg-rose-500 text-white rounded hover:bg-rose-600">Test Object Rejection</button>
+  </div>
+</div>
+
+<script>
+class DebugConsole extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.logs = [];
+    this.methods = { log: 'green', info: 'blue', warn: 'yellow', error: 'red', debug: 'purple' };
+    this.tableCounter = 0;
+    this.setup();
+  }
+
+  setup() {
+    this.shadowRoot.innerHTML = `<iframe width="100%" height="600" frameborder="0"></iframe>`;
+    this.iframe = this.shadowRoot.querySelector('iframe');
+    this.iframe.srcdoc = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/jquery,npm/lodash,npm/@phosphor-icons/web,npm/clipboard"><\/script>
+        <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+        <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"><\/script>
+        <script type="module">
+          import { createJSONEditor } from 'https://unpkg.com/vanilla-jsoneditor/standalone.js';
+          window.createJSONEditor = createJSONEditor;
+        <\/script>
+        <style>
+          .jse-main { margin: 0 !important; border-radius: 0 !important; }
+          .json-log-entry .jse-main { border: 1px solid #d1d5db !important; }
+        <\/style>
+      </head>
+      <body class="bg-white h-screen flex flex-col m-0">
+        <div class="bg-gray-100 border-b border-gray-300 px-4 py-3 flex justify-between items-center shrink-0">
+          <div class="text-gray-700 font-semibold text-sm">Debug Console</div>
+          <div class="flex gap-2">
+            <button id="copy-btn" data-clipboard-target="#logs-content"
+                    class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+              <span class="copy-text">Copy</span>
+            </button>
+            <button id="clear-btn" 
+                    class="px-3 py-1 text-xs bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors">
+              Clear
+            </button>
+          </div>
+        </div>
+        <div id="output" class="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-0.5 bg-gray-50"></div>
+        <textarea id="logs-content" class="hidden"></textarea>
+      </body>
+      </html>
+    `;
+    
+    this.iframe.onload = () => {
+      this.doc = this.iframe.contentDocument;
+      this.win = this.iframe.contentWindow;
+      this.output = this.doc.getElementById('output');
+      this.logsContent = this.doc.getElementById('logs-content');
+      this.$ = this.win.jQuery;
+      this._ = this.win._;
+      this.Tabulator = this.win.Tabulator;
+      this.ClipboardJS = this.win.ClipboardJS;
+      
+      // Wait for JSON editor to be available
+      const checkJSONEditor = () => {
+        if (this.win.createJSONEditor) {
+          this.initializeClipboard();
+          this.initializeButtons();
+          this.intercept();
+          this.log('info', 'Console initialized with JSON viewer and table support');
+        } else {
+          setTimeout(checkJSONEditor, 100);
+        }
+      };
+      checkJSONEditor();
+    };
+  }
+
+  initializeClipboard() {
+    if (!this.ClipboardJS) return;
+    
+    const clipboard = new this.ClipboardJS('#copy-btn', {
+      container: this.doc.body
+    });
+    
+    clipboard.on('success', (e) => {
+      const btn = this.$(e.trigger);
+      btn.removeClass('bg-blue-600').addClass('bg-green-600');
+      btn.find('.copy-text').text('Copied!');
+      
+      setTimeout(() => {
+        btn.removeClass('bg-green-600').addClass('bg-blue-600');
+        btn.find('.copy-text').text('Copy');
+      }, 1000);
+      
+      e.clearSelection();
+    });
+  }
+
+  initializeButtons() {
+    if (!this.$) return;
+    
+    this.$('#clear-btn').on('click', () => {
+      this.clear();
+    });
+  }
+
+  intercept() {
+    // Intercept standard console methods
+    Object.keys(this.methods).forEach(m => {
+      const orig = console[m];
+      console[m] = (...args) => {
+        orig(...args);
+        // Handle single object separately (but not arrays or null)
+        if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && !Array.isArray(args[0])) {
+          this.logObject(m, args[0]);
+        } else {
+          // For multiple args or non-objects, use regular log with JSON stringify for objects
+          const message = args.map(arg => {
+            if (typeof arg === 'object' && arg !== null) {
+              return JSON.stringify(arg);
+            }
+            return String(arg);
+          }).join(' ');
+          this.log(m, message);
+        }
+      };
+    });
+
+    // Intercept console.table
+    const origTable = console.table;
+    console.table = (data, columns) => {
+      origTable(data, columns);
+      this.logTable(data, columns);
+    };
+
+    addEventListener('error', e => this.log('error', `Uncaught: ${e.message}`));
+    addEventListener('unhandledrejection', e => {
+      const reason = typeof e.reason === 'object' ? JSON.stringify(e.reason) : e.reason;
+      this.log('error', `Promise: ${reason}`);
+    });
+  }
+
+  log(type, msg) {
+    const time = new Date().toLocaleTimeString();
+    this.logs.push({ type, msg, time });
+    this.updateLogsContent();
+    
+    if (!this.output || !this.$) return;
+    
+    const esc = str => new Option(str).innerHTML;
+    const colorClass = `text-${this.methods[type] || 'gray'}-600`;
+    
+    const logEntry = `
+      <div class="flex gap-2 ${colorClass}">
+        <span class="text-gray-600 shrink-0">[${time}]</span>
+        <span class="font-bold uppercase shrink-0">${type}:</span>
+        <span class="break-all">${esc(msg)}</span>
+      </div>
+    `;
+    
+    this.$(this.output).prepend(logEntry);
+    this.output.scrollTop = 0;
+  }
+
+  logObject(type, obj) {
+    const time = new Date().toLocaleTimeString();
+    const viewerId = `json-viewer-${Date.now()}`;
+    
+    this.logs.push({ type, msg: JSON.stringify(obj, null, 2), time });
+    this.updateLogsContent();
+    
+    if (!this.output || !this.$) return;
+    
+    const colorClass = `text-${this.methods[type] || 'gray'}-600`;
+    
+    const logEntry = `
+      <div class="json-log-entry">
+        <div class="flex gap-2 ${colorClass} mb-1 items-center">
+          <span class="text-gray-600 shrink-0">[${time}]</span>
+          <span class="font-bold uppercase shrink-0">OBJECT:</span>
+          <div class="flex gap-2 ml-4" id="toolbar-${viewerId}">
+            <button data-mode="tree" class="text-xs px-1.5 pb-0.5 border-b-2 border-blue-500 text-gray-700 hover:text-gray-900 transition-colors">tree</button>
+            <button data-mode="table" class="text-xs px-1.5 pb-0.5 border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">table</button>
+            <button data-mode="text" class="text-xs px-1.5 pb-0.5 border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">text</button>
+          </div>
+        </div>
+        <div id="${viewerId}" class="max-h-96 overflow-hidden mt-1"></div>
+      </div>
+    `;
+    
+    this.$(this.output).prepend(logEntry);
+    
+    // Create JSON viewer after DOM update
+    setTimeout(() => {
+      const container = this.doc.getElementById(viewerId);
+      const toolbar = this.doc.getElementById(`toolbar-${viewerId}`);
+      if (container && toolbar && this.win.createJSONEditor) {
+        let currentMode = 'tree';
+        let editor = null;
+        
+        const buttons = toolbar.querySelectorAll('button');
+        
+        const renderEditor = () => {
+          container.innerHTML = '';
+          
+          // Update button states
+          buttons.forEach(btn => {
+            const selected = btn.dataset.mode === currentMode;
+            btn.classList.toggle('border-blue-500', selected);
+            btn.classList.toggle('text-gray-700', selected);
+            btn.classList.toggle('text-gray-900', selected);
+            btn.classList.toggle('border-transparent', !selected);
+            btn.classList.toggle('text-gray-500', !selected);
+          });
+          
+          editor = this.win.createJSONEditor({
+            target: container,
+            props: {
+              content: { json: obj },
+              mode: currentMode,
+              mainMenuBar: false,
+              navigationBar: false,
+              statusBar: false,
+              readOnly: true
+            }
+          });
+        };
+        
+        // Add click handlers to buttons
+        buttons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            currentMode = btn.dataset.mode;
+            renderEditor();
+          });
+        });
+        
+        renderEditor();
+      }
+    }, 0);
+    
+    this.output.scrollTop = 0;
+  }
+
+  logTable(data, columns) {
+    const time = new Date().toLocaleTimeString();
+    const tableId = `table-${++this.tableCounter}`;
+    
+    if (!this.output || !data || !this.$ || !this._) return;
+
+    // Convert data to array format if it's an object
+    let tableData = [];
+    let tableColumns = [];
+
+    if (Array.isArray(data)) {
+      tableData = data;
+      // Auto-generate columns from first item using lodash
+      if (data.length > 0 && typeof data[0] === 'object') {
+        const keys = columns || this._.keys(data[0]);
+        tableColumns = keys.map(key => ({
+          title: key,
+          field: key,
+          headerFilter: false,
+          resizable: true
+        }));
+      }
+    } else if (typeof data === 'object') {
+      // Convert object to array format
+      tableData = this._.entries(data).map(([key, value]) => ({
+        '(index)': key,
+        ...value
+      }));
+      
+      if (tableData.length > 0) {
+        const keys = this._.keys(tableData[0]);
+        tableColumns = keys.map(key => ({
+          title: key,
+          field: key,
+          headerFilter: false,
+          resizable: true
+        }));
+      }
+    }
+
+    // Create table container
+    const tableEntry = `
+      <div class="table-log-entry">
+        <div class="flex gap-2 text-cyan-600 mb-1">
+          <span class="text-gray-600 shrink-0">[${time}]</span>
+          <span class="font-bold uppercase shrink-0">TABLE:</span>
+        </div>
+        <div class="overflow-x-auto">
+          <div id="${tableId}" class="text-xs"></div>
+        </div>
+      </div>
+    `;
+    
+    this.$(this.output).prepend(tableEntry);
+
+    // Create Tabulator instance with Tailwind-friendly styling
+    setTimeout(() => {
+      const tableEl = this.doc.getElementById(tableId);
+      if (tableEl && this.Tabulator) {
+        new this.Tabulator(tableEl, {
+          data: tableData,
+          columns: tableColumns,
+          layout: "fitDataFill",
+          height: "auto",
+          maxHeight: "300px",
+          resizableColumns: true,
+          movableColumns: false,
+          selectable: false,
+          placeholder: "No Data Available",
+          rowFormatter: function(row) {
+            row.getElement().classList.add(
+              'hover:bg-gray-100',
+              'even:bg-gray-50'
+            );
+          },
+          cssClass: "bg-white border border-gray-300 rounded"
+        });
+        
+        // Apply Tailwind classes to Tabulator elements after creation
+        this.$(`#${tableId}`).find('.tabulator-header').addClass('bg-gray-100 border-b border-gray-300');
+        this.$(`#${tableId}`).find('.tabulator-cell').addClass('text-gray-700 border-r border-gray-200');
+        this.$(`#${tableId}`).find('.tabulator-col').addClass('text-gray-700 border-r border-gray-200');
+      }
+    }, 0);
+
+    this.output.scrollTop = 0;
+    
+    // Add to logs for copy functionality
+    this.logs.push({ 
+      type: 'table', 
+      msg: JSON.stringify(data, null, 2), 
+      time 
+    });
+    this.updateLogsContent();
+  }
+
+  updateLogsContent() {
+    if (this.logsContent) {
+      this.logsContent.value = this.logs
+        .map(l => `[${l.time}] ${l.type.toUpperCase()}: ${l.msg}`)
+        .join('\n');
+    }
+  }
+
+  clear() {
+    this.logs = [];
+    this.tableCounter = 0;
+    this.updateLogsContent();
+    if (this.output && this.$) {
+      this.$(this.output).empty();
+    }
+    this.log('info', 'Console cleared');
+  }
+}
+
+customElements.define('debug-console', DebugConsole);
+
+// Demo data
+setTimeout(() => {
+  console.log('Welcome to the enhanced console!');
+  console.info('Now with JSON viewer for objects and Tabulator for tables');
+  
+  // Demo object
+  console.log({
+    user: {
+      name: 'John Doe',
+      email: 'john@example.com',
+      preferences: {
+        theme: 'dark',
+        notifications: true
+      }
+    },
+    metadata: {
+      created: new Date().toISOString(),
+      version: '1.0.0'
+    }
+  });
+  
+  // Demo error object
+  console.error({
+    error: 'ValidationError',
+    message: 'Invalid input',
+    fields: ['email', 'password']
+  });
+  
+  // Demo table with array of objects
+  console.table([
+    { id: 1, product: 'Laptop', price: 999, stock: 15 },
+    { id: 2, product: 'Mouse', price: 29, stock: 50 },
+    { id: 3, product: 'Keyboard', price: 79, stock: 30 },
+    { id: 4, product: 'Monitor', price: 299, stock: 12 }
+  ]);
+  
+  setTimeout(() => Promise.reject({error: 'Async failure', code: 500}), 1000);
+}, 500);
+</script>
+
+</body>
+</html>
