@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="utf-8" />
+  <title>Legislative Diff Tool</title>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/diff,npm/diff2html/bundles/js/diff2html.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
+  <script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="h-screen flex flex-col bg-base-100 font-sans text-sm" x-data="dualInspector" x-init="init()">
+
+  <header class="p-3 border-b border-base-300 bg-base-200 shrink-0 shadow-sm flex items-center justify-between z-50">
+    <div class="flex items-center gap-4">
+      <h1 class="text-[10px] font-black uppercase tracking-widest opacity-60 flex items-center gap-2">
+          <i class="ph ph-git-compare text-primary text-xl"></i> Legislative Inspector
+      </h1>
+      
+      <div class="join border-none bg-transparent overflow-visible">
+        <button @click="viewMode = 'raw'" :class="viewMode === 'raw' ? 'btn-primary text-white' : 'btn-ghost border-base-300 bg-base-100'" class="btn btn-xs join-item no-animation px-4 border h-[28px] min-h-[28px]">Raw Content</button>
+        <button @click="viewMode = 'compare'" :class="viewMode === 'compare' ? 'btn-primary text-white' : 'btn-ghost border-base-300 bg-base-100'" class="btn btn-xs join-item no-animation px-4 border h-[28px] min-h-[28px]">Compare Mode</button>
+        <button @click="viewMode = 'patch'" :class="viewMode === 'patch' ? 'btn-primary text-white' : 'btn-ghost border-base-300 bg-base-100'" class="btn btn-xs join-item no-animation px-4 border h-[28px] min-h-[28px]">Raw Patch</button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button @click="swapSlots()" class="btn btn-xs btn-ghost border-base-300 bg-base-100 h-[28px] min-h-[28px] px-3 border" title="Swap A and B">
+            <i class="ph ph-arrows-left-right"></i> Swap
+        </button>
+        <template x-if="viewMode === 'compare'">
+            <div class="join border-none bg-transparent overflow-visible rounded-btn shadow-sm">
+                <button @click="unified = false" :class="!unified ? 'btn-primary text-white' : 'btn-ghost border-base-300 bg-base-100'" class="btn btn-xs join-item px-4 no-animation border">Side</button>
+                <button @click="unified = true" :class="unified ? 'btn-primary text-white' : 'btn-ghost border-base-300 bg-base-100'" class="btn btn-xs join-item px-4 no-animation border">Uni</button>
+            </div>
+        </template>
+    </div>
+  </header>
+
+  <template x-if="viewMode === 'compare' || viewMode === 'patch'">
+    <section class="p-2 bg-base-300/30 border-b border-base-300 space-y-2">
+        <div class="flex items-center justify-between px-1">
+            <label class="flex items-center gap-2 bg-base-100 p-1 px-3 rounded-lg border border-base-300 shadow-sm cursor-pointer">
+                <span class="text-[10px] font-bold uppercase opacity-70">Compare Raw HTML</span>
+                <input type="checkbox" x-model="useRawHtml" class="checkbox checkbox-xs checkbox-primary" />
+            </label>
+            <button @click="replacements.push({find: '', replace: ''})" class="btn btn-xs btn-ghost border-dashed border-base-300 text-[10px] opacity-60">
+                <i class="ph ph-plus-circle"></i> Add Regex Rule
+            </button>
+        </div>
+
+        <div x-show="useRawHtml" class="flex flex-col gap-1 border-t border-base-300/50 pt-2 px-1">
+            <span class="text-[9px] font-bold uppercase opacity-40">Detected Tags (Click to Replace)</span>
+            <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                <template x-for="tag in combinedTags">
+                    <button @click="addTagReplacement(tag)" class="badge badge-soft badge-neutral badge-xs font-mono hover:badge-primary border-none" x-text="tag"></button>
+                </template>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 items-center px-1">
+            <template x-for="(rep, index) in replacements">
+                <div class="join border-none bg-transparent overflow-visible shadow-sm">
+                    <input type="text" x-model="rep.find" class="input input-bordered input-xs join-item w-28 font-mono text-[10px] h-[24px]" placeholder="Find..." />
+                    <span class="btn btn-xs join-item border bg-base-200 pointer-events-none px-1 h-[24px] min-h-[24px] border-x-0"><i class="ph ph-arrow-right"></i></span>
+                    <input type="text" x-model="rep.replace" class="input input-bordered input-xs join-item w-20 font-mono text-[10px] h-[24px]" placeholder="Replace..." />
+                    <button @click="replacements.splice(index, 1)" class="btn btn-xs join-item btn-ghost border bg-base-100 text-error h-[24px] min-h-[24px]"><i class="ph ph-x"></i></button>
+                </div>
+            </template>
+        </div>
+    </section>
+  </template>
+
+  <main class="flex-1 flex overflow-hidden relative">
+    
+    <div x-show="viewMode === 'raw'" class="absolute inset-0 flex divide-x divide-base-300">
+        <template x-for="slotId in ['A', 'B']">
+            <section class="flex-1 flex flex-col bg-white">
+                <div class="p-2 bg-base-100 border-b border-base-300 flex items-center gap-2 h-[45px] shrink-0">
+                    
+                    <div class="join border-none bg-transparent overflow-visible shadow-sm shrink-0 h-[28px]" x-data="{ open: false }" @click.away="open = false">
+                        <div class="dropdown h-full" :class="open && 'dropdown-open'">
+                          <div tabindex="0" role="button" @click="open = !open" class="btn btn-xs btn-ghost bg-base-100 border border-base-300 rounded-none rounded-l-btn h-full min-h-0 flex items-center px-2 gap-1 font-bold uppercase text-[10px]">
+                            <span x-text="slots[slotId].mode"></span>
+                            <i class="ph ph-caret-down text-[8px]"></i>
+                          </div>
+                          <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 rounded-box w-24 text-[10px] z-[100] border border-base-200 mt-1">
+                            <li><a @click="slots[slotId].mode = 'url'; open = false">URL</a></li>
+                            <li><a @click="slots[slotId].mode = 'text'; open = false">TEXT</a></li>
+                          </ul>
+                        </div>
+                        <button @click="resetSlot(slotId)" class="btn btn-xs btn-ghost join-item h-full border border-l-0 border-base-300 bg-base-100 px-2 rounded-r-btn"><i class="ph ph-x"></i></button>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <template x-if="slots[slotId].mode === 'url'">
+                            <div class="join w-full border-none bg-transparent overflow-visible">
+                                <input type="text" x-model="slots[slotId].urlValue" :readonly="!slots[slotId].isEditing" class="input input-xs input-bordered join-item flex-1 font-mono text-[10px] h-[28px]" :class="!slots[slotId].isEditing ? 'bg-base-200' : 'bg-white border-primary/40'" />
+                                <template x-if="slots[slotId].isEditing">
+                                    <button @click="fetchUrl(slotId)" class="btn btn-primary btn-xs join-item px-4 font-bold h-[28px] border border-primary" :class="slots[slotId].loading && 'loading'">Get</button>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <button @click="toggleSlotEdit(slotId)" class="btn btn-xs btn-ghost border-base-300 bg-base-100 h-[28px] min-h-[28px] px-2 border ml-1">
+                        <i :class="slots[slotId].isEditing ? 'ph ph-check text-primary' : 'ph ph-pencil-simple text-base-content/40'" class="text-base"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-hidden relative">
+                    <textarea x-show="slots[slotId].isEditing" class="w-full h-full p-4 bg-base-50 font-mono text-xs leading-relaxed resize-none border-none outline-none" x-model="slots[slotId].content" placeholder="Paste content or enter URL..."></textarea>
+                    <div x-show="!slots[slotId].isEditing" class="h-full overflow-auto p-4 font-mono text-xs whitespace-pre-wrap leading-relaxed text-base-content" x-text="slots[slotId].content"></div>
+                </div>
+            </section>
+        </template>
+    </div>
+
+    <div x-show="viewMode === 'compare'" class="absolute inset-0 bg-white overflow-auto p-4">
+        <div x-ref="diffOutput"></div>
+        <template x-if="!slots.A.content || !slots.B.content">
+            <div class="h-full flex flex-col items-center justify-center opacity-20 uppercase font-black tracking-widest gap-4">
+                <i class="ph ph-git-diff text-8xl"></i>
+                <span>Load data to compare</span>
+            </div>
+        </template>
+    </div>
+
+    <div x-show="viewMode === 'patch'" class="absolute inset-0 flex flex-col bg-white">
+        <div class="p-2 border-b border-base-300 bg-base-100 flex justify-between items-center h-[45px] shrink-0">
+            <span class="text-[10px] font-bold uppercase opacity-70 px-2">Serialized Diff Output</span>
+            <button @click="navigator.clipboard.writeText(patchText)" class="btn btn-xs btn-primary shadow-sm h-[28px] min-h-[28px]">
+                <i class="ph ph-copy"></i> Copy for LLM
+            </button>
+        </div>
+        <div class="flex-1 overflow-hidden relative">
+            <textarea readonly class="w-full h-full p-4 bg-base-50 font-mono text-xs leading-relaxed resize-none border-none outline-none text-base-content" x-model="patchText" placeholder="Run a comparison to generate patch text..."></textarea>
+        </div>
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('dualInspector', () => ({
+        viewMode: 'raw', // 'raw', 'compare', 'patch'
+        useRawHtml: false,
+        unified: false,
+        replacements: [{ find: '\\. ', replace: '. \\n' }],
+        combinedTags: [],
+        patchText: '',
+        slots: {
+          A: { mode: 'url', urlValue: '', content: '', isEditing: true, loading: false },
+          B: { mode: 'url', urlValue: '', content: '', isEditing: true, loading: false }
+        },
+
+        init() {
+            this.slots.A.urlValue = localStorage.getItem('diff_urlA') || '';
+            this.slots.B.urlValue = localStorage.getItem('diff_urlB') || '';
+            if (window.opener && !this.slots.A.urlValue) this.slots.A.urlValue = window.opener.location.href;
+
+            this.$watch('slots.A.urlValue', v => localStorage.setItem('diff_urlA', v));
+            this.$watch('slots.B.urlValue', v => localStorage.setItem('diff_urlB', v));
+            this.$watch('viewMode', v => (v === 'compare' || v === 'patch') && this.runDiff());
+            this.$watch('useRawHtml', () => this.runDiff());
+            this.$watch('unified', () => this.runDiff());
+            this.$watch('replacements', () => this.runDiff(), { deep: true });
+        },
+
+        async fetchUrl(slotId) {
+            const slot = this.slots[slotId];
+            if (!slot.urlValue) return;
+            slot.loading = true;
+            try {
+                const res = await fetch(slot.urlValue);
+                slot.content = await res.text();
+                slot.isEditing = false;
+            } catch (e) { alert("Fetch failed. Check CORS settings on the legislative site."); }
+            finally { slot.loading = false; }
+        },
+
+        toggleSlotEdit(id) {
+            if (this.slots[id].isEditing && this.slots[id].mode === 'url') this.fetchUrl(id);
+            else this.slots[id].isEditing = !this.slots[id].isEditing;
+        },
+
+        swapSlots() {
+            const temp = JSON.parse(JSON.stringify(this.slots.A));
+            this.slots.A = JSON.parse(JSON.stringify(this.slots.B));
+            this.slots.B = temp;
+        },
+
+        resetSlot(id) {
+            this.slots[id].content = ''; this.slots[id].urlValue = ''; this.slots[id].isEditing = true;
+        },
+
+        addTagReplacement(tag) {
+            const regex = `<\\/?${tag}[^>]*>`;
+            if (!this.replacements.find(r => r.find === regex)) {
+                this.replacements.push({ find: regex, replace: ' | ' });
+            }
+        },
+
+        runDiff() {
+            if (!this.slots.A.content || !this.slots.B.content) return;
+            const process = (input) => {
+                let content = input;
+                if (!this.useRawHtml && input.includes('<')) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(input, 'text/html');
+                    doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
+                    content = doc.body.innerText;
+                }
+                this.replacements.forEach(rep => {
+                    if (!rep.find) return;
+                    try {
+                        const regex = new RegExp(rep.find, 'g');
+                        content = content.replace(regex, rep.replace.replace(/\\n/g, '\n'));
+                    } catch (e) {}
+                });
+                return content.trim();
+            };
+            const cleanA = process(this.slots.A.content);
+            const cleanB = process(this.slots.B.content);
+            const parser = new DOMParser();
+            const getTags = h => h.includes('<') ? Array.from(parser.parseFromString(h, 'text/html').querySelectorAll('*')).map(el => el.tagName.toLowerCase()) : [];
+            this.combinedTags = [...new Set([...getTags(this.slots.A.content), ...getTags(this.slots.B.content)])].sort().filter(t => !['script', 'style', 'link', 'meta'].includes(t));
+            
+            // Create and store the raw patch
+            const patch = Diff.createTwoFilesPatch('Version A', 'Version B', cleanA, cleanB);
+            this.patchText = patch; 
+            
+            // Render the visual diff
+            this.$refs.diffOutput.innerHTML = Diff2Html.html(patch, {
+                inputFormat: 'diff', drawFileList: false, matching: 'lines', outputFormat: this.unified ? 'line-by-line' : 'side-by-side'
+            });
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
