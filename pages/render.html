@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Render shell</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>◈</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  A page that hosts another repo page in an iframe box.
+    ?page=<path>   the file to render (e.g. pages/demo-spacex.html)
+    ?ref=<ref>     which ref to fetch the target + its modules from (default main)
+    ?repo=<o/r>    target repo (default mehrlander/web-tools)
+    ?use=<ref>     ref for THIS shell's own code (the repo convention; independent)
+
+  The target HTML is fetched as text via the GitHub contents API (so it works
+  for private repos and dodges jsDelivr's text/plain Content-Type on /gh/ HTML),
+  then injected into the box via srcdoc. A prelude is stamped into the fetched
+  HTML so the hosted page's *own* runtime loads track the chosen ref — see
+  frameHtml(). Two addresses fall out: a "recipe" link (this URL, re-fetches
+  live) and a "snapshot" data: URL (the rendered page, frozen).
+-->
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+  await gh.load('alpine-bundle.js');
+</script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-base-200 text-base-content" x-data="renderShell()" x-init="init()">
+
+  <header class="shrink-0 border-b border-base-300 bg-base-100 px-3 py-2 flex flex-wrap items-center gap-2">
+    <div class="flex items-center gap-1.5 font-semibold text-sm mr-1">
+      <i class="ph ph-monitor-play text-primary"></i> Render
+    </div>
+    <input x-model="page" @keydown.enter="render()" placeholder="pages/foo.html"
+           class="input input-sm input-bordered font-mono text-xs flex-1 min-w-[12rem]">
+    <input x-model="ref" @keydown.enter="render()" placeholder="main" title="branch / tag / sha"
+           class="input input-sm input-bordered font-mono text-xs w-32">
+    <button @click="render()" class="btn btn-sm btn-primary gap-1"><i class="ph ph-play"></i>Render</button>
+    <div class="flex items-center gap-1">
+      <button @click="copyRecipe()" class="btn btn-sm btn-ghost gap-1" title="Copy a link that re-fetches this live">
+        <i class="ph ph-link"></i>Recipe
+      </button>
+      <button @click="copySnapshot()" class="btn btn-sm btn-ghost gap-1" title="Copy a frozen data: URL of the rendered page">
+        <i class="ph ph-camera"></i>Snapshot
+      </button>
+    </div>
+    <span class="text-xs font-mono ml-auto truncate max-w-[40%]"
+          :class="error ? 'text-error' : 'text-base-content/50'" x-text="status"></span>
+  </header>
+
+  <div class="flex-1 relative bg-base-100">
+    <iframe x-ref="canvas" class="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"></iframe>
+    <div x-show="!page" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div class="text-center text-base-content/30">
+        <div class="text-6xl mb-3">◈</div>
+        <div class="text-xs font-bold uppercase tracking-[.3em]">Enter a page path and ref</div>
+      </div>
+    </div>
+    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-base-100/60">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('renderShell', () => ({
+    repo: 'mehrlander/web-tools',
+    page: '',
+    ref: 'main',
+    token: '',
+    loading: false,
+    error: false,
+    status: '',
+
+    init() {
+      const p = new URLSearchParams(location.search);
+      this.repo = p.get('repo') || this.repo;
+      this.page = p.get('page') || '';
+      this.ref = p.get('ref') || 'main';
+      try { this.token = localStorage.getItem('ghToken') || ''; } catch (e) {}
+      if (this.page) this.$nextTick(() => this.render());
+    },
+
+    async fetchTarget() {
+      const gh = new window.GH({ repo: this.repo, ref: this.ref, token: this.token });
+      const { text } = await gh.get(this.page);
+      return text;
+    },
+
+    async render() {
+      if (!this.page) { this.error = true; this.status = 'Enter a page path'; return; }
+      this.error = false;
+      this.loading = true;
+      this.status = `Fetching ${this.page} @ ${this.ref}…`;
+      try {
+        const text = await this.fetchTarget();
+        this.$refs.canvas.srcdoc = this.frameHtml(text);
+        this.status = `${this.page} @ ${this.ref}`;
+        const u = new URL(location.href);
+        u.searchParams.set('page', this.page);
+        u.searchParams.set('ref', this.ref);
+        if (this.repo !== 'mehrlander/web-tools') u.searchParams.set('repo', this.repo);
+        history.replaceState(null, '', u);
+      } catch (e) {
+        this.error = true;
+        this.status = 'Error: ' + ((e && e.message) || e);
+        this.$refs.canvas.srcdoc =
+          `<pre style="padding:2rem;font:13px ui-monospace,monospace;color:#dc2626">` +
+          `${this.page} @ ${this.ref}\n\n${(e && e.message) || e}</pre>`;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // Stamp a prelude into the fetched HTML so the hosted page believes its ref
+    // is the one we picked. Under srcdoc the iframe's location has no query
+    // string, so a page reading ?use= would otherwise default to main. We set
+    // window.__ref (the clean, opt-in convention) and also patch
+    // URLSearchParams.get('use') (a zero-edit shim for pages that already read
+    // ?use=). A <base> makes the page's relative links/assets resolve against
+    // its real directory on Pages.
+    frameHtml(text) {
+      const [owner, name] = this.repo.split('/');
+      const dir = this.page.includes('/') ? this.page.slice(0, this.page.lastIndexOf('/') + 1) : '';
+      const base = `https://${owner}.github.io/${name}/${dir}`;
+      const r = JSON.stringify(this.ref);
+      const prelude =
+        `<base href="${base}">` +
+        `<script>window.__ref=${r};(function(){var R=${r},g=URLSearchParams.prototype.get;` +
+        `URLSearchParams.prototype.get=function(k){var v=g.call(this,k);` +
+        `return (k==='use'&&(v==null||v===''))?R:v;};})();<\/script>`;
+      if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
+      if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
+      return '<head>' + prelude + '</head>' + text;
+    },
+
+    recipeUrl() {
+      const u = new URL(location.origin + location.pathname);
+      u.searchParams.set('page', this.page);
+      u.searchParams.set('ref', this.ref);
+      if (this.repo !== 'mehrlander/web-tools') u.searchParams.set('repo', this.repo);
+      return u.toString();
+    },
+
+    copyRecipe() {
+      if (!this.page) { this.error = true; this.status = 'Render something first'; return; }
+      this.copy(this.recipeUrl(), 'Recipe link copied');
+    },
+
+    async copySnapshot() {
+      if (!this.page) { this.error = true; this.status = 'Render something first'; return; }
+      try {
+        const html = this.frameHtml(await this.fetchTarget());
+        const url = 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(html)));
+        this.copy(url, `Snapshot copied (${Math.round(url.length / 1024)} KB)`);
+      } catch (e) {
+        this.error = true;
+        this.status = 'Snapshot failed: ' + ((e && e.message) || e);
+      }
+    },
+
+    async copy(text, msg) {
+      try { await navigator.clipboard.writeText(text); this.error = false; this.status = msg; }
+      catch (e) { this.error = true; this.status = 'Copy blocked — logged to console'; console.log(text); }
+    }
+  }));
+});
+</script>
+</body>
+</html>
