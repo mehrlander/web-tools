@@ -56,7 +56,7 @@ export default class GH {
       .replace(/export\s+default\s+/g, '')
       .replace(/export\s+/g, '');
 
-    new Function(clean)();
+    await new Function(clean)();
   }
 
   get headers() {
@@ -114,5 +114,5 @@ if (m) {
   window.GH = GH;
   window.gh = new GH({ repo, ref });
   window.__bundleRef = ref;
-  await window.gh.load('gh-auth.js');
+  await window.gh.load('gh-boot.js');
 }
