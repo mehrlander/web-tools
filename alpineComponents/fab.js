@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place) and scripts pulled in via gh.load() (with per-entry status), plus a collapsible console log and a render box that re-loads the current page at any branch in an overlay iframe',
+      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place), scripts pulled in via gh.load() (with per-entry status), and a Render tab that re-loads the current page at any branch/tag/sha in an overlay iframe, plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list)',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -37,6 +37,12 @@ document.addEventListener('alpine:init', function() {
                   <i class="ph ph-code text-sm"></i>
                   <span>Scripts</span>
                   <span x-show="loadedScripts.length" class="font-mono text-[10px] opacity-60" x-text="loadedScripts.length"></span>
+                </button>
+                <button @click="activeTab = 'render'; loadFrameBranches()"
+                        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold transition-colors"
+                        :class="activeTab === 'render' ? 'bg-primary/10 text-primary' : 'text-base-content/60 hover:bg-base-200'">
+                  <i class="ph ph-monitor-play text-sm"></i>
+                  <span>Render</span>
                 </button>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -130,65 +136,56 @@ document.addEventListener('alpine:init', function() {
                   </template>
                 </div>
               </div>
-            </div>
 
-            <div class="shrink-0 border-t border-base-300 flex flex-col">
-              <div @click="toggleFrameControls()" role="button" tabindex="0"
-                   class="flex items-center justify-between gap-2 px-3 py-1.5 cursor-pointer select-none hover:bg-base-200/60 transition-colors">
-                <div class="flex items-center gap-1.5 text-xs font-semibold text-base-content/70">
-                  <i class="ph ph-monitor-play text-sm"></i>
-                  <span>Render page</span>
+              <div x-show="activeTab === 'render'">
+                <div x-show="!path" class="text-xs text-base-content/50 italic px-3 py-6 text-center">
+                  No page path detected on this URL.
                 </div>
-                <i class="ph text-base-content/40" :class="frameControls ? 'ph-caret-down' : 'ph-caret-up'"></i>
-              </div>
-              <div x-show="frameControls" class="p-2 flex flex-col gap-2 border-t border-base-300/60">
-                <div x-show="!path" class="text-[10px] text-base-content/50 italic">No page path detected on this URL.</div>
                 <template x-if="path">
-                  <div class="flex flex-col gap-2">
+                  <div class="p-2 flex flex-col gap-2">
                     <div>
                       <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Page</div>
                       <div class="font-mono text-[11px] truncate" x-text="path"></div>
                     </div>
                     <div>
-                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Branch</div>
-                      <details class="dropdown dropdown-bottom w-full" @toggle="if($event.target.open) loadFrameBranches()" data-auto-close>
-                        <summary class="btn btn-xs btn-outline w-full justify-between gap-1 font-mono normal-case font-normal">
-                          <span class="flex items-center gap-1 truncate">
-                            <i class="ph ph-git-branch text-xs opacity-60"></i>
-                            <span class="truncate" x-text="frameRef || 'main'"></span>
-                          </span>
-                          <i class="ph ph-caret-down text-xs opacity-50"></i>
-                        </summary>
-                        <div class="dropdown-content z-20 mt-1 p-2 shadow-lg bg-base-200 rounded-box border border-base-300" style="width: 18rem; max-width: 90vw;">
-                          <div class="flex gap-1 mb-2">
-                            <input x-model="frameRefInput" placeholder="branch / tag / sha"
-                                   @keyup.enter="applyFrameRef(); $el.closest('details').open = false"
-                                   class="input input-xs input-bordered flex-1 font-mono text-[11px]">
-                            <button @click="applyFrameRef(); $el.closest('details').open = false"
-                                    :disabled="!frameRefInput.trim()" class="btn btn-xs btn-primary">Set</button>
-                          </div>
-                          <div x-show="frameBranchesLoading" class="flex justify-center py-2">
-                            <span class="loading loading-dots loading-xs opacity-50"></span>
-                          </div>
-                          <div x-show="!frameBranchesLoading" class="max-h-48 overflow-y-auto">
-                            <template x-for="b in frameBranches" :key="b">
-                              <a @click="pickFrameRef(b); $el.closest('details').open = false"
-                                 class="flex items-center gap-1 p-1 hover:bg-base-300 rounded cursor-pointer text-[11px] font-mono"
-                                 :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : ''">
-                                <i class="ph ph-git-branch text-xs opacity-50"></i>
-                                <span class="truncate" x-text="b"></span>
-                              </a>
-                            </template>
-                            <div x-show="!frameBranchesLoading && !frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
-                          </div>
-                        </div>
-                      </details>
+                      <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold mb-0.5">Ref</div>
+                      <div class="flex gap-1">
+                        <input x-model="frameRefInput" placeholder="branch / tag / sha"
+                               @keyup.enter="applyFrameRef()"
+                               class="input input-xs input-bordered flex-1 font-mono text-[11px]">
+                        <button @click="applyFrameRef()" :disabled="!frameRefInput.trim()" class="btn btn-xs btn-primary">Set</button>
+                      </div>
+                      <div class="text-[10px] text-base-content/50 mt-1">
+                        Selected: <span class="font-mono text-base-content/80" x-text="frameRef || 'main'"></span>
+                      </div>
                     </div>
-                    <button @click="openFrame()" class="btn btn-xs btn-primary gap-1 w-full"><i class="ph ph-play"></i>Render</button>
+                    <button @click="openFrame()" class="btn btn-sm btn-primary gap-1 w-full"><i class="ph ph-play"></i>Render</button>
+                    <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
+                    <div class="border-t border-base-300/60 pt-2">
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="text-[10px] uppercase tracking-wider opacity-50 font-semibold">Branches</div>
+                        <button @click="loadFrameBranches(true)" class="text-[10px] link link-hover"
+                                :class="frameBranchesLoading ? 'opacity-50 pointer-events-none' : ''">refresh</button>
+                      </div>
+                      <div x-show="frameBranchesLoading" class="flex justify-center py-3">
+                        <span class="loading loading-dots loading-sm opacity-50"></span>
+                      </div>
+                      <div x-show="!frameBranchesLoading" class="flex flex-col gap-0.5 overflow-y-auto" style="max-height: 50vh;">
+                        <template x-for="b in frameBranches" :key="b">
+                          <button @click="pickFrameRef(b)"
+                                  class="flex items-center gap-1.5 px-1.5 py-1 rounded text-[11px] font-mono text-left transition-colors"
+                                  :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-300/50'">
+                            <i class="ph ph-git-branch text-xs opacity-50 shrink-0"></i>
+                            <span class="truncate" x-text="b"></span>
+                            <i x-show="b === frameRef" class="ph ph-check text-xs ml-auto shrink-0"></i>
+                          </button>
+                        </template>
+                        <div x-show="!frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
+                      </div>
+                    </div>
+                    <div class="text-[10px] text-base-content/40 leading-snug">Re-renders this page at the selected ref in an overlay box.</div>
                   </div>
                 </template>
-                <div x-show="frameError" class="text-[10px] text-error font-mono break-all" x-text="frameError"></div>
-                <div x-show="path" class="text-[10px] text-base-content/40 leading-snug">Re-renders this page at the selected branch in an overlay box.</div>
               </div>
             </div>
 
@@ -203,25 +200,29 @@ document.addEventListener('alpine:init', function() {
                   <span x-show="consoleLogs.length" class="font-mono text-[10px] opacity-50" x-text="consoleLogs.length"></span>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                  <button x-show="consoleOpen && consoleLogs.length" @click.stop="consoleLogs = []" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
+                  <button x-show="consoleOpen && consoleLogs.length" @click.stop="clearConsole()" class="btn btn-ghost btn-xs btn-square" title="Clear console" aria-label="Clear console">
                     <i class="ph ph-trash"></i>
                   </button>
                   <i class="ph text-base-content/40" :class="consoleOpen ? 'ph-caret-down' : 'ph-caret-up'"></i>
                 </div>
               </div>
-              <div x-show="consoleOpen" class="overflow-y-auto p-1 flex flex-col gap-0.5 border-t border-base-300/60"
-                   id="__fab-console-panel" style="max-height: 40vh;">
-                <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
-                <template x-for="(entry, idx) in consoleLogs" :key="idx">
-                  <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
-                       :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
-                               entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
-                                                         'border-base-300 bg-base-100'">
-                    <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
-                    <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
-                    <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
-                  </div>
-                </template>
+              <div x-show="consoleOpen" class="border-t border-base-300/60 flex flex-col" style="max-height: 40vh;">
+                <div x-show="consolePanelReady" class="flex-1 min-h-0 flex flex-col">
+                  <div x-ref="consoleHost" class="flex-1 min-h-0 flex flex-col"></div>
+                </div>
+                <div x-show="!consolePanelReady" id="__fab-console-panel" class="overflow-y-auto p-1 flex flex-col gap-0.5" style="max-height: 40vh;">
+                  <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
+                  <template x-for="(entry, idx) in consoleLogs" :key="idx">
+                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
+                         :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
+                                 entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
+                                                           'border-base-300 bg-base-100'">
+                      <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
+                      <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
+                      <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
 
@@ -246,6 +247,7 @@ document.addEventListener('alpine:init', function() {
 
       open: false,
       consoleOpen: false,
+      consolePanelReady: false,
       activeTab: 'components',
       groups: [],
       consoleLogs: [],
@@ -253,7 +255,6 @@ document.addEventListener('alpine:init', function() {
       highlighted: null,
 
       frameOpen: false,
-      frameControls: false,
       frameRef: 'main', frameRefInput: '',
       frameBranches: [], frameBranchesLoading: false, frameBranchesLoaded: false,
       frameLoading: false, frameError: '',
@@ -271,12 +272,25 @@ document.addEventListener('alpine:init', function() {
         this.$nextTick(() => Alpine.initTree(this.$el));
         this.infer();
         this.frameRef = this.ref || 'main';
-        this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
-        this._consoleListener = e => {
-          this.consoleLogs.push(e.detail);
-          if (this.open && this.consoleOpen) this.scrollConsole();
-        };
-        window.addEventListener('consolelog', this._consoleListener);
+        // Console counts (header badges) + fallback list. Prefer the
+        // retention kit (kits/console.js); fall back to gh-api's raw
+        // __consoleLogs + 'consolelog' event. The rich panel, mounted
+        // below, is the primary renderer once it's available.
+        if (window.consoleKit) {
+          this._offConsole = console.subscribe(e => {
+            if (e.clear) { this.consoleLogs = []; return; }
+            this.consoleLogs.push({ level: e.level, msg: e.msg, time: e.time });
+            if (this.open && this.consoleOpen && !this.consolePanelReady) this.scrollConsole();
+          });
+        } else {
+          this.consoleLogs = window.__consoleLogs ? [...window.__consoleLogs] : [];
+          this._consoleListener = e => {
+            this.consoleLogs.push(e.detail);
+            if (this.open && this.consoleOpen && !this.consolePanelReady) this.scrollConsole();
+          };
+          window.addEventListener('consolelog', this._consoleListener);
+        }
+        this._mountConsolePanel();
 
         this.loadedScripts = window.__loadedScripts ? [...window.__loadedScripts] : [];
         this._scriptsListener = () => {
@@ -286,6 +300,7 @@ document.addEventListener('alpine:init', function() {
       },
 
       destroy() {
+        if (this._offConsole) this._offConsole();
         if (this._consoleListener) window.removeEventListener('consolelog', this._consoleListener);
         if (this._scriptsListener) window.removeEventListener('loadedscripts', this._scriptsListener);
       },
@@ -490,11 +505,35 @@ document.addEventListener('alpine:init', function() {
         if (this.consoleOpen) this.scrollConsole();
       },
 
-      toggleFrameControls() { this.frameControls = !this.frameControls; },
+      // Load + mount the rich debugConsole panel into the footer. Self-loads
+      // the kit and component via gh.load so pages that only pull fab.js
+      // still get the upgrade; on failure we keep the inline fallback list.
+      async _mountConsolePanel() {
+        if (this.consolePanelReady) return;
+        try {
+          if (window.gh) {
+            if (!window.consoleKit) { try { await window.gh.load('kits/console.js'); } catch (e) {} }
+            if (!window.__debugConsoleRegistered) { try { await window.gh.load('alpineComponents/console.js'); } catch (e) {} }
+          }
+          if (!window.__debugConsoleRegistered || !window.Alpine) return;
+          await this.$nextTick();
+          const host = this.$refs.consoleHost;
+          if (!host || host.getAttribute('x-data')) return;
+          host.setAttribute('x-data', 'debugConsole');
+          window.Alpine.initTree(host);
+          this.consolePanelReady = true;
+        } catch (e) {}
+      },
+
+      clearConsole() {
+        if (window.consoleKit) console.clear();
+        else this.consoleLogs = [];
+      },
 
       get frameLabel() { return this.path + ' @ ' + (this.frameRef || 'main'); },
 
-      async loadFrameBranches() {
+      async loadFrameBranches(force) {
+        if (force) this.frameBranchesLoaded = false;
         if (this.frameBranchesLoaded || this.frameBranchesLoading) return;
         if (!window.GH) { this.frameError = 'window.GH not available on this page'; return; }
         this.frameError = '';

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console kit + debugConsole demo</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🖥️</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+  <!-- Boot: gh-api.js auto-loads gh-boot.js, which loads kits/console.js
+       (the retention layer). Then the renderer component, then alpine-bundle
+       starts Alpine. Append ?use=<branch|sha> to pull all of it from a ref. -->
+  <script type="module">
+    const ref = new URLSearchParams(location.search).get('use') || 'main';
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+    await gh.load('alpineComponents/console.js');
+    await gh.load('alpine-bundle.js');
+  </script>
+</head>
+
+<body class="h-screen w-screen overflow-hidden flex bg-base-200 m-0 text-base-content">
+
+  <aside class="w-72 bg-base-100 flex flex-col border-r border-base-300 shrink-0" x-data>
+    <div class="p-4 font-bold text-lg border-b border-base-300 flex items-center gap-2">
+      <i class="ph ph-terminal-window text-xl"></i>
+      Console Triggers
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+      <button @click="console.log('Regular log message')" class="btn btn-info btn-sm justify-start">Log Text</button>
+      <button @click="console.log({ name: 'Test Object', nested: { value: 42, array: [1,2,3] }, active: true })" class="btn btn-success btn-sm justify-start">Log Object</button>
+      <button @click="console.log([1, 2, 3, 'test', true])" class="btn btn-success btn-outline btn-sm justify-start">Log Array</button>
+      <button @click="console.log('User:', { id: 123 }, 'Status:', 'active')" class="btn btn-secondary btn-sm justify-start">Multiple Args</button>
+      <button @click="console.info('Informational note')" class="btn btn-accent btn-sm justify-start">Info</button>
+      <button @click="console.warn('Warning message!')" class="btn btn-warning btn-sm justify-start">Warn</button>
+      <button @click="console.error('Error occurred!')" class="btn btn-error btn-sm justify-start">Error</button>
+      <button @click="console.table([{ name: 'John', age: 30 }, { name: 'Jane', age: 25 }, { name: 'Bob', age: 35 }])" class="btn btn-primary btn-sm justify-start">Table Array</button>
+      <button @click="console.table({ first: { name: 'Alice', score: 95 }, second: { name: 'Bob', score: 87 } })" class="btn btn-primary btn-outline btn-sm justify-start">Table Object</button>
+      <button @click="Promise.reject('Unhandled promise rejection')" class="btn btn-neutral btn-sm justify-start">Promise Rejection</button>
+      <button @click="console.clear()" class="btn btn-ghost btn-sm justify-start">console.clear()</button>
+    </div>
+    <div class="p-3 text-[11px] text-base-content/50 border-t border-base-300 leading-snug">
+      Logs flow through <code>kits/console.js</code>; the panel reads
+      <code>console.history</code> + <code>console.subscribe</code>.
+      Expand object / table rows for the rich view.
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="bg-base-300 px-4 py-3 flex items-center gap-2 shrink-0 border-b border-base-300">
+      <i class="ph ph-code"></i>
+      <span class="font-bold text-sm">debugConsole</span>
+      <span class="text-xs opacity-50">— the same component the FAB embeds</span>
+    </header>
+    <div class="flex-1 min-h-0" x-data="debugConsole"></div>
+  </main>
+
+</body>
+</html>
