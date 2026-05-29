@@ -42,14 +42,17 @@
     return json.data;
   };
 
-  // Branches with tip-commit dates, server-sorted newest-first. REST's
-  // branches endpoint carries no commit date, so this goes through GraphQL.
+  // Branches with tip-commit dates, sorted newest-first. REST's branches
+  // endpoint carries no commit date, so this goes through GraphQL. Sorting is
+  // client-side: RefOrderField has only ALPHABETICAL and TAG_COMMIT_DATE, and
+  // the latter only orders refs/tags/ — there's no server-side commit-date sort
+  // for refs/heads/. committedDate is ISO-8601, so a string sort is chronological.
   proto.branchesDated = async function(per = 100) {
     const [owner, name] = (this.repo || '').split('/');
     const data = await this.graphql(
       `query($owner:String!, $name:String!, $per:Int!) {
         repository(owner:$owner, name:$name) {
-          refs(refPrefix:"refs/heads/", first:$per, orderBy:{field:COMMITTED_DATE, direction:DESC}) {
+          refs(refPrefix:"refs/heads/", first:$per) {
             nodes { name target { ... on Commit { committedDate } } }
           }
         }
@@ -57,10 +60,12 @@
       { owner, name, per }
     );
     const nodes = (data && data.repository && data.repository.refs && data.repository.refs.nodes) || [];
-    return nodes.map(n => {
-      const date = n.target && n.target.committedDate;
-      return { name: n.name, date: date || '', ago: date ? this.ago(date) : '' };
-    });
+    return nodes
+      .map(n => {
+        const date = n.target && n.target.committedDate;
+        return { name: n.name, date: date || '', ago: date ? this.ago(date) : '' };
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   };
 
   proto.tags = async function(per = 100) {
