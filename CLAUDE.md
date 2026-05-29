@@ -46,37 +46,34 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 ## Merge guide
 
-`MERGE-GUIDE.md` at the repo root is a running, newest-on-top log of what each session shipped. One file, one URL: the user always taps the same place, the latest entry is the first thing they see, and older entries stack below as history (git holds how the file evolved — there's no separate archive). It's the durable form of the per-turn **per-file links** and **session diff** above: instead of evaporating in chat, those links land in a file that survives the session and doubles as a log.
+`MERGE-GUIDE.md` at the repo root is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
 
-**Produced on request.** When the user says "merge guide" (or "update the merge guide"), prepend a new entry for the current session's work. Don't write it unasked.
+Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
 
-**Prepend, never overwrite.** The new entry goes at the top, directly under the title; existing entries are left untouched.
+Keep entries short. A five-second skim, not a changelog dump.
 
 **Entry shape:**
 
 ```markdown
-## <YYYY-MM-DD> · <one-line title> · PR #<n> (or branch)
+## <date> <one-line title> (PR #<n> or branch)
 
-<One or two sentences: what this session set out to do — the primary outcome.>
+<One sentence: the primary outcome.>
 
-⭐ **Start here:** [<the primary artifact>](<live page, or ?use=<sha> link>)
+⭐ **Result:** [<primary artifact>](<live page, or ?use=<sha> link>)
 
-**Where to look**
-- <path> — <what changed> ([new](…), [main](…), [diff](…))
-  - renders on: [<page>](…), [<page>](…)   ← only for a shared component
-- …
+**Changed:**
+- <path> ([new](…), [main](…), [diff](…))
+  renders on: [<page>](…)   (only for a shared component)
 
-**Notes**
-- <why, gotchas, what's deliberately not done, follow-ups>
+**Notes:** <only the non-obvious: why, what's unfinished, follow-ups>
 
-Session diff: [main…<branch>](<compare link>)
+[Session diff](<compare link>)
 ```
 
-- **Lead with the outcome, not the file list.** "Start here" is the single most important link — the live page that shows the result. While the work is still on a branch, link it with `?use=<sha>` (the SHA, not the branch name — jsDelivr caches branch tips ~12h); after merge the plain Pages/main URL is canonical.
-- **Primary file first.** When a shared component changed, give it a `renders on:` sublist naming every consuming page with a live link — that closes the "which page do I open?" gap.
-- **Notes earn their place.** Skip anything obvious from the diff; capture the non-obvious — why, what's incomplete, what to do next.
-- **Reuse the link vocabulary** from the per-file convention above (`[new]`/`[main]`/`[diff]`, line anchors where a change is narrow).
-- **Keep each entry skimmable** — a five-second read, not a changelog dump.
+- Lead with the result, not the file list. While work is on a branch, link it with `?use=<sha>` (the SHA, since jsDelivr caches branch tips ~12h). After merge the plain Pages/main URL is canonical.
+- Primary file first. For a shared component, add a `renders on:` line naming each consuming page, so it's clear which page to open.
+- Notes only when non-obvious. Skip anything the diff already shows.
+- All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above.
 
 ## Post-merge handoff
 
