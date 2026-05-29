@@ -242,12 +242,14 @@ document.addEventListener('alpine:init', function() {
                 <div x-show="!consolePanelReady" id="__fab-console-panel" class="overflow-y-auto p-1 flex flex-col gap-0.5" style="max-height: 40vh;">
                   <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
                   <template x-for="(entry, idx) in consoleLogs" :key="idx">
-                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
-                         :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
-                                 entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
+                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px] text-base-content"
+                         :class="entry.level === 'error' ? 'border-error bg-error/10' :
+                                 entry.level === 'warn'  ? 'border-warning bg-warning/10' :
                                                            'border-base-300 bg-base-100'">
                       <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
-                      <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
+                      <span class="shrink-0 w-8 text-[10px] uppercase font-bold"
+                            :class="entry.level === 'error' ? 'text-error' : entry.level === 'warn' ? 'text-warning' : 'text-base-content/40'"
+                            x-text="entry.level"></span>
                       <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
                     </div>
                   </template>
