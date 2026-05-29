@@ -36,13 +36,13 @@ return (async () => {
   const proto = window.gh.constructor.prototype;
   const origLoad = proto.load;
   proto.load = async function(path, opts) {
-    let requester = opts?.by;
-    if (!requester) {
-      const stack = new Error().stack || '';
-      if (stack.includes('gh-boot.js')) requester = '(gh-boot)';
-      else if (stack.includes('fab.js')) requester = '(fab)';
-      else requester = '(direct)';
-    }
+    // Attribution rides on the scoped `gh` each loaded script is handed:
+    // gh-api.js's load() proxy stamps opts.by = the loading script's path, so
+    // a script that pulls children via its own `gh` records who pulled them.
+    // No stack inspection — WebKit runs gh.load'd files as anonymous
+    // `new Function` bodies with no sourceURL in Error().stack, so a stack
+    // sniff can never name the caller there. Absent an explicit by, it's direct.
+    const requester = opts?.by || '(direct)';
     let cached = loadCache.get(path);
     if (cached) {
       cached.entry.by.add(requester);
@@ -50,7 +50,7 @@ return (async () => {
       return cached.promise;
     }
 
-    const entry = { path, t: Date.now(), status: 'pending', auto: requester === '(gh-boot)', by: new Set([requester]) };
+    const entry = { path, t: Date.now(), status: 'pending', auto: requester === 'gh-boot.js', by: new Set([requester]) };
     window.__loadedScripts.push(entry);
     loadCache.set(path, { entry });
     fire();
@@ -85,13 +85,15 @@ return (async () => {
     return promise;
   };
 
-  await window.gh.load('gh-auth.js');
-  await window.gh.load('gh-fetch.js');
+  // Use the scoped `gh` handed to this script (not window.gh) so each child
+  // is stamped by: 'gh-boot.js' and flagged auto in the Scripts registry.
+  await gh.load('gh-auth.js');
+  await gh.load('gh-fetch.js');
   // Console retention layer — extends console.* with history/subscribe/filter
   // on top of gh-api.js's wrapper, so any page can render captured logs.
-  await window.gh.load('kits/console.js');
+  await gh.load('kits/console.js');
   // Ambient DOM utilities for every page: ea, el, ids, ui, grab, html, fill,
   // attr, cls, listen, data, tpl, on, route, plus window.copy() helper.
-  // No dependencies, idempotent on re-load. Auto-attributed to gh-boot via stack inspection.
-  await window.gh.load('vanilla-bundle.js');
+  // No dependencies, idempotent on re-load.
+  await gh.load('vanilla-bundle.js');
 })();
