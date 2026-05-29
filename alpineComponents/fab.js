@@ -552,8 +552,11 @@ document.addEventListener('alpine:init', function() {
       async _selfLoad(path, isReady, { tries = 2, timeoutMs = 8000 } = {}) {
         for (let i = 0; i < tries && !isReady(); i++) {
           try {
+            // Pass `by` explicitly — an Alpine method can't reach the scoped
+            // `gh` handed to fab.js at load time, so stamp the attribution here
+            // (the load wrapper honors opts.by ahead of any other signal).
             await Promise.race([
-              window.gh.load(path),
+              window.gh.load(path, { by: 'alpineComponents/fab.js' }),
               new Promise((_, rej) => setTimeout(() => rej(new Error('self-load timeout')), timeoutMs))
             ]);
           } catch (e) {}
