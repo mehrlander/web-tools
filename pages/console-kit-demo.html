@@ -19,41 +19,116 @@
   </script>
 </head>
 
-<body class="h-screen w-screen overflow-hidden flex bg-base-200 m-0 text-base-content">
+<!--
+  Layout mirrors pages/sidebar-drawer-mwe.html: the DaisyUI `drawer` renders
+  the trigger list as a docked column at >= lg (lg:drawer-open) and as a
+  slide-in overlay below that, so the debugConsole pane stays usable on a
+  phone. The hamburger toggle only shows below lg; tapping a trigger fires its
+  console call and auto-closes the drawer on small screens so the resulting
+  log is visible immediately.
+-->
+<body class="h-screen overflow-hidden bg-base-200 m-0 text-base-content" x-data="demoConsole()">
 
-  <aside class="w-72 bg-base-100 flex flex-col border-r border-base-300 shrink-0" x-data>
-    <div class="p-4 font-bold text-lg border-b border-base-300 flex items-center gap-2">
-      <i class="ph ph-terminal-window text-xl"></i>
-      Console Triggers
-    </div>
-    <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-      <button @click="console.log('Regular log message')" class="btn btn-info btn-sm justify-start">Log Text</button>
-      <button @click="console.log({ name: 'Test Object', nested: { value: 42, array: [1,2,3] }, active: true })" class="btn btn-success btn-sm justify-start">Log Object</button>
-      <button @click="console.log([1, 2, 3, 'test', true])" class="btn btn-success btn-outline btn-sm justify-start">Log Array</button>
-      <button @click="console.log('User:', { id: 123 }, 'Status:', 'active')" class="btn btn-secondary btn-sm justify-start">Multiple Args</button>
-      <button @click="console.info('Informational note')" class="btn btn-accent btn-sm justify-start">Info</button>
-      <button @click="console.warn('Warning message!')" class="btn btn-warning btn-sm justify-start">Warn</button>
-      <button @click="console.error('Error occurred!')" class="btn btn-error btn-sm justify-start">Error</button>
-      <button @click="console.table([{ name: 'John', age: 30 }, { name: 'Jane', age: 25 }, { name: 'Bob', age: 35 }])" class="btn btn-primary btn-sm justify-start">Table Array</button>
-      <button @click="console.table({ first: { name: 'Alice', score: 95 }, second: { name: 'Bob', score: 87 } })" class="btn btn-primary btn-outline btn-sm justify-start">Table Object</button>
-      <button @click="Promise.reject('Unhandled promise rejection')" class="btn btn-neutral btn-sm justify-start">Promise Rejection</button>
-      <button @click="console.clear()" class="btn btn-ghost btn-sm justify-start">console.clear()</button>
-    </div>
-    <div class="p-3 text-[11px] text-base-content/50 border-t border-base-300 leading-snug">
-      Logs flow through <code>kits/console.js</code>; the panel reads
-      <code>console.history</code> + <code>console.subscribe</code>.
-      Expand object / table rows for the rich view.
-    </div>
-  </aside>
+  <div class="drawer lg:drawer-open h-full">
+    <input id="triggers-toggle" type="checkbox" class="drawer-toggle" x-ref="toggle" />
 
-  <main class="flex-1 flex flex-col min-w-0">
-    <header class="bg-base-300 px-4 py-3 flex items-center gap-2 shrink-0 border-b border-base-300">
-      <i class="ph ph-code"></i>
-      <span class="font-bold text-sm">debugConsole</span>
-      <span class="text-xs opacity-50">— the same component the FAB embeds</span>
-    </header>
-    <div class="flex-1 min-h-0" x-data="debugConsole"></div>
-  </main>
+    <!-- Main pane: the debugConsole component — the same one the FAB embeds -->
+    <div class="drawer-content flex flex-col min-w-0 h-full bg-base-100">
+      <header class="bg-base-300 px-3 py-2 flex items-center gap-2 shrink-0 border-b border-base-300">
+        <label for="triggers-toggle"
+               class="btn btn-ghost btn-sm btn-square lg:hidden"
+               aria-label="Open triggers">
+          <i class="ph ph-list text-xl"></i>
+        </label>
+        <i class="ph ph-code"></i>
+        <span class="font-bold text-sm">debugConsole</span>
+        <span class="text-xs opacity-50 truncate">— the same component the FAB embeds</span>
+      </header>
+      <div class="flex-1 min-h-0" x-data="debugConsole"></div>
+    </div>
 
+    <!-- Sidebar: console triggers (drawer-side is the slide-in surface) -->
+    <aside class="drawer-side z-40">
+      <label for="triggers-toggle" aria-label="close triggers" class="drawer-overlay"></label>
+
+      <div class="w-72 h-full bg-base-100 flex flex-col border-r border-base-300">
+        <div class="p-4 font-bold text-lg border-b border-base-300 flex items-center justify-between gap-2">
+          <span class="flex items-center gap-2">
+            <i class="ph ph-terminal-window text-xl"></i>
+            Console Triggers
+          </span>
+          <label for="triggers-toggle"
+                 class="btn btn-ghost btn-sm btn-circle lg:hidden"
+                 aria-label="Close triggers">
+            <i class="ph ph-x"></i>
+          </label>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+          <button @click="run(() => console.log('Regular log message'))" class="btn btn-info btn-sm justify-start">Log Text</button>
+          <button @click="run(() => console.log({ name: 'Test Object', nested: { value: 42, array: [1,2,3] }, active: true }))" class="btn btn-success btn-sm justify-start">Log Object</button>
+          <button @click="run(() => console.log(deepObject()))" class="btn btn-success btn-outline btn-sm justify-start">Log Deep Object</button>
+          <button @click="run(() => console.log([1, 2, 3, 'test', true]))" class="btn btn-success btn-outline btn-sm justify-start">Log Array</button>
+          <button @click="run(() => console.log('User:', { id: 123 }, 'Status:', 'active'))" class="btn btn-secondary btn-sm justify-start">Multiple Args</button>
+          <button @click="run(() => console.info('Informational note'))" class="btn btn-accent btn-sm justify-start">Info</button>
+          <button @click="run(() => console.warn('Warning message!'))" class="btn btn-warning btn-sm justify-start">Warn</button>
+          <button @click="run(() => console.error('Error occurred!'))" class="btn btn-error btn-sm justify-start">Error</button>
+          <button @click="run(() => { throw new Error('Thrown from a click handler'); })" class="btn btn-error btn-outline btn-sm justify-start">Throw (uncaught)</button>
+          <button @click="run(() => console.table([{ name: 'John', age: 30 }, { name: 'Jane', age: 25 }, { name: 'Bob', age: 35 }]))" class="btn btn-primary btn-sm justify-start">Table Array</button>
+          <button @click="run(() => console.table({ first: { name: 'Alice', score: 95 }, second: { name: 'Bob', score: 87 } }))" class="btn btn-primary btn-outline btn-sm justify-start">Table Object</button>
+          <button @click="run(() => console.table(people()))" class="btn btn-primary btn-outline btn-sm justify-start">Table (large)</button>
+          <button @click="run(() => Promise.reject('Unhandled promise rejection'))" class="btn btn-neutral btn-sm justify-start">Promise Rejection</button>
+          <button @click="run(() => logBurst())" class="btn btn-neutral btn-outline btn-sm justify-start">Log Burst ×25</button>
+          <button @click="run(() => console.clear())" class="btn btn-ghost btn-sm justify-start">console.clear()</button>
+        </div>
+
+        <div class="p-3 text-[11px] text-base-content/50 border-t border-base-300 leading-snug">
+          Logs flow through <code>kits/console.js</code>; the panel reads
+          <code>console.history</code> + <code>console.subscribe</code>.
+          Expand object / table rows for the rich view. Resize past
+          <code>lg</code> to dock this list.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    function demoConsole() {
+      return {
+        // Fire a trigger, then auto-close the drawer on small screens so the
+        // resulting log is visible (matches the FAB/sidebar-drawer-mwe UX).
+        run(fn) {
+          try { fn(); } catch (e) { /* uncaught-throw demo: let it surface */ throw e; }
+          finally {
+            if (window.matchMedia('(max-width: 1023.98px)').matches) this.$refs.toggle.checked = false;
+          }
+        },
+        // A deeper, mixed-type tree to exercise the JSON-tree expand view.
+        deepObject() {
+          return {
+            id: 'req_8f2a',
+            ok: true,
+            meta: { ts: Date.now(), tags: ['demo', 'console', 'tree'], retries: 0 },
+            user: { id: 123, name: 'Ada', roles: ['admin', 'editor'], prefs: { theme: 'emerald', density: 'compact' } },
+            items: [
+              { sku: 'A1', qty: 2, price: 9.99 },
+              { sku: 'B7', qty: 1, price: 19.5, note: null }
+            ]
+          };
+        },
+        // A larger row set for the Tabulator grid view.
+        people() {
+          const names = ['Ada', 'Bo', 'Cy', 'Di', 'Ed', 'Fi', 'Gus', 'Hana'];
+          return names.map((n, i) => ({
+            name: n, age: 20 + i * 3, score: Math.round((1 - i / 10) * 100), active: i % 2 === 0
+          }));
+        },
+        logBurst() {
+          const levels = ['log', 'info', 'warn', 'error'];
+          for (let i = 1; i <= 25; i++) console[levels[i % levels.length]](`Burst line ${i}`);
+        }
+      };
+    }
+  </script>
 </body>
 </html>
