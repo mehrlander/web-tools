@@ -130,10 +130,10 @@ document.addEventListener('alpine:init', function() {
                         <a :href="scriptUrl(s.path)" target="_blank"
                            class="flex-1 font-mono text-[11px] truncate link link-hover" x-text="s.path"></a>
                         <span x-show="s.auto" class="text-[10px] text-base-content/50 shrink-0">auto</span>
+                        <span x-show="s.by && s.by.size > 0" class="text-[10px] text-base-content/60 shrink-0">
+                          <span class="opacity-50">by:</span> <span x-text="Array.from(s.by || []).join(', ')"></span>
+                        </span>
                         <span class="font-mono text-[10px] text-base-content/40 shrink-0" x-text="fmtElapsed(s)"></span>
-                      </div>
-                      <div x-show="s.by && s.by.size > 0" class="px-2 py-1 border-t border-base-300/40 text-[10px] text-base-content/60">
-                        <span class="opacity-50">by:</span> <span x-text="Array.from(s.by || []).join(', ')"></span>
                       </div>
                       <div x-show="s.error" class="px-2 pb-1.5 font-mono text-[10px] text-error break-all" x-text="s.error"></div>
                     </div>
