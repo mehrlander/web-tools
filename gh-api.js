@@ -56,7 +56,16 @@ export default class GH {
       .replace(/export\s+default\s+/g, '')
       .replace(/export\s+/g, '');
 
-    await new Function(clean)();
+    const scopedGh = new Proxy(this, {
+      get: (target, prop) => {
+        if (prop === 'load') {
+          return (p, opts) => target.load.call(target, p, { ...opts, by: path });
+        }
+        return target[prop];
+      }
+    });
+
+    await new Function('gh', clean)(scopedGh);
   }
 
   get headers() {

@@ -1,3 +1,8 @@
+// Idempotency guard: vanilla-bundle is now auto-loaded on every page
+// and also injected into frames, so only install if not already present.
+if (!window.__vanilla_bundle_loaded) {
+  window.__vanilla_bundle_loaded = true
+
 // ── select + read ──
 window.ea = (sel, cb = el => el) =>
   [...document.querySelectorAll(sel)].map(cb)
@@ -148,3 +153,45 @@ window.route = (root, type, routes) =>
       if (match) return fn(e, match)
     }
   })
+
+// ── clipboard ──
+// Stringify value, attempt write via clipboard API with focus-retry fallback,
+// then log and return so the value lands in the debugConsole. Falls back to
+// textarea+execCommand when the API is unavailable or denied.
+window.copy = (v) => {
+  if (typeof window.copy._guard === 'undefined') {
+    window.copy._guard = true
+    if (!window.vanilla_bundle_copy_init) {
+      window.vanilla_bundle_copy_init = true
+    }
+  }
+  const text = typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => { console.log(text); return text })
+      .catch(e => {
+        if (e.name === 'NotAllowedError') {
+          window.addEventListener('focus', () => {
+            navigator.clipboard.writeText(text).catch(() => {})
+          }, { once: true })
+        }
+        fallback()
+      })
+  } else {
+    fallback()
+  }
+  const fallback = () => {
+    const t = Object.assign(document.createElement('textarea'), {
+      value: text,
+      readOnly: true,
+      className: 'absolute w-0 h-0 opacity-0'
+    })
+    document.body.appendChild(t)
+    t.select()
+    document.execCommand('copy')
+    t.remove()
+  }
+  console.log(text)
+  return text
+}
+}
