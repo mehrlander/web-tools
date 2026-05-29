@@ -87,6 +87,6 @@ return (async () => {
   // Ambient DOM utilities for every page: ea, el, ids, ui, grab, html, fill,
   // attr, cls, listen, data, tpl, on, route, plus window.copy() helper.
   // No dependencies, idempotent on re-load. Tag as auto so FAB deduplicates
-  // with any explicit page loads. Let normal load flow create the cache entry.
-  await window.gh.load('vanilla-bundle.js');
+  // with any explicit page loads. Explicitly marked as gh-boot requester.
+  await window.gh.load('vanilla-bundle.js', { by: '(gh-boot)' });
 })();
