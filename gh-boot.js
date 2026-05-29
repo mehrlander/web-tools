@@ -36,7 +36,13 @@ return (async () => {
   const proto = window.gh.constructor.prototype;
   const origLoad = proto.load;
   proto.load = async function(path, opts) {
-    const requester = opts?.by || '(direct)';
+    let requester = opts?.by;
+    if (!requester) {
+      const stack = new Error().stack || '';
+      if (stack.includes('gh-boot.js')) requester = '(gh-boot)';
+      else if (stack.includes('fab.js')) requester = '(fab)';
+      else requester = '(direct)';
+    }
     let cached = loadCache.get(path);
     if (cached) {
       cached.entry.by.add(requester);
@@ -86,7 +92,6 @@ return (async () => {
   await window.gh.load('kits/console.js');
   // Ambient DOM utilities for every page: ea, el, ids, ui, grab, html, fill,
   // attr, cls, listen, data, tpl, on, route, plus window.copy() helper.
-  // No dependencies, idempotent on re-load. Tag as auto so FAB deduplicates
-  // with any explicit page loads. Let normal load flow create the cache entry.
+  // No dependencies, idempotent on re-load. Auto-attributed to gh-boot via stack inspection.
   await window.gh.load('vanilla-bundle.js');
 })();

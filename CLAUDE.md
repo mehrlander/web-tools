@@ -34,6 +34,8 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 > [https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js](https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js)
 
+**Creating the next PR (after Option 2).** If we continue editing after a merge, new commits land on the branch. To merge them, create a **new** PR from the branch (don't try to update the old one; it's already merged). Check `git log main -1` if unsure what's merged, then `git log main..HEAD` to see commits waiting for the next PR.
+
 **Don't reach for external preview services.** If the repo is private, render proxies (htmlpreview.github.io, raw.githack.com, and similar) won't resolve. The blob view via `[new]` is the canonical file view for every file type. Markdown renders directly there; code gets syntax highlighting.
 
 **URL templates for reference:**
@@ -87,7 +89,11 @@ Typical case, where you edit JS but the result is a page to open:
 
 ## Post-merge handoff
 
-A recurring pattern: the user merges, then surfaces a bug or the next round of work. That belongs to a new session, but the current session has the context to assess results and set the course.
+A recurring pattern: the user merges, then surfaces a bug or the next round of work. Merge typically marks the end of a session, but it can proceed two ways:
+
+**Option 1: Handoff prompt.** Write a diagnostic prompt for the next session (see below), then wind down. The new session opens fresh with a new PR and CLAUDE.md context.
+
+**Option 2: Continue with edits.** User says "ok let's add X," and we keep editing on the same branch. Tradeoff: we must then create a new PR (not update the old one) when done, since the branch now has commits ahead of the merged PR.
 
 When asked for a handoff prompt (HP):
 
