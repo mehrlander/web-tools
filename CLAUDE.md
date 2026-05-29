@@ -50,6 +50,8 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 A recurring pattern: the user merges, then surfaces a bug or the next round of work. That belongs to a new session, but the current session has the context to assess results and set the course.
 
+**After merge: discuss, don't edit.** Once we merge, stop editing code. Verify the merge result, assess what's next, discuss findings with the user. New work goes to a new session with a fresh PR.
+
 When asked for a handoff prompt (HP):
 
 **Wrap it in a fenced markdown code block.** The user often copies on mobile, so a fence makes it one tap. Use four backticks outside if the prompt itself contains triple-backtick code.
