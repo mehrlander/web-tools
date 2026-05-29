@@ -44,7 +44,7 @@ return (async () => {
       return cached.promise;
     }
 
-    const entry = { path, t: Date.now(), status: 'pending', auto: false, by: new Set([requester]) };
+    const entry = { path, t: Date.now(), status: 'pending', auto: requester === '(gh-boot)', by: new Set([requester]) };
     window.__loadedScripts.push(entry);
     loadCache.set(path, { entry });
     fire();
@@ -87,13 +87,6 @@ return (async () => {
   // Ambient DOM utilities for every page: ea, el, ids, ui, grab, html, fill,
   // attr, cls, listen, data, tpl, on, route, plus window.copy() helper.
   // No dependencies, idempotent on re-load. Tag as auto so FAB deduplicates
-  // with any explicit page loads.
-  const vbEntry = window.__loadedScripts.find(e => e.path === 'vanilla-bundle.js');
-  if (!vbEntry) {
-    const e = { path: 'vanilla-bundle.js', t: Date.now(), status: 'pending', auto: true, by: new Set(['(gh-boot)']) };
-    window.__loadedScripts.push(e);
-    loadCache.set('vanilla-bundle.js', { entry: e });
-    fire();
-  }
+  // with any explicit page loads. Let normal load flow create the cache entry.
   await window.gh.load('vanilla-bundle.js');
 })();
