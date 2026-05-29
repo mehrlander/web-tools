@@ -159,13 +159,18 @@ window.route = (root, type, routes) =>
 // then log and return so the value lands in the debugConsole. Falls back to
 // textarea+execCommand when the API is unavailable or denied.
 window.copy = (v) => {
-  if (typeof window.copy._guard === 'undefined') {
-    window.copy._guard = true
-    if (!window.vanilla_bundle_copy_init) {
-      window.vanilla_bundle_copy_init = true
-    }
-  }
   const text = typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+  const fallback = () => {
+    const t = Object.assign(document.createElement('textarea'), {
+      value: text,
+      readOnly: true,
+      className: 'absolute w-0 h-0 opacity-0'
+    })
+    document.body.appendChild(t)
+    t.select()
+    document.execCommand('copy')
+    t.remove()
+  }
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text)
       .then(() => { console.log(text); return text })
@@ -179,17 +184,6 @@ window.copy = (v) => {
       })
   } else {
     fallback()
-  }
-  const fallback = () => {
-    const t = Object.assign(document.createElement('textarea'), {
-      value: text,
-      readOnly: true,
-      className: 'absolute w-0 h-0 opacity-0'
-    })
-    document.body.appendChild(t)
-    t.select()
-    document.execCommand('copy')
-    t.remove()
   }
   console.log(text)
   return text
