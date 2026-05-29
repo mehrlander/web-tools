@@ -52,6 +52,8 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
 
+**Reading it for inclusion.** Each entry is keyed by its PR number, and an entry reaches main only by riding in on its own merge. So the entries in the main copy of this file are exactly the guide-covered merges that are in main, and the top entry is the latest. "Is PR #115 in main?" is answered by whether a #115 entry appears in the main copy. The on-demand caveat: a merge made without an entry won't show, so absence is not proof. For that, GitHub's merged state or git is authoritative. Always record the PR number as the key (known once the PR is open); fall back to the branch only until the number exists.
+
 Keep entries short. A five-second skim, not a changelog dump.
 
 **Entry shape:**
