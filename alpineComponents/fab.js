@@ -83,7 +83,7 @@ document.addEventListener('alpine:init', function() {
                       <i class="ph ph-arrows-clockwise"></i>
                     </button>
                   </div>
-                  <div x-show="ver && ver.prTitle && !verLoading" class="text-[10px] opacity-50 truncate mt-0.5 pl-4" x-text="ver.prTitle"></div>
+                  <div x-show="ver && ver.prTitle && !verLoading" class="text-[10px] opacity-50 truncate mt-0.5 pl-4" x-text="ver && ver.prTitle"></div>
                   <div x-show="verError" class="text-[10px] text-error/70 break-all mt-0.5 pl-4" x-text="verError"></div>
                 </div>
 
