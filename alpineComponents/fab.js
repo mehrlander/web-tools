@@ -9,11 +9,10 @@ document.addEventListener('alpine:init', function() {
              @pointermove="onMove($event)"
              @pointerup="onUp($event)"
              @pointercancel="onUp($event)"
-             class="tooltip tooltip-left fixed bottom-6 right-6 group touch-none z-40"
-             data-tip="Components on this page">
-          <div tabindex="0" class="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-grab active:cursor-grabbing outline-none transition-all duration-300 hover:bg-primary/20 hover:border-primary/40 focus:bg-primary focus:border-primary focus:shadow-lg focus:shadow-primary/30"
+             class="fixed bottom-6 right-6 group touch-none z-40">
+          <div tabindex="0" role="button" aria-label="Web-tools panel" class="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-grab active:cursor-grabbing outline-none transition-all duration-300 hover:bg-primary/20 hover:border-primary/40 focus:bg-primary focus:border-primary focus:shadow-lg focus:shadow-primary/30"
                :class="open ? 'bg-primary/30 border-primary/50' : ''">
-            <i class="ph ph-puzzle-piece text-2xl text-primary/40 group-hover:text-primary/70 group-focus:text-primary-content transition-colors"
+            <i class="ph ph-sidebar-simple text-2xl text-primary/40 group-hover:text-primary/70 group-focus:text-primary-content transition-colors"
                :class="open ? 'text-primary' : ''"></i>
           </div>
         </div>
@@ -83,7 +82,7 @@ document.addEventListener('alpine:init', function() {
                       <i class="ph ph-arrows-clockwise"></i>
                     </button>
                   </div>
-                  <div x-show="ver && ver.prTitle && !verLoading" class="text-[10px] opacity-50 truncate mt-0.5 pl-4" x-text="ver.prTitle"></div>
+                  <div x-show="ver && ver.prTitle && !verLoading" class="text-[10px] opacity-50 truncate mt-0.5 pl-4" x-text="ver && ver.prTitle"></div>
                   <div x-show="verError" class="text-[10px] text-error/70 break-all mt-0.5 pl-4" x-text="verError"></div>
                 </div>
 
@@ -242,12 +241,14 @@ document.addEventListener('alpine:init', function() {
                 <div x-show="!consolePanelReady" id="__fab-console-panel" class="overflow-y-auto p-1 flex flex-col gap-0.5" style="max-height: 40vh;">
                   <div x-show="consoleLogs.length === 0" class="text-xs text-base-content/50 italic px-3 py-6 text-center">No console output captured.</div>
                   <template x-for="(entry, idx) in consoleLogs" :key="idx">
-                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px]"
-                         :class="entry.level === 'error' ? 'border-error bg-error/10 text-error' :
-                                 entry.level === 'warn'  ? 'border-warning bg-warning/10 text-warning' :
+                    <div class="flex gap-1.5 items-baseline px-1.5 py-0.5 rounded border-l-2 font-mono text-[11px] text-base-content"
+                         :class="entry.level === 'error' ? 'border-error bg-error/10' :
+                                 entry.level === 'warn'  ? 'border-warning bg-warning/10' :
                                                            'border-base-300 bg-base-100'">
                       <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(entry.time)"></span>
-                      <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="entry.level"></span>
+                      <span class="shrink-0 w-8 text-[10px] uppercase font-bold"
+                            :class="entry.level === 'error' ? 'text-error' : entry.level === 'warn' ? 'text-warning' : 'text-base-content/40'"
+                            x-text="entry.level"></span>
                       <span class="break-all whitespace-pre-wrap" x-text="entry.msg"></span>
                     </div>
                   </template>

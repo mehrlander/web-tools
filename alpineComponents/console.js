@@ -63,7 +63,9 @@
                        :class="canExpand(e) ? 'cursor-pointer hover:bg-base-content/5' : ''"
                        @click="canExpand(e) && toggle(e)">
                     <span class="text-base-content/30 shrink-0 text-[10px]" x-text="fmtTime(e.time)"></span>
-                    <span class="shrink-0 w-8 text-[10px] uppercase opacity-60" x-text="e.level"></span>
+                    <span class="shrink-0 w-8 text-[10px] uppercase font-bold"
+                          :class="e.level === 'error' ? 'text-error' : e.level === 'warn' ? 'text-warning' : 'text-base-content/40'"
+                          x-text="e.level"></span>
                     <i x-show="canExpand(e)" class="ph shrink-0 text-[10px] opacity-50 self-center"
                        :class="e._open ? 'ph-caret-down' : 'ph-caret-right'"></i>
                     <span class="break-all whitespace-pre-wrap flex-1" x-text="preview(e)"></span>
@@ -132,8 +134,12 @@
         canExpand(e) { return this.entryKind(e) !== 'text'; },
 
         rowClass(e) {
-          return e.level === 'error' ? 'border-error bg-error/10 text-error'
-               : e.level === 'warn' ? 'border-warning bg-warning/10 text-warning'
+          // Keep the message body at text-base-content for legibility across
+          // both light and dark themes; the left border + faint tint carry the
+          // level, and the level label (below) gets the semantic color. Tinting
+          // the body text itself (e.g. text-warning) washed out on light themes.
+          return e.level === 'error' ? 'border-error bg-error/10'
+               : e.level === 'warn' ? 'border-warning bg-warning/10'
                : e.level === 'table' ? 'border-secondary bg-secondary/5'
                : 'border-base-300 bg-base-100';
         },
