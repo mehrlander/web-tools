@@ -44,6 +44,47 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
 - Page on a ref: `https://mehrlander.github.io/web-tools/pages/<page>.html?use=<ref>`
 
+## Merge guide
+
+`MERGE-GUIDE.md` at the repo root is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
+
+Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
+
+Keep entries short. A five-second skim, not a changelog dump.
+
+**Entry shape:**
+
+```markdown
+## <date> <one-line title> (PR #<n> or branch)
+
+<One sentence: the primary outcome.>
+
+⭐ **Result:** [<primary artifact>](<live page, or ?use=<sha> link>)
+
+**Changed:**
+- <path> ([new](…), [main](…), [diff](…))
+  renders on: [<page>](…)   (only for a shared component)
+
+**Notes:** <only the non-obvious: why, what's unfinished, follow-ups>
+
+[Session diff](<compare link>)
+```
+
+- Lead with the result, not the file list. The result is the page to open to see the change, even when what you edited was a JS file or a component the page loads. While work is on a branch, link it with `?use=<sha>` (the SHA, since jsDelivr caches branch tips ~12h). After merge the plain Pages/main URL is canonical.
+- Primary file first. For a shared component, add a `renders on:` line naming each consuming page, so it's clear which page to open.
+- Notes only when non-obvious. Skip anything the diff already shows.
+- All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above.
+
+Typical case, where you edit JS but the result is a page to open:
+
+```markdown
+⭐ **Result:** [alpine-bundle-demo](https://mehrlander.github.io/web-tools/pages/alpine-bundle-demo.html?use=<sha>)
+
+**Changed:**
+- alpine-bundle.js ([new](…), [diff](…))
+  renders on: [alpine-bundle-demo](…)
+```
+
 ## Post-merge handoff
 
 A recurring pattern: the user merges, then surfaces a bug or the next round of work. That belongs to a new session, but the current session has the context to assess results and set the course.
