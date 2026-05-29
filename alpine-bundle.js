@@ -51,9 +51,14 @@
         }
 
         Alpine.magic('clip', (el) => (text) => {
-            text = typeof text === 'object' ? JSON.stringify(text) : String(text)
-            ta(el, t => { t.value = text; t.select(); document.execCommand('copy'); t.remove() })
-            toast('clipboard', 'Copied ' + text.split('\n').length + ' lines', 'alert-success')
+            if (window.copy) {
+                window.copy(text)
+                toast('clipboard', 'Copied', 'alert-success')
+            } else {
+                text = typeof text === 'object' ? JSON.stringify(text) : String(text)
+                ta(el, t => { t.value = text; t.select(); document.execCommand('copy'); t.remove() })
+                toast('clipboard', 'Copied ' + text.split('\n').length + ' lines', 'alert-success')
+            }
         })
 
         // $paste tries the modern clipboard API first — on iOS Safari this
