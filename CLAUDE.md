@@ -34,7 +34,7 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 > [https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js](https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js)
 
-**PR workflow: create new, never update.** After we merge a PR, the branch still has new commits ahead of main. When asked to "set up for merge again," create a **new** PR (don't update the old one). GitHub shows merged PRs as purple/merged; a new PR from the same branch will show green/ready. If unsure whether a PR was merged, check `git log main -1` to see the latest commit on main, then create a new PR.
+**Creating the next PR (after Option 2).** If we continue editing after a merge, new commits land on the branch. To merge them, create a **new** PR from the branch (don't try to update the old one—it's already merged). Check `git log main -1` if unsure what's merged, then `git log main..HEAD` to see commits waiting for the next PR.
 
 **Don't reach for external preview services.** If the repo is private, render proxies (htmlpreview.github.io, raw.githack.com, and similar) won't resolve. The blob view via `[new]` is the canonical file view for every file type. Markdown renders directly there; code gets syntax highlighting.
 
