@@ -17,11 +17,14 @@ return (async () => {
 
   const now = Date.now();
   window.__loadedScripts = [
-    { path: 'gh-api.js',  t: now, endT: now, status: 'ok' },
-    { path: 'gh-boot.js', t: now, endT: now, status: 'ok' }
+    { path: 'gh-api.js',  t: now, endT: now, status: 'ok', auto: true, by: new Set() },
+    { path: 'gh-boot.js', t: now, endT: now, status: 'ok', auto: true, by: new Set() }
   ];
   const fire = () => window.dispatchEvent(new CustomEvent('loadedscripts'));
   fire();
+
+  const loadCache = new Map(); // path -> { promise, entry }
+  window.__loadedScripts.forEach(e => loadCache.set(e.path, { entry: e }));
 
   // A load whose underlying fetch never returns leaves its entry on
   // 'pending' forever — a silent spinner in the Scripts tab with no signal.
@@ -32,33 +35,48 @@ return (async () => {
   const STALL_MS = 15000;
   const proto = window.gh.constructor.prototype;
   const origLoad = proto.load;
-  proto.load = async function(path) {
-    const entry = { path, t: Date.now(), status: 'pending' };
-    window.__loadedScripts.push(entry);
-    fire();
-    const stallTimer = setTimeout(() => {
-      if (entry.status !== 'pending') return;
-      entry.status = 'error';
-      entry.error = `stalled: no response in ${STALL_MS}ms`;
-      entry.endT = Date.now();
+  proto.load = async function(path, opts) {
+    const requester = opts?.by || '(direct)';
+    let cached = loadCache.get(path);
+    if (cached) {
+      cached.entry.by.add(requester);
       fire();
-    }, STALL_MS);
-    try {
-      const r = await origLoad.call(this, path);
-      clearTimeout(stallTimer);
-      entry.status = 'ok';
-      entry.error = null;
-      entry.endT = Date.now();
-      fire();
-      return r;
-    } catch (e) {
-      clearTimeout(stallTimer);
-      entry.status = 'error';
-      entry.error = (e && e.message) || String(e);
-      entry.endT = Date.now();
-      fire();
-      throw e;
+      return cached.promise;
     }
+
+    const entry = { path, t: Date.now(), status: 'pending', auto: false, by: new Set([requester]) };
+    window.__loadedScripts.push(entry);
+    loadCache.set(path, { entry });
+    fire();
+
+    const promise = (async () => {
+      const stallTimer = setTimeout(() => {
+        if (entry.status !== 'pending') return;
+        entry.status = 'error';
+        entry.error = `stalled: no response in ${STALL_MS}ms`;
+        entry.endT = Date.now();
+        fire();
+      }, STALL_MS);
+      try {
+        const r = await origLoad.call(this, path);
+        clearTimeout(stallTimer);
+        entry.status = 'ok';
+        entry.error = null;
+        entry.endT = Date.now();
+        fire();
+        return r;
+      } catch (e) {
+        clearTimeout(stallTimer);
+        entry.status = 'error';
+        entry.error = (e && e.message) || String(e);
+        entry.endT = Date.now();
+        fire();
+        throw e;
+      }
+    })();
+
+    loadCache.set(path, { entry, promise });
+    return promise;
   };
 
   await window.gh.load('gh-auth.js');
@@ -66,4 +84,16 @@ return (async () => {
   // Console retention layer — extends console.* with history/subscribe/filter
   // on top of gh-api.js's wrapper, so any page can render captured logs.
   await window.gh.load('kits/console.js');
+  // Ambient DOM utilities for every page: ea, el, ids, ui, grab, html, fill,
+  // attr, cls, listen, data, tpl, on, route, plus window.copy() helper.
+  // No dependencies, idempotent on re-load. Tag as auto so FAB deduplicates
+  // with any explicit page loads.
+  const vbEntry = window.__loadedScripts.find(e => e.path === 'vanilla-bundle.js');
+  if (!vbEntry) {
+    const e = { path: 'vanilla-bundle.js', t: Date.now(), status: 'pending', auto: true, by: new Set(['(gh-boot)']) };
+    window.__loadedScripts.push(e);
+    loadCache.set('vanilla-bundle.js', { entry: e });
+    fire();
+  }
+  await window.gh.load('vanilla-bundle.js');
 })();
