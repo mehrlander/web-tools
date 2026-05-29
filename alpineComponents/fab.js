@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', function() {
   Alpine.data('fab', function() {
     return {
-      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place), scripts pulled in via gh.load() (with per-entry status), and a Render tab that re-loads the current page at any branch/tag/sha in an overlay iframe, plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list)',
+      description: 'Draggable floating button: opens a right-side drawer with tabs for Alpine components on the page (tap to outline in place), scripts pulled in via gh.load() (with per-entry status), and a Render tab that re-loads the current page at any branch/tag/sha in an overlay iframe, plus a collapsible console (rich debugConsole panel with expandable JSON-tree / table views, falling back to a plain log list). The header carries a version readout: the booted ref, tip sha, and the latest PR merge included, plus any commits sitting on top of it (direct pushes or an unmerged branch)',
 
       template: `
         <div :style="'transform:translate(' + x + 'px,' + y + 'px)'"
@@ -62,6 +62,31 @@ document.addEventListener('alpine:init', function() {
                 </template>
                 <div x-show="!repo" class="px-1 font-mono text-xs font-bold">Source unknown</div>
                 <div x-show="path" class="px-1 font-mono text-[10px] text-base-content/60 truncate" x-text="path"></div>
+
+                <div x-show="ver || verLoading || verError" class="px-1 mt-1.5 pt-1.5 border-t border-base-300/40">
+                  <div class="flex items-center gap-1.5 text-[10px] font-mono">
+                    <i class="ph ph-git-commit opacity-50 shrink-0"></i>
+                    <span x-show="verLoading" class="opacity-50">checking version…</span>
+                    <template x-if="ver && !verLoading">
+                      <span class="flex flex-wrap items-center gap-x-1.5 min-w-0">
+                        <span class="opacity-50" x-text="ver.ref"></span>
+                        <a :href="ver.tipUrl" target="_blank" class="link link-hover font-semibold" x-text="'@' + ver.sha"></a>
+                        <template x-if="ver.pr">
+                          <a :href="ver.prUrl" target="_blank" class="link link-hover text-primary" x-text="'merge #' + ver.pr"></a>
+                        </template>
+                        <span x-show="!ver.pr" class="opacity-40">no recent merge</span>
+                        <span x-show="ver.since > 0" class="opacity-60" title="commits on top of the latest merge (direct pushes or an unmerged branch)" x-text="'+' + ver.since"></span>
+                        <span x-show="ver.ago" class="opacity-40" x-text="ver.ago"></span>
+                      </span>
+                    </template>
+                    <button @click="loadVersion(true)" class="ml-auto opacity-40 hover:opacity-80 shrink-0" title="Refresh version" aria-label="Refresh version">
+                      <i class="ph ph-arrows-clockwise"></i>
+                    </button>
+                  </div>
+                  <div x-show="ver && ver.prTitle && !verLoading" class="text-[10px] opacity-50 truncate mt-0.5 pl-4" x-text="ver.prTitle"></div>
+                  <div x-show="verError" class="text-[10px] text-error/70 break-all mt-0.5 pl-4" x-text="verError"></div>
+                </div>
+
                 <div x-show="repo" class="flex gap-1 mt-1.5">
                   <template x-for="link in pageLinks" :key="link.l">
                     <a :href="link.u" target="_blank" :title="link.l"
@@ -258,6 +283,8 @@ document.addEventListener('alpine:init', function() {
       loadedScripts: [],
       highlighted: null,
 
+      ver: null, verLoading: false, verError: '', verLoaded: false,
+
       frameOpen: false,
       frameRef: 'main', frameRefInput: '',
       frameBranches: [], frameBranchesLoading: false, frameBranchesLoaded: false,
@@ -363,6 +390,7 @@ document.addEventListener('alpine:init', function() {
         if (this.open) { this.close(); return; }
         this.detect();
         this.open = true;
+        this.loadVersion();
       },
 
       close() {
@@ -552,6 +580,65 @@ document.addEventListener('alpine:init', function() {
       clearConsole() {
         if (window.consoleKit) console.clear();
         else this.consoleLogs = [];
+      },
+
+      _ago(dateStr) {
+        const s = (Date.now() - new Date(dateStr)) / 1000;
+        const u = { y: 31536000, mo: 2592000, d: 86400, h: 3600, m: 60 };
+        for (const [k, v] of Object.entries(u)) if (s >= v) return Math.floor(s / v) + k + ' ago';
+        return 'just now';
+      },
+
+      // "What am I looking at?" Reads recent commits for the booted ref and
+      // tells the story up to that tip: the latest PR merge that precedes it
+      // (the version), plus any commits sitting on top of that merge. On main
+      // those extra commits are direct pushes; on a branch they're its own
+      // unmerged commits. The PR number comes from the merge commit subject
+      // (Merge pull request #N) and its title from the body, so nothing needs
+      // hand-stamping. Lazy: fires on first drawer open, refreshable.
+      async loadVersion(force) {
+        if (force) this.verLoaded = false;
+        if (this.verLoaded || this.verLoading) return;
+        if (!window.GH) { this.verError = 'window.GH not available on this page'; return; }
+        this.verError = '';
+        this.verLoading = true;
+        const repo = this.repo || 'mehrlander/web-tools';
+        // Prefer the ref gh-api.js actually booted from (set on a ?use= page),
+        // since that's the code running; fall back to the page's own ref.
+        const ref = window.__bundleRef || this.ref || 'main';
+        let token = '';
+        try { token = localStorage.getItem('ghToken') || ''; } catch (e) {}
+        try {
+          const gh = new window.GH({ repo, ref, token });
+          const list = await gh.req('commits?sha=' + encodeURIComponent(ref) + '&per_page=30');
+          const tip = list[0];
+          let mergeIdx = -1, pr = null;
+          for (let i = 0; i < list.length; i++) {
+            const m = list[i].commit.message.split('\n')[0].match(/^Merge pull request #(\d+)/);
+            if (m) { mergeIdx = i; pr = m[1]; break; }
+          }
+          const merge = mergeIdx >= 0 ? list[mergeIdx] : null;
+          let prTitle = '';
+          if (merge) {
+            const lines = merge.commit.message.split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length > 1) prTitle = lines[lines.length - 1].slice(0, 80);
+          }
+          const dated = merge || tip;
+          this.ver = {
+            ref,
+            sha: tip ? tip.sha.slice(0, 7) : '',
+            tipUrl: tip ? tip.html_url : '',
+            pr,
+            prTitle,
+            prUrl: pr ? 'https://github.com/' + repo + '/pull/' + pr : '',
+            since: mergeIdx >= 0 ? mergeIdx : list.length,
+            ago: dated ? this._ago(dated.commit.committer.date) : ''
+          };
+          this.verLoaded = true;
+        } catch (e) {
+          this.verError = 'Version: ' + ((e && e.message) || String(e));
+        }
+        this.verLoading = false;
       },
 
       get frameLabel() { return this.path + ' @ ' + (this.frameRef || 'main'); },
