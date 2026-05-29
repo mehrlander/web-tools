@@ -23,6 +23,46 @@
     return this.req(`branches?per_page=${per}`);
   };
 
+  // GraphQL primitive: POST to the v4 endpoint reusing the REST token in
+  // `this.headers`. The first GraphQL path in the codebase; REST `req()` can't
+  // reach it (different host + verb), so this stands alongside rather than under it.
+  proto.graphql = async function(query, variables = {}) {
+    const res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: { ...this.headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables })
+    });
+    if (!res.ok) {
+      const err = new Error(`GitHub GraphQL Error ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    if (json.errors) throw new Error(json.errors.map(e => e.message).join('; '));
+    return json.data;
+  };
+
+  // Branches with tip-commit dates, server-sorted newest-first. REST's
+  // branches endpoint carries no commit date, so this goes through GraphQL.
+  proto.branchesDated = async function(per = 100) {
+    const [owner, name] = (this.repo || '').split('/');
+    const data = await this.graphql(
+      `query($owner:String!, $name:String!, $per:Int!) {
+        repository(owner:$owner, name:$name) {
+          refs(refPrefix:"refs/heads/", first:$per, orderBy:{field:COMMITTED_DATE, direction:DESC}) {
+            nodes { name target { ... on Commit { committedDate } } }
+          }
+        }
+      }`,
+      { owner, name, per }
+    );
+    const nodes = (data && data.repository && data.repository.refs && data.repository.refs.nodes) || [];
+    return nodes.map(n => {
+      const date = n.target && n.target.committedDate;
+      return { name: n.name, date: date || '', ago: date ? this.ago(date) : '' };
+    });
+  };
+
   proto.tags = async function(per = 100) {
     return this.req(`tags?per_page=${per}`);
   };

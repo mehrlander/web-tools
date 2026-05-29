@@ -199,13 +199,16 @@ document.addEventListener('alpine:init', function() {
                         <span class="loading loading-dots loading-sm opacity-50"></span>
                       </div>
                       <div x-show="!frameBranchesLoading" class="flex flex-col gap-0.5 overflow-y-auto" style="max-height: 50vh;">
-                        <template x-for="b in frameBranches" :key="b">
-                          <button @click="pickFrameRef(b)"
+                        <template x-for="b in frameBranches" :key="b.name">
+                          <button @click="pickFrameRef(b.name)"
                                   class="flex items-center gap-1.5 px-1.5 py-1 rounded text-[11px] font-mono text-left transition-colors"
-                                  :class="b === frameRef ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-300/50'">
+                                  :class="b.name === frameRef ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-300/50'">
                             <i class="ph ph-git-branch text-xs opacity-50 shrink-0"></i>
-                            <span class="truncate" x-text="b"></span>
-                            <i x-show="b === frameRef" class="ph ph-check text-xs ml-auto shrink-0"></i>
+                            <span class="truncate" x-text="b.name"></span>
+                            <span x-show="b.ago" class="ml-auto shrink-0 opacity-40 text-[10px]"
+                                  x-text="b.ago" :title="b.date"></span>
+                            <i x-show="b.name === frameRef" class="ph ph-check text-xs shrink-0"
+                               :class="b.ago ? '' : 'ml-auto'"></i>
                           </button>
                         </template>
                         <div x-show="!frameBranches.length" class="text-[10px] opacity-50 py-1 px-1">No branches loaded.</div>
@@ -660,8 +663,19 @@ document.addEventListener('alpine:init', function() {
           if (typeof tmp.branches !== 'function') {
             this.frameError = 'gh-fetch.js not loaded (branches() unavailable)';
           } else {
-            const list = await tmp.branches();
-            this.frameBranches = list.map(b => b.name);
+            // GraphQL gives tip-commit dates, server-sorted newest-first. If it
+            // fails (e.g. no token), fall back to REST: names only, no dates.
+            let list;
+            if (typeof tmp.branchesDated === 'function') {
+              try {
+                list = await tmp.branchesDated();
+              } catch (e) {
+                list = (await tmp.branches()).map(b => ({ name: b.name, date: '', ago: '' }));
+              }
+            } else {
+              list = (await tmp.branches()).map(b => ({ name: b.name, date: '', ago: '' }));
+            }
+            this.frameBranches = list;
             this.frameBranchesLoaded = true;
           }
         } catch (e) {
