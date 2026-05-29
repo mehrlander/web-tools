@@ -70,10 +70,20 @@ Keep entries short. A five-second skim, not a changelog dump.
 [Session diff](<compare link>)
 ```
 
-- Lead with the result, not the file list. While work is on a branch, link it with `?use=<sha>` (the SHA, since jsDelivr caches branch tips ~12h). After merge the plain Pages/main URL is canonical.
+- Lead with the result, not the file list. The result is the page to open to see the change, even when what you edited was a JS file or a component the page loads. While work is on a branch, link it with `?use=<sha>` (the SHA, since jsDelivr caches branch tips ~12h). After merge the plain Pages/main URL is canonical.
 - Primary file first. For a shared component, add a `renders on:` line naming each consuming page, so it's clear which page to open.
 - Notes only when non-obvious. Skip anything the diff already shows.
 - All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above.
+
+Typical case, where you edit JS but the result is a page to open:
+
+```markdown
+⭐ **Result:** [alpine-bundle-demo](https://mehrlander.github.io/web-tools/pages/alpine-bundle-demo.html?use=<sha>)
+
+**Changed:**
+- alpine-bundle.js ([new](…), [diff](…))
+  renders on: [alpine-bundle-demo](…)
+```
 
 ## Post-merge handoff
 
