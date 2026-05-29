@@ -48,9 +48,11 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 ## Post-merge handoff
 
-A recurring pattern: the user merges, then surfaces a bug or the next round of work. That belongs to a new session, but the current session has the context to assess results and set the course.
+A recurring pattern: the user merges, then surfaces a bug or the next round of work. Merge typically marks the end of a session, but it can proceed two ways:
 
-**After merge: discuss, don't edit.** Once we merge, stop editing code. Verify the merge result, assess what's next, discuss findings with the user. New work goes to a new session with a fresh PR.
+**Option 1: Handoff prompt.** Write a diagnostic prompt for the next session (see below), then wind down. The new session opens fresh with a new PR and CLAUDE.md context.
+
+**Option 2: Continue with edits.** User says "ok let's add X," and we keep editing on the same branch. Tradeoff: we must then create a new PR (not update the old one) when done, since the branch now has commits ahead of the merged PR.
 
 When asked for a handoff prompt (HP):
 
