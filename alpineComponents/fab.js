@@ -508,12 +508,32 @@ document.addEventListener('alpine:init', function() {
       // Load + mount the rich debugConsole panel into the footer. Self-loads
       // the kit and component via gh.load so pages that only pull fab.js
       // still get the upgrade; on failure we keep the inline fallback list.
+      // gh.load executes its file synchronously, but the fetch underneath it
+      // can hang (a stuck connection leaves the load promise unsettled). A bare
+      // `await gh.load(...)` here would then dangle forever and the rich panel
+      // would never mount — yet we'd never fall back either. So race each
+      // self-load against a timeout and retry once: a fresh gh.load issues a
+      // new fetch, which often clears a transient stall; a hard stall bails to
+      // the inline fallback list instead of hanging. `isReady` short-circuits
+      // once the file has registered, so a merely-slow load isn't retried.
+      async _selfLoad(path, isReady, { tries = 2, timeoutMs = 8000 } = {}) {
+        for (let i = 0; i < tries && !isReady(); i++) {
+          try {
+            await Promise.race([
+              window.gh.load(path),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('self-load timeout')), timeoutMs))
+            ]);
+          } catch (e) {}
+        }
+        return isReady();
+      },
+
       async _mountConsolePanel() {
         if (this.consolePanelReady) return;
         try {
           if (window.gh) {
-            if (!window.consoleKit) { try { await window.gh.load('kits/console.js'); } catch (e) {} }
-            if (!window.__debugConsoleRegistered) { try { await window.gh.load('alpineComponents/console.js'); } catch (e) {} }
+            if (!window.consoleKit) await this._selfLoad('kits/console.js', () => !!window.consoleKit);
+            if (!window.__debugConsoleRegistered) await this._selfLoad('alpineComponents/console.js', () => !!window.__debugConsoleRegistered);
           }
           if (!window.__debugConsoleRegistered || !window.Alpine) return;
           await this.$nextTick();

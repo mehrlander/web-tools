@@ -23,19 +23,36 @@ return (async () => {
   const fire = () => window.dispatchEvent(new CustomEvent('loadedscripts'));
   fire();
 
+  // A load whose underlying fetch never returns leaves its entry on
+  // 'pending' forever — a silent spinner in the Scripts tab with no signal.
+  // After STALL_MS, flip a still-pending row to a visible 'error' with the
+  // elapsed time so the stall surfaces. It's diagnostic, not fatal: the
+  // original promise stays alive, so if the load later settles the try/catch
+  // below overwrites this with the real ok/error outcome (self-healing).
+  const STALL_MS = 15000;
   const proto = window.gh.constructor.prototype;
   const origLoad = proto.load;
   proto.load = async function(path) {
     const entry = { path, t: Date.now(), status: 'pending' };
     window.__loadedScripts.push(entry);
     fire();
+    const stallTimer = setTimeout(() => {
+      if (entry.status !== 'pending') return;
+      entry.status = 'error';
+      entry.error = `stalled: no response in ${STALL_MS}ms`;
+      entry.endT = Date.now();
+      fire();
+    }, STALL_MS);
     try {
       const r = await origLoad.call(this, path);
+      clearTimeout(stallTimer);
       entry.status = 'ok';
+      entry.error = null;
       entry.endT = Date.now();
       fire();
       return r;
     } catch (e) {
+      clearTimeout(stallTimer);
       entry.status = 'error';
       entry.error = (e && e.message) || String(e);
       entry.endT = Date.now();
