@@ -30,9 +30,9 @@ Every scaffolded page's `<head>` looks like this, with minor variation:
   // out of import.meta.url, sets window.gh, loads gh-auth.js), so the page just
   // chains gh.load() calls below.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
 
-  await gh.load('gh-fetch.js');                   // 0) augment GH with read methods
+  await gh.load('gh-fetch.js');                   // 0) augment GH with read methods (resolved under lib/)
   // await gh.load('gh-store.js');                //    optional: write methods
 
   await gh.load('alpineComponents/repo.js');      // 1) register Alpine.data('repo', ...)
@@ -51,21 +51,24 @@ ref-pinning hatch: append `?use=<branch-or-sha>` to the URL and every file
 loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
 still comes from GitHub Pages on main; only the runtime-loaded files are
 ref-pinned. Older pages that hard-code the bundle URL without `@<ref>` are
-unaffected; the auto-bootstrap inside `gh-api.js` only triggers when the
-import URL carries an `@<ref>` segment.
+unaffected; the auto-bootstrap inside `lib/gh-api.js` only triggers when the
+import URL carries an `@<ref>` segment and points at `lib/gh-api.js`. That
+same match sets the loader's `loadBase` to `lib/`, so every later
+`gh.load('kits/x.js')` resolves under `lib/`.
 
 ### What each piece contributes
 
-- `gh-api.js` — ESM default export, `class GH`. Imported via
+- `lib/gh-api.js` — ESM default export, `class GH`. Imported via
   `<script type="module">`, not `gh.load` (bootstrap: it *is* the loader).
   Minimal cached root: provides `req / get / parseUrl / ago / load` and the
   request/cache plumbing. Read methods (`ls / repos / history / …`) live in
   `gh-fetch.js`; write methods live in `gh-store.js`; token resolution
   lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
   `GH.prototype` in place. **Auto-bootstrap:** when imported from a
-  `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/gh-api.js` URL, the file parses
+  `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/lib/gh-api.js` URL, the file parses
   owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
-  `window.__bundleRef`, and chains in `gh-auth.js`. Pages can then skip
+  `window.__bundleRef`, sets `loadBase` to `lib/`, and chains in `gh-auth.js`.
+  Pages can then skip
   `new GH(...)` and `gh.load('gh-auth.js')` boilerplate by reading `?use=`
   from the page URL and embedding it in the bundle's import URL.
 - `gh-auth.js` — optional augmentation. Patches the `headers` getter so
@@ -347,7 +350,7 @@ If any "No" above is a hard requirement, use a native `import()` instead
 of `gh.load()` for that file. Mixing is fine: a page can do
 
 ```js
-import GH from '.../gh-api.js';
+import GH from '.../lib/gh-api.js';
 const { text } = await import('.../compression/text.js');
 const gh = new GH({ token, repo });
 await gh.load('gh-fetch.js');

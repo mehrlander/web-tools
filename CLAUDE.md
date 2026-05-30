@@ -28,11 +28,11 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 > Session diff: [main...feature-name-abc12](https://github.com/<owner>/<repo>/compare/main...claude/feature-name-abc12)
 
-**Test page on the branch.** GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
+**Test page on the branch.** GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `lib/gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
 
-**gh-api.js edits.** Any turn that modifies `gh-api.js` must end with the jsDelivr purge link so the user can flush the CDN cache with one tap:
+**gh-api.js edits.** Any turn that modifies `lib/gh-api.js` must end with the jsDelivr purge link so the user can flush the CDN cache with one tap:
 
-> [https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js](https://purge.jsdelivr.net/gh/mehrlander/web-tools/gh-api.js)
+> [https://purge.jsdelivr.net/gh/mehrlander/web-tools/lib/gh-api.js](https://purge.jsdelivr.net/gh/mehrlander/web-tools/lib/gh-api.js)
 
 **Creating the next PR (after Option 2).** If we continue editing after a merge, new commits land on the branch. To merge them, create a **new** PR from the branch (don't try to update the old one; it's already merged). Check `git log main -1` if unsure what's merged, then `git log main..HEAD` to see commits waiting for the next PR.
 

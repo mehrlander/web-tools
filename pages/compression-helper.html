@@ -21,11 +21,11 @@
 <script type="module">
   const REPO   = 'mehrlander/web-tools';
   const BRANCH = 'main';
-  const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/gh-api.js`;
+  const BOOT   = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/lib/gh-api.js`;
 
   const mod = await import(BOOT);
   window.GH = mod.default;
-  const gh = new window.GH({ repo: REPO, ref: BRANCH });
+  const gh = new window.GH({ repo: REPO, ref: BRANCH, loadBase: 'lib/' });
 
   await gh.load('vanilla-bundle.js');
   await gh.load('kits/compression.js');

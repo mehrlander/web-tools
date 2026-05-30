@@ -65,9 +65,9 @@
   const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
 
   try {
-    const mod = await import(`${CDN}/gh-api.js`);
+    const mod = await import(`${CDN}/lib/gh-api.js`);
     window.GH = mod.default;
-    const gh = new window.GH({ repo: REPO, ref: BRANCH });
+    const gh = new window.GH({ repo: REPO, ref: BRANCH, loadBase: 'lib/' });
     await gh.load('kits/compression.js');
     await gh.load('kits/io.js');
     await gh.load('kits/cm6.js');

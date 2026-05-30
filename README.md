@@ -1,9 +1,9 @@
 # web-tools
 
 A workshop for browser-based tools with a focus on working with data.
-Pages, bookmarklets, popups, plus the parts used to build them.
+Pages, bookmarklets, popups, console snippets, plus the parts used to build them.
 
-Three shapes have emerged:
+Four shapes have emerged:
 
 - **Pages.** Independent pages for related tasks. Served from GitHub
   Pages, a local file, a data URL, or a popup, as needed.
@@ -12,8 +12,11 @@ Three shapes have emerged:
 - **Popups.** A page opened as a popup window from a specific origin.
   Interacts with `window.opener` and makes HTTP requests where an
   independent page would trip over CORS restrictions.
+- **Console snippets.** Code kept in DevTools, pasted in and run ad-hoc
+  against whatever page is open. The least structured of the four — nothing
+  to host or install — but the reusable ones live in `console/`.
 
-Console snippets kept in DevTools could be considered a fourth. Popups are essentially a page launched as a bookmarklet:
+Popups are essentially a page launched as a bookmarklet:
 
 ```js
 const launchPopup = h => {
@@ -91,6 +94,17 @@ Live at `https://mehrlander.github.io/web-tools/popups/<name>.html`:
 
 This is the newest output category and the one most likely to grow.
 
+### Console snippets
+
+Code you paste into DevTools and run against the page in front of you — no
+file to host, no bookmark to install. The reusable ones live in `console/`:
+
+- [`base.js`](console/base.js): a DOM-query and element-inspection toolkit
+  (`ea`, `glom`, `look`, `pop`, `copy`, …) for poking at a page from the
+  console.
+- [`to-canvas.js`](console/to-canvas.js): opens a window and renders the
+  current page into a scrollable canvas via html2canvas.
+
 ## The library
 
 Our intentions require flexibility. For pages we use a default stack:
@@ -99,10 +113,12 @@ single-file approach we can pack into a data URL or popup. With a
 bookmarklet, DOM-focused libraries are likely to be disruptive, and
 shadow DOM or iframes may come into play.
 
-The loader at the repo root (`gh-api.js` and its augmentations) pulls
+The loader in `lib/` (`lib/gh-api.js` and its augmentations) pulls
 everything else off this repo at runtime. Files it loads are written in
 a specific shape (IIFE, `window.foo =`, no `import`/`export`) so they
-can be pulled in without a build step. `alpine-bundle.js` handles
+can be pulled in without a build step. `gh-api.js`'s auto-bootstrap sets a
+`loadBase` of `lib/`, so a page's `gh.load('kits/x.js')` resolves under
+`lib/` without spelling out the prefix. `alpine-bundle.js` handles
 Alpine's load-order quirks and the custom-element wrapper, so a page
 doesn't have to. `vanilla-bundle.js` is the Alpine-free counterpart —
 lightweight DOM helpers (no framework dependency) expected to grow. A few libraries (Vanilla JSON Editor among them) get
@@ -112,9 +128,9 @@ the loader is possible but cuts across the grain.
 
 On top of that, two collections by convention:
 
-- **Components** in `alpineComponents/` are reusable UI pieces registered
+- **Components** in `lib/alpineComponents/` are reusable UI pieces registered
   as `Alpine.data(...)`.
-- **Kits** in `kits/` are logic libraries (compression, persistence,
+- **Kits** in `lib/kits/` are logic libraries (compression, persistence,
   messaging, io, file shapes), not dependent on Alpine.
 
 The same handful of concerns drove every piece of it:
@@ -143,10 +159,10 @@ The same handful of concerns drove every piece of it:
 Two docs go deeper:
 
 - **[SCAFFOLDING.md](docs/SCAFFOLDING.md)**: the loader contract. The canonical
-  `<head>` block, what each piece contributes (`gh-api.js`, `gh-fetch.js`,
-  `gh-store.js`, `gh-auth.js`, `alpine-bundle.js`), how `gh.load()` works,
-  the timing rules, the footgun list.
-- **[kits/README.md](kits/README.md)**: the logic libraries (`compression`,
+  `<head>` block, what each piece contributes (`lib/gh-api.js`, `lib/gh-fetch.js`,
+  `lib/gh-store.js`, `lib/gh-auth.js`, `lib/alpine-bundle.js`), how `gh.load()`
+  works, the timing rules, the footgun list.
+- **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries (`compression`,
   `persistence`, `messaging`, `io`, `data-shelf`). What each one
   exposes on `window`, with usage examples.
 
@@ -159,9 +175,9 @@ The shape of a loaded page in one block:
   // from its own import URL, instantiates window.gh, and chains in
   // gh-auth.js — so the page just calls gh.load() from here on.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
 
-  await gh.load('kits/persistence.js');                   // logic kits
+  await gh.load('kits/persistence.js');                   // logic kits (resolved under lib/)
   await gh.load('alpineComponents/viewer.js');            // UI components
   await gh.load('alpine-bundle.js');                      // boots Alpine
 </script>

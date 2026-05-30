@@ -11,7 +11,7 @@
   // to main. The same ref is handed to demo.mount as `base`, so the kit each
   // proof frame injects (kits/compression.js) comes from the matching ref.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
-  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}`;
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
   await import(`${base}/gh-api.js`);
   await gh.load('kits/cm6.js');
   await gh.load('vanilla-demo.js');

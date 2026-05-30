@@ -101,7 +101,7 @@ Re-check (note the `-D -` and the deny-header grep — that's the whole point):
 probe () { echo "== $1 =="; curl -sS -o /dev/null -D - --max-time 12 "$1" \
   | grep -iE '^HTTP/|x-deny-reason' | tr -d '\r'; }
 for h in https://registry.npmjs.org/alpinejs \
-  https://raw.githubusercontent.com/mehrlander/web-tools/main/gh-api.js \
+  https://raw.githubusercontent.com/mehrlander/web-tools/main/lib/gh-api.js \
   https://storage.googleapis.com/ https://cdn.jsdelivr.net/ https://esm.sh/ ; do
   probe "$h"; done
 ```

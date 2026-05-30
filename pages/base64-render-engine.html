@@ -43,9 +43,9 @@ const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}`;
 // Module top-level await keeps document.readyState === 'loading' until the
 // chain settles, so gh-auth.js's unhandledrejection handler can render a
 // boot-failed UI without a per-page try/catch.
-const mod = await import(`${CDN}/gh-api.js`);
+const mod = await import(`${CDN}/lib/gh-api.js`);
 window.GH = mod.default;
-const gh = new window.GH({ repo: REPO, ref: BRANCH });
+const gh = new window.GH({ repo: REPO, ref: BRANCH, loadBase: 'lib/' });
 await gh.load('kits/compression.js');
 
 document.getElementById('mount').innerHTML = document.getElementById('blueprint').innerHTML;
