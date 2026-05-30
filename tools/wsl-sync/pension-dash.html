@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pension Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/combine/npm/jquery,npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+</head>
+<body class="min-h-screen bg-base-100 text-[16px]">
+
+<header class="flex items-center gap-4 px-6 h-14 border-b border-base-300 sticky top-0 bg-base-100 z-20">
+    <div class="font-black text-lg tracking-tight">Pension Dashboard</div>
+    <div class="flex items-center gap-2 ml-4" id="stats"></div>
+    <div class="ml-auto flex items-center gap-2">
+        <button id="refresh" class="btn btn-sm btn-ghost gap-1"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+        <button id="open-sync" class="btn btn-sm btn-ghost gap-1"><i class="ph-bold ph-database"></i> Open Sync</button>
+    </div>
+</header>
+
+<div class="flex items-center gap-3 px-6 py-2 border-b border-base-300 sticky top-14 bg-base-100 z-10" id="toolbar"></div>
+
+<main id="dash" class="divide-y divide-base-300"></main>
+
+<script type="module">
+import { get } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+import { classifyPensionBill } from './pension-map.js';
+
+const BIENNIUM = '2025-26';
+const store = { legislation: [], prefiles: [], rcws: {}, history: {}, actions: {} };
+const view = { filter: '', type: 'all' };
+
+const dbKey = k => `wsl-${BIENNIUM}-${k}`;
+const loadStore = async () => {
+    store.legislation = await get(dbKey('legislation')) || [];
+    store.prefiles = await get(dbKey('prefiles')) || [];
+    store.rcws = await get(dbKey('rcws')) || {};
+    store.history = await get(dbKey('history')) || {};
+    store.actions = await get(dbKey('actions')) || {};
+};
+
+const buildCompanionClusters = () => {
+    const all = [...store.legislation, ...store.prefiles];
+    const byNumber = {};
+    all.forEach(b => {
+        const num = b.BillNumber;
+        if (!byNumber[num]) byNumber[num] = [];
+        byNumber[num].push(b);
+    });
+    Object.values(byNumber).forEach(bills => {
+        bills.sort((a, b) => (a.BillId?.length || 0) - (b.BillId?.length || 0));
+    });
+    
+    const clusters = [];
+    const seenNumbers = new Set();
+    
+    Object.entries(byNumber).forEach(([num, bills]) => {
+        if (seenNumbers.has(num)) return;
+        const cluster = { billGroups: [{ number: num, bills }], classification: null, allLabels: new Set(), allAdjacent: new Set() };
+        seenNumbers.add(num);
+        
+        for (const b of bills) {
+            if (b['c.BillId']) {
+                const companionNum = b['c.BillId'].replace(/[A-Z\s]/g, '');
+                if (byNumber[companionNum] && !seenNumbers.has(companionNum)) {
+                    cluster.billGroups.push({ number: companionNum, bills: byNumber[companionNum] });
+                    seenNumbers.add(companionNum);
+                }
+                break;
+            }
+        }
+        
+        cluster.billGroups.forEach(g => {
+            g.bills.forEach(b => {
+                const rcwRec = store.rcws[b.BillId];
+                if (rcwRec?.Rcws) {
+                    const rcwList = rcwRec.Rcws.split('|').filter(Boolean);
+                    const c = classifyPensionBill(rcwList);
+                    b._classification = c;
+                    if (!cluster.classification && (c.hasPension || c.hasAdjacent)) {
+                        cluster.classification = c;
+                    }
+                    (c.PensionLabels || []).forEach(l => cluster.allLabels.add(l));
+                    (c.AdjacentLabels || []).forEach(l => cluster.allAdjacent.add(l));
+                }
+            });
+        });
+        
+        if (cluster.classification?.hasPension || cluster.classification?.hasAdjacent) {
+            cluster.billGroups.sort((a, b) => {
+                const aHouse = a.bills[0]?.OriginalAgency === 'House' ? 0 : 1;
+                const bHouse = b.bills[0]?.OriginalAgency === 'House' ? 0 : 1;
+                return aHouse - bHouse;
+            });
+            clusters.push(cluster);
+        }
+    });
+    
+    clusters.sort((a, b) => (+a.billGroups[0].number || 0) - (+b.billGroups[0].number || 0));
+    return clusters;
+};
+
+const getFilteredClusters = (clusters) => {
+    let result = clusters;
+    if (view.type === 'pension') {
+        result = result.filter(c => c.classification?.hasPension);
+    } else if (view.type === 'adjacent') {
+        result = result.filter(c => c.classification?.hasAdjacent && !c.classification?.hasPension);
+    }
+    if (view.filter) {
+        const q = view.filter.toLowerCase();
+        result = result.filter(c => {
+            const texts = [
+                ...c.billGroups.flatMap(g => g.bills.map(b => b.BillId)),
+                ...c.billGroups.flatMap(g => g.bills.map(b => b.BillNumber)),
+                ...c.billGroups.flatMap(g => g.bills.map(b => b.ShortDescription || '')),
+                ...[...c.allLabels],
+                ...[...c.allAdjacent]
+            ];
+            return texts.some(t => t.toLowerCase().includes(q));
+        });
+    }
+    return result;
+};
+
+const renderVersion = (b, latestDate) => {
+    const c = b._classification || {};
+    const labels = c.PensionLabels || [];
+    const adjacent = c.AdjacentLabels || [];
+    const hist = (store.history[b.BillNumber] || []).slice().sort((a, b) => new Date(b.ActionDate) - new Date(a.ActionDate));
+    const acts = store.actions[b.BillNumber] || [];
+    
+    return `
+        <div class="py-3">
+            <div class="flex items-start gap-4">
+                <div class="w-28 shrink-0">
+                    <div class="bg-base-200/60 rounded px-2 py-1.5">
+                        <div class="font-mono font-bold text-base">${b.BillId}</div>
+                        ${b['cs.Status'] ? `<div class="text-xs text-base-content/60 mt-0.5">${b['cs.Status']}</div>` : ''}
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        ${labels.map(l => `<span class="text-xs px-1.5 py-0.5 bg-primary/15 text-primary font-semibold border border-primary/30 rounded">${l}</span>`).join('')}
+                        ${adjacent.map(l => `<span class="text-xs px-1.5 py-0.5 bg-amber-100/70 text-amber-800/80 font-medium border border-amber-300 rounded">${l}</span>`).join('')}
+                    </div>
+                    ${hist.length ? `
+                        <details open class="text-xs">
+                            <summary class="cursor-pointer text-base-content/50 hover:text-base-content">History (${hist.length})</summary>
+                            <div class="mt-1 pl-3 border-l-2 border-base-300 space-y-0.5">
+                                ${hist.map(h => {
+                                    const isLatest = h.ActionDate === latestDate;
+                                    return `<div class="relative ${isLatest ? 'font-medium text-base-content' : ''}">
+                                        ${isLatest ? '<span class="absolute -left-10 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-primary rounded-full"></span>' : ''}
+                                        <span class="text-base-content/40">${h.ActionDate}</span> ${h.HistoryLine}
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
+                    ${acts.length ? `
+                        <details open class="text-xs mt-2">
+                            <summary class="cursor-pointer text-base-content/50 hover:text-base-content">Actions (${acts.length})</summary>
+                            <div class="mt-1 pl-3 border-l-2 border-amber-300 space-y-0.5">
+                                ${acts.map(a => `<div><span class="text-base-content/40">${a.HearingDate}</span> ${a.Committee || ''}</div>`).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+const renderBillGroup = (g, latestDate) => g.bills.map(b => renderVersion(b, latestDate)).join('<div class="border-t border-base-200"></div>');
+
+const render = () => {
+    const allClusters = buildCompanionClusters();
+    const clusters = getFilteredClusters(allClusters);
+    
+    const pensionOnly = allClusters.filter(c => c.classification?.hasPension).length;
+    const adjacentOnly = allClusters.filter(c => c.classification?.hasAdjacent && !c.classification?.hasPension).length;
+    const withCompanion = allClusters.filter(c => c.billGroups.length > 1).length;
+    const billCount = allClusters.reduce((n, c) => n + c.billGroups.reduce((m, g) => m + g.bills.length, 0), 0);
+    
+    $('#stats').html(`
+        <span class="text-xs text-base-content/50">${billCount} versions</span>
+        <span class="text-xs text-base-content/50">· ${allClusters.length} clusters</span>
+        <span class="text-xs text-base-content/50">· ${withCompanion} companions</span>
+    `);
+    
+    $('#toolbar').html(`
+        <input type="text" id="filter" placeholder="Filter..." value="${view.filter}" class="input input-sm input-bordered w-48">
+        <div class="join">
+            <button data-type="all" class="btn btn-xs join-item ${view.type==='all'?'btn-primary':'btn-ghost'}">All (${allClusters.length})</button>
+            <button data-type="pension" class="btn btn-xs join-item ${view.type==='pension'?'btn-primary':'btn-ghost'}">Pension (${pensionOnly})</button>
+            <button data-type="adjacent" class="btn btn-xs join-item ${view.type==='adjacent'?'btn-warning btn-outline':'btn-ghost'}">Adjacent (${adjacentOnly})</button>
+        </div>
+        <span class="text-xs text-base-content/50 ml-auto">${clusters.length} shown</span>
+    `);
+    
+    let html = '';
+    clusters.forEach(cluster => {
+        const numbers = cluster.billGroups.map(g => g.number).join(' / ');
+        const primary = cluster.billGroups[0].bills[0];
+        const hasCompanion = cluster.billGroups.length > 1;
+        const allLabels = [...cluster.allLabels];
+        const allAdjacent = [...cluster.allAdjacent];
+        
+        const allHist = cluster.billGroups.flatMap(g => 
+            g.bills.flatMap(b => (store.history[b.BillNumber] || []).map(h => ({ ...h, _fromBill: b.BillId })))
+        ).sort((a, b) => new Date(b.ActionDate) - new Date(a.ActionDate));
+        const latestHist = allHist[0];
+        
+        html += `
+        <div class="hover:bg-base-200/50">
+            <details class="group">
+                <summary class="cursor-pointer px-6 py-3 flex items-center gap-3 list-none [&::-webkit-details-marker]:hidden">
+                    <div class="w-28 shrink-0">
+                        <div class="font-black text-base leading-tight">${numbers}</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-medium text-lg">${primary.ShortDescription || primary.LongDescription || '—'}</span>
+                            ${allLabels.map(l => `<span class="text-xs px-1.5 py-0.5 bg-primary/15 text-primary font-semibold border border-primary/30 rounded">${l}</span>`).join('')}
+                            ${allAdjacent.map(l => `<span class="text-xs px-1.5 py-0.5 bg-amber-100/70 text-amber-800/80 font-medium border border-amber-300 rounded">${l}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0 flex items-center gap-2">
+                        ${latestHist ? `
+                            ${hasCompanion ? `
+                                <div class="indicator">
+                                    <span class="indicator-item indicator-start indicator-top text-[9px] font-bold text-sky-600">${latestHist._fromBill?.split(' ')[0]}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/70">${latestHist.ActionDate}</span>
+                                </div>
+                            ` : `<span class="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/70">${latestHist.ActionDate}</span>`}
+                            <span class="text-sm text-base-content/70 max-w-56 truncate">${latestHist.HistoryLine}</span>
+                        ` : ''}
+                    </div>
+                    <i class="ph-bold ph-caret-down text-base-content/30 group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="px-6 pb-4 pt-1">
+                    ${hasCompanion ? `
+                        <div class="flex gap-6">
+                            ${cluster.billGroups.map((g, i) => `
+                                <div class="flex-1 ${i > 0 ? 'border-l border-base-300 pl-6' : ''}">
+                                    ${renderBillGroup(g, latestHist?.ActionDate)}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : renderBillGroup(cluster.billGroups[0], latestHist?.ActionDate)}
+                </div>
+            </details>
+        </div>`;
+    });
+    
+    $('#dash').html(html || '<div class="p-6 text-center text-base-content/50">No pension bills found. Run sync first.</div>');
+};
+
+$(document).on('click', '[data-type]', function() {
+    view.type = $(this).data('type'); render();
+}).on('input', '#filter', function() {
+    view.filter = $(this).val();
+    const pos = this.selectionStart;
+    render();
+    const el = document.getElementById('filter');
+    if (el) { el.focus(); el.setSelectionRange(pos, pos); }
+}).on('click', '#refresh', async function() {
+    await loadStore(); render();
+}).on('click', '#open-sync', function() {
+    window.open('wsl-sync.html', '_blank');
+});
+
+await loadStore();
+render();
+</script>
+</body>
+</html>
