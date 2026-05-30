@@ -53,62 +53,67 @@
     </div>
   </main>
 
-  <!-- Instance A: a read-only details panel, opened by the 'open-details' event -->
+  <!-- Instance A: a read-only details panel, opened by the 'open-details' event.
+       Slot markup is wrapped in <template> so its bindings init in the
+       component's scope, not the page's (see sheet-modal.js). -->
   <div x-data="sheetModal({ title: 'Details', openOn: 'open-details' })">
-    <div class="px-5 py-4 space-y-3">
-      <p class="text-base-content/70 text-sm">
-        Anything you drop between the component's tags lands in this scrollable body. It still
-        binds to page scope, and it can call the component's own
-        <code class="font-mono">close()</code> /
-        <code class="font-mono">shown</code> — here's the live mode:
-        <span class="badge badge-primary badge-sm align-middle"
-              x-text="isDesktop ? 'modal' : 'sheet'"></span>
-      </p>
-      <div class="space-y-2">
-        <template x-for="i in 14" :key="i">
-          <div class="card bg-base-200">
-            <div class="card-body py-3 flex-row items-center justify-between">
-              <span class="font-medium">Record <span x-text="i"></span></span>
-              <span class="badge badge-ghost badge-sm font-mono" x-text="'#' + (1000 + i)"></span>
+    <template>
+      <div class="px-5 py-4 space-y-3">
+        <p class="text-base-content/70 text-sm">
+          Anything you drop in the slot lands in this scrollable body, bound to the component's
+          own scope — it can read <code class="font-mono">shown</code> / <code class="font-mono">isDesktop</code>
+          and call <code class="font-mono">close()</code>. Live mode:
+          <span class="badge badge-primary badge-sm align-middle"
+                x-text="isDesktop ? 'modal' : 'sheet'"></span>
+        </p>
+        <div class="space-y-2">
+          <template x-for="i in 14" :key="i">
+            <div class="card bg-base-200">
+              <div class="card-body py-3 flex-row items-center justify-between">
+                <span class="font-medium">Record <span x-text="i"></span></span>
+                <span class="badge badge-ghost badge-sm font-mono" x-text="'#' + (1000 + i)"></span>
+              </div>
             </div>
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
-    </div>
-    <div class="sticky bottom-0 bg-base-100/90 backdrop-blur border-t border-base-200 px-5 py-3 flex justify-end">
-      <button class="btn btn-ghost btn-sm" @click="close()">Done</button>
-    </div>
+      <div class="sticky bottom-0 bg-base-100/90 backdrop-blur border-t border-base-200 px-5 py-3 flex justify-end">
+        <button class="btn btn-ghost btn-sm" @click="close()">Done</button>
+      </div>
+    </template>
   </div>
 
   <!-- Instance B: an editable form, opened by 'open-form'; reports back to the page -->
   <div x-data="sheetModal({ title: 'Edit item', openOn: 'open-form', maxWidth: 'max-w-md' })">
-    <form class="px-5 py-4 space-y-4"
-          x-data="{ name: '', kind: 'note', star: false }"
-          @submit.prevent="$dispatch('saved', (name.trim() || '(unnamed)') + ' · ' + kind + (star ? ' ★' : '')); close()">
-      <label class="form-control">
-        <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Name</span>
-        <input type="text" x-model="name" placeholder="Untitled…"
-               class="input input-bordered w-full" autocomplete="off" />
-      </label>
-      <label class="form-control">
-        <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Kind</span>
-        <select x-model="kind" class="select select-bordered w-full">
-          <option value="note">Note</option>
-          <option value="task">Task</option>
-          <option value="link">Link</option>
-        </select>
-      </label>
-      <label class="flex items-center gap-3 cursor-pointer">
-        <input type="checkbox" x-model="star" class="toggle toggle-primary toggle-sm" />
-        <span class="text-sm">Star it</span>
-      </label>
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" class="btn btn-ghost btn-sm" @click="close()">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm gap-2" :disabled="!name.trim()">
-          <i class="ph ph-floppy-disk"></i> Save
-        </button>
-      </div>
-    </form>
+    <template>
+      <form class="px-5 py-4 space-y-4"
+            x-data="{ name: '', kind: 'note', star: false }"
+            @submit.prevent="$dispatch('saved', (name.trim() || '(unnamed)') + ' · ' + kind + (star ? ' ★' : '')); close()">
+        <label class="form-control">
+          <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Name</span>
+          <input type="text" x-model="name" placeholder="Untitled…"
+                 class="input input-bordered w-full" autocomplete="off" />
+        </label>
+        <label class="form-control">
+          <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Kind</span>
+          <select x-model="kind" class="select select-bordered w-full">
+            <option value="note">Note</option>
+            <option value="task">Task</option>
+            <option value="link">Link</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" x-model="star" class="toggle toggle-primary toggle-sm" />
+          <span class="text-sm">Star it</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="btn btn-ghost btn-sm" @click="close()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm gap-2" :disabled="!name.trim()">
+            <i class="ph ph-floppy-disk"></i> Save
+          </button>
+        </div>
+      </form>
+    </template>
   </div>
 
   <!-- bridge the form's 'saved' event up to the page's readout -->

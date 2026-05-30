@@ -96,6 +96,15 @@ state, event-driven triggers, `matchMedia`-driven logic. What it doesn't: visual
 correctness (no CSS framework loads) and gesture physics (synthetic pointer
 streams aren't real input).
 
+**Test the eager path, not just the lazy one.** A first pass of the sheet-modal
+test only put `@click="close()"` in the slot and passed — but `@click` is *lazy*
+(evaluated on click), so it never exercised init-time evaluation. A real
+`x-text="isDesktop ? …"` in the slot throws *at startup* in the parent scope. If
+a component reads its own scope from slotted markup, the test slot must include an
+**eagerly-evaluated** binding (`x-text` / `:class` / `x-effect`), or the test
+gives false confidence. Capture startup warnings by stubbing `console.warn` /
+`console.error` and a `window` `error` listener; assert the count is zero.
+
 ## Previewing pages
 
 *(verified 2026-05-30)*

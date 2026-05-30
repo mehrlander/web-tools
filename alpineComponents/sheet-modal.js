@@ -10,13 +10,18 @@
 // re-presents the open overlay in place.
 //
 // The component renders its own chrome (scrim + panel + header) and slots the
-// host's markup into a scrollable body. Host bindings keep resolving against
-// the page scope — Alpine scopes chain up the tree — so body content can read
-// page state and also call this component's open()/close()/shown.
+// host's markup into a scrollable body. Body bindings resolve against this
+// component's scope (and chain up to the page), so slot content can read
+// isDesktop / shown and call open() / close().
+//
+// Wrap the slot in a <template>: its content is an inert fragment Alpine won't
+// evaluate in the parent scope, so the component can adopt it and re-init it in
+// its own scope. Markup left bare would be walked by Alpine in the page scope
+// first and throw on any component-scope reference (e.g. isDesktop).
 //
 // Usage:
 //   <div x-data="sheetModal({ title: 'Editor', openOn: 'open-editor' })">
-//     ...body markup (yours)...
+//     <template> ...body markup (yours)... </template>
 //   </div>
 //   <button @click="$dispatch('open-editor')">Edit…</button>
 //
@@ -87,9 +92,14 @@
         },
 
         init() {
-          // Children present at init() are the host's slot (Alpine hasn't
-          // walked them yet). Re-render with them dropped into the body.
-          const body = this.$el.innerHTML;
+          // The host slot is wrapped in a <template> so Alpine never evaluates
+          // its bindings in the parent scope (a template's content is an inert
+          // fragment). We adopt that markup into our body, where it re-inits
+          // against this component's scope — so slot bindings can read isDesktop,
+          // shown, close(), etc. Without the template, Alpine walks the slot in
+          // the parent scope first and throws on any component-scope reference.
+          const slot = this.$el.querySelector('template');
+          const body = slot ? slot.innerHTML : '';
           this.$el.innerHTML = this.shell(body);
           this.$nextTick(() => Alpine.initTree(this.$el));
 
