@@ -9,7 +9,7 @@ document.addEventListener('alpine:init', function() {
              @pointermove="onMove($event)"
              @pointerup="onUp($event)"
              @pointercancel="onUp($event)"
-             class="fixed bottom-6 right-6 group touch-none z-40">
+             class="fixed bottom-6 right-6 group touch-none z-[55]">
           <div tabindex="0" role="button" aria-label="Web-tools panel" class="size-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-grab active:cursor-grabbing outline-none transition-all duration-300 hover:bg-primary/20 hover:border-primary/40 focus:bg-primary focus:border-primary focus:shadow-lg focus:shadow-primary/30"
                :class="open ? 'bg-primary/30 border-primary/50' : ''">
             <i class="ph ph-sidebar-simple text-2xl text-primary/40 group-hover:text-primary/70 group-focus:text-primary-content transition-colors"
@@ -47,9 +47,6 @@ document.addEventListener('alpine:init', function() {
               <div class="flex items-center gap-1 shrink-0">
                 <button x-show="activeTab === 'components'" @click="detect()" class="btn btn-ghost btn-xs btn-square" title="Rescan page" aria-label="Rescan">
                   <i class="ph ph-arrows-clockwise"></i>
-                </button>
-                <button @click="close()" class="btn btn-ghost btn-xs btn-square" title="Close" aria-label="Close">
-                  <i class="ph ph-x"></i>
                 </button>
               </div>
             </header>
