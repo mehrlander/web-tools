@@ -20,6 +20,7 @@
     await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
 
     await gh.load('alpineComponents/sheet-modal.js');   // the component
+    await gh.load('alpineComponents/fab.js');           // web-tools panel + branch preview
     await gh.load('alpine-bundle.js');                  // boots Alpine
   </script>
 </head>
@@ -112,6 +113,9 @@
 
   <!-- bridge the form's 'saved' event up to the page's readout -->
   <div @saved.window="saved = $event.detail" class="hidden"></div>
+
+  <!-- web-tools panel: component outliner, script status, branch-preview render tab -->
+  <div x-data="fab()" data-path="pages/sheet-modal-demo.html"></div>
 
 </body>
 </html>
