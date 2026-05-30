@@ -1,6 +1,6 @@
 ## Surfacing your work
 
-Instructions for Claude Code on the web. The session runs in a sandbox; the user sees output through chat, not a local filesystem.
+Instructions for Claude Code on the web. The session runs in a [sandbox](docs/ENVIRONMENT.md); the user sees output through chat, not a local filesystem.
 
 **Explicit markdown only.** Bare file paths auto-link in some Claude Code UIs, but those links are transient: they resolve only in the live session, and they vanish on mobile, in rendered markdown, and anywhere the text gets copied. Use explicit `[caption](url)` markdown for anything the user might want to tap. The `file:line` convention (e.g. `src/foo.js:120`) is a separate thing: a grep-style pointer into source code for navigation when discussing or debugging code. It's not a substitute for explicit URLs when handing over an artifact.
 
@@ -48,7 +48,7 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 ## Merge guide
 
-`MERGE-GUIDE.md` at the repo root is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
+[`MERGE-GUIDE.md`](docs/MERGE-GUIDE.md) (in `docs/`) is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
 
 Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
 
@@ -117,4 +117,4 @@ As a preliminary, you can propose diagnostic tests where they'd move a cause fro
 
 ## Environment & testing
 
-`ENVIRONMENT.md` is a living, dated record of what the web sandbox can and can't do — network allowlist, headless-browser limits, the jsdom+Alpine recipe for logic-testing components, and page-preview constraints. Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
+[`ENVIRONMENT.md`](docs/ENVIRONMENT.md) is a living, dated record of what the web sandbox can and can't do — network allowlist, headless-browser limits, the jsdom+Alpine recipe for logic-testing components, and page-preview constraints. Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
