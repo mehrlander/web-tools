@@ -12,6 +12,9 @@ here; everything longer-form lives in this folder.
   Chromium, the jsdom + Alpine test recipe.
 - **[MERGE-GUIDE.md](MERGE-GUIDE.md)** — a newest-on-top log of what each
   session shipped, keyed by PR number.
+- **[STARTUP.md](STARTUP.md)** — what the `SessionStart` hook does (installs
+  the test/preview devDependencies at the start of each web session), in plain
+  language.
 
 **Possibly expanding this, wiki-style.** We're weighing whether to grow `docs/`
 into something closer to a small wiki — more pages, cross-linked — rather than
