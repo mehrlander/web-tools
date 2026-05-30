@@ -1,7 +1,7 @@
 # web-tools
 
 A workshop for browser-based tools with a focus on working with data.
-Pages, bookmarklets, popups, console snippets, plus the parts used to build them.
+[Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), plus the parts used to build them.
 
 Four shapes have emerged:
 
@@ -12,9 +12,9 @@ Four shapes have emerged:
 - **Popups.** A page opened as a popup window from a specific origin.
   Interacts with `window.opener` and makes HTTP requests where an
   independent page would trip over CORS restrictions.
-- **Console snippets.** Code kept in DevTools, pasted in and run ad-hoc
-  against whatever page is open. The least structured of the four — nothing
-  to host or install — but the reusable ones live in `console/`.
+- **Console snippets.** Snippets stored in DevTools, designed for a CLI
+  experience — when you'd rather type a command and read the result than
+  click a bookmark.
 
 Popups are essentially a page launched as a bookmarklet:
 
@@ -61,7 +61,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
-| [demos/](https://mehrlander.github.io/web-tools/pages/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`). Double-duty as a builder reference. |
+| [demos/](https://mehrlander.github.io/web-tools/lib/kits/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`, `compression`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 
 The auto-listed index at `pages/` is the full directory if you want to see
