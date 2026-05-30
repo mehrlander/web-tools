@@ -63,7 +63,7 @@ function jsonResponse(obj) {
 // harness purposes we replace them with self-contained stubs that expose
 // the same window.* surface (in-memory persistence, no-op compression).
 const STUB_KITS = {
-  'kits/persistence.js': `
+  'lib/kits/persistence.js': `
     (() => {
       const mem = new Map();
       const save = async (path, value) => { mem.set(path, value); };
@@ -72,7 +72,7 @@ const STUB_KITS = {
       const list = async () => [...mem.keys()];
       window.persistence = { save, load, remove, list };
     })();`,
-  'kits/compression.js': `
+  'lib/kits/compression.js': `
     (() => {
       const noop = async () => '';
       const text = {
@@ -154,7 +154,7 @@ function resolveRequest(request) {
     return jsResponse(readFileSync(fp));
   }
 
-  // idb-keyval ESM (used by kits/persistence.js dynamic import)
+  // idb-keyval ESM (used by lib/kits/persistence.js dynamic import)
   if (u.host === 'cdn.jsdelivr.net' && u.pathname.includes('idb-keyval')) {
     const fp = path.join(repoRoot, 'node_modules/idb-keyval/dist/index.js');
     intercepts.push(`HIT  ${request.url} -> node_modules/idb-keyval/dist/index.js`);
