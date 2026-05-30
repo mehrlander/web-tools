@@ -53,14 +53,15 @@
     </div>
   </main>
 
-  <!-- Instance A: a read-only details panel, opened by the 'open-details' event -->
+  <!-- Instance A: a read-only details panel, opened by the 'open-details' event.
+       Slot content is just dropped in bare — it binds to the component's scope
+       (reads isDesktop / shown, calls close()). -->
   <div x-data="sheetModal({ title: 'Details', openOn: 'open-details' })">
     <div class="px-5 py-4 space-y-3">
       <p class="text-base-content/70 text-sm">
-        Anything you drop between the component's tags lands in this scrollable body. It still
-        binds to page scope, and it can call the component's own
-        <code class="font-mono">close()</code> /
-        <code class="font-mono">shown</code> — here's the live mode:
+        Anything you drop in the slot lands in this scrollable body, bound to the component's
+        own scope — it can read <code class="font-mono">shown</code> / <code class="font-mono">isDesktop</code>
+        and call <code class="font-mono">close()</code>. Live mode:
         <span class="badge badge-primary badge-sm align-middle"
               x-text="isDesktop ? 'modal' : 'sheet'"></span>
       </p>
