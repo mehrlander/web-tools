@@ -10,18 +10,15 @@
 // re-presents the open overlay in place.
 //
 // The component renders its own chrome (scrim + panel + header) and slots the
-// host's markup into a scrollable body. Body bindings resolve against this
-// component's scope (and chain up to the page), so slot content can read
-// isDesktop / shown and call open() / close().
-//
-// Wrap the slot in a <template>: its content is an inert fragment Alpine won't
-// evaluate in the parent scope, so the component can adopt it and re-init it in
-// its own scope. Markup left bare would be walked by Alpine in the page scope
-// first and throw on any component-scope reference (e.g. isDesktop).
+// host's markup into a scrollable body. Just drop bare content inside — no
+// wrapper element needed. Slot bindings resolve against this component's scope
+// (and chain up to the page), so they can read isDesktop / shown and call
+// open() / close(). (init() preserves the original slot nodes rather than
+// rebuilding them from a string; see the note there for why that matters.)
 //
 // Usage:
 //   <div x-data="sheetModal({ title: 'Editor', openOn: 'open-editor' })">
-//     <template> ...body markup (yours)... </template>
+//     ...body markup (yours)...
 //   </div>
 //   <button @click="$dispatch('open-editor')">Edit…</button>
 //
@@ -61,7 +58,7 @@
         dragging: false,
         startY: 0, startTrans: 0, lastY: 0, lastT: 0, velocity: 0,
 
-        shell(body) {
+        shell() {
           return `
             <div class="sheet-modal-scrim fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 transition-opacity duration-300"
                  :class="shown ? 'opacity-100' : 'opacity-0 pointer-events-none'"
@@ -87,20 +84,31 @@
                 </button>
               </div>
 
-              <div data-sheet-body class="flex-1 overflow-y-auto" style="touch-action: pan-y">${body}</div>
+              <div data-sheet-body class="flex-1 overflow-y-auto" style="touch-action: pan-y"></div>
             </div>`;
         },
 
         init() {
-          // The host slot is wrapped in a <template> so Alpine never evaluates
-          // its bindings in the parent scope (a template's content is an inert
-          // fragment). We adopt that markup into our body, where it re-inits
-          // against this component's scope — so slot bindings can read isDesktop,
-          // shown, close(), etc. Without the template, Alpine walks the slot in
-          // the parent scope first and throws on any component-scope reference.
-          const slot = this.$el.querySelector('template');
-          const body = slot ? slot.innerHTML : '';
-          this.$el.innerHTML = this.shell(body);
+          // Slotting without a custom element / shadow DOM. The host's children
+          // are the slot content; Alpine has already queued their effects by the
+          // time init() runs, so we must PRESERVE those nodes, not rebuild them
+          // from a string — rebuilding orphans the queued effects and they throw
+          // (e.g. "isDesktop is not defined") when they flush detached.
+          //
+          // So: lift the existing children into a fresh body element (a move,
+          // which keeps node identity + queued effects), assemble the chrome
+          // around them synchronously, reattach, then initTree the new chrome.
+          // initTree skips already-initialized nodes, so the slot isn't
+          // double-bound. Net: the caller just drops bare markup inside — no
+          // <template>, no wrapper — and it can read isDesktop / shown / close().
+          const slot = document.createDocumentFragment();
+          while (this.$el.firstChild) slot.appendChild(this.$el.firstChild);
+
+          const chrome = document.createElement('div');
+          chrome.innerHTML = this.shell();
+          chrome.querySelector('[data-sheet-body]').appendChild(slot);
+
+          while (chrome.firstChild) this.$el.appendChild(chrome.firstChild);
           this.$nextTick(() => Alpine.initTree(this.$el));
 
           const mq = window.matchMedia('(min-width: 640px)');

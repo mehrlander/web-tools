@@ -99,11 +99,27 @@ streams aren't real input).
 **Test the eager path, not just the lazy one.** A first pass of the sheet-modal
 test only put `@click="close()"` in the slot and passed — but `@click` is *lazy*
 (evaluated on click), so it never exercised init-time evaluation. A real
-`x-text="isDesktop ? …"` in the slot throws *at startup* in the parent scope. If
-a component reads its own scope from slotted markup, the test slot must include an
+`x-text="isDesktop ? …"` in the slot throws *at startup*. If a component reads
+its own scope from slotted markup, the test slot must include an
 **eagerly-evaluated** binding (`x-text` / `:class` / `x-effect`), or the test
 gives false confidence. Capture startup warnings by stubbing `console.warn` /
 `console.error` and a `window` `error` listener; assert the count is zero.
+
+**Alpine "slots" without a custom element: preserve the slot nodes, don't
+rebuild them.** A component that accepts caller-provided children and renders
+its own chrome around them must NOT do `body = $el.innerHTML; $el.innerHTML =
+shell(body)`. Measured cause: by the time `init()` runs, Alpine has already
+queued reactive effects on the original child nodes; rebuilding from a string
+discards those nodes, and the orphaned (now detached) effects throw when they
+flush (`"isDesktop is not defined"`) — even though a second `initTree` makes the
+visible result look correct. Bare children left *in place* bind fine (scope
+chains down the tree); it's the rebuild that breaks them. Fix that needs no
+caller cooperation: move the existing children into a fresh body element
+(`appendChild` preserves node identity + queued effects), assemble the chrome
+around them **synchronously**, reattach, then `initTree` only the new chrome
+(it skips already-initialized nodes, so no double-bind — verified: slot getter
+evaluates once at start and once per state change). A `<template>` wrapper also
+works (its content is inert, never walked) but pushes a tag onto every caller.
 
 ## Previewing pages
 
