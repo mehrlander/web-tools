@@ -114,3 +114,7 @@ When asked for a handoff prompt (HP):
 **Keep it short.** One context paragraph. One section per issue.
 
 As a preliminary, you can propose diagnostic tests where they'd move a cause from suspected to confirmed. The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome (you can also offer an test with a draft prompt that could be used to firm up some piece of it). Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
+
+## Environment & testing
+
+`ENVIRONMENT.md` is a living, dated record of what the web sandbox can and can't do — network allowlist, headless-browser limits, the jsdom+Alpine recipe for logic-testing components, and page-preview constraints. Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
