@@ -34,6 +34,8 @@ changelog. See the footer for how to extend this.
 - `git` works; GitHub actions go through the GitHub MCP tools, not `gh`.
 - A real **Chromium is pre-installed** (see Browsers below) — headless rendering
   and screenshots *are* available in-sandbox.
+- Resource ceilings (approx, may shift): **4 vCPU, 16 GB RAM, 30 GB disk** —
+  memory-heavy builds or tests can be killed.
 
 ## Toolchain — `check-tools`, and what it omits
 
@@ -44,8 +46,10 @@ language/build toolchain — the fastest way to read versions. But it's a
 **version probe, not a capability manifest**, and its checklist is incomplete:
 it silently omits things that *are* installed. Verified present though unlisted:
 **Ruby 3.3.6**, **PHP 8.4.19** + Composer, **PostgreSQL 16.13** and **Redis
-7.0.15** (installed, not running — start per session), and **bun**
-(`~/.bun/bin/bun`). Absent: `mongod`, `deno`, `bundler`. Treat a `check-tools`
+7.0.15** (installed, not running — start with `service postgresql start` /
+`service redis-server start`), and **bun** (`~/.bun/bin/bun` — but it has known
+proxy issues fetching packages; use npm/pip to install). Absent: `mongod`,
+`deno`, `bundler`. Treat a `check-tools`
 omission as "unchecked," not "absent" — confirm with `command -v`.
 
 ```bash

@@ -56,9 +56,22 @@ They power two jobs:
 - **Network:** `npm install` needs `registry.npmjs.org`, which the sandbox
   allows (see [ENVIRONMENT.md](ENVIRONMENT.md)). It would fail only under a
   "None" network policy.
+- **Web-only is deliberate.** The script exits immediately unless
+  `CLAUDE_CODE_REMOTE=true`. Local checkouts manage their own dependencies, so
+  there's nothing for it to do there. (The docs also describe SessionStart hooks
+  as something that can run everywhere; we scope this one to the web on purpose.)
 - **Synchronous:** the session waits for the install to finish before starting,
   so dependencies are guaranteed ready. It can be switched to async (faster
   start, small race-condition risk) if that tradeoff is ever preferred.
+- **Not cached across fresh sessions.** A SessionStart hook runs on every
+  session and is *not* part of the environment's filesystem snapshot — only a
+  cloud **setup script** is cached that way. So the skip-if-present check mainly
+  saves time on **resume** (same container); a brand-new web session starts from
+  a clean clone and runs the full `npm install` (~6s). That's the expected
+  pattern for `npm install` and it's cheap. If startup speed ever outweighs
+  keeping setup committed in the repo, the cache-it-once alternative is a setup
+  script (configured in the web UI, cloud-only, so not visible in the repo) —
+  see [ENVIRONMENT.md](ENVIRONMENT.md) and the web docs.
 - **Takes effect after merge:** a hook only runs for sessions started from a
   branch that contains it. Once this is on the default branch, every future web
   session picks it up.
