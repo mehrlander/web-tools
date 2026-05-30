@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>sheet-modal demo</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🗂️</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+  <!--
+    Demonstrates alpineComponents/sheet-modal.js: one overlay that renders as a
+    draggable bottom sheet under 640px and a centered modal at/above it. Two
+    independent instances on the page show reuse + the openOn window-event hook.
+  -->
+  <script type="module">
+    // ?use=<branch|tag|sha> pins which ref the components load from; defaults
+    // to main. gh-api.js auto-bootstraps window.gh from its own import URL.
+    const ref = new URLSearchParams(location.search).get('use') || 'main';
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/gh-api.js`);
+
+    await gh.load('alpineComponents/sheet-modal.js');   // the component
+    await gh.load('alpine-bundle.js');                  // boots Alpine
+  </script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content" x-data="{ saved: '—' }">
+
+  <main class="max-w-xl mx-auto px-6 py-16 flex flex-col items-center gap-8 text-center">
+    <div class="space-y-3">
+      <div class="text-5xl">🗂️</div>
+      <h1 class="text-3xl font-bold">sheet-modal</h1>
+      <p class="text-base-content/60 leading-relaxed">
+        One Alpine component, two presentations. Below <span class="font-mono">640px</span> it's a
+        draggable iOS sheet — drag the bar, flick to dismiss. At or above it, the same overlay is a
+        centered modal that fades in and closes on scrim-click or <kbd class="kbd kbd-sm">Esc</kbd>.
+        Resize the window across the breakpoint with one open to watch it re-present.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <button class="btn btn-primary gap-2" @click="$dispatch('open-details')">
+        <i class="ph ph-tray-arrow-up text-lg"></i> Open details
+      </button>
+      <button class="btn btn-secondary btn-outline gap-2" @click="$dispatch('open-form')">
+        <i class="ph ph-pencil-simple text-lg"></i> Open form
+      </button>
+    </div>
+
+    <div class="text-sm text-base-content/50">
+      Last form result: <span class="font-mono font-semibold text-base-content/80" x-text="saved"></span>
+    </div>
+  </main>
+
+  <!-- Instance A: a read-only details panel, opened by the 'open-details' event -->
+  <div x-data="sheetModal({ title: 'Details', openOn: 'open-details' })">
+    <div class="px-5 py-4 space-y-3">
+      <p class="text-base-content/70 text-sm">
+        Anything you drop between the component's tags lands in this scrollable body. It still
+        binds to page scope, and it can call the component's own
+        <code class="font-mono">close()</code> /
+        <code class="font-mono">shown</code> — here's the live mode:
+        <span class="badge badge-primary badge-sm align-middle"
+              x-text="isDesktop ? 'modal' : 'sheet'"></span>
+      </p>
+      <div class="space-y-2">
+        <template x-for="i in 14" :key="i">
+          <div class="card bg-base-200">
+            <div class="card-body py-3 flex-row items-center justify-between">
+              <span class="font-medium">Record <span x-text="i"></span></span>
+              <span class="badge badge-ghost badge-sm font-mono" x-text="'#' + (1000 + i)"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div class="sticky bottom-0 bg-base-100/90 backdrop-blur border-t border-base-200 px-5 py-3 flex justify-end">
+      <button class="btn btn-ghost btn-sm" @click="close()">Done</button>
+    </div>
+  </div>
+
+  <!-- Instance B: an editable form, opened by 'open-form'; reports back to the page -->
+  <div x-data="sheetModal({ title: 'Edit item', openOn: 'open-form', maxWidth: 'max-w-md' })">
+    <form class="px-5 py-4 space-y-4"
+          x-data="{ name: '', kind: 'note', star: false }"
+          @submit.prevent="$dispatch('saved', (name.trim() || '(unnamed)') + ' · ' + kind + (star ? ' ★' : '')); close()">
+      <label class="form-control">
+        <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Name</span>
+        <input type="text" x-model="name" placeholder="Untitled…"
+               class="input input-bordered w-full" autocomplete="off" />
+      </label>
+      <label class="form-control">
+        <span class="label-text text-xs uppercase font-bold opacity-50 tracking-widest mb-1">Kind</span>
+        <select x-model="kind" class="select select-bordered w-full">
+          <option value="note">Note</option>
+          <option value="task">Task</option>
+          <option value="link">Link</option>
+        </select>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" x-model="star" class="toggle toggle-primary toggle-sm" />
+        <span class="text-sm">Star it</span>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn btn-ghost btn-sm" @click="close()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm gap-2" :disabled="!name.trim()">
+          <i class="ph ph-floppy-disk"></i> Save
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- bridge the form's 'saved' event up to the page's readout -->
+  <div @saved.window="saved = $event.detail" class="hidden"></div>
+
+</body>
+</html>
