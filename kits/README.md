@@ -34,7 +34,7 @@ The shape rules (so the file works through `gh.load`):
 5. Internal "imports" between kits are reads from `window.otherKit`.
    Order them in the page's `gh.load` chain accordingly.
 
-See `SCAFFOLDING.md` at the repo root for the full loader contract.
+See [`docs/SCAFFOLDING.md`](../docs/SCAFFOLDING.md) for the full loader contract.
 
 ## Current kits
 

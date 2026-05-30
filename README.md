@@ -142,7 +142,7 @@ The same handful of concerns drove every piece of it:
 
 Two docs go deeper:
 
-- **[SCAFFOLDING.md](SCAFFOLDING.md)**: the loader contract. The canonical
+- **[SCAFFOLDING.md](docs/SCAFFOLDING.md)**: the loader contract. The canonical
   `<head>` block, what each piece contributes (`gh-api.js`, `gh-fetch.js`,
   `gh-store.js`, `gh-auth.js`, `alpine-bundle.js`), how `gh.load()` works,
   the timing rules, the footgun list.
@@ -185,7 +185,7 @@ Recent pages that make good templates:
 
 - **Use a tool.** Pick from the outputs above. Each page or popup is a
   single URL; each bookmarklet is a one-time install.
-- **Build a tool.** Read [SCAFFOLDING.md](SCAFFOLDING.md), copy one of the
+- **Build a tool.** Read [SCAFFOLDING.md](docs/SCAFFOLDING.md), copy one of the
   template pages, edit the `gh.load(...)` list for the kits and components
   you need, write your `x-data` factory in an inline `<script>`. The kits
   and components are your library, not a separate path.
