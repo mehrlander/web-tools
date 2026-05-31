@@ -46,9 +46,64 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
 - Page on a ref: `https://mehrlander.github.io/web-tools/pages/<page>.html?use=<ref>`
 
+## The surfacing spine
+
+Two structured artifacts summarize a session's work: the **PR body** (pre-merge, on GitHub) and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). Both fight the same failure mode — the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. Both fix it the same way: a shove toward the thing to open, not an explanation.
+
+So both follow one spine. The first two lines are fixed:
+
+1. **Outcome + why** — one sentence, no preamble.
+2. A single **⭐ link to the thing to open** — the shove.
+
+Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff/compare link. Skimmable in seconds. The two artifacts share this spine but stay separate; only the link targets and a few moment-specific fields differ.
+
+**The ⭐ link, honestly.** The ⭐ is a live preview only for a page: `?use=<sha>` renders the branch's code, so "open" means open. For a non-page change — a kit, a doc — the honest best is the `[new]` blob: say "view," not "use," and link the blob. The link must never promise a running preview the change can't deliver.
+
+**What differs.** Same spine, two moments:
+
+| | PR body | Merge-guide entry |
+|---|---|---|
+| Moment | pre-merge | at / after merge |
+| Audience | reviewer — "verify this" | reader — "what shipped, open here" |
+| ⭐ target | branch (`?use=<sha>`, else `[new]` blob) | canonical main URL |
+| File links | branch blobs | main blobs |
+| Extra fields | risk, test status, "Follow-up to #N" | PR# key, date, durable Notes |
+| "Is #N in main?" | n/a — nothing merged yet | answerable from the entry |
+| Lives in | the GitHub PR | `docs/MERGE-GUIDE.md` |
+
+## PR body
+
+The body a PR opens with, before merge. Audience: a reviewer deciding whether to approve — "verify this," not "here's what shipped." Links resolve to the **branch tip**, so the reviewer reads exactly what's proposed; the body carries reviewer-only fields (risk, what to scrutinize, test status) and a "Follow-up to #N" when it continues earlier work. It does **not** assert in-main status — nothing here is merged yet.
+
+**Body shape:**
+
+```markdown
+<One sentence: what this does and why.> [Follow-up to #N.]
+
+⭐ **Look:** [<page>](…?use=<sha>)   ← open on the branch
+   (non-page change → link the [new] blob instead)
+
+**Changed:**
+- <path> ([new](branch blob), [main](pre-change), [diff](commit))
+  renders on: [<page>](…?use=<sha>)        (shared component only)
+
+**Notes / Risk:** <what to scrutinize, test status, non-obvious why>
+
+<session-link footer>
+```
+
+- ⭐ target is on the branch: a page via `?use=<sha>`, otherwise the `[new]` blob (see the spine's honesty note). Pass the SHA, since jsDelivr caches branch tips ~12h.
+- File links resolve to branch blobs, not main — the reviewer reads the proposal, not what main holds.
+- Keep "Follow-up to #N" when this continues an earlier PR, so the chain stays legible.
+- End with the session-link footer the harness appends to PR bodies.
+
+The body of PR #129 is a worked example of this shape.
+
 ## Merge guide
 
 [`MERGE-GUIDE.md`](docs/MERGE-GUIDE.md) (in `docs/`) is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
+
+Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above for what's distinct (canonical main URL, PR# key, date, durable Notes, the "is #N in main?" property).
 
 Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
 
@@ -77,7 +132,7 @@ Keep entries short. A five-second skim, not a changelog dump.
 - Lead with the result, not the file list. The result is the page to open to see the change, even when what you edited was a JS file or a component the page loads. While work is on a branch, link it with `?use=<sha>` (the SHA, since jsDelivr caches branch tips ~12h). After merge the plain Pages/main URL is canonical.
 - Primary file first. For a shared component, add a `renders on:` line naming each consuming page, so it's clear which page to open.
 - Notes only when non-obvious. Skip anything the diff already shows.
-- All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above.
+- All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above, resolving to main once merged.
 
 Typical case, where you edit JS but the result is a page to open:
 
