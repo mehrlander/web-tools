@@ -10,6 +10,8 @@ Instructions for Claude Code on the web. The session runs in a [sandbox](docs/EN
 
 This is the link the user taps to see the working tree at any point. No need to repeat it on subsequent turns.
 
+**Opening a PR is the user's tap, not a Claude action.** In the web UI the user opens a PR with a button that auto-generates it from the session branch — so don't reflexively ask "want me to open a PR?" The branch-anchor link above is the handoff: it lands them on the working tree, where the button lives. (Open one yourself only when there's a specific reason — e.g. a *second* PR after post-merge edits; see "Creating the next PR.") What makes the button appear is unverified from inside the sandbox; the working assumption is *commits pushed to the branch*.
+
 **Per-file links.** Any turn that touches files ends with a compact list. The filename is plain text; the link words in parens are tappable:
 
 > - src/components/Header.tsx ([new](...), [main](...), [diff](...))
