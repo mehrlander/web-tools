@@ -75,7 +75,7 @@ Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for 
 
 ## PR body
 
-The body a PR opens with, before merge. Audience: a reviewer deciding whether to approve — "verify this," not "here's what shipped." Links resolve to the **branch tip**, so the reviewer reads exactly what's proposed; the body carries reviewer-only fields (risk, what to scrutinize, test status) and a "Follow-up to #N" when it continues earlier work. It does **not** assert in-main status — nothing here is merged yet.
+The body a PR opens with, before merge. Audience: a reviewer deciding whether to approve — "verify this," not "here's what shipped." Links resolve to the **branch tip**, so the reviewer reads exactly what's proposed; it doesn't assert in-main status — nothing here is merged yet.
 
 **Body shape:**
 
@@ -95,7 +95,6 @@ The body a PR opens with, before merge. Audience: a reviewer deciding whether to
 ```
 
 - ⭐ target is on the branch: a page via `?use=<sha>`, otherwise the `[new]` blob (see the spine's honesty note). Pass the SHA, since jsDelivr caches branch tips ~12h.
-- File links resolve to branch blobs, not main — the reviewer reads the proposal, not what main holds.
 - Keep "Follow-up to #N" when this continues an earlier PR, so the chain stays legible.
 - End with the session-link footer the harness appends to PR bodies.
 
@@ -105,7 +104,7 @@ The body of PR #129 is a worked example of this shape.
 
 [`MERGE-GUIDE.md`](docs/MERGE-GUIDE.md) (in `docs/`) is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
 
-Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above for what's distinct (canonical main URL, PR# key, date, durable Notes, the "is #N in main?" property).
+Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
 
 Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
 
