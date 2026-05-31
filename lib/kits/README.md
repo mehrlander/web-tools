@@ -231,6 +231,34 @@ callers writing plain `console.log()`; it's the same additive tactic
 `console/base.js` uses for its formatting helpers, and the two are
 orthogonal (this kit owns retention; base.js owns `style/box/see`).
 
+### cm6.js
+
+Framework-free [CodeMirror 6](https://codemirror.net/) editor factory. No
+Alpine, no DOM opinions beyond mounting into the host you pass. The six CM6
+modules load lazily (and once) from esm.sh on first `create()`, deduped by
+shared sub-deps, with per-import retry/backoff and attribution so a failed or
+hung import names the URL it came from (`?cm6stall=` / `?cm6fail=` reproduce
+those paths).
+
+```js
+const ed = await window.cm6.create(hostEl, {
+  value, language, wrap, lineNumbers, readOnly, fontSize, setup, // 'minimal'|'basic'
+  onChange, onSelection, onRun,                                  // onRun binds Mod-Enter
+});
+ed.getValue(); ed.setValue(str); ed.setLanguage('js'|'html'|'plain');
+ed.setWrap(b); ed.setLineNumbers(b); ed.setReadOnly(b); ed.setFontSize(px);
+ed.focus(); ed.destroy(); ed.view;
+
+window.cm6.preload();      // warm the module load without creating an editor
+window.cm6.loadStatus();   // per-import state, for diagnosing a stall
+```
+
+**Load-order requirement:** `cm6` populates `window.cm6`, and the Alpine editors
+that build on it — `alpineComponents/cm-editor.js`, `compress-input-cm.js` —
+guard at mount and log `window.cm6 is missing` if it isn't there. Put
+`gh.load('kits/cm6.js')` ahead of those components in the page's load chain.
+Used directly (no Alpine) by `vanilla-demo.js`.
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -246,3 +274,4 @@ examples.
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |
 | `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |
 | `console.js` | `pages/console-kit-demo.html` | console retention + `debugConsole` renderer |
+| `cm6.js` | `vanilla-demo.js` / `pages/misc/cm6-editor.html` | lazy CodeMirror 6 editor factory |
