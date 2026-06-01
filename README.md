@@ -27,8 +27,7 @@ const launchPopup = h => {
 
 launchPopup('<h1>Test</h1><button onclick="window.opener.document.body.style.background=\'red\'">Red</button>');
 ```
-
-These formats are fundamentally awkward.  Challenges arise:
+Challenges arise:
 - Workflow (storing and updating code), given size limits and needed escapement
 - Functionality (persisting data, reaching other files, and communicating between domains or windows).
 
