@@ -14,6 +14,10 @@ here; everything longer-form lives in this folder.
   (the sensible way to test HTML/JS, incl. the jsdom + Alpine recipe), and
   [extending](environment/extending.md) (the Claude Code component model + the
   `SessionStart` hook this repo runs).
+- **[git-conventions/](git-conventions/)** — durable notes on how this repo
+  treats git history and branches, behind the workflow rules in `CLAUDE.md`.
+  Starts with [post-merge branch mutation](git-conventions/post-merge-branch-mutation.md)
+  (*merged means closed*).
 - **[MERGE-GUIDE.md](MERGE-GUIDE.md)** — a newest-on-top log of what each
   session shipped, keyed by PR number.
 
