@@ -1,6 +1,6 @@
 ## Surfacing your work
 
-Instructions for Claude Code on the web. The session runs in a [sandbox](docs/ENVIRONMENT.md); the user sees output through chat, not a local filesystem.
+Instructions for Claude Code on the web. The session runs in a [sandbox](docs/environment/); the user sees output through chat, not a local filesystem.
 
 **Explicit markdown only.** Bare file paths auto-link in some Claude Code UIs, but those links are transient: they resolve only in the live session, and they vanish on mobile, in rendered markdown, and anywhere the text gets copied. Use explicit `[caption](url)` markdown for anything the user might want to tap. The `file:line` convention (e.g. `src/foo.js:120`) is a separate thing: a grep-style pointer into source code for navigation when discussing or debugging code. It's not a substitute for explicit URLs when handing over an artifact.
 
@@ -173,4 +173,4 @@ As a preliminary, you can propose diagnostic tests where they'd move a cause fro
 
 ## Environment & testing
 
-[`ENVIRONMENT.md`](docs/ENVIRONMENT.md) is a living, dated record of what the web sandbox can and can't do — network allowlist, headless-browser limits, the jsdom+Alpine recipe for logic-testing components, and page-preview constraints. Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
+[`docs/environment/`](docs/environment/) is a living, dated record of the Claude Code web environment, split by concern: [capabilities](docs/environment/capabilities.md) (network allowlist, headless browser, toolchain), [container](docs/environment/container.md) (what persists across sessions), [testing](docs/environment/testing.md) (the jsdom+Alpine recipe and page-preview constraints), and [extending](docs/environment/extending.md) (the Claude Code component model and the hooks this repo runs). Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
