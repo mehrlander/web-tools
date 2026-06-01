@@ -27,7 +27,7 @@ const launchPopup = h => {
 
 launchPopup('<h1>Test</h1><button onclick="window.opener.document.body.style.background=\'red\'">Red</button>');
 ```
-Challenges arise:
+The working surfaces are powerful, but constrained. Challenges arise:
 - Workflow (storing and updating code), given size limits and needed escapement
 - Functionality (persisting data, reaching other files, and communicating between domains or windows).
 
