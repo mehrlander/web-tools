@@ -274,4 +274,4 @@ examples.
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |
 | `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |
 | `console.js` | `pages/console-kit-demo.html` | console retention + `debugConsole` renderer |
-| `cm6.js` | `vanilla-demo.js` / `pages/misc/cm6-editor.html` | lazy CodeMirror 6 editor factory |
+| `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |

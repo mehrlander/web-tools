@@ -7,8 +7,8 @@ at commit `c3a9f4a` on 2026-05-07.
 |---|---|
 | `format-bill.html` | `format/format-bill.html` |
 | `lawhop.html` | `format/lawhop.html` |
-| `snippets/helper.js` | `format/helper.js` |
-| `snippets/parse-bill-data.js` | `format/parse-bill-data.js` |
+| `console/helper.js` | `format/helper.js` |
+| `console/parse-bill-data.js` | `format/parse-bill-data.js` |
 | `docs/hierarchy.md` | `format/hierarchy.md` |
 
 Files are byte-for-byte copies of the upstream sources.
