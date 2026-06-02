@@ -37,7 +37,7 @@ Scale maps smallest → largest response (max here = 145 chars).
 
 ## 2 · Mermaid charts
 
-Fenced ` ```mermaid ` blocks are rendered as real diagrams by GitHub. The same timeline
+Fenced ` ```mermaid``` ` blocks are rendered as real diagrams by GitHub. The same timeline
 as a bar chart — gaps are zero-height bars, banked responses are the ones pushed past
 their arrival slot:
 
