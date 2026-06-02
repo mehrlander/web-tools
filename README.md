@@ -12,7 +12,7 @@ Four shapes have emerged:
 - **Popups.** A page opened as a popup window from a specific origin.
   Interacts with `window.opener` and makes HTTP requests where an
   independent page would trip over CORS restrictions.
-- **Console snippets.** Snippets stored in DevTools, designed for a CLI
+- **Console.** Snippets stored in DevTools, designed for a CLI
   experience — when you'd rather type a command and read the result than
   click a bookmark.
 
