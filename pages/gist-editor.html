@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gist Editor</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/diff@5/dist/diff.min.js,npm/diff2html@3/bundles/js/diff2html.min.js"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/diff2html@3/bundles/css/diff2html.min.css" rel="stylesheet">
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import URL,
+  // exposes window.gh, and (via gh-boot.js) loads gh-auth.js — which resolves
+  // the token from localStorage.ghToken and shows a paste-a-token form on a
+  // 401/403. No inline token, no per-page try/catch needed.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('alpine-bundle.js');
+</script>
+</head>
+
+<body class="h-screen w-screen overflow-hidden bg-base-100 flex flex-col text-sm font-sans" x-data="gistApp()">
+
+  <div class="flex gap-2 p-2 border-b border-base-300 bg-base-200 items-center shrink-0">
+    <h1 class="text-[10px] font-black uppercase tracking-widest opacity-60 flex items-center gap-1.5 mr-2">
+      <i class="ph ph-file-code text-primary text-base"></i> Gist Editor
+    </h1>
+    <button class="btn btn-sm btn-success text-white gap-1" @click="isNew = !isNew">
+      <i class="ph" :class="isNew ? 'ph-x' : 'ph-plus'"></i><span x-text="isNew ? 'Cancel' : 'New Gist'"></span>
+    </button>
+    <button class="btn btn-sm btn-primary gap-1" @click="save()" :disabled="busy">
+      <i class="ph ph-floppy-disk"></i>Save
+    </button>
+    <button class="btn btn-sm gap-1" @click="copy()"><i class="ph ph-copy"></i>Copy</button>
+
+    <select class="select select-sm select-bordered w-64 ml-4" x-model="selectedId" @change="load(selectedId)" x-show="!isNew">
+      <template x-for="g in gists" :key="g.id">
+        <option :value="g.id" x-text="g.description || Object.keys(g.files)[0] || g.id"></option>
+      </template>
+    </select>
+
+    <input type="text" class="input input-sm input-bordered w-64 ml-4" x-model="meta.desc" placeholder="New gist description..." x-show="isNew">
+    <label class="cursor-pointer label gap-2" x-show="isNew">
+      <input type="checkbox" class="checkbox checkbox-sm" x-model="meta.public"> <span>Public</span>
+    </label>
+
+    <span class="ml-auto text-xs opacity-50" x-show="busy"><span class="loading loading-spinner loading-xs align-middle"></span></span>
+  </div>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <div class="w-80 flex flex-col border-r border-base-300 bg-base-200/40 shrink-0" x-show="!isNew">
+
+      <div class="flex-1 overflow-y-auto p-2 border-b border-base-300">
+        <h2 class="font-bold mb-2 uppercase text-xs opacity-70 flex items-center gap-1"><i class="ph ph-clock-counter-clockwise"></i>History</h2>
+        <ul class="space-y-1">
+          <template x-for="(v, i) in versions" :key="v.version">
+            <li class="p-2 border border-base-300 rounded bg-base-100 hover:bg-base-200 cursor-pointer flex flex-col gap-1" @click="loadSha(v.version)">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-xs" x-text="i===0 ? 'Latest' : `Rev ${versions.length-i}`"></span>
+                <span class="text-[10px] opacity-60" x-text="new Date(v.committed_at).toLocaleString()"></span>
+              </div>
+              <div class="flex gap-2">
+                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" title="Compare From" @click.stop>
+                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" title="Compare To" @click.stop>
+              </div>
+            </li>
+          </template>
+        </ul>
+        <button class="btn btn-xs btn-outline mt-2 w-full gap-1" x-show="diff.from && diff.to" @click="renderDiff()">
+          <i class="ph ph-git-diff"></i>View Diff
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-2">
+        <h2 class="font-bold mb-2 uppercase text-xs opacity-70 flex items-center gap-1"><i class="ph ph-chat-circle"></i>Comments</h2>
+        <div class="space-y-2 mb-2">
+          <template x-for="c in comments" :key="c.id">
+            <div class="p-2 border-l-2 border-primary bg-base-100 text-xs shadow-sm">
+              <div class="flex justify-between opacity-60 mb-1">
+                <span x-text="new Date(c.created_at).toLocaleString()"></span>
+              </div>
+              <div class="whitespace-pre-wrap" x-text="c.body"></div>
+            </div>
+          </template>
+        </div>
+        <textarea class="textarea textarea-bordered textarea-sm w-full" x-model="newComment" placeholder="Add comment..."></textarea>
+        <button class="btn btn-xs btn-success text-white w-full mt-1" @click="addComment()" :disabled="!newComment">Post</button>
+      </div>
+    </div>
+
+    <div class="flex flex-col flex-1 overflow-hidden bg-base-100">
+
+      <div class="flex gap-2 p-2 border-b border-base-300 items-center bg-base-200">
+        <span class="font-bold text-xs uppercase opacity-70">Filename:</span>
+        <input type="text" class="input input-sm input-ghost font-mono flex-1" x-model="file.name" placeholder="script.js">
+        <button class="btn btn-xs btn-outline gap-1" x-show="viewMode === 'diff'" @click="viewMode = 'edit'"><i class="ph ph-x"></i>Close Diff</button>
+      </div>
+
+      <textarea
+        class="w-full h-full p-4 font-mono text-sm resize-none outline-none bg-base-100 text-base-content"
+        x-model="file.content"
+        x-show="viewMode === 'edit'"
+        spellcheck="false"
+        placeholder="Code goes here..."></textarea>
+
+      <div class="w-full h-full overflow-y-auto p-4" x-html="diffHtml" x-show="viewMode === 'diff'"></div>
+
+    </div>
+  </div>
+
+  <script>
+    function gistApp() {
+      return {
+        busy: false,
+        isNew: false,
+        viewMode: 'edit', // 'edit' | 'diff'
+        gists: [],
+        selectedId: '',
+        gist: null,
+        versions: [],
+        comments: [],
+        newComment: '',
+        file: { orig: '', name: '', content: '' },
+        meta: { desc: '', public: true },
+        diff: { from: null, to: null },
+        diffHtml: '',
+
+        // All gist calls route through window.gh.req(). A path starting with
+        // '/' is rooted at api.github.com (not the repo), so '/gists*' hits the
+        // gist API directly. The token + 401 prompt come from gh-auth.js — no
+        // inline secret. gh.req() returns res.json(); none of these calls 204.
+        async api(path, opts = {}) {
+          return window.gh.req(path, opts);
+        },
+
+        async init() {
+          // window.gh is created by gh-api.js's bootstrap; gh-auth.js patches
+          // its headers getter to read localStorage.ghToken lazily.
+          this.busy = true;
+          try {
+            this.gists = await this.api('/gists');
+            if (this.gists.length) {
+              this.selectedId = this.gists[0].id;
+              await this.load(this.selectedId);
+            }
+          } catch (e) {
+            // 401/403 is handled by gh-auth's paste-a-token form; log the rest.
+            console.error('init:', e?.message || e);
+          } finally {
+            this.busy = false;
+          }
+        },
+
+        async load(id) {
+          this.busy = true;
+          try {
+            this.gist = await this.api(`/gists/${id}`);
+            this.versions = this.gist.history || [];
+            this.comments = await this.api(`/gists/${id}/comments`);
+            this.extractFile(this.gist);
+            this.viewMode = 'edit';
+            this.diff = { from: null, to: null };
+          } finally {
+            this.busy = false;
+          }
+        },
+
+        async loadSha(sha) {
+          const v = await this.api(`/gists/${this.gist.id}/${sha}`);
+          this.extractFile(v);
+          this.viewMode = 'edit';
+        },
+
+        extractFile(data) {
+          const [name, obj] = Object.entries(data.files)[0];
+          this.file = { orig: name, name: name, content: obj.content };
+        },
+
+        async save() {
+          if (!this.file.name) return alert('Needs a filename.');
+          const payload = { files: {} };
+          this.busy = true;
+          try {
+            if (this.isNew) {
+              payload.description = this.meta.desc;
+              payload.public = this.meta.public;
+              payload.files[this.file.name] = { content: this.file.content };
+              const res = await this.api('/gists', { method: 'POST', body: JSON.stringify(payload) });
+              this.isNew = false;
+              await this.init();
+              this.selectedId = res.id;
+            } else {
+              payload.files[this.file.name] = { content: this.file.content };
+              if (this.file.orig && this.file.orig !== this.file.name) {
+                payload.files[this.file.orig] = { filename: this.file.name };
+              }
+              await this.api(`/gists/${this.gist.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+              await this.load(this.gist.id);
+            }
+          } finally {
+            this.busy = false;
+          }
+        },
+
+        async addComment() {
+          await this.api(`/gists/${this.gist.id}/comments`, {
+            method: 'POST', body: JSON.stringify({ body: this.newComment })
+          });
+          this.newComment = '';
+          this.comments = await this.api(`/gists/${this.gist.id}/comments`);
+        },
+
+        async renderDiff() {
+          const [base, head] = await Promise.all([
+            this.api(`/gists/${this.gist.id}/${this.diff.from}`),
+            this.api(`/gists/${this.gist.id}/${this.diff.to}`)
+          ]);
+
+          let patch = '';
+          new Set([...Object.keys(base.files), ...Object.keys(head.files)]).forEach(n => {
+            const a = base.files[n]?.content || '';
+            const b = head.files[n]?.content || '';
+            patch += Diff.createPatch(n, a, b, 'Older', 'Newer');
+          });
+
+          this.diffHtml = Diff2Html.html(patch, { drawFileList: false, matching: 'lines', outputFormat: 'side-by-side' });
+          this.viewMode = 'diff';
+        },
+
+        copy() {
+          navigator.clipboard.writeText(this.file.content);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

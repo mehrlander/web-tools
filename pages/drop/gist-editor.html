@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gist Editor</title>
+
+  <script defer src="https://unpkg.com/alpinejs"></script>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/diff@5/dist/diff.min.js,npm/diff2html@3/bundles/js/diff2html.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/diff2html@3/bundles/css/diff2html.min.css" rel="stylesheet">
+</head>
+
+<body class="h-screen w-screen overflow-hidden bg-base-100 flex flex-col text-sm font-sans" x-data="gistApp()">
+
+  <div class="flex gap-2 p-2 border-b border-base-300 bg-base-200 items-center shrink-0">
+    <button class="btn btn-sm btn-success text-white" @click="isNew = !isNew" x-text="isNew ? 'Cancel' : 'New Gist'"></button>
+    <button class="btn btn-sm btn-primary" @click="save()">Save</button>
+    <button class="btn btn-sm" @click="copy()">Copy</button>
+
+    <select class="select select-sm select-bordered w-64 ml-4" x-model="selectedId" @change="load(selectedId)" x-show="!isNew">
+      <template x-for="g in gists" :key="g.id">
+        <option :value="g.id" x-text="g.description || Object.keys(g.files)[0] || g.id"></option>
+      </template>
+    </select>
+
+    <input type="text" class="input input-sm input-bordered w-64 ml-4" x-model="meta.desc" placeholder="New gist description..." x-show="isNew">
+    <label class="cursor-pointer label gap-2" x-show="isNew">
+      <input type="checkbox" class="checkbox checkbox-sm" x-model="meta.public"> <span>Public</span>
+    </label>
+  </div>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <div class="w-80 flex flex-col border-r border-base-300 bg-base-50 shrink-0" x-show="!isNew">
+
+      <div class="flex-1 overflow-y-auto p-2 border-b border-base-300">
+        <h2 class="font-bold mb-2 uppercase text-xs opacity-70">History</h2>
+        <ul class="space-y-1">
+          <template x-for="(v, i) in versions" :key="v.version">
+            <li class="p-2 border border-base-300 rounded bg-base-100 hover:bg-base-200 cursor-pointer flex flex-col gap-1" @click="loadSha(v.version)">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-xs" x-text="i===0 ? 'Latest' : `Rev ${versions.length-i}`"></span>
+                <span class="text-[10px] opacity-60" x-text="new Date(v.committed_at).toLocaleString()"></span>
+              </div>
+              <div class="flex gap-2">
+                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" title="Compare From">
+                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" title="Compare To">
+              </div>
+            </li>
+          </template>
+        </ul>
+        <button class="btn btn-xs btn-outline mt-2 w-full" x-show="diff.from && diff.to" @click="renderDiff()">View Diff</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-2">
+        <h2 class="font-bold mb-2 uppercase text-xs opacity-70">Comments</h2>
+        <div class="space-y-2 mb-2">
+          <template x-for="c in comments" :key="c.id">
+            <div class="p-2 border-l-2 border-primary bg-base-100 text-xs shadow-sm">
+              <div class="flex justify-between opacity-60 mb-1">
+                <span x-text="new Date(c.created_at).toLocaleString()"></span>
+              </div>
+              <div class="whitespace-pre-wrap" x-text="c.body"></div>
+            </div>
+          </template>
+        </div>
+        <textarea class="textarea textarea-bordered textarea-sm w-full" x-model="newComment" placeholder="Add comment..."></textarea>
+        <button class="btn btn-xs btn-success text-white w-full mt-1" @click="addComment()" :disabled="!newComment">Post</button>
+      </div>
+    </div>
+
+    <div class="flex flex-col flex-1 overflow-hidden bg-base-100">
+
+      <div class="flex gap-2 p-2 border-b border-base-300 items-center bg-base-200">
+        <span class="font-bold text-xs uppercase opacity-70">Filename:</span>
+        <input type="text" class="input input-sm input-ghost font-mono flex-1" x-model="file.name" placeholder="script.js">
+        <button class="btn btn-xs btn-outline" x-show="viewMode === 'diff'" @click="viewMode = 'edit'">Close Diff</button>
+      </div>
+
+      <textarea
+        class="w-full h-full p-4 font-mono text-sm resize-none outline-none"
+        x-model="file.content"
+        x-show="viewMode === 'edit'"
+        spellcheck="false"
+        placeholder="Code goes here..."></textarea>
+
+      <div class="w-full h-full overflow-y-auto p-4" x-html="diffHtml" x-show="viewMode === 'diff'"></div>
+
+    </div>
+  </div>
+
+  <script>
+    const TOKEN = "YOUR_TOKEN_HERE"; // Insert token here
+
+    function gistApp() {
+      return {
+        token: TOKEN,
+        isNew: false,
+        viewMode: 'edit', // 'edit' | 'diff'
+        gists: [],
+        selectedId: '',
+        gist: null,
+        versions: [],
+        comments: [],
+        newComment: '',
+        file: { orig: '', name: '', content: '' },
+        meta: { desc: '', public: true },
+        diff: { from: null, to: null },
+        diffHtml: '',
+
+        get hdrs() { return { Authorization: `Bearer ${this.token}`, Accept: "application/vnd.github+json" } },
+
+        async api(path, opts={}) {
+          const r = await fetch(`https://api.github.com${path}`, { headers: this.hdrs, ...opts });
+          if(!r.ok) throw new Error(r.statusText);
+          return r.status !== 204 ? r.json() : null;
+        },
+
+        async init() {
+          this.gists = await this.api('/gists');
+          if(this.gists.length) {
+            this.selectedId = this.gists[0].id;
+            await this.load(this.selectedId);
+          }
+        },
+
+        async load(id) {
+          this.gist = await this.api(`/gists/${id}`);
+          this.versions = this.gist.history || [];
+          this.comments = await this.api(`/gists/${id}/comments`);
+          this.extractFile(this.gist);
+          this.viewMode = 'edit';
+          this.diff = { from: null, to: null };
+        },
+
+        async loadSha(sha) {
+          const v = await this.api(`/gists/${this.gist.id}/${sha}`);
+          this.extractFile(v);
+          this.viewMode = 'edit';
+        },
+
+        extractFile(data) {
+          const [name, obj] = Object.entries(data.files)[0];
+          this.file = { orig: name, name: name, content: obj.content };
+        },
+
+        async save() {
+          if(!this.file.name) return alert("Needs a filename.");
+          const payload = { files: {} };
+
+          if(this.isNew) {
+            payload.description = this.meta.desc;
+            payload.public = this.meta.public;
+            payload.files[this.file.name] = { content: this.file.content };
+            const res = await this.api('/gists', { method: 'POST', body: JSON.stringify(payload) });
+            this.isNew = false;
+            await this.init();
+            this.selectedId = res.id;
+          } else {
+            payload.files[this.file.name] = { content: this.file.content };
+            if(this.file.orig && this.file.orig !== this.file.name) {
+              payload.files[this.file.orig] = { filename: this.file.name };
+            }
+            await this.api(`/gists/${this.gist.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+            await this.load(this.gist.id);
+          }
+        },
+
+        async addComment() {
+          await this.api(`/gists/${this.gist.id}/comments`, {
+            method: 'POST', body: JSON.stringify({ body: this.newComment })
+          });
+          this.newComment = '';
+          this.comments = await this.api(`/gists/${this.gist.id}/comments`);
+        },
+
+        async renderDiff() {
+          const [base, head] = await Promise.all([
+            this.api(`/gists/${this.gist.id}/${this.diff.from}`),
+            this.api(`/gists/${this.gist.id}/${this.diff.to}`)
+          ]);
+
+          let patch = '';
+          new Set([...Object.keys(base.files), ...Object.keys(head.files)]).forEach(n => {
+            const a = base.files[n]?.content || '';
+            const b = head.files[n]?.content || '';
+            patch += Diff.createPatch(n, a, b, 'Older', 'Newer');
+          });
+
+          this.diffHtml = Diff2Html.html(patch, { drawFileList: false, matching: 'lines', outputFormat: 'side-by-side' });
+          this.viewMode = 'diff';
+        },
+
+        copy() {
+          navigator.clipboard.writeText(this.file.content);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
