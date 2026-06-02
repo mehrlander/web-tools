@@ -1,4 +1,4 @@
-# git-markdown — what GitHub-flavored markdown can render
+# markdown — what GitHub-flavored markdown can render
 
 GitHub renders far more than paragraphs and lists. This page is a small gallery of
 things that show up **when you view a `.md` on GitHub** — no JavaScript, no build step,
