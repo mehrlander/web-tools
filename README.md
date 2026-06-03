@@ -9,12 +9,10 @@ Four shapes have emerged:
   Pages, a local file, a data URL, or a popup, as needed.
 - **Bookmarklets.** Snippets for interacting with a specific domain or
   with any domain generally.
-- **Popups.** A host-coupled page: its job is to act on a host other
-  than itself, so it is built to run on another domain. It reaches that
-  host through the opener window (`window.opener`) or through the ambient
-  origin (that origin's storage), doing what an independent page would
-  trip over CORS on. github.io serves it only as a testbed, where you can
-  watch it work; it cannot do its real job there.
+- **Popups.** A host-coupled page, opened in a new window. The shared
+  origin lets it reach that origin's storage and make the cross-origin
+  requests CORS would block, while `window.opener` gives a live handle to
+  the opener.
 - **Console.** Snippets stored in DevTools, designed for a CLI
   experience — when you'd rather type a command and read the result than
   click a bookmark.
