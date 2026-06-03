@@ -186,7 +186,7 @@ matched verbatim. See `kits/demos/messaging.html` for live examples.
 ### data-shelf.js
 
 Record-shape conventions for the persistent scratch shelf used by
-`pages/data-shelf.html`. Records live in `persistence.collection('dataShelf.items')`;
+`popups/data-shelf.html`. Records live in `persistence.collection('dataShelf.items')`;
 this kit defines the valid record shape, the `SHELF_TYPES` enum
 (`js | html | json | text`), and the predicates / coercion used by the
 data-shelf importer when ingesting records from legacy IndexedDB
@@ -272,6 +272,6 @@ examples.
 | `persistence.js` | `kits/demos/persistence.html` | idb-keyval + collections |
 | `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |
-| `data-shelf.js` | `pages/data-shelf.html` | record shape + importer support |
+| `data-shelf.js` | `popups/data-shelf.html` | record shape + importer support |
 | `console.js` | `pages/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
