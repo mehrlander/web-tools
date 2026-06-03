@@ -9,9 +9,10 @@ Four shapes have emerged:
   Pages, a local file, a data URL, or a popup, as needed.
 - **Bookmarklets.** Snippets for interacting with a specific domain or
   with any domain generally.
-- **Popups.** A page opened as a popup window from a specific origin.
-  Interacts with `window.opener` and makes HTTP requests where an
-  independent page would trip over CORS restrictions.
+- **Popups.** A host-coupled page, opened in a new window. The shared
+  origin lets it reach that origin's storage and make the cross-origin
+  requests CORS would block, while `window.opener` gives a live handle to
+  the opener.
 - **Console.** Snippets stored in DevTools, designed for a CLI
   experience — when you'd rather type a command and read the result than
   click a bookmark.
@@ -55,8 +56,6 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | Page | What it does |
 |---|---|
 | [index](https://mehrlander.github.io/web-tools/pages/) | Auto-generated directory of everything in `pages/`. |
-| [data-shelf](https://mehrlander.github.io/web-tools/pages/data-shelf.html) | Persistent scratch shelf. Paste records, edit, view, run, export. Imports records forward from legacy IDB databases. |
-| [idb-nav](https://mehrlander.github.io/web-tools/pages/idb-nav.html) | IndexedDB explorer. Every database on the origin, every store, edit records, delete what you don't want. |
 | [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
@@ -90,6 +89,14 @@ Live at `https://mehrlander.github.io/web-tools/popups/<name>.html`:
   walking a site's navigation.
 - [`render-engine-editor`](popups/render-engine-editor.html): editor for
   bookmarklet render-engine operations.
+- [`data-shelf`](popups/data-shelf.html): persistent shelf for code and
+  data, scoped to the domain you run it on. Store, edit, view, run, and
+  export records where you want them; imports records forward from legacy
+  IDB databases. (On github.io it runs against its own origin, which is a
+  bench, not the job.)
+- [`idb-nav`](popups/idb-nav.html): IndexedDB explorer for the origin it
+  runs on. Every database, every store, edit records, delete what you
+  don't want.
 
 This is the newest output category and the one most likely to grow.
 
@@ -188,9 +195,9 @@ The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness i
 
 Recent pages that make good templates:
 
-- [`pages/data-shelf.html`](pages/data-shelf.html) for multiple
+- [`popups/data-shelf.html`](popups/data-shelf.html) for multiple
   kits and components with an importer and a FAB.
-- [`pages/idb-nav.html`](pages/idb-nav.html) for kits, viewer, and a custom
+- [`popups/idb-nav.html`](popups/idb-nav.html) for kits, viewer, and a custom
   sidebar.
 - [`pages/compression-helper.html`](pages/compression-helper.html)
   for the compression kits with Alpine loaded directly, not via

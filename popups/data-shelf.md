@@ -15,7 +15,10 @@ editor, and an executor for the three executable types. UI metadata for each
 type (`label`, `badge`, `exec`) lives on the page in `cfg.types`; the
 canonical set of valid type names lives in `kits/data-shelf.js`.
 
-The page lives at `pages/data-shelf.html`, rebuilt on the in-repo `kits/`.
+The page lives at `popups/data-shelf.html`, rebuilt on the in-repo `kits/`.
+It is host-coupled: its real job is to run on another domain, storing,
+editing, and executing code against that domain. github.io is a testbed
+where you can see it work, not where it does its job.
 (A v1 iteration, Dexie-backed `DataShelfDB`, lived alongside it until the
 v2 page reached parity; it's gone from the working tree but preserved in
 git history.)
@@ -29,7 +32,7 @@ counts plus one sample from each bucket; unrecognized records are skipped
 on import.
 
 For browsing arbitrary IDB content (anything that isn't shelf-shaped), see
-`pages/idb-nav.html`, which is the general-purpose explorer (read-only via
+`popups/idb-nav.html`, which is the general-purpose explorer (read-only via
 `persistence.idb`, destructive ops behind `persistence.idb.admin`,
 tree-mode editing via vanilla-jsoneditor).
 
