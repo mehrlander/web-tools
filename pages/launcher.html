@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Popup Launcher · setup</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen">
+
+<!--
+  pages/launcher.html — the popup launcher's setup page.
+
+  This is the ORIGIN-INDEPENDENT twin of popups/launch.js. launch.js is the
+  runtime menu: it must run as a popup, coupled to the host origin. THIS page
+  does the opposite job — it assembles the bookmarklet string — which needs no
+  host at all, so it can live on GitHub Pages. Pull it up anywhere (mobile
+  included), paste a token, and copy out a ready-to-save bookmarklet.
+
+  The bookmarklet's canonical source is bookmarklets/popup-launcher.js. This
+  page fetches that file live (from CANON below, honoring ?use=<ref>) so the
+  output never drifts from the artifact; EMBEDDED_BOOTSTRAP is a byte-for-byte
+  fallback only for when the API is unreachable. Keep the two in sync.
+-->
+
+<div class="max-w-2xl mx-auto px-4 py-10 space-y-8"
+  x-data="launcherSetup()" x-init="init()">
+
+  <header class="space-y-2">
+    <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
+      <i class="ph-bold ph-bookmarks-simple text-primary"></i> Popup Launcher
+    </h1>
+    <p class="text-base-content/60 leading-relaxed">
+      One bookmarklet opens the popup menu on whatever page you're on. Paste a
+      GitHub token below and copy out a bookmarklet to save. On a public repo
+      the token is optional — leave it blank and it works at the
+      unauthenticated rate limit.
+    </p>
+  </header>
+
+  <!-- Token -->
+  <section class="space-y-2">
+    <label class="text-xs font-bold uppercase tracking-widest text-base-content/50">GitHub token</label>
+    <div class="join w-full">
+      <input class="input input-bordered join-item w-full font-mono text-sm"
+        :type="show ? 'text' : 'password'"
+        placeholder="github_pat_…  (optional on public repos)"
+        x-model="token" @input="remember && persist()">
+      <button class="btn join-item" @click="show = !show" :title="show ? 'Hide' : 'Show'">
+        <i class="ph-bold" :class="show ? 'ph-eye-slash' : 'ph-eye'"></i>
+      </button>
+    </div>
+    <label class="label cursor-pointer justify-start gap-2 py-0">
+      <input type="checkbox" class="checkbox checkbox-sm" x-model="remember" @change="remember ? persist() : forget()">
+      <span class="label-text text-xs text-base-content/60">
+        Remember on this device (<code class="text-[11px]">localStorage.ghToken</code> — shared with the Pages tools' sign-in)
+      </span>
+    </label>
+    <p class="text-xs text-base-content/40 leading-relaxed">
+      A fine-grained PAT with read-only <em>Contents</em> on this one repo is plenty.
+      The token gets baked into the bookmarklet in plaintext, so it lives wherever
+      you save the bookmark — use a narrowly-scoped token.
+    </p>
+  </section>
+
+  <!-- Advanced: repo / ref -->
+  <section x-data="{ open: false }">
+    <button class="text-xs font-bold uppercase tracking-widest text-base-content/50 flex items-center gap-1"
+      @click="open = !open">
+      <i class="ph-bold" :class="open ? 'ph-caret-down' : 'ph-caret-right'"></i> Advanced
+    </button>
+    <div x-show="open" x-cloak class="grid grid-cols-2 gap-3 mt-3">
+      <div>
+        <label class="text-[11px] text-base-content/50">repo</label>
+        <input class="input input-bordered input-sm w-full font-mono text-xs" x-model="repo" placeholder="owner/name">
+      </div>
+      <div>
+        <label class="text-[11px] text-base-content/50">ref (branch / tag / sha)</label>
+        <input class="input input-bordered input-sm w-full font-mono text-xs" x-model="ref" placeholder="main">
+      </div>
+    </div>
+  </section>
+
+  <!-- Output -->
+  <section class="space-y-3">
+    <div class="flex items-center justify-between">
+      <label class="text-xs font-bold uppercase tracking-widest text-base-content/50">Your bookmarklet</label>
+      <span x-show="!liveSource" x-cloak class="text-[11px] text-warning/80" title="Couldn't reach the GitHub API; using the bundled copy.">
+        <i class="ph-bold ph-warning"></i> offline copy
+      </span>
+    </div>
+
+    <textarea readonly rows="4"
+      class="textarea textarea-bordered w-full font-mono text-xs leading-relaxed break-all"
+      x-text="bookmarklet"></textarea>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn btn-primary btn-sm gap-1" @click="copy()">
+        <i class="ph-bold" :class="copied ? 'ph-check' : 'ph-copy'"></i>
+        <span x-text="copied ? 'Copied' : 'Copy'"></span>
+      </button>
+      <a :href="bookmarklet" @click.prevent="hintDrag = true"
+         title="Drag me to your bookmarks bar"
+         class="btn btn-outline btn-sm gap-1 cursor-grab active:cursor-grabbing">
+        <i class="ph-bold ph-bookmark-simple"></i> Open Popups
+      </a>
+      <span x-show="hintDrag" x-cloak class="text-xs text-base-content/50">
+        Don't click — drag this to your bookmarks bar, or use Copy.
+      </span>
+    </div>
+
+    <details class="text-xs text-base-content/60">
+      <summary class="cursor-pointer">How to install</summary>
+      <ul class="list-disc ml-5 mt-2 space-y-1 leading-relaxed">
+        <li><b>Desktop:</b> drag the <em>Open Popups</em> button to your bookmarks bar.</li>
+        <li><b>Mobile:</b> tap <em>Copy</em>, bookmark any page, then edit that
+          bookmark and replace its URL with what you copied. (iOS/Android hide
+          the bookmarks bar, so this is the reliable path.)</li>
+        <li>Run it on any page. A window opens with the popup menu; pick a tool
+          and it loads in place, coupled to that page's origin.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- Popups directory -->
+  <section class="space-y-2">
+    <label class="text-xs font-bold uppercase tracking-widest text-base-content/50">
+      Popups in this menu
+    </label>
+    <template x-if="popupsError">
+      <p class="text-xs text-error/80" x-text="popupsError"></p>
+    </template>
+    <div class="grid gap-2" x-show="popups.length">
+      <template x-for="p in popups" :key="p.name">
+        <a :href="`https://${repoOwner}.github.io/${repoName}/popups/${p.name}`" target="_blank"
+           class="flex items-center justify-between border border-base-300 rounded-lg px-3 py-2 text-sm hover:border-primary/50 transition-colors">
+          <span class="font-medium" x-text="p.name.replace(/\.html$/, '')"></span>
+          <i class="ph-bold ph-arrow-up-right text-base-content/30"></i>
+        </a>
+      </template>
+    </div>
+    <p class="text-[11px] text-base-content/40 leading-relaxed">
+      These links open each popup standalone on GitHub Pages — useful to preview,
+      but that runs against this site's own origin (a bench, not the job). The
+      bookmarklet is how you run them coupled to a real host page.
+    </p>
+  </section>
+
+</div>
+
+<style>[x-cloak]{display:none!important}</style>
+
+<script>
+function launcherSetup() {
+  // Canonical source of the bootstrap. ?use=<ref> lets you build from a branch's
+  // version of bookmarklets/popup-launcher.js while testing launcher changes.
+  const CANON = { repo: 'mehrlander/web-tools', ref: new URLSearchParams(location.search).get('use') || 'main' };
+
+  // Byte-for-byte fallback of bookmarklets/popup-launcher.js, used only if the
+  // API is unreachable. Keep in sync with that file.
+  const EMBEDDED_BOOTSTRAP = `javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=open('','','width=980,height=740');w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;const H={Accept:'application/vnd.github.raw'};if(t)H.Authorization='Bearer '+t;const c=await fetch(\`https://api.github.com/repos/\${R}/contents/popups/launch.js?ref=\${F}\`,{headers:H}).then(r=>r.text());const s=w.document.createElement('script');s.textContent=c;w.document.body.appendChild(s)})()`;
+
+  const escJs = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  return {
+    token: '', repo: 'mehrlander/web-tools', ref: 'main',
+    show: false, remember: false, copied: false, hintDrag: false,
+    template: EMBEDDED_BOOTSTRAP, liveSource: false,
+    popups: [], popupsError: '',
+
+    get repoOwner() { return (this.repo.split('/')[0] || 'mehrlander'); },
+    get repoName() { return (this.repo.split('/')[1] || 'web-tools'); },
+
+    // Bake the token/repo/ref into the bootstrap's configurable head.
+    get bookmarklet() {
+      return this.template.replace(
+        /const t='[^']*',R='[^']*',F='[^']*'/,
+        `const t='${escJs(this.token)}',R='${escJs(this.repo)}',F='${escJs(this.ref)}'`
+      );
+    },
+
+    async init() {
+      const saved = localStorage.getItem('ghToken');
+      if (saved) { this.token = saved; this.remember = true; }
+      await Promise.all([this.fetchTemplate(), this.fetchPopups()]);
+    },
+
+    async fetchTemplate() {
+      try {
+        const url = `https://api.github.com/repos/${CANON.repo}/contents/bookmarklets/popup-launcher.js?ref=${CANON.ref}`;
+        const txt = await fetch(url, { headers: { Accept: 'application/vnd.github.raw' } }).then(r => {
+          if (!r.ok) throw new Error(r.status);
+          return r.text();
+        });
+        this.template = txt.trim();
+        this.liveSource = true;
+      } catch (_) { /* keep EMBEDDED_BOOTSTRAP */ }
+    },
+
+    async fetchPopups() {
+      try {
+        const url = `https://api.github.com/repos/${this.repo}/contents/popups?ref=${this.ref}`;
+        const data = await fetch(url).then(r => r.json());
+        if (!Array.isArray(data)) throw new Error(data.message || 'unexpected response');
+        this.popups = data.filter(f => f.name.endsWith('.html') && f.name !== 'launch.js');
+      } catch (e) {
+        this.popupsError = `Couldn't list popups: ${e.message}`;
+      }
+    },
+
+    persist() { localStorage.setItem('ghToken', this.token); },
+    forget() { localStorage.removeItem('ghToken'); },
+
+    async copy() {
+      try { await navigator.clipboard.writeText(this.bookmarklet); }
+      catch (_) { prompt('Copy your bookmarklet:', this.bookmarklet); return; }
+      this.copied = true;
+      setTimeout(() => this.copied = false, 1400);
+    },
+  };
+}
+</script>
+
+</body>
+</html>
