@@ -2,23 +2,28 @@
  * popups/launch.js — the popup launcher menu.
  *
  * The launcher bookmarklet opens ONE blank window from the host page. That
- * window inherits the host's origin, and the bookmarklet loads this file into
- * it. So everything here runs ON THE HOST ORIGIN, and window.opener stays a
- * live handle to the host page — the whole point of a popup.
+ * window inherits the host's origin, and the bookmarklet fetches this file's
+ * text through the GitHub API and runs it inside that window — the same load
+ * path the popups use, so no GitHub Pages or CDN is involved. Everything here
+ * runs ON THE HOST ORIGIN, and window.opener stays a live handle to the host
+ * page — the whole point of a popup.
+ *
+ * Inputs ride in on globals the bookmarklet set on the popup window:
+ *   window.__ghToken — GitHub token (see README "Popups"); edit it there.
+ *   window.__ghRepo / window.__ghRef — which repo/ref to read popups from,
+ *     defaulting to this repo's main.
  *
  * Flow:
- *   1. List popups/ via the GitHub contents API. The token rides in on
- *      window.__ghToken, set by the bookmarklet (see README "Popups").
+ *   1. List popups/ via the GitHub contents API.
  *   2. Paint a menu into THIS window.
  *   3. On pick, fetch the chosen popup's HTML (contents API + base64 decode,
  *      same path lib/gh-api.js uses) and document.write it into THIS same
  *      window. The menu "flops over" into the tool while the window object —
  *      and thus the host origin and window.opener — never change.
- *
- * To change the token, edit the bookmarklet, not this file.
  */
 (async () => {
-  const REPO = 'mehrlander/web-tools', REF = 'main';
+  const REPO = window.__ghRepo || 'mehrlander/web-tools';
+  const REF = window.__ghRef || 'main';
   const token = window.__ghToken || '';
   const headers = token ? { Authorization: 'Bearer ' + token } : {};
 
