@@ -73,14 +73,15 @@
     return;
   }
 
-  // 3. Flop this window over into the chosen popup.
+  // 3. Flop this window over into the chosen popup. The raw Accept header
+  // returns the file's text directly, so there's no base64 to decode — the
+  // same load the bootstrap uses for this file.
   const flop = async f => {
     shell(`<h1>Loading ${f.name.replace(/\.html$/, '')}…</h1>`);
     try {
-      const data = await fetch(f.url, { headers }).then(r => r.json());
-      const html = new TextDecoder().decode(
-        Uint8Array.from(atob(data.content.replace(/\s/g, '')), c => c.charCodeAt(0))
-      );
+      const html = await fetch(f.url, {
+        headers: { ...headers, Accept: 'application/vnd.github.raw' }
+      }).then(r => r.text());
       document.open(); document.write(html); document.close();
     } catch (e) {
       shell(`<p class="err">Couldn't load ${f.name}: ${e.message}</p>`);

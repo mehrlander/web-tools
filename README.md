@@ -113,8 +113,15 @@ coupled to the host. The menu rebuilds itself from the folder, so new popups
 appear with no edit to the bookmarklet.
 
 ```js
-javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=window.open('','','width=980,height=740');if(!w)return alert('Allow popups, then click again');const h=t?{Authorization:'Bearer '+t}:{};let d;try{d=await fetch(`https://api.github.com/repos/${R}/contents/popups/launch.js?ref=${F}`,{headers:h}).then(r=>r.json())}catch(e){return alert('Fetch failed: '+e.message)}if(!d.content)return alert('No launch.js: '+(d.message||'?'));const code=new TextDecoder().decode(Uint8Array.from(atob(d.content.replace(/\s/g,'')),c=>c.charCodeAt(0)));w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;w.document.write('<!doctype html><meta charset=utf-8><title>Popups</title><body style="margin:0;background:#0f172a">');w.document.close();const s=w.document.createElement('script');s.textContent=code;w.document.body.appendChild(s)})()
+javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=open('','','width=980,height=740');w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;const H={Accept:'application/vnd.github.raw'};if(t)H.Authorization='Bearer '+t;const c=await fetch(`https://api.github.com/repos/${R}/contents/popups/launch.js?ref=${F}`,{headers:H}).then(r=>r.text());const s=w.document.createElement('script');s.textContent=c;w.document.body.appendChild(s)})()
 ```
+
+The bookmarklet is only the irreducible bootstrap: open a blank window (must
+happen on a host click, so the popup inherits the host origin), carry the token,
+fetch `launch.js`, and inject it. It can't be shorter without giving up something
+— `launch.js` can't fetch itself, so that load lives here; everything after it is
+already in the repo. The `Accept: application/vnd.github.raw` header returns the
+file's text directly, which is why there's no base64 decode.
 
 The token lives in the bookmarklet — the `const t=''` at the very front. Paste a
 GitHub token between those quotes (a fine-grained PAT, read-only contents on this
@@ -123,10 +130,10 @@ as `w.__ghToken`, and the same token fetches both `launch.js` and each popup. Th
 token has to travel with the bookmarklet because each host page is a different
 origin — there's no shared storage to stash it in. On a public repo you can leave
 it blank and it still works at the unauthenticated rate limit; the token is for
-private repos and the higher limit, and because it's an API load (not Pages) the
-private case needs no other change. `R` and `F` are the repo and ref — point `F`
-at a branch to test launcher changes before they reach `main`. Behavior lives in
-`launch.js`, so it updates on the repo with no change to the bookmarklet.
+private repos and the higher limit, and because it's an API load (not Pages or a
+CDN) the private case needs no other change. `R` and `F` are the repo and ref —
+point `F` at a branch to test launcher changes before they reach `main`. Behavior
+lives in `launch.js`, so it updates on the repo with no change to the bookmarklet.
 
 ### Console snippets
 
