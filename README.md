@@ -100,6 +100,41 @@ Live at `https://mehrlander.github.io/web-tools/popups/<name>.html`:
 
 This is the newest output category and the one most likely to grow.
 
+**Launcher.** One bookmarklet opens any of the above on whatever page you're
+on. It opens a single blank window from the host page — which inherits the
+host's origin — fetches [`launch.js`](popups/launch.js) as text **through the
+GitHub API** and runs it inside that window. There's no GitHub Pages or CDN in
+the path: the launcher arrives the same way the popups do, by API. `launch.js`
+lists `popups/` and paints a menu *in the window*; picking an item
+`document.write`s the chosen popup's HTML into that **same** window, so it flops
+from menu to tool without ever changing the window object. The host origin and
+`window.opener` survive the flop, which is the whole point — the popup runs
+coupled to the host. The menu rebuilds itself from the folder, so new popups
+appear with no edit to the bookmarklet.
+
+```js
+javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=open('','','width=980,height=740');w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;const H={Accept:'application/vnd.github.raw'};if(t)H.Authorization='Bearer '+t;const c=await fetch(`https://api.github.com/repos/${R}/contents/popups/launch.js?ref=${F}`,{headers:H}).then(r=>r.text());const s=w.document.createElement('script');s.textContent=c;w.document.body.appendChild(s)})()
+```
+
+The bookmarklet is only the irreducible bootstrap: open a blank window (must
+happen on a host click, so the popup inherits the host origin), carry the token,
+fetch `launch.js`, and inject it. It can't be shorter without giving up something
+— `launch.js` can't fetch itself, so that load lives here; everything after it is
+already in the repo. The `Accept: application/vnd.github.raw` header returns the
+file's text directly, which is why there's no base64 decode.
+
+The token lives in the bookmarklet — the `const t=''` at the very front. Paste a
+GitHub token between those quotes (a fine-grained PAT, read-only contents on this
+repo, is plenty); that's the only thing you normally edit. It rides onto the popup
+as `w.__ghToken`, and the same token fetches both `launch.js` and each popup. The
+token has to travel with the bookmarklet because each host page is a different
+origin — there's no shared storage to stash it in. On a public repo you can leave
+it blank and it still works at the unauthenticated rate limit; the token is for
+private repos and the higher limit, and because it's an API load (not Pages or a
+CDN) the private case needs no other change. `R` and `F` are the repo and ref —
+point `F` at a branch to test launcher changes before they reach `main`. Behavior
+lives in `launch.js`, so it updates on the repo with no change to the bookmarklet.
+
 ### Console snippets
 
 Code you paste into DevTools and run against the page in front of you — no
