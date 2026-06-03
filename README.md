@@ -12,7 +12,7 @@ Four shapes have emerged:
 - **Popups.** A host-coupled page, opened in a new window. The shared
   origin lets it reach that origin's storage and make the cross-origin
   requests CORS would block, while `window.opener` gives a live handle to
-  the opener.
+  the host page.
 - **Console.** Snippets stored in DevTools, designed for a CLI
   experience — when you'd rather type a command and read the result than
   click a bookmark.
