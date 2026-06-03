@@ -117,20 +117,16 @@ from menu to tool without ever changing the window object. The host origin and
 coupled to the host. The menu rebuilds itself from the folder, so new popups
 appear with no edit to the bookmarklet.
 
-```js
-javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=open('','','width=980,height=740');w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;const H={Accept:'application/vnd.github.raw'};if(t)H.Authorization='Bearer '+t;const c=await fetch(`https://api.github.com/repos/${R}/contents/popups/launch.js?ref=${F}`,{headers:H}).then(r=>r.text());const s=w.document.createElement('script');s.textContent=c;w.document.body.appendChild(s)})()
-```
+The bookmarklet itself lives in [`bookmarklets/popup-launcher.js`](bookmarklets/popup-launcher.js)
+(the token blank) — open it and copy, like any other bookmarklet here. It's only
+the irreducible bootstrap: open a blank window (must happen on a host click, so
+the popup inherits the host origin), carry the token, fetch `launch.js`, and
+inject it. It can't be shorter without giving up something — `launch.js` can't
+fetch itself, so that load lives here; everything after it is already in the repo.
+The `Accept: application/vnd.github.raw` header returns the file's text directly,
+which is why there's no base64 decode.
 
-The bookmarklet is only the irreducible bootstrap: open a blank window (must
-happen on a host click, so the popup inherits the host origin), carry the token,
-fetch `launch.js`, and inject it. It can't be shorter without giving up something
-— `launch.js` can't fetch itself, so that load lives here; everything after it is
-already in the repo. The `Accept: application/vnd.github.raw` header returns the
-file's text directly, which is why there's no base64 decode.
-
-The canonical bookmarklet source is [`bookmarklets/popup-launcher.js`](bookmarklets/popup-launcher.js)
-(the one-liner above, with the token blank) — open it and copy, like any other
-bookmarklet here. To skip the hand-editing, the
+To skip the hand-editing, the
 [launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
 is the origin-independent twin of `launch.js`: paste a token (it can remember it
 in `localStorage.ghToken`, shared with the Pages tools' sign-in) and it hands back
