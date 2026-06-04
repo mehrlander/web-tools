@@ -61,6 +61,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
 | [demos/](https://mehrlander.github.io/web-tools/lib/kits/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`, `compression`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
+| [launcher](https://mehrlander.github.io/web-tools/pages/launcher.html) | Setup page for the popup launcher: paste a token, copy out a ready-to-save bookmarklet. |
 
 The auto-listed index at `pages/` is the full directory if you want to see
 everything, including development scratchpads not curated above.
@@ -74,6 +75,10 @@ new bookmark.
 - [`page-toggle`](bookmarklets/page-toggle.js): flip a tab between its
   rendered URL on github.io and its source on github.com. From anywhere
   else, jumps to this repo's index.
+- [`popup-launcher`](bookmarklets/popup-launcher.js): opens the popup menu on
+  whatever page you're on (see [Popups → Launcher](#popups)). The
+  [launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
+  generates a token-filled copy for you — handy on mobile.
 
 The compression-helper page also generates bookmarklets on demand: paste
 text in, get a self-decompressing `javascript:` URL out. Same output
@@ -112,16 +117,22 @@ from menu to tool without ever changing the window object. The host origin and
 coupled to the host. The menu rebuilds itself from the folder, so new popups
 appear with no edit to the bookmarklet.
 
-```js
-javascript:(async()=>{const t='',R='mehrlander/web-tools',F='main';const w=open('','','width=980,height=740');w.__ghToken=t;w.__ghRepo=R;w.__ghRef=F;const H={Accept:'application/vnd.github.raw'};if(t)H.Authorization='Bearer '+t;const c=await fetch(`https://api.github.com/repos/${R}/contents/popups/launch.js?ref=${F}`,{headers:H}).then(r=>r.text());const s=w.document.createElement('script');s.textContent=c;w.document.body.appendChild(s)})()
-```
+The bookmarklet itself lives in [`bookmarklets/popup-launcher.js`](bookmarklets/popup-launcher.js)
+(the token blank) — open it and copy, like any other bookmarklet here. It's only
+the irreducible bootstrap: open a blank window (must happen on a host click, so
+the popup inherits the host origin), carry the token, fetch `launch.js`, and
+inject it. It can't be shorter without giving up something — `launch.js` can't
+fetch itself, so that load lives here; everything after it is already in the repo.
+The `Accept: application/vnd.github.raw` header returns the file's text directly,
+which is why there's no base64 decode.
 
-The bookmarklet is only the irreducible bootstrap: open a blank window (must
-happen on a host click, so the popup inherits the host origin), carry the token,
-fetch `launch.js`, and inject it. It can't be shorter without giving up something
-— `launch.js` can't fetch itself, so that load lives here; everything after it is
-already in the repo. The `Accept: application/vnd.github.raw` header returns the
-file's text directly, which is why there's no base64 decode.
+To skip the hand-editing, the
+[launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
+is the origin-independent twin of `launch.js`: paste a token (it can remember it
+in `localStorage.ghToken`, shared with the Pages tools' sign-in) and it hands back
+a ready-to-save bookmarklet — copy on mobile, drag on desktop. It's a page, not a
+popup, precisely because building the string needs no host origin; the menu in
+`launch.js` stays a popup because being on the host origin is its whole job.
 
 The token lives in the bookmarklet — the `const t=''` at the very front. Paste a
 GitHub token between those quotes (a fine-grained PAT, read-only contents on this
