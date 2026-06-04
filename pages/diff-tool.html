@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diff</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<style>
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; }
+  .gutter { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body class="bg-base-200 min-h-screen flex flex-col" x-data="diffApp()" x-init="init()">
+
+<!-- App bar -->
+<header class="bg-base-100 border-b border-base-300 sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <i class="ph-bold ph-git-diff text-xl text-primary"></i>
+      <span class="font-semibold tracking-tight">Diff</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <button class="btn btn-sm btn-ghost gap-1.5" @click="swap()">
+        <i class="ph-bold ph-arrows-left-right"></i> Swap
+      </button>
+      <label class="flex items-center gap-2 text-xs font-medium text-base-content/70 cursor-pointer pl-3 pr-1">
+        <input type="checkbox" class="toggle toggle-xs toggle-primary" x-model="ignoreWs" @change="compute()">
+        Ignore whitespace
+      </label>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 w-full max-w-6xl mx-auto px-6 py-6 space-y-4">
+
+  <!-- Controls -->
+  <div class="flex items-center justify-between">
+    <div class="join border border-base-300 rounded-lg overflow-hidden">
+      <button class="btn btn-sm border-0 join-item gap-1.5" :class="view==='split' ? 'btn-primary' : 'btn-ghost'" @click="view='split'">
+        <i class="ph-bold ph-columns"></i> Split
+      </button>
+      <button class="btn btn-sm border-0 join-item gap-1.5" :class="view==='unified' ? 'btn-primary' : 'btn-ghost'" @click="view='unified'">
+        <i class="ph-bold ph-list"></i> Unified
+      </button>
+    </div>
+    <button class="btn btn-sm btn-ghost gap-1.5" @click="editing=!editing">
+      <i class="ph-bold" :class="editing ? 'ph-eye' : 'ph-pencil-simple'"></i>
+      <span x-text="editing ? 'View diff' : 'Edit input'"></span>
+    </button>
+  </div>
+
+  <!-- Editors -->
+  <div x-show="editing" class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="text-xs font-medium text-base-content/60 mb-1.5 block">Original</label>
+      <textarea class="textarea textarea-bordered w-full mono text-sm h-72 leading-6" x-model="original" @input="compute()"></textarea>
+    </div>
+    <div>
+      <label class="text-xs font-medium text-base-content/60 mb-1.5 block">Modified</label>
+      <textarea class="textarea textarea-bordered w-full mono text-sm h-72 leading-6" x-model="modified" @input="compute()"></textarea>
+    </div>
+  </div>
+
+  <!-- Diff panel -->
+  <div x-show="!editing" class="rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+
+    <!-- Panel header -->
+    <div class="flex items-center justify-between px-4 h-11 border-b border-base-300 bg-base-200/40">
+      <div class="flex items-center gap-2 text-sm">
+        <i class="ph-bold ph-file-js text-base-content/40"></i>
+        <span class="font-medium mono">fetchUser.js</span>
+      </div>
+      <div class="flex items-center gap-3 text-xs font-medium">
+        <span class="flex items-center gap-1 text-success"><span class="inline-block w-2 h-2 rounded-sm bg-success/70"></span><span x-text="stats.add"></span> added</span>
+        <span class="flex items-center gap-1 text-error"><span class="inline-block w-2 h-2 rounded-sm bg-error/70"></span><span x-text="stats.del"></span> removed</span>
+      </div>
+    </div>
+
+    <!-- Column captions (split only) -->
+    <template x-if="view==='split'">
+      <div class="grid grid-cols-2 text-[11px] uppercase tracking-wide font-semibold text-base-content/40 border-b border-base-300">
+        <div class="px-4 py-1.5 pl-16">Original</div>
+        <div class="px-4 py-1.5 pl-16 border-l border-base-300">Modified</div>
+      </div>
+    </template>
+
+    <!-- Split -->
+    <template x-if="view==='split'">
+      <div class="grid grid-cols-2 mono text-[13px] leading-6">
+        <template x-for="(row,i) in rows" :key="i">
+          <div class="contents">
+            <div class="flex" :class="rowBg(row.left.type)">
+              <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="row.left.n"></span>
+              <span class="w-5 shrink-0 select-none text-center" :class="sigColor(row.left.type)" x-text="sig(row.left.type)"></span>
+              <span class="px-2 whitespace-pre-wrap break-all" x-html="row.left.html"></span>
+            </div>
+            <div class="flex border-l border-base-300" :class="rowBg(row.right.type)">
+              <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="row.right.n"></span>
+              <span class="w-5 shrink-0 select-none text-center" :class="sigColor(row.right.type)" x-text="sig(row.right.type)"></span>
+              <span class="px-2 whitespace-pre-wrap break-all" x-html="row.right.html"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Unified -->
+    <template x-if="view==='unified'">
+      <div class="mono text-[13px] leading-6">
+        <template x-for="(line,i) in unified" :key="i">
+          <div class="flex" :class="rowBg(line.type)">
+            <span class="gutter w-12 shrink-0 text-right pr-2 select-none text-base-content/30 bg-base-200/30" x-text="line.ln"></span>
+            <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="line.rn"></span>
+            <span class="w-5 shrink-0 select-none text-center" :class="sigColor(line.type)" x-text="sig(line.type)"></span>
+            <span class="px-2 whitespace-pre-wrap break-all" x-html="line.html"></span>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+</main>
+
+<script>
+function diffApp() {
+  return {
+    view: 'split',
+    editing: false,
+    ignoreWs: false,
+    original: `import { api } from './client';
+
+export async function fetchUser(id) {
+  const res = await api.get('/users/' + id);
+  if (res.status !== 200) {
+    throw new Error('Request failed');
+  }
+  const data = res.body;
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+  };
+}`,
+    modified: `import { api } from './client';
+import { logger } from './logger';
+
+export async function fetchUser(id, opts = {}) {
+  const res = await api.get(\`/users/\${id}\`, opts);
+  if (!res.ok) {
+    logger.warn('fetchUser failed', { id, status: res.status });
+    throw new ApiError('Request failed', res.status);
+  }
+  const data = await res.json();
+  return {
+    id: data.id,
+    name: data.fullName,
+    email: data.email,
+    avatar: data.avatarUrl,
+  };
+}`,
+    rows: [],
+    unified: [],
+    stats: { add: 0, del: 0 },
+
+    init() { this.compute(); },
+
+    esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+    norm(s) { return this.ignoreWs ? s.replace(/\s+/g,' ').trim() : s; },
+
+    swap() { [this.original, this.modified] = [this.modified, this.original]; this.compute(); },
+
+    // LCS over arrays, returns ops: {type:'eq'|'del'|'add', a, b}
+    lcsDiff(a, b) {
+      const n = a.length, m = b.length;
+      const dp = Array.from({length: n+1}, () => new Int32Array(m+1));
+      for (let i = n-1; i >= 0; i--)
+        for (let j = m-1; j >= 0; j--)
+          dp[i][j] = a[i] === b[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+      const ops = [];
+      let i = 0, j = 0;
+      while (i < n && j < m) {
+        if (a[i] === b[j]) { ops.push({type:'eq', a:i, b:j}); i++; j++; }
+        else if (dp[i+1][j] >= dp[i][j+1]) { ops.push({type:'del', a:i}); i++; }
+        else { ops.push({type:'add', b:j}); j++; }
+      }
+      while (i < n) ops.push({type:'del', a:i++});
+      while (j < m) ops.push({type:'add', b:j++});
+      return ops;
+    },
+
+    // word-level diff producing highlighted html for a changed pair
+    wordDiff(o, m) {
+      const split = s => s.split(/(\s+)/);
+      const oa = split(o), ma = split(m);
+      const ops = this.lcsDiff(oa, ma);
+      let lh = '', rh = '';
+      for (const op of ops) {
+        if (op.type === 'eq') { lh += this.esc(oa[op.a]); rh += this.esc(ma[op.b]); }
+        else if (op.type === 'del') lh += `<span class="bg-error/25 rounded">${this.esc(oa[op.a])}</span>`;
+        else rh += `<span class="bg-success/25 rounded">${this.esc(ma[op.b])}</span>`;
+      }
+      return { lh, rh };
+    },
+
+    compute() {
+      const a = this.original.split('\n'), b = this.modified.split('\n');
+      const ops = this.lcsDiff(a.map(s=>this.norm(s)), b.map(s=>this.norm(s)));
+      const rows = [], unified = [];
+      let k = 0;
+      while (k < ops.length) {
+        const op = ops[k];
+        if (op.type === 'eq') {
+          const t = this.esc(a[op.a]);
+          rows.push({ left:{n:op.a+1,type:'eq',html:t}, right:{n:op.b+1,type:'eq',html:t} });
+          unified.push({ ln:op.a+1, rn:op.b+1, type:'eq', html:t });
+          k++;
+        } else {
+          const dels = [], adds = [];
+          while (k < ops.length && ops[k].type === 'del') dels.push(ops[k++]);
+          while (k < ops.length && ops[k].type === 'add') adds.push(ops[k++]);
+          const max = Math.max(dels.length, adds.length);
+          const addLines = [];
+          for (let r = 0; r < max; r++) {
+            const d = dels[r], ad = adds[r];
+            let lhtml = d ? this.esc(a[d.a]) : '', rhtml = ad ? this.esc(b[ad.b]) : '';
+            if (d && ad) { const w = this.wordDiff(a[d.a], b[ad.b]); lhtml = w.lh; rhtml = w.rh; }
+            rows.push({
+              left: d ? {n:d.a+1,type:'del',html:lhtml} : {n:'',type:'empty',html:''},
+              right: ad ? {n:ad.b+1,type:'add',html:rhtml} : {n:'',type:'empty',html:''}
+            });
+            if (d) unified.push({ ln:d.a+1, rn:'', type:'del', html:lhtml });
+            if (ad) addLines.push({ ln:'', rn:ad.b+1, type:'add', html:rhtml });
+          }
+          // dels first, then adds (with word-level highlights preserved)
+          unified.push(...addLines);
+        }
+      }
+      this.rows = rows;
+      this.unified = unified;
+      this.stats = {
+        add: ops.filter(o=>o.type==='add').length,
+        del: ops.filter(o=>o.type==='del').length
+      };
+    },
+
+    sig(t) { return t==='add' ? '+' : t==='del' ? '−' : ''; },
+    sigColor(t) { return t==='add' ? 'text-success' : t==='del' ? 'text-error' : ''; },
+    rowBg(t) {
+      if (t==='add') return 'bg-success/10';
+      if (t==='del') return 'bg-error/10';
+      if (t==='empty') return 'bg-base-200/40';
+      return '';
+    },
+  };
+}
+</script>
+</body>
+</html>
