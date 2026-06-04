@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cross-repo read() — data transfer demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> picks which ref the loaded code comes from; defaults
+  // to main. read() lives in lib/gh-api.js — until it's on main, open this with
+  // ?use=<branch-or-sha> so the bundle that boots here actually has it.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('kits/io.js');                  // io.save() for the download
+  await gh.load('alpineComponents/fab.js');     // standard page FAB
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('app', () => ({
+      path: 'data/sample.js',
+      data: null,
+      provenance: '',     // 'local' | 'repo'
+      generated: '',
+      busy: false,
+      error: '',
+
+      // Read the path, reporting which source answered. read() itself resolves
+      // local-first; here we probe local explicitly only so we can label the
+      // provenance, then fall back to read()'s repo branch.
+      async load() {
+        this.error = ''; this.busy = true; this.data = null;
+        this.provenance = ''; this.generated = '';
+        try {
+          const local = await gh._local(this.path);
+          if (local !== undefined) {
+            this.data = local; this.provenance = 'local';
+          } else {
+            this.data = await gh.read(this.path); this.provenance = 'repo';
+          }
+        } catch (e) {
+          this.error = e.message || String(e);
+        } finally {
+          this.busy = false;
+        }
+      },
+
+      get json() { return this.data == null ? '' : JSON.stringify(this.data, null, 2); },
+      get filename() { return this.path.split('/').pop() || 'data.js'; },
+
+      // The freeze: turn the read value into the local deposit form.
+      generate() {
+        if (this.data == null) return;
+        this.generated =
+          `// ${this.path} — local form (generated). Place beside the page so\n` +
+          `// read('${this.path}') resolves this before the repo copy.\n` +
+          `document.currentScript.value = ${JSON.stringify(this.data, null, 2)};\n`;
+      },
+
+      save() {
+        this.generate();
+        if (!this.generated) return;
+        io.save(this.generated, this.filename, 'text/javascript');
+        this.$toast?.('download-simple', 'Saved ' + this.filename, 'alert-success');
+      },
+
+      description: 'Read repo data, then freeze it to a local document.currentScript.value file that read() picks up first.'
+    }));
+  });
+
+  await gh.load('alpine-bundle.js');
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+  <div class="mx-auto max-w-[860px] px-4 sm:px-6 py-8 sm:py-10" x-data="app()">
+
+    <header class="mb-8">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Demo · read() · data transfer</p>
+        <a href="index.html" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> web-tools
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.6rem,4vw,2.2rem)] leading-none font-bold tracking-tight">
+        Repo data → local file. <span class="opacity-50">One <code class="text-[0.6em] align-middle">read()</code>, two sources.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[68ch]">
+        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">read(path)</code>
+        resolves a path locally if a file sits beside the page, otherwise from the repo.
+        Read the repo copy here, then <b>Save local copy</b> to freeze it into a
+        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">document.currentScript.value</code>
+        file. Drop that beside a saved copy of this page, reopen over
+        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">file://</code>, and the same call resolves local.
+      </p>
+    </header>
+
+    <!-- read controls -->
+    <section class="mb-6">
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="flex-1 min-w-[16rem]">
+          <span class="block text-xs uppercase tracking-wide opacity-50 mb-1">Path (repo-root relative)</span>
+          <input x-model="path" @keydown.enter="load()" type="text" spellcheck="false"
+                 class="input input-bordered input-sm w-full font-mono">
+        </label>
+        <button class="btn btn-sm btn-primary" @click="load()" :disabled="busy">
+          <span x-show="!busy"><i class="ph ph-download-simple"></i> Read</span>
+          <span x-show="busy" class="loading loading-spinner loading-xs"></span>
+        </button>
+      </div>
+
+      <div x-show="provenance" x-cloak class="mt-3 flex items-center gap-2 text-sm">
+        <span class="opacity-60">Resolved from</span>
+        <span class="badge badge-sm"
+              :class="provenance === 'local' ? 'badge-success' : 'badge-info'"
+              x-text="provenance"></span>
+        <span class="opacity-50 text-xs" x-text="provenance === 'local'
+          ? 'a file beside the page' : 'the repository (no local file present)'"></span>
+      </div>
+
+      <div x-show="error" x-cloak class="mt-3 alert alert-error text-sm py-2">
+        <i class="ph ph-warning"></i><span x-text="error"></span>
+      </div>
+    </section>
+
+    <!-- read value -->
+    <section x-show="data" x-cloak class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold opacity-70">Value</h2>
+        <div class="flex gap-2">
+          <button class="btn btn-xs" @click="$clip?.(json)"><i class="ph ph-copy"></i> Copy</button>
+          <button class="btn btn-xs btn-primary" @click="save()"><i class="ph ph-floppy-disk"></i> Save local copy</button>
+        </div>
+      </div>
+      <pre class="bg-base-100 border border-base-300 rounded p-3 text-xs overflow-x-auto max-h-72"><code x-text="json"></code></pre>
+    </section>
+
+    <!-- generated local file -->
+    <section x-show="generated" x-cloak class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold opacity-70">
+          Local file — <code class="font-mono text-xs" x-text="filename"></code>
+        </h2>
+        <button class="btn btn-xs" @click="$clip?.(generated)"><i class="ph ph-copy"></i> Copy</button>
+      </div>
+      <pre class="bg-base-100 border border-base-300 rounded p-3 text-xs overflow-x-auto max-h-72"><code x-text="generated"></code></pre>
+      <p class="mt-2 text-xs opacity-60 leading-relaxed">
+        Save this as <code class="font-mono" x-text="path"></code> beside your local copy of the page.
+        Note <code class="font-mono">read()</code>'s local probe is <i>page-relative</i> while the repo
+        fetch is <i>root-relative</i>: recreate the same subtree (here <code class="font-mono">data/</code>)
+        next to the saved HTML so the one path matches both.
+      </p>
+    </section>
+
+    <footer class="mt-10 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">How it resolves</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[68ch] space-y-2">
+        <p><b>local</b> — <code class="font-mono text-[0.85em]">read</code> injects
+        <code class="font-mono text-[0.85em]">&lt;script src=path&gt;</code>; the file deposits its payload on
+        <code class="font-mono text-[0.85em]">document.currentScript.value</code> and <code class="font-mono text-[0.85em]">read</code> lifts it off the node. The only thing that runs on <code class="font-mono text-[0.85em]">file://</code>.</p>
+        <p><b>repo</b> — if there's no local file, <code class="font-mono text-[0.85em]">read</code> fetches via the API
+        and runs the file with <code class="font-mono text-[0.85em]">gh</code> injected; the file just
+        <code class="font-mono text-[0.85em]">return</code>s its payload. Neither path touches <code class="font-mono text-[0.85em]">window</code>.</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <div x-data="fab()" data-path="pages/cross-repo-read-demo.html"></div>
+  <style>[x-cloak]{display:none!important}</style>
+</body>
+</html>
