@@ -5,101 +5,169 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diff</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block" rel="stylesheet"/>
 <script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
 <style>
-  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; }
-  .gutter { font-variant-numeric: tabular-nums; }
+  :root {
+    --g-surface:#ffffff; --g-bg:#f8f9fa;
+    --g-text:#1f1f1f; --g-text-2:#444746; --g-text-3:#5f6368; --g-line:#80868b;
+    --g-border:#e1e3e6; --g-divider:#ebedf0;
+    --g-blue:#0b57d0; --g-blue-bg:#d3e3fd; --g-blue-hover:rgba(11,87,208,.08);
+    --g-add:#e6f4ea; --g-add-strong:#a8dab5; --g-add-text:#0b6b3a; --g-add-bar:#188038;
+    --g-del:#fce8e6; --g-del-strong:#f5b3ad; --g-del-text:#b3261e; --g-del-bar:#d33b30;
+  }
+  html, body { background:var(--g-bg); }
+  body { font-family:'Inter', system-ui, sans-serif; color:var(--g-text); -webkit-font-smoothing:antialiased; }
+  .mono { font-family:'Roboto Mono', ui-monospace, monospace; }
+  .msym { font-family:'Material Symbols Outlined'; font-weight:normal; font-style:normal;
+    font-size:20px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block;
+    white-space:nowrap; direction:ltr; -webkit-font-feature-settings:'liga'; font-feature-settings:'liga';
+    -webkit-font-smoothing:antialiased; }
+  .msym.s18 { font-size:18px; } .msym.s22 { font-size:22px; }
+
+  /* Material top app bar */
+  .appbar { background:var(--g-surface); border-bottom:1px solid var(--g-divider); }
+
+  /* Material 3 segmented button */
+  .seg { display:inline-flex; height:36px; border:1px solid #c4c7c5; border-radius:999px; overflow:hidden; }
+  .seg button { display:inline-flex; align-items:center; gap:8px; padding:0 16px; font:500 14px 'Inter';
+    color:var(--g-text); background:transparent; transition:background .15s; }
+  .seg button:hover { background:rgba(31,31,31,.05); }
+  .seg button + button { border-left:1px solid #c4c7c5; }
+  .seg button.on { background:var(--g-blue-bg); color:#041e49; }
+  .seg button.on:hover { background:#c7dbfa; }
+
+  /* Material text button */
+  .tbtn { display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px 0 12px;
+    border-radius:999px; font:500 14px 'Inter'; color:var(--g-blue); background:transparent; transition:background .15s; }
+  .tbtn:hover { background:var(--g-blue-hover); }
+
+  /* Material switch */
+  .sw { position:relative; width:34px; height:20px; flex:none; display:inline-block; }
+  .sw input { position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; z-index:2; }
+  .sw .track { position:absolute; inset:0; border-radius:999px; background:#c4c7c5; transition:background .2s; }
+  .sw .thumb { position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.35); transition:transform .2s; }
+  .sw input:checked ~ .track { background:var(--g-blue); }
+  .sw input:checked ~ .thumb { transform:translateX(14px); }
+
+  /* Card with Material elevation-1 */
+  .card-elev { background:var(--g-surface); border-radius:16px;
+    box-shadow:0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15); }
+
+  /* Diff (Gerrit-style) */
+  .chip { display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:999px; font:500 12px/1 'Roboto Mono'; }
+  .chip.add { background:var(--g-add); color:var(--g-add-text); }
+  .chip.del { background:var(--g-del); color:var(--g-del-text); }
+  .caption { font:500 12px 'Inter'; color:var(--g-text-3); }
+
+  .drow { display:flex; min-height:22px; }
+  .drow.add { background:var(--g-add); box-shadow:inset 3px 0 0 var(--g-add-bar); }
+  .drow.del { background:var(--g-del); box-shadow:inset 3px 0 0 var(--g-del-bar); }
+  .drow.empty { background:#fbfcfd; }
+  .ln { flex:none; width:56px; text-align:right; padding:0 16px 0 0; color:var(--g-line);
+    font:400 12px/22px 'Roboto Mono'; font-variant-numeric:tabular-nums; user-select:none; }
+  .sign { flex:none; width:18px; text-align:center; font:400 13px/22px 'Roboto Mono'; user-select:none; }
+  .sign.add { color:var(--g-add-bar); } .sign.del { color:var(--g-del-bar); }
+  .code { padding:0 12px; font:400 13px/22px 'Roboto Mono'; color:#202124; white-space:pre-wrap; word-break:break-word; }
+  .w-add { background:var(--g-add-strong); border-radius:2px; }
+  .w-del { background:var(--g-del-strong); border-radius:2px; }
+  textarea.ed { font-family:'Roboto Mono', monospace; }
 </style>
 </head>
-<body class="bg-base-200 min-h-screen flex flex-col" x-data="diffApp()" x-init="init()">
+<body class="min-h-screen flex flex-col" x-data="diffApp()" x-init="init()">
 
 <!-- App bar -->
-<header class="bg-base-100 border-b border-base-300 sticky top-0 z-10">
-  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <i class="ph-bold ph-git-diff text-xl text-primary"></i>
-      <span class="font-semibold tracking-tight">Diff</span>
+<header class="appbar sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="msym s22" style="color:var(--g-blue)">difference</span>
+      <span style="font:500 22px 'Inter'; color:var(--g-text); letter-spacing:-.2px">Diff</span>
     </div>
-    <div class="flex items-center gap-1">
-      <button class="btn btn-sm btn-ghost gap-1.5" @click="swap()">
-        <i class="ph-bold ph-arrows-left-right"></i> Swap
+    <div class="flex items-center gap-2">
+      <button class="tbtn" @click="swap()">
+        <span class="msym s18">swap_horiz</span> Swap
       </button>
-      <label class="flex items-center gap-2 text-xs font-medium text-base-content/70 cursor-pointer pl-3 pr-1">
-        <input type="checkbox" class="toggle toggle-xs toggle-primary" x-model="ignoreWs" @change="compute()">
+      <label class="flex items-center gap-2.5 pl-2 pr-1 cursor-pointer select-none" style="color:var(--g-text-2);font:500 13px 'Inter'">
+        <span class="sw">
+          <input type="checkbox" x-model="ignoreWs" @change="compute()">
+          <span class="track"></span><span class="thumb"></span>
+        </span>
         Ignore whitespace
       </label>
     </div>
   </div>
 </header>
 
-<main class="flex-1 w-full max-w-6xl mx-auto px-6 py-6 space-y-4">
+<main class="flex-1 w-full max-w-6xl mx-auto px-6 py-7 space-y-5">
 
   <!-- Controls -->
   <div class="flex items-center justify-between">
-    <div class="join border border-base-300 rounded-lg overflow-hidden">
-      <button class="btn btn-sm border-0 join-item gap-1.5" :class="view==='split' ? 'btn-primary' : 'btn-ghost'" @click="view='split'">
-        <i class="ph-bold ph-columns"></i> Split
+    <div class="seg">
+      <button :class="view==='split' && 'on'" @click="view='split'">
+        <span class="msym s18" x-text="view==='split' ? 'check' : 'view_column'"></span> Split
       </button>
-      <button class="btn btn-sm border-0 join-item gap-1.5" :class="view==='unified' ? 'btn-primary' : 'btn-ghost'" @click="view='unified'">
-        <i class="ph-bold ph-list"></i> Unified
+      <button :class="view==='unified' && 'on'" @click="view='unified'">
+        <span class="msym s18" x-text="view==='unified' ? 'check' : 'reorder'"></span> Unified
       </button>
     </div>
-    <button class="btn btn-sm btn-ghost gap-1.5" @click="editing=!editing">
-      <i class="ph-bold" :class="editing ? 'ph-eye' : 'ph-pencil-simple'"></i>
+    <button class="tbtn" @click="editing=!editing">
+      <span class="msym s18" x-text="editing ? 'visibility' : 'edit'"></span>
       <span x-text="editing ? 'View diff' : 'Edit input'"></span>
     </button>
   </div>
 
   <!-- Editors -->
-  <div x-show="editing" class="grid grid-cols-2 gap-4">
+  <div x-show="editing" class="grid grid-cols-2 gap-5">
     <div>
-      <label class="text-xs font-medium text-base-content/60 mb-1.5 block">Original</label>
-      <textarea class="textarea textarea-bordered w-full mono text-sm h-72 leading-6" x-model="original" @input="compute()"></textarea>
+      <div class="caption mb-2">Original</div>
+      <textarea class="ed w-full text-sm rounded-xl p-4 h-72" style="background:var(--g-surface);border:1px solid var(--g-border);line-height:1.55;color:#202124" x-model="original" @input="compute()"></textarea>
     </div>
     <div>
-      <label class="text-xs font-medium text-base-content/60 mb-1.5 block">Modified</label>
-      <textarea class="textarea textarea-bordered w-full mono text-sm h-72 leading-6" x-model="modified" @input="compute()"></textarea>
+      <div class="caption mb-2">Modified</div>
+      <textarea class="ed w-full text-sm rounded-xl p-4 h-72" style="background:var(--g-surface);border:1px solid var(--g-border);line-height:1.55;color:#202124" x-model="modified" @input="compute()"></textarea>
     </div>
   </div>
 
   <!-- Diff panel -->
-  <div x-show="!editing" class="rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+  <div x-show="!editing" class="card-elev overflow-hidden">
 
     <!-- Panel header -->
-    <div class="flex items-center justify-between px-4 h-11 border-b border-base-300 bg-base-200/40">
-      <div class="flex items-center gap-2 text-sm">
-        <i class="ph-bold ph-file-js text-base-content/40"></i>
-        <span class="font-medium mono">fetchUser.js</span>
+    <div class="flex items-center justify-between px-5 h-13 py-3" style="border-bottom:1px solid var(--g-divider)">
+      <div class="flex items-center gap-2.5">
+        <span class="msym s18" style="color:var(--g-text-3)">description</span>
+        <span class="mono" style="font-size:13px;font-weight:500;color:var(--g-text)">fetchUser.js</span>
       </div>
-      <div class="flex items-center gap-3 text-xs font-medium">
-        <span class="flex items-center gap-1 text-success"><span class="inline-block w-2 h-2 rounded-sm bg-success/70"></span><span x-text="stats.add"></span> added</span>
-        <span class="flex items-center gap-1 text-error"><span class="inline-block w-2 h-2 rounded-sm bg-error/70"></span><span x-text="stats.del"></span> removed</span>
+      <div class="flex items-center gap-2">
+        <span class="chip add">+<span x-text="stats.add"></span></span>
+        <span class="chip del">−<span x-text="stats.del"></span></span>
       </div>
     </div>
 
-    <!-- Column captions (split only) -->
+    <!-- Column captions (split) -->
     <template x-if="view==='split'">
-      <div class="grid grid-cols-2 text-[11px] uppercase tracking-wide font-semibold text-base-content/40 border-b border-base-300">
-        <div class="px-4 py-1.5 pl-16">Original</div>
-        <div class="px-4 py-1.5 pl-16 border-l border-base-300">Modified</div>
+      <div class="grid grid-cols-2" style="border-bottom:1px solid var(--g-divider)">
+        <div class="caption px-5 py-2" style="padding-left:74px">Original</div>
+        <div class="caption px-5 py-2" style="padding-left:74px;border-left:1px solid var(--g-divider)">Modified</div>
       </div>
     </template>
 
     <!-- Split -->
     <template x-if="view==='split'">
-      <div class="grid grid-cols-2 mono text-[13px] leading-6">
+      <div class="grid grid-cols-2">
         <template x-for="(row,i) in rows" :key="i">
           <div class="contents">
-            <div class="flex" :class="rowBg(row.left.type)">
-              <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="row.left.n"></span>
-              <span class="w-5 shrink-0 select-none text-center" :class="sigColor(row.left.type)" x-text="sig(row.left.type)"></span>
-              <span class="px-2 whitespace-pre-wrap break-all" x-html="row.left.html"></span>
+            <div class="drow" :class="row.left.type">
+              <span class="ln" x-text="row.left.n"></span>
+              <span class="code" x-html="row.left.html"></span>
             </div>
-            <div class="flex border-l border-base-300" :class="rowBg(row.right.type)">
-              <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="row.right.n"></span>
-              <span class="w-5 shrink-0 select-none text-center" :class="sigColor(row.right.type)" x-text="sig(row.right.type)"></span>
-              <span class="px-2 whitespace-pre-wrap break-all" x-html="row.right.html"></span>
+            <div class="drow" :class="row.right.type" style="border-left:1px solid var(--g-divider)">
+              <span class="ln" x-text="row.right.n"></span>
+              <span class="code" x-html="row.right.html"></span>
             </div>
           </div>
         </template>
@@ -108,13 +176,13 @@
 
     <!-- Unified -->
     <template x-if="view==='unified'">
-      <div class="mono text-[13px] leading-6">
+      <div>
         <template x-for="(line,i) in unified" :key="i">
-          <div class="flex" :class="rowBg(line.type)">
-            <span class="gutter w-12 shrink-0 text-right pr-2 select-none text-base-content/30 bg-base-200/30" x-text="line.ln"></span>
-            <span class="gutter w-12 shrink-0 text-right pr-3 select-none text-base-content/30 bg-base-200/30" x-text="line.rn"></span>
-            <span class="w-5 shrink-0 select-none text-center" :class="sigColor(line.type)" x-text="sig(line.type)"></span>
-            <span class="px-2 whitespace-pre-wrap break-all" x-html="line.html"></span>
+          <div class="drow" :class="line.type">
+            <span class="ln" style="width:48px" x-text="line.ln"></span>
+            <span class="ln" style="width:48px" x-text="line.rn"></span>
+            <span class="sign" :class="line.type" x-text="sign(line.type)"></span>
+            <span class="code" x-html="line.html"></span>
           </div>
         </template>
       </div>
@@ -168,10 +236,9 @@ export async function fetchUser(id, opts = {}) {
 
     esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
     norm(s) { return this.ignoreWs ? s.replace(/\s+/g,' ').trim() : s; },
-
     swap() { [this.original, this.modified] = [this.modified, this.original]; this.compute(); },
 
-    // LCS over arrays, returns ops: {type:'eq'|'del'|'add', a, b}
+    // LCS over arrays → ops: {type:'eq'|'del'|'add', a, b}
     lcsDiff(a, b) {
       const n = a.length, m = b.length;
       const dp = Array.from({length: n+1}, () => new Int32Array(m+1));
@@ -190,7 +257,7 @@ export async function fetchUser(id, opts = {}) {
       return ops;
     },
 
-    // word-level diff producing highlighted html for a changed pair
+    // word-level diff → highlighted html for a changed pair
     wordDiff(o, m) {
       const split = s => s.split(/(\s+)/);
       const oa = split(o), ma = split(m);
@@ -198,8 +265,8 @@ export async function fetchUser(id, opts = {}) {
       let lh = '', rh = '';
       for (const op of ops) {
         if (op.type === 'eq') { lh += this.esc(oa[op.a]); rh += this.esc(ma[op.b]); }
-        else if (op.type === 'del') lh += `<span class="bg-error/25 rounded">${this.esc(oa[op.a])}</span>`;
-        else rh += `<span class="bg-success/25 rounded">${this.esc(ma[op.b])}</span>`;
+        else if (op.type === 'del') lh += `<span class="w-del">${this.esc(oa[op.a])}</span>`;
+        else rh += `<span class="w-add">${this.esc(ma[op.b])}</span>`;
       }
       return { lh, rh };
     },
@@ -233,7 +300,6 @@ export async function fetchUser(id, opts = {}) {
             if (d) unified.push({ ln:d.a+1, rn:'', type:'del', html:lhtml });
             if (ad) addLines.push({ ln:'', rn:ad.b+1, type:'add', html:rhtml });
           }
-          // dels first, then adds (with word-level highlights preserved)
           unified.push(...addLines);
         }
       }
@@ -245,14 +311,7 @@ export async function fetchUser(id, opts = {}) {
       };
     },
 
-    sig(t) { return t==='add' ? '+' : t==='del' ? '−' : ''; },
-    sigColor(t) { return t==='add' ? 'text-success' : t==='del' ? 'text-error' : ''; },
-    rowBg(t) {
-      if (t==='add') return 'bg-success/10';
-      if (t==='del') return 'bg-error/10';
-      if (t==='empty') return 'bg-base-200/40';
-      return '';
-    },
+    sign(t) { return t==='add' ? '+' : t==='del' ? '−' : ''; },
   };
 }
 </script>
