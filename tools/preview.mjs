@@ -234,9 +234,29 @@ const componentReports = xDataNodes.map(el => {
 
 const alpineVersion = win.Alpine?.version ?? '(Alpine not detected)';
 
+// Did the page's gh.load boot actually execute? gh-api.js creates window.gh and
+// every own-code load shows up as a gh/api/raw intercept. If neither happened,
+// the chain never ran — and since gh.load pages boot with `await import(gh-api.js)`,
+// the usual cause is that jsdom's script VM can't run a dynamic import(): the
+// boot block rejects silently, so nothing (Alpine included) mounts. This is a
+// jsdom limit, not a page bug; `npm run shot` (real Chromium) runs the chain.
+const ownCodeHits = intercepts.filter(l =>
+  /\/gh\/mehrlander\/web-tools|api\.github\.com|raw\.githubusercontent/.test(l)).length;
+const ghBooted = !!win.gh || ownCodeHits > 0;
+const usesDynamicBoot = /await\s+import\s*\([^)]*gh-api\.js/.test(html);
+const bootDiag = ghBooted
+  ? null
+  : usesDynamicBoot
+    ? "gh.load boot DID NOT RUN — the page boots via `await import(gh-api.js)`, "
+      + "which jsdom's script VM can't execute, so Alpine never mounts. The x-data "
+      + "containers below are the static HTML only. For real execution use: npm run shot " + arg
+    : "gh.load boot DID NOT RUN — window.gh is absent and no own-code loaded.";
+
 const summary = [
   `=== preview: ${arg} ===`,
   `alpine: ${alpineVersion}`,
+  `boot:   ${ghBooted ? 'gh.load chain ran' : 'NOT RUN'}`,
+  ...(bootDiag ? ['', `! ${bootDiag}`] : []),
   '',
   `--- x-data containers (${componentReports.length}) ---`,
   ...componentReports.map(r =>

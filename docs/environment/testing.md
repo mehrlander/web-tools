@@ -61,7 +61,12 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   code with no token; output is a PNG + a log of intercepts / `__loadedScripts` /
   errors under `tools/.preview/`. *(verified 2026-06-05: `sheet-modal-demo`,
   `cross-repo-read-demo`, `fab-sidebar-test` all rendered with the full chain and
-  zero errors.)* The jsdom logic-level twin is `npm run preview`. See
+  zero errors.)* The jsdom logic-level twin is `npm run preview` — but note it
+  can only inspect a page's static DOM: jsdom's script VM can't run the
+  `await import(gh-api.js)` boot every gh.load page uses, so the chain doesn't
+  execute and it prints `boot: NOT RUN` (reach for `shot` when you need the chain
+  to actually run, or the manual jsdom+Alpine recipe below to drive a component
+  in isolation). See
   [`tools/README.md`](../../tools/README.md) for the build/verify companions
   (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
   render through it).
