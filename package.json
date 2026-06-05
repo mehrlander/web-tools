@@ -2,12 +2,23 @@
   "name": "web-tools",
   "private": true,
   "scripts": {
-    "preview": "node tools/preview.mjs"
+    "preview": "node tools/preview.mjs",
+    "shot": "node tools/screenshot.mjs",
+    "build": "node tools/build.mjs",
+    "bake": "node tools/bake.mjs",
+    "verify-build": "node tools/verify-build.mjs"
   },
   "devDependencies": {
+    "@alpinejs/collapse": "^3.15.12",
+    "@alpinejs/sort": "^3.15.12",
+    "@phosphor-icons/web": "^2.1.2",
+    "@tailwindcss/browser": "^4.3.0",
+    "@tailwindcss/typography": "^0.5.19",
     "alpinejs": "^3.15.11",
+    "daisyui": "^5.5.20",
     "fake-indexeddb": "^6.2.5",
     "idb-keyval": "^6.2.2",
-    "jsdom": "^29.1.0"
+    "jsdom": "^29.1.0",
+    "playwright": "^1.56.0"
   }
 }

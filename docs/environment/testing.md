@@ -51,6 +51,20 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   loopback (`python3 -m http.server` / `npx serve`), and drive with Playwright.
   Confirmed: a page using npm-vendored Alpine rendered with full reactivity and
   screenshotted. This gives real pixels / layout, not just logic.
+
+  This is now a tool, not a recipe: **`npm run shot <page>`**
+  ([`tools/screenshot.mjs`](../../tools/screenshot.mjs)) serves the working tree
+  over loopback and intercepts every external request via
+  [`tools/lib/cdn.mjs`](../../tools/lib/cdn.mjs) — own code (the jsDelivr `/gh/`
+  `gh-api.js` import, then the contents-API loads) to local files, third-party
+  libs to `node_modules`. The real `gh.load` chain runs unmodified against branch
+  code with no token; output is a PNG + a log of intercepts / `__loadedScripts` /
+  errors under `tools/.preview/`. *(verified 2026-06-05: `sheet-modal-demo`,
+  `cross-repo-read-demo`, `fab-sidebar-test` all rendered with the full chain and
+  zero errors.)* The jsdom logic-level twin is `npm run preview`. See
+  [`tools/README.md`](../../tools/README.md) for the build/verify companions
+  (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
+  render through it).
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new
