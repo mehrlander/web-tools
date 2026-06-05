@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diff</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block" rel="stylesheet"/>
+<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<style>
+  :root {
+    --g-surface:#ffffff; --g-bg:#f8f9fa;
+    --g-text:#1f1f1f; --g-text-2:#444746; --g-text-3:#5f6368; --g-line:#80868b;
+    --g-border:#e1e3e6; --g-divider:#ebedf0;
+    --g-blue:#0b57d0; --g-blue-bg:#d3e3fd; --g-blue-hover:rgba(11,87,208,.08);
+    --g-add:#e6f4ea; --g-add-strong:#a8dab5; --g-add-text:#0b6b3a; --g-add-bar:#188038;
+    --g-del:#fce8e6; --g-del-strong:#f5b3ad; --g-del-text:#b3261e; --g-del-bar:#d33b30;
+    --g-hunk-bg:#e8f0fe;
+  }
+  html, body { background:var(--g-bg); }
+  body { font-family:'Inter', system-ui, sans-serif; color:var(--g-text); -webkit-font-smoothing:antialiased; }
+  .mono { font-family:'Roboto Mono', ui-monospace, monospace; }
+  .msym { font-family:'Material Symbols Outlined'; font-weight:normal; font-style:normal;
+    font-size:20px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block;
+    white-space:nowrap; direction:ltr; -webkit-font-feature-settings:'liga'; font-feature-settings:'liga';
+    -webkit-font-smoothing:antialiased; }
+  .msym.s18 { font-size:18px; } .msym.s20 { font-size:20px; } .msym.s22 { font-size:22px; }
+
+  .appbar { background:var(--g-surface); border-bottom:1px solid var(--g-divider); }
+
+  /* Material text + tonal + icon buttons */
+  .tbtn { display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px;
+    border-radius:999px; font:500 14px 'Inter'; color:var(--g-blue); background:transparent; transition:background .15s; cursor:pointer; }
+  .tbtn:hover { background:var(--g-blue-hover); }
+  .tbtn.neutral { color:var(--g-text-2); } .tbtn.neutral:hover { background:rgba(31,31,31,.05); }
+  .tonal { display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border-radius:999px;
+    font:500 14px 'Inter'; color:#041e49; background:var(--g-blue-bg); transition:background .15s; cursor:pointer; }
+  .tonal:hover { background:#c7dbfa; }
+  .iconbtn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px;
+    border-radius:999px; color:var(--g-text-2); background:transparent; transition:background .15s; cursor:pointer; }
+  .iconbtn:hover { background:rgba(31,31,31,.06); }
+  .iconbtn:disabled { color:#c4c7c5; cursor:default; } .iconbtn:disabled:hover { background:transparent; }
+
+  /* Material tabs */
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--g-divider); }
+  .tab { position:relative; height:44px; padding:0 18px; font:500 14px 'Inter'; color:var(--g-text-2);
+    background:transparent; display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+  .tab:hover { background:rgba(31,31,31,.04); border-radius:8px 8px 0 0; }
+  .tab.on { color:var(--g-blue); }
+  .tab.on::after { content:''; position:absolute; left:8px; right:8px; bottom:-1px; height:3px;
+    background:var(--g-blue); border-radius:3px 3px 0 0; }
+
+  /* Material 3 segmented button */
+  .seg { display:inline-flex; height:36px; border:1px solid #c4c7c5; border-radius:999px; overflow:hidden; }
+  .seg button { display:inline-flex; align-items:center; gap:8px; padding:0 16px; font:500 14px 'Inter';
+    color:var(--g-text); background:transparent; transition:background .15s; cursor:pointer; }
+  .seg button:hover { background:rgba(31,31,31,.05); }
+  .seg button + button { border-left:1px solid #c4c7c5; }
+  .seg button.on { background:var(--g-blue-bg); color:#041e49; }
+
+  /* Material filter chip */
+  .fchip { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:8px;
+    border:1px solid #c4c7c5; font:500 13px 'Inter'; color:var(--g-text-2); background:transparent; transition:.15s; cursor:pointer; }
+  .fchip:hover { background:rgba(31,31,31,.04); }
+  .fchip.on { background:var(--g-blue-bg); border-color:transparent; color:#041e49; padding-left:8px; }
+
+  /* Material switch */
+  .sw { position:relative; width:34px; height:20px; flex:none; display:inline-block; }
+  .sw input { position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; z-index:2; }
+  .sw .track { position:absolute; inset:0; border-radius:999px; background:#c4c7c5; transition:background .2s; }
+  .sw .thumb { position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.35); transition:transform .2s; }
+  .sw input:checked ~ .track { background:var(--g-blue); }
+  .sw input:checked ~ .thumb { transform:translateX(14px); }
+
+  .card-elev { background:var(--g-surface); border-radius:16px;
+    box-shadow:0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15); }
+
+  .chip { display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:999px; font:500 12px/1 'Roboto Mono'; }
+  .chip.add { background:var(--g-add); color:var(--g-add-text); }
+  .chip.del { background:var(--g-del); color:var(--g-del-text); }
+  .caption { font:500 12px 'Inter'; color:var(--g-text-3); }
+
+  .drow { display:flex; min-height:22px; }
+  .drow.add { background:var(--g-add); box-shadow:inset 3px 0 0 var(--g-add-bar); }
+  .drow.del { background:var(--g-del); box-shadow:inset 3px 0 0 var(--g-del-bar); }
+  .drow.empty { background:#fbfcfd; }
+  .ln { flex:none; width:56px; text-align:right; padding:0 16px 0 0; color:var(--g-line);
+    font:400 12px/22px 'Roboto Mono'; font-variant-numeric:tabular-nums; user-select:none; }
+  .sign { flex:none; width:18px; text-align:center; font:400 13px/22px 'Roboto Mono'; user-select:none; }
+  .sign.add { color:var(--g-add-bar); } .sign.del { color:var(--g-del-bar); }
+  .code { padding:0 12px; font:400 13px/22px 'Roboto Mono'; color:#202124; white-space:pre-wrap; word-break:break-word; }
+  .w-add { background:var(--g-add-strong); border-radius:2px; }
+  .w-del { background:var(--g-del-strong); border-radius:2px; }
+
+  /* Collapse / expand context bar */
+  .dgap { display:flex; align-items:center; gap:8px; padding:4px 16px; background:#f1f3f4; color:var(--g-blue);
+    font:500 12px 'Inter'; cursor:pointer; border-top:1px solid var(--g-divider); border-bottom:1px solid var(--g-divider); }
+  .dgap:hover { background:#e8f0fe; }
+
+  /* Patch view */
+  .patchwrap { font:400 13px/22px 'Roboto Mono'; }
+  .pl { display:flex; padding:0 16px; white-space:pre-wrap; word-break:break-word; }
+  .pl.add { background:var(--g-add); color:var(--g-add-text); }
+  .pl.del { background:var(--g-del); color:var(--g-del-text); }
+  .pl.hunk { background:var(--g-hunk-bg); color:var(--g-blue); }
+  .pl.meta { color:var(--g-text-3); }
+
+  textarea.ed { font-family:'Roboto Mono', monospace; background:var(--g-surface);
+    border:1px solid var(--g-border); border-radius:12px; line-height:1.55; color:#202124; }
+  textarea.ed:focus { outline:2px solid var(--g-blue); outline-offset:-1px; border-color:transparent; }
+
+  .snack { position:fixed; left:24px; bottom:24px; background:#323232; color:#fff; border-radius:8px;
+    padding:12px 18px; font:500 14px 'Inter'; box-shadow:0 3px 5px rgba(0,0,0,.3); z-index:50; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col" x-data="diffApp()" x-init="init()">
+
+<!-- App bar -->
+<header class="appbar sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="msym s22" style="color:var(--g-blue)">difference</span>
+      <span style="font:500 22px 'Inter'; color:var(--g-text); letter-spacing:-.2px">Diff</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button class="tonal" @click="shareLink()"><span class="msym s18">link</span> Share link</button>
+      <button class="tbtn neutral" @click="saveJSON()"><span class="msym s18">save</span> Save</button>
+      <button class="tbtn neutral" @click="$refs.file.click()"><span class="msym s18">folder_open</span> Open</button>
+      <input type="file" x-ref="file" class="hidden" accept=".json,.patch,.diff,.txt" @change="openFile($event)">
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 w-full max-w-6xl mx-auto px-6 py-6 space-y-5">
+
+  <!-- Mode tabs -->
+  <div class="tabs">
+    <button class="tab" :class="tab==='compare' && 'on'" @click="tab='compare'"><span class="msym s18">compare_arrows</span> Compare</button>
+    <button class="tab" :class="tab==='patch' && 'on'" @click="tab='patch'"><span class="msym s18">difference</span> Patch</button>
+    <button class="tab" :class="tab==='apply' && 'on'" @click="tab='apply'"><span class="msym s18">note_add</span> Apply patch</button>
+  </div>
+
+  <!-- ============ COMPARE ============ -->
+  <div x-show="tab==='compare'" class="space-y-5">
+
+    <!-- Controls -->
+    <div class="flex items-center gap-3 flex-wrap justify-between">
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="seg">
+          <button :class="view==='split' && 'on'" @click="view='split'">
+            <span class="msym s18" x-text="view==='split' ? 'check' : 'view_column'"></span> Split
+          </button>
+          <button :class="view==='unified' && 'on'" @click="view='unified'">
+            <span class="msym s18" x-text="view==='unified' ? 'check' : 'reorder'"></span> Unified
+          </button>
+        </div>
+        <button class="fchip" :class="ignoreWs && 'on'" @click="ignoreWs=!ignoreWs; compute()">
+          <span class="msym s18" x-show="ignoreWs">check</span> Ignore whitespace
+        </button>
+        <button class="fchip" :class="ignoreCase && 'on'" @click="ignoreCase=!ignoreCase; compute()">
+          <span class="msym s18" x-show="ignoreCase">check</span> Ignore case
+        </button>
+        <button class="fchip" :class="ignoreBlank && 'on'" @click="ignoreBlank=!ignoreBlank; compute()">
+          <span class="msym s18" x-show="ignoreBlank">check</span> Ignore blank lines
+        </button>
+      </div>
+      <div class="flex items-center gap-1">
+        <button class="iconbtn" :disabled="!numChanges" @click="goChange(-1)" title="Previous change"><span class="msym s20">keyboard_arrow_up</span></button>
+        <span class="mono" style="font-size:12px;color:var(--g-text-3);min-width:64px;text-align:center"
+              x-text="numChanges ? `${curChange+1} / ${numChanges} changes` : 'No changes'"></span>
+        <button class="iconbtn" :disabled="!numChanges" @click="goChange(1)" title="Next change"><span class="msym s20">keyboard_arrow_down</span></button>
+        <button class="tbtn ml-1" @click="editing=!editing">
+          <span class="msym s18" x-text="editing ? 'visibility' : 'edit'"></span>
+          <span x-text="editing ? 'View diff' : 'Edit input'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Editors -->
+    <div x-show="editing" class="grid grid-cols-2 gap-5">
+      <div>
+        <div class="caption mb-2">Original</div>
+        <textarea class="ed w-full text-sm p-4 h-72" x-model="original" @input="onEdit()"></textarea>
+      </div>
+      <div>
+        <div class="caption mb-2">Modified</div>
+        <textarea class="ed w-full text-sm p-4 h-72" x-model="modified" @input="onEdit()"></textarea>
+      </div>
+    </div>
+
+    <!-- Diff panel -->
+    <div x-show="!editing" class="card-elev overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--g-divider)">
+        <div class="flex items-center gap-2.5">
+          <span class="msym s18" style="color:var(--g-text-3)">description</span>
+          <span class="mono" style="font-size:13px;font-weight:500;color:var(--g-text)" x-text="filename"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="mono" style="font-size:12px;color:var(--g-text-3)" x-text="`${stats.sim}% match`"></span>
+          <span class="chip add">+<span x-text="stats.add"></span></span>
+          <span class="chip del">−<span x-text="stats.del"></span></span>
+        </div>
+      </div>
+
+      <template x-if="view==='split'">
+        <div style="border-bottom:1px solid var(--g-divider)" class="grid grid-cols-2">
+          <div class="caption px-5 py-2" style="padding-left:74px">Original</div>
+          <div class="caption px-5 py-2" style="padding-left:74px;border-left:1px solid var(--g-divider)">Modified</div>
+        </div>
+      </template>
+
+      <template x-if="view==='split'">
+        <div class="grid grid-cols-2">
+          <template x-for="(row,i) in rows" :key="i">
+            <div class="contents">
+              <template x-if="row.gap">
+                <div class="dgap" style="grid-column:1/-1" @click="expand(row.id)">
+                  <span class="msym s18">unfold_more</span><span x-text="`Expand ${row.count} unchanged line${row.count>1?'s':''}`"></span>
+                </div>
+              </template>
+              <template x-if="!row.gap">
+                <div class="contents">
+                  <div class="drow" :class="row.left.type" :id="row.anchor">
+                    <span class="ln" x-text="row.left.n"></span>
+                    <span class="code" x-html="row.left.html"></span>
+                  </div>
+                  <div class="drow" :class="row.right.type" style="border-left:1px solid var(--g-divider)">
+                    <span class="ln" x-text="row.right.n"></span>
+                    <span class="code" x-html="row.right.html"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="view==='unified'">
+        <div>
+          <template x-for="(line,i) in unified" :key="i">
+            <div>
+              <template x-if="line.gap">
+                <div class="dgap" @click="expand(line.id)">
+                  <span class="msym s18">unfold_more</span><span x-text="`Expand ${line.count} unchanged line${line.count>1?'s':''}`"></span>
+                </div>
+              </template>
+              <template x-if="!line.gap">
+                <div class="drow" :class="line.type" :id="line.anchor">
+                  <span class="ln" style="width:48px" x-text="line.ln"></span>
+                  <span class="ln" style="width:48px" x-text="line.rn"></span>
+                  <span class="sign" :class="line.type" x-text="sign(line.type)"></span>
+                  <span class="code" x-html="line.html"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ============ PATCH ============ -->
+  <div x-show="tab==='patch'" class="space-y-5">
+    <div class="flex items-center gap-3 flex-wrap justify-between">
+      <div class="flex items-center gap-2">
+        <span class="caption">Context</span>
+        <div class="seg">
+          <template x-for="c in [1,3,8]" :key="c">
+            <button :class="patchContext===c && 'on'" @click="patchContext=c; genPatch()" x-text="c"></button>
+          </template>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button class="tbtn" @click="copy(patch); showToast('Patch copied')"><span class="msym s18">content_copy</span> Copy patch</button>
+        <button class="tbtn" @click="copyMarkdown()"><span class="msym s18">markdown</span> Copy as Markdown</button>
+        <button class="tonal" @click="downloadPatch()"><span class="msym s18">download</span> Download .patch</button>
+      </div>
+    </div>
+    <div class="card-elev overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--g-divider)">
+        <div class="flex items-center gap-2.5">
+          <span class="msym s18" style="color:var(--g-text-3)">difference</span>
+          <span class="mono" style="font-size:13px;font-weight:500" x-text="filename + '.patch'"></span>
+        </div>
+        <span class="mono" style="font-size:12px;color:var(--g-text-3)" x-text="`${patchLines.length} lines · ${patch.length} bytes`"></span>
+      </div>
+      <div class="patchwrap py-2">
+        <template x-for="(pl,i) in patchLines" :key="i">
+          <div class="pl" :class="pl.cls" x-text="pl.text || ' '"></div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APPLY ============ -->
+  <div x-show="tab==='apply'" class="space-y-5">
+    <div class="grid grid-cols-2 gap-5">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="caption">Source (original)</span>
+          <button class="tbtn" style="height:28px" @click="applySource = original"><span class="msym s18">sync</span> Use current original</button>
+        </div>
+        <textarea class="ed w-full text-sm p-4 h-64" x-model="applySource"></textarea>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="caption">Unified patch</span>
+          <button class="tbtn" style="height:28px" @click="applyPatchText = patch"><span class="msym s18">difference</span> Use generated patch</button>
+        </div>
+        <textarea class="ed w-full text-sm p-4 h-64" x-model="applyPatchText" placeholder="Paste a unified diff, or Open a .patch file…"></textarea>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="tonal" @click="doApply()"><span class="msym s18">play_arrow</span> Apply patch</button>
+      <button class="tbtn" :disabled="!applyResult" @click="useResult()" :style="!applyResult && 'opacity:.4;pointer-events:none'"><span class="msym s18">east</span> Load result into Compare</button>
+      <span x-show="applyError" style="color:var(--g-del-text);font:500 13px 'Inter'" class="flex items-center gap-1.5"><span class="msym s18">error</span><span x-text="applyError"></span></span>
+    </div>
+    <div x-show="applyResult !== null" class="card-elev overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--g-divider)">
+        <div class="flex items-center gap-2.5">
+          <span class="msym s18" style="color:var(--g-add-bar)">task_alt</span>
+          <span class="mono" style="font-size:13px;font-weight:500">Result</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button class="tbtn" style="height:28px" @click="copy(applyResult); showToast('Result copied')"><span class="msym s18">content_copy</span> Copy</button>
+        </div>
+      </div>
+      <pre class="mono" style="font-size:13px;line-height:22px;color:#202124;padding:12px 16px;white-space:pre-wrap;word-break:break-word" x-text="applyResult"></pre>
+    </div>
+  </div>
+
+</main>
+
+<!-- Snackbar -->
+<div x-show="toast" x-transition.opacity class="snack" x-text="toast" style="display:none"></div>
+
+<script>
+function diffApp() {
+  return {
+    tab: 'compare',
+    view: 'split',
+    editing: false,
+    ignoreWs: false, ignoreCase: false, ignoreBlank: false,
+    foldContext: 3, patchContext: 3,
+    expanded: {},
+    filename: 'fetchUser.js',
+    original: `import { api } from './client';
+
+export async function fetchUser(id) {
+  const res = await api.get('/users/' + id);
+  if (res.status !== 200) {
+    throw new Error('Request failed');
+  }
+  const data = res.body;
+  const profile = data.profile || {};
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+  };
+}
+
+export function clearCache() {
+  cache.clear();
+}`,
+    modified: `import { api } from './client';
+import { logger } from './logger';
+
+export async function fetchUser(id, opts = {}) {
+  const res = await api.get(\`/users/\${id}\`, opts);
+  if (!res.ok) {
+    logger.warn('fetchUser failed', { id, status: res.status });
+    throw new ApiError('Request failed', res.status);
+  }
+  const data = await res.json();
+  const profile = data.profile || {};
+  return {
+    id: data.id,
+    name: data.fullName,
+    email: data.email,
+    avatar: data.avatarUrl,
+  };
+}
+
+export function clearCache() {
+  cache.clear();
+}`,
+    rows: [], unified: [], patch: '', patchLines: [],
+    stats: { add: 0, del: 0, sim: 100 },
+    numChanges: 0, curChange: 0,
+    applySource: '', applyPatchText: '', applyResult: null, applyError: '',
+    toast: '', _toastT: null,
+
+    async init() {
+      await this.loadFromHash();
+      this.applySource = this.original;
+      this.compute();
+      this.genPatch();
+    },
+
+    esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+    key(s) { let v = s; if (this.ignoreWs) v = v.replace(/\s+/g,' ').trim(); if (this.ignoreCase) v = v.toLowerCase(); return v; },
+    sign(t) { return t==='add' ? '+' : t==='del' ? '−' : ''; },
+    onEdit() { this.compute(); this.genPatch(); },
+    swap() { [this.original, this.modified] = [this.modified, this.original]; this.compute(); this.genPatch(); },
+
+    lcsDiff(a, b) {
+      const n = a.length, m = b.length;
+      const dp = Array.from({length: n+1}, () => new Int32Array(m+1));
+      for (let i = n-1; i >= 0; i--)
+        for (let j = m-1; j >= 0; j--)
+          dp[i][j] = a[i] === b[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+      const ops = []; let i = 0, j = 0;
+      while (i < n && j < m) {
+        if (a[i] === b[j]) { ops.push({type:'eq', a:i, b:j}); i++; j++; }
+        else if (dp[i+1][j] >= dp[i][j+1]) { ops.push({type:'del', a:i}); i++; }
+        else { ops.push({type:'add', b:j}); j++; }
+      }
+      while (i < n) ops.push({type:'del', a:i++});
+      while (j < m) ops.push({type:'add', b:j++});
+      return ops;
+    },
+
+    wordDiff(o, m) {
+      const split = s => s.split(/(\s+)/);
+      const oa = split(o), ma = split(m);
+      const ops = this.lcsDiff(oa, ma);
+      let lh = '', rh = '';
+      for (const op of ops) {
+        if (op.type === 'eq') { lh += this.esc(oa[op.a]); rh += this.esc(ma[op.b]); }
+        else if (op.type === 'del') lh += `<span class="w-del">${this.esc(oa[op.a])}</span>`;
+        else rh += `<span class="w-add">${this.esc(ma[op.b])}</span>`;
+      }
+      return { lh, rh };
+    },
+
+    compute() {
+      // optional blank-line filtering, keeping original line numbers via index maps
+      let aAll = this.original.split('\n'), bAll = this.modified.split('\n');
+      let a = aAll, b = bAll, aIdx = aAll.map((_,i)=>i), bIdx = bAll.map((_,i)=>i);
+      if (this.ignoreBlank) {
+        a = []; aIdx = []; aAll.forEach((l,i)=>{ if (l.trim() !== '') { a.push(l); aIdx.push(i); } });
+        b = []; bIdx = []; bAll.forEach((l,i)=>{ if (l.trim() !== '') { b.push(l); bIdx.push(i); } });
+      }
+      const ops = this.lcsDiff(a.map(s=>this.key(s)), b.map(s=>this.key(s)));
+      const n = ops.length;
+      // which ops to keep unfolded (changes + context)
+      const keep = new Array(n).fill(false);
+      for (let i = 0; i < n; i++)
+        if (ops[i].type !== 'eq')
+          for (let d = -this.foldContext; d <= this.foldContext; d++) { const p = i+d; if (p>=0 && p<n) keep[p] = true; }
+
+      const rows = [], unified = [];
+      let eqCount = 0, add = 0, del = 0, changeIdx = 0;
+      let k = 0;
+      while (k < n) {
+        const op = ops[k];
+        if (op.type === 'eq') {
+          if (keep[k]) {
+            const t = this.esc(a[op.a]);
+            rows.push({ left:{n:aIdx[op.a]+1,type:'eq',html:t}, right:{n:bIdx[op.b]+1,type:'eq',html:t} });
+            unified.push({ ln:aIdx[op.a]+1, rn:bIdx[op.b]+1, type:'eq', html:t });
+            eqCount++; k++;
+          } else {
+            const s = k; while (k < n && ops[k].type === 'eq' && !keep[k]) { eqCount++; k++; }
+            const id = 'g' + s, count = k - s;
+            if (this.expanded[id]) {
+              for (let q = s; q < k; q++) {
+                const t = this.esc(a[ops[q].a]);
+                rows.push({ left:{n:aIdx[ops[q].a]+1,type:'eq',html:t}, right:{n:bIdx[ops[q].b]+1,type:'eq',html:t} });
+                unified.push({ ln:aIdx[ops[q].a]+1, rn:bIdx[ops[q].b]+1, type:'eq', html:t });
+              }
+            } else {
+              rows.push({ gap:true, id, count });
+              unified.push({ gap:true, id, count });
+            }
+          }
+        } else {
+          const dels = [], adds = [];
+          while (k < n && ops[k].type === 'del') dels.push(ops[k++]);
+          while (k < n && ops[k].type === 'add') adds.push(ops[k++]);
+          const anchor = 'chg' + changeIdx; changeIdx++;
+          const max = Math.max(dels.length, adds.length); const addLines = [];
+          for (let r = 0; r < max; r++) {
+            const d = dels[r], ad = adds[r];
+            let lhtml = d ? this.esc(a[d.a]) : '', rhtml = ad ? this.esc(b[ad.b]) : '';
+            if (d && ad) { const w = this.wordDiff(a[d.a], b[ad.b]); lhtml = w.lh; rhtml = w.rh; }
+            rows.push({
+              anchor: r===0 ? anchor : undefined,
+              left: d ? {n:aIdx[d.a]+1,type:'del',html:lhtml} : {n:'',type:'empty',html:''},
+              right: ad ? {n:bIdx[ad.b]+1,type:'add',html:rhtml} : {n:'',type:'empty',html:''}
+            });
+            if (d) { unified.push({ anchor: (r===0?anchor:undefined), ln:aIdx[d.a]+1, rn:'', type:'del', html:lhtml }); del++; }
+            if (ad) { addLines.push({ ln:'', rn:bIdx[ad.b]+1, type:'add', html:rhtml }); add++; }
+          }
+          if (!dels.length && addLines.length) addLines[0].anchor = anchor;
+          unified.push(...addLines);
+        }
+      }
+      const total = a.length + b.length;
+      this.rows = rows; this.unified = unified;
+      this.numChanges = changeIdx; this.curChange = changeIdx ? Math.min(this.curChange, changeIdx-1) : 0;
+      this.stats = { add, del, sim: total ? Math.round(2*eqCount/total*100) : 100 };
+    },
+
+    expand(id) { this.expanded[id] = true; this.compute(); },
+    goChange(dir) {
+      if (!this.numChanges) return;
+      this.curChange = (this.curChange + dir + this.numChanges) % this.numChanges;
+      const el = document.getElementById('chg' + this.curChange);
+      if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+    },
+
+    // ---------- PATCH ----------
+    tagged(a, b, ops) {
+      let oi = 0, ni = 0; const t = [];
+      for (const op of ops) {
+        if (op.type === 'eq') { t.push({tag:' ', old:oi, new:ni, text:a[op.a]}); oi++; ni++; }
+        else if (op.type === 'del') { t.push({tag:'-', old:oi, new:null, text:a[op.a]}); oi++; }
+        else { t.push({tag:'+', old:null, new:ni, text:b[op.b]}); ni++; }
+      }
+      return t;
+    },
+    genPatch() {
+      const a = this.original.split('\n'), b = this.modified.split('\n');
+      const ctx = this.patchContext;
+      const t = this.tagged(a, b, this.lcsDiff(a, b));
+      const n = t.length;
+      let out = '';
+      if (t.some(x => x.tag !== ' ')) {
+        const keep = new Array(n).fill(false);
+        for (let i = 0; i < n; i++)
+          if (t[i].tag !== ' ')
+            for (let d = -ctx; d <= ctx; d++) { const p = i+d; if (p>=0 && p<n) keep[p] = true; }
+        const lines = [`--- a/${this.filename}`, `+++ b/${this.filename}`];
+        let i = 0;
+        while (i < n) {
+          if (!keep[i]) { i++; continue; }
+          const s = i; while (i < n && keep[i]) i++;
+          let oldStart=null, newStart=null, oc=0, nc=0; const body=[];
+          for (let q = s; q < i; q++) {
+            const x = t[q];
+            if (x.tag===' '||x.tag==='-') { if (oldStart===null) oldStart=x.old; oc++; }
+            if (x.tag===' '||x.tag==='+') { if (newStart===null) newStart=x.new; nc++; }
+            body.push((x.tag===' '?' ':x.tag)+x.text);
+          }
+          if (oldStart===null) oldStart = s>0 ? t[s-1].old+1 : 0;
+          if (newStart===null) newStart = s>0 ? t[s-1].new+1 : 0;
+          lines.push(`@@ -${oldStart+1},${oc} +${newStart+1},${nc} @@`);
+          lines.push(...body);
+        }
+        out = lines.join('\n') + '\n';
+      }
+      this.patch = out;
+      this.patchLines = (out ? out.split('\n') : ['(files are identical)']).map(text => {
+        let cls = '';
+        if (text.startsWith('--- ') || text.startsWith('+++ ')) cls = 'meta';
+        else if (text.startsWith('@@')) cls = 'hunk';
+        else if (text.startsWith('+')) cls = 'add';
+        else if (text.startsWith('-')) cls = 'del';
+        return { text, cls };
+      });
+    },
+
+    applyPatch(srcText, patchText) {
+      const src = srcText.split('\n'); const out = []; let si = 0;
+      const lines = patchText.split('\n'); let li = 0; let hunks = 0;
+      while (li < lines.length) {
+        const L = lines[li];
+        if (L.startsWith('@@')) {
+          hunks++;
+          const m = L.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+          if (!m) throw new Error('Malformed hunk header');
+          const oldStart = parseInt(m[1]) - 1;
+          while (si < oldStart) out.push(src[si++]);
+          li++;
+          while (li < lines.length && !lines[li].startsWith('@@') && !lines[li].startsWith('--- ') && !lines[li].startsWith('+++ ')) {
+            const pl = lines[li];
+            if (pl === '') { li++; continue; }
+            const tag = pl[0], txt = pl.slice(1);
+            if (tag === ' ') { out.push(src[si]); si++; }
+            else if (tag === '-') { si++; }
+            else if (tag === '+') { out.push(txt); }
+            else throw new Error('Unexpected line: ' + pl.slice(0,20));
+            li++;
+          }
+        } else li++;
+      }
+      if (!hunks) throw new Error('No hunks found in patch');
+      while (si < src.length) out.push(src[si++]);
+      return out.join('\n');
+    },
+    doApply() {
+      this.applyError = ''; this.applyResult = null;
+      try { this.applyResult = this.applyPatch(this.applySource, this.applyPatchText); }
+      catch (e) { this.applyError = e.message; }
+    },
+    useResult() {
+      this.original = this.applySource; this.modified = this.applyResult;
+      this.tab = 'compare'; this.compute(); this.genPatch(); this.showToast('Loaded into Compare');
+    },
+
+    // ---------- SERIALIZATION ----------
+    b64urlEncode(bytes) { let s=''; for (const x of bytes) s+=String.fromCharCode(x); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); },
+    b64urlDecode(str) { str=str.replace(/-/g,'+').replace(/_/g,'/'); while (str.length%4) str+='='; const s=atob(str); const b=new Uint8Array(s.length); for (let i=0;i<s.length;i++) b[i]=s.charCodeAt(i); return b; },
+    async gzipB64(str) { const stream=new Blob([str]).stream().pipeThrough(new CompressionStream('gzip')); const buf=await new Response(stream).arrayBuffer(); return this.b64urlEncode(new Uint8Array(buf)); },
+    async gunzipB64(b64) { const stream=new Blob([this.b64urlDecode(b64)]).stream().pipeThrough(new DecompressionStream('gzip')); return await new Response(stream).text(); },
+    state() { return { v:1, filename:this.filename, original:this.original, modified:this.modified,
+      options:{ view:this.view, ignoreWs:this.ignoreWs, ignoreCase:this.ignoreCase, ignoreBlank:this.ignoreBlank } }; },
+    loadState(o) {
+      if (!o || o.v !== 1) throw new Error('Unsupported file');
+      this.filename = o.filename || 'untitled.txt'; this.original = o.original || ''; this.modified = o.modified || '';
+      const op = o.options || {}; this.view = op.view || 'split';
+      this.ignoreWs = !!op.ignoreWs; this.ignoreCase = !!op.ignoreCase; this.ignoreBlank = !!op.ignoreBlank;
+    },
+    async loadFromHash() {
+      const h = location.hash;
+      if (h.startsWith('#d=')) {
+        try { this.loadState(JSON.parse(await this.gunzipB64(h.slice(3)))); } catch (e) { /* ignore bad hash */ }
+      }
+    },
+    async shareLink() {
+      const enc = await this.gzipB64(JSON.stringify(this.state()));
+      location.hash = 'd=' + enc;
+      try { await navigator.clipboard.writeText(location.href); this.showToast('Share link copied'); }
+      catch { this.showToast('Link in address bar'); }
+    },
+    saveJSON() { this.download(this.filename.replace(/\.[^.]+$/,'') + '.diff.json', JSON.stringify(this.state(), null, 2), 'application/json'); },
+    async openFile(e) {
+      const f = e.target.files[0]; if (!f) return;
+      const text = await f.text();
+      if (f.name.endsWith('.json')) { try { this.loadState(JSON.parse(text)); this.compute(); this.genPatch(); this.showToast('Comparison loaded'); } catch (err) { this.showToast('Invalid JSON'); } }
+      else { this.applyPatchText = text; this.applySource = this.original; this.tab = 'apply'; this.showToast('Patch loaded — review and Apply'); }
+      e.target.value = '';
+    },
+
+    // ---------- CLIPBOARD / DOWNLOAD ----------
+    copy(text) { navigator.clipboard?.writeText(text).catch(()=>{}); },
+    copyMarkdown() { this.copy('```diff\n' + this.patch + '```\n'); this.showToast('Markdown copied'); },
+    downloadPatch() { this.download(this.filename + '.patch', this.patch, 'text/x-patch'); },
+    download(name, text, mime) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+      a.download = name; a.click(); URL.revokeObjectURL(a.href);
+    },
+    showToast(msg) { this.toast = msg; clearTimeout(this._toastT); this._toastT = setTimeout(()=>this.toast='', 2200); },
+  };
+}
+</script>
+</body>
+</html>
