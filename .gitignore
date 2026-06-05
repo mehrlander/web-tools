@@ -1,3 +1,4 @@
 node_modules/
 tools/.preview/
+dist/
 package-lock.json
