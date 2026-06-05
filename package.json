@@ -5,6 +5,7 @@
     "preview": "node tools/preview.mjs",
     "shot": "node tools/screenshot.mjs",
     "build": "node tools/build.mjs",
+    "bake": "node tools/bake.mjs",
     "verify-build": "node tools/verify-build.mjs"
   },
   "devDependencies": {

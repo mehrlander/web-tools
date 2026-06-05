@@ -20,11 +20,16 @@ Everything here resolves the same two networks of dependencies to local files:
 | `npm run preview <page>` | **Logic** render under jsdom. DOM correctness + which `x-data` mounted. No pixels. (Pre-existing; resolves URLs inline.) |
 | `npm run shot <page> [--build] [--ref R] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
+| `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
 
 Shared internals: [`lib/cdn.mjs`](lib/cdn.mjs) (URL → local classification, used by
-the renderer) and [`lib/graph.mjs`](lib/graph.mjs) (static walk of a page's
-`gh.load`/`_selfLoad` graph, used by the build).
+the renderer), [`lib/graph.mjs`](lib/graph.mjs) (static walk of a page's
+`gh.load`/`_selfLoad` graph), and [`lib/kit-shim.mjs`](lib/kit-shim.mjs) (run a
+browser kit in Node). The build/bake *format* lives in
+[`../lib/kits/build.js`](../lib/kits/build.js) (`window.buildKit`) — one emitter
+shared by `build.mjs`/`bake.mjs` (Node, static cache) and `kits/bundle.js`
+(browser, runtime cache) so the two can't drift.
 
 Outputs land in `tools/.preview/` (PNG + a `.shot.log` listing intercepts,
 `__loadedScripts`, console, errors). `dist/` and `tools/.preview/` are gitignored.
@@ -81,18 +86,20 @@ things:
 - **build** — a snapshot of a page's own **code** graph → `dist/<page>.js` (this
   tool). `vanilla-bundle.js` / `alpine-bundle.js` keep "bundle" as hand-authored
   runtime grab-bags — distinct from a build-produced graph.
-- **bake** — inline a build into a page's HTML to get one standalone document. The
-  natural next artifact: `screenshot.mjs --build` already rewrites the loader import
-  to the local build, so the same transform writing HTML instead of a PNG produces a
-  baked page. Not built yet.
+- **bake** — inline a build into a page's HTML to get one standalone document.
+  `tools/bake.mjs` rewrites the page's `gh-api.js` import to a `data:` module
+  carrying the build, so the page boots with zero own-code network (verified
+  byte-identical to live on `sheet-modal-demo`).
 - **pack** — [`lib/kits/bundle.js`](../lib/kits/bundle.js)'s "page + the data it
-  `read()`s" zip (the FAB's "Download page + data"). Runtime, **data**-only today.
+  `read()`s" zip (the FAB's "Download page + data"). Runtime; **data** by default.
 
-**bake + pack compose** into a page that opens with no network at all: code inlined
-(bake) and data laid out local-first (pack). That composition — likely a "fully
-offline" mode on the FAB's existing button, sharing this tool's emit logic — is the
-real integration point, and is where the data-side naming (`window.bundle`) might
-move to a "pack" vocabulary. Left as its own step since it touches the shipped kit.
+**bake + pack compose** into a page that opens with no network at all — and now do:
+`kits/bundle.js`'s `{ offline: true }` mode (the FAB's **"Fully offline"** toggle)
+bakes the code in *and* lays the `read()` data out local-first, in one zip. The
+browser gathers the cache from `window.__loadedScripts` and calls the same
+`window.buildKit` emit/bake the Node tools use. (Open follow-up: the data-side
+naming `window.bundle` could still move to a "pack" vocabulary so "bundle" stops
+meaning two things; deferred to avoid churning the shipped kit further.)
 
 ## Extending
 
