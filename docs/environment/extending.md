@@ -45,10 +45,12 @@ Every web session begins from a fresh clone of this repo with nothing installed.
 - **`.claude/settings.json`** registers a `SessionStart` hook (it fires on a new session and on resume).
 - **`.claude/hooks/session-start.sh`** is the script it runs. It:
   1. **Exits immediately on a local machine.** It only does work when `CLAUDE_CODE_REMOTE=true`, i.e. in Claude Code on the web. Your laptop manages its own dependencies.
-  2. **Skips if the packages are already there.** If `node_modules/jsdom` and `node_modules/alpinejs` exist (e.g. a cached environment), it does nothing and exits. Safe to run any number of times.
-  3. **Otherwise runs `npm install`** — pulling the four devDependencies below.
+  2. **Skips if every declared devDependency is already there.** It reads the `devDependencies` from `package.json` and checks each has a `node_modules/<pkg>` dir; if all are present (e.g. a cached environment) it does nothing and exits. Safe to run any number of times. *(This check is derived from `package.json` on purpose: an earlier version hard-coded just `jsdom` + `alpinejs`, so once `playwright` and the vendored CDN libs were added a partially-populated cache slipped past the guard and left `npm run shot` broken.)*
+  3. **Otherwise runs `npm install`** — pulling the devDependencies below.
 
-**Why these dependencies exist.** The packages in `package.json` aren't shipped to users — the live pages load their UI libraries from CDNs at runtime. These four are **tooling for working on the repo**:
+**Why these dependencies exist.** The packages in `package.json` aren't shipped to users — the live pages load their UI libraries from CDNs at runtime. They're all **tooling for working on the repo**, in two groups.
+
+*Logic testing under jsdom* (the preview harness + the jsdom+Alpine recipe):
 
 | Package | What it's for |
 |---|---|
@@ -57,7 +59,14 @@ Every web session begins from a fresh clone of this repo with nothing installed.
 | `fake-indexeddb` | An in-memory IndexedDB, so storage-backed code runs under Node. |
 | `idb-keyval` | The tiny IndexedDB wrapper several kits use; needed when exercising them. |
 
-They power two jobs: the **preview harness** (`npm run preview <page-path>`, `tools/preview.mjs`) that loads a page under jsdom and reports which Alpine components mounted, and the **jsdom + Alpine logic tests** (the recipe in [testing.md](testing.md)) for driving a component with the real Alpine runtime and asserting on its state.
+*Headless render + build* (the [`tools/`](../../tools/) harness — `npm run shot` / `build` / `bake` / `verify-build`), which serves the working tree over loopback and intercepts every CDN request to a local file:
+
+| Package | What it's for |
+|---|---|
+| `playwright` | Drives the pre-installed Chromium for real-pixel screenshots. **Pinned to `1.56.0`** — build 1194 of the on-disk browser only matches `playwright@1.56.x` (see [capabilities.md](capabilities.md)); a floating `^` range drifts to a client that errors with "executable doesn't exist". |
+| `@tailwindcss/browser`, `@tailwindcss/typography`, `daisyui`, `@phosphor-icons/web`, `@alpinejs/collapse`, `@alpinejs/sort` | npm copies of the UI libraries the pages pull from jsDelivr/unpkg at runtime, so [`tools/lib/cdn.mjs`](../../tools/lib/cdn.mjs) can vendor each blocked CDN request from `node_modules` instead. |
+
+These power three jobs: the **preview harness** (`npm run preview <page-path>`, `tools/preview.mjs`) that loads a page under jsdom and reports which Alpine components mounted; the **headless render/build tools** (`tools/`, see [testing.md](testing.md) and [`tools/README.md`](../../tools/README.md)); and the **jsdom + Alpine logic tests** (the recipe in [testing.md](testing.md)) for driving a component with the real Alpine runtime and asserting on its state.
 
 **Notes:**
 
