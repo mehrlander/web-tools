@@ -62,7 +62,9 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   errors under `tools/.preview/`. *(verified 2026-06-05: `sheet-modal-demo`,
   `cross-repo-read-demo`, `fab-sidebar-test` all rendered with the full chain and
   zero errors.)* The jsdom logic-level twin is `npm run preview`. See
-  [`tools/README.md`](../../tools/README.md) for the bundle/verify companions.
+  [`tools/README.md`](../../tools/README.md) for the build/verify companions
+  (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
+  render through it).
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new

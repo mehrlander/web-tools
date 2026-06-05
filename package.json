@@ -4,8 +4,8 @@
   "scripts": {
     "preview": "node tools/preview.mjs",
     "shot": "node tools/screenshot.mjs",
-    "bundle": "node tools/bundle.mjs",
-    "verify-bundle": "node tools/verify-bundle.mjs"
+    "build": "node tools/build.mjs",
+    "verify-build": "node tools/verify-build.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",

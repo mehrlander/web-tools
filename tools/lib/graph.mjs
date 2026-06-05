@@ -6,7 +6,7 @@
 // returns the *set* of own-repo files the page can reach — every lib/* the
 // runtime loader would request.
 //
-// Order doesn't matter to the consumer (tools/bundle.mjs keys a flat
+// Order doesn't matter to the consumer (tools/build.mjs keys a flat
 // path -> source cache that gh.get looks up; execution order is decided at
 // runtime by the actual gh.load calls), so this collects a set, not a sequence.
 //
@@ -62,7 +62,7 @@ export function readPageBoot(repoRoot, pagePath) {
 export function buildGraph(repoRoot, pagePath) {
   const { isGhBooted, loads, defaultRef } = readPageBoot(repoRoot, pagePath);
   if (!isGhBooted) {
-    throw new Error(`${pagePath} has no gh-api.js boot block — not a gh.load page, nothing to bundle.`);
+    throw new Error(`${pagePath} has no gh-api.js boot block — not a gh.load page, nothing to build.`);
   }
 
   const seeds = [...new Set([...IMPLICIT_SEED, ...loads])];

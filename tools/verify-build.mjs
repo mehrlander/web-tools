@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Prove a page's dist bundle renders identically to its live gh.load chain.
+// Prove a page's dist build renders identically to its live gh.load chain.
 //
-//   node tools/verify-bundle.mjs <page-path>
+//   node tools/verify-build.mjs <page-path>
 //
 // Builds dist/<page>.js, renders the page twice with tools/screenshot.mjs —
-// once live (own code via the gh.load chain), once through the bundle — and
+// once live (own code via the gh.load chain), once through the build — and
 // checks three things:
 //   1. both render with zero page errors,
 //   2. the set of own-code scripts that loaded ok is identical,
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagePath = process.argv[2];
 if (!pagePath) {
-  console.error('Usage: node tools/verify-bundle.mjs <page-path>');
+  console.error('Usage: node tools/verify-build.mjs <page-path>');
   process.exit(2);
 }
 const baseName = path.basename(pagePath, path.extname(pagePath));
@@ -49,29 +49,29 @@ async function okScripts(logPath) {
 }
 
 console.log(`[1/3] building dist/${baseName}.js`);
-run('node', ['tools/bundle.mjs', pagePath]);
+run('node', ['tools/build.mjs', pagePath]);
 
 console.log(`[2/3] rendering live`);
 run('node', ['tools/screenshot.mjs', pagePath]);
 
-console.log(`[3/3] rendering via bundle`);
-run('node', ['tools/screenshot.mjs', pagePath, '--bundle']);
+console.log(`[3/3] rendering via build`);
+run('node', ['tools/screenshot.mjs', pagePath, '--build']);
 
 const livePng = path.join(repoRoot, 'tools/.preview', `${baseName}.png`);
-const bundlePng = path.join(repoRoot, 'tools/.preview', `${baseName}.bundle.png`);
+const builtPng = path.join(repoRoot, 'tools/.preview', `${baseName}.build.png`);
 const liveLog = path.join(repoRoot, 'tools/.preview', `${baseName}.shot.log`);
-const bundleLog = path.join(repoRoot, 'tools/.preview', `${baseName}.bundle.shot.log`);
+const builtLog = path.join(repoRoot, 'tools/.preview', `${baseName}.build.shot.log`);
 
 const checks = [];
-for (const p of [livePng, bundlePng]) if (!existsSync(p)) checks.push(`missing render: ${path.relative(repoRoot, p)}`);
+for (const p of [livePng, builtPng]) if (!existsSync(p)) checks.push(`missing render: ${path.relative(repoRoot, p)}`);
 
-const [liveScripts, bundleScripts] = await Promise.all([okScripts(liveLog), okScripts(bundleLog)]);
-const scriptsEqual = liveScripts.length && JSON.stringify(liveScripts) === JSON.stringify(bundleScripts);
-if (!scriptsEqual) checks.push(`loadedScripts differ:\n  live:   ${liveScripts.join(', ')}\n  bundle: ${bundleScripts.join(', ')}`);
+const [liveScripts, builtScripts] = await Promise.all([okScripts(liveLog), okScripts(builtLog)]);
+const scriptsEqual = liveScripts.length && JSON.stringify(liveScripts) === JSON.stringify(builtScripts);
+if (!scriptsEqual) checks.push(`loadedScripts differ:\n  live:  ${liveScripts.join(', ')}\n  build: ${builtScripts.join(', ')}`);
 
-const [a, b] = await Promise.all([md5(livePng), md5(bundlePng)]);
+const [a, b] = await Promise.all([md5(livePng), md5(builtPng)]);
 const pixelsEqual = a === b;
-if (!pixelsEqual) checks.push(`PNGs differ: live=${a} bundle=${b}`);
+if (!pixelsEqual) checks.push(`PNGs differ: live=${a} build=${b}`);
 
 console.log('');
 console.log(`page:           ${pagePath}`);
@@ -82,4 +82,4 @@ if (checks.length) {
   console.log(`\nFAIL:\n- ${checks.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`\nPASS — bundle renders identically to the live gh.load chain.`);
+console.log(`\nPASS — build renders identically to the live gh.load chain.`);

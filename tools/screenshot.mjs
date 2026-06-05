@@ -2,7 +2,7 @@
 // Pixel sibling of tools/preview.mjs: render a repo page to a real PNG with the
 // pre-installed Chromium, headlessly, in this network-restricted sandbox.
 //
-//   node tools/screenshot.mjs <page-path> [--bundle] [--ref <ref>]
+//   node tools/screenshot.mjs <page-path> [--build] [--ref <ref>]
 //       [--out <png>] [--width N] [--height N] [--wait MS] [--full]
 //
 // The page is served from the on-disk working tree over loopback; every external
@@ -11,9 +11,9 @@
 // libs (Tailwind/daisyUI/Phosphor/Alpine) to node_modules. So the real gh.load
 // chain runs unmodified against branch code, with no GitHub token.
 //
-// --bundle renders the page through its dist/<page>.js instead of the live
-// gh.load chain (build it first with tools/bundle.mjs): the page's jsDelivr
-// gh-api.js import is rewritten to the local bundle. Used by tools/verify-bundle.mjs
+// --build renders the page through its dist/<page>.js instead of the live
+// gh.load chain (build it first with tools/build.mjs): the page's jsDelivr
+// gh-api.js import is rewritten to the local build. Used by tools/verify-build.mjs
 // to prove the two render identically.
 //
 // Output PNG + a render log land under tools/.preview/ (gitignored) by default.
@@ -29,12 +29,12 @@ import { resolveCdn, typeFor } from './lib/cdn.mjs';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const o = { full: false, bundle: false, width: 1280, height: 800, wait: 2500, ref: null, out: null };
+  const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, out: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--full') o.full = true;
-    else if (a === '--bundle') o.bundle = true;
+    else if (a === '--build') o.build = true;
     else if (a === '--ref') o.ref = argv[++i];
     else if (a === '--out') o.out = argv[++i];
     else if (a === '--width') o.width = +argv[++i];
@@ -48,7 +48,7 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.page) {
-  console.error('Usage: node tools/screenshot.mjs <page-path> [--bundle] [--ref <ref>] [--out <png>] [--full]');
+  console.error('Usage: node tools/screenshot.mjs <page-path> [--build] [--ref <ref>] [--out <png>] [--full]');
   process.exit(2);
 }
 const pageAbs = path.join(repoRoot, opts.page);
@@ -60,22 +60,22 @@ if (!existsSync(pageAbs)) {
 const baseName = path.basename(opts.page, path.extname(opts.page));
 const outDir = path.join(repoRoot, 'tools', '.preview');
 await mkdir(outDir, { recursive: true });
-const suffix = opts.bundle ? '.bundle' : '';
+const suffix = opts.build ? '.build' : '';
 const pngPath = opts.out ? path.resolve(repoRoot, opts.out) : path.join(outDir, `${baseName}${suffix}.png`);
 const logPath = path.join(outDir, `${baseName}${suffix}.shot.log`);
 
-// In --bundle mode, rewrite the page's jsDelivr gh-api.js import to the local
-// dist bundle so the page boots offline from cache instead of the gh.load chain.
+// In --build mode, rewrite the page's jsDelivr gh-api.js import to the local
+// dist build so the page boots offline from cache instead of the gh.load chain.
 function transformPage(html) {
-  if (!opts.bundle) return html;
-  const bundleRel = `/dist/${baseName}.js`;
+  if (!opts.build) return html;
+  const buildRel = `/dist/${baseName}.js`;
   if (!existsSync(path.join(repoRoot, 'dist', `${baseName}.js`))) {
-    throw new Error(`--bundle: dist/${baseName}.js not found; run: node tools/bundle.mjs ${opts.page}`);
+    throw new Error(`--build: dist/${baseName}.js not found; run: node tools/build.mjs ${opts.page}`);
   }
-  // Replace the dynamic import of gh-api.js (any ref/template form) with the bundle.
+  // Replace the dynamic import of gh-api.js (any ref/template form) with the build.
   const re = /(['"`])https:\/\/cdn\.jsdelivr\.net\/gh\/mehrlander\/web-tools[^'"`]*\/lib\/gh-api\.js\1/g;
-  if (!re.test(html)) throw new Error('--bundle: no gh-api.js jsDelivr import found in page to rewrite');
-  return html.replace(re, JSON.stringify(bundleRel));
+  if (!re.test(html)) throw new Error('--build: no gh-api.js jsDelivr import found in page to rewrite');
+  return html.replace(re, JSON.stringify(buildRel));
 }
 
 // Loopback static server rooted at the repo. The target page is transformed in
@@ -147,7 +147,7 @@ const okScripts = loadedScripts.filter(s => s.status === 'ok').map(s => s.path);
 const badScripts = loadedScripts.filter(s => s.status !== 'ok');
 
 const summary = [
-  `=== screenshot: ${opts.page}${opts.bundle ? ' [bundle]' : ''}${opts.ref ? ` @ ${opts.ref}` : ''} ===`,
+  `=== screenshot: ${opts.page}${opts.build ? ' [build]' : ''}${opts.ref ? ` @ ${opts.ref}` : ''} ===`,
   `png: ${path.relative(repoRoot, pngPath)}`,
   `requests: fulfill=${tally.fulfill} empty=${tally.empty} continue=${tally.continue}`,
   '',
