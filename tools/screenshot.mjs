@@ -22,14 +22,14 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from './lib/cdn.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, out: null };
+  const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, out: null, script: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -40,6 +40,7 @@ function parseArgs(argv) {
     else if (a === '--width') o.width = +argv[++i];
     else if (a === '--height') o.height = +argv[++i];
     else if (a === '--wait') o.wait = +argv[++i];
+    else if (a === '--script') o.script = argv[++i];
     else rest.push(a);
   }
   o.page = rest[0];
@@ -48,7 +49,7 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.page) {
-  console.error('Usage: node tools/screenshot.mjs <page-path> [--build] [--ref <ref>] [--out <png>] [--full]');
+  console.error('Usage: node tools/screenshot.mjs <page-path> [--build] [--ref <ref>] [--script <file>] [--out <png>] [--full]');
   process.exit(2);
 }
 const pageAbs = path.join(repoRoot, opts.page);
@@ -60,7 +61,8 @@ if (!existsSync(pageAbs)) {
 const baseName = path.basename(opts.page, path.extname(opts.page));
 const outDir = path.join(repoRoot, 'tools', '.preview');
 await mkdir(outDir, { recursive: true });
-const suffix = opts.build ? '.build' : '';
+const scriptName = opts.script ? '.' + path.basename(opts.script, path.extname(opts.script)) : '';
+const suffix = (opts.build ? '.build' : '') + scriptName;
 const pngPath = opts.out ? path.resolve(repoRoot, opts.out) : path.join(outDir, `${baseName}${suffix}.png`);
 const logPath = path.join(outDir, `${baseName}${suffix}.shot.log`);
 
@@ -135,6 +137,17 @@ try {
   await page.waitForTimeout(opts.wait);
   loadedScripts = await page.evaluate(() =>
     (window.__loadedScripts || []).map(s => ({ path: s.path, status: s.status }))).catch(() => []);
+  // Optional interaction step: drive the page into a state (open a drawer, toggle,
+  // resize) before shooting. The script default-exports async (page, ctx) => {}.
+  if (opts.script) {
+    const scriptAbs = path.resolve(repoRoot, opts.script);
+    if (!existsSync(scriptAbs)) throw new Error(`--script not found: ${opts.script}`);
+    const mod = await import(pathToFileURL(scriptAbs).href);
+    const fn = mod.default;
+    if (typeof fn !== 'function') throw new Error(`--script ${opts.script} must default-export an async (page) => {} function`);
+    await fn(page, { repoRoot });
+    log.push(`script ${opts.script}`);
+  }
   await page.screenshot({ path: pngPath, fullPage: opts.full });
 } catch (e) {
   errorLines.push(`[fatal] ${e.message}`);

@@ -18,7 +18,7 @@ Everything here resolves the same two networks of dependencies to local files:
 | Command | What it does |
 |---|---|
 | `npm run preview <page>` | **Logic** render under jsdom. DOM correctness + which `x-data` mounted. No pixels. (Pre-existing; resolves URLs inline.) |
-| `npm run shot <page> [--build] [--ref R] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). |
+| `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
@@ -33,6 +33,28 @@ shared by `build.mjs`/`bake.mjs` (Node, static cache) and `kits/export.js`
 
 Outputs land in `tools/.preview/` (PNG + a `.shot.log` listing intercepts,
 `__loadedScripts`, console, errors). `dist/` and `tools/.preview/` are gitignored.
+
+### Driving state before the shot (`--script`)
+
+`--script <file.mjs>` runs an interaction step after the page settles, so a render
+can capture a *state* — a drawer open, a toggle ticked, a breakpoint — not just the
+landing view. The file default-exports `async (page, ctx) => {}` and gets the
+Playwright `page` (`ctx.repoRoot` too). Scenarios live in
+[`tools/scenarios/`](scenarios/); the PNG/log pick up the scenario name in their
+suffix. Example — the FAB's Export controls, opened to the Render tab with "Fully
+offline" ticked:
+
+```
+npm run shot pages/sheet-modal-demo.html \
+  -- --script tools/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
+```
+
+Two harness facts a scenario sometimes has to work around (the FAB one does both):
+the FAB opens via pointer drag/tap physics that synthetic input doesn't drive
+reliably, and its render-tab content is gated by `<template x-if="path">` where
+`path` is inferred from a `*.github.io` URL (empty on the `127.0.0.1` loopback). So
+a scenario may set component state through `window.Alpine.$data(host)` to reach the
+state a real Pages URL would have, then exercise the actual control via the UI.
 
 ## Where "the build" sits — and why it stays off the dev path
 
