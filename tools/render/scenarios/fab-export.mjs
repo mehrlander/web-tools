@@ -1,7 +1,7 @@
 // screenshot.mjs interaction scenario: show the FAB's Export controls.
 //
-//   node tools/screenshot.mjs pages/sheet-modal-demo.html \
-//     --script tools/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
+//   node tools/render/screenshot.mjs pages/sheet-modal-demo.html \
+//     --script tools/render/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
 //
 // The FAB opens via pointer-based drag/tap detection (onUp) with a 300ms slide,
 // which synthetic input doesn't drive reliably and isn't what we're proving — and

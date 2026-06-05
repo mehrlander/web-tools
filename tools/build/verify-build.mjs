@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Prove a page's dist build renders identically to its live gh.load chain.
 //
-//   node tools/verify-build.mjs <page-path>
+//   node tools/build/verify-build.mjs <page-path>
 //
-// Builds dist/<page>.js, renders the page twice with tools/screenshot.mjs —
+// Builds dist/<page>.js, renders the page twice with tools/render/screenshot.mjs —
 // once live (own code via the gh.load chain), once through the build — and
 // checks three things:
 //   1. both render with zero page errors,
@@ -18,10 +18,10 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const pagePath = process.argv[2];
 if (!pagePath) {
-  console.error('Usage: node tools/verify-build.mjs <page-path>');
+  console.error('Usage: node tools/build/verify-build.mjs <page-path>');
   process.exit(2);
 }
 const baseName = path.basename(pagePath, path.extname(pagePath));
@@ -49,13 +49,13 @@ async function okScripts(logPath) {
 }
 
 console.log(`[1/3] building dist/${baseName}.js`);
-run('node', ['tools/build.mjs', pagePath]);
+run('node', ['tools/build/build.mjs', pagePath]);
 
 console.log(`[2/3] rendering live`);
-run('node', ['tools/screenshot.mjs', pagePath]);
+run('node', ['tools/render/screenshot.mjs', pagePath]);
 
 console.log(`[3/3] rendering via build`);
-run('node', ['tools/screenshot.mjs', pagePath, '--build']);
+run('node', ['tools/render/screenshot.mjs', pagePath, '--build']);
 
 const livePng = path.join(repoRoot, 'tools/.preview', `${baseName}.png`);
 const builtPng = path.join(repoRoot, 'tools/.preview', `${baseName}.build.png`);

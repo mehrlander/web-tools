@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bake a page's gh.load chain inline -> a standalone dist/<page>.html.
 //
-//   node tools/bake.mjs <page-path>             -> dist/<page>.html
+//   node tools/build/bake.mjs <page-path>             -> dist/<page>.html
 //
 // The Node twin of the FAB's "Fully offline" mode: same shared emit + bake
 // (lib/kits/build.js), fed by the static graph instead of runtime __loadedScripts.
@@ -13,15 +13,15 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildGraph } from './lib/graph.mjs';
-import { loadKit } from './lib/kit-shim.mjs';
+import { buildGraph } from './graph.mjs';
+import { loadKit } from './kit-shim.mjs';
 
 const REPO = 'mehrlander/web-tools';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const arg = process.argv[2];
 if (!arg) {
-  console.error('Usage: node tools/bake.mjs <page-path>');
+  console.error('Usage: node tools/build/bake.mjs <page-path>');
   process.exit(2);
 }
 

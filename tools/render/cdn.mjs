@@ -17,8 +17,8 @@
 //   { kind:'continue' }                    an allowed host (fonts, APIs): let it
 //                                          go to the network unchanged
 //
-// Used by tools/screenshot.mjs (Playwright route) and reusable by any future
-// pixel/preview tool. The logic-level twin lives inline in tools/preview.mjs.
+// Used by tools/render/screenshot.mjs (Playwright route) and reusable by any future
+// pixel/preview tool. The logic-level twin lives inline in tools/render/preview.mjs.
 
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';

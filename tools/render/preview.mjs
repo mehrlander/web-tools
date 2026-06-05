@@ -7,7 +7,7 @@
 // by their component's init().
 //
 // Usage:
-//   node tools/preview.mjs <page-path>
+//   node tools/render/preview.mjs <page-path>
 //
 // Outputs (HTML dump + log) land under tools/.preview/ (gitignored).
 
@@ -22,11 +22,11 @@ import * as idbKeyval from 'idb-keyval';
 const { JSDOM, VirtualConsole, requestInterceptor } = jsdomPkg;
 
 const REPO = 'mehrlander/web-tools';
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const arg = process.argv[2];
 if (!arg) {
-  console.error('Usage: node tools/preview.mjs <page-path>');
+  console.error('Usage: node tools/render/preview.mjs <page-path>');
   process.exit(2);
 }
 const pageAbs = path.resolve(repoRoot, arg);

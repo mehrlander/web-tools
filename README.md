@@ -208,12 +208,19 @@ The same handful of concerns drove every piece of it:
   `vanilla-bundle.js`, alongside the Alpine directive equivalents
   (`x-tip`, `x-btn`, …) in `alpine-bundle.js`.
 
-Two docs go deeper:
+Three docs go deeper:
 
-- **[SCAFFOLDING.md](docs/SCAFFOLDING.md)**: the loader contract. The canonical
+- **[loader.md](docs/loader.md)**: the loader contract. The canonical
   `<head>` block, what each piece contributes (`lib/gh-api.js`, `lib/gh-fetch.js`,
   `lib/gh-store.js`, `lib/gh-auth.js`, `lib/alpine-bundle.js`), how `gh.load()`
-  works, the timing rules, the footgun list.
+  works, the timing rules, the footgun list — and how that same contract lets a
+  page be frozen into an offline **build**.
+- **[tools/README.md](tools/README.md)**: the Node harness under `tools/` —
+  [`render/`](tools/render/) (headless jsdom + Chromium rendering of a page,
+  offline, for screenshots and logic checks) and [`build/`](tools/build/) (the
+  `load → build → bake → export` pipeline that snapshots a page's `gh.load`
+  chain into a standalone offline artifact, with a byte-identical `verify-build`
+  check).
 - **[lib/kits/README.md](lib/kits/README.md)**: the logic libraries (`compression`,
   `persistence`, `messaging`, `io`, `data-shelf`). What each one
   exposes on `window`, with usage examples.
@@ -253,7 +260,7 @@ Recent pages that make good templates:
 
 - **Use a tool.** Pick from the outputs above. Each page or popup is a
   single URL; each bookmarklet is a one-time install.
-- **Build a tool.** Read [SCAFFOLDING.md](docs/SCAFFOLDING.md), copy one of the
+- **Build a tool.** Read [loader.md](docs/loader.md), copy one of the
   template pages, edit the `gh.load(...)` list for the kits and components
   you need, write your `x-data` factory in an inline `<script>`. The kits
   and components are your library, not a separate path.

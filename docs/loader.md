@@ -1,25 +1,36 @@
-# web-tools scaffolding — loader contract and extension notes
+# The loader — contract and extension notes
 
-The repo currently has two tiers of pages:
+Most pages here load their own code at runtime instead of shipping a bundle:
+a page imports `gh-api.js`, then calls `gh.load(...)` for each component and
+kit it needs, and each file is fetched (through the GitHub contents API) and
+run on the spot. There is no build step in the authoring loop — edit a file
+in `lib/`, reload, and the next run uses it.
+
+The repo has two tiers of pages:
 
 - **Simple pages** (`pages/index.html`, `bookmarklets-story.html`,
   `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
-  then an inline `<script>` with the page's Alpine components. No shared
-  scaffolding at all.
-- **Scaffolded pages** (`show-repo/show-repo.html`,
+  then an inline `<script>` with the page's Alpine components. They don't use
+  the loader at all.
+- **Loader-based pages** (`show-repo/show-repo.html`,
   `show-repo/demo-viewer.html`, `scratch/demo-spacex.html`,
   `pages/demos/{persistence,messaging,io}.html`) —
   use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
-  as augmentations) + `alpine-bundle.js` to load reusable components off
-  CDN at runtime.
+  as augmentations) + `alpine-bundle.js` to load reusable components off the
+  repo at runtime.
 
-This doc is about the second tier — the loader contract those pages depend
-on, and what can and can't be added to it without breaking it.
+This doc is about the second tier: the contract a file must honor to be
+loadable this way, the timing invariants the boot sequence depends on, and —
+because that same contract is what lets a page be frozen into an offline
+**build** — how load and build are two readings of one set of rules (see
+[Load and build are one contract](#load-and-build-are-one-contract)). The
+build/bake tooling and the render harness that exercises all of this live
+under [`tools/`](../tools/README.md).
 
-## The scaffolded-page pattern, annotated
+## The loader-based page pattern, annotated
 
-Every scaffolded page's `<head>` looks like this, with minor variation:
+Every loader-based page's `<head>` looks like this, with minor variation:
 
 ```html
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -101,52 +112,58 @@ same match sets the loader's `loadBase` to `lib/`, so every later
   `alpineComponents/viewer.js` as a module-private constant.
   Pages don't load it separately.
 
-## The load mechanism (the fragile bit)
+## The load mechanism
 
-`GH.prototype.load`, from `gh-api.js`:
+`GH.prototype.load`, from `gh-api.js`, is deliberately almost nothing:
 
 ```js
-const clean = text
-  .replace(/export\s+default\s+/g, '')
-  .replace(/export\s+/g, '');
-
-const match = clean.match(/(?:class|function)\s+(\w+)/);
-const name = match ? match[1] : null;
-const body = name ? `${clean}; return ${name};` : clean;
-return new Function(body)();
+const text = (await this.get(this.loadBase + path)).text;   // fetch the file
+const scopedGh = new Proxy(this, { /* stamps `by:` on nested gh.load */ });
+await new Function('gh', text)(scopedGh);                    // run it as-is
 ```
 
-Unpacked, this is the contract any file fed through `gh.load()` must honor:
+The file is fetched and run **verbatim — no source rewriting.** (`read()`,
+the data twin, is identical except it returns the file's value instead of
+discarding it.) That "as-is" is the whole contract, and it's worth stating
+plainly because the docs used to describe the opposite: `load()` *once*
+stripped `export` / `export default` out of the source and auto-`return`ed
+the first top-level `class`/`function` it found. Both are gone. The strip was
+removed (commit `451f963`) because rewriting every file silently corrupted
+any that merely *carried* the word `export` in a string or comment —
+`kits/build.js`, which emits an `export default` in its output template, was
+the file that exposed it.
 
-1. **No ES module syntax survives.** The regex only strips `export` /
-   `export default`. Any `import …` line will be evaluated literally inside
-   `new Function(body)()` and throw `SyntaxError: Cannot use import statement
-   outside a module`. **Files loaded via `gh.load()` cannot import anything.**
-   They can use globals, and they can use `await import(...)` (dynamic
-   import, which is just an expression) if they need ESM.
-2. **First top-level `class Name` or `function Name` wins.** If the regex
-   matches, `gh.load()` returns that named binding. Multiple top-level
-   declarations → only the first is returned.
-3. **If no `class Name` / `function Name` match, the file must `return X`
-   explicitly** if the caller expects a value. The pattern is to end the
-   file with a literal `return SomeObject;`.
-4. **Side-effect files return `undefined`.** This is the normal case for
-   files that just want to run `document.addEventListener('alpine:init', …)`
-   or `customElements.define(…)`. The caller uses them for side effects and
-   ignores the return value.
-5. **`new Function(body)()` is eval-ish.** No module scope. Top-level
-   `const`/`let` live on the function's local scope, not on `window`. So
-   "export" means one of: a top-level named `class`/`function`, an explicit
-   `return`, or an assignment to `window.X`.
+The framing the strip obscured, and the one to keep: **we don't author
+modules.** A loaded file is a plain script body, not an ES module that the
+loader de-modularizes. It runs inside `new Function('gh', text)(...)`, so:
 
-The consequence: if we want to bring in any file from Alp's
-`utils/kits/`, which use `import { brotli } from './brotli.js'`, they
-**cannot be loaded via `gh.load()`**. They're ESM. They'd have to be loaded
-via native `import()` instead.
+1. **No `import` / `export`, ever.** Not "stripped" — *invalid*. Either
+   keyword inside a `new Function` body throws `SyntaxError` at load. A file
+   that needs a library reaches a global (a `<script>` already on the page)
+   or uses `await import(...)`, which is an ordinary expression and is fine.
+2. **`gh` is in scope.** The loader injects the instance as the function's
+   one argument, so a loaded file calls `gh.load(...)` / `gh.get(...)`
+   directly — the injected `gh` is a proxy that records which file each
+   nested load came from (`by:` attribution). `window.gh` works too.
+3. **`load()` discards the return value; it runs files for their side
+   effects.** A loaded file makes itself available by *doing* something:
+   `window.X = …`, `Alpine.data('name', …)` inside an `alpine:init` listener,
+   or patching `GH.prototype` (as `gh-fetch.js` / `gh-store.js` do). Top-level
+   `const`/`let` are local to the run and vanish; there is no auto-`return`
+   of a named declaration anymore.
+4. **`read()` is the value-returning twin.** When a file's job is to
+   *produce* a value rather than register a side effect, it ends with a
+   top-level `return X;` and the caller uses `gh.read(path)` (or, for a local
+   sibling file on `file://`, deposits on `document.currentScript.value`).
+   That's the data path, distinct from code loading.
+
+The consequence for outside code: anything genuinely modular — Alp's
+`utils/kits/` with `import { brotli } from './brotli.js'`, say — **cannot go
+through `gh.load()`**. It's ESM; load it with native `import()` instead.
 
 ## The timing invariants, stated explicitly
 
-These hold in the current scaffolded pages and must not be broken by
+These hold in the current loader-based pages and must not be broken by
 anything we add:
 
 1. **`gh-api.js` is imported first**, via native `import()`. Nothing else
@@ -177,7 +194,7 @@ anything we add:
    pages look for that exact string and replace it (or fall back to
    `localStorage.ghToken`). Anything we add that touches tokens must use
    the same sentinel.
-7. **Boot failures are handled centrally by `gh-auth.js`.** Scaffolded
+7. **Boot failures are handled centrally by `gh-auth.js`.** Loader-based
    pages no longer wrap their module script in `try { ... } catch { ... }`.
    The boot chain is just a sequence of `await` calls. Failures propagate
    as unhandled rejections; gh-auth.js's `unhandledrejection` handler
@@ -195,27 +212,74 @@ anything we add:
 
 A short list of footguns to avoid when adding new files:
 
-- **Adding `import` / `export` statements to a file that's meant to be
-  loaded via `gh.load()`.** `export default` and `export ` are stripped;
-  `export { a, b }` becomes `{ a, b }` (a syntax error or expression
-  statement depending on context); `import` always throws.
-- **Multiple top-level `class Foo` / `function Foo` declarations in one
-  file.** Only the first one is returned. Consolidate or put them inside
-  an IIFE that explicitly `return`s what it wants.
+- **Adding `import` / `export` to a file loaded via `gh.load()`.** Both are
+  invalid inside the loader's `new Function` body and throw at load — they
+  are *not* stripped (that rewriting was removed; see "The load mechanism").
+  Reach a global or use `await import(...)` instead.
+- **Expecting `gh.load()` to hand back a value.** It doesn't — it runs the
+  file for side effects and discards the result. Expose via `window.X`,
+  `Alpine.data(...)`, or a `GH.prototype` patch; if you genuinely need a
+  returned value, that's `read()`, not `load()`.
+- **Computing a `gh.load(...)` path at runtime** (`gh.load(name)` or a
+  template literal). It loads fine, but the static build walker only sees
+  string-literal arguments, so a computed path is invisible to the build and
+  won't be cached — the offline page then silently falls back to the network
+  for it. Keep load paths literal; see [Load and build](#load-and-build-are-one-contract).
 - **Registering `alpine:init` handlers after `alpine-bundle.js` loads.**
   Race depends on Alpine's CDN speed; intermittent. The rule is: all
   component files go before alpine-bundle.
-- **Declaring top-level `const X = …` and expecting `gh.load()` to return
-  it.** It won't — `const` is local to the eval'd function body. Either
-  assign to `window.X`, use `class X {}`, or append `return X;` at the
-  bottom.
+- **Declaring top-level `const X = …` and expecting it to be visible
+  elsewhere.** It's local to the eval'd function body and vanishes. Assign
+  to `window.X`, or register a side effect.
 - **Forgetting the `🎟️GitHubToken` sentinel.** Any new file that wants a
   token should look for that exact sentinel and fall back via
   `try { localStorage.getItem('ghToken') } catch {}` to stay data-URL-safe.
-- **Relying on `Alpine.store('…')` at module top level.** Stores only
-  exist after `alpine-bundle.js`'s `alpine:init` listener runs. Access
-  them inside `init()` / methods / getters, not at the top level of the
-  file.
+- **Relying on `Alpine.store('…')` at file top level.** Stores only exist
+  after `alpine-bundle.js`'s `alpine:init` listener runs. Access them inside
+  `init()` / methods / getters, not at the top level of the file.
+
+## Load and build are one contract
+
+The same rules that make a file *loadable* also make a page *buildable* into a
+single offline artifact — because the build is the loader, not a separate
+pipeline. `tools/build/build.mjs` (and the in-browser FAB export) emit the
+real `gh-api.js` with exactly one thing overridden: `GH.prototype.get` reads
+from an inlined `path → source` cache instead of the network. Everything
+above still applies verbatim — same `new Function('gh', text)`, same
+side-effect convention, same timing — only the *origin of the bytes* changes.
+
+So the contract has two readings:
+
+- **Load** (runtime, the dev loop): own code is fetched per-file through the
+  contents API, freshest-wins, ref-pinnable with `?use=<ref>`. Edit a file in
+  `lib/`, reload, see it. This is what the rest of this doc describes.
+- **Build** (delivery): the reachable set of own-code files is frozen into
+  `dist/<page>.js`, which a page adopts by pointing its `gh-api.js` import at
+  the local build instead of jsDelivr. `bake` goes one further and inlines
+  that into the page's HTML, so the page opens with zero own-code network. The
+  build still honors `?use=<ref>` (an explicit ref falls through to the
+  network), so a built page can be re-pinned for review.
+
+A file that honors the contract is buildable for free — that's the *payoff*
+of the discipline, not just its cost. Two consequences follow directly from
+the mechanism:
+
+- **Dependency edges must be statically discoverable.** The build's graph
+  walker finds what to cache by scanning source for *string-literal*
+  `gh.load('…')` / `_selfLoad('…')` arguments. A path computed at runtime
+  loads but is invisible to the build, so it won't be cached and the offline
+  page falls back to the network for it (the footgun above). Keep load paths
+  literal.
+- **`gh.load`-style vs. native ESM also decides build-portability.** A
+  `gh.load`-loaded file rides into the build automatically; a file pulled in
+  with native `import()` is opaque to the build the same way a third-party CDN
+  lib is — it stays on the network. So the ESM-vs-`gh.load` choice in the
+  options below is *also* a choice about whether the file can ship inside an
+  offline build.
+
+The operational side — the four verbs `load → build → bake → export`, the
+commands, and the byte-identical `verify-build` guarantee — lives in
+[`tools/README.md`](../tools/README.md).
 
 ## Options for adding new capability
 
@@ -238,7 +302,7 @@ Cost: adds one line per page; fine for a handful of additions.
 
 ### Option B — extend `gh-api.js` (or its augmentations)
 
-Best for: things every scaffolded page wants (retry/backoff for rate
+Best for: things every loader-based page wants (retry/backoff for rate
 limits, a batch loader, a tiny pub-sub, a token-picker UI helper, a
 `persist(key, data)` helper that saves to the user's home repo the way
 `show-repo/show-repo.html` currently does).
@@ -255,10 +319,10 @@ Rules:
 - Anything that reaches into Alpine (stores, magics) does *not* belong
   here — that's alpine-bundle's job.
 
-Cost: every scaffolded page gets it free. Risk: it becomes a kitchen sink.
+Cost: every loader-based page gets it free. Risk: it becomes a kitchen sink.
 Good rule of thumb: only add a method if at least two pages would use it.
 
-### Option C — add a third scaffolding file
+### Option C — add a third loader file
 
 Best for: a concern that is not "GitHub access" and not "Alpine init" —
 e.g., a component loader convention, a compression kit, a persistent
@@ -323,7 +387,7 @@ Mapping the options to what Alp offered:
   we commit to a storage model.
 
 - **Path/save/load/ping model (`core.js`)** — if we ever want it, it's a
-  new scaffolding file. **Option C, plain-script flavor, or ESM** — and
+  new loader file. **Option C, plain-script flavor, or ESM** — and
   the choice matters: if we want individual components (like an updated
   `alpineComponents/foo.js`) to call `save()`/`load()`, the runtime needs
   to be attached to globals before alpine-bundle loads. ESM with dynamic
@@ -332,22 +396,23 @@ Mapping the options to what Alp offered:
 
 ## Quick checklist for "can I load this file through gh.load?"
 
-- [ ] Does it have `import` statements at the top? → **No, use native ESM
-      import instead.**
-- [ ] Does it have multiple top-level named `class` / `function`
-      declarations and you want all of them? → **No, wrap in IIFE and
-      `return` the object.**
-- [ ] Does it need to produce a value for the caller (not just side
-      effects)? → **Ensure exactly one top-level `class Name` /
-      `function Name`, or end with `return X;`.**
-- [ ] Does it use `Alpine.store(...)` / `Alpine.data(...)`? → **Yes — fine,
-      but register them inside `document.addEventListener('alpine:init', …)`
-      and load the file before `alpine-bundle.js`.**
+- [ ] Any `import` / `export` at the top? → **Remove them — they throw at
+      load. Reach a global or use `await import(...)`.**
+- [ ] Does it need to produce a value for the caller? → **That's `read()`,
+      not `load()`. End the file with `return X;` and call `gh.read(path)`.**
+- [ ] Side-effect file (component / kit / augmentation)? → **Expose via
+      `window.X`, `Alpine.data(...)`, or a `GH.prototype` patch — `load()`
+      ignores the return value.**
+- [ ] Are its `gh.load(...)` paths string literals? → **Keep them literal so
+      the build can see them; a computed path won't be cached offline.**
+- [ ] Does it use `Alpine.store(...)` / `Alpine.data(...)`? → **Register them
+      inside `document.addEventListener('alpine:init', …)` and load the file
+      before `alpine-bundle.js`.**
 - [ ] Does it need a token? → **Use the `🎟️GitHubToken` sentinel with the
       `localStorage.ghToken` fallback, data-URL-safe.**
 
-If any "No" above is a hard requirement, use a native `import()` instead
-of `gh.load()` for that file. Mixing is fine: a page can do
+If a file is genuinely modular (real `import`/`export`), use a native
+`import()` instead of `gh.load()` for it. Mixing is fine: a page can do
 
 ```js
 import GH from '.../lib/gh-api.js';
