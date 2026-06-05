@@ -10,7 +10,11 @@ Instructions for Claude Code on the web. The session runs in a [sandbox](docs/en
 
 This is the link the user taps to see the working tree at any point. No need to repeat it on subsequent turns.
 
-**Opening a PR is the user's tap, not a Claude action.** In the web UI the user opens a PR with a button that auto-generates it from the session branch — so don't reflexively ask "want me to open a PR?" The branch-anchor link above is the handoff: it lands them on the working tree, where the button lives. (Open one yourself only when there's a specific reason — e.g. a *second* PR after post-merge edits; see "Creating the next PR.") What makes the button appear is unverified from inside the sandbox; the working assumption is *commits pushed to the branch*.
+**Opening a PR is the user's tap, not a Claude action.** In the web UI the user opens a PR with a button that auto-generates it from the session branch — so don't reflexively ask "want me to open a PR?" on its own. The branch-anchor link above is the handoff: it lands them on the working tree, where the button lives. (Open one yourself only when there's a specific reason — e.g. a *second* PR after post-merge edits; see "Creating the next PR.") What makes the button appear is unverified from inside the sandbox; the working assumption is *commits pushed to the branch*.
+
+**The bundled offer is the exception.** When wrapping up a session, it's welcome to *offer* to open the PR together with the merge-guide entry as one step: "want me to open the PR and add the merge-guide entry?" The button still exists; this is just an alternative the user can accept verbally, not a replacement. On yes, the order is entry-first: write and commit the merge-guide entry on the branch, *then* open the PR — so the entry is part of the PR's initial diff and rides in on the merge. This sidesteps the merge-guide convention's real blocker: the merge moment isn't visible from inside a session, so an entry written to chase the merge afterward tends to be left behind. Putting it in before merge fixes that.
+
+**Skip the watch offer.** Don't offer to watch the PR for CI or review activity ("want me to keep an eye on CI?", "want me to watch this PR?"). It isn't useful to this user — this line suppresses the harness's default proactive prompt.
 
 **Per-file links.** Any turn that touches files ends with a compact list. The filename is plain text; the link words in parens are tappable:
 
@@ -106,7 +110,7 @@ The body of PR #129 is a worked example of this shape.
 
 Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
 
-Produced on request: when the user says "merge guide", prepend an entry for the current session. Never write it unasked. Never overwrite existing entries.
+Produced on request: when the user says "merge guide" — or accepts the bundled-PR offer above, which counts as the request — prepend an entry for the current session. Either way it stays request-gated: never write it unasked, and never overwrite existing entries.
 
 **Reading it for inclusion.** Each entry is keyed by its PR number, and an entry reaches main only by riding in on its own merge. So the entries in the main copy of this file are exactly the guide-covered merges that are in main, and the top entry is the latest. "Is PR #115 in main?" is answered by whether a #115 entry appears in the main copy. The on-demand caveat: a merge made without an entry won't show, so absence is not proof. For that, GitHub's merged state or git is authoritative. Always record the PR number as the key (known once the PR is open); fall back to the branch only until the number exists.
 
