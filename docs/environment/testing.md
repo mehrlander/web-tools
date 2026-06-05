@@ -1,6 +1,6 @@
 # Testing HTML/JS in the sandbox
 
-*(verified 2026-05-30)*
+*(verified 2026-06-05)*
 
 The sensible way to exercise a page or component here. Builds on the browser and
 network facts in [capabilities.md](capabilities.md): reach for the **lightest
@@ -68,11 +68,22 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   scripts nor dynamic `import()`, so preview rewrites the page's `<script
   type="module">` boot into a classic async IIFE and swaps the `import(gh-api.js)`
   call for an in-realm shim that runs gh-api with its `import.meta.url`
-  self-bootstrap intact (see the header comment in `tools/preview.mjs`). Two jsdom
-  gaps remain, **reported but non-fatal** (the harness no longer dies on them):
-  `esm.sh` modules can't be dynamically imported, so `kits/cm6.js` (CodeMirror)
-  fails to mount — same as the build/shot path, which also don't vendor esm.sh —
-  and there are no real pixels. Reach for `shot` for pixels; preview is for logic
+  self-bootstrap intact (see the header comment in `tools/preview.mjs`). The same
+  no-dynamic-`import()` limit hits kit code the chain loads: a kit's `await
+  import(...)` runs via `new Function` in jsdom's realm, which has no host import
+  hook. preview rewrites the one such call it can satisfy — `kits/persistence.js`'s
+  idb-keyval load — to a `window.__pvImport` shim that returns the **vendored**
+  idb-keyval, so persistence round-trips for real over `fake-indexeddb` (verified
+  2026-06-05: `save`/`load` preserve `Uint8Array` via structured clone). The
+  rewrite is surgical by URL; `compression`/`cm6`'s remote imports are left alone
+  (some sit inside template strings that emit user-facing snippets, so a blanket
+  rewrite would corrupt them). Two jsdom gaps remain, **reported but non-fatal**
+  (the harness no longer dies on them): `esm.sh` modules can't be dynamically
+  imported, so `kits/cm6.js` (CodeMirror) fails to mount — same as the build/shot
+  path, which also don't vendor esm.sh — and there are no real pixels. (A page
+  that calls a live, non-repo GitHub API endpoint offline — e.g. `gist-editor`'s
+  `/gists` — gets an empty JSON array back, so it renders its empty state instead
+  of throwing on `res.json()`.) Reach for `shot` for pixels; preview is for logic
   / "did the components mount + what state". See
   [`tools/README.md`](../../tools/README.md) for the build/verify companions
   (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`

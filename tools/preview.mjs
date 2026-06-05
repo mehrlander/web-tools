@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import jsdomPkg from 'jsdom';
 import 'fake-indexeddb/auto';
+import * as idbKeyval from 'idb-keyval';
 
 const { JSDOM, VirtualConsole, requestInterceptor } = jsdomPkg;
 
@@ -58,46 +59,30 @@ function jsonResponse(obj) {
   });
 }
 
-// Some kit files use top-level `await import(...)` of remote ESM modules.
-// JSDOM's script VM has no dynamic-import callback, so those throw. For
-// harness purposes we replace them with self-contained stubs that expose
-// the same window.* surface (in-memory persistence, no-op compression).
-const STUB_KITS = {
-  'lib/kits/persistence.js': `
-    (() => {
-      const mem = new Map();
-      const save = async (path, value) => { mem.set(path, value); };
-      const load = async (path) => mem.get(path) ?? null;
-      const remove = async (path) => { mem.delete(path); };
-      const list = async () => [...mem.keys()];
-      window.persistence = { save, load, remove, list };
-    })();`,
-  'lib/kits/compression.js': `
-    (() => {
-      const noop = async () => '';
-      const text = {
-        detectCompressionType: () => null,
-        findCompressedChunks: () => [],
-        templates: {},
-        assess: async () => ({}),
-        pack: async (s) => s,
-        process: async (input, opts = {}) => ({
-          isCompressed: false,
-          output: input || '',
-          packingSegments: [{ t: 'payload', v: input || '' }],
-          sizes: { raw: (input || '').length, brotli: 0, gzip: 0 },
-          outSize: (input || '').length,
-        }),
-      };
-      const acorn = { parse: () => null, isJS: async () => false };
-      window.compression = {
-        brotli: { compress: noop, decompress: noop, detect: () => null, findChunks: () => [] },
-        gzip:   { compress: noop, decompress: noop, detect: () => null, findChunks: () => [], sizeOf: () => 0 },
-        acorn,
-        text,
-      };
-    })();`,
-};
+// gh.load runs each kit's source via `new Function('gh', text)`, so any dynamic
+// import() inside a kit executes in jsdom's realm — which has no host import hook
+// and throws ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING. The one such import we can
+// satisfy is persistence.js's idb-keyval load: we vendor idb-keyval and wire
+// fake-indexeddb, so rewrite exactly that call to the window.__pvImport shim
+// (set up in beforeParse) that hands back the real vendored module — persistence
+// then round-trips for real under preview. Surgical by URL on purpose: we do NOT
+// touch compression/cm6's remote (esm.sh / unpkg) imports. Some of those live
+// inside template strings that generate user-facing snippets, so a blanket
+// rewrite would corrupt the emitted code; they stay the documented lazy-fail gap.
+const IDB_IMPORT_RE =
+  /import\(\s*(['"`])https:\/\/cdn\.jsdelivr\.net\/npm\/idb-keyval@[^'"`]*\1\s*\)/g;
+function rewriteRemoteImports(text) {
+  return text.replace(IDB_IMPORT_RE, "window.__pvImport('idb-keyval')");
+}
+
+// Read an own-repo file from the working tree, with kit dynamic imports rewritten.
+// Shared by every own-code branch (jsdelivr /gh/, raw, contents API) so a render
+// reflects branch edits and the same rewrite applies however the file is fetched.
+function readOwnCode(relPath) {
+  const fp = path.join(repoRoot, relPath);
+  if (!existsSync(fp)) return null;
+  return rewriteRemoteImports(readFileSync(fp, 'utf8'));
+}
 
 function resolveRequest(request) {
   const u = new URL(request.url);
@@ -106,40 +91,37 @@ function resolveRequest(request) {
   if (u.host === 'cdn.jsdelivr.net' && u.pathname.startsWith(`/gh/${REPO}`)) {
     const tail = u.pathname.slice(`/gh/${REPO}`.length).replace(/^@[^/]+/, '');
     const relPath = decodeURIComponent(tail).replace(/^\//, '');
-    if (STUB_KITS[relPath]) {
-      intercepts.push(`STUB ${request.url}`);
-      return jsResponse(Buffer.from(STUB_KITS[relPath]));
+    const code = readOwnCode(relPath);
+    if (code != null) {
+      intercepts.push(`HIT  ${request.url} -> ${relPath}`);
+      return jsResponse(Buffer.from(code));
     }
-    const fp = path.join(repoRoot, relPath);
-    if (existsSync(fp)) {
-      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)}`);
-      return jsResponse(readFileSync(fp));
-    }
-    intercepts.push(`MISS ${request.url} -> ${fp}`);
+    intercepts.push(`MISS ${request.url} -> ${path.join(repoRoot, relPath)}`);
     return new Response('', { status: 404 });
   }
 
   // Raw GitHub
   if (u.host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
     const tail = u.pathname.slice(`/${REPO}/`.length).split('/').slice(1).join('/');
-    const fp = path.join(repoRoot, decodeURIComponent(tail));
-    if (existsSync(fp)) {
-      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)}`);
-      return jsResponse(readFileSync(fp));
+    const relPath = decodeURIComponent(tail);
+    const code = readOwnCode(relPath);
+    if (code != null) {
+      intercepts.push(`HIT  ${request.url} -> ${relPath}`);
+      return jsResponse(Buffer.from(code));
     }
   }
 
   // GitHub contents API: respond with base64-encoded payload
   if (u.host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
     const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
-    const fp = path.join(repoRoot, decodeURIComponent(tail));
-    if (existsSync(fp)) {
-      const text = readFileSync(fp, 'utf8');
-      intercepts.push(`HIT  ${request.url} -> ${path.relative(repoRoot, fp)} (api)`);
+    const relPath = decodeURIComponent(tail);
+    const code = readOwnCode(relPath);
+    if (code != null) {
+      intercepts.push(`HIT  ${request.url} -> ${relPath} (api)`);
       return jsonResponse({
-        content: Buffer.from(text).toString('base64'),
+        content: Buffer.from(code).toString('base64'),
         sha: 'local',
-        size: text.length,
+        size: code.length,
         html_url: '',
         encoding: 'base64',
       });
@@ -164,11 +146,14 @@ function resolveRequest(request) {
     return new Response('', { status: 404 });
   }
 
-  // idb-keyval ESM (used by lib/kits/persistence.js dynamic import)
-  if (u.host === 'cdn.jsdelivr.net' && u.pathname.includes('idb-keyval')) {
-    const fp = path.join(repoRoot, 'node_modules/idb-keyval/dist/index.js');
-    intercepts.push(`HIT  ${request.url} -> node_modules/idb-keyval/dist/index.js`);
-    return jsResponse(readFileSync(fp));
+  // Any other GitHub API call — a live, non-repo endpoint (e.g. gist-editor's
+  // /gists, a graphql query). Offline we can't answer it, but the page's req()
+  // does res.json() on the body, so an empty `''` throws "Unexpected end of JSON
+  // input" mid-init. Hand back an empty JSON array instead: a list endpoint reads
+  // as "nothing here" and the page renders its empty state rather than crashing.
+  if (u.host === 'api.github.com') {
+    intercepts.push(`SKIP ${request.url} (api, empty)`);
+    return jsonResponse([]);
   }
 
   // Tailwind / Phosphor / daisyUI — irrelevant for a DOM-correctness check.
@@ -267,6 +252,14 @@ const dom = new JSDOM(html, {
       window.indexedDB = globalThis.indexedDB;
       window.IDBKeyRange = globalThis.IDBKeyRange;
     }
+    // Dynamic-import shim for kit source (see rewriteRemoteImports). jsdom's realm
+    // has no host import() hook, so a rewritten kit calls this instead. idb-keyval
+    // resolves to the vendored module (real persistence over fake-indexeddb); any
+    // other spec rejects with a clear message a caller can catch.
+    window.__pvImport = (spec) =>
+      spec === 'idb-keyval'
+        ? Promise.resolve(idbKeyval)
+        : Promise.reject(new Error(`preview: remote dynamic import unavailable: ${spec}`));
     try { window.localStorage.setItem('ghToken', '\u{1F39F}️GitHubToken-test'); } catch {}
     // gh.load() fetches own code via the contents API with window.fetch — jsdom
     // ships none, so route it through the same local resolver the resource
