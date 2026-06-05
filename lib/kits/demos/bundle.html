@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bundle — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
+  await gh.load('kits/io.js');       // bundle.page() downloads through io.saveZip
+  await gh.load('kits/bundle.js');   // the kit under test
+
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+
+  // This page has no FAB, so there's no [data-path] to infer from — the snippets
+  // pass opts.path explicitly. On a normal page the FAB stamps data-path and you
+  // can omit it.
+  const SELF = 'lib/kits/demos/bundle.html';
+
+  const SECTIONS = [
+    {
+      title: 'Freeze one value',
+      intro: 'localForm turns a read() value into the local deposit file: a <script> that sets document.currentScript.value, which read()’s local probe lifts off the node. Pure string in, pure string out — no download.',
+      examples: [
+        {
+          title: 'bundle.localForm',
+          prose: `<code class="${c()}">bundle.localForm(path, value)</code> returns the exact text read() resolves local on <code class="${c()}">file://</code>.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const text = bundle.localForm('data/sample.js', {
+  title: 'frozen at ' + new Date().toISOString(),
+  items: [1, 2, 3]
+});
+console.log(text);`
+        },
+      ],
+    },
+    {
+      title: 'Bundle the page',
+      intro: 'page() emits one zip: the pristine page source (fetched via gh.get, not the live DOM) at the zip root, and each read value frozen beside it at its read path. Unzip, open the HTML, and read() resolves local with no placement. Press Run — the gesture backs the download.',
+      examples: [
+        {
+          title: 'bundle.page — explicit data',
+          prose: `Pass <code class="${c()}">reads: [{ path, value }]</code> to bundle data you already hold. The HTML lands at the zip root as <code class="${c()}">bundle.html</code>; <code class="${c()}">data/sample.js</code> beside it.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const manifest = await bundle.page({
+  path: ${JSON.stringify(SELF)},
+  reads: [
+    { path: 'data/sample.js', value: { title: 'hello from the bundle demo', items: [1, 2, 3] } }
+  ]
+});
+console.log('downloaded', manifest.filename, '— contains', manifest.reads);`
+        },
+        {
+          title: 'bundle.build — inspect, don’t download',
+          prose: `<code class="${c()}">build()</code> returns the same manifest plus <code class="${c()}">files: [{ path, data }]</code> without downloading — useful for a preview or a custom writer.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const b = await bundle.build({
+  path: ${JSON.stringify(SELF)},
+  reads: [{ path: 'data/sample.js', value: { ok: true } }]
+});
+console.log('zip layout:');
+for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' bytes)');`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/bundle.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Page plus its data. <span class="opacity-50">One zip, right layout.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.bundle</code>
+        emits a page and the data it <code class="font-mono text-[0.8em]">read()</code>s as one archive —
+        HTML at the root, each read value frozen to its local form beside it — so unzip-and-open
+        resolves local with no manual placement. It's local-<i>data</i>, not offline: the saved
+        page still boots its code from the CDN.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">parent</code> kind runs from the Run click so the download gets a genuine user gesture. The page-and-data integration this kit was built for lives in <a href="../../../pages/cross-repo-read-demo.html" class="link link-hover">cross-repo-read-demo.html</a>.</p>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>
