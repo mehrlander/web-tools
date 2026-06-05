@@ -12,7 +12,8 @@
   // ?use=<branch-or-sha> so the bundle that boots here actually has it.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
-  await gh.load('kits/io.js');                  // io.save() for the download
+  await gh.load('kits/io.js');                  // io.save() for the single-file download
+  await gh.load('kits/bundle.js');              // bundle.localForm() + bundle.page() (page + data zip)
   await gh.load('alpineComponents/fab.js');     // standard page FAB
 
   document.addEventListener('alpine:init', () => {
@@ -47,13 +48,12 @@
       get json() { return this.data == null ? '' : JSON.stringify(this.data, null, 2); },
       get filename() { return this.path.split('/').pop() || 'data.js'; },
 
-      // The freeze: turn the read value into the local deposit form.
+      // The freeze: turn the read value into the local deposit form. The shared
+      // bundle kit owns this so the on-page preview, the single-file Save, and
+      // the zip all emit byte-identical local files.
       generate() {
         if (this.data == null) return;
-        this.generated =
-          `// ${this.path} — local form (generated). Place beside the page so\n` +
-          `// read('${this.path}') resolves this before the repo copy.\n` +
-          `document.currentScript.value = ${JSON.stringify(this.data, null, 2)};\n`;
+        this.generated = window.bundle.localForm(this.path, this.data);
       },
 
       save() {
@@ -63,7 +63,26 @@
         this.$toast?.('download-simple', 'Saved ' + this.filename, 'alert-success');
       },
 
-      description: 'Read repo data, then freeze it to a local document.currentScript.value file that read() picks up first.'
+      // One action for the whole layout: the page's pristine source at the zip
+      // root, this data under data/ beside it. Unzip, open the HTML, and
+      // read('data/sample.js') resolves local with no manual placement. The
+      // page is named on the FAB's data-path, so bundle.page() finds it; we pass
+      // the value explicitly since the demo reads via _local for provenance and
+      // so never routes this value through the tracked read().
+      async bundle() {
+        if (this.data == null) return;
+        this.error = ''; this.busy = true;
+        try {
+          const r = await window.bundle.page({ reads: [{ path: this.path, value: this.data }] });
+          this.$toast?.('file-archive', 'Saved ' + r.filename, 'alert-success');
+        } catch (e) {
+          this.error = e.message || String(e);
+        } finally {
+          this.busy = false;
+        }
+      },
+
+      description: 'Read repo data, then freeze it to a local document.currentScript.value file that read() picks up first — as a single file or a page+data zip.'
     }));
   });
 
@@ -91,6 +110,8 @@
         <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">document.currentScript.value</code>
         file. Drop that beside a saved copy of this page, reopen over
         <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">file://</code>, and the same call resolves local.
+        Or <b>Download bundle</b> for both at once — page at the zip root, data under
+        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">data/</code> beside it — so unzip-and-open just works.
       </p>
     </header>
 
@@ -129,6 +150,10 @@
         <div class="flex gap-2">
           <button class="btn btn-xs" @click="$clip?.(json)"><i class="ph ph-copy"></i> Copy</button>
           <button class="btn btn-xs btn-primary" @click="save()"><i class="ph ph-floppy-disk"></i> Save local copy</button>
+          <button class="btn btn-xs btn-secondary" @click="bundle()" :disabled="busy"
+                  title="Page source + this data, zipped in the right layout. Code still loads from the CDN — local data, not offline.">
+            <i class="ph ph-file-archive"></i> Download bundle
+          </button>
         </div>
       </div>
       <pre class="bg-base-100 border border-base-300 rounded p-3 text-xs overflow-x-auto max-h-72"><code x-text="json"></code></pre>
