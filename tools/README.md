@@ -17,7 +17,7 @@ Everything here resolves the same two networks of dependencies to local files:
 
 | Command | What it does |
 |---|---|
-| `npm run preview <page>` | **Logic** render under jsdom. DOM correctness + which `x-data` mounted. No pixels. (Pre-existing; resolves URLs inline.) |
+| `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |

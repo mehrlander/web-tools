@@ -61,7 +61,19 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   code with no token; output is a PNG + a log of intercepts / `__loadedScripts` /
   errors under `tools/.preview/`. *(verified 2026-06-05: `sheet-modal-demo`,
   `cross-repo-read-demo`, `fab-sidebar-test` all rendered with the full chain and
-  zero errors.)* The jsdom logic-level twin is `npm run preview`. See
+  zero errors.)* The jsdom logic-level twin is `npm run preview`: it **runs the
+  full gh.load chain and mounts Alpine** (verified 2026-06-05 — all six gh.load
+  pages boot, `Alpine 3.15.x`, components inject their templates), then reports
+  each `x-data` container and a `boot:` line. jsdom executes neither module
+  scripts nor dynamic `import()`, so preview rewrites the page's `<script
+  type="module">` boot into a classic async IIFE and swaps the `import(gh-api.js)`
+  call for an in-realm shim that runs gh-api with its `import.meta.url`
+  self-bootstrap intact (see the header comment in `tools/preview.mjs`). Two jsdom
+  gaps remain, **reported but non-fatal** (the harness no longer dies on them):
+  `esm.sh` modules can't be dynamically imported, so `kits/cm6.js` (CodeMirror)
+  fails to mount — same as the build/shot path, which also don't vendor esm.sh —
+  and there are no real pixels. Reach for `shot` for pixels; preview is for logic
+  / "did the components mount + what state". See
   [`tools/README.md`](../../tools/README.md) for the build/verify companions
   (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
   render through it).
