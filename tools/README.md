@@ -13,6 +13,25 @@ Everything here resolves the same two networks of dependencies to local files:
 - **Third-party libs** — Tailwind / daisyUI / Phosphor / Alpine off jsDelivr +
   unpkg → npm-installed copies under `node_modules`.
 
+## Layout
+
+Two interconnected categories, one folder each (they share no module imports —
+they touch only via subprocess and the `dist/` artifact):
+
+- [`render/`](render/) — exercise a page headlessly, offline. `preview.mjs`
+  (jsdom logic render) + `screenshot.mjs` (Chromium pixel render), with
+  `cdn.mjs` (the URL → local resolver) and `scenarios/` (interaction scripts).
+- [`build/`](build/) — snapshot a page's own-code graph into an offline
+  artifact. `build.mjs` / `bake.mjs`, with `graph.mjs` (the static `gh.load`
+  walk) and `kit-shim.mjs` (run a browser kit in Node). `verify-build.mjs` is
+  the bridge: it drives the render tools to prove a build matches live.
+
+(`wsl-sync/` is an unrelated mini-app, not part of this harness.) The build/bake
+*format* itself lives outside `tools/`, in [`../lib/kits/build.js`](../lib/kits/build.js)
+(`window.buildKit`) — one emitter shared by `build/`'s Node tools (static cache)
+and `kits/export.js` (browser, runtime cache) so the two can't drift. The
+contract that makes all of this possible is in [`../docs/loader.md`](../docs/loader.md).
+
 ## The tools
 
 | Command | What it does |
@@ -23,13 +42,10 @@ Everything here resolves the same two networks of dependencies to local files:
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
 
-Shared internals: [`lib/cdn.mjs`](lib/cdn.mjs) (URL → local classification, used by
-the renderer), [`lib/graph.mjs`](lib/graph.mjs) (static walk of a page's
-`gh.load`/`_selfLoad` graph), and [`lib/kit-shim.mjs`](lib/kit-shim.mjs) (run a
-browser kit in Node). The build/bake *format* lives in
-[`../lib/kits/build.js`](../lib/kits/build.js) (`window.buildKit`) — one emitter
-shared by `build.mjs`/`bake.mjs` (Node, static cache) and `kits/export.js`
-(browser, runtime cache) so the two can't drift.
+Shared internals: [`render/cdn.mjs`](render/cdn.mjs) (URL → local
+classification, used by the renderer), [`build/graph.mjs`](build/graph.mjs)
+(static walk of a page's `gh.load`/`_selfLoad` graph), and
+[`build/kit-shim.mjs`](build/kit-shim.mjs) (run a browser kit in Node).
 
 Outputs land in `tools/.preview/` (PNG + a `.shot.log` listing intercepts,
 `__loadedScripts`, console, errors). `dist/` and `tools/.preview/` are gitignored.
@@ -40,13 +56,13 @@ Outputs land in `tools/.preview/` (PNG + a `.shot.log` listing intercepts,
 can capture a *state* — a drawer open, a toggle ticked, a breakpoint — not just the
 landing view. The file default-exports `async (page, ctx) => {}` and gets the
 Playwright `page` (`ctx.repoRoot` too). Scenarios live in
-[`tools/scenarios/`](scenarios/); the PNG/log pick up the scenario name in their
-suffix. Example — the FAB's Export controls, opened to the Render tab with "Fully
-offline" ticked:
+[`tools/render/scenarios/`](render/scenarios/); the PNG/log pick up the scenario
+name in their suffix. Example — the FAB's Export controls, opened to the Render
+tab with "Fully offline" ticked:
 
 ```
 npm run shot pages/sheet-modal-demo.html \
-  -- --script tools/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
+  -- --script tools/render/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
 ```
 
 Two harness facts a scenario sometimes has to work around (the FAB one does both):
@@ -109,7 +125,7 @@ things:
   tool). `vanilla-bundle.js` / `alpine-bundle.js` keep "bundle" as hand-authored
   runtime grab-bags — distinct from a build-produced graph.
 - **bake** — inline a build into a page's HTML to get one standalone document.
-  `tools/bake.mjs` rewrites the page's `gh-api.js` import to a `data:` module
+  `tools/build/bake.mjs` rewrites the page's `gh-api.js` import to a `data:` module
   carrying the build, so the page boots with zero own-code network (verified
   byte-identical to live on `sheet-modal-demo`).
 - **export** — [`lib/kits/export.js`](../lib/kits/export.js)'s "page + the data it

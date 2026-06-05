@@ -53,9 +53,9 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   screenshotted. This gives real pixels / layout, not just logic.
 
   This is now a tool, not a recipe: **`npm run shot <page>`**
-  ([`tools/screenshot.mjs`](../../tools/screenshot.mjs)) serves the working tree
+  ([`tools/render/screenshot.mjs`](../../tools/render/screenshot.mjs)) serves the working tree
   over loopback and intercepts every external request via
-  [`tools/lib/cdn.mjs`](../../tools/lib/cdn.mjs) — own code (the jsDelivr `/gh/`
+  [`tools/render/cdn.mjs`](../../tools/render/cdn.mjs) — own code (the jsDelivr `/gh/`
   `gh-api.js` import, then the contents-API loads) to local files, third-party
   libs to `node_modules`. The real `gh.load` chain runs unmodified against branch
   code with no token; output is a PNG + a log of intercepts / `__loadedScripts` /
@@ -68,7 +68,7 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   scripts nor dynamic `import()`, so preview rewrites the page's `<script
   type="module">` boot into a classic async IIFE and swaps the `import(gh-api.js)`
   call for an in-realm shim that runs gh-api with its `import.meta.url`
-  self-bootstrap intact (see the header comment in `tools/preview.mjs`). The same
+  self-bootstrap intact (see the header comment in `tools/render/preview.mjs`). The same
   no-dynamic-`import()` limit hits kit code the chain loads: a kit's `await
   import(...)` runs via `new Function` in jsdom's realm, which has no host import
   hook. preview rewrites the one such call it can satisfy — `kits/persistence.js`'s

@@ -4,9 +4,14 @@ Reference docs that don't belong at the repo root. `README.md` (the project
 overview) and `CLAUDE.md` (web-session instructions) stay up top and link in
 here; everything longer-form lives in this folder.
 
-- **[SCAFFOLDING.md](SCAFFOLDING.md)** — the loader contract: the canonical
-  `<head>` block, what each piece contributes, how `gh.load()` works, the
-  timing rules and footguns.
+- **[loader.md](loader.md)** — the loader contract: the canonical `<head>`
+  block, what each piece contributes, how `gh.load()` works, the timing rules
+  and footguns, and how that same contract lets a page be frozen into an
+  offline **build** (load and build as two readings of one set of rules).
+- **[../tools/README.md](../tools/README.md)** — the Node harness (lives under
+  `tools/`, not here): `render/` (offline jsdom + Chromium rendering, for
+  screenshots and logic checks) and `build/` (the `load → build → bake →
+  export` pipeline + `verify-build`). The operational companion to `loader.md`.
 - **[environment/](environment/)** — what the Claude Code web environment is,
   can do, and how it's extended: [container](environment/container.md) (what
   persists across sessions), [capabilities](environment/capabilities.md)

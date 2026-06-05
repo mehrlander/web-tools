@@ -2,11 +2,11 @@
   "name": "web-tools",
   "private": true,
   "scripts": {
-    "preview": "node tools/preview.mjs",
-    "shot": "node tools/screenshot.mjs",
-    "build": "node tools/build.mjs",
-    "bake": "node tools/bake.mjs",
-    "verify-build": "node tools/verify-build.mjs"
+    "preview": "node tools/render/preview.mjs",
+    "shot": "node tools/render/screenshot.mjs",
+    "build": "node tools/build/build.mjs",
+    "bake": "node tools/build/bake.mjs",
+    "verify-build": "node tools/build/verify-build.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",

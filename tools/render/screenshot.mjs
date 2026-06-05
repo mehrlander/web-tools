@@ -1,19 +1,19 @@
 #!/usr/bin/env node
-// Pixel sibling of tools/preview.mjs: render a repo page to a real PNG with the
+// Pixel sibling of tools/render/preview.mjs: render a repo page to a real PNG with the
 // pre-installed Chromium, headlessly, in this network-restricted sandbox.
 //
-//   node tools/screenshot.mjs <page-path> [--build] [--ref <ref>]
+//   node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>]
 //       [--out <png>] [--width N] [--height N] [--wait MS] [--full]
 //
 // The page is served from the on-disk working tree over loopback; every external
-// request is intercepted and resolved by tools/lib/cdn.mjs — own code (gh-api.js
+// request is intercepted and resolved by tools/render/cdn.mjs — own code (gh-api.js
 // via jsDelivr, the rest via the GitHub contents API) to local files, third-party
 // libs (Tailwind/daisyUI/Phosphor/Alpine) to node_modules. So the real gh.load
 // chain runs unmodified against branch code, with no GitHub token.
 //
 // --build renders the page through its dist/<page>.js instead of the live
-// gh.load chain (build it first with tools/build.mjs): the page's jsDelivr
-// gh-api.js import is rewritten to the local build. Used by tools/verify-build.mjs
+// gh.load chain (build it first with tools/build/build.mjs): the page's jsDelivr
+// gh-api.js import is rewritten to the local build. Used by tools/build/verify-build.mjs
 // to prove the two render identically.
 //
 // Output PNG + a render log land under tools/.preview/ (gitignored) by default.
@@ -24,9 +24,9 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
-import { resolveCdn, typeFor } from './lib/cdn.mjs';
+import { resolveCdn, typeFor } from './cdn.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function parseArgs(argv) {
   const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, out: null, script: null };
@@ -49,7 +49,7 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.page) {
-  console.error('Usage: node tools/screenshot.mjs <page-path> [--build] [--ref <ref>] [--script <file>] [--out <png>] [--full]');
+  console.error('Usage: node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>] [--script <file>] [--out <png>] [--full]');
   process.exit(2);
 }
 const pageAbs = path.join(repoRoot, opts.page);
@@ -72,7 +72,7 @@ function transformPage(html) {
   if (!opts.build) return html;
   const buildRel = `/dist/${baseName}.js`;
   if (!existsSync(path.join(repoRoot, 'dist', `${baseName}.js`))) {
-    throw new Error(`--build: dist/${baseName}.js not found; run: node tools/build.mjs ${opts.page}`);
+    throw new Error(`--build: dist/${baseName}.js not found; run: node tools/build/build.mjs ${opts.page}`);
   }
   // Replace the dynamic import of gh-api.js (any ref/template form) with the build.
   const re = /(['"`])https:\/\/cdn\.jsdelivr\.net\/gh\/mehrlander\/web-tools[^'"`]*\/lib\/gh-api\.js\1/g;
