@@ -28,7 +28,7 @@ the renderer), [`lib/graph.mjs`](lib/graph.mjs) (static walk of a page's
 `gh.load`/`_selfLoad` graph), and [`lib/kit-shim.mjs`](lib/kit-shim.mjs) (run a
 browser kit in Node). The build/bake *format* lives in
 [`../lib/kits/build.js`](../lib/kits/build.js) (`window.buildKit`) — one emitter
-shared by `build.mjs`/`bake.mjs` (Node, static cache) and `kits/bundle.js`
+shared by `build.mjs`/`bake.mjs` (Node, static cache) and `kits/export.js`
 (browser, runtime cache) so the two can't drift.
 
 Outputs land in `tools/.preview/` (PNG + a `.shot.log` listing intercepts,
@@ -45,7 +45,7 @@ stay on the page's CDN `<script>`/`<link>` tags.
 
 Because the cache is just a `path → source` map that `gh.get` looks up, **load
 order is irrelevant** — the build collects the reachable *set*, including lazy
-`_selfLoad` targets (fab's console panel, the data-bundle kit), so the built page
+`_selfLoad` targets (fab's console panel, the export kit), so the built page
 is fully offline-capable.
 
 The build and the runtime loader **optimize opposite things**. `gh.load` exists
@@ -90,16 +90,18 @@ things:
   `tools/bake.mjs` rewrites the page's `gh-api.js` import to a `data:` module
   carrying the build, so the page boots with zero own-code network (verified
   byte-identical to live on `sheet-modal-demo`).
-- **pack** — [`lib/kits/bundle.js`](../lib/kits/bundle.js)'s "page + the data it
-  `read()`s" zip (the FAB's "Download page + data"). Runtime; **data** by default.
+- **export** — [`lib/kits/export.js`](../lib/kits/export.js)'s "page + the data it
+  `read()`s" zip (the FAB's **"Export"** button, `window.exporter`). Runtime;
+  **data** by default, **`{ offline: true }`** also bakes the code in.
 
-**bake + pack compose** into a page that opens with no network at all — and now do:
-`kits/bundle.js`'s `{ offline: true }` mode (the FAB's **"Fully offline"** toggle)
+So "bundle" now means only the hand-authored grab-bags (`vanilla-bundle.js`,
+`alpine-bundle.js`); the four verbs above are the pipeline.
+
+**bake + export compose** into a page that opens with no network at all:
+`kits/export.js`'s `{ offline: true }` mode (the FAB's **"Fully offline"** toggle)
 bakes the code in *and* lays the `read()` data out local-first, in one zip. The
 browser gathers the cache from `window.__loadedScripts` and calls the same
-`window.buildKit` emit/bake the Node tools use. (Open follow-up: the data-side
-naming `window.bundle` could still move to a "pack" vocabulary so "bundle" stops
-meaning two things; deferred to avoid churning the shipped kit further.)
+`window.buildKit` emit/bake the Node tools use.
 
 ## Extending
 

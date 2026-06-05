@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>bundle — living demo</title>
+<title>export — living demo</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
@@ -12,15 +12,15 @@
   await import(`${base}/gh-api.js`);
   await gh.load('kits/cm6.js');
   await gh.load('vanilla-demo.js');
-  await gh.load('kits/io.js');       // bundle.page() downloads through io.saveZip
-  await gh.load('kits/bundle.js');   // the kit under test
+  await gh.load('kits/io.js');       // exporter.page() downloads through io.saveZip
+  await gh.load('kits/export.js');   // the kit under test
 
   const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
 
   // This page has no FAB, so there's no [data-path] to infer from — the snippets
   // pass opts.path explicitly. On a normal page the FAB stamps data-path and you
   // can omit it.
-  const SELF = 'lib/kits/demos/bundle.html';
+  const SELF = 'lib/kits/demos/export.html';
 
   const SECTIONS = [
     {
@@ -28,11 +28,11 @@
       intro: 'localForm turns a read() value into the local deposit file: a <script> that sets document.currentScript.value, which read()’s local probe lifts off the node. Pure string in, pure string out — no download.',
       examples: [
         {
-          title: 'bundle.localForm',
-          prose: `<code class="${c()}">bundle.localForm(path, value)</code> returns the exact text read() resolves local on <code class="${c()}">file://</code>.`,
+          title: 'exporter.localForm',
+          prose: `<code class="${c()}">exporter.localForm(path, value)</code> returns the exact text read() resolves local on <code class="${c()}">file://</code>.`,
           lang: 'js', kind: 'parent',
           code:
-`const text = bundle.localForm('data/sample.js', {
+`const text = exporter.localForm('data/sample.js', {
   title: 'frozen at ' + new Date().toISOString(),
   items: [1, 2, 3]
 });
@@ -41,28 +41,28 @@ console.log(text);`
       ],
     },
     {
-      title: 'Bundle the page',
-      intro: 'page() emits one zip: the pristine page source (fetched via gh.get, not the live DOM) at the zip root, and each read value frozen beside it at its read path. Unzip, open the HTML, and read() resolves local with no placement. Press Run — the gesture backs the download.',
+      title: 'Export the page',
+      intro: 'page() emits one zip: the page source (fetched via gh.get, not the live DOM) at the zip root, and each read value frozen beside it at its read path. Unzip, open the HTML, and read() resolves local with no placement. Press Run — the gesture backs the download. Pass { offline: true } to also bake the code in (no network at all).',
       examples: [
         {
-          title: 'bundle.page — explicit data',
-          prose: `Pass <code class="${c()}">reads: [{ path, value }]</code> to bundle data you already hold. The HTML lands at the zip root as <code class="${c()}">bundle.html</code>; <code class="${c()}">data/sample.js</code> beside it.`,
+          title: 'exporter.page — explicit data',
+          prose: `Pass <code class="${c()}">reads: [{ path, value }]</code> to export data you already hold. The HTML lands at the zip root as <code class="${c()}">export.html</code>; <code class="${c()}">data/sample.js</code> beside it.`,
           lang: 'js', kind: 'parent',
           code:
-`const manifest = await bundle.page({
+`const manifest = await exporter.page({
   path: ${JSON.stringify(SELF)},
   reads: [
-    { path: 'data/sample.js', value: { title: 'hello from the bundle demo', items: [1, 2, 3] } }
+    { path: 'data/sample.js', value: { title: 'hello from the export demo', items: [1, 2, 3] } }
   ]
 });
 console.log('downloaded', manifest.filename, '— contains', manifest.reads);`
         },
         {
-          title: 'bundle.build — inspect, don’t download',
+          title: 'exporter.build — inspect, don’t download',
           prose: `<code class="${c()}">build()</code> returns the same manifest plus <code class="${c()}">files: [{ path, data }]</code> without downloading — useful for a preview or a custom writer.`,
           lang: 'js', kind: 'parent',
           code:
-`const b = await bundle.build({
+`const b = await exporter.build({
   path: ${JSON.stringify(SELF)},
   reads: [{ path: 'data/sample.js', value: { ok: true } }]
 });
@@ -95,7 +95,7 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
 
     <header class="mb-10">
       <div class="flex items-baseline justify-between mb-3">
-        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/bundle.js</p>
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/export.js</p>
         <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
           <i class="ph ph-arrow-left"></i> demos
         </a>
@@ -104,11 +104,12 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
         Page plus its data. <span class="opacity-50">One zip, right layout.</span>
       </h1>
       <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
-        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.bundle</code>
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.exporter</code>
         emits a page and the data it <code class="font-mono text-[0.8em]">read()</code>s as one archive —
         HTML at the root, each read value frozen to its local form beside it — so unzip-and-open
-        resolves local with no manual placement. It's local-<i>data</i>, not offline: the saved
-        page still boots its code from the CDN.
+        resolves local with no manual placement. By default it's local-<i>data</i> (the saved page
+        still boots its code from the CDN); <code class="font-mono text-[0.8em]">{ offline: true }</code>
+        bakes the code in too, for a page that opens with no network at all.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
     </header>
