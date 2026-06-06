@@ -84,6 +84,16 @@
     </template>
   </ul>
 
+  <!-- Link to the static, fully-recursive catalog (pages/README.md) -->
+  <div x-show="!loading && !error" class="mt-8 pt-4 border-t border-base-200">
+    <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
+       class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1.5 transition-colors"
+       target="_blank">
+      <i class="ph ph-list-bullets"></i>
+      Full catalog — every page incl. nested, with rendered + source links
+    </a>
+  </div>
+
 </div>
 </body>
 </html>
