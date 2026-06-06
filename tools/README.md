@@ -41,6 +41,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
+| `npm run pages-index` | Regenerate [`pages/README.md`](../pages/README.md), the link-dense catalog of every page (rendered + source link each). A *catalog* generator, not part of the code pipeline below — see [Cataloging the pages](#cataloging-the-pages). |
 
 Shared internals: [`render/cdn.mjs`](render/cdn.mjs) (URL → local
 classification, used by the renderer), [`build/graph.mjs`](build/graph.mjs)
@@ -140,6 +141,22 @@ So "bundle" now means only the hand-authored grab-bags (`vanilla-bundle.js`,
 bakes the code in *and* lays the `read()` data out local-first, in one zip. The
 browser gathers the cache from `window.__loadedScripts` and calls the same
 `window.buildKit` emit/bake the Node tools use.
+
+## Cataloging the pages
+
+`pages-index.mjs` is the odd one out in this folder: it resolves no dependency
+graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page's
+`<title>`, and regenerates [`pages/README.md`](../pages/README.md) — a dense
+markdown table giving two links per page: the **rendered** github.io URL and the
+**code** view on github.com. Because GitHub renders a folder's `README.md` beneath
+its file listing, the catalog surfaces exactly where you'd browse for a page.
+
+It's a *catalog*, deliberately kept off the load → build → bake → export vocabulary
+(those four verbs are about a page's own-code graph; this is about the repo's set of
+pages). It's the static, link-dense twin of [`pages/index.html`](../pages/index.html),
+which fetches the same listing live from the contents API at runtime. Run
+`npm run pages-index` whenever a page is added, removed, or retitled;
+`--check` exits non-zero when the committed file is stale, for a CI guard.
 
 ## Extending
 

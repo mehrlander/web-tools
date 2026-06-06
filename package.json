@@ -6,7 +6,8 @@
     "shot": "node tools/render/screenshot.mjs",
     "build": "node tools/build/build.mjs",
     "bake": "node tools/build/bake.mjs",
-    "verify-build": "node tools/build/verify-build.mjs"
+    "verify-build": "node tools/build/verify-build.mjs",
+    "pages-index": "node tools/build/pages-index.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
