@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-build demo — one import, whole library</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script type="module">
+  // The pre-build: ONE import brings in the whole lib/ and boots Alpine — no
+  // per-file gh.load chain. ?use=<ref> still re-pins to the CDN for review.
+  const ref = new URLSearchParams(location.search).get('use');
+  await import(ref
+    ? `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/dist/web-tools.js`
+    : '../dist/web-tools.js');
+</script>
+</head>
+<body class="p-8 bg-base-100 text-base-content">
+  <div class="max-w-md mx-auto space-y-4">
+    <h1 class="text-xl font-bold">Pre-build demo</h1>
+    <p class="text-sm opacity-70">
+      This page imports <code class="text-primary">dist/web-tools.js</code> once. There is no
+      per-file <code>gh.load</code> chain — that single import registers every Alpine
+      component and boots Alpine. The counter below is
+      <code class="text-primary">Alpine.data('counter')</code> from
+      <code>lib/alpineComponents/counter.js</code>, riding inside the pre-build.
+    </p>
+    <div x-data="counter()" class="card bg-base-200 p-4 flex flex-row items-center gap-3">
+      <button @click="dec()" class="btn btn-sm btn-square">–</button>
+      <span class="font-mono text-lg w-12 text-center" x-text="count"></span>
+      <button @click="inc()" class="btn btn-sm btn-square">+</button>
+      <button @click="reset()" class="btn btn-ghost btn-sm ml-auto">reset</button>
+    </div>
+  </div>
+</body>
+</html>

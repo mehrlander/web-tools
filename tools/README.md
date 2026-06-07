@@ -39,6 +39,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
+| `npm run build:lib` | Emit `dist/web-tools.js`: **the pre-build** — the whole `lib/` as one self-booting offline artifact (see [The pre-build](#the-pre-build)). |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
 | `npm run pages-index` | Regenerate [`pages/README.md`](../pages/README.md), the link-dense catalog of every page (rendered + source link each). A *catalog* generator, not part of the code pipeline below — see [Cataloging the pages](#cataloging-the-pages). |
@@ -135,6 +136,53 @@ things:
 
 So "bundle" now means only the hand-authored grab-bags (`vanilla-bundle.js`,
 `alpine-bundle.js`); the four verbs above are the pipeline.
+
+## The pre-build
+
+`npm run build` snapshots *one page's* reachable graph. **The pre-build**
+(`npm run build:lib` → [`build-lib.mjs`](build/build-lib.mjs)) snapshots the
+*whole* `lib/`: every `lib/*.js` inlined into one self-resolving artifact at
+`dist/web-tools.js`. It's the same emitter (`lib/kits/build.js`), just seeded
+with all of `lib/` instead of a page's boot block — so the format can't drift
+from the per-page build, and `verify-build` still holds for pages.
+
+The difference a consumer sees is **one import instead of a `gh.load` chain.**
+The artifact auto-boots: importing it runs gh-boot's base chain, registers every
+Alpine component, then boots Alpine via `alpine-bundle.js`. A page drops the
+whole chain and writes one line:
+
+```js
+// loader (dev / freshness): per-file, ref-pinnable, network for own code
+await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+// pre-build (delivery / simplicity): whole library, one fetch, no own-code network
+await import('../dist/web-tools.js');
+```
+
+Everything is then live — `x-data="repo()"`, `x-data="counter()"`, etc. — with
+no per-component load. The pure kits (`compression`, `persistence`, `io`, …)
+ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
+instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
+Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` still re-pins to the
+CDN for review. [`pages/prebuild-demo.html`](../pages/prebuild-demo.html) is the
+worked example.
+
+This is the **delivery** twin of the loader's **freshness**: develop against the
+`gh.load` chain (edit a file, reload, see it), ship against the pre-build (one
+dependable, offline, shared-cacheable artifact). Where it differs from a
+per-page build: the per-page build is leaner (only what one page reaches) but
+needs a build per page; the pre-build is one artifact reused everywhere, at the
+cost of carrying components a given page may not use (harmless — an unused
+`Alpine.data` registration only costs anything when an `x-data` references it).
+
+**Staying current.** `dist/web-tools.js` is **committed** (the one exception to
+the gitignored `dist/`) and served same-origin by Pages — never back onto
+jsDelivr, whose cache the loader exists to dodge. It's kept in lockstep with
+`lib/` by a commit-time hook
+([`.claude/hooks/prebuild-on-commit.sh`](../.claude/hooks/prebuild-on-commit.sh),
+wired in `.claude/settings.json`): before a `git commit` that touches `lib/`, the
+hook rebuilds it and stages the result into the same commit. The build is
+deterministic (sorted cache + sorted boot, no date stamp), so it only shows a
+diff when `lib/` actually changed. Don't hand-edit `dist/web-tools.js`.
 
 **bake + export compose** into a page that opens with no network at all:
 `kits/export.js`'s `{ offline: true }` mode (the FAB's **"Fully offline"** toggle)

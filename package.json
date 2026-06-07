@@ -5,6 +5,7 @@
     "preview": "node tools/render/preview.mjs",
     "shot": "node tools/render/screenshot.mjs",
     "build": "node tools/build/build.mjs",
+    "build:lib": "node tools/build/build-lib.mjs",
     "bake": "node tools/build/bake.mjs",
     "verify-build": "node tools/build/verify-build.mjs",
     "pages-index": "node tools/build/pages-index.mjs"
