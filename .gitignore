@@ -1,4 +1,5 @@
 node_modules/
 tools/.preview/
-dist/
+dist/*
+!dist/web-tools.js
 package-lock.json

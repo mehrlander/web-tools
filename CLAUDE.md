@@ -175,6 +175,10 @@ When asked for a handoff prompt (HP):
 
 As a preliminary, you can propose diagnostic tests where they'd move a cause from suspected to confirmed. The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome (you can also offer an test with a draft prompt that could be used to firm up some piece of it). Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
 
+## The pre-build
+
+`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page can adopt the entire library with one import instead of a `gh.load` chain. It's generated (`npm run build:lib`) and **owned by a commit-time hook** (`.claude/hooks/prebuild-on-commit.sh`): before a `git commit` that touches `lib/`, the hook rebuilds it deterministically and stages it into the same commit. Don't hand-edit it — edit `lib/` and let the hook refresh it. It's the one tracked file under the otherwise-gitignored `dist/`. Full story in [`tools/README.md`](tools/README.md#the-pre-build).
+
 ## Environment & testing
 
 [`docs/environment/`](docs/environment/) is a living, dated record of the Claude Code web environment, split by concern: [capabilities](docs/environment/capabilities.md) (network allowlist, headless browser, toolchain), [container](docs/environment/container.md) (what persists across sessions), [testing](docs/environment/testing.md) (the jsdom+Alpine recipe and page-preview constraints), and [extending](docs/environment/extending.md) (the Claude Code component model and the hooks this repo runs). Read it when a task involves testing, verifying, or reaching the network; extend it (edit in place, re-date) when you learn something new. Referenced by plain path, not `@`-imported, so it stays out of context until needed.
