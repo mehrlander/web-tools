@@ -15,12 +15,14 @@ at commit `c3a9f4a` on 2026-05-07.
 
 Files are byte-for-byte copies of the upstream sources.
 
-## Why this is in `tools/`, not `sites/`
+## Why this is in `pages/`, not `sites/`
 
 `wsl-sync.html` fetches *from* `wslwebservices.leg.wa.gov` (with a paste-mode
 fallback for CORS), but it is not designed to be opened *as a popup from* that
 host — it runs standalone on GitHub Pages. By the convention in `sites/README.md`,
-that makes it a general tool, not a domain popup.
+that makes it a Pages app, not a domain popup. (Imported to `tools/wsl-sync/`,
+moved here 2026-06: it's a set of served pages, not part of the build/render
+harness in `tools/`.)
 
 ## Layout
 

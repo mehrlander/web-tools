@@ -26,7 +26,7 @@ they touch only via subprocess and the `dist/` artifact):
   walk) and `kit-shim.mjs` (run a browser kit in Node). `verify-build.mjs` is
   the bridge: it drives the render tools to prove a build matches live.
 
-(`wsl-sync/` is an unrelated mini-app, not part of this harness.) The build/bake
+The build/bake
 *format* itself lives outside `tools/`, in [`../lib/kits/build.js`](../lib/kits/build.js)
 (`window.buildKit`) — one emitter shared by `build/`'s Node tools (static cache)
 and `kits/export.js` (browser, runtime cache) so the two can't drift. The
