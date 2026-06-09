@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-09 Build-on-commit hook + wrap-up ritual (branch `claude/eager-davinci-ekveex`)
+
+Unified the derived-artifact refresh model: the commit-time hook now owns the pages catalogs alongside the pre-build, and thumbnails refresh once per session via the new "wrap up" ritual.
+
+⭐ **Result (tooling + conventions — view the doc):** [tools/README.md — The refresh model](https://github.com/mehrlander/web-tools/blob/main/tools/README.md#the-refresh-model)
+
+**Changed:**
+- .claude/hooks/build-on-commit.sh ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/hooks/build-on-commit.sh), [was prebuild-on-commit.sh](https://github.com/mehrlander/web-tools/blob/d82ce35/.claude/hooks/prebuild-on-commit.sh), [diff](https://github.com/mehrlander/web-tools/commit/ddd9c3a)) — new legs: regenerate+stage `pages/README.md` + `pages/index.html` when `pages/**/*.html` is dirty; warn when a page changes without its thumb
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/commit/ddd9c3a)) — "Wrapping up" ritual (thumbs → merge-guide entry → PR) + the merged-branch closer line for post-merge responses
+- tools/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/tools/README.md#the-refresh-model), [diff](https://github.com/mehrlander/web-tools/commit/ddd9c3a)) — "The refresh model" section
+- .claude/settings.json, docs/environment/extending.md, tools/build/build-lib.mjs ([diff](https://github.com/mehrlander/web-tools/commit/ddd9c3a)) — hook rename references
+
+**Notes:** Deliberate split: deterministic artifacts ride in the commit that changes their source; thumbnails (slow, not byte-deterministic) refresh per-session at wrap-up, with the hook nagging if forgotten. The hook only governs commits made through Claude sessions; `pages-index --check` remains the audit. Conventions take effect for sessions started after merge.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/eager-davinci-ekveex)
+
+---
+
 ## 2026-06-05 Split tools/ into render+build; rewrite loader doc (PR #152)
 
 Reorganized the `tools/` harness into `render/` + `build/`, and rewrote the loader contract doc to match the current loader and tell the load↔build story.
