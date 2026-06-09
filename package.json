@@ -8,7 +8,9 @@
     "build:lib": "node tools/build/build-lib.mjs",
     "bake": "node tools/build/bake.mjs",
     "verify-build": "node tools/build/verify-build.mjs",
-    "pages-index": "node tools/build/pages-index.mjs"
+    "pages-shots": "node tools/build/pages-shots.mjs",
+    "pages-index": "node tools/build/pages-index.mjs",
+    "pages": "npm run pages-shots && npm run pages-index"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
