@@ -14,6 +14,14 @@ This is the link the user taps to see the working tree at any point. No need to 
 
 **The bundled offer is the exception.** When wrapping up a session, it's welcome to *offer* to open the PR together with the merge-guide entry as one step: "want me to open the PR and add the merge-guide entry?" The button still exists; this is just an alternative the user can accept verbally, not a replacement. On yes, the order is entry-first: write and commit the merge-guide entry on the branch, *then* open the PR, so the entry is part of the PR's initial diff and rides in on the merge. This sidesteps the merge-guide convention's real blocker: the merge moment isn't visible from inside a session, so an entry written to chase the merge afterward tends to be left behind. Putting it in before merge fixes that.
 
+**Wrapping up.** "Wrap up" (e.g. "give me the PR and wrap up") invokes the full session-close ritual — the bundled offer plus every per-session refresh, in this order:
+
+1. **Thumbnails** — if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session here, not per commit — screenshots are slow and not byte-deterministic, so the commit hook only nags about them (see "Build-on-commit hook" below). The catalogs need no separate step; the hook regenerates them with each commit.
+2. **Merge-guide entry** — write and commit it on the branch (entry-first, as above).
+3. **Open the PR.**
+
+A wrap-up always produces a PR; there's no PR-less wrap-up. The reason to route PR creation through chat rather than the button is exactly this bundling: the button only opens a PR, while the spoken request runs the refreshes that should land before merge.
+
 **Skip the watch offer.** Don't offer to watch the PR for CI or review activity ("want me to keep an eye on CI?", "want me to watch this PR?"). It isn't useful to this user; this line suppresses the harness's default proactive prompt.
 
 **Per-file links.** Any turn that touches files ends with a compact list. The filename is plain text; the link words in parens are tappable:
@@ -157,6 +165,12 @@ A recurring pattern: the user merges, then surfaces a bug or the next round of w
 
 **Option 2: Continue with edits.** User says "ok let's add X," and we keep editing on the same branch. Tradeoff: we must then create a new PR (not update the old one) when done, since the branch now has commits ahead of the merged PR.
 
+**The merged-branch closer.** Option 1 is the default: merge means done, and the branch makes no further edits unless the user explicitly chooses Option 2. To make that state legible when rereading the chat later, every post-merge response on this branch — a handoff prompt, a "what shipped?" inquiry, any follow-up short of an explicit Option 2 — ends with one fixed line:
+
+> *Branch `<branch>` merged in PR #<n> — no further edits will be made here.*
+
+It's a marker that the work was captured, not commentary; don't elaborate on it. Drop it only when the user opts into Option 2 (at which point the branch is live again).
+
 When asked for a handoff prompt (HP):
 
 **Wrap it in a fenced markdown code block.** The user often copies on mobile, so a fence makes it one tap. Use four backticks outside if the prompt itself contains triple-backtick code.
@@ -175,9 +189,16 @@ When asked for a handoff prompt (HP):
 
 As a preliminary, you can propose diagnostic tests where they'd move a cause from suspected to confirmed. The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome (you can also offer an test with a draft prompt that could be used to firm up some piece of it). Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
 
-## The pre-build
+## The pre-build & the build-on-commit hook
 
-`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page can adopt the entire library with one import instead of a `gh.load` chain. It's generated (`npm run build:lib`) and **owned by a commit-time hook** (`.claude/hooks/prebuild-on-commit.sh`): before a `git commit` that touches `lib/`, the hook rebuilds it deterministically and stages it into the same commit. Don't hand-edit it — edit `lib/` and let the hook refresh it. It's the one tracked file under the otherwise-gitignored `dist/`. Full story in [`tools/README.md`](tools/README.md#the-pre-build).
+`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page can adopt the entire library with one import instead of a `gh.load` chain. It's generated (`npm run build:lib`) and it's the one tracked file under the otherwise-gitignored `dist/`. Full story in [`tools/README.md`](tools/README.md#the-pre-build).
+
+Every **deterministic** derived artifact is owned by one commit-time hook (`.claude/hooks/build-on-commit.sh`, a `PreToolUse(Bash)` hook wired in `.claude/settings.json`). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch:
+
+- `lib/` changed → `npm run build:lib` → `dist/web-tools.js`
+- `pages/**/*.html` changed → `npm run pages-index` → `pages/README.md` + `pages/index.html`
+
+Don't hand-edit any of those three files — edit the source and let the hook refresh them. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Wrapping up" above).
 
 ## Environment & testing
 
