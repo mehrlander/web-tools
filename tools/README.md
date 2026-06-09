@@ -179,12 +179,10 @@ cost of carrying components a given page may not use (harmless — an unused
 **Staying current.** `dist/web-tools.js` is **committed** (the one exception to
 the gitignored `dist/`) and served same-origin by Pages — never back onto
 jsDelivr, whose cache the loader exists to dodge. It's kept in lockstep with
-`lib/` by a commit-time hook
-([`.claude/hooks/prebuild-on-commit.sh`](../.claude/hooks/prebuild-on-commit.sh),
-wired in `.claude/settings.json`): before a `git commit` that touches `lib/`, the
-hook rebuilds it and stages the result into the same commit. The build is
-deterministic (sorted cache + sorted boot, no date stamp), so it only shows a
-diff when `lib/` actually changed. Don't hand-edit `dist/web-tools.js`.
+`lib/` by the commit-time hook (see [The refresh model](#the-refresh-model)).
+The build is deterministic (sorted cache + sorted boot, no date stamp), so it
+only shows a diff when `lib/` actually changed. Don't hand-edit
+`dist/web-tools.js`.
 
 **bake + export compose** into a page that opens with no network at all:
 `kits/export.js`'s `{ offline: true }` mode (the FAB's **"Fully offline"** toggle)
@@ -209,11 +207,50 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
 
 It's a *catalog*, deliberately kept off the load → build → bake → export vocabulary
 (those four verbs are about a page's own-code graph; this is about the repo's set of
-pages). Run `npm run pages` (= `pages-shots` then `pages-index`) when a page is
-added, removed, or retitled; or just `pages-index` if only titles/blurbs changed.
-`pages-index --check` exits non-zero when either committed catalog is stale, for a
-CI guard. The thumbnails are committed PNGs, so the index stays self-contained
-rather than re-rendering every page at view time.
+pages). The catalogs regenerate automatically at commit time (see
+[The refresh model](#the-refresh-model)); `npm run pages` (= `pages-shots` then
+`pages-index`) is the manual full refresh, and `pages-index --check` exits non-zero
+when either committed catalog is stale, as an audit. The thumbnails are committed
+PNGs, so the index stays self-contained rather than re-rendering every page at
+view time.
+
+## The refresh model
+
+Every derived artifact in the repo is refreshed one of two ways, split on one
+property: whether its generator is **deterministic**.
+
+**Deterministic artifacts ride in the commit that changes their source.** The
+commit-time hook
+([`.claude/hooks/build-on-commit.sh`](../.claude/hooks/build-on-commit.sh), a
+`PreToolUse(Bash)` hook wired in `.claude/settings.json`) fires before every
+`git commit` and regenerates + stages whatever the pending changes touch:
+
+| Source dirty | Generator | Staged into the same commit |
+|---|---|---|
+| `lib/` | `npm run build:lib` | `dist/web-tools.js` |
+| `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html` |
+
+Both generators are byte-deterministic, so the hook can fire on every commit and
+no-op invisibly when nothing real changed. It's non-blocking: a generator failure
+warns and the commit proceeds.
+
+**Thumbnails (`pages/thumbs/*.png`) refresh once per session, at wrap-up.**
+Screenshots are slow (a Chromium render per page) and not byte-deterministic
+(PNG encoding, font raster), so regenerating per commit would write ~100KB of
+binary churn for every touched page on every commit. Instead the hook *warns*
+when a page's HTML changes without its thumbnail, and the refresh happens
+deliberately — `npm run pages-shots -- <changed pages…>` — as part of the
+session wrap-up ritual in the root `CLAUDE.md` ("Wrapping up"). Until then,
+`pages/index.html` degrades gracefully: a missing thumb shows the
+"no screenshot" placeholder.
+
+Nothing is generated server-side: GitHub Pages serves `main` as-is, with no CI
+and no deploy build. Committed artifacts are the truth, which is what lets a
+branch be previewed pre-merge via `?use=<sha>`. Authored docs (the merge guide,
+`docs/environment/`, this file) are never auto-generated.
+
+One human touch remains: a new page lists under its `<title>` until a blurb is
+added to the `NOTES` map at the top of `pages-index.mjs`.
 
 ## Extending
 

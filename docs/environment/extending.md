@@ -2,7 +2,7 @@
 
 A map of how Claude Code is extended. The pieces nest cleanly once you understand their purpose. Some change what Claude knows, some spin up a second worker, some connect Claude to the outside world, and others trigger automatically. A plugin is simply the container you pack a chosen few into for distribution.
 
-This page is the conceptual frame; where this repo actually configures one of these mechanisms, the concrete details live alongside the relevant component (today, only the [SessionStart hook](#the-hook-this-repo-runs-sessionstart-install) under Hooks).
+This page is the conceptual frame; where this repo actually configures one of these mechanisms, the concrete details live alongside the relevant component. Today that's two hooks: the [SessionStart install](#the-hook-this-repo-runs-sessionstart-install) (documented below) and the commit-time `build-on-commit.sh`, which keeps deterministic derived artifacts (the pre-build, the pages catalogs) staged into the commits that change their sources — documented in [`tools/README.md`](../../tools/README.md#the-refresh-model)'s refresh model.
 
 ## The Components
 
