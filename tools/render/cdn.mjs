@@ -20,7 +20,7 @@
 // Used by tools/render/screenshot.mjs (Playwright route) and reusable by any future
 // pixel/preview tool. The logic-level twin lives inline in tools/render/preview.mjs.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
@@ -114,8 +114,20 @@ export function resolveCdn(rawUrl, repoRoot) {
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
   if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
     const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
-    const fp = path.join(repoRoot, decodeURIComponent(tail));
+    const rel = decodeURIComponent(tail).replace(/\/$/, '');
+    const fp = path.join(repoRoot, rel);
     if (existsSync(fp)) {
+      // A directory path returns the contents-API array, not file bytes — and
+      // readFileSync on a dir throws EISDIR, so this guard is also a crash fix.
+      if (statSync(fp).isDirectory()) {
+        const entries = readdirSync(fp, { withFileTypes: true }).map(e => ({
+          name: e.name,
+          path: rel ? `${rel}/${e.name}` : e.name,
+          type: e.isDirectory() ? 'dir' : 'file',
+          sha: 'local', size: 0, html_url: '', download_url: '',
+        }));
+        return { kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api dir ${rel}`, body: JSON.stringify(entries) };
+      }
       const text = readFileSync(fp, 'utf8');
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${tail}`,
