@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-09 Build-on-commit hook + wrap-up ritual (branch `claude/eager-davinci-ekveex`)
+## 2026-06-09 Build-on-commit hook + wrap-up ritual (PR #157)
 
 Unified the derived-artifact refresh model: the commit-time hook now owns the pages catalogs alongside the pre-build, and thumbnails refresh once per session via the new "wrap up" ritual.
 
