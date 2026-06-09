@@ -87,3 +87,10 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `index` | show-repo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/index.html) |
 | `repo-drag` | — | [view](https://mehrlander.github.io/web-tools/pages/show-repo/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html) |
 | `show-repo` | GH Browse | [view](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html) |
+
+## pages/wsl-sync/
+
+| Page | Title | Links |
+|---|---|---|
+| `pension-dash` | Pension Dashboard | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html) |
+| `wsl-sync` | WSL Sync | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html) |

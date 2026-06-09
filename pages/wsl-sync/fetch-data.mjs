@@ -1,0 +1,161 @@
+#!/usr/bin/env node
+// fetch-data.mjs — repo-side fetcher for the WSL Sync data stores.
+//
+// Fetches the same six stores wsl-sync.html syncs into IndexedDB, but from
+// Node (no CORS), and writes them as JSON under pages/wsl-sync/data/. The
+// shapes match the IDB stores exactly (`wsl-<biennium>-<store>` keys), so the
+// files can seed a browser's IDB verbatim — see README.md for the seed snippet.
+//
+// Parsing is NOT reimplemented: wsl-api.js is loaded with its two CDN imports
+// rewritten to the same-version npm packages (fast-xml-parser@4.5.1, flat@6),
+// so this script and the page run the identical transform/classify code.
+//
+// Usage (from repo root, after npm install):
+//   npm run wsl-fetch                  incremental: refetch lists, fill missing
+//   npm run wsl-fetch -- --full        refetch everything, including rcws
+//   node pages/wsl-sync/fetch-data.mjs --since 1/1/2025 --biennium 2025-26 --limit 50
+//
+// Requires direct network access to wslwebservices.leg.wa.gov (Node 18+ has
+// global fetch). In a Claude Code web session that host must be on the
+// environment's network allowlist; the tell for a blocked host is an
+// HTTP 403 with `x-deny-reason: host_not_allowed`.
+
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dataDir = path.join(here, 'data');
+
+// --- CLI ---------------------------------------------------------------
+const args = process.argv.slice(2);
+const opt = (name, dflt) => {
+    const i = args.indexOf('--' + name);
+    return i >= 0 ? args[i + 1] : dflt;
+};
+const BIENNIUM = opt('biennium', '2025-26');
+const SINCE = opt('since', '1/1/2025');
+const LIMIT = +opt('limit', 0);            // 0 = no cap on per-bill fetches
+const CONCURRENCY = +opt('concurrency', 4);
+const FULL = args.includes('--full');
+
+// --- Load wsl-api.js in Node -------------------------------------------
+// Its CDN imports can't resolve in Node; rewrite them to the npm packages
+// (same versions) in a temp sibling so './pension-map.js' still resolves.
+const loadApi = async () => {
+    const src = readFileSync(path.join(here, 'wsl-api.js'), 'utf8')
+        .replace("'https://cdn.jsdelivr.net/npm/fast-xml-parser@4.5.1/+esm'", "'fast-xml-parser'")
+        .replace("'https://cdn.jsdelivr.net/npm/flat@6.0.0/+esm'", "'flat'");
+    const tmp = path.join(here, '.wsl-api.node.mjs');
+    writeFileSync(tmp, src);
+    try { return await import(pathToFileURL(tmp)); }
+    finally { unlinkSync(tmp); }
+};
+
+// --- Store I/O ----------------------------------------------------------
+const readStore = (name, empty) => {
+    const p = path.join(dataDir, name + '.json');
+    if (FULL || !existsSync(p)) return empty;
+    return JSON.parse(readFileSync(p, 'utf8'));
+};
+const writeStore = (name, value) => {
+    writeFileSync(path.join(dataDir, name + '.json'), JSON.stringify(value));
+    const n = Array.isArray(value) ? value.length : Object.keys(value).length;
+    console.log(`  wrote data/${name}.json (${n} ${Array.isArray(value) ? 'items' : 'keys'})`);
+};
+
+const fetchText = async (url) => {
+    const r = await fetch(url);
+    if (!r.ok) {
+        const deny = r.headers.get('x-deny-reason');
+        throw new Error(`${r.status} on ${url}${deny ? ` (x-deny-reason: ${deny} — host not on the network allowlist)` : ''}`);
+    }
+    return r.text();
+};
+
+// Small fetch pool for the per-bill loops.
+const pool = async (items, worker) => {
+    let i = 0, done = 0;
+    const run = async () => {
+        while (i < items.length) {
+            const item = items[i++];
+            await worker(item);
+            if (++done % 25 === 0 || done === items.length)
+                process.stdout.write(`\r  ${done}/${items.length}`);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, run));
+    if (items.length) process.stdout.write('\n');
+};
+
+// --- Main ---------------------------------------------------------------
+const api = await loadApi();
+const { URLS, consolidate, parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+        parseRcwXml, parseHistoryXml, parseActionsXml, getBillNumber } = api;
+
+mkdirSync(dataDir, { recursive: true });
+
+console.log(`Biennium ${BIENNIUM}, since ${SINCE}${FULL ? ', --full refetch' : ' (incremental)'}`);
+
+// 1. The three single-call stores — always refetched (cheap).
+console.log('Legislation…');
+const legislation = consolidate(parseLegislationXml(await fetchText(URLS.legislation(SINCE))));
+writeStore('legislation', legislation);
+
+console.log('Prefiles…');
+const prefiles = consolidate(parsePrefilesXml(await fetchText(URLS.prefiles())));
+writeStore('prefiles', prefiles);
+
+console.log('Sponsors…');
+writeStore('sponsors', parseSponsorsXml(await fetchText(URLS.sponsors(BIENNIUM))));
+
+// 2. RCW cites — per-bill, incremental over existing data/rcws.json.
+const allBills = [...legislation, ...prefiles];
+const rcws = readStore('rcws', {});
+let missing = allBills.filter(b => b.BillId && !rcws[b.BillId]);
+if (LIMIT) missing = missing.slice(0, LIMIT);
+console.log(`RCW cites: ${Object.keys(rcws).length} cached, fetching ${missing.length} of ${allBills.length} bills…`);
+await pool(missing, async (b) => {
+    const r = parseRcwXml(await fetchText(URLS.rcwFor(encodeURIComponent(b.BillId), BIENNIUM)), b.BillId);
+    if (r) rcws[r.BillId] = r;
+});
+writeStore('rcws', rcws);
+
+// 3. History + actions — only for bills classified pension/adjacent,
+//    mirroring wsl-sync.html's summary mode.
+const relevant = [...new Set(allBills
+    .filter(b => {
+        const r = rcws[b.BillId];
+        return r && (r.isPension === '1' || (r.AdjacentLabels || '') !== '');
+    })
+    .map(getBillNumber).filter(Boolean))];
+
+const history = readStore('history', {});
+const needH = relevant.filter(n => !history[n]);
+console.log(`History: fetching ${needH.length} of ${relevant.length} pension/adjacent bills…`);
+await pool(needH, async (n) => {
+    history[n] = parseHistoryXml(await fetchText(URLS.historyFor(n, BIENNIUM)), n) || [];
+});
+writeStore('history', history);
+
+const actions = readStore('actions', {});
+const needA = relevant.filter(n => !actions[n]);
+console.log(`Actions: fetching ${needA.length} of ${relevant.length} pension/adjacent bills…`);
+await pool(needA, async (n) => {
+    actions[n] = parseActionsXml(await fetchText(URLS.actionsFor(n, BIENNIUM)), n) || [];
+});
+writeStore('actions', actions);
+
+writeStore('meta', {
+    fetchedAt: new Date().toISOString(),
+    biennium: BIENNIUM,
+    sinceDate: SINCE,
+    counts: {
+        legislation: legislation.length,
+        prefiles: prefiles.length,
+        rcws: Object.keys(rcws).length,
+        history: Object.keys(history).length,
+        actions: Object.keys(actions).length
+    }
+});
+console.log('Done.');

@@ -3,3 +3,4 @@ tools/.preview/
 dist/*
 !dist/web-tools.js
 package-lock.json
+pages/wsl-sync/.wsl-api.node.mjs
