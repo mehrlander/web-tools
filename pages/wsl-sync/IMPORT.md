@@ -15,6 +15,9 @@ at commit `c3a9f4a` on 2026-05-07.
 
 Files are byte-for-byte copies of the upstream sources.
 
+Added after import (not from wa-bills): `README.md`, `fetch-data.mjs`, and
+the `data/` snapshot directory. See `README.md`.
+
 ## Why this is in `pages/`, not `sites/`
 
 `wsl-sync.html` fetches *from* `wslwebservices.leg.wa.gov` (with a paste-mode
