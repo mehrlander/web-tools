@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wring | Bookend Merge — DOM Signature Grouping</title>
+    <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+    <script type="module">
+      // ?use=<branch|tag|sha> picks which ref the kit loads from; defaults to
+      // main. gh-api.js auto-bootstraps window.gh from its own import URL.
+      const ref = new URLSearchParams(location.search).get('use') || 'main';
+      await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+
+      await gh.load('kits/wring.js');     // the induction engine -> window.wring
+      window._gbt = window.wring;        // alias the page's Alpine code reads
+      await gh.load('alpine-bundle.js');  // registers magics + boots Alpine
+    </script>
+</head>
+<body class="bg-base-200 min-h-screen font-sans p-2">
+
+<div x-data="groupDemo" class="max-w-6xl mx-auto flex flex-col h-[95vh] shadow-2xl bg-base-100 rounded-xl overflow-hidden">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <div class="p-4 bg-base-100 border-b border-base-300 shrink-0 space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="ph ph-tree-structure text-primary text-2xl"></i>
+                <h1 class="text-lg font-black tracking-tight uppercase italic text-slate-700">
+                    Wring — Bookend Merge
+                </h1>
+                <span class="badge badge-sm badge-ghost font-mono">Stage 1 + 3</span>
+            </div>
+            <button @click="inputExpanded = !inputExpanded" class="btn btn-xs btn-ghost gap-1">
+                <i class="ph" :class="inputExpanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                <span x-text="inputExpanded ? 'Hide Input' : 'Edit Input'"></span>
+            </button>
+        </div>
+
+        <!-- ── Collapsible Input ──────────────────────────────────────────── -->
+        <div x-show="inputExpanded" x-transition class="space-y-2">
+            <!-- Input mode toggle: pre-segmented strings vs. raw HTML (Stage 1) -->
+            <div class="flex items-center gap-1">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-base-content/50 mr-1">Input</span>
+                <div class="join">
+                    <button class="btn btn-xs join-item" :class="inputMode === 'strings' ? 'btn-primary' : 'btn-ghost'"
+                            @click="inputMode = 'strings'">Signatures</button>
+                    <button class="btn btn-xs join-item" :class="inputMode === 'html' ? 'btn-primary' : 'btn-ghost'"
+                            @click="inputMode = 'html'">HTML</button>
+                </div>
+                <span class="text-[9px] font-mono text-base-content/40 ml-2"
+                      x-text="inputMode === 'html' ? 'raw HTML → extract signatures (Stage 1) → group (Stage 3)' : 'one signature per line → group (Stage 3)'"></span>
+            </div>
+            <textarea
+                x-model="inputText"
+                class="textarea textarea-bordered w-full font-mono text-[10px] leading-tight h-48 shadow-inner"
+                :placeholder="inputMode === 'html' ? 'Paste raw HTML here…' : 'Paste strings here, one per line…'"
+            ></textarea>
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono text-base-content/50"
+                      x-text="inputMode === 'html' ? 'HTML input' : inputText.trim().split('\\n').filter(Boolean).length + ' strings'"></span>
+                <div class="flex items-center gap-1">
+                    <button x-show="inputMode === 'html'" @click="loadHtmlSample()" class="btn btn-xs btn-ghost">Load HTML sample</button>
+                    <button @click="loadDefaults()" class="btn btn-xs btn-ghost">Reset to defaults</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Controls ───────────────────────────────────────────────────── -->
+        <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
+                Max Slots
+                <input type="range" x-model.number="maxSlots" min="1" max="3" step="1" class="range range-xs range-primary w-16" />
+                <span class="badge badge-sm badge-primary font-mono" x-text="maxSlots"></span>
+            </label>
+
+            <label class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
+                Min Group
+                <input type="range" x-model.number="minGroupSize" min="2" max="10" step="1" class="range range-xs range-secondary w-16" />
+                <span class="badge badge-sm badge-secondary font-mono" x-text="minGroupSize"></span>
+            </label>
+
+            <label class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
+                Strategy
+                <select x-model="strategy" class="select select-xs select-bordered font-mono">
+                    <option value="compress">compress</option>
+                    <option value="specific">specific</option>
+                </select>
+            </label>
+
+            <label class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest cursor-pointer">
+                <input type="checkbox" x-model="refineSlots" class="checkbox checkbox-xs checkbox-primary" />
+                Refine Slots
+            </label>
+
+            <label class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
+                Delim
+                <input type="text" x-model="delimiter" class="input input-xs input-bordered w-10 font-mono text-center" />
+            </label>
+
+            <button @click="run()" class="btn btn-primary btn-sm px-6 font-bold uppercase ml-auto">
+                <i class="ph ph-play"></i> Run
+            </button>
+        </div>
+
+        <!-- ── Stats Bar ──────────────────────────────────────────────────── -->
+        <div class="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-widest font-bold px-1">
+            <span>Total: <span class="text-primary" x-text="totalStrings"></span></span>
+            <span>Grouped: <span class="text-secondary" x-text="groupedCount"></span></span>
+            <span>Ungrouped: <span class="text-base-content/50" x-text="ungrouped.length"></span></span>
+            <span>Groups: <span class="text-accent" x-text="groups.length"></span></span>
+            <span>Reconstruction:
+                <span :class="allPass ? 'text-success' : 'text-error'"
+                      x-text="allPass ? 'ALL PASS (' + recon.pass + ')' : recon.fail + ' FAILED'"></span>
+            </span>
+        </div>
+    </div>
+
+    <!-- ── Results ────────────────────────────────────────────────────────── -->
+    <div class="flex-1 flex flex-col overflow-auto p-3 gap-2">
+
+        <!-- Groups -->
+        <template x-for="(group, gi) in groups" :key="gi">
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body p-3 gap-2">
+                    <!-- Group header -->
+                    <div @click="group.expanded = !group.expanded"
+                         class="cursor-pointer flex items-start justify-between gap-2 select-none">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="badge badge-sm badge-primary font-mono shrink-0"
+                                  x-text="'G' + (gi + 1)"></span>
+                            <code class="text-[11px] text-primary break-all" x-text="group.template"></code>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0 text-[10px] uppercase tracking-widest font-bold text-base-content/60">
+                            <span x-text="group.members.length + ' members'"></span>
+                            <span x-text="'score ' + group.score"></span>
+                            <i class="ph text-sm" :class="group.expanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                        </div>
+                    </div>
+
+                    <!-- Expanded member table -->
+                    <div x-show="group.expanded" x-transition>
+                        <div class="overflow-x-auto">
+                            <table class="table table-xs">
+                                <thead>
+                                    <tr class="text-[9px] uppercase tracking-widest">
+                                        <th class="w-8">#</th>
+                                        <template x-for="(_, si) in group.members[0].slots" :key="si">
+                                            <th x-text="group.members[0].slots.length === 1 ? 'Slot Value' : 'Slot ' + si"></th>
+                                        </template>
+                                        <th>Original</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(m, mi) in group.members" :key="mi">
+                                        <tr class="hover">
+                                            <td class="font-mono text-[10px] text-base-content/40" x-text="mi + 1"></td>
+                                            <template x-for="(s, si) in m.slots" :key="si">
+                                                <td class="font-mono text-[11px] text-secondary font-bold"
+                                                    x-text="s === '' ? '(empty)' : s"></td>
+                                            </template>
+                                            <td class="font-mono text-[9px] text-base-content/40 max-w-xs truncate"
+                                                x-text="m.original"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Ungrouped -->
+        <template x-if="ungrouped.length > 0">
+            <div class="card bg-base-200/50 border border-base-300">
+                <div class="card-body p-3 gap-2">
+                    <div @click="ungroupedExpanded = !ungroupedExpanded"
+                         class="cursor-pointer flex items-center justify-between select-none">
+                        <div class="flex items-center gap-2">
+                            <span class="badge badge-sm badge-ghost font-mono">Ungrouped</span>
+                            <span class="text-[10px] uppercase tracking-widest font-bold text-base-content/50"
+                                  x-text="ungrouped.length + ' strings'"></span>
+                        </div>
+                        <i class="ph text-sm" :class="ungroupedExpanded ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                    </div>
+                    <div x-show="ungroupedExpanded" x-transition>
+                        <div class="space-y-0.5 mt-1">
+                            <template x-for="(s, i) in ungrouped" :key="i">
+                                <div class="font-mono text-[10px] text-base-content/50 truncate" x-text="s"></div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Reconstruction failures (if any) -->
+        <template x-if="recon.fail > 0">
+            <div class="card bg-error/10 border border-error/30">
+                <div class="card-body p-3">
+                    <h3 class="text-xs font-bold text-error uppercase">Reconstruction Failures</h3>
+                    <template x-for="(f, i) in recon.failures" :key="i">
+                        <div class="font-mono text-[10px] space-y-0.5">
+                            <div class="text-base-content">original: <span x-text="f.original"></span></div>
+                            <div class="text-error">rebuilt:&nbsp; <span x-text="f.rebuilt"></span></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <div class="px-4 py-2 border-t border-base-300 flex items-center justify-between text-[9px] font-mono text-base-content/30 uppercase tracking-widest shrink-0">
+        <span>Wring — Single-document template induction</span>
+        <a href="https://github.com/mehrlander/wring" class="hover:text-primary transition">github.com/mehrlander/wring</a>
+    </div>
+</div>
+
+<script>
+const DEFAULT_SIGNATURES = `button.font-base-bold.!text-xs.rounded-l-lg.bg-bg-000.h-full.flex.items-center.justify-center.px-2.border-y-0.5.border-l-0.5.border-border-200.hover:bg-bg-200.disabled:opacity-50.disabled:hover:bg-bg-000
+button.inline-flex.items-center.justify-center.relative.isolate.shrink-0.can-focus.select-none.disabled:pointer-events-none.disabled:opacity-50.disabled:shadow-none.disabled:drop-shadow-none.font-base-bold.border-0.5.overflow-hidden.transition.duration-100.backface-hidden.h-8.rounded-md.px-3.min-w-[4rem].whitespace-nowrap.!text-xs._fill_1abo4_9._secondary_1abo4_72
+button.inline-flex.items-center.justify-center.relative.isolate.shrink-0.can-focus.select-none.disabled:pointer-events-none.disabled:opacity-50.disabled:shadow-none.disabled:drop-shadow-none.font-base-bold.border-0.5.overflow-hidden.transition.duration-100.backface-hidden.h-9.px-4.py-2.rounded-lg.min-w-[5rem].whitespace-nowrap._fill_1abo4_9._secondary_1abo4_72
+div.!box-content.flex.flex-col.bg-bg-000.mx-2.md:mx-0.items-stretch.transition-all.duration-200.relative.z-10.rounded-[20px].cursor-text.z-[1].border.border-transparent.md:w-full.shadow-[0_0.25rem_1.25rem_hsl(var(--always-black)/3.5%),0_0_0_0.5px_hsla(var(--border-300)/0.15)].hover:shadow-[0_0.25rem_1.25rem_hsl(var(--always-black)/3.5%),0_0_0_0.5px_hsla(var(--border-200)/0.3)].focus-within:shadow-[0_0.25rem_1.25rem_hsl(var(--always-black)/7.5%),0_0_0_0.5px_hsla(var(--border-200)/0.3)].hover:focus-within:shadow-[0_0.25rem_1.25rem_hsl(var(--always-black)/7.5%),0_0_0_0.5px_hsla(var(--border-200)/0.3)]
+div.[&_button]:!text-xs.[&>div]:!rounded-lg
+div.absolute.inset-0.overflow-auto
+div.bg-bg-100.text-text-500.text-center.text-xs.py-2
+div.fixed.lg:sticky.z-sidebar
+div.flex-1.min-h-0.bg-bg-000.overflow-auto
+div.flex-1.min-w-0
+div.flex-1.overflow-hidden.h-full.bg-bg-100
+div.flex-1.relative.overflow-hidden
+div.flex.flex-1.gap-2.min-w-0
+div.flex.flex-col.gap-1.py-4.min-w-0.flex-1
+div.flex.flex-col.gap-2
+div.flex.flex-col.gap-2.py-2
+div.flex.flex-col.gap-5.md:transition-opacity.md:duration-300.md:animate-[fade_0.3s_ease-in-out_0.1s_forwards]
+div.flex.flex-col.h-full.overflow-hidden
+div.flex.flex-col.items-start.min-w-0.flex-1.pr-1
+div.flex.flex-col.m-3.5.gap-3
+div.flex.h-8.whitespace-nowrap
+div.flex.items-center.gap-[4px]
+div.flex.items-center.gap-1.flex-shrink-0
+div.flex.items-center.gap-2.transition.border-t-0.5.border-transparent
+div.flex.items-center.group.[&:hover>button]:!bg-bg-300.[&>button:hover]:!bg-bg-500
+div.flex.items-center.justify-between.px-2.py-2.bg-bg-000.gap-2
+div.flex.items-center.justify-center.rounded-full.text-text-200.border-0.5.border-transparent.group-hover:border-border-200.transition.group-hover:opacity-90
+div.flex.min-w-0.flex-1.shrink.md:items-center.font-base-bold.pr-[100px]
+div.flex.min-w-0.items-center.justify-center.gap-2.shrink-0
+div.flex.min-w-0.shrink-1.items-center.group
+div.flex.shrink-0.items-center.justify-center.rounded-full.font-bold.select-none.h-9.w-9.text-[16px].bg-text-200.text-bg-100
+div.flex.text-left.font-ui.rounded-lg.overflow-hidden.border-0.5.transition.duration-300.w-full.hover:bg-bg-000/50.px-4.border-border-300/15.hover:border-border-200
+div.flex.w-full.items-center.justify-between.gap-4.pl-11.lg:px-8.gap-6.p-3.lg:pl-4.lg:pr-3.pr-3
+div.grid.w-full.overflow-hidden
+div.h-full
+div.leading-tight.text-sm.line-clamp-1
+div.max-md:absolute.top-0.right-0.bottom-0.left-0.z-20.draggable-none.md:flex-grow-0.md:flex-shrink-0.md:basis-0.overflow-hidden.h-full.md:pt-[var(--df-header-h,0px)].max-md:flex-1
+div.md:absolute.md:right-0.md:top-0.z-20.max-md:w-fit.max-md:self-end.max-md:pointer-events-auto.flex.justify-end.shrink-0.min-w-0.pr-3.items-center.gap-1.!h-12.transition-opacity.duration-150.ease-in-out.md:opacity-0.md:pointer-events-none
+div.md:w-[342px]
+div.min-w-0.flex-1
+div.opacity-0.transition-opacity.ease-out.duration-150.flex.flex-1.text-sm.justify-between.items-center.font-medium.min-w-0
+div.opacity-0.transition-opacity.ease-out.duration-150.flex.flex-col
+div.overflow-hidden.shrink-0.p-1.-m-1
+div.overflow-x-hidden.overflow-y-auto.md:h-[calc(100%-56px)].max-md:h-full.max-md:border-t.max-md:border-border-300.max-md:bg-bg-100.md:transition-[width].md:duration-300.md:ease-[cubic-bezier(0.4,0,0.2,1)].w-full.md:mt-12.md:m-2.md:w-[384px].p-5.border-0.5.border-border-300.md:rounded-2xl.max-md:border-0.md:absolute
+div.overflow-y-auto.overflow-x-hidden.[scrollbar-gutter:stable].pt-6.flex-1
+div.px-2
+div.relative.flex-shrink-0
+div.relative.flex.gap-2.w-full.items-center
+div.relative.group/copy.bg-bg-000/50.border-0.5.border-border-400.rounded-lg.focus:outline-none.focus-visible:ring-2.focus-visible:ring-accent-100
+div.relative.h-full
+div.relative.w-full.min-h-full.flex.flex-col
+div.root
+div.shrink-0
+div.transition-all.duration-200.ease-out
+div.truncate.font-base-bold
+div.whitespace-nowrap.select-none
+div#main-content.w-full.relative.min-w-0.h-full
+div#root
+div#wiggle-file-content
+h2.text-text-500.pb-2.mt-1.text-xs.select-none.pl-2.pr-2.pointer-events-none
+h2.text-text-500.pb-2.mt-1.text-xs.select-none.pl-2.pr-2.pointer-events-none.group/header.cursor-pointer.flex.items-center.justify-between.gap-2
+h3.font-medium.text-sm
+h3#_r_14a_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_14k_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_d1_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_d3_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_d5_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_dn_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_dp_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_dr_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_gp_.text-[12px].break-words.text-text-100.line-clamp-4
+h3#_r_h3_.text-[12px].break-words.text-text-100.line-clamp-4
+header.flex.w-full.bg-bg-100.sticky.top-0.z-header.h-12.-mb-3
+nav.flex.flex-col.px-0.fixed.left-0.border-r-0.5.h-screen.lg:bg-gradient-to-t.from-bg-200/5.to-bg-200/30.border-border-300.bg-bg-100.transition-[background-color,border-color,box-shadow].duration-[35ms]
+span.text-text-400.opacity-0.group-hover/header:opacity-75.transition-opacity
+span.text-text-500
+span.truncate.text-sm.whitespace-nowrap.flex-1
+span.truncate.text-sm.whitespace-nowrap.flex-1.group-hover:[mask-image:linear-gradient(to_right,hsl(var(--always-black))_78%,transparent_95%)].group-focus-within:[mask-image:linear-gradient(to_right,hsl(var(--always-black))_78%,transparent_95%)].[mask-size:100%_100%].[mask-image:linear-gradient(to_right,hsl(var(--always-black))_78%,transparent_95%)]
+span.w-full.text-start.block.truncate
+span.w-full.truncate.text-xs.text-text-500.font-normal.text-start
+ul.-mx-1.5.flex.flex-1.flex-col.px-1.5.gap-px`;
+
+const SAMPLE_HTML = `<nav class="flex flex-col px-2 gap-px">
+  <a class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-bg-200">Home</a>
+  <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-bg-200">Projects</a>
+  <a class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-bg-200">Settings</a>
+</nav>
+<ul class="flex flex-col gap-1 py-4">
+  <li class="flex items-center gap-2 transition border-t-0.5 border-transparent">
+    <div class="flex shrink-0 items-center justify-center rounded-full h-9 w-9 bg-text-200 text-bg-100">A</div>
+    <h3 id="_r_a1_" class="text-[12px] break-words text-text-100 line-clamp-4">First thread</h3>
+  </li>
+  <li class="flex items-center gap-2 transition border-t-0.5 border-transparent">
+    <div class="flex shrink-0 items-center justify-center rounded-full h-9 w-9 bg-text-300 text-bg-100">B</div>
+    <h3 id="_r_b2_" class="text-[12px] break-words text-text-100 line-clamp-4">Second thread</h3>
+  </li>
+  <li class="flex items-center gap-2 transition border-t-0.5 border-transparent">
+    <div class="flex shrink-0 items-center justify-center rounded-full h-9 w-9 bg-text-400 text-bg-100">C</div>
+    <h3 id="_r_c3_" class="text-[12px] break-words text-text-100 line-clamp-4">Third thread</h3>
+  </li>
+</ul>
+<div class="flex flex-col gap-2 py-2">
+  <button class="inline-flex items-center justify-center font-base-bold rounded-md px-3 h-8">Reply</button>
+  <button class="inline-flex items-center justify-center font-base-bold rounded-lg px-4 h-9">Send</button>
+  <button class="inline-flex items-center justify-center font-base-bold rounded-md px-3 h-8">Cancel</button>
+</div>`;
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('groupDemo', () => ({
+        // ── Input ──
+        inputText: DEFAULT_SIGNATURES,
+        inputMode: 'strings',   // 'strings' (pre-segmented) or 'html' (Stage 1 extraction)
+
+        // ── Options ──
+        maxSlots: 1,
+        minGroupSize: 2,
+        strategy: 'compress',
+        refineSlots: true,
+        delimiter: '.',
+
+        // ── Results ──
+        groups: [],
+        ungrouped: [],
+        recon: { pass: 0, fail: 0, failures: [] },
+
+        // ── UI state ──
+        inputExpanded: false,
+        ungroupedExpanded: false,
+
+        // ── Computed ──
+        get totalStrings() {
+            return this.groupedCount + this.ungrouped.length;
+        },
+        get groupedCount() {
+            return this.groups.reduce((s, g) => s + g.members.length, 0);
+        },
+        get allPass() {
+            return this.recon.fail === 0 && this.recon.pass > 0;
+        },
+
+        // ── Methods ──
+        init() {
+            this.run();
+        },
+
+        loadDefaults() {
+            this.inputMode = 'strings';
+            this.inputText = DEFAULT_SIGNATURES;
+            this.run();
+        },
+
+        loadHtmlSample() {
+            this.inputMode = 'html';
+            this.inputText = SAMPLE_HTML;
+            this.delimiter = '.';   // signatures are dot-delimited
+            this.run();
+        },
+
+        // Stage 1 for the DOM use case: parse HTML in-browser and emit signatures.
+        extractFromHtml() {
+            const doc = new DOMParser().parseFromString(this.inputText, 'text/html');
+            return window._gbt.extractSignaturesFromNodes(doc.body || doc);
+        },
+
+        run() {
+            const lines = this.inputMode === 'html'
+                ? this.extractFromHtml()
+                : this.inputText.trim().split('\n').map(s => s.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                this.groups = [];
+                this.ungrouped = [];
+                this.recon = { pass: 0, fail: 0, failures: [] };
+                return;
+            }
+
+            const { groupByTemplate, reconstruct } = window._gbt;
+
+            const result = groupByTemplate(lines, {
+                maxSlots: this.maxSlots,
+                minGroupSize: this.minGroupSize,
+                strategy: this.strategy,
+                refineSlots: this.refineSlots,
+                delimiter: this.delimiter,
+            });
+
+            this.groups = result.groups.map(g => ({ ...g, expanded: false }));
+            this.ungrouped = result.ungrouped;
+
+            // Verify reconstruction
+            let pass = 0, fail = 0;
+            const failures = [];
+            for (const g of result.groups) {
+                for (const m of g.members) {
+                    const rebuilt = reconstruct(g.template, m.slots, this.delimiter);
+                    if (rebuilt === m.original) { pass++; }
+                    else { fail++; failures.push({ original: m.original, rebuilt }); }
+                }
+            }
+            this.recon = { pass, fail, failures };
+        },
+    }));
+});
+</script>
+
+</body>
+</html>

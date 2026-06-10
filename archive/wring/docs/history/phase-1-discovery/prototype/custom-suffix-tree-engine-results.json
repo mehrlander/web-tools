@@ -1,0 +1,92 @@
+[
+  {
+    "pattern": "0  Total Due: $",
+    "freq": 2,
+    "len": 15,
+    "score": 30
+  },
+  {
+    "pattern": "Invoice No: ",
+    "freq": 2,
+    "len": 12,
+    "score": 24
+  },
+  {
+    "pattern": "  Amount: $",
+    "freq": 2,
+    "len": 11,
+    "score": 22
+  },
+  {
+    "pattern": " ",
+    "freq": 19,
+    "len": 1,
+    "score": 19
+  },
+  {
+    "pattern": ": $50  ",
+    "freq": 2,
+    "len": 7,
+    "score": 14
+  },
+  {
+    "pattern": "  ",
+    "freq": 5,
+    "len": 2,
+    "score": 10
+  },
+  {
+    "pattern": ": ",
+    "freq": 5,
+    "len": 2,
+    "score": 10
+  },
+  {
+    "pattern": ": $",
+    "freq": 3,
+    "len": 3,
+    "score": 9
+  },
+  {
+    "pattern": "0  ",
+    "freq": 3,
+    "len": 3,
+    "score": 9
+  },
+  {
+    "pattern": "o",
+    "freq": 8,
+    "len": 1,
+    "score": 8
+  },
+  {
+    "pattern": "n",
+    "freq": 4,
+    "len": 1,
+    "score": 4
+  },
+  {
+    "pattern": "e",
+    "freq": 4,
+    "len": 1,
+    "score": 4
+  },
+  {
+    "pattern": "u",
+    "freq": 4,
+    "len": 1,
+    "score": 4
+  },
+  {
+    "pattern": "t",
+    "freq": 4,
+    "len": 1,
+    "score": 4
+  },
+  {
+    "pattern": "5",
+    "freq": 3,
+    "len": 1,
+    "score": 3
+  }
+]

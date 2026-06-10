@@ -27,6 +27,8 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
 | `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/vanilla-bundle-demo.html) |
+| `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wring-dom.html) |
+| `wring-text` | Wring | General-Text Induction — Tokenize → Grammar → Group | [view](https://mehrlander.github.io/web-tools/pages/wring-text.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wring-text.html) |
 
 ## pages/drop/
 

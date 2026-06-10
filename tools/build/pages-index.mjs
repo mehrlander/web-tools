@@ -39,6 +39,8 @@ const NOTES = {
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
   'bookmarklets-story.html':   'Field notes on bookmarklet packing.',
+  'wring-text.html':           'Template induction on logs/records — kits/wring.js live.',
+  'wring-dom.html':            'Repeated DOM components from signatures or pasted HTML.',
 };
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
