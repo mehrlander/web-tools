@@ -17,9 +17,9 @@ on:
         required: false
         default: '2025-26'
       limit:
-        description: 'Cap per-bill fetches (--limit). Blank = no cap. Use 5 for a first smoke run.'
+        description: 'Cap per-bill fetches (--limit). Blank = fetch all (default). Enter e.g. 5 to smoke-test.'
         required: false
-        default: '5'
+        default: ''
       full:
         description: 'Refetch everything, including cached rcws (--full). Use for an open biennium.'
         type: boolean
