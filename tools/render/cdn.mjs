@@ -53,8 +53,13 @@ const CDN_DEFAULT = {
   'daisyui': 'daisyui.css',
 };
 
-// Resolve a package + optional subpath to a file under node_modules.
-function nodeFile(repoRoot, pkg, sub) {
+// Resolve a package + optional subpath to a file under node_modules. `esm`
+// marks a jsDelivr `/+esm` import: prefer the package's ESM entry
+// (exports["."].import / module), since the UMD/browser default those CDN
+// fields point at has no named exports for an `import { x }` to bind to.
+// (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
+// so a CJS-only package still misses — e.g. fast-xml-parser.)
+function nodeFile(repoRoot, pkg, sub, esm) {
   const dir = path.join(repoRoot, 'node_modules', pkg);
   if (sub) return path.join(dir, sub);
   if (CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
@@ -62,7 +67,10 @@ function nodeFile(repoRoot, pkg, sub) {
   if (existsSync(pj)) {
     try {
       const j = JSON.parse(readFileSync(pj, 'utf8'));
-      const def = j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
+      const dot = j.exports && j.exports['.'];
+      const def = esm
+        ? (dot && (dot.import || dot.module || dot.default)) || j.module || j.main || 'index.js'
+        : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
   }
@@ -70,9 +78,11 @@ function nodeFile(repoRoot, pkg, sub) {
 }
 
 // Parse a jsDelivr `npm/<pkg>[@ver]/<sub>` or unpkg `<pkg>[@ver]/<sub>` spec
-// into { pkg, sub }. Handles scoped packages and a trailing `+esm`.
+// into { pkg, sub, esm }. Handles scoped packages and a trailing `+esm`.
 function parseNpm(spec) {
-  spec = spec.replace(/^npm\//, '').replace(/\/?\+esm$/, '').replace(/\/$/, '');
+  spec = spec.replace(/^npm\//, '');
+  const esm = /\/\+esm$/.test(spec);
+  spec = spec.replace(/\/?\+esm$/, '').replace(/\/$/, '');
   let scope = '', rest = spec;
   if (spec.startsWith('@')) {
     const i = spec.indexOf('/');
@@ -83,12 +93,12 @@ function parseNpm(spec) {
   const nameVer = j < 0 ? rest : rest.slice(0, j);
   const sub = j < 0 ? '' : rest.slice(j + 1);
   const name = nameVer.replace(/@.*/, '');
-  return { pkg: scope + name, sub };
+  return { pkg: scope + name, sub, esm };
 }
 
 function readSpec(spec, repoRoot) {
-  const { pkg, sub } = parseNpm(spec);
-  const fp = nodeFile(repoRoot, pkg, sub);
+  const { pkg, sub, esm } = parseNpm(spec);
+  const fp = nodeFile(repoRoot, pkg, sub, esm);
   if (existsSync(fp)) return { body: readFileSync(fp), contentType: typeFor(fp) };
   return null;
 }

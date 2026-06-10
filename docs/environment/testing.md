@@ -87,7 +87,13 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   / "did the components mount + what state". See
   [`tools/README.md`](../../tools/README.md) for the build/verify companions
   (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
-  render through it).
+  render through it). *(2026-06-10)* `cdn.mjs` honors jsDelivr `/+esm` imports by
+  serving the package's ESM entry (`exports["."].import` / `module`) instead of
+  the UMD/browser default, so `import { get } from '…idb-keyval@6/+esm'` works
+  vendored. The remaining gap: jsDelivr bundles a CJS dependency graph into ESM
+  server-side, which the local resolver can't do — a CJS-only package
+  (`fast-xml-parser`) still fails under `shot`, so `wsl-sync.html` renders only
+  its header chrome while `pension-dash.html` renders fully.
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new
