@@ -19,6 +19,7 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/console-kit-demo.html) |
 | `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/cross-repo-read-demo.html) |
 | `diff-tool` | Diff | [view](https://mehrlander.github.io/web-tools/pages/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html) |
+| `embed` | Embed | [view](https://mehrlander.github.io/web-tools/pages/embed.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
