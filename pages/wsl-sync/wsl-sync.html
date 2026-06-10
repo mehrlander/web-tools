@@ -120,21 +120,20 @@
 </main>
 
 <script type="module">
-import { set } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
-import { loadStore, dbKey, BIENNIUM } from './wsl-data.js';
-import {
-    getLegislation, getPrefiles, getSponsors, getRcwFor, getHistoryFor, getActionsFor,
-    parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
-    parseRcwXml, parseHistoryXml, parseActionsXml,
-    consolidate, groupWithCompanions,
-    classifyPensionBill, preload,
-    linkifyTitles, titleTooltip,
-    buildPensionPopup, buildAdjacentPopup
-} from './wsl-api.js';
+// ?use=<branch|tag|sha> repins every runtime load (gh-api parses owner/repo/ref
+// from its own import URL); defaults to main. gh.load resolves kits under lib/.
+const ref = new URLSearchParams(location.search).get('use') || 'main';
+await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
 
+document.addEventListener('alpine:init', () => Alpine.data('syncApp', syncApp));
+await gh.load('kits/wsl.js');          // registers window.wsl (parsers/loader/classify/display)
+const wsl = window.wsl;
+await gh.load('alpine-bundle.js');     // self-boots Alpine + house directives/magics
+
+const BIENNIUM = wsl.BIENNIUM;
 const STORES = ['legislation', 'prefiles', 'rcws', 'sponsors', 'history', 'actions'];
 
-// --- Pure helpers (no globals; take store/flags explicitly) -----------------
+// --- Page-local pure helpers (display formatting; no globals) ----------------
 
 const uniq = (arr, fn) => [...new Set(arr.map(fn))];
 const toChapters = rcws => uniq(rcws, r => r.split('.').slice(0, 2).join('.')).join(', ');
@@ -189,14 +188,13 @@ const buildActionsPopup = actions => {
 };
 
 // Build the summary-mode rows from the store. `showAll` includes non-pension
-// bills. (Sponsors are keyed by `Id` — the XML field — matched to a bill's
-// PrimeSponsorID.)
+// bills. (Sponsors are keyed by `Id` — the XML field — matched to PrimeSponsorID.)
 const getSummaryBills = (store, showAll) => {
     const allBills = [...store.legislation, ...store.prefiles];
     const sponsorById = Object.fromEntries(store.sponsors.map(s => [s.Id, s]));
     return allBills.map(b => {
         const rcwList = (store.rcws[b.BillId]?.Rcws || '').split('|').filter(Boolean);
-        const c = rcwList.length ? classifyPensionBill(rcwList) : {};
+        const c = rcwList.length ? wsl.classifyPensionBill(rcwList) : {};
         if (!showAll && !c.hasPension && !c.hasAdjacent) return null;
         const hist = (store.history[b.BillNumber] || []).slice().sort((a, b) => new Date(b.ActionDate) - new Date(a.ActionDate));
         const actions = store.actions[b.BillNumber] || [];
@@ -261,7 +259,7 @@ const getProfile = rows => rows?.length ? uniq(rows.flatMap(Object.keys), k => k
     return { column: k, count: vals.length, unique: uniq(vals, v => v).length, pct: ((vals.length / rows.length) * 100).toFixed(0) + '%' };
 }) : [];
 
-// --- Paste-mode snippets/parsers (manual CORS fallback, kept as an updater) --
+// --- Paste-mode snippets (manual CORS fallback; the parsers run back here) ----
 
 const buildPasteSnippet = (mode, ctx) => {
     const header = "// Run this at https://wslwebservices.leg.wa.gov in DevTools console.\n// 'copy' is a devtools helper that writes its argument to the clipboard.\n";
@@ -336,8 +334,8 @@ function syncApp() {
         pasteOpen: false, pasteSnippet: '', pasteInput: '', pasteStatus: '',
 
         async init() {
-            this.store = await loadStore({ stores: STORES });
-            await preload();
+            this.store = await wsl.loadStore({ stores: STORES });
+            await wsl.preload();
             this.bump();
             this.paint();
         },
@@ -370,7 +368,7 @@ function syncApp() {
         setMode(m) { this.view.mode = m; this.paint(); },
         setFormat(f) { this.view.format = f; this.paint(); },
         bump() { this.dataVersion++; },
-        async save(k) { await set(dbKey(k), Alpine.raw(this.store[k])); },
+        async save(k) { await wsl.saveStore(k, Alpine.raw(this.store[k])); },
 
         getData() {
             const store = this.raw, mode = this.view.mode;
@@ -402,7 +400,7 @@ function syncApp() {
             if (isSummary) {
                 st.classList.remove('hidden');
                 const allBills = [...store.legislation, ...store.prefiles];
-                const groups = groupWithCompanions(allBills);
+                const groups = wsl.groupWithCompanions(allBills);
                 const summaryByBillId = Object.fromEntries(data.map(r => [r.BillId, r]));
 
                 const grouped = [];
@@ -430,9 +428,9 @@ function syncApp() {
                     { title: 'Committee', field: 'CommitteeList', minWidth: 150,
                         formatter: cell => (cell.getRow().getData().Actions || []).map(formatActionBadge).join(' '),
                         clickPopup: (e, cell) => buildActionsPopup(cell.getRow().getData().Actions) },
-                    { title: 'PensionArea', field: 'PensionArea', clickPopup: (e, cell) => buildPensionPopup(cell.getRow().getData().PensionRcwsFull) },
-                    { title: 'AdjacentArea', field: 'AdjacentArea', clickPopup: (e, cell) => buildAdjacentPopup(cell.getRow().getData().AdjacentRcwsFull) },
-                    { title: 'OtherTitles', field: 'OtherTitles', minWidth: 120, formatter: cell => linkifyTitles(cell.getValue()), tooltip: titleTooltip }
+                    { title: 'PensionArea', field: 'PensionArea', clickPopup: (e, cell) => wsl.buildPensionPopup(cell.getRow().getData().PensionRcwsFull) },
+                    { title: 'AdjacentArea', field: 'AdjacentArea', clickPopup: (e, cell) => wsl.buildAdjacentPopup(cell.getRow().getData().AdjacentRcwsFull) },
+                    { title: 'OtherTitles', field: 'OtherTitles', minWidth: 120, formatter: cell => wsl.linkifyTitles(cell.getValue()), tooltip: wsl.titleTooltip }
                 ];
 
                 const groupHeader = (value, count, data) => {
@@ -480,15 +478,15 @@ function syncApp() {
             try {
                 if (mode === 'legislation') {
                     this.progress('Fetching Legislation');
-                    store.legislation = consolidate(await getLegislation(this.sinceDate));
+                    store.legislation = wsl.consolidate(await wsl.getLegislation(this.sinceDate));
                     await this.save('legislation');
                 } else if (mode === 'prefiles') {
                     this.progress('Fetching Prefiles');
-                    store.prefiles = consolidate(await getPrefiles());
+                    store.prefiles = wsl.consolidate(await wsl.getPrefiles());
                     await this.save('prefiles');
                 } else if (mode === 'sponsors') {
                     this.progress('Fetching Sponsors');
-                    store.sponsors = await getSponsors(BIENNIUM);
+                    store.sponsors = await wsl.getSponsors(BIENNIUM);
                     await this.save('sponsors');
                 } else if (mode === 'rcws') {
                     const allBills = [...store.legislation, ...store.prefiles];
@@ -497,7 +495,7 @@ function syncApp() {
                     const done = Object.keys(store.rcws).length, total = allBills.length;
                     for (let i = 0; i < miss.length; i++) {
                         this.progress('Fetching RCW', `${done + i + 1}/${total} [${miss[i].BillId}]`);
-                        const r = await getRcwFor(miss[i], BIENNIUM);
+                        const r = await wsl.getRcwFor(miss[i], BIENNIUM);
                         if (r) store.rcws[r.BillId] = r;
                     }
                     await this.save('rcws');
@@ -506,9 +504,9 @@ function syncApp() {
                     const byNum = Object.fromEntries([...store.legislation, ...store.prefiles].map(b => [b.BillNumber, b]));
                     const needH = nums.filter(n => !store.history[n]), needA = nums.filter(n => !store.actions[n]);
                     let p = 0, total = needH.length + needA.length;
-                    for (const n of needH) { this.progress('Fetching History', `${++p}/${total} [${n}]`); store.history[n] = await getHistoryFor(byNum[n], BIENNIUM) || []; }
+                    for (const n of needH) { this.progress('Fetching History', `${++p}/${total} [${n}]`); store.history[n] = await wsl.getHistoryFor(byNum[n], BIENNIUM) || []; }
                     await this.save('history');
-                    for (const n of needA) { this.progress('Fetching Actions', `${++p}/${total} [${n}]`); store.actions[n] = await getActionsFor(byNum[n], BIENNIUM) || []; }
+                    for (const n of needA) { this.progress('Fetching Actions', `${++p}/${total} [${n}]`); store.actions[n] = await wsl.getActionsFor(byNum[n], BIENNIUM) || []; }
                     await this.save('actions');
                 }
             } catch (e) {
@@ -548,17 +546,17 @@ function syncApp() {
             const trimmed = (text || '').trim();
             if (!trimmed) throw new Error('Empty paste.');
             if (mode === 'legislation') {
-                store.legislation = consolidate(parseLegislationXml(trimmed));
+                store.legislation = wsl.consolidate(await wsl.parseLegislationXml(trimmed));
                 await this.save('legislation');
                 return `Loaded ${store.legislation.length} bills.`;
             }
             if (mode === 'prefiles') {
-                store.prefiles = consolidate(parsePrefilesXml(trimmed));
+                store.prefiles = wsl.consolidate(await wsl.parsePrefilesXml(trimmed));
                 await this.save('prefiles');
                 return `Loaded ${store.prefiles.length} prefiles.`;
             }
             if (mode === 'sponsors') {
-                store.sponsors = parseSponsorsXml(trimmed);
+                store.sponsors = await wsl.parseSponsorsXml(trimmed);
                 await this.save('sponsors');
                 return `Loaded ${store.sponsors.length} sponsors.`;
             }
@@ -566,7 +564,7 @@ function syncApp() {
                 const obj = JSON.parse(trimmed);
                 let n = 0;
                 for (const [id, xml] of Object.entries(obj)) {
-                    const r = parseRcwXml(xml, id);
+                    const r = await wsl.parseRcwXml(xml, id);
                     if (r) { store.rcws[r.BillId] = r; n++; }
                 }
                 await this.save('rcws');
@@ -575,9 +573,9 @@ function syncApp() {
             if (mode === 'summary') {
                 const obj = JSON.parse(trimmed);
                 let h = 0, a = 0;
-                for (const [num, xml] of Object.entries(obj.history || {})) { store.history[num] = parseHistoryXml(xml, num) || []; h++; }
+                for (const [num, xml] of Object.entries(obj.history || {})) { store.history[num] = await wsl.parseHistoryXml(xml, num) || []; h++; }
                 await this.save('history');
-                for (const [num, xml] of Object.entries(obj.actions || {})) { store.actions[num] = parseActionsXml(xml, num) || []; a++; }
+                for (const [num, xml] of Object.entries(obj.actions || {})) { store.actions[num] = await wsl.parseActionsXml(xml, num) || []; a++; }
                 await this.save('actions');
                 return `Loaded history for ${h} bills, actions for ${a} bills.`;
             }
@@ -597,19 +595,6 @@ function syncApp() {
         },
     };
 }
-
-document.addEventListener('alpine:init', () => Alpine.data('syncApp', syncApp));
-
-// Shared Alpine layer: alpine-bundle.js self-boots Alpine (core + collapse) and
-// registers the repo's directives/magics/stores, then Alpine auto-starts and the
-// alpine:init handler above registers this page's component. Loaded as a classic
-// script so jsDelivr's /gh/ text/plain Content-Type doesn't trip module-mime checks.
-await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/mehrlander/web-tools/lib/alpine-bundle.js';
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-});
 </script>
 </body>
 </html>

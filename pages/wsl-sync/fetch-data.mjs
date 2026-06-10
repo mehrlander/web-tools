@@ -20,9 +20,11 @@
 // environment's network allowlist; the tell for a blocked host is an
 // HTTP 403 with `x-deny-reason: host_not_allowed`.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { XMLParser } from 'fast-xml-parser';
+import { flatten } from 'flat';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,19 +46,6 @@ const FULL = args.includes('--full');
 // Per-biennium output dir, so each biennium archives alongside the others
 // (data/2025-26/, data/2023-24/, …) instead of overwriting a flat data/.
 const dataDir = path.join(here, 'data', BIENNIUM);
-
-// --- Load wsl-api.js in Node -------------------------------------------
-// Its CDN imports can't resolve in Node; rewrite them to the npm packages
-// (same versions) in a temp sibling so './pension-map.js' still resolves.
-const loadApi = async () => {
-    const src = readFileSync(path.join(here, 'wsl-api.js'), 'utf8')
-        .replace("'https://cdn.jsdelivr.net/npm/fast-xml-parser@4.5.1/+esm'", "'fast-xml-parser'")
-        .replace("'https://cdn.jsdelivr.net/npm/flat@6.0.0/+esm'", "'flat'");
-    const tmp = path.join(here, '.wsl-api.node.mjs');
-    writeFileSync(tmp, src);
-    try { return await import(pathToFileURL(tmp)); }
-    finally { unlinkSync(tmp); }
-};
 
 // --- Store I/O ----------------------------------------------------------
 const readStore = (name, empty) => {
@@ -95,9 +84,15 @@ const pool = async (items, worker) => {
 };
 
 // --- Main ---------------------------------------------------------------
-const api = await loadApi();
-const { URLS, consolidate, parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
-        parseRcwXml, parseHistoryXml, parseActionsXml, getBillNumber } = api;
+// Run the dependency-free core exactly as the browser does — gh.load executes
+// it as a `new Function('gh', src)` body — then inject Node's npm XML libs
+// through makeParsers. Same bytes as the page, no source rewrite.
+const coreSrc = readFileSync(path.join(here, '..', '..', 'lib', 'kits', 'wsl-core.js'), 'utf8');
+new Function('gh', coreSrc)({});
+const core = globalThis.wslCore;
+const { URLS, consolidate, getBillNumber } = core;
+const { parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+        parseRcwXml, parseHistoryXml, parseActionsXml } = core.makeParsers({ XMLParser, flatten });
 
 mkdirSync(dataDir, { recursive: true });
 

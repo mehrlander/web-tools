@@ -41,8 +41,16 @@
 <style>[x-cloak]{display:none!important}</style>
 
 <script type="module">
-import { classifyPensionBill } from './pension-map.js';
-import { loadStore } from './wsl-data.js';
+// ?use=<branch|tag|sha> repins every runtime load (gh-api parses owner/repo/ref
+// from its own import URL); defaults to main. gh.load then resolves kits/components
+// under lib/ at that ref.
+const ref = new URLSearchParams(location.search).get('use') || 'main';
+await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+
+document.addEventListener('alpine:init', () => Alpine.data('dashApp', dashApp));
+await gh.load('kits/wsl.js');          // registers window.wsl (parsers/loader/classify)
+const wsl = window.wsl;
+await gh.load('alpine-bundle.js');     // self-boots Alpine + house directives/magics
 
 const STORES = ['legislation', 'prefiles', 'rcws', 'history', 'actions'];
 
@@ -84,7 +92,7 @@ const buildCompanionClusters = (store) => {
                 const rcwRec = store.rcws[b.BillId];
                 if (rcwRec?.Rcws) {
                     const rcwList = rcwRec.Rcws.split('|').filter(Boolean);
-                    const c = classifyPensionBill(rcwList);
+                    const c = wsl.classifyPensionBill(rcwList);
                     b._classification = c;
                     if (!cluster.classification && (c.hasPension || c.hasAdjacent)) {
                         cluster.classification = c;
@@ -260,7 +268,7 @@ function dashApp() {
         async reload() {
             this.loading = true;
             clustersCache = null;
-            this.store = await loadStore({ stores: STORES });
+            this.store = await wsl.loadStore({ stores: STORES });
             clustersCache = null;
             this.loading = false;
         },
@@ -291,19 +299,6 @@ function dashApp() {
         },
     };
 }
-
-document.addEventListener('alpine:init', () => Alpine.data('dashApp', dashApp));
-
-// Shared Alpine layer: alpine-bundle.js self-boots Alpine (core + collapse) and
-// registers the repo's directives/magics/stores, then Alpine auto-starts and the
-// alpine:init handler above registers this page's component. Loaded as a classic
-// script so jsDelivr's /gh/ text/plain Content-Type doesn't trip module-mime checks.
-await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/gh/mehrlander/web-tools/lib/alpine-bundle.js';
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-});
 </script>
 </body>
 </html>
