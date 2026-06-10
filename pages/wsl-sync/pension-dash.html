@@ -4,41 +4,52 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pension Dashboard</title>
     <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/combine/npm/jquery,npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 </head>
-<body class="min-h-screen bg-base-100 text-[16px]">
+<body class="min-h-screen bg-base-100 text-[16px]" x-data="dashApp" x-cloak>
 
 <header class="flex items-center gap-4 px-6 h-14 border-b border-base-300 sticky top-0 bg-base-100 z-20">
     <div class="font-black text-lg tracking-tight">Pension Dashboard</div>
-    <div class="flex items-center gap-2 ml-4" id="stats"></div>
+    <div class="flex items-center gap-2 ml-4">
+        <template x-if="loading"><span class="text-xs text-base-content/50">Loading…</span></template>
+        <template x-if="!loading">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-base-content/50" x-text="counts.billCount + ' versions'"></span>
+                <span class="text-xs text-base-content/50" x-text="'· ' + counts.clusters + ' clusters'"></span>
+                <span class="text-xs text-base-content/50" x-text="'· ' + counts.companions + ' companions'"></span>
+            </div>
+        </template>
+    </div>
     <div class="ml-auto flex items-center gap-2">
-        <button id="refresh" class="btn btn-sm btn-ghost gap-1"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
-        <button id="open-sync" class="btn btn-sm btn-ghost gap-1"><i class="ph-bold ph-database"></i> Open Sync</button>
+        <button class="btn btn-sm btn-ghost gap-1" @click="reload()" :disabled="loading"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+        <button class="btn btn-sm btn-ghost gap-1" @click="window.open('wsl-sync.html','_blank')"><i class="ph-bold ph-database"></i> Open Sync</button>
     </div>
 </header>
 
-<div class="flex items-center gap-3 px-6 py-2 border-b border-base-300 sticky top-14 bg-base-100 z-10" id="toolbar"></div>
+<div class="flex items-center gap-3 px-6 py-2 border-b border-base-300 sticky top-14 bg-base-100 z-10">
+    <input type="text" x-model="filter" placeholder="Filter..." class="input input-sm input-bordered w-48">
+    <div class="join">
+        <button @click="type='all'" class="btn btn-xs join-item" :class="type==='all'?'btn-primary':'btn-ghost'">All (<span x-text="counts.all"></span>)</button>
+        <button @click="type='pension'" class="btn btn-xs join-item" :class="type==='pension'?'btn-primary':'btn-ghost'">Pension (<span x-text="counts.pension"></span>)</button>
+        <button @click="type='adjacent'" class="btn btn-xs join-item" :class="type==='adjacent'?'btn-warning btn-outline':'btn-ghost'">Adjacent (<span x-text="counts.adjacent"></span>)</button>
+    </div>
+    <span class="text-xs text-base-content/50 ml-auto" x-text="counts.shown + ' shown'"></span>
+</div>
 
-<main id="dash" class="divide-y divide-base-300"></main>
+<main class="divide-y divide-base-300" x-html="bodyHtml"></main>
+
+<style>[x-cloak]{display:none!important}</style>
 
 <script type="module">
-import { get } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/module.esm.js';
 import { classifyPensionBill } from './pension-map.js';
+import { loadStore } from './wsl-data.js';
 
-const BIENNIUM = '2025-26';
-const store = { legislation: [], prefiles: [], rcws: {}, history: {}, actions: {} };
-const view = { filter: '', type: 'all' };
+const STORES = ['legislation', 'prefiles', 'rcws', 'history', 'actions'];
 
-const dbKey = k => `wsl-${BIENNIUM}-${k}`;
-const loadStore = async () => {
-    store.legislation = await get(dbKey('legislation')) || [];
-    store.prefiles = await get(dbKey('prefiles')) || [];
-    store.rcws = await get(dbKey('rcws')) || {};
-    store.history = await get(dbKey('history')) || {};
-    store.actions = await get(dbKey('actions')) || {};
-};
+// --- Pure render/transform helpers (take store explicitly; no globals) ------
 
-const buildCompanionClusters = () => {
+const buildCompanionClusters = (store) => {
     const all = [...store.legislation, ...store.prefiles];
     const byNumber = {};
     all.forEach(b => {
@@ -49,15 +60,15 @@ const buildCompanionClusters = () => {
     Object.values(byNumber).forEach(bills => {
         bills.sort((a, b) => (a.BillId?.length || 0) - (b.BillId?.length || 0));
     });
-    
+
     const clusters = [];
     const seenNumbers = new Set();
-    
+
     Object.entries(byNumber).forEach(([num, bills]) => {
         if (seenNumbers.has(num)) return;
         const cluster = { billGroups: [{ number: num, bills }], classification: null, allLabels: new Set(), allAdjacent: new Set() };
         seenNumbers.add(num);
-        
+
         for (const b of bills) {
             if (b['c.BillId']) {
                 const companionNum = b['c.BillId'].replace(/[A-Z\s]/g, '');
@@ -68,7 +79,7 @@ const buildCompanionClusters = () => {
                 break;
             }
         }
-        
+
         cluster.billGroups.forEach(g => {
             g.bills.forEach(b => {
                 const rcwRec = store.rcws[b.BillId];
@@ -84,7 +95,7 @@ const buildCompanionClusters = () => {
                 }
             });
         });
-        
+
         if (cluster.classification?.hasPension || cluster.classification?.hasAdjacent) {
             cluster.billGroups.sort((a, b) => {
                 const aHouse = a.bills[0]?.OriginalAgency === 'House' ? 0 : 1;
@@ -94,20 +105,20 @@ const buildCompanionClusters = () => {
             clusters.push(cluster);
         }
     });
-    
+
     clusters.sort((a, b) => (+a.billGroups[0].number || 0) - (+b.billGroups[0].number || 0));
     return clusters;
 };
 
-const getFilteredClusters = (clusters) => {
+const filterClusters = (clusters, filter, type) => {
     let result = clusters;
-    if (view.type === 'pension') {
+    if (type === 'pension') {
         result = result.filter(c => c.classification?.hasPension);
-    } else if (view.type === 'adjacent') {
+    } else if (type === 'adjacent') {
         result = result.filter(c => c.classification?.hasAdjacent && !c.classification?.hasPension);
     }
-    if (view.filter) {
-        const q = view.filter.toLowerCase();
+    if (filter) {
+        const q = filter.toLowerCase();
         result = result.filter(c => {
             const texts = [
                 ...c.billGroups.flatMap(g => g.bills.map(b => b.BillId)),
@@ -122,13 +133,13 @@ const getFilteredClusters = (clusters) => {
     return result;
 };
 
-const renderVersion = (b, latestDate) => {
+const renderVersion = (store, b, latestDate) => {
     const c = b._classification || {};
     const labels = c.PensionLabels || [];
     const adjacent = c.AdjacentLabels || [];
     const hist = (store.history[b.BillNumber] || []).slice().sort((a, b) => new Date(b.ActionDate) - new Date(a.ActionDate));
     const acts = store.actions[b.BillNumber] || [];
-    
+
     return `
         <div class="py-3">
             <div class="flex items-start gap-4">
@@ -171,33 +182,9 @@ const renderVersion = (b, latestDate) => {
     `;
 };
 
-const renderBillGroup = (g, latestDate) => g.bills.map(b => renderVersion(b, latestDate)).join('<div class="border-t border-base-200"></div>');
+const renderBillGroup = (store, g, latestDate) => g.bills.map(b => renderVersion(store, b, latestDate)).join('<div class="border-t border-base-200"></div>');
 
-const render = () => {
-    const allClusters = buildCompanionClusters();
-    const clusters = getFilteredClusters(allClusters);
-    
-    const pensionOnly = allClusters.filter(c => c.classification?.hasPension).length;
-    const adjacentOnly = allClusters.filter(c => c.classification?.hasAdjacent && !c.classification?.hasPension).length;
-    const withCompanion = allClusters.filter(c => c.billGroups.length > 1).length;
-    const billCount = allClusters.reduce((n, c) => n + c.billGroups.reduce((m, g) => m + g.bills.length, 0), 0);
-    
-    $('#stats').html(`
-        <span class="text-xs text-base-content/50">${billCount} versions</span>
-        <span class="text-xs text-base-content/50">· ${allClusters.length} clusters</span>
-        <span class="text-xs text-base-content/50">· ${withCompanion} companions</span>
-    `);
-    
-    $('#toolbar').html(`
-        <input type="text" id="filter" placeholder="Filter..." value="${view.filter}" class="input input-sm input-bordered w-48">
-        <div class="join">
-            <button data-type="all" class="btn btn-xs join-item ${view.type==='all'?'btn-primary':'btn-ghost'}">All (${allClusters.length})</button>
-            <button data-type="pension" class="btn btn-xs join-item ${view.type==='pension'?'btn-primary':'btn-ghost'}">Pension (${pensionOnly})</button>
-            <button data-type="adjacent" class="btn btn-xs join-item ${view.type==='adjacent'?'btn-warning btn-outline':'btn-ghost'}">Adjacent (${adjacentOnly})</button>
-        </div>
-        <span class="text-xs text-base-content/50 ml-auto">${clusters.length} shown</span>
-    `);
-    
+const renderClusters = (store, clusters) => {
     let html = '';
     clusters.forEach(cluster => {
         const numbers = cluster.billGroups.map(g => g.number).join(' / ');
@@ -205,12 +192,12 @@ const render = () => {
         const hasCompanion = cluster.billGroups.length > 1;
         const allLabels = [...cluster.allLabels];
         const allAdjacent = [...cluster.allAdjacent];
-        
-        const allHist = cluster.billGroups.flatMap(g => 
+
+        const allHist = cluster.billGroups.flatMap(g =>
             g.bills.flatMap(b => (store.history[b.BillNumber] || []).map(h => ({ ...h, _fromBill: b.BillId })))
         ).sort((a, b) => new Date(b.ActionDate) - new Date(a.ActionDate));
         const latestHist = allHist[0];
-        
+
         html += `
         <div class="hover:bg-base-200/50">
             <details class="group">
@@ -243,35 +230,70 @@ const render = () => {
                         <div class="flex gap-6">
                             ${cluster.billGroups.map((g, i) => `
                                 <div class="flex-1 ${i > 0 ? 'border-l border-base-300 pl-6' : ''}">
-                                    ${renderBillGroup(g, latestHist?.ActionDate)}
+                                    ${renderBillGroup(store, g, latestHist?.ActionDate)}
                                 </div>
                             `).join('')}
                         </div>
-                    ` : renderBillGroup(cluster.billGroups[0], latestHist?.ActionDate)}
+                    ` : renderBillGroup(store, cluster.billGroups[0], latestHist?.ActionDate)}
                 </div>
             </details>
         </div>`;
     });
-    
-    $('#dash').html(html || '<div class="p-6 text-center text-base-content/50">No pension bills found. Run sync first.</div>');
+    return html;
 };
 
-$(document).on('click', '[data-type]', function() {
-    view.type = $(this).data('type'); render();
-}).on('input', '#filter', function() {
-    view.filter = $(this).val();
-    const pos = this.selectionStart;
-    render();
-    const el = document.getElementById('filter');
-    if (el) { el.focus(); el.setSelectionRange(pos, pos); }
-}).on('click', '#refresh', async function() {
-    await loadStore(); render();
-}).on('click', '#open-sync', function() {
-    window.open('wsl-sync.html', '_blank');
+// --- Alpine component -------------------------------------------------------
+// The cluster build (classify-per-bill over the full list) only depends on the
+// store, so it's memoized in a closure var and invalidated on (re)load — filter
+// typing then only re-runs the cheap string filter, not the whole build.
+
+Alpine.data('dashApp', () => {
+    let clustersCache = null;
+    return {
+        store: { legislation: [], prefiles: [], rcws: {}, history: {}, actions: {} },
+        filter: '',
+        type: 'all',
+        loading: true,
+
+        async init() {
+            await this.reload();
+        },
+        async reload() {
+            this.loading = true;
+            clustersCache = null;
+            this.store = await loadStore({ stores: STORES });
+            clustersCache = null;
+            this.loading = false;
+        },
+
+        get allClusters() {
+            return clustersCache ??= buildCompanionClusters(Alpine.raw(this.store));
+        },
+        get filtered() {
+            return filterClusters(this.allClusters, this.filter, this.type);
+        },
+        get counts() {
+            const all = this.allClusters;
+            return {
+                all: all.length,
+                pension: all.filter(c => c.classification?.hasPension).length,
+                adjacent: all.filter(c => c.classification?.hasAdjacent && !c.classification?.hasPension).length,
+                shown: this.filtered.length,
+                billCount: all.reduce((n, c) => n + c.billGroups.reduce((m, g) => m + g.bills.length, 0), 0),
+                clusters: all.length,
+                companions: all.filter(c => c.billGroups.length > 1).length,
+            };
+        },
+        get bodyHtml() {
+            if (this.loading) return '<div class="p-6 text-center text-base-content/50">Loading…</div>';
+            const clusters = this.filtered;
+            if (!clusters.length) return '<div class="p-6 text-center text-base-content/50">No pension bills match.</div>';
+            return renderClusters(Alpine.raw(this.store), clusters);
+        },
+    };
 });
 
-await loadStore();
-render();
+Alpine.start();
 </script>
 </body>
 </html>
