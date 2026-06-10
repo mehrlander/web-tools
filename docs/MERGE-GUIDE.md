@@ -4,6 +4,25 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-10 WSL Sync on gh.load kits + Alpine + JSON snapshot (PR #162)
+
+Rebuilt both WSL Sync pages on the repo's standard rails — committed JSON snapshot as the data source, Alpine (jQuery dropped), and the gh-api/`gh.load` kit chain — with one WSL core shared by the pages and the Node fetch Action.
+
+⭐ **Result:** [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) — 52 pension clusters from the snapshot
+
+**Changed:**
+- lib/kits/wsl-core.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/wsl-core.js), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — dependency-free core: parsers as a `makeParsers({ XMLParser, flatten })` factory + classify + list/group helpers (pension-map folded in). Same file runs in the browser (`gh.load`) and Node (`new Function`).
+  renders on: [wsl-sync](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html), [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html)
+- lib/kits/wsl.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/wsl.js), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — browser kit: registers `window.wsl` (lazy parsers, fetch helpers, snapshot loader, RCW display utilities).
+  renders on: [wsl-sync](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html), [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html)
+- pages/wsl-sync/wsl-sync.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)), pension-dash.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — boot gh-api, `gh.load` the kit + alpine-bundle, drive Alpine off `window.wsl`.
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — runs `wsl-core` via `new Function` + npm XML libs; the source-rewrite hack is gone.
+- removed pages/wsl-sync/{wsl-api,pension-map,wsl-data}.js (folded into the kits)
+
+**Notes:** Lazy parsers mean snapshot-only pension-dash never loads fast-xml-parser, so it renders fully headless (0 console errors). wsl-sync's grid (Tabulator) can't paint under the headless renderer — its thumb is chrome-only and a real-browser grid pass is still pending.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/wsl-sync-json-alpine-xh7m89)
+
 ## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (PR #159)
 
 Filled the two empty pages/wsl-sync cards in the pages index, fixing the render harness's handling of jsDelivr `/+esm` imports along the way.
