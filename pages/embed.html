@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Embed</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🖼️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  embed.html — full-viewport iframe of a URL passed in base64.
+
+  Usage:  embed.html?url=<base64-encoded-url>
+
+  The `url` param is a base64-encoded absolute URL (standard or URL-safe
+  base64, with or without padding). It is decoded and used as the iframe
+  src, so the page just renders whatever that URL serves.
+
+  Caveat: sites that send X-Frame-Options: DENY/SAMEORIGIN or a CSP
+  frame-ancestors directive will refuse to load in the iframe — that's
+  the remote server's choice and can't be overridden from here.
+-->
+</head>
+<body class="h-dvh m-0">
+
+<iframe id="frame"
+        class="w-full h-full border-0 block bg-base-100"
+        referrerpolicy="no-referrer"
+        allow="fullscreen"></iframe>
+
+<div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-3 p-8 text-center font-mono text-sm">
+  <i class="ph ph-image text-4xl opacity-60"></i>
+  <p class="text-base-content/70 max-w-md" id="empty-msg"></p>
+</div>
+
+<script type="module">
+  const params = new URLSearchParams(location.search);
+  const raw = params.get('url') || params.get('u');
+
+  const frame = document.getElementById('frame');
+  const empty = document.getElementById('empty');
+  const msg   = document.getElementById('empty-msg');
+
+  function showEmpty(text) {
+    frame.classList.add('hidden');
+    empty.classList.remove('hidden');
+    empty.classList.add('flex');
+    msg.textContent = text;
+  }
+
+  // Decode standard or URL-safe base64 (with or without padding) as UTF-8.
+  function decodeB64(s) {
+    let b = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    const bin = atob(b);
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  if (!raw) {
+    showEmpty('Pass a base64-encoded URL as ?url=… — e.g. embed.html?url=' +
+              btoa('https://example.com'));
+  } else {
+    let url;
+    try {
+      url = decodeB64(raw).trim();
+    } catch (e) {
+      showEmpty('Could not decode the url parameter as base64.');
+      url = null;
+    }
+    if (url) {
+      try {
+        const parsed = new URL(url);
+        if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
+        document.title = 'Embed · ' + parsed.host;
+        frame.src = parsed.href;
+      } catch (e) {
+        showEmpty('Decoded value is not a valid http(s) URL: ' + url);
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
