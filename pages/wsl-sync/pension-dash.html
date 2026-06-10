@@ -41,7 +41,6 @@
 <style>[x-cloak]{display:none!important}</style>
 
 <script type="module">
-import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3/dist/module.esm.js';
 import { classifyPensionBill } from './pension-map.js';
 import { loadStore } from './wsl-data.js';
 
@@ -247,7 +246,7 @@ const renderClusters = (store, clusters) => {
 // store, so it's memoized in a closure var and invalidated on (re)load — filter
 // typing then only re-runs the cheap string filter, not the whole build.
 
-Alpine.data('dashApp', () => {
+function dashApp() {
     let clustersCache = null;
     return {
         store: { legislation: [], prefiles: [], rcws: {}, history: {}, actions: {} },
@@ -291,9 +290,20 @@ Alpine.data('dashApp', () => {
             return renderClusters(Alpine.raw(this.store), clusters);
         },
     };
-});
+}
 
-Alpine.start();
+document.addEventListener('alpine:init', () => Alpine.data('dashApp', dashApp));
+
+// Shared Alpine layer: alpine-bundle.js self-boots Alpine (core + collapse) and
+// registers the repo's directives/magics/stores, then Alpine auto-starts and the
+// alpine:init handler above registers this page's component. Loaded as a classic
+// script so jsDelivr's /gh/ text/plain Content-Type doesn't trip module-mime checks.
+await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/gh/mehrlander/web-tools/lib/alpine-bundle.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+});
 </script>
 </body>
 </html>
