@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (branch `claude/blissful-keller-tc8vl6`)
+## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (PR #159)
 
 Filled the two empty pages/wsl-sync cards in the pages index, fixing the render harness's handling of jsDelivr `/+esm` imports along the way.
 
