@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-10 embed-page bookmarklet + inline-HTML modes (branch claude/peaceful-lovelace-ga5wj4)
+## 2026-06-10 embed-page bookmarklet + inline-HTML modes (PR #164)
 
 From any github.com blob page, one bookmarklet click renders that file as live HTML: the file's content travels gzipped inside the URL to embed.html's new `?gz=` mode. Follow-up to #163.
 
