@@ -11,16 +11,21 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  embed.html — full-viewport iframe of a URL passed in base64.
+  embed.html — full-viewport iframe of content passed in the query string.
 
-  Usage:  embed.html?url=<base64-encoded-url>
+  Modes (first match wins):
+    embed.html?gz=<base64url of gzipped HTML>   inline HTML, gzip-compressed
+    embed.html?html=<base64 of HTML>            inline HTML, plain
+    embed.html?url=<base64 of absolute URL>     iframe src points at the URL
 
-  The `url` param is a base64-encoded absolute URL (standard or URL-safe
-  base64, with or without padding). It is decoded and used as the iframe
-  src, so the page just renders whatever that URL serves.
+  All params accept standard or URL-safe base64, with or without padding.
+  Inline HTML renders via the iframe's srcdoc; relative links inside it only
+  resolve if the HTML carries its own <base> tag (the embed-page bookmarklet
+  stamps one in). The bookmarklets/embed-page.js bookmarklet feeds the gz
+  mode from any github.com blob page.
 
-  Caveat: sites that send X-Frame-Options: DENY/SAMEORIGIN or a CSP
-  frame-ancestors directive will refuse to load in the iframe — that's
+  Caveat for ?url=: sites that send X-Frame-Options: DENY/SAMEORIGIN or a
+  CSP frame-ancestors directive will refuse to load in the iframe — that's
   the remote server's choice and can't be overridden from here.
 -->
 </head>
@@ -38,7 +43,6 @@
 
 <script type="module">
   const params = new URLSearchParams(location.search);
-  const raw = params.get('url') || params.get('u');
 
   const frame = document.getElementById('frame');
   const empty = document.getElementById('empty');
@@ -51,36 +55,66 @@
     msg.textContent = text;
   }
 
-  // Decode standard or URL-safe base64 (with or without padding) as UTF-8.
-  function decodeB64(s) {
+  // Decode standard or URL-safe base64 (with or without padding) to bytes.
+  function b64Bytes(s) {
     let b = s.replace(/-/g, '+').replace(/_/g, '/');
     while (b.length % 4) b += '=';
-    const bin = atob(b);
-    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
+    return Uint8Array.from(atob(b), c => c.charCodeAt(0));
+  }
+  const decodeB64 = s => new TextDecoder().decode(b64Bytes(s));
+
+  async function gunzip(bytes) {
+    const ds = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(ds).text();
   }
 
-  if (!raw) {
-    showEmpty('Pass a base64-encoded URL as ?url=… — e.g. embed.html?url=' +
-              btoa('https://example.com'));
-  } else {
-    let url;
+  function showHtml(html) {
+    const t = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    document.title = 'Embed · ' + (t ? t[1].trim() : 'inline');
+    // Sandbox without allow-same-origin: the inline HTML arrives via the URL,
+    // so it must not run as this page's origin (which can hold a gh token in
+    // localStorage). Scripts still run, but under an opaque origin.
+    frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-modals allow-downloads');
+    frame.srcdoc = html;
+  }
+
+  const gz   = params.get('gz');
+  const html = params.get('html');
+  const url  = params.get('url') || params.get('u');
+
+  if (gz) {
     try {
-      url = decodeB64(raw).trim();
+      showHtml(await gunzip(b64Bytes(gz)));
+    } catch (e) {
+      showEmpty('Could not decode the gz parameter as base64-encoded gzip.');
+    }
+  } else if (html) {
+    try {
+      showHtml(decodeB64(html));
+    } catch (e) {
+      showEmpty('Could not decode the html parameter as base64.');
+    }
+  } else if (url) {
+    let decoded;
+    try {
+      decoded = decodeB64(url).trim();
     } catch (e) {
       showEmpty('Could not decode the url parameter as base64.');
-      url = null;
+      decoded = null;
     }
-    if (url) {
+    if (decoded) {
       try {
-        const parsed = new URL(url);
+        const parsed = new URL(decoded);
         if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
         document.title = 'Embed · ' + parsed.host;
         frame.src = parsed.href;
       } catch (e) {
-        showEmpty('Decoded value is not a valid http(s) URL: ' + url);
+        showEmpty('Decoded value is not a valid http(s) URL: ' + decoded);
       }
     }
+  } else {
+    showEmpty('Pass ?url=<base64 URL>, ?html=<base64 HTML>, or ?gz=<base64 gzipped HTML> — ' +
+              'e.g. embed.html?url=' + btoa('https://example.com'));
   }
 </script>
 
