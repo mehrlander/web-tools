@@ -4,6 +4,36 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-10 embed-page bookmarklet + inline-HTML modes (branch claude/peaceful-lovelace-ga5wj4)
+
+From any github.com blob page, one bookmarklet click renders that file as live HTML: the file's content travels gzipped inside the URL to embed.html's new `?gz=` mode. Follow-up to #163.
+
+⭐ **Result:** [embed.html?gz=…](https://mehrlander.github.io/web-tools/pages/embed.html?gz=H4sIAAAAAAAAAyXHOw6DMAwA0Ku47AhYQ5q5A10qeoA0MdhSfkospPT0Hfq2p28-O-kFgSQGo4UloDm_4DFmPf2rP9l3aNID3ocjJxkPGzl0FXPKrViHq-dWgu3qrOzXEqzDkQVjUw6TYF0J-SRRyzxfNBhNi9mJGzz25wZS7YUBPXBq7BGEEN6vTU-0mB-RNkyHoAAAAA) — a demo page unpacked from the URL itself
+
+**Changed:**
+- bookmarklets/embed-page.js ([new](https://github.com/mehrlander/web-tools/blob/main/bookmarklets/embed-page.js), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — reads the file text from the blob page's own DOM (private repos work), stamps a jsDelivr `<base>` for relative assets, gzips, navigates.
+  renders on: [embed](https://mehrlander.github.io/web-tools/pages/embed.html)
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [main](https://github.com/mehrlander/web-tools/blob/84bb12c/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — adds `?gz=` (base64url gzipped HTML) and `?html=` (base64 HTML) srcdoc modes alongside `?url=`.
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md#bookmarklets), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — bookmarklet listed.
+
+**Notes:** Inline modes render in a sandboxed iframe (`allow-scripts`, no `allow-same-origin`) so URL-borne HTML can't touch this origin's localStorage (gh token). Encoding the blob *URL* instead wouldn't render — github.com refuses framing and raw/jsDelivr serve HTML as `text/plain` — hence content-in-URL. Practical bound: very large files brush Chrome's ~2MB URL limit.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/peaceful-lovelace-ga5wj4)
+
+## 2026-06-10 embed.html: iframe a base64-encoded URL (PR #163)
+
+New page that takes `?url=<base64 URL>` and renders it in a full-viewport iframe — the iframe is the page.
+
+⭐ **Result:** [embed.html?url=…](https://mehrlander.github.io/web-tools/pages/embed.html?url=aHR0cHM6Ly9leGFtcGxlLmNvbQ==) — example.com in the frame
+
+**Changed:**
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/fcc3dda))
+- pages/thumbs/embed.png ([new](https://github.com/mehrlander/web-tools/blob/main/pages/thumbs/embed.png), [diff](https://github.com/mehrlander/web-tools/commit/9d859f9))
+
+**Notes:** Accepts standard or URL-safe base64, http(s) only; sites sending `X-Frame-Options`/`frame-ancestors` refuse to load — remote server's choice.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/84bb12c...9d859f9)
+
 ## 2026-06-10 WSL Sync on gh.load kits + Alpine + JSON snapshot (PR #162)
 
 Rebuilt both WSL Sync pages on the repo's standard rails — committed JSON snapshot as the data source, Alpine (jQuery dropped), and the gh-api/`gh.load` kit chain — with one WSL core shared by the pages and the Node fetch Action.
