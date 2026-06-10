@@ -4,6 +4,41 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (PR #159)
+
+Filled the two empty pages/wsl-sync cards in the pages index, fixing the render harness's handling of jsDelivr `/+esm` imports along the way.
+
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/index.html) — the wsl-sync cards now show previews
+
+**Changed:**
+- pages/thumbs/wsl-sync/pension-dash.png, wsl-sync.png ([new](https://github.com/mehrlander/web-tools/tree/main/pages/thumbs/wsl-sync), [diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc))
+- tools/render/cdn.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/render/cdn.mjs), [main](https://github.com/mehrlander/web-tools/blob/f11f3f6/tools/render/cdn.mjs), [diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc)) — `/+esm` specs now resolve to the package's ESM entry, not the UMD default; jquery vendored
+- docs/environment/testing.md, docs/MERGE-GUIDE.md ([diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc))
+
+**Notes:** pension-dash's thumb shows its real empty state; wsl-sync's shows header chrome only — its fast-xml-parser dep is CJS-only, which jsDelivr bundles to ESM server-side but the local resolver can't. Also adds the retroactive #158 entry below. Remaining wsl-sync work (Actions-based data fetch, load-from-repo path) deferred to a follow-up session.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/blissful-keller-tc8vl6)
+
+---
+
+## 2026-06-09 WSL bill apps move to pages/ + repo-side fetcher (PR #158)
+
+Moved the WA Legislature pension-bill apps from `tools/wsl-sync/` to `pages/wsl-sync/` (they're served pages, not build tooling) and added a Node fetcher that writes the six sync stores as IDB-shaped JSON, bypassing the browser CORS paste-shuffle.
+
+⭐ **Result:** [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) (empty until IndexedDB is seeded; see [README](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md))
+
+**Changed:**
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — `npm run wsl-fetch`; reuses wsl-api.js's parsers, writes `data/*.json`
+- pages/wsl-sync/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md), [diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — the two data paths + console seed snippet
+- tools/wsl-sync/ → [pages/wsl-sync/](https://github.com/mehrlander/web-tools/tree/main/pages/wsl-sync) ([diff](https://github.com/mehrlander/web-tools/commit/10847a1)) — wsl-sync.html, pension-dash.html, wsl-api.js, pension-map.js, rcw/ moved unmodified
+- package.json ([diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — `wsl-fetch` script + fast-xml-parser/flat devDeps
+
+**Notes:** Merged unexercised: `data/` is empty (the fetcher needs egress to `wslwebservices.leg.wa.gov`, not on the sandbox allowlist — run locally or via CI), and the pages read only IndexedDB, so committed `data/` won't show until seeded (README snippet) or a load-from-repo path exists. *(Entry written retroactively 2026-06-10; rode in on the branch above.)*
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/c042b30...f11f3f6)
+
+---
+
 ## 2026-06-09 Build-on-commit hook + wrap-up ritual (PR #157)
 
 Unified the derived-artifact refresh model: the commit-time hook now owns the pages catalogs alongside the pre-build, and thumbnails refresh once per session via the new "wrap up" ritual.
