@@ -25,7 +25,6 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(here, 'data');
 
 // --- CLI ---------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -34,10 +33,17 @@ const opt = (name, dflt) => {
     return i >= 0 ? args[i + 1] : dflt;
 };
 const BIENNIUM = opt('biennium', '2025-26');
-const SINCE = opt('since', '1/1/2025');
+// The legislation endpoint is date-based, not biennium-scoped; default the
+// lower bound to the biennium's own start year so a past-year fetch reaches
+// back far enough (and no further than needed).
+const SINCE = opt('since', `1/1/${BIENNIUM.split('-')[0]}`);
 const LIMIT = +opt('limit', 0);            // 0 = no cap on per-bill fetches
 const CONCURRENCY = +opt('concurrency', 4);
 const FULL = args.includes('--full');
+
+// Per-biennium output dir, so each biennium archives alongside the others
+// (data/2025-26/, data/2023-24/, …) instead of overwriting a flat data/.
+const dataDir = path.join(here, 'data', BIENNIUM);
 
 // --- Load wsl-api.js in Node -------------------------------------------
 // Its CDN imports can't resolve in Node; rewrite them to the npm packages
@@ -98,12 +104,17 @@ mkdirSync(dataDir, { recursive: true });
 console.log(`Biennium ${BIENNIUM}, since ${SINCE}${FULL ? ', --full refetch' : ' (incremental)'}`);
 
 // 1. The three single-call stores — always refetched (cheap).
+// `GetLegislationIntroducedSince` is date-based, so a since-date that reaches
+// into a prior biennium returns those bills too — and BillId isn't unique
+// across biennia, so filter to the target biennium before consolidate merges.
 console.log('Legislation…');
-const legislation = consolidate(parseLegislationXml(await fetchText(URLS.legislation(SINCE))));
+const legislation = consolidate(parseLegislationXml(await fetchText(URLS.legislation(SINCE)))
+    .filter(b => b.Biennium === BIENNIUM));
 writeStore('legislation', legislation);
 
 console.log('Prefiles…');
-const prefiles = consolidate(parsePrefilesXml(await fetchText(URLS.prefiles())));
+const prefiles = consolidate(parsePrefilesXml(await fetchText(URLS.prefiles()))
+    .filter(b => b.Biennium === BIENNIUM));
 writeStore('prefiles', prefiles);
 
 console.log('Sponsors…');

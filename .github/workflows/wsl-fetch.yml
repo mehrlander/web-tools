@@ -12,12 +12,16 @@ name: WSL fetch
 on:
   workflow_dispatch:
     inputs:
-      limit:
-        description: 'Cap per-bill fetches (--limit). Blank = no cap. Use 5 for a first smoke run.'
+      biennium:
+        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24). Output lands in data/<biennium>/.'
         required: false
-        default: '5'
+        default: '2025-26'
+      limit:
+        description: 'Cap per-bill fetches (--limit). Blank = fetch all (default). Enter e.g. 5 to smoke-test.'
+        required: false
+        default: ''
       full:
-        description: 'Refetch everything, including cached rcws (--full).'
+        description: 'Refetch everything, including cached rcws (--full). Use for an open biennium.'
         type: boolean
         required: false
         default: false
@@ -40,13 +44,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
-      - run: npm ci
+      # package-lock.json is gitignored in this repo, so there's no lockfile to
+      # `npm ci` against or to key setup-node's cache — install from package.json.
+      - run: npm install
 
       - name: Fetch bill data
         run: |
           ARGS=()
+          if [ -n "${{ inputs.biennium }}" ]; then ARGS+=(--biennium "${{ inputs.biennium }}"); fi
           if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
           if [ "${{ inputs.full }}" = "true" ]; then ARGS+=(--full); fi
           echo "Running: npm run wsl-fetch -- ${ARGS[*]}"
