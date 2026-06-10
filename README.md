@@ -79,6 +79,12 @@ new bookmark.
   whatever page you're on (see [Popups → Launcher](#popups)). The
   [launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
   generates a token-filled copy for you — handy on mobile.
+- [`embed-page`](bookmarklets/embed-page.js): from any github.com file (blob)
+  page, renders that file as live HTML. Reads the file text from the page
+  itself (so private repos work), stamps a `<base>` so relative assets resolve
+  via jsDelivr, gzips it, and navigates to
+  [embed](https://mehrlander.github.io/web-tools/pages/embed.html) with the
+  result packed into the `?gz=` parameter.
 
 The compression-helper page also generates bookmarklets on demand: paste
 text in, get a self-decompressing `javascript:` URL out. Same output
