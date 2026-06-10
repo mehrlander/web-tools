@@ -40,9 +40,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
-      - run: npm ci
+      # package-lock.json is gitignored in this repo, so there's no lockfile to
+      # `npm ci` against or to key setup-node's cache — install from package.json.
+      - run: npm install
 
       - name: Fetch bill data
         run: |
