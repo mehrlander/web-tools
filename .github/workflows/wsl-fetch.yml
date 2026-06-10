@@ -12,12 +12,16 @@ name: WSL fetch
 on:
   workflow_dispatch:
     inputs:
+      biennium:
+        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24). Output lands in data/<biennium>/.'
+        required: false
+        default: '2025-26'
       limit:
         description: 'Cap per-bill fetches (--limit). Blank = no cap. Use 5 for a first smoke run.'
         required: false
         default: '5'
       full:
-        description: 'Refetch everything, including cached rcws (--full).'
+        description: 'Refetch everything, including cached rcws (--full). Use for an open biennium.'
         type: boolean
         required: false
         default: false
@@ -48,6 +52,7 @@ jobs:
       - name: Fetch bill data
         run: |
           ARGS=()
+          if [ -n "${{ inputs.biennium }}" ]; then ARGS+=(--biennium "${{ inputs.biennium }}"); fi
           if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
           if [ "${{ inputs.full }}" = "true" ]; then ARGS+=(--full); fi
           echo "Running: npm run wsl-fetch -- ${ARGS[*]}"

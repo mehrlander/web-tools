@@ -40,14 +40,22 @@ one snippet.
 ### Path B: repo-side fetch (no CORS, no paste shuffle)
 
 [`fetch-data.mjs`](fetch-data.mjs) runs the same sync from Node, where CORS
-doesn't apply, and writes the stores to `data/*.json` in this folder:
+doesn't apply, and writes the stores to `data/<biennium>/*.json` in this
+folder (e.g. `data/2025-26/`), so each biennium archives alongside the others
+instead of overwriting:
 
 ```sh
 npm install            # once; pulls fast-xml-parser + flat (same versions the pages use)
-npm run wsl-fetch                   # incremental: refetch lists, fill missing per-bill data
-npm run wsl-fetch -- --full         # refetch everything
-npm run wsl-fetch -- --limit 50     # cap per-bill fetches (smoke test)
+npm run wsl-fetch                          # incremental: refetch lists, fill missing per-bill data
+npm run wsl-fetch -- --full                # refetch everything (use for an open biennium)
+npm run wsl-fetch -- --limit 50            # cap per-bill fetches (smoke test)
+npm run wsl-fetch -- --biennium 2023-24    # a past biennium → data/2023-24/
 ```
+
+Closed biennia (sessions over) are fetched once and never change. An **open**
+biennium's per-bill data (`rcws`, `history`, `actions`) keeps growing, so
+refresh it with `--full` rather than incrementally — the top-level list is
+re-fetched every run regardless.
 
 It reuses `wsl-api.js`'s own parsers (CDN imports rewritten to the pinned npm
 packages), so the JSON shapes are identical to what the pages write to
@@ -70,7 +78,7 @@ console **on either page** (same-origin fetch, no paste shuffle):
 const { set } = await import('https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm');
 const B = '2025-26';
 for (const k of ['legislation','prefiles','sponsors','rcws','history','actions']) {
-  const r = await fetch(`./data/${k}.json`);
+  const r = await fetch(`./data/${B}/${k}.json`);
   if (!r.ok) { console.log(k, '— no repo data'); continue; }
   await set(`wsl-${B}-${k}`, await r.json());
   console.log('seeded', k);
