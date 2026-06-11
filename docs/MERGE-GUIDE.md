@@ -4,6 +4,22 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-11 embed payload moves to the URL fragment (branch claude/peaceful-lovelace-ga5wj4)
+
+Fixes the bookmarklet's "URL too long" failure on real-sized files: the payload now rides in the `#fragment`, which never reaches the server, so GitHub Pages' ~8KB edge cap (Fastly 414s longer query strings) no longer applies — the bound becomes the browser's own ~2MB. Follow-up to #164.
+
+⭐ **Result:** [embed.html#gz=…](https://mehrlander.github.io/web-tools/pages/embed.html#gz=H4sIAAAAAAAAAyXHOw7DIAwA0Ku42aMkK6HMHdKlSg9AwcGW-ERgRaKn79C3PX3zxUk_EUhSNFpYIprwBY-p6Olf_Sm-Q5Me8T4cJct42MSxq1Ryaad1uHpuZ7Rdhcp-PaN1OLJgasphFqwrIQcStczzRYPRtJiduMFjf24g1V4Y0QPnxh5BCOH92uCoNiTMoidazA9QuvH2qQAAAA) — same demo, now fragment-borne
+
+**Changed:**
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1)) — reads `#params` first with `?query` back-compat; reloads on `hashchange` (fragment-only navigation is same-document, so the boot script wouldn't otherwise re-run when following a second embed link).
+- bookmarklets/embed-page.js ([new](https://github.com/mehrlander/web-tools/blob/main/bookmarklets/embed-page.js), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1)) — emits `#gz=`.
+  renders on: [embed](https://mehrlander.github.io/web-tools/pages/embed.html)
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md#bookmarklets), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1))
+
+**Notes:** Verified headlessly up to 724KB of HTML (310KB fragment). Re-installing the bookmarklet is required — the old copy still emits `?gz=`.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/peaceful-lovelace-ga5wj4)
+
 ## 2026-06-10 embed-page bookmarklet + inline-HTML modes (PR #164)
 
 From any github.com blob page, one bookmarklet click renders that file as live HTML: the file's content travels gzipped inside the URL to embed.html's new `?gz=` mode. Follow-up to #163.
