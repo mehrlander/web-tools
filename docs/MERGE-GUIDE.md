@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-11 Branch-guide convention: third spine artifact + prose-style rule (branch claude/trusting-volta-wsl8nh)
+## 2026-06-11 Branch-guide convention: third spine artifact + prose-style rule (PR #171)
 
 Working branches now carry a live `BRANCH-GUIDE.md` (pushed first thing, accurate per push, folded into this guide and deleted at wrap-up, never landing on main), and the portable conventions gain a no-em-dash prose rule plus a consolidated "Wrapping up & PR creation" section.
 
