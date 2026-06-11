@@ -1,25 +1,41 @@
 # Merge guide
 
-Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `CLAUDE.md`. Say "merge guide" in a session to prepend an entry.
+Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `docs/CONVENTIONS.md`. Say "merge guide" in a session to prepend an entry.
 
 ---
 
 ## 2026-06-11 Pages index: location-based filter chips + name search; kit demos surfaced (PR #170)
 
-The visual index gained a filter bar — location-based chips plus a name/title search box — and the demo/story pages were reorganized into real folders (`pages/demos/`, `pages/stories/`) so the categories are locations, not name guesses; the kit demos under `lib/kits/demos/` are now pulled into the catalog too.
+The visual index gained a filter bar (location-based chips plus a name/title search box), and the demo/story pages were reorganized into real folders (`pages/demos/`, `pages/stories/`) so the categories are locations, not name guesses. The kit demos under `lib/kits/demos/` are now pulled into the catalog too.
 
-⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/) — chips scope by location, the search box narrows within the selection (pick `All` for a repo-wide name search)
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/): chips scope by location, the search box narrows within the selection (pick `All` for a repo-wide name search)
 
 **Changed:**
-- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — a second source root (`lib/kits/demos/` → `kit-demos` group), location-based chips from each group's top segment, and the `q` search getter; regenerates `pages/index.html` + `pages/README.md`
-- tools/build/pages-shots.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-shots.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — same two-source model so kit demos get thumbnails under `pages/thumbs/kit-demos/`
-- pages/demos/, pages/stories/ ([tree](https://github.com/mehrlander/web-tools/tree/main/pages/demos)) — six demo pages and the bookmarklets story relocated (files + thumbs); FAB `data-path` and inbound links in README/docs/kit-readmes updated to match
-- docs/loader.md ([diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — corrected a stale `pages/demos/{persistence,…}` path to the real `lib/kits/demos/`
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): a second source root (`lib/kits/demos/`, the `kit-demos` group), location-based chips from each group's top segment, and the `q` search getter; regenerates `pages/index.html` + `pages/README.md`
+- tools/build/pages-shots.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-shots.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): same two-source model so kit demos get thumbnails under `pages/thumbs/kit-demos/`
+- pages/demos/, pages/stories/ ([tree](https://github.com/mehrlander/web-tools/tree/main/pages/demos)): six demo pages and the bookmarklets story relocated (files + thumbs); FAB `data-path` and inbound links in README/docs/kit-readmes updated to match
+- docs/loader.md ([diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): corrected a stale `pages/demos/{persistence,…}` path to the real `lib/kits/demos/`
 
 **Notes:** `scratch/demo-spacex` and `show-repo/demo-viewer` deliberately left in their own folders (they belong to those projects), so they appear under those chips, not `demos`. Demo pages load deps via absolute jsDelivr URLs, so moving them deeper didn't affect loading. Built on PR #170 (the earlier chip-prototype commit is part of the same branch).
 
 [Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/nice-hamilton-z1wj9e)
 
+## 2026-06-11 Branch-guide convention: third spine artifact + prose-style rule (PR #171)
+
+Working branches now carry a live `BRANCH-GUIDE.md` (pushed first thing, accurate per push, folded into this guide and deleted at wrap-up, never landing on main), and the portable conventions gain a no-em-dash prose rule plus a consolidated "Wrapping up & PR creation" section.
+
+⭐ **Result:** [Branch guide section in docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#branch-guide)
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): three-artifact surfacing spine, Branch guide section, branch-guide-enforcement extension point, wrap-up rewrite; prose-style rule and em-dash removal in [626bbb9](https://github.com/mehrlander/web-tools/commit/626bbb9)
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): answers the new extension point (enforcement: none yet)
+- docs/MERGE-GUIDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/MERGE-GUIDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): header pointer fixed (convention lives in CONVENTIONS.md); this entry
+
+**Notes:** The session dogfooded the convention; its own branch guide folded into this entry. Enforcement deferred until a guide actually leaks to main (then: hook nag or CI guard). Pre-existing em dashes in older merge-guide entries left as written.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/trusting-volta-wsl8nh)
+
+## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
 
 The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
 
