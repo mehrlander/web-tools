@@ -5,8 +5,8 @@ runs in a remote sandbox; the user sees output through chat, not a local
 filesystem.
 
 The canonical copy lives in `mehrlander/web-tools` at [docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md).
-That repo `@`-imports it from [its own CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md); other repos load it via
-[the `web-tools-conventions` skill](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md), which fetches it fresh from main. Apply it as
+That repo `@`-imports it from its own [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md); other repos load it via the
+[`web-tools-conventions` skill](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md), which fetches it fresh from main. Apply it as
 written, substituting the current repo into every URL template. If the current
 repo's own CLAUDE.md conflicts on a point, the current repo wins.
 
