@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // fetch-data.mjs — repo-side fetcher for the WSL Sync data stores.
 //
-// Fetches the same six stores wsl-sync.html syncs into IndexedDB, but from
-// Node (no CORS), and writes them as JSON under pages/wsl-sync/data/. The
-// shapes match the IDB stores exactly (`wsl-<biennium>-<store>` keys), so the
-// files can seed a browser's IDB verbatim — see README.md for the seed snippet.
+// Fetches the same six stores the wsl pages consume, but from Node (no
+// CORS), and writes them as JSON under pages/wsl-sync/data/<biennium>/ —
+// the committed snapshot both pages load at boot via `wsl.loadStore`.
 //
-// Parsing is NOT reimplemented: wsl-api.js is loaded with its two CDN imports
-// rewritten to the same-version npm packages (fast-xml-parser@4.5.1, flat@6),
-// so this script and the page run the identical transform/classify code.
+// Parsing is NOT reimplemented: lib/kits/wsl-core.js is dependency-free, so
+// this script executes it exactly as the browser's gh.load does (a
+// `new Function('gh', src)` body) and injects the same-version npm packages
+// (fast-xml-parser@4.5.1, flat@6) through `makeParsers` — this script and
+// the pages run the identical transform/classify code.
 //
 // Usage (from repo root, after npm install):
 //   npm run wsl-fetch                  incremental: refetch lists, fill missing

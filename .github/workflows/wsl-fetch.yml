@@ -5,11 +5,15 @@ name: WSL fetch
 # runners have open egress, so this runs pages/wsl-sync/fetch-data.mjs and
 # commits the JSON snapshot under pages/wsl-sync/data/.
 #
-# Manual-only for now (workflow_dispatch). Run with limit=5 the first time —
-# the parsers have only been exercised against synthetic XML, so a small run
-# is the smoke test. Add a cron schedule here once a clean full run is in.
+# Two triggers: manual dispatch (any biennium/limit), and a monthly cron
+# that does a --full refresh of the open biennium — per-bill data (rcws,
+# history, actions) grows on an open biennium, so incremental isn't enough.
+# Scheduled runs execute on the default branch, so the snapshot commit lands
+# on main; the guard below makes a no-change run commit nothing.
 
 on:
+  schedule:
+    - cron: '0 9 1 * *'   # 1st of the month, 09:00 UTC
   workflow_dispatch:
     inputs:
       biennium:
@@ -51,10 +55,12 @@ jobs:
 
       - name: Fetch bill data
         run: |
+          # On a scheduled run `inputs` is empty: the biennium falls back to
+          # the script's default (the open biennium) and --full is forced.
           ARGS=()
           if [ -n "${{ inputs.biennium }}" ]; then ARGS+=(--biennium "${{ inputs.biennium }}"); fi
           if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
-          if [ "${{ inputs.full }}" = "true" ]; then ARGS+=(--full); fi
+          if [ "${{ inputs.full }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then ARGS+=(--full); fi
           echo "Running: npm run wsl-fetch -- ${ARGS[*]}"
           npm run wsl-fetch -- "${ARGS[@]}"
 

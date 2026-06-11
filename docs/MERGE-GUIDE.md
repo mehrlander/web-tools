@@ -4,6 +4,22 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-11 WSL closeout: docs synced to kits, monthly fetch cron (PR #166)
+
+Closed out the WSL arc: the folder's docs now describe the kit/snapshot architecture #162 actually shipped, and the fetch Action gained its planned monthly cron.
+
+⭐ **Result:** [pages/wsl-sync/README.md](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md) — the rewritten front-door doc
+
+**Changed:**
+- pages/wsl-sync/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md), [main](https://github.com/mehrlander/web-tools/blob/0379536/pages/wsl-sync/README.md), [diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — rewritten around the wsl-core/wsl kits and the committed snapshot as source of truth; obsolete IDB seed snippet dropped; fast-xml-parser 4.5.1 pin rationale recorded (audit advisory is XMLBuilder-only, unused here)
+- .github/workflows/wsl-fetch.yml ([new](https://github.com/mehrlander/web-tools/blob/main/.github/workflows/wsl-fetch.yml), [main](https://github.com/mehrlander/web-tools/blob/0379536/.github/workflows/wsl-fetch.yml), [diff](https://github.com/mehrlander/web-tools/commit/8beb91e)) — monthly cron, `--full` on the open biennium; the meta.json-only guard keeps quiet months commit-free
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — header comment now matches the `new Function` + `makeParsers` injection it actually does
+- pages/wsl-sync/IMPORT.md, .gitignore ([diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — #162 restructure noted as provenance history; dead `.wsl-api.node.mjs` ignore dropped
+
+**Notes:** Docs plus the cron; no page runtime touched. Also adds the retroactive #160/#161 entry below. Deferred deliberately: the wsl-sync real-browser thumbnail pass and the fast-xml-parser v5 bump (rationale now in the README).
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/festive-mendel-ojely2)
+
 ## 2026-06-11 embed payload moves to the URL fragment (PR #165)
 
 Fixes the bookmarklet's "URL too long" failure on real-sized files: the payload now rides in the `#fragment`, which never reaches the server, so GitHub Pages' ~8KB edge cap (Fastly 414s longer query strings) no longer applies — the bound becomes the browser's own ~2MB. Follow-up to #164.
@@ -68,6 +84,21 @@ Rebuilt both WSL Sync pages on the repo's standard rails — committed JSON snap
 **Notes:** Lazy parsers mean snapshot-only pension-dash never loads fast-xml-parser, so it renders fully headless (0 console errors). wsl-sync's grid (Tabulator) can't paint under the headless renderer — its thumb is chrome-only and a real-browser grid pass is still pending.
 
 [Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/wsl-sync-json-alpine-xh7m89)
+
+## 2026-06-10 WSL data pipeline: fetch Action + first snapshots (PRs #160 & #161)
+
+Added the GitHub Actions path for WSL bill data — public-repo runners have the egress to `wslwebservices.leg.wa.gov` that the sandbox lacks — and hardened it through live runs that committed the first snapshots.
+
+⭐ **Result:** [WSL fetch workflow](https://github.com/mehrlander/web-tools/actions/workflows/wsl-fetch.yml) — dispatch from the Actions tab; the snapshot commits to `data/<biennium>/`
+
+**Changed:**
+- .github/workflows/wsl-fetch.yml ([new](https://github.com/mehrlander/web-tools/blob/main/.github/workflows/wsl-fetch.yml), [diff](https://github.com/mehrlander/web-tools/commit/bda895a)) — #160 added it (manual dispatch); #161 made it install from package.json ([diff](https://github.com/mehrlander/web-tools/commit/b7d8db2)) and default to fetch-all ([diff](https://github.com/mehrlander/web-tools/commit/1f64117))
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/578ef12)) — parameterized by biennium; each biennium archives to its own `data/<biennium>/`
+- pages/wsl-sync/data/2025-26/ ([new](https://github.com/mehrlander/web-tools/tree/main/pages/wsl-sync/data/2025-26), [diff](https://github.com/mehrlander/web-tools/commit/ad7f5f6)) — snapshots from real Action runs; the final full 4,691-bill snapshot rode in on #162's branch ([f7e1ffd](https://github.com/mehrlander/web-tools/commit/f7e1ffd))
+
+**Notes:** Two PRs, one arc: #160 the workflow, #161 the parameterization and smoke-tested runs. *(Entry written retroactively 2026-06-11.)*
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/54bdfb7...2e0fb65)
 
 ## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (PR #159)
 
