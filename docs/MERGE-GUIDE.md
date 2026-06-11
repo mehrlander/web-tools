@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-11 Import Wring: template-induction kit, demo pages, repo snapshot (claude/peaceful-carson-f7ymn5)
+## 2026-06-11 Import Wring: template-induction kit, demo pages, repo snapshot (PR #172)
 
 Wring (single-document template induction: one document with repeated structure in, recurring templates plus slot values out, losslessly) moves into web-tools as a kit, two demo pages, a test in the npm suite, and a full snapshot of the source repo.
 
