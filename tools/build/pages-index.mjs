@@ -132,6 +132,9 @@ function buildHtml() {
     .sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b)))
     .map(k => ({
       label: k === '' ? '' : `${k}/`,
+      // top-level segment drives the folder chips: every page under drop/ —
+      // including drop/components/, drop/fills-concepts/… — scopes to one `drop` chip.
+      top: k === '' ? 'main' : k.split('/')[0],
       items: groupsMap.get(k).sort((a, b) => a.label.localeCompare(b.label)),
     }));
 
@@ -163,7 +166,18 @@ function buildHtml() {
     <span class="font-medium">live</span> preview or the <span class="font-medium">source</span>.
   </p>
 
-  <template x-for="g in groups" :key="g.label">
+  <div class="flex flex-wrap items-center gap-1.5 mb-8">
+    <template x-for="c in chips" :key="c.key">
+      <button class="btn btn-xs"
+              :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
+              @click="filter=c.key">
+        <span x-text="c.label"></span>
+        <span class="opacity-50" x-text="c.count"></span>
+      </button>
+    </template>
+  </div>
+
+  <template x-for="g in visibleGroups" :key="g.label">
     <section class="mb-10">
       <h2 x-show="g.label" class="text-xs font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
         <i class="ph ph-folder"></i><span x-text="g.label"></span>
@@ -233,11 +247,42 @@ function buildHtml() {
 <script>
 function index(){
   const PAGE_GROUPS = ${JSON.stringify(groups, null, 2).replace(/</g, '\\u003c')};
+  // Cross-cutting sets: matched by page name or title, pulled from any folder.
+  const CROSS = {
+    demos:   p => /demo/i.test(p.label) || /demo/i.test(p.title || ''),
+    stories: p => /stor(y|ies)/i.test(p.label) || /stor(y|ies)/i.test(p.title || ''),
+  };
   return {
+    filter: 'main',
     groups: PAGE_GROUPS.map(g => ({
       ...g,
       items: g.items.map(p => ({ ...p, view: 'shot', source: '', shotMissing: false })),
     })),
+    // Chip bar: pages/ (root) and All first, then one chip per top-level folder,
+    // then the cross-cutting sets — each shown only when it has matches.
+    get chips(){
+      const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
+      const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
+      const all = this.groups.reduce((n, g) => n + g.items.length, 0);
+      const cross = Object.keys(CROSS).map(key => ({
+        key, label: key, count: this.groups.flatMap(g => g.items).filter(CROSS[key]).length,
+      })).filter(c => c.count);
+      return [
+        { key: 'main', label: 'pages/', count: countTop('main') },
+        { key: 'all',  label: 'All',    count: all },
+        ...tops.map(t => ({ key: t, label: t, count: countTop(t) })),
+        ...cross,
+      ];
+    },
+    get visibleGroups(){
+      if (this.filter === 'all') return this.groups.filter(g => g.items.length);
+      if (CROSS[this.filter]){
+        const items = this.groups.flatMap(g => g.items).filter(CROSS[this.filter])
+          .sort((a, b) => a.label.localeCompare(b.label));
+        return [{ label: this.filter, items }];
+      }
+      return this.groups.filter(g => g.top === this.filter && g.items.length);
+    },
     async show(p, v){
       p.view = v;
       if (v === 'html' && !p.source){
