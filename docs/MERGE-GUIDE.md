@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
+
+The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
+
+⭐ **Result:** [tools/test/bootstrap.mjs](https://github.com/mehrlander/web-tools/blob/main/tools/test/bootstrap.mjs) — run it all with `npm test`
+
+**Changed:**
+- tools/test/ ([new](https://github.com/mehrlander/web-tools/tree/main/tools/test), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — bootstrap.mjs (the jsdom+Alpine bootstrap testing.md had flagged "not yet built", plus `loadKit()` with CDN-import→npm rewrites) and 7 suites: compression, persistence, messaging, wsl-core, kit-registration smoke, counter, sheet-modal
+- lib/kits/persistence.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/persistence.js), [main](https://github.com/mehrlander/web-tools/blob/2731a43/lib/kits/persistence.js), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — cached connections now yield to `versionchange`; previously a second store on the same db (or another tool's upgrade) blocked the version bump forever
+  renders on: [data-shelf](https://mehrlander.github.io/web-tools/popups/data-shelf.html), [idb-nav](https://mehrlander.github.io/web-tools/popups/idb-nav.html), [persistence demo](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html)
+- docs/environment/testing.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/environment/testing.md), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — follow-up note replaced with the built bootstrap + two new gotchas (Alpine ESM entry, global rAF)
+- tools/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/tools/README.md), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)), package.json ([diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — `test/` documented; `test` script + brotli-wasm/acorn devDeps
+- dist/web-tools.js — hook-regenerated (persistence fix rides into the pre-build)
+
+**Notes:** Also audited the issue backlog: #133/#137/#138/#139 were all already fixed in main, just never closed.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/stoic-volta-xnpbvh)
+
 ## 2026-06-11 WSL closeout: docs synced to kits, monthly fetch cron (PR #166)
 
 Closed out the WSL arc: the folder's docs now describe the kit/snapshot architecture #162 actually shipped, and the fetch Action gained its planned monthly cron.
