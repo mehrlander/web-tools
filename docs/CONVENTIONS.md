@@ -101,7 +101,7 @@ Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for 
 
 ## Branch guide
 
-`BRANCH-GUIDE.md`, at the repo root of the working branch, answers "where did I leave things" for work that hasn't reached a PR yet. Until it exists, a branch is silent about itself; with it, the branch self-describes at any point mid-session. It is the live draft the other two artifacts resolve from, and it never lands on main.
+`BRANCH-GUIDE.md`, at the repo root of the working branch, surfaces the work on the branch so far. It is a guide to the branch, an answer to "where did I leave things" for work that hasn't reached a PR yet, and at wrap-up it flows into the merge-guide entry and seeds the PR body (see the lifecycle below). It never lands on main.
 
 **Lifecycle:**
 
