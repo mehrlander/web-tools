@@ -27,6 +27,7 @@
     "idb-keyval": "^6.2.2",
     "jquery": "^3.7.1",
     "jsdom": "^29.1.0",
-    "playwright": "1.56.0"
+    "playwright": "1.56.0",
+    "tabulator-tables": "^6.4.0"
   }
 }

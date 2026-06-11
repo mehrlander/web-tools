@@ -90,10 +90,19 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   render through it). *(2026-06-10)* `cdn.mjs` honors jsDelivr `/+esm` imports by
   serving the package's ESM entry (`exports["."].import` / `module`) instead of
   the UMD/browser default, so `import { get } from '…idb-keyval@6/+esm'` works
-  vendored. The remaining gap: jsDelivr bundles a CJS dependency graph into ESM
-  server-side, which the local resolver can't do — a CJS-only package
-  (`fast-xml-parser`) still fails under `shot`, so `wsl-sync.html` renders only
-  its header chrome while `pension-dash.html` renders fully.
+  vendored. A CJS→ESM gap remains in principle — jsDelivr bundles a CJS
+  dependency graph into ESM server-side, which the local resolver can't do — but
+  no rendered page currently hits it: the lazy parsers from PR #162 mean
+  snapshot-backed pages never request `fast-xml-parser` (only the interactive
+  fetch path would). *(2026-06-11)* The earlier note blaming it for
+  `wsl-sync.html` rendering header-chrome-only was a misdiagnosis: the actual
+  cause was `tabulator-tables` not being npm-installed (an unvendored spec in a
+  `/combine/` URL serves as empty). Vendored, both wsl-sync pages render fully.
+  Two lessons: a `MISS` in the intercept log is the first thing to check before
+  suspecting resolver semantics; and a package with no `jsdelivr`/`browser`
+  field needs a `CDN_DEFAULT` entry in `cdn.mjs`, else the non-ESM fallback
+  picks `module` — an ESM file that throws inside a classic `<script>` (real
+  jsDelivr falls back to `main`).
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new

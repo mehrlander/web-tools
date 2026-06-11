@@ -51,6 +51,7 @@ const CDN_DEFAULT = {
   '@alpinejs/collapse': 'dist/cdn.min.js',
   '@alpinejs/sort': 'dist/cdn.min.js',
   'daisyui': 'daisyui.css',
+  'tabulator-tables': 'dist/js/tabulator.min.js',
 };
 
 // Resolve a package + optional subpath to a file under node_modules. `esm`
