@@ -294,10 +294,10 @@ wring.selectTemplates(input)          // Stage 4: full MDL + weighted interval s
 wring.reconstruct(template, slots)    // Stage 5: exact reconstruction
 ```
 
-Demo pages: `pages/wring-text.html` (logs/records → templates) and
-`pages/wring-dom.html` (DOM signatures or pasted HTML → repeated components).
-Kit liveness test: `node tools/test-wring.mjs` (loads the kit the way
-`gh.load` does and checks the pipeline invariants end-to-end).
+Demo pages: `pages/demos/wring-text.html` (logs/records → templates) and
+`pages/demos/wring-dom.html` (DOM signatures or pasted HTML → repeated components).
+Kit liveness test: `tools/test/wring.test.mjs` (part of `npm test`; loads the
+kit the way `gh.load` does and checks the pipeline invariants end-to-end).
 
 ## Salvage status
 
@@ -315,4 +315,4 @@ examples.
 | `data-shelf.js` | `popups/data-shelf.html` | record shape + importer support |
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
-| `wring.js` | `pages/wring-text.html` / `pages/wring-dom.html` | template induction; generated from `archive/wring/` |
+| `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |

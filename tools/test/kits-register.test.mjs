@@ -16,6 +16,7 @@ const KITS = {
   'io.js': 'io',
   'messaging.js': 'messaging',
   'persistence.js': 'persistence',
+  'wring.js': 'wring',
   'wsl-core.js': 'wslCore',
 };
 
