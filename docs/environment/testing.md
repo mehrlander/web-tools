@@ -102,7 +102,9 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   suspecting resolver semantics; and a package with no `jsdelivr`/`browser`
   field needs a `CDN_DEFAULT` entry in `cdn.mjs`, else the non-ESM fallback
   picks `module` — an ESM file that throws inside a classic `<script>` (real
-  jsDelivr falls back to `main`).
+  jsDelivr falls back to `main`). `cdn.mjs` also mirrors jsDelivr's
+  auto-minification: a requested `.min.js`/`.min.css` subpath falls back to the
+  unminified tarball file when the tarball ships no minified copy (codemirror@5).
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new
