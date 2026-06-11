@@ -10,21 +10,24 @@ That repo `@`-imports it from its own `CLAUDE.md`; other repos load it via the
 written, substituting the current repo into every URL template. If the current
 repo's own CLAUDE.md conflicts on a point, the current repo wins.
 
+**Prose style.** No em dashes, in any file or chat reply: use a colon, comma,
+semicolon, parentheses, or a new sentence instead.
+
 Three **extension points** are deliberately left to each repo's CLAUDE.md:
 
-- **Preview mechanism** — a way to open changed code live from a branch (e.g.
+- **Preview mechanism**: a way to open changed code live from a branch (e.g.
   a query parameter a page reads at boot). If the repo declares one, the ⭐
   links below use it; if not, the `[new]` blob is the honest target.
-- **Per-session refreshes** — slow or non-deterministic artifacts regenerated
+- **Per-session refreshes**: slow or non-deterministic artifacts regenerated
   once per session at wrap-up (e.g. screenshots). If the repo declares none,
   wrap-up has no refresh step.
-- **Branch-guide enforcement** — optional machinery (a hook nag, a CI guard)
+- **Branch-guide enforcement**: optional machinery (a hook nag, a CI guard)
   backing the branch-guide lifecycle below. If the repo declares none, the
   lifecycle is convention-only.
 
 ## Surfacing your work
 
-**Explicit markdown only.** Bare file paths auto-link in some Claude Code UIs, but those links are transient: they resolve only in the live session, and they vanish on mobile, in rendered markdown, and anywhere the text gets copied. Use explicit `[caption](url)` markdown for anything the user might want to tap. The `file:line` convention (e.g. `src/foo.js:120`) is a separate thing: a grep-style pointer into source code for navigation when discussing or debugging code. It's not a substitute for explicit URLs when handing over an artifact.
+**Explicit markdown only.** Bare file paths auto-link in some Claude Code UIs, but those links are transient: they only resolve in the live session, and vanish on mobile, in rendered markdown, and anywhere the text is copied. Use explicit `[caption](url)` markdown for anything the user might want to tap. The `file:line` convention (e.g. `src/foo.js:120`) is a separate thing: a grep-style pointer into source for discussing or debugging code, not a substitute for an explicit URL when handing over an artifact.
 
 **Branch as session anchor.** The first reply in a session that creates or modifies files leads with a one-line branch link:
 
@@ -32,12 +35,12 @@ Three **extension points** are deliberately left to each repo's CLAUDE.md:
 
 This is the link the user taps to see the working tree at any point. No need to repeat it on subsequent turns.
 
-**Wrapping up & PR creation.** The web UI gives the user a button that opens a PR from the session branch, so don't ask "want me to open a PR?" on its own — offer PR creation only as part of the bundled wrap-up: *"want me to wrap up — fold the branch guide into the merge-guide entry and open the PR?"* Routing PR creation through chat is what gets the documentation and refreshes into the PR's initial diff, instead of chasing a merge that isn't visible from inside the session. (Open a PR outside a wrap-up only for a specific reason — e.g. a *second* PR after post-merge edits; see "Creating the next PR.")
+**Wrapping up & PR creation.** The web UI gives the user a button that opens a PR from the session branch, so don't ask "want me to open a PR?" on its own. Offer PR creation only as part of the bundled wrap-up: *"want me to wrap up (fold the branch guide into the merge-guide entry and open the PR)?"* Routing PR creation through chat gets the documentation and refreshes into the PR's initial diff, instead of chasing a merge that isn't visible from inside the session. (Open a PR outside a wrap-up only for a specific reason, e.g. a *second* PR after post-merge edits; see "Creating the next PR.")
 
 A wrap-up always produces a PR; there's no PR-less wrap-up. The sequence:
 
-1. **Per-session refreshes** — any refresh steps the repo's CLAUDE.md declares (see extension points above). Skip if the repo declares none.
-2. **Fold the branch guide** — resolve `BRANCH-GUIDE.md` into the merge-guide entry and delete it, in one commit (see "Branch guide").
+1. **Per-session refreshes**: any refresh steps the repo's CLAUDE.md declares (see extension points above). Skip if the repo declares none.
+2. **Fold the branch guide**: resolve `BRANCH-GUIDE.md` into the merge-guide entry and delete it, in one commit (see "Branch guide").
 3. **Open the PR.**
 
 **Skip the watch offer.** Don't offer to watch the PR for CI or review activity ("want me to keep an eye on CI?", "want me to watch this PR?"). It isn't useful to this user; this line suppresses the harness's default proactive prompt.
@@ -73,23 +76,23 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 
 ## The surfacing spine
 
-Three structured artifacts summarize a session's work, one per moment: the **branch guide** (live, on the branch), the **PR body** (pre-merge, on GitHub), and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). All fight the same failure mode — the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. All fix it the same way: a shove toward the thing to open, not an explanation.
+Three structured artifacts summarize a session's work, one per moment: the **branch guide** (live, on the branch), the **PR body** (pre-merge, on GitHub), and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). All fight the same failure mode: the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. All fix it the same way: a shove toward the thing to open, not an explanation.
 
 So all follow one spine. The first two lines are fixed:
 
-1. **Outcome + why** — one sentence, no preamble.
-2. A single **⭐ link to the thing to open** — the shove.
+1. **Outcome + why**: one sentence, no preamble.
+2. A single **⭐ link to the thing to open**: the shove.
 
-Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff/compare link. Skimmable in seconds. The artifacts share this spine but stay separate; only the link targets and a few moment-specific fields differ. They're also sequential drafts of each other: the branch guide is folded into the merge-guide entry at wrap-up and seeds the PR body.
+Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff/compare link. Skimmable in seconds. Only the link targets and a few moment-specific fields differ between the artifacts, and they're sequential drafts of each other: the branch guide folds into the merge-guide entry at wrap-up and seeds the PR body.
 
-**The ⭐ link, honestly.** The ⭐ is a live preview only when the repo declares a preview mechanism and the change is one it can render — then "open" means open. Otherwise the honest best is the `[new]` blob: say "view," not "use," and link the blob. The link must never promise a running preview the change can't deliver.
+**The ⭐ link, honestly.** The ⭐ is a live preview only when the repo declares a preview mechanism and the change is one it can render; then "open" means open. Otherwise the honest best is the `[new]` blob: say "view," not "use," and link the blob. The link must never promise a running preview the change can't deliver.
 
 **What differs.** Same spine, three moments:
 
 | | Branch guide | PR body | Merge-guide entry |
 |---|---|---|---|
 | Moment | while work is live | pre-merge | at / after merge |
-| Audience | resuming reader — "where did I leave things" | reviewer — "verify this" | reader — "what shipped, open here" |
+| Audience | resuming reader: "where did I leave things" | reviewer: "verify this" | reader: "what shipped, open here" |
 | ⭐ target | branch (preview mechanism, else `[new]` blob) | branch (preview mechanism, else `[new]` blob) | canonical main URL |
 | File links | branch blobs | branch blobs | main blobs |
 | Extra fields | next steps / open threads | risk, test status, "Follow-up to #N" | PR# key, date, durable Notes |
@@ -98,20 +101,20 @@ Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for 
 
 ## Branch guide
 
-`BRANCH-GUIDE.md`, at the repo root of the working branch, answers "where did I leave things" for work that hasn't reached a PR yet. Until it exists, a branch is silent about itself; with it, the branch self-describes at any point mid-session. It is the live draft the other two artifacts resolve from — and it never lands on main.
+`BRANCH-GUIDE.md`, at the repo root of the working branch, answers "where did I leave things" for work that hasn't reached a PR yet. Until it exists, a branch is silent about itself; with it, the branch self-describes at any point mid-session. It is the live draft the other two artifacts resolve from, and it never lands on main.
 
 **Lifecycle:**
 
-- **Create and push first thing.** The first commit of any session, before substantive work — even a session that has only reviewed material gets a guide saying briefly what's under review. Pushing immediately has a second payoff: the branch then exists on GitHub, so the branch-anchor link and every branch URL in chat resolve from the first reply onward.
-- **Accurate on every push.** Each push leaves the guide truthful — update it within the batch being pushed, not as separate churn commits. The freshness rule binds to *push*, not commit: the public state is what must not lie. A stale guide is worse than none.
-- **Fold and delete at wrap-up.** Wrap-up step 2 resolves the guide into the merge-guide entry (links toward main, PR# once known, durable next-steps into Notes) and deletes it, in the same commit. Added and deleted on the same branch, it nets out of the PR diff entirely — so it can't reach main by merge, and the reviewer never sees it. Its lifetime is exactly the gap it fills: pushed commits, no PR yet; once the PR body exists, that takes over the self-description job.
+- **Create and push first thing.** The first commit of any session, before substantive work; even a session that has only reviewed material gets a guide saying briefly what's under review. Pushing immediately has a second payoff: the branch then exists on GitHub, so the branch-anchor link and every branch URL in chat resolve from the first reply onward.
+- **Accurate on every push.** Each push leaves the guide truthful; update it within the batch being pushed, not as separate churn commits. The freshness rule binds to *push*, not commit: the public state is what must not lie. A stale guide is worse than none.
+- **Fold and delete at wrap-up.** Wrap-up step 2 resolves the guide into the merge-guide entry (links toward main, PR# once known, durable next-steps into Notes) and deletes it, in the same commit. Added and deleted on the same branch, it nets out of the PR diff entirely, so it can't reach main by merge and the reviewer never sees it. Its lifetime is exactly the gap it fills: pushed commits, no PR yet. Once the PR body exists, that takes over the self-description job.
 
-**Stay tight.** Same bar as the merge guide: a five-second skim, minimal commentary. The one field the other artifacts lack — **next steps / open threads** — is the heart of the file and the part each update must actually revise. If the guide grows past a screenful, it has stopped being a guide.
+**Stay tight.** Same bar as the merge guide: a five-second skim, minimal commentary. The one field the other artifacts lack, **next steps / open threads**, is the heart of the file and the part each update must actually revise. Past a screenful, it has stopped being a guide.
 
 **Guide shape:**
 
 ```markdown
-# Branch guide — <branch>
+# Branch guide: <branch>
 
 <One sentence: what this branch is doing and why.>
 
@@ -121,14 +124,14 @@ Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for 
 - <path> ([new](…), [main](…), [diff](…))
 
 **Next steps / open threads:**
-- <current, honest — the reason this file exists>
+- <current and honest; the reason this file exists>
 ```
 
 If a merge bypasses wrap-up (the PR button mid-session), the guide leaks to main; the next session deletes the stray file as cleanup. A repo can declare **branch-guide enforcement** (see extension points) to backstop this mechanically.
 
 ## PR body
 
-The body a PR opens with, before merge. Audience: a reviewer deciding whether to approve — "verify this," not "here's what shipped." Links resolve to the **branch tip**, so the reviewer reads exactly what's proposed; it doesn't assert in-main status — nothing here is merged yet.
+The body a PR opens with, before merge. Audience: a reviewer deciding whether to approve; "verify this," not "here's what shipped." Links resolve to the **branch tip**, so the reviewer reads exactly what's proposed. Nothing here is merged yet, so it doesn't assert in-main status.
 
 **Body shape:**
 
@@ -146,7 +149,7 @@ The body a PR opens with, before merge. Audience: a reviewer deciding whether to
 <session-link footer>
 ```
 
-- ⭐ target is on the branch: the repo's preview mechanism if it has one, otherwise the `[new]` blob (see the spine's honesty note). If the mechanism takes a ref, prefer the commit SHA over the branch name — CDN-style caches go stale on branch tips.
+- ⭐ target is on the branch: the repo's preview mechanism if it has one, otherwise the `[new]` blob (see the spine's honesty note). If the mechanism takes a ref, prefer the commit SHA over the branch name; CDN-style caches go stale on branch tips.
 - Keep "Follow-up to #N" when this continues an earlier PR, so the chain stays legible.
 - End with the session-link footer the harness appends to PR bodies.
 
@@ -158,9 +161,9 @@ The body of [PR #129 in web-tools](https://github.com/mehrlander/web-tools/pull/
 
 Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
 
-Produced on request: when the user says "merge guide" (or accepts the bundled-PR offer above, which counts as the request), prepend an entry for the current session. Either way it stays request-gated: never write it unasked, and never overwrite existing entries.
+Produced on request: when the user says "merge guide" (or accepts the bundled wrap-up offer above, which counts as the request), prepend an entry for the current session. Either way it stays request-gated: never write it unasked, and never overwrite existing entries.
 
-**Reading it for inclusion.** Each entry is keyed by its PR number, and an entry reaches main only by riding in on its own merge. So the entries in the main copy of this file are exactly the guide-covered merges that are in main, and the top entry is the latest. "Is PR #115 in main?" is answered by whether a #115 entry appears in the main copy. The on-demand caveat: a merge made without an entry won't show, so absence is not proof. For that, GitHub's merged state or git is authoritative. Always record the PR number as the key (known once the PR is open); fall back to the branch only until the number exists.
+**Reading it for inclusion.** Each entry is keyed by its PR number, and an entry reaches main only by riding in on its own merge. So the entries in the main copy of this file are exactly the guide-covered merges that are in main, and the top entry is the latest. "Is PR #115 in main?" is answered by whether a #115 entry appears in the main copy. The caveat: a merge made without an entry won't show, so absence is not proof; GitHub's merged state or git is authoritative. Key every entry by PR number once it exists; fall back to the branch only until then.
 
 Keep entries short. A five-second skim, not a changelog dump.
 
@@ -182,7 +185,7 @@ Keep entries short. A five-second skim, not a changelog dump.
 [Session diff](<compare link>)
 ```
 
-- Lead with the result, not the file list. The result is the thing to open to see the change, even when what you edited was a module or component something else loads. While work is on a branch, use the repo's preview mechanism (with the commit SHA, per the caching note above); after merge the canonical main URL takes over — the live page where one exists, the main blob otherwise.
+- Lead with the result, not the file list. The result is the thing to open to see the change, even when what you edited was a module or component something else loads. While work is on a branch, use the repo's preview mechanism (with the commit SHA, per the caching note above); after merge the canonical main URL takes over: the live page where one exists, the main blob otherwise.
 - Primary file first. For a shared component, add a `renders on:` line naming each consumer, so it's clear what to open.
 - Notes only when non-obvious. Skip anything the diff already shows.
 - All links are absolute GitHub URLs, using the `[new]`/`[main]`/`[diff]` vocabulary above, resolving to main once merged.
@@ -195,9 +198,9 @@ A recurring pattern: the user merges, then surfaces a bug or the next round of w
 
 **Option 2: Continue with edits.** User says "ok let's add X," and we keep editing on the same branch. Tradeoff: we must then create a new PR (not update the old one) when done, since the branch now has commits ahead of the merged PR.
 
-**The merged-branch closer.** Option 1 is the default: merge means done, and the branch makes no further edits unless the user explicitly chooses Option 2. To make that state legible when rereading the chat later, every post-merge response on this branch — a handoff prompt, a "what shipped?" inquiry, any follow-up short of an explicit Option 2 — ends with one fixed line:
+**The merged-branch closer.** Option 1 is the default: merge means done, and the branch makes no further edits unless the user explicitly chooses Option 2. To make that state legible when rereading the chat later, every post-merge response on this branch (a handoff prompt, a "what shipped?" inquiry, any follow-up short of an explicit Option 2) ends with one fixed line:
 
-> *Branch `<branch>` merged in PR #<n> — no further edits will be made here.*
+> *Branch `<branch>` merged in PR #<n>; no further edits will be made here.*
 
 It's a marker that the work was captured, not commentary; don't elaborate on it. Drop it only when the user opts into Option 2 (at which point the branch is live again).
 
@@ -217,4 +220,4 @@ When asked for a handoff prompt (HP):
 
 **Keep it short.** One context paragraph. One section per issue.
 
-As a preliminary, you can propose diagnostic tests where they'd move a cause from suspected to confirmed. The test should produce serialized output the user can share back. A second or third test that removes remaining doubt is welcome (you can also offer an test with a draft prompt that could be used to firm up some piece of it). Test results, once returned, become part of the picture, but a passing test confirms what it tested, not everything adjacent.
+As a preliminary, propose diagnostic tests where they'd move a cause from suspected to confirmed; each should produce serialized output the user can share back, and a second or third test that removes remaining doubt is welcome. Returned results join the picture, but a passing test confirms what it tested, not everything adjacent.
