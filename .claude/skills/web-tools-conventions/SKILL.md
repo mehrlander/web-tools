@@ -1,21 +1,21 @@
 ---
 name: web-tools-conventions
-description: Load the working conventions from the mehrlander/web-tools CLAUDE.md into the current session. Use in any repo when the user mentions "my conventions", "house rules", "the web-tools CLAUDE.md", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
 ---
 
 # web-tools conventions loader
 
-The canonical copy of the user's cross-repo working conventions — surfacing
-rules, explicit-markdown links, the per-file `[new]/[main]/[diff]` list, the
-surfacing spine (PR body + merge-guide entry), post-merge handoff, wrap-up
-ritual — lives in one place: `CLAUDE.md` in the public repo
-`mehrlander/web-tools`. This skill fetches it fresh so any session in any
-repo follows the same conventions without keeping a stale copy.
+The user's cross-repo working conventions — surfacing rules, explicit-markdown
+links, the per-file `[new]/[main]/[diff]` list, the surfacing spine (PR body +
+merge-guide entry), wrap-up ritual, post-merge handoff — live in one canonical,
+repo-agnostic file: `docs/CONVENTIONS.md` in the public repo
+`mehrlander/web-tools`. This skill fetches it fresh so any session in any repo
+follows the same conventions without keeping a stale copy.
 
 ## Fetch (primary path)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/CONVENTIONS.md
 ```
 
 `raw.githubusercontent.com` is on the Claude Code web sandbox allowlist, and
@@ -23,21 +23,12 @@ the repo is public, so this needs no auth.
 
 ## Apply
 
-Read the fetched file and follow it as if it were the current repo's own
-CLAUDE.md, with two adaptations:
-
-1. **Substitute the current repo** into every URL template (`<owner>/<repo>`,
-   branch links, blob links, compare links). The conventions are about *how*
-   to surface work; the targets are always the repo you're working in.
-2. **Skip the web-tools-specific machinery** unless the current repo has its
-   own equivalent: the pre-build / build-on-commit hook, `gh-api.js` purge
-   links, `pages/` thumbnails and catalogs, and the `?use=<ref>` page-boot
-   convention are web-tools internals. The generic parts — explicit markdown
-   links, branch-as-session-anchor, per-file link lists, the surfacing spine,
-   merge guide, post-merge closer, handoff-prompt shape — apply everywhere.
-
-If the current repo's own CLAUDE.md conflicts on a point, the current repo
-wins.
+The file is written to be followed as-is in any repo: substitute the current
+repo into its URL templates and follow it like the current repo's own
+CLAUDE.md. It defines two extension points (preview mechanism, per-session
+refreshes) that the current repo's CLAUDE.md may fill; if it doesn't, the
+documented defaults apply. If the current repo's own CLAUDE.md conflicts on a
+point, the current repo wins.
 
 ## Fallbacks
 
@@ -47,13 +38,13 @@ policy), in order:
 1. **GitHub MCP:** add `mehrlander/web-tools` to the session scope if needed
    (`mcp__claude-code-remote__list_repos`, then `add_repo`), then
    `mcp__github__get_file_contents` with owner `mehrlander`, repo
-   `web-tools`, path `CLAUDE.md`.
+   `web-tools`, path `docs/CONVENTIONS.md`.
 2. **WebFetch** on the same raw URL.
 
 ## Related web-tools files (fetch the same way when relevant)
 
-- `docs/MERGE-GUIDE.md` — the merge-guide log and entry format the
-  conventions reference.
+- `docs/MERGE-GUIDE.md` — web-tools' own merge-guide log, a worked example of
+  the entry format (each repo keeps its own `docs/MERGE-GUIDE.md`).
 - `docs/environment/*.md` — dated notes on the Claude Code web sandbox
   (network allowlist, persistence, testing recipes). These describe the
   sandbox itself, so they apply to sessions in any repo.
@@ -70,6 +61,11 @@ curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/s
 
 Then commit and push. Skills register at session start, so the skill becomes
 invocable in sessions started from a branch that contains it (the session
-that installs it can still read the file directly). This repo
-(`mehrlander/web-tools`) holds the canonical copy; re-run the installer in a
-target repo to pick up changes.
+that installs it can still read the file directly). Optionally, make adoption
+always-on by adding one line to the target repo's own CLAUDE.md:
+
+> Run the `web-tools-conventions` skill at the start of any session that will modify files.
+
+`mehrlander/web-tools` holds the canonical copy of both this skill and the
+conventions; the conventions are fetched live, so target repos only need to
+re-run the installer when the *skill itself* changes.
