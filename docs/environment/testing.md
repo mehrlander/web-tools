@@ -177,6 +177,25 @@ preserves node identity + queued effects), assemble the chrome around them
 already-initialized nodes, so no double-bind). A `<template>` wrapper also works
 (its content is inert, never walked) but pushes a tag onto every caller.
 
-> A possible follow-up not yet built: a reusable jsdom + Alpine test bootstrap
-> (the six globals + polyfills above) so component logic tests don't repeat the
-> setup.
+*(2026-06-11)* That follow-up is built: **`tools/test/bootstrap.mjs`**
+packages this whole section — `makeWindow()` applies the six globals, the
+matchMedia/rAF polyfills (matchMedia is flippable via the returned
+`setMedia(bool)`, for breakpoint-flip tests), and warning/error capture (the
+returned `problems` array; assert it stays empty); `startAlpine(window,
+[paths])` loads components and boots the real Alpine. Its `loadKit()` half
+runs a `lib/kits/*.js` file in the Node realm with the kit's lazy CDN
+`import()`s rewritten to npm-vendored copies. `npm test` runs the suites
+beside it (one `*.test.mjs` per kit/component, `node --test`, ~76 tests).
+Two lessons from building it, beyond the gotchas above:
+
+- Import **`alpinejs/dist/module.esm.js`**, not bare `alpinejs` — the package
+  has no `exports` map, so bare resolution lands on the CJS build, whose
+  default export arrives double-wrapped under Node interop (`Alpine.start is
+  not a function` is the symptom).
+- Patch **`global.requestAnimationFrame`** too, not just the window's —
+  Alpine's `x-show` transitions call it bare in the Node realm.
+
+The suite caught a real bug on its first run: `kits/persistence.js` cached
+IDB connections with no `versionchange` handler, so layering a second store
+onto the same database (or any other tool's upgrade) blocked the version
+bump forever — reproduced in a real browser too, fixed in the kit.
