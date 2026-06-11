@@ -4,6 +4,21 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-11 Branch-guide convention: third spine artifact + prose-style rule (branch claude/trusting-volta-wsl8nh)
+
+Working branches now carry a live `BRANCH-GUIDE.md` (pushed first thing, accurate per push, folded into this guide and deleted at wrap-up, never landing on main), and the portable conventions gain a no-em-dash prose rule plus a consolidated "Wrapping up & PR creation" section.
+
+⭐ **Result:** [Branch guide section in docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#branch-guide)
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): three-artifact surfacing spine, Branch guide section, branch-guide-enforcement extension point, wrap-up rewrite; prose-style rule and em-dash removal in [626bbb9](https://github.com/mehrlander/web-tools/commit/626bbb9)
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): answers the new extension point (enforcement: none yet)
+- docs/MERGE-GUIDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/MERGE-GUIDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): header pointer fixed (convention lives in CONVENTIONS.md); this entry
+
+**Notes:** The session dogfooded the convention; its own branch guide folded into this entry. Enforcement deferred until a guide actually leaks to main (then: hook nag or CI guard). Pre-existing em dashes in older merge-guide entries left as written.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/trusting-volta-wsl8nh)
+
 ## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
 
 The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
