@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html data-theme="dim">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wring · Phase 1 Diagnostic</title>
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/clipboard@2"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
+</head>
+<body class="p-4 max-w-3xl mx-auto" x-data="wring()">
+  <h3 class="text-xl font-bold mb-3">Wring · Phase 1 Diagnostic</h3>
+  
+  <textarea class="textarea textarea-bordered w-full h-28 font-mono text-xs" x-model="input"></textarea>
+  
+  <div class="flex gap-2 my-2 items-center flex-wrap">
+    <span class="text-sm">minLen</span>
+    <input type="number" class="input input-bordered input-sm w-16" x-model.number="minLen">
+    <span class="text-sm">minFreq</span>
+    <input type="number" class="input input-bordered input-sm w-16" x-model.number="minFreq">
+    <button class="btn btn-primary btn-sm" @click="run()">Run</button>
+    <button id="copy" class="btn btn-outline btn-sm"><span>Copy</span></button>
+  </div>
+  
+  <pre id="out" class="bg-base-200 p-3 rounded text-xs h-96 overflow-auto font-mono whitespace-pre-wrap" x-text="output"></pre>
+
+<script type="module">
+import SuffixArray from "https://esm.sh/mnemonist@0.40.3/suffix-array"
+
+const b = document.querySelector('#copy'), s = b.querySelector('span')
+let flashTimeout
+const flash = () => {
+  s.textContent = 'Copied'
+  b.classList.replace('btn-outline','btn-success')
+  clearTimeout(flashTimeout)
+  flashTimeout = setTimeout(() => { b.classList.replace('btn-success','btn-outline'); s.textContent = 'Copy' }, 1200)
+}
+const clip = new ClipboardJS(b, { text: () => document.querySelector('#out').innerText.trim() })
+clip.on('success', flash)
+
+const computeLCP = (str, sa) => {
+  const n = str.length, rank = new Uint32Array(n), lcp = new Uint32Array(n)
+  for (let i = 0; i < n; i++) rank[sa[i]] = i
+  let k = 0
+  for (let i = 0; i < n; i++) {
+    if (rank[i] === 0) { k = 0; continue }
+    const j = sa[rank[i] - 1]
+    while (i + k < n && j + k < n && str[i + k] === str[j + k]) k++
+    lcp[rank[i]] = k
+    if (k > 0) k--
+  }
+  return lcp
+}
+
+const findRepeats = (str, minLen, minFreq) => {
+  const repeats = new Map()
+  for (let len = minLen; len <= Math.min(str.length / 2, 100); len++) {
+    const seen = new Map()
+    for (let i = 0; i <= str.length - len; i++) {
+      const sub = str.slice(i, i + len)
+      if (!seen.has(sub)) seen.set(sub, [])
+      seen.get(sub).push(i)
+    }
+    for (const [sub, pos] of seen) if (pos.length >= minFreq) repeats.set(sub, pos)
+  }
+  return repeats
+}
+
+const filterMaximal = repeats => {
+  const entries = [...repeats.entries()].sort((a, b) => b[0].length - a[0].length)
+  const result = new Map()
+  for (const [sub, pos] of entries) {
+    let dominated = false
+    for (const [existing, existingPos] of result)
+      if (existing.includes(sub) && existingPos.length === pos.length) { dominated = true; break }
+    if (!dominated) result.set(sub, pos)
+  }
+  return result
+}
+
+window.wring = () => ({
+  input: `Invoice No: 12345  Amount: $100.00  Total Due: $100.00
+Invoice No: 67890  Amount: $250.00  Total Due: $250.00
+Invoice No: 11111  Amount: $75.50   Total Due: $75.50`,
+  minLen: 3,
+  minFreq: 2,
+  output: '',
+  
+  init() { this.run() },
+  
+  run() {
+    const { input: str, minLen, minFreq } = this
+    const sa = new SuffixArray(str), lcp = computeLCP(str, sa.array)
+    const repeats = filterMaximal(findRepeats(str, minLen, minFreq))
+    const sorted = [...repeats.entries()].map(([sub, pos]) => ({ sub, pos, score: sub.length * pos.length })).sort((a, b) => b.score - a.score)
+    const vis = s => s.replace(/\n/g, '↵').replace(/ /g, '·')
+    const pad = (s, n) => String(s).padStart(n)
+
+    const o = []
+    o.push('=== MNEMONIST SUFFIXARRAY ===')
+    o.push(`props: ${Object.keys(sa).join(', ')}`)
+    o.push(`sa.array: ${sa.array.constructor.name}[${sa.length}]`)
+    o.push(`sa.hasArbitrarySequence: ${sa.hasArbitrarySequence}`)
+    o.push(`GeneralizedSuffixArray: ${typeof SuffixArray.GeneralizedSuffixArray}`)
+    o.push('')
+
+    o.push('=== SUFFIX ARRAY + LCP ===')
+    o.push('idx │ sa[i] │ lcp[i] │ suffix')
+    for (let i = 0; i < Math.min(12, sa.length); i++)
+      o.push(`${pad(i,3)} │ ${pad(sa.array[i],5)} │ ${pad(lcp[i],6)} │ ${vis(str.slice(sa.array[i], sa.array[i]+20))}`)
+    if (sa.length > 12) o.push(`... (${sa.length - 12} more)`)
+    o.push('')
+
+    o.push(`=== REPEATS (minLen=${minLen}, minFreq=${minFreq}) ===`)
+    o.push('score │ freq │ len │ positions')
+    for (const { sub, pos, score } of sorted.slice(0, 15)) {
+      const posStr = pos.slice(0, 4).join(',') + (pos.length > 4 ? '…' : '')
+      o.push(`${pad(score,5)} │ ${pad(pos.length,4)} │ ${pad(sub.length,3)} │ ${posStr.padEnd(12)} ${vis(sub).slice(0,30)}`)
+    }
+    if (sorted.length > 15) o.push(`... (${sorted.length - 15} more)`)
+    o.push('')
+
+    const covered = new Set()
+    for (const { sub, pos } of sorted.slice(0, 10))
+      for (const p of pos) for (let i = p; i < p + sub.length; i++) covered.add(i)
+    o.push(`=== COVERAGE (top 10): ${covered.size}/${str.length} (${(100*covered.size/str.length).toFixed(1)}%) ===`)
+
+    this.output = o.join('\n')
+  }
+})
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</body>
+</html>

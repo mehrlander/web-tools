@@ -38,6 +38,8 @@ const NOTES = {
   'diff-tool.html':            'Side-by-side text diff tool.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
+  'demos/wring-text.html':     'Template induction on logs/records — kits/wring.js live.',
+  'demos/wring-dom.html':      'Repeated DOM components from signatures or pasted HTML.',
   'stories/bookmarklets-story.html': 'Field notes on bookmarklet packing.',
   // Kit demos live under lib/kits/demos/ — surfaced here under the kit-demos group.
   'kit-demos/compression.html':  'Compression kit — brotli/gz round-trip, live.',

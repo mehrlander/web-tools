@@ -32,6 +32,8 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html) |
 | `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html) |
 | `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html) |
+| `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/demos/wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-dom.html) |
+| `wring-text` | Wring | General-Text Induction — Tokenize → Grammar → Group | [view](https://mehrlander.github.io/web-tools/pages/demos/wring-text.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-text.html) |
 
 ## pages/drop/
 

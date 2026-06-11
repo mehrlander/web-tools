@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-11 Import Wring: template-induction kit, demo pages, repo snapshot (PR #172)
+
+Wring (single-document template induction: one document with repeated structure in, recurring templates plus slot values out, losslessly) moves into web-tools as a kit, two demo pages, a test in the npm suite, and a full snapshot of the source repo.
+
+⭐ **Result:** [pages/demos/wring-text.html](https://mehrlander.github.io/web-tools/pages/demos/wring-text.html) (logs/records to templates); the DOM twin is [wring-dom.html](https://mehrlander.github.io/web-tools/pages/demos/wring-dom.html)
+
+**Changed:**
+- lib/kits/wring.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/wring.js), [diff](https://github.com/mehrlander/web-tools/commit/9cba52b)): the engine as a kit (`window.wring`); generated, regenerate via `archive/wring/export/build-kit.mjs`
+  renders on: [wring-text](https://mehrlander.github.io/web-tools/pages/demos/wring-text.html), [wring-dom](https://mehrlander.github.io/web-tools/pages/demos/wring-dom.html)
+- pages/demos/wring-text.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-text.html)), pages/demos/wring-dom.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-dom.html)): the demos, re-plumbed to `gh.load` the kit with `?use=`
+- tools/test/wring.test.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/test/wring.test.mjs)): kit invariants on node:test; wring.js also joins kits-register.test.mjs
+- archive/wring/ ([tree](https://github.com/mehrlander/web-tools/tree/main/archive/wring), [IMPORT.md](https://github.com/mehrlander/web-tools/blob/main/archive/wring/IMPORT.md)): byte-for-byte snapshot of `mehrlander/wring@23114dc` (source modules, six-harness suite, research record)
+- lib/kits/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), [diff](https://github.com/mehrlander/web-tools/commit/9cba52b)): wring section + salvage-table row
+
+**Notes:** Mid-branch, main's pages reorg and npm-test suite merged in; the wring artifacts were realigned to both (pages into `pages/demos/`, standalone test recast onto node:test). Follow-up outside this repo: tombstone README in `mehrlander/wring`, then archive it on GitHub.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/peaceful-carson-f7ymn5)
+
 ## 2026-06-11 Pages index: location-based filter chips + name search; kit demos surfaced (PR #170)
 
 The visual index gained a filter bar (location-based chips plus a name/title search box), and the demo/story pages were reorganized into real folders (`pages/demos/`, `pages/stories/`) so the categories are locations, not name guesses. The kit demos under `lib/kits/demos/` are now pulled into the catalog too.

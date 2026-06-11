@@ -1,0 +1,13 @@
+# Dependencies (Wring has none today; this keeps an accidental install out of git)
+node_modules/
+
+# Logs and debug output (scoped so tracked fixtures like
+# general/fixtures/access.log stay addable)
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,10 @@
+{
+  "name": "wring",
+  "version": "0.1.0",
+  "description": "Single-document template induction from internal repetition",
+  "private": true,
+  "scripts": {
+    "test": "node core/test-group.js && node dom/test-extract.js && node general/test-grammar.js && node general/test-induce.js && node general/test-align.js && node selection/test-mdl-select.js && node export/tools/test-wring.mjs",
+    "build:kit": "node export/build-kit.mjs"
+  }
+}
