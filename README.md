@@ -84,7 +84,9 @@ new bookmark.
   itself (so private repos work), stamps a `<base>` so relative assets resolve
   via jsDelivr, gzips it, and navigates to
   [embed](https://mehrlander.github.io/web-tools/pages/embed.html) with the
-  result packed into the `?gz=` parameter.
+  result packed into the `#gz=` fragment (the fragment never reaches the
+  server, dodging the ~8KB URL cap GitHub Pages' edge enforces on query
+  strings).
 
 The compression-helper page also generates bookmarklets on demand: paste
 text in, get a self-decompressing `javascript:` URL out. Same output
