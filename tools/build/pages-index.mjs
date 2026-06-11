@@ -26,19 +26,25 @@ const SRC_URL = `https://github.com/${REPO}/blob/main/pages`;
 // One-line blurb per page, keyed by path relative to pages/. Falls back to the
 // page's <title> when a key is missing, so a new page still lists (just terser).
 const NOTES = {
-  'alpine-bundle-demo.html':   'Live tour of alpine-bundle.js — magics, directives, x-define.',
-  'vanilla-bundle-demo.html':  'Live tour of vanilla-bundle.js — the framework-free DOM shorthand.',
-  'cross-repo-read-demo.html': 'Reading files across repos with gh.read() — a data-transfer demo.',
-  'console-kit-demo.html':     'The console kit + debugConsole component, shown live.',
-  'sheet-modal-demo.html':     'Bottom-sheet / modal component demo.',
-  'prebuild-demo.html':        'One import boots the whole library from the dist/ pre-build.',
+  'demos/alpine-bundle-demo.html':   'Live tour of alpine-bundle.js — magics, directives, x-define.',
+  'demos/vanilla-bundle-demo.html':  'Live tour of vanilla-bundle.js — the framework-free DOM shorthand.',
+  'demos/cross-repo-read-demo.html': 'Reading files across repos with gh.read() — a data-transfer demo.',
+  'demos/console-kit-demo.html':     'The console kit + debugConsole component, shown live.',
+  'demos/sheet-modal-demo.html':     'Bottom-sheet / modal component demo.',
+  'demos/prebuild-demo.html':        'One import boots the whole library from the dist/ pre-build.',
   'table-compress.html':       'Single-function row transform + brotli/gz bundle round-trip.',
   'table-compress-multi.html': 'Multi-function variant of table-compress.',
   'compression-helper.html':   'Compression bookmarklet packer.',
   'diff-tool.html':            'Side-by-side text diff tool.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
-  'bookmarklets-story.html':   'Field notes on bookmarklet packing.',
+  'stories/bookmarklets-story.html': 'Field notes on bookmarklet packing.',
+  // Kit demos live under lib/kits/demos/ — surfaced here under the kit-demos group.
+  'kit-demos/compression.html':  'Compression kit — brotli/gz round-trip, live.',
+  'kit-demos/export.html':       'Export kit — file download from a user gesture.',
+  'kit-demos/io.html':           'IO kit — read/write helpers, shown live.',
+  'kit-demos/messaging.html':    'Messaging kit — cross-context postMessage helpers.',
+  'kit-demos/persistence.html':  'Persistence kit — local storage / state retention.',
 };
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -46,33 +52,66 @@ const pagesDir = path.join(repoRoot, 'pages');
 const mdPath = path.join(pagesDir, 'README.md');
 const htmlPath = path.join(pagesDir, 'index.html');
 
-// Recursively collect every .html under pages/, as paths relative to pages/.
-async function walk(dir) {
+const SITE = `https://mehrlander.github.io/${REPO.split('/')[1]}`;
+const BLOB = `https://github.com/${REPO}/blob/main`;
+
+// Source roots feeding the catalog. `virt` is the virtual path prefix used for
+// grouping, sorting, and thumbnail lookup; href/view/code map a file (path
+// relative to its source dir) back to its real location. The first source is
+// pages/ itself (no prefix); the second pulls in the kit demos that live
+// outside pages/, under lib/kits/demos/, surfaced under the kit-demos group.
+const SOURCES = [
+  { dir: 'pages', virt: '',
+    href: f => f,
+    view: f => `${SITE}/pages/${f}`,
+    code: f => `${BLOB}/pages/${f}` },
+  { dir: 'lib/kits/demos', virt: 'kit-demos',
+    href: f => `../lib/kits/demos/${f}`,
+    view: f => `${SITE}/lib/kits/demos/${f}`,
+    code: f => `${BLOB}/lib/kits/demos/${f}` },
+];
+
+// Display label for a group key (the virtual dir of a meta entry's rel).
+const dirLabel = key =>
+  key === 'kit-demos' ? 'lib/kits/demos/' : `pages/${key ? `${key}/` : ''}`;
+
+// Recursively collect every .html under baseDir, as paths relative to baseDir.
+async function walk(baseDir, dir = baseDir) {
   const out = [];
   for (const ent of await readdir(dir, { withFileTypes: true })) {
     if (ent.name === 'thumbs') continue;
     const abs = path.join(dir, ent.name);
-    if (ent.isDirectory()) out.push(...await walk(abs));
-    else if (ent.name.endsWith('.html')) out.push(path.relative(pagesDir, abs));
+    if (ent.isDirectory()) out.push(...await walk(baseDir, abs));
+    else if (ent.name.endsWith('.html')) out.push(path.relative(baseDir, abs));
   }
   return out;
 }
 
 const titleOf = src => (src.match(/<title>([^<]*)<\/title>/i)?.[1] ?? '').trim();
 
-const pages = (await walk(pagesDir)).sort((a, b) => a.localeCompare(b));
-
-// Read title once per page; carry the metadata both outputs need.
+// Read title once per page; carry the metadata both outputs need. Each entry's
+// `rel` is its virtual path (grouping/thumb key); href/viewUrl/codeUrl resolve
+// to the real file regardless of which source root it came from.
 const meta = [];
-for (const rel of pages) {
-  const src = await readFile(path.join(pagesDir, rel), 'utf8');
-  meta.push({
-    rel,
-    name: path.basename(rel, '.html'),
-    title: titleOf(src),
-    note: NOTES[rel] ?? '',
-  });
+for (const src of SOURCES) {
+  const base = path.join(repoRoot, src.dir);
+  const files = (await walk(base)).sort((a, b) => a.localeCompare(b));
+  for (const f of files) {
+    if (src.virt && path.basename(f) === 'index.html') continue; // skip a source's own catalog
+    const html = await readFile(path.join(base, f), 'utf8');
+    const rel = src.virt ? `${src.virt}/${f}` : f;
+    meta.push({
+      rel,
+      name: path.basename(f, '.html'),
+      title: titleOf(html),
+      note: NOTES[rel] ?? '',
+      href: src.href(f),
+      viewUrl: src.view(f),
+      codeUrl: src.code(f),
+    });
+  }
 }
+meta.sort((a, b) => a.rel.localeCompare(b.rel));
 
 // ---- pages/README.md : dense markdown table, grouped by directory ------------
 function buildMarkdown() {
@@ -90,8 +129,8 @@ function buildMarkdown() {
     '',
     '# pages/',
     '',
-    `Catalog of every page under \`pages/\`. Each row links the **rendered** page`,
-    `([${PAGES_URL.replace(/^https:\/\//, '')}](${PAGES_URL}/)) and its **code** on github.com.`,
+    `Catalog of the pages under \`pages/\`, plus the kit demos from \`lib/kits/demos/\`.`,
+    `Each row links the **rendered** page and its **code** on github.com.`,
     '',
     `[pages/index.html](${PAGES_URL}/) is the visual index — a screenshot card per`,
     `page, generated alongside this file; this README is its link-dense text twin.`,
@@ -99,10 +138,10 @@ function buildMarkdown() {
   ];
   for (const key of groupKeys) {
     const rows = groups.get(key).sort((a, b) => a.name.localeCompare(b.name));
-    lines.push(`## ${key === '' ? 'pages/' : `pages/${key}/`}`, '');
+    lines.push(`## ${dirLabel(key)}`, '');
     lines.push('| Page | Title | Links |', '|---|---|---|');
-    for (const { rel, name, title } of rows) {
-      lines.push(`| \`${name}\` | ${title || '—'} | [view](${PAGES_URL}/${rel}) · [code](${SRC_URL}/${rel}) |`);
+    for (const { name, title, viewUrl, codeUrl } of rows) {
+      lines.push(`| \`${name}\` | ${title || '—'} | [view](${viewUrl}) · [code](${codeUrl}) |`);
     }
     lines.push('');
   }
@@ -112,15 +151,16 @@ function buildMarkdown() {
 // ---- pages/index.html : visual card index ------------------------------------
 function buildHtml() {
   // Every page except the index itself becomes a card, grouped by directory so the
-  // root pages lead and nested experiments (drop/, scratch/, …) fall into labeled
-  // sections below — mirroring README.md. Injected as JSON, rendered by Alpine.
+  // root pages lead and the nested folders (demos/, stories/, drop/, …) and the
+  // external kit-demos fall into labeled sections — mirroring README.md. The
+  // location chips key off each group's top-level segment. Rendered by Alpine.
   const toItem = m => ({
-    href: m.rel,
+    href: m.href,
     label: m.name,
     title: m.title,
     note: m.note,
     thumb: `thumbs/${m.rel.replace(/\.html$/, '.png')}`,
-    code: `${SRC_URL}/${m.rel}`,
+    code: m.codeUrl,
   });
   const groupsMap = new Map();
   for (const m of meta) {
@@ -131,8 +171,8 @@ function buildHtml() {
   const groups = [...groupsMap.keys()]
     .sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b)))
     .map(k => ({
-      label: k === '' ? '' : `${k}/`,
-      // top-level segment drives the folder chips: every page under drop/ —
+      label: k === '' ? '' : dirLabel(k),
+      // top-level segment drives the location chips: every page under drop/ —
       // including drop/components/, drop/fills-concepts/… — scopes to one `drop` chip.
       top: k === '' ? 'main' : k.split('/')[0],
       items: groupsMap.get(k).sort((a, b) => a.label.localeCompare(b.label)),
@@ -175,9 +215,18 @@ function buildHtml() {
         <span class="opacity-50" x-text="c.count"></span>
       </button>
     </template>
+    <div class="grow"></div>
+    <label class="input input-xs input-bordered flex items-center gap-1.5 w-48">
+      <i class="ph ph-magnifying-glass opacity-50"></i>
+      <input type="search" x-model.debounce="q" placeholder="filter by name…" class="grow min-w-0">
+    </label>
   </div>
 
-  <template x-for="g in visibleGroups" :key="g.label">
+  <p x-show="!filteredGroups.length" class="text-base-content/40 text-sm">
+    No pages match<span x-show="q"> “<span x-text="q"></span>”</span>.
+  </p>
+
+  <template x-for="g in filteredGroups" :key="g.label">
     <section class="mb-10">
       <h2 x-show="g.label" class="text-xs font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
         <i class="ph ph-folder"></i><span x-text="g.label"></span>
@@ -247,41 +296,39 @@ function buildHtml() {
 <script>
 function index(){
   const PAGE_GROUPS = ${JSON.stringify(groups, null, 2).replace(/</g, '\\u003c')};
-  // Cross-cutting sets: matched by page name or title, pulled from any folder.
-  const CROSS = {
-    demos:   p => /demo/i.test(p.label) || /demo/i.test(p.title || ''),
-    stories: p => /stor(y|ies)/i.test(p.label) || /stor(y|ies)/i.test(p.title || ''),
-  };
   return {
     filter: 'main',
+    q: '',
     groups: PAGE_GROUPS.map(g => ({
       ...g,
       items: g.items.map(p => ({ ...p, view: 'shot', source: '', shotMissing: false })),
     })),
-    // Chip bar: pages/ (root) and All first, then one chip per top-level folder,
-    // then the cross-cutting sets — each shown only when it has matches.
+    // Location-based chip bar: pages/ (root) and All first, then one chip per
+    // top-level location (demos, stories, drop, …, kit-demos). The search box
+    // handles name filtering on top of whichever location is selected.
     get chips(){
       const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
       const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
       const all = this.groups.reduce((n, g) => n + g.items.length, 0);
-      const cross = Object.keys(CROSS).map(key => ({
-        key, label: key, count: this.groups.flatMap(g => g.items).filter(CROSS[key]).length,
-      })).filter(c => c.count);
       return [
         { key: 'main', label: 'pages/', count: countTop('main') },
         { key: 'all',  label: 'All',    count: all },
         ...tops.map(t => ({ key: t, label: t, count: countTop(t) })),
-        ...cross,
       ];
     },
+    // The selected location, before search.
     get visibleGroups(){
       if (this.filter === 'all') return this.groups.filter(g => g.items.length);
-      if (CROSS[this.filter]){
-        const items = this.groups.flatMap(g => g.items).filter(CROSS[this.filter])
-          .sort((a, b) => a.label.localeCompare(b.label));
-        return [{ label: this.filter, items }];
-      }
       return this.groups.filter(g => g.top === this.filter && g.items.length);
+    },
+    // The selected location narrowed by the name/title search; empty groups drop out.
+    get filteredGroups(){
+      const q = this.q.trim().toLowerCase();
+      if (!q) return this.visibleGroups;
+      return this.visibleGroups
+        .map(g => ({ ...g, items: g.items.filter(p =>
+          (p.label + ' ' + (p.title || '') + ' ' + (p.note || '')).toLowerCase().includes(q)) }))
+        .filter(g => g.items.length);
     },
     async show(p, v){
       p.view = v;

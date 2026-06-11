@@ -22,31 +22,45 @@ const WIDTH = 1000, HEIGHT = 625;            // 16:10, matches the card aspect r
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
-const pagesDir = path.join(repoRoot, 'pages');
 const shotTool = path.join(here, '..', 'render', 'screenshot.mjs');
 
-async function walk(dir) {
+// Source roots, matching pages-index.mjs: pages/ itself plus the kit demos that
+// live under lib/kits/demos/. `virt` is the thumbnail path prefix (so kit demos
+// land in pages/thumbs/kit-demos/); `src` resolves the file to actually shoot.
+const SOURCES = [
+  { dir: 'pages',           virt: '',          src: rel => path.join('pages', rel) },
+  { dir: 'lib/kits/demos',  virt: 'kit-demos', src: rel => path.join('lib/kits/demos', rel) },
+];
+
+async function walk(baseDir, dir = baseDir) {
   const out = [];
   for (const ent of await readdir(dir, { withFileTypes: true })) {
     if (ent.name === 'thumbs') continue;                       // never shoot the output dir
     const abs = path.join(dir, ent.name);
-    if (ent.isDirectory()) out.push(...await walk(abs));
-    else if (ent.name.endsWith('.html') && ent.name !== 'index.html') out.push(path.relative(pagesDir, abs));
+    if (ent.isDirectory()) out.push(...await walk(baseDir, abs));
+    else if (ent.name.endsWith('.html') && ent.name !== 'index.html') out.push(path.relative(baseDir, abs));
   }
   return out;
 }
 
+// Collect { rel (virtual thumb key), src (file to shoot) } across every source.
+let pages = [];
+for (const s of SOURCES) {
+  const files = await walk(path.join(repoRoot, s.dir));
+  for (const f of files) pages.push({ rel: s.virt ? `${s.virt}/${f}` : f, src: s.src(f) });
+}
+pages.sort((a, b) => a.rel.localeCompare(b.rel));
+
 const want = process.argv.slice(2).map(p => p.replace(/^pages\//, ''));
-let pages = (await walk(pagesDir)).sort((a, b) => a.localeCompare(b));
-if (want.length) pages = pages.filter(p => want.includes(p));
+if (want.length) pages = pages.filter(p => want.includes(p.rel));
 
 const results = [];
-for (const rel of pages) {
+for (const { rel, src } of pages) {
   const out = path.join('pages', 'thumbs', rel.replace(/\.html$/, '.png'));
   await mkdir(path.dirname(path.join(repoRoot, out)), { recursive: true });
   process.stdout.write(`shooting ${rel} -> ${out} ... `);
   const r = spawnSync(process.execPath, [
-    shotTool, path.join('pages', rel),
+    shotTool, src,
     '--out', out, '--width', String(WIDTH), '--height', String(HEIGHT),
   ], { cwd: repoRoot, encoding: 'utf8' });
   const ok = r.status === 0;
