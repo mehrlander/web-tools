@@ -8,14 +8,14 @@ in `lib/`, reload, and the next run uses it.
 
 The repo has two tiers of pages:
 
-- **Simple pages** (`pages/index.html`, `bookmarklets-story.html`,
+- **Simple pages** (`pages/index.html`, `pages/stories/bookmarklets-story.html`,
   `show-repo/repo-drag.html`, `table-compress*.html`) — each is
   self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
   then an inline `<script>` with the page's Alpine components. They don't use
   the loader at all.
 - **Loader-based pages** (`show-repo/show-repo.html`,
   `show-repo/demo-viewer.html`, `scratch/demo-spacex.html`,
-  `pages/demos/{persistence,messaging,io}.html`) —
+  `lib/kits/demos/{persistence,messaging,io}.html`) —
   use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
   as augmentations) + `alpine-bundle.js` to load reusable components off the
   repo at runtime.
@@ -349,7 +349,7 @@ the `new Function()` constraint.
 ### Option D — step outside the pattern for one-off pages
 
 Best for: pages that don't need repo browsing at all (e.g., the simple
-`bookmarklets-story.html` or `table-compress.html`).
+`pages/stories/bookmarklets-story.html` or `table-compress.html`).
 
 Rules:
 - Just use CDN Alpine + inline components, like the existing simple pages.

@@ -74,7 +74,7 @@ name in their suffix. Example — the FAB's Export controls, opened to the Rende
 tab with "Fully offline" ticked:
 
 ```
-npm run shot pages/sheet-modal-demo.html \
+npm run shot pages/demos/sheet-modal-demo.html \
   -- --script tools/render/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
 ```
 
@@ -174,7 +174,7 @@ no per-component load. The pure kits (`compression`, `persistence`, `io`, …)
 ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
 Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` still re-pins to the
-CDN for review. [`pages/prebuild-demo.html`](../pages/prebuild-demo.html) is the
+CDN for review. [`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html) is the
 worked example.
 
 This is the **delivery** twin of the loader's **freshness**: develop against the

@@ -60,7 +60,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
 | [demos/](https://mehrlander.github.io/web-tools/lib/kits/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`, `compression`). Double-duty as a builder reference. |
-| [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
+| [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/stories/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 | [launcher](https://mehrlander.github.io/web-tools/pages/launcher.html) | Setup page for the popup launcher: paste a token, copy out a ready-to-save bookmarklet. |
 
 The auto-listed index at `pages/` is the full directory if you want to see
