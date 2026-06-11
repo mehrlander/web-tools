@@ -51,6 +51,7 @@ const CDN_DEFAULT = {
   '@alpinejs/collapse': 'dist/cdn.min.js',
   '@alpinejs/sort': 'dist/cdn.min.js',
   'daisyui': 'daisyui.css',
+  'tabulator-tables': 'dist/js/tabulator.min.js',
 };
 
 // Resolve a package + optional subpath to a file under node_modules. `esm`
@@ -98,7 +99,13 @@ function parseNpm(spec) {
 
 function readSpec(spec, repoRoot) {
   const { pkg, sub, esm } = parseNpm(spec);
-  const fp = nodeFile(repoRoot, pkg, sub, esm);
+  let fp = nodeFile(repoRoot, pkg, sub, esm);
+  // jsDelivr auto-minifies: a `.min.js`/`.min.css` URL works on the CDN even
+  // when the npm tarball ships only the unminified file (e.g. codemirror@5).
+  if (!existsSync(fp) && /\.min\.(js|css)$/.test(fp)) {
+    const plain = fp.replace(/\.min\.(js|css)$/, '.$1');
+    if (existsSync(plain)) fp = plain;
+  }
   if (existsSync(fp)) return { body: readFileSync(fp), contentType: typeFor(fp) };
   return null;
 }
