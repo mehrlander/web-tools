@@ -1,6 +1,186 @@
 # Merge guide
 
-Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `CLAUDE.md`. Say "merge guide" in a session to prepend an entry.
+Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `docs/CONVENTIONS.md`. Say "merge guide" in a session to prepend an entry.
+
+---
+
+## 2026-06-11 Pages index: location-based filter chips + name search; kit demos surfaced (PR #170)
+
+The visual index gained a filter bar (location-based chips plus a name/title search box), and the demo/story pages were reorganized into real folders (`pages/demos/`, `pages/stories/`) so the categories are locations, not name guesses. The kit demos under `lib/kits/demos/` are now pulled into the catalog too.
+
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/): chips scope by location, the search box narrows within the selection (pick `All` for a repo-wide name search)
+
+**Changed:**
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): a second source root (`lib/kits/demos/`, the `kit-demos` group), location-based chips from each group's top segment, and the `q` search getter; regenerates `pages/index.html` + `pages/README.md`
+- tools/build/pages-shots.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-shots.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): same two-source model so kit demos get thumbnails under `pages/thumbs/kit-demos/`
+- pages/demos/, pages/stories/ ([tree](https://github.com/mehrlander/web-tools/tree/main/pages/demos)): six demo pages and the bookmarklets story relocated (files + thumbs); FAB `data-path` and inbound links in README/docs/kit-readmes updated to match
+- docs/loader.md ([diff](https://github.com/mehrlander/web-tools/commit/f63eeae)): corrected a stale `pages/demos/{persistence,…}` path to the real `lib/kits/demos/`
+
+**Notes:** `scratch/demo-spacex` and `show-repo/demo-viewer` deliberately left in their own folders (they belong to those projects), so they appear under those chips, not `demos`. Demo pages load deps via absolute jsDelivr URLs, so moving them deeper didn't affect loading. Built on PR #170 (the earlier chip-prototype commit is part of the same branch).
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/nice-hamilton-z1wj9e)
+
+## 2026-06-11 Branch-guide convention: third spine artifact + prose-style rule (PR #171)
+
+Working branches now carry a live `BRANCH-GUIDE.md` (pushed first thing, accurate per push, folded into this guide and deleted at wrap-up, never landing on main), and the portable conventions gain a no-em-dash prose rule plus a consolidated "Wrapping up & PR creation" section.
+
+⭐ **Result:** [Branch guide section in docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#branch-guide)
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): three-artifact surfacing spine, Branch guide section, branch-guide-enforcement extension point, wrap-up rewrite; prose-style rule and em-dash removal in [626bbb9](https://github.com/mehrlander/web-tools/commit/626bbb9)
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [main](https://github.com/mehrlander/web-tools/blob/c6cfa35/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): answers the new extension point (enforcement: none yet)
+- docs/MERGE-GUIDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/MERGE-GUIDE.md), [diff](https://github.com/mehrlander/web-tools/commit/8775a57)): header pointer fixed (convention lives in CONVENTIONS.md); this entry
+
+**Notes:** The session dogfooded the convention; its own branch guide folded into this entry. Enforcement deferred until a guide actually leaks to main (then: hook nag or CI guard). Pre-existing em dashes in older merge-guide entries left as written.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/trusting-volta-wsl8nh)
+
+## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
+
+The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
+
+⭐ **Result:** [tools/test/bootstrap.mjs](https://github.com/mehrlander/web-tools/blob/main/tools/test/bootstrap.mjs) — run it all with `npm test`
+
+**Changed:**
+- tools/test/ ([new](https://github.com/mehrlander/web-tools/tree/main/tools/test), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — bootstrap.mjs (the jsdom+Alpine bootstrap testing.md had flagged "not yet built", plus `loadKit()` with CDN-import→npm rewrites) and 7 suites: compression, persistence, messaging, wsl-core, kit-registration smoke, counter, sheet-modal
+- lib/kits/persistence.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/persistence.js), [main](https://github.com/mehrlander/web-tools/blob/2731a43/lib/kits/persistence.js), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — cached connections now yield to `versionchange`; previously a second store on the same db (or another tool's upgrade) blocked the version bump forever
+  renders on: [data-shelf](https://mehrlander.github.io/web-tools/popups/data-shelf.html), [idb-nav](https://mehrlander.github.io/web-tools/popups/idb-nav.html), [persistence demo](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html)
+- docs/environment/testing.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/environment/testing.md), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — follow-up note replaced with the built bootstrap + two new gotchas (Alpine ESM entry, global rAF)
+- tools/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/tools/README.md), [diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)), package.json ([diff](https://github.com/mehrlander/web-tools/commit/d4b042da70c61d138bb7af83d3f743fdb69875e7)) — `test/` documented; `test` script + brotli-wasm/acorn devDeps
+- dist/web-tools.js — hook-regenerated (persistence fix rides into the pre-build)
+
+**Notes:** Also audited the issue backlog: #133/#137/#138/#139 were all already fixed in main, just never closed.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/stoic-volta-xnpbvh)
+
+## 2026-06-11 WSL closeout: docs synced to kits, monthly fetch cron (PR #166)
+
+Closed out the WSL arc: the folder's docs now describe the kit/snapshot architecture #162 actually shipped, and the fetch Action gained its planned monthly cron.
+
+⭐ **Result:** [pages/wsl-sync/README.md](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md) — the rewritten front-door doc
+
+**Changed:**
+- pages/wsl-sync/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md), [main](https://github.com/mehrlander/web-tools/blob/0379536/pages/wsl-sync/README.md), [diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — rewritten around the wsl-core/wsl kits and the committed snapshot as source of truth; obsolete IDB seed snippet dropped; fast-xml-parser 4.5.1 pin rationale recorded (audit advisory is XMLBuilder-only, unused here)
+- .github/workflows/wsl-fetch.yml ([new](https://github.com/mehrlander/web-tools/blob/main/.github/workflows/wsl-fetch.yml), [main](https://github.com/mehrlander/web-tools/blob/0379536/.github/workflows/wsl-fetch.yml), [diff](https://github.com/mehrlander/web-tools/commit/8beb91e)) — monthly cron, `--full` on the open biennium; the meta.json-only guard keeps quiet months commit-free
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — header comment now matches the `new Function` + `makeParsers` injection it actually does
+- pages/wsl-sync/IMPORT.md, .gitignore ([diff](https://github.com/mehrlander/web-tools/commit/5235ceb)) — #162 restructure noted as provenance history; dead `.wsl-api.node.mjs` ignore dropped
+
+**Notes:** Docs plus the cron; no page runtime touched. Also adds the retroactive #160/#161 entry below. Deferred deliberately: the wsl-sync real-browser thumbnail pass and the fast-xml-parser v5 bump (rationale now in the README).
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/festive-mendel-ojely2)
+
+## 2026-06-11 embed payload moves to the URL fragment (PR #165)
+
+Fixes the bookmarklet's "URL too long" failure on real-sized files: the payload now rides in the `#fragment`, which never reaches the server, so GitHub Pages' ~8KB edge cap (Fastly 414s longer query strings) no longer applies — the bound becomes the browser's own ~2MB. Follow-up to #164.
+
+⭐ **Result:** [embed.html#gz=…](https://mehrlander.github.io/web-tools/pages/embed.html#gz=H4sIAAAAAAAAAyXHOw7DIAwA0Ku42aMkK6HMHdKlSg9AwcGW-ERgRaKn79C3PX3zxUk_EUhSNFpYIprwBY-p6Olf_Sm-Q5Me8T4cJct42MSxq1Ryaad1uHpuZ7Rdhcp-PaN1OLJgasphFqwrIQcStczzRYPRtJiduMFjf24g1V4Y0QPnxh5BCOH92uCoNiTMoidazA9QuvH2qQAAAA) — same demo, now fragment-borne
+
+**Changed:**
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1)) — reads `#params` first with `?query` back-compat; reloads on `hashchange` (fragment-only navigation is same-document, so the boot script wouldn't otherwise re-run when following a second embed link).
+- bookmarklets/embed-page.js ([new](https://github.com/mehrlander/web-tools/blob/main/bookmarklets/embed-page.js), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1)) — emits `#gz=`.
+  renders on: [embed](https://mehrlander.github.io/web-tools/pages/embed.html)
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md#bookmarklets), [diff](https://github.com/mehrlander/web-tools/commit/9d2ede1))
+
+**Notes:** Verified headlessly up to 724KB of HTML (310KB fragment). Re-installing the bookmarklet is required — the old copy still emits `?gz=`.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/peaceful-lovelace-ga5wj4)
+
+## 2026-06-10 embed-page bookmarklet + inline-HTML modes (PR #164)
+
+From any github.com blob page, one bookmarklet click renders that file as live HTML: the file's content travels gzipped inside the URL to embed.html's new `?gz=` mode. Follow-up to #163.
+
+⭐ **Result:** [embed.html?gz=…](https://mehrlander.github.io/web-tools/pages/embed.html?gz=H4sIAAAAAAAAAyXHOw6DMAwA0Ku47AhYQ5q5A10qeoA0MdhSfkospPT0Hfq2p28-O-kFgSQGo4UloDm_4DFmPf2rP9l3aNID3ocjJxkPGzl0FXPKrViHq-dWgu3qrOzXEqzDkQVjUw6TYF0J-SRRyzxfNBhNi9mJGzz25wZS7YUBPXBq7BGEEN6vTU-0mB-RNkyHoAAAAA) — a demo page unpacked from the URL itself
+
+**Changed:**
+- bookmarklets/embed-page.js ([new](https://github.com/mehrlander/web-tools/blob/main/bookmarklets/embed-page.js), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — reads the file text from the blob page's own DOM (private repos work), stamps a jsDelivr `<base>` for relative assets, gzips, navigates.
+  renders on: [embed](https://mehrlander.github.io/web-tools/pages/embed.html)
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [main](https://github.com/mehrlander/web-tools/blob/84bb12c/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — adds `?gz=` (base64url gzipped HTML) and `?html=` (base64 HTML) srcdoc modes alongside `?url=`.
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md#bookmarklets), [diff](https://github.com/mehrlander/web-tools/commit/673b5e3)) — bookmarklet listed.
+
+**Notes:** Inline modes render in a sandboxed iframe (`allow-scripts`, no `allow-same-origin`) so URL-borne HTML can't touch this origin's localStorage (gh token). Encoding the blob *URL* instead wouldn't render — github.com refuses framing and raw/jsDelivr serve HTML as `text/plain` — hence content-in-URL. Practical bound: very large files brush Chrome's ~2MB URL limit.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/peaceful-lovelace-ga5wj4)
+
+## 2026-06-10 embed.html: iframe a base64-encoded URL (PR #163)
+
+New page that takes `?url=<base64 URL>` and renders it in a full-viewport iframe — the iframe is the page.
+
+⭐ **Result:** [embed.html?url=…](https://mehrlander.github.io/web-tools/pages/embed.html?url=aHR0cHM6Ly9leGFtcGxlLmNvbQ==) — example.com in the frame
+
+**Changed:**
+- pages/embed.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html), [diff](https://github.com/mehrlander/web-tools/commit/fcc3dda))
+- pages/thumbs/embed.png ([new](https://github.com/mehrlander/web-tools/blob/main/pages/thumbs/embed.png), [diff](https://github.com/mehrlander/web-tools/commit/9d859f9))
+
+**Notes:** Accepts standard or URL-safe base64, http(s) only; sites sending `X-Frame-Options`/`frame-ancestors` refuse to load — remote server's choice.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/84bb12c...9d859f9)
+
+## 2026-06-10 WSL Sync on gh.load kits + Alpine + JSON snapshot (PR #162)
+
+Rebuilt both WSL Sync pages on the repo's standard rails — committed JSON snapshot as the data source, Alpine (jQuery dropped), and the gh-api/`gh.load` kit chain — with one WSL core shared by the pages and the Node fetch Action.
+
+⭐ **Result:** [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) — 52 pension clusters from the snapshot
+
+**Changed:**
+- lib/kits/wsl-core.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/wsl-core.js), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — dependency-free core: parsers as a `makeParsers({ XMLParser, flatten })` factory + classify + list/group helpers (pension-map folded in). Same file runs in the browser (`gh.load`) and Node (`new Function`).
+  renders on: [wsl-sync](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html), [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html)
+- lib/kits/wsl.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/wsl.js), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — browser kit: registers `window.wsl` (lazy parsers, fetch helpers, snapshot loader, RCW display utilities).
+  renders on: [wsl-sync](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html), [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html)
+- pages/wsl-sync/wsl-sync.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)), pension-dash.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — boot gh-api, `gh.load` the kit + alpine-bundle, drive Alpine off `window.wsl`.
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/1d4fbd5)) — runs `wsl-core` via `new Function` + npm XML libs; the source-rewrite hack is gone.
+- removed pages/wsl-sync/{wsl-api,pension-map,wsl-data}.js (folded into the kits)
+
+**Notes:** Lazy parsers mean snapshot-only pension-dash never loads fast-xml-parser, so it renders fully headless (0 console errors). wsl-sync's grid (Tabulator) can't paint under the headless renderer — its thumb is chrome-only and a real-browser grid pass is still pending.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/wsl-sync-json-alpine-xh7m89)
+
+## 2026-06-10 WSL data pipeline: fetch Action + first snapshots (PRs #160 & #161)
+
+Added the GitHub Actions path for WSL bill data — public-repo runners have the egress to `wslwebservices.leg.wa.gov` that the sandbox lacks — and hardened it through live runs that committed the first snapshots.
+
+⭐ **Result:** [WSL fetch workflow](https://github.com/mehrlander/web-tools/actions/workflows/wsl-fetch.yml) — dispatch from the Actions tab; the snapshot commits to `data/<biennium>/`
+
+**Changed:**
+- .github/workflows/wsl-fetch.yml ([new](https://github.com/mehrlander/web-tools/blob/main/.github/workflows/wsl-fetch.yml), [diff](https://github.com/mehrlander/web-tools/commit/bda895a)) — #160 added it (manual dispatch); #161 made it install from package.json ([diff](https://github.com/mehrlander/web-tools/commit/b7d8db2)) and default to fetch-all ([diff](https://github.com/mehrlander/web-tools/commit/1f64117))
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/578ef12)) — parameterized by biennium; each biennium archives to its own `data/<biennium>/`
+- pages/wsl-sync/data/2025-26/ ([new](https://github.com/mehrlander/web-tools/tree/main/pages/wsl-sync/data/2025-26), [diff](https://github.com/mehrlander/web-tools/commit/ad7f5f6)) — snapshots from real Action runs; the final full 4,691-bill snapshot rode in on #162's branch ([f7e1ffd](https://github.com/mehrlander/web-tools/commit/f7e1ffd))
+
+**Notes:** Two PRs, one arc: #160 the workflow, #161 the parameterization and smoke-tested runs. *(Entry written retroactively 2026-06-11.)*
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/54bdfb7...2e0fb65)
+
+## 2026-06-10 WSL Sync thumbnails + `/+esm` render fix (PR #159)
+
+Filled the two empty pages/wsl-sync cards in the pages index, fixing the render harness's handling of jsDelivr `/+esm` imports along the way.
+
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/index.html) — the wsl-sync cards now show previews
+
+**Changed:**
+- pages/thumbs/wsl-sync/pension-dash.png, wsl-sync.png ([new](https://github.com/mehrlander/web-tools/tree/main/pages/thumbs/wsl-sync), [diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc))
+- tools/render/cdn.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/render/cdn.mjs), [main](https://github.com/mehrlander/web-tools/blob/f11f3f6/tools/render/cdn.mjs), [diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc)) — `/+esm` specs now resolve to the package's ESM entry, not the UMD default; jquery vendored
+- docs/environment/testing.md, docs/MERGE-GUIDE.md ([diff](https://github.com/mehrlander/web-tools/commit/0e2e9bc))
+
+**Notes:** pension-dash's thumb shows its real empty state; wsl-sync's shows header chrome only — its fast-xml-parser dep is CJS-only, which jsDelivr bundles to ESM server-side but the local resolver can't. Also adds the retroactive #158 entry below. Remaining wsl-sync work (Actions-based data fetch, load-from-repo path) deferred to a follow-up session.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/blissful-keller-tc8vl6)
+
+---
+
+## 2026-06-09 WSL bill apps move to pages/ + repo-side fetcher (PR #158)
+
+Moved the WA Legislature pension-bill apps from `tools/wsl-sync/` to `pages/wsl-sync/` (they're served pages, not build tooling) and added a Node fetcher that writes the six sync stores as IDB-shaped JSON, bypassing the browser CORS paste-shuffle.
+
+⭐ **Result:** [pension-dash](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) (empty until IndexedDB is seeded; see [README](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md))
+
+**Changed:**
+- pages/wsl-sync/fetch-data.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/fetch-data.mjs), [diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — `npm run wsl-fetch`; reuses wsl-api.js's parsers, writes `data/*.json`
+- pages/wsl-sync/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/README.md), [diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — the two data paths + console seed snippet
+- tools/wsl-sync/ → [pages/wsl-sync/](https://github.com/mehrlander/web-tools/tree/main/pages/wsl-sync) ([diff](https://github.com/mehrlander/web-tools/commit/10847a1)) — wsl-sync.html, pension-dash.html, wsl-api.js, pension-map.js, rcw/ moved unmodified
+- package.json ([diff](https://github.com/mehrlander/web-tools/commit/62868d9)) — `wsl-fetch` script + fast-xml-parser/flat devDeps
+
+**Notes:** Merged unexercised: `data/` is empty (the fetcher needs egress to `wslwebservices.leg.wa.gov`, not on the sandbox allowlist — run locally or via CI), and the pages read only IndexedDB, so committed `data/` won't show until seeded (README snippet) or a load-from-repo path exists. *(Entry written retroactively 2026-06-10; rode in on the branch above.)*
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/c042b30...f11f3f6)
 
 ---
 

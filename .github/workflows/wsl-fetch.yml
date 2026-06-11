@@ -1,0 +1,78 @@
+name: WSL fetch
+
+# Fetches the WSL Sync bill data that the sandbox can't reach (egress to
+# wslwebservices.leg.wa.gov is blocked: 403 host_not_allowed). Public-repo
+# runners have open egress, so this runs pages/wsl-sync/fetch-data.mjs and
+# commits the JSON snapshot under pages/wsl-sync/data/.
+#
+# Two triggers: manual dispatch (any biennium/limit), and a monthly cron
+# that does a --full refresh of the open biennium — per-bill data (rcws,
+# history, actions) grows on an open biennium, so incremental isn't enough.
+# Scheduled runs execute on the default branch, so the snapshot commit lands
+# on main; the guard below makes a no-change run commit nothing.
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'   # 1st of the month, 09:00 UTC
+  workflow_dispatch:
+    inputs:
+      biennium:
+        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24). Output lands in data/<biennium>/.'
+        required: false
+        default: '2025-26'
+      limit:
+        description: 'Cap per-bill fetches (--limit). Blank = fetch all (default). Enter e.g. 5 to smoke-test.'
+        required: false
+        default: ''
+      full:
+        description: 'Refetch everything, including cached rcws (--full). Use for an open biennium.'
+        type: boolean
+        required: false
+        default: false
+
+# Commit the snapshot back to the branch this was dispatched against.
+permissions:
+  contents: write
+
+# Don't let two runs race to push the same branch.
+concurrency:
+  group: wsl-fetch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # package-lock.json is gitignored in this repo, so there's no lockfile to
+      # `npm ci` against or to key setup-node's cache — install from package.json.
+      - run: npm install
+
+      - name: Fetch bill data
+        run: |
+          # On a scheduled run `inputs` is empty: the biennium falls back to
+          # the script's default (the open biennium) and --full is forced.
+          ARGS=()
+          if [ -n "${{ inputs.biennium }}" ]; then ARGS+=(--biennium "${{ inputs.biennium }}"); fi
+          if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
+          if [ "${{ inputs.full }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then ARGS+=(--full); fi
+          echo "Running: npm run wsl-fetch -- ${ARGS[*]}"
+          npm run wsl-fetch -- "${ARGS[@]}"
+
+      - name: Commit snapshot if data changed
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add pages/wsl-sync/data
+          # meta.json's fetchedAt moves every run; only commit when real data changed.
+          if git diff --cached --quiet -- pages/wsl-sync/data ':!pages/wsl-sync/data/meta.json'; then
+            echo 'No substantive data changes (only meta.json timestamp); skipping commit.'
+          else
+            git commit -m "WSL data snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

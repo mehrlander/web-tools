@@ -1,6 +1,6 @@
 // screenshot.mjs interaction scenario: show the FAB's Export controls.
 //
-//   node tools/render/screenshot.mjs pages/sheet-modal-demo.html \
+//   node tools/render/screenshot.mjs pages/demos/sheet-modal-demo.html \
 //     --script tools/render/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
 //
 // The FAB opens via pointer-based drag/tap detection (onUp) with a 300ms slide,

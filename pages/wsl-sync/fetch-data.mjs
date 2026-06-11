@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // fetch-data.mjs — repo-side fetcher for the WSL Sync data stores.
 //
-// Fetches the same six stores wsl-sync.html syncs into IndexedDB, but from
-// Node (no CORS), and writes them as JSON under pages/wsl-sync/data/. The
-// shapes match the IDB stores exactly (`wsl-<biennium>-<store>` keys), so the
-// files can seed a browser's IDB verbatim — see README.md for the seed snippet.
+// Fetches the same six stores the wsl pages consume, but from Node (no
+// CORS), and writes them as JSON under pages/wsl-sync/data/<biennium>/ —
+// the committed snapshot both pages load at boot via `wsl.loadStore`.
 //
-// Parsing is NOT reimplemented: wsl-api.js is loaded with its two CDN imports
-// rewritten to the same-version npm packages (fast-xml-parser@4.5.1, flat@6),
-// so this script and the page run the identical transform/classify code.
+// Parsing is NOT reimplemented: lib/kits/wsl-core.js is dependency-free, so
+// this script executes it exactly as the browser's gh.load does (a
+// `new Function('gh', src)` body) and injects the same-version npm packages
+// (fast-xml-parser@4.5.1, flat@6) through `makeParsers` — this script and
+// the pages run the identical transform/classify code.
 //
 // Usage (from repo root, after npm install):
 //   npm run wsl-fetch                  incremental: refetch lists, fill missing
@@ -20,12 +21,13 @@
 // environment's network allowlist; the tell for a blocked host is an
 // HTTP 403 with `x-deny-reason: host_not_allowed`.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { XMLParser } from 'fast-xml-parser';
+import { flatten } from 'flat';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(here, 'data');
 
 // --- CLI ---------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -34,23 +36,17 @@ const opt = (name, dflt) => {
     return i >= 0 ? args[i + 1] : dflt;
 };
 const BIENNIUM = opt('biennium', '2025-26');
-const SINCE = opt('since', '1/1/2025');
+// The legislation endpoint is date-based, not biennium-scoped; default the
+// lower bound to the biennium's own start year so a past-year fetch reaches
+// back far enough (and no further than needed).
+const SINCE = opt('since', `1/1/${BIENNIUM.split('-')[0]}`);
 const LIMIT = +opt('limit', 0);            // 0 = no cap on per-bill fetches
 const CONCURRENCY = +opt('concurrency', 4);
 const FULL = args.includes('--full');
 
-// --- Load wsl-api.js in Node -------------------------------------------
-// Its CDN imports can't resolve in Node; rewrite them to the npm packages
-// (same versions) in a temp sibling so './pension-map.js' still resolves.
-const loadApi = async () => {
-    const src = readFileSync(path.join(here, 'wsl-api.js'), 'utf8')
-        .replace("'https://cdn.jsdelivr.net/npm/fast-xml-parser@4.5.1/+esm'", "'fast-xml-parser'")
-        .replace("'https://cdn.jsdelivr.net/npm/flat@6.0.0/+esm'", "'flat'");
-    const tmp = path.join(here, '.wsl-api.node.mjs');
-    writeFileSync(tmp, src);
-    try { return await import(pathToFileURL(tmp)); }
-    finally { unlinkSync(tmp); }
-};
+// Per-biennium output dir, so each biennium archives alongside the others
+// (data/2025-26/, data/2023-24/, …) instead of overwriting a flat data/.
+const dataDir = path.join(here, 'data', BIENNIUM);
 
 // --- Store I/O ----------------------------------------------------------
 const readStore = (name, empty) => {
@@ -89,21 +85,32 @@ const pool = async (items, worker) => {
 };
 
 // --- Main ---------------------------------------------------------------
-const api = await loadApi();
-const { URLS, consolidate, parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
-        parseRcwXml, parseHistoryXml, parseActionsXml, getBillNumber } = api;
+// Run the dependency-free core exactly as the browser does — gh.load executes
+// it as a `new Function('gh', src)` body — then inject Node's npm XML libs
+// through makeParsers. Same bytes as the page, no source rewrite.
+const coreSrc = readFileSync(path.join(here, '..', '..', 'lib', 'kits', 'wsl-core.js'), 'utf8');
+new Function('gh', coreSrc)({});
+const core = globalThis.wslCore;
+const { URLS, consolidate, getBillNumber } = core;
+const { parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+        parseRcwXml, parseHistoryXml, parseActionsXml } = core.makeParsers({ XMLParser, flatten });
 
 mkdirSync(dataDir, { recursive: true });
 
 console.log(`Biennium ${BIENNIUM}, since ${SINCE}${FULL ? ', --full refetch' : ' (incremental)'}`);
 
 // 1. The three single-call stores — always refetched (cheap).
+// `GetLegislationIntroducedSince` is date-based, so a since-date that reaches
+// into a prior biennium returns those bills too — and BillId isn't unique
+// across biennia, so filter to the target biennium before consolidate merges.
 console.log('Legislation…');
-const legislation = consolidate(parseLegislationXml(await fetchText(URLS.legislation(SINCE))));
+const legislation = consolidate(parseLegislationXml(await fetchText(URLS.legislation(SINCE)))
+    .filter(b => b.Biennium === BIENNIUM));
 writeStore('legislation', legislation);
 
 console.log('Prefiles…');
-const prefiles = consolidate(parsePrefilesXml(await fetchText(URLS.prefiles())));
+const prefiles = consolidate(parsePrefilesXml(await fetchText(URLS.prefiles()))
+    .filter(b => b.Biennium === BIENNIUM));
 writeStore('prefiles', prefiles);
 
 console.log('Sponsors…');

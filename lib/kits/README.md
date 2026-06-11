@@ -224,7 +224,7 @@ then `null`), `msg` is the pre-joined text (copy + no-structure fallback).
 `console.table` entries also carry `{ table:{data,columns}, kind:'table' }`.
 
 The renderer is `alpineComponents/console.js` (the `debugConsole` component),
-which the FAB embeds and `pages/console-kit-demo.html` exercises standalone.
+which the FAB embeds and `pages/demos/console-kit-demo.html` exercises standalone.
 It falls back to gh-api's raw `window.__consoleLogs` when this kit is absent.
 Extending native `console` (rather than a separate `journal` global) keeps
 callers writing plain `console.log()`; it's the same additive tactic
@@ -303,7 +303,7 @@ Kit liveness test: `node tools/test-wring.mjs` (loads the kit the way
 
 Every kit is in active use. The custom-element wrapper that used to live
 here as `component.js` now lives in `alpine-bundle.js` as the `x-define`
-directive — see the bundle demo at `pages/alpine-bundle-demo.html` for
+directive — see the bundle demo at `pages/demos/alpine-bundle-demo.html` for
 examples.
 
 | Kit | Demo | Notes |
@@ -313,6 +313,6 @@ examples.
 | `messaging.js` | `kits/demos/messaging.html` | exact-match pub/sub |
 | `io.js` | `kits/demos/io.html` | pick / save / clipboard |
 | `data-shelf.js` | `popups/data-shelf.html` | record shape + importer support |
-| `console.js` | `pages/console-kit-demo.html` | console retention + `debugConsole` renderer |
+| `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/wring-text.html` / `pages/wring-dom.html` | template induction; generated from `archive/wring/` |

@@ -87,7 +87,24 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   / "did the components mount + what state". See
   [`tools/README.md`](../../tools/README.md) for the build/verify companions
   (`npm run build` emits an offline `dist/<page>.js`; `--build` / `verify-build`
-  render through it).
+  render through it). *(2026-06-10)* `cdn.mjs` honors jsDelivr `/+esm` imports by
+  serving the package's ESM entry (`exports["."].import` / `module`) instead of
+  the UMD/browser default, so `import { get } from '…idb-keyval@6/+esm'` works
+  vendored. A CJS→ESM gap remains in principle — jsDelivr bundles a CJS
+  dependency graph into ESM server-side, which the local resolver can't do — but
+  no rendered page currently hits it: the lazy parsers from PR #162 mean
+  snapshot-backed pages never request `fast-xml-parser` (only the interactive
+  fetch path would). *(2026-06-11)* The earlier note blaming it for
+  `wsl-sync.html` rendering header-chrome-only was a misdiagnosis: the actual
+  cause was `tabulator-tables` not being npm-installed (an unvendored spec in a
+  `/combine/` URL serves as empty). Vendored, both wsl-sync pages render fully.
+  Two lessons: a `MISS` in the intercept log is the first thing to check before
+  suspecting resolver semantics; and a package with no `jsdelivr`/`browser`
+  field needs a `CDN_DEFAULT` entry in `cdn.mjs`, else the non-ESM fallback
+  picks `module` — an ESM file that throws inside a classic `<script>` (real
+  jsDelivr falls back to `main`). `cdn.mjs` also mirrors jsDelivr's
+  auto-minification: a requested `.min.js`/`.min.css` subpath falls back to the
+  unminified tarball file when the tarball ships no minified copy (codemirror@5).
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new
@@ -160,6 +177,25 @@ preserves node identity + queued effects), assemble the chrome around them
 already-initialized nodes, so no double-bind). A `<template>` wrapper also works
 (its content is inert, never walked) but pushes a tag onto every caller.
 
-> A possible follow-up not yet built: a reusable jsdom + Alpine test bootstrap
-> (the six globals + polyfills above) so component logic tests don't repeat the
-> setup.
+*(2026-06-11)* That follow-up is built: **`tools/test/bootstrap.mjs`**
+packages this whole section — `makeWindow()` applies the six globals, the
+matchMedia/rAF polyfills (matchMedia is flippable via the returned
+`setMedia(bool)`, for breakpoint-flip tests), and warning/error capture (the
+returned `problems` array; assert it stays empty); `startAlpine(window,
+[paths])` loads components and boots the real Alpine. Its `loadKit()` half
+runs a `lib/kits/*.js` file in the Node realm with the kit's lazy CDN
+`import()`s rewritten to npm-vendored copies. `npm test` runs the suites
+beside it (one `*.test.mjs` per kit/component, `node --test`, ~76 tests).
+Two lessons from building it, beyond the gotchas above:
+
+- Import **`alpinejs/dist/module.esm.js`**, not bare `alpinejs` — the package
+  has no `exports` map, so bare resolution lands on the CJS build, whose
+  default export arrives double-wrapped under Node interop (`Alpine.start is
+  not a function` is the symptom).
+- Patch **`global.requestAnimationFrame`** too, not just the window's —
+  Alpine's `x-show` transitions call it bare in the Node realm.
+
+The suite caught a real bug on its first run: `kits/persistence.js` cached
+IDB connections with no `versionchange` handler, so layering a second store
+onto the same database (or any other tool's upgrade) blocked the version
+bump forever — reproduced in a real browser too, fixed in the kit.

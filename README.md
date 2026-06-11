@@ -60,7 +60,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
 | [demos/](https://mehrlander.github.io/web-tools/lib/kits/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`, `compression`). Double-duty as a builder reference. |
-| [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) | Field notes on bookmarklet packing. |
+| [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/stories/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 | [launcher](https://mehrlander.github.io/web-tools/pages/launcher.html) | Setup page for the popup launcher: paste a token, copy out a ready-to-save bookmarklet. |
 
 The auto-listed index at `pages/` is the full directory if you want to see
@@ -79,6 +79,14 @@ new bookmark.
   whatever page you're on (see [Popups → Launcher](#popups)). The
   [launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
   generates a token-filled copy for you — handy on mobile.
+- [`embed-page`](bookmarklets/embed-page.js): from any github.com file (blob)
+  page, renders that file as live HTML. Reads the file text from the page
+  itself (so private repos work), stamps a `<base>` so relative assets resolve
+  via jsDelivr, gzips it, and navigates to
+  [embed](https://mehrlander.github.io/web-tools/pages/embed.html) with the
+  result packed into the `#gz=` fragment (the fragment never reaches the
+  server, dodging the ~8KB URL cap GitHub Pages' edge enforces on query
+  strings).
 
 The compression-helper page also generates bookmarklets on demand: paste
 text in, get a self-decompressing `javascript:` URL out. Same output

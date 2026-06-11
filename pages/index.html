@@ -26,7 +26,27 @@
     <span class="font-medium">live</span> preview or the <span class="font-medium">source</span>.
   </p>
 
-  <template x-for="g in groups" :key="g.label">
+  <div class="flex flex-wrap items-center gap-1.5 mb-8">
+    <template x-for="c in chips" :key="c.key">
+      <button class="btn btn-xs"
+              :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
+              @click="filter=c.key">
+        <span x-text="c.label"></span>
+        <span class="opacity-50" x-text="c.count"></span>
+      </button>
+    </template>
+    <div class="grow"></div>
+    <label class="input input-xs input-bordered flex items-center gap-1.5 w-48">
+      <i class="ph ph-magnifying-glass opacity-50"></i>
+      <input type="search" x-model.debounce="q" placeholder="filter by name…" class="grow min-w-0">
+    </label>
+  </div>
+
+  <p x-show="!filteredGroups.length" class="text-base-content/40 text-sm">
+    No pages match<span x-show="q"> “<span x-text="q"></span>”</span>.
+  </p>
+
+  <template x-for="g in filteredGroups" :key="g.label">
     <section class="mb-10">
       <h2 x-show="g.label" class="text-xs font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
         <i class="ph ph-folder"></i><span x-text="g.label"></span>
@@ -98,23 +118,8 @@ function index(){
   const PAGE_GROUPS = [
   {
     "label": "",
+    "top": "main",
     "items": [
-      {
-        "href": "alpine-bundle-demo.html",
-        "label": "alpine-bundle-demo",
-        "title": "alpine-bundle — living demo",
-        "note": "Live tour of alpine-bundle.js — magics, directives, x-define.",
-        "thumb": "thumbs/alpine-bundle-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/alpine-bundle-demo.html"
-      },
-      {
-        "href": "bookmarklets-story.html",
-        "label": "bookmarklets-story",
-        "title": "Field Notes: Bookmarklets",
-        "note": "Field notes on bookmarklet packing.",
-        "thumb": "thumbs/bookmarklets-story.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/bookmarklets-story.html"
-      },
       {
         "href": "compression-helper.html",
         "label": "compression-helper",
@@ -124,28 +129,20 @@ function index(){
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html"
       },
       {
-        "href": "console-kit-demo.html",
-        "label": "console-kit-demo",
-        "title": "Console kit + debugConsole demo",
-        "note": "The console kit + debugConsole component, shown live.",
-        "thumb": "thumbs/console-kit-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/console-kit-demo.html"
-      },
-      {
-        "href": "cross-repo-read-demo.html",
-        "label": "cross-repo-read-demo",
-        "title": "cross-repo read() — data transfer demo",
-        "note": "Reading files across repos with gh.read() — a data-transfer demo.",
-        "thumb": "thumbs/cross-repo-read-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/cross-repo-read-demo.html"
-      },
-      {
         "href": "diff-tool.html",
         "label": "diff-tool",
         "title": "Diff",
         "note": "Side-by-side text diff tool.",
         "thumb": "thumbs/diff-tool.png",
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html"
+      },
+      {
+        "href": "embed.html",
+        "label": "embed",
+        "title": "Embed",
+        "note": "",
+        "thumb": "thumbs/embed.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/embed.html"
       },
       {
         "href": "gist-editor.html",
@@ -164,22 +161,6 @@ function index(){
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html"
       },
       {
-        "href": "prebuild-demo.html",
-        "label": "prebuild-demo",
-        "title": "Pre-build demo — one import, whole library",
-        "note": "One import boots the whole library from the dist/ pre-build.",
-        "thumb": "thumbs/prebuild-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/prebuild-demo.html"
-      },
-      {
-        "href": "sheet-modal-demo.html",
-        "label": "sheet-modal-demo",
-        "title": "sheet-modal demo",
-        "note": "Bottom-sheet / modal component demo.",
-        "thumb": "thumbs/sheet-modal-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/sheet-modal-demo.html"
-      },
-      {
         "href": "table-compress.html",
         "label": "table-compress",
         "title": "Transform",
@@ -194,14 +175,6 @@ function index(){
         "note": "Multi-function variant of table-compress.",
         "thumb": "thumbs/table-compress-multi.png",
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html"
-      },
-      {
-        "href": "vanilla-bundle-demo.html",
-        "label": "vanilla-bundle-demo",
-        "title": "vanilla-bundle — living demo",
-        "note": "Live tour of vanilla-bundle.js — the framework-free DOM shorthand.",
-        "thumb": "thumbs/vanilla-bundle-demo.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/vanilla-bundle-demo.html"
       },
       {
         "href": "wring-dom.html",
@@ -222,7 +195,62 @@ function index(){
     ]
   },
   {
-    "label": "drop/",
+    "label": "pages/demos/",
+    "top": "demos",
+    "items": [
+      {
+        "href": "demos/alpine-bundle-demo.html",
+        "label": "alpine-bundle-demo",
+        "title": "alpine-bundle — living demo",
+        "note": "Live tour of alpine-bundle.js — magics, directives, x-define.",
+        "thumb": "thumbs/demos/alpine-bundle-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html"
+      },
+      {
+        "href": "demos/console-kit-demo.html",
+        "label": "console-kit-demo",
+        "title": "Console kit + debugConsole demo",
+        "note": "The console kit + debugConsole component, shown live.",
+        "thumb": "thumbs/demos/console-kit-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/console-kit-demo.html"
+      },
+      {
+        "href": "demos/cross-repo-read-demo.html",
+        "label": "cross-repo-read-demo",
+        "title": "cross-repo read() — data transfer demo",
+        "note": "Reading files across repos with gh.read() — a data-transfer demo.",
+        "thumb": "thumbs/demos/cross-repo-read-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/cross-repo-read-demo.html"
+      },
+      {
+        "href": "demos/prebuild-demo.html",
+        "label": "prebuild-demo",
+        "title": "Pre-build demo — one import, whole library",
+        "note": "One import boots the whole library from the dist/ pre-build.",
+        "thumb": "thumbs/demos/prebuild-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html"
+      },
+      {
+        "href": "demos/sheet-modal-demo.html",
+        "label": "sheet-modal-demo",
+        "title": "sheet-modal demo",
+        "note": "Bottom-sheet / modal component demo.",
+        "thumb": "thumbs/demos/sheet-modal-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html"
+      },
+      {
+        "href": "demos/vanilla-bundle-demo.html",
+        "label": "vanilla-bundle-demo",
+        "title": "vanilla-bundle — living demo",
+        "note": "Live tour of vanilla-bundle.js — the framework-free DOM shorthand.",
+        "thumb": "thumbs/demos/vanilla-bundle-demo.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html"
+      }
+    ]
+  },
+  {
+    "label": "pages/drop/",
+    "top": "drop",
     "items": [
       {
         "href": "drop/cm6-editor.html",
@@ -275,7 +303,8 @@ function index(){
     ]
   },
   {
-    "label": "drop/components/",
+    "label": "pages/drop/components/",
+    "top": "drop",
     "items": [
       {
         "href": "drop/components/console.html",
@@ -296,7 +325,8 @@ function index(){
     ]
   },
   {
-    "label": "drop/fills-concepts/1-chain-constructor/",
+    "label": "pages/drop/fills-concepts/1-chain-constructor/",
+    "top": "drop",
     "items": [
       {
         "href": "drop/fills-concepts/1-chain-constructor/aic.html",
@@ -325,7 +355,8 @@ function index(){
     ]
   },
   {
-    "label": "drop/fills-concepts/2-tagged-factory/",
+    "label": "pages/drop/fills-concepts/2-tagged-factory/",
+    "top": "drop",
     "items": [
       {
         "href": "drop/fills-concepts/2-tagged-factory/aic-1.html",
@@ -346,7 +377,8 @@ function index(){
     ]
   },
   {
-    "label": "drop/fills-concepts/3-reactive-surface/",
+    "label": "pages/drop/fills-concepts/3-reactive-surface/",
+    "top": "drop",
     "items": [
       {
         "href": "drop/fills-concepts/3-reactive-surface/aic-2.html",
@@ -375,7 +407,54 @@ function index(){
     ]
   },
   {
-    "label": "scratch/",
+    "label": "lib/kits/demos/",
+    "top": "kit-demos",
+    "items": [
+      {
+        "href": "../lib/kits/demos/compression.html",
+        "label": "compression",
+        "title": "compression — living demo",
+        "note": "Compression kit — brotli/gz round-trip, live.",
+        "thumb": "thumbs/kit-demos/compression.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/compression.html"
+      },
+      {
+        "href": "../lib/kits/demos/export.html",
+        "label": "export",
+        "title": "export — living demo",
+        "note": "Export kit — file download from a user gesture.",
+        "thumb": "thumbs/kit-demos/export.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html"
+      },
+      {
+        "href": "../lib/kits/demos/io.html",
+        "label": "io",
+        "title": "io — living demo",
+        "note": "IO kit — read/write helpers, shown live.",
+        "thumb": "thumbs/kit-demos/io.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html"
+      },
+      {
+        "href": "../lib/kits/demos/messaging.html",
+        "label": "messaging",
+        "title": "messaging — living demo",
+        "note": "Messaging kit — cross-context postMessage helpers.",
+        "thumb": "thumbs/kit-demos/messaging.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html"
+      },
+      {
+        "href": "../lib/kits/demos/persistence.html",
+        "label": "persistence",
+        "title": "persistence — living demo",
+        "note": "Persistence kit — local storage / state retention.",
+        "thumb": "thumbs/kit-demos/persistence.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html"
+      }
+    ]
+  },
+  {
+    "label": "pages/scratch/",
+    "top": "scratch",
     "items": [
       {
         "href": "scratch/base64-render-engine.html",
@@ -420,7 +499,8 @@ function index(){
     ]
   },
   {
-    "label": "show-repo/",
+    "label": "pages/show-repo/",
+    "top": "show-repo",
     "items": [
       {
         "href": "show-repo/demo-viewer.html",
@@ -457,7 +537,22 @@ function index(){
     ]
   },
   {
-    "label": "wsl-sync/",
+    "label": "pages/stories/",
+    "top": "stories",
+    "items": [
+      {
+        "href": "stories/bookmarklets-story.html",
+        "label": "bookmarklets-story",
+        "title": "Field Notes: Bookmarklets",
+        "note": "Field notes on bookmarklet packing.",
+        "thumb": "thumbs/stories/bookmarklets-story.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/stories/bookmarklets-story.html"
+      }
+    ]
+  },
+  {
+    "label": "pages/wsl-sync/",
+    "top": "wsl-sync",
     "items": [
       {
         "href": "wsl-sync/pension-dash.html",
@@ -479,10 +574,39 @@ function index(){
   }
 ];
   return {
+    filter: 'main',
+    q: '',
     groups: PAGE_GROUPS.map(g => ({
       ...g,
       items: g.items.map(p => ({ ...p, view: 'shot', source: '', shotMissing: false })),
     })),
+    // Location-based chip bar: pages/ (root) and All first, then one chip per
+    // top-level location (demos, stories, drop, …, kit-demos). The search box
+    // handles name filtering on top of whichever location is selected.
+    get chips(){
+      const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
+      const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
+      const all = this.groups.reduce((n, g) => n + g.items.length, 0);
+      return [
+        { key: 'main', label: 'pages/', count: countTop('main') },
+        { key: 'all',  label: 'All',    count: all },
+        ...tops.map(t => ({ key: t, label: t, count: countTop(t) })),
+      ];
+    },
+    // The selected location, before search.
+    get visibleGroups(){
+      if (this.filter === 'all') return this.groups.filter(g => g.items.length);
+      return this.groups.filter(g => g.top === this.filter && g.items.length);
+    },
+    // The selected location narrowed by the name/title search; empty groups drop out.
+    get filteredGroups(){
+      const q = this.q.trim().toLowerCase();
+      if (!q) return this.visibleGroups;
+      return this.visibleGroups
+        .map(g => ({ ...g, items: g.items.filter(p =>
+          (p.label + ' ' + (p.title || '') + ' ' + (p.note || '')).toLowerCase().includes(q)) }))
+        .filter(g => g.items.length);
+    },
     async show(p, v){
       p.view = v;
       if (v === 'html' && !p.source){

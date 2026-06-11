@@ -15,8 +15,8 @@ Everything here resolves the same two networks of dependencies to local files:
 
 ## Layout
 
-Two interconnected categories, one folder each (they share no module imports —
-they touch only via subprocess and the `dist/` artifact):
+Three categories, one folder each (they share no module imports — render and
+build touch only via subprocess and the `dist/` artifact):
 
 - [`render/`](render/) — exercise a page headlessly, offline. `preview.mjs`
   (jsdom logic render) + `screenshot.mjs` (Chromium pixel render), with
@@ -25,6 +25,14 @@ they touch only via subprocess and the `dist/` artifact):
   artifact. `build.mjs` / `bake.mjs`, with `graph.mjs` (the static `gh.load`
   walk) and `kit-shim.mjs` (run a browser kit in Node). `verify-build.mjs` is
   the bridge: it drives the render tools to prove a build matches live.
+- [`test/`](test/) — the unit/logic suite behind `npm test` (`node --test`,
+  no framework dep). `bootstrap.mjs` carries the shared setup: `loadKit()`
+  runs a `lib/kits/*.js` file against a plain `window` with its CDN
+  `import()`s rewritten to npm-vendored copies (the preview shim's tactic,
+  unit-test-sized), and `makeWindow()`/`startAlpine()` package the jsdom +
+  real-Alpine recipe from
+  [`docs/environment/testing.md`](../docs/environment/testing.md) for
+  component logic tests. One `*.test.mjs` per kit/component beside it.
 
 The build/bake
 *format* itself lives outside `tools/`, in [`../lib/kits/build.js`](../lib/kits/build.js)
@@ -36,6 +44,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 
 | Command | What it does |
 |---|---|
+| `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior (compression round-trips, persistence over fake-indexeddb, messaging, wsl-core parsing/classification), a registration smoke test across every kit, and jsdom + real-Alpine component logic tests (counter, sheet-modal). Offline; third-party libs come vendored from `node_modules`. |
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
@@ -65,7 +74,7 @@ name in their suffix. Example — the FAB's Export controls, opened to the Rende
 tab with "Fully offline" ticked:
 
 ```
-npm run shot pages/sheet-modal-demo.html \
+npm run shot pages/demos/sheet-modal-demo.html \
   -- --script tools/render/scenarios/fab-export.mjs --out tools/.preview/fab-export.png
 ```
 
@@ -165,7 +174,7 @@ no per-component load. The pure kits (`compression`, `persistence`, `io`, …)
 ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
 Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` still re-pins to the
-CDN for review. [`pages/prebuild-demo.html`](../pages/prebuild-demo.html) is the
+CDN for review. [`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html) is the
 worked example.
 
 This is the **delivery** twin of the loader's **freshness**: develop against the

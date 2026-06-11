@@ -13,7 +13,11 @@ at commit `c3a9f4a` on 2026-05-07.
 | `rcw/rcw-titles.json` | `rcw/rcw-titles.json` |
 | `rcw/rcw-full.json` | `rcw/rcw-full.json` (6.6 MB) |
 
-Files are byte-for-byte copies of the upstream sources.
+Files were byte-for-byte copies of the upstream sources at import time. The
+table reads as provenance history, not current layout: in PR #162 (2026-06)
+`wsl-api.js` and `pension-map.js` were folded into `lib/kits/wsl-core.js` +
+`lib/kits/wsl.js`, and the pages were rebuilt on Alpine over the committed
+`data/` snapshot. See `README.md` for the current architecture.
 
 Added after import (not from wa-bills): `README.md`, `fetch-data.mjs`, and
 the `data/` snapshot directory. See `README.md`.
@@ -29,7 +33,8 @@ harness in `tools/`.)
 
 ## Layout
 
-`wsl-sync.html` and `pension-dash.html` use same-directory ES imports
-(`import { ... } from './wsl-api.js'`) and same-directory data fetches
-(`fetch('./rcw/rcw-chapters.json')`). The flat layout here preserves that —
-no build step, no CDN, served directly by GitHub Pages.
+`wsl-sync.html` and `pension-dash.html` use same-directory data fetches
+(`fetch('./rcw/rcw-chapters.json')`, `fetch('./data/<biennium>/…')`), so the
+reference corpus and snapshot live in this folder beside the pages. Code is
+no longer same-directory: since PR #162 the pages `gh.load` their logic from
+`lib/kits/`.

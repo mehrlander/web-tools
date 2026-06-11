@@ -3,8 +3,8 @@
 
 # pages/
 
-Catalog of every page under `pages/`. Each row links the **rendered** page
-([mehrlander.github.io/web-tools/pages](https://mehrlander.github.io/web-tools/pages/)) and its **code** on github.com.
+Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`.
+Each row links the **rendered** page and its **code** on github.com.
 
 [pages/index.html](https://mehrlander.github.io/web-tools/pages/) is the visual index — a screenshot card per
 page, generated alongside this file; this README is its link-dense text twin.
@@ -13,22 +13,27 @@ page, generated alongside this file; this README is its link-dense text twin.
 
 | Page | Title | Links |
 |---|---|---|
-| `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/alpine-bundle-demo.html) |
-| `bookmarklets-story` | Field Notes: Bookmarklets | [view](https://mehrlander.github.io/web-tools/pages/bookmarklets-story.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/bookmarklets-story.html) |
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |
-| `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/console-kit-demo.html) |
-| `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/cross-repo-read-demo.html) |
 | `diff-tool` | Diff | [view](https://mehrlander.github.io/web-tools/pages/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html) |
+| `embed` | Embed | [view](https://mehrlander.github.io/web-tools/pages/embed.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
-| `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/prebuild-demo.html) |
-| `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/sheet-modal-demo.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
-| `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/vanilla-bundle-demo.html) |
 | `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wring-dom.html) |
 | `wring-text` | Wring | General-Text Induction — Tokenize → Grammar → Group | [view](https://mehrlander.github.io/web-tools/pages/wring-text.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wring-text.html) |
+
+## pages/demos/
+
+| Page | Title | Links |
+|---|---|---|
+| `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html) |
+| `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/demos/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/console-kit-demo.html) |
+| `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/demos/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/cross-repo-read-demo.html) |
+| `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html) |
+| `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html) |
+| `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html) |
 
 ## pages/drop/
 
@@ -71,6 +76,16 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `aic-kimi` | Art Institute Collection — fill | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/3-reactive-surface/aic-kimi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/aic-kimi.html) |
 | `collection-browser` | The Art Institute of Chicago · Collection Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/3-reactive-surface/collection-browser.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/collection-browser.html) |
 
+## lib/kits/demos/
+
+| Page | Title | Links |
+|---|---|---|
+| `compression` | compression — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/compression.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/compression.html) |
+| `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
+| `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
+| `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
+| `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
+
 ## pages/scratch/
 
 | Page | Title | Links |
@@ -89,6 +104,12 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `index` | show-repo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/index.html) |
 | `repo-drag` | — | [view](https://mehrlander.github.io/web-tools/pages/show-repo/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html) |
 | `show-repo` | GH Browse | [view](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html) |
+
+## pages/stories/
+
+| Page | Title | Links |
+|---|---|---|
+| `bookmarklets-story` | Field Notes: Bookmarklets | [view](https://mehrlander.github.io/web-tools/pages/stories/bookmarklets-story.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/stories/bookmarklets-story.html) |
 
 ## pages/wsl-sync/
 

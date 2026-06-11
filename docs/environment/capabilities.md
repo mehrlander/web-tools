@@ -86,7 +86,13 @@ though `github.com` itself is allowed: a different failure mode than
 from **jsDelivr + unpkg at runtime**, both denied. So a repo page **cannot be
 booted as-is**, but it *can* be rendered if you vendor those deps first (see
 [Rendering a repo page](testing.md)). npm and GitHub-raw are the reliable fetch
-paths.
+paths. *(2026-06-11)* Note the block is **per-host, not per-package**: those CDNs
+serve the same npm-published files that `registry.npmjs.org` does, so any page
+dep can be vendored with `npm i -D` and served to the browser by the render
+harness's interceptor (`tools/render/cdn.mjs`). What the raw tarball *doesn't*
+include are jsDelivr's value-adds — default-entry selection, auto-generated
+`.min.*` files, server-side CJS→ESM bundling — which `cdn.mjs` emulates (its
+remaining gaps are catalogued in [testing.md](testing.md)).
 
 Re-check (note the `-D -` and the deny-header grep, that's the whole point):
 
