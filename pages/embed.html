@@ -14,9 +14,15 @@
   embed.html — full-viewport iframe of content passed in the query string.
 
   Modes (first match wins):
-    embed.html?gz=<base64url of gzipped HTML>   inline HTML, gzip-compressed
-    embed.html?html=<base64 of HTML>            inline HTML, plain
-    embed.html?url=<base64 of absolute URL>     iframe src points at the URL
+    embed.html#gz=<base64url of gzipped HTML>   inline HTML, gzip-compressed
+    embed.html#html=<base64 of HTML>            inline HTML, plain
+    embed.html#url=<base64 of absolute URL>     iframe src points at the URL
+
+  Params are read from the fragment (#) first, then the query string (?).
+  Prefer the fragment for inline HTML: a query string travels in the HTTP
+  request and GitHub Pages' edge (Fastly) rejects URLs past ~8KB with a 414,
+  while a fragment never leaves the browser, so the limit is the browser's
+  own (~2MB in Chrome). Query form kept for short payloads and back-compat.
 
   All params accept standard or URL-safe base64, with or without padding.
   Inline HTML renders via the iframe's srcdoc; relative links inside it only
@@ -42,7 +48,15 @@
 </div>
 
 <script type="module">
-  const params = new URLSearchParams(location.search);
+  // Fragment first (never sent to the server, so no edge URL-length cap),
+  // query string as fallback.
+  const hashParams  = new URLSearchParams(location.hash.slice(1));
+  const queryParams = new URLSearchParams(location.search);
+  const param = k => hashParams.get(k) ?? queryParams.get(k);
+
+  // Fragment-only navigation is same-document: this script wouldn't re-run
+  // when the user follows a second embed link, so force a real reload.
+  window.addEventListener('hashchange', () => location.reload());
 
   const frame = document.getElementById('frame');
   const empty = document.getElementById('empty');
@@ -78,9 +92,9 @@
     frame.srcdoc = html;
   }
 
-  const gz   = params.get('gz');
-  const html = params.get('html');
-  const url  = params.get('url') || params.get('u');
+  const gz   = param('gz');
+  const html = param('html');
+  const url  = param('url') || param('u');
 
   if (gz) {
     try {
@@ -113,8 +127,9 @@
       }
     }
   } else {
-    showEmpty('Pass ?url=<base64 URL>, ?html=<base64 HTML>, or ?gz=<base64 gzipped HTML> — ' +
-              'e.g. embed.html?url=' + btoa('https://example.com'));
+    showEmpty('Pass #url=<base64 URL>, #html=<base64 HTML>, or #gz=<base64 gzipped HTML> ' +
+              '(query ? form also accepted for short values) — e.g. embed.html#url=' +
+              btoa('https://example.com'));
   }
 </script>
 
