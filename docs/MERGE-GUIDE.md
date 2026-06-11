@@ -1,6 +1,6 @@
 # Merge guide
 
-Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `CLAUDE.md`. Say "merge guide" in a session to prepend an entry.
+Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `docs/CONVENTIONS.md`. Say "merge guide" in a session to prepend an entry.
 
 ---
 

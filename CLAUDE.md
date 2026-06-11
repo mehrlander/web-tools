@@ -2,7 +2,7 @@
 
 ## How these instructions are split
 
-The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools-conventions` skill (`.claude/skills/web-tools-conventions/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top — including the repo's answers to the conventions' two extension points (preview mechanism, per-session refreshes). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
+The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools-conventions` skill (`.claude/skills/web-tools-conventions/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top — including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, branch-guide enforcement). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
 
 ## Preview mechanism: test page on a branch via `?use=`
 
@@ -17,6 +17,10 @@ The honesty rule still applies: only a page renders this way; for a kit or doc, 
 ## Per-session refresh: thumbnails
 
 The conventions' wrap-up step 1 means one thing here: if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit — screenshots are slow and not byte-deterministic, so the commit hook only nags about them (see "Build-on-commit hook" below). The catalogs need no separate step; the hook regenerates them with each commit.
+
+## Branch-guide enforcement: none yet
+
+The branch-guide lifecycle (create+push first thing, accurate per push, fold+delete at wrap-up) runs convention-only here for now — the build-on-commit hook doesn't track `BRANCH-GUIDE.md`, and there's no CI guard against one leaking to main. If a stray guide is found on main (a merge bypassed wrap-up), delete it as cleanup.
 
 ## gh-api.js edits
 
