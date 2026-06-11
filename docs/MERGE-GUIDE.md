@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (claude/stoic-volta-xnpbvh)
+## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
 
 The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
 
