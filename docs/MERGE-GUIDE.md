@@ -4,7 +4,22 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-11 npm test: kit + Alpine-component suite; persistence deadlock fix (PR #169)
+## 2026-06-11 Pages index: location-based filter chips + name search; kit demos surfaced (PR #170)
+
+The visual index gained a filter bar — location-based chips plus a name/title search box — and the demo/story pages were reorganized into real folders (`pages/demos/`, `pages/stories/`) so the categories are locations, not name guesses; the kit demos under `lib/kits/demos/` are now pulled into the catalog too.
+
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/) — chips scope by location, the search box narrows within the selection (pick `All` for a repo-wide name search)
+
+**Changed:**
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — a second source root (`lib/kits/demos/` → `kit-demos` group), location-based chips from each group's top segment, and the `q` search getter; regenerates `pages/index.html` + `pages/README.md`
+- tools/build/pages-shots.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-shots.mjs), [diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — same two-source model so kit demos get thumbnails under `pages/thumbs/kit-demos/`
+- pages/demos/, pages/stories/ ([tree](https://github.com/mehrlander/web-tools/tree/main/pages/demos)) — six demo pages and the bookmarklets story relocated (files + thumbs); FAB `data-path` and inbound links in README/docs/kit-readmes updated to match
+- docs/loader.md ([diff](https://github.com/mehrlander/web-tools/commit/f63eeae)) — corrected a stale `pages/demos/{persistence,…}` path to the real `lib/kits/demos/`
+
+**Notes:** `scratch/demo-spacex` and `show-repo/demo-viewer` deliberately left in their own folders (they belong to those projects), so they appear under those chips, not `demos`. Demo pages load deps via absolute jsDelivr URLs, so moving them deeper didn't affect loading. Built on PR #170 (the earlier chip-prototype commit is part of the same branch).
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/nice-hamilton-z1wj9e)
+
 
 The repo's first automated test suite — 76 tests on Node's built-in runner, offline via npm-vendored libs — and its first run caught a real bug: `kits/persistence.js` could deadlock IndexedDB version upgrades.
 
