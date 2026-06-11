@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-11 WSL closeout: docs synced to kits, monthly fetch cron (branch `claude/festive-mendel-ojely2`)
+## 2026-06-11 WSL closeout: docs synced to kits, monthly fetch cron (PR #166)
 
 Closed out the WSL arc: the folder's docs now describe the kit/snapshot architecture #162 actually shipped, and the fetch Action gained its planned monthly cron.
 
