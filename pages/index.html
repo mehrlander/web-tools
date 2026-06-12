@@ -7,7 +7,15 @@
 <title>web-tools</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> picks the lib ref; gh-api.js auto-bootstraps window.gh.
+  // alpine-bundle.js loads Alpine itself, after fab.js has registered, so the
+  // FAB's alpine:init listener is never missed.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('alpineComponents/fab.js');
+  await gh.load('alpine-bundle.js');
+</script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
 <body class="bg-base-100 text-base-content min-h-screen">
@@ -16,10 +24,17 @@
 
   <div class="flex items-baseline justify-between mb-1">
     <h1 class="text-2xl font-bold tracking-tight">web-tools</h1>
-    <a href="https://github.com/mehrlander/web-tools"
-       class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1 transition-colors">
-      <i class="ph ph-github-logo"></i> mehrlander/web-tools
-    </a>
+    <div class="flex items-center gap-4">
+      <a href="show-repo/show-repo.html"
+         class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1 transition-colors"
+         title="Browse the raw files of any repo — the file-level companion to this page index">
+        <i class="ph ph-tree-structure"></i> browse repo files
+      </a>
+      <a href="https://github.com/mehrlander/web-tools"
+         class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1 transition-colors">
+        <i class="ph ph-github-logo"></i> mehrlander/web-tools
+      </a>
+    </div>
   </div>
   <p class="text-base-content/50 text-sm mb-8">
     Browser-based tools and demos. Each card shows a screenshot — flip to a
@@ -28,10 +43,10 @@
 
   <div class="flex flex-wrap items-center gap-1.5 mb-8">
     <template x-for="c in chips" :key="c.key">
-      <button class="btn btn-xs"
+      <button class="btn btn-xs font-mono"
               :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
               @click="filter=c.key">
-        <span x-text="c.label"></span>
+        <span><span class="opacity-50 font-normal" x-text="c.pre"></span><span x-text="c.seg"></span></span>
         <span class="opacity-50" x-text="c.count"></span>
       </button>
     </template>
@@ -112,6 +127,8 @@
   </div>
 
 </div>
+
+<div x-data="fab()" data-path="pages/index.html"></div>
 
 <script>
 function index(){
@@ -511,14 +528,6 @@ function index(){
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html"
       },
       {
-        "href": "show-repo/index.html",
-        "label": "index",
-        "title": "show-repo",
-        "note": "",
-        "thumb": "thumbs/show-repo/index.png",
-        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/index.html"
-      },
-      {
         "href": "show-repo/repo-drag.html",
         "label": "repo-drag",
         "title": "",
@@ -580,17 +589,37 @@ function index(){
       ...g,
       items: g.items.map(p => ({ ...p, view: 'shot', source: '', shotMissing: false })),
     })),
-    // Location-based chip bar: pages/ (root) and All first, then one chip per
-    // top-level location (demos, stories, drop, …, kit-demos). The search box
-    // handles name filtering on top of whichever location is selected.
+    // Boot from the URL (?filter=<chip>&q=<text>) and mirror changes back into
+    // it, so a filtered view is a shareable deep link.
+    init(){
+      const p = new URLSearchParams(location.search);
+      const f = p.get('filter');
+      if (f && (f === 'all' || this.groups.some(g => g.top === f))) this.filter = f;
+      this.q = p.get('q') || '';
+      this.$watch('filter', () => this.syncUrl());
+      this.$watch('q', () => this.syncUrl());
+    },
+    syncUrl(){
+      const p = new URLSearchParams(location.search);
+      if (this.filter === 'main') p.delete('filter'); else p.set('filter', this.filter);
+      if (this.q.trim()) p.set('q', this.q.trim()); else p.delete('q');
+      const qs = p.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    },
+    // Location chip bar, full paths up front: pages/ (root) and All first, then
+    // pages/<top>/ per nested location, with the out-of-tree lib/kits/demos/
+    // last so the one non-pages source is visibly the outlier. The search box
+    // narrows by name on top of whichever location is selected.
     get chips(){
       const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
+      tops.sort((a, b) => (a === 'kit-demos') - (b === 'kit-demos') || a.localeCompare(b));
       const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
       const all = this.groups.reduce((n, g) => n + g.items.length, 0);
+      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/'] : ['pages/', t + '/'];
       return [
-        { key: 'main', label: 'pages/', count: countTop('main') },
-        { key: 'all',  label: 'All',    count: all },
-        ...tops.map(t => ({ key: t, label: t, count: countTop(t) })),
+        { key: 'main', pre: '', seg: 'pages/', count: countTop('main') },
+        { key: 'all',  pre: '', seg: 'All',    count: all },
+        ...tops.map(t => ({ key: t, pre: path(t)[0], seg: path(t)[1], count: countTop(t) })),
       ];
     },
     // The selected location, before search.
