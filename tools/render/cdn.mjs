@@ -1,11 +1,17 @@
 // Shared CDN -> local resolution for the headless render tools.
 //
-// The repo's pages pull two unrelated things off the network:
+// The repo's pages pull three things off the network:
 //   1. Own code  — gh-api.js's loader fetches lib/* via the GitHub contents
 //      API (base64), after the page's first jsDelivr `/gh/` import of gh-api.js
 //      itself. Both must resolve to the on-disk working tree so a render shows
 //      branch edits, not whatever main serves.
-//   2. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
+//   2. Own data: the GitHub API surface for REPO (contents listings/reads,
+//      /repos/<REPO> metadata, git/trees) is answered from the working tree
+//      too: no token, no network, and uncommitted edits render. Other repos'
+//      API calls pass through (and fail in the sandbox). Identity endpoints
+//      (/user, /user/repos) are NOT impersonated, since "who am I" has no
+//      local answer; pages must keep first paint off them (see testing.md).
+//   3. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //

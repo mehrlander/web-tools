@@ -105,6 +105,23 @@ The browser works, but a repo page won't boot *as-is*: it pulls Alpine / Tailwin
   jsDelivr falls back to `main`). `cdn.mjs` also mirrors jsDelivr's
   auto-minification: a requested `.min.js`/`.min.css` subpath falls back to the
   unminified tarball file when the tarball ships no minified copy (codemirror@5).
+  *(2026-06-12)* **Where the "no token" data comes from: the checkout, not the
+  API.** `cdn.mjs` impersonates the GitHub API *for this repo only* (the
+  hardcoded `REPO`) from the on-disk working tree: contents listings via
+  `readdirSync`, file reads via `readFileSync` in the API's JSON envelope, plus
+  `/repos/<REPO>` metadata (a stub) and `git/trees` (a recursive walk). So a
+  headless render never authenticates and never leaves the box for own-repo
+  data, and it shows *uncommitted* branch truth, which is the point. Any
+  *other* repo's API calls pass through to the real network and die on the
+  sandbox's spent anonymous quota. This sorts pages into three render
+  categories: **self-contained** (code only: renders), **repo-content** (own
+  repo's files/tree: renders, served locally), and **identity-bound** (first
+  paint gated on "who am I", e.g. `gh.repos()`: renders only the gh-auth token
+  wall). The containment pattern for the third: boot identity-free when
+  `?repo=` is given (`repo.js pickByName` + the background `setup({quiet:
+  true})`, with gh-auth's per-request `quiet` flag), which drops the page into
+  category two; nav-repo is the worked example, shot via
+  `npm run shot -- pages/nav-repo.html --query "repo=mehrlander/web-tools&file=README.md"`.
 - **Preview a page already on main.** GitHub **Pages serves `main`**. The
   `?use=<ref>` convention swaps which ref the page's *loaded code* comes from, but
   **not the page's own HTML shell**: that's whatever main serves. So a brand-new
