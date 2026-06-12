@@ -89,6 +89,18 @@ test('ref change re-scans and appends ?use= off the default ref', async () => {
   assert.equal(foo.renderUrl, 'https://me.github.io/proj/pages/foo.html?use=dev');
 });
 
+test('mehrlander repos off the default ref route through toss-render address mode', async () => {
+  Alpine.store('browser').repo = 'mehrlander/proj';
+  await tick(3);
+  const foo = data.items.find(p => p.path === 'pages/foo.html');
+  assert.equal(foo.renderUrl,
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/proj@dev:pages/foo.html');
+  Alpine.store('browser').ref = 'main';
+  await tick(3);
+  const fooMain = data.items.find(p => p.path === 'pages/foo.html');
+  assert.equal(fooMain.renderUrl, 'https://mehrlander.github.io/proj/pages/foo.html');
+});
+
 test('unpublished repos are flagged', () => {
   assert.equal(data.unpublished, false);
   Alpine.store('browser').repoObj = { has_pages: false };

@@ -36,6 +36,7 @@ const NOTES = {
   'table-compress-multi.html': 'Multi-function variant of table-compress.',
   'compression-helper.html':   'Compression bookmarklet packer.',
   'diff-tool.html':            'Side-by-side text diff tool.',
+  'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths — the 🥏 target.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
   'demos/wring-text.html':     'Template induction on logs/records — kits/wring.js live.',
