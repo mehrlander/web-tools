@@ -4,6 +4,26 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-12 nav-repo lens browser; identity-free boot; testing.md rewrite (claude/keen-carson-w36rui)
+
+New page nav-repo answers "what is show-repo for": a repo@ref header with Files / Pages as top-level lens tabs, shareable `?repo=&ref=&file=&tab=` URL state, and an identity-free boot, so public repos browse with no token; the headless harness now impersonates the GitHub API from the local checkout, so these pages screenshot for real.
+
+⭐ **Result:** [pages/nav-repo.html](https://mehrlander.github.io/web-tools/pages/nav-repo.html?repo=mehrlander/web-tools&file=README.md)
+
+**Changed:**
+- pages/nav-repo.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/nav-repo.html)): the lens-tab page; show-repo left intact as-is
+- lib/alpineComponents/repo.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/repo.js)): `pickByName()` (boot without listing anyone's repos), `setup({quiet})`, auto-pick guard
+  renders on: [nav-repo](https://mehrlander.github.io/web-tools/pages/nav-repo.html), [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html)
+- lib/gh-auth.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/gh-auth.js)) + lib/gh-fetch.js: per-request `quiet` flag keeps background 401/403s from taking over the page
+- pages/show-repo/show-repo.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html)): drop `x-init="init()"` (Alpine auto-calls `init()`; every boot API call ran twice); same fix in nav-repo
+- tools/render/cdn.mjs + screenshot.mjs: own-data API shims (`/repos/<repo>` metadata, `git/trees` from the working tree) and a `--query` flag
+- tools/build/pages-shots.mjs: honors `<meta name="shot-query">`, so auth-dependent pages declare a representative thumbnail state
+- docs/environment/testing.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/environment/testing.md)): rewritten as a reference (tool-per-section, render-category table, gotchas; 64% of prior length)
+
+**Notes:** Token-bearing browser path unverified in-session (headless covers the anonymous path; suite 93 passing). The Actions lens (token-holding executor for requests a session can't perform, e.g. delete a branch) is designed in concept but deferred to its own session.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/keen-carson-w36rui)
+
 ## 2026-06-12 Index ↔ show-repo convergence; toss-render address mode; ?use= announces itself (PR #173)
 
 The repo's two navigation surfaces grew together: the pages index gained path-transparent chips, shareable filters, and the FAB; show-repo gained a pages view of the browsed repo; embed.html became toss-render.html with a token-safe address mode; and `?use=` pages now badge their ref and auto-mount the FAB.
