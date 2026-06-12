@@ -12,7 +12,8 @@ Second push: identity-free boot. With `?repo=` present, nav-repo picks the repo 
 - lib/gh-auth.js (opts.quiet suppresses the 401/403 prompt takeover per request)
 - lib/gh-fetch.js (repos() passes opts through)
 - pages/show-repo/show-repo.html (drop redundant x-init double-boot)
-- tools/render/cdn.mjs (repo-metadata + git/trees local shims)
+- tools/render/cdn.mjs (repo-metadata + git/trees local shims; header now names "own data" as a third request category)
+- docs/environment/testing.md (dated note: checkout-not-API data source, three render categories, identity-free boot pattern)
 - tools/render/screenshot.mjs (--query flag)
 - BRANCH-GUIDE.md (this file)
 
