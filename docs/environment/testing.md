@@ -69,10 +69,11 @@ npm run shot -- pages/nav-repo.html --query "repo=mehrlander/web-tools&file=READ
 
 - `esm.sh` / `cdnjs` modules aren't vendored, so `kits/cm6.js` (CodeMirror)
   doesn't mount in any harness.
-- GitHub **Pages serves `main`**. `?use=<ref>` swaps which ref a page's
-  *loaded code* comes from, not the HTML shell, so a brand-new page has no
-  live Pages URL until it merges. For branch HTML on a live origin, use
-  toss-render's `#gh=` address mode or the FAB's Render tab.
+- If you're tempted to skip shot and open the live URL instead: GitHub
+  **Pages serves `main`**. `?use=<ref>` swaps which ref a page's *loaded
+  code* comes from, not the HTML shell, so a brand-new page has no live Pages
+  URL until it merges. For branch HTML on a live origin, use toss-render's
+  `#gh=` address mode or the FAB's Render tab.
 
 ## npm run preview: boot logic under jsdom
 
@@ -81,14 +82,18 @@ jsdom, then reports each `x-data` container and a `boot:` line. Use it for
 "did the components mount, what state" questions; it has no pixels.
 
 jsdom executes neither module scripts nor dynamic `import()`, so preview
-rewrites the page's module boot into a classic async IIFE, shims the
-`import(gh-api.js)` call with the `import.meta.url` self-bootstrap intact, and
-rewrites the one kit-level dynamic import it can satisfy (persistence's
-idb-keyval) to a vendored copy; persistence then round-trips for real over
-`fake-indexeddb`. Other remote imports are left alone, some sit inside
-template strings that emit user-facing snippets. A page that calls a live
-non-repo API endpoint gets an empty JSON array and renders its empty state.
-Internals: the header comment of
+rewrites the page before running it:
+
+- the module boot becomes a classic async IIFE;
+- the `import(gh-api.js)` call is shimmed with the `import.meta.url`
+  self-bootstrap intact;
+- persistence's idb-keyval import is rewritten to the vendored copy, so
+  persistence round-trips for real over `fake-indexeddb`.
+
+Other remote imports are left alone because some sit inside template strings
+that emit user-facing snippets, where a rewrite would corrupt the output. A
+page that calls a live non-repo API endpoint gets an empty JSON array and
+renders its empty state. Internals: the header comment of
 [`tools/render/preview.mjs`](../../tools/render/preview.mjs).
 
 ## npm test: unit suites
@@ -129,7 +134,8 @@ it.
   `HTMLElement`, `DocumentFragment`, `MutationObserver`, `Element`,
   `customElements`.
 - **Polyfill `matchMedia`** (with a settable `matches`) and
-  **`requestAnimationFrame`**.
+  **`requestAnimationFrame`**, the latter on both the window and `global`;
+  Alpine's `x-show` transitions call it bare in the Node realm.
 
 ## Gotchas
 
@@ -140,12 +146,12 @@ it.
   a classic `<script>`.
 - `cdn.mjs` mirrors jsDelivr's value-adds: `/+esm` imports get the package's
   ESM entry, and a requested `.min.*` falls back to the unminified file when
-  the tarball ships none.
+  the tarball ships none. One gap is in principle unfixable locally: real
+  jsDelivr bundles a CJS dependency graph into ESM server-side, so a CJS-only
+  package's `/+esm` import misses; no rendered page currently hits it.
 - Import `alpinejs/dist/module.esm.js`, never bare `alpinejs`: the package has
   no `exports` map, CJS interop double-wraps the default export, and the
   symptom is `Alpine.start is not a function`.
-- Patch `global.requestAnimationFrame`, not just the window's; Alpine's
-  `x-show` transitions call it bare in the Node realm.
 
 ## Fallback: driving Chromium directly
 
