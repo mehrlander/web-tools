@@ -66,6 +66,14 @@ authorized repo (and limits push to the current branch). So a sibling repo like
 though `github.com` itself is allowed: a different failure mode than
 `x-deny-reason: host_not_allowed`.
 
+**Branches cannot be deleted from in-session** *(verified 2026-06-12)*. Both
+paths are closed: the GitHub MCP toolset has `create_branch` but no delete
+tool, and the git proxy returns a 403 on `git push --delete`, even for a
+branch the same session just created via MCP. (PRs *can* be closed, via
+`update_pull_request`.) Asymmetric consequence: a session can create a remote
+branch it then has no way to remove, so stray branches need cleanup in the
+GitHub UI.
+
 | Host | Reachable? | Notes |
 |---|---|---|
 | `registry.npmjs.org`, `registry.yarnpkg.com` | ✅ | `npm install` works |
