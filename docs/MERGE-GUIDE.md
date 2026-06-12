@@ -4,6 +4,27 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-12 Index ↔ show-repo convergence; toss-render address mode; ?use= announces itself (branch claude/modest-newton-cm6is8)
+
+The repo's two navigation surfaces grew together: the pages index gained path-transparent chips, shareable filters, and the FAB; show-repo gained a pages view of the browsed repo; embed.html became toss-render.html with a token-safe address mode; and `?use=` pages now badge their ref and auto-mount the FAB.
+
+⭐ **Result:** [pages/index.html](https://mehrlander.github.io/web-tools/pages/) — chips show full locations (`?filter=`/`?q=` deep-link), header links show-repo, FAB mounted
+
+**Changed:**
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs)): path chips with dimmed prefixes, URL state, show-repo link, gh-api boot + FAB on the generated index; `pages/show-repo/index.html` (stale hand-written list) deleted
+- lib/alpineComponents/pages.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/pages.js)): collapsible Pages section — scans the browsed repo/ref for .html files; thumbnail/live cards, rendered+source links, open-in-viewer
+  renders on: [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html)
+- pages/toss-render.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html)), renamed from embed.html (no redirect): payload modes unchanged (opaque-origin sandbox); new `#gh=owner/repo[@ref]:path` address mode fetches with the stored token and renders same-origin with `<base>` + `?use=` shim, allowlisted to `mehrlander/*` so crafted links can't spend or read the token
+- bookmarklets/toss-render.js ([new](https://github.com/mehrlander/web-tools/blob/main/bookmarklets/toss-render.js)), renamed from embed-page.js, retargeted; text also inlined in the page header comment — re-save the 🥏 bookmarklet
+- lib/gh-boot.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/gh-boot.js)): `?use=` shows a corner badge naming the booted ref and auto-mounts the FAB (skipped when the page mounts its own; try/caught)
+- lib/alpineComponents/fab.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/fab.js)), viewer.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/viewer.js)): "Open at ref in toss-render" / "Toss render" links into address mode
+- docs/CONVENTIONS.md + CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md)): "Show pixels" — send rendered screenshots into chat; `npm run shot` wiring
+- tools/test/pages.test.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/test/pages.test.mjs)): 7 jsdom tests for the pages view
+
+**Notes:** toss-render address mode is the repo's first "open page X at ref Y" URL; the FAB Render overlay and show-repo's off-ref page cards route through it. Address mode was unverifiable in-session (API rate limit): first thing to try post-merge. Suite: 93 passing.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/modest-newton-cm6is8)
+
 ## 2026-06-11 Import Wring: template-induction kit, demo pages, repo snapshot (PR #172)
 
 Wring (single-document template induction: one document with repeated structure in, recurring templates plus slot values out, losslessly) moves into web-tools as a kit, two demo pages, a test in the npm suite, and a full snapshot of the source repo.
