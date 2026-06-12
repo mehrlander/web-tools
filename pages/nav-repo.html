@@ -19,7 +19,8 @@
   await gh.load('alpine-bundle.js');
 </script>
 </head>
-<body class="min-h-screen bg-base-100" x-data="app()" x-init="init()">
+<!-- No x-init: Alpine auto-calls a data object's init(); declaring both runs boot twice. -->
+<body class="min-h-screen bg-base-100" x-data="app()">
 
 <div class="toast toast-top toast-end z-40" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">
@@ -100,37 +101,35 @@ function app(){ return {
 
     const state = this.parseUrlState();
 
-    try {
-    await repoEl.__repo.setup(gh);
-    } catch (e) {
-    console.error('setup:', e);
-    const status = e?.status;
-    if (status === 401) {
-      notify('GitHub rejected the token (401). Paste a new one.');
-      try { repoEl.__repo.tokenExpired = true; } catch {}
-    } else if (status === 403) {
-      notify('GitHub rate-limited this IP (403). A token raises the limit.');
-    } else {
-      notify('Could not load repos: ' + (e?.message || e));
-    }
-    try { document.getElementById('repoModal').showModal(); } catch {}
-    return;
-    }
-
     if (state?.repo) {
-    let target = repoEl.__repo.repos.find(r => r.full_name === state.repo);
-    if (!target) {
-      try { target = await gh.req('/repos/' + state.repo); }
-      catch (e) { notify('Could not load repo ' + state.repo + ': ' + (e?.message || e)); }
-    }
-    if (target) {
-      await repoEl.__repo.pick(target, { ref: state.ref || '' });
-      const navEl = document.getElementById('navigator');
-      if (await waitFor(() => navEl.__navigator) && state.file) {
+    // Identity-free boot: pick the named repo directly, then populate the
+    // picker dropdown in the background. No token (or a dead one) still
+    // gets a browsable page for public repos.
+    await repoEl.__repo.pickByName(state.repo, { ref: state.ref || '' });
+    const navEl = document.getElementById('navigator');
+    if (await waitFor(() => navEl.__navigator) && state.file) {
       const folder = state.file.split('/').slice(0, -1).join('/');
       if (folder) await navEl.__navigator.load(folder, true);
       await navEl.__navigator.sel(state.file, true);
+    }
+    repoEl.__repo.setup(gh, { quiet: true })
+      .catch(e => console.warn('picker setup:', e?.message || e));
+    } else {
+    try {
+      await repoEl.__repo.setup(gh);
+    } catch (e) {
+      console.error('setup:', e);
+      const status = e?.status;
+      if (status === 401) {
+      notify('GitHub rejected the token (401). Paste a new one.');
+      try { repoEl.__repo.tokenExpired = true; } catch {}
+      } else if (status === 403) {
+      notify('GitHub rate-limited this IP (403). A token raises the limit.');
+      } else {
+      notify('Could not load repos: ' + (e?.message || e));
       }
+      try { document.getElementById('repoModal').showModal(); } catch {}
+      return;
     }
     }
     if (state?.tab === 'pages') this.setTab('pages');

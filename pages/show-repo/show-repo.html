@@ -22,7 +22,8 @@
   await gh.load('alpine-bundle.js');
 </script>
 </head>
-<body class="min-h-screen bg-base-100" x-data="app()" x-init="init()">
+<!-- No x-init: Alpine auto-calls a data object's init(); declaring both runs boot twice. -->
+<body class="min-h-screen bg-base-100" x-data="app()">
 
 <div class="toast toast-top toast-end z-40" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">

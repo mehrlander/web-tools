@@ -128,6 +128,42 @@ export function resolveCdn(rawUrl, repoRoot) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
   }
 
+  // --- Own repo metadata: /repos/<REPO> (identity-free page boots) ---
+  if (host === 'api.github.com' && u.pathname === `/repos/${REPO}`) {
+    const [login, name] = REPO.split('/');
+    return {
+      kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: 'api repo meta',
+      body: JSON.stringify({
+        full_name: REPO, name, owner: { login }, default_branch: 'main',
+        private: false, has_pages: true, description: '(local render)',
+        stargazers_count: 0, forks_count: 0, pushed_at: new Date().toISOString(),
+      }),
+    };
+  }
+
+  // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
+  // Always answered recursively from the working tree; the ref is ignored
+  // because the working tree IS the ref being rendered.
+  if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/git/trees/`)) {
+    const skip = new Set(['.git', 'node_modules']);
+    const tree = [];
+    const walk = (rel) => {
+      const dir = path.join(repoRoot, rel);
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (!rel && skip.has(e.name)) continue;
+        const p = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) { tree.push({ path: p, type: 'tree' }); walk(p); }
+        else tree.push({ path: p, type: 'blob' });
+      }
+    };
+    walk('');
+    return {
+      kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+      tag: `api tree (${tree.length})`,
+      body: JSON.stringify({ sha: 'local', truncated: false, tree }),
+    };
+  }
+
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
   if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
     const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
