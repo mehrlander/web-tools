@@ -3,7 +3,7 @@
 // pre-installed Chromium, headlessly, in this network-restricted sandbox.
 //
 //   node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>]
-//       [--out <png>] [--width N] [--height N] [--wait MS] [--full]
+//       [--query <k=v&...>] [--out <png>] [--width N] [--height N] [--wait MS] [--full]
 //
 // The page is served from the on-disk working tree over loopback; every external
 // request is intercepted and resolved by tools/render/cdn.mjs — own code (gh-api.js
@@ -29,13 +29,14 @@ import { resolveCdn, typeFor } from './cdn.mjs';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function parseArgs(argv) {
-  const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, out: null, script: null };
+  const o = { full: false, build: false, width: 1280, height: 800, wait: 2500, ref: null, query: null, out: null, script: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--full') o.full = true;
     else if (a === '--build') o.build = true;
     else if (a === '--ref') o.ref = argv[++i];
+    else if (a === '--query') o.query = argv[++i];
     else if (a === '--out') o.out = argv[++i];
     else if (a === '--width') o.width = +argv[++i];
     else if (a === '--height') o.height = +argv[++i];
@@ -49,7 +50,7 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.page) {
-  console.error('Usage: node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>] [--script <file>] [--out <png>] [--full]');
+  console.error('Usage: node tools/render/screenshot.mjs <page-path> [--build] [--ref <ref>] [--query <k=v&...>] [--script <file>] [--out <png>] [--full]');
   process.exit(2);
 }
 const pageAbs = path.join(repoRoot, opts.page);
@@ -129,7 +130,10 @@ page.on('requestfailed', r => {
   if (f && !/ERR_ABORTED/.test(f.errorText)) errorLines.push(`[requestfailed] ${r.url()} ${f.errorText}`);
 });
 
-const target = `http://127.0.0.1:${port}${pageUrlPath}${opts.ref ? `?use=${encodeURIComponent(opts.ref)}` : ''}`;
+// --query appends page-level params (e.g. repo=/file= for identity-free boots).
+const qs = [opts.ref ? `use=${encodeURIComponent(opts.ref)}` : '', opts.query || '']
+  .filter(Boolean).join('&');
+const target = `http://127.0.0.1:${port}${pageUrlPath}${qs ? '?' + qs : ''}`;
 let loadedScripts = [];
 try {
   await page.goto(target, { waitUntil: 'load', timeout: 30000 });

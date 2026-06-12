@@ -13,7 +13,7 @@
 // them as each card's default preview, with a live-iframe / source toggle on top.
 // Re-run when a page is added or its look changes; then `npm run pages-index`.
 
-import { readdir, mkdir } from 'node:fs/promises';
+import { readdir, mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -59,9 +59,15 @@ for (const { rel, src } of pages) {
   const out = path.join('pages', 'thumbs', rel.replace(/\.html$/, '.png'));
   await mkdir(path.dirname(path.join(repoRoot, out)), { recursive: true });
   process.stdout.write(`shooting ${rel} -> ${out} ... `);
+  // A page can declare the query string of its representative shot, e.g.
+  // <meta name="shot-query" content="repo=mehrlander/web-tools"> for a page
+  // whose bare URL paints an auth/empty state instead of its real UI.
+  const html = await readFile(path.join(repoRoot, src), 'utf8');
+  const q = html.match(/<meta\s+name="shot-query"\s+content="([^"]*)"/);
   const r = spawnSync(process.execPath, [
     shotTool, src,
     '--out', out, '--width', String(WIDTH), '--height', String(HEIGHT),
+    ...(q ? ['--query', q[1]] : []),
   ], { cwd: repoRoot, encoding: 'utf8' });
   const ok = r.status === 0;
   // Surface any [pageerror]/[fatal] lines so broken pages are visible, not silent.

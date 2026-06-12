@@ -3,14 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GH Browse</title>
+<title>Nav Repo</title>
+<meta name="shot-query" content="repo=mehrlander/web-tools&file=README.md">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
 <script type="module">
   // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
-  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import URL,
-  // exposes window.gh, and loads gh-auth.js (which installs the boot-error
-  // handler). No per-page try/catch needed.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
   await gh.load('gh-store.js');
@@ -38,25 +36,24 @@
 
   <div id="repo" x-data="repo()"></div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
+  <div role="tablist" class="tabs tabs-border mb-3">
+  <a role="tab" class="tab gap-1.5" :class="tab==='files' && 'tab-active'" @click="setTab('files')">
+    <i class="ph ph-tree-structure"></i>Files
+  </a>
+  <a role="tab" class="tab gap-1.5" :class="tab==='pages' && 'tab-active'" @click="setTab('pages')">
+    <i class="ph ph-squares-four"></i>Pages
+  </a>
+  </div>
 
+  <div x-show="tab==='files'" class="grid grid-cols-1 lg:grid-cols-4 gap-3">
   <div id="navigator" x-data="navigator()" class="lg:col-span-1 flex flex-col gap-4"></div>
-
   <div class="lg:col-span-3 flex flex-col gap-4">
-    <div>
-    <button @click="ui.content=!ui.content" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
-      <i class="ph" :class="ui.content?'ph-caret-down':'ph-caret-right'"></i>Content
-    </button>
-    <div x-show="ui.content" x-collapse>
-      <div id="viewer" x-data="viewer()"></div>
-    </div>
-    </div>
-
+    <div id="viewer" x-data="viewer()"></div>
     <div id="compare" x-data="compare()"></div>
   </div>
   </div>
 
-  <div id="pages" x-data="pages()" class="mt-4"></div>
+  <div x-show="tab==='pages'" id="pages" x-data="pages()"></div>
 </div>
 
 <script>
@@ -64,8 +61,6 @@ window.TOKEN = '🎟️GitHubToken';
 if (window.TOKEN === '🎟️GitHubToken') {
   try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
 }
-const HOME_REPO = 'mehrlander/home';
-const STATE_FILE = 'gh-browse-state.json';
 
 const waitFor = async (pred, ms=8000, step=50) => {
   for (let t=0; t<ms; t+=step) {
@@ -84,8 +79,17 @@ const notify = (msg, cls='alert-error', icon='warning') => {
 };
 
 function app(){ return {
-  ui: { content: true },
-  stateSha: null,
+  tab: 'files',
+
+  setTab(t) {
+  this.tab = t;
+  if (t === 'pages') {
+    const el = document.getElementById('pages');
+    const p = el && el.__pages;
+    if (p && !p.open) p.toggle();
+  }
+  this.updateUrl();
+  },
 
   async init(){
   const ready = await waitFor(() => window.GH);
@@ -96,45 +100,58 @@ function app(){ return {
     const repoEl = document.getElementById('repo');
     if (!await waitFor(() => repoEl.__repo)) return notify('Repo component never mounted.');
 
-    const urlState = this.parseUrlState();
-    const saved = urlState ? null : await this.loadState();
-    const state = urlState || saved;
-
-    try {
-    await repoEl.__repo.setup(gh);
-    } catch (e) {
-    console.error('setup:', e);
-    const status = e?.status;
-    if (status === 401) {
-      notify('GitHub rejected the token (401). Paste a new one.');
-      try { repoEl.__repo.tokenExpired = true; } catch {}
-    } else if (status === 403) {
-      notify('GitHub rate-limited this IP (403). A token raises the limit.');
-    } else {
-      notify('Could not load repos: ' + (e?.message || e));
-    }
-    try { document.getElementById('repoModal').showModal(); } catch {}
-    return;
-    }
+    const state = this.parseUrlState();
 
     if (state?.repo) {
-    let target = repoEl.__repo.repos.find(r => r.full_name === state.repo);
-    if (!target) {
-      try { target = await gh.req('/repos/' + state.repo); }
-      catch (e) { notify('Could not load repo ' + state.repo + ': ' + (e?.message || e)); }
-    }
-    if (target) {
-      await repoEl.__repo.pick(target, { ref: state.ref || '' });
-      const navEl = document.getElementById('navigator');
-      if (await waitFor(() => navEl.__navigator) && state.file) {
+    // Identity-free boot: pick the named repo directly, then populate the
+    // picker dropdown in the background. No token (or a dead one) still
+    // gets a browsable page for public repos.
+    await repoEl.__repo.pickByName(state.repo, { ref: state.ref || '' });
+    const navEl = document.getElementById('navigator');
+    if (await waitFor(() => navEl.__navigator) && state.file) {
       const folder = state.file.split('/').slice(0, -1).join('/');
       if (folder) await navEl.__navigator.load(folder, true);
       await navEl.__navigator.sel(state.file, true);
+    }
+    repoEl.__repo.setup(gh, { quiet: true })
+      .catch(e => console.warn('picker setup:', e?.message || e));
+    } else {
+    try {
+      await repoEl.__repo.setup(gh);
+    } catch (e) {
+      console.error('setup:', e);
+      const status = e?.status;
+      if (status === 401) {
+      notify('GitHub rejected the token (401). Paste a new one.');
+      try { repoEl.__repo.tokenExpired = true; } catch {}
+      } else if (status === 403) {
+      notify('GitHub rate-limited this IP (403). A token raises the limit.');
+      } else {
+      notify('Could not load repos: ' + (e?.message || e));
       }
+      try { document.getElementById('repoModal').showModal(); } catch {}
+      return;
     }
     }
+    if (state?.tab === 'pages') this.setTab('pages');
 
-    Alpine.store('browser').save = (state) => this.saveState(state);
+    // Keep the URL shareable: any change to repo / ref / selected file
+    // rewrites the query string in place (no history spam, no remote
+    // state file). repo.js's setRef also calls store.save; route it here.
+    Alpine.store('browser').save = () => this.updateUrl();
+    this.$watch(
+    () => {
+      const s = Alpine.store('browser');
+      return s.repo + '@' + s.ref + ':' + (s.activeFile?.path || '');
+    },
+    (now, prev) => {
+      // A newly selected file means the Files lens is what to look at
+      // (this is how the Pages cards' "open in viewer" jumps tabs).
+      const file = now.split(':')[1];
+      if (file && file !== (prev || '').split(':')[1]) this.tab = 'files';
+      this.updateUrl();
+    }
+    );
 
   } catch(e) {
     console.error('init:', e);
@@ -145,41 +162,24 @@ function app(){ return {
   parseUrlState() {
   const p = new URLSearchParams(location.search);
   const out = {};
-  for (const k of ['repo', 'ref', 'path', 'file']) {
+  for (const k of ['repo', 'ref', 'file', 'tab']) {
     if (p.has(k)) out[k] = p.get(k);
   }
   return Object.keys(out).length ? out : null;
   },
 
-  async loadState() {
+  updateUrl() {
   try {
-    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
-    const res = await homeGh.get(STATE_FILE);
-    this.stateSha = res.sha;
-    return JSON.parse(res.text);
-  } catch { return null; }
-  },
-
-  async saveState(state) {
-  try {
-    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
-    const content = btoa(JSON.stringify(state, null, 2));
-    const put = () => {
-    const body = { message: 'update gh-browse state', content };
-    if (this.stateSha) body.sha = this.stateSha;
-    return homeGh.req('contents/' + STATE_FILE, { method: 'PUT', body: JSON.stringify(body) });
-    };
-    let res;
-    try {
-    res = await put();
-    } catch(e) {
-    if (e.status !== 409) throw e;
-    const cur = await homeGh.get(STATE_FILE);
-    this.stateSha = cur.sha;
-    res = await put();
-    }
-    this.stateSha = res.content.sha;
-  } catch(e) { console.error('saveState:', e); }
+    const s = Alpine.store('browser');
+    const p = new URLSearchParams(location.search);
+    const set = (k, v) => v ? p.set(k, v) : p.delete(k);
+    set('repo', s.repo);
+    set('ref', s.ref && s.ref !== s.defaultRef ? s.ref : '');
+    set('file', s.activeFile?.path);
+    set('tab', this.tab === 'pages' ? 'pages' : '');
+    const q = p.toString();
+    history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
+  } catch (e) { console.warn('updateUrl:', e); }
   }
 }}
 </script>

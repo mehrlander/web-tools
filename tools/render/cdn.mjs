@@ -1,11 +1,17 @@
 // Shared CDN -> local resolution for the headless render tools.
 //
-// The repo's pages pull two unrelated things off the network:
+// The repo's pages pull three things off the network:
 //   1. Own code  — gh-api.js's loader fetches lib/* via the GitHub contents
 //      API (base64), after the page's first jsDelivr `/gh/` import of gh-api.js
 //      itself. Both must resolve to the on-disk working tree so a render shows
 //      branch edits, not whatever main serves.
-//   2. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
+//   2. Own data: the GitHub API surface for REPO (contents listings/reads,
+//      /repos/<REPO> metadata, git/trees) is answered from the working tree
+//      too: no token, no network, and uncommitted edits render. Other repos'
+//      API calls pass through (and fail in the sandbox). Identity endpoints
+//      (/user, /user/repos) are NOT impersonated, since "who am I" has no
+//      local answer; pages must keep first paint off them (see testing.md).
+//   3. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //
@@ -126,6 +132,42 @@ export function resolveCdn(rawUrl, repoRoot) {
   // Other /gh/ refs are third-party data (word lists, etc.) — not vendored.
   if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/gh/')) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
+  }
+
+  // --- Own repo metadata: /repos/<REPO> (identity-free page boots) ---
+  if (host === 'api.github.com' && u.pathname === `/repos/${REPO}`) {
+    const [login, name] = REPO.split('/');
+    return {
+      kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: 'api repo meta',
+      body: JSON.stringify({
+        full_name: REPO, name, owner: { login }, default_branch: 'main',
+        private: false, has_pages: true, description: '(local render)',
+        stargazers_count: 0, forks_count: 0, pushed_at: new Date().toISOString(),
+      }),
+    };
+  }
+
+  // --- Own repo tree: git/trees/<ref> (the Pages lens scan) ---
+  // Always answered recursively from the working tree; the ref is ignored
+  // because the working tree IS the ref being rendered.
+  if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/git/trees/`)) {
+    const skip = new Set(['.git', 'node_modules']);
+    const tree = [];
+    const walk = (rel) => {
+      const dir = path.join(repoRoot, rel);
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (!rel && skip.has(e.name)) continue;
+        const p = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) { tree.push({ path: p, type: 'tree' }); walk(p); }
+        else tree.push({ path: p, type: 'blob' });
+      }
+    };
+    walk('');
+    return {
+      kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+      tag: `api tree (${tree.length})`,
+      body: JSON.stringify({ sha: 'local', truncated: false, tree }),
+    };
   }
 
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
