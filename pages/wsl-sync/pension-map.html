@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WA Pension RCW Map</title>
+<!--
+  Self-contained crosswalk of Washington State pension systems to their RCW
+  chapters and sections. Deliberately dependency-free (no CDN, no gh.load)
+  so it can be saved and used as a local file, offline.
+
+  Source of truth for the mapping: PENSION_MAP in lib/kits/wsl-core.js
+  (the classifier the wsl-sync / pension-dash pages run). Official chapter
+  titles come from pages/wsl-sync/rcw/rcw-chapters.json. If PENSION_MAP
+  changes, mirror the change here by hand.
+-->
+<style>
+  :root {
+    --bg: #faf9f6; --panel: #ffffff; --ink: #1d2229; --muted: #6b7280;
+    --line: #e5e1d8; --accent: #1d4ed8; --badge-bg: #eef2ff; --badge-ink: #3730a3;
+    --plan-bg: #f0fdf4; --plan-ink: #166534; --special-bg: #fffbeb; --special-ink: #92400e;
+    --hover: #f3f1ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171c; --panel: #1d2026; --ink: #e7e9ee; --muted: #9aa1ad;
+      --line: #2e3340; --accent: #7ba3f7; --badge-bg: #28304d; --badge-ink: #b3c4f5;
+      --plan-bg: #1c2e22; --plan-ink: #8fd0a4; --special-bg: #332a17; --special-ink: #e3b56e;
+      --hover: #23262e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 2.2rem 1.2rem 4rem; }
+  header h1 { font-size: 1.7rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  header p.sub { margin: 0 0 1.4rem; color: var(--muted); max-width: 60ch; }
+  .controls { display: flex; gap: .6rem; align-items: center; margin-bottom: 1.6rem; flex-wrap: wrap; }
+  .controls input {
+    flex: 1; min-width: 220px; padding: .5rem .8rem; font: inherit;
+    color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; outline: none;
+  }
+  .controls input:focus { border-color: var(--accent); }
+  .controls button {
+    padding: .45rem .8rem; font: inherit; font-size: .85rem; cursor: pointer;
+    color: var(--muted); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px;
+  }
+  .controls button:hover { color: var(--ink); background: var(--hover); }
+  section.cat { margin-bottom: 2rem; }
+  section.cat > h2 {
+    font-size: .8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .09em; color: var(--muted);
+    margin: 0 0 .6rem; padding-bottom: .35rem; border-bottom: 1px solid var(--line);
+  }
+  details.node {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; margin-bottom: .55rem; overflow: hidden;
+  }
+  details.node > summary {
+    list-style: none; cursor: pointer; padding: .65rem .9rem;
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  }
+  details.node > summary::-webkit-details-marker { display: none; }
+  details.node > summary:hover { background: var(--hover); }
+  details.node > summary::before {
+    content: "▸"; color: var(--muted); font-size: .75rem;
+    transition: transform .12s; align-self: center;
+  }
+  details.node[open] > summary::before { transform: rotate(90deg); }
+  .badge {
+    font: 600 .78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--badge-bg); color: var(--badge-ink);
+    padding: .05rem .5rem; border-radius: 6px; white-space: nowrap;
+  }
+  .sysname { font-weight: 600; }
+  .cite { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; white-space: nowrap; }
+  .official { color: var(--muted); font-size: .85rem; }
+  .body { padding: .15rem .9rem .7rem 2.1rem; }
+  ul.leaves { list-style: none; margin: 0; padding: 0; }
+  ul.leaves li {
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+    padding: .28rem 0; border-top: 1px dashed var(--line);
+  }
+  ul.leaves li:first-child { border-top: 0; }
+  .tag {
+    font-size: .72rem; font-weight: 600; padding: .02rem .45rem;
+    border-radius: 5px; white-space: nowrap;
+  }
+  .tag.plan { background: var(--plan-bg); color: var(--plan-ink); }
+  .tag.special { background: var(--special-bg); color: var(--special-ink); }
+  .leaf-label { font-weight: 500; }
+  .leaf-note { color: var(--muted); font-size: .85rem; }
+  .row {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    margin-bottom: .55rem; padding: .65rem .9rem;
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  }
+  .hidden { display: none !important; }
+  .nohits { color: var(--muted); font-style: italic; padding: .4rem 0; }
+  footer {
+    margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: .82rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Washington Pension RCW Map</h1>
+    <p class="sub">The retirement systems of Washington State and the RCW chapters
+    and sections that govern them: the crosswalk the pension-bill classifier uses,
+    laid out as a reference tree. Cites link to the official RCW.</p>
+  </header>
+
+  <div class="controls">
+    <input id="filter" type="search" placeholder="Filter by system, chapter, or topic… (e.g. LEOFF, 41.40, disability)" autocomplete="off">
+    <button id="expand">Expand all</button>
+    <button id="collapse">Collapse all</button>
+  </div>
+
+  <main id="tree"></main>
+
+  <footer>
+    Mirrors <code>PENSION_MAP</code> in
+    <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/wsl-core.js">lib/kits/wsl-core.js</a>
+    (mehrlander/web-tools); official chapter titles from the RCW corpus snapshot.
+    Self-contained: save this file and it keeps working offline (links need a connection).
+  </footer>
+</div>
+
+<script>
+// Mirrored from PENSION_MAP in lib/kits/wsl-core.js, enriched with the
+// official chapter descriptions from rcw/rcw-chapters.json.
+const DATA = {
+  systems: [
+    { sys: "JRS",   ch: "2.10",  name: "Judges 1971–1988",        official: "Judicial retirement system." },
+    { sys: "JRF",   ch: "2.12",  name: "Judges pre-1971",              official: "Retirement of judges—Retirement system." },
+    { sys: "JRA",   ch: "2.14",  name: "Judicial DC 1988–2007",   official: "Retirement of judges—Supplemental retirement." },
+    { sys: "LEOFF", ch: "41.26", name: "Law Enforcement & Fire Fighters", official: "Law enforcement officers' and firefighters' retirement system.",
+      plans: { "1": [40, 160], "2": [400, 560] } },
+    { sys: "TRS",   ch: "41.32", name: "Teachers",                     official: "Teachers' retirement.",
+      plans: { "1": [240, 530], "2": [700, 830], "3": [831, 920] } },
+    { sys: "SERS",  ch: "41.35", name: "School Employees",             official: "Washington school employees' retirement system.",
+      plans: { "2": [30, 299], "3": [500, 650] } },
+    { sys: "PSERS", ch: "41.37", name: "Public Safety Employees",      official: "Washington public safety employees' retirement system." },
+    { sys: "PERS",  ch: "41.40", name: "Public Employees",             official: "Washington public employees' retirement system.",
+      plans: { "1": [120, 370], "2": [600, 780], "3": [780, 920] } },
+    { sys: "WSPRS", ch: "43.43", name: "State Patrol",                 official: "Washington state patrol.",
+      rcws: [120, 320], plans: { "1": [120, 200], "2": [200, 320] },
+      note: "Retirement provisions occupy only part of the chapter." }
+  ],
+  general: [
+    { ch: "41.34", label: "Plan 3 DC",    official: "Plan 3 retirement system contributions." },
+    { ch: "41.45", label: "Funding",      official: "Actuarial funding of state retirement systems." },
+    { ch: "41.50", label: "DRS",          official: "Department of retirement systems." },
+    { ch: "41.54", label: "Portability",  official: "Portability of public retirement benefits." }
+  ],
+  governance: [
+    { ch: "41.04",  label: "SCPP",       official: "General provisions.", rcws: [276, 278, 281],
+      note: "Select Committee on Pension Policy sections only." },
+    { ch: "43.33A", label: "WSIB",       official: "State investment board." },
+    { ch: "44.44",  label: "OSA / SCPP", official: "Office of state actuary—Select committee on pension policy." }
+  ],
+  adjacent: [
+    { ch: "6.15",   label: "Exemptions",          official: "Personal property exemptions.",                          title: "Enforcement of Judgments" },
+    { ch: "26.16",  label: "Marital property",    official: "Rights and liabilities—Community property.",        title: "Domestic Relations" },
+    { ch: "26.18",  label: "Child support",       official: "Child support enforcement.",                             title: "Domestic Relations" },
+    { ch: "41.28",  label: "Local fire",          official: "Retirement of personnel in certain first-class cities.", title: "Public Employment & Pensions" },
+    { ch: "41.44",  label: "Local city",          official: "Statewide city employees' retirement.",                  title: "Public Employment & Pensions" },
+    { ch: "51.08",  label: "L&I definitions",     official: "Definitions.",                                           title: "Industrial Insurance" },
+    { ch: "51.32",  label: "L&I benefits",        official: "Compensation—Right to and amount.",                 title: "Industrial Insurance" },
+    { ch: "74.20A", label: "Support enforcement", official: "Support of dependent children—Alternative method—1971 act.", title: "Public Assistance" }
+  ],
+  special: {
+    "41.40.124":  "Judicial Multiplier",
+    "41.40.761":  "Judicial Multiplier P2",
+    "41.45.0631": "WSPRS Rates",
+    "41.50.770":  "DCP",
+    "41.50.780":  "DCP Accounts",
+    "41.26.130":  "Disability Offset",
+    "41.26.470":  "Disability Offset",
+    "41.37.230":  "Disability Offset",
+    "41.40.038":  "L&I Service Credit",
+    "41.37.060":  "L&I Service Credit",
+    "41.26.473":  "L&I Service Credit",
+    "41.26.048":  "Line of Duty Death"
+  }
+};
+
+const rcwUrl = cite => "https://app.leg.wa.gov/RCW/default.aspx?cite=" + cite;
+const pad3 = n => String(n).padStart(3, "0");
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+// specials grouped by chapter, with the plan they fall in (when ranged)
+const specialsFor = (ch, plans) => Object.entries(DATA.special)
+  .filter(([cite]) => cite.startsWith(ch + ".") && !cite.slice(ch.length + 1).includes("."))
+  .map(([cite, label]) => {
+    const sec = +cite.slice(ch.length + 1);
+    const plan = plans && Object.entries(plans).find(([, r]) => sec >= r[0] && sec <= r[1]);
+    return { cite, label, plan: plan ? plan[0] : null };
+  })
+  .sort((a, b) => a.cite.localeCompare(b.cite, undefined, { numeric: true }));
+
+const citeLink = cite => `<a class="cite" href="${rcwUrl(cite)}">RCW ${cite}</a>`;
+const leaf = ({ tag, tagText, label, cite, note }) => `
+  <li><span class="tag ${tag}">${tagText}</span>
+      <span class="leaf-label">${esc(label)}</span>
+      ${citeLink(cite)}
+      ${note ? `<span class="leaf-note">${esc(note)}</span>` : ""}</li>`;
+
+const systemNode = s => {
+  const leaves = [];
+  if (s.plans) for (const [p, [lo, hi]] of Object.entries(s.plans))
+    leaves.push(leaf({ tag: "plan", tagText: "Plan " + p, label: `${s.sys} Plan ${p}`,
+      cite: s.ch, note: `§§ .${pad3(lo)} – .${pad3(hi)}` }));
+  for (const sp of specialsFor(s.ch, s.plans))
+    leaves.push(leaf({ tag: "special", tagText: sp.plan ? `Plan ${sp.plan}` : "§", label: sp.label, cite: sp.cite }));
+  return `
+  <details class="node" open>
+    <summary><span class="badge">${s.sys}</span>
+      <span class="sysname">${esc(s.name)}</span> ${citeLink(s.ch)}
+      <span class="official">${esc(s.official)}</span></summary>
+    ${leaves.length ? `<div class="body"><ul class="leaves">${leaves.join("")}</ul>
+      ${s.note ? `<p class="leaf-note" style="margin:.4rem 0 0">${esc(s.note)}</p>` : ""}</div>`
+      : (s.note ? `<div class="body"><p class="leaf-note" style="margin:0">${esc(s.note)}</p></div>` : "")}
+  </details>`;
+};
+
+const chapterEntry = g => {
+  const specials = specialsFor(g.ch);
+  const sections = g.rcws ? g.rcws.map(n => citeLink(`${g.ch}.${pad3(n)}`)).join(" ") : "";
+  const head = `<span class="badge">${esc(g.label)}</span>
+    ${g.title ? `<span class="sysname">${esc(g.title)}</span>` : ""}
+    ${citeLink(g.ch)} <span class="official">${esc(g.official)}</span>`;
+  if (!specials.length && !sections && !g.note) return `<div class="row node">${head}</div>`;
+  return `
+  <details class="node" open>
+    <summary>${head}</summary>
+    <div class="body">
+      ${sections ? `<p style="margin:.2rem 0">${sections}</p>` : ""}
+      ${specials.length ? `<ul class="leaves">${specials.map(sp =>
+        leaf({ tag: "special", tagText: "§", label: sp.label, cite: sp.cite })).join("")}</ul>` : ""}
+      ${g.note ? `<p class="leaf-note" style="margin:.4rem 0 0">${esc(g.note)}</p>` : ""}
+    </div>
+  </details>`;
+};
+
+const CATS = [
+  ["Retirement systems", DATA.systems.map(systemNode)],
+  ["Plan administration & funding", DATA.general.map(chapterEntry)],
+  ["Governance & oversight", DATA.governance.map(chapterEntry)],
+  ["Pension-adjacent chapters", DATA.adjacent.map(chapterEntry)]
+];
+
+document.getElementById("tree").innerHTML = CATS.map(([title, nodes]) => `
+  <section class="cat"><h2>${title}</h2>${nodes.join("")}
+    <p class="nohits hidden">No matches in this section.</p></section>`).join("");
+
+// --- filter + expand/collapse -------------------------------------------
+const nodes = [...document.querySelectorAll(".node")];
+const filter = document.getElementById("filter");
+filter.addEventListener("input", () => {
+  const q = filter.value.trim().toLowerCase();
+  nodes.forEach(n => n.classList.toggle("hidden", !!q && !n.textContent.toLowerCase().includes(q)));
+  document.querySelectorAll("section.cat").forEach(sec => {
+    const any = [...sec.querySelectorAll(".node")].some(n => !n.classList.contains("hidden"));
+    sec.querySelector(".nohits").classList.toggle("hidden", any);
+  });
+});
+const setOpen = open => nodes.forEach(n => { if (n.tagName === "DETAILS") n.open = open; });
+document.getElementById("expand").addEventListener("click", () => setOpen(true));
+document.getElementById("collapse").addEventListener("click", () => setOpen(false));
+</script>
+</body>
+</html>
