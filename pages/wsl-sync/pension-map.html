@@ -104,6 +104,8 @@
   .pills .pill:hover { border-color: var(--ink); color: var(--ink); }
   .pills .pill.star { border-color: var(--accent); color: var(--accent); background: var(--hl); font-weight: 600; }
   .pills .pill.star .cite { color: var(--accent); }
+  .pills .pill .n { color: var(--faint); font-size: 10.5px; }
+  .tagrow { margin: .15rem 0 .6rem; }
 
   #results .row.section { padding-left: .35rem; }
   #results .ctx { color: var(--faint); font-size: 11px; flex: none; }
@@ -127,7 +129,7 @@
     <label><input type="checkbox" id="detail"> pension detail</label>
     <span class="count" id="qcount"></span>
   </div>
-  <p class="hint">Start with a cite to scope the search: <span class="cite">41.50 payment</span> finds "payment" within chapter 41.50; <span class="cite">41.50</span> alone lists the whole chapter.</p>
+  <p class="hint">Start with a cite to scope the search: <span class="cite">41.50 payment</span> finds "payment" within chapter 41.50; <span class="cite">41.50</span> alone lists the whole chapter. Tags filter with <span class="cite">#</span>, e.g. <span class="cite">#Disability Offset</span>.</p>
 
   <div class="pills" id="quick"></div>
 
@@ -137,6 +139,8 @@
   <div id="browse" class="hidden">
     <h2 class="part">Pension map</h2>
     <div id="pmap"></div>
+    <h2 class="part">Tags</h2>
+    <div id="tags"></div>
     <h2 class="part">Full code</h2>
     <div id="full"></div>
   </div>
@@ -292,6 +296,50 @@ const CATS = [
 document.getElementById("pmap").innerHTML = CATS.map(([t, chs]) =>
   `<h3 class="cat">${t}</h3>` + chs.map(chapDetails).join("")).join("");
 
+// --- tags -------------------------------------------------------------------
+// The classifier's label vocabulary, applied cite by cite.
+// tagIndex maps tag -> RAW row indexes; TAG_GROUPS drives the grouped view.
+const tagIndex = {};
+const addTag = (tag, i) => (tagIndex[tag] = tagIndex[tag] || []).push(i);
+RAW.forEach(([cite, type], i) => {
+  if (type === "T") return;
+  const ch = type === "C" ? cite : cite.slice(0, cite.lastIndexOf("."));
+  if (!pensionChapters.has(ch)) return;
+  if (type === "C") {
+    for (const a of chAnn[cite] || []) addTag(a.cat === "system" ? a.sys : a.label, i);
+    return;
+  }
+  const sec = +cite.slice(ch.length + 1);
+  if (PMAP.special[cite]) addTag(PMAP.special[cite], i);
+  for (const a of chAnn[ch] || []) {
+    if (a.cat === "system") {
+      if (a.rcws && !(sec >= a.rcws[0] && sec <= a.rcws[1])) continue;
+      addTag(a.sys, i);
+      if (a.plans) Object.entries(a.plans).forEach(([q, r]) => { if (sec >= r[0] && sec <= r[1]) addTag(a.sys + " P" + q, i); });
+    } else if (a.cat === "governance" && a.rcws) {
+      if (a.rcws.includes(sec)) addTag(a.label, i);
+    } else addTag(a.label, i);
+  }
+});
+const TAG_GROUPS = [
+  ["Systems", PMAP.systems.flatMap(s => [s.sys, ...Object.keys(s.plans || {}).map(q => s.sys + " P" + q)])],
+  ["Administration & funding", Object.values(PMAP.general)],
+  ["Governance", Object.values(PMAP.governance).map(g => g.label || g)],
+  ["Special topics", [...new Set(Object.values(PMAP.special))]],
+  ["Adjacent", Object.values(PMAP.adjacent)]
+];
+document.getElementById("tags").innerHTML = TAG_GROUPS.map(([g, tags]) => {
+  const pills = tags.filter(t => tagIndex[t]).map(t =>
+    `<span class="pill" data-tag="${t}">${esc(t)}<span class="n">${tagIndex[t].length}</span></span>`).join("");
+  return pills ? `<h3 class="cat">${g}</h3><div class="pills tagrow">${pills}</div>` : "";
+}).join("");
+document.getElementById("tags").addEventListener("click", e => {
+  const pill = e.target.closest("[data-tag]");
+  if (!pill) return;
+  qEl.value = "#" + pill.dataset.tag; runSearch();
+  window.scrollTo({ top: 0, behavior: "instant" });
+});
+
 // Full code, lazily expanded
 document.getElementById("full").innerHTML = titles.map(t => `
   <details class="ptitle" data-t="${t}">
@@ -328,15 +376,32 @@ let timer;
 const typeCtx = (cite, type) =>
   type === "T" ? "title" : type === "C" ? "Title " + cite.split(".")[0] : "ch. " + cite.split(".").slice(0, 2).join(".");
 
+function renderHits(hits) {
+  qcount.textContent = hits.length + (hits.length > CAP ? " matches, showing " + CAP : " matches");
+  results.innerHTML = hits.slice(0, CAP).map(i => {
+    const [cite, type, name] = RAW[i];
+    const ann = type === "S" ? secAnnText(cite) : type === "C" ? chapAnnText(cite) : "";
+    return `<div class="row section${ann ? "" : " dim"}">${link(cite)}<span class="ctx">${typeCtx(cite, type)}</span>
+      <span class="cap">${esc(name)}</span>${ann ? `<span class="ann">${ann}</span>` : ""}</div>`;
+  }).join("") || `<div class="note">No matches.</div>`;
+  results.classList.remove("hidden"); browse.classList.add("hidden");
+}
+
 function runSearch() {
-  const raw = qEl.value.trim().toLowerCase(), ponly = pEl.checked;
-  // a leading cite-shaped token scopes the search to that cite prefix
-  let terms = raw.split(/\s+/).filter(Boolean), scope = null;
-  if (terms.length && CITE_RE.test(terms[0])) scope = terms.shift();
+  const raw = qEl.value.trim(), ponly = pEl.checked;
   if (!raw && !ponly) {
     results.classList.add("hidden"); browse.classList.remove("hidden");
     qcount.textContent = ""; return;
   }
+  if (raw.startsWith("#")) {                 // tag filter: exact label match
+    const t = raw.slice(1).trim().toLowerCase();
+    const key = Object.keys(tagIndex).find(k => k.toLowerCase() === t);
+    renderHits(key ? tagIndex[key] : []);
+    return;
+  }
+  // a leading cite-shaped token scopes the search to that cite prefix
+  let terms = raw.toLowerCase().split(/\s+/).filter(Boolean), scope = null;
+  if (terms.length && CITE_RE.test(terms[0])) scope = terms.shift();
   const hits = [];
   for (let i = 0; i < RAW.length; i++) {
     const [cite, type] = RAW[i];
@@ -346,14 +411,7 @@ function runSearch() {
     hits.push(i);
     if (hits.length > 5000) break;
   }
-  qcount.textContent = hits.length + (hits.length > CAP ? " matches, showing " + CAP : " matches");
-  results.innerHTML = hits.slice(0, CAP).map(i => {
-    const [cite, type, name] = RAW[i];
-    const ann = type === "S" ? secAnnText(cite) : type === "C" ? chapAnnText(cite) : "";
-    return `<div class="row section${ann ? "" : " dim"}">${link(cite)}<span class="ctx">${typeCtx(cite, type)}</span>
-      <span class="cap">${esc(name)}</span>${ann ? `<span class="ann">${ann}</span>` : ""}</div>`;
-  }).join("") || `<div class="note">No matches.</div>`;
-  results.classList.remove("hidden"); browse.classList.add("hidden");
+  renderHits(hits);
 }
 qEl.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(runSearch, 120); });
 pEl.addEventListener("change", runSearch);
