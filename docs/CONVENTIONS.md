@@ -29,6 +29,8 @@ Three **extension points** are deliberately left to each repo's CLAUDE.md:
 
 **Explicit markdown only.** Bare file paths auto-link in some Claude Code UIs, but those links are transient: they only resolve in the live session, and vanish on mobile, in rendered markdown, and anywhere the text is copied. Use explicit `[caption](url)` markdown for anything the user might want to tap. The `file:line` convention (e.g. `src/foo.js:120`) is a separate thing: a grep-style pointer into source for discussing or debugging code, not a substitute for an explicit URL when handing over an artifact.
 
+**Show pixels.** Image files sent to the user render inline in the chat. If a visual change can be rendered in-session (headless browser, screenshot tool), send the screenshot, after looking at it yourself.
+
 **Branch as session anchor.** The first reply in a session that creates or modifies files leads with a one-line branch link:
 
 > Working branch: [feature-name-abc12](https://github.com/<owner>/<repo>/tree/claude/feature-name-abc12)

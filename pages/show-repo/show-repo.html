@@ -18,6 +18,7 @@
   await gh.load('alpineComponents/navigator.js');
   await gh.load('alpineComponents/viewer.js');
   await gh.load('alpineComponents/compare.js');
+  await gh.load('alpineComponents/pages.js');
   await gh.load('alpine-bundle.js');
 </script>
 </head>
@@ -53,6 +54,8 @@
     <div id="compare" x-data="compare()"></div>
   </div>
   </div>
+
+  <div id="pages" x-data="pages()" class="mt-4"></div>
 </div>
 
 <script>

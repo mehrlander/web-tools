@@ -15,12 +15,12 @@ page, generated alongside this file; this README is its link-dense text twin.
 |---|---|---|
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |
 | `diff-tool` | Diff | [view](https://mehrlander.github.io/web-tools/pages/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html) |
-| `embed` | Embed | [view](https://mehrlander.github.io/web-tools/pages/embed.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/embed.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
+| `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 
 ## pages/demos/
 
@@ -101,7 +101,6 @@ page, generated alongside this file; this README is its link-dense text twin.
 | Page | Title | Links |
 |---|---|---|
 | `demo-viewer` | Assembled Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/demo-viewer.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html) |
-| `index` | show-repo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/index.html) |
 | `repo-drag` | — | [view](https://mehrlander.github.io/web-tools/pages/show-repo/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html) |
 | `show-repo` | GH Browse | [view](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html) |
 

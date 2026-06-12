@@ -79,14 +79,16 @@ new bookmark.
   whatever page you're on (see [Popups → Launcher](#popups)). The
   [launcher setup page](https://mehrlander.github.io/web-tools/pages/launcher.html)
   generates a token-filled copy for you — handy on mobile.
-- [`embed-page`](bookmarklets/embed-page.js): from any github.com file (blob)
-  page, renders that file as live HTML. Reads the file text from the page
+- [`toss-render`](bookmarklets/toss-render.js): from any github.com file (blob)
+  page, renders that file as live HTML 🥏. Reads the file text from the page
   itself (so private repos work), stamps a `<base>` so relative assets resolve
   via jsDelivr, gzips it, and navigates to
-  [embed](https://mehrlander.github.io/web-tools/pages/embed.html) with the
+  [toss-render](https://mehrlander.github.io/web-tools/pages/toss-render.html) with the
   result packed into the `#gz=` fragment (the fragment never reaches the
   server, dodging the ~8KB URL cap GitHub Pages' edge enforces on query
-  strings).
+  strings). The page also takes an address directly,
+  `#gh=owner/repo[@ref]:path`, fetching via the API with the stored token —
+  allowlisted to `mehrlander/*` repos, since address mode renders same-origin.
 
 The compression-helper page also generates bookmarklets on demand: paste
 text in, get a self-decompressing `javascript:` URL out. Same output

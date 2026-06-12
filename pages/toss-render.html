@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Toss Render</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🥏</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  toss-render.html — full-viewport render of HTML that GitHub Pages isn't
+  serving. Formerly embed.html. Two kinds of input, with opposite trust:
+
+  Payload modes (the 🥏 toss — content rides in on the URL, UNTRUSTED):
+    #gz=<base64url of gzipped HTML>   inline HTML, gzip-compressed
+    #html=<base64 of HTML>            inline HTML, plain
+    #url=<base64 of absolute URL>     iframe src points at the URL
+  Anyone can craft a toss link, so payloads render in a sandbox WITHOUT
+  allow-same-origin: scripts run, but under an opaque origin that cannot
+  read this origin's localStorage (which can hold a gh token).
+
+  Address mode (fetched by reference, TRUSTED via allowlist):
+    #gh=<owner>/<repo>[@<ref>]:<path>
+    e.g. #gh=mehrlander/web-tools@some-branch:pages/index.html
+  Fetches the file via the GitHub API (using the stored token, so private
+  repos and un-deployed branches work) and renders it same-origin, with a
+  <base> stamped in so relative URLs resolve and a shim so the page's own
+  ?use= read returns <ref> (the rewrite recipe from alpineComponents/fab.js).
+  Same-origin rendering means the page could read the stored token — which
+  is exactly why this mode only accepts repos owned by the OWNERS allowlist
+  below. A crafted link to someone else's repo is refused outright, so the
+  token can neither fetch it nor be exposed to it. The ':' before <path> is
+  unambiguous because git forbids ':' in ref names. No @ref means the
+  repo's default branch (and no ?use shim).
+
+  Params are read from the fragment (#) first, then the query string (?).
+  Payloads must use the fragment (a query string travels in the HTTP request
+  and GitHub Pages' edge rejects URLs past ~8KB with a 414); addresses are
+  short, so either form works. All base64 params accept standard or URL-safe
+  alphabet, with or without padding.
+
+  Caveat for #url=: sites that send X-Frame-Options or CSP frame-ancestors
+  will refuse to load in the iframe. Caveat for private repos in #gh=: the
+  HTML itself renders, but relative assets can't resolve (neither github.io
+  nor jsDelivr serves private content), so self-contained pages work best.
+
+  The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
+  (canonical copy; re-copy from there after edits). Current text:
+
+  javascript:(async()=>{const m=location.hostname==='github.com'&&location.pathname.match(/^\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);if(!m)return alert('Run this from a github.com file (blob) page');const[,owner,repo,ref,path]=m;let text=document.querySelector('#read-only-cursor-text-area')?.value;if(!text){try{const d=JSON.parse(document.querySelector('script[data-target="react-app.embeddedData"]')?.textContent||'{}');text=d?.payload?.blob?.rawLines?.join('\n');}catch(e){}}if(!text){try{const r=await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`);if(r.ok)text=await r.text();}catch(e){}}if(!text)return alert('Could not read the file contents from this page');if(!/<base[\s>]/i.test(text)){const dir=path.split('/').slice(0,-1).join('/');const base=`https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${dir?dir+'/':''}`;text=/<head[^>]*>/i.test(text)?text.replace(/<head[^>]*>/i,h=>`${h}<base href="${base}">`):`<base href="${base}">`+text;}const buf=new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());let s='';for(const c of buf)s+=String.fromCharCode(c);const b64=btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');location.href=`https://mehrlander.github.io/web-tools/pages/toss-render.html#gz=${b64}`;})()
+-->
+</head>
+<body class="h-dvh m-0">
+
+<iframe id="frame"
+        class="w-full h-full border-0 block bg-base-100"
+        referrerpolicy="no-referrer"
+        allow="fullscreen"></iframe>
+
+<div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-3 p-8 text-center font-mono text-sm">
+  <i class="ph ph-disc text-4xl opacity-60"></i>
+  <p class="text-base-content/70 max-w-md" id="empty-msg"></p>
+</div>
+
+<script type="module">
+  // Repos whose HTML may render same-origin (with token access) via #gh=.
+  const OWNERS = ['mehrlander'];
+
+  // Fragment first (never sent to the server, so no edge URL-length cap),
+  // query string as fallback.
+  const hashParams  = new URLSearchParams(location.hash.slice(1));
+  const queryParams = new URLSearchParams(location.search);
+  const param = k => hashParams.get(k) ?? queryParams.get(k);
+
+  // Fragment-only navigation is same-document: this script wouldn't re-run
+  // when the user follows a second toss link, so force a real reload.
+  window.addEventListener('hashchange', () => location.reload());
+
+  const frame = document.getElementById('frame');
+  const empty = document.getElementById('empty');
+  const msg   = document.getElementById('empty-msg');
+
+  function showEmpty(text) {
+    frame.classList.add('hidden');
+    empty.classList.remove('hidden');
+    empty.classList.add('flex');
+    msg.textContent = text;
+  }
+
+  // Decode standard or URL-safe base64 (with or without padding) to bytes.
+  function b64Bytes(s) {
+    let b = s.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    return Uint8Array.from(atob(b), c => c.charCodeAt(0));
+  }
+  const decodeB64 = s => new TextDecoder().decode(b64Bytes(s));
+
+  async function gunzip(bytes) {
+    const ds = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(ds).text();
+  }
+
+  function showHtml(html) {
+    const t = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    document.title = 'Toss · ' + (t ? t[1].trim() : 'inline');
+    // Sandbox without allow-same-origin: the inline HTML arrives via the URL,
+    // so it must not run as this page's origin (which can hold a gh token in
+    // localStorage). Scripts still run, but under an opaque origin.
+    frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-modals allow-downloads');
+    frame.srcdoc = html;
+  }
+
+  // Same-origin render for allowlisted address mode only: the page keeps its
+  // identity, so its own gh.load chain and stored token work.
+  function showTrusted(html, title) {
+    document.title = title;
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-modals');
+    frame.srcdoc = html;
+  }
+
+  // The fab.js frameHtml recipe: <base> so relative URLs resolve on github.io,
+  // plus (when a ref was addressed) a shim so the page's own ?use= read
+  // returns that ref and its lib chain loads from the same place.
+  function addressHtml(text, { owner, name, ref, path }) {
+    const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+    let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
+    if (ref) {
+      const r = JSON.stringify(ref);
+      prelude += '<script>window.__ref=' + r + ';(function(){var R=' + r + ',g=URLSearchParams.prototype.get;' +
+        'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
+        "return (k==='use'&&(v==null||v===''))?R:v;};})();<\/script>";
+    }
+    if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
+    if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
+    return '<head>' + prelude + '</head>' + text;
+  }
+
+  async function showAddress(addr) {
+    // <owner>/<repo>[@<ref>]:<path> — ':' can't appear in a git ref name.
+    const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:(.+)$/);
+    if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path, e.g. ' +
+      'gh=mehrlander/web-tools@main:pages/index.html');
+    const [, owner, name, ref, path] = m;
+    if (!OWNERS.includes(owner)) {
+      return showEmpty('Address mode renders same-origin with token access, so it only accepts ' +
+        OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
+        '(sandboxed) with the 🥏 bookmarklet.');
+    }
+    const headers = { Accept: 'application/vnd.github.v3+json' };
+    try {
+      const t = localStorage.getItem('ghToken');
+      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
+    } catch (e) {}
+    let res;
+    try {
+      res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
+        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers });
+    } catch (e) {
+      return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
+    }
+    if (!res.ok) {
+      const why = res.status === 404 ? 'not found (or the stored token lacks access)'
+                : res.status === 403 ? 'rate-limited or forbidden (is a token saved?)'
+                : 'GitHub error ' + res.status;
+      return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + why + '.');
+    }
+    const data = await res.json();
+    if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
+    const text = decodeB64(data.content);
+    showTrusted(addressHtml(text, { owner, name, ref, path }),
+      'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path);
+  }
+
+  const gh   = param('gh');
+  const gz   = param('gz');
+  const html = param('html');
+  const url  = param('url') || param('u');
+
+  if (gh) {
+    await showAddress(gh.trim());
+  } else if (gz) {
+    try {
+      showHtml(await gunzip(b64Bytes(gz)));
+    } catch (e) {
+      showEmpty('Could not decode the gz parameter as base64-encoded gzip.');
+    }
+  } else if (html) {
+    try {
+      showHtml(decodeB64(html));
+    } catch (e) {
+      showEmpty('Could not decode the html parameter as base64.');
+    }
+  } else if (url) {
+    let decoded;
+    try {
+      decoded = decodeB64(url).trim();
+    } catch (e) {
+      showEmpty('Could not decode the url parameter as base64.');
+      decoded = null;
+    }
+    if (decoded) {
+      try {
+        const parsed = new URL(decoded);
+        if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
+        document.title = 'Toss · ' + parsed.host;
+        frame.src = parsed.href;
+      } catch (e) {
+        showEmpty('Decoded value is not a valid http(s) URL: ' + decoded);
+      }
+    }
+  } else {
+    showEmpty('Pass #gh=owner/repo[@ref]:path (allowlisted repos, rendered live), ' +
+              '#gz=<base64 gzipped HTML>, #html=<base64 HTML>, or #url=<base64 URL> ' +
+              '(query ? form also accepted for short values).');
+  }
+</script>
+
+</body>
+</html>
