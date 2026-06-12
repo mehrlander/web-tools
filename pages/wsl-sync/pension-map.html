@@ -105,7 +105,11 @@
   .pills .pill.star { border-color: var(--accent); color: var(--accent); background: var(--hl); font-weight: 600; }
   .pills .pill.star .cite { color: var(--accent); }
   .pills .pill .n { color: var(--faint); font-size: 10.5px; }
-  .tagrow { margin: .15rem 0 .6rem; }
+  .tagline { display: flex; gap: .25rem; align-items: baseline; padding: .3rem 0; border-top: 1px solid var(--rule-soft); }
+  .tagline:first-child { border-top: 0; }
+  .tagline .glabel { flex: none; width: 11.5rem; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+  .tagline .tagpills { display: flex; flex-wrap: wrap; gap: .25rem; flex: 1; min-width: 0; }
+  .tagline .pill { padding: .05rem .55rem; }
 
   #results .row.section { padding-left: .35rem; }
   #results .ctx { color: var(--faint); font-size: 11px; flex: none; }
@@ -331,7 +335,7 @@ const TAG_GROUPS = [
 document.getElementById("tags").innerHTML = TAG_GROUPS.map(([g, tags]) => {
   const pills = tags.filter(t => tagIndex[t]).map(t =>
     `<span class="pill" data-tag="${t}">${esc(t)}<span class="n">${tagIndex[t].length}</span></span>`).join("");
-  return pills ? `<h3 class="cat">${g}</h3><div class="pills tagrow">${pills}</div>` : "";
+  return pills ? `<div class="pills tagline"><span class="glabel">${g}</span><span class="tagpills">${pills}</span></div>` : "";
 }).join("");
 document.getElementById("tags").addEventListener("click", e => {
   const pill = e.target.closest("[data-tag]");
