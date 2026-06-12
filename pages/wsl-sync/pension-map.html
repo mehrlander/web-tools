@@ -94,10 +94,16 @@
   .note { color: var(--faint); font-size: 11.5px; padding: .1rem .35rem .3rem 1.4rem; }
   .hidden { display: none !important; }
 
-  #quick .row { cursor: pointer; }
-  #quick .row .label { font-weight: 600; flex: none; }
-  #quick .row.star { border-left: 3px solid var(--accent); background: var(--hl); }
-  #quick .row.star .label::after { content: " ·"; color: var(--accent); }
+  .pills { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: -0.4rem 0 1rem; }
+  .pills .pill {
+    display: inline-flex; gap: .4rem; align-items: baseline; cursor: pointer;
+    border: 1px solid var(--rule); border-radius: 999px; padding: .1rem .65rem;
+    font-size: 11.5px; color: var(--muted); background: var(--bg); white-space: nowrap;
+  }
+  .pills .pill .cite { font-size: 11px; color: var(--ink); }
+  .pills .pill:hover { border-color: var(--ink); color: var(--ink); }
+  .pills .pill.star { border-color: var(--accent); color: var(--accent); background: var(--hl); font-weight: 600; }
+  .pills .pill.star .cite { color: var(--accent); }
 
   #results .row.section { padding-left: .35rem; }
   #results .ctx { color: var(--faint); font-size: 11px; flex: none; }
@@ -123,12 +129,12 @@
   </div>
   <p class="hint">Start with a cite to scope the search: <span class="cite">41.50 payment</span> finds "payment" within chapter 41.50; <span class="cite">41.50</span> alone lists the whole chapter.</p>
 
+  <div class="pills" id="quick"></div>
+
   <div id="loading">Loading RCW corpus…</div>
   <div id="results" class="hidden"></div>
 
   <div id="browse" class="hidden">
-    <h2 class="part">Quick find</h2>
-    <div id="quick"></div>
     <h2 class="part">Pension map</h2>
     <div id="pmap"></div>
     <h2 class="part">Full code</h2>
@@ -174,13 +180,13 @@ const PMAP = {
   }
 };
 
-// Quick find: a few high-traffic sections; the trust-fund one is the headline.
+// Quick find: shorthand pills; the trust-fund one is the headline.
 const QUICK = [
-  { cite: "41.50.255", label: "Trust fund expense payments", star: true },
-  { cite: "41.50.110", label: "DRS administrative expenses" },
-  { cite: "41.45.060", label: "Contribution rates" },
-  { cite: "41.26.048", label: "LEOFF duty death benefit" },
-  { cite: "41.54.030", label: "Portability calculation" }
+  { cite: "41.50.255", label: "trust fund spending", star: true },
+  { cite: "41.50.110", label: "DRS admin" },
+  { cite: "41.45.060", label: "contribution rates" },
+  { cite: "41.26.048", label: "duty death" },
+  { cite: "41.54.030", label: "portability" }
 ];
 
 async function loadTuples() {
@@ -271,11 +277,10 @@ const chapDetails = ch => `
   </details>
   ${(chAnn[ch] || []).filter(a => a.note).map(a => `<div class="note">${esc(a.note)}</div>`).join("")}`;
 
-// Quick find: clicking a row scopes the search to its cite
+// Quick find pills: clicking one scopes the search to its cite
 document.getElementById("quick").innerHTML = QUICK.map(q => `
-  <div class="row${q.star ? " star" : ""}" data-cite="${q.cite}">
-    ${link(q.cite)}<span class="label">${esc(q.label)}</span>
-    <span class="cap">${esc(secName[q.cite] || "")}</span></div>`).join("");
+  <span class="pill${q.star ? " star" : ""}" data-cite="${q.cite}">
+    <span class="cite">${q.cite}</span>${esc(q.label)}</span>`).join("");
 
 // Pension map, in classifier categories
 const CATS = [
@@ -353,10 +358,9 @@ function runSearch() {
 qEl.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(runSearch, 120); });
 pEl.addEventListener("change", runSearch);
 document.getElementById("quick").addEventListener("click", e => {
-  if (e.target.closest("a")) return;          // the cite link goes to the code
-  const row = e.target.closest("[data-cite]");
-  if (!row) return;
-  qEl.value = row.dataset.cite; runSearch(); qEl.focus();
+  const pill = e.target.closest("[data-cite]");
+  if (!pill) return;
+  qEl.value = pill.dataset.cite; runSearch(); qEl.focus();
 });
 
 document.getElementById("counts").textContent =
