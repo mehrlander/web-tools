@@ -19,5 +19,5 @@ Brings pages/index and show-repo together as the repo's two navigation surfaces 
 **Next steps / open threads:**
 - After merge: re-save the 🥏 bookmarklet (target moved to toss-render.html; text inlined in the page header comment), then try `toss-render.html#gh=mehrlander/web-tools@<branch>:pages/<page>.html`
 - Address mode unverified against the live API (container rate-limited); parse regex + payload modes covered by checks here, fetch path is small
-- Possible follow-ups discussed: gh-boot `?use=` badge + auto-FAB; fab Render tab and viewer.js preview could route through toss-render address mode
+- Done: gh-boot `?use=` badge + auto-FAB (no-conflict when a page mounts its own); toss-render links in the FAB Render tab and viewer.js
 - Thumbnails refresh at wrap-up (index.html, show-repo.html, toss-render.html changed)
