@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-12 Index ↔ show-repo convergence; toss-render address mode; ?use= announces itself (branch claude/modest-newton-cm6is8)
+## 2026-06-12 Index ↔ show-repo convergence; toss-render address mode; ?use= announces itself (PR #173)
 
 The repo's two navigation surfaces grew together: the pages index gained path-transparent chips, shareable filters, and the FAB; show-repo gained a pages view of the browsed repo; embed.html became toss-render.html with a token-safe address mode; and `?use=` pages now badge their ref and auto-mount the FAB.
 
