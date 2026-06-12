@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-12 nav-repo lens browser; identity-free boot; testing.md rewrite (claude/keen-carson-w36rui)
+## 2026-06-12 nav-repo lens browser; identity-free boot; testing.md rewrite (PR #174)
 
 New page nav-repo answers "what is show-repo for": a repo@ref header with Files / Pages as top-level lens tabs, shareable `?repo=&ref=&file=&tab=` URL state, and an identity-free boot, so public repos browse with no token; the headless harness now impersonates the GitHub API from the local checkout, so these pages screenshot for real.
 
