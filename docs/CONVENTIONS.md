@@ -45,6 +45,8 @@ A wrap-up always produces a PR; there's no PR-less wrap-up. The sequence:
 2. **Fold the branch guide**: resolve `BRANCH-GUIDE.md` into the merge-guide entry and delete it, in one commit (see "Branch guide").
 3. **Open the PR.**
 
+**The button-PR follow-up.** If a PR for the session branch appears via the web UI button (the harness announces it mid-session), treat that as the wrap-up request even though the user didn't say so: complete steps 1 and 2 behind it (per-session refreshes, fold the branch guide) and reshape the PR body to the spine, without waiting to be asked. Only step 3 is already done.
+
 **Skip the watch offer.** Don't offer to watch the PR for CI or review activity ("want me to keep an eye on CI?", "want me to watch this PR?"). It isn't useful to this user; this line suppresses the harness's default proactive prompt.
 
 **Per-file links.** Any turn that touches files ends with a compact list. The filename is plain text; the link words in parens are tappable:
