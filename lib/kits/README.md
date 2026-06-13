@@ -299,6 +299,45 @@ Demo pages: `pages/demos/wring-text.html` (logs/records → templates) and
 Kit liveness test: `tools/test/wring.test.mjs` (part of `npm test`; loads the
 kit the way `gh.load` does and checks the pipeline invariants end-to-end).
 
+### selfsim.js
+
+Self-similarity analysis for arbitrary text: where a document repeats itself,
+and how much. Three independent engines, no third-party deps, all synchronous
+and pure.
+
+The core is a **suffix automaton** (linear-time, online) over the full text,
+which answers exact-repeat questions without the O(n²) blow-up of a substring
+set: the count of distinct substrings, the longest repeated substring, the top
+repeats ranked by length × count, and the exact occurrence count/positions of
+any pattern. The dot-plot layer uses **minimizer-sampled k-mers** (the
+technique genome browsers use for large-sequence comparison): one
+minimum-hash k-mer per sliding window, bucketed by hash and verified by direct
+comparison, so a multi-megabyte input plots in a fraction of a second where
+all-pairs matching cannot. The third engine is a sliding-window **Shannon
+entropy** profile, a compressibility track along the document axis.
+
+```js
+const ss = window.selfsim;
+ss.stats(text)                       // { length, distinct, longestRepeat, entropyMean }
+ss.topRepeats(text, { limit: 40 })   // [{ text, len, count, positions, score }]
+ss.occurrences(text, 'needle')       // { count, positions } — exact, via the automaton
+ss.matchPoints(text, { k: 12, w: 8 })          // { xs, ys, count, ... } dot-plot pairs
+ss.matchPointsExact(text, lo, hi, { k: 8 })    // every k-mer pair within a slice (zoom)
+ss.entropyProfile(text, { bins: 512 })         // Float32Array, bits per char
+
+// Build once, query many times:
+const sam = ss.build(text);
+ss.longestRepeat(sam); ss.topRepeats(sam, …); ss.occurrences(sam, p);
+```
+
+Memory is linear: the automaton uses flat `Int32Array`s with an
+adjacency-list transition table, so a ~1 MB input costs tens of MB. The
+demo page is `pages/text-atlas.html` (dot plot + repeat census + entropy
+track). Kit test: `tools/test/selfsim.test.mjs` cross-checks every automaton
+result against naive O(n²) references over hundreds of seeded-random strings,
+and the minimizer layer against its window-coverage and planted-repeat
+guarantees (part of `npm test`).
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -316,3 +355,4 @@ examples.
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
+| `selfsim.js` | `pages/text-atlas.html` | suffix automaton + minimizer dot plot + entropy |

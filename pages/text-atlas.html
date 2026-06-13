@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Atlas | Self-Similarity Dot Plot</title>
+    <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+    <script type="module">
+      // ?use=<branch|tag|sha> picks which ref the kit loads from; defaults to
+      // main. gh-api.js auto-bootstraps window.gh from its own import URL.
+      const ref = new URLSearchParams(location.search).get('use') || 'main';
+      await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+
+      await gh.load('kits/selfsim.js');   // suffix automaton + minimizers -> window.selfsim
+      await gh.load('alpine-bundle.js');  // registers magics + boots Alpine
+    </script>
+    <style>
+      [x-cloak] { display: none !important; }
+      /* Crisp canvas; no smoothing blur on the dot field. */
+      canvas { image-rendering: pixelated; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      /* Subtle highlight pulse for a selected repeat's streaks. */
+      .plot-wrap { position: relative; }
+      .plot-wrap canvas { display: block; }
+    </style>
+</head>
+<body class="bg-base-200 min-h-screen font-sans">
+
+<div x-data="atlas" x-init="init()" class="max-w-[1400px] mx-auto p-3 lg:p-4 space-y-3">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <i class="ph ph-scatter-chart text-primary text-3xl"></i>
+      <div>
+        <h1 class="text-xl font-black tracking-tight uppercase italic text-slate-700 leading-none">
+          Text Atlas
+        </h1>
+        <p class="text-[11px] text-base-content/60 mono">
+          self-similarity dot plot · exact-repeat census · entropy track
+        </p>
+      </div>
+    </div>
+    <div class="flex items-center gap-1">
+      <button @click="inputOpen = !inputOpen" class="btn btn-xs btn-ghost gap-1">
+        <i class="ph" :class="inputOpen ? 'ph-caret-up' : 'ph-caret-down'"></i>
+        <span x-text="inputOpen ? 'Hide input' : 'Edit input'"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Input ──────────────────────────────────────────────────────────── -->
+  <div x-show="inputOpen" x-transition class="card bg-base-100 shadow-sm border border-base-300">
+    <div class="card-body p-3 gap-2">
+      <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span class="text-base-content/50 mono mr-1">samples:</span>
+        <template x-for="(s, name) in samples" :key="name">
+          <button @click="loadSample(name)" class="btn btn-xs btn-outline normal-case font-normal" x-text="name"></button>
+        </template>
+        <button @click="loadThisPage()" class="btn btn-xs btn-outline normal-case font-normal gap-1">
+          <i class="ph ph-file-html"></i> this page's source
+        </button>
+      </div>
+      <textarea
+        x-model="inputText"
+        @input.debounce.600ms="run()"
+        class="textarea textarea-bordered w-full mono text-[10px] leading-tight h-44 shadow-inner"
+        placeholder="Paste a log, source file, JSON, prose, anything with internal structure…"></textarea>
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] mono text-base-content/50"
+              x-text="`${fmt(inputText.length)} chars · ${fmt(inputText.split('\n').length)} lines`"></span>
+        <button @click="run()" class="btn btn-xs btn-primary gap-1">
+          <i class="ph ph-play"></i> Analyze
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Body grid ──────────────────────────────────────────────────────── -->
+  <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-3">
+
+    <!-- Left: plot column -->
+    <div class="space-y-3">
+
+      <!-- Controls -->
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body p-3 gap-3 flex-row flex-wrap items-center">
+          <label class="flex items-center gap-2 text-[11px]">
+            <span class="mono text-base-content/60 w-24">k-mer length</span>
+            <input type="range" min="4" max="32" x-model.number="k" @change="run()"
+                   class="range range-xs range-primary w-32">
+            <span class="badge badge-sm badge-ghost mono w-8" x-text="k"></span>
+          </label>
+          <label class="flex items-center gap-2 text-[11px]">
+            <span class="mono text-base-content/60 w-24">window (w)</span>
+            <input type="range" min="1" max="24" x-model.number="w" @change="run()"
+                   class="range range-xs range-secondary w-32">
+            <span class="badge badge-sm badge-ghost mono w-8" x-text="w"></span>
+          </label>
+          <div class="flex items-center gap-1 ml-auto">
+            <button x-show="view" @click="resetView()" class="btn btn-xs btn-ghost gap-1">
+              <i class="ph ph-arrows-out"></i> reset zoom
+            </button>
+            <span class="badge badge-sm" :class="busy ? 'badge-warning' : 'badge-ghost'"
+                  x-text="busy ? 'computing…' : `${fmt(plotInfo.count)} points`"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plot -->
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body p-3 gap-2">
+          <div class="flex items-center justify-between text-[11px] mono text-base-content/60">
+            <span x-text="view ? `zoom: [${fmt(view.lo)} – ${fmt(view.hi)}]  (exact, k=${plotInfo.k})` : `full text  (minimizer-sampled, k=${plotInfo.k}, w=${plotInfo.w})`"></span>
+            <span x-show="plotInfo.skippedBuckets" class="text-warning"
+                  x-text="`${plotInfo.skippedBuckets} dense k-mers suppressed`"></span>
+          </div>
+
+          <!-- Entropy strip (aligned to plot x-axis) -->
+          <div class="plot-wrap">
+            <canvas x-ref="entropy" class="w-full rounded bg-base-200 border border-base-300" style="height:46px"></canvas>
+            <span class="absolute top-0.5 left-1 text-[9px] mono text-base-content/40 pointer-events-none">entropy (bits/char) →</span>
+          </div>
+
+          <!-- Main dot plot -->
+          <div class="plot-wrap" @mousemove="onHover($event)" @mouseleave="hover = null"
+               @mousedown="onDown($event)" @mouseup="onUp($event)">
+            <canvas x-ref="plot" class="w-full rounded bg-base-100 border border-base-300 cursor-crosshair"
+                    style="aspect-ratio:1/1"></canvas>
+            <canvas x-ref="overlay" class="absolute inset-0 w-full pointer-events-none"
+                    style="aspect-ratio:1/1"></canvas>
+            <div x-show="hover" x-cloak
+                 class="absolute z-10 px-2 py-1 rounded bg-base-300/95 shadow text-[10px] mono pointer-events-none max-w-[280px]"
+                 :style="hoverStyle">
+              <div class="text-base-content/60" x-text="hover && `x ${fmt(hover.x)}  ·  y ${fmt(hover.y)}`"></div>
+              <div class="truncate" x-text="hover && '…'+hover.tx+'…'"></div>
+              <div class="truncate text-primary" x-text="hover && '…'+hover.ty+'…'"></div>
+            </div>
+          </div>
+          <p class="text-[10px] text-base-content/50 leading-snug">
+            Each point marks a position pair whose <span class="mono" x-text="`${plotInfo.k}-char`"></span> neighbourhoods are identical.
+            The main diagonal is every position matching itself; off-diagonal streaks are repeats.
+            Drag a box to zoom into a region (exact, every k-mer); click a repeat at right to trace it.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: stats + repeats -->
+    <div class="space-y-3">
+
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="stat bg-base-100 rounded-lg border border-base-300 p-3">
+          <div class="stat-title text-[10px] mono">length</div>
+          <div class="stat-value text-lg" x-text="fmt(st.length)"></div>
+          <div class="stat-desc text-[10px]">characters</div>
+        </div>
+        <div class="stat bg-base-100 rounded-lg border border-base-300 p-3">
+          <div class="stat-title text-[10px] mono">distinct substrings</div>
+          <div class="stat-value text-lg" x-text="abbr(st.distinct)"></div>
+          <div class="stat-desc text-[10px]" x-text="st.length ? `${(st.distinct / (st.length*(st.length+1)/2) * 100).toFixed(1)}% of the max` : ''"></div>
+        </div>
+        <div class="stat bg-base-100 rounded-lg border border-base-300 p-3">
+          <div class="stat-title text-[10px] mono">longest repeat</div>
+          <div class="stat-value text-lg" x-text="st.longestRepeat ? fmt(st.longestRepeat.len) : '—'"></div>
+          <div class="stat-desc text-[10px]" x-text="st.longestRepeat ? `appears ${st.longestRepeat.count}×` : 'no repeat'"></div>
+        </div>
+        <div class="stat bg-base-100 rounded-lg border border-base-300 p-3">
+          <div class="stat-title text-[10px] mono">mean entropy</div>
+          <div class="stat-value text-lg" x-text="st.entropyMean ? st.entropyMean.toFixed(2) : '—'"></div>
+          <div class="stat-desc text-[10px]">bits / char</div>
+        </div>
+      </div>
+
+      <!-- Repeats table -->
+      <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card-body p-0">
+          <div class="flex items-center justify-between px-3 pt-3">
+            <h2 class="text-[11px] font-bold uppercase tracking-wide text-base-content/60">Top repeats</h2>
+            <span class="text-[10px] mono text-base-content/40">len × count</span>
+          </div>
+          <div class="overflow-y-auto max-h-[560px]">
+            <table class="table table-xs">
+              <tbody>
+                <template x-for="(r, i) in repeats" :key="i">
+                  <tr @click="toggleRepeat(i)"
+                      class="cursor-pointer hover:bg-base-200 transition-colors"
+                      :class="selected === i ? 'bg-primary/10' : ''">
+                    <td class="align-top w-full">
+                      <div class="mono text-[10px] truncate max-w-[230px]"
+                           :class="selected === i ? 'text-primary font-bold' : ''"
+                           x-text="show(r.text)"></div>
+                      <!-- position strip: where this repeat occurs along the text -->
+                      <div class="h-1.5 w-full bg-base-200 rounded mt-1 relative overflow-hidden">
+                        <template x-for="p in r.positions.slice(0, 400)" :key="p">
+                          <span class="absolute top-0 bottom-0 w-px"
+                                :class="selected === i ? 'bg-primary' : 'bg-base-content/30'"
+                                :style="`left:${(p / Math.max(1, st.length) * 100).toFixed(2)}%`"></span>
+                        </template>
+                      </div>
+                    </td>
+                    <td class="align-top text-right whitespace-nowrap">
+                      <div class="mono text-[11px] font-bold" x-text="`${r.count}×`"></div>
+                      <div class="mono text-[9px] text-base-content/40" x-text="`${r.len} ch`"></div>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!repeats.length">
+                  <td class="text-center text-[11px] text-base-content/40 py-6">
+                    No repeated substrings at this length.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-[10px] text-base-content/40 mono leading-relaxed px-1">
+        suffix automaton: O(n) build · exact counts &amp; positions<br>
+        dot plot: minimizer k-mers (the technique genome browsers use)
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Built-in samples ───────────────────────────────────────────────────
+   Chosen so each draws a distinct signature in the dot plot:
+   a cumulative rhyme (nested off-diagonal blocks), an access log
+   (regular grid of column repeats), repetitive JSON, and source-like text. */
+const SAMPLES = {
+  'house that jack built': `This is the house that Jack built.
+
+This is the malt that lay in the house that Jack built.
+
+This is the rat that ate the malt that lay in the house that Jack built.
+
+This is the cat that killed the rat that ate the malt that lay in the house that Jack built.
+
+This is the dog that worried the cat that killed the rat that ate the malt that lay in the house that Jack built.
+
+This is the cow with the crumpled horn that tossed the dog that worried the cat that killed the rat that ate the malt that lay in the house that Jack built.
+
+This is the maiden all forlorn that milked the cow with the crumpled horn that tossed the dog that worried the cat that killed the rat that ate the malt that lay in the house that Jack built.`,
+
+  'access log': Array.from({ length: 60 }, (_, i) => {
+    const ip = `192.168.1.${10 + (i % 5)}`;
+    const verbs = ['GET', 'GET', 'GET', 'POST', 'DELETE'];
+    const v = verbs[i % verbs.length];
+    const path = v === 'POST' ? '/api/orders' : v === 'DELETE' ? `/api/orders/${70 + i}` : `/api/users/${i}`;
+    const code = [200, 200, 404, 201, 204, 500][i % 6];
+    const t = String(i).padStart(2, '0');
+    return `192.168.1.${10 + (i % 5)} - - [05/Jun/2026:10:${Math.floor(i/60)}:${t} +0000] "${v} ${path} HTTP/1.1" ${code} ${100 + (i * 37) % 1900}`;
+  }).join('\n'),
+
+  'json records': '[\n' + Array.from({ length: 40 }, (_, i) =>
+    `  { "id": ${i}, "type": "node", "active": ${i % 2 === 0}, "label": "item-${i}", "meta": { "score": ${(i * 13) % 100}, "tier": "${['a','b','c'][i%3]}" } }`
+  ).join(',\n') + '\n]',
+
+  'css rules': Array.from({ length: 28 }, (_, i) => {
+    const sel = ['.btn', '.card', '.badge', '.input'][i % 4];
+    return `${sel}-${i} {\n  display: flex;\n  padding: 0.5rem 1rem;\n  border-radius: 0.5rem;\n  background: var(--c${i % 6});\n}`;
+  }).join('\n\n'),
+};
+
+document.addEventListener('alpine:init', () => {
+  Alpine.data('atlas', () => ({
+    samples: SAMPLES,
+    inputText: SAMPLES['house that jack built'],
+    inputOpen: true,
+    k: 12,
+    w: 6,
+    busy: false,
+
+    st: { length: 0, distinct: 0, longestRepeat: null, entropyMean: 0 },
+    repeats: [],
+    selected: null,
+    plotInfo: { count: 0, k: 12, w: 6, skippedBuckets: 0 },
+
+    sam: null,        // cached suffix automaton for the current text
+    view: null,       // { lo, hi } when zoomed, else null
+    hover: null,
+    hoverStyle: '',
+    drag: null,       // box-zoom drag state
+
+    // ── lifecycle ───────────────────────────────────────────────────────
+    init() {
+      this._ro = new ResizeObserver(() => this.draw());
+      this._ro.observe(this.$refs.plot);
+      this.$nextTick(() => this.run());
+    },
+
+    fmt(n) { return (n ?? 0).toLocaleString('en-US'); },
+    abbr(n) {
+      if (n < 1e4) return this.fmt(n);
+      if (n < 1e6) return (n / 1e3).toFixed(1) + 'K';
+      if (n < 1e9) return (n / 1e6).toFixed(1) + 'M';
+      return (n / 1e9).toFixed(1) + 'B';
+    },
+    show(t) { return t.replace(/\n/g, '⏎').replace(/\t/g, '→').slice(0, 80); },
+
+    // ── compute ─────────────────────────────────────────────────────────
+    run() {
+      const text = this.inputText;
+      this.selected = null;
+      this.view = null;
+      if (!text) {
+        this.sam = null;
+        this.st = { length: 0, distinct: 0, longestRepeat: null, entropyMean: 0 };
+        this.repeats = [];
+        this.plotInfo = { count: 0, k: this.k, w: this.w, skippedBuckets: 0 };
+        this.clearOverlay();
+        this.draw();
+        return;
+      }
+      this.busy = true;
+      // Yield so the "computing…" badge paints before a big build blocks.
+      this.$nextTick(() => setTimeout(() => {
+        try {
+          this.sam = window.selfsim.build(text);
+          this.st = window.selfsim.stats(text);
+          this.repeats = window.selfsim.topRepeats(this.sam, {
+            minLen: Math.max(3, Math.floor(this.k / 2)),
+            limit: 60,
+            maxPositions: 1000,
+          });
+          this.computePlot();
+        } finally {
+          this.busy = false;
+        }
+        this.draw();
+      }, 0));
+    },
+
+    computePlot() {
+      const text = this.inputText;
+      if (!text) { this.points = { xs: new Int32Array(0), ys: new Int32Array(0) }; return; }
+      if (this.view) {
+        const r = window.selfsim.matchPointsExact(text, this.view.lo, this.view.hi, {
+          k: Math.max(4, Math.min(this.k, 12)),
+        });
+        this.points = r;
+        this.plotInfo = { count: r.count, k: r.k, w: 1, skippedBuckets: r.skippedBuckets };
+      } else {
+        const r = window.selfsim.matchPoints(text, { k: this.k, w: this.w });
+        this.points = r;
+        this.plotInfo = { count: r.count, k: r.k, w: r.w, skippedBuckets: r.skippedBuckets };
+      }
+    },
+
+    // ── rendering ───────────────────────────────────────────────────────
+    span() {
+      const lo = this.view ? this.view.lo : 0;
+      const hi = this.view ? this.view.hi : (this.st.length || 1);
+      return { lo, hi, len: Math.max(1, hi - lo) };
+    },
+
+    draw() {
+      const cv = this.$refs.plot;
+      if (!cv) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = cv.clientWidth || 600;
+      const W = Math.round(cssW * dpr);
+      cv.width = W; cv.height = W;
+      const ov = this.$refs.overlay;
+      ov.width = W; ov.height = W; ov.style.height = cssW + 'px';
+
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, W, W);
+
+      const { lo, len } = this.span();
+      const sx = (p) => ((p - lo) / len) * W;
+
+      // main diagonal (identity)
+      ctx.strokeStyle = 'rgba(99,102,241,0.25)';
+      ctx.lineWidth = dpr;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W, W); ctx.stroke();
+
+      // points, symmetric across the diagonal, additive so density reads
+      const { xs, ys } = this.points || { xs: [], ys: [] };
+      const ptSize = Math.max(dpr, dpr * (this.view ? 1.5 : 1));
+      ctx.fillStyle = 'rgba(15,23,42,0.55)';
+      for (let i = 0; i < xs.length; i++) {
+        const px = sx(xs[i]), py = sx(ys[i]);
+        ctx.fillRect(px, py, ptSize, ptSize);
+        ctx.fillRect(py, px, ptSize, ptSize); // mirror
+      }
+
+      this.drawEntropy();
+      this.drawOverlay();
+    },
+
+    drawEntropy() {
+      const cv = this.$refs.entropy;
+      if (!cv) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = cv.clientWidth || 600;
+      const W = Math.round(cssW * dpr), H = Math.round(46 * dpr);
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+      const text = this.inputText;
+      if (!text) return;
+      const { lo, hi } = this.span();
+      const slice = this.view ? text.slice(lo, hi) : text;
+      const bins = Math.max(64, Math.min(1024, Math.round(cssW)));
+      const prof = window.selfsim.entropyProfile(slice, { bins, window: 256 });
+      const maxH = 8; // bits
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, 'rgba(99,102,241,0.55)');
+      grad.addColorStop(1, 'rgba(99,102,241,0.05)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let b = 0; b < prof.length; b++) {
+        const x = (b / (prof.length - 1)) * W;
+        const y = H - (Math.min(prof[b], maxH) / maxH) * H;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    },
+
+    clearOverlay() {
+      const ov = this.$refs.overlay;
+      if (ov) ov.getContext('2d').clearRect(0, 0, ov.width, ov.height);
+    },
+
+    drawOverlay() {
+      const ov = this.$refs.overlay;
+      if (!ov) return;
+      const ctx = ov.getContext('2d');
+      const W = ov.width;
+      ctx.clearRect(0, 0, W, W);
+      if (this.selected === null) return;
+      const r = this.repeats[this.selected];
+      if (!r) return;
+      const { lo, len } = this.span();
+      const sx = (p) => ((p - lo) / len) * W;
+      const L = r.len;
+      const pos = r.positions;
+      ctx.strokeStyle = 'rgba(244,63,94,0.9)';
+      ctx.lineWidth = Math.max(1.5, (window.devicePixelRatio || 1) * 1.5);
+      // each ordered pair of occurrences traces a diagonal streak of length L
+      for (let a = 0; a < pos.length; a++) {
+        for (let b = 0; b < pos.length; b++) {
+          if (a === b) continue;
+          const x0 = sx(pos[a]), y0 = sx(pos[b]);
+          const x1 = sx(pos[a] + L), y1 = sx(pos[b] + L);
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        }
+      }
+    },
+
+    // ── interaction ─────────────────────────────────────────────────────
+    pos(ev) {
+      const cv = this.$refs.plot;
+      const rect = cv.getBoundingClientRect();
+      const fx = (ev.clientX - rect.left) / rect.width;
+      const fy = (ev.clientY - rect.top) / rect.height;
+      const { lo, len } = this.span();
+      return {
+        fx, fy,
+        x: Math.round(lo + fx * len),
+        y: Math.round(lo + fy * len),
+      };
+    },
+
+    onHover(ev) {
+      if (!this.inputText) return;
+      const p = this.pos(ev);
+      if (this.drag) { this.drag.cur = p; this.drawDragBox(); return; }
+      const t = this.inputText;
+      const ctx = (i) => t.slice(Math.max(0, i - 8), i + 12).replace(/\n/g, '⏎');
+      this.hover = { x: p.x, y: p.y, tx: ctx(p.x), ty: ctx(p.y) };
+      const left = Math.min(p.fx * 100, 70);
+      this.hoverStyle = `left:${left}%; top:${Math.min(p.fy * 100, 80)}%`;
+    },
+
+    onDown(ev) {
+      if (!this.inputText) return;
+      this.drag = { start: this.pos(ev), cur: this.pos(ev) };
+    },
+
+    onUp() {
+      if (!this.drag) return;
+      const a = this.drag.start, b = this.drag.cur;
+      this.drag = null;
+      this.clearOverlay();
+      const lo = Math.max(0, Math.min(a.x, b.x, a.y, b.y));
+      const hi = Math.min(this.st.length, Math.max(a.x, b.x, a.y, b.y));
+      if (hi - lo < 16) { this.draw(); return; } // treat as a click, not a zoom
+      this.selected = null;
+      this.view = { lo, hi };
+      this.computePlot();
+      this.draw();
+    },
+
+    drawDragBox() {
+      const ov = this.$refs.overlay;
+      const ctx = ov.getContext('2d');
+      this.drawOverlay();
+      const W = ov.width;
+      const a = this.drag.start, b = this.drag.cur;
+      const { lo, len } = this.span();
+      const sx = (p) => ((p - lo) / len) * W;
+      const x0 = sx(Math.min(a.x, b.x)), x1 = sx(Math.max(a.x, b.x));
+      const y0 = sx(Math.min(a.y, b.y)), y1 = sx(Math.max(a.y, b.y));
+      // mirror to a square selection along the diagonal for symmetry
+      const v0 = Math.min(a.x, b.x, a.y, b.y), v1 = Math.max(a.x, b.x, a.y, b.y);
+      const s0 = sx(v0), s1 = sx(v1);
+      ctx.strokeStyle = 'rgba(99,102,241,0.9)';
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = window.devicePixelRatio || 1;
+      ctx.strokeRect(s0, s0, s1 - s0, s1 - s0);
+      ctx.setLineDash([]);
+    },
+
+    resetView() {
+      this.view = null;
+      this.selected = null;
+      this.computePlot();
+      this.draw();
+    },
+
+    toggleRepeat(i) {
+      this.selected = this.selected === i ? null : i;
+      this.drawOverlay();
+    },
+
+    // ── samples ─────────────────────────────────────────────────────────
+    loadSample(name) {
+      this.inputText = this.samples[name];
+      this.run();
+    },
+    loadThisPage() {
+      this.inputText = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      this.run();
+    },
+  }));
+});
+</script>
+</body>
+</html>

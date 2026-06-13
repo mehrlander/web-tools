@@ -59,6 +59,7 @@ Live at `https://mehrlander.github.io/web-tools/pages/<name>.html`:
 | [compression-helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html) | Paste text, run brotli or gzip, get back a compact blob or a self-decompressing bookmarklet. |
 | [table-compress](https://mehrlander.github.io/web-tools/pages/table-compress.html) / [-multi](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) | Apply a JS transform per row, then bundle the result through brotli/gz. |
 | [show-repo](https://mehrlander.github.io/web-tools/pages/show-repo/) | Browse any GitHub repo as a sidebar tree with a viewer pane. |
+| [text-atlas](https://mehrlander.github.io/web-tools/pages/text-atlas.html) | Paste any text, see its self-similarity dot plot, a census of its exact repeats, and an entropy track. Drag to zoom; click a repeat to trace it. |
 | [demos/](https://mehrlander.github.io/web-tools/lib/kits/demos/) | One small demo page per kit (`persistence`, `messaging`, `io`, `compression`). Double-duty as a builder reference. |
 | [bookmarklets-story](https://mehrlander.github.io/web-tools/pages/stories/bookmarklets-story.html) | Field notes on bookmarklet packing. |
 | [launcher](https://mehrlander.github.io/web-tools/pages/launcher.html) | Setup page for the popup launcher: paste a token, copy out a ready-to-save bookmarklet. |
