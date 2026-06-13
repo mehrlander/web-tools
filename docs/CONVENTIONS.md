@@ -163,7 +163,7 @@ The body of [PR #129 in web-tools](https://github.com/mehrlander/web-tools/pull/
 
 Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
 
-Produced on request: when the user says "merge guide" (or accepts the bundled wrap-up offer above, which counts as the request), prepend an entry for the current session. Either way it stays request-gated: never write it unasked, and never overwrite existing entries.
+Produced at wrap-up: writing the entry is wrap-up step 2 (the branch-guide fold), so any wrap-up includes it, whether accepted from the bundled offer or completed after a PR was opened with the UI button. Outside a wrap-up, write it only when the user asks ("merge guide"). Never overwrite existing entries.
 
 **Reading it for inclusion.** Each entry is keyed by its PR number, and an entry reaches main only by riding in on its own merge. So the entries in the main copy of this file are exactly the guide-covered merges that are in main, and the top entry is the latest. "Is PR #115 in main?" is answered by whether a #115 entry appears in the main copy. The caveat: a merge made without an entry won't show, so absence is not proof; GitHub's merged state or git is authoritative. Key every entry by PR number once it exists; fall back to the branch only until then.
 
