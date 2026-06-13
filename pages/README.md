@@ -116,4 +116,5 @@ page, generated alongside this file; this README is its link-dense text twin.
 | Page | Title | Links |
 |---|---|---|
 | `pension-dash` | Pension Dashboard | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html) |
+| `pension-map` | RCW Pension Crosswalk | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-map.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-map.html) |
 | `wsl-sync` | WSL Sync | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html) |
