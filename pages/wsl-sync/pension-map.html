@@ -29,13 +29,13 @@
   :root {
     --bg: #ffffff; --ink: #1b1e23; --muted: #5f646c; --faint: #9096a0;
     --rule: #d9dce1; --rule-soft: #eceef1; --link: #1f4f9c;
-    --ann: #50607a; --hl: #f4f5f7; --accent: #1f4f9c;
+    --ann: #50607a; --hl: #f4f5f7; --accent: #1f4f9c; --slate: #6e7686;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #17181b; --ink: #d8dade; --muted: #9b9fa7; --faint: #6e7178;
       --rule: #34363c; --rule-soft: #25272c; --link: #8fb0e0;
-      --ann: #8d9cb5; --hl: #1f2126; --accent: #8fb0e0;
+      --ann: #8d9cb5; --hl: #1f2126; --accent: #8fb0e0; --slate: #566070;
     }
   }
   * { box-sizing: border-box; }
@@ -107,11 +107,17 @@
   .pills .pill .n { color: var(--faint); font-size: 10.5px; }
   .tagblob { display: flex; flex-wrap: wrap; gap: .25rem; align-items: baseline; padding: .35rem 0; }
   .tagblob .gchip {
-    background: var(--muted); color: var(--bg); border-radius: 3px; padding: .08rem .5rem;
-    font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); padding: .08rem .1rem;
+    font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em;
   }
   .tagblob .gchip:not(:first-child) { margin-left: .5rem; }
-  .tagblob .pill { padding: .05rem .55rem; }
+  .tagblob .pill {
+    background: var(--slate); border-color: transparent; color: #f2f3f5;
+    padding: .02rem .45rem; font-size: 12px;
+  }
+  .tagblob .pill .cite { color: #ffffff; font-size: 11.5px; }
+  .tagblob .pill .n { color: #c8ccd4; font-size: 11px; }
+  .tagblob .pill:hover { filter: brightness(.92); color: #ffffff; }
 
   #results .row.section { padding-left: .35rem; }
   #results .ctx { color: var(--faint); font-size: 11px; flex: none; }
