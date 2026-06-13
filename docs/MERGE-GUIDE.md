@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-13 RCW pension crosswalk page over the full corpus (PR #175)
+
+A standalone, self-contained pension reference: wsl-core's PENSION_MAP layered over every RCW title, chapter, and section caption, searchable and filterable, usable saved as a single local file offline.
+
+⭐ **Result:** [pension-map](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-map.html) — quick-find pills (trust-fund expenses 41.50.255 highlighted), cite-scoped search (`41.50 payment`), pension-only filter, per-chapter section detail, grouped tag view with `#tag` filtering, full-code browse tree
+
+**Changed:**
+- pages/wsl-sync/pension-map.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-map.html), [diff](https://github.com/mehrlander/web-tools/commit/619907c)) — corpus embedded gzip+base64 (1.2 MB), inflated at boot via native DecompressionStream; refresh one-liner in the header comment
+- pages/thumbs/wsl-sync/pension-map.png ([new](https://github.com/mehrlander/web-tools/blob/main/pages/thumbs/wsl-sync/pension-map.png), [diff](https://github.com/mehrlander/web-tools/commit/b962c36)); pages/README.md + pages/index.html hook-regenerated
+
+**Notes:** Pension semantics mirrored by hand from `lib/kits/wsl-core.js` PENSION_MAP (drift risk noted in both files). Corpus is the 2025 RCW archive; 2026 session law (e.g. ch. 68, 2026 Laws amending 41.50.255, the trust-fund expenses section) not reflected until refreshed. PENSION_MAP cite 41.40.761 is absent from the corpus, likely repealed; tag omitted, may warrant a PENSION_MAP cleanup. Quick-find pills are a placeholder set of five; curate as needed.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/practical-noether-ks7579)
+
 ## 2026-06-12 nav-repo lens browser; identity-free boot; testing.md rewrite (PR #174)
 
 New page nav-repo answers "what is show-repo for": a repo@ref header with Files / Pages as top-level lens tabs, shareable `?repo=&ref=&file=&tab=` URL state, and an identity-free boot, so public repos browse with no token; the headless harness now impersonates the GitHub API from the local checkout, so these pages screenshot for real.
