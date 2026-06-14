@@ -21,7 +21,7 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
-| `text-atlas` | Text Atlas | Self-Similarity Dot Plot | [view](https://mehrlander.github.io/web-tools/pages/text-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-atlas.html) |
+| `text-atlas` | Text Fingerprints | Self-Similarity Gallery | [view](https://mehrlander.github.io/web-tools/pages/text-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-atlas.html) |
 
 ## pages/demos/
 
@@ -86,6 +86,7 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
+| `selfsim` | selfsim — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/selfsim.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/selfsim.html) |
 
 ## pages/scratch/
 

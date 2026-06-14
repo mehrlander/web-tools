@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>selfsim — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('vanilla-demo.js');
+
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+  const inject = ['kits/selfsim.js'];
+
+  // A short email with one paragraph accidentally pasted twice — the
+  // everyday case the census is good at catching.
+  const EMAIL =
+`Hi team,
+
+Thanks for the quick turnaround on the Q3 numbers. The deck is in good shape overall; a couple of small things before it goes to the board.
+
+The revenue chart on slide 4 still shows the old forecast. Please swap in the updated figures from the model, and fix the footnote on slide 7 that references last year's policy.
+
+The revenue chart on slide 4 still shows the old forecast. Please swap in the updated figures from the model, and fix the footnote on slide 7 that references last year's policy.
+
+Otherwise I think we're ready. Let's circulate the final version by Thursday.
+
+Best,
+Sam`;
+
+  const SECTIONS = [
+    {
+      title: 'Find what a text repeats',
+      intro: `window.selfsim builds a suffix automaton over the text (linear time) and reads exact-repeat facts off it — no third-party dependencies. Edit any block and press Run.`,
+      examples: [
+        {
+          title: 'Did I repeat myself?',
+          prose: `<code class="${c()}">topRepeats</code> returns the repeated substrings ranked by coverage (length × count). Here one paragraph was pasted twice — it surfaces as the top entry, with the exact character offsets of each copy.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const email = ${JSON.stringify(EMAIL)};
+
+const reps = selfsim.topRepeats(email, { minLen: 20, limit: 3 });
+for (const r of reps) {
+  console.log(\`\${r.count}× · \${r.len} chars · at \${r.positions.join(', ')}\`);
+  console.log('   ' + JSON.stringify(r.text.slice(0, 60) + '…'));
+}`
+        },
+        {
+          title: 'Longest repeated passage',
+          prose: `<code class="${c()}">longestRepeat</code> finds the single longest substring that occurs more than once — the classic "longest repeated substring", in O(n).`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const text = 'the cat sat on the mat, the cat sat on the hat';
+
+const lr = selfsim.longestRepeat(text);
+console.log('longest repeat:', JSON.stringify(lr.text));
+console.log('length:', lr.len, '· occurs', lr.count + '×', '· at', lr.positions.join(', '));`
+        },
+        {
+          title: 'Exact occurrences of any pattern',
+          prose: `<code class="${c()}">occurrences</code> walks the automaton to count a pattern in O(pattern length), independent of how long the text is, and returns every start position.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const text = 'banana bandana banana bandana banana';
+console.log('banana →', JSON.stringify(selfsim.occurrences(text, 'banana')));
+console.log('ana    →', JSON.stringify(selfsim.occurrences(text, 'ana')));
+console.log('xyz    →', JSON.stringify(selfsim.occurrences(text, 'xyz')));`
+        },
+        {
+          title: 'One-call summary',
+          prose: `<code class="${c()}">stats</code> bundles length, the number of distinct substrings (which can be astronomically larger than the text), the longest repeat, and mean entropy in bits/char.`,
+          lang: 'js', kind: 'console', inject,
+          code:
+`const repetitive = 'ab'.repeat(40);
+const random     = [...Array(80)].map(() => 'abcdefgh'[Math.floor(Math.random()*8)]).join('');
+
+for (const [name, t] of [['repetitive', repetitive], ['random', random]]) {
+  const s = selfsim.stats(t);
+  console.log(\`\${name.padEnd(11)} distinct=\${String(s.distinct).padStart(5)}  entropy=\${s.entropyMean.toFixed(2)} bits\`);
+}`
+        },
+      ],
+    },
+    {
+      title: 'See it: the self-similarity dot plot',
+      intro: `Both axes are the same text. A dot at (x, y) means the characters at x and y begin an identical run; a diagonal streak parallel to the center is a repeated passage. matchPoints returns those pairs, minimizer-sampled (the technique genome browsers use), ready to plot.`,
+      examples: [
+        {
+          title: 'Draw a fingerprint',
+          prose: `A server log makes a regular lattice — every line repeats the same skeleton. Swap <code class="${c()}">text</code> for prose and the field empties out to just the diagonal.`,
+          lang: 'js', kind: 'jsrender', inject, tw: true,
+          code:
+`// a few dozen log lines: same shape, changing fields
+const text = Array.from({ length: 40 }, (_, i) =>
+  \`192.168.1.\${10 + i % 5} - - [10:\${String(i).padStart(2,'0')}] "GET /api/users/\${i} HTTP/1.1" \${[200,200,404][i%3]} \${100 + i*7}\`
+).join('\\n');
+
+const N = 320, k = 8, w = 4;
+const cv = document.createElement('canvas');
+cv.width = cv.height = N;
+cv.style.cssText = 'width:320px;height:320px;border:1px solid #d4d4d8;border-radius:8px;image-rendering:pixelated';
+document.body.append(cv);
+const ctx = cv.getContext('2d');
+
+ctx.strokeStyle = 'rgba(99,102,241,0.3)';
+ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(N,N); ctx.stroke();
+
+const { xs, ys } = selfsim.matchPoints(text, { k, w });
+const n = text.length, s = p => p / n * N;
+ctx.fillStyle = 'rgba(15,23,42,0.6)';
+for (let i = 0; i < xs.length; i++) {
+  ctx.fillRect(s(xs[i]), s(ys[i]), 2, 2);
+  ctx.fillRect(s(ys[i]), s(xs[i]), 2, 2);   // mirror across the diagonal
+}`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/selfsim.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Where does a text <span class="opacity-50">repeat itself?</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.selfsim</code>
+        answers that exactly and fast: a suffix automaton finds repeated passages and
+        counts occurrences in linear time, and a minimizer dot plot turns the whole
+        repetition structure into a picture. Each snippet runs in its own isolated frame
+        with the kit injected — edit it, press Run.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The full visual front-end is <a href="../../../pages/text-atlas.html" class="link">text-atlas.html</a> — a gallery of text fingerprints.</p>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

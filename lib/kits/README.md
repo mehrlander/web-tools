@@ -332,8 +332,12 @@ ss.longestRepeat(sam); ss.topRepeats(sam, …); ss.occurrences(sam, p);
 
 Memory is linear: the automaton uses flat `Int32Array`s with an
 adjacency-list transition table, so a ~1 MB input costs tens of MB. The
-demo page is `pages/text-atlas.html` (dot plot + repeat census + entropy
-track). Kit test: `tools/test/selfsim.test.mjs` cross-checks every automaton
+living demo is `lib/kits/demos/selfsim.html` (editable snippets: the repeat
+census plus a drawn dot plot); the visual front-end is
+`pages/text-atlas.html`, a gallery of text "fingerprints" (server log,
+prose, an email with a pasted-twice paragraph, …) that you click into for
+the full plot and repeat list. Kit test: `tools/test/selfsim.test.mjs`
+cross-checks every automaton
 result against naive O(n²) references over hundreds of seeded-random strings,
 and the minimizer layer against its window-coverage and planted-repeat
 guarantees (part of `npm test`).
@@ -355,4 +359,4 @@ examples.
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
-| `selfsim.js` | `pages/text-atlas.html` | suffix automaton + minimizer dot plot + entropy |
+| `selfsim.js` | `lib/kits/demos/selfsim.html` / `pages/text-atlas.html` | suffix automaton + minimizer dot plot + entropy |
