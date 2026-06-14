@@ -21,7 +21,6 @@ page, generated alongside this file; this README is its link-dense text twin.
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
-| `text-atlas` | Text Fingerprints | Self-Similarity Gallery | [view](https://mehrlander.github.io/web-tools/pages/text-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-atlas.html) |
 
 ## pages/demos/
 

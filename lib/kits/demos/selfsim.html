@@ -92,7 +92,7 @@ for (const [name, t] of [['repetitive', repetitive], ['random', random]]) {
       examples: [
         {
           title: 'Draw a fingerprint',
-          prose: `A server log makes a regular lattice — every line repeats the same skeleton. Swap <code class="${c()}">text</code> for prose and the field empties out to just the diagonal.`,
+          prose: `Display is a one-liner: <code class="${c()}">selfsim.draw(canvas, text)</code> renders the whole plot and returns the match points. A server log makes a regular lattice — every line repeats the same skeleton. Swap <code class="${c()}">text</code> for prose and the field empties out to just the diagonal.`,
           lang: 'js', kind: 'jsrender', inject, tw: true,
           code:
 `// a few dozen log lines: same shape, changing fields
@@ -100,23 +100,14 @@ const text = Array.from({ length: 40 }, (_, i) =>
   \`192.168.1.\${10 + i % 5} - - [10:\${String(i).padStart(2,'0')}] "GET /api/users/\${i} HTTP/1.1" \${[200,200,404][i%3]} \${100 + i*7}\`
 ).join('\\n');
 
-const N = 320, k = 8, w = 4;
 const cv = document.createElement('canvas');
-cv.width = cv.height = N;
+cv.width = cv.height = 320;
 cv.style.cssText = 'width:320px;height:320px;border:1px solid #d4d4d8;border-radius:8px;image-rendering:pixelated';
 document.body.append(cv);
-const ctx = cv.getContext('2d');
 
-ctx.strokeStyle = 'rgba(99,102,241,0.3)';
-ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(N,N); ctx.stroke();
-
-const { xs, ys } = selfsim.matchPoints(text, { k, w });
-const n = text.length, s = p => p / n * N;
-ctx.fillStyle = 'rgba(15,23,42,0.6)';
-for (let i = 0; i < xs.length; i++) {
-  ctx.fillRect(s(xs[i]), s(ys[i]), 2, 2);
-  ctx.fillRect(s(ys[i]), s(xs[i]), 2, 2);   // mirror across the diagonal
-}`
+// the kit owns the rendering; the caller just sizes the canvas
+const pts = selfsim.draw(cv, text, { k: 8, w: 4 });
+console.log(pts.count + ' matching point pairs');`
         },
       ],
     },
@@ -167,7 +158,7 @@ for (let i = 0; i < xs.length; i++) {
     <footer class="mt-4 pt-6 border-t border-base-300">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
       <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
-        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The full visual front-end is <a href="../../../pages/text-atlas.html" class="link">text-atlas.html</a> — a gallery of text fingerprints.</p>
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The kit is a catalogue of text-analysis functions; each snippet here injects <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">kits/selfsim.js</code> into its own isolated frame.</p>
       </div>
     </footer>
 

@@ -229,6 +229,38 @@ test('matchPointsExact: complete within a slice, coordinates in text space', () 
   assert.ok(Array.from(xs).some((x, i) => x === lo && ys[i] === lo + 12));
 });
 
+// ---- draw (display helper) ------------------------------------------------
+
+test('draw: one stroked diagonal + one (mirrored) rect per match point', () => {
+  // A recording 2D-context stub: draw() must work against any canvas.
+  const ops = [];
+  const ctx = new Proxy({ fillStyle: '', strokeStyle: '', lineWidth: 0 }, {
+    get: (t, p) => (p in t ? t[p] : (...a) => ops.push([p, ...a])),
+    set: (t, p, v) => (t[p] = v, true),
+  });
+  const canvas = { width: 200, height: 200, getContext: () => ctx };
+  const text = 'abcabcabc abcabcabc xyz xyz xyz';
+  const pts = selfsim.draw(canvas, text, { size: 200, k: 4, w: 2 });
+
+  const strokes = ops.filter(o => o[0] === 'stroke').length;
+  const rects = ops.filter(o => o[0] === 'fillRect').length;
+  assert.equal(strokes, 1, 'the identity diagonal is stroked once');
+  assert.equal(rects, pts.count * 2, 'mirrored: two rects per match point');
+  assert.ok(ops.some(o => o[0] === 'clearRect'), 'clears when no background given');
+});
+
+test('draw: mirror:false halves the marks; background fills instead of clears', () => {
+  const ops = [];
+  const ctx = new Proxy({}, {
+    get: (t, p) => (p in t ? t[p] : (...a) => ops.push([p, ...a])),
+    set: (t, p, v) => (t[p] = v, true),
+  });
+  const canvas = { width: 120, height: 120, getContext: () => ctx };
+  const pts = selfsim.draw(canvas, 'la la la la la', { size: 120, k: 2, w: 1, mirror: false, background: '#fff' });
+  assert.equal(ops.filter(o => o[0] === 'fillRect').length, pts.count + 1, 'one rect per point, plus the background fill');
+  assert.ok(!ops.some(o => o[0] === 'clearRect'), 'background path does not clear');
+});
+
 // ---- entropy --------------------------------------------------------------
 
 test('entropy profile: zero on constant text, high on random bytes, sized to bins', () => {

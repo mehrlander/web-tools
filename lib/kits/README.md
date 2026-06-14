@@ -324,19 +324,22 @@ ss.occurrences(text, 'needle')       // { count, positions } — exact, via the 
 ss.matchPoints(text, { k: 12, w: 8 })          // { xs, ys, count, ... } dot-plot pairs
 ss.matchPointsExact(text, lo, hi, { k: 8 })    // every k-mer pair within a slice (zoom)
 ss.entropyProfile(text, { bins: 512 })         // Float32Array, bits per char
+ss.draw(canvas, text, { k: 8, w: 4 })          // render the dot plot; returns the points
 
 // Build once, query many times:
 const sam = ss.build(text);
 ss.longestRepeat(sam); ss.topRepeats(sam, …); ss.occurrences(sam, p);
 ```
 
+`draw` is the display half kept as a function rather than a component: the
+caller sizes a canvas, the kit renders the identity diagonal plus a mark per
+matching position pair and hands back the match points (so an overlay can
+trace one repeat). Display is a one-liner; nothing has to mount a widget.
+
 Memory is linear: the automaton uses flat `Int32Array`s with an
 adjacency-list transition table, so a ~1 MB input costs tens of MB. The
-living demo is `lib/kits/demos/selfsim.html` (editable snippets: the repeat
-census plus a drawn dot plot); the visual front-end is
-`pages/text-atlas.html`, a gallery of text "fingerprints" (server log,
-prose, an email with a pasted-twice paragraph, …) that you click into for
-the full plot and repeat list. Kit test: `tools/test/selfsim.test.mjs`
+home is the living demo `lib/kits/demos/selfsim.html` (editable snippets:
+the repeat census plus `draw`). Kit test: `tools/test/selfsim.test.mjs`
 cross-checks every automaton
 result against naive O(n²) references over hundreds of seeded-random strings,
 and the minimizer layer against its window-coverage and planted-repeat
@@ -359,4 +362,4 @@ examples.
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
-| `selfsim.js` | `lib/kits/demos/selfsim.html` / `pages/text-atlas.html` | suffix automaton + minimizer dot plot + entropy |
+| `selfsim.js` | `lib/kits/demos/selfsim.html` | suffix automaton + minimizer dot plot + entropy |
