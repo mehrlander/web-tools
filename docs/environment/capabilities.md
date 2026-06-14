@@ -66,6 +66,27 @@ authorized repo (and limits push to the current branch). So a sibling repo like
 though `github.com` itself is allowed: a different failure mode than
 `x-deny-reason: host_not_allowed`.
 
+**Branches cannot be deleted from in-session** *(verified 2026-06-14)*. A branch
+is a *ref*: a single named pointer to one commit, not a sequence of commits. So
+deleting one is **not** a commit (there is no "commit that deletes a branch");
+it is a ref-update push that sets the pointer to nothing (`git push origin
+--delete X`). That push is what is refused here, on two paths: the git proxy
+returns a 403 on `git push --delete`, and the GitHub MCP toolset has
+`create_branch` but no delete verb. The branch you currently have checked out is
+irrelevant: deleting some *other* branch never touches it, so switching branches
+is not a workaround. (PRs *can* be closed, via `update_pull_request`; and the
+user can always delete a branch from the GitHub UI or their own machine's CLI,
+which do not pass through this proxy.) Asymmetric consequence: a session can
+create a remote branch it then has no way to remove, so stray branches need
+cleanup outside the session.
+
+**Capture before you delete, and mind the order.** Because we cannot delete a
+branch (let alone undo a deletion), and a branch's commits are
+garbage-collected once no ref reaches them, deletion is effectively
+irreversible. When a branch is headed for the bin, first salvage anything worth
+keeping (copy the file, link the blob, confirm it landed elsewhere); only then
+ask the user to delete. Never do it out of order.
+
 | Host | Reachable? | Notes |
 |---|---|---|
 | `registry.npmjs.org`, `registry.yarnpkg.com` | ✅ | `npm install` works |
