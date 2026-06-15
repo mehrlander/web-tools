@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-15 selfsim: a tested kit of text-repetition functions (branch claude/overnight-exploration-3qwe3z)
+## 2026-06-15 selfsim: a tested kit of text-repetition functions (PR #176)
 
 A suffix-automaton kit for exact-repeat analysis of arbitrary text (longest repeat, occurrence counts, top repeats, a minimizer dot plot, entropy, and a one-call `draw()`), kept honestly as a kit with a living demo rather than a page pretending to be an application.
 
