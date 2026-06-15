@@ -61,7 +61,10 @@ so you see it.
 
 **Two gates, not one.** The allowlist above is the *general* proxy. GitHub git
 traffic goes through a **separate** GitHub proxy that scopes operations to the one
-authorized repo (and limits push to the current branch). So a sibling repo like
+authorized repo. (Push is *not* limited to the session branch: a normal commit
+push to any existing branch in the repo works, e.g. `git push origin
+local:other-branch`, verified 2026-06-15. What it refuses is ref *deletion*, see
+below.) So a sibling repo like
 `<repo>.wiki.git` returns `Proxy error: repository not authorized` (502) even
 though `github.com` itself is allowed: a different failure mode than
 `x-deny-reason: host_not_allowed`.
@@ -86,6 +89,14 @@ garbage-collected once no ref reaches them, deletion is effectively
 irreversible. When a branch is headed for the bin, first salvage anything worth
 keeping (copy the file, link the blob, confirm it landed elsewhere); only then
 ask the user to delete. Never do it out of order.
+
+**Mark a stray branch instead.** Since you can push commits to any existing
+branch (just not delete one), the way to flag a branch you can't remove is to
+*push a marker commit onto it*: rewrite its `BRANCH-GUIDE.md` with a
+"SUPERSEDED, safe to delete" banner and a one-line commit message saying the
+same. The commit message then shows as the branch's tip in the GitHub branches
+list, so the intent is legible at a glance when the user comes back to delete
+it. (Done this way for `claude/busy-carson-x1mufj` on 2026-06-15.)
 
 | Host | Reachable? | Notes |
 |---|---|---|
