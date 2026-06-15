@@ -4,6 +4,22 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-15 selfsim: a tested kit of text-repetition functions (branch claude/overnight-exploration-3qwe3z)
+
+A suffix-automaton kit for exact-repeat analysis of arbitrary text (longest repeat, occurrence counts, top repeats, a minimizer dot plot, entropy, and a one-call `draw()`), kept honestly as a kit with a living demo rather than a page pretending to be an application.
+
+⭐ **Result:** [lib/kits/demos/selfsim.html](https://mehrlander.github.io/web-tools/lib/kits/demos/selfsim.html) — editable snippets: the "did I repeat myself?" census plus a drawn fingerprint
+
+**Changed:**
+- lib/kits/selfsim.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/selfsim.js), [diff](https://github.com/mehrlander/web-tools/commit/aa3e699)): suffix automaton (distinct count, longest/top repeats, exact occurrences), minimizer dot-plot points + exact-within-slice, entropy profile, and `draw(canvas, text)` ([added](https://github.com/mehrlander/web-tools/commit/12ceaed))
+- lib/kits/demos/selfsim.html ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/selfsim.html), [diff](https://github.com/mehrlander/web-tools/commit/ad6a8eb)): the living demo / builder reference
+- tools/test/selfsim.test.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/test/selfsim.test.mjs), [diff](https://github.com/mehrlander/web-tools/commit/aa3e699)): automaton results cross-checked against naive O(n²) references on seeded-random inputs; minimizer window-coverage + planted-repeat guarantees; `draw` via a recording-canvas stub. Also in the kits-register smoke test.
+- lib/kits/README.md, lib/kits/demos/index.html, README.md ([diff](https://github.com/mehrlander/web-tools/commit/12ceaed)): kit documented; `draw` in the API
+
+**Notes:** A showcase page (`pages/text-atlas.html`) was built mid-session and then retired: it dressed a read-only dot plot up as an application and the argument didn't hold. The honest minimal capture of the visual interest, `draw()` as a kit function, stayed; a real Alpine self-similarity component is deferred until a page wants to embed one (a log viewer, wring's demo, show-repo). 100 tests pass; the demo's "Editor didn't load" under offline render is the known cm6/esm.sh harness limit, not a kit fault.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/overnight-exploration-3qwe3z)
+
 ## 2026-06-11 Import Wring: template-induction kit, demo pages, repo snapshot (PR #172)
 
 Wring (single-document template induction: one document with repeated structure in, recurring templates plus slot values out, losslessly) moves into web-tools as a kit, two demo pages, a test in the npm suite, and a full snapshot of the source repo.
