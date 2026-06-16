@@ -74,6 +74,18 @@ Two wrinkles that bite, both handled below:
 2. **`.min.js` requested but the tarball ships only the unminified file.**
    jsDelivr auto-minifies; npm doesn't. Fall back to the non-`.min` file.
 
+**Prefer one tag per library; avoid `/combine/`.** jsDelivr can bundle several
+packages into one `cdn.jsdelivr.net/combine/a,b,c` request. Don't author pages
+that way. Separate `<script>`/`<link>` tags are more transparent (you see and can
+vendor each library independently) and they map one-to-one under *any*
+interception strategy, including text/DOM-rewrite harnesses (e.g. jsdom) where a
+single URL standing for many packages is awkward. Combine only saves request
+*count* in production, which is moot when every request is served locally. The
+interceptor below still handles `/combine/` so a page you didn't write renders
+without changes, but new pages should use plain tags. (Alpine is always its own
+deferred tag regardless, since it must init after the DOM; loading it from unpkg
+is a fine convention.)
+
 A complete, dependency-free interceptor:
 
 ```js
@@ -159,8 +171,10 @@ const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
 await page.route('**/*', route => {
   const url = new URL(route.request().url());
 
-  // jsDelivr /combine/<spec>,<spec>,... is one bundled request the page made;
-  // answer it by concatenating the local files (all share a type: JS or CSS).
+  // jsDelivr /combine/<spec>,<spec>,... bundles several packages in one request.
+  // Prefer plain tags in pages you author (see above); this branch is only so a
+  // page that already uses combine renders unchanged. Concatenate the local
+  // files (all share a type: JS or CSS).
   if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith('/combine/')) {
     const specs = decodeURIComponent(url.pathname.slice('/combine/'.length)).split(',');
     const parts = [];
@@ -196,30 +210,36 @@ console.log('wrote', outArg);
 
 ## Worked example
 
-A self-contained page exercising all four libraries. Save as `page.html`:
+A self-contained page exercising all four libraries. Note each library is its
+own tag (no `/combine/`, see below) and Alpine loads from unpkg. Save as
+`page.html`:
 
 ```html
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/regular/style.css" rel="stylesheet">
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/bold/style.css" rel="stylesheet">
+  <script defer src="https://unpkg.com/alpinejs@3"></script>
 </head>
-<body class="p-10 bg-base-200">
-  <div x-data="{ open: false, n: 0 }" class="card bg-base-100 shadow-xl w-96">
-    <div class="card-body">
-      <h2 class="card-title"><i class="ph ph-rocket-launch"></i> Headless OK</h2>
-      <p>Count: <span x-text="n" class="font-mono"></span></p>
-      <div class="card-actions">
-        <button class="btn btn-primary" @click="n++">
-          <i class="ph ph-plus"></i> Increment
-        </button>
-        <button class="btn btn-ghost" @click="open = !open" x-text="open ? 'Hide' : 'Show'"></button>
-      </div>
-      <div x-show="open" class="alert alert-success mt-2">Alpine reactivity works.</div>
+<body class="min-h-screen grid place-items-center p-6 text-slate-100"
+      style="background-color:#0a0e1a;background-image:radial-gradient(900px 520px at 50% -12%, oklch(0.6 0.22 280 / .45), transparent 60%)">
+  <div x-data="{ n: 3 }"
+       class="card w-80 bg-white/5 backdrop-blur border border-white/10 shadow-2xl">
+    <div class="card-body items-center text-center gap-3">
+      <i class="ph-bold ph-check-circle text-5xl text-success"></i>
+      <h2 class="card-title">Headless OK</h2>
+      <p class="text-sm text-slate-400">
+        Tailwind, daisyUI, Phosphor and Alpine, all served from
+        <code class="text-slate-300">node_modules</code>.
+      </p>
+      <div class="text-5xl font-bold tabular-nums my-1" x-text="n"></div>
+      <button class="btn btn-primary w-full gap-2" @click="n++">
+        <i class="ph-bold ph-plus"></i> Count up
+      </button>
     </div>
   </div>
 </body>
@@ -233,10 +253,12 @@ npm i -D playwright @tailwindcss/browser daisyui alpinejs @phosphor-icons/web
 node render.mjs page.html out.png
 ```
 
-`out.png` shows the daisyUI card, Tailwind layout, and Phosphor glyphs fully
-rendered. To prove Alpine ran (not just loaded), drive it before the shot, e.g.
-insert `await page.click('text=Increment'); await page.click('text=Show');`
-before `page.screenshot`.
+`out.png` is a glass card centered in a dark gradient, filling the frame: a
+daisyUI card and button, the Phosphor check + plus glyphs, and Alpine's count.
+The page is `min-h-screen` so `fullPage` equals the viewport and the composition
+fills the image (see "Designing for the frame"). To prove Alpine ran (not just
+loaded), drive it before the shot, e.g. insert
+`await page.click('text=Count up')` before `page.screenshot`.
 
 ## Showing the result in chat
 
@@ -285,26 +307,24 @@ clicking a theme sets `data-theme` on `<html>` to recolor the page live, and eac
 option in the dropdown previews in its own theme's colors (each list item carries
 its own `data-theme`). Below it, a Tabulator grid shows every built-in theme
 against every design token, parsed at runtime out of daisyUI's own
-`themes.css`, nothing hardcoded. It demonstrates four things the minimal example
+`themes.css`, nothing hardcoded. It demonstrates three things the minimal example
 doesn't:
 
-- **`/combine/` requests.** Its `<script>` and `<link>` each bundle several
-  packages in one jsDelivr `/combine/` URL. The interceptor above splits the
-  comma-list and concatenates the local files, so one request is answered from
-  several `node_modules` files.
 - **A runtime `fetch` of a vendored file.** The page `fetch`es
   `daisyui@5/themes.css` and parses it. `page.route` intercepts `fetch` the same
   as a tag, so it's served from `node_modules` and the table is the library's
   real source.
-- **Phosphor via the combine script.** `npm/@phosphor-icons/web`'s package `main`
-  is a tiny loader that injects a `<link>` per icon weight; the interceptor then
-  serves each weight's CSS and its font files. Loading the one package is enough,
-  no separate icon-CSS link needed.
+- **Phosphor as one script tag.** `npm/@phosphor-icons/web`'s package `main` is a
+  tiny loader that injects a `<link>` per icon weight; the interceptor then serves
+  each weight's CSS and its font files. Loading the one package is enough, no
+  separate icon-CSS links needed.
 - **Tabulator**, another vendored UMD global, mounting and rendering.
 
-This is also where the page earns its "on theme" note: a `Vendor & inject` footer
-explains, in the page itself, that every library loads from a CDN URL yet is
-served locally under the harness, same URLs, different source.
+Each library is a separate tag (no `/combine/`), which is the recommended style;
+the page's third feature card and its `Vendor & inject` footer say so in place.
+That footer is where the page earns its "on theme" note: it explains, in the page
+itself, that every library loads from a CDN URL yet is served locally under the
+harness, same URLs, different source.
 
 ## Gotchas
 

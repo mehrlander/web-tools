@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <title>DaisyUI Theme Explorer</title>
-  <!-- Tailwind + Phosphor + Tabulator (combine), DaisyUI themes + runtime + Tabulator css, Alpine -->
-  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/tabulator-tables"></script>
-  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet" />
-  <script defer src="https://unpkg.com/alpinejs"></script>
+  <!-- One tag per library (no /combine/): clearer, and each vendors independently -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_simple.min.css" rel="stylesheet" />
+  <script defer src="https://unpkg.com/alpinejs@3"></script>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content font-sans"
       x-data="explorer()" x-init="init()">
@@ -78,8 +82,8 @@
       </div>
       <div>
         <i class="ph ph-package text-xl text-primary"></i>
-        <h3 class="font-medium mt-2">jsDelivr combine</h3>
-        <p class="text-sm text-base-content/60 mt-1">Tailwind, Phosphor and Tabulator load in one bundled request. Styles in another.</p>
+        <h3 class="font-medium mt-2">One tag per library</h3>
+        <p class="text-sm text-base-content/60 mt-1">Tailwind, daisyUI, Phosphor, Tabulator and Alpine each load from their own CDN tag, so each vendors independently.</p>
       </div>
     </section>
 
@@ -103,13 +107,13 @@
         <div class="space-y-2">
           <h3 class="font-semibold">Vendor &amp; inject</h3>
           <p class="text-sm text-base-content/70 max-w-3xl">
-            Every library on this page loads from a CDN URL: Tailwind, Phosphor and Tabulator in
-            one <code class="text-xs">/combine/</code> request, daisyUI's themes plus runtime in another,
-            Alpine from unpkg. Behind a locked-down allowlist those hosts are blocked, so a headless
-            render harness <em>vendors</em> each package from npm and <em>injects</em> it in place of
-            the CDN response. The HTML never changes: same URLs, different source. daisyUI's
-            <code class="text-xs">themes.css</code> is fetched the same way, then parsed into the table
-            above, so the matrix is the library's own source, not a transcription.
+            Every library on this page loads from its own CDN tag: Tailwind, daisyUI, Phosphor and
+            Tabulator from jsDelivr, Alpine from unpkg. Behind a locked-down allowlist those hosts are
+            blocked, so a headless render harness <em>vendors</em> each package from npm and
+            <em>injects</em> it in place of the CDN response. The HTML never changes: same URLs,
+            different source. daisyUI's <code class="text-xs">themes.css</code> is fetched the same way,
+            then parsed into the table above, so the matrix is the library's own source, not a
+            transcription.
           </p>
         </div>
       </div>

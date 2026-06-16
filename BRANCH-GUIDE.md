@@ -16,11 +16,18 @@ session in another repo.
 - Verified end-to-end: the doc's render.mjs (extracted verbatim) renders the
   minimal card, the landing hero, and the theme-explorer; all served from
   node_modules, no CDN reached, no MISS/console errors.
-- render.mjs now handles jsDelivr `/combine/` (concat local files) and a runtime
-  `fetch` of a vendored file; theme-explorer exercises both, plus Phosphor via the
-  combine script (its main injects per-weight CSS links), Tabulator, and live
-  daisyUI `data-theme` switching. It carries an on-page "Vendor & inject" note.
-- Doc now also covers chat image-presentation (file-send tool, not markdown) and
+- Decision: author pages with one tag per library, NOT jsDelivr `/combine/`
+  (clearer, maps 1:1 under any interception strategy, no benefit when local).
+  Both examples converted to separate tags; Alpine loads from unpkg everywhere.
+  render.mjs still handles `/combine/` so pre-existing pages render unchanged, but
+  it's framed as legacy in the doc.
+- Minimal worked example rewritten to a full-bleed centered glass card (was a
+  small card on white that read as a broken modal).
+- theme-explorer exercises a runtime `fetch` of vendored themes.css (parsed into
+  the Tabulator matrix), Phosphor as one script tag (its main injects per-weight
+  CSS links), and live daisyUI `data-theme` switching; carries a "Vendor & inject"
+  footer.
+- Doc also covers chat image-presentation (file-send tool, not markdown) and
   designing for the frame (viewport vs fullPage, deviceScaleFactor, solid dark bg,
   avoid bg-clip-text). landing-demo.html is the presentation-quality example.
 - Not yet done: wiring one-line pointers from the existing env docs
