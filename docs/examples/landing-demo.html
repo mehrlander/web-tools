@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/bold/style.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/regular/style.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/fill/style.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <style>
+    .aurora {
+      background:
+        radial-gradient(900px 600px at 92% -10%, oklch(0.62 0.24 286 / .42), transparent 58%),
+        radial-gradient(800px 600px at 108% 50%, oklch(0.68 0.18 200 / .30), transparent 55%),
+        radial-gradient(700px 520px at 75% 118%, oklch(0.6 0.2 330 / .28), transparent 60%);
+    }
+    .glass { background: oklch(0.22 0.02 280 / .55); backdrop-filter: blur(12px); }
+    .ring-soft { box-shadow: 0 1px 0 oklch(1 0 0 / .06) inset, 0 20px 60px -20px oklch(0 0 0 / .6); }
+  </style>
+</head>
+<body class="min-h-screen aurora text-slate-100" data-theme="dark" style="background-color:#0a0e1a"
+      x-data="{ count: 1240, tab: 'overview', live: 98.7 }">
+
+  <div class="mx-auto max-w-7xl px-8 py-6 min-h-screen flex flex-col">
+
+    <!-- nav -->
+    <nav class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="grid place-items-center size-9 rounded-xl bg-primary text-primary-content">
+          <i class="ph-bold ph-hexagon text-xl"></i>
+        </div>
+        <span class="text-lg font-semibold tracking-tight">Northwind</span>
+      </div>
+      <div class="hidden md:flex items-center gap-7 text-sm text-base-content/70">
+        <a class="hover:text-base-content transition">Product</a>
+        <a class="hover:text-base-content transition">Solutions</a>
+        <a class="hover:text-base-content transition">Pricing</a>
+        <a class="hover:text-base-content transition">Docs</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="btn btn-ghost btn-sm btn-circle"><i class="ph ph-moon-stars text-lg"></i></button>
+        <button class="btn btn-primary btn-sm rounded-lg gap-1.5">
+          Get started <i class="ph-bold ph-arrow-right"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- hero -->
+    <div class="grid lg:grid-cols-2 gap-12 items-center flex-1 py-10">
+
+      <!-- left -->
+      <div>
+        <div class="badge badge-lg gap-1.5 border-primary/30 bg-primary/10 text-primary mb-6">
+          <i class="ph-fill ph-sparkle"></i> v2.0 just shipped
+        </div>
+        <h1 class="text-5xl xl:text-6xl font-bold tracking-tight leading-[1.05]">
+          Build interfaces at the
+          <span class="text-indigo-400">speed of thought</span>.
+        </h1>
+        <p class="mt-6 text-lg text-base-content/65 max-w-md">
+          A single render harness proves your pages headless: Tailwind, daisyUI,
+          Alpine and Phosphor, all served locally. No CDN required.
+        </p>
+        <div class="mt-8 flex items-center gap-3">
+          <button class="btn btn-primary rounded-xl gap-2">
+            <i class="ph-bold ph-rocket-launch"></i> Start free
+          </button>
+          <button class="btn btn-ghost rounded-xl gap-2">
+            <i class="ph-fill ph-play-circle text-lg"></i> Watch demo
+          </button>
+        </div>
+        <div class="mt-12 flex gap-10">
+          <div>
+            <div class="text-3xl font-bold">42k+</div>
+            <div class="text-sm text-base-content/55">Developers</div>
+          </div>
+          <div>
+            <div class="text-3xl font-bold">99.98%</div>
+            <div class="text-sm text-base-content/55">Uptime</div>
+          </div>
+          <div>
+            <div class="text-3xl font-bold">12ms</div>
+            <div class="text-sm text-base-content/55">p50 latency</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- right: interactive dashboard card -->
+      <div class="glass ring-soft rounded-3xl p-6 border border-white/10">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-2">
+            <i class="ph-fill ph-chart-line-up text-secondary text-xl"></i>
+            <span class="font-semibold">Live metrics</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-success">
+            <span class="inline-block size-2 rounded-full bg-success animate-pulse"></span> streaming
+          </div>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs tabs-boxed bg-base-100/40 mb-5 p-1">
+          <a class="tab gap-1.5" :class="tab==='overview' && 'tab-active'" @click="tab='overview'">
+            <i class="ph ph-squares-four"></i> Overview
+          </a>
+          <a class="tab gap-1.5" :class="tab==='activity' && 'tab-active'" @click="tab='activity'">
+            <i class="ph ph-pulse"></i> Activity
+          </a>
+        </div>
+
+        <!-- counter -->
+        <div class="rounded-2xl bg-base-100/40 p-5 mb-4">
+          <div class="text-sm text-base-content/55 mb-1">Requests / sec</div>
+          <div class="flex items-end justify-between">
+            <div class="text-4xl font-bold tabular-nums" x-text="count.toLocaleString()"></div>
+            <div class="join">
+              <button class="btn btn-sm join-item" @click="count = Math.max(0, count-20)"><i class="ph-bold ph-minus"></i></button>
+              <button class="btn btn-sm btn-primary join-item" @click="count += 20"><i class="ph-bold ph-plus"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- progress -->
+        <div class="rounded-2xl bg-base-100/40 p-5 space-y-3">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-base-content/70">Capacity</span>
+            <span class="font-medium" x-text="live + '%'"></span>
+          </div>
+          <progress class="progress progress-secondary w-full" :value="live" max="100"></progress>
+          <div class="flex items-center gap-2 text-xs text-base-content/55">
+            <i class="ph-fill ph-shield-check text-success"></i> All systems nominal
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- feature row -->
+    <div class="grid sm:grid-cols-3 gap-4">
+      <template x-for="f in [
+        {i:'ph-lightning', t:'Instant render', d:'Headless pixels in milliseconds.'},
+        {i:'ph-package', t:'Vendored libs', d:'Everything served from node_modules.'},
+        {i:'ph-plugs-connected', t:'Zero CDN', d:'Works behind a strict allowlist.'}
+      ]">
+        <div class="glass rounded-2xl p-5 border border-white/5">
+          <i class="ph-bold text-2xl text-primary" :class="f.i"></i>
+          <div class="font-semibold mt-3" x-text="f.t"></div>
+          <div class="text-sm text-base-content/55 mt-1" x-text="f.d"></div>
+        </div>
+      </template>
+    </div>
+
+  </div>
+</body>
+</html>

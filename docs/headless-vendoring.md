@@ -218,6 +218,45 @@ rendered. To prove Alpine ran (not just loaded), drive it before the shot, e.g.
 insert `await page.click('text=Increment'); await page.click('text=Show');`
 before `page.screenshot`.
 
+## Showing the result in chat
+
+A web coding session surfaces an image to the user through a **dedicated
+file-send mechanism**, not markdown. In Claude Code on the web that's the
+`SendUserFile` tool; the screenshot script just writes a `.png` to disk and you
+hand that path to the tool. A markdown image link to a local path
+(`![x](/tmp/out.png)`) does **not** render in the chat UI: it shows as inert
+text or a broken thumbnail. So: write the PNG, then send the file. Don't embed it
+with markdown.
+
+## Designing for the frame
+
+A screenshot looks like a finished product or looks broken depending entirely on
+whether the page fills the frame. Three habits make it the former:
+
+- **Render at the viewport, not `fullPage`, for a "hero" shot.** `fullPage: true`
+  captures the whole scroll height; a small widget then floats in a sea of white.
+  Design the page `min-h-screen` and screenshot the viewport so the composition
+  fills the image edge to edge. (`fullPage` is right when you genuinely want the
+  whole long document.)
+- **`deviceScaleFactor: 2`** renders at 2x for crisp text and icons; worth it for
+  anything you'll show someone.
+- **Anchor a solid background.** A standalone `daisyui.css` doesn't always wire
+  `data-theme` through to `bg-base-*` utilities, so a themed background can fall
+  back to transparent (white). Set an explicit dark background
+  (`style="background-color:#0a0e1a"`) under any decorative gradient, and use
+  explicit text colors (`text-slate-100`) for hero copy rather than relying on
+  `base-content` resolving the way you expect. daisyUI *components* (buttons,
+  cards, tabs, progress) theme correctly; it's the raw `base-*` background
+  utilities that are the soft spot.
+- **Avoid `bg-clip-text` gradient text** in this setup; it often paints
+  transparent (invisible). A solid accent color (`text-indigo-400`) is reliable.
+
+A full, presentation-quality example using all four libraries (navbar, hero,
+interactive dashboard card, feature row) is committed alongside this doc:
+[`docs/examples/landing-demo.html`](examples/landing-demo.html). Render it with
+the `render.mjs` above (viewport `1280x832`, `deviceScaleFactor: 2`) for a
+full-bleed result.
+
 ## Gotchas
 
 - **Chromium and the TLS proxy.** A sandbox that inspects TLS presents a custom
