@@ -4,6 +4,13 @@
 Alpine, Phosphor (or similar) from a CDN, when you need to screenshot or test
 those pages inside an environment that blocks the CDN.*
 
+> **Render to see, not just to show.** The point of this setup is a feedback
+> loop: render, *look at the image yourself*, and let what you see drive the next
+> edit, the way you'd glance at a browser while building. It isn't only a way to
+> produce a PNG to hand off. And while iterating, drop the in-progress shots into
+> the chat too: seeing the tries (this layout vs. that, before vs. after) is
+> especially welcome, not noise.
+
 ## The problem in one paragraph
 
 Cloud coding sandboxes (Claude Code on the web and similar) route outbound
