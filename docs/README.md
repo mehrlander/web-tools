@@ -8,6 +8,9 @@ here; everything longer-form lives in this folder.
   written to be used from *any* repo (the conventions, the headless-vendoring
   recipe, the sandbox notes) and how to adopt them via the loader skill. Start
   here if you came for one piece, not the whole library.
+- **[SHARE.md](SHARE.md)** — a copy-paste message for pointing *another* session
+  at the to-go set: it hands over the raw-fetch command, since a session can't
+  always reach another repo by git or MCP scope but can read a public raw file.
 - **[headless-vendoring.md](headless-vendoring.md)** — portable recipe for
   building with Tailwind / daisyUI / Alpine / Phosphor and rendering them
   **headless** in a sandbox that blocks their CDNs: vendor from npm, intercept the

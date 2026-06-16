@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-16 SHARE.md: paste-ready pointer to the portable set (PR #178)
+
+A copy-paste message for sending another Claude Code session to web-tools' portable docs, closing the chicken-and-egg where a session doesn't know it can read another repo (it can't via git or MCP scope, but a raw HTTP GET of a public file works and is allowlisted). Follow-up to PR #177.
+
+⭐ **Result:** [docs/SHARE.md](https://github.com/mehrlander/web-tools/blob/main/docs/SHARE.md) — the why (restricted cross-repo git/MCP; raw GET as the bypass) plus the fetch command itself, leading with `PORTABLE.md` and swappable to a single doc
+
+**Changed:**
+- docs/SHARE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/SHARE.md), [diff](https://github.com/mehrlander/web-tools/commit/d803a8f)) — the pointer; tightened in [f4a57f7](https://github.com/mehrlander/web-tools/commit/f4a57f7)
+- docs/PORTABLE.md, docs/README.md ([diff](https://github.com/mehrlander/web-tools/commit/d803a8f)) — cross-link to it ("Pointing a session here" / index entry)
+
+**Notes:** Access facts confirmed by probe this session: raw.githubusercontent of our files → 200; a blocked host → 403 `x-deny-reason`. SHARE.md is the pointer *to* the portable set, not a member of it (it names web-tools URLs); it links capabilities.md for the fuller "two gates" constraints.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/docs-share-pointer-k3n9w)
+
 ## 2026-06-16 Portable headless-vendoring recipe + the to-go-set manifest (PR #177)
 
 A self-contained, repo-agnostic guide to building with Tailwind / daisyUI / Alpine / Phosphor and rendering them headless where a sandbox blocks their CDNs (vendor from npm, intercept the requests, serve from `node_modules`), plus a `PORTABLE.md` manifest cataloguing the docs meant to travel to other repos.
