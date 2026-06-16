@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-16 SHARE.md: paste-ready pointer to the portable set (branch claude/docs-share-pointer-k3n9w)
+## 2026-06-16 SHARE.md: paste-ready pointer to the portable set (PR #178)
 
 A copy-paste message for sending another Claude Code session to web-tools' portable docs, closing the chicken-and-egg where a session doesn't know it can read another repo (it can't via git or MCP scope, but a raw HTTP GET of a public file works and is allowlisted). Follow-up to PR #177.
 
