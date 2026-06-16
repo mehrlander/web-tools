@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-16 Portable headless-vendoring recipe + the to-go-set manifest (branch claude/headless-tailwind-daisyui-alpine-ue50gn)
+## 2026-06-16 Portable headless-vendoring recipe + the to-go-set manifest (PR #177)
 
 A self-contained, repo-agnostic guide to building with Tailwind / daisyUI / Alpine / Phosphor and rendering them headless where a sandbox blocks their CDNs (vendor from npm, intercept the requests, serve from `node_modules`), plus a `PORTABLE.md` manifest cataloguing the docs meant to travel to other repos.
 
