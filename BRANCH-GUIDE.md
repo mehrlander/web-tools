@@ -9,27 +9,25 @@ session in another repo.
 
 **Changed:**
 - docs/headless-vendoring.md ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/headless-vendoring.md))
-- docs/examples/landing-demo.html ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/examples/landing-demo.html))
 - docs/examples/theme-explorer.html ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/examples/theme-explorer.html))
+- docs/examples/landing-demo.html — deleted (theme-explorer is the one canonical example)
 
 **Next steps / open threads:**
 - Verified end-to-end: the doc's render.mjs (extracted verbatim) renders the
-  minimal card, the landing hero, and the theme-explorer; all served from
-  node_modules, no CDN reached, no MISS/console errors.
-- Decision: author pages with one tag per library, NOT jsDelivr `/combine/`
-  (clearer, maps 1:1 under any interception strategy, no benefit when local).
-  Both examples converted to separate tags; Alpine loads from unpkg everywhere.
-  render.mjs still handles `/combine/` so pre-existing pages render unchanged, but
-  it's framed as legacy in the doc.
-- Minimal worked example rewritten to a full-bleed centered glass card (was a
-  small card on white that read as a broken modal).
-- theme-explorer exercises a runtime `fetch` of vendored themes.css (parsed into
-  the Tabulator matrix), Phosphor as one script tag (its main injects per-weight
-  CSS links), and live daisyUI `data-theme` switching; carries a "Vendor & inject"
-  footer.
+  minimal card and the theme-explorer; all served from node_modules, no CDN
+  reached, no MISS/console errors.
+- Minimal worked example is now LIGHT (user dislikes dark), a card centered on a
+  soft light gradient, full-bleed.
+- Only one example now: theme-explorer. landing-demo deleted.
+- Decision: author pages with one tag per library, NOT jsDelivr `/combine/`.
+  render.mjs still handles `/combine/` for pre-existing pages; doc explains the
+  split is of the URL path (not a downloaded body) since jsDelivr is never reached.
+- render.mjs is now CDN-field-aware: for a subpath-less URL it reads the field the
+  host uses (`unpkg` for unpkg, `jsdelivr` for jsDelivr) before falling back. Both
+  CDNs resolve to the same node_modules file for explicit subpaths.
 - Doc also covers chat image-presentation (file-send tool, not markdown) and
-  designing for the frame (viewport vs fullPage, deviceScaleFactor, solid dark bg,
-  avoid bg-clip-text). landing-demo.html is the presentation-quality example.
+  designing for the frame (viewport vs fullPage, deviceScaleFactor, explicit page
+  background, avoid bg-clip-text).
 - Not yet done: wiring one-line pointers from the existing env docs
   (capabilities.md, testing.md) and the cdn.mjs header to this canonical doc, so
   they stop restating the concept. Discussed but deferred per the user.

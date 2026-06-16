@@ -68,9 +68,14 @@ mapping from a CDN URL to a local file is mechanical:
 Two wrinkles that bite, both handled below:
 
 1. **No subpath in the URL** (e.g. `.../npm/alpinejs@3`). The CDN picks a default
-   file; npm's `package.json` `main`/`module` often points at a CommonJS/ESM
-   entry that throws inside a plain `<script>`. For browser-global builds you
-   must hardcode the right default file (the `CDN_DEFAULT` table below).
+   file, and the two CDNs pick it from *different* `package.json` fields: unpkg
+   reads `unpkg`, jsDelivr reads `jsdelivr`. They can disagree (Alpine ships
+   `"unpkg": "dist/cdn.min.js"` but no `jsdelivr` field, so bare
+   `unpkg.com/alpinejs` works while bare `cdn.jsdelivr.net/npm/alpinejs` falls
+   back to its CJS `main` and throws in a `<script>`). The resolver below reads
+   the field matching the host; for the handful of browser-global builds it also
+   keeps a `CDN_DEFAULT` table that pins the right file outright. With an explicit
+   subpath, both CDNs map to the same file and the field doesn't matter.
 2. **`.min.js` requested but the tarball ships only the unminified file.**
    jsDelivr auto-minifies; npm doesn't. Fall back to the non-`.min` file.
 
@@ -80,11 +85,16 @@ that way. Separate `<script>`/`<link>` tags are more transparent (you see and ca
 vendor each library independently) and they map one-to-one under *any*
 interception strategy, including text/DOM-rewrite harnesses (e.g. jsdom) where a
 single URL standing for many packages is awkward. Combine only saves request
-*count* in production, which is moot when every request is served locally. The
-interceptor below still handles `/combine/` so a page you didn't write renders
-without changes, but new pages should use plain tags. (Alpine is always its own
-deferred tag regardless, since it must init after the DOM; loading it from unpkg
-is a fine convention.)
+*count* in production, which is moot when every request is served locally.
+
+The interceptor below still handles `/combine/` so a page you didn't write
+renders without changes. Note *how*: the package list lives in the URL path
+(`/combine/a,b,c`), and the interceptor never reaches jsDelivr (it's blocked), so
+it splits *that URL* on commas, reads each package from `node_modules`, and
+concatenates them to reproduce the bundle jsDelivr would have returned. It parses
+a structured URL, not a downloaded response body. Still, new pages should use
+plain tags. (Alpine is always its own deferred tag regardless, since it must init
+after the DOM; loading it from unpkg is a fine convention.)
 
 A complete, dependency-free interceptor:
 
@@ -138,13 +148,17 @@ function parseSpec(spec) {
 }
 
 // Resolve a package + optional subpath to a real file under node_modules.
-function nodeFile(pkg, sub) {
+// `field` is the package.json key the requesting CDN uses to pick a default
+// file when the URL has no subpath: unpkg reads "unpkg", jsDelivr reads
+// "jsdelivr". They can differ (e.g. alpine ships `unpkg` but no `jsdelivr`,
+// which is why bare `unpkg.com/alpinejs` works but bare jsDelivr doesn't).
+function nodeFile(pkg, sub, field) {
   const dir = path.join(ROOT, 'node_modules', pkg);
-  if (sub) return path.join(dir, sub);
-  if (CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
+  if (sub) return path.join(dir, sub);                       // explicit subpath: same file on either CDN
+  if (CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]); // pinned browser-global build
   try {
     const j = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'));
-    return path.join(dir, j.browser || j.module || j.main || 'index.js');
+    return path.join(dir, j[field] || j.browser || j.module || j.main || 'index.js');
   } catch { return path.join(dir, 'index.js'); }
 }
 
@@ -159,7 +173,7 @@ function localBody(fp) {
 }
 
 // One CDN spec ("npm/pkg@ver/sub") -> local bytes, or null if not vendored.
-const readLocal = spec => { const { pkg, sub } = parseSpec(spec); return localBody(nodeFile(pkg, sub)); };
+const readLocal = (spec, field) => { const { pkg, sub } = parseSpec(spec); return localBody(nodeFile(pkg, sub, field)); };
 
 const [, , htmlArg = 'page.html', outArg = 'out.png'] = process.argv;
 
@@ -173,14 +187,15 @@ await page.route('**/*', route => {
 
   // jsDelivr /combine/<spec>,<spec>,... bundles several packages in one request.
   // Prefer plain tags in pages you author (see above); this branch is only so a
-  // page that already uses combine renders unchanged. Concatenate the local
-  // files (all share a type: JS or CSS).
+  // page that already uses combine renders unchanged. The package list is in the
+  // URL path (we never fetch jsDelivr): split it on commas and concatenate the
+  // local files (all share a type: JS or CSS).
   if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith('/combine/')) {
     const specs = decodeURIComponent(url.pathname.slice('/combine/'.length)).split(',');
     const parts = [];
     let contentType;
     for (const s of specs) {
-      const hit = readLocal(s);
+      const hit = readLocal(s, 'jsdelivr');
       if (!hit) { console.warn('MISS combine', s); continue; }
       parts.push(hit.body);
       contentType = hit.contentType;
@@ -189,14 +204,14 @@ await page.route('**/*', route => {
     return route.fulfill({ body: Buffer.concat(parts.map(Buffer.from)), contentType });
   }
 
-  let spec = null;
+  let spec = null, field = 'jsdelivr';
   if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith('/npm/'))
     spec = url.pathname.slice('/npm/'.length);
   else if (url.host === 'unpkg.com')
-    spec = url.pathname.slice(1);
+    { spec = url.pathname.slice(1); field = 'unpkg'; }
   if (spec == null) return route.continue(); // not a CDN lib: fonts, APIs, etc.
 
-  const hit = readLocal(spec);
+  const hit = readLocal(spec, field);
   if (hit) return route.fulfill(hit);
   console.warn('MISS', url.href); // unvendored: run `npm i -D` it
   return route.fulfill({ status: 404, body: '' });
@@ -225,16 +240,16 @@ own tag (no `/combine/`, see below) and Alpine loads from unpkg. Save as
   <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/bold/style.css" rel="stylesheet">
   <script defer src="https://unpkg.com/alpinejs@3"></script>
 </head>
-<body class="min-h-screen grid place-items-center p-6 text-slate-100"
-      style="background-color:#0a0e1a;background-image:radial-gradient(900px 520px at 50% -12%, oklch(0.6 0.22 280 / .45), transparent 60%)">
+<body class="min-h-screen grid place-items-center p-6"
+      style="background-color:#f4f6fb;background-image:radial-gradient(900px 520px at 50% -12%, oklch(0.86 0.07 270 / .7), transparent 60%)">
   <div x-data="{ n: 3 }"
-       class="card w-80 bg-white/5 backdrop-blur border border-white/10 shadow-2xl">
+       class="card w-80 bg-base-100 border border-base-300 shadow-xl">
     <div class="card-body items-center text-center gap-3">
       <i class="ph-bold ph-check-circle text-5xl text-success"></i>
       <h2 class="card-title">Headless OK</h2>
-      <p class="text-sm text-slate-400">
+      <p class="text-sm text-base-content/60">
         Tailwind, daisyUI, Phosphor and Alpine, all served from
-        <code class="text-slate-300">node_modules</code>.
+        <code class="text-base-content/80">node_modules</code>.
       </p>
       <div class="text-5xl font-bold tabular-nums my-1" x-text="n"></div>
       <button class="btn btn-primary w-full gap-2" @click="n++">
@@ -253,7 +268,7 @@ npm i -D playwright @tailwindcss/browser daisyui alpinejs @phosphor-icons/web
 node render.mjs page.html out.png
 ```
 
-`out.png` is a glass card centered in a dark gradient, filling the frame: a
+`out.png` is a card centered on a soft light gradient, filling the frame: a
 daisyUI card and button, the Phosphor check + plus glyphs, and Alpine's count.
 The page is `min-h-screen` so `fullPage` equals the viewport and the composition
 fills the image (see "Designing for the frame"). To prove Alpine ran (not just
@@ -282,22 +297,19 @@ whether the page fills the frame. Three habits make it the former:
   whole long document.)
 - **`deviceScaleFactor: 2`** renders at 2x for crisp text and icons; worth it for
   anything you'll show someone.
-- **Anchor a solid background.** A standalone `daisyui.css` doesn't always wire
-  `data-theme` through to `bg-base-*` utilities, so a themed background can fall
-  back to transparent (white). Set an explicit dark background
-  (`style="background-color:#0a0e1a"`) under any decorative gradient, and use
-  explicit text colors (`text-slate-100`) for hero copy rather than relying on
-  `base-content` resolving the way you expect. daisyUI *components* (buttons,
-  cards, tabs, progress) theme correctly; it's the raw `base-*` background
-  utilities that are the soft spot.
+- **Anchor the page background explicitly.** A standalone `daisyui.css` doesn't
+  always wire `data-theme` through to every `bg-base-*` utility (`bg-base-300` in
+  particular can generate no rule), so a page background built only from those can
+  fall back to transparent (white). Set an explicit background color on `<body>`
+  (`style="background-color:#f4f6fb"` for light, `#0a0e1a` for dark) under any
+  decorative gradient. daisyUI *components* (cards, buttons, tabs, progress) theme
+  correctly; it's the raw page-level `base-*` background that's the soft spot.
 - **Avoid `bg-clip-text` gradient text** in this setup; it often paints
-  transparent (invisible). A solid accent color (`text-indigo-400`) is reliable.
+  transparent (invisible). A solid accent color is reliable.
 
-A full, presentation-quality example using all four libraries (navbar, hero,
-interactive dashboard card, feature row) is committed alongside this doc:
-[`docs/examples/landing-demo.html`](examples/landing-demo.html). Render it with
-the `render.mjs` above (viewport `1280x832`, `deviceScaleFactor: 2`) for a
-full-bleed result.
+[`docs/examples/theme-explorer.html`](examples/theme-explorer.html), described
+next, is a full-bleed example built this way: render it with the `render.mjs`
+above (viewport `1280x832`, `deviceScaleFactor: 2`).
 
 ## A richer example: theme switching + tokens from source
 
