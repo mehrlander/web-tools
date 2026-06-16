@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-06-16 Portable conventions: à la carte adoption, terminology, concision (branch)
+## 2026-06-16 Portable conventions: à la carte adoption, terminology, concision (PR #179)
 
 Make the portable docs set adoptable piece by piece (CONVENTIONS.md severable into universal surfacing primitives and an opt-in PR-workflow course), retire the overloaded "spine" term for a distributed vocabulary, and run a succinctness + layering pass on CONVENTIONS.md.
 
