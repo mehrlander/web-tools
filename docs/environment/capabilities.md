@@ -92,7 +92,9 @@ dep can be vendored with `npm i -D` and served to the browser by the render
 harness's interceptor (`tools/render/cdn.mjs`). What the raw tarball *doesn't*
 include are jsDelivr's value-adds — default-entry selection, auto-generated
 `.min.*` files, server-side CJS→ESM bundling — which `cdn.mjs` emulates (its
-remaining gaps are catalogued in [testing.md](testing.md)).
+remaining gaps are catalogued in [testing.md](testing.md)). The portable form of
+this whole vendor-and-intercept technique is [`../headless-vendoring.md`](../headless-vendoring.md);
+this section owns the environment facts it builds on.
 
 Re-check (note the `-D -` and the deny-header grep, that's the whole point):
 

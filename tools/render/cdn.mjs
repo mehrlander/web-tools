@@ -25,6 +25,10 @@
 //
 // Used by tools/render/screenshot.mjs (Playwright route) and reusable by any future
 // pixel/preview tool. The logic-level twin lives inline in tools/render/preview.mjs.
+//
+// This is the web-tools-specific implementation (it also impersonates the GitHub
+// API for this repo). The portable, repo-agnostic write-up of the
+// vendor-and-intercept concept is docs/headless-vendoring.md.
 
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';

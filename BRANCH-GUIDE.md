@@ -8,8 +8,12 @@ session in another repo.
 ⭐ [docs/headless-vendoring.md](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/headless-vendoring.md)
 
 **Changed:**
-- docs/headless-vendoring.md ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/headless-vendoring.md))
+- docs/headless-vendoring.md ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/headless-vendoring.md)) — the portable recipe; now opens with the audience framing
 - docs/examples/theme-explorer.html ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/examples/theme-explorer.html))
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/PORTABLE.md)) — the to-go-set manifest (catalog of portable docs; bidirectional with the skill)
+- .claude/skills/web-tools-conventions/SKILL.md — points at the manifest, sheds its de-facto catalog role
+- docs/README.md, CLAUDE.md — surface the manifest + headless-vendoring
+- docs/environment/testing.md, capabilities.md, tools/render/cdn.mjs — one-line pointers → headless-vendoring.md (one direction, to keep it portable)
 - docs/examples/landing-demo.html — deleted (theme-explorer is the one canonical example)
 
 **Next steps / open threads:**

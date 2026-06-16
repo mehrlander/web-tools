@@ -1,8 +1,10 @@
 # Headless rendering with CDN libraries in a locked-down sandbox
 
-*A portable recipe. Drop this into any repo whose pages load Tailwind, daisyUI,
-Alpine, Phosphor (or similar) from a CDN, when you need to screenshot or test
-those pages inside an environment that blocks the CDN.*
+*A portable recipe, usable on its own. For when you want to build with a favorite
+front-end stack (Tailwind, daisyUI, Alpine, Phosphor, or similar) and screenshot
+or test those pages headless, but you're in a sandbox that blocks the libraries'
+CDNs: the "my headless browser won't load my libraries" wall. You don't need the
+rest of web-tools to use this; it's one of the [portable docs](PORTABLE.md).*
 
 > **Render to see, not just to show.** The point of this setup is a feedback
 > loop: render, *look at the image yourself*, and let what you see drive the next
