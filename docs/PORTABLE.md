@@ -30,14 +30,15 @@ public and that host is on the Claude Code web allowlist).
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions: surfacing rules, per-file `[new]/[main]/[diff]` links, the wrap-up ritual, PR-body and merge-guide shape | fetched live by the skill |
+| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (per-file `[new]/[main]/[diff]` links, show-pixels, branch anchor, session diff) and the opt-in **spine** (branch-guide/PR-body/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |
 
 **Not portable** (web-tools-specific machinery): `docs/loader.md`, `tools/**`,
 `CLAUDE.md`, `dist/`. And `docs/MERGE-GUIDE.md` travels only as a *format
-example*, each repo keeps its own.
+example*: it belongs to CONVENTIONS.md's opt-in spine layer, so a repo keeps one
+of its own only if it adopts that layer.
 
 ## Pointing a session here
 

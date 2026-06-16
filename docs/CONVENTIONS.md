@@ -6,9 +6,23 @@ filesystem.
 
 The canonical copy lives in `mehrlander/web-tools` at `docs/CONVENTIONS.md`.
 That repo `@`-imports it from its own `CLAUDE.md`; other repos load it via the
-`web-tools-conventions` skill, which fetches it fresh from main. Apply it as
-written, substituting the current repo into every URL template. If the current
-repo's own CLAUDE.md conflicts on a point, the current repo wins.
+`web-tools-conventions` skill, which fetches it fresh from main. Substitute the
+current repo into every URL template, and where the current repo's own CLAUDE.md
+conflicts on a point, the current repo wins.
+
+**Adopt à la carte.** This is a menu, not a bundle. It has two severable layers,
+and a repo can take either without the other:
+
+- **Surfacing primitives**: how to hand work back through chat: explicit-markdown
+  links, the per-file `[new]/[main]/[diff]` list, show-pixels, branch-as-anchor,
+  the session diff, the URL templates. Universal and self-contained; apply them
+  in any repo with no setup.
+- **The surfacing spine**: the branch-guide → PR-body → merge-guide lifecycle
+  and the workflow habits that serve it (the "Wrapping up & PR creation,"
+  "button-PR follow-up," and "Creating the next PR" notes in the next section,
+  plus everything from the "The surfacing spine" heading on). A workflow opinion
+  for PR-driven repos, opt-in as a whole: standing it up is never a precondition
+  for the primitives, and a repo can opt in later.
 
 **Prose style.** No em dashes, in any file or chat reply: use a colon, comma,
 semicolon, parentheses, or a new sentence instead.
@@ -79,6 +93,12 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
 
 ## The surfacing spine
+
+**Opt-in layer.** Everything from here on is the spine: take it whole or leave
+it. It assumes a PR-driven workflow and commits the repo to maintaining a
+`docs/MERGE-GUIDE.md` and a per-branch `BRANCH-GUIDE.md`. Skip this section and
+the primitives above still stand; the rest of this doc describes the spine for
+repos that opt in.
 
 Three structured artifacts summarize a session's work, one per moment: the **branch guide** (live, on the branch), the **PR body** (pre-merge, on GitHub), and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). All fight the same failure mode: the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. All fix it the same way: a shove toward the thing to open, not an explanation.
 

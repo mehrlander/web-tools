@@ -1,6 +1,6 @@
 ---
 name: web-tools-conventions
-description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow spine, adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
 ---
 
 # web-tools conventions loader
@@ -23,12 +23,16 @@ the repo is public, so this needs no auth.
 
 ## Apply
 
-The file is written to be followed as-is in any repo: substitute the current
-repo into its URL templates and follow it like the current repo's own
-CLAUDE.md. It defines two extension points (preview mechanism, per-session
-refreshes) that the current repo's CLAUDE.md may fill; if it doesn't, the
-documented defaults apply. If the current repo's own CLAUDE.md conflicts on a
-point, the current repo wins.
+The file is à la carte, in two severable layers. Its **surfacing primitives**
+(explicit-markdown links, the per-file `[new]/[main]/[diff]` list, show-pixels,
+branch anchor, session diff, URL templates) are universal: apply them as-is,
+substituting the current repo into the URL templates. Its **spine** (the
+branch-guide/PR-body/merge-guide lifecycle, wrap-up, and handoff) is an opt-in
+layer for PR-driven repos; take it only if the repo wants that workflow, and a
+repo can opt in later. The file also defines two extension points (preview
+mechanism, per-session refreshes) that the current repo's CLAUDE.md may fill; if
+it doesn't, the documented defaults apply. Where the current repo's own
+CLAUDE.md conflicts on a point, the current repo wins.
 
 ## Fallbacks
 
