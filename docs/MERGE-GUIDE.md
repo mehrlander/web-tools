@@ -4,6 +4,21 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-16 Portable conventions: à la carte adoption, terminology, concision (branch)
+
+Make the portable docs set adoptable piece by piece (CONVENTIONS.md severable into universal surfacing primitives and an opt-in PR-workflow course), retire the overloaded "spine" term for a distributed vocabulary, and run a succinctness + layering pass on CONVENTIONS.md.
+
+⭐ **Result:** [docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/claude/stoic-clarke-c8jwcl/docs/CONVENTIONS.md) — two-layer adoption framing up top, the course consolidated into one section (three artifacts + comparison table), and course machinery (wrap-up, UI-trigger, next-PR) moved under the opt-in course instead of the universal primitives
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/claude/stoic-clarke-c8jwcl/docs/CONVENTIONS.md), [main](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/6a83400)) — à la carte intro and opt-in boundary in [b428527](https://github.com/mehrlander/web-tools/commit/b428527); "spine" → course/moments/shape in [2582de4](https://github.com/mehrlander/web-tools/commit/2582de4); terse rewrite + layering fix in [6a83400](https://github.com/mehrlander/web-tools/commit/6a83400)
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/claude/stoic-clarke-c8jwcl/docs/PORTABLE.md), [main](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md), [diff](https://github.com/mehrlander/web-tools/commit/b428527)) — CONVENTIONS row notes severability; MERGE-GUIDE line ties to the opt-in course
+- .claude/skills/web-tools-conventions/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/claude/stoic-clarke-c8jwcl/.claude/skills/web-tools-conventions/SKILL.md), [main](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md), [diff](https://github.com/mehrlander/web-tools/commit/2582de4)) — description + Apply reflect the severable/opt-in intent and new vocabulary
+
+**Notes:** Rule content (link formats, artifact shapes, handoff) preserved; only adoption framing, terminology, and concision changed. The succinctness pass restored load-bearing lines a first draft had dropped (merge-guide "reading it for inclusion," the HP diagnostic-tests preliminary, "a stale guide is worse than none," the `[new]/[main]/[diff]` definitions). Artifact headings left un-numbered so the durable `#branch-guide` anchor (linked from the #171 entry below) keeps resolving. The two "spine" mentions in that #171 entry are historical and intentionally left as-is.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/stoic-clarke-c8jwcl)
+
 ## 2026-06-16 SHARE.md: paste-ready pointer to the portable set (PR #178)
 
 A copy-paste message for sending another Claude Code session to web-tools' portable docs, closing the chicken-and-egg where a session doesn't know it can read another repo (it can't via git or MCP scope, but a raw HTTP GET of a public file works and is allowlisted). Follow-up to PR #177.
