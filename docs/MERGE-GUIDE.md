@@ -4,6 +4,23 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-16 Portable headless-vendoring recipe + the to-go-set manifest (branch claude/headless-tailwind-daisyui-alpine-ue50gn)
+
+A self-contained, repo-agnostic guide to building with Tailwind / daisyUI / Alpine / Phosphor and rendering them headless where a sandbox blocks their CDNs (vendor from npm, intercept the requests, serve from `node_modules`), plus a `PORTABLE.md` manifest cataloguing the docs meant to travel to other repos.
+
+⭐ **Result:** [docs/headless-vendoring.md](https://github.com/mehrlander/web-tools/blob/main/docs/headless-vendoring.md) — the recipe, with a standalone Playwright interceptor and a verified daisyUI theme-explorer example; catalogued in [docs/PORTABLE.md](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)
+
+**Changed:**
+- docs/headless-vendoring.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/headless-vendoring.md), [diff](https://github.com/mehrlander/web-tools/commit/98ac4a6)) — vendor + intercept concept; `render.mjs` handles `/combine/` and is CDN-field-aware (unpkg vs jsdelivr defaults); framing, chat-image, and feedback-loop notes
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md), [diff](https://github.com/mehrlander/web-tools/commit/1d9f57d)) — the to-go-set manifest, bidirectional with the conventions skill
+- docs/examples/theme-explorer.html ([new](https://github.com/mehrlander/web-tools/blob/main/docs/examples/theme-explorer.html), [diff](https://github.com/mehrlander/web-tools/commit/81d1276)) — daisyUI theme picker + paired-pill token matrix; the verified example
+- .claude/skills/web-tools-conventions/SKILL.md, docs/README.md, CLAUDE.md ([diff](https://github.com/mehrlander/web-tools/commit/1d9f57d)) — point at / surface the manifest
+- docs/environment/testing.md, docs/environment/capabilities.md, tools/render/cdn.mjs ([diff](https://github.com/mehrlander/web-tools/commit/1d9f57d)) — one-line pointers → headless-vendoring.md (one direction, to keep it portable)
+
+**Notes:** Portable by design (no web-tools internals); examples verified by running the doc's `render.mjs` extracted verbatim (no MISS, no console errors). Convention settled this session: author pages with one tag per library, not jsDelivr `/combine/` (the interceptor still handles combine for pre-existing pages). The earlier landing-demo example was dropped; theme-explorer is the single canonical example.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/headless-tailwind-daisyui-alpine-ue50gn)
+
 ## 2026-06-13 RCW pension crosswalk page over the full corpus (PR #175)
 
 A standalone, self-contained pension reference: wsl-core's PENSION_MAP layered over every RCW title, chapter, and section caption, searchable and filterable, usable saved as a single local file offline.
