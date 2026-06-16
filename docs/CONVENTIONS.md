@@ -17,10 +17,10 @@ and a repo can take either without the other:
   links, the per-file `[new]/[main]/[diff]` list, show-pixels, branch-as-anchor,
   the session diff, the URL templates. Universal and self-contained; apply them
   in any repo with no setup.
-- **The surfacing spine**: the branch-guide → PR-body → merge-guide lifecycle
+- **The surfacing course**: the branch-guide → PR-body → merge-guide lifecycle
   and the workflow habits that serve it (the "Wrapping up & PR creation,"
   "button-PR follow-up," and "Creating the next PR" notes in the next section,
-  plus everything from the "The surfacing spine" heading on). A workflow opinion
+  plus everything from the surfacing-course section on). A workflow opinion
   for PR-driven repos, opt-in as a whole: standing it up is never a precondition
   for the primitives, and a repo can opt in later.
 
@@ -59,7 +59,7 @@ A wrap-up always produces a PR; there's no PR-less wrap-up. The sequence:
 2. **Fold the branch guide**: resolve `BRANCH-GUIDE.md` into the merge-guide entry and delete it, in one commit (see "Branch guide").
 3. **Open the PR.**
 
-**The button-PR follow-up.** If a PR for the session branch appears via the web UI button (the harness announces it mid-session), treat that as the wrap-up request even though the user didn't say so: complete steps 1 and 2 behind it (per-session refreshes, fold the branch guide) and reshape the PR body to the spine, without waiting to be asked. Only step 3 is already done.
+**The button-PR follow-up.** If a PR for the session branch appears via the web UI button (the harness announces it mid-session), treat that as the wrap-up request even though the user didn't say so: complete steps 1 and 2 behind it (per-session refreshes, fold the branch guide) and reshape the PR body to the shared shape, without waiting to be asked. Only step 3 is already done.
 
 **Skip the watch offer.** Don't offer to watch the PR for CI or review activity ("want me to keep an eye on CI?", "want me to watch this PR?"). It isn't useful to this user; this line suppresses the harness's default proactive prompt.
 
@@ -92,26 +92,26 @@ Don't repeat a file's links if they already appeared earlier in the same turn.
 - Branch tree: `https://github.com/<owner>/<repo>/tree/<branch>`
 - Branch vs main: `https://github.com/<owner>/<repo>/compare/main...<branch>`
 
-## The surfacing spine
+## The surfacing course
 
-**Opt-in layer.** Everything from here on is the spine: take it whole or leave
+**Opt-in layer.** Everything from here on is the course: take it whole or leave
 it. It assumes a PR-driven workflow and commits the repo to maintaining a
 `docs/MERGE-GUIDE.md` and a per-branch `BRANCH-GUIDE.md`. Skip this section and
-the primitives above still stand; the rest of this doc describes the spine for
+the primitives above still stand; the rest of this doc describes the course for
 repos that opt in.
 
-Three structured artifacts summarize a session's work, one per moment: the **branch guide** (live, on the branch), the **PR body** (pre-merge, on GitHub), and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). All fight the same failure mode: the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. All fix it the same way: a shove toward the thing to open, not an explanation.
+Three structured artifacts summarize a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the **branch guide** (live, on the branch), the **PR body** (pre-merge, on GitHub), and the **merge-guide entry** (at/after merge, in `docs/MERGE-GUIDE.md`). All fight the same failure mode: the unstructured summary with an unknown angle, where the reader has to reconstruct what matters and where to look. All fix it the same way: a shove toward the thing to open, not an explanation.
 
-So all follow one spine. The first two lines are fixed:
+So all follow one shape. The first two lines are fixed:
 
 1. **Outcome + why**: one sentence, no preamble.
 2. A single **⭐ link to the thing to open**: the shove.
 
-Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff/compare link. Skimmable in seconds. Only the link targets and a few moment-specific fields differ between the artifacts, and they're sequential drafts of each other: the branch guide folds into the merge-guide entry at wrap-up and seeds the PR body.
+Then a common tail: a `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff/compare link. Skimmable in seconds. Only the link targets and a few moment-specific fields differ between the artifacts, and they're sequential drafts of each other, kept aligned: the branch guide folds into the merge-guide entry at wrap-up and seeds the PR body.
 
 **The ⭐ link, honestly.** The ⭐ is a live preview only when the repo declares a preview mechanism and the change is one it can render; then "open" means open. Otherwise the honest best is the `[new]` blob: say "view," not "use," and link the blob. The link must never promise a running preview the change can't deliver.
 
-**What differs.** Same spine, three moments:
+**What differs.** Same shape, three moments:
 
 | | Branch guide | PR body | Merge-guide entry |
 |---|---|---|---|
@@ -173,7 +173,7 @@ The body a PR opens with, before merge. Audience: a reviewer deciding whether to
 <session-link footer>
 ```
 
-- ⭐ target is on the branch: the repo's preview mechanism if it has one, otherwise the `[new]` blob (see the spine's honesty note). If the mechanism takes a ref, prefer the commit SHA over the branch name; CDN-style caches go stale on branch tips.
+- ⭐ target is on the branch: the repo's preview mechanism if it has one, otherwise the `[new]` blob (see the "⭐ link, honestly" note above). If the mechanism takes a ref, prefer the commit SHA over the branch name; CDN-style caches go stale on branch tips.
 - Keep "Follow-up to #N" when this continues an earlier PR, so the chain stays legible.
 - End with the session-link footer the harness appends to PR bodies.
 
@@ -183,7 +183,7 @@ The body of [PR #129 in web-tools](https://github.com/mehrlander/web-tools/pull/
 
 `docs/MERGE-GUIDE.md` is a newest-on-top log of what each session shipped. One file, one URL: the latest entry sits at the top, older entries stack below as history. Git holds how the file evolved, so there's no archive. It's the durable form of the per-file links and session diff above, which otherwise only live in chat.
 
-Each entry inherits the surfacing spine, resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
+Each entry is the merge-guide moment of the course, following the same shape resolved to main: same first two lines and common tail, with the merge-guide column of the table above listing what's distinct.
 
 Produced at wrap-up: writing the entry is wrap-up step 2 (the branch-guide fold), so any wrap-up includes it, whether accepted from the bundled offer or completed after a PR was opened with the UI button. Outside a wrap-up, write it only when the user asks ("merge guide"). Never overwrite existing entries.
 

@@ -1,13 +1,13 @@
 ---
 name: web-tools-conventions
-description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow spine, adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (branch guide, PR body, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
 ---
 
 # web-tools conventions loader
 
 The user's cross-repo working conventions — surfacing rules, explicit-markdown
-links, the per-file `[new]/[main]/[diff]` list, the surfacing spine (PR body +
-merge-guide entry), wrap-up ritual, post-merge handoff — live in one canonical,
+links, the per-file `[new]/[main]/[diff]` list, the surfacing course (branch
+guide → PR body → merge-guide entry), wrap-up ritual, post-merge handoff — live in one canonical,
 repo-agnostic file: `docs/CONVENTIONS.md` in the public repo
 `mehrlander/web-tools`. This skill fetches it fresh so any session in any repo
 follows the same conventions without keeping a stale copy.
@@ -26,7 +26,7 @@ the repo is public, so this needs no auth.
 The file is à la carte, in two severable layers. Its **surfacing primitives**
 (explicit-markdown links, the per-file `[new]/[main]/[diff]` list, show-pixels,
 branch anchor, session diff, URL templates) are universal: apply them as-is,
-substituting the current repo into the URL templates. Its **spine** (the
+substituting the current repo into the URL templates. Its **surfacing course** (the
 branch-guide/PR-body/merge-guide lifecycle, wrap-up, and handoff) is an opt-in
 layer for PR-driven repos; take it only if the repo wants that workflow, and a
 repo can opt in later. The file also defines two extension points (preview
