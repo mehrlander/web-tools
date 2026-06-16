@@ -4,6 +4,14 @@ Reference docs that don't belong at the repo root. `README.md` (the project
 overview) and `CLAUDE.md` (web-session instructions) stay up top and link in
 here; everything longer-form lives in this folder.
 
+- **[PORTABLE.md](PORTABLE.md)** — the **to-go set**: which of these docs are
+  written to be used from *any* repo (the conventions, the headless-vendoring
+  recipe, the sandbox notes) and how to adopt them via the loader skill. Start
+  here if you came for one piece, not the whole library.
+- **[headless-vendoring.md](headless-vendoring.md)** — portable recipe for
+  building with Tailwind / daisyUI / Alpine / Phosphor and rendering them
+  **headless** in a sandbox that blocks their CDNs: vendor from npm, intercept the
+  CDN requests, serve from `node_modules`. Self-contained.
 - **[loader.md](loader.md)** — the loader contract: the canonical `<head>`
   block, what each piece contributes, how `gh.load()` works, the timing rules
   and footguns, and how that same contract lets a page be frozen into an

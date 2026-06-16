@@ -41,13 +41,24 @@ policy), in order:
    `web-tools`, path `docs/CONVENTIONS.md`.
 2. **WebFetch** on the same raw URL.
 
-## Related web-tools files (fetch the same way when relevant)
+## The rest of the portable set: the manifest
 
-- `docs/MERGE-GUIDE.md` — web-tools' own merge-guide log, a worked example of
-  the entry format (each repo keeps its own `docs/MERGE-GUIDE.md`).
-- `docs/environment/*.md` — dated notes on the Claude Code web sandbox
-  (network allowlist, persistence, testing recipes). These describe the
-  sandbox itself, so they apply to sessions in any repo.
+This skill is just the loader. The full catalog of what travels from
+`mehrlander/web-tools` to any repo, and how each piece is consumed, lives in one
+surfaced file:
+
+- **[`docs/PORTABLE.md`](https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/PORTABLE.md)** — the manifest. Fetch it the same way (raw URL) to see the menu.
+
+Highlights it lists, fetchable directly by raw URL when relevant:
+
+- `docs/headless-vendoring.md` — build with Tailwind / daisyUI / Alpine /
+  Phosphor and screenshot or test them headless in a sandbox that blocks their
+  CDNs. Self-contained; usable without any other web-tools machinery.
+- `docs/environment/*.md` — dated notes on the Claude Code web sandbox (network
+  allowlist, persistence, testing recipes). Sandbox-level, so they apply in any
+  repo.
+- `docs/MERGE-GUIDE.md` — web-tools' own merge-guide log, a worked example of the
+  entry format (each repo keeps its own).
 
 ## Installing this skill into another repo
 

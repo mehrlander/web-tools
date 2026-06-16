@@ -39,7 +39,10 @@ kinds of traffic:
   has no local answer. Other repos' API calls pass through to the network and
   fail on the sandbox's spent anonymous quota.
 - **Third-party libs** (Tailwind / daisyUI / Phosphor / Alpine, jsDelivr +
-  unpkg) → npm-vendored copies under `node_modules`.
+  unpkg) → npm-vendored copies under `node_modules`. The portable, repo-agnostic
+  write-up of this vendor-and-intercept technique (with a standalone Playwright
+  interceptor) is [`../headless-vendoring.md`](../headless-vendoring.md); this
+  section owns the web-tools harness specifics.
 
 Output is a PNG plus a log (intercepts, `__loadedScripts`, console, errors)
 under `tools/.preview/`. `--script` runs an async `(page) => {}` to drive the

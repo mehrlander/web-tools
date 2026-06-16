@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="UTF-8" />
+  <title>Theme Explorer · Paired Pills</title>
+  <!-- One tag per library (no /combine/): clearer, and each vendors independently -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_simple.min.css" rel="stylesheet" />
+  <style>
+    .tabulator { background-color: var(--color-base-100); color: var(--color-base-content); border-color: var(--color-base-300); }
+    .tabulator .tabulator-tableholder .tabulator-table { background-color: var(--color-base-100); color: var(--color-base-content); }
+    .tabulator .tabulator-header,
+    .tabulator .tabulator-header .tabulator-col { background-color: var(--color-base-200); color: var(--color-base-content); border-color: var(--color-base-300); }
+  </style>
+  <script defer src="https://unpkg.com/alpinejs@3"></script>
+</head>
+<body class="h-screen overflow-hidden bg-base-100 text-base-content font-sans"
+      x-data="explorer()" x-init="init()">
+
+  <div class="h-full max-w-7xl mx-auto w-full px-8 py-6 flex flex-col min-h-0 gap-4">
+
+    <header class="flex items-start justify-between gap-6 shrink-0">
+      <div class="space-y-1">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">DaisyUI 5 &middot; Paired tokens</p>
+        <h1 class="text-2xl font-bold tracking-tight">Theme Explorer</h1>
+        <p class="text-sm text-base-content/60 max-w-2xl">Each cell is a pill in its fill color with <span class="font-semibold">Aa</span> in its content color, so every swatch previews the contrast it exists to provide. Hover for the raw <code class="text-xs">oklch</code> values.</p>
+      </div>
+
+      <div class="dropdown dropdown-end shrink-0">
+        <button tabindex="0" class="btn btn-sm gap-2 rounded-full px-4">
+          <i class="ph ph-palette text-lg"></i>
+          <span class="capitalize" x-text="cur"></span>
+          <i class="ph ph-caret-down text-xs"></i>
+        </button>
+        <div tabindex="0"
+             class="dropdown-content z-50 bg-base-100 rounded-box mt-2 shadow-lg border border-base-300 overflow-hidden"
+             :style="`width: ${cols * 12}rem`">
+          <div class="flex items-center justify-between gap-3 px-3 py-2 border-b border-base-300">
+            <span class="text-xs font-medium text-base-content/60">Columns</span>
+            <div class="join">
+              <template x-for="n in [1,2,3,4]" :key="n">
+                <button @click="cols = n" :class="cols === n ? 'btn-primary' : ''"
+                        class="btn btn-xs join-item" x-text="n"></button>
+              </template>
+            </div>
+          </div>
+          <ul class="max-h-80 overflow-y-auto p-1 grid gap-1" :class="`grid-cols-${cols}`">
+            <template x-for="theme in Object.keys(themes)" :key="theme">
+              <li :data-theme="theme">
+                <a @click="set(theme)"
+                   class="block cursor-pointer bg-base-100 hover:bg-base-200 rounded-box px-3 py-2 border border-base-300/50 transition-colors">
+                  <div class="flex items-center gap-2">
+                    <div class="flex gap-1 flex-shrink-0">
+                      <span class="w-3 h-3 rounded-full bg-primary"></span>
+                      <span class="w-3 h-3 rounded-full bg-secondary"></span>
+                      <span class="w-3 h-3 rounded-full bg-accent"></span>
+                    </div>
+                    <span class="flex-1 text-sm capitalize truncate text-base-content" x-text="theme"></span>
+                    <i class="ph ph-check text-primary flex-shrink-0" :class="cur===theme ? '' : 'opacity-0'"></i>
+                  </div>
+                </a>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid sm:grid-cols-3 gap-x-8 gap-y-2 py-3 border-y border-base-300 shrink-0">
+      <div class="flex items-start gap-2">
+        <i class="ph ph-circles-three text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Pairs, merged.</span> Fill and content collapse into one pill, so each column is a readable relationship.</p>
+      </div>
+      <div class="flex items-start gap-2">
+        <i class="ph ph-stack text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Grouped headers.</span> Surfaces, Brand, Status and Geometry carry the family name. No <code class="text-xs">color-</code> prefix.</p>
+      </div>
+      <div class="flex items-start gap-2">
+        <i class="ph ph-ruler text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Geometry, previewed.</span> Radius and border render as little shapes at their real values.</p>
+      </div>
+    </section>
+
+    <section class="flex-1 flex flex-col min-h-0">
+      <div class="flex items-baseline justify-between mb-2 shrink-0">
+        <h2 class="text-base font-semibold">Token Matrix</h2>
+        <span class="text-xs text-base-content/60">
+          <span x-text="Object.keys(themes).length"></span> themes
+          <span class="opacity-40">&middot;</span> 20 colors
+          <span class="opacity-40">&middot;</span> 7 geometry
+        </span>
+      </div>
+      <div x-ref="matrix" class="flex-1 min-h-0 border border-base-300 rounded-[min(var(--radius-field),0.5rem)] overflow-hidden"></div>
+    </section>
+
+  </div>
+
+  <script>
+    const grab = css =>
+      Object.fromEntries([...css.matchAll(/\[data-theme=([^\]]+)\][^{]*\{([^}]+)\}/g)]
+        .map(([,n,b])=>[n, Object.fromEntries(
+          [...b.matchAll(/--([^:]+):\s*([^;]+);/g)].map(([,k,v])=>[k.trim(),v.trim()]))]));
+
+    const cap = s => s[0].toUpperCase() + s.slice(1);
+
+    // block-level box so cell content has no inline baseline strut (keeps rows tight)
+    const wrap = inner => `<div class="flex items-center justify-center leading-none">${inner}</div>`;
+
+    // one column = a fill/content pair, shown as a pill that demonstrates the contrast
+    const pill = name => ({
+      title: cap(name), field: 'color-' + name, headerSort: false, hozAlign: 'center', width: 92,
+      formatter: cell => {
+        const d = cell.getData();
+        const bg = d['color-' + name] || '', fg = d['color-' + name + '-content'] || '';
+        const t = `${name} ${bg}\n${name}-content ${fg}`;
+        return wrap(`<span title="${t}" style="background:${bg};color:${fg}"
+          class="inline-flex items-center justify-center w-14 h-7 rounded-full text-xs font-semibold shadow-sm">Aa</span>`);
+      }
+    });
+
+    // surfaces: three base shades as bands, base-content as the Aa
+    const surfaces = {
+      title: 'Base', field: 'color-base-100', headerSort: false, hozAlign: 'center', width: 108,
+      formatter: cell => {
+        const d = cell.getData();
+        const c1 = d['color-base-100'], c2 = d['color-base-200'], c3 = d['color-base-300'], fg = d['color-base-content'];
+        const t = `base-100 ${c1}\nbase-200 ${c2}\nbase-300 ${c3}\nbase-content ${fg}`;
+        const bg = `linear-gradient(90deg, ${c1} 0 33.3%, ${c2} 33.3% 66.6%, ${c3} 66.6% 100%)`;
+        return wrap(`<span title="${t}" style="background:${bg};color:${fg};border:1px solid color-mix(in oklch, ${fg} 18%, transparent)"
+          class="inline-flex items-center justify-center w-16 h-7 rounded-full text-xs font-semibold">Aa</span>`);
+      }
+    };
+
+    // geometry previews
+    const radius = {
+      title: 'Radius', field: 'radius-box', headerSort: false, hozAlign: 'center', width: 116,
+      formatter: cell => {
+        const d = cell.getData();
+        const box = d['radius-box'] || '0', fld = d['radius-field'] || '0', sel = d['radius-selector'] || '0';
+        const t = `radius-box ${box}\nradius-field ${fld}\nradius-selector ${sel}`;
+        const sq = r => `<span style="border-radius:${r}" class="inline-block w-7 h-7 bg-primary/55 border border-base-content/20"></span>`;
+        return wrap(`<span title="${t}" class="inline-flex gap-1 items-center">${sq(box)}${sq(fld)}${sq(sel)}</span>`);
+      }
+    };
+    const border = {
+      title: 'Border', field: 'border', headerSort: false, hozAlign: 'center', width: 84,
+      formatter: cell => {
+        const b = cell.getData()['border'] || '1px';
+        const num = b.replace(/px$/, '');
+        return wrap(`<span title="border ${b}" style="border:${b} solid color-mix(in oklch, currentColor 85%, transparent)"
+          class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-base-200 font-mono text-[11px] text-base-content/70">${num}</span>`);
+      }
+    };
+    const sizes = {
+      title: 'Size', field: 'size-field', headerSort: false, hozAlign: 'center', width: 100,
+      formatter: cell => {
+        const d = cell.getData(); const f = d['size-field'] || '', s = d['size-selector'] || '';
+        return wrap(`<span title="size-field ${f}\nsize-selector ${s}" class="inline-flex items-center h-7 font-mono text-[11px] opacity-60">${f} / ${s}</span>`);
+      }
+    };
+    const depth = {
+      title: 'Depth', field: 'depth', headerSort: false, hozAlign: 'center', width: 64,
+      formatter: cell => {
+        const v = cell.getData()['depth'] || '';
+        return wrap(`<span title="depth ${v}" class="inline-flex items-center h-7 font-mono text-[11px] opacity-60">${v}</span>`);
+      }
+    };
+
+    const themeName = {
+      title: 'Theme', field: 'theme', frozen: true, width: 184, minWidth: 184,
+      formatter: cell => `<span class="capitalize font-medium">${cell.getValue()}</span>`
+    };
+
+    function explorer() {
+      return {
+        themes: {}, cur: 'emerald', cols: 2, table: null,
+        async init() {
+          this.themes = grab(await (await fetch('https://cdn.jsdelivr.net/npm/daisyui@5/themes.css')).text());
+          this.build();
+        },
+        set(theme) {
+          this.cur = theme;
+          document.documentElement.setAttribute('data-theme', theme);
+          if (this.table) this.table.selectRow(theme);   // one selected row, follows current theme
+        },
+        build() {
+          const rows = Object.entries(this.themes).map(([theme, vars]) => ({ theme, ...vars }));
+          this.table = new Tabulator(this.$refs.matrix, {
+            data: rows,
+            height: '100%',          // fill the flex slot instead of a fixed viewport fraction
+            index: 'theme',          // row id = theme name, so selectRow(name) works
+            selectableRows: 1,       // 6.x name; rolling, so picking a new row drops the old
+            columns: [
+              themeName,
+              { title: 'Surfaces', columns: [surfaces] },
+              { title: 'Brand', columns: [pill('primary'), pill('secondary'), pill('accent'), pill('neutral')] },
+              { title: 'Status', columns: [pill('info'), pill('success'), pill('warning'), pill('error')] },
+              { title: 'Geometry', columns: [radius, border, sizes, depth] }
+            ]
+          });
+          this.table.on('rowClick', (e, row) => this.set(row.getData().theme));
+          this.table.on('tableBuilt', () => this.table.selectRow(this.cur));
+        }
+      };
+    }
+  </script>
+</body>
+</html>
