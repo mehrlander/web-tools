@@ -95,6 +95,7 @@ const CDN_DEFAULT = {
   '@alpinejs/sort': 'dist/cdn.min.js',
   '@tailwindcss/browser': 'dist/index.global.js',
   'daisyui': 'daisyui.css',
+  'tabulator-tables': 'dist/js/tabulator.min.js',
 };
 
 const TYPES = {
@@ -145,6 +146,9 @@ function localBody(fp) {
   return existsSync(fp) ? { body: readFileSync(fp), contentType: typeFor(fp) } : null;
 }
 
+// One CDN spec ("npm/pkg@ver/sub") -> local bytes, or null if not vendored.
+const readLocal = spec => { const { pkg, sub } = parseSpec(spec); return localBody(nodeFile(pkg, sub)); };
+
 const [, , htmlArg = 'page.html', outArg = 'out.png'] = process.argv;
 
 const browser = await chromium.launch({
@@ -154,6 +158,23 @@ const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
 
 await page.route('**/*', route => {
   const url = new URL(route.request().url());
+
+  // jsDelivr /combine/<spec>,<spec>,... is one bundled request the page made;
+  // answer it by concatenating the local files (all share a type: JS or CSS).
+  if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith('/combine/')) {
+    const specs = decodeURIComponent(url.pathname.slice('/combine/'.length)).split(',');
+    const parts = [];
+    let contentType;
+    for (const s of specs) {
+      const hit = readLocal(s);
+      if (!hit) { console.warn('MISS combine', s); continue; }
+      parts.push(hit.body);
+      contentType = hit.contentType;
+    }
+    if (!parts.length) return route.fulfill({ status: 404, body: '' });
+    return route.fulfill({ body: Buffer.concat(parts.map(Buffer.from)), contentType });
+  }
+
   let spec = null;
   if (url.host === 'cdn.jsdelivr.net' && url.pathname.startsWith('/npm/'))
     spec = url.pathname.slice('/npm/'.length);
@@ -161,10 +182,9 @@ await page.route('**/*', route => {
     spec = url.pathname.slice(1);
   if (spec == null) return route.continue(); // not a CDN lib: fonts, APIs, etc.
 
-  const { pkg, sub } = parseSpec(spec);
-  const hit = localBody(nodeFile(pkg, sub));
+  const hit = readLocal(spec);
   if (hit) return route.fulfill(hit);
-  console.warn('MISS', url.href, '->', pkg, sub); // unvendored: run `npm i -D` it
+  console.warn('MISS', url.href); // unvendored: run `npm i -D` it
   return route.fulfill({ status: 404, body: '' });
 });
 
@@ -256,6 +276,35 @@ interactive dashboard card, feature row) is committed alongside this doc:
 [`docs/examples/landing-demo.html`](examples/landing-demo.html). Render it with
 the `render.mjs` above (viewport `1280x832`, `deviceScaleFactor: 2`) for a
 full-bleed result.
+
+## A richer example: theme switching + tokens from source
+
+[`docs/examples/theme-explorer.html`](examples/theme-explorer.html) is a second
+example that stresses more of the harness. It's a daisyUI **theme picker**:
+clicking a theme sets `data-theme` on `<html>` to recolor the page live, and each
+option in the dropdown previews in its own theme's colors (each list item carries
+its own `data-theme`). Below it, a Tabulator grid shows every built-in theme
+against every design token, parsed at runtime out of daisyUI's own
+`themes.css`, nothing hardcoded. It demonstrates four things the minimal example
+doesn't:
+
+- **`/combine/` requests.** Its `<script>` and `<link>` each bundle several
+  packages in one jsDelivr `/combine/` URL. The interceptor above splits the
+  comma-list and concatenates the local files, so one request is answered from
+  several `node_modules` files.
+- **A runtime `fetch` of a vendored file.** The page `fetch`es
+  `daisyui@5/themes.css` and parses it. `page.route` intercepts `fetch` the same
+  as a tag, so it's served from `node_modules` and the table is the library's
+  real source.
+- **Phosphor via the combine script.** `npm/@phosphor-icons/web`'s package `main`
+  is a tiny loader that injects a `<link>` per icon weight; the interceptor then
+  serves each weight's CSS and its font files. Loading the one package is enough,
+  no separate icon-CSS link needed.
+- **Tabulator**, another vendored UMD global, mounting and rendering.
+
+This is also where the page earns its "on theme" note: a `Vendor & inject` footer
+explains, in the page itself, that every library loads from a CDN URL yet is
+served locally under the harness, same URLs, different source.
 
 ## Gotchas
 

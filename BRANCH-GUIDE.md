@@ -10,11 +10,16 @@ session in another repo.
 **Changed:**
 - docs/headless-vendoring.md ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/headless-vendoring.md))
 - docs/examples/landing-demo.html ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/examples/landing-demo.html))
+- docs/examples/theme-explorer.html ([new](https://github.com/mehrlander/web-tools/blob/claude/headless-tailwind-daisyui-alpine-ue50gn/docs/examples/theme-explorer.html))
 
 **Next steps / open threads:**
-- Verified end-to-end: the doc's render.mjs ran against both the minimal card and
-  the full landing page; both screenshots produced correctly with all four libs
-  (Tailwind/daisyUI/Phosphor/Alpine) served from node_modules, no CDN reached.
+- Verified end-to-end: the doc's render.mjs (extracted verbatim) renders the
+  minimal card, the landing hero, and the theme-explorer; all served from
+  node_modules, no CDN reached, no MISS/console errors.
+- render.mjs now handles jsDelivr `/combine/` (concat local files) and a runtime
+  `fetch` of a vendored file; theme-explorer exercises both, plus Phosphor via the
+  combine script (its main injects per-weight CSS links), Tabulator, and live
+  daisyUI `data-theme` switching. It carries an on-page "Vendor & inject" note.
 - Doc now also covers chat image-presentation (file-send tool, not markdown) and
   designing for the frame (viewport vs fullPage, deviceScaleFactor, solid dark bg,
   avoid bg-clip-text). landing-demo.html is the presentation-quality example.
