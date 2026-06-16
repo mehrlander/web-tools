@@ -2,7 +2,7 @@
 <html lang="en" data-theme="emerald">
 <head>
   <meta charset="UTF-8" />
-  <title>DaisyUI Theme Explorer</title>
+  <title>Theme Explorer · Paired Pills</title>
   <!-- One tag per library (no /combine/): clearer, and each vendors independently -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2"></script>
@@ -10,22 +10,26 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_simple.min.css" rel="stylesheet" />
+  <style>
+    .tabulator { background-color: var(--color-base-100); color: var(--color-base-content); border-color: var(--color-base-300); }
+    .tabulator .tabulator-tableholder .tabulator-table { background-color: var(--color-base-100); color: var(--color-base-content); }
+    .tabulator .tabulator-header,
+    .tabulator .tabulator-header .tabulator-col { background-color: var(--color-base-200); color: var(--color-base-content); border-color: var(--color-base-300); }
+  </style>
   <script defer src="https://unpkg.com/alpinejs@3"></script>
 </head>
-<body class="min-h-screen bg-base-100 text-base-content font-sans"
+<body class="h-screen overflow-hidden bg-base-100 text-base-content font-sans"
       x-data="explorer()" x-init="init()">
 
-  <div class="max-w-6xl mx-auto px-8 py-12">
+  <div class="h-full max-w-7xl mx-auto w-full px-8 py-6 flex flex-col min-h-0 gap-4">
 
-    <!-- header -->
-    <header class="flex items-start justify-between gap-6 mb-10">
-      <div class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">DaisyUI 5 &middot; Theme tokens</p>
-        <h1 class="text-3xl font-bold tracking-tight">Theme Explorer</h1>
-        <p class="text-base-content/60 max-w-xl">Pick any built-in theme to recolor the page, then read the raw design tokens behind every theme in one table.</p>
+    <header class="flex items-start justify-between gap-6 shrink-0">
+      <div class="space-y-1">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">DaisyUI 5 &middot; Paired tokens</p>
+        <h1 class="text-2xl font-bold tracking-tight">Theme Explorer</h1>
+        <p class="text-sm text-base-content/60 max-w-2xl">Each cell is a pill in its fill color with <span class="font-semibold">Aa</span> in its content color, so every swatch previews the contrast it exists to provide. Hover for the raw <code class="text-xs">oklch</code> values.</p>
       </div>
 
-      <!-- theme picker (column control lives inside) -->
       <div class="dropdown dropdown-end shrink-0">
         <button tabindex="0" class="btn btn-sm gap-2 rounded-full px-4">
           <i class="ph ph-palette text-lg"></i>
@@ -39,8 +43,7 @@
             <span class="text-xs font-medium text-base-content/60">Columns</span>
             <div class="join">
               <template x-for="n in [1,2,3,4]" :key="n">
-                <button @click="cols = n"
-                        :class="cols === n ? 'btn-primary' : ''"
+                <button @click="cols = n" :class="cols === n ? 'btn-primary' : ''"
                         class="btn btn-xs join-item" x-text="n"></button>
               </template>
             </div>
@@ -57,8 +60,7 @@
                       <span class="w-3 h-3 rounded-full bg-accent"></span>
                     </div>
                     <span class="flex-1 text-sm capitalize truncate text-base-content" x-text="theme"></span>
-                    <i class="ph ph-check text-primary flex-shrink-0"
-                       :class="cur===theme ? '' : 'opacity-0'"></i>
+                    <i class="ph ph-check text-primary flex-shrink-0" :class="cur===theme ? '' : 'opacity-0'"></i>
                   </div>
                 </a>
               </li>
@@ -68,102 +70,140 @@
       </div>
     </header>
 
-    <!-- what this demonstrates -->
-    <section class="grid sm:grid-cols-3 gap-8 py-8 border-y border-base-300 mb-10">
-      <div>
-        <i class="ph ph-magic-wand text-xl text-primary"></i>
-        <h3 class="font-medium mt-2">Dynamic picker</h3>
-        <p class="text-sm text-base-content/60 mt-1">Sets <code class="text-xs">data-theme</code> live, and previews each option in its own colors.</p>
+    <section class="grid sm:grid-cols-3 gap-x-8 gap-y-2 py-3 border-y border-base-300 shrink-0">
+      <div class="flex items-start gap-2">
+        <i class="ph ph-circles-three text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Pairs, merged.</span> Fill and content collapse into one pill, so each column is a readable relationship.</p>
       </div>
-      <div>
-        <i class="ph ph-brackets-curly text-xl text-primary"></i>
-        <h3 class="font-medium mt-2">Tokens from source</h3>
-        <p class="text-sm text-base-content/60 mt-1">Fetches DaisyUI's <code class="text-xs">themes.css</code> and parses every token out of it. Nothing is hardcoded.</p>
+      <div class="flex items-start gap-2">
+        <i class="ph ph-stack text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Grouped headers.</span> Surfaces, Brand, Status and Geometry carry the family name. No <code class="text-xs">color-</code> prefix.</p>
       </div>
-      <div>
-        <i class="ph ph-package text-xl text-primary"></i>
-        <h3 class="font-medium mt-2">One tag per library</h3>
-        <p class="text-sm text-base-content/60 mt-1">Tailwind, daisyUI, Phosphor, Tabulator and Alpine each load from their own CDN tag, so each vendors independently.</p>
+      <div class="flex items-start gap-2">
+        <i class="ph ph-ruler text-lg text-primary mt-0.5"></i>
+        <p class="text-xs text-base-content/60 leading-snug"><span class="font-medium text-base-content">Geometry, previewed.</span> Radius and border render as little shapes at their real values.</p>
       </div>
     </section>
 
-    <!-- matrix -->
-    <section>
-      <div class="flex items-baseline justify-between mb-3">
-        <h2 class="text-lg font-semibold">Parameter Matrix</h2>
-        <span class="text-sm text-base-content/60">
+    <section class="flex-1 flex flex-col min-h-0">
+      <div class="flex items-baseline justify-between mb-2 shrink-0">
+        <h2 class="text-base font-semibold">Token Matrix</h2>
+        <span class="text-xs text-base-content/60">
           <span x-text="Object.keys(themes).length"></span> themes
-          <span class="opacity-40">&middot;</span>
-          <span x-text="keyCount"></span> tokens
+          <span class="opacity-40">&middot;</span> 20 colors
+          <span class="opacity-40">&middot;</span> 7 geometry
         </span>
       </div>
-      <div x-ref="matrix" class="border border-base-300"></div>
+      <div x-ref="matrix" class="flex-1 min-h-0 border border-base-300 rounded-[min(var(--radius-field),0.5rem)] overflow-hidden"></div>
     </section>
-
-    <!-- the concept, on theme -->
-    <footer class="mt-10 rounded-box border border-base-300 bg-base-200 p-6">
-      <div class="flex items-start gap-4">
-        <i class="ph ph-package text-2xl text-primary mt-0.5"></i>
-        <div class="space-y-2">
-          <h3 class="font-semibold">Vendor &amp; inject</h3>
-          <p class="text-sm text-base-content/70 max-w-3xl">
-            Every library on this page loads from its own CDN tag: Tailwind, daisyUI, Phosphor and
-            Tabulator from jsDelivr, Alpine from unpkg. Behind a locked-down allowlist those hosts are
-            blocked, so a headless render harness <em>vendors</em> each package from npm and
-            <em>injects</em> it in place of the CDN response. The HTML never changes: same URLs,
-            different source. daisyUI's <code class="text-xs">themes.css</code> is fetched the same way,
-            then parsed into the table above, so the matrix is the library's own source, not a
-            transcription.
-          </p>
-        </div>
-      </div>
-    </footer>
 
   </div>
 
   <script>
-    // extract every DaisyUI theme into { name: { var: value } }
     const grab = css =>
       Object.fromEntries([...css.matchAll(/\[data-theme=([^\]]+)\][^{]*\{([^}]+)\}/g)]
         .map(([,n,b])=>[n, Object.fromEntries(
           [...b.matchAll(/--([^:]+):\s*([^;]+);/g)].map(([,k,v])=>[k.trim(),v.trim()]))]));
 
-    // color cells become a tinted chip; everything else stays plain text
-    const chip = cell => {
-      const v = (cell.getValue()||'').trim();
-      const m = v.match(/^oklch\(\s*([\d.]+)%/i);
-      if(!m) return v;
-      const fg = +m[1] > 60 ? '#000' : '#fff';
-      return `<span style="background:${v};color:${fg};font:600 .7rem/1 ui-monospace,monospace;
-                           padding:.2rem .4rem;border-radius:.4rem;display:inline-block">
-                ${v.replace(/^oklch\(|\)$/g,'')}</span>`;
+    const cap = s => s[0].toUpperCase() + s.slice(1);
+
+    // block-level box so cell content has no inline baseline strut (keeps rows tight)
+    const wrap = inner => `<div class="flex items-center justify-center leading-none">${inner}</div>`;
+
+    // one column = a fill/content pair, shown as a pill that demonstrates the contrast
+    const pill = name => ({
+      title: cap(name), field: 'color-' + name, headerSort: false, hozAlign: 'center', width: 92,
+      formatter: cell => {
+        const d = cell.getData();
+        const bg = d['color-' + name] || '', fg = d['color-' + name + '-content'] || '';
+        const t = `${name} ${bg}\n${name}-content ${fg}`;
+        return wrap(`<span title="${t}" style="background:${bg};color:${fg}"
+          class="inline-flex items-center justify-center w-14 h-7 rounded-full text-xs font-semibold shadow-sm">Aa</span>`);
+      }
+    });
+
+    // surfaces: three base shades as bands, base-content as the Aa
+    const surfaces = {
+      title: 'Base', field: 'color-base-100', headerSort: false, hozAlign: 'center', width: 108,
+      formatter: cell => {
+        const d = cell.getData();
+        const c1 = d['color-base-100'], c2 = d['color-base-200'], c3 = d['color-base-300'], fg = d['color-base-content'];
+        const t = `base-100 ${c1}\nbase-200 ${c2}\nbase-300 ${c3}\nbase-content ${fg}`;
+        const bg = `linear-gradient(90deg, ${c1} 0 33.3%, ${c2} 33.3% 66.6%, ${c3} 66.6% 100%)`;
+        return wrap(`<span title="${t}" style="background:${bg};color:${fg};border:1px solid color-mix(in oklch, ${fg} 18%, transparent)"
+          class="inline-flex items-center justify-center w-16 h-7 rounded-full text-xs font-semibold">Aa</span>`);
+      }
     };
 
-    function explorer(){
+    // geometry previews
+    const radius = {
+      title: 'Radius', field: 'radius-box', headerSort: false, hozAlign: 'center', width: 116,
+      formatter: cell => {
+        const d = cell.getData();
+        const box = d['radius-box'] || '0', fld = d['radius-field'] || '0', sel = d['radius-selector'] || '0';
+        const t = `radius-box ${box}\nradius-field ${fld}\nradius-selector ${sel}`;
+        const sq = r => `<span style="border-radius:${r}" class="inline-block w-7 h-7 bg-primary/55 border border-base-content/20"></span>`;
+        return wrap(`<span title="${t}" class="inline-flex gap-1 items-center">${sq(box)}${sq(fld)}${sq(sel)}</span>`);
+      }
+    };
+    const border = {
+      title: 'Border', field: 'border', headerSort: false, hozAlign: 'center', width: 84,
+      formatter: cell => {
+        const b = cell.getData()['border'] || '1px';
+        const num = b.replace(/px$/, '');
+        return wrap(`<span title="border ${b}" style="border:${b} solid color-mix(in oklch, currentColor 85%, transparent)"
+          class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-base-200 font-mono text-[11px] text-base-content/70">${num}</span>`);
+      }
+    };
+    const sizes = {
+      title: 'Size', field: 'size-field', headerSort: false, hozAlign: 'center', width: 100,
+      formatter: cell => {
+        const d = cell.getData(); const f = d['size-field'] || '', s = d['size-selector'] || '';
+        return wrap(`<span title="size-field ${f}\nsize-selector ${s}" class="inline-flex items-center h-7 font-mono text-[11px] opacity-60">${f} / ${s}</span>`);
+      }
+    };
+    const depth = {
+      title: 'Depth', field: 'depth', headerSort: false, hozAlign: 'center', width: 64,
+      formatter: cell => {
+        const v = cell.getData()['depth'] || '';
+        return wrap(`<span title="depth ${v}" class="inline-flex items-center h-7 font-mono text-[11px] opacity-60">${v}</span>`);
+      }
+    };
+
+    const themeName = {
+      title: 'Theme', field: 'theme', frozen: true, width: 184, minWidth: 184,
+      formatter: cell => `<span class="capitalize font-medium">${cell.getValue()}</span>`
+    };
+
+    function explorer() {
       return {
-        themes:{}, cur:'emerald', cols:2, keyCount:0,
-        async init(){
-          this.themes = grab(await (await fetch(
-            'https://cdn.jsdelivr.net/npm/daisyui@5/themes.css')).text());
-          this.matrix();
+        themes: {}, cur: 'emerald', cols: 2, table: null,
+        async init() {
+          this.themes = grab(await (await fetch('https://cdn.jsdelivr.net/npm/daisyui@5/themes.css')).text());
+          this.build();
         },
-        set(theme){
+        set(theme) {
           this.cur = theme;
           document.documentElement.setAttribute('data-theme', theme);
+          if (this.table) this.table.selectRow(theme);   // one selected row, follows current theme
         },
-        matrix(){
-          const keys = [...new Set(Object.values(this.themes).flatMap(Object.keys))].sort();
-          this.keyCount = keys.length;
-          const rows = Object.entries(this.themes).map(([theme,vars]) =>
-            ({theme, ...Object.fromEntries(keys.map(k=>[k, vars[k] ?? '']))}));
-          new Tabulator(this.$refs.matrix, {
+        build() {
+          const rows = Object.entries(this.themes).map(([theme, vars]) => ({ theme, ...vars }));
+          this.table = new Tabulator(this.$refs.matrix, {
             data: rows,
-            height: '60vh',
+            height: '100%',          // fill the flex slot instead of a fixed viewport fraction
+            index: 'theme',          // row id = theme name, so selectRow(name) works
+            selectableRows: 1,       // 6.x name; rolling, so picking a new row drops the old
             columns: [
-              {title:'Theme', field:'theme', frozen:true},
-              ...keys.map(k=>({title:k, field:k, headerSort:false, formatter:chip}))
+              themeName,
+              { title: 'Surfaces', columns: [surfaces] },
+              { title: 'Brand', columns: [pill('primary'), pill('secondary'), pill('accent'), pill('neutral')] },
+              { title: 'Status', columns: [pill('info'), pill('success'), pill('warning'), pill('error')] },
+              { title: 'Geometry', columns: [radius, border, sizes, depth] }
             ]
           });
+          this.table.on('rowClick', (e, row) => this.set(row.getData().theme));
+          this.table.on('tableBuilt', () => this.table.selectRow(this.cur));
         }
       };
     }

@@ -19,6 +19,11 @@ session in another repo.
 - Minimal worked example is now LIGHT (user dislikes dark), a card centered on a
   soft light gradient, full-bleed.
 - Only one example now: theme-explorer. landing-demo deleted.
+- theme-explorer swapped to the user's nicer "paired pills" version: each cell a
+  fill/content pill (Aa), grouped Surfaces/Brand/Status/Geometry headers, geometry
+  shape previews, h-screen layout with the Tabulator grid filling a flex slot and
+  themed via var(--color-base-*) so a recolor recolors the table. Combine converted
+  to separate tags, Alpine unpkg@3. Capture viewport (not fullPage).
 - Decision: author pages with one tag per library, NOT jsDelivr `/combine/`.
   render.mjs still handles `/combine/` for pre-existing pages; doc explains the
   split is of the URL path (not a downloaded body) since jsDelivr is never reached.

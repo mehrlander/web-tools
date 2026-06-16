@@ -315,12 +315,15 @@ above (viewport `1280x832`, `deviceScaleFactor: 2`).
 
 [`docs/examples/theme-explorer.html`](examples/theme-explorer.html) is a second
 example that stresses more of the harness. It's a daisyUI **theme picker**:
-clicking a theme sets `data-theme` on `<html>` to recolor the page live, and each
-option in the dropdown previews in its own theme's colors (each list item carries
-its own `data-theme`). Below it, a Tabulator grid shows every built-in theme
-against every design token, parsed at runtime out of daisyUI's own
-`themes.css`, nothing hardcoded. It demonstrates three things the minimal example
-doesn't:
+clicking a theme (or a row of the matrix) sets `data-theme` on `<html>` to
+recolor the whole page live, and each option in the dropdown previews in its own
+theme's colors (each list item carries its own `data-theme`). The body is a
+Tabulator grid of every built-in theme against its design tokens, parsed at
+runtime out of daisyUI's own `themes.css`, nothing hardcoded: each cell is a pill
+in its fill color with "Aa" in its content color (so the swatch previews the
+contrast it exists to provide), under grouped Surfaces / Brand / Status /
+Geometry headers, with little shape previews for the radius and border tokens. It
+demonstrates three things the minimal example doesn't:
 
 - **A runtime `fetch` of a vendored file.** The page `fetch`es
   `daisyui@5/themes.css` and parses it. `page.route` intercepts `fetch` the same
@@ -330,13 +333,13 @@ doesn't:
   tiny loader that injects a `<link>` per icon weight; the interceptor then serves
   each weight's CSS and its font files. Loading the one package is enough, no
   separate icon-CSS links needed.
-- **Tabulator**, another vendored UMD global, mounting and rendering.
+- **Tabulator**, another vendored UMD global, mounting and rendering. The grid is
+  styled to follow the active theme via `var(--color-base-*)`, so recoloring the
+  page recolors the table too.
 
-Each library is a separate tag (no `/combine/`), which is the recommended style;
-the page's third feature card and its `Vendor & inject` footer say so in place.
-That footer is where the page earns its "on theme" note: it explains, in the page
-itself, that every library loads from a CDN URL yet is served locally under the
-harness, same URLs, different source.
+It's a full-screen layout (`h-screen`, the grid fills the remaining flex slot),
+so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
+`/combine/`), the recommended style.
 
 ## Gotchas
 
