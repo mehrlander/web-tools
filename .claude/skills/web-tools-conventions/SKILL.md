@@ -29,9 +29,10 @@ branch anchor, session diff, URL templates) are universal: apply them as-is,
 substituting the current repo into the URL templates. Its **surfacing course** (the
 branch-guide/PR-body/merge-guide lifecycle, wrap-up, and handoff) is an opt-in
 layer for PR-driven repos; take it only if the repo wants that workflow, and a
-repo can opt in later. The file also defines two extension points (preview
-mechanism, per-session refreshes) that the current repo's CLAUDE.md may fill; if
-it doesn't, the documented defaults apply. Where the current repo's own
+repo can opt in later. The file also defines three extension points (preview
+mechanism, per-session refreshes, and branch-guide enforcement, the last
+relevant only if you adopt the course) that the current repo's CLAUDE.md may
+fill; if it doesn't, the documented defaults apply. Where the current repo's own
 CLAUDE.md conflicts on a point, the current repo wins.
 
 ## Fallbacks
