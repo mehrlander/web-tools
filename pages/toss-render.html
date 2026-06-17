@@ -69,11 +69,11 @@
 
   Private repos / un-deployed branches in #gh=: Pages and jsDelivr won't serve
   the content, and a token can't ride on a plain <script src>/<link href>, so
-  the page's own relative deps would 404. DUMBO (below) closes the basic case:
-  it inlines each relative <script src> and <link rel=stylesheet href> by
-  fetching it through the authenticated contents API at the same ref. Still
-  unhandled, so self-contained-ish pages work best: images, CSS url()/@import,
-  and second-level module imports.
+  the page's own relative deps would 404. Render-time inlining (see
+  inlineRelativeDeps below) closes the basic case: each relative <script src>
+  and <link rel=stylesheet href> is fetched through the authenticated contents
+  API at the same ref and inlined. Still unhandled, so self-contained-ish pages
+  work best: images, CSS url()/@import, and second-level module imports.
 
   The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
   (canonical copy; re-copy from there after edits). Current text:
@@ -264,24 +264,24 @@
     return decodeB64(data.content);
   }
 
-  // DUMBO — Dynamic Unplanned mini-Bake Operation. A private repo (or an
-  // un-deployed branch) isn't served by Pages or jsDelivr, and a token can't
-  // ride on a plain <script src> / <link href>, so a page's own same-dir deps
-  // would just 404. DUMBO fetches each *relative* <script src> and
+  // Inline relative script/CSS deps (a render-time mini-bake). A private repo
+  // (or an un-deployed branch) isn't served by Pages or jsDelivr, and a token
+  // can't ride on a plain <script src> / <link href>, so a page's own same-dir
+  // deps would just 404. So fetch each *relative* <script src> and
   // <link rel=stylesheet href> through the authenticated contents API at the
-  // same ref and inlines it (scripts as <script>, CSS as <style>) — so a page
+  // same ref and inline it (scripts as <script>, CSS as <style>) — a page
   // written with ordinary references renders without ever being authored to
   // gh.load. Static first-level refs only: nested module imports, CSS
   // url()/@import, and images are left to <base> and a later pass. Runs only in
   // trusted address mode, and is a no-op when there are no relative deps.
-  function dumboRelative(u) {
+  function isRelativeRef(u) {
     return !!u && !/^[a-z][a-z0-9+.-]*:/i.test(u) &&
       !u.startsWith('//') && !u.startsWith('/') && !u.startsWith('#') && !u.startsWith('data:');
   }
-  function dumboPath(dir, u) {
+  function resolveRepoPath(dir, u) {
     try { return new URL(u, 'https://_/' + dir).pathname.slice(1); } catch (e) { return null; }
   }
-  async function dumboBake(text, { owner, name, ref, path }) {
+  async function inlineRelativeDeps(text, { owner, name, ref, path }) {
     let doc;
     try { doc = new DOMParser().parseFromString(text, 'text/html'); } catch (e) { return text; }
     if (!doc || !doc.documentElement) return text;
@@ -290,8 +290,8 @@
 
     doc.querySelectorAll('script[src]').forEach(el => {
       const src = el.getAttribute('src');
-      if (!dumboRelative(src)) return;
-      const p = dumboPath(dir, src);
+      if (!isRelativeRef(src)) return;
+      const p = resolveRepoPath(dir, src);
       if (!p) return;
       jobs.push((async () => {
         try {
@@ -300,14 +300,14 @@
           for (const a of el.attributes) if (a.name !== 'src') s.setAttribute(a.name, a.value);
           s.textContent = code;
           el.replaceWith(s);
-        } catch (e) { el.setAttribute('data-dumbo-error', (e && e.message) || String(e)); }
+        } catch (e) { el.setAttribute('data-inline-error', (e && e.message) || String(e)); }
       })());
     });
 
     doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(el => {
       const href = el.getAttribute('href');
-      if (!dumboRelative(href)) return;
-      const p = dumboPath(dir, href);
+      if (!isRelativeRef(href)) return;
+      const p = resolveRepoPath(dir, href);
       if (!p) return;
       jobs.push((async () => {
         try {
@@ -316,7 +316,7 @@
           if (el.getAttribute('media')) st.setAttribute('media', el.getAttribute('media'));
           st.textContent = css;
           el.replaceWith(st);
-        } catch (e) { el.setAttribute('data-dumbo-error', (e && e.message) || String(e)); }
+        } catch (e) { el.setAttribute('data-inline-error', (e && e.message) || String(e)); }
       })());
     });
 
@@ -352,9 +352,9 @@
     const data = await res.json();
     if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
     const text = decodeB64(data.content);
-    // DUMBO: inline the page's relative script/CSS deps from the same ref, so a
+    // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
-    const baked = await dumboBake(text, { owner, name, ref, path });
+    const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
     showTrusted(addressHtml(baked, { owner, name, ref, path }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr);
   }
