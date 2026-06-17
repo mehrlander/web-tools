@@ -12,7 +12,8 @@
 
 <!--
   toss-render.html — full-viewport render of HTML that GitHub Pages isn't
-  serving. Formerly embed.html. Two kinds of input, with opposite trust:
+  serving. Formerly embed.html. Three ways in: a URL param, a paste, or the
+  on-page GitHub-file field. Two trust levels, opposite handling:
 
   Payload modes (the 🥏 toss — content rides in on the URL, UNTRUSTED):
     #gz=<base64url of gzipped HTML>   inline HTML, gzip-compressed
@@ -20,7 +21,8 @@
     #url=<base64 of absolute URL>     iframe src points at the URL
   Anyone can craft a toss link, so payloads render in a sandbox WITHOUT
   allow-same-origin: scripts run, but under an opaque origin that cannot
-  read this origin's localStorage (which can hold a gh token).
+  read this origin's localStorage (which can hold a gh token). Pasted HTML
+  and pasted URLs are treated as payloads too: same untrusted sandbox.
 
   Address mode (fetched by reference, TRUSTED via allowlist):
     #gh=<owner>/<repo>[@<ref>]:<path>
@@ -34,7 +36,21 @@
   below. A crafted link to someone else's repo is refused outright, so the
   token can neither fetch it nor be exposed to it. The ':' before <path> is
   unambiguous because git forbids ':' in ref names. No @ref means the
-  repo's default branch (and no ?use shim).
+  repo's default branch (and no ?use shim). The on-page field and a pasted
+  github.com/.../blob/<ref>/<path> URL both route here, so a private file is
+  one paste away.
+
+  Empty state: with no input, the page shows a panel — a "Paste & render"
+  button (Clipboard API, so it works from one tap on iOS without revealing
+  the text) and a field for a GitHub file. A global paste listener catches
+  desktop Ctrl/Cmd-V too. Whatever renders, a "Copy toss link" control then
+  rebuilds the durable bookmark (#gz=/#url=/#gh=) for what's on screen.
+
+  The FAB (alpineComponents/fab.js) mounts as a toolbox: zip/offline export,
+  the component/script/console tabs, and "Open at ref in toss-render". It
+  boots after the render logic and self-loads its own kits, so a blocked CDN
+  degrades to render-only rather than breaking the page. ?use=<ref> pins the
+  FAB's lib chain to a branch/tag/sha for previewing edits to this shell.
 
   Params are read from the fragment (#) first, then the query string (?).
   Payloads must use the fragment (a query string travels in the HTTP request
@@ -53,17 +69,45 @@
   javascript:(async()=>{const m=location.hostname==='github.com'&&location.pathname.match(/^\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);if(!m)return alert('Run this from a github.com file (blob) page');const[,owner,repo,ref,path]=m;let text=document.querySelector('#read-only-cursor-text-area')?.value;if(!text){try{const d=JSON.parse(document.querySelector('script[data-target="react-app.embeddedData"]')?.textContent||'{}');text=d?.payload?.blob?.rawLines?.join('\n');}catch(e){}}if(!text){try{const r=await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`);if(r.ok)text=await r.text();}catch(e){}}if(!text)return alert('Could not read the file contents from this page');if(!/<base[\s>]/i.test(text)){const dir=path.split('/').slice(0,-1).join('/');const base=`https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${dir?dir+'/':''}`;text=/<head[^>]*>/i.test(text)?text.replace(/<head[^>]*>/i,h=>`${h}<base href="${base}">`):`<base href="${base}">`+text;}const buf=new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());let s='';for(const c of buf)s+=String.fromCharCode(c);const b64=btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');location.href=`https://mehrlander.github.io/web-tools/pages/toss-render.html#gz=${b64}`;})()
 -->
 </head>
-<body class="h-dvh m-0">
+<body class="h-dvh m-0 bg-base-100">
 
 <iframe id="frame"
-        class="w-full h-full border-0 block bg-base-100"
+        class="w-full h-full border-0 block bg-base-100 hidden"
         referrerpolicy="no-referrer"
         allow="fullscreen"></iframe>
 
-<div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-3 p-8 text-center font-mono text-sm">
-  <i class="ph ph-disc text-4xl opacity-60"></i>
-  <p class="text-base-content/70 max-w-md" id="empty-msg"></p>
+<!-- Contextual actions, shown only while content is rendered. -->
+<div id="bar" class="hidden fixed top-2 left-1/2 -translate-x-1/2 z-40 items-center gap-1 rounded-full bg-base-100/90 backdrop-blur border border-base-300 shadow px-1.5 py-1">
+  <button id="copy-link" class="btn btn-ghost btn-xs gap-1"><i class="ph ph-link"></i><span>Copy toss link</span></button>
+  <button id="new-toss" class="btn btn-ghost btn-xs btn-circle" title="New toss"><i class="ph ph-x"></i></button>
 </div>
+
+<!-- Input panel (empty state). -->
+<div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
+  <i class="ph ph-disc text-5xl opacity-50"></i>
+
+  <button id="paste-btn" class="btn btn-primary gap-2"><i class="ph ph-clipboard-text"></i>Paste &amp; render</button>
+  <div class="text-xs text-base-content/40 max-w-xs">Paste HTML or a URL — it renders straight to the frame, the text is never shown.</div>
+
+  <div class="flex items-center gap-2 w-full max-w-sm">
+    <div class="flex-1 h-px bg-base-300"></div>
+    <span class="text-[10px] uppercase tracking-wide text-base-content/30">or a GitHub file</span>
+    <div class="flex-1 h-px bg-base-300"></div>
+  </div>
+  <form id="addr-form" class="flex w-full max-w-sm gap-2">
+    <input id="addr-input" class="input input-sm input-bordered flex-1 font-mono text-xs"
+           placeholder="owner/repo@ref:path  or  blob URL" autocapitalize="off" autocorrect="off" spellcheck="false" />
+    <button class="btn btn-sm" type="submit">Open</button>
+  </form>
+
+  <p id="empty-msg" class="text-error text-xs max-w-md font-mono"></p>
+  <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
+    URL forms: <code>#gh=owner/repo@ref:path</code>, <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL.
+  </p>
+</div>
+
+<!-- Toolbox: zip/offline export, component/script/console tabs, render-at-ref. -->
+<div x-data="fab()" data-path="pages/toss-render.html"></div>
 
 <script type="module">
   // Repos whose HTML may render same-origin (with token access) via #gh=.
@@ -82,43 +126,87 @@
   const frame = document.getElementById('frame');
   const empty = document.getElementById('empty');
   const msg   = document.getElementById('empty-msg');
+  const bar   = document.getElementById('bar');
 
-  function showEmpty(text) {
+  // Each render sets this to a function returning the durable bookmark for
+  // what's on screen; the "Copy toss link" button calls it.
+  let tossLinkFn = null;
+
+  const absUrl = frag => location.origin + location.pathname + frag;
+
+  function showInput(error) {
+    tossLinkFn = null;
     frame.classList.add('hidden');
+    bar.classList.add('hidden'); bar.classList.remove('flex');
     empty.classList.remove('hidden');
     empty.classList.add('flex');
-    msg.textContent = text;
+    msg.textContent = error || '';
+  }
+  // Kept name for the existing error call sites; an error just re-shows the panel.
+  const showEmpty = showInput;
+
+  function reveal() {
+    empty.classList.add('hidden'); empty.classList.remove('flex');
+    frame.classList.remove('hidden');
+    bar.classList.remove('hidden'); bar.classList.add('flex');
   }
 
-  // Decode standard or URL-safe base64 (with or without padding) to bytes.
+  // --- base64 helpers (standard or URL-safe, padded or not) ---
   function b64Bytes(s) {
     let b = s.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
     while (b.length % 4) b += '=';
     return Uint8Array.from(atob(b), c => c.charCodeAt(0));
   }
   const decodeB64 = s => new TextDecoder().decode(b64Bytes(s));
+  function b64urlEncode(bytes) {
+    let s = '';
+    for (const c of bytes) s += String.fromCharCode(c);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  const utf8 = str => new TextEncoder().encode(str);
 
   async function gunzip(bytes) {
     const ds = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
     return await new Response(ds).text();
   }
+  async function gzipB64(text) {
+    const buf = new Uint8Array(await new Response(
+      new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))
+    ).arrayBuffer());
+    return b64urlEncode(buf);
+  }
 
   function showHtml(html) {
     const t = html.match(/<title[^>]*>([^<]*)<\/title>/i);
     document.title = 'Toss · ' + (t ? t[1].trim() : 'inline');
-    // Sandbox without allow-same-origin: the inline HTML arrives via the URL,
-    // so it must not run as this page's origin (which can hold a gh token in
-    // localStorage). Scripts still run, but under an opaque origin.
+    // Sandbox without allow-same-origin: the inline HTML arrives via the URL
+    // or a paste, so it must not run as this page's origin (which can hold a
+    // gh token in localStorage). Scripts still run, but under an opaque origin.
     frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-modals allow-downloads');
     frame.srcdoc = html;
+    tossLinkFn = async () => absUrl('#gz=' + await gzipB64(html));
+    reveal();
   }
 
   // Same-origin render for allowlisted address mode only: the page keeps its
   // identity, so its own gh.load chain and stored token work.
-  function showTrusted(html, title) {
+  function showTrusted(html, title, addr) {
     document.title = title;
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-modals');
     frame.srcdoc = html;
+    tossLinkFn = async () => absUrl('#gh=' + addr);
+    reveal();
+  }
+
+  function showUrl(href) {
+    const parsed = new URL(href);
+    if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
+    document.title = 'Toss · ' + parsed.host;
+    frame.removeAttribute('sandbox'); // a real cross-site load, not srcdoc
+    frame.removeAttribute('srcdoc');
+    frame.src = parsed.href;
+    tossLinkFn = async () => absUrl('#url=' + b64urlEncode(utf8(parsed.href)));
+    reveal();
   }
 
   // The fab.js frameHtml recipe: <base> so relative URLs resolve on github.io,
@@ -136,6 +224,16 @@
     if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
     if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
     return '<head>' + prelude + '</head>' + text;
+  }
+
+  // A github.com (or raw.githubusercontent.com) file URL -> owner/repo@ref:path,
+  // so a pasted blob link routes through trusted address mode. null if not one.
+  function blobUrlToAddr(s) {
+    let m = s.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+?)(?:[?#].*)?$/i);
+    if (m) return m[1] + '/' + m[2] + '@' + decodeURIComponent(m[3]) + ':' + m[4];
+    m = s.match(/^https?:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+?)(?:[?#].*)?$/i);
+    if (m) return m[1] + '/' + m[2] + '@' + decodeURIComponent(m[3]) + ':' + m[4];
+    return null;
   }
 
   async function showAddress(addr) {
@@ -171,9 +269,62 @@
     if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
     const text = decodeB64(data.content);
     showTrusted(addressHtml(text, { owner, name, ref, path }),
-      'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path);
+      'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr);
   }
 
+  // Route a pasted string: a github blob URL -> trusted address, a bare URL ->
+  // #url load, anything else -> untrusted HTML. Used by both paste paths.
+  function renderInput(raw) {
+    const text = (raw || '').trim();
+    if (!text) return;
+    const addr = blobUrlToAddr(text);
+    if (addr) return showAddress(addr);
+    if (/^https?:\/\/\S+$/i.test(text)) {
+      try { return showUrl(text); }
+      catch (e) { return showEmpty('Decoded value is not a valid http(s) URL: ' + text); }
+    }
+    showHtml(text);
+  }
+
+  // --- input panel wiring ---
+  document.getElementById('paste-btn').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) renderInput(text);
+      else showEmpty('Clipboard is empty — copy some HTML or a link first.');
+    } catch (e) {
+      showEmpty('Could not read the clipboard. Paste with Ctrl/Cmd-V, or use a toss link.');
+    }
+  });
+  document.getElementById('addr-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = document.getElementById('addr-input').value.trim();
+    if (v) showAddress(blobUrlToAddr(v) || v);
+  });
+  // Desktop convenience: paste anywhere off a field renders straight away.
+  window.addEventListener('paste', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    const text = (e.clipboardData || window.clipboardData)?.getData('text/plain');
+    if (text && text.trim()) { e.preventDefault(); renderInput(text); }
+  });
+
+  document.getElementById('copy-link').addEventListener('click', async e => {
+    if (!tossLinkFn) return;
+    const span = e.currentTarget.querySelector('span');
+    try {
+      await navigator.clipboard.writeText(await tossLinkFn());
+      const o = span.textContent; span.textContent = 'Copied'; setTimeout(() => span.textContent = o, 1200);
+    } catch (err) {
+      const o = span.textContent; span.textContent = 'Copy failed'; setTimeout(() => span.textContent = o, 1500);
+    }
+  });
+  document.getElementById('new-toss').addEventListener('click', () => {
+    // Drop any params and return to a clean panel.
+    location.href = location.pathname;
+  });
+
+  // --- route the initial URL ---
   const gh   = param('gh');
   const gz   = param('gz');
   const html = param('html');
@@ -202,19 +353,25 @@
       decoded = null;
     }
     if (decoded) {
-      try {
-        const parsed = new URL(decoded);
-        if (!/^https?:$/.test(parsed.protocol)) throw new Error('bad protocol');
-        document.title = 'Toss · ' + parsed.host;
-        frame.src = parsed.href;
-      } catch (e) {
-        showEmpty('Decoded value is not a valid http(s) URL: ' + decoded);
-      }
+      try { showUrl(decoded); }
+      catch (e) { showEmpty('Decoded value is not a valid http(s) URL: ' + decoded); }
     }
   } else {
-    showEmpty('Pass #gh=owner/repo[@ref]:path (allowlisted repos, rendered live), ' +
-              '#gz=<base64 gzipped HTML>, #html=<base64 HTML>, or #url=<base64 URL> ' +
-              '(query ? form also accepted for short values).');
+    showInput();
+  }
+</script>
+
+<script type="module">
+  // Mount the FAB toolbox. Runs after the render logic above, and the FAB
+  // self-loads its own kits, so a blocked CDN degrades to render-only rather
+  // than breaking the page. ?use=<ref> pins this shell's lib chain.
+  try {
+    const ref = new URLSearchParams(location.search).get('use') || 'main';
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+    await gh.load('alpineComponents/fab.js');
+    await gh.load('alpine-bundle.js');
+  } catch (e) {
+    console.warn('FAB toolbox failed to load; rendering still works.', e);
   }
 </script>
 
