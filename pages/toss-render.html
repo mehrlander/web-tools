@@ -65,9 +65,15 @@
   alphabet, with or without padding.
 
   Caveat for #url=: sites that send X-Frame-Options or CSP frame-ancestors
-  will refuse to load in the iframe. Caveat for private repos in #gh=: the
-  HTML itself renders, but relative assets can't resolve (neither github.io
-  nor jsDelivr serves private content), so self-contained pages work best.
+  will refuse to load in the iframe.
+
+  Private repos / un-deployed branches in #gh=: Pages and jsDelivr won't serve
+  the content, and a token can't ride on a plain <script src>/<link href>, so
+  the page's own relative deps would 404. DUMBO (below) closes the basic case:
+  it inlines each relative <script src> and <link rel=stylesheet href> by
+  fetching it through the authenticated contents API at the same ref. Still
+  unhandled, so self-contained-ish pages work best: images, CSS url()/@import,
+  and second-level module imports.
 
   The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
   (canonical copy; re-copy from there after edits). Current text:
@@ -237,6 +243,88 @@
     return null;
   }
 
+  // Auth headers for the contents API: the stored token (skipping the 🎟
+  // sentinel) so private repos and un-deployed branches resolve.
+  function ghHeaders() {
+    const headers = { Accept: 'application/vnd.github.v3+json' };
+    try {
+      const t = localStorage.getItem('ghToken');
+      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
+    } catch (e) {}
+    return headers;
+  }
+
+  // Fetch a single repo file's text via the contents API at <ref>.
+  async function ghText(owner, name, ref, filePath) {
+    const res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
+      filePath + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (Array.isArray(data)) throw new Error('is a directory');
+    return decodeB64(data.content);
+  }
+
+  // DUMBO — Dynamic Unplanned mini-Bake Operation. A private repo (or an
+  // un-deployed branch) isn't served by Pages or jsDelivr, and a token can't
+  // ride on a plain <script src> / <link href>, so a page's own same-dir deps
+  // would just 404. DUMBO fetches each *relative* <script src> and
+  // <link rel=stylesheet href> through the authenticated contents API at the
+  // same ref and inlines it (scripts as <script>, CSS as <style>) — so a page
+  // written with ordinary references renders without ever being authored to
+  // gh.load. Static first-level refs only: nested module imports, CSS
+  // url()/@import, and images are left to <base> and a later pass. Runs only in
+  // trusted address mode, and is a no-op when there are no relative deps.
+  function dumboRelative(u) {
+    return !!u && !/^[a-z][a-z0-9+.-]*:/i.test(u) &&
+      !u.startsWith('//') && !u.startsWith('/') && !u.startsWith('#') && !u.startsWith('data:');
+  }
+  function dumboPath(dir, u) {
+    try { return new URL(u, 'https://_/' + dir).pathname.slice(1); } catch (e) { return null; }
+  }
+  async function dumboBake(text, { owner, name, ref, path }) {
+    let doc;
+    try { doc = new DOMParser().parseFromString(text, 'text/html'); } catch (e) { return text; }
+    if (!doc || !doc.documentElement) return text;
+    const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+    const jobs = [];
+
+    doc.querySelectorAll('script[src]').forEach(el => {
+      const src = el.getAttribute('src');
+      if (!dumboRelative(src)) return;
+      const p = dumboPath(dir, src);
+      if (!p) return;
+      jobs.push((async () => {
+        try {
+          const code = await ghText(owner, name, ref, p);
+          const s = doc.createElement('script');
+          for (const a of el.attributes) if (a.name !== 'src') s.setAttribute(a.name, a.value);
+          s.textContent = code;
+          el.replaceWith(s);
+        } catch (e) { el.setAttribute('data-dumbo-error', (e && e.message) || String(e)); }
+      })());
+    });
+
+    doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(el => {
+      const href = el.getAttribute('href');
+      if (!dumboRelative(href)) return;
+      const p = dumboPath(dir, href);
+      if (!p) return;
+      jobs.push((async () => {
+        try {
+          const css = await ghText(owner, name, ref, p);
+          const st = doc.createElement('style');
+          if (el.getAttribute('media')) st.setAttribute('media', el.getAttribute('media'));
+          st.textContent = css;
+          el.replaceWith(st);
+        } catch (e) { el.setAttribute('data-dumbo-error', (e && e.message) || String(e)); }
+      })());
+    });
+
+    if (!jobs.length) return text;  // nothing relative -> hand back the untouched original
+    await Promise.all(jobs);
+    return (doc.doctype ? '<!doctype html>\n' : '') + doc.documentElement.outerHTML;
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path> — ':' can't appear in a git ref name.
     const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:(.+)$/);
@@ -248,15 +336,10 @@
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
         '(sandboxed) with the 🥏 bookmarklet.');
     }
-    const headers = { Accept: 'application/vnd.github.v3+json' };
-    try {
-      const t = localStorage.getItem('ghToken');
-      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
-    } catch (e) {}
     let res;
     try {
       res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
-        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers });
+        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
@@ -269,7 +352,10 @@
     const data = await res.json();
     if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
     const text = decodeB64(data.content);
-    showTrusted(addressHtml(text, { owner, name, ref, path }),
+    // DUMBO: inline the page's relative script/CSS deps from the same ref, so a
+    // private/un-deployed page that uses ordinary references renders whole.
+    const baked = await dumboBake(text, { owner, name, ref, path });
+    showTrusted(addressHtml(baked, { owner, name, ref, path }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr);
   }
 
