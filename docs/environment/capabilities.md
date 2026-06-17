@@ -61,10 +61,24 @@ so you see it.
 
 **Two gates, not one.** The allowlist above is the *general* proxy. GitHub git
 traffic goes through a **separate** GitHub proxy that scopes operations to the one
-authorized repo (and limits push to the current branch). So a sibling repo like
+authorized repo. So a sibling repo like
 `<repo>.wiki.git` returns `Proxy error: repository not authorized` (502) even
 though `github.com` itself is allowed: a different failure mode than
 `x-deny-reason: host_not_allowed`.
+
+> **The gate is the repo, not the branch.** *(corrected 2026-06-17.)* An earlier
+> version of this note claimed the proxy also "limits push to the current
+> branch." A dry-run probe disproves it: from a `claude/*` session branch,
+> `git push --dry-run origin <commit>:main` is accepted cleanly (normal
+> fast-forward preview, no deny header), while the same dry-run to an
+> unauthorized repo still 502s `repository not authorized`. So the proxy
+> evaluates and refuses at the connection layer by *repo*, and does **not** fence
+> off `main` (or any branch) by name. The `claude/*` session branch is workspace
+> hygiene, not a security boundary; keeping work off `main` is a prompt-level
+> instruction, not a capability limit. **Caveat:** `--dry-run` doesn't trigger
+> GitHub's server-side receive checks, so this proves the *proxy* permits a
+> main-targeted push, not that branch protection (if any were configured) would.
+> web-tools has none, so direct pushes to `main` do land.
 
 | Host | Reachable? | Notes |
 |---|---|---|
