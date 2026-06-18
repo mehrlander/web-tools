@@ -12,6 +12,6 @@ consideration; nothing is implemented.
 
 **Next steps / open threads:**
 - Decide whether to build the minimal slice (orphan `bus` branch + `/check-census` skill + thin conductor).
-- Load-bearing unknown to confirm first: does resuming an old/reclaimed session restore its conversation context? Everything depends on it.
+- Resume-restores-context is taken as established (user confirmed), so the design rests on it without a test step.
 - Possibly link the proposal from docs/README.md once it's less provisional.
 - Note: replaced a stale branch guide carried over from `claude/unmerged-branches-review-bkn37j`.

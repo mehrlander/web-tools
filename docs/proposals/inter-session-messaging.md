@@ -45,10 +45,10 @@ observer could reconstruct from the diff. One generic prompt fits every session
 because **each session supplies its own meaning**. You don't need to know what
 session #47 was; you ask it, and it tells you.
 
-This is the **load-bearing assumption**: that resuming a genuinely old/reclaimed
-session restores its context. If resume returned a blank session, the whole
-thing collapses back into cold-reading diffs. **This needs to be confirmed
-early.**
+This is the **load-bearing fact** the design rests on: resuming a session
+restores its conversation context (the container may be rebuilt fresh from the
+branch tip, but the transcript comes back). Taken as established. If it were
+ever untrue, the whole thing would collapse back into cold-reading diffs.
 
 ### How it differs from the merge guide
 
@@ -108,8 +108,6 @@ prompt is not just "report status" but "assess yourself **and act**."
 
 ## Open issues / threads
 
-- **Resume restores context?** The load-bearing assumption above. Confirm on a
-  genuinely old/reclaimed session before building anything.
 - **Push vs. poll.** The bus is inherently **poll-only**: a message waits until
   someone resumes the branch and checks. The one real push channel is the
   **PR-activity webhook** — a session parked on a PR can be woken by a comment.
@@ -132,5 +130,3 @@ prompt is not just "report status" but "assess yourself **and act**."
 Build the **minimal vertical slice** (orphan `bus` + `/check-census` +
 thin conductor) and prove it on real branches before adding any automation.
 Skip the push/webhook layer initially; accept poll-based and manual resume.
-**First, cheaply confirm the resume-restores-context assumption** — everything
-depends on it.
