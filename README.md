@@ -1,4 +1,4 @@
-# web-tools
+# <img src="lib/favicon.svg" width="28" alt=""> web-tools
 
 A workshop for browser-based tools with a focus on working with data.
 
