@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="web-tools">
+  <title>web-tools</title>
+  <desc>A rounded tile holding a 2x2 grid of cards, one accented — the pages index as a collection of tools.</desc>
+  <defs>
+    <linearGradient id="wt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#wt)"/>
+  <g fill="#ffffff">
+    <rect x="8"  y="8"  width="7" height="7" rx="2"/>
+    <rect x="8"  y="17" width="7" height="7" rx="2"/>
+    <rect x="17" y="17" width="7" height="7" rx="2"/>
+  </g>
+  <rect x="17" y="8" width="7" height="7" rx="2" fill="#fbbf24"/>
+</svg>

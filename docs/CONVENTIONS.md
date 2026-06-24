@@ -21,6 +21,7 @@ Adopt à la carte: two independent layers, take either alone.
 
 * **Explicit markdown:** use `[caption](url)` for anything tappable; bare paths drop on mobile, in rendered markdown, and when copied. Reserve `file:line` for grep and debug references, not handoff links.
 * **Show pixels:** for visual changes, send a headless-browser screenshot inline (after viewing it yourself).
+* **Lead with the live view:** a README (or folder readme) for something that renders opens, right under the title, with a prominent ⭐ link to the hosted version ("go here for the nice view"), before any prose. The rendered artifact is the first tappable thing, not something buried in description.
 * **Branch anchor:** the first file-modifying reply leads with `Working branch: [branch-name](url)`.
 * **Per-file links:** file-modifying turns end with a list, filename plain and link words tappable: `- src/file.ts ([new](…), [main](…), [diff](…))`. `[new]` is the branch tip, `[main]` the pre-change version on main (omit for new files), `[diff]` the commit. Append `#L120` or `#L120-L145` for line anchors. Don't duplicate a file's links within a turn.
 * **Session diff:** summarize substantial work with `Session diff: [main...branch](url)`.

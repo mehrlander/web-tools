@@ -1,6 +1,9 @@
 # web-tools
 
 A workshop for browser-based tools with a focus on working with data.
+
+⭐ **[Browse the live tools index →](https://mehrlander.github.io/web-tools/pages/)** — every page, with screenshots, live previews, and source links.
+
 [Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), plus the parts used to build them.
 
 Four shapes have emerged:
