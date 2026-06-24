@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-24 Project mark (hex-nut favicon) + pages landing-page polish (PR #182)
+
+Gave web-tools a project mark and turned the pages index into a proper landing page: a slot-split hex nut (tools + the web's `<` `>` + hexagonal modularity) that loader pages adopt as their default favicon, a cleaner index header, and a "lead with the live view" convention so a README opens with its rendered artifact.
+
+⭐ **Result:** [pages index](https://mehrlander.github.io/web-tools/pages/) — reached by a quick ⭐ link from the README; clearer header (`show-repo` label, a pre-rendered-screenshot caption that links the build script), grid logo. The [hex-nut mark](https://github.com/mehrlander/web-tools/blob/main/lib/favicon.svg) rides as the default favicon on loader pages that set none.
+
+**Changed:**
+- lib/favicon.svg ([new](https://github.com/mehrlander/web-tools/blob/main/lib/favicon.svg), [diff](https://github.com/mehrlander/web-tools/commit/24598f9)) — project mark, slot-split hex nut in blue-600
+- lib/gh-boot.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/gh-boot.js), [diff](https://github.com/mehrlander/web-tools/commit/24598f9)) — favicon fallback injection; bespoke per-page favicons win
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/139735b)) — `show-repo` label, pre-rendered caption, grid favicon + inline logo, README lead link
+- pages/favicon.svg ([new](https://github.com/mehrlander/web-tools/blob/main/pages/favicon.svg), [diff](https://github.com/mehrlander/web-tools/commit/139735b)) — grid mark, the pages-index identity
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md), [diff](https://github.com/mehrlander/web-tools/commit/139735b)) — leads with the ⭐ live-index link
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/139735b)) — "Lead with the live view" surfacing primitive
+
+**Notes:** Favicon fallback is non-destructive (fills only pages with no icon) and verified headless both ways; standalone non-loader pages (e.g. diff-tool) don't get it. After merge, purge main's gh-boot.js from jsDelivr (~12h cache): https://purge.jsdelivr.net/gh/mehrlander/web-tools/lib/gh-boot.js . The grid stays on the pages index; a hex-nut mark in the README H1 was explored and deferred. pages/index.html + pages/README.md regenerate via the commit hook; dist/web-tools.js is the pre-build.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/dreamy-pascal-luo2b0)
+
 ## 2026-06-16 Portable conventions: à la carte adoption, terminology, concision (PR #179)
 
 Make the portable docs set adoptable piece by piece (CONVENTIONS.md severable into universal surfacing primitives and an opt-in PR-workflow course), retire the overloaded "spine" term for a distributed vocabulary, and run a succinctness + layering pass on CONVENTIONS.md.
