@@ -3,11 +3,11 @@
 
 # pages/
 
-Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`.
-Each row links the **rendered** page and its **code** on github.com.
+⭐ **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
 
-[pages/index.html](https://mehrlander.github.io/web-tools/pages/) is the visual index — a screenshot card per
-page, generated alongside this file; this README is its link-dense text twin.
+Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`.
+Each row links the **rendered** page and its **code** on github.com; this README is
+the link-dense text twin of the visual index above.
 
 ## pages/
 
