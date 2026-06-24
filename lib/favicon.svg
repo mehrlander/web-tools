@@ -3,8 +3,8 @@
   <desc>Slot-split hex nut: a hexagon (modular; its left/right points read as angle brackets) with a round bore (a nut: tools), split down the middle to pop the &lt; &gt;.</desc>
   <mask id="slot" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
-    <rect x="14.6" y="4" width="2.8" height="24" fill="#000"/>
-    <circle cx="16" cy="16" r="4.5" fill="#000"/>
+    <rect x="14.1" y="0" width="3.8" height="32" fill="#000"/>
+    <circle cx="16" cy="16" r="6.1" fill="#000"/>
   </mask>
-  <path fill="#2563eb" mask="url(#slot)" d="M10.5 6.474 L21.5 6.474 L27 16 L21.5 25.526 L10.5 25.526 L5 16 Z"/>
+  <path fill="#2563eb" mask="url(#slot)" d="M8.5 3.01 L23.5 3.01 L31 16 L23.5 28.99 L8.5 28.99 L1 16 Z"/>
 </svg>
