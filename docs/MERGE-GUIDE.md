@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-26 Name the fetch≠invoke gap in the conventions sync (PR #187)
+
+Close the trap that let a downstream adopter's conventions sync silently no-op: a `SessionStart` hook that *writes* the loader skill to disk makes it available, not *invoked*, so on its own it never loads `CONVENTIONS.md`. Make the fetch→invoke pairing explicit at the source.
+
+⭐ **Result:** [docs/PORTABLE.md, "Staying current: refresh at session start"](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md#staying-current-refresh-at-session-start) — the `[!IMPORTANT]` fetch≠invoke callout pairing the hook with the always-on CLAUDE.md line, plus a stronger inject-via-`additionalContext` variant.
+
+**Changed:**
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md#staying-current-refresh-at-session-start), [diff](https://github.com/mehrlander/web-tools/commit/2d75f69)) — rewrote the misleading "installing once is enough" line; `[!IMPORTANT]` fetch≠invoke callout; "Stronger variant: inject the conventions" subsection with a `[!WARNING]` that its missing-`jq`-and-`python3` case must fail loud if adopted as a guarantee ([commit](https://github.com/mehrlander/web-tools/commit/452a4bc))
+- .claude/skills/web-tools-conventions/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md), [diff](https://github.com/mehrlander/web-tools/commit/2d75f69)) — mirrored the caveat in the installer section; widened the `description` trigger vocabulary ("file card"/"file chip"/"send the file", show-pixels, hand-over)
+
+**Notes:** Docs-only; nothing regenerates. `CONVENTIONS.md` left unchanged — its content was never the gap, only its delivery. Reviewed by a second pass: keep skill-fetch as the default and inject as the stronger variant (inject dumps the whole doc into every session, bypassing the two-severable-layers design, and drops the loader skill so `/web-tools-conventions` vanishes). Both `jq` (1.7) and `python3` (3.11) confirmed in the sandbox, so neither inject path is vapor. Follow-up to #185.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/web-tools-sync-fetch-invoke-wgoyjh)
+
 ## 2026-06-26 WSL Sync group-header redesign + primary/secondary nav (PR #186)
 
 Restyle the Summary table's Tabulator group headers and the page chrome so the table reads as a structured, scannable product rather than a flat list.
