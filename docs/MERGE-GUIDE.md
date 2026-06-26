@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-26 WSL Sync group-header redesign + primary/secondary nav (PR #186)
+
+Restyle the Summary table's Tabulator group headers and the page chrome so the table reads as a structured, scannable product rather than a flat list.
+
+⭐ **Result:** [wsl-sync.html](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html?use=claude/legislation-tabulator-grouping-o7jj9z) — open the **Summary** tab for the group headers (branch preview until merged; the redesigned page header shows immediately).
+
+**Changed:**
+- pages/wsl-sync/wsl-sync.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html), [diff](https://github.com/mehrlander/web-tools/commit/32bb6b2))
+- pages/wsl-sync/pension-dash.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html), [diff](https://github.com/mehrlander/web-tools/commit/098d743)) — companion `HB` indicator moved to the date pill's top-right
+
+**Notes:** Pure presentation, no data/logic change. Group header: bill numbers in a fixed 132px cell (centered, so single-chamber bills balance and two-chamber pairs clear the hairline pipe with symmetric gutters), category-tinted `numbers │ title │ description` rules, history-count badges elevated to each number's top-right corner. Page header splits Summary (primary view) from a labeled "SOURCES" segmented cluster; flag columns widened to 112px so headers stop clipping. The 132px cell is tuned to 4-digit/4-digit pairs (digits are tabular-nums); a rare 3-bill cluster would be wider and could crowd the pipe. Verified headless on both single- and two-bill group rows.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/legislation-tabulator-grouping-o7jj9z)
+
 ## 2026-06-26 Portable "stay current" pattern: a SessionStart hook that refreshes the loader skill (PR #185)
 
 Document a fail-soft `SessionStart` hook a consuming repo can run to re-fetch the `web-tools-conventions` loader skill each session, so the skill file itself never goes stale (the conventions it loads were already fetched live, so only the loader could drift).

@@ -50,21 +50,45 @@
     </div>
 </div>
 
-<header class="flex items-center gap-6 px-6 h-14 border-b border-base-300 shrink-0 bg-base-100">
-    <div class="font-black text-lg tracking-tight">WSL Sync</div>
-    <div class="flex gap-1">
-        <template x-for="m in modes" :key="m">
-            <button @click="setMode(m)" class="btn btn-sm font-bold" :class="view.mode===m?'btn-primary':'btn-ghost'" x-text="m[0].toUpperCase()+m.slice(1)"></button>
-        </template>
+<header class="flex items-center gap-4 px-6 h-14 border-b border-base-300 shrink-0 bg-base-100">
+    <div class="flex items-center gap-2.5 shrink-0">
+        <div class="grid place-items-center w-7 h-7 rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-bank text-base"></i></div>
+        <div class="font-black text-lg tracking-tight leading-none">WSL Sync</div>
     </div>
-    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer ml-2" title="Enable if direct fetches fail due to CORS">
+
+    <!-- Primary analytical view: the curated summary table is the product. -->
+    <button @click="setMode('summary')" title="Curated pension-bill summary — the primary view"
+        class="btn btn-sm gap-1.5 rounded-lg font-bold ml-1"
+        :class="view.mode==='summary' ? 'btn-primary shadow-sm' : 'btn-ghost text-base-content/80'">
+        <i class="ph-bold ph-table"></i> Summary
+    </button>
+
+    <!-- Secondary: raw data-source / technical detail views, grouped and subordinated. -->
+    <div class="flex items-center gap-2 pl-3 border-l border-base-300">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 select-none">Sources</span>
+        <div class="join">
+            <template x-for="m in modes.filter(x => x !== 'summary')" :key="m">
+                <button @click="setMode(m)" :title="'Raw ' + m + ' view'"
+                    class="btn btn-xs join-item font-semibold"
+                    :class="view.mode===m ? 'btn-neutral' : 'btn-ghost text-base-content/55'"
+                    x-text="m[0].toUpperCase()+m.slice(1)"></button>
+            </template>
+        </div>
+    </div>
+
+    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer pl-3 border-l border-base-300" title="Enable if direct fetches fail due to CORS">
         <input type="checkbox" x-model="view.pasteMode" class="toggle toggle-xs toggle-warning">
-        <span>Paste mode</span>
+        <span class="text-base-content/70">Paste mode</span>
     </label>
-    <div class="ml-auto flex items-center gap-3">
-        <span class="text-xs text-base-content/50">Bills: <b class="text-primary" x-text="allBillsLen"></b></span>
-        <span class="text-xs text-base-content/50">RCW: <b class="text-primary" x-text="rcwCount + '/' + allBillsLen"></b></span>
-        <span class="badge badge-primary badge-sm font-bold" x-text="pensionCount + ' pension'"></span>
+
+    <div class="ml-auto flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-base-200/70 text-xs">
+            <span class="text-base-content/45 font-medium">Bills</span><b class="font-mono tabular-nums text-base-content/80" x-text="allBillsLen"></b>
+        </div>
+        <div class="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-base-200/70 text-xs">
+            <span class="text-base-content/45 font-medium">RCW</span><b class="font-mono tabular-nums text-base-content/80" x-text="rcwCount + '/' + allBillsLen"></b>
+        </div>
+        <span class="badge badge-primary badge-sm font-bold gap-1"><i class="ph-bold ph-shield-check text-[11px]"></i><span x-text="pensionCount + ' pension'"></span></span>
     </div>
 </header>
 
@@ -418,10 +442,10 @@ function syncApp() {
                             const r = cell.getRow().getData(), num = r.BillId.match(/\d+/)?.[0] || r.BillNumber;
                             return `<span class="pl-4"><a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary">${r.BillId}</a></span>`;
                         }},
-                    { title: 'Active', field: 'Active', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Pension', field: 'IsPension', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Adjacent', field: 'IsAdjacent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Current', field: 'IsCurrent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Active', field: 'Active', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Pension', field: 'IsPension', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Adjacent', field: 'IsAdjacent', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Current', field: 'IsCurrent', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
                     { title: 'Latest', field: 'LatestDate', width: 120, tooltip: cell => cell.getRow().getData().LatestAction, headerFilter: sinceDateEditor, headerFilterFunc: sinceDateFunc },
                     { title: 'Rcws', field: 'RcwCt', hozAlign: 'center', width: 55, headerFilter: false,
                         formatter: cell => heatBadge(cell.getValue(), rcwRange.min, rcwRange.max) },
@@ -434,17 +458,24 @@ function syncApp() {
                 ];
 
                 const groupHeader = (value, count, data) => {
+                    const isP = data[0]?.IsPension, isA = data[0]?.IsAdjacent;
+                    const accent = isP ? 'oklch(0.62 0.19 145)' : isA ? 'oklch(0.68 0.15 85)' : 'oklch(0.55 0.03 260)';
+                    const tint   = isP ? 'oklch(0.96 0.03 145)' : isA ? 'oklch(0.97 0.04 85)' : 'oklch(0.965 0.008 260)';
                     const nums = value.split(' / ');
-                    const links = nums.map(num => {
+                    const links = nums.map((num, i) => {
                         const histCt = (store.history[num] || []).length;
-                        const indicator = histCt ? `<span class="indicator-item text-[10px] font-mono opacity-70">${histCt}</span>` : '';
-                        return `<span class="indicator mr-2">${indicator}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
-                    }).join(' / ');
+                        const badge = histCt ? `<span style="position:absolute;top:0;right:0;transform:translate(70%,-55%)" class="text-[10px] leading-none font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
+                        const sep = i ? `<span class="opacity-30 mx-1 font-normal">/</span>` : '';
+                        return `${sep}<span style="position:relative;display:inline-block">${badge}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
+                    }).join('');
                     const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
-                    const desc = long && long !== short
-                        ? `<span class="font-medium">${short}</span><span class="ml-2 text-xs font-light">${long}</span>`
-                        : `<span class="font-medium">${short}</span>`;
-                    return `${links} <span class="ml-4">${desc}</span>`;
+                    const rule = `<span style="width:1px;align-self:stretch;background:color-mix(in oklch, ${accent} 28%, transparent);margin:3px 16px"></span>`;
+                    const tail = long && long !== short
+                        ? `${rule}<span class="font-semibold">${short}</span>${rule}<span class="font-light opacity-65">${long}</span>`
+                        : `${rule}<span class="font-semibold">${short}</span>`;
+                    return `<span style="display:inline-flex;align-items:stretch;vertical-align:middle;padding:4px 0">`
+                        + `<span style="display:inline-block;align-self:center;text-align:center;width:132px;white-space:nowrap;font-variant-numeric:tabular-nums">${links}</span>`
+                        + `${tail}</span>`;
                 };
 
                 if (!table || table._config !== 'summary') {
