@@ -458,17 +458,22 @@ function syncApp() {
                 ];
 
                 const groupHeader = (value, count, data) => {
+                    const isP = data[0]?.IsPension, isA = data[0]?.IsAdjacent;
+                    const accent = isP ? 'oklch(0.62 0.19 145)' : isA ? 'oklch(0.68 0.15 85)' : 'oklch(0.55 0.03 260)';
+                    const tint   = isP ? 'oklch(0.96 0.03 145)' : isA ? 'oklch(0.97 0.04 85)' : 'oklch(0.965 0.008 260)';
                     const nums = value.split(' / ');
-                    const links = nums.map(num => {
+                    const links = nums.map((num, i) => {
                         const histCt = (store.history[num] || []).length;
-                        const indicator = histCt ? `<span class="indicator-item text-[10px] font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
-                        return `<span class="indicator mr-2">${indicator}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
-                    }).join(' / ');
+                        const sup = histCt ? `<sup class="text-[9px] font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</sup>` : '';
+                        const sep = i ? `<span class="opacity-30 mx-1 font-normal">/</span>` : '';
+                        return `${sep}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a>${sup}`;
+                    }).join('');
+                    const box = `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:132px;padding:3px 14px;border-radius:8px;background:${tint};border:1px solid color-mix(in oklch, ${accent} 35%, transparent);white-space:nowrap">${links}</span>`;
                     const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
                     const desc = long && long !== short
-                        ? `<span class="font-medium">${short}</span><span class="ml-2 font-light opacity-80">${long}</span>`
-                        : `<span class="font-medium">${short}</span>`;
-                    return `<span style="display:inline-block;width:170px;white-space:nowrap;vertical-align:middle">${links}</span><span class="ml-2 align-middle">${desc}</span>`;
+                        ? `<span style="display:inline-flex;flex-direction:column;line-height:1.2"><span class="font-semibold">${short}</span><span class="text-xs font-light opacity-65">${long}</span></span>`
+                        : `<span class="font-semibold">${short}</span>`;
+                    return `<span style="display:inline-flex;align-items:center;gap:14px;vertical-align:middle;padding:5px 0">${box}${desc}</span>`;
                 };
 
                 if (!table || table._config !== 'summary') {
