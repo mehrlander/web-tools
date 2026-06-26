@@ -1,6 +1,6 @@
 ---
 name: web-tools-conventions
-description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (branch guide, PR body, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (branch guide, PR body, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, "file card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over the artifact"/SendUserFile, "lead with the live view", branch anchor, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
 ---
 
 # web-tools conventions loader
@@ -88,3 +88,14 @@ re-run the installer when the *skill itself* changes. A repo can automate even
 that with a fail-soft `SessionStart` hook that re-fetches this file each session
 (see [`docs/PORTABLE.md`](https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/PORTABLE.md),
 "Staying current: refresh at session start").
+
+**Fetch is not invoke.** Installing this skill, or re-fetching it (by hand or via
+that hook), only makes it *available*; it does not *run* it, and writing a skill
+file emits nothing to context. So the conventions govern a session only when the
+skill is actually invoked: by model judgement, by `/web-tools-conventions`, or by
+the always-on CLAUDE.md line above. Pair any install path with that line, or the
+conventions stay fetched-but-unused. To drop the dependency on the agent obeying
+the line entirely, use the stronger `SessionStart` variant in `docs/PORTABLE.md`
+("Stronger variant: inject the conventions") that fetches `CONVENTIONS.md` and
+emits it as `additionalContext`, so it's in context every session without anyone
+having to invoke anything.
