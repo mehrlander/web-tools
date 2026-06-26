@@ -50,21 +50,45 @@
     </div>
 </div>
 
-<header class="flex items-center gap-6 px-6 h-14 border-b border-base-300 shrink-0 bg-base-100">
-    <div class="font-black text-lg tracking-tight">WSL Sync</div>
-    <div class="flex gap-1">
-        <template x-for="m in modes" :key="m">
-            <button @click="setMode(m)" class="btn btn-sm font-bold" :class="view.mode===m?'btn-primary':'btn-ghost'" x-text="m[0].toUpperCase()+m.slice(1)"></button>
-        </template>
+<header class="flex items-center gap-4 px-6 h-14 border-b border-base-300 shrink-0 bg-base-100">
+    <div class="flex items-center gap-2.5 shrink-0">
+        <div class="grid place-items-center w-7 h-7 rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-bank text-base"></i></div>
+        <div class="font-black text-lg tracking-tight leading-none">WSL Sync</div>
     </div>
-    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer ml-2" title="Enable if direct fetches fail due to CORS">
+
+    <!-- Primary analytical view: the curated summary table is the product. -->
+    <button @click="setMode('summary')" title="Curated pension-bill summary — the primary view"
+        class="btn btn-sm gap-1.5 rounded-lg font-bold ml-1"
+        :class="view.mode==='summary' ? 'btn-primary shadow-sm' : 'btn-ghost text-base-content/80'">
+        <i class="ph-bold ph-table"></i> Summary
+    </button>
+
+    <!-- Secondary: raw data-source / technical detail views, grouped and subordinated. -->
+    <div class="flex items-center gap-2 pl-3 border-l border-base-300">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 select-none">Sources</span>
+        <div class="join">
+            <template x-for="m in modes.filter(x => x !== 'summary')" :key="m">
+                <button @click="setMode(m)" :title="'Raw ' + m + ' view'"
+                    class="btn btn-xs join-item font-semibold"
+                    :class="view.mode===m ? 'btn-neutral' : 'btn-ghost text-base-content/55'"
+                    x-text="m[0].toUpperCase()+m.slice(1)"></button>
+            </template>
+        </div>
+    </div>
+
+    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer pl-3 border-l border-base-300" title="Enable if direct fetches fail due to CORS">
         <input type="checkbox" x-model="view.pasteMode" class="toggle toggle-xs toggle-warning">
-        <span>Paste mode</span>
+        <span class="text-base-content/70">Paste mode</span>
     </label>
-    <div class="ml-auto flex items-center gap-3">
-        <span class="text-xs text-base-content/50">Bills: <b class="text-primary" x-text="allBillsLen"></b></span>
-        <span class="text-xs text-base-content/50">RCW: <b class="text-primary" x-text="rcwCount + '/' + allBillsLen"></b></span>
-        <span class="badge badge-primary badge-sm font-bold" x-text="pensionCount + ' pension'"></span>
+
+    <div class="ml-auto flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-base-200/70 text-xs">
+            <span class="text-base-content/45 font-medium">Bills</span><b class="font-mono tabular-nums text-base-content/80" x-text="allBillsLen"></b>
+        </div>
+        <div class="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-base-200/70 text-xs">
+            <span class="text-base-content/45 font-medium">RCW</span><b class="font-mono tabular-nums text-base-content/80" x-text="rcwCount + '/' + allBillsLen"></b>
+        </div>
+        <span class="badge badge-primary badge-sm font-bold gap-1"><i class="ph-bold ph-shield-check text-[11px]"></i><span x-text="pensionCount + ' pension'"></span></span>
     </div>
 </header>
 
@@ -418,10 +442,10 @@ function syncApp() {
                             const r = cell.getRow().getData(), num = r.BillId.match(/\d+/)?.[0] || r.BillNumber;
                             return `<span class="pl-4"><a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary">${r.BillId}</a></span>`;
                         }},
-                    { title: 'Active', field: 'Active', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Pension', field: 'IsPension', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Adjacent', field: 'IsAdjacent', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Current', field: 'IsCurrent', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Active', field: 'Active', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Pension', field: 'IsPension', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Adjacent', field: 'IsAdjacent', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Current', field: 'IsCurrent', width: 112, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
                     { title: 'Latest', field: 'LatestDate', width: 120, tooltip: cell => cell.getRow().getData().LatestAction, headerFilter: sinceDateEditor, headerFilterFunc: sinceDateFunc },
                     { title: 'Rcws', field: 'RcwCt', hozAlign: 'center', width: 55, headerFilter: false,
                         formatter: cell => heatBadge(cell.getValue(), rcwRange.min, rcwRange.max) },
