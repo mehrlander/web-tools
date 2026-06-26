@@ -464,9 +464,9 @@ function syncApp() {
                     const nums = value.split(' / ');
                     const links = nums.map((num, i) => {
                         const histCt = (store.history[num] || []).length;
-                        const sup = histCt ? `<sup class="text-[9px] font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</sup>` : '';
+                        const badge = histCt ? `<span style="position:absolute;top:0;right:0;transform:translate(70%,-55%)" class="text-[10px] leading-none font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
                         const sep = i ? `<span class="opacity-30 mx-1 font-normal">/</span>` : '';
-                        return `${sep}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a>${sup}`;
+                        return `${sep}<span style="position:relative;display:inline-block">${badge}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
                     }).join('');
                     const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
                     const rule = `<span style="width:1px;align-self:stretch;background:color-mix(in oklch, ${accent} 28%, transparent);margin:3px 16px"></span>`;
