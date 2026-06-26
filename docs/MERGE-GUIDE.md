@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-26 Portable "stay current" pattern: a SessionStart hook that refreshes the loader skill (PR #185)
+
+Document a fail-soft `SessionStart` hook a consuming repo can run to re-fetch the `web-tools-conventions` loader skill each session, so the skill file itself never goes stale (the conventions it loads were already fetched live, so only the loader could drift).
+
+⭐ **Result:** [docs/PORTABLE.md, "Staying current: refresh at session start"](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md#staying-current-refresh-at-session-start) — the reusable recipe (committed hook + gitignored fresh skill + fail-soft fetch over the allowlisted raw host), framed as the companion to the one-time install above it.
+
+**Changed:**
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md#staying-current-refresh-at-session-start), [diff](https://github.com/mehrlander/web-tools/commit/82c8167)) — new "Staying current" section after "How to adopt"
+- .claude/skills/web-tools-conventions/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md), [diff](https://github.com/mehrlander/web-tools/commit/dfccbcb)) — the "re-run the installer when the skill changes" note now points at the new section
+
+**Notes:** Docs-only; no `lib/` or `pages/`, so nothing regenerates. The pattern is for *consuming* repos; web-tools is the source and never runs the hook on itself. Verified this session: the raw skill URL fetches `200` (4377 bytes), so the recipe's load-bearing GET works. Keep the hook **synchronous** so it finishes before skill discovery and the freshly-fetched skill is live the same session. `mehrlander/home` is the first repo running it.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/sessionstart-portable-docs-ec4f50)
+
 ## 2026-06-26 "Hand over the artifact": SendUserFile as a file-card default (PR #184)
 
 Make handing the user a downloadable artifact a surfacing default: when producing an HTML page, zip, or audio file, send it via `SendUserFile` so they get a click-to-download file card, and pin the terms "file card" / "file chip" to the tool so they resolve.
