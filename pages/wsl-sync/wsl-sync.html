@@ -418,10 +418,10 @@ function syncApp() {
                             const r = cell.getRow().getData(), num = r.BillId.match(/\d+/)?.[0] || r.BillNumber;
                             return `<span class="pl-4"><a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary">${r.BillId}</a></span>`;
                         }},
-                    { title: 'Active', field: 'Active', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Pension', field: 'IsPension', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Adjacent', field: 'IsAdjacent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
-                    { title: 'Current', field: 'IsCurrent', width: 70, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Active', field: 'Active', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() == 1 ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Pension', field: 'IsPension', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Adjacent', field: 'IsAdjacent', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-warning">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
+                    { title: 'Current', field: 'IsCurrent', width: 100, hozAlign: 'center', formatter: cell => cell.getValue() ? '<span class="text-success">●</span>' : '<span class="opacity-10">●</span>', headerFilter: 'tickCross', headerFilterParams: { tristate: true }, headerFilterEmptyCheck: v => v === null },
                     { title: 'Latest', field: 'LatestDate', width: 120, tooltip: cell => cell.getRow().getData().LatestAction, headerFilter: sinceDateEditor, headerFilterFunc: sinceDateFunc },
                     { title: 'Rcws', field: 'RcwCt', hozAlign: 'center', width: 55, headerFilter: false,
                         formatter: cell => heatBadge(cell.getValue(), rcwRange.min, rcwRange.max) },
@@ -437,14 +437,14 @@ function syncApp() {
                     const nums = value.split(' / ');
                     const links = nums.map(num => {
                         const histCt = (store.history[num] || []).length;
-                        const indicator = histCt ? `<span class="indicator-item text-[10px] font-mono opacity-70">${histCt}</span>` : '';
+                        const indicator = histCt ? `<span class="indicator-item text-[10px] font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
                         return `<span class="indicator mr-2">${indicator}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
                     }).join(' / ');
                     const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
                     const desc = long && long !== short
-                        ? `<span class="font-medium">${short}</span><span class="ml-2 text-xs font-light">${long}</span>`
+                        ? `<span class="font-medium">${short}</span><span class="ml-2 font-light opacity-80">${long}</span>`
                         : `<span class="font-medium">${short}</span>`;
-                    return `${links} <span class="ml-4">${desc}</span>`;
+                    return `<span style="display:inline-block;width:170px;white-space:nowrap;vertical-align:middle">${links}</span><span class="ml-2 align-middle">${desc}</span>`;
                 };
 
                 if (!table || table._config !== 'summary') {

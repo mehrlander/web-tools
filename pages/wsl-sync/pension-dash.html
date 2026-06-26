@@ -223,7 +223,7 @@ const renderClusters = (store, clusters) => {
                         ${latestHist ? `
                             ${hasCompanion ? `
                                 <div class="indicator">
-                                    <span class="indicator-item indicator-start indicator-top text-[9px] font-bold text-sky-600">${latestHist._fromBill?.split(' ')[0]}</span>
+                                    <span class="indicator-item indicator-end indicator-top text-[9px] font-bold text-sky-600">${latestHist._fromBill?.split(' ')[0]}</span>
                                     <span class="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/70">${latestHist.ActionDate}</span>
                                 </div>
                             ` : `<span class="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/70">${latestHist.ActionDate}</span>`}
