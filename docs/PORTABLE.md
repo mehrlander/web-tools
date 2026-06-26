@@ -27,14 +27,30 @@ public and that host is on the Claude Code web allowlist).
 
 ## Staying current: refresh at session start
 
-Installing once is enough on its own: the skill fetches `CONVENTIONS.md` live on
-every run, so the *conventions* never go stale. The one piece that can drift is
-the loader **skill file** itself (its fetch URL, fallbacks, description). A
-consuming repo that wants that kept current too can re-fetch the skill each
-session with a fail-soft `SessionStart` hook, instead of re-running the installer
-by hand whenever the skill changes. The hook is the committed mechanism; the
-fetched skill is gitignored, so it's fresh every session and never a stale copy
-in the tree.
+The skill fetches `CONVENTIONS.md` live on every run, so the *conventions* never
+go stale once the skill is **invoked**. The one piece that can drift is the
+loader **skill file** itself (its fetch URL, fallbacks, description). A consuming
+repo that wants that kept current too can re-fetch the skill each session with a
+fail-soft `SessionStart` hook, instead of re-running the installer by hand
+whenever the skill changes. The hook is the committed mechanism; the fetched
+skill is gitignored, so it's fresh every session and never a stale copy in the
+tree.
+
+> [!IMPORTANT]
+> **Fetch is not invoke. This hook keeps the skill current; it does not run it.**
+> A `SessionStart` hook that writes a skill file to disk makes the skill
+> *available*, not *invoked*, and it emits nothing to context. On its own it
+> never loads `CONVENTIONS.md`: the loader is model-invocable, so the conventions
+> govern a session only if the agent judges the skill relevant, the user types
+> `/web-tools-conventions`, or the repo's `CLAUDE.md` makes it always-on. **So
+> this hook is not self-sufficient: pair it with the always-on CLAUDE.md line**
+> (see [the skill's install section](../.claude/skills/web-tools-conventions/SKILL.md)),
+> or the conventions stay fetched-but-unused: present on disk, absent from
+> context, governing nothing. (This is exactly how a downstream adopter's sync
+> silently no-op'd: the hook fetched faithfully every session, but nothing ever
+> invoked the skill, so the conventions never reached context.) To remove the
+> dependency on the agent obeying a CLAUDE.md line, use the stronger variant
+> below, which injects the conventions into context directly.
 
 1. `.claude/hooks/web-tools-sync.sh` (`chmod +x`):
 
@@ -84,6 +100,58 @@ no auth. Keep it **synchronous** (the default) so it completes before skill
 discovery and the freshly-fetched skill is live in the *same* session, not the
 next one. This is a recipe for *consuming* repos; web-tools is the source and
 doesn't run it on itself.
+
+### Stronger variant: inject the conventions, don't just fetch them
+
+The hook above still leans on the always-on CLAUDE.md line to close the
+fetch→invoke gap. A `SessionStart` hook can instead **emit the conventions
+straight into context** via `additionalContext`, collapsing fetch and invoke into
+one step and removing the dependency on the agent obeying any CLAUDE.md line: the
+text is simply *there* at the start of every session, the same as if the skill
+had run. Use this when you want the conventions unconditionally governing every
+file-modifying session and don't mind paying their context cost up front.
+
+This hook fetches `CONVENTIONS.md` itself (not the skill file) and prints the
+SessionStart `additionalContext` JSON the harness reads:
+
+```bash
+#!/bin/bash
+set -uo pipefail
+URL="https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/CONVENTIONS.md"
+BODY="$(curl -fsSL --max-time 10 "$URL" 2>/dev/null)" || exit 0
+[ -n "$BODY" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+printf '%s' "$BODY" | jq -Rs \
+  '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
+```
+
+Register it under `SessionStart` exactly like the fetch hook (step 3 above). It's
+fail-soft on the same principle: a failed fetch, an empty body, or a missing `jq`
+each `exit 0` with no output, degrading to "no injected conventions this session"
+rather than a blocked start. (No `jq`? Swap the last line for
+`python3 -c 'import json,sys; print(json.dumps({"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":sys.stdin.read()}}))'`.)
+
+> [!WARNING]
+> That fail-soft posture has a sharp edge worth naming, because it's the same
+> bug this whole doc is about. If a host has **neither** `jq` nor `python3`, the
+> `command -v … || exit 0` guard makes the hook degrade *silently* to
+> no-injection: the very fetch-without-invoke no-op the variant exists to
+> prevent, now wearing a different hat. That's the right default for a
+> *convenience* (a missing interpreter shouldn't block your session), but the
+> wrong one if you adopt inject **as your guarantee** that the conventions are
+> loaded. In that case make the missing-interpreter case *loud*, not `exit 0`:
+> replace the guard with a branch that warns to stderr (and/or emits an
+> `additionalContext` note saying "conventions failed to load"), so a
+> misconfigured host fails noisily instead of quietly governing nothing.
+
+Trade-offs versus the skill-fetch hook: this injects the conventions into **every**
+session unconditionally (always-on context cost, no model judgement), it loads
+`CONVENTIONS.md` raw rather than through the skill's à-la-carte "apply" framing,
+and it doesn't keep the loader **skill** itself installed (so `/web-tools-conventions`
+and the model-invocation path won't exist unless you also run the installer). The
+two are complementary, not exclusive: a repo can run the skill-fetch hook *and*
+this injector, or pick whichever matches how reliably it needs the conventions
+present.
 
 ## The set
 
