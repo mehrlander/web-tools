@@ -25,6 +25,66 @@ directly, no skill needed, from
 `https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
 public and that host is on the Claude Code web allowlist).
 
+## Staying current: refresh at session start
+
+Installing once is enough on its own: the skill fetches `CONVENTIONS.md` live on
+every run, so the *conventions* never go stale. The one piece that can drift is
+the loader **skill file** itself (its fetch URL, fallbacks, description). A
+consuming repo that wants that kept current too can re-fetch the skill each
+session with a fail-soft `SessionStart` hook, instead of re-running the installer
+by hand whenever the skill changes. The hook is the committed mechanism; the
+fetched skill is gitignored, so it's fresh every session and never a stale copy
+in the tree.
+
+1. `.claude/hooks/web-tools-sync.sh` (`chmod +x`):
+
+```bash
+#!/bin/bash
+set -uo pipefail
+DEST="${CLAUDE_PROJECT_DIR:-.}/.claude/skills/web-tools-conventions"
+URL="https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools-conventions/SKILL.md"
+mkdir -p "$DEST" 2>/dev/null || exit 0
+if curl -fsSL --max-time 10 "$URL" -o "$DEST/SKILL.md.tmp" 2>/dev/null; then
+  mv "$DEST/SKILL.md.tmp" "$DEST/SKILL.md" 2>/dev/null || rm -f "$DEST/SKILL.md.tmp"
+else
+  rm -f "$DEST/SKILL.md.tmp" 2>/dev/null
+fi
+exit 0
+```
+
+2. Gitignore the fetched skill, so the hook (not a checked-in copy) is the source of truth:
+
+```
+.claude/skills/web-tools-conventions/
+```
+
+3. Register it under `SessionStart` in `.claude/settings.json`, alongside any hook already there:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/web-tools-sync.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Why it holds: the hook is committed and the skill is gitignored (fresh each
+session, never a stale checked-in copy); it's fail-soft (10s cap, errors
+swallowed, always `exit 0`), so a hiccup or a web-tools outage degrades to "no
+auto-loaded conventions this session," not a blocked start; and it fetches over
+`raw.githubusercontent.com`, on the web allowlist (see "How to adopt" above), so
+no auth. Keep it **synchronous** (the default) so it completes before skill
+discovery and the freshly-fetched skill is live in the *same* session, not the
+next one. This is a recipe for *consuming* repos; web-tools is the source and
+doesn't run it on itself.
+
 ## The set
 
 | Doc | What it's for | How you use it |
