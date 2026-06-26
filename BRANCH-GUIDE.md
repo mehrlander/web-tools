@@ -13,4 +13,7 @@ invoked, so on its own it never loads `CONVENTIONS.md`. A downstream repo
 
 **Next steps / open threads:**
 - `docs/CONVENTIONS.md` intentionally left unchanged: its content was never the gap, only its delivery. Revisit only if we decide the conventions doc should self-describe how it gets loaded.
-- The injector variant assumes `jq` (python3 fallback noted). If a target sandbox has neither, it degrades fail-soft to "no injected conventions" — acceptable, but worth a real-world check on the next adopter.
+- Resolved (452a4bc): the injector's missing-`jq`-and-`python3` case degrading silently to no-injection now carries a `[!WARNING]` — fine as a convenience, but if you adopt inject as your guarantee, fail loud.
+- Reviewer verdict: accept; keep skill-fetch as the default and inject as the stronger variant (don't reorder). No outstanding requests.
+
+Ready to wrap up: fold into `docs/MERGE-GUIDE.md` and open the PR on the user's go-ahead.
