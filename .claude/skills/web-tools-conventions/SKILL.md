@@ -84,4 +84,7 @@ always-on by adding one line to the target repo's own CLAUDE.md:
 
 `mehrlander/web-tools` holds the canonical copy of both this skill and the
 conventions; the conventions are fetched live, so target repos only need to
-re-run the installer when the *skill itself* changes.
+re-run the installer when the *skill itself* changes. A repo can automate even
+that with a fail-soft `SessionStart` hook that re-fetches this file each session
+(see [`docs/PORTABLE.md`](https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/PORTABLE.md),
+"Staying current: refresh at session start").
