@@ -139,3 +139,24 @@ B="$PLAYWRIGHT_BROWSERS_PATH/chromium-1194/chrome-linux/chrome"
 
 **Driving it** — launching Playwright, screenshotting, the TLS-proxy launch flag,
 and rendering a full repo page — is in [testing.md](testing.md).
+
+## Surfacing files to the user: the file card
+
+*(observed 2026-06-26)*
+
+Output is via chat, but a *file* reaches the user through the `SendUserFile`
+tool, not markdown: a `![](local-path)` image link renders as inert text or a
+broken thumbnail, so write the file to disk and hand its path to the tool. The
+UI draws each delivered file as a clickable element, a **file card** (also
+**file chip**): image types preview inline; HTML, ZIP, and MP3 (and similar
+non-previewable types) render as a chip that downloads on click. Reach for it
+whenever you make an artifact the user would open, run, or iterate on (the
+*Hand over the artifact* primitive in [CONVENTIONS.md](../CONVENTIONS.md)); the
+screenshot-specific case (show a rendered PNG) is in
+[headless-vendoring.md](../headless-vendoring.md#showing-the-result-in-chat).
+
+The precise type→rendering map is visible only on the **user's** side: the
+agent gets back a bare "delivered" with no view of the chip, so this is one of
+the few capabilities here that can't be self-verified by rendering. Treat the
+list above as observed, not exhaustive, and extend it (re-date) as more types
+are confirmed.

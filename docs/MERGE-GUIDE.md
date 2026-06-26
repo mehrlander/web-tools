@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-06-26 "Hand over the artifact": SendUserFile as a file-card default (PR #184)
+
+Make handing the user a downloadable artifact a surfacing default: when producing an HTML page, zip, or audio file, send it via `SendUserFile` so they get a click-to-download file card, and pin the terms "file card" / "file chip" to the tool so they resolve.
+
+⭐ **Result:** [docs/CONVENTIONS.md, "Hand over the artifact"](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md) — a new surfacing primitive beside "Show pixels": proactive by default, gated on whether the user would open / run / iterate on the file, and composing with the screenshot primitive (screenshot to show, card to hand over).
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/e351360)) — "Hand over the artifact" primitive; names file card / file chip / "send the file"
+- docs/environment/capabilities.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md), [diff](https://github.com/mehrlander/web-tools/commit/e351360)) — dated "Surfacing files to the user: the file card" note; type→rendering map (images inline; HTML / zip / mp3 → download chip), flagged user-observable-only
+
+**Notes:** Docs-only; no `lib/` or `pages/`, so nothing regenerates. The convention reaches always-on context because `CONVENTIONS.md` is `@`-imported into `CLAUDE.md`, so the terms resolve in new sessions once merged, and propagate to other repos via the conventions skill. The capabilities note deliberately records what the agent can't self-verify (the rendered chip is visible only on the user's side), per the env-docs observed-and-dated discipline.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/gracious-bohr-8ti9l5)
+
 ## 2026-06-24 Project mark (hex-nut favicon) + pages landing-page polish (PR #182)
 
 Gave web-tools a project mark and turned the pages index into a proper landing page: a slot-split hex nut (tools + the web's `<` `>` + hexagonal modularity) that loader pages adopt as their default favicon, a cleaner index header, and a "lead with the live view" convention so a README opens with its rendered artifact.
