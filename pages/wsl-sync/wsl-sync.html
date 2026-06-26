@@ -468,12 +468,14 @@ function syncApp() {
                         const sep = i ? `<span class="opacity-30 mx-1 font-normal">/</span>` : '';
                         return `${sep}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a>${sup}`;
                     }).join('');
-                    const box = `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:132px;padding:3px 14px;border-radius:8px;background:${tint};border:1px solid color-mix(in oklch, ${accent} 35%, transparent);white-space:nowrap">${links}</span>`;
                     const short = data[0]?.ShortDesc || '', long = data[0]?.LongDesc || '';
-                    const desc = long && long !== short
-                        ? `<span style="display:inline-flex;flex-direction:column;line-height:1.2"><span class="font-semibold">${short}</span><span class="text-xs font-light opacity-65">${long}</span></span>`
-                        : `<span class="font-semibold">${short}</span>`;
-                    return `<span style="display:inline-flex;align-items:center;gap:14px;vertical-align:middle;padding:5px 0">${box}${desc}</span>`;
+                    const descStack = long && long !== short
+                        ? `<span style="display:inline-flex;flex-direction:column;justify-content:center;line-height:1.2;padding-left:14px"><span class="font-semibold">${short}</span><span class="text-xs font-light opacity-65">${long}</span></span>`
+                        : `<span class="font-semibold" style="align-self:center;padding-left:14px">${short}</span>`;
+                    return `<span style="display:inline-flex;align-items:stretch;vertical-align:middle;padding:5px 0">`
+                        + `<span style="display:inline-block;align-self:center;text-align:right;width:118px;white-space:nowrap;font-variant-numeric:tabular-nums">${links}</span>`
+                        + `<span style="width:1px;background:color-mix(in oklch, ${accent} 30%, transparent)"></span>`
+                        + `${descStack}</span>`;
                 };
 
                 if (!table || table._config !== 'summary') {
