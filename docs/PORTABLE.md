@@ -131,6 +131,19 @@ each `exit 0` with no output, degrading to "no injected conventions this session
 rather than a blocked start. (No `jq`? Swap the last line for
 `python3 -c 'import json,sys; print(json.dumps({"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":sys.stdin.read()}}))'`.)
 
+> [!WARNING]
+> That fail-soft posture has a sharp edge worth naming, because it's the same
+> bug this whole doc is about. If a host has **neither** `jq` nor `python3`, the
+> `command -v … || exit 0` guard makes the hook degrade *silently* to
+> no-injection: the very fetch-without-invoke no-op the variant exists to
+> prevent, now wearing a different hat. That's the right default for a
+> *convenience* (a missing interpreter shouldn't block your session), but the
+> wrong one if you adopt inject **as your guarantee** that the conventions are
+> loaded. In that case make the missing-interpreter case *loud*, not `exit 0`:
+> replace the guard with a branch that warns to stderr (and/or emits an
+> `additionalContext` note saying "conventions failed to load"), so a
+> misconfigured host fails noisily instead of quietly governing nothing.
+
 Trade-offs versus the skill-fetch hook: this injects the conventions into **every**
 session unconditionally (always-on context cost, no model judgement), it loads
 `CONVENTIONS.md` raw rather than through the skill's à-la-carte "apply" framing,
