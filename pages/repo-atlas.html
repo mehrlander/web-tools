@@ -83,6 +83,10 @@
       <button id="goBtn" class="field cursor-pointer hover:border-white/30" title="Load repo">
         <i class="ph ph-arrow-right"></i>
       </button>
+      <button id="localBtn" class="field cursor-pointer hover:border-white/30" title="Map a local folder (or drop a folder / .zip on the map)">
+        <i class="ph ph-folder-open"></i>
+      </button>
+      <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
     </div>
     <div class="relative">
       <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-sm" style="color:var(--ink-3)"></i>
@@ -108,6 +112,7 @@
           <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">Esc</td><td>clear search / filter / selection</td></tr>
         </table>
         <div class="mt-2" style="color:var(--ink-3)">Any public repo works — paste <b>owner/name</b> above. For private repos or API rate limits, store a token as <code>localStorage.ghToken</code>. The URL tracks the view, so it's shareable.</div>
+        <div class="mt-2" style="color:var(--ink-3)">Local files map too: drop a <b>folder or .zip</b> on the map, or use the <i class="ph ph-folder-open"></i> picker. Nothing uploads — it all stays in this tab.</div>
       </div>
     </div>
   </div>
@@ -196,6 +201,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 // ── State ────────────────────────────────────────────────────────────────────
 const S = {
   gh: null, repo: '', ref: '', defaultRef: '',
+  source: 'github',  // 'github' | 'local' (dropped/picked folder or zip)
+  localLabel: '',
   root: null,        // full tree root node
   viewRoot: null,    // node currently mapped
   truncated: false,
@@ -497,20 +504,24 @@ function renderCrumbs() {
 
 function renderStats() {
   const r = S.root;
+  const refChip = S.source === 'github'
+    ? `<span class="chip">${esc(S.ref)}</span>`
+    : `<span class="chip"><i class="ph ph-folder-open"></i> local</span>`;
   $('statChips').innerHTML = r ? `
     <span class="chip">${r.fileCount.toLocaleString()} files</span>
     <span class="chip">${fmtBytes(r.size)}</span>
-    <span class="chip">${esc(S.ref)}</span>` : '';
+    ${refChip}` : '';
 }
 
 function renderViewStats() {
   const v = S.viewRoot;
   if (!v) return $('viewStats').innerHTML = '';
   const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
-  const ghUrl = `https://github.com/${S.repo}/tree/${encodeURIComponent(S.ref)}/${v.path}`;
+  const ghLink = S.source === 'github'
+    ? ` <a href="https://github.com/${S.repo}/tree/${encodeURIComponent(S.ref)}/${v.path}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
+    : '';
   $('viewStats').innerHTML = `
-    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}
-      <a href="${ghUrl}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a></span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}${ghLink}</span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Size</span><span style="color:var(--ink)">${fmtBytes(v.size)} <span style="color:var(--ink-3)">(${pct} of repo)</span></span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Files</span><span style="color:var(--ink)">${v.fileCount.toLocaleString()}</span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Dirs</span><span style="color:var(--ink)">${v.dirCount.toLocaleString()}</span></div>`;
@@ -569,7 +580,11 @@ function renderSelection() {
   const p = $('selPanel');
   if (!S.selected) { p.classList.add('hidden'); return; }
   const f = S.selected;
-  const url = `https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${f.path}`;
+  const link = S.source === 'github'
+    ? `<a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank"
+         href="https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${f.path}">
+         <i class="ph ph-github-logo"></i> open on GitHub</a>`
+    : '';
   p.classList.remove('hidden');
   p.innerHTML = `
     <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">Selected</div>
@@ -578,9 +593,7 @@ function renderSelection() {
       ${fmtBytes(f.size)} · ${fmtPct(f.size, S.viewRoot.size)} of view ·
       <span style="color:${CATS[f.cat].color}">${CATS[f.cat].label}</span>
     </div>
-    <a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank" href="${url}">
-      <i class="ph ph-github-logo"></i> open on GitHub
-    </a>`;
+    ${link}`;
 }
 
 function renderMatchChip() {
@@ -736,6 +749,7 @@ MAP.addEventListener('click', ev => {
   else { S.selected = hit.node === S.selected ? null : hit.node; refresh(); }
 });
 MAP.addEventListener('dblclick', ev => {
+  if (S.source !== 'github') return;
   const box = MAP.getBoundingClientRect();
   const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
   if (hit?.kind === 'file') {
@@ -793,8 +807,8 @@ function updateUrl() {
   try {
     const p = new URLSearchParams(location.search);
     const set = (k, v) => v ? p.set(k, v) : p.delete(k);
-    set('repo', S.repo);
-    set('ref', S.ref && S.ref !== S.defaultRef ? S.ref : '');
+    set('repo', S.source === 'github' ? S.repo : '');
+    set('ref', S.source === 'github' && S.ref !== S.defaultRef ? S.ref : '');
     set('path', S.viewRoot?.path);
     set('q', S.search);
     set('cat', S.catFilter);
@@ -811,9 +825,96 @@ function overlay(html) {
   el.classList.remove('hidden'); el.classList.add('flex');
 }
 
+// ── Local sources: picked folder, dropped folder, dropped zip ───────────────
+// Same tree, different provenance — nothing leaves the tab.
+function loadLocalEntries(entries, label) {
+  if (!entries.length) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Nothing readable in that drop.</div>`);
+  S.source = 'local'; S.localLabel = label;
+  S.repo = ''; S.ref = ''; S.defaultRef = '';
+  S.truncated = false; $('truncBadge').classList.add('hidden');
+  S.selected = null; S.catFilter = null;
+  S.root = window.treemap.buildTree(entries, label);
+  S.viewRoot = S.root;
+  $('repoInput').value = ''; $('refInput').value = '';
+  overlay('');
+  renderStats();
+  refresh();
+}
+
+$('localBtn').onclick = () => $('dirInput').click();
+$('dirInput').addEventListener('change', ev => {
+  const files = [...ev.target.files];
+  if (!files.length) return;
+  const label = files[0].webkitRelativePath.split('/')[0] || 'local';
+  const entries = files.map(f => ({
+    path: f.webkitRelativePath.split('/').slice(1).join('/') || f.name,
+    type: 'blob', size: f.size,
+  }));
+  loadLocalEntries(entries, label);
+  ev.target.value = '';
+});
+
+async function walkEntry(entry, prefix, out) {
+  if (entry.isFile) {
+    const f = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({ path: prefix + entry.name, type: 'blob', size: f.size });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    for (;;) { // readEntries returns batches of ≤100 until empty
+      const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+      if (!batch.length) break;
+      for (const e of batch) await walkEntry(e, prefix + entry.name + '/', out);
+    }
+  }
+}
+
+async function loadZip(file) {
+  overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Unpacking ${esc(file.name)}…</div>`);
+  try {
+    // same pin as kits/io.js saveZip
+    const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const entries = [];
+    zip.forEach((path, zf) => {
+      // uncompressedSize is internal but stable in 3.x; 0 keeps the file listed
+      if (!zf.dir) entries.push({ path, type: 'blob', size: zf._data?.uncompressedSize ?? 0 });
+    });
+    loadLocalEntries(entries, file.name.replace(/\.zip$/i, ''));
+  } catch (e) {
+    console.error('zip:', e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div>Couldn't read that zip: ${esc(e?.message || String(e))}</div>`);
+  }
+}
+
+$('mapWrap').addEventListener('dragover', ev => ev.preventDefault());
+$('mapWrap').addEventListener('drop', async ev => {
+  ev.preventDefault();
+  try {
+    const items = [...(ev.dataTransfer?.items || [])];
+    if (!items.length) return;
+    const file = items[0].getAsFile?.();
+    if (file && /\.zip$/i.test(file.name)) return loadZip(file);
+    const roots = items.map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+    if (!roots.length) return;
+    overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Reading dropped folder…</div>`);
+    const entries = [];
+    for (const root of roots) await walkEntry(root, '', entries);
+    let label = 'dropped';
+    if (roots.length === 1 && roots[0].isDirectory) {
+      label = roots[0].name;
+      for (const e of entries) e.path = e.path.slice(label.length + 1);
+    }
+    loadLocalEntries(entries, label);
+  } catch (e) {
+    console.error('drop:', e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div>Couldn't read that drop: ${esc(e?.message || String(e))}</div>`);
+  }
+});
+
 async function loadRepo(repo, ref) {
   if (!repo || !repo.includes('/')) return overlay(`<i class="ph ph-warning text-xl"></i><div>Enter a repo as <b>owner/name</b></div>`);
   overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Loading ${esc(repo)}…</div>`);
+  S.source = 'github';
   S.repo = repo; S.root = null; S.selected = null; S.catFilter = null;
   try {
     const gh = new window.GH({ token: window.TOKEN, repo });
@@ -852,6 +953,7 @@ window.__atlas = {
   zoomTo: path => { const n = dirByPath(path); if (n) setViewRoot(n); },
   isolate: cat => { S.catFilter = cat; refresh(); },
   find: q => { S.search = (q || '').toLowerCase(); $('searchInput').value = q || ''; refresh(); },
+  loadLocal: (entries, label) => loadLocalEntries(entries, label),
   select: path => {
     let f = null;
     (function walk(n) { for (const c of n.children) { if (c.isDir) walk(c); else if (c.path === path) f = c; } })(S.root);
