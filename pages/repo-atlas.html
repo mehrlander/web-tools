@@ -10,6 +10,7 @@
   // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('kits/treemap.js');
 </script>
 <style>
   :root {
@@ -157,47 +158,19 @@ const waitFor = async (pred, ms = 8000, step = 50) => {
 };
 
 // ── Categories ───────────────────────────────────────────────────────────────
-// Six categorical slots (dataviz reference palette, dark steps) + neutral gray.
-// All-pairs CVD ΔE for this subset is 10.3 (floor band) — legal because the map
-// ships secondary encoding everywhere: 2px tile gaps, direct labels, a legend,
-// hover tooltips, and the sidebar type table.
-const CATS = {
-  code:   { label: 'Code',   color: '#3987e5' },
-  docs:   { label: 'Docs',   color: '#c98500' },
-  data:   { label: 'Data',   color: '#008300' },
-  markup: { label: 'Markup', color: '#e66767' },
-  media:  { label: 'Media',  color: '#d55181' },
-  styles: { label: 'Styles', color: '#d95926' },
-  other:  { label: 'Other',  color: '#898781' },
+// Taxonomy + kernels come from kits/treemap.js (window.treemap). Colors are
+// this page's choice: the six dark categorical slots of the dataviz reference
+// palette + neutral gray. All-pairs CVD ΔE for the subset is 10.3 (floor band)
+// — legal because the map ships secondary encoding everywhere: 2px tile gaps,
+// direct labels, a legend, hover tooltips, and the sidebar type table.
+const CAT_COLORS = {
+  code: '#3987e5', docs: '#c98500', data: '#008300',
+  markup: '#e66767', media: '#d55181', styles: '#d95926', other: '#898781',
 };
-const EXT_CAT = (() => {
-  const m = {};
-  const put = (cat, exts) => exts.split(' ').forEach(e => m[e] = cat);
-  put('code', 'js mjs cjs ts tsx jsx py rb sh bash zsh ps1 bat c h cc cpp hpp cs java go rs swift kt kts lua pl pm php sql r jl scala clj ex exs erl hs ml vue svelte astro');
-  put('docs', 'md markdown txt rst adoc org tex bib');
-  put('data', 'json jsonl ndjson csv tsv xml yaml yml toml ini lock env properties parquet geojson');
-  put('markup', 'html htm xhtml ejs hbs pug jade njk liquid');
-  put('media', 'png jpg jpeg gif webp avif bmp ico svg mp3 wav ogg flac mp4 webm mov avi woff woff2 ttf otf eot pdf psd ai');
-  put('styles', 'css scss sass less styl pcss');
-  return m;
-})();
-const NAME_CAT = { license: 'docs', 'license.txt': 'docs', notice: 'docs', readme: 'docs', dockerfile: 'code', makefile: 'code', gemfile: 'code', rakefile: 'code', procfile: 'data' };
-
-function categorize(name) {
-  const lower = name.toLowerCase();
-  if (NAME_CAT[lower]) return NAME_CAT[lower];
-  const dot = lower.lastIndexOf('.');
-  if (dot <= 0) return 'other';
-  return EXT_CAT[lower.slice(dot + 1)] || 'other';
-}
+let CATS = {}; // key → { label, color }, filled once the kit lands
 
 // ── Formatting ───────────────────────────────────────────────────────────────
-function fmtBytes(n) {
-  if (n < 1024) return n + ' B';
-  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
-  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
-  return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-}
+let fmtBytes = n => n + ' B'; // rebound to treemap.fmtBytes at boot
 const fmtPct = (n, d) => d ? (100 * n / d).toFixed(n / d < 0.01 ? 2 : 1) + '%' : '—';
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -223,54 +196,6 @@ const S = {
 const nodeWeight = n => S.weightMode === 'files'
   ? (n.isDir ? n.fileCount : 1)
   : n.size;
-
-// ── Tree build ───────────────────────────────────────────────────────────────
-function buildTree(entries, repoName) {
-  const root = { name: repoName, path: '', isDir: true, size: 0, children: [], fileCount: 0, dirCount: 0, parent: null };
-  const dirs = new Map([['', root]]);
-  const dirFor = path => {
-    if (dirs.has(path)) return dirs.get(path);
-    const i = path.lastIndexOf('/');
-    const parent = dirFor(i < 0 ? '' : path.slice(0, i));
-    const d = { name: path.slice(i + 1), path, isDir: true, size: 0, children: [], fileCount: 0, dirCount: 0, parent };
-    parent.children.push(d);
-    dirs.set(path, d);
-    return d;
-  };
-  for (const e of entries) {
-    if (e.type !== 'blob') continue;
-    const i = e.path.lastIndexOf('/');
-    const parent = dirFor(i < 0 ? '' : e.path.slice(0, i));
-    const name = e.path.slice(i + 1);
-    parent.children.push({
-      name, path: e.path, isDir: false, size: e.size || 0,
-      cat: categorize(name), parent,
-    });
-  }
-  (function roll(n) {
-    for (const c of n.children) {
-      if (c.isDir) {
-        roll(c);
-        n.size += c.size; n.fileCount += c.fileCount; n.dirCount += c.dirCount + 1;
-      } else {
-        n.size += c.size; n.fileCount++;
-      }
-    }
-    n.children.sort((a, b) => b.size - a.size);
-  })(root);
-  return root;
-}
-
-function catTotals(node) {
-  const t = {};
-  (function walk(n) {
-    for (const c of n.children) {
-      if (c.isDir) walk(c);
-      else { (t[c.cat] ??= { bytes: 0, files: 0 }); t[c.cat].bytes += c.size; t[c.cat].files++; }
-    }
-  })(node);
-  return t;
-}
 
 function dirByPath(path) {
   let n = S.root;
@@ -299,49 +224,6 @@ function countMatches(node) {
   return n;
 }
 
-// ── Squarified treemap ──────────────────────────────────────────────────────
-function squarify(items, x, y, w, h) {
-  // items: [{ weight, node }] sorted desc. Returns rects aligned to items.
-  const total = items.reduce((s, i) => s + i.weight, 0);
-  const rects = [];
-  if (total <= 0 || w <= 0 || h <= 0) return items.map(() => ({ x, y, w: 0, h: 0 }));
-  let i = 0, cx = x, cy = y, cw = w, ch = h, scale = (w * h) / total;
-
-  while (i < items.length) {
-    // lay a row along the shorter side
-    const vertical = cw < ch; // row spans the width if region is tall
-    const side = vertical ? cw : ch;
-    let row = [], rowSum = 0, worst = Infinity;
-    let j = i;
-    while (j < items.length) {
-      const a = Math.max(items[j].weight * scale, 0.0001);
-      const test = [...row, a];
-      const sum = rowSum + a;
-      const thick = sum / side;
-      let wst = 0;
-      for (const v of test) {
-        const len = v / thick;
-        wst = Math.max(wst, thick / len, len / thick);
-      }
-      if (wst > worst && row.length) break;
-      row = test; rowSum = sum; worst = wst; j++;
-    }
-    const thick = rowSum / side;
-    let off = 0;
-    for (let k = 0; k < row.length; k++) {
-      const len = row[k] / thick;
-      rects.push(vertical
-        ? { x: cx + off, y: cy, w: len, h: thick }
-        : { x: cx, y: cy + off, w: thick, h: len });
-      off += len;
-    }
-    if (vertical) { cy += thick; ch -= thick; }
-    else { cx += thick; cw -= thick; }
-    i = j;
-  }
-  return rects;
-}
-
 // ── Layout + render ──────────────────────────────────────────────────────────
 const PAD = 2, HEADER = 17, GAP = 1;
 const MAP = $('map');
@@ -352,8 +234,14 @@ function relLum(hex) {
   const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   return 0.2126 * f(v >> 16 & 255) + 0.7152 * f(v >> 8 & 255) + 0.0722 * f(v & 255);
 }
-const LABEL_INK = {};
-for (const [k, v] of Object.entries(CATS)) LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+const LABEL_INK = {}; // filled by bindKit
+
+function bindKit() {
+  const T = window.treemap;
+  CATS = Object.fromEntries(Object.entries(T.CATS).map(([k, label]) => [k, { label, color: CAT_COLORS[k] }]));
+  fmtBytes = T.fmtBytes;
+  for (const [k, v] of Object.entries(CATS)) LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+}
 
 const depthFill = d => {
   const v = Math.min(24 + d * 8, 62);
@@ -452,7 +340,7 @@ function layoutDir(c, dir, x, y, w, h, depth) {
   const items = dir.children.map(n => ({ weight: nodeWeight(n), node: n })).filter(i => i.weight > 0);
   if (!items.length) return;
   items.sort((a, b) => b.weight - a.weight);
-  const rects = squarify(items, ix, iy, iw, ih);
+  const rects = window.treemap.squarify(items, ix, iy, iw, ih);
 
   for (let i = 0; i < items.length; i++) {
     const n = items[i].node;
@@ -598,7 +486,7 @@ function renderViewStats() {
 }
 
 function renderTypes() {
-  const totals = catTotals(S.viewRoot || { children: [] });
+  const totals = window.treemap.catTotals(S.viewRoot || { children: [] });
   const max = Math.max(1, ...Object.values(totals).map(t => t.bytes));
   const order = Object.keys(CATS).filter(k => totals[k]);
   $('typeRows').innerHTML = order.map(k => {
@@ -882,7 +770,7 @@ async function loadRepo(repo, ref) {
     const tree = await gh.req(`git/trees/${encodeURIComponent(S.ref)}?recursive=1`);
     S.truncated = !!tree.truncated;
     $('truncBadge').classList.toggle('hidden', !S.truncated);
-    S.root = buildTree(tree.tree, repo.split('/')[1]);
+    S.root = window.treemap.buildTree(tree.tree, repo.split('/')[1]);
     S.viewRoot = S.root;
     // restore ?path= deep link
     const wanted = new URLSearchParams(location.search).get('path');
@@ -915,8 +803,9 @@ window.__atlas = {
 };
 
 (async () => {
-  const ok = await waitFor(() => window.GH);
+  const ok = await waitFor(() => window.GH && window.treemap);
   if (!ok) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Boot timed out waiting for gh-api.js. Reload to retry.</div>`);
+  bindKit();
   const p = new URLSearchParams(location.search);
   const q = p.get('q') || '';
   if (q) { $('searchInput').value = q; S.search = q.toLowerCase(); }
