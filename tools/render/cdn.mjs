@@ -163,7 +163,8 @@ export function resolveCdn(rawUrl, repoRoot) {
         if (!rel && skip.has(e.name)) continue;
         const p = rel ? `${rel}/${e.name}` : e.name;
         if (e.isDirectory()) { tree.push({ path: p, type: 'tree' }); walk(p); }
-        else tree.push({ path: p, type: 'blob' });
+        // real blobs carry size; keep the impersonation faithful (repo-atlas maps by it)
+        else tree.push({ path: p, type: 'blob', size: statSync(path.join(dir, e.name)).size });
       }
     };
     walk('');

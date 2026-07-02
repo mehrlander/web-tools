@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repo Atlas</title>
+<meta name="shot-query" content="repo=mehrlander/web-tools">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+</script>
+<style>
+  :root {
+    /* dataviz reference palette, dark mode (validated vs #1a1a19) */
+    --plane: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: rgba(255,255,255,0.10);
+    --grid: #2c2c2a;
+    --cat-code: #3987e5;
+    --cat-docs: #c98500;
+    --cat-data: #008300;
+    --cat-markup: #e66767;
+    --cat-media: #d55181;
+    --cat-styles: #d95926;
+    --cat-other: #898781;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--plane);
+    color: var(--ink-2);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  .panel { background: var(--surface); border: 1px solid var(--hairline); }
+  .field {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .field:focus { border-color: rgba(255,255,255,0.28); }
+  .field::placeholder { color: var(--ink-3); }
+  .chip { border: 1px solid var(--hairline); border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+  .crumb:hover { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+  .typerow { cursor: pointer; border-radius: 6px; }
+  .typerow:hover { background: rgba(255,255,255,0.05); }
+  .typerow.off { opacity: 0.38; }
+  .filerow { cursor: pointer; border-radius: 6px; }
+  .filerow:hover { background: rgba(255,255,255,0.05); }
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: rgba(13,13,13,0.94); border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 340px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #333330; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="h-screen flex flex-col gap-2 p-2">
+
+  <!-- Header -->
+  <div class="panel rounded-lg flex items-center gap-3 px-3 py-2 shrink-0">
+    <div class="flex items-center gap-2 text-[15px] font-semibold" style="color:var(--ink)">
+      <i class="ph ph-map-trifold text-lg" style="color:var(--cat-code)"></i>
+      Repo Atlas
+    </div>
+    <div class="flex items-center gap-1.5">
+      <input id="repoInput" class="field w-56" placeholder="owner/repo" spellcheck="false">
+      <input id="refInput" class="field w-28" placeholder="ref (default)" spellcheck="false">
+      <button id="goBtn" class="field cursor-pointer hover:border-white/30" title="Load repo">
+        <i class="ph ph-arrow-right"></i>
+      </button>
+    </div>
+    <div class="relative">
+      <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-sm" style="color:var(--ink-3)"></i>
+      <input id="searchInput" class="field w-52" style="padding-left:28px" placeholder="filter files… (Esc clears)" spellcheck="false">
+    </div>
+    <div id="matchChip" class="chip hidden num" style="color:var(--ink-2)"></div>
+    <div class="grow"></div>
+    <div id="statChips" class="flex items-center gap-1.5 text-xs num" style="color:var(--ink-3)"></div>
+  </div>
+
+  <!-- Breadcrumbs -->
+  <div class="flex items-center gap-1 px-1 text-[13px] shrink-0 min-h-6" id="crumbBar">
+    <span id="crumbs" class="flex items-center gap-1 flex-wrap"></span>
+    <div class="grow"></div>
+    <span id="truncBadge" class="chip hidden" style="color:#fab219; border-color:#fab21944">
+      <i class="ph ph-warning"></i> tree truncated by API
+    </span>
+    <span class="chip flex items-center gap-1.5" style="color:var(--ink-3)">
+      area
+      <span id="wBytes" class="cursor-pointer font-semibold" style="color:var(--ink)">bytes</span>
+      <span style="color:var(--grid)">|</span>
+      <span id="wFiles" class="cursor-pointer" >files</span>
+    </span>
+    <span id="exportBtn" class="chip cursor-pointer hover:border-white/30" title="Download the map as PNG">
+      <i class="ph ph-download-simple"></i>
+    </span>
+    <span id="upBtn" class="chip cursor-pointer hover:border-white/30 hidden" title="Up one level (Backspace)">
+      <i class="ph ph-arrow-elbow-left-up"></i> up
+    </span>
+  </div>
+
+  <!-- Main -->
+  <div class="flex gap-2 grow min-h-0">
+    <div id="mapWrap" class="panel rounded-lg grow relative overflow-hidden">
+      <canvas id="map" class="absolute inset-0 w-full h-full"></canvas>
+      <div id="overlayMsg" class="absolute inset-0 hidden items-center justify-center flex-col gap-2 text-sm" style="color:var(--ink-3)"></div>
+    </div>
+
+    <div class="w-72 shrink-0 flex flex-col gap-2 min-h-0">
+      <div class="panel rounded-lg p-3">
+        <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">This view</div>
+        <div id="viewStats" class="text-[13px] flex flex-col gap-1 num"></div>
+      </div>
+      <div class="panel rounded-lg p-3">
+        <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">File types <span class="normal-case tracking-normal">(click to isolate)</span></div>
+        <div id="typeRows" class="flex flex-col gap-0.5"></div>
+      </div>
+      <div class="panel rounded-lg p-3 grow min-h-0 flex flex-col">
+        <div class="text-[11px] uppercase tracking-wider mb-2 shrink-0" style="color:var(--ink-3)">Largest files here</div>
+        <div id="bigFiles" class="flex flex-col gap-0.5 overflow-y-auto"></div>
+      </div>
+      <div class="panel rounded-lg p-3 hidden" id="selPanel"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+
+<script>
+window.TOKEN = '🎟️GitHubToken';
+if (window.TOKEN === '🎟️GitHubToken') {
+  try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
+}
+
+const $ = id => document.getElementById(id);
+
+const waitFor = async (pred, ms = 8000, step = 50) => {
+  for (let t = 0; t < ms; t += step) {
+    if (pred()) return true;
+    await new Promise(r => setTimeout(r, step));
+  }
+  return false;
+};
+
+// ── Categories ───────────────────────────────────────────────────────────────
+// Six categorical slots (dataviz reference palette, dark steps) + neutral gray.
+// All-pairs CVD ΔE for this subset is 10.3 (floor band) — legal because the map
+// ships secondary encoding everywhere: 2px tile gaps, direct labels, a legend,
+// hover tooltips, and the sidebar type table.
+const CATS = {
+  code:   { label: 'Code',   color: '#3987e5' },
+  docs:   { label: 'Docs',   color: '#c98500' },
+  data:   { label: 'Data',   color: '#008300' },
+  markup: { label: 'Markup', color: '#e66767' },
+  media:  { label: 'Media',  color: '#d55181' },
+  styles: { label: 'Styles', color: '#d95926' },
+  other:  { label: 'Other',  color: '#898781' },
+};
+const EXT_CAT = (() => {
+  const m = {};
+  const put = (cat, exts) => exts.split(' ').forEach(e => m[e] = cat);
+  put('code', 'js mjs cjs ts tsx jsx py rb sh bash zsh ps1 bat c h cc cpp hpp cs java go rs swift kt kts lua pl pm php sql r jl scala clj ex exs erl hs ml vue svelte astro');
+  put('docs', 'md markdown txt rst adoc org tex bib');
+  put('data', 'json jsonl ndjson csv tsv xml yaml yml toml ini lock env properties parquet geojson');
+  put('markup', 'html htm xhtml ejs hbs pug jade njk liquid');
+  put('media', 'png jpg jpeg gif webp avif bmp ico svg mp3 wav ogg flac mp4 webm mov avi woff woff2 ttf otf eot pdf psd ai');
+  put('styles', 'css scss sass less styl pcss');
+  return m;
+})();
+const NAME_CAT = { license: 'docs', 'license.txt': 'docs', notice: 'docs', readme: 'docs', dockerfile: 'code', makefile: 'code', gemfile: 'code', rakefile: 'code', procfile: 'data' };
+
+function categorize(name) {
+  const lower = name.toLowerCase();
+  if (NAME_CAT[lower]) return NAME_CAT[lower];
+  const dot = lower.lastIndexOf('.');
+  if (dot <= 0) return 'other';
+  return EXT_CAT[lower.slice(dot + 1)] || 'other';
+}
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+  return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
+const fmtPct = (n, d) => d ? (100 * n / d).toFixed(n / d < 0.01 ? 2 : 1) + '%' : '—';
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  gh: null, repo: '', ref: '', defaultRef: '',
+  root: null,        // full tree root node
+  viewRoot: null,    // node currently mapped
+  truncated: false,
+  hover: null,       // { node, rect }
+  selected: null,    // file node
+  search: '',
+  catFilter: null,   // category key or null
+  weightMode: 'bytes', // 'bytes' | 'files' — what tile area encodes
+  hitFiles: [],      // { x, y, w, h, node }
+  hitZoom: [],       // dir headers + tiny dirs → click zooms: { x, y, w, h, node }
+  dirRects: new Map(), // node → rect in the current scene (zoom animation anchors)
+  base: null,        // offscreen base render
+  animating: false,
+  matchCount: 0,
+};
+
+const nodeWeight = n => S.weightMode === 'files'
+  ? (n.isDir ? n.fileCount : 1)
+  : n.size;
+
+// ── Tree build ───────────────────────────────────────────────────────────────
+function buildTree(entries, repoName) {
+  const root = { name: repoName, path: '', isDir: true, size: 0, children: [], fileCount: 0, dirCount: 0, parent: null };
+  const dirs = new Map([['', root]]);
+  const dirFor = path => {
+    if (dirs.has(path)) return dirs.get(path);
+    const i = path.lastIndexOf('/');
+    const parent = dirFor(i < 0 ? '' : path.slice(0, i));
+    const d = { name: path.slice(i + 1), path, isDir: true, size: 0, children: [], fileCount: 0, dirCount: 0, parent };
+    parent.children.push(d);
+    dirs.set(path, d);
+    return d;
+  };
+  for (const e of entries) {
+    if (e.type !== 'blob') continue;
+    const i = e.path.lastIndexOf('/');
+    const parent = dirFor(i < 0 ? '' : e.path.slice(0, i));
+    const name = e.path.slice(i + 1);
+    parent.children.push({
+      name, path: e.path, isDir: false, size: e.size || 0,
+      cat: categorize(name), parent,
+    });
+  }
+  (function roll(n) {
+    for (const c of n.children) {
+      if (c.isDir) {
+        roll(c);
+        n.size += c.size; n.fileCount += c.fileCount; n.dirCount += c.dirCount + 1;
+      } else {
+        n.size += c.size; n.fileCount++;
+      }
+    }
+    n.children.sort((a, b) => b.size - a.size);
+  })(root);
+  return root;
+}
+
+function catTotals(node) {
+  const t = {};
+  (function walk(n) {
+    for (const c of n.children) {
+      if (c.isDir) walk(c);
+      else { (t[c.cat] ??= { bytes: 0, files: 0 }); t[c.cat].bytes += c.size; t[c.cat].files++; }
+    }
+  })(node);
+  return t;
+}
+
+function dirByPath(path) {
+  let n = S.root;
+  if (!n || !path) return n;
+  for (const seg of path.split('/')) {
+    const next = n.children.find(c => c.isDir && c.name === seg);
+    if (!next) break;
+    n = next;
+  }
+  return n;
+}
+
+function topFiles(node, k) {
+  const out = [];
+  (function walk(n) {
+    for (const c of n.children) c.isDir ? walk(c) : (nodeVisible(c) && out.push(c));
+  })(node);
+  return out.sort((a, b) => b.size - a.size).slice(0, k);
+}
+
+function countMatches(node) {
+  let n = 0;
+  (function walk(d) {
+    for (const c of d.children) c.isDir ? walk(c) : (nodeVisible(c) && n++);
+  })(node);
+  return n;
+}
+
+// ── Squarified treemap ──────────────────────────────────────────────────────
+function squarify(items, x, y, w, h) {
+  // items: [{ weight, node }] sorted desc. Returns rects aligned to items.
+  const total = items.reduce((s, i) => s + i.weight, 0);
+  const rects = [];
+  if (total <= 0 || w <= 0 || h <= 0) return items.map(() => ({ x, y, w: 0, h: 0 }));
+  let i = 0, cx = x, cy = y, cw = w, ch = h, scale = (w * h) / total;
+
+  while (i < items.length) {
+    // lay a row along the shorter side
+    const vertical = cw < ch; // row spans the width if region is tall
+    const side = vertical ? cw : ch;
+    let row = [], rowSum = 0, worst = Infinity;
+    let j = i;
+    while (j < items.length) {
+      const a = Math.max(items[j].weight * scale, 0.0001);
+      const test = [...row, a];
+      const sum = rowSum + a;
+      const thick = sum / side;
+      let wst = 0;
+      for (const v of test) {
+        const len = v / thick;
+        wst = Math.max(wst, thick / len, len / thick);
+      }
+      if (wst > worst && row.length) break;
+      row = test; rowSum = sum; worst = wst; j++;
+    }
+    const thick = rowSum / side;
+    let off = 0;
+    for (let k = 0; k < row.length; k++) {
+      const len = row[k] / thick;
+      rects.push(vertical
+        ? { x: cx + off, y: cy, w: len, h: thick }
+        : { x: cx, y: cy + off, w: thick, h: len });
+      off += len;
+    }
+    if (vertical) { cy += thick; ch -= thick; }
+    else { cx += thick; cw -= thick; }
+    i = j;
+  }
+  return rects;
+}
+
+// ── Layout + render ──────────────────────────────────────────────────────────
+const PAD = 2, HEADER = 17, GAP = 1;
+const MAP = $('map');
+const ctx = MAP.getContext('2d');
+
+function relLum(hex) {
+  const v = parseInt(hex.slice(1), 16);
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(v >> 16 & 255) + 0.7152 * f(v >> 8 & 255) + 0.0722 * f(v & 255);
+}
+const LABEL_INK = {};
+for (const [k, v] of Object.entries(CATS)) LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+
+const depthFill = d => {
+  const v = Math.min(24 + d * 8, 62);
+  return `rgb(${v},${v},${v - 2})`;
+};
+
+// mix a hex toward white (f>0) or black (f<0)
+function shade(hex, f) {
+  const v = parseInt(hex.slice(1), 16);
+  const t = f < 0 ? 0 : 255, p = Math.abs(f);
+  const ch = c => Math.round(c + (t - c) * p);
+  return `rgb(${ch(v >> 16 & 255)},${ch(v >> 8 & 255)},${ch(v & 255)})`;
+}
+
+function nodeVisible(n) {
+  // search / category filters — a file "matches" if it passes both
+  if (S.catFilter && n.cat !== S.catFilter) return false;
+  if (S.search && !n.path.toLowerCase().includes(S.search)) return false;
+  return true;
+}
+
+function buildScene() {
+  const wrap = $('mapWrap');
+  const cssW = wrap.clientWidth, cssH = wrap.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  MAP.width = Math.round(cssW * dpr);
+  MAP.height = Math.round(cssH * dpr);
+
+  const off = document.createElement('canvas');
+  off.width = MAP.width; off.height = MAP.height;
+  const c = off.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.textBaseline = 'middle';
+
+  S.hitFiles = []; S.hitZoom = []; S.dirRects = new Map();
+
+  c.fillStyle = '#1a1a19';
+  c.fillRect(0, 0, cssW, cssH);
+
+  if (S.viewRoot && nodeWeight(S.viewRoot) > 0) {
+    layoutDir(c, S.viewRoot, 1, 1, cssW - 2, cssH - 2, 0);
+  }
+
+  S.base = off;
+  paint();
+}
+
+function layoutDir(c, dir, x, y, w, h, depth) {
+  if (w < 1 || h < 1) return;
+  S.dirRects.set(dir, { x, y, w, h });
+
+  if (depth > 0) {
+    // frame
+    c.fillStyle = depthFill(depth);
+    roundRect(c, x, y, w, h, 3);
+    c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    c.lineWidth = 1;
+    roundRect(c, x + 0.5, y + 0.5, w - 1, h - 1, 3);
+    c.stroke();
+  }
+
+  let hx = x, hy = y, hw = w, hh = h; // header hit zone
+  let ix = x, iy = y, iw = w, ih = h;
+  if (depth > 0) {
+    const showHeader = h >= HEADER + 14 && w >= 44;
+    if (showHeader) {
+      // header label, with size right-aligned when there's room
+      c.font = '600 10.5px system-ui, sans-serif';
+      c.fillStyle = '#c3c2b7';
+      let labelMax = w - 12;
+      if (w >= 110) {
+        const sz = fmtBytes(dir.size);
+        c.save();
+        c.font = '10px system-ui, sans-serif';
+        const szW = c.measureText(sz).width;
+        c.fillStyle = '#898781';
+        c.fillText(sz, x + w - szW - 5, y + HEADER / 2 + 0.5);
+        c.restore();
+        labelMax = w - szW - 18;
+      }
+      const label = fitText(c, dir.name, labelMax);
+      c.fillText(label, x + 5, y + HEADER / 2 + 0.5);
+      S.hitZoom.push({ x: hx, y: hy, w: hw, h: HEADER, node: dir });
+      iy += HEADER; ih -= HEADER;
+      ix += PAD; iw -= PAD * 2; ih -= PAD;
+    } else {
+      // whole tiny dir is a zoom target
+      S.hitZoom.push({ x: hx, y: hy, w: hw, h: hh, node: dir });
+      if (w < 8 || h < 8) return; // too small to subdivide
+      ix += PAD; iy += PAD; iw -= PAD * 2; ih -= PAD * 2;
+    }
+  }
+  if (iw < 2 || ih < 2) return;
+
+  const items = dir.children.map(n => ({ weight: nodeWeight(n), node: n })).filter(i => i.weight > 0);
+  if (!items.length) return;
+  items.sort((a, b) => b.weight - a.weight);
+  const rects = squarify(items, ix, iy, iw, ih);
+
+  for (let i = 0; i < items.length; i++) {
+    const n = items[i].node;
+    let { x: rx, y: ry, w: rw, h: rh } = rects[i];
+    rx += GAP / 2; ry += GAP / 2; rw -= GAP; rh -= GAP;
+    if (rw < 0.5 || rh < 0.5) continue;
+    if (n.isDir) {
+      layoutDir(c, n, rx, ry, rw, rh, depth + 1);
+    } else {
+      drawFile(c, n, rx, ry, rw, rh);
+      S.hitFiles.push({ x: rx, y: ry, w: rw, h: rh, node: n });
+    }
+  }
+}
+
+function drawFile(c, n, x, y, w, h) {
+  const visible = nodeVisible(n);
+  const col = CATS[n.cat].color;
+  const r = Math.min(2.5, w / 4, h / 4);
+  // cushion shading: light falls from the top-left, so large tiles read as
+  // surfaces instead of flat neon fields; hue (the identity channel) unchanged
+  if (w > 6 && h > 6) {
+    const g = c.createLinearGradient(x, y, x + w, y + h);
+    g.addColorStop(0, shade(col, 0.10));
+    g.addColorStop(1, shade(col, -0.22));
+    c.fillStyle = g;
+  } else {
+    c.fillStyle = col;
+  }
+  roundRect(c, x, y, w, h, r);
+  c.fill();
+  if (!visible) {
+    c.fillStyle = 'rgba(26,26,25,0.85)';
+    roundRect(c, x, y, w, h, r);
+    c.fill();
+    return;
+  }
+  // labels: centered pair on big tiles, corner label on small ones
+  const ink = LABEL_INK[n.cat];
+  if (w >= 90 && h >= 46) {
+    c.textAlign = 'center';
+    c.fillStyle = ink;
+    c.font = '600 12.5px system-ui, sans-serif';
+    c.fillText(fitText(c, n.name, w - 14), x + w / 2, y + h / 2 - 7);
+    c.globalAlpha = 0.78;
+    c.font = '11px system-ui, sans-serif';
+    c.fillText(fmtBytes(n.size), x + w / 2, y + h / 2 + 9);
+    c.globalAlpha = 1;
+    c.textAlign = 'left';
+  } else if (w >= 36 && h >= 13) {
+    c.fillStyle = ink;
+    c.font = '600 10.5px system-ui, sans-serif';
+    const name = fitText(c, n.name, w - 8);
+    if (name) c.fillText(name, x + 4, y + (h >= 26 ? 10 : h / 2) + 0.5);
+    if (h >= 26) {
+      c.globalAlpha = 0.75;
+      c.font = '10px system-ui, sans-serif';
+      c.fillText(fitText(c, fmtBytes(n.size), w - 8), x + 4, y + 22);
+      c.globalAlpha = 1;
+    }
+  }
+}
+
+function fitText(c, text, maxW) {
+  if (maxW <= 4) return '';
+  if (c.measureText(text).width <= maxW) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (c.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo ? text.slice(0, lo) + '…' : '';
+}
+
+function roundRect(c, x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function paint() {
+  if (!S.base || S.animating) return;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(S.base, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const ring = (r, color, lw) => {
+    ctx.strokeStyle = color; ctx.lineWidth = lw;
+    roundRect(ctx, r.x + lw / 2, r.y + lw / 2, r.w - lw, r.h - lw, 2.5);
+    ctx.stroke();
+  };
+  if (S.selected) {
+    const hit = S.hitFiles.find(f => f.node === S.selected);
+    if (hit) ring(hit, '#ffffff', 2);
+  }
+  if (S.hover) {
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    const r = S.hover;
+    roundRect(ctx, r.x, r.y, r.w, r.h, 2.5);
+    ctx.fill();
+    ring(r, 'rgba(255,255,255,0.85)', 1.5);
+  }
+}
+
+// ── Sidebar / chrome ────────────────────────────────────────────────────────
+function renderCrumbs() {
+  const parts = [];
+  let n = S.viewRoot;
+  while (n) { parts.unshift(n); n = n.parent; }
+  $('crumbs').innerHTML = parts.map((p, i) =>
+    `<span class="crumb ${i === parts.length - 1 ? 'font-semibold' : ''}" data-i="${i}" style="color:${i === parts.length - 1 ? 'var(--ink)' : 'var(--ink-3)'}">${esc(p.name)}</span>` +
+    (i < parts.length - 1 ? '<i class="ph ph-caret-right text-[10px]" style="color:var(--ink-3)"></i>' : '')
+  ).join('');
+  $('crumbs').querySelectorAll('.crumb').forEach(el =>
+    el.onclick = () => { let t = S.viewRoot; for (let k = parts.length - 1; k > +el.dataset.i; k--) t = t.parent; setViewRoot(t); });
+  $('upBtn').classList.toggle('hidden', !S.viewRoot?.parent);
+}
+
+function renderStats() {
+  const r = S.root;
+  $('statChips').innerHTML = r ? `
+    <span class="chip">${r.fileCount.toLocaleString()} files</span>
+    <span class="chip">${fmtBytes(r.size)}</span>
+    <span class="chip">${esc(S.ref)}</span>` : '';
+}
+
+function renderViewStats() {
+  const v = S.viewRoot;
+  if (!v) return $('viewStats').innerHTML = '';
+  const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
+  $('viewStats').innerHTML = `
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}</span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Size</span><span style="color:var(--ink)">${fmtBytes(v.size)} <span style="color:var(--ink-3)">(${pct} of repo)</span></span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Files</span><span style="color:var(--ink)">${v.fileCount.toLocaleString()}</span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Dirs</span><span style="color:var(--ink)">${v.dirCount.toLocaleString()}</span></div>`;
+}
+
+function renderTypes() {
+  const totals = catTotals(S.viewRoot || { children: [] });
+  const max = Math.max(1, ...Object.values(totals).map(t => t.bytes));
+  const order = Object.keys(CATS).filter(k => totals[k]);
+  $('typeRows').innerHTML = order.map(k => {
+    const t = totals[k];
+    return `<div class="typerow ${S.catFilter && S.catFilter !== k ? 'off' : ''} px-1.5 py-1" data-cat="${k}">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style="background:${CATS[k].color}"></span>
+        <span style="color:var(--ink)">${CATS[k].label}</span>
+        <span class="grow"></span>
+        <span class="num" style="color:var(--ink-2)">${fmtBytes(t.bytes)}</span>
+        <span class="num w-11 text-right" style="color:var(--ink-3)">${fmtPct(t.bytes, S.viewRoot.size)}</span>
+      </div>
+      <div class="mt-1 h-1 rounded-full" style="background:var(--grid)">
+        <div class="h-1 rounded-full" style="width:${Math.max(2, 100 * t.bytes / max)}%;background:${CATS[k].color}"></div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
+  $('typeRows').querySelectorAll('.typerow').forEach(el => el.onclick = () => {
+    S.catFilter = S.catFilter === el.dataset.cat ? null : el.dataset.cat;
+    refresh();
+  });
+}
+
+function renderBigFiles() {
+  const files = topFiles(S.viewRoot || { children: [] }, 12);
+  $('bigFiles').innerHTML = files.map((f, i) => `
+    <div class="filerow flex items-center gap-2 px-1.5 py-1 text-xs" data-i="${i}">
+      <span class="inline-block w-2 h-2 rounded-sm shrink-0" style="background:${CATS[f.cat].color}"></span>
+      <span class="truncate" style="color:var(--ink)" title="${esc(f.path)}">${esc(f.name)}</span>
+      <span class="grow"></span>
+      <span class="num shrink-0" style="color:var(--ink-3)">${fmtBytes(f.size)}</span>
+    </div>`).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
+  $('bigFiles').querySelectorAll('.filerow').forEach(el => el.onclick = () => {
+    selectFile(files[+el.dataset.i]);
+  });
+}
+
+function renderSelection() {
+  const p = $('selPanel');
+  if (!S.selected) { p.classList.add('hidden'); return; }
+  const f = S.selected;
+  const url = `https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${f.path}`;
+  p.classList.remove('hidden');
+  p.innerHTML = `
+    <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">Selected</div>
+    <div class="text-[13px] break-all mb-1" style="color:var(--ink)">${esc(f.path)}</div>
+    <div class="text-xs num mb-2" style="color:var(--ink-2)">
+      ${fmtBytes(f.size)} · ${fmtPct(f.size, S.viewRoot.size)} of view ·
+      <span style="color:${CATS[f.cat].color}">${CATS[f.cat].label}</span>
+    </div>
+    <a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank" href="${url}">
+      <i class="ph ph-github-logo"></i> open on GitHub
+    </a>`;
+}
+
+function renderMatchChip() {
+  const chip = $('matchChip');
+  if (S.search || S.catFilter) {
+    chip.classList.remove('hidden');
+    chip.textContent = `${S.matchCount.toLocaleString()} match${S.matchCount === 1 ? '' : 'es'}`;
+  } else chip.classList.add('hidden');
+}
+
+function refresh() {
+  S.matchCount = (S.search || S.catFilter) && S.viewRoot ? countMatches(S.viewRoot) : 0;
+  buildScene();
+  renderCrumbs();
+  renderViewStats();
+  renderTypes();
+  renderBigFiles();
+  renderSelection();
+  renderMatchChip();
+  updateUrl();
+}
+
+// ── Interactions ─────────────────────────────────────────────────────────────
+function hitTest(mx, my) {
+  // files first (they're the leaves, drawn on top of dir frames)
+  for (const f of S.hitFiles) {
+    if (mx >= f.x && mx < f.x + f.w && my >= f.y && my < f.y + f.h) return { kind: 'file', ...f };
+  }
+  // deepest zoom target (headers / tiny dirs) — later entries are deeper
+  let best = null;
+  for (const z of S.hitZoom) {
+    if (mx >= z.x && mx < z.x + z.w && my >= z.y && my < z.y + z.h) best = z;
+  }
+  return best ? { kind: 'dir', ...best } : null;
+}
+
+const isInside = (node, maybeAncestor) => {
+  for (let n = node; n; n = n.parent) if (n === maybeAncestor) return true;
+  return false;
+};
+
+function setViewRoot(node) {
+  const oldRoot = S.viewRoot, oldBase = S.base, oldRects = S.dirRects;
+  S.viewRoot = node;
+  S.hover = null; S.selected = null;
+  hideTip();
+  refresh();
+  if (!oldBase || !oldRoot || oldRoot === node) return;
+  if (isInside(node, oldRoot) && oldRects.get(node)) {
+    animateZoom(oldBase, S.base, oldRects.get(node), 'in');
+  } else if (isInside(oldRoot, node) && S.dirRects.get(oldRoot)) {
+    animateZoom(oldBase, S.base, S.dirRects.get(oldRoot), 'out');
+  }
+}
+
+// Cross-zoom between two rendered scenes. `r` is the anchor rect: for 'in' it's
+// the target dir's rect in the OLD scene; for 'out' the old view's rect in the
+// NEW scene. The camera window W animates between the viewport V and r; the
+// nested scene rides the same transform and crossfades.
+function animateZoom(oldBase, newBase, r, dir) {
+  const wrap = $('mapWrap');
+  const V = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight };
+  if (r.w < 2 || r.h < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const DUR = 280, t0 = performance.now();
+  const outer = dir === 'in' ? oldBase : newBase;
+  const inner = dir === 'in' ? newBase : oldBase;
+  S.animating = true;
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / DUR);
+    const e = ease(t);
+    // camera window over the outer scene
+    const k = dir === 'in' ? e : 1 - e;
+    const W = { x: lerp(V.x, r.x, k), y: lerp(V.y, r.y, k), w: lerp(V.w, r.w, k), h: lerp(V.h, r.h, k) };
+    const sx = V.w / W.w, sy = V.h / W.h;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, MAP.width, MAP.height);
+    ctx.globalAlpha = 1;
+    ctx.setTransform(dpr * sx, 0, 0, dpr * sy, -W.x * sx * dpr, -W.y * sy * dpr);
+    ctx.drawImage(outer, 0, 0, outer.width, outer.height, 0, 0, V.w, V.h);
+    // nested scene occupies region r of the outer scene
+    ctx.globalAlpha = dir === 'in' ? e : 1 - e;
+    ctx.setTransform(dpr * sx * (r.w / V.w), 0, 0, dpr * sy * (r.h / V.h),
+      (r.x - W.x) * sx * dpr, (r.y - W.y) * sy * dpr);
+    ctx.drawImage(inner, 0, 0, inner.width, inner.height, 0, 0, V.w, V.h);
+    ctx.globalAlpha = 1;
+    if (t < 1) requestAnimationFrame(frame);
+    else { S.animating = false; paint(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function selectFile(f) {
+  S.selected = f;
+  // zoom to its parent dir if it isn't inside the current view
+  let inView = false;
+  for (let n = f.parent; n; n = n.parent) if (n === S.viewRoot) { inView = true; break; }
+  if (!inView) { S.viewRoot = f.parent; }
+  refresh();
+}
+
+const tip = $('tooltip');
+function showTip(html, ev) {
+  tip.innerHTML = html;
+  tip.classList.remove('hidden');
+  const pad = 14;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  const r = tip.getBoundingClientRect();
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => tip.classList.add('hidden');
+
+let rafPending = false;
+MAP.addEventListener('mousemove', ev => {
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  MAP.style.cursor = hit ? 'pointer' : 'default';
+  const prev = S.hover;
+  S.hover = hit && hit.kind === 'file' ? hit : (hit && hit.kind === 'dir' ? hit : null);
+  if (prev?.node !== S.hover?.node && !rafPending) {
+    rafPending = true;
+    requestAnimationFrame(() => { rafPending = false; paint(); });
+  }
+  if (hit) {
+    const n = hit.node;
+    const pct = fmtPct(n.size, S.viewRoot.size);
+    showTip(n.isDir
+      ? `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}/</div>
+         <div class="num">${fmtBytes(n.size)} · ${pct} of view · ${n.fileCount.toLocaleString()} files</div>
+         <div style="color:var(--ink-3)" class="mt-0.5">click to zoom in</div>`
+      : `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}</div>
+         <div class="break-all" style="color:var(--ink-3)">${esc(n.path)}</div>
+         <div class="num mt-0.5">${fmtBytes(n.size)} · ${pct} of view ·
+           <span style="color:${CATS[n.cat].color}">${CATS[n.cat].label}</span></div>`, ev);
+  } else hideTip();
+});
+MAP.addEventListener('mouseleave', () => { S.hover = null; hideTip(); paint(); });
+MAP.addEventListener('click', ev => {
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  if (!hit) return;
+  if (hit.kind === 'dir') setViewRoot(hit.node);
+  else { S.selected = hit.node === S.selected ? null : hit.node; refresh(); }
+});
+MAP.addEventListener('dblclick', ev => {
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  if (hit?.kind === 'file') {
+    window.open(`https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${hit.node.path}`, '_blank');
+  }
+});
+$('upBtn').onclick = () => S.viewRoot?.parent && setViewRoot(S.viewRoot.parent);
+function setWeightMode(m) {
+  S.weightMode = m;
+  $('wBytes').style.color = m === 'bytes' ? 'var(--ink)' : 'var(--ink-3)';
+  $('wBytes').classList.toggle('font-semibold', m === 'bytes');
+  $('wFiles').style.color = m === 'files' ? 'var(--ink)' : 'var(--ink-3)';
+  $('wFiles').classList.toggle('font-semibold', m === 'files');
+  refresh();
+}
+$('wBytes').onclick = () => setWeightMode('bytes');
+$('wFiles').onclick = () => setWeightMode('files');
+$('exportBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.download = `${S.repo.replace('/', '-')}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
+  a.href = MAP.toDataURL('image/png');
+  a.click();
+};
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT') {
+    if (ev.key === 'Escape') { ev.target.blur(); $('searchInput').value = ''; S.search = ''; refresh(); }
+    return;
+  }
+  if (ev.key === 'Backspace' && S.viewRoot?.parent) { ev.preventDefault(); setViewRoot(S.viewRoot.parent); }
+  if (ev.key === 'Escape') { S.search = ''; $('searchInput').value = ''; S.catFilter = null; S.selected = null; refresh(); }
+});
+$('searchInput').addEventListener('input', ev => { S.search = ev.target.value.trim().toLowerCase(); refresh(); });
+$('goBtn').onclick = () => loadRepo($('repoInput').value.trim(), $('refInput').value.trim());
+$('repoInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
+$('refInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
+
+let resizeT = null;
+new ResizeObserver(() => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => S.root && buildScene(), 80);
+}).observe($('mapWrap'));
+
+// ── URL state ────────────────────────────────────────────────────────────────
+function updateUrl() {
+  try {
+    const p = new URLSearchParams(location.search);
+    const set = (k, v) => v ? p.set(k, v) : p.delete(k);
+    set('repo', S.repo);
+    set('ref', S.ref && S.ref !== S.defaultRef ? S.ref : '');
+    set('path', S.viewRoot?.path);
+    set('q', S.search);
+    set('cat', S.catFilter);
+    set('area', S.weightMode === 'files' ? 'files' : '');
+    history.replaceState(null, '', location.pathname + '?' + p.toString() + location.hash);
+  } catch {}
+}
+
+// ── Boot / data ──────────────────────────────────────────────────────────────
+function overlay(html) {
+  const el = $('overlayMsg');
+  if (!html) { el.classList.add('hidden'); el.classList.remove('flex'); return; }
+  el.innerHTML = html;
+  el.classList.remove('hidden'); el.classList.add('flex');
+}
+
+async function loadRepo(repo, ref) {
+  if (!repo || !repo.includes('/')) return overlay(`<i class="ph ph-warning text-xl"></i><div>Enter a repo as <b>owner/name</b></div>`);
+  overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Loading ${esc(repo)}…</div>`);
+  S.repo = repo; S.root = null; S.selected = null; S.catFilter = null;
+  try {
+    const gh = new window.GH({ token: window.TOKEN, repo });
+    S.gh = gh;
+    let meta = null;
+    // full URL: gh.req('') would add a trailing slash the API tolerates but
+    // exact-match interceptors (and caches) don't
+    try { meta = await gh.req(`https://api.github.com/repos/${repo}`); } catch (e) { if (!ref) throw e; }
+    S.defaultRef = meta?.default_branch || 'main';
+    S.ref = ref || S.defaultRef;
+    const tree = await gh.req(`git/trees/${encodeURIComponent(S.ref)}?recursive=1`);
+    S.truncated = !!tree.truncated;
+    $('truncBadge').classList.toggle('hidden', !S.truncated);
+    S.root = buildTree(tree.tree, repo.split('/')[1]);
+    S.viewRoot = S.root;
+    // restore ?path= deep link
+    const wanted = new URLSearchParams(location.search).get('path');
+    if (wanted) S.viewRoot = dirByPath(wanted);
+    $('repoInput').value = repo;
+    $('refInput').value = S.ref === S.defaultRef ? '' : S.ref;
+    overlay('');
+    renderStats();
+    refresh();
+  } catch (e) {
+    console.error('loadRepo:', e);
+    const hint = e?.status === 403
+      ? 'Rate-limited. Paste a token into localStorage.ghToken to raise the limit.'
+      : e?.status === 404 ? 'Repo or ref not found (private repos need a token).' : (e?.message || e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div class="max-w-sm text-center">${esc(String(hint))}</div>`);
+  }
+}
+
+// deterministic driver for headless interaction tests (tools/render, npm run shot --script)
+window.__atlas = {
+  get S() { return S; },
+  zoomTo: path => { const n = dirByPath(path); if (n) setViewRoot(n); },
+  isolate: cat => { S.catFilter = cat; refresh(); },
+  find: q => { S.search = (q || '').toLowerCase(); $('searchInput').value = q || ''; refresh(); },
+  select: path => {
+    let f = null;
+    (function walk(n) { for (const c of n.children) { if (c.isDir) walk(c); else if (c.path === path) f = c; } })(S.root);
+    if (f) selectFile(f);
+  },
+};
+
+(async () => {
+  const ok = await waitFor(() => window.GH);
+  if (!ok) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Boot timed out waiting for gh-api.js. Reload to retry.</div>`);
+  const p = new URLSearchParams(location.search);
+  const q = p.get('q') || '';
+  if (q) { $('searchInput').value = q; S.search = q.toLowerCase(); }
+  if (CATS[p.get('cat')]) S.catFilter = p.get('cat');
+  if (p.get('area') === 'files') setWeightMode('files');
+  await loadRepo(p.get('repo') || 'mehrlander/web-tools', p.get('ref') || '');
+})();
+</script>
+</body>
+</html>

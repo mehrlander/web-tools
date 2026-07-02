@@ -19,6 +19,7 @@ the link-dense text twin of the visual index above.
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `nav-repo` | Nav Repo | [view](https://mehrlander.github.io/web-tools/pages/nav-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/nav-repo.html) |
+| `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
