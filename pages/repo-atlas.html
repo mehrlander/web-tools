@@ -91,6 +91,25 @@
     <div id="matchChip" class="chip hidden num" style="color:var(--ink-2)"></div>
     <div class="grow"></div>
     <div id="statChips" class="flex items-center gap-1.5 text-xs num" style="color:var(--ink-3)"></div>
+    <div class="relative">
+      <span id="helpBtn" class="chip cursor-pointer hover:border-white/30 inline-flex items-center" title="Help">
+        <i class="ph ph-question"></i>
+      </span>
+      <div id="helpPop" class="hidden absolute right-0 top-8 z-40 w-72 rounded-lg p-3 text-xs leading-relaxed"
+           style="background:rgba(13,13,13,0.97); border:1px solid rgba(255,255,255,0.16); box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+        <div class="font-semibold mb-1.5" style="color:var(--ink)">Reading the map</div>
+        Every file is a tile — area is its share of the view (bytes, or file count via the <b>area</b> toggle). Color is the file's type; directories are the darker frames.
+        <div class="font-semibold mt-2 mb-1.5" style="color:var(--ink)">Getting around</div>
+        <table class="w-full" style="color:var(--ink-2)">
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">click dir</td><td>zoom in (breadcrumbs / Backspace to go up)</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">click file</td><td>select, details in the sidebar</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">dbl-click</td><td>open the file on GitHub</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">type rows</td><td>hover to preview, click to isolate a type</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">Esc</td><td>clear search / filter / selection</td></tr>
+        </table>
+        <div class="mt-2" style="color:var(--ink-3)">Any public repo works — paste <b>owner/name</b> above. For private repos or API rate limits, store a token as <code>localStorage.ghToken</code>. The URL tracks the view, so it's shareable.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Breadcrumbs -->
@@ -191,6 +210,7 @@ const S = {
   base: null,        // offscreen base render
   animating: false,
   matchCount: 0,
+  catHover: null,    // category key under the pointer in the sidebar (paint-level preview)
 };
 
 const nodeWeight = n => S.weightMode === 'files'
@@ -314,7 +334,7 @@ function layoutDir(c, dir, x, y, w, h, depth) {
       c.fillStyle = '#c3c2b7';
       let labelMax = w - 12;
       if (w >= 110) {
-        const sz = fmtBytes(dir.size);
+        const sz = S.weightMode === 'files' ? dir.fileCount.toLocaleString() + ' files' : fmtBytes(dir.size);
         c.save();
         c.font = '10px system-ui, sans-serif';
         const szW = c.measureText(sz).width;
@@ -439,6 +459,15 @@ function paint() {
     roundRect(ctx, r.x + lw / 2, r.y + lw / 2, r.w - lw, r.h - lw, 2.5);
     ctx.stroke();
   };
+  // sidebar type-row hover: recede every other category (paint-level, no rebuild)
+  if (S.catHover) {
+    ctx.fillStyle = 'rgba(26,26,25,0.72)';
+    for (const f of S.hitFiles) {
+      if (f.node.cat === S.catHover) continue;
+      roundRect(ctx, f.x, f.y, f.w, f.h, 2.5);
+      ctx.fill();
+    }
+  }
   if (S.selected) {
     const hit = S.hitFiles.find(f => f.node === S.selected);
     if (hit) ring(hit, '#ffffff', 2);
@@ -478,8 +507,10 @@ function renderViewStats() {
   const v = S.viewRoot;
   if (!v) return $('viewStats').innerHTML = '';
   const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
+  const ghUrl = `https://github.com/${S.repo}/tree/${encodeURIComponent(S.ref)}/${v.path}`;
   $('viewStats').innerHTML = `
-    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}</span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}
+      <a href="${ghUrl}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a></span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Size</span><span style="color:var(--ink)">${fmtBytes(v.size)} <span style="color:var(--ink-3)">(${pct} of repo)</span></span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Files</span><span style="color:var(--ink)">${v.fileCount.toLocaleString()}</span></div>
     <div class="flex justify-between"><span style="color:var(--ink-3)">Dirs</span><span style="color:var(--ink)">${v.dirCount.toLocaleString()}</span></div>`;
@@ -504,9 +535,13 @@ function renderTypes() {
       </div>
     </div>`;
   }).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
-  $('typeRows').querySelectorAll('.typerow').forEach(el => el.onclick = () => {
-    S.catFilter = S.catFilter === el.dataset.cat ? null : el.dataset.cat;
-    refresh();
+  $('typeRows').querySelectorAll('.typerow').forEach(el => {
+    el.onclick = () => {
+      S.catFilter = S.catFilter === el.dataset.cat ? null : el.dataset.cat;
+      refresh();
+    };
+    el.onmouseenter = () => { S.catHover = el.dataset.cat; paint(); };
+    el.onmouseleave = () => { S.catHover = null; paint(); };
   });
 }
 
@@ -519,8 +554,14 @@ function renderBigFiles() {
       <span class="grow"></span>
       <span class="num shrink-0" style="color:var(--ink-3)">${fmtBytes(f.size)}</span>
     </div>`).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
-  $('bigFiles').querySelectorAll('.filerow').forEach(el => el.onclick = () => {
-    selectFile(files[+el.dataset.i]);
+  $('bigFiles').querySelectorAll('.filerow').forEach(el => {
+    el.onclick = () => selectFile(files[+el.dataset.i]);
+    // locate on hover: ride the hover ring the map already paints
+    el.onmouseenter = () => {
+      const hit = S.hitFiles.find(f => f.node === files[+el.dataset.i]);
+      if (hit) { S.hover = hit; paint(); }
+    };
+    el.onmouseleave = () => { S.hover = null; paint(); };
   });
 }
 
@@ -547,7 +588,10 @@ function renderMatchChip() {
   if (S.search || S.catFilter) {
     chip.classList.remove('hidden');
     chip.textContent = `${S.matchCount.toLocaleString()} match${S.matchCount === 1 ? '' : 'es'}`;
-  } else chip.classList.add('hidden');
+    if (S.root && !S.matchCount) {
+      overlay(`<i class="ph ph-binoculars text-2xl"></i><div>No matches in this view — Esc clears the filter.</div>`);
+    } else overlay('');
+  } else { chip.classList.add('hidden'); if (S.root) overlay(''); }
 }
 
 function refresh() {
@@ -600,6 +644,7 @@ function setViewRoot(node) {
 // NEW scene. The camera window W animates between the viewport V and r; the
 // nested scene rides the same transform and crossfades.
 function animateZoom(oldBase, newBase, r, dir) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const wrap = $('mapWrap');
   const V = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight };
   if (r.w < 2 || r.h < 2) return;
@@ -669,10 +714,12 @@ MAP.addEventListener('mousemove', ev => {
   }
   if (hit) {
     const n = hit.node;
-    const pct = fmtPct(n.size, S.viewRoot.size);
+    const pct = S.weightMode === 'files'
+      ? (n.isDir ? fmtPct(n.fileCount, S.viewRoot.fileCount) : fmtPct(1, S.viewRoot.fileCount))
+      : fmtPct(n.size, S.viewRoot.size);
     showTip(n.isDir
       ? `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}/</div>
-         <div class="num">${fmtBytes(n.size)} · ${pct} of view · ${n.fileCount.toLocaleString()} files</div>
+         <div class="num">${fmtBytes(n.size)} · ${n.fileCount.toLocaleString()} files · ${pct} of view</div>
          <div style="color:var(--ink-3)" class="mt-0.5">click to zoom in</div>`
       : `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}</div>
          <div class="break-all" style="color:var(--ink-3)">${esc(n.path)}</div>
@@ -706,6 +753,12 @@ function setWeightMode(m) {
 }
 $('wBytes').onclick = () => setWeightMode('bytes');
 $('wFiles').onclick = () => setWeightMode('files');
+$('helpBtn').onclick = ev => { ev.stopPropagation(); $('helpPop').classList.toggle('hidden'); };
+document.addEventListener('click', ev => {
+  if (!$('helpPop').classList.contains('hidden') && !$('helpPop').contains(ev.target)) {
+    $('helpPop').classList.add('hidden');
+  }
+});
 $('exportBtn').onclick = () => {
   const a = document.createElement('a');
   a.download = `${S.repo.replace('/', '-')}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
@@ -720,7 +773,11 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Backspace' && S.viewRoot?.parent) { ev.preventDefault(); setViewRoot(S.viewRoot.parent); }
   if (ev.key === 'Escape') { S.search = ''; $('searchInput').value = ''; S.catFilter = null; S.selected = null; refresh(); }
 });
-$('searchInput').addEventListener('input', ev => { S.search = ev.target.value.trim().toLowerCase(); refresh(); });
+let searchT = null;
+$('searchInput').addEventListener('input', ev => {
+  clearTimeout(searchT);
+  searchT = setTimeout(() => { S.search = ev.target.value.trim().toLowerCase(); refresh(); }, 120);
+});
 $('goBtn').onclick = () => loadRepo($('repoInput').value.trim(), $('refInput').value.trim());
 $('repoInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
 $('refInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
