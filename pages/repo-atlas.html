@@ -775,7 +775,8 @@ document.addEventListener('click', ev => {
 });
 $('exportBtn').onclick = () => {
   const a = document.createElement('a');
-  a.download = `${S.repo.replace('/', '-')}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
+  const base = S.source === 'github' ? S.repo.replace('/', '-') : (S.localLabel || 'local');
+  a.download = `${base}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
   a.href = MAP.toDataURL('image/png');
   a.click();
 };
@@ -911,7 +912,7 @@ $('mapWrap').addEventListener('drop', async ev => {
   }
 });
 
-async function loadRepo(repo, ref) {
+async function loadRepo(repo, ref, deepPath) {
   if (!repo || !repo.includes('/')) return overlay(`<i class="ph ph-warning text-xl"></i><div>Enter a repo as <b>owner/name</b></div>`);
   overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Loading ${esc(repo)}…</div>`);
   S.source = 'github';
@@ -930,9 +931,8 @@ async function loadRepo(repo, ref) {
     $('truncBadge').classList.toggle('hidden', !S.truncated);
     S.root = window.treemap.buildTree(tree.tree, repo.split('/')[1]);
     S.viewRoot = S.root;
-    // restore ?path= deep link
-    const wanted = new URLSearchParams(location.search).get('path');
-    if (wanted) S.viewRoot = dirByPath(wanted);
+    // deep link (?path=) applies only at boot; manual loads start at the root
+    if (deepPath) S.viewRoot = dirByPath(deepPath);
     $('repoInput').value = repo;
     $('refInput').value = S.ref === S.defaultRef ? '' : S.ref;
     overlay('');
@@ -967,10 +967,13 @@ window.__atlas = {
   bindKit();
   const p = new URLSearchParams(location.search);
   const q = p.get('q') || '';
+  const cat = CATS[p.get('cat')] ? p.get('cat') : null;
   if (q) { $('searchInput').value = q; S.search = q.toLowerCase(); }
-  if (CATS[p.get('cat')]) S.catFilter = p.get('cat');
   if (p.get('area') === 'files') setWeightMode('files');
-  await loadRepo(p.get('repo') || 'mehrlander/web-tools', p.get('ref') || '');
+  await loadRepo(p.get('repo') || 'mehrlander/web-tools', p.get('ref') || '', p.get('path') || '');
+  // after load: loadRepo resets the category filter on every (re)load, which is
+  // right for manual repo switches but would eat the boot deep link
+  if (cat && S.root) { S.catFilter = cat; refresh(); }
 })();
 </script>
 </body>
