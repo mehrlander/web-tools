@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-02 Repo Atlas: zoomable treemap map of any repo (PR #188)
+
+Overnight creative build: an interactive treemap of a repo's git tree (files as cushion-shaded tiles sized by bytes or file count, colored by type), with animated zoom, search, type isolation, an insights sidebar, PNG export, and shareable URL state; it also maps dropped local folders and zips entirely in-tab.
+
+⭐ **Result:** [repo-atlas.html](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) (defaults to this repo; takes `?repo=owner/name` for any public repo, plus `ref`, `path`, `q`, `cat`, `area`)
+
+**Changed:**
+- pages/repo-atlas.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html), [diff](https://github.com/mehrlander/web-tools/commit/d3482ef))
+- lib/kits/treemap.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/treemap.js), [diff](https://github.com/mehrlander/web-tools/commit/ac6e0f8)): the pure kernels (taxonomy, tree build, squarified layout, fmtBytes)
+  renders on: [repo-atlas.html](https://mehrlander.github.io/web-tools/pages/repo-atlas.html)
+- tools/test/treemap.test.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/test/treemap.test.mjs), [diff](https://github.com/mehrlander/web-tools/commit/ac6e0f8)): tiling invariants; caught a real negative-extent bug
+- tools/render/cdn.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/render/cdn.mjs), [diff](https://github.com/mehrlander/web-tools/commit/706ce8c)): impersonated git/trees carries real blob sizes (lstat-based, crash-safe, cached)
+- tools/build/pages-index.mjs, lib/kits/README.md, docs/environment/testing.md, pages/thumbs/repo-atlas.png ([session diff](https://github.com/mehrlander/web-tools/compare/main...claude/creative-exploration-mqersv)): blurb, kit docs, harness fidelity notes, thumbnail
+
+**Notes:** Tile colors are the dataviz reference palette's dark categorical slots, CVD-validated all-pairs; the floor-band pairs are covered by secondary encoding (gaps, direct labels, legend, tooltips, type table). An 8-angle self-review applied 10 findings, notably XSS-safe links (paths segment-encoded and attribute-escaped) and the symlink-safe harness walk. Parked follow-ups: per-directory lazy fetch for API-truncated trees, `io.jszip()` so the zip pin lives in one place, an IDB atlas as a second kit consumer. The branch name contains a slash, so `?use=` previews needed a commit SHA; not an issue once merged.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/creative-exploration-mqersv)
+
 ## 2026-06-26 Name the fetch≠invoke gap in the conventions sync (PR #187)
 
 Close the trap that let a downstream adopter's conventions sync silently no-op: a `SessionStart` hook that *writes* the loader skill to disk makes it available, not *invoked*, so on its own it never loads `CONVENTIONS.md`. Make the fetch→invoke pairing explicit at the source.
