@@ -26,13 +26,9 @@
     --ink-3: #898781;
     --hairline: rgba(255,255,255,0.10);
     --grid: #2c2c2a;
+    /* category colors live in CAT_COLORS (script); only the header icon
+       needs one in CSS */
     --cat-code: #3987e5;
-    --cat-docs: #c98500;
-    --cat-data: #008300;
-    --cat-markup: #e66767;
-    --cat-media: #d55181;
-    --cat-styles: #d95926;
-    --cat-other: #898781;
   }
   html, body { height: 100%; }
   body {
@@ -201,15 +197,19 @@ let CATS = {}; // key → { label, color }, filled once the kit lands
 let fmtBytes = n => n + ' B'; // rebound to treemap.fmtBytes at boot
 const fmtPct = (n, d) => d ? (100 * n / d).toFixed(n / d < 0.01 ? 2 : 1) + '%' : '—';
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// GitHub URL for a repo path: per-segment encoding (keeps the slashes) so '#',
+// '%', '?' in filenames can't derail the URL — then esc() when it rides in an
+// href attribute, so a quote in a filename can't break out of it (XSS).
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+const ghUrl = (kind, path) => `https://github.com/${S.repo}/${kind}/${encodeURIComponent(S.ref)}/${encPath(path)}`;
 
 // ── State ────────────────────────────────────────────────────────────────────
 const S = {
-  gh: null, repo: '', ref: '', defaultRef: '',
+  repo: '', ref: '', defaultRef: '',
   source: 'github',  // 'github' | 'local' (dropped/picked folder or zip)
   localLabel: '',
   root: null,        // full tree root node
   viewRoot: null,    // node currently mapped
-  truncated: false,
   hover: null,       // { node, rect }
   selected: null,    // file node
   search: '',
@@ -240,11 +240,20 @@ function dirByPath(path) {
 }
 
 function topFiles(node, k) {
-  const out = [];
+  // bounded insertion instead of collect-all + sort: one walk, k-length array
+  const top = [];
   (function walk(n) {
-    for (const c of n.children) c.isDir ? walk(c) : (nodeVisible(c) && out.push(c));
+    for (const c of n.children) {
+      if (c.isDir) { walk(c); continue; }
+      if (!nodeVisible(c)) continue;
+      if (top.length === k && c.size <= top[k - 1].size) continue;
+      let i = top.length;
+      while (i > 0 && top[i - 1].size < c.size) i--;
+      top.splice(i, 0, c);
+      if (top.length > k) top.pop();
+    }
   })(node);
-  return out.sort((a, b) => b.size - a.size).slice(0, k);
+  return top;
 }
 
 function countMatches(node) {
@@ -267,11 +276,18 @@ function relLum(hex) {
 }
 const LABEL_INK = {}; // filled by bindKit
 
+const CAT_SHADE = {}; // per-category cushion gradient stops, precomputed
+
 function bindKit() {
   const T = window.treemap;
-  CATS = Object.fromEntries(Object.entries(T.CATS).map(([k, label]) => [k, { label, color: CAT_COLORS[k] }]));
+  // unknown future kit categories degrade to gray, not a boot crash
+  CATS = Object.fromEntries(Object.entries(T.CATS).map(([k, label]) =>
+    [k, { label, color: CAT_COLORS[k] ?? CAT_COLORS.other }]));
   fmtBytes = T.fmtBytes;
-  for (const [k, v] of Object.entries(CATS)) LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+  for (const [k, v] of Object.entries(CATS)) {
+    LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+    CAT_SHADE[k] = { light: shade(v.color, 0.10), dark: shade(v.color, -0.22) };
+  }
 }
 
 const depthFill = d => {
@@ -294,6 +310,12 @@ function nodeVisible(n) {
   return true;
 }
 
+// Two scene buffers, alternated per build: reusing canvases avoids a fresh
+// multi-MB allocation per rebuild, and TWO of them keep the previous scene
+// intact for animateZoom's crossfade (S.base must not be redrawn in place).
+const SCENE_BUFS = [document.createElement('canvas'), document.createElement('canvas')];
+let sceneBufIdx = 0;
+
 function buildScene() {
   const wrap = $('mapWrap');
   const cssW = wrap.clientWidth, cssH = wrap.clientHeight;
@@ -301,8 +323,9 @@ function buildScene() {
   MAP.width = Math.round(cssW * dpr);
   MAP.height = Math.round(cssH * dpr);
 
-  const off = document.createElement('canvas');
-  off.width = MAP.width; off.height = MAP.height;
+  sceneBufIdx ^= 1;
+  const off = SCENE_BUFS[sceneBufIdx];
+  off.width = MAP.width; off.height = MAP.height; // setting size also clears
   const c = off.getContext('2d');
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.textBaseline = 'middle';
@@ -335,7 +358,6 @@ function layoutDir(c, dir, x, y, w, h, depth) {
     c.stroke();
   }
 
-  let hx = x, hy = y, hw = w, hh = h; // header hit zone
   let ix = x, iy = y, iw = w, ih = h;
   if (depth > 0) {
     const showHeader = h >= HEADER + 14 && w >= 44;
@@ -356,12 +378,12 @@ function layoutDir(c, dir, x, y, w, h, depth) {
       }
       const label = fitText(c, dir.name, labelMax);
       c.fillText(label, x + 5, y + HEADER / 2 + 0.5);
-      S.hitZoom.push({ x: hx, y: hy, w: hw, h: HEADER, node: dir });
+      S.hitZoom.push({ x, y, w, h: HEADER, node: dir });
       iy += HEADER; ih -= HEADER;
       ix += PAD; iw -= PAD * 2; ih -= PAD;
     } else {
       // whole tiny dir is a zoom target
-      S.hitZoom.push({ x: hx, y: hy, w: hw, h: hh, node: dir });
+      S.hitZoom.push({ x, y, w, h, node: dir });
       if (w < 8 || h < 8) return; // too small to subdivide
       ix += PAD; iy += PAD; iw -= PAD * 2; ih -= PAD * 2;
     }
@@ -395,8 +417,8 @@ function drawFile(c, n, x, y, w, h) {
   // surfaces instead of flat neon fields; hue (the identity channel) unchanged
   if (w > 6 && h > 6) {
     const g = c.createLinearGradient(x, y, x + w, y + h);
-    g.addColorStop(0, shade(col, 0.10));
-    g.addColorStop(1, shade(col, -0.22));
+    g.addColorStop(0, CAT_SHADE[n.cat].light);
+    g.addColorStop(1, CAT_SHADE[n.cat].dark);
     c.fillStyle = g;
   } else {
     c.fillStyle = col;
@@ -522,7 +544,7 @@ function renderViewStats() {
   if (!v) return $('viewStats').innerHTML = '';
   const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
   const ghLink = S.source === 'github'
-    ? ` <a href="https://github.com/${S.repo}/tree/${encodeURIComponent(S.ref)}/${v.path}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
+    ? ` <a href="${esc(ghUrl('tree', v.path))}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
     : '';
   $('viewStats').innerHTML = `
     <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}${ghLink}</span></div>
@@ -586,7 +608,7 @@ function renderSelection() {
   const f = S.selected;
   const link = S.source === 'github'
     ? `<a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank"
-         href="https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${f.path}">
+         href="${esc(ghUrl('blob', f.path))}">
          <i class="ph ph-github-logo"></i> open on GitHub</a>`
     : '';
   p.classList.remove('hidden');
@@ -698,16 +720,31 @@ function animateZoom(oldBase, newBase, r, dir) {
 
 function selectFile(f) {
   S.selected = f;
-  // zoom to its parent dir if it isn't inside the current view
-  let inView = false;
-  for (let n = f.parent; n; n = n.parent) if (n === S.viewRoot) { inView = true; break; }
-  if (!inView) { S.viewRoot = f.parent; }
+  if (isInside(f.parent, S.viewRoot)) { paint(); renderSelection(); return; }
+  // jump the view to its parent dir when it's outside the current view
+  S.viewRoot = f.parent;
   refresh();
 }
 
 const tip = $('tooltip');
-function showTip(html, ev) {
-  tip.innerHTML = html;
+let tipNode = null;
+
+function tipHtml(n) {
+  const pct = S.weightMode === 'files'
+    ? (n.isDir ? fmtPct(n.fileCount, S.viewRoot.fileCount) : fmtPct(1, S.viewRoot.fileCount))
+    : fmtPct(n.size, S.viewRoot.size);
+  return n.isDir
+    ? `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}/</div>
+       <div class="num">${fmtBytes(n.size)} · ${n.fileCount.toLocaleString()} files · ${pct} of view</div>
+       <div style="color:var(--ink-3)" class="mt-0.5">click to zoom in</div>`
+    : `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}</div>
+       <div class="break-all" style="color:var(--ink-3)">${esc(n.path)}</div>
+       <div class="num mt-0.5">${fmtBytes(n.size)} · ${pct} of view ·
+         <span style="color:${CATS[n.cat].color}">${CATS[n.cat].label}</span></div>`;
+}
+
+function showTip(n, ev) {
+  if (tipNode !== n) { tipNode = n; tip.innerHTML = tipHtml(n); } // rebuild only on node change
   tip.classList.remove('hidden');
   const pad = 14;
   let x = ev.clientX + pad, y = ev.clientY + pad;
@@ -716,7 +753,7 @@ function showTip(html, ev) {
   if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
   tip.style.left = x + 'px'; tip.style.top = y + 'px';
 }
-const hideTip = () => tip.classList.add('hidden');
+const hideTip = () => { tipNode = null; tip.classList.add('hidden'); };
 
 let rafPending = false;
 MAP.addEventListener('mousemove', ev => {
@@ -724,25 +761,13 @@ MAP.addEventListener('mousemove', ev => {
   const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
   MAP.style.cursor = hit ? 'pointer' : 'default';
   const prev = S.hover;
-  S.hover = hit && hit.kind === 'file' ? hit : (hit && hit.kind === 'dir' ? hit : null);
-  if (prev?.node !== S.hover?.node && !rafPending) {
+  S.hover = hit; // hitTest returns a file hit, a dir hit, or null — no re-branching
+  if (prev?.node !== hit?.node && !rafPending) {
     rafPending = true;
     requestAnimationFrame(() => { rafPending = false; paint(); });
   }
-  if (hit) {
-    const n = hit.node;
-    const pct = S.weightMode === 'files'
-      ? (n.isDir ? fmtPct(n.fileCount, S.viewRoot.fileCount) : fmtPct(1, S.viewRoot.fileCount))
-      : fmtPct(n.size, S.viewRoot.size);
-    showTip(n.isDir
-      ? `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}/</div>
-         <div class="num">${fmtBytes(n.size)} · ${n.fileCount.toLocaleString()} files · ${pct} of view</div>
-         <div style="color:var(--ink-3)" class="mt-0.5">click to zoom in</div>`
-      : `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}</div>
-         <div class="break-all" style="color:var(--ink-3)">${esc(n.path)}</div>
-         <div class="num mt-0.5">${fmtBytes(n.size)} · ${pct} of view ·
-           <span style="color:${CATS[n.cat].color}">${CATS[n.cat].label}</span></div>`, ev);
-  } else hideTip();
+  if (hit) showTip(hit.node, ev);
+  else hideTip();
 });
 MAP.addEventListener('mouseleave', () => { S.hover = null; hideTip(); paint(); });
 MAP.addEventListener('click', ev => {
@@ -750,14 +775,18 @@ MAP.addEventListener('click', ev => {
   const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
   if (!hit) return;
   if (hit.kind === 'dir') setViewRoot(hit.node);
-  else { S.selected = hit.node === S.selected ? null : hit.node; refresh(); }
+  else {
+    // selection is a paint-level overlay — no scene rebuild needed
+    S.selected = hit.node === S.selected ? null : hit.node;
+    paint(); renderSelection();
+  }
 });
 MAP.addEventListener('dblclick', ev => {
   if (S.source !== 'github') return;
   const box = MAP.getBoundingClientRect();
   const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
   if (hit?.kind === 'file') {
-    window.open(`https://github.com/${S.repo}/blob/${encodeURIComponent(S.ref)}/${hit.node.path}`, '_blank');
+    window.open(ghUrl('blob', hit.node.path), '_blank');
   }
 });
 $('upBtn').onclick = () => S.viewRoot?.parent && setViewRoot(S.viewRoot.parent);
@@ -778,19 +807,35 @@ document.addEventListener('click', ev => {
   }
 });
 $('exportBtn').onclick = () => {
-  const a = document.createElement('a');
   const base = S.source === 'github' ? S.repo.replace('/', '-') : (S.localLabel || 'local');
-  a.download = `${base}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
-  a.href = MAP.toDataURL('image/png');
-  a.click();
+  const name = `${base}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
+  // toBlob + object URL: no base64 copy of the canvas held in an attribute
+  MAP.toBlob(b => {
+    if (!b) return;
+    const a = document.createElement('a');
+    a.download = name;
+    a.href = URL.createObjectURL(b);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, 'image/png');
 };
 document.addEventListener('keydown', ev => {
   if (ev.target.tagName === 'INPUT') {
-    if (ev.key === 'Escape') { ev.target.blur(); $('searchInput').value = ''; S.search = ''; refresh(); }
+    if (ev.key === 'Escape') {
+      ev.target.blur();
+      // only the search field's Esc clears the filter — leaving repo/ref
+      // inputs must not wipe an active search
+      if (ev.target === $('searchInput')) { ev.target.value = ''; S.search = ''; refresh(); }
+    }
     return;
   }
   if (ev.key === 'Backspace' && S.viewRoot?.parent) { ev.preventDefault(); setViewRoot(S.viewRoot.parent); }
-  if (ev.key === 'Escape') { S.search = ''; $('searchInput').value = ''; S.catFilter = null; S.selected = null; refresh(); }
+  if (ev.key === 'Escape') {
+    const hadFilters = S.search || S.catFilter;
+    S.search = ''; $('searchInput').value = ''; S.catFilter = null; S.selected = null;
+    if (hadFilters) refresh();
+    else { paint(); renderSelection(); } // selection-only clear skips the rebuild
+  }
 });
 let searchT = null;
 $('searchInput').addEventListener('input', ev => {
@@ -814,7 +859,9 @@ function updateUrl() {
     const set = (k, v) => v ? p.set(k, v) : p.delete(k);
     set('repo', S.source === 'github' ? S.repo : '');
     set('ref', S.source === 'github' && S.ref !== S.defaultRef ? S.ref : '');
-    set('path', S.viewRoot?.path);
+    // a local session's path would deep-link a fresh boot into the DEFAULT
+    // repo at a foreign path — keep it out of the shareable URL
+    set('path', S.source === 'github' ? S.viewRoot?.path : '');
     set('q', S.search);
     set('cat', S.catFilter);
     set('area', S.weightMode === 'files' ? 'files' : '');
@@ -833,17 +880,23 @@ function overlay(html) {
 // ── Local sources: picked folder, dropped folder, dropped zip ───────────────
 // Same tree, different provenance — nothing leaves the tab.
 function loadLocalEntries(entries, label) {
+  if (!window.treemap || !Object.keys(CATS).length) {
+    return overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Still booting — drop it again in a moment.</div>`);
+  }
   if (!entries.length) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Nothing readable in that drop.</div>`);
   S.source = 'local'; S.localLabel = label;
   S.repo = ''; S.ref = ''; S.defaultRef = '';
-  S.truncated = false; $('truncBadge').classList.add('hidden');
+  $('truncBadge').classList.add('hidden');
   S.selected = null; S.catFilter = null;
   S.root = window.treemap.buildTree(entries, label);
   S.viewRoot = S.root;
   $('repoInput').value = ''; $('refInput').value = '';
   overlay('');
   renderStats();
-  refresh();
+  // a source with no byte sizes at all (some zips) would map to nothing in
+  // bytes mode — fall back to the count encoding so the structure still shows
+  if (S.root.size === 0 && S.root.fileCount > 0 && S.weightMode === 'bytes') setWeightMode('files');
+  else refresh();
 }
 
 $('localBtn').onclick = () => $('dirInput').click();
@@ -897,8 +950,11 @@ $('mapWrap').addEventListener('drop', async ev => {
   try {
     const items = [...(ev.dataTransfer?.items || [])];
     if (!items.length) return;
+    // entry.isFile (not just the File object) — a dropped FOLDER named
+    // "dist.zip" also yields a File, and must take the folder path
+    const firstEntry = items[0].webkitGetAsEntry?.();
     const file = items[0].getAsFile?.();
-    if (file && /\.zip$/i.test(file.name)) return loadZip(file);
+    if (file && /\.zip$/i.test(file.name) && (!firstEntry || firstEntry.isFile)) return loadZip(file);
     const roots = items.map(i => i.webkitGetAsEntry?.()).filter(Boolean);
     if (!roots.length) return;
     overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Reading dropped folder…</div>`);
@@ -923,7 +979,6 @@ async function loadRepo(repo, ref, deepPath) {
   S.repo = repo; S.root = null; S.selected = null; S.catFilter = null;
   try {
     const gh = new window.GH({ token: window.TOKEN, repo });
-    S.gh = gh;
     let meta = null;
     // full URL: gh.req('') would add a trailing slash the API tolerates but
     // exact-match interceptors (and caches) don't
@@ -931,8 +986,7 @@ async function loadRepo(repo, ref, deepPath) {
     S.defaultRef = meta?.default_branch || 'main';
     S.ref = ref || S.defaultRef;
     const tree = await gh.req(`git/trees/${encodeURIComponent(S.ref)}?recursive=1`);
-    S.truncated = !!tree.truncated;
-    $('truncBadge').classList.toggle('hidden', !S.truncated);
+    $('truncBadge').classList.toggle('hidden', !tree.truncated);
     S.root = window.treemap.buildTree(tree.tree, repo.split('/')[1]);
     S.viewRoot = S.root;
     // deep link (?path=) applies only at boot; manual loads start at the root
@@ -966,9 +1020,12 @@ window.__atlas = {
 };
 
 (async () => {
-  const ok = await waitFor(() => window.GH && window.treemap);
-  if (!ok) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Boot timed out waiting for gh-api.js. Reload to retry.</div>`);
-  bindKit();
+  // the kit alone unlocks local mapping (no network needed beyond the boot
+  // chain itself); only the GitHub path needs window.GH
+  const kitOk = await waitFor(() => window.treemap);
+  if (kitOk) bindKit();
+  const ok = kitOk && await waitFor(() => window.GH);
+  if (!ok) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Boot timed out waiting for gh-api.js. Reload to retry${kitOk ? ', or drop a local folder / zip' : ''}.</div>`);
   const p = new URLSearchParams(location.search);
   const q = p.get('q') || '';
   const cat = CATS[p.get('cat')] ? p.get('cat') : null;
