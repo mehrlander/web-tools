@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repo Atlas</title>
+<!-- Zoomable treemap of a repo's git tree; also maps dropped folders/zips.
+     Kernels live in lib/kits/treemap.js; colors are the dataviz reference
+     palette's dark categorical slots. -->
+
+<meta name="shot-query" content="repo=mehrlander/web-tools">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('kits/treemap.js');
+</script>
+<style>
+  :root {
+    /* dataviz reference palette, dark mode (validated vs #1a1a19) */
+    --plane: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: rgba(255,255,255,0.10);
+    --grid: #2c2c2a;
+    /* category colors live in CAT_COLORS (script); only the header icon
+       needs one in CSS */
+    --cat-code: #3987e5;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--plane);
+    color: var(--ink-2);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  .panel { background: var(--surface); border: 1px solid var(--hairline); }
+  .field {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .field:focus { border-color: rgba(255,255,255,0.28); }
+  .field::placeholder { color: var(--ink-3); }
+  .chip { border: 1px solid var(--hairline); border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+  .crumb:hover { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+  .typerow { cursor: pointer; border-radius: 6px; }
+  .typerow:hover { background: rgba(255,255,255,0.05); }
+  .typerow.off { opacity: 0.38; }
+  .filerow { cursor: pointer; border-radius: 6px; }
+  .filerow:hover { background: rgba(255,255,255,0.05); }
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: rgba(13,13,13,0.94); border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 340px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #333330; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="h-screen flex flex-col gap-2 p-2">
+
+  <!-- Header -->
+  <div class="panel rounded-lg flex items-center gap-3 px-3 py-2 shrink-0">
+    <div class="flex items-center gap-2 text-[15px] font-semibold" style="color:var(--ink)">
+      <i class="ph ph-map-trifold text-lg" style="color:var(--cat-code)"></i>
+      Repo Atlas
+    </div>
+    <div class="flex items-center gap-1.5">
+      <input id="repoInput" class="field w-56" placeholder="owner/repo" spellcheck="false">
+      <input id="refInput" class="field w-28" placeholder="ref (default)" spellcheck="false">
+      <button id="goBtn" class="field cursor-pointer hover:border-white/30" title="Load repo">
+        <i class="ph ph-arrow-right"></i>
+      </button>
+      <button id="localBtn" class="field cursor-pointer hover:border-white/30" title="Map a local folder (or drop a folder / .zip on the map)">
+        <i class="ph ph-folder-open"></i>
+      </button>
+      <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
+    </div>
+    <div class="relative">
+      <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-sm" style="color:var(--ink-3)"></i>
+      <input id="searchInput" class="field w-52" style="padding-left:28px" placeholder="filter files… (Esc clears)" spellcheck="false">
+    </div>
+    <div id="matchChip" class="chip hidden num" style="color:var(--ink-2)"></div>
+    <div class="grow"></div>
+    <div id="statChips" class="flex items-center gap-1.5 text-xs num" style="color:var(--ink-3)"></div>
+    <div class="relative">
+      <span id="helpBtn" class="chip cursor-pointer hover:border-white/30 inline-flex items-center" title="Help">
+        <i class="ph ph-question"></i>
+      </span>
+      <div id="helpPop" class="hidden absolute right-0 top-8 z-40 w-72 rounded-lg p-3 text-xs leading-relaxed"
+           style="background:rgba(13,13,13,0.97); border:1px solid rgba(255,255,255,0.16); box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+        <div class="font-semibold mb-1.5" style="color:var(--ink)">Reading the map</div>
+        Every file is a tile — area is its share of the view (bytes, or file count via the <b>area</b> toggle). Color is the file's type; directories are the darker frames.
+        <div class="font-semibold mt-2 mb-1.5" style="color:var(--ink)">Getting around</div>
+        <table class="w-full" style="color:var(--ink-2)">
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">click dir</td><td>zoom in (breadcrumbs / Backspace to go up)</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">click file</td><td>select, details in the sidebar</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">dbl-click</td><td>open the file on GitHub</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">type rows</td><td>hover to preview, click to isolate a type</td></tr>
+          <tr><td class="pr-2 align-top whitespace-nowrap" style="color:var(--ink-3)">Esc</td><td>clear search / filter / selection</td></tr>
+        </table>
+        <div class="mt-2" style="color:var(--ink-3)">Any public repo works — paste <b>owner/name</b> above. For private repos or API rate limits, store a token as <code>localStorage.ghToken</code>. The URL tracks the view, so it's shareable.</div>
+        <div class="mt-2" style="color:var(--ink-3)">Local files map too: drop a <b>folder or .zip</b> on the map, or use the <i class="ph ph-folder-open"></i> picker. Nothing uploads — it all stays in this tab.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breadcrumbs -->
+  <div class="flex items-center gap-1 px-1 text-[13px] shrink-0 min-h-6" id="crumbBar">
+    <span id="crumbs" class="flex items-center gap-1 flex-wrap"></span>
+    <div class="grow"></div>
+    <span id="truncBadge" class="chip hidden" style="color:#fab219; border-color:#fab21944">
+      <i class="ph ph-warning"></i> tree truncated by API
+    </span>
+    <span class="chip flex items-center gap-1.5" style="color:var(--ink-3)">
+      area
+      <span id="wBytes" class="cursor-pointer font-semibold" style="color:var(--ink)">bytes</span>
+      <span style="color:var(--grid)">|</span>
+      <span id="wFiles" class="cursor-pointer" >files</span>
+    </span>
+    <span id="exportBtn" class="chip cursor-pointer hover:border-white/30" title="Download the map as PNG">
+      <i class="ph ph-download-simple"></i>
+    </span>
+    <span id="upBtn" class="chip cursor-pointer hover:border-white/30 hidden" title="Up one level (Backspace)">
+      <i class="ph ph-arrow-elbow-left-up"></i> up
+    </span>
+  </div>
+
+  <!-- Main -->
+  <div class="flex gap-2 grow min-h-0">
+    <div id="mapWrap" class="panel rounded-lg grow relative overflow-hidden">
+      <canvas id="map" class="absolute inset-0 w-full h-full"></canvas>
+      <div id="overlayMsg" class="absolute inset-0 hidden items-center justify-center flex-col gap-2 text-sm" style="color:var(--ink-3)"></div>
+    </div>
+
+    <div class="w-72 shrink-0 flex flex-col gap-2 min-h-0">
+      <div class="panel rounded-lg p-3">
+        <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">This view</div>
+        <div id="viewStats" class="text-[13px] flex flex-col gap-1 num"></div>
+      </div>
+      <div class="panel rounded-lg p-3">
+        <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">File types <span class="normal-case tracking-normal">(click to isolate)</span></div>
+        <div id="typeRows" class="flex flex-col gap-0.5"></div>
+      </div>
+      <div class="panel rounded-lg p-3 grow min-h-0 flex flex-col">
+        <div class="text-[11px] uppercase tracking-wider mb-2 shrink-0" style="color:var(--ink-3)">Largest files here</div>
+        <div id="bigFiles" class="flex flex-col gap-0.5 overflow-y-auto"></div>
+      </div>
+      <div class="panel rounded-lg p-3 hidden" id="selPanel"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+
+<script>
+window.TOKEN = '🎟️GitHubToken';
+if (window.TOKEN === '🎟️GitHubToken') {
+  try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
+}
+
+const $ = id => document.getElementById(id);
+
+const waitFor = async (pred, ms = 8000, step = 50) => {
+  for (let t = 0; t < ms; t += step) {
+    if (pred()) return true;
+    await new Promise(r => setTimeout(r, step));
+  }
+  return false;
+};
+
+// ── Categories ───────────────────────────────────────────────────────────────
+// Taxonomy + kernels come from kits/treemap.js (window.treemap). Colors are
+// this page's choice: the six dark categorical slots of the dataviz reference
+// palette + neutral gray. All-pairs CVD ΔE for the subset is 10.3 (floor band)
+// — legal because the map ships secondary encoding everywhere: 2px tile gaps,
+// direct labels, a legend, hover tooltips, and the sidebar type table.
+const CAT_COLORS = {
+  code: '#3987e5', docs: '#c98500', data: '#008300',
+  markup: '#e66767', media: '#d55181', styles: '#d95926', other: '#898781',
+};
+let CATS = {}; // key → { label, color }, filled once the kit lands
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+let fmtBytes = n => n + ' B'; // rebound to treemap.fmtBytes at boot
+const fmtPct = (n, d) => d ? (100 * n / d).toFixed(n / d < 0.01 ? 2 : 1) + '%' : '—';
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// GitHub URL for a repo path: per-segment encoding (keeps the slashes) so '#',
+// '%', '?' in filenames can't derail the URL — then esc() when it rides in an
+// href attribute, so a quote in a filename can't break out of it (XSS).
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+const ghUrl = (kind, path) => `https://github.com/${S.repo}/${kind}/${encodeURIComponent(S.ref)}/${encPath(path)}`;
+
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  repo: '', ref: '', defaultRef: '',
+  source: 'github',  // 'github' | 'local' (dropped/picked folder or zip)
+  localLabel: '',
+  root: null,        // full tree root node
+  viewRoot: null,    // node currently mapped
+  hover: null,       // { node, rect }
+  selected: null,    // file node
+  search: '',
+  catFilter: null,   // category key or null
+  weightMode: 'bytes', // 'bytes' | 'files' — what tile area encodes
+  hitFiles: [],      // { x, y, w, h, node }
+  hitZoom: [],       // dir headers + tiny dirs → click zooms: { x, y, w, h, node }
+  dirRects: new Map(), // node → rect in the current scene (zoom animation anchors)
+  base: null,        // offscreen base render
+  animating: false,
+  matchCount: 0,
+  catHover: null,    // category key under the pointer in the sidebar (paint-level preview)
+};
+
+const nodeWeight = n => S.weightMode === 'files'
+  ? (n.isDir ? n.fileCount : 1)
+  : n.size;
+
+function dirByPath(path) {
+  let n = S.root;
+  if (!n || !path) return n;
+  for (const seg of path.split('/')) {
+    const next = n.children.find(c => c.isDir && c.name === seg);
+    if (!next) break;
+    n = next;
+  }
+  return n;
+}
+
+function topFiles(node, k) {
+  // bounded insertion instead of collect-all + sort: one walk, k-length array
+  const top = [];
+  (function walk(n) {
+    for (const c of n.children) {
+      if (c.isDir) { walk(c); continue; }
+      if (!nodeVisible(c)) continue;
+      if (top.length === k && c.size <= top[k - 1].size) continue;
+      let i = top.length;
+      while (i > 0 && top[i - 1].size < c.size) i--;
+      top.splice(i, 0, c);
+      if (top.length > k) top.pop();
+    }
+  })(node);
+  return top;
+}
+
+function countMatches(node) {
+  let n = 0;
+  (function walk(d) {
+    for (const c of d.children) c.isDir ? walk(c) : (nodeVisible(c) && n++);
+  })(node);
+  return n;
+}
+
+// ── Layout + render ──────────────────────────────────────────────────────────
+const PAD = 2, HEADER = 17, GAP = 1;
+const MAP = $('map');
+const ctx = MAP.getContext('2d');
+
+function relLum(hex) {
+  const v = parseInt(hex.slice(1), 16);
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(v >> 16 & 255) + 0.7152 * f(v >> 8 & 255) + 0.0722 * f(v & 255);
+}
+const LABEL_INK = {}; // filled by bindKit
+
+const CAT_SHADE = {}; // per-category cushion gradient stops, precomputed
+
+function bindKit() {
+  const T = window.treemap;
+  // unknown future kit categories degrade to gray, not a boot crash
+  CATS = Object.fromEntries(Object.entries(T.CATS).map(([k, label]) =>
+    [k, { label, color: CAT_COLORS[k] ?? CAT_COLORS.other }]));
+  fmtBytes = T.fmtBytes;
+  for (const [k, v] of Object.entries(CATS)) {
+    LABEL_INK[k] = relLum(v.color) > 0.3 ? '#0b0b0b' : '#ffffff';
+    CAT_SHADE[k] = { light: shade(v.color, 0.10), dark: shade(v.color, -0.22) };
+  }
+}
+
+const depthFill = d => {
+  const v = Math.min(24 + d * 8, 62);
+  return `rgb(${v},${v},${v - 2})`;
+};
+
+// mix a hex toward white (f>0) or black (f<0)
+function shade(hex, f) {
+  const v = parseInt(hex.slice(1), 16);
+  const t = f < 0 ? 0 : 255, p = Math.abs(f);
+  const ch = c => Math.round(c + (t - c) * p);
+  return `rgb(${ch(v >> 16 & 255)},${ch(v >> 8 & 255)},${ch(v & 255)})`;
+}
+
+function nodeVisible(n) {
+  // search / category filters — a file "matches" if it passes both
+  if (S.catFilter && n.cat !== S.catFilter) return false;
+  if (S.search && !n.path.toLowerCase().includes(S.search)) return false;
+  return true;
+}
+
+// Two scene buffers, alternated per build: reusing canvases avoids a fresh
+// multi-MB allocation per rebuild, and TWO of them keep the previous scene
+// intact for animateZoom's crossfade (S.base must not be redrawn in place).
+const SCENE_BUFS = [document.createElement('canvas'), document.createElement('canvas')];
+let sceneBufIdx = 0;
+
+function buildScene() {
+  const wrap = $('mapWrap');
+  const cssW = wrap.clientWidth, cssH = wrap.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  MAP.width = Math.round(cssW * dpr);
+  MAP.height = Math.round(cssH * dpr);
+
+  sceneBufIdx ^= 1;
+  const off = SCENE_BUFS[sceneBufIdx];
+  off.width = MAP.width; off.height = MAP.height; // setting size also clears
+  const c = off.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.textBaseline = 'middle';
+
+  S.hitFiles = []; S.hitZoom = []; S.dirRects = new Map();
+
+  c.fillStyle = '#1a1a19';
+  c.fillRect(0, 0, cssW, cssH);
+
+  if (S.viewRoot && nodeWeight(S.viewRoot) > 0) {
+    layoutDir(c, S.viewRoot, 1, 1, cssW - 2, cssH - 2, 0);
+  }
+
+  S.base = off;
+  paint();
+}
+
+function layoutDir(c, dir, x, y, w, h, depth) {
+  if (w < 1 || h < 1) return;
+  S.dirRects.set(dir, { x, y, w, h });
+
+  if (depth > 0) {
+    // frame
+    c.fillStyle = depthFill(depth);
+    roundRect(c, x, y, w, h, 3);
+    c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    c.lineWidth = 1;
+    roundRect(c, x + 0.5, y + 0.5, w - 1, h - 1, 3);
+    c.stroke();
+  }
+
+  let ix = x, iy = y, iw = w, ih = h;
+  if (depth > 0) {
+    const showHeader = h >= HEADER + 14 && w >= 44;
+    if (showHeader) {
+      // header label, with size right-aligned when there's room
+      c.font = '600 10.5px system-ui, sans-serif';
+      c.fillStyle = '#c3c2b7';
+      let labelMax = w - 12;
+      if (w >= 110) {
+        const sz = S.weightMode === 'files' ? dir.fileCount.toLocaleString() + ' files' : fmtBytes(dir.size);
+        c.save();
+        c.font = '10px system-ui, sans-serif';
+        const szW = c.measureText(sz).width;
+        c.fillStyle = '#898781';
+        c.fillText(sz, x + w - szW - 5, y + HEADER / 2 + 0.5);
+        c.restore();
+        labelMax = w - szW - 18;
+      }
+      const label = fitText(c, dir.name, labelMax);
+      c.fillText(label, x + 5, y + HEADER / 2 + 0.5);
+      S.hitZoom.push({ x, y, w, h: HEADER, node: dir });
+      iy += HEADER; ih -= HEADER;
+      ix += PAD; iw -= PAD * 2; ih -= PAD;
+    } else {
+      // whole tiny dir is a zoom target
+      S.hitZoom.push({ x, y, w, h, node: dir });
+      if (w < 8 || h < 8) return; // too small to subdivide
+      ix += PAD; iy += PAD; iw -= PAD * 2; ih -= PAD * 2;
+    }
+  }
+  if (iw < 2 || ih < 2) return;
+
+  const items = dir.children.map(n => ({ weight: nodeWeight(n), node: n })).filter(i => i.weight > 0);
+  if (!items.length) return;
+  items.sort((a, b) => b.weight - a.weight);
+  const rects = window.treemap.squarify(items, ix, iy, iw, ih);
+
+  for (let i = 0; i < items.length; i++) {
+    const n = items[i].node;
+    let { x: rx, y: ry, w: rw, h: rh } = rects[i];
+    rx += GAP / 2; ry += GAP / 2; rw -= GAP; rh -= GAP;
+    if (rw < 0.5 || rh < 0.5) continue;
+    if (n.isDir) {
+      layoutDir(c, n, rx, ry, rw, rh, depth + 1);
+    } else {
+      drawFile(c, n, rx, ry, rw, rh);
+      S.hitFiles.push({ x: rx, y: ry, w: rw, h: rh, node: n });
+    }
+  }
+}
+
+function drawFile(c, n, x, y, w, h) {
+  const visible = nodeVisible(n);
+  const col = CATS[n.cat].color;
+  const r = Math.min(2.5, w / 4, h / 4);
+  // cushion shading: light falls from the top-left, so large tiles read as
+  // surfaces instead of flat neon fields; hue (the identity channel) unchanged
+  if (w > 6 && h > 6) {
+    const g = c.createLinearGradient(x, y, x + w, y + h);
+    g.addColorStop(0, CAT_SHADE[n.cat].light);
+    g.addColorStop(1, CAT_SHADE[n.cat].dark);
+    c.fillStyle = g;
+  } else {
+    c.fillStyle = col;
+  }
+  roundRect(c, x, y, w, h, r);
+  c.fill();
+  if (!visible) {
+    c.fillStyle = 'rgba(26,26,25,0.85)';
+    roundRect(c, x, y, w, h, r);
+    c.fill();
+    return;
+  }
+  // labels: centered pair on big tiles, corner label on small ones
+  const ink = LABEL_INK[n.cat];
+  if (w >= 90 && h >= 46) {
+    c.textAlign = 'center';
+    c.fillStyle = ink;
+    c.font = '600 12.5px system-ui, sans-serif';
+    c.fillText(fitText(c, n.name, w - 14), x + w / 2, y + h / 2 - 7);
+    c.globalAlpha = 0.78;
+    c.font = '11px system-ui, sans-serif';
+    c.fillText(fmtBytes(n.size), x + w / 2, y + h / 2 + 9);
+    c.globalAlpha = 1;
+    c.textAlign = 'left';
+  } else if (w >= 36 && h >= 13) {
+    c.fillStyle = ink;
+    c.font = '600 10.5px system-ui, sans-serif';
+    const name = fitText(c, n.name, w - 8);
+    if (name) c.fillText(name, x + 4, y + (h >= 26 ? 10 : h / 2) + 0.5);
+    if (h >= 26) {
+      c.globalAlpha = 0.75;
+      c.font = '10px system-ui, sans-serif';
+      c.fillText(fitText(c, fmtBytes(n.size), w - 8), x + 4, y + 22);
+      c.globalAlpha = 1;
+    }
+  }
+}
+
+function fitText(c, text, maxW) {
+  if (maxW <= 4) return '';
+  if (c.measureText(text).width <= maxW) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (c.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo ? text.slice(0, lo) + '…' : '';
+}
+
+function roundRect(c, x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function paint() {
+  if (!S.base || S.animating) return;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(S.base, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const ring = (r, color, lw) => {
+    ctx.strokeStyle = color; ctx.lineWidth = lw;
+    roundRect(ctx, r.x + lw / 2, r.y + lw / 2, r.w - lw, r.h - lw, 2.5);
+    ctx.stroke();
+  };
+  // sidebar type-row hover: recede every other category (paint-level, no rebuild)
+  if (S.catHover) {
+    ctx.fillStyle = 'rgba(26,26,25,0.72)';
+    for (const f of S.hitFiles) {
+      if (f.node.cat === S.catHover) continue;
+      roundRect(ctx, f.x, f.y, f.w, f.h, 2.5);
+      ctx.fill();
+    }
+  }
+  if (S.selected) {
+    const hit = S.hitFiles.find(f => f.node === S.selected);
+    if (hit) ring(hit, '#ffffff', 2);
+  }
+  if (S.hover) {
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    const r = S.hover;
+    roundRect(ctx, r.x, r.y, r.w, r.h, 2.5);
+    ctx.fill();
+    ring(r, 'rgba(255,255,255,0.85)', 1.5);
+  }
+}
+
+// ── Sidebar / chrome ────────────────────────────────────────────────────────
+function renderCrumbs() {
+  const parts = [];
+  let n = S.viewRoot;
+  while (n) { parts.unshift(n); n = n.parent; }
+  $('crumbs').innerHTML = parts.map((p, i) =>
+    `<span class="crumb ${i === parts.length - 1 ? 'font-semibold' : ''}" data-i="${i}" style="color:${i === parts.length - 1 ? 'var(--ink)' : 'var(--ink-3)'}">${esc(p.name)}</span>` +
+    (i < parts.length - 1 ? '<i class="ph ph-caret-right text-[10px]" style="color:var(--ink-3)"></i>' : '')
+  ).join('');
+  $('crumbs').querySelectorAll('.crumb').forEach(el =>
+    el.onclick = () => { let t = S.viewRoot; for (let k = parts.length - 1; k > +el.dataset.i; k--) t = t.parent; setViewRoot(t); });
+  $('upBtn').classList.toggle('hidden', !S.viewRoot?.parent);
+}
+
+function renderStats() {
+  const r = S.root;
+  const refChip = S.source === 'github'
+    ? `<span class="chip">${esc(S.ref)}</span>`
+    : `<span class="chip"><i class="ph ph-folder-open"></i> local</span>`;
+  $('statChips').innerHTML = r ? `
+    <span class="chip">${r.fileCount.toLocaleString()} files</span>
+    <span class="chip">${fmtBytes(r.size)}</span>
+    ${refChip}` : '';
+}
+
+function renderViewStats() {
+  const v = S.viewRoot;
+  if (!v) return $('viewStats').innerHTML = '';
+  const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
+  const ghLink = S.source === 'github'
+    ? ` <a href="${esc(ghUrl('tree', v.path))}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
+    : '';
+  $('viewStats').innerHTML = `
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}${ghLink}</span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Size</span><span style="color:var(--ink)">${fmtBytes(v.size)} <span style="color:var(--ink-3)">(${pct} of repo)</span></span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Files</span><span style="color:var(--ink)">${v.fileCount.toLocaleString()}</span></div>
+    <div class="flex justify-between"><span style="color:var(--ink-3)">Dirs</span><span style="color:var(--ink)">${v.dirCount.toLocaleString()}</span></div>`;
+}
+
+function renderTypes() {
+  const totals = window.treemap.catTotals(S.viewRoot || { children: [] });
+  const max = Math.max(1, ...Object.values(totals).map(t => t.bytes));
+  const order = Object.keys(CATS).filter(k => totals[k]);
+  $('typeRows').innerHTML = order.map(k => {
+    const t = totals[k];
+    return `<div class="typerow ${S.catFilter && S.catFilter !== k ? 'off' : ''} px-1.5 py-1" data-cat="${k}">
+      <div class="flex items-center gap-2 text-xs">
+        <span class="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style="background:${CATS[k].color}"></span>
+        <span style="color:var(--ink)">${CATS[k].label}</span>
+        <span class="grow"></span>
+        <span class="num" style="color:var(--ink-2)">${fmtBytes(t.bytes)}</span>
+        <span class="num w-11 text-right" style="color:var(--ink-3)">${fmtPct(t.bytes, S.viewRoot.size)}</span>
+      </div>
+      <div class="mt-1 h-1 rounded-full" style="background:var(--grid)">
+        <div class="h-1 rounded-full" style="width:${Math.max(2, 100 * t.bytes / max)}%;background:${CATS[k].color}"></div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
+  $('typeRows').querySelectorAll('.typerow').forEach(el => {
+    el.onclick = () => {
+      S.catFilter = S.catFilter === el.dataset.cat ? null : el.dataset.cat;
+      refresh();
+    };
+    el.onmouseenter = () => { S.catHover = el.dataset.cat; paint(); };
+    el.onmouseleave = () => { S.catHover = null; paint(); };
+  });
+}
+
+function renderBigFiles() {
+  const files = topFiles(S.viewRoot || { children: [] }, 12);
+  $('bigFiles').innerHTML = files.map((f, i) => `
+    <div class="filerow flex items-center gap-2 px-1.5 py-1 text-xs" data-i="${i}">
+      <span class="inline-block w-2 h-2 rounded-sm shrink-0" style="background:${CATS[f.cat].color}"></span>
+      <span class="truncate" style="color:var(--ink)" title="${esc(f.path)}">${esc(f.name)}</span>
+      <span class="grow"></span>
+      <span class="num shrink-0" style="color:var(--ink-3)">${fmtBytes(f.size)}</span>
+    </div>`).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;
+  $('bigFiles').querySelectorAll('.filerow').forEach(el => {
+    el.onclick = () => selectFile(files[+el.dataset.i]);
+    // locate on hover: ride the hover ring the map already paints
+    el.onmouseenter = () => {
+      const hit = S.hitFiles.find(f => f.node === files[+el.dataset.i]);
+      if (hit) { S.hover = hit; paint(); }
+    };
+    el.onmouseleave = () => { S.hover = null; paint(); };
+  });
+}
+
+function renderSelection() {
+  const p = $('selPanel');
+  if (!S.selected) { p.classList.add('hidden'); return; }
+  const f = S.selected;
+  const link = S.source === 'github'
+    ? `<a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank"
+         href="${esc(ghUrl('blob', f.path))}">
+         <i class="ph ph-github-logo"></i> open on GitHub</a>`
+    : '';
+  p.classList.remove('hidden');
+  p.innerHTML = `
+    <div class="text-[11px] uppercase tracking-wider mb-2" style="color:var(--ink-3)">Selected</div>
+    <div class="text-[13px] break-all mb-1" style="color:var(--ink)">${esc(f.path)}</div>
+    <div class="text-xs num mb-2" style="color:var(--ink-2)">
+      ${fmtBytes(f.size)} · ${fmtPct(f.size, S.viewRoot.size)} of view ·
+      <span style="color:${CATS[f.cat].color}">${CATS[f.cat].label}</span>
+    </div>
+    ${link}`;
+}
+
+function renderMatchChip() {
+  const chip = $('matchChip');
+  if (S.search || S.catFilter) {
+    chip.classList.remove('hidden');
+    chip.textContent = `${S.matchCount.toLocaleString()} match${S.matchCount === 1 ? '' : 'es'}`;
+    if (S.root && !S.matchCount) {
+      overlay(`<i class="ph ph-binoculars text-2xl"></i><div>No matches in this view — Esc clears the filter.</div>`);
+    } else overlay('');
+  } else { chip.classList.add('hidden'); if (S.root) overlay(''); }
+}
+
+function refresh() {
+  S.matchCount = (S.search || S.catFilter) && S.viewRoot ? countMatches(S.viewRoot) : 0;
+  buildScene();
+  renderCrumbs();
+  renderViewStats();
+  renderTypes();
+  renderBigFiles();
+  renderSelection();
+  renderMatchChip();
+  updateUrl();
+}
+
+// ── Interactions ─────────────────────────────────────────────────────────────
+function hitTest(mx, my) {
+  // files first (they're the leaves, drawn on top of dir frames)
+  for (const f of S.hitFiles) {
+    if (mx >= f.x && mx < f.x + f.w && my >= f.y && my < f.y + f.h) return { kind: 'file', ...f };
+  }
+  // deepest zoom target (headers / tiny dirs) — later entries are deeper
+  let best = null;
+  for (const z of S.hitZoom) {
+    if (mx >= z.x && mx < z.x + z.w && my >= z.y && my < z.y + z.h) best = z;
+  }
+  return best ? { kind: 'dir', ...best } : null;
+}
+
+const isInside = (node, maybeAncestor) => {
+  for (let n = node; n; n = n.parent) if (n === maybeAncestor) return true;
+  return false;
+};
+
+function setViewRoot(node) {
+  const oldRoot = S.viewRoot, oldBase = S.base, oldRects = S.dirRects;
+  S.viewRoot = node;
+  S.hover = null; S.selected = null;
+  hideTip();
+  refresh();
+  if (!oldBase || !oldRoot || oldRoot === node) return;
+  if (isInside(node, oldRoot) && oldRects.get(node)) {
+    animateZoom(oldBase, S.base, oldRects.get(node), 'in');
+  } else if (isInside(oldRoot, node) && S.dirRects.get(oldRoot)) {
+    animateZoom(oldBase, S.base, S.dirRects.get(oldRoot), 'out');
+  }
+}
+
+// Cross-zoom between two rendered scenes. `r` is the anchor rect: for 'in' it's
+// the target dir's rect in the OLD scene; for 'out' the old view's rect in the
+// NEW scene. The camera window W animates between the viewport V and r; the
+// nested scene rides the same transform and crossfades.
+function animateZoom(oldBase, newBase, r, dir) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const wrap = $('mapWrap');
+  const V = { x: 0, y: 0, w: wrap.clientWidth, h: wrap.clientHeight };
+  if (r.w < 2 || r.h < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const DUR = 280, t0 = performance.now();
+  const outer = dir === 'in' ? oldBase : newBase;
+  const inner = dir === 'in' ? newBase : oldBase;
+  S.animating = true;
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / DUR);
+    const e = ease(t);
+    // camera window over the outer scene
+    const k = dir === 'in' ? e : 1 - e;
+    const W = { x: lerp(V.x, r.x, k), y: lerp(V.y, r.y, k), w: lerp(V.w, r.w, k), h: lerp(V.h, r.h, k) };
+    const sx = V.w / W.w, sy = V.h / W.h;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, MAP.width, MAP.height);
+    ctx.globalAlpha = 1;
+    ctx.setTransform(dpr * sx, 0, 0, dpr * sy, -W.x * sx * dpr, -W.y * sy * dpr);
+    ctx.drawImage(outer, 0, 0, outer.width, outer.height, 0, 0, V.w, V.h);
+    // nested scene occupies region r of the outer scene
+    ctx.globalAlpha = dir === 'in' ? e : 1 - e;
+    ctx.setTransform(dpr * sx * (r.w / V.w), 0, 0, dpr * sy * (r.h / V.h),
+      (r.x - W.x) * sx * dpr, (r.y - W.y) * sy * dpr);
+    ctx.drawImage(inner, 0, 0, inner.width, inner.height, 0, 0, V.w, V.h);
+    ctx.globalAlpha = 1;
+    if (t < 1) requestAnimationFrame(frame);
+    else { S.animating = false; paint(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function selectFile(f) {
+  S.selected = f;
+  if (isInside(f.parent, S.viewRoot)) { paint(); renderSelection(); return; }
+  // jump the view to its parent dir when it's outside the current view
+  S.viewRoot = f.parent;
+  refresh();
+}
+
+const tip = $('tooltip');
+let tipNode = null;
+
+function tipHtml(n) {
+  const pct = S.weightMode === 'files'
+    ? (n.isDir ? fmtPct(n.fileCount, S.viewRoot.fileCount) : fmtPct(1, S.viewRoot.fileCount))
+    : fmtPct(n.size, S.viewRoot.size);
+  return n.isDir
+    ? `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}/</div>
+       <div class="num">${fmtBytes(n.size)} · ${n.fileCount.toLocaleString()} files · ${pct} of view</div>
+       <div style="color:var(--ink-3)" class="mt-0.5">click to zoom in</div>`
+    : `<div style="color:var(--ink)" class="font-semibold mb-0.5">${esc(n.name)}</div>
+       <div class="break-all" style="color:var(--ink-3)">${esc(n.path)}</div>
+       <div class="num mt-0.5">${fmtBytes(n.size)} · ${pct} of view ·
+         <span style="color:${CATS[n.cat].color}">${CATS[n.cat].label}</span></div>`;
+}
+
+function showTip(n, ev) {
+  if (tipNode !== n) { tipNode = n; tip.innerHTML = tipHtml(n); } // rebuild only on node change
+  tip.classList.remove('hidden');
+  const pad = 14;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  const r = tip.getBoundingClientRect();
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => { tipNode = null; tip.classList.add('hidden'); };
+
+let rafPending = false;
+MAP.addEventListener('mousemove', ev => {
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  MAP.style.cursor = hit ? 'pointer' : 'default';
+  const prev = S.hover;
+  S.hover = hit; // hitTest returns a file hit, a dir hit, or null — no re-branching
+  if (prev?.node !== hit?.node && !rafPending) {
+    rafPending = true;
+    requestAnimationFrame(() => { rafPending = false; paint(); });
+  }
+  if (hit) showTip(hit.node, ev);
+  else hideTip();
+});
+MAP.addEventListener('mouseleave', () => { S.hover = null; hideTip(); paint(); });
+MAP.addEventListener('click', ev => {
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  if (!hit) return;
+  if (hit.kind === 'dir') setViewRoot(hit.node);
+  else {
+    // selection is a paint-level overlay — no scene rebuild needed
+    S.selected = hit.node === S.selected ? null : hit.node;
+    paint(); renderSelection();
+  }
+});
+MAP.addEventListener('dblclick', ev => {
+  if (S.source !== 'github') return;
+  const box = MAP.getBoundingClientRect();
+  const hit = hitTest(ev.clientX - box.left, ev.clientY - box.top);
+  if (hit?.kind === 'file') {
+    window.open(ghUrl('blob', hit.node.path), '_blank');
+  }
+});
+$('upBtn').onclick = () => S.viewRoot?.parent && setViewRoot(S.viewRoot.parent);
+function setWeightMode(m) {
+  S.weightMode = m;
+  $('wBytes').style.color = m === 'bytes' ? 'var(--ink)' : 'var(--ink-3)';
+  $('wBytes').classList.toggle('font-semibold', m === 'bytes');
+  $('wFiles').style.color = m === 'files' ? 'var(--ink)' : 'var(--ink-3)';
+  $('wFiles').classList.toggle('font-semibold', m === 'files');
+  refresh();
+}
+$('wBytes').onclick = () => setWeightMode('bytes');
+$('wFiles').onclick = () => setWeightMode('files');
+$('helpBtn').onclick = ev => { ev.stopPropagation(); $('helpPop').classList.toggle('hidden'); };
+document.addEventListener('click', ev => {
+  if (!$('helpPop').classList.contains('hidden') && !$('helpPop').contains(ev.target)) {
+    $('helpPop').classList.add('hidden');
+  }
+});
+$('exportBtn').onclick = () => {
+  const base = S.source === 'github' ? S.repo.replace('/', '-') : (S.localLabel || 'local');
+  const name = `${base}-${(S.viewRoot?.path || 'root').replace(/\//g, '-')}.png`;
+  // toBlob + object URL: no base64 copy of the canvas held in an attribute
+  MAP.toBlob(b => {
+    if (!b) return;
+    const a = document.createElement('a');
+    a.download = name;
+    a.href = URL.createObjectURL(b);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, 'image/png');
+};
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT') {
+    if (ev.key === 'Escape') {
+      ev.target.blur();
+      // only the search field's Esc clears the filter — leaving repo/ref
+      // inputs must not wipe an active search
+      if (ev.target === $('searchInput')) { ev.target.value = ''; S.search = ''; refresh(); }
+    }
+    return;
+  }
+  if (ev.key === 'Backspace' && S.viewRoot?.parent) { ev.preventDefault(); setViewRoot(S.viewRoot.parent); }
+  if (ev.key === 'Escape') {
+    const hadFilters = S.search || S.catFilter;
+    S.search = ''; $('searchInput').value = ''; S.catFilter = null; S.selected = null;
+    if (hadFilters) refresh();
+    else { paint(); renderSelection(); } // selection-only clear skips the rebuild
+  }
+});
+let searchT = null;
+$('searchInput').addEventListener('input', ev => {
+  clearTimeout(searchT);
+  searchT = setTimeout(() => { S.search = ev.target.value.trim().toLowerCase(); refresh(); }, 120);
+});
+$('goBtn').onclick = () => loadRepo($('repoInput').value.trim(), $('refInput').value.trim());
+$('repoInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
+$('refInput').addEventListener('keydown', ev => ev.key === 'Enter' && $('goBtn').onclick());
+
+let resizeT = null;
+new ResizeObserver(() => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => S.root && buildScene(), 80);
+}).observe($('mapWrap'));
+
+// ── URL state ────────────────────────────────────────────────────────────────
+function updateUrl() {
+  try {
+    const p = new URLSearchParams(location.search);
+    const set = (k, v) => v ? p.set(k, v) : p.delete(k);
+    set('repo', S.source === 'github' ? S.repo : '');
+    set('ref', S.source === 'github' && S.ref !== S.defaultRef ? S.ref : '');
+    // a local session's path would deep-link a fresh boot into the DEFAULT
+    // repo at a foreign path — keep it out of the shareable URL
+    set('path', S.source === 'github' ? S.viewRoot?.path : '');
+    set('q', S.search);
+    set('cat', S.catFilter);
+    set('area', S.weightMode === 'files' ? 'files' : '');
+    history.replaceState(null, '', location.pathname + '?' + p.toString() + location.hash);
+  } catch {}
+}
+
+// ── Boot / data ──────────────────────────────────────────────────────────────
+function overlay(html) {
+  const el = $('overlayMsg');
+  if (!html) { el.classList.add('hidden'); el.classList.remove('flex'); return; }
+  el.innerHTML = html;
+  el.classList.remove('hidden'); el.classList.add('flex');
+}
+
+// ── Local sources: picked folder, dropped folder, dropped zip ───────────────
+// Same tree, different provenance — nothing leaves the tab.
+function loadLocalEntries(entries, label) {
+  if (!window.treemap || !Object.keys(CATS).length) {
+    return overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Still booting — drop it again in a moment.</div>`);
+  }
+  if (!entries.length) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Nothing readable in that drop.</div>`);
+  S.source = 'local'; S.localLabel = label;
+  S.repo = ''; S.ref = ''; S.defaultRef = '';
+  $('truncBadge').classList.add('hidden');
+  S.selected = null; S.catFilter = null;
+  S.root = window.treemap.buildTree(entries, label);
+  S.viewRoot = S.root;
+  $('repoInput').value = ''; $('refInput').value = '';
+  overlay('');
+  renderStats();
+  // a source with no byte sizes at all (some zips) would map to nothing in
+  // bytes mode — fall back to the count encoding so the structure still shows
+  if (S.root.size === 0 && S.root.fileCount > 0 && S.weightMode === 'bytes') setWeightMode('files');
+  else refresh();
+}
+
+$('localBtn').onclick = () => $('dirInput').click();
+$('dirInput').addEventListener('change', ev => {
+  const files = [...ev.target.files];
+  if (!files.length) return;
+  const label = files[0].webkitRelativePath.split('/')[0] || 'local';
+  const entries = files.map(f => ({
+    path: f.webkitRelativePath.split('/').slice(1).join('/') || f.name,
+    type: 'blob', size: f.size,
+  }));
+  loadLocalEntries(entries, label);
+  ev.target.value = '';
+});
+
+async function walkEntry(entry, prefix, out) {
+  if (entry.isFile) {
+    const f = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({ path: prefix + entry.name, type: 'blob', size: f.size });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    for (;;) { // readEntries returns batches of ≤100 until empty
+      const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+      if (!batch.length) break;
+      for (const e of batch) await walkEntry(e, prefix + entry.name + '/', out);
+    }
+  }
+}
+
+async function loadZip(file) {
+  overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Unpacking ${esc(file.name)}…</div>`);
+  try {
+    // same pin as kits/io.js saveZip
+    const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const entries = [];
+    zip.forEach((path, zf) => {
+      // uncompressedSize is internal but stable in 3.x; 0 keeps the file listed
+      if (!zf.dir) entries.push({ path, type: 'blob', size: zf._data?.uncompressedSize ?? 0 });
+    });
+    loadLocalEntries(entries, file.name.replace(/\.zip$/i, ''));
+  } catch (e) {
+    console.error('zip:', e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div>Couldn't read that zip: ${esc(e?.message || String(e))}</div>`);
+  }
+}
+
+$('mapWrap').addEventListener('dragover', ev => ev.preventDefault());
+$('mapWrap').addEventListener('drop', async ev => {
+  ev.preventDefault();
+  try {
+    const items = [...(ev.dataTransfer?.items || [])];
+    if (!items.length) return;
+    // entry.isFile (not just the File object) — a dropped FOLDER named
+    // "dist.zip" also yields a File, and must take the folder path
+    const firstEntry = items[0].webkitGetAsEntry?.();
+    const file = items[0].getAsFile?.();
+    if (file && /\.zip$/i.test(file.name) && (!firstEntry || firstEntry.isFile)) return loadZip(file);
+    const roots = items.map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+    if (!roots.length) return;
+    overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Reading dropped folder…</div>`);
+    const entries = [];
+    for (const root of roots) await walkEntry(root, '', entries);
+    let label = 'dropped';
+    if (roots.length === 1 && roots[0].isDirectory) {
+      label = roots[0].name;
+      for (const e of entries) e.path = e.path.slice(label.length + 1);
+    }
+    loadLocalEntries(entries, label);
+  } catch (e) {
+    console.error('drop:', e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div>Couldn't read that drop: ${esc(e?.message || String(e))}</div>`);
+  }
+});
+
+async function loadRepo(repo, ref, deepPath) {
+  if (!repo || !repo.includes('/')) return overlay(`<i class="ph ph-warning text-xl"></i><div>Enter a repo as <b>owner/name</b></div>`);
+  overlay(`<i class="ph ph-circle-notch text-2xl animate-spin"></i><div>Loading ${esc(repo)}…</div>`);
+  S.source = 'github';
+  S.repo = repo; S.root = null; S.selected = null; S.catFilter = null;
+  try {
+    const gh = new window.GH({ token: window.TOKEN, repo });
+    let meta = null;
+    // full URL: gh.req('') would add a trailing slash the API tolerates but
+    // exact-match interceptors (and caches) don't
+    try { meta = await gh.req(`https://api.github.com/repos/${repo}`); } catch (e) { if (!ref) throw e; }
+    S.defaultRef = meta?.default_branch || 'main';
+    S.ref = ref || S.defaultRef;
+    const tree = await gh.req(`git/trees/${encodeURIComponent(S.ref)}?recursive=1`);
+    $('truncBadge').classList.toggle('hidden', !tree.truncated);
+    S.root = window.treemap.buildTree(tree.tree, repo.split('/')[1]);
+    S.viewRoot = S.root;
+    // deep link (?path=) applies only at boot; manual loads start at the root
+    if (deepPath) S.viewRoot = dirByPath(deepPath);
+    $('repoInput').value = repo;
+    $('refInput').value = S.ref === S.defaultRef ? '' : S.ref;
+    overlay('');
+    renderStats();
+    refresh();
+  } catch (e) {
+    console.error('loadRepo:', e);
+    const hint = e?.status === 403
+      ? 'Rate-limited. Paste a token into localStorage.ghToken to raise the limit.'
+      : e?.status === 404 ? 'Repo or ref not found (private repos need a token).' : (e?.message || e);
+    overlay(`<i class="ph ph-warning text-2xl"></i><div class="max-w-sm text-center">${esc(String(hint))}</div>`);
+  }
+}
+
+// deterministic driver for headless interaction tests (tools/render, npm run shot --script)
+window.__atlas = {
+  get S() { return S; },
+  zoomTo: path => { const n = dirByPath(path); if (n) setViewRoot(n); },
+  isolate: cat => { S.catFilter = cat; refresh(); },
+  find: q => { S.search = (q || '').toLowerCase(); $('searchInput').value = q || ''; refresh(); },
+  loadLocal: (entries, label) => loadLocalEntries(entries, label),
+  select: path => {
+    let f = null;
+    (function walk(n) { for (const c of n.children) { if (c.isDir) walk(c); else if (c.path === path) f = c; } })(S.root);
+    if (f) selectFile(f);
+  },
+};
+
+(async () => {
+  // the kit alone unlocks local mapping (no network needed beyond the boot
+  // chain itself); only the GitHub path needs window.GH
+  const kitOk = await waitFor(() => window.treemap);
+  if (kitOk) bindKit();
+  const ok = kitOk && await waitFor(() => window.GH);
+  if (!ok) return overlay(`<i class="ph ph-warning text-2xl"></i><div>Boot timed out waiting for gh-api.js. Reload to retry${kitOk ? ', or drop a local folder / zip' : ''}.</div>`);
+  const p = new URLSearchParams(location.search);
+  const q = p.get('q') || '';
+  const cat = CATS[p.get('cat')] ? p.get('cat') : null;
+  if (q) { $('searchInput').value = q; S.search = q.toLowerCase(); }
+  if (p.get('area') === 'files') setWeightMode('files');
+  await loadRepo(p.get('repo') || 'mehrlander/web-tools', p.get('ref') || '', p.get('path') || '');
+  // after load: loadRepo resets the category filter on every (re)load, which is
+  // right for manual repo switches but would eat the boot deep link
+  if (cat && S.root) { S.catFilter = cat; refresh(); }
+})();
+</script>
+</body>
+</html>

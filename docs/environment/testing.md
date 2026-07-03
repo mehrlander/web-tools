@@ -35,6 +35,13 @@ kinds of traffic:
 - **Own data**: `cdn.mjs` impersonates the GitHub API *for this repo only*.
   Contents listings, file reads, `/repos/<repo>` metadata, and `git/trees` are
   answered from the on-disk checkout. No token is involved at any step.
+  The `git/trees` blobs carry real byte sizes (2026-07: added for
+  repo-atlas, which maps by them). Two fidelity gaps to remember: the
+  metadata match is exact-path, so `gh.req('')`'s trailing slash misses it
+  (request `https://api.github.com/repos/<repo>` in full), and the walk
+  serves the *working tree*, so gitignored files (`tools/.preview`, an
+  un-gitignored scratch dir) appear in local renders but not in the live
+  API's response.
   Identity endpoints (`/user`, `/user/repos`) are not impersonated; "who am I"
   has no local answer. Other repos' API calls pass through to the network and
   fail on the sandbox's spent anonymous quota.

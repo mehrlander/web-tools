@@ -299,6 +299,26 @@ Demo pages: `pages/demos/wring-text.html` (logs/records → templates) and
 Kit liveness test: `tools/test/wring.test.mjs` (part of `npm test`; loads the
 kit the way `gh.load` does and checks the pipeline invariants end-to-end).
 
+### treemap.js
+
+Pure logic for mapping a file tree as a treemap — no DOM, no colors
+(rendering stays with the page; `pages/repo-atlas.html` is the consumer).
+Extracted so the kernels run under `npm test`
+(`tools/test/treemap.test.mjs`: tiling invariants, rollups, taxonomy).
+
+```js
+window.treemap.CATS                       // { code, docs, data, markup, media, styles, other } → labels
+window.treemap.categorize('app.js')       // 'code' (extension + special-name taxonomy)
+window.treemap.buildTree(entries, 'name') // git-trees entries → node tree (rollups, sorted, parents)
+window.treemap.catTotals(node)            // { cat: { bytes, files } } under a node
+window.treemap.squarify(items, x, y, w, h)// [{weight}] desc → rects (Bruls et al. squarified)
+window.treemap.fmtBytes(6672908)          // '6.4 MB'
+```
+
+`squarify` tiles the rect exactly (area ∝ weight, no overlap) and guards
+degenerate input: zero/empty weights and extreme skew emit zero-size
+rects rather than negative extents.
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -316,3 +336,4 @@ examples.
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
+| `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |

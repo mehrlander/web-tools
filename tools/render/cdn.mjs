@@ -30,10 +30,13 @@
 // API for this repo). The portable, repo-agnostic write-up of the
 // vendor-and-intercept concept is docs/headless-vendoring.md.
 
-import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
+
+// Serialized git/trees body, built once per process (see the trees branch).
+let treeBodyCache = null;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -155,22 +158,36 @@ export function resolveCdn(rawUrl, repoRoot) {
   // Always answered recursively from the working tree; the ref is ignored
   // because the working tree IS the ref being rendered.
   if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/git/trees/`)) {
-    const skip = new Set(['.git', 'node_modules']);
-    const tree = [];
-    const walk = (rel) => {
-      const dir = path.join(repoRoot, rel);
-      for (const e of readdirSync(dir, { withFileTypes: true })) {
-        if (!rel && skip.has(e.name)) continue;
-        const p = rel ? `${rel}/${e.name}` : e.name;
-        if (e.isDirectory()) { tree.push({ path: p, type: 'tree' }); walk(p); }
-        else tree.push({ path: p, type: 'blob' });
-      }
-    };
-    walk('');
+    if (!treeBodyCache) {
+      const skip = new Set(['.git', 'node_modules']);
+      const tree = [];
+      const walk = (rel) => {
+        const dir = path.join(repoRoot, rel);
+        for (const e of readdirSync(dir, { withFileTypes: true })) {
+          if (!rel && skip.has(e.name)) continue;
+          const p = rel ? `${rel}/${e.name}` : e.name;
+          if (e.isDirectory()) { tree.push({ path: p, type: 'tree' }); walk(p); }
+          else {
+            // Real blobs carry size; keep the impersonation faithful (repo-atlas
+            // maps by it). lstat, not stat: for a symlink the live API reports the
+            // target-path string length, which is exactly the link inode's size —
+            // and a dangling link (or a file deleted since readdir) must degrade
+            // to one sizeless entry, not kill the whole tree response.
+            let size = 0;
+            try { size = lstatSync(path.join(dir, e.name)).size; } catch {}
+            tree.push({ path: p, type: 'blob', size });
+          }
+        }
+      };
+      walk('');
+      // The working tree is fixed for the lifetime of one render process; don't
+      // re-stat thousands of files when a page asks for the tree again.
+      treeBodyCache = JSON.stringify({ sha: 'local', truncated: false, tree });
+    }
     return {
       kind: 'fulfill', contentType: 'application/json; charset=utf-8',
-      tag: `api tree (${tree.length})`,
-      body: JSON.stringify({ sha: 'local', truncated: false, tree }),
+      tag: `api tree (cached)`,
+      body: treeBodyCache,
     };
   }
 
