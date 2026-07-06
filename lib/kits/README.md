@@ -36,7 +36,7 @@ The shape rules (so the file works through `gh.load`):
 5. Internal "imports" between kits are reads from `window.otherKit`.
    Order them in the page's `gh.load` chain accordingly.
 
-See [`docs/loader.md`](../docs/loader.md) for the full loader contract.
+See [`docs/loader.md`](../../docs/loader.md) for the full loader contract.
 
 ## Current kits
 
@@ -348,7 +348,7 @@ window.buildKit.stripLoader(ghApiSrc)   // gh-api.js minus its bootstrap
 explicit ref falls through to the network), and sets
 `window.__builtOffline`. `bake` throws if the page has no jsDelivr
 `gh-api.js` import to rewrite. See "Load and build are one contract" in
-[`docs/loader.md`](../docs/loader.md) and the pipeline in
+[`docs/loader.md`](../../docs/loader.md) and the pipeline in
 [`tools/README.md`](../../tools/README.md).
 
 ### export.js
