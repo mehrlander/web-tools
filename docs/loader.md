@@ -16,9 +16,9 @@ The repo has two tiers of pages:
 - **Loader-based pages** (`show-repo/show-repo.html`,
   `show-repo/demo-viewer.html`, `scratch/demo-spacex.html`,
   `lib/kits/demos/{persistence,messaging,io}.html`) —
-  use `gh-api.js` (with `gh-fetch.js` / `gh-store.js` / `gh-auth.js` loaded
-  as augmentations) + `alpine-bundle.js` to load reusable components off the
-  repo at runtime.
+  use `gh-api.js` (whose bootstrap chains `gh-boot.js` and its auto-loads;
+  `gh-store.js` stays opt-in) + `alpine-bundle.js` to load reusable
+  components off the repo at runtime.
 
 This doc is about the second tier: the contract a file must honor to be
 loadable this way, the timing invariants the boot sequence depends on, and —
@@ -38,13 +38,14 @@ Every loader-based page's `<head>` looks like this, with minor variation:
 <script type="module">
   // ?use=<branch|tag|sha> picks which ref the bundle loads from; defaults to main.
   // gh-api.js auto-bootstraps from the URL it was imported by (parses owner/repo/ref
-  // out of import.meta.url, sets window.gh, loads gh-auth.js), so the page just
-  // chains gh.load() calls below.
+  // out of import.meta.url, sets window.gh, chains gh-boot.js), so the page just
+  // chains gh.load() calls below. By the time the import resolves, gh-boot has
+  // already loaded gh-auth.js, gh-fetch.js, kits/console.js, and
+  // vanilla-bundle.js; gh-store.js stays opt-in.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
 
-  await gh.load('gh-fetch.js');                   // 0) augment GH with read methods (resolved under lib/)
-  // await gh.load('gh-store.js');                //    optional: write methods
+  // await gh.load('gh-store.js');                // optional: write methods
 
   await gh.load('alpineComponents/repo.js');      // 1) register Alpine.data('repo', ...)
   await gh.load('alpineComponents/navigator.js'); // 2) register Alpine.data('navigator', ...)
@@ -78,10 +79,25 @@ same match sets the loader's `loadBase` to `lib/`, so every later
   `GH.prototype` in place. **Auto-bootstrap:** when imported from a
   `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/lib/gh-api.js` URL, the file parses
   owner/repo/ref out of `import.meta.url`, instantiates `window.gh`, sets
-  `window.__bundleRef`, sets `loadBase` to `lib/`, and chains in `gh-auth.js`.
-  Pages can then skip
-  `new GH(...)` and `gh.load('gh-auth.js')` boilerplate by reading `?use=`
-  from the page URL and embedding it in the bundle's import URL.
+  `window.__bundleRef`, sets `loadBase` to `lib/`, and chains `gh-boot.js`.
+  Pages can then skip `new GH(...)` and augmentation boilerplate by reading
+  `?use=` from the page URL and embedding it in the bundle's import URL.
+- `gh-boot.js` — the startup list, kept out of `gh-api.js` so new entries
+  don't require purging the loader from the jsDelivr cache. Loaded by the
+  auto-bootstrap; runs four auto-loads in order: `gh-auth.js`,
+  `gh-fetch.js`, `kits/console.js` (structured console retention; see
+  [kits/README.md](../lib/kits/README.md)), and `vanilla-bundle.js`. It
+  also owns the boot's observability: it wraps `GH.prototype.load` so
+  every load lands on `window.__loadedScripts` (path, timing, status,
+  `by:` attribution; deduped by path; a still-pending row flips to a
+  visible error after 15s and self-heals if the load later settles; fires
+  a `loadedscripts` event), seeded with `gh-api.js` and itself. It mirrors
+  each resolved `read()` onto `window.__reads` (newest value per path,
+  fires a `reads` event; the export kit's input), injects the project
+  favicon when a page declares none, and under `?use=` paints the corner
+  ref badge and auto-mounts the FAB unless the page mounts its own. The
+  cosmetic pieces are wrapped best-effort; nothing in it may break the
+  boot chain.
 - `gh-auth.js` — optional augmentation. Patches the `headers` getter so
   that any request with a missing or sentinel-bearing token (`🎟️GitHubToken`)
   lazily resolves from `localStorage.ghToken`. Lets a page do
@@ -95,9 +111,15 @@ same match sets the loader's `loadBase` to `lib/`, so every later
   model can call `window.ghAuth.bootDone()` at the end of their chain to
   suppress the handler. Also exposes
   `window.ghAuth.{resolve,save,clear,prompt,bootDone}` for explicit use.
-  Loaded automatically by `gh-api.js`'s `@<ref>` auto-bootstrap; pages
-  that import `gh-api.js` without `@<ref>` must `await gh.load('gh-auth.js')`
+  Loaded automatically by `gh-boot.js` on bootstrap pages; pages that
+  import `gh-api.js` without `@<ref>` must `await gh.load('gh-auth.js')`
   themselves.
+- `vanilla-bundle.js` — framework-free ambient helpers, auto-loaded by
+  `gh-boot.js`: DOM utilities (`ea`, `el`, `ids`, `ui`, `grab`, `fill`,
+  `attr`, `cls`, `listen`, `data`, `tpl`, `on`, `route`), the
+  Tailwind/daisyUI string helpers on `window.html` (`html.tip`,
+  `html.btn`, …), and `window.copy()`. No dependencies; idempotent on
+  re-load.
 - `alpine-bundle.js` — IIFE. Inside an `alpine:init` handler it creates
   `Alpine.store('browser')`, `Alpine.store('toasts')`, and magics `$clip`,
   `$paste`, `$toast`. After registering the listener it injects two
@@ -111,6 +133,29 @@ same match sets the loader's `loadBase` to `lib/`, so every later
 - The view registry (Tabulator/Prism/Marked render modes) lives inside
   `alpineComponents/viewer.js` as a module-private constant.
   Pages don't load it separately.
+
+### The ambient surface
+
+What the boot chain leaves on `window`, in one place. A bootstrap page
+(the `@<ref>` jsDelivr import) gets all of it without loading anything
+itself; a page that instantiates `GH` by hand gets only what it loads.
+
+| Global | Installed by | What it is |
+|---|---|---|
+| `gh`, `GH` | `gh-api.js` bootstrap | the live loader instance; the class |
+| `__bundleRef` | `gh-api.js` bootstrap | the ref the bundle booted from |
+| `__consoleLogs` (+ `consolelog` event) | `gh-api.js` | flattened console capture; the fallback renderers use when `kits/console.js` is absent |
+| `__loadedScripts` (+ `loadedscripts` event) | `gh-boot.js` | the load registry: path, timing, status, `by:` attribution; the FAB's Scripts tab reads it |
+| `__reads` (+ `reads` event) | `gh-boot.js` | newest `read()` value per path; the export kit's input |
+| `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone` |
+| `console.history` / `.subscribe` / `.filter`, `consoleKit` | `kits/console.js` | structured console retention over the base wrapper |
+| `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
+| Alpine stores `browser`, `toasts`; magics `$clip`, `$paste`, `$toast` | `alpine-bundle.js` | exist only after `alpine:init` |
+| `__builtOffline` | a build (`kits/build.js` output) | present only on baked/offline pages |
+| `window.<kit>` namespaces | each kit | see [kits/README.md](../lib/kits/README.md) |
+
+A new global with no row here is a doc bug; add the row in the same
+change that adds the global.
 
 ## The load mechanism
 
@@ -167,9 +212,10 @@ These hold in the current loader-based pages and must not be broken by
 anything we add:
 
 1. **`gh-api.js` is imported first**, via native `import()`. Nothing else
-   has dependencies. `gh-fetch.js` / `gh-store.js` are then loaded through
-   `gh.load(...)`; they require `window.GH` to already exist and will throw
-   if pulled directly from a `<script type="module">`.
+   has dependencies. The augmentations are then loaded through
+   `gh.load(...)`: `gh-boot.js` handles `gh-auth.js` and `gh-fetch.js`,
+   and `gh-store.js` stays opt-in. They require `window.GH` to already exist
+   and will throw if pulled directly from a `<script type="module">`.
 2. **Any `alpine:init` handler must be registered before Alpine boots.**
    Concretely: every `gh.load('alpineComponents/*.js')` call must happen
    *before* `gh.load('alpine-bundle.js')`. Alpine doesn't start until
