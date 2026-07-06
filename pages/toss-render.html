@@ -43,12 +43,18 @@
   Empty state: with no input, the page shows a panel — a "Paste & render"
   button (Clipboard API, so it works from one tap on iOS without revealing
   the text) and a field for a GitHub file. A global paste listener catches
-  desktop Ctrl/Cmd-V too. Whatever renders, a "Copy toss link" control then
-  rebuilds the durable bookmark (#gz=/#url=/#gh=) for what's on screen.
+  desktop Ctrl/Cmd-V too.
 
-  The FAB (alpineComponents/fab.js) mounts as a toolbox: zip/offline export,
-  the component/script/console tabs, and "Open at ref in toss-render". It
-  boots after the render logic and self-loads its own kits, so a blocked CDN
+  Page actions live in the FAB, not a floating pill. A tiny `tossRender`
+  x-data component exposes the FAB's opt-in contract — a `description` and an
+  `actions` array — so the toolbox renders "Copy toss link" (rebuilds the
+  durable #gz=/#url=/#gh= bookmark for what's on screen) and "New toss" in its
+  header strip. The component only holds metadata closing over the render
+  state below, so the critical render path stays vanilla and instant.
+
+  The FAB (alpineComponents/fab.js) also brings zip/offline export, the
+  component/script/console tabs, and "Open at ref in toss-render". It boots
+  after the render logic and self-loads its own kits, so a blocked CDN
   degrades to render-only rather than breaking the page. ?use=<ref> pins the
   FAB's lib chain to a branch/tag/sha for previewing edits to this shell.
 
@@ -59,9 +65,17 @@
   alphabet, with or without padding.
 
   Caveat for #url=: sites that send X-Frame-Options or CSP frame-ancestors
-  will refuse to load in the iframe. Caveat for private repos in #gh=: the
-  HTML itself renders, but relative assets can't resolve (neither github.io
-  nor jsDelivr serves private content), so self-contained pages work best.
+  will refuse to load in the iframe.
+
+  Private repos / un-deployed branches in #gh=: Pages and jsDelivr won't serve
+  the content, and a token can't ride on a plain <script src>/<link href>, so
+  the page's own relative deps would 404. Two shims close the basic case, both
+  fetching through the authenticated contents API at the same ref: render-time
+  inlining (inlineRelativeDeps) pulls each relative <script src> and
+  <link rel=stylesheet href> ahead of render, and a fetch shim (addressHtml)
+  reroutes the page's relative runtime GET fetch()es (e.g. './data.json',
+  './rows.csv') on demand. Still unhandled: static <img src> and other
+  relative-tag assets, CSS url()/@import, XHR, and dynamic import().
 
   The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
   (canonical copy; re-copy from there after edits). Current text:
@@ -75,12 +89,6 @@
         class="w-full h-full border-0 block bg-base-100 hidden"
         referrerpolicy="no-referrer"
         allow="fullscreen"></iframe>
-
-<!-- Contextual actions, shown only while content is rendered. -->
-<div id="bar" class="hidden fixed top-2 left-1/2 -translate-x-1/2 z-40 items-center gap-1 rounded-full bg-base-100/90 backdrop-blur border border-base-300 shadow px-1.5 py-1">
-  <button id="copy-link" class="btn btn-ghost btn-xs gap-1"><i class="ph ph-link"></i><span>Copy toss link</span></button>
-  <button id="new-toss" class="btn btn-ghost btn-xs btn-circle" title="New toss"><i class="ph ph-x"></i></button>
-</div>
 
 <!-- Input panel (empty state). -->
 <div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
@@ -106,7 +114,11 @@
   </p>
 </div>
 
-<!-- Toolbox: zip/offline export, component/script/console tabs, render-at-ref. -->
+<!-- Page actions ("Copy toss link", "New toss") are surfaced through the FAB's
+     header strip via the x-data `actions` contract, not a floating pill. -->
+<div x-data="tossRender" data-marker="toss"></div>
+
+<!-- Toolbox: page actions, zip/offline export, component/script/console tabs. -->
 <div x-data="fab()" data-path="pages/toss-render.html"></div>
 
 <script type="module">
@@ -126,10 +138,9 @@
   const frame = document.getElementById('frame');
   const empty = document.getElementById('empty');
   const msg   = document.getElementById('empty-msg');
-  const bar   = document.getElementById('bar');
 
   // Each render sets this to a function returning the durable bookmark for
-  // what's on screen; the "Copy toss link" button calls it.
+  // what's on screen; the FAB's "Copy toss link" action calls it.
   let tossLinkFn = null;
 
   const absUrl = frag => location.origin + location.pathname + frag;
@@ -137,7 +148,6 @@
   function showInput(error) {
     tossLinkFn = null;
     frame.classList.add('hidden');
-    bar.classList.add('hidden'); bar.classList.remove('flex');
     empty.classList.remove('hidden');
     empty.classList.add('flex');
     msg.textContent = error || '';
@@ -148,7 +158,6 @@
   function reveal() {
     empty.classList.add('hidden'); empty.classList.remove('flex');
     frame.classList.remove('hidden');
-    bar.classList.remove('hidden'); bar.classList.add('flex');
   }
 
   // --- base64 helpers (standard or URL-safe, padded or not) ---
@@ -209,9 +218,46 @@
     reveal();
   }
 
+  // A <script> for the prelude that reroutes the rendered page's *relative*
+  // GET fetch()es to the authenticated contents API at the same ref. Static
+  // tags get inlined ahead of render (inlineRelativeDeps); this is the runtime
+  // companion, so a private/un-deployed page that does fetch('./data.json') or
+  // './rows.csv' just works — the page is unchanged, only fetch is patched.
+  // Relative string URLs only (the unresolved value the page passes): absolute
+  // URLs, non-GET, root-relative '/…', and Request objects pass straight
+  // through. Bytes come back as base64 from the contents API, wrapped in a
+  // Response with a MIME guessed from the extension, so res.json()/text()/blob()
+  // behave. The shim reads the token itself (same-origin, allowlisted render).
+  function fetchShim({ owner, name, ref, dir }) {
+    const O = JSON.stringify(owner), N = JSON.stringify(name),
+          R = JSON.stringify(ref || ''), D = JSON.stringify(dir);
+    return `<script>(function(){
+var O=${O},N=${N},R=${R},D=${D};
+var real=window.fetch&&window.fetch.bind(window); if(!real)return;
+var MIME={json:'application/json',csv:'text/csv',tsv:'text/tab-separated-values',txt:'text/plain',md:'text/markdown',xml:'application/xml',svg:'image/svg+xml',html:'text/html',htm:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',wasm:'application/wasm',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',pdf:'application/pdf'};
+function mime(p){var e=(p.split('.').pop()||'').toLowerCase();return MIME[e]||'application/octet-stream';}
+function tok(){try{var t=localStorage.getItem('ghToken');return(t&&t.indexOf('🎟')<0)?('Bearer '+t.trim()):'';}catch(e){return'';}}
+function bytes(s){var b=atob(s.replace(/\\s/g,''));var u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+window.fetch=function(input,init){try{
+  var url=(typeof input==='string')?input:(input&&input.url);
+  var m=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
+  if(url&&m==='GET'&&!/^[a-z][a-z0-9+.-]*:/i.test(url)&&url.slice(0,2)!=='//'&&url.charAt(0)!=='/'&&url.charAt(0)!=='#'){
+    var rp=new URL(url,'https://_/'+D).pathname.slice(1);
+    var api='https://api.github.com/repos/'+O+'/'+N+'/contents/'+rp+(R?('?ref='+encodeURIComponent(R)):'');
+    var h={Accept:'application/vnd.github.v3+json'};var a=tok();if(a)h.Authorization=a;
+    return real(api,{headers:h}).then(function(r){if(!r.ok)return r;return r.json().then(function(d){
+      if(Array.isArray(d))return new Response('directory',{status:400});
+      return new Response(bytes(d.content||''),{status:200,headers:{'Content-Type':mime(rp)}});
+    });});
+  }
+}catch(e){}return real(input,init);};
+})();<\/script>`;
+  }
+
   // The fab.js frameHtml recipe: <base> so relative URLs resolve on github.io,
   // plus (when a ref was addressed) a shim so the page's own ?use= read
-  // returns that ref and its lib chain loads from the same place.
+  // returns that ref and its lib chain loads from the same place. Then the
+  // fetch shim, so the page's relative runtime fetches resolve from the repo.
   function addressHtml(text, { owner, name, ref, path }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
@@ -221,6 +267,7 @@
         'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
         "return (k==='use'&&(v==null||v===''))?R:v;};})();<\/script>";
     }
+    prelude += fetchShim({ owner, name, ref, dir });
     if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
     if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
     return '<head>' + prelude + '</head>' + text;
@@ -236,6 +283,88 @@
     return null;
   }
 
+  // Auth headers for the contents API: the stored token (skipping the 🎟
+  // sentinel) so private repos and un-deployed branches resolve.
+  function ghHeaders() {
+    const headers = { Accept: 'application/vnd.github.v3+json' };
+    try {
+      const t = localStorage.getItem('ghToken');
+      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
+    } catch (e) {}
+    return headers;
+  }
+
+  // Fetch a single repo file's text via the contents API at <ref>.
+  async function ghText(owner, name, ref, filePath) {
+    const res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
+      filePath + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (Array.isArray(data)) throw new Error('is a directory');
+    return decodeB64(data.content);
+  }
+
+  // Inline relative script/CSS deps (a render-time mini-bake). A private repo
+  // (or an un-deployed branch) isn't served by Pages or jsDelivr, and a token
+  // can't ride on a plain <script src> / <link href>, so a page's own same-dir
+  // deps would just 404. So fetch each *relative* <script src> and
+  // <link rel=stylesheet href> through the authenticated contents API at the
+  // same ref and inline it (scripts as <script>, CSS as <style>) — a page
+  // written with ordinary references renders without ever being authored to
+  // gh.load. Static first-level refs only: nested module imports, CSS
+  // url()/@import, and images are left to <base> and a later pass. Runs only in
+  // trusted address mode, and is a no-op when there are no relative deps.
+  function isRelativeRef(u) {
+    return !!u && !/^[a-z][a-z0-9+.-]*:/i.test(u) &&
+      !u.startsWith('//') && !u.startsWith('/') && !u.startsWith('#') && !u.startsWith('data:');
+  }
+  function resolveRepoPath(dir, u) {
+    try { return new URL(u, 'https://_/' + dir).pathname.slice(1); } catch (e) { return null; }
+  }
+  async function inlineRelativeDeps(text, { owner, name, ref, path }) {
+    let doc;
+    try { doc = new DOMParser().parseFromString(text, 'text/html'); } catch (e) { return text; }
+    if (!doc || !doc.documentElement) return text;
+    const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+    const jobs = [];
+
+    doc.querySelectorAll('script[src]').forEach(el => {
+      const src = el.getAttribute('src');
+      if (!isRelativeRef(src)) return;
+      const p = resolveRepoPath(dir, src);
+      if (!p) return;
+      jobs.push((async () => {
+        try {
+          const code = await ghText(owner, name, ref, p);
+          const s = doc.createElement('script');
+          for (const a of el.attributes) if (a.name !== 'src') s.setAttribute(a.name, a.value);
+          s.textContent = code;
+          el.replaceWith(s);
+        } catch (e) { el.setAttribute('data-inline-error', (e && e.message) || String(e)); }
+      })());
+    });
+
+    doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(el => {
+      const href = el.getAttribute('href');
+      if (!isRelativeRef(href)) return;
+      const p = resolveRepoPath(dir, href);
+      if (!p) return;
+      jobs.push((async () => {
+        try {
+          const css = await ghText(owner, name, ref, p);
+          const st = doc.createElement('style');
+          if (el.getAttribute('media')) st.setAttribute('media', el.getAttribute('media'));
+          st.textContent = css;
+          el.replaceWith(st);
+        } catch (e) { el.setAttribute('data-inline-error', (e && e.message) || String(e)); }
+      })());
+    });
+
+    if (!jobs.length) return text;  // nothing relative -> hand back the untouched original
+    await Promise.all(jobs);
+    return (doc.doctype ? '<!doctype html>\n' : '') + doc.documentElement.outerHTML;
+  }
+
   async function showAddress(addr) {
     // <owner>/<repo>[@<ref>]:<path> — ':' can't appear in a git ref name.
     const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:(.+)$/);
@@ -247,15 +376,10 @@
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
         '(sandboxed) with the 🥏 bookmarklet.');
     }
-    const headers = { Accept: 'application/vnd.github.v3+json' };
-    try {
-      const t = localStorage.getItem('ghToken');
-      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
-    } catch (e) {}
     let res;
     try {
       res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
-        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers });
+        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
@@ -268,7 +392,10 @@
     const data = await res.json();
     if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
     const text = decodeB64(data.content);
-    showTrusted(addressHtml(text, { owner, name, ref, path }),
+    // Inline the page's relative script/CSS deps from the same ref, so a
+    // private/un-deployed page that uses ordinary references renders whole.
+    const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
+    showTrusted(addressHtml(baked, { owner, name, ref, path }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr);
   }
 
@@ -309,19 +436,28 @@
     if (text && text.trim()) { e.preventDefault(); renderInput(text); }
   });
 
-  document.getElementById('copy-link').addEventListener('click', async e => {
-    if (!tossLinkFn) return;
-    const span = e.currentTarget.querySelector('span');
-    try {
-      await navigator.clipboard.writeText(await tossLinkFn());
-      const o = span.textContent; span.textContent = 'Copied'; setTimeout(() => span.textContent = o, 1200);
-    } catch (err) {
-      const o = span.textContent; span.textContent = 'Copy failed'; setTimeout(() => span.textContent = o, 1500);
-    }
-  });
-  document.getElementById('new-toss').addEventListener('click', () => {
-    // Drop any params and return to a clean panel.
-    location.href = location.pathname;
+  // Expose this page to the FAB through the x-data contract it already scans:
+  // a one-line `description` and an `actions` array it renders as header
+  // buttons. Both close over the render state above, so the critical render
+  // path stays vanilla and instant — this only adds metadata for the toolbox.
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('tossRender', () => ({
+      description: 'Full-viewport renderer for tossed HTML, URLs, and GitHub files ' +
+        '(#gz / #html / #url / #gh). Paste or use the panel to render; "Copy toss link" ' +
+        'rebuilds the durable bookmark for whatever is on screen.',
+      get actions() {
+        const list = [];
+        if (tossLinkFn) list.push({
+          label: 'Copy toss link', icon: 'ph-link',
+          run: async () => { await navigator.clipboard.writeText(await tossLinkFn()); return 'Copied'; }
+        });
+        list.push({
+          label: 'New toss', icon: 'ph-plus',
+          run: () => { location.href = location.pathname; }  // drop params, clean panel
+        });
+        return list;
+      }
+    }));
   });
 
   // --- route the initial URL ---
