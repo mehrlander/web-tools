@@ -4,6 +4,22 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-06 toss-render: pill → FAB; document the 🥏 toss primitive (PR #189)
+
+Drops the floating "Copy toss link" pill that sat over rendered content on toss-render (its adjacent reset reloaded the page on tap), surfacing those actions through the FAB via a generic `actions` contract; and documents the 🥏 toss as a portable surfacing primitive so any repo wired to the web-tools portable can render a page (including from a private repo or a branch) without a hosted URL.
+
+⭐ **Result:** [toss-render.html](https://mehrlander.github.io/web-tools/pages/toss-render.html)
+
+**Changed:**
+- pages/toss-render.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html), [main](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html), [diff](https://github.com/mehrlander/web-tools/commit/b62a78e)): pill removed; `tossRender` x-data exposes `description` + `actions` through the FAB, render path stays vanilla; carries address-mode relative-dep inlining (`inlineRelativeDeps`) + `fetchShim`.
+- lib/alpineComponents/fab.js ([new](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/fab.js), [diff](https://github.com/mehrlander/web-tools/commit/b62a78e)): FAB reads an `actions` array off each `[x-data]` and renders it in the always-visible header; additive.
+  renders on: [toss-render.html](https://mehrlander.github.io/web-tools/pages/toss-render.html)
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/bc48f8f)): "Toss a live view" primitive (🥏 marker; `#gz=` portable snapshot + `#gh=owner/repo[@ref]:path` owner-only branch/private render); external-proxies ban now names the services and routes to the toss alternative.
+
+**Notes:** Recovers four commits stranded on `claude/unmerged-branches-review-bkn37j` after PR #181 merged (post-merge work never got its own PR), brought over as one clean commit. The "DUMBO" nickname was already renamed out of the code; it survives only in one commit message. Portability: `#gz=` works for anyone; `#gh=` is owner-gated (`OWNERS`) and flagged not-portable, so the branch/private live render is an owner privilege, the snapshot is universal.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/frisbee-icon-render-page-rdc108)
+
 ## 2026-07-02 Repo Atlas: zoomable treemap map of any repo (PR #188)
 
 Overnight creative build: an interactive treemap of a repo's git tree (files as cushion-shaded tiles sized by bytes or file count, colored by type), with animated zoom, search, type isolation, an insights sidebar, PNG export, and shareable URL state; it also maps dropped local folders and zips entirely in-tab.
