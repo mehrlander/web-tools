@@ -7,9 +7,10 @@ Themed logic libraries loaded via `gh.load`. Each kit is a plain script
 
 A **kit** is the third category of file in this repo, alongside:
 
-- **Scaffolding in `lib/`** — `lib/gh-api.js`, `lib/gh-auth.js`,
-  `lib/gh-fetch.js`, `lib/gh-store.js`, `lib/alpine-bundle.js`,
-  `lib/vanilla-bundle.js`. The boot chain. `alpine-bundle.js` also owns the
+- **Scaffolding in `lib/`** — `lib/gh-api.js`, `lib/gh-boot.js`,
+  `lib/gh-auth.js`, `lib/gh-fetch.js`, `lib/gh-store.js`,
+  `lib/alpine-bundle.js`, `lib/vanilla-bundle.js`. The boot chain.
+  `alpine-bundle.js` also owns the
   Alpine-coupled `x-define` directive (custom-element registration from a
   `<template>`), so kits can stay Alpine-free. `vanilla-bundle.js` is the
   no-framework alternative.
@@ -35,7 +36,7 @@ The shape rules (so the file works through `gh.load`):
 5. Internal "imports" between kits are reads from `window.otherKit`.
    Order them in the page's `gh.load` chain accordingly.
 
-See [`docs/loader.md`](../docs/loader.md) for the full loader contract.
+See [`docs/loader.md`](../../docs/loader.md) for the full loader contract.
 
 ## Current kits
 
@@ -319,6 +320,117 @@ window.treemap.fmtBytes(6672908)          // '6.4 MB'
 degenerate input: zero/empty weights and extreme skew emit zero-size
 rects rather than negative extents.
 
+### build.js
+
+The single emitter for "the build": a page's `gh.load` chain frozen into
+one self-resolving offline artifact. Two consumers share the one emitter
+so the format cannot drift: `tools/build/build.mjs` (Node) feeds it a
+statically-walked cache and writes `dist/<page>.js`, and `kits/export.js`
+(browser) feeds it the runtime `__loadedScripts` cache for offline
+exports. The output is the real `gh-api.js` with `GH.prototype.get`
+overridden by an inlined `path → source` cache; the actual loader still
+runs (same execution, same gh-boot registry), and third-party CDN
+libraries stay on the network.
+
+```js
+window.buildKit.emit({ ghApiSrc, cache, repo, defaultRef, header?, extraBoot? })
+                                        // assemble the build JS (a string)
+window.buildKit.bake(pageHtml, buildJs) // rewrite the page's jsDelivr
+                                        //   gh-api.js import to a data: URL
+                                        //   carrying the build
+await window.buildKit.collectCache(gh)  // { ghApiSrc, cache } gathered at
+                                        //   runtime from __loadedScripts
+window.buildKit.stripLoader(ghApiSrc)   // gh-api.js minus its bootstrap
+                                        //   tail and `export default`
+```
+
+`emit` reproduces the bootstrap offline, still honoring `?use=<ref>` (an
+explicit ref falls through to the network), and sets
+`window.__builtOffline`. `bake` throws if the page has no jsDelivr
+`gh-api.js` import to rewrite. See "Load and build are one contract" in
+[`docs/loader.md`](../../docs/loader.md) and the pipeline in
+[`tools/README.md`](../../tools/README.md).
+
+### export.js
+
+Export the current page as a portable zip: the page's pristine source
+plus the data it `read()`s, laid out so `read()`'s local-first resolution
+finds the frozen copies on `file://`. gh-boot's `__reads` registry is the
+default manifest, so a page declares its data simply by reading it. With
+`{ offline: true }` the page's code is baked in too (via `kits/build.js`)
+and unzip-and-open needs no network for own code; third-party CDN
+libraries still load from the CDN. This is the "export" leg of the
+vocabulary: load → build → bake → export. The FAB's export control
+drives it.
+
+```js
+await window.exporter.page({ offline?, path?, reads?, filename? })
+                                   // build and download the zip
+await window.exporter.build(opts)  // same, minus the download: returns
+                                   //   { path, base, filename, offline,
+                                   //     codeFiles, reads, files }
+window.exporter.localForm(path, value) // one read() value in its local
+                                       //   <script> deposit form
+```
+
+The page path comes from `opts.path` or the FAB's `[data-path]` stamp;
+the page source is fetched pristine from the repo at the booted ref, not
+scraped from the post-Alpine DOM. `kits/io.js` and `kits/build.js` load
+on demand if absent.
+
+### wsl-core.js
+
+Dependency-free core for Washington State Legislature data: URL builders
+for the `wslwebservices.leg.wa.gov` endpoints, the XML→record parsers as
+a factory, pension classification against a built-in RCW map, and pure
+list/group helpers. The one twist on the kit shape: it imports nothing,
+taking its XML libraries through `makeParsers({ XMLParser, flatten })`,
+so the same file runs in the browser (via `gh.load`, with `wsl.js`
+injecting the CDN builds) and in Node (`fetch-data.mjs` injects the npm
+builds). Registers `globalThis.wslCore`.
+
+```js
+wslCore.URLS.legislation(sinceDate)   // + prefiles, sponsors, rcwFor,
+                                      //   actionsFor, historyFor
+wslCore.makeParsers({ XMLParser, flatten })
+  // → { parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+  //     parseRcwXml, parseActionsXml, parseHistoryXml, transform }
+wslCore.classifyPensionBill(rcwList)  // → pension/adjacent labels + cites
+wslCore.PENSION_MAP                   // systems / general / governance /
+                                      //   adjacent / special
+wslCore.consolidate(recs, pk)         // group + merge records on a key
+wslCore.groupWithCompanions(bills)    // bill groups via companion links
+```
+
+### wsl.js
+
+Browser wrapper over `wsl-core.js`: loads the core, lazy-loads
+`fast-xml-parser` and `flat` from the CDN on first parse (a snapshot-only
+page never pulls them), and registers `window.wsl` with the parsers,
+fetch-and-parse helpers for the WSL services (CORS permitting), a
+committed-snapshot loader with an IndexedDB overlay, and RCW reference
+lookups with linkify/tooltip/popup builders. Returns its async wiring, so
+`gh.load('kits/wsl.js')` resolves when `window.wsl` is ready. Consumers
+live in `pages/wsl-sync/`.
+
+```js
+await wsl.loadStore({ stores, biennium?, base?, overlay? })
+  // committed JSON snapshot; IDB overlays only the keyed stores
+  //   (rcws / history / actions), so a stale paste never shadows the
+  //   auto-refreshed lists
+wsl.saveStore(key, value)
+await wsl.getLegislation(sinceDate)  // + getPrefiles, getSponsors,
+                                     //   getRcwFor, getActionsFor,
+                                     //   getHistoryFor
+await wsl.preload()                  // RCW reference JSON (page-relative
+                                     //   ./rcw/, beside the wsl pages)
+wsl.linkifyList(chapters, fullRcws)  // + linkifyTitles, chapterTooltip,
+                                     //   titleTooltip, buildRcwPopup,
+                                     //   buildPensionPopup,
+                                     //   buildAdjacentPopup,
+                                     //   buildChapterPopup, buildTitlePopup
+```
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -337,3 +449,7 @@ examples.
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
 | `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |
+| `build.js` | `tools/build/` + the FAB export | one emitter, two consumers |
+| `export.js` | the FAB's export control | page + `read()` data as a zip |
+| `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |
+| `wsl.js` | `pages/wsl-sync/` | browser wrapper; lazy XML libs |

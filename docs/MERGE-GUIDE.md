@@ -4,6 +4,21 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-06 Docs catch up with the code: index pointer, gh-boot chain, four kits (PR #190)
+
+Three docs rewritten offline landed as full replacements: the README stops hand-curating a drifted pages table and points at the generated index, the loader contract now describes the real gh-boot.js chain (with a new "ambient surface" table of window globals by installer), and the kits census documents build.js, export.js, wsl-core.js, and wsl.js.
+
+⭐ **Result:** [README.md](https://github.com/mehrlander/web-tools/blob/main/README.md)
+
+**Changed:**
+- README.md ([new](https://github.com/mehrlander/web-tools/blob/main/README.md), [diff](https://github.com/mehrlander/web-tools/commit/722933b)): pages table replaced by an index pointer plus a short prose list of durable entries; bootstrap description corrected (gh-api.js chains gh-boot.js, which auto-loads gh-auth.js, gh-fetch.js, kits/console.js, vanilla-bundle.js); inline kit censuses now point at lib/kits/README.md; broken kits/README.md relative link fixed
+- docs/loader.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/loader.md), [diff](https://github.com/mehrlander/web-tools/commit/722933b)): canonical head block corrected for the boot chain (pages no longer told to load gh-fetch.js themselves); new gh-boot.js and vanilla-bundle.js entries; new "The ambient surface" table of window globals by installer, with the rule that a new global without a row is a doc bug; timing invariant 1 adjusted
+- lib/kits/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), [diff](https://github.com/mehrlander/web-tools/commit/722933b)): gh-boot.js added to the scaffolding census; build.js, export.js, wsl-core.js, wsl.js documented with their window surfaces; salvage table extended with four rows; two `../docs/loader.md` links fixed to `../../` ([diff](https://github.com/mehrlander/web-tools/commit/eb4d915), one of them a pre-existing break on main)
+
+**Notes:** Drafted offline against main at 9c521a1; main had not moved on these paths, so the replacements landed verbatim after a hunk-by-hunk review against the intended change list. Every documented global (the gh-boot chain, `__loadedScripts`, `__reads`, `buildKit`, `exporter`, `wslCore`, `wsl`, the vanilla-bundle helpers, `consoleKit`) was spot-checked against lib/ source. New prose carries no em dashes except the established `` - `file.js` — `` list-lead form, deliberately unnormalized.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/docs-file-replacements-j32sut)
+
 ## 2026-07-06 toss-render: pill → FAB; document the 🥏 toss primitive (PR #189)
 
 Drops the floating "Copy toss link" pill that sat over rendered content on toss-render (its adjacent reset reloaded the page on tap), surfacing those actions through the FAB via a generic `actions` contract; and documents the 🥏 toss as a portable surfacing primitive so any repo wired to the web-tools portable can render a page (including from a private repo or a branch) without a hosted URL.
