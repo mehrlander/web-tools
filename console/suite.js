@@ -1,5 +1,5 @@
 // console/suite.js — GENERATED, do not edit. `npm run build:console` reassembles
-// it from console/base.js + console/mods/{verbs,query,grow,pick}.js.
+// it from console/base.js + console/mods/{verbs,query,grow,pick,infer,tap,columns,harvest,lasso,census,sets,deck}.js.
 
 (() => {
   /** ── Core ───────────────────────────────────────────────────────────────── **/
@@ -789,4 +789,520 @@
   g.pick.done = () => finish ? finish() : (console.warn('pick: not active'), g.get());
 })();
 
-console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'verbs, query, grow, pick'));
+/* ══ mods/infer.js ══════════════════════════════════════════════════ */
+
+// console/mods/infer.js — glom.infer(): synthesize a CSS selector that
+// matches the working set, and say honestly how well it does. Converts a
+// hand-danced set (picked, grown, lassoed, keep/dropped) into something
+// durable: replayable after a rerender, pasteable into Playwright or a
+// scraper. Requires console/base.js (glom).
+//
+//   glom.infer()   → { selector, extra, missing }   (logs a verdict)
+//
+// extra = elements the selector matches beyond the set; missing = members it
+// fails to match. (0, 0) is exact. Candidates: the members' shared atom
+// (tag + classes every member carries), then the same atom scoped under each
+// common ancestor with an id or classes. Mixed-tag sets infer per tag and
+// join with commas.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/infer: console/base.js must load first');
+  const esc = s => window.CSS?.escape ? CSS.escape(s) : s.replace(/([^\w-])/g, '\\$1');
+
+  const trySel = (selector, wantSet, wantLen) => {
+    let got; try { got = document.querySelectorAll(selector); } catch { return null; }
+    let extra = 0, hit = 0;
+    for (const n of got) wantSet.has(n) ? hit++ : extra++;
+    return { selector, extra, missing: wantLen - hit };
+  };
+
+  const atomFor = els => {
+    const tags = new Set(els.map(n => n.tagName.toLowerCase()));
+    const tag = tags.size === 1 ? [...tags][0] : '';
+    const shared = [...els[0].classList].filter(c => els.every(n => n.classList.contains(c)));
+    return (tag + shared.map(c => '.' + esc(c)).join('')) || tag;
+  };
+
+  const commonAncestors = els => {
+    const chain = [];
+    for (let c = els[0].parentElement; c && c !== document.documentElement; c = c.parentElement) chain.push(c);
+    return chain.filter(a => els.every(n => a.contains(n)));
+  };
+
+  const inferOne = els => {
+    const wantSet = new Set(els), wantLen = els.length;
+    const atom = atomFor(els) || els[0].tagName.toLowerCase();
+    const cands = [atom];
+    for (const a of commonAncestors(els).slice(0, 6)) {
+      const aa = a.id ? '#' + esc(a.id)
+               : a.classList.length ? a.tagName.toLowerCase() + [...a.classList].map(c => '.' + esc(c)).join('')
+               : null;
+      if (aa) cands.push(`${aa} > ${atom}`, `${aa} ${atom}`);
+    }
+    const scored = cands.map(s => trySel(s, wantSet, wantLen)).filter(Boolean);
+    const exact = scored.filter(r => !r.extra && !r.missing)
+                        .sort((a, b) => a.selector.length - b.selector.length);
+    if (exact.length) return exact[0];
+    return scored.filter(r => !r.missing).sort((a, b) => a.extra - b.extra || a.selector.length - b.selector.length)[0]
+        ?? scored.sort((a, b) => (a.extra + a.missing) - (b.extra + b.missing))[0];
+  };
+
+  g.infer = () => {
+    const want = g.get();
+    if (!want.length) { console.warn('infer: empty set'); return null; }
+    const tags = [...new Set(want.map(n => n.tagName))];
+    let res;
+    if (tags.length === 1) res = inferOne(want);
+    else {
+      const joined = tags.map(t => inferOne(want.filter(n => n.tagName === t)).selector).join(', ');
+      res = trySel(joined, new Set(want), want.length);
+    }
+    console.log(`infer: ${res.selector}${res.extra || res.missing ? ` (+${res.extra} extra, ${res.missing} missing)` : ' (exact)'}`);
+    return res;
+  };
+})();
+
+/* ══ mods/tap.js ════════════════════════════════════════════════════ */
+
+// console/mods/tap.js — capture fetch/XHR responses as they fly by. The DOM
+// is a lossy rendering of data that arrives as JSON; tap watches the wire
+// instead. Works when the API speaks JSON or text (nearly always); it sees
+// what's on the wire, so a payload the page decrypts client-side arrives
+// as-is. Standalone (no base.js dependency).
+//
+//   tap()             arm, capture everything
+//   tap(/api/)        arm with a url filter (regex, or string includes)
+//   tap.hits          [{n, via, url, method, status, data}]  (data: parsed JSON or text)
+//   tap.last          most recent hit
+//   tap.find(v)       hits whose url matches v
+//   tap.clear()       drop hits;  tap.stop()  unwrap fetch/XHR, keep hits
+//
+// Each capture also dispatches window CustomEvent 'tap' ({detail: hit}) for
+// live consumers (e.g. the deck).
+(() => {
+  let armed = null;
+  const hits = [];
+  // Duck-typed regex check: instanceof fails cross-realm (console vs page
+  // frame), and String.includes throws on a regex rather than coercing it.
+  const isRe = f => !!f && typeof f === 'object' && typeof f.test === 'function';
+  const matches = (url, f) => !f || (isRe(f) ? f.test(url) : String(url).includes(f));
+  const parse = (body, ct) => {
+    if (typeof body !== 'string') return body;
+    if (/json/.test(ct || '') || /^\s*[\[{]/.test(body)) { try { return JSON.parse(body); } catch {} }
+    return body;
+  };
+  const push = hit => {
+    hit.n = hits.length;
+    hits.push(hit);
+    window.dispatchEvent(new CustomEvent('tap', { detail: hit }));
+    console.log(`tap[${hit.n}] ${hit.method} ${hit.status} ${hit.url}`);
+  };
+
+  const tap = filter => {
+    tap.filter = filter;
+    if (armed) { console.log('tap: filter updated'); return tap; }
+
+    const origFetch = window.fetch ? window.fetch.bind(window) : null;
+    if (origFetch) {
+      const isReq = v => typeof Request !== 'undefined' && v instanceof Request;
+      window.fetch = async (...args) => {
+        const res = await origFetch(...args);
+        try {
+          const url = isReq(args[0]) ? args[0].url : String(args[0]);
+          if (matches(url, tap.filter)) {
+            const method = ((isReq(args[0]) ? args[0].method : args[1]?.method) || 'GET').toUpperCase();
+            res.clone().text()
+              .then(t => push({ via: 'fetch', url, method, status: res.status, data: parse(t, res.headers?.get?.('content-type')) }))
+              .catch(() => {});
+          }
+        } catch {}
+        return res;
+      };
+    }
+
+    const XP = window.XMLHttpRequest?.prototype;
+    const origOpen = XP?.open, origSend = XP?.send;
+    if (XP) {
+      XP.open = function (method, url, ...rest) {
+        this.__tap = { method: String(method).toUpperCase(), url: String(url) };
+        return origOpen.call(this, method, url, ...rest);
+      };
+      XP.send = function (...a) {
+        this.addEventListener('load', () => {
+          const t = this.__tap;
+          if (!t || !matches(t.url, tap.filter)) return;
+          const body = (this.responseType === '' || this.responseType === 'text') ? this.responseText : this.response;
+          push({ via: 'xhr', url: t.url, method: t.method, status: this.status, data: parse(body, this.getResponseHeader?.('content-type')) });
+        });
+        return origSend.apply(this, a);
+      };
+    }
+
+    armed = { origFetch, XP, origOpen, origSend };
+    console.log(`tap: armed${tap.filter ? ` (filter: ${tap.filter})` : ''} — tap.hits, tap.stop()`);
+    return tap;
+  };
+
+  tap.hits = hits;
+  Object.defineProperty(tap, 'last', { get: () => hits[hits.length - 1] });
+  tap.find = v => hits.filter(h => matches(h.url, v));
+  tap.clear = () => { hits.length = 0; return tap; };
+  tap.stop = () => {
+    if (!armed) { console.warn('tap: not armed'); return tap; }
+    if (armed.origFetch) window.fetch = armed.origFetch;
+    if (armed.XP) { armed.XP.open = armed.origOpen; armed.XP.send = armed.origSend; }
+    armed = null;
+    console.log(`tap: stopped — ${hits.length} hits kept`);
+    return tap;
+  };
+  window.tap = tap;
+})();
+
+/* ══ mods/columns.js ════════════════════════════════════════════════ */
+
+// console/mods/columns.js — derive a table from a repeating working set:
+// pandas.read_html generalized to things that aren't <table>. Requires
+// console/base.js (glom).
+//
+//   glom.columns()              one row object per member; console.table + return
+//   glom.columns({all: true})   keep constant (boilerplate) columns too
+//   packTable(glom.columns())   → columnar gzip+base64 on the clipboard
+//
+// For each member, leaf texts are collected keyed by the member-relative
+// indexed tag path (td[2], div/span); links add an <path>@href column.
+// Columns whose value never varies across members are boilerplate and drop
+// (unless {all}); if nothing varies, everything is kept.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/columns: console/base.js must load first');
+  const clean = s => s.trim().replace(/\s+/g, ' ');
+  const own = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+
+  const relPath = (n, root) => {
+    const segs = [];
+    for (let c = n; c && c !== root; c = c.parentElement) {
+      let t = c.tagName.toLowerCase();
+      const same = [...(c.parentElement?.children || [])].filter(x => x.tagName === c.tagName);
+      if (same.length > 1) t += `[${same.indexOf(c) + 1}]`;
+      segs.unshift(t);
+    }
+    return segs.join('/') || '.';
+  };
+
+  g.columns = ({ all = false } = {}) => {
+    const members = g.get();
+    if (!members.length) { console.warn('columns: empty set'); return []; }
+    const rows = members.map(m => {
+      const rec = {};
+      const walk = n => {
+        const t = own(n);
+        if (t) { const k = relPath(n, m); rec[k] = rec[k] ? `${rec[k]} ${t}` : t; }
+        if (n.tagName === 'A' && n.getAttribute('href')) rec[`${relPath(n, m)}@href`] = n.getAttribute('href');
+        for (const c of n.children) walk(c);
+      };
+      walk(m);
+      return rec;
+    });
+    const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
+    const varying = keys.filter(k => new Set(rows.map(r => r[k] ?? '')).size > 1);
+    const keep = all || !varying.length ? keys : varying;
+    const out = rows.map(r => Object.fromEntries(keep.map(k => [k, r[k] ?? ''])));
+    console.table(out);
+    return out;
+  };
+})();
+
+/* ══ mods/harvest.js ════════════════════════════════════════════════ */
+
+// console/mods/harvest.js — sweep a virtualized or lazy list. Virtualized
+// grids keep only the visible rows in the DOM, so any one-shot grab is
+// partial; harvest scrolls, waits, re-collects, and accumulates *records*
+// (text/html snapshots that survive element destruction) until the page runs
+// dry. Requires console/base.js (glom, ea).
+//
+//   await glom.harvest()                      match via the set's tag-path fingerprint
+//   await glom.harvest({selector: '.row'})    explicit matcher (glom.infer() output fits)
+//   await glom.harvest({scroll, settle, dry}) custom scroller / wait ms / dry rounds
+//
+// Returns [{key, text, html, el}] — el is the last-seen node and may be dead
+// by the time you look. Records dedupe by fingerprint + text, so identical
+// repeated rows collapse to one.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/harvest: console/base.js must load first');
+  const SCOPE = 'body *:not(script):not(style)';
+  const clean = s => s.trim().replace(/\s+/g, ' ');
+  const upath = n => {
+    const p = [];
+    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
+    return p.join('/');
+  };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  g.harvest = async ({ selector, scroll, settle = 350, dry = 3, max = 200 } = {}) => {
+    let match;
+    if (selector) match = () => [...document.querySelectorAll(selector)];
+    else {
+      const seed = g.get();
+      if (!seed.length) { console.warn('harvest: empty set and no selector'); return []; }
+      const keys = new Set(seed.map(upath));
+      match = () => ea(SCOPE).filter(n => keys.has(upath(n)));
+    }
+    scroll ??= () => window.scrollBy(0, window.innerHeight);
+
+    const seen = new Map();
+    const collect = () => {
+      let fresh = 0;
+      for (const el of match()) {
+        const text = clean(el.textContent), key = `${upath(el)}|${text}`;
+        if (!seen.has(key)) { seen.set(key, { key, text, html: el.outerHTML, el }); fresh++; }
+      }
+      return fresh;
+    };
+
+    collect();
+    let drought = 0, rounds = 0;
+    while (drought < dry && rounds < max) {
+      rounds++;
+      scroll();
+      await wait(settle);
+      drought = collect() ? 0 : drought + 1;
+    }
+    const out = [...seen.values()];
+    console.log(`harvest: ${out.length} records in ${rounds} scrolls${rounds >= max ? ' (hit max — raise {max})' : ''}`);
+    return out;
+  };
+})();
+
+/* ══ mods/lasso.js ══════════════════════════════════════════════════ */
+
+// console/mods/lasso.js — drag a rectangle, select what's inside. The
+// feature scraping libraries can't have: they don't have a screen. Requires
+// console/base.js (glom, ea).
+//
+//   await glom.lasso()                  non-empty set → spatial refine (keep
+//                                       members inside); empty set → discover
+//   glom.lasso({mode: 'intersect'})     touching counts (default 'contain')
+//
+// Esc cancels (set unchanged). Discovery keeps selection roots: contained
+// elements whose parent isn't contained, so a tight rectangle around a list
+// gets the items, not every span inside them. Zero-size boxes (hidden
+// elements, and everything under jsdom's inert layout) are skipped;
+// {zero: true} keeps them, which headless tests need.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/lasso: console/base.js must load first');
+  const SCOPE = 'body *:not(script):not(style)';
+
+  g.lasso = ({ mode = 'contain', zero = false } = {}) => new Promise(resolve => {
+    const doc = document;
+    const box = Object.assign(doc.createElement('div'), { id: 'glom-lasso-box' });
+    box.style.cssText = 'position:fixed;z-index:2147483647;border:1.5px dashed #f59e0b;background:#f59e0b22;pointer-events:none;display:none';
+    const veil = Object.assign(doc.createElement('div'), { id: 'glom-lasso-veil' });
+    veil.style.cssText = 'position:fixed;inset:0;z-index:2147483646;cursor:crosshair;background:transparent';
+    doc.body.append(veil, box);
+
+    let x0 = 0, y0 = 0, dragging = false;
+    const frame = e => {
+      const x = Math.min(x0, e.clientX), y = Math.min(y0, e.clientY);
+      const w = Math.abs(e.clientX - x0), h = Math.abs(e.clientY - y0);
+      Object.assign(box.style, { display: 'block', left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+      return { x1: x, y1: y, x2: x + w, y2: y + h };
+    };
+    const cleanup = () => { veil.remove(); box.remove(); doc.removeEventListener('keydown', onKey, true); };
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      cleanup();
+      console.log('lasso: cancelled');
+      resolve(g.get());
+    };
+
+    veil.addEventListener('pointerdown', e => { dragging = true; x0 = e.clientX; y0 = e.clientY; frame(e); });
+    veil.addEventListener('pointermove', e => { if (dragging) frame(e); });
+    veil.addEventListener('pointerup', e => {
+      const r = frame(e);
+      cleanup();
+      const inside = n => {
+        const b = n.getBoundingClientRect();
+        if (!zero && (b.width <= 0 || b.height <= 0)) return false;
+        return mode === 'intersect'
+          ? b.left < r.x2 && b.right > r.x1 && b.top < r.y2 && b.bottom > r.y1
+          : b.left >= r.x1 && b.right <= r.x2 && b.top >= r.y1 && b.bottom <= r.y2;
+      };
+      const cur = g.get();
+      let picked;
+      if (cur.length) picked = cur.filter(inside);
+      else {
+        const all = ea(SCOPE).filter(inside), s = new Set(all);
+        picked = all.filter(n => !s.has(n.parentElement));
+      }
+      const res = g.set(picked);
+      console.log(`lasso: ${res.length} selected`);
+      resolve(res);
+    });
+    doc.addEventListener('keydown', onKey, true);
+    console.log('lasso: drag a rectangle — Esc cancels');
+  });
+})();
+
+/* ══ mods/census.js ═════════════════════════════════════════════════ */
+
+// console/mods/census.js — ping the page's shape: find and rank the
+// repeating structures, mark each in its own hue, and offer handles to grab
+// them. Orientation without reading any HTML. Requires console/base.js
+// (ea, glom, mark, unionArea).
+//
+//   census()            top 10 groups (count ≥ 3), marked + console.table
+//   census(25, {min:2, mark:false})
+//   census.grab(i)      adopt group i as the glom working set
+//   census.clear()      remove census marks
+//
+// Groups by unindexed tag path (html/body/table/tbody/tr). geoReg is
+// summary()'s kernel: union area over bounding box — near 1 means the group
+// tiles its region like a grid or list; near 0 means scattered or overlapped.
+(() => {
+  if (!window.ea) return console.warn('mods/census: console/base.js must load first');
+  const SCOPE = 'body *:not(script):not(style)';
+  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
+  const clean = s => s.trim().replace(/\s+/g, ' ');
+  const upath = n => {
+    const p = [];
+    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
+    return p.join('/');
+  };
+  let groups = [];
+
+  const census = (top = 10, { min = 3, mark: doMark = true } = {}) => {
+    census.clear();
+    const byKey = new Map();
+    for (const n of ea(SCOPE)) {
+      const k = upath(n);
+      if (!byKey.has(k)) byKey.set(k, []);
+      byKey.get(k).push(n);
+    }
+    groups = [...byKey.entries()]
+      .filter(([, els]) => els.length >= min)
+      .map(([path, els]) => {
+        const rects = els.map(n => n.getBoundingClientRect());
+        const u = window.unionArea(rects);
+        const bb = (Math.max(...rects.map(r => r.right)) - Math.min(...rects.map(r => r.left))) *
+                   (Math.max(...rects.map(r => r.bottom)) - Math.min(...rects.map(r => r.top)));
+        const avgLen = Math.round(els.reduce((a, n) => a + clean(n.textContent).length, 0) / els.length);
+        return { path, count: els.length, geoReg: +(u / (bb || 1)).toFixed(3), avgLen, els };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, top);
+    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, `outline-${HUES[i % HUES.length]}-2`, `data-census-${i}`));
+    console.table(groups.map(({ els, ...row }, i) => ({ i, ...row })));
+    console.log('census: census.grab(i) adopts a group; census.clear() unmarks');
+    return groups;
+  };
+
+  census.grab = i => groups[i] ? window.glom(groups[i].els) : (console.warn(`census: no group ${i} — run census() first`), []);
+  census.clear = () => {
+    for (let i = 0; ; i++) {
+      const style = document.getElementById(`mark-s-data-census-${i}`);
+      const els = document.querySelectorAll(`[data-census-${i}]`);
+      if (!style && !els.length) break;
+      style?.remove();
+      els.forEach(n => n.removeAttribute(`data-census-${i}`));
+    }
+    groups = [];
+  };
+  window.census = census;
+})();
+
+/* ══ mods/sets.js ═══════════════════════════════════════════════════ */
+
+// console/mods/sets.js — named working sets: park one dance, start another,
+// zip them later. Requires console/base.js (glom).
+//
+//   glom.save('rows')     snapshot the current set under a name
+//   glom.use('rows')      restore it as the working set (badges return)
+//   glom.names()          {name: count}
+//   glom.forget('rows')   drop a name;  glom.forget()  drop all
+//
+// Snapshots hold element references in memory: they survive the console
+// session, not a rerender (re-acquire via glom.infer()'s selector when the
+// page redraws).
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/sets: console/base.js must load first');
+  const store = new Map();
+
+  g.save = name => {
+    const cur = g.get();
+    if (!name) { console.warn('save: give it a name'); return cur; }
+    store.set(String(name), cur);
+    console.log(`save: ${cur.length} → "${name}"`);
+    return cur;
+  };
+  g.use = name => store.has(String(name))
+    ? g.set(store.get(String(name)))
+    : (console.warn(`use: no set "${name}" — glom.names()`), g.get());
+  g.names = () => Object.fromEntries([...store].map(([k, v]) => [k, v.length]));
+  g.forget = name => {
+    name == null ? store.clear() : store.delete(String(name));
+    return g.names();
+  };
+})();
+
+/* ══ mods/deck.js ═══════════════════════════════════════════════════ */
+
+// console/mods/deck.js — a live side-window view of the working set: dense,
+// dark, monospace. Immediate visual validation without injecting any UI into
+// the host page: the deck is its own window (same-origin about:blank, driven
+// directly), so the page's CSS can't touch it and a rerender can't kill it.
+// Requires console/base.js (glom, sig, text).
+//
+//   glom.deck()          open (or refresh) the deck; re-renders on every
+//                        glom.set — verbs, pick, grow, lasso all show live
+//   glom.deck.close()    close and unhook
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/deck: console/base.js must load first');
+  let win = null, origSet = null;
+
+  const escape = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const render = () => {
+    if (!win || win.closed) return;
+    const els = g.get();
+    const rows = els.map((n, i) => {
+      const href = (n.closest?.('a[href]') || n.querySelector?.('a[href]'))?.getAttribute('href') ?? '';
+      return `<tr><td>${i}</td><td>${escape(sig.tag(n))}</td><td>${escape(sig.css(n))}</td>` +
+             `<td>${escape(text.own.clean(n).slice(0, 120))}</td><td>${escape(href)}</td></tr>`;
+    }).join('');
+    win.document.body.innerHTML =
+      `<h1>glom deck — ${els.length} in set</h1>` +
+      `<table><thead><tr><th>#</th><th>tag</th><th>css</th><th>own text</th><th>href</th></tr></thead>` +
+      `<tbody>${rows}</tbody></table>`;
+  };
+
+  g.deck = () => {
+    if (win && !win.closed) { render(); return win; }
+    win = window.open('', 'glom-deck', 'width=720,height=520');
+    if (!win) { console.warn('deck: popup blocked'); return null; }
+    win.document.title = 'glom deck';
+    const style = win.document.createElement('style');
+    style.textContent =
+      'body{background:#0b1220;color:#cbd5e1;font:12px/1.5 ui-monospace,SFMono-Regular,monospace;margin:0;padding:10px}' +
+      'h1{font-size:12px;color:#f59e0b;margin:0 0 8px;font-weight:normal}' +
+      'table{border-collapse:collapse;width:100%}' +
+      'td,th{border-bottom:1px solid #1e293b;padding:2px 8px;text-align:left;vertical-align:top}' +
+      'th{color:#64748b;font-weight:normal}td:first-child{color:#f59e0b}';
+    win.document.head.append(style);
+    if (!origSet) {
+      origSet = g.set;
+      g.set = els => { const r = origSet(els); render(); return r; };
+    }
+    render();
+    return win;
+  };
+  g.deck.close = () => {
+    if (origSet) { g.set = origSet; origSet = null; }
+    win?.close?.();
+    win = null;
+  };
+})();
+
+console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'verbs, query, grow, pick, infer, tap, columns, harvest, lasso, census, sets, deck'));

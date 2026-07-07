@@ -12,7 +12,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const MODS = ['verbs.js', 'query.js', 'grow.js', 'pick.js'];
+export const MODS = [
+  'verbs.js', 'query.js', 'grow.js', 'pick.js',
+  'infer.js', 'tap.js', 'columns.js', 'harvest.js',
+  'lasso.js', 'census.js', 'sets.js', 'deck.js',
+];
 
 export function assemble() {
   const onDisk = readdirSync(path.join(root, 'console', 'mods')).filter(f => f.endsWith('.js')).sort();

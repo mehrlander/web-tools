@@ -178,6 +178,201 @@ test('pick: swallows the click so page handlers never fire', () => {
   w.glom.pick.done();
 });
 
+// ---- infer: selector synthesis -------------------------------------------
+
+test('infer: shared classes give an exact selector', () => {
+  const w = boot();
+  w.glom(w.q('tbody tr'));
+  const r = w.glom.infer();
+  assert.equal(r.extra, 0);
+  assert.equal(r.missing, 0);
+  assert.deepEqual([...w.document.querySelectorAll(r.selector)], [...w.q('tbody tr')]);
+});
+
+test('infer: ancestor context rescues a too-loose atom', () => {
+  const w = boot();
+  w.glom(w.q('#cards div'));               // bare "div" would also match #cards itself
+  const r = w.glom.infer();
+  assert.equal(r.extra, 0);
+  assert.equal(r.missing, 0);
+  assert.equal(w.document.querySelectorAll(r.selector).length, 4);
+});
+
+test('infer: mixed-tag sets join per-tag selectors', () => {
+  const w = boot();
+  w.glom([w.q('h1')[0], ...w.q('tbody tr')]);
+  const r = w.glom.infer();
+  assert.match(r.selector, /,/);
+  assert.equal(r.extra, 0);
+  assert.equal(r.missing, 0);
+});
+
+// ---- tap: wire capture -----------------------------------------------------
+
+test('tap: captures matching fetches, parses JSON, stop() restores', async () => {
+  const w = boot();
+  let served = 0;
+  const stub = async url => { served++; return new Response('{"bills": [1, 2]}', { status: 200, headers: { 'content-type': 'application/json' } }); };
+  w.fetch = stub;
+  const seen = [];
+  w.addEventListener('tap', e => seen.push(e.detail));
+
+  w.tap(/\/api\//);
+  await w.fetch('https://x.test/api/bills');
+  await w.fetch('https://x.test/other/page');
+  await new Promise(r => setTimeout(r, 0));    // clone().text() resolves async
+
+  assert.equal(served, 2);                     // requests pass through untouched
+  assert.equal(w.tap.hits.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(w.tap.last.data)), { bills: [1, 2] });
+  assert.equal(w.tap.last.url, 'https://x.test/api/bills');
+  assert.equal(seen.length, 1);                // CustomEvent per capture
+
+  w.tap.stop();                                // restores a bound copy of the original
+  await w.fetch('https://x.test/api/more');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(served, 3);                     // still serving
+  assert.equal(w.tap.hits.length, 1);          // but no longer capturing
+  w.tap.clear();
+  assert.equal(w.tap.hits.length, 0);
+});
+
+// ---- columns: repetition → table -------------------------------------------
+
+test('columns: rows become records, boilerplate drops, links add @href', () => {
+  const w = boot();
+  w.glom(w.q('tbody tr'));
+  const out = w.glom.columns();
+  assert.equal(out.length, 3);
+  const keys = Object.keys(out[0]);
+  assert.ok(keys.some(k => k.endsWith('@href')), `expected an @href column in ${keys}`);
+  const flat = out.map(r => Object.values(r).join(' '));
+  assert.match(flat[0], /HB 1001/);
+  assert.match(flat[0], /\/hb1/);
+  assert.match(flat[1], /Passed/);
+});
+
+test('columns: single member keeps everything (nothing varies)', () => {
+  const w = boot();
+  w.glom(w.q('tbody tr >> nth=0'));
+  const out = w.glom.columns();
+  assert.equal(out.length, 1);
+  assert.ok(Object.keys(out[0]).length >= 2);
+});
+
+// ---- harvest: sweep until dry -----------------------------------------------
+
+test('harvest: accumulates records across scrolls until dry', async () => {
+  const w = boot();
+  const feed = w.document.createElement('div');
+  feed.id = 'feed';
+  w.document.body.append(feed);
+  const add = n => { const d = w.document.createElement('div'); d.className = 'item'; d.textContent = `item ${n}`; feed.append(d); };
+  add(1); add(2);
+
+  let total = 2;
+  const scroll = () => {                        // fake virtualization: each scroll reveals more
+    if (total < 6) { add(++total); add(++total); }
+    if (total >= 6) feed.removeChild(feed.children[0]);   // and older rows leave the DOM
+  };
+  const records = await w.glom.harvest({ selector: '#feed .item', scroll, settle: 1, dry: 2 });
+  assert.equal(records.length, 6);              // all six seen, despite eviction
+  assert.deepEqual([...new Set(records.map(r => r.text))].length, 6);
+});
+
+test('harvest: fingerprints from the working set when no selector given', async () => {
+  const w = boot();
+  w.glom(w.q('tbody tr >> nth=0'));
+  const records = await w.glom.harvest({ scroll: () => {}, settle: 1, dry: 1 });
+  assert.equal(records.length, 3);              // all rows share the seed's tag path
+});
+
+// ---- lasso: drag-rectangle select -------------------------------------------
+
+test('lasso: discovery keeps selection roots; jsdom needs zero:true', async () => {
+  const w = boot();
+  w.glom.clear();
+  const p = w.glom.lasso({ zero: true });       // jsdom boxes are all 0×0 at 0,0
+  const veil = w.document.getElementById('glom-lasso-veil');
+  assert.ok(veil, 'veil overlay armed');
+  const ev = (type, x, y) => veil.dispatchEvent(new w.MouseEvent(type, { clientX: x, clientY: y, bubbles: true }));
+  ev('pointerdown', 0, 0); ev('pointermove', 5, 5); ev('pointerup', 10, 10);
+  const picked = await p;
+  assert.equal(w.document.getElementById('glom-lasso-veil'), null);
+  // roots = body's direct children (their parents aren't in the candidate set)
+  assert.deepEqual(texts(picked).slice(0, 1), ['Bills']);
+  assert.equal(picked.length, w.document.body.children.length);
+});
+
+test('lasso: Esc cancels, overlay gone, set unchanged', async () => {
+  const w = boot();
+  w.glom(w.q('tbody tr'));
+  const p = w.glom.lasso();
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' }));
+  const kept = await p;
+  assert.equal(kept.length, 3);
+  assert.equal(w.document.getElementById('glom-lasso-veil'), null);
+});
+
+// ---- census: page-shape ping --------------------------------------------------
+
+test('census: ranks repeating tag paths, grab() adopts, clear() unmarks', () => {
+  const w = boot();
+  const groups = w.census(20, { min: 2 });
+  assert.ok(groups.length >= 2);
+  assert.equal(groups[0].count, 6);                       // the six tds lead
+  assert.match(groups[0].path, /tbody\/tr\/td$/);
+  const rows = [...groups].find(g => g.path.endsWith('tbody/tr'));
+  assert.equal(rows.count, 3);                            // thead/tr is a different path
+  assert.ok(w.document.querySelector('[data-census-0]'), 'top group marked');
+
+  const i = groups.indexOf(rows);
+  assert.equal(w.census.grab(i).length, 3);               // adopted as working set
+  w.census.clear();
+  assert.equal(w.document.querySelector('[data-census-0]'), null);
+});
+
+// ---- sets: named working sets ---------------------------------------------------
+
+test('sets: save/use/names/forget round-trip', () => {
+  const w = boot();
+  w.glom(w.q('tbody tr'));
+  w.glom.save('rows');
+  w.glom(w.q('#cards div'));
+  w.glom.save('cards');
+  assert.deepEqual({ ...w.glom.names() }, { rows: 3, cards: 4 });
+  assert.equal(w.glom.use('rows').length, 3);
+  assert.deepEqual(texts(w.glom.get()).length, 3);
+  w.glom.forget('cards');
+  assert.deepEqual({ ...w.glom.names() }, { rows: 3 });
+  w.glom.forget();
+  assert.deepEqual({ ...w.glom.names() }, {});
+});
+
+// ---- deck: live side-window -------------------------------------------------------
+
+test('deck: renders the set, re-renders on every glom.set, close() unhooks', () => {
+  const w = boot();
+  const doc = w.document.implementation.createHTMLDocument('deck');
+  w.open = () => ({ closed: false, document: doc, close() { this.closed = true; } });
+
+  w.glom(w.q('tbody tr'));
+  w.glom.deck();
+  assert.equal(doc.querySelectorAll('tbody tr').length, 3);
+  assert.match(doc.body.textContent, /3 in set/);
+
+  w.glom(w.q('a'));                                       // any set change re-renders
+  assert.equal(doc.querySelectorAll('tbody tr').length, 3);
+  assert.match(doc.body.textContent, /HB 1001/);
+  assert.match(doc.body.textContent, /\/hb1/);
+
+  const wrapped = w.glom.set;
+  w.glom.deck.close();
+  assert.notEqual(w.glom.set, wrapped);                   // set restored
+  w.glom(w.q('td'));                                      // no longer renders
+  assert.match(doc.body.textContent, /HB 1001/);
+});
+
 // ---- the committed artifact ----------------------------------------------
 
 test('console/suite.js on disk matches a fresh assemble()', () => {

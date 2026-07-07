@@ -18,6 +18,12 @@ paste.
   paste. Rebuild with `npm run build:console` (the build-on-commit hook does
   this automatically when `console/` changes). Don't edit it; edit base or a
   mod.
+
+The find → dance → grab loop, end to end: `census()` to orient, `pick` two
+examples, `grow` to the full set, `deck` to watch it live, verbs or `q()` to
+move, `lasso` to trim spatially, `columns` + `packTable` to carry it off,
+`infer` to keep a replayable selector, `harvest` when the list is
+virtualized, `tap` when the DOM is hostile and the wire is honest.
 - [`to-canvas.js`](to-canvas.js): unrelated one-off; renders the page into a
   scrollable canvas.
 
@@ -101,6 +107,103 @@ glom.pick.done()       // programmatic finish, returns the set
 Clicks are swallowed in the capture phase so picking a link doesn't
 navigate. Picks are additive to the current set; click a member again to
 remove it.
+
+### infer — selector synthesis
+
+```js
+glom.infer()           // → { selector, extra, missing }, logs a verdict
+```
+
+Converts a hand-danced set into a durable CSS selector: replayable after a
+rerender, pasteable into Playwright or a scraper. Reports honestly: `extra`
+elements matched beyond the set, `missing` members not matched; (0, 0) is
+exact. Tries the members' shared atom (tag + common classes), then scopes it
+under common ancestors with ids or classes; mixed-tag sets infer per tag and
+join with commas.
+
+### tap — wire capture
+
+```js
+tap(/api/)             // wrap fetch + XHR; capture responses whose url matches
+tap.hits               // [{n, via, url, method, status, data}] — data: parsed JSON
+tap.last; tap.find('bills'); tap.clear(); tap.stop()
+```
+
+The DOM is a lossy rendering of data that arrives as JSON; tap watches the
+wire instead. Requests pass through untouched (responses are cloned). Each
+capture dispatches a window `tap` CustomEvent. Standalone: works without
+base.js. It sees what's on the wire, so it shines when the API speaks JSON
+(nearly always) and can't help with payloads decrypted client-side.
+
+### columns — repetition to table
+
+```js
+glom.columns()             // one row object per member; console.table + return
+packTable(glom.columns())  // → columnar gzip+base64 on the clipboard
+```
+
+`pandas.read_html` generalized to things that aren't tables. Leaf texts are
+keyed by member-relative indexed tag path (`td[2]`, `div/span`); links add
+`@href` columns. Columns that never vary across members are boilerplate and
+drop (`{all: true}` keeps them).
+
+### harvest — sweep virtualized lists
+
+```js
+await glom.harvest()                      // fingerprint from the working set
+await glom.harvest({selector: '.row'})    // or explicit (glom.infer() output fits)
+```
+
+Virtualized grids keep only visible rows in the DOM. Harvest scrolls, waits
+(`settle` ms), re-collects, and accumulates records until `dry` consecutive
+rounds find nothing new. Returns `[{key, text, html, el}]`: snapshots survive
+element destruction (`el` may be dead by the time you look).
+
+### lasso — drag-rectangle select
+
+```js
+await glom.lasso()                 // drag; Esc cancels
+await glom.lasso({mode: 'intersect'})  // touching counts (default: contained)
+```
+
+Non-empty set → spatial refine (keep members inside the rectangle). Empty
+set → discover: contained elements collapse to selection roots (elements
+whose parent isn't contained), so a tight rectangle around a list gets the
+items, not every span inside them. Zero-size (hidden) boxes are skipped.
+
+### census — page-shape ping
+
+```js
+census()               // top 10 repeating structures, each marked in its own hue
+census.grab(2)         // adopt group 2 as the working set
+census.clear()
+```
+
+Orientation without reading HTML: groups every element by unindexed tag
+path, ranks by count, and reports `geoReg` (union area over bounding box,
+`summary()`'s kernel): near 1 means the group tiles its region like a grid
+or list.
+
+### sets — named working sets
+
+```js
+glom.save('rows'); glom.use('rows'); glom.names(); glom.forget('rows')
+```
+
+Park one dance, start another, zip them later. In-memory element refs:
+they survive the console session, not a rerender.
+
+### deck — live side-window
+
+```js
+glom.deck()            // dense monospace table of the set in its own window
+glom.deck.close()
+```
+
+Immediate visual validation without injecting UI into the host page: the
+deck is its own same-origin window (the page's CSS can't touch it, a
+rerender can't kill it) and re-renders on every `glom.set`, so verbs, pick,
+grow, and lasso all show live.
 
 ## Testing
 
