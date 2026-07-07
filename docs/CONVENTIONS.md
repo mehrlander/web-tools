@@ -30,7 +30,14 @@ Adopt à la carte: two independent layers, take either alone.
     ```
   * **🥏 `#gh=owner/repo[@ref]:path` (owner-only address mode):** fetches the file live via the viewer's stored token, so it renders a **branch** (`@<ref>`), a **private repo**, or a **private-repo branch** as a live pointer (not a snapshot), and pulls the page's same-ref relative deps in whole. It is gated to the renderer owner's allowlist, so it renders only for that owner and is **not portable** (a link sent to someone without an authorized token 404s). Reach for `#gz=` when the reader isn't the owner.
 * **Branch anchor:** the first file-modifying reply leads with `Working branch: [branch-name](url)`.
-* **Per-file links:** file-modifying turns end with a list, filename plain and link words tappable: `- src/file.ts ([new](…), [main](…), [diff](…))`. `[new]` is the branch tip, `[main]` the pre-change version on main (omit for new files), `[diff]` the commit. Append `#L120` or `#L120-L145` for line anchors. Don't duplicate a file's links within a turn.
+* **Surfacing caption:** end a file-modifying turn with what changed, a uniform bulleted list, filename plain and the link words tappable. `[new]` is the branch tip, `[main]` the pre-change version on main (omit for a new file), `[diff]` the commit; add `#L120` or `#L120-L145` for a line anchor. Keep the rows plain and uniform (no bullet swaps, no per-row icons) and don't repeat a file's links within a turn. When a renderable HTML page changed, close the caption with a 🥏 render line *after* the list, not as a row: the list carries the source, the frisbee the running page. Link its live render per **Toss a live view** (link text the page path, one line per page, same honesty gate as ⭐, so a kit, doc, or asset gets none).
+
+  ```
+  - pages/index.html ([new](…), [main](…), [diff](…))
+  - lib/app.js ([new](…), [main](…), [diff](…))
+
+  🥏 [pages/index.html](…)
+  ```
 * **Session diff:** summarize substantial work with `Session diff: [main...branch](url)`.
 * **External proxies:** prohibited. Third-party GitHub render services (`htmlpreview.github.io`, `raw.githack.com`, `gitcdn.link`, and the like) fetch the file server-side, so they 404 on private repos and route content through another host. The `[new]` blob is the canonical *source* view for every file type; when you want a *rendered* view of a private or un-deployed page, use the toss primitive above (content rides in the fragment, private-safe), not one of these.
 * **Skip the watch offer:** never offer to watch CI or monitor a PR.
@@ -102,7 +109,7 @@ Answers "verify this" for reviewers; links resolve to the branch tip. Keep "Foll
 
 ### Merge guide
 
-Durable newest-on-top log of shipped sessions: one file, one URL. Written at wrap-up; outside a wrap-up only when the user asks. Never overwrite existing entries. Key each entry by PR number.
+Durable newest-on-top log of shipped sessions: one file, one URL. Written at wrap-up; outside a wrap-up only when the user asks. Never overwrite existing entries. Key each entry by PR number. (This log keys on the **PR**, a unit of delivery; the opt-in project tracker in [`docs/TRACKER.md`](TRACKER.md) keys on the **task**, a unit of intent. Same niche from two angles: pick one primary axis, since running both produces two logs that drift.)
 
 **Reading it for inclusion:** an entry reaches main only on its own merge, so the main copy answers "Is PR #N in main?" (top entry is the latest). A merge made without an entry won't show, so absence isn't proof; git or GitHub's merged state is authoritative.
 
@@ -146,6 +153,8 @@ Post-merge edits on the same branch require a *new* PR; don't update the merged 
 ## Post-merge handoff
 
 Merge terminates the session branch.
+
+When the repo runs a project tracker ([`docs/TRACKER.md`](TRACKER.md)), follow-ups become tasks and Option 1's HP collapses to "check the tracker and assess how to proceed"; the full diagnostic HP below is the trackerless form.
 
 * **Option 1 (default):** issue a diagnostic handoff prompt (HP) and wind down.
 * **Option 2:** continue edits (only on explicit user instruction; a new PR is then required, per above).
