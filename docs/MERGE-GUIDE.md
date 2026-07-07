@@ -4,6 +4,19 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-07 Wrap-up gains a conflict-detection preflight (PR #191)
+
+The wrap-up sequence now opens with a preflight that test-merges the branch against fresh main, so a session catches a branch main has diverged out from under before it opens a PR GitHub flags as unmergeable.
+
+⭐ **Result:** [docs/CONVENTIONS.md — Wrap-up & PR creation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#wrap-up--pr-creation)
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md#wrap-up--pr-creation), [diff](https://github.com/mehrlander/web-tools/commit/6c4a552)): new step 1 "Preflight: confirm the branch still merges cleanly" (`git fetch origin main && git merge-tree --write-tree origin/main HEAD`), sequence renumbered 1→4, UI-trigger note extended to surface a preflight conflict.
+
+**Notes:** Portable, so it applies to any repo adopting the surfacing course, not just web-tools. Names committed generated artifacts (bundles, lockfiles, indexes) as the usual conflict culprit; that general claim passes the applies-in-any-repo test and stays in the portable doc, while the web-tools-specific filenames would be a CLAUDE.md instantiation (not yet added). Landed over three commits: introduced (6c4a552), made portable (2115fb6), then tightened to the doc's one-line-step voice with the older-git fallback dropped (228cfd8). Dogfooded its own step 1 at this wrap-up: `merge-tree` returned clean against origin/main.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/wrap-up-conflict-detection-m3e6x4)
+
 ## 2026-07-06 Docs catch up with the code: index pointer, gh-boot chain, four kits (PR #190)
 
 Three docs rewritten offline landed as full replacements: the README stops hand-curating a drifted pages table and points at the generated index, the loader contract now describes the real gh-boot.js chain (with a new "ambient surface" table of window globals by installer), and the kits census documents build.js, export.js, wsl-core.js, and wsl.js.
