@@ -332,6 +332,59 @@ test('census: ranks repeating tag paths, grab() adopts, clear() unmarks', () => 
   assert.equal(w.document.querySelector('[data-census-0]'), null);
 });
 
+// ---- templates: Wring-style induction over signatures ----------------------------
+
+test('templates: hashy per-instance classes become slots, decoys stay out', () => {
+  const w = boot();
+  w.glom(w.q('#cards div'));                    // c.hash-x1, c.hash-x2, c.hash-x3, other
+  const groups = w.glom.templates();
+  const cards = groups.find(g => g.template.includes('${0}'));
+  assert.ok(cards, 'a slotted group exists');
+  assert.match(cards.template, /c\.hash-x\$\{0\}$/);   // char refinement absorbed "hash-x"
+  assert.equal(cards.count, 3);
+  assert.deepEqual([...cards.slots].sort(), ['1', '2', '3']);
+  assert.ok(!texts(cards.els).includes('delta'), '.other decoy excluded');
+});
+
+test('templates: whole page (empty set) — empty-slot semantics merge cell + link', () => {
+  const w = boot();
+  w.glom.clear();
+  const groups = w.glom.templates();
+  // Bookend templates match empty slots, so td (slot '') and td>a (slot 'a')
+  // are one family — faithful Wring semantics.
+  const cells = groups.find(g => /tbody\.tr\.td\.\$\{0\}$/.test(g.template));
+  assert.equal(cells.count, 9);                 // 6 tds + 3 anchors
+  assert.deepEqual([...cells.slots].sort(), ['', 'a']);
+  const rows = groups.find(g => /tbody\.tr\.row\.\$\{0\}$/.test(g.template));
+  assert.equal(rows.count, 3);                  // odd/even split lands in the slot
+  assert.deepEqual([...rows.slots].sort(), ['even', 'odd']);
+});
+
+test('templates: grab adopts a group, clear removes hue marks', () => {
+  const w = boot();
+  w.glom.clear();
+  const groups = w.glom.templates();
+  assert.ok(w.document.querySelector('[data-tmpl-0]'), 'top group marked');
+  const i = groups.findIndex(g => /row\.\$\{0\}$/.test(g.template));
+  assert.equal(w.glom.templates.grab(i).length, 3);
+  w.glom.templates.clear();
+  assert.equal(w.document.querySelector('[data-tmpl-0]'), null);
+});
+
+test('templates: the raw engine is lossless, including empty slots', () => {
+  const w = boot();
+  const refined = w.glom.templates.group(['a.b.card-1', 'a.b.card-2', 'a.b.card-3', 'z.q']);
+  assert.equal(refined.groups.length, 1);
+  assert.match(refined.groups[0].template, /card-\$\{0\}$/);   // char refinement absorbed "card-"
+  assert.deepEqual(refined.ungrouped, ['z.q']);
+
+  const withEmpty = w.glom.templates.group(['a.b.card-1', 'a.b.card-2', 'a.b', 'z.q']);
+  assert.equal(withEmpty.groups[0].members.length, 3);         // bare "a.b" joins via empty slot
+  for (const r of [refined, withEmpty])
+    for (const m of r.groups[0].members)
+      assert.equal(w.glom.templates.reconstruct(r.groups[0].template, [...m.slots]), m.original);
+});
+
 // ---- sets: named working sets ---------------------------------------------------
 
 test('sets: save/use/names/forget round-trip', () => {

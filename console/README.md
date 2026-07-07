@@ -19,11 +19,12 @@ paste.
   this automatically when `console/` changes). Don't edit it; edit base or a
   mod.
 
-The find → dance → grab loop, end to end: `census()` to orient, `pick` two
-examples, `grow` to the full set, `deck` to watch it live, verbs or `q()` to
-move, `lasso` to trim spatially, `columns` + `packTable` to carry it off,
-`infer` to keep a replayable selector, `harvest` when the list is
-virtualized, `tap` when the DOM is hostile and the wire is honest.
+The find → dance → grab loop, end to end: `census()` or `glom.templates()`
+to orient, `pick` two examples, `grow` (or a template grab) to the full set,
+`deck` to watch it live, verbs or `q()` to move, `lasso` to trim spatially,
+`columns` + `packTable` to carry it off, `infer` to keep a replayable
+selector, `harvest` when the list is virtualized, `tap` when the DOM is
+hostile and the wire is honest.
 - [`to-canvas.js`](to-canvas.js): unrelated one-off; renders the page into a
   scrollable canvas.
 
@@ -183,6 +184,26 @@ Orientation without reading HTML: groups every element by unindexed tag
 path, ranks by count, and reports `geoReg` (union area over bounding box,
 `summary()`'s kernel): near 1 means the group tiles its region like a grid
 or list.
+
+### templates — Wring-style induction over signatures
+
+```js
+glom.templates()            // group the set (whole page if empty) by template
+glom.templates.grab(2)      // adopt group 2
+glom.templates.group(strings, {delimiter: '.'})   // the raw engine
+```
+
+The principled upgrade to grow/census's fingerprints: elements become
+path-qualified signatures (`html.body.div.div.c.hash-x1`) and a bookend-merge
+engine (adapted from [`lib/kits/wring.js`](../lib/kits/wring.js), vendored so
+the suite stays self-contained) groups signatures that differ only in slots.
+Hashy per-instance classes become `${0}` slots instead of noise
+(`c.hash-x${0}`, slots `1, 2, 3`), and templates match empty slots too, so a
+cell and the link inside it can merge into one `td.${0}` family. Groups rank
+by (members − 1) × literal chars, an MDL-ish "which repetition matters."
+Lossless: `templates.reconstruct(template, slots)` rebuilds each signature
+exactly. The raw engine takes any delimited strings (urls, log lines), not
+just signatures.
 
 ### sets — named working sets
 
