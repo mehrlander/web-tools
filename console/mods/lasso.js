@@ -13,8 +13,8 @@
 // {zero: true} keeps them, which headless tests need.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/lasso: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
+  if (!g?.core) return console.warn('mods/lasso: base.js + mods/core.js must load first');
+  const { SCOPE } = g.core;
 
   g.lasso = ({ mode = 'contain', zero = false } = {}) => new Promise(resolve => {
     const doc = document;

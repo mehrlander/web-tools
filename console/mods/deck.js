@@ -4,13 +4,14 @@
 // directly), so the page's CSS can't touch it and a rerender can't kill it.
 // Requires console/base.js (glom, sig, text).
 //
-//   glom.deck()          open (or refresh) the deck; re-renders on every
-//                        glom.set — verbs, pick, grow, lasso all show live
-//   glom.deck.close()    close and unhook
+//   glom.deck()          open (or refresh) the deck; subscribes to glom.onSet
+//                        so verbs, pick, grow, lasso all show live
+//   glom.deck.close()    close and unsubscribe
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/deck: console/base.js must load first');
-  let win = null, origSet = null;
+  if (!g?.core) return console.warn('mods/deck: base.js + mods/core.js must load first');
+  let win = null, subscribed = false;
+  const onSet = () => render();
 
   const escape = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const render = () => {
@@ -40,15 +41,14 @@
       'td,th{border-bottom:1px solid #1e293b;padding:2px 8px;text-align:left;vertical-align:top}' +
       'th{color:#64748b;font-weight:normal}td:first-child{color:#f59e0b}';
     win.document.head.append(style);
-    if (!origSet) {
-      origSet = g.set;
-      g.set = els => { const r = origSet(els); render(); return r; };
-    }
+    if (!subscribed) { g.onSet.push(onSet); subscribed = true; }
     render();
     return win;
   };
   g.deck.close = () => {
-    if (origSet) { g.set = origSet; origSet = null; }
+    const i = g.onSet.indexOf(onSet);
+    if (i >= 0) g.onSet.splice(i, 1);
+    subscribed = false;
     win?.close?.();
     win = null;
   };

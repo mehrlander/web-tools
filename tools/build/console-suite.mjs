@@ -12,11 +12,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// core first (kernels + onSet bus every mod uses), recipe last (it wraps the
+// verbs the others install).
 export const MODS = [
+  'core.js',
   'verbs.js', 'query.js', 'grow.js', 'pick.js',
   'infer.js', 'watch.js', 'tap.js', 'veins.js',
   'columns.js', 'harvest.js', 'lasso.js',
-  'census.js', 'templates.js', 'sets.js', 'deck.js',
+  'census.js', 'templates.js', 'sets.js', 'join.js',
+  'semantics.js', 'deck.js', 'recipe.js',
 ];
 
 export function assemble() {

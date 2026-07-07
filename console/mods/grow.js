@@ -3,6 +3,8 @@
 //
 //   glom.grow()                expand current members to everything alike
 //   glom.grow({classes: false})  match on tag-path alone
+//   glom.grow({by: 'style'})   match on computed style (looks-alike; real
+//                              layout only — jsdom styles are uniform)
 //   glom.alike(el)             fresh set from one example element
 //
 // Fingerprint: the unindexed tag path from the root (html/body/table/tbody/tr)
@@ -13,17 +15,23 @@
 // which of its classes matter, so it matches on structure alone.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/grow: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
+  if (!g?.core) return console.warn('mods/grow: base.js + mods/core.js must load first');
+  const { SCOPE, upath } = g.core;
 
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
+  // Style fingerprint: "these LOOK like list items" — finds families in
+  // class-less div soup where tag paths and classes both fail. Real layout
+  // only (computed styles are uniform under jsdom).
+  const styleKey = n => {
+    const cs = getComputedStyle(n);
+    return [n.tagName, cs.display, cs.fontSize, cs.fontWeight, cs.color, cs.backgroundColor, cs.textAlign].join('|');
   };
 
-  const expand = (members, { classes = true } = {}) => {
+  const expand = (members, { classes = true, by = 'structure' } = {}) => {
     if (!members.length) { console.warn('grow: empty set — glom or pick something first'); return []; }
+    if (by === 'style') {
+      const keys = new Set(members.map(styleKey));
+      return ea(SCOPE).filter(n => keys.has(styleKey(n)));
+    }
     const req = new Map();   // upath → { classes: Set (intersection), count }
     for (const n of members) {
       const key = upath(n), r = req.get(key);

@@ -33,8 +33,8 @@ const PAGE = `<!doctype html><html><head></head><body>
   </div>
 </body></html>`;
 
-const boot = () => {
-  const { window } = makeWindow({ html: PAGE });
+const boot = (html = PAGE) => {
+  const { window } = makeWindow({ html });
   window.eval(assemble());
   return window;
 };
@@ -520,11 +520,99 @@ test('deck: renders the set, re-renders on every glom.set, close() unhooks', () 
   assert.match(doc.body.textContent, /HB 1001/);
   assert.match(doc.body.textContent, /\/hb1/);
 
-  const wrapped = w.glom.set;
-  w.glom.deck.close();
-  assert.notEqual(w.glom.set, wrapped);                   // set restored
+  w.glom.deck.close();                                    // unsubscribes from onSet
+  assert.equal(w.glom.onSet.length, 0);
   w.glom(w.q('td'));                                      // no longer renders
   assert.match(doc.body.textContent, /HB 1001/);
+});
+
+// ---- core: kernels + the onSet bus --------------------------------------------
+
+test('core: onSet subscribers fire after every set, errors are contained', () => {
+  const w = boot();
+  const seen = [];
+  w.glom.onSet.push(els => seen.push(els.length));
+  w.glom.onSet.push(() => { throw new Error('bad subscriber'); });
+  w.glom('hearing');
+  w.glom.up('tr');
+  assert.deepEqual([...seen], [2, 2]);                    // both ops funneled through set
+  assert.ok(w.glom.core.SCOPE.includes('body'));
+  assert.equal(w.glom.core.upath(w.q('a')[0]), 'html/body/table/tbody/tr/td/a');
+});
+
+// ---- recipe: the session journal ------------------------------------------------
+
+test('recipe: console-level calls replay as a script; elements are placeholders', () => {
+  const w = boot();
+  w.glom.recipe.clear();
+  w.glom('hearing');
+  w.glom.up('tr');
+  w.glom.keep(/1001/);
+  w.glom.save('rows');
+  const script = w.glom.recipe();
+  assert.equal(script, 'glom("hearing");\nglom.up("tr");\nglom.keep(/1001/);\nglom.save("rows");');
+
+  w.glom.recipe.clear();
+  w.glom(w.q('a'));                                       // element args can't travel
+  assert.match(w.glom.recipe.trail[1], /glom\(\/\* elements \*\/\)/);
+  assert.match(w.glom.recipe.trail[0], /^q\("a"\)/);      // q calls recorded too
+});
+
+// ---- join: relational joins ------------------------------------------------------
+
+test('join: structural relations pair named sets; custom predicates work', () => {
+  const w = boot();
+  w.glom(w.q('tbody a'));
+  w.glom.save('links');
+  w.glom(w.q('tbody tr'));
+  w.glom.save('rows');
+
+  const pairs = w.glom.join('links', 'rows', 'inside');
+  assert.equal(pairs.length, 3);
+  assert.deepEqual([...pairs].map(p => p.aText), ['HB 1001', 'HB 1002', 'HB 1003']);
+  assert.ok([...pairs].every(p => p.b.contains(p.a)));
+
+  const custom = w.glom.join('rows', 'links', (row, a) => row.contains(a));
+  assert.equal(custom.length, 3);
+
+  assert.deepEqual([...w.glom.join('links', 'rows', 'no-such-rel')], []);
+});
+
+// ---- semantics: the structured data pages already carry ---------------------------
+
+test('semantics: JSON-LD, microdata, and social metas come back typed', () => {
+  const w = boot(`<!doctype html><html><head>
+      <meta property="og:title" content="Bill Tracker">
+      <meta name="twitter:card" content="summary">
+      <meta name="viewport" content="width=device-width">
+      <script type="application/ld+json">{"@type": "Legislation", "name": "HB 1001"}</scr` + `ipt>
+    </head><body>
+      <div itemscope itemtype="https://schema.org/Person">
+        <span itemprop="name">Ada</span>
+        <a itemprop="url" href="/ada">profile</a>
+        <div itemprop="knows" itemscope><span itemprop="name">Grace</span></div>
+      </div>
+    </body></html>`);
+  const s = w.glom.semantics();
+  assert.equal(s.jsonld[0]['@type'], 'Legislation');
+  assert.deepEqual({ ...s.meta }, { 'og:title': 'Bill Tracker', 'twitter:card': 'summary' });
+  const person = [...s.microdata].find(m => m.type.endsWith('Person'));
+  assert.equal(person.props.name, 'Ada');                 // nested item's name doesn't leak up
+  assert.equal(person.props.url, '/ada');                 // href read before text
+  const nested = [...s.microdata].find(m => m.props.name === 'Grace');
+  assert.ok(nested, 'nested itemscope is its own item');
+});
+
+// ---- grow by style ------------------------------------------------------------------
+
+test('grow: {by:"style"} matches computed-style fingerprints (uniform under jsdom)', () => {
+  const w = boot();
+  w.glom([w.q('#cards div')[0]]);
+  const grown = w.glom.grow({ by: 'style' });
+  // jsdom computes identical styles for everything, so the tag component of
+  // the fingerprint does the filtering: every div, nothing else.
+  assert.equal(grown.length, w.document.querySelectorAll('body div').length);
+  assert.ok([...grown].every(n => n.tagName === 'DIV'));
 });
 
 // ---- the committed artifact ----------------------------------------------

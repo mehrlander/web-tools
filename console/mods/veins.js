@@ -17,10 +17,8 @@
 // fallback for values of 4+ characters.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/veins: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const own = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+  if (!g?.core) return console.warn('mods/veins: base.js + mods/core.js must load first');
+  const { SCOPE, clean, own } = g.core;
 
   const flatten = (data, base = '', out = []) => {
     if (data == null) return out;

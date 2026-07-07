@@ -1,5 +1,5 @@
 // console/suite.js — GENERATED, do not edit. `npm run build:console` reassembles
-// it from console/base.js + console/mods/{verbs,query,grow,pick,infer,watch,tap,veins,columns,harvest,lasso,census,templates,sets,deck}.js.
+// it from console/base.js + console/mods/{core,verbs,query,grow,pick,infer,watch,tap,veins,columns,harvest,lasso,census,templates,sets,join,semantics,deck,recipe}.js.
 
 (() => {
   /** ── Core ───────────────────────────────────────────────────────────────── **/
@@ -505,6 +505,57 @@
   };
 })();
 
+/* ══ mods/core.js ═══════════════════════════════════════════════════ */
+
+// console/mods/core.js — shared kernels and the set event bus. Loads first;
+// every other glom mod requires base.js + this one (tap stays standalone).
+//
+//   glom.core   { SCOPE, HUES, clean, own, upath, docOrder, upStep, overStep }
+//               the helpers the mods used to each carry a private copy of
+//   glom.onSet  subscriber list: every fn(els) runs after glom.set — and
+//               everything funnels through set (verbs, pick, grow, lasso,
+//               undo), so this is the suite's event bus. Subscribe instead
+//               of monkey-patching set; deck and recipe do.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/core: console/base.js must load first');
+
+  const clean = s => s.trim().replace(/\s+/g, ' ');
+  g.core = {
+    SCOPE: 'body *:not(script):not(style)',
+    HUES: ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'],
+    clean,
+    own: n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('')),
+    upath: n => {
+      const p = [];
+      for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
+      return p.join('/');
+    },
+    docOrder: els => [...new Set(els)].sort((a, b) =>
+      a === b ? 0 : (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1),
+    upStep: (n, arg) => {
+      if (typeof arg === 'string') return n.parentElement?.closest(arg) ?? null;
+      if (typeof arg === 'function') { let c = n.parentElement; while (c && !arg(c)) c = c.parentElement; return c; }
+      let c = n; for (let k = arg ?? 1; k > 0 && c; k--) c = c.parentElement;
+      return c;
+    },
+    overStep: (n, k) => {
+      let c = n;
+      while (c && k > 0) { c = c.nextElementSibling; k--; }
+      while (c && k < 0) { c = c.previousElementSibling; k++; }
+      return c;
+    },
+  };
+
+  g.onSet = [];
+  const origSet = g.set;
+  g.set = els => {
+    const r = origSet(els);
+    for (const fn of g.onSet) { try { fn(r); } catch (e) { console.warn('glom.onSet subscriber failed:', e); } }
+    return r;
+  };
+})();
+
 /* ══ mods/verbs.js ══════════════════════════════════════════════════ */
 
 // console/mods/verbs.js — set-wise navigation for the glom working set.
@@ -523,20 +574,9 @@
 //   glom.over(-2)        two siblings back
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/verbs: console/base.js must load first');
+  if (!g?.core) return console.warn('mods/verbs: base.js + mods/core.js must load first');
+  const { upStep, overStep } = g.core;
 
-  const upStep = (n, arg) => {
-    if (typeof arg === 'string') return n.parentElement?.closest(arg) ?? null;
-    if (typeof arg === 'function') { let c = n.parentElement; while (c && !arg(c)) c = c.parentElement; return c; }
-    let c = n; for (let k = arg ?? 1; k > 0 && c; k--) c = c.parentElement;
-    return c;
-  };
-  const overStep = (n, k) => {
-    let c = n;
-    while (c && k > 0) { c = c.nextElementSibling; k--; }
-    while (c && k < 0) { c = c.previousElementSibling; k++; }
-    return c;
-  };
   const move = (name, p, stepped) => {
     const r = g.set(stepped.filter(Boolean));
     console.log(`${name}: ${p.length} → ${r.length}`);
@@ -580,11 +620,8 @@
 // named like an engine (e.g. an svg <text> selector) is read as the engine,
 // so write it as `svg text` or `*|text`.
 (() => {
-  if (!window.ea) return console.warn('mods/query: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const own  = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+  if (!window.ea || !window.glom?.core) return console.warn('mods/query: base.js + mods/core.js must load first');
+  const { SCOPE, clean, own, docOrder, upStep, overStep } = window.glom.core;
   const full = n => clean(n.textContent);
 
   // Split on `>>` outside of "…", '…', and /…/ spans.
@@ -625,21 +662,6 @@
     const idx = i => i < 0 ? els.length + i : i;
     if (m[2] == null) { const el = els[idx(+m[1])]; return el ? [el] : []; }
     return els.slice(idx(+m[1]), idx(+m[2]) + 1);
-  };
-
-  const docOrder = els => [...new Set(els)].sort((a, b) =>
-    a === b ? 0 : (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-
-  const upStep = (n, arg) => {
-    if (typeof arg === 'string') return n.parentElement?.closest(arg) ?? null;
-    let c = n; for (let k = arg; k > 0 && c; k--) c = c.parentElement;
-    return c;
-  };
-  const overStep = (n, k) => {
-    let c = n;
-    while (c && k > 0) { c = c.nextElementSibling; k--; }
-    while (c && k < 0) { c = c.previousElementSibling; k++; }
-    return c;
   };
 
   const apply = (els, { name, val }) => {
@@ -683,6 +705,8 @@
 //
 //   glom.grow()                expand current members to everything alike
 //   glom.grow({classes: false})  match on tag-path alone
+//   glom.grow({by: 'style'})   match on computed style (looks-alike; real
+//                              layout only — jsdom styles are uniform)
 //   glom.alike(el)             fresh set from one example element
 //
 // Fingerprint: the unindexed tag path from the root (html/body/table/tbody/tr)
@@ -693,17 +717,23 @@
 // which of its classes matter, so it matches on structure alone.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/grow: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
+  if (!g?.core) return console.warn('mods/grow: base.js + mods/core.js must load first');
+  const { SCOPE, upath } = g.core;
 
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
+  // Style fingerprint: "these LOOK like list items" — finds families in
+  // class-less div soup where tag paths and classes both fail. Real layout
+  // only (computed styles are uniform under jsdom).
+  const styleKey = n => {
+    const cs = getComputedStyle(n);
+    return [n.tagName, cs.display, cs.fontSize, cs.fontWeight, cs.color, cs.backgroundColor, cs.textAlign].join('|');
   };
 
-  const expand = (members, { classes = true } = {}) => {
+  const expand = (members, { classes = true, by = 'structure' } = {}) => {
     if (!members.length) { console.warn('grow: empty set — glom or pick something first'); return []; }
+    if (by === 'style') {
+      const keys = new Set(members.map(styleKey));
+      return ea(SCOPE).filter(n => keys.has(styleKey(n)));
+    }
     const req = new Map();   // upath → { classes: Set (intersection), count }
     for (const n of members) {
       const key = upath(n), r = req.get(key);
@@ -1059,10 +1089,8 @@
 // fallback for values of 4+ characters.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/veins: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const own = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+  if (!g?.core) return console.warn('mods/veins: base.js + mods/core.js must load first');
+  const { SCOPE, clean, own } = g.core;
 
   const flatten = (data, base = '', out = []) => {
     if (data == null) return out;
@@ -1127,9 +1155,8 @@
 // (unless {all}); if nothing varies, everything is kept.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/columns: console/base.js must load first');
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const own = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+  if (!g?.core) return console.warn('mods/columns: base.js + mods/core.js must load first');
+  const { own } = g.core;
 
   const relPath = (n, root) => {
     const segs = [];
@@ -1182,14 +1209,8 @@
 // repeated rows collapse to one.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/harvest: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
-  };
+  if (!g?.core) return console.warn('mods/harvest: base.js + mods/core.js must load first');
+  const { SCOPE, clean, upath } = g.core;
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
   g.harvest = async ({ selector, scroll, settle = 350, dry = 3, max = 200 } = {}) => {
@@ -1244,8 +1265,8 @@
 // {zero: true} keeps them, which headless tests need.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/lasso: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
+  if (!g?.core) return console.warn('mods/lasso: base.js + mods/core.js must load first');
+  const { SCOPE } = g.core;
 
   g.lasso = ({ mode = 'contain', zero = false } = {}) => new Promise(resolve => {
     const doc = document;
@@ -1314,15 +1335,8 @@
 // summary()'s kernel: union area over bounding box — near 1 means the group
 // tiles its region like a grid or list; near 0 means scattered or overlapped.
 (() => {
-  if (!window.ea) return console.warn('mods/census: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
-  };
+  if (!window.ea || !window.glom?.core) return console.warn('mods/census: base.js + mods/core.js must load first');
+  const { SCOPE, HUES, clean, upath } = window.glom.core;
   let groups = [];
 
   const census = (top = 10, { min = 3, mark: doMark = true } = {}) => {
@@ -1391,9 +1405,8 @@
 // matters", not just "which is most numerous".
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/templates: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
+  if (!g?.core) return console.warn('mods/templates: base.js + mods/core.js must load first');
+  const { SCOPE, HUES } = g.core;
 
   /* ── engine (adapted from kits/wring.js: bookend merge, single slot) ── */
 
@@ -1596,9 +1609,119 @@
     ? g.set(store.get(String(name)))
     : (console.warn(`use: no set "${name}" — glom.names()`), g.get());
   g.names = () => Object.fromEntries([...store].map(([k, v]) => [k, v.length]));
+  g.peek = name => [...(store.get(String(name)) ?? [])];   // read without switching the working set
   g.forget = name => {
     name == null ? store.clear() : store.delete(String(name));
     return g.names();
+  };
+})();
+
+/* ══ mods/join.js ═══════════════════════════════════════════════════ */
+
+// console/mods/join.js — relational joins over element sets: the spreadsheet
+// move that turns label/value scraping into one line. Requires base.js +
+// mods/core.js; composes with mods/sets.js (named sets via glom.peek).
+//
+//   glom.join('labels', 'inputs', 'left-of')   each label paired with the
+//                                              input it sits left of
+//   glom.join(elsA, 'rows', 'inside')          arrays and names mix freely
+//   glom.join(a, b, (x, y) => …)               custom predicate
+//
+// Relations (a REL b): inside, contains (structural); left-of, right-of,
+// above, below, same-row, same-col, near (geometric — real layout only,
+// jsdom boxes are all 0×0). When several b's qualify, the nearest by center
+// distance wins. Returns [{a, b, aText, bText}]; unmatched a's are dropped
+// and counted in the log.
+(() => {
+  const g = window.glom;
+  if (!g?.core) return console.warn('mods/join: base.js + mods/core.js must load first');
+  const { clean } = g.core;
+
+  const R = n => n.getBoundingClientRect();
+  const overlapV = (a, b) => a.top < b.bottom && b.top < a.bottom;
+  const overlapH = (a, b) => a.left < b.right && b.left < a.right;
+  const dist = (a, b) => Math.hypot((a.left + a.right) / 2 - (b.left + b.right) / 2,
+                                    (a.top + a.bottom) / 2 - (b.top + b.bottom) / 2);
+  const RELS = {
+    inside:     (a, b) => b.contains(a) && a !== b,
+    contains:   (a, b) => a.contains(b) && a !== b,
+    'left-of':  (a, b) => { const ra = R(a), rb = R(b); return ra.right <= rb.left + 1 && overlapV(ra, rb); },
+    'right-of': (a, b) => { const ra = R(a), rb = R(b); return rb.right <= ra.left + 1 && overlapV(ra, rb); },
+    above:      (a, b) => { const ra = R(a), rb = R(b); return ra.bottom <= rb.top + 1 && overlapH(ra, rb); },
+    below:      (a, b) => { const ra = R(a), rb = R(b); return rb.bottom <= ra.top + 1 && overlapH(ra, rb); },
+    'same-row': (a, b) => a !== b && overlapV(R(a), R(b)),
+    'same-col': (a, b) => a !== b && overlapH(R(a), R(b)),
+    near:       (a, b, px = 100) => a !== b && dist(R(a), R(b)) <= px,
+  };
+
+  const resolve = v => typeof v === 'string'
+    ? (g.peek ? g.peek(v) : (console.warn('join: named sets need mods/sets.js'), []))
+    : [...v].filter(n => n instanceof Element);
+
+  g.join = (a, b, rel = 'inside') => {
+    const A = resolve(a), B = resolve(b);
+    if (!A.length || !B.length) { console.warn(`join: empty side (a: ${A.length}, b: ${B.length})`); return []; }
+    const pred = typeof rel === 'function' ? rel : RELS[rel];
+    if (!pred) { console.warn(`join: unknown relation "${rel}" — ${Object.keys(RELS).join(', ')}, or a function`); return []; }
+
+    const pairs = [];
+    let unmatched = 0;
+    for (const x of A) {
+      const hits = B.filter(y => pred(x, y));
+      if (!hits.length) { unmatched++; continue; }
+      const y = hits.length === 1 ? hits[0]
+        : hits.reduce((best, cur) => dist(R(cur), R(x)) < dist(R(best), R(x)) ? cur : best);
+      pairs.push({ a: x, b: y, aText: clean(x.textContent).slice(0, 60), bText: clean(y.textContent).slice(0, 60) });
+    }
+    console.table(pairs.map(({ aText, bText }, i) => ({ i, aText, bText })));
+    console.log(`join: ${pairs.length} pairs${unmatched ? `, ${unmatched} unmatched` : ''}`);
+    return pairs;
+  };
+})();
+
+/* ══ mods/semantics.js ══════════════════════════════════════════════ */
+
+// console/mods/semantics.js — grab the structured data pages already carry:
+// JSON-LD blocks, microdata items, and og:/twitter: meta tags. Often the
+// whole scrape is sitting here, typed and labeled, before any DOM dancing.
+// Requires base.js + mods/core.js.
+//
+//   glom.semantics()      → { jsonld: [...], microdata: [...], meta: {...} }
+//
+// Microdata items come back as {type, props, el}: props read content/href/src
+// attributes before falling back to text, and nested itemscopes keep their
+// own props.
+(() => {
+  const g = window.glom;
+  if (!g?.core) return console.warn('mods/semantics: base.js + mods/core.js must load first');
+  const { clean } = g.core;
+
+  g.semantics = () => {
+    const jsonld = [...document.querySelectorAll('script[type="application/ld+json"]')]
+      .map(s => { try { return JSON.parse(s.textContent); } catch { return null; } })
+      .filter(Boolean);
+
+    const meta = {};
+    for (const m of document.querySelectorAll('meta[property], meta[name]')) {
+      const k = m.getAttribute('property') || m.getAttribute('name');
+      const v = m.getAttribute('content');
+      if (k && v != null && /^(og|twitter|article|fb):/.test(k)) meta[k] = v;
+    }
+
+    const microdata = [...document.querySelectorAll('[itemscope]')].map(scope => {
+      const props = {};
+      for (const el of scope.querySelectorAll('[itemprop]')) {
+        const owner = el.hasAttribute('itemscope') ? el.parentElement?.closest('[itemscope]') : el.closest('[itemscope]');
+        if (owner !== scope) continue;
+        const k = el.getAttribute('itemprop');
+        const v = el.getAttribute('content') ?? el.getAttribute('href') ?? el.getAttribute('src') ?? clean(el.textContent);
+        if (!(k in props)) props[k] = v;
+      }
+      return { type: scope.getAttribute('itemtype') || '', props, el: scope };
+    });
+
+    console.log(`semantics: ${jsonld.length} JSON-LD, ${microdata.length} microdata items, ${Object.keys(meta).length} social metas`);
+    return { jsonld, microdata, meta };
   };
 })();
 
@@ -1610,13 +1733,14 @@
 // directly), so the page's CSS can't touch it and a rerender can't kill it.
 // Requires console/base.js (glom, sig, text).
 //
-//   glom.deck()          open (or refresh) the deck; re-renders on every
-//                        glom.set — verbs, pick, grow, lasso all show live
-//   glom.deck.close()    close and unhook
+//   glom.deck()          open (or refresh) the deck; subscribes to glom.onSet
+//                        so verbs, pick, grow, lasso all show live
+//   glom.deck.close()    close and unsubscribe
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/deck: console/base.js must load first');
-  let win = null, origSet = null;
+  if (!g?.core) return console.warn('mods/deck: base.js + mods/core.js must load first');
+  let win = null, subscribed = false;
+  const onSet = () => render();
 
   const escape = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const render = () => {
@@ -1646,18 +1770,85 @@
       'td,th{border-bottom:1px solid #1e293b;padding:2px 8px;text-align:left;vertical-align:top}' +
       'th{color:#64748b;font-weight:normal}td:first-child{color:#f59e0b}';
     win.document.head.append(style);
-    if (!origSet) {
-      origSet = g.set;
-      g.set = els => { const r = origSet(els); render(); return r; };
-    }
+    if (!subscribed) { g.onSet.push(onSet); subscribed = true; }
     render();
     return win;
   };
   g.deck.close = () => {
-    if (origSet) { g.set = origSet; origSet = null; }
+    const i = g.onSet.indexOf(onSet);
+    if (i >= 0) g.onSet.splice(i, 1);
+    subscribed = false;
     win?.close?.();
     win = null;
   };
 })();
 
-console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'verbs, query, grow, pick, infer, watch, tap, veins, columns, harvest, lasso, census, templates, sets, deck'));
+/* ══ mods/recipe.js ═════════════════════════════════════════════════ */
+
+// console/mods/recipe.js — the session journal: record every console-level
+// glom/q call and print the dance back as a replayable script. The export's
+// missing half: columns() gives the data, recipe() gives the provenance —
+// how the set was produced. Loads LAST in the suite so it can wrap the verbs
+// every other mod has installed. Requires base.js + mods/core.js.
+//
+//   glom.recipe()         print (and return) the trail as one paste-able script
+//   glom.recipe.trail     the raw entries
+//   glom.recipe.clear()
+//
+// Serialization is honest: strings/numbers/regexes/functions replay verbatim;
+// element arguments (from pick, lasso, census.grab…) can't travel through
+// text and appear as /* elements */ placeholders — replace them with a
+// selector (glom.infer()) when hardening a recipe.
+(() => {
+  const g = window.glom;
+  if (!g?.core) return console.warn('mods/recipe: base.js + mods/core.js must load first');
+
+  const trail = [];
+  const show = v =>
+    v === undefined ? '' :
+    typeof v === 'string' ? JSON.stringify(v) :
+    typeof v === 'number' || typeof v === 'boolean' ? String(v) :
+    (typeof v === 'object' && v && typeof v.test === 'function' && typeof v.source === 'string') ? String(v) :  // regex, cross-realm safe
+    typeof v === 'function' ? v.toString() :
+    v instanceof Element || (Array.isArray(v) && v.some(x => x instanceof Element)) ? '/* elements */' :
+    (() => { try { return JSON.stringify(v) ?? '/* value */'; } catch { return '/* elements */'; } })();
+  const record = (name, args) => trail.push(`${name}(${[...args].map(show).join(', ')})`);
+
+  // Wrap the replayable ops in place: mods hold the same glom object, so a
+  // wrapped method is seen everywhere; sub-properties (watch.stop, pick.done,
+  // veins.grab…) ride along via Object.assign.
+  const OPS = ['up', 'down', 'downAll', 'over', 'keep', 'drop', 'undo', 'clear',
+               'grow', 'alike', 'save', 'use', 'forget', 'lasso', 'harvest',
+               'columns', 'infer', 'watch', 'veins', 'templates', 'semantics', 'join'];
+  for (const k of OPS) {
+    const fn = g[k];
+    if (typeof fn !== 'function') continue;
+    const wrapped = function (...args) { record(`glom.${k}`, args); return fn.apply(this, args); };
+    Object.assign(wrapped, fn);
+    g[k] = wrapped;
+  }
+
+  // The glom(...) call itself: swap in a recording facade that shares every
+  // property (same references) with the original.
+  const G = g;
+  const facade = function (...args) { record('glom', args); return G(...args); };
+  Object.assign(facade, G);
+  window.glom = facade;
+
+  if (window.q) {
+    const Q = window.q;
+    window.q = (...args) => { record('q', args); return Q(...args); };
+  }
+
+  const recipe = () => {
+    const script = trail.join(';\n') + (trail.length ? ';' : '');
+    console.log(script || 'recipe: empty — do something first');
+    return script;
+  };
+  recipe.trail = trail;
+  recipe.clear = () => { trail.length = 0; };
+  G.recipe = recipe;
+  facade.recipe = recipe;
+})();
+
+console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'core, verbs, query, grow, pick, infer, watch, tap, veins, columns, harvest, lasso, census, templates, sets, join, semantics, deck, recipe'));

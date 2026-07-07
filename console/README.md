@@ -11,9 +11,14 @@ paste.
   structure stats (`summary`), export helpers (`pop`, `packTable`, `copy`),
   console formatting (`console.style/box/see/help/env`). Works alone;
   everything else layers on top.
-- [`mods/`](mods): one feature per file. Each is an independent IIFE that
-  expects base.js to have run first, so any single mod can be pasted after
-  base without the others.
+- [`mods/`](mods): one feature per file. [`core.js`](mods/core.js) loads
+  first and provides the shared kernels (`glom.core`: SCOPE, text cleaners,
+  tag-path fingerprints, dance steps) plus the **onSet bus** (`glom.onSet`
+  subscribers run after every `glom.set`, which everything funnels through);
+  every other glom mod expects base.js + core.js to have run first, so a
+  single mod pastes as base + core + it. `tap.js` alone is fully standalone.
+  [`recipe.js`](mods/recipe.js) loads last, wrapping the verbs the others
+  installed.
 - [`suite.js`](suite.js): **generated** — base.js plus every mod, in one
   paste. Rebuild with `npm run build:console` (the build-on-commit hook does
   this automatically when `console/` changes). Don't edit it; edit base or a
@@ -253,6 +258,40 @@ glom.save('rows'); glom.use('rows'); glom.names(); glom.forget('rows')
 Park one dance, start another, zip them later. In-memory element refs:
 they survive the console session, not a rerender.
 
+### join — relational joins over sets
+
+```js
+glom.join('labels', 'inputs', 'left-of')   // → [{a, b, aText, bText}]
+glom.join(els, 'rows', 'inside')           // arrays and names mix; custom fns too
+```
+
+The spreadsheet move: label/value scraping in one line. Structural relations
+(`inside`, `contains`) work everywhere; geometric ones (`left-of`,
+`right-of`, `above`, `below`, `same-row`, `same-col`, `near`) need real
+layout. Nearest-by-center wins when several candidates qualify.
+
+### semantics — the data pages already carry
+
+```js
+glom.semantics()   // → { jsonld: [...], microdata: [...], meta: {og:…} }
+```
+
+JSON-LD blocks parsed, microdata items collected (nested itemscopes keep
+their own props; content/href/src read before text), og:/twitter: metas
+gathered. Often the whole scrape is sitting here, typed and labeled.
+
+### recipe — the session journal
+
+```js
+glom.recipe()      // print the dance back as one replayable script
+```
+
+Records every console-level `glom`/`q` call (it wraps the verbs at load, so
+it runs last in the suite). Strings, numbers, regexes, and functions replay
+verbatim; element arguments appear as `/* elements */` placeholders — swap
+in `glom.infer()`'s selector when hardening a recipe. `columns()` gives the
+data; `recipe()` gives the provenance.
+
 ### deck — live side-window
 
 ```js
@@ -270,5 +309,16 @@ grow, and lasso all show live.
 `npm test` drives the assembled suite under jsdom
 ([`tools/test/console-suite.test.mjs`](../tools/test/console-suite.test.mjs)),
 and pins the committed `suite.js` to a fresh `assemble()` so a stale artifact
-fails the run. jsdom's layout is inert, so `visible` filters everything out
-there; test that engine in a real browser.
+fails the run.
+
+jsdom's layout is inert (every box 0×0, computed styles uniform), so the
+geometry-dependent behavior — `visible`, census geoReg, lasso rectangles,
+`grow {by:'style'}`, geometric joins — is exercised by a second, manual pass
+through real Chromium:
+[`tools/test/playground-pass.mjs`](../tools/test/playground-pass.mjs) drives
+[`pages/console-playground.html`](../../pages/console-playground.html)
+(fixtures for every mod: a table, hashy cards, class-less soup, a truly
+virtualized feed, an offline `/fake-api/`, microdata). Run it with
+`node tools/test/playground-pass.mjs`; it exits nonzero on any failure.
+The playground doubles as the interactive demo — the suite is pre-loaded,
+open the console and work the loop.

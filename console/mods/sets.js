@@ -25,6 +25,7 @@
     ? g.set(store.get(String(name)))
     : (console.warn(`use: no set "${name}" — glom.names()`), g.get());
   g.names = () => Object.fromEntries([...store].map(([k, v]) => [k, v.length]));
+  g.peek = name => [...(store.get(String(name)) ?? [])];   // read without switching the working set
   g.forget = name => {
     name == null ? store.clear() : store.delete(String(name));
     return g.names();

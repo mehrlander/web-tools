@@ -27,11 +27,8 @@
 // named like an engine (e.g. an svg <text> selector) is read as the engine,
 // so write it as `svg text` or `*|text`.
 (() => {
-  if (!window.ea) return console.warn('mods/query: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const own  = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+  if (!window.ea || !window.glom?.core) return console.warn('mods/query: base.js + mods/core.js must load first');
+  const { SCOPE, clean, own, docOrder, upStep, overStep } = window.glom.core;
   const full = n => clean(n.textContent);
 
   // Split on `>>` outside of "…", '…', and /…/ spans.
@@ -72,21 +69,6 @@
     const idx = i => i < 0 ? els.length + i : i;
     if (m[2] == null) { const el = els[idx(+m[1])]; return el ? [el] : []; }
     return els.slice(idx(+m[1]), idx(+m[2]) + 1);
-  };
-
-  const docOrder = els => [...new Set(els)].sort((a, b) =>
-    a === b ? 0 : (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-
-  const upStep = (n, arg) => {
-    if (typeof arg === 'string') return n.parentElement?.closest(arg) ?? null;
-    let c = n; for (let k = arg; k > 0 && c; k--) c = c.parentElement;
-    return c;
-  };
-  const overStep = (n, k) => {
-    let c = n;
-    while (c && k > 0) { c = c.nextElementSibling; k--; }
-    while (c && k < 0) { c = c.previousElementSibling; k++; }
-    return c;
   };
 
   const apply = (els, { name, val }) => {

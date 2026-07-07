@@ -12,15 +12,8 @@
 // summary()'s kernel: union area over bounding box — near 1 means the group
 // tiles its region like a grid or list; near 0 means scattered or overlapped.
 (() => {
-  if (!window.ea) return console.warn('mods/census: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
-  };
+  if (!window.ea || !window.glom?.core) return console.warn('mods/census: base.js + mods/core.js must load first');
+  const { SCOPE, HUES, clean, upath } = window.glom.core;
   let groups = [];
 
   const census = (top = 10, { min = 3, mark: doMark = true } = {}) => {

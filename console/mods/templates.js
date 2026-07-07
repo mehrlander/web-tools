@@ -22,9 +22,8 @@
 // matters", not just "which is most numerous".
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/templates: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
+  if (!g?.core) return console.warn('mods/templates: base.js + mods/core.js must load first');
+  const { SCOPE, HUES } = g.core;
 
   /* ── engine (adapted from kits/wring.js: bookend merge, single slot) ── */
 

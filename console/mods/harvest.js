@@ -13,14 +13,8 @@
 // repeated rows collapse to one.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/harvest: console/base.js must load first');
-  const SCOPE = 'body *:not(script):not(style)';
-  const clean = s => s.trim().replace(/\s+/g, ' ');
-  const upath = n => {
-    const p = [];
-    for (let c = n; c && c.nodeType === 1; c = c.parentElement) p.unshift(c.tagName.toLowerCase());
-    return p.join('/');
-  };
+  if (!g?.core) return console.warn('mods/harvest: base.js + mods/core.js must load first');
+  const { SCOPE, clean, upath } = g.core;
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
   g.harvest = async ({ selector, scroll, settle = 350, dry = 3, max = 200 } = {}) => {

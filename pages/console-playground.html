@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Console Playground</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧪</text></svg>">
+
+<meta property="og:title" content="Console Playground" />
+<meta property="og:description" content="Fixtures for the web-tools console suite" />
+<script type="application/ld+json">{"@type": "WebPage", "name": "Console Playground", "about": "glom suite fixtures"}</script>
+
+<!--
+  console-playground.html — fixtures for the console suite (console/suite.js):
+  every mod has something here to bite on. Open DevTools and work the loop;
+  the suite is already loaded (script tag at the bottom), no paste needed.
+
+  Fixtures:
+    #bills   a real table (rows, links, statuses)      verbs, q(), columns, join
+    #cards   hashy per-instance classes + a decoy      grow, templates, infer
+    #soup    class-less styled rows                    grow {by:'style'}, lasso
+    #feed    a truly virtualized list (60 items,       harvest
+             ~10 in the DOM at a time)
+    #api     fake fetch endpoint /fake-api/bills       tap, tap.walk, veins
+             (?page=1..5), button renders page 1
+    head     JSON-LD + og: metas; #md microdata        glom.semantics()
+
+  Also the manual test bed for everything jsdom can't verify: lasso geometry,
+  census geoReg, the `visible` engine, style-grow discrimination. The
+  headless pass in tools/test/ drives these same fixtures through real
+  Chromium.
+
+  Deliberately dependency-free: no CDN styles or scripts, so it renders
+  identically on GitHub Pages, file://, and the sandboxed headless browser.
+-->
+
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 18px; background: #f8fafc; color: #0f172a; max-width: 900px; }
+  h1 { font-size: 18px; } h2 { font-size: 14px; margin: 24px 0 6px; color: #334155; }
+  .hint { background: #0b1220; color: #cbd5e1; font: 12px/1.7 ui-monospace, monospace; padding: 10px 14px; border-radius: 8px; overflow-x: auto; }
+  .hint b { color: #f59e0b; font-weight: normal; }
+  table { border-collapse: collapse; background: #fff; }
+  td, th { border: 1px solid #e2e8f0; padding: 4px 10px; text-align: left; }
+  #cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  #cards > div { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+  #cards .decoy { background: #fee2e2; }
+  #soup > div { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 4px 10px; margin: 4px 0; width: 60%; }
+  /* overflow-anchor off: scroll anchoring fights windowed rendering (pad-height
+     changes above the viewport yank scrollTop), as in real virtual scrollers */
+  #feed { height: 290px; overflow-y: auto; overflow-anchor: none; border: 1px solid #e2e8f0; background: #fff; width: 320px; }
+  #feed .pad { width: 1px; }
+  #feed .feed-row { height: 28px; line-height: 28px; padding: 0 10px; border-bottom: 1px solid #f1f5f9; box-sizing: border-box; }
+  button { font: inherit; padding: 4px 12px; border-radius: 6px; border: 1px solid #94a3b8; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>🧪 Console suite playground</h1>
+<div class="hint">
+  the suite is loaded — open the console and work the loop:<br>
+  <b>census()</b> or <b>glom.templates()</b> → orient &nbsp;·&nbsp;
+  <b>glom.pick()</b> two cards, <b>glom.grow()</b> → the family &nbsp;·&nbsp;
+  <b>glom.deck()</b> → watch it live<br>
+  <b>glom.down('a')</b> / <b>q('#bills >> tbody tr >> has-text=hearing')</b> → dance &nbsp;·&nbsp;
+  <b>await glom.lasso()</b> → drag the soup<br>
+  <b>glom.columns()</b> → the table &nbsp;·&nbsp;
+  <b>tap(/fake-api/)</b>, load page 1, <b>await tap.walk(0, {param:'page'})</b> → the whole dataset, no DOM<br>
+  <b>glom.veins()</b> → which field feeds which cell &nbsp;·&nbsp;
+  <b>glom.recipe()</b> → the session, replayable
+</div>
+
+<h2>#bills — a real table</h2>
+<table id="bills">
+  <thead><tr><th>Bill</th><th>Status</th><th>Sponsor</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<h2>#cards — hashy classes + a decoy</h2>
+<div id="cards"></div>
+
+<h2>#soup — class-less styled rows (try the lasso here)</h2>
+<div id="soup"></div>
+
+<h2>#feed — virtualized: 60 items, ~10 in the DOM</h2>
+<div id="feed"><div class="pad top"></div><div class="rows"></div><div class="pad bottom"></div></div>
+
+<h2>#api — the wire</h2>
+<p><button id="load">Load /fake-api/bills?page=1</button> (arm <code>tap(/fake-api/)</code> first to capture it)</p>
+<table id="api"><thead><tr><th>Bill</th><th>Status</th></tr></thead><tbody></tbody></table>
+
+<div id="md" itemscope itemtype="https://schema.org/Dataset" style="display:none">
+  <span itemprop="name">Playground bills</span>
+  <a itemprop="url" href="/fake-api/bills">endpoint</a>
+</div>
+
+<script>
+  // ---- data ----------------------------------------------------------------
+  const STATUSES = ['In committee', 'Passed', 'Scheduled for hearing', 'Vetoed'];
+  const SPONSORS = ['Ada', 'Grace', 'Edsger', 'Barbara'];
+  const BILLS = Array.from({ length: 60 }, (_, i) =>
+    ({ id: i + 1, bill: `HB ${1001 + i}`, status: STATUSES[i % 4], sponsor: SPONSORS[i % 4] }));
+
+  // ---- #bills: first 8, server-rendered style -------------------------------
+  document.querySelector('#bills tbody').innerHTML = BILLS.slice(0, 8).map(b =>
+    `<tr class="row ${b.id % 2 ? 'odd' : 'even'}"><td><a href="/bill/${b.id}">${b.bill}</a></td><td>${b.status}</td><td>${b.sponsor}</td></tr>`).join('');
+
+  // ---- #cards: per-instance hash classes, one decoy --------------------------
+  const hash = i => (0x9e3779b9 * (i + 7) >>> 8).toString(16).slice(0, 4);
+  document.getElementById('cards').innerHTML =
+    BILLS.slice(0, 7).map((b, i) => `<div class="c hash-${hash(i)}"><b>${b.bill}</b><br>${b.status}</div>`).join('') +
+    '<div class="decoy">not a card</div>';
+
+  // ---- #soup: no classes at all ----------------------------------------------
+  document.getElementById('soup').innerHTML =
+    BILLS.slice(8, 18).map(b => `<div>${b.bill} — ${b.status}</div>`).join('');
+
+  // ---- #feed: true virtualization (rows leave the DOM) ------------------------
+  const ROW = 28, WINDOW = 12;
+  const feed = document.getElementById('feed');
+  const rows = feed.querySelector('.rows'), padTop = feed.querySelector('.top'), padBottom = feed.querySelector('.bottom');
+  const renderFeed = () => {
+    const start = Math.max(0, Math.floor(feed.scrollTop / ROW) - 1);
+    const end = Math.min(BILLS.length, start + WINDOW);
+    padTop.style.height = `${start * ROW}px`;
+    padBottom.style.height = `${(BILLS.length - end) * ROW}px`;
+    rows.innerHTML = BILLS.slice(start, end).map(b =>
+      `<div class="feed-row">${b.bill} · ${b.status}</div>`).join('');
+  };
+  feed.addEventListener('scroll', renderFeed);
+  renderFeed();
+
+  // ---- /fake-api/: a wire that works offline ----------------------------------
+  const realFetch = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = (url, opts) => {
+    const u = String(url instanceof Request ? url.url : url);
+    if (u.includes('/fake-api/')) {
+      const page = +(new URL(u, location.href).searchParams.get('page') || 1), per = 12;
+      const slice = BILLS.slice((page - 1) * per, page * per).map(({ id, bill, status }) => ({ id, bill, status }));
+      return Promise.resolve(new Response(JSON.stringify({ page, rows: slice }),
+        { status: 200, headers: { 'content-type': 'application/json' } }));
+    }
+    return realFetch ? realFetch(url, opts) : Promise.reject(new Error('offline'));
+  };
+  document.getElementById('load').addEventListener('click', async () => {
+    const { rows: r } = await (await fetch('/fake-api/bills?page=1')).json();
+    document.querySelector('#api tbody').innerHTML =
+      r.map(b => `<tr><td>${b.bill}</td><td>${b.status}</td></tr>`).join('');
+  });
+</script>
+
+<script src="../console/suite.js"></script>
+</body>
+</html>

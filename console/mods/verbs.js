@@ -14,20 +14,9 @@
 //   glom.over(-2)        two siblings back
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/verbs: console/base.js must load first');
+  if (!g?.core) return console.warn('mods/verbs: base.js + mods/core.js must load first');
+  const { upStep, overStep } = g.core;
 
-  const upStep = (n, arg) => {
-    if (typeof arg === 'string') return n.parentElement?.closest(arg) ?? null;
-    if (typeof arg === 'function') { let c = n.parentElement; while (c && !arg(c)) c = c.parentElement; return c; }
-    let c = n; for (let k = arg ?? 1; k > 0 && c; k--) c = c.parentElement;
-    return c;
-  };
-  const overStep = (n, k) => {
-    let c = n;
-    while (c && k > 0) { c = c.nextElementSibling; k--; }
-    while (c && k < 0) { c = c.previousElementSibling; k++; }
-    return c;
-  };
   const move = (name, p, stepped) => {
     const r = g.set(stepped.filter(Boolean));
     console.log(`${name}: ${p.length} → ${r.length}`);
