@@ -174,6 +174,10 @@ file to host, no bookmark to install. The reusable ones live in `console/`:
 - [`base.js`](console/base.js): a DOM-query and element-inspection toolkit
   (`ea`, `glom`, `look`, `pop`, `copy`, …) for poking at a page from the
   console.
+- [`suite.js`](console/suite.js): base.js plus every module under
+  [`mods/`](console/mods) (lockstep set navigation, the `q()` chain grammar,
+  by-example `grow`, click-to-collect `pick`) assembled into one paste; see
+  [`console/README.md`](console/README.md).
 - [`to-canvas.js`](console/to-canvas.js): opens a window and renders the
   current page into a scrollable canvas via html2canvas.
 

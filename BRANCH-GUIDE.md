@@ -1,12 +1,21 @@
 # Branch guide: claude/review-main-commit-oya9hs
 
-Digit-only strings in `_f` now text-match like every other string, instead of slicing the first N elements; the count shortcut made sense when glom's first argument was a selector, but after 2c7837a promoted strings to content filters, `glom('2')` silently meant "first 2 elements" instead of "text includes 2".
+Console-suite ergonomics: `_f` digit-string fix, then the modular growth path — `console/mods/` (lockstep verbs, the `q()` chain grammar, by-example `grow`, click-to-collect `pick`) assembled into a one-paste `console/suite.js` by a new build leg, with base.js untouched.
 
-⭐ [console/base.js](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/base.js#L6-L10)
+⭐ [console/README.md](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/README.md) (module map + grammar cheatsheet)
 
 **Changed:**
-- console/base.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/base.js), [main](https://github.com/mehrlander/web-tools/blob/main/console/base.js))
+- console/mods/verbs.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/mods/verbs.js))
+- console/mods/query.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/mods/query.js))
+- console/mods/grow.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/mods/grow.js))
+- console/mods/pick.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/mods/pick.js))
+- console/suite.js (generated) + tools/build/console-suite.mjs ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/tools/build/console-suite.mjs))
+- console/README.md ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/README.md))
+- tools/test/console-suite.test.mjs ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/tools/test/console-suite.test.mjs)) — 15 tests, all passing
+- console/base.js ([new](https://github.com/mehrlander/web-tools/blob/claude/review-main-commit-oya9hs/console/base.js), [main](https://github.com/mehrlander/web-tools/blob/main/console/base.js)) — `_f` digit-string fix only
+- .claude/hooks/build-on-commit.sh, package.json, README.md — build:console wiring
 
 **Next steps / open threads:**
-- Number's index-filter meaning (`glom(2)` = element at index 2) kept as-is per discussion; revisit only if it proves confusing in practice.
-- Verified in jsdom: `glom('2')` matches elements whose own text contains "2"; number, regex, and function branches unchanged.
+- Backlog from the ideation (rough priority): `infer` (selector synthesis from the set), `tap` (fetch/XHR capture + shelf), `columns` (repetition → table, feeds packTable), `harvest` (virtualized-list scroll capture), `lasso` (drag-rectangle select), `census` (page-shape ping), named sets, `deck` (pop-window live table via messaging kit).
+- `visible` engine untestable under jsdom (inert layout); verify in a real browser when convenient.
+- `q()` grammar edge: a bare stage named like an engine (svg `<text>`) reads as the engine; documented in console/README.md.

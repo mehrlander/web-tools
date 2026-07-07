@@ -2,8 +2,9 @@
 # PreToolUse(Bash) hook — keep every *deterministic* derived artifact in lockstep
 # with its source, in the same commit that changes the source:
 #
-#   lib/ changed            -> npm run build:lib    -> stage dist/web-tools.js
-#   pages/**/*.html changed -> npm run pages-index  -> stage pages/README.md + pages/index.html
+#   lib/ changed            -> npm run build:lib     -> stage dist/web-tools.js
+#   console/ changed        -> npm run build:console -> stage console/suite.js
+#   pages/**/*.html changed -> npm run pages-index   -> stage pages/README.md + pages/index.html
 #
 # Both generators are deterministic, so a commit that didn't really change the
 # source produces identical bytes (a no-op `git add`). Thumbnails
@@ -34,6 +35,15 @@ if git status --porcelain -- lib/ | grep -q .; then
     git add dist/web-tools.js 2>/dev/null || true
   else
     echo "build hook: 'npm run build:lib' failed — committing without refreshing dist/web-tools.js" >&2
+  fi
+fi
+
+# --- leg 1b: console/ -> console/suite.js (base + mods, one paste) ------------
+if git status --porcelain -- console/base.js console/mods/ | grep -q .; then
+  if npm run build:console --silent >/dev/null 2>&1; then
+    git add console/suite.js 2>/dev/null || true
+  else
+    echo "build hook: 'npm run build:console' failed — committing without refreshing console/suite.js" >&2
   fi
 fi
 
