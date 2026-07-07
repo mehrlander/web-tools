@@ -237,6 +237,30 @@ test('tap: captures matching fetches, parses JSON, stop() restores', async () =>
   assert.equal(w.tap.hits.length, 0);
 });
 
+test('tap.replay mutates params on a captured hit; tap.walk paginates until dry', async () => {
+  const w = boot();
+  w.fetch = async url => {
+    const page = +new URL(String(url)).searchParams.get('page') || 1;
+    const rows = page <= 3 ? [`row-${page}`] : [];
+    return new Response(JSON.stringify(rows), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  w.tap(/api/);
+  await w.fetch('https://x.test/api/rows?page=1');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(w.tap.hits.length, 1);
+
+  const page2 = await w.tap.replay(0, { page: 2 });
+  assert.deepEqual([...page2], ['row-2']);
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(w.tap.hits.length, 2);            // armed tap records the replay
+
+  const pages = await w.tap.walk(0, { param: 'page', from: 1, to: 10, delay: 0 });
+  assert.equal(pages.length, 3);                 // stopped dry at page=4, not at to=10
+  assert.deepEqual([...pages].map(p => p.page), [1, 2, 3]);
+  assert.deepEqual([...pages[2].data], ['row-3']);
+  w.tap.stop();
+});
+
 // ---- veins: vein-to-skin matching --------------------------------------------
 
 test('veins: JSON leaf fields join to the elements they feed', () => {

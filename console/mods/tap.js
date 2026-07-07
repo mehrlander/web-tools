@@ -11,8 +11,17 @@
 //   tap.find(v)       hits whose url matches v
 //   tap.clear()       drop hits;  tap.stop()  unwrap fetch/XHR, keep hits
 //
+//   await tap.replay(0, {page: 7})               refetch hit 0 with mutated
+//                                                query params; returns parsed data
+//   await tap.walk(0, {param: 'page', to: 40})   walk a param across a range:
+//                                                paginate the API without
+//                                                scrolling; stops early when
+//                                                `until(data)` (default: empty
+//                                                array) says the well is dry
+//
 // Each capture also dispatches window CustomEvent 'tap' ({detail: hit}) for
-// live consumers (e.g. the deck).
+// live consumers (e.g. the deck). Replays go through window.fetch, so an
+// armed tap records them as new hits.
 (() => {
   let armed = null;
   const hits = [];
@@ -89,5 +98,31 @@
     console.log(`tap: stopped — ${hits.length} hits kept`);
     return tap;
   };
+  // A captured hit is a request template. GETs only — tap doesn't record
+  // request bodies.
+  tap.replay = async (h, params = {}) => {
+    const hit = typeof h === 'number' ? hits[h] : h;
+    if (!hit) { console.warn('tap.replay: no such hit'); return null; }
+    const u = new URL(hit.url, (typeof location !== 'undefined' && location.href) || 'http://replay.local/');
+    for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
+    const res = await window.fetch(u.toString(), hit.method && hit.method !== 'GET' ? { method: hit.method } : undefined);
+    const body = await res.text();
+    return parse(body, res.headers?.get?.('content-type'));
+  };
+
+  tap.walk = async (h, { param, from = 1, to = from + 19, step = 1, delay = 250, until } = {}) => {
+    if (!param) { console.warn('tap.walk: {param} is required'); return []; }
+    const dry = until ?? (d => d == null || (Array.isArray(d) && d.length === 0));
+    const out = [];
+    for (let v = from; step > 0 ? v <= to : v >= to; v += step) {
+      const data = await tap.replay(h, { [param]: v });
+      if (dry(data)) { console.log(`tap.walk: dry at ${param}=${v}`); break; }
+      out.push({ [param]: v, data });
+      if (delay) await new Promise(r => setTimeout(r, delay));
+    }
+    console.log(`tap.walk: ${out.length} pages collected`);
+    return out;
+  };
+
   window.tap = tap;
 })();

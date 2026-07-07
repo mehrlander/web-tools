@@ -136,6 +136,18 @@ capture dispatches a window `tap` CustomEvent. Standalone: works without
 base.js. It sees what's on the wire, so it shines when the API speaks JSON
 (nearly always) and can't help with payloads decrypted client-side.
 
+A captured hit is also a request template:
+
+```js
+await tap.replay(0, {page: 7})              // refetch with mutated query params
+await tap.walk(0, {param: 'page', to: 40})  // paginate the API without scrolling
+```
+
+`walk` stops early when `until(data)` says dry (default: an empty array) and
+waits `delay` ms between requests (default 250). GETs only — tap doesn't
+record request bodies. Capture one page's request, walk the parameter, and
+the 400-page scrape never touches the DOM.
+
 ### veins — vein-to-skin matching
 
 ```js
