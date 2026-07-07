@@ -1,5 +1,5 @@
 // console/suite.js — GENERATED, do not edit. `npm run build:console` reassembles
-// it from console/base.js + console/mods/{verbs,query,grow,pick,infer,tap,columns,harvest,lasso,census,templates,sets,deck}.js.
+// it from console/base.js + console/mods/{verbs,query,grow,pick,infer,watch,tap,veins,columns,harvest,lasso,census,templates,sets,deck}.js.
 
 (() => {
   /** ── Core ───────────────────────────────────────────────────────────────── **/
@@ -862,6 +862,51 @@
   };
 })();
 
+/* ══ mods/watch.js ══════════════════════════════════════════════════ */
+
+// console/mods/watch.js — the self-healing working set. React-style pages
+// destroy data-glom attributes on every rerender, killing the selection
+// mid-dance; watch re-acquires it. Requires console/base.js (glom); uses
+// mods/infer.js for the automatic selector when no explicit one is given.
+//
+//   glom.watch()                    infer a selector from the current set and
+//                                   re-apply it whenever the DOM churns
+//   glom.watch({selector: '.row'})  explicit selector (infer not needed)
+//   glom.watch.stop()               disarm
+//
+// Mutations are debounced (`settle` ms, default 250) so a rerender storm
+// heals once, at the end. Healing logs only when membership actually changed.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/watch: console/base.js must load first');
+  let mo = null, timer = null;
+
+  g.watch = ({ selector, settle = 250 } = {}) => {
+    g.watch.stop();
+    const sel = selector ?? (g.infer ? g.infer()?.selector : null);
+    if (!sel) return console.warn('watch: pass {selector}, or glom something and load mods/infer.js');
+
+    const heal = () => {
+      const fresh = [...document.querySelectorAll(sel)];
+      const cur = g.get();
+      if (fresh.length === cur.length && fresh.every((n, i) => n === cur[i])) return;
+      g.set(fresh);
+      console.log(`watch: healed → ${fresh.length} (${sel})`);
+    };
+    mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(heal, settle); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    g.watch.selector = sel;
+    console.log(`watch: armed on "${sel}" — glom.watch.stop() to disarm`);
+    return sel;
+  };
+  g.watch.stop = () => {
+    mo?.disconnect();
+    mo = null;
+    clearTimeout(timer);
+    timer = null;
+  };
+})();
+
 /* ══ mods/tap.js ════════════════════════════════════════════════════ */
 
 // console/mods/tap.js — capture fetch/XHR responses as they fly by. The DOM
@@ -956,6 +1001,79 @@
     return tap;
   };
   window.tap = tap;
+})();
+
+/* ══ mods/veins.js ══════════════════════════════════════════════════ */
+
+// console/mods/veins.js — vein-to-skin matching: join captured API payloads
+// (the vein) to the rendered page (the skin). Flattens JSON to leaf fields,
+// matches leaf values against elements' own text, and reports which fields
+// actually feed the screen — so you learn "the column I'm scraping is
+// bills[].status" and can stop scraping the DOM for that site. Requires
+// console/base.js (glom, ea); pairs with mods/tap.js (uses tap.hits when no
+// data is passed).
+//
+//   glom.veins()          join every tap.hits payload against the working set
+//                         (or the whole page if the set is empty)
+//   glom.veins(data)      join an explicit object/array instead
+//   glom.veins.grab(i)    adopt field i's matched elements as the working set
+//
+// Fields rank by coverage (distinct values matched / distinct values seen):
+// a field whose every value lands somewhere on screen is a confirmed vein.
+// Matching is exact on whitespace-cleaned own text, with a containment
+// fallback for values of 4+ characters.
+(() => {
+  const g = window.glom;
+  if (!g) return console.warn('mods/veins: console/base.js must load first');
+  const SCOPE = 'body *:not(script):not(style)';
+  const clean = s => s.trim().replace(/\s+/g, ' ');
+  const own = n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join(''));
+
+  const flatten = (data, base = '', out = []) => {
+    if (data == null) return out;
+    if (Array.isArray(data)) { for (const v of data) flatten(v, base + '[]', out); return out; }
+    if (typeof data === 'object') { for (const [k, v] of Object.entries(data)) flatten(v, base ? `${base}.${k}` : k, out); return out; }
+    out.push({ field: base || '.', value: clean(String(data)) });
+    return out;
+  };
+
+  let fields = [];
+  g.veins = data => {
+    const sources = data !== undefined ? [data] : (window.tap?.hits ?? []).map(h => h.data);
+    if (!sources.length) { console.warn('veins: nothing to join — arm tap() first, or pass data'); return []; }
+    const leaves = sources.flatMap(d => flatten(d));
+
+    const els = g.get().length ? g.get() : ea(SCOPE);
+    const byText = new Map();
+    for (const n of els) {
+      const t = own(n);
+      if (!t) continue;
+      if (!byText.has(t)) byText.set(t, []);
+      byText.get(t).push(n);
+    }
+
+    const agg = new Map();
+    for (const { field, value } of leaves) {
+      if (!agg.has(field)) agg.set(field, { field, seen: new Set(), hit: new Set(), els: new Set() });
+      const a = agg.get(field);
+      a.seen.add(value);
+      if (value.length < 2) continue;
+      const exact = byText.get(value);
+      if (exact) { a.hit.add(value); exact.forEach(n => a.els.add(n)); continue; }
+      if (value.length >= 4) {
+        for (const [t, ns] of byText) if (t.includes(value)) { a.hit.add(value); ns.forEach(n => a.els.add(n)); }
+      }
+    }
+
+    fields = [...agg.values()]
+      .filter(a => a.hit.size)
+      .map(a => ({ field: a.field, coverage: `${a.hit.size}/${a.seen.size}`, ratio: a.hit.size / a.seen.size, count: a.els.size, sample: [...a.hit][0], els: [...a.els] }))
+      .sort((a, b) => b.ratio - a.ratio || b.count - a.count);
+    console.table(fields.map(({ els, ratio, ...row }, i) => ({ i, ...row })));
+    console.log('veins: glom.veins.grab(i) adopts a field’s elements');
+    return fields;
+  };
+  g.veins.grab = i => fields[i] ? g(fields[i].els) : (console.warn(`veins: no field ${i} — run glom.veins() first`), []);
 })();
 
 /* ══ mods/columns.js ════════════════════════════════════════════════ */
@@ -1507,4 +1625,4 @@
   };
 })();
 
-console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'verbs, query, grow, pick, infer, tap, columns, harvest, lasso, census, templates, sets, deck'));
+console.style?.(console.formatter?.('gray;italic', 'mods'), console.formatter?.('#345', 'verbs, query, grow, pick, infer, watch, tap, veins, columns, harvest, lasso, census, templates, sets, deck'));

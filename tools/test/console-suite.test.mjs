@@ -237,6 +237,83 @@ test('tap: captures matching fetches, parses JSON, stop() restores', async () =>
   assert.equal(w.tap.hits.length, 0);
 });
 
+// ---- veins: vein-to-skin matching --------------------------------------------
+
+test('veins: JSON leaf fields join to the elements they feed', () => {
+  const w = boot();
+  w.glom.clear();
+  const fields = w.glom.veins({
+    bills: [
+      { no: 'HB 1001', status: 'In committee hearing' },
+      { no: 'HB 1002', status: 'Passed' },
+      { no: 'HB 1003', status: 'Scheduled for hearing' },
+    ],
+    meta: { page: 1 },
+  });
+  const no = fields.find(f => f.field === 'bills[].no');
+  assert.equal(no.coverage, '3/3');
+  assert.deepEqual(texts(no.els), ['HB 1001', 'HB 1002', 'HB 1003']);
+  const status = fields.find(f => f.field === 'bills[].status');
+  assert.equal(status.coverage, '3/3');
+  assert.ok(!fields.some(f => f.field === 'meta.page'), 'single-char noise filtered');
+
+  const i = fields.indexOf(no);
+  assert.equal(w.glom.veins.grab(i).length, 3);      // adopt the field's elements
+});
+
+test('veins: with no data argument, joins every tap capture', async () => {
+  const w = boot();
+  w.fetch = async () => new Response('{"rows":[{"t":"Passed"},{"t":"HB 1002"}]}',
+    { status: 200, headers: { 'content-type': 'application/json' } });
+  w.tap(/api/);
+  await w.fetch('https://x.test/api/rows');
+  await new Promise(r => setTimeout(r, 0));
+  w.tap.stop();
+
+  w.glom.clear();
+  const fields = w.glom.veins();
+  const t = fields.find(f => f.field === 'rows[].t');
+  assert.equal(t.coverage, '2/2');
+  assert.equal(t.count, 2);                          // the status td and the link
+});
+
+// ---- watch: self-healing set ---------------------------------------------------
+
+test('watch: re-acquires the set after DOM churn, via inferred selector', async () => {
+  const w = boot();
+  w.glom(w.q('tbody tr'));
+  w.glom.watch({ settle: 5 });                       // selector inferred from the set
+  assert.ok(w.glom.watch.selector.includes('tr'));
+
+  w.q('tbody tr')[0].remove();                       // a rerender eats a row
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(w.glom.get().length, 2);              // healed to what the selector finds
+
+  const tbody = w.document.querySelector('tbody');
+  tbody.append(w.document.createElement('tr'));      // note: no .row class
+  tbody.lastChild.className = 'row new';
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(w.glom.get().length, 3);              // new member picked up
+
+  w.glom.watch.stop();
+  const late = w.document.createElement('tr');
+  late.className = 'row late';
+  tbody.append(late);                                // healing would make this 4
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(w.glom.get().length, 3);              // disarmed: set doesn't grow
+});
+
+test('watch: explicit selector needs no working set', async () => {
+  const w = boot();
+  w.glom.clear();
+  w.glom.watch({ selector: '#cards div', settle: 5 });
+  const extra = w.document.createElement('div');
+  w.document.getElementById('cards').append(extra);
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(w.glom.get().length, 5);
+  w.glom.watch.stop();
+});
+
 // ---- columns: repetition → table -------------------------------------------
 
 test('columns: rows become records, boilerplate drops, links add @href', () => {

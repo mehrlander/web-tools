@@ -136,6 +136,33 @@ capture dispatches a window `tap` CustomEvent. Standalone: works without
 base.js. It sees what's on the wire, so it shines when the API speaks JSON
 (nearly always) and can't help with payloads decrypted client-side.
 
+### veins — vein-to-skin matching
+
+```js
+tap(/api/)             // ...browse a little, then:
+glom.veins()           // which API fields feed which elements?
+glom.veins.grab(0)     // adopt a field's elements
+```
+
+Joins captured payloads (the vein) to the page (the skin): JSON leaves are
+matched against elements' own text, and fields rank by coverage (distinct
+values matched / seen). A `3/3` field is a confirmed vein — you've learned
+its API name and can stop scraping the DOM for it. Takes explicit data too:
+`glom.veins(obj)`.
+
+### watch — self-healing set
+
+```js
+glom.watch()                     // selector inferred from the current set
+glom.watch({selector: '.row'})   // or explicit
+glom.watch.stop()
+```
+
+React-style rerenders destroy `data-glom` attributes mid-dance; watch
+re-applies the selector whenever the DOM churns (debounced, default 250ms),
+so the badges come back and new members join. The suite's answer to the SPA
+fragility.
+
 ### columns — repetition to table
 
 ```js
