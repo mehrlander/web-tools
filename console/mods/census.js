@@ -36,7 +36,7 @@
       })
       .sort((a, b) => b.count - a.count)
       .slice(0, top);
-    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, `outline-${HUES[i % HUES.length]}-2`, `data-census-${i}`));
+    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, HUES[i % HUES.length], `data-census-${i}`));
     console.table(groups.map(({ els, ...row }, i) => ({ i, ...row })));
     console.log('census: census.grab(i) adopts a group; census.clear() unmarks');
     return groups;

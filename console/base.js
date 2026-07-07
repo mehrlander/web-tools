@@ -92,14 +92,18 @@
 
   /** ── Standalone Utilities ───────────────────────────────────────────────── **/
 
-  const mark = (els, spec = "outline-red-2", attr = 'data-mark') => {
+  const mark = (els, spec = "red", attr = 'data-mark') => {
     els.forEach((n, i) => n.setAttribute(attr, i));
 
-    let w = 2, css = spec.split(";").map(x => {
-      if (x.startsWith("bg-")) return `background:${x.slice(3)}`;
-      if (x.startsWith("outline-")) return (w = parseInt(x.split("-")[2] || 2)), `outline:${w}px solid ${x.split("-")[1]}`;
-      return x.includes(':') ? x : `border:${w}px solid ${x}`;
-    }).join(" !important;") + " !important;";
+    // spec is one of two things, never a dialect: a bare color recolors mark's
+    // layout-safe default (an outline), or a full CSS style string (any token
+    // carrying a ':' passes through verbatim — your call, including its layout
+    // cost). The rich prefix shorthand (bg-, p-, …) lives only in the console
+    // formatter (f), for styling console *text*; mark deliberately does not
+    // reuse it, so the two grammars can't drift into looking alike but differing.
+    const w = 2, css = spec.split(";").map(x =>
+      x.includes(':') ? x : `outline:${w}px solid ${x}`
+    ).join(" !important;") + " !important;";
 
     const id = `mark-s-${attr.replace(/\W/g, '-')}`;
     const s = document.getElementById(id) || Object.assign(document.createElement('style'), { id });
@@ -107,7 +111,7 @@
 
   s.textContent = `
       [${attr}]{${css} cursor:crosshair; transition:all 0.1s; position:relative} 
-      [${attr}]:hover{outline-width:${w+1}px !important; border-width:${w+1}px !important; z-index:1e5}
+      [${attr}]:hover{outline-width:${w+1}px !important; z-index:1e5}
       [${attr}]::after {
         content: attr(${attr});
         position: absolute;
@@ -482,14 +486,27 @@
     }, false);
   };
 
+  // help() with no argument opens the visual guide (tabbed reference + live
+  // fixtures) in a popup; help(obj) still inspects an object via console.help.
+  // The guide is the console-playground page — canonical hosted copy, so it
+  // opens from any page the suite is pasted into.
+  const GUIDE_URL = 'https://mehrlander.github.io/web-tools/pages/console-playground.html';
+  window.help = (obj) => {
+    if (obj !== undefined) return console.help(obj);
+    const w = window.open(GUIDE_URL, 'web-tools-guide', 'width=1040,height=840');
+    if (!w) console.log('help: popup blocked — open the guide at', GUIDE_URL);
+    return GUIDE_URL;
+  };
+
   console.nest("Suite Loaded", () => {
     const g = (k, v) => console.style(f("bold;#4b8bd8", k.padEnd(11)), f("gray", v));
     g("Selectors", "ea(sel), glom(filt|els)");
     g("Accessors", "text, rect, sig, dom, el");
     g("Ops",       "mark, summary, unionArea");
     g("Browser",   "pop, packTable, copy");
-    g("Console",   "see, help, env, style, box, nest");
-   console.style(f("gray;italic", "try"), f("#345", "glom('foo').mark()"));  });
+    g("Console",   "see, help(obj), env, style, box, nest");
+    g("Guide",     "help() — open the visual guide + fixtures");
+   console.style(f("gray;italic", "try"), f("#345", "help()"), f("gray;italic", "or"), f("#345", "glom('foo').mark()"));  });
 
   window.look = {
     v: "initial",
