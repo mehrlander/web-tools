@@ -4,6 +4,24 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-07 Hex-nut index favicon + archive, the surfacing caption, and the project-tracker convention (PR #195)
+
+The pages index adopts the canonical hex-nut mark (retiring its four-quadrant grid) with a new `docs/favicons/` archive; the per-file caption primitive is rewritten as the **surfacing caption** (uniform list plus a trailing 🥏 render line); and the opt-in **project-tracker** convention is published.
+
+⭐ **Result:** [pages index](https://mehrlander.github.io/web-tools/pages/) — the hex-nut mark now in the header.
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md), [diff](https://github.com/mehrlander/web-tools/commit/714cbf4)) — "Surfacing caption" primitive (uniform list + trailing 🥏 render line) plus tracker/merge-guide and post-merge-HP cross-refs
+- docs/TRACKER.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md), [diff](https://github.com/mehrlander/web-tools/commit/5820597)) — opt-in project tracker: one file per task under `tasks/` plus a generated `board.md`, a durable-status-claim rule, a python3 reference generator
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md), [diff](https://github.com/mehrlander/web-tools/commit/5820597)) — manifest row for TRACKER.md
+- pages/index.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/index.html)) — favicon link and header logo point at `../lib/favicon.svg` (the hex nut)
+- tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/pages-index.mjs), [diff](https://github.com/mehrlander/web-tools/commit/2982903)) — both favicon refs now point at `../lib/favicon.svg`
+- docs/favicons/grid.svg + docs/favicons/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/favicons/README.md), [diff](https://github.com/mehrlander/web-tools/commit/2982903)) — the retired grid, moved to a new favicon archive with a gallery README
+
+**Notes:** Docs-heavy, low-risk. The favicon change is page HTML, live on the canonical index at merge. The tracker is publish-only: no live tracker is wired into web-tools itself. Folded from `BRANCH-GUIDE.md` at wrap-up; merged PR #193/#194 in first and regenerated the catalogs (favicon ref verified, reference board generator run).
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/pages-index-link-99qruu)
+
 ## 2026-07-07 mark simplified to color-or-CSS; the playground becomes a tabbed help() guide (PR #193)
 
 `mark` drops its bespoke shorthand for a two-mode API (a bare color recolors its layout-safe outline; a `:`-bearing string is raw CSS you own), and the console-playground page turns into an infographic, tabbed guide that a new global `help()` opens.
