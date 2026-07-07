@@ -130,11 +130,12 @@ Never offer PR creation on its own (the web UI already has a button). Offer a bu
 
 **Sequence:**
 
-1. Execute per-session refreshes.
-2. Fold `BRANCH-GUIDE.md` into `docs/MERGE-GUIDE.md` and delete the branch guide (single commit).
-3. Open the PR.
+1. **Preflight: confirm the branch still merges cleanly.** Fetch the latest main and test-merge without touching the working tree: `git fetch origin main && git merge-tree --write-tree origin/main HEAD` (a conflict exits nonzero and names the conflicting paths; on older git, fall back to `git merge --no-commit --no-ff origin/main` then `git merge --abort`). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (another session or PR merged overlapping edits while you worked) the branch conflicts at merge time and the session never sees it. Resolve it now (rebase, or merge main in), before opening a PR that GitHub flags as unmergeable. Report the result either way, so a clean run reads as verified rather than skipped.
+2. Execute per-session refreshes.
+3. Fold `BRANCH-GUIDE.md` into `docs/MERGE-GUIDE.md` and delete the branch guide (single commit).
+4. Open the PR.
 
-**UI trigger:** if a PR opens via the web UI button mid-session, run steps 1 and 2 silently (step 3 is already done).
+**UI trigger:** if a PR opens via the web UI button mid-session, run steps 1 through 3 silently (step 4 is already done). A conflict surfaced by the preflight is worth raising even here, since the just-opened PR will show it.
 
 ### Creating the next PR
 
