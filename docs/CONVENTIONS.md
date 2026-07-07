@@ -130,12 +130,12 @@ Never offer PR creation on its own (the web UI already has a button). Offer a bu
 
 **Sequence:**
 
-1. **Preflight: confirm the branch still merges cleanly.** Fetch the latest main and test-merge without touching the working tree: `git fetch origin main && git merge-tree --write-tree origin/main HEAD` (a conflict exits nonzero and names the conflicting paths; on older git, fall back to `git merge --no-commit --no-ff origin/main` then `git merge --abort`). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (another session or PR merged overlapping edits while you worked) the branch conflicts at merge time and the session never sees it. Resolve it now (rebase, or merge main in), before opening a PR that GitHub flags as unmergeable. Committed generated artifacts (bundles, lockfiles, generated indexes) are the usual culprits: two branches regenerate the same derived file and it collides on lines neither author wrote by hand, so a repo that commits any should expect the preflight to flag those first. Report the result either way, so a clean run reads as verified rather than skipped.
+1. **Preflight: confirm the branch still merges cleanly.** `git fetch origin main && git merge-tree --write-tree origin/main HEAD` test-merges without touching the tree (a nonzero exit names the conflicting paths). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (a sibling session or PR merging overlapping edits) the branch conflicts at merge time and this session never sees it; resolve it now, before GitHub flags the PR unmergeable. Committed generated artifacts (bundles, lockfiles, indexes) are the usual culprits, colliding on lines neither author wrote. Report either way, so a clean run reads as verified.
 2. Execute per-session refreshes.
 3. Fold `BRANCH-GUIDE.md` into `docs/MERGE-GUIDE.md` and delete the branch guide (single commit).
 4. Open the PR.
 
-**UI trigger:** if a PR opens via the web UI button mid-session, run steps 1 through 3 silently (step 4 is already done). A conflict surfaced by the preflight is worth raising even here, since the just-opened PR will show it.
+**UI trigger:** if a PR opens via the web UI button mid-session, run steps 1 through 3 silently (step 4 is already done), surfacing any conflict the preflight finds since the open PR will show it.
 
 ### Creating the next PR
 
