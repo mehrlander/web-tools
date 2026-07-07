@@ -67,26 +67,47 @@
   .panel { padding-top: 20px; }
   .panel[hidden] { display: none; }
 
-  /* --- reference cards --- */
-  .lede { color: var(--muted); margin: 0 0 18px; max-width: 68ch; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
-  .card h3 { margin: 0 0 8px; font-size: 14px; }
-  .card pre { margin: 0 0 10px; background: var(--code-bg); color: var(--code-ink);
-    font: 12px/1.6 ui-monospace, monospace; padding: 10px 12px; border-radius: 8px;
+  /* --- reference cards (infographic) --- */
+  .lede { color: var(--muted); margin: 2px 0 20px; max-width: 66ch; font-size: 13.5px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+  .card { --ac: #2563eb; --tint: #eef4ff; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 13px; padding: 15px 16px 16px; }
+  .chead { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 11px; }
+  .ico { width: 34px; height: 34px; border-radius: 9px; background: var(--tint); flex: none;
+    display: grid; place-items: center; font-size: 18px; line-height: 1; }
+  .ct h3 { margin: 0; font-size: 14.5px; line-height: 1.1; }
+  .ct .tag { display: block; margin-top: 3px; color: #334155; font-size: 12.5px; line-height: 1.35; }
+  .io { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 0 0 11px; }
+  .io .pill { background: var(--tint); color: #334155; font: 11px/1.3 ui-monospace, monospace;
+    padding: 3px 9px; border-radius: 999px; }
+  .io .arw { color: var(--ac); font-weight: 700; }
+  .card pre { margin: 0 0 11px; background: var(--code-bg); color: var(--code-ink);
+    font: 11.5px/1.6 ui-monospace, monospace; padding: 10px 12px; border-radius: 9px;
     white-space: pre-wrap; overflow-wrap: anywhere; }
   .card pre .cm { color: #64748b; }
-  .card p { margin: 0; color: var(--muted); }
-  .card p code, .card p b { color: var(--ink); }
-  .card p code { font: 12px/1.4 ui-monospace, monospace; background: #eef2f7; padding: 1px 4px; border-radius: 4px; }
-  table.stage { border-collapse: collapse; width: 100%; margin: 4px 0 0; font-size: 12.5px; }
+  .beats { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .beats li { position: relative; padding-left: 15px; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+  .beats li::before { content: ""; position: absolute; left: 3px; top: 6px; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--ac); }
+  .beats b { color: var(--ink); }
+  .beats code, .tag code { font: 11.5px/1.3 ui-monospace, monospace; background: #eef2f7; color: var(--ink);
+    padding: 1px 4px; border-radius: 4px; }
+  table.stage { border-collapse: collapse; width: 100%; margin: 4px 0 0; font-size: 12px; }
   table.stage td { border: 1px solid var(--line); padding: 4px 8px; vertical-align: top; }
-  table.stage td:first-child { white-space: nowrap; font-family: ui-monospace, monospace; color: var(--accent); }
+  table.stage td:first-child { white-space: nowrap; font-family: ui-monospace, monospace; color: var(--ac); }
+
+  /* --- the loop (landing) --- */
+  .note { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+  .note code, .note b { color: var(--ink); }
+  .note code { font: 12px/1.3 ui-monospace, monospace; background: #eef2f7; padding: 1px 5px; border-radius: 4px; }
+  .loop { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 0 0 24px; }
+  .loop .step { display: flex; flex-direction: column; gap: 2px; padding: 8px 13px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--sc, #2563eb); }
+  .loop .step b { font-size: 13px; }
+  .loop .step small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .loop .arw { align-self: center; color: #94a3b8; font-weight: 700; }
 
   /* --- playground fixtures --- */
-  .hint { background: var(--code-bg); color: var(--code-ink); font: 12px/1.7 ui-monospace, monospace;
-    padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin: 0 0 22px; }
-  .hint b { color: var(--amber); font-weight: normal; }
   h2 { font-size: 14px; margin: 24px 0 6px; color: #334155; }
   table#bills, table#api { border-collapse: collapse; background: #fff; }
   #bills td, #bills th, #api td, #api th { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
@@ -112,18 +133,19 @@
 
 <!-- ============ Playground (default, fixtures live here) ============ -->
 <section class="panel" id="tab-play" role="tabpanel">
-  <div class="hint">
-    the suite is loaded — open the console and work the loop:<br>
-    <b>census()</b> or <b>glom.templates()</b> → orient &nbsp;·&nbsp;
-    <b>glom.pick()</b> two cards, <b>glom.grow()</b> → the family &nbsp;·&nbsp;
-    <b>glom.deck()</b> → watch it live<br>
-    <b>glom.down('a')</b> / <b>q('#bills &gt;&gt; tbody tr &gt;&gt; has-text=hearing')</b> → dance &nbsp;·&nbsp;
-    <b>await glom.lasso()</b> → drag the soup<br>
-    <b>glom.columns()</b> → the table &nbsp;·&nbsp;
-    <b>tap(/fake-api/)</b>, load page 1, <b>await tap.walk(0, {param:'page'})</b> → the whole dataset, no DOM<br>
-    <b>glom.veins()</b> → which field feeds which cell &nbsp;·&nbsp;
-    <b>glom.recipe()</b> → the session, replayable &nbsp;·&nbsp;
-    <b>help()</b> → this guide
+  <p class="note"><b>The suite is loaded.</b> Open DevTools and work the loop against the fixtures below. <code>help()</code> reopens this guide.</p>
+  <div class="loop">
+    <span class="step" style="--sc:#7c3aed"><b>census / templates</b><small>orient</small></span>
+    <span class="arw">→</span>
+    <span class="step" style="--sc:#7c3aed"><b>pick</b><small>collect</small></span>
+    <span class="arw">→</span>
+    <span class="step" style="--sc:#7c3aed"><b>grow</b><small>expand</small></span>
+    <span class="arw">→</span>
+    <span class="step" style="--sc:#2563eb"><b>verbs / q()</b><small>move</small></span>
+    <span class="arw">→</span>
+    <span class="step" style="--sc:#7c3aed"><b>lasso</b><small>trim</small></span>
+    <span class="arw">→</span>
+    <span class="step" style="--sc:#059669"><b>columns / tap</b><small>carry off</small></span>
   </div>
 
   <h2>#bills — a real table</h2>
@@ -229,12 +251,20 @@
     { id: 'show',    label: 'Show & save' },
   ];
 
+  const AREA = {
+    select:  { ac: '#2563eb', tint: '#eef4ff' },
+    find:    { ac: '#7c3aed', tint: '#f5f0fe' },
+    extract: { ac: '#059669', tint: '#ecfdf5' },
+    wire:    { ac: '#d97706', tint: '#fef6ec' },
+    show:    { ac: '#db2777', tint: '#fdf0f7' },
+  };
+
   const LEDE = {
-    select: 'Build and move the working set — the persistent selection glom keeps in the DOM itself.',
-    find:   'Turn "what am I looking at" into a set: orient, then expand by example or by structure.',
-    extract:'Carry the set off the page — as a table, across a virtualized list, joined, or straight from the wire.',
-    wire:   'When the DOM is hostile and the JSON is honest, watch the wire instead.',
-    show:   'See the set, replay the session, mark it, and get it out of the browser.',
+    select:  'Build a set, then move it as one — the selection glom keeps in the DOM.',
+    find:    'From “what is this?” to a set: orient, then expand by example or structure.',
+    extract: 'Carry the set off the page — a table, a virtual list, a join, or off the wire.',
+    wire:    'When the DOM fights you and the JSON is honest, watch the wire.',
+    show:    'See the set, replay the session, mark it, and get it out of the browser.',
   };
 
   // stage table for q()
@@ -253,117 +283,115 @@
 
   const DOCS = {
     select: [
-      { t: 'glom — the working set', c: [
-        "glom('hearing')  <span class=cm>// seed: own text contains \"hearing\"</span>",
-        "glom(els)        <span class=cm>// adopt an array / NodeList</span>",
-        "glom.undo()   glom.clear()" ],
-        d: 'The persistent selection, kept in the DOM as <code>data-glom</code> attributes: it survives across console expressions, renders as numbered badges, and has history. Everything below reads or moves this set.' },
-      { t: 'ea — every match', c: [ "ea('#bills tbody tr')  <span class=cm>// array of all matches in scope</span>" ],
-        d: 'Plain <code>querySelectorAll</code> to an array, scoped to the suite\'s SCOPE.' },
-      { t: 'verbs — lockstep navigation', c: [
-        "glom.up('tr')       <span class=cm>// each member → closest tr ancestor</span>",
-        "glom.down('a')      <span class=cm>// → first &lt;a&gt; descendant</span>",
-        "glom.downAll('td')  <span class=cm>// → union of every td under each</span>",
-        "glom.over(-1)       <span class=cm>// → previous sibling</span>" ],
-        d: 'The set moves as one cursor over N parallel subtrees; members whose step lands nowhere drop out, landings dedupe.' },
-      { t: 'q() — a Playwright-flavored chain', c: [
-        "q('#bills &gt;&gt; tbody tr &gt;&gt; has-text=hearing &gt;&gt; down=a &gt;&gt; nth=0-4').glom()" ],
-        d: 'Stages separated by <code>&gt;&gt;</code>, each transforming the set. Returns an array decorated with <code>.mark() .glom() .texts()</code>. Scope rule: <code>text=</code> filters the <em>current</em> members — to search inside a container, take a css hop first (<code>#cards div &gt;&gt; text=alpha</code>, not <code>#cards &gt;&gt; text=alpha</code>).', stages: true },
-      { t: 'sets — named working sets', c: [
-        "glom.save('rows')   glom.use('rows')",
-        "glom.names()        glom.forget('rows')" ],
-        d: 'Park one dance, start another, zip them later. In-memory element refs: they survive the session, not a rerender.' },
-      { t: 'watch — self-healing set', c: [
-        "glom.watch()                   <span class=cm>// selector inferred from the set</span>",
-        "glom.watch({selector:'.row'})  glom.watch.stop()" ],
-        d: 'React-style rerenders destroy <code>data-glom</code> mid-dance; watch re-applies the selector whenever the DOM churns (debounced), so badges come back and new members join. The suite\'s answer to SPA fragility.' },
+      { ic: '🎯', t: 'glom', g: 'The working set — a live selection stored in the DOM.',
+        io: ['text | elements', 'tracked set'],
+        c: ["glom('hearing')   <span class=cm>// seed by own text</span>", "glom(els)         <span class=cm>// adopt an array</span>", "glom.undo()   glom.clear()"],
+        b: ['Numbered badges; survives every console expression.', 'Has history — everything below reads or moves it.'] },
+      { ic: '📋', t: 'ea', g: 'Every match, as an array.',
+        io: ['selector', 'element[]'],
+        c: ["ea('#bills tbody tr')"],
+        b: ['<code>querySelectorAll</code>, scoped to the suite.'] },
+      { ic: '🕺', t: 'verbs', g: 'Move the whole set in lockstep.',
+        io: ['set', 'stepped set'],
+        c: ["glom.up('tr')   glom.down('a')", "glom.downAll('td')   glom.over(-1)"],
+        b: ['One cursor over N parallel subtrees.', 'Steps that land nowhere drop out; landings dedupe.'] },
+      { ic: '⛓️', t: 'q()', g: 'A Playwright-flavored selector chain.',
+        io: ["'expr'", 'decorated set'],
+        c: ["q('#bills >> tbody tr >> has-text=hearing >> nth=0-4')"],
+        b: ['Stages split by <code>&gt;&gt;</code>; returns <code>.mark() .glom() .texts()</code>.', '<code>text=</code> filters <b>current</b> members — css-hop first.'],
+        stages: true },
+      { ic: '🗂️', t: 'sets', g: 'Name a set, park it, reuse it later.',
+        io: ['set', "'name'"],
+        c: ["glom.save('rows')   glom.use('rows')", "glom.names()   glom.forget('rows')"],
+        b: ['Refs survive the session, not a rerender.'] },
+      { ic: '🔁', t: 'watch', g: 'A set that re-applies itself when the DOM churns.',
+        io: ['set', 'self-healing set'],
+        c: ["glom.watch()   glom.watch.stop()"],
+        b: ['Badges come back after a React rerender.', 'The suite’s answer to SPA fragility.'] },
     ],
     find: [
-      { t: 'census — page-shape ping', c: [
-        "census()        <span class=cm>// top repeating structures, each in its own hue</span>",
-        "census.grab(2)  <span class=cm>// adopt group 2 as the working set</span>",
-        "census.clear()" ],
-        d: 'Orientation without reading HTML: groups every element by unindexed tag path, ranks by count, reports <code>geoReg</code> (union area over bounding box) — near 1 means the group tiles its region like a grid or list.' },
-      { t: 'templates — signature induction', c: [
-        "glom.templates()        <span class=cm>// group the set (whole page if empty)</span>",
-        "glom.templates.grab(2)" ],
-        d: 'The principled upgrade to grow/census fingerprints: elements become path-qualified signatures and a bookend-merge engine groups those that differ only in slots. Hashy per-instance classes become <code>${0}</code> slots instead of noise. Lossless: <code>templates.reconstruct</code> rebuilds each signature.' },
-      { t: 'grow — by-example expansion', c: [
-        "glom.pick()   <span class=cm>// click two example rows, Esc</span>",
-        "glom.grow()   <span class=cm>// → every structurally-alike element</span>",
-        "glom.grow({by:'style'})   glom.grow({classes:false})" ],
-        d: 'Fingerprint: unindexed tag path plus the classes the examples <em>share</em>. Two examples beat one — shared classes survive the intersection while hashy classes wash out, and headers usually differ in tag path so they stay excluded.' },
-      { t: 'pick — click-to-collect', c: [
-        "glom.pick()        <span class=cm>// hover outlines; click toggles; Esc ends</span>",
-        "glom.pick.done()   <span class=cm>// programmatic finish, returns the set</span>" ],
-        d: 'Clicks are swallowed in the capture phase so picking a link doesn\'t navigate. Additive to the current set; click a member again to remove it.' },
-      { t: 'infer — selector synthesis', c: [
-        "glom.infer()   <span class=cm>// → { selector, extra, missing }</span>" ],
-        d: 'Converts a hand-danced set into a durable CSS selector: replayable after a rerender, pasteable into Playwright or a scraper. Reports honestly — <code>extra</code> matched beyond the set, <code>missing</code> members not matched; (0, 0) is exact.' },
-      { t: 'lasso — drag-rectangle select', c: [
-        "await glom.lasso()                    <span class=cm>// drag; Esc cancels</span>",
-        "await glom.lasso({mode:'intersect'})  <span class=cm>// touching counts</span>" ],
-        d: 'Non-empty set → spatial refine (keep members inside the rectangle). Empty set → discover: contained elements collapse to selection roots, so a tight rectangle around a list gets the items, not every span inside them.' },
+      { ic: '📊', t: 'census', g: 'Ping the page’s shape — no HTML reading.',
+        io: ['page', 'ranked groups'],
+        c: ["census()   census.grab(2)   census.clear()"],
+        b: ['Groups by tag path, ranks by count.', '<code>geoReg</code> ≈ 1 → tiles its region like a grid.'] },
+      { ic: '🧩', t: 'templates', g: 'Group by signature; hashy classes become slots.',
+        io: ['set', 'template groups'],
+        c: ["glom.templates()   glom.templates.grab(2)"],
+        b: ['<code>c.hash-x1/x2</code> → <code>c.hash-${0}</code>.', 'Lossless — <code>reconstruct</code> rebuilds each.'] },
+      { ic: '🌱', t: 'grow', g: 'Two examples → the whole family.',
+        io: ['2 picks', 'every alike element'],
+        c: ["glom.pick()   glom.grow()", "glom.grow({by:'style'})"],
+        b: ['Shared classes survive; hashy ones wash out.', 'Headers differ in tag path → excluded.'] },
+      { ic: '👆', t: 'pick', g: 'Click to collect.',
+        io: ['clicks', 'set'],
+        c: ["glom.pick()   glom.pick.done()"],
+        b: ['Toggles membership; Esc ends.', 'Clicks swallowed — links don’t navigate.'] },
+      { ic: '🧬', t: 'infer', g: 'A hand-danced set → a durable selector.',
+        io: ['set', 'CSS selector'],
+        c: ["glom.infer()   <span class=cm>// {selector, extra, missing}</span>"],
+        b: ['Replayable; Playwright-pasteable.', 'Honest: <code>extra</code> / <code>missing</code>; (0,0) is exact.'] },
+      { ic: '🪢', t: 'lasso', g: 'Drag a rectangle to select.',
+        io: ['drag', 'set'],
+        c: ["await glom.lasso()", "await glom.lasso({mode:'intersect'})"],
+        b: ['Empty set → discover; full set → refine.', 'Collapses to selection roots, not every span.'] },
     ],
     extract: [
-      { t: 'columns — repetition to table', c: [
-        "glom.columns()             <span class=cm>// one row object per member</span>",
-        "packTable(glom.columns())  <span class=cm>// → columnar gzip+base64 on clipboard</span>" ],
-        d: '<code>pandas.read_html</code> generalized to things that aren\'t tables. Leaf texts keyed by member-relative indexed tag path; links add <code>@href</code> columns. Columns that never vary drop (<code>{all:true}</code> keeps them).' },
-      { t: 'harvest — sweep virtualized lists', c: [
-        "await glom.harvest()                    <span class=cm>// fingerprint from the set</span>",
-        "await glom.harvest({selector:'.row'})" ],
-        d: 'Virtualized grids keep only visible rows in the DOM. Harvest scrolls, waits, re-collects, and accumulates until <code>dry</code> rounds find nothing new. Returns <code>[{key,text,html,el}]</code> — snapshots survive element destruction.' },
-      { t: 'join — relational joins over sets', c: [
-        "glom.join('labels', 'inputs', 'left-of')  <span class=cm>// → [{a,b,aText,bText}]</span>",
-        "glom.join(els, 'rows', 'inside')" ],
-        d: 'The spreadsheet move: label/value scraping in one line. Structural relations (<code>inside</code>, <code>contains</code>) work everywhere; geometric ones (<code>left-of</code>, <code>above</code>, <code>same-row</code>, <code>near</code>…) need real layout. Nearest-by-center wins.' },
-      { t: 'veins — vein-to-skin matching', c: [
-        "tap(/api/)         <span class=cm>// browse a little, then:</span>",
-        "glom.veins()       <span class=cm>// which API fields feed which elements?</span>",
-        "glom.veins.grab(0)" ],
-        d: 'Joins captured payloads (the vein) to the page (the skin): JSON leaves matched against element text, fields ranked by coverage. A <code>3/3</code> field is a confirmed vein — you\'ve learned its API name and can stop scraping the DOM for it.' },
-      { t: 'semantics — data pages already carry', c: [
-        "glom.semantics()   <span class=cm>// → { jsonld, microdata, meta:{og…} }</span>" ],
-        d: 'JSON-LD parsed, microdata items collected (nested itemscopes keep their props; content/href/src before text), og:/twitter: metas gathered. Often the whole scrape is sitting here, typed and labeled.' },
+      { ic: '🧮', t: 'columns', g: 'Repetition → a table.',
+        io: ['set', 'row objects'],
+        c: ["glom.columns()", "packTable(glom.columns())"],
+        b: ['Leaf texts keyed by tag path; links add <code>@href</code>.', 'Invariant columns drop (<code>{all:true}</code> keeps).'] },
+      { ic: '🌾', t: 'harvest', g: 'Sweep a virtualized list.',
+        io: ['set', 'all records'],
+        c: ["await glom.harvest({selector:'.row'})"],
+        b: ['Scrolls, waits, accumulates until <code>dry</code>.', 'Snapshots survive element death.'] },
+      { ic: '🔗', t: 'join', g: 'Pair two sets by relation.',
+        io: ['setA + setB', 'pairs'],
+        c: ["glom.join('labels','inputs','left-of')"],
+        b: ['<code>inside/contains</code> everywhere; geometric needs layout.', 'Nearest-by-center wins.'] },
+      { ic: '🩸', t: 'veins', g: 'Match API fields to on-page elements.',
+        io: ['payload + page', 'ranked fields'],
+        c: ["tap(/api/)   glom.veins()   glom.veins.grab(0)"],
+        b: ['<code>3/3</code> coverage = confirmed vein.', 'Learn the API name, stop scraping the DOM.'] },
+      { ic: '🏷️', t: 'semantics', g: 'The data the page already carries.',
+        io: ['page', '{ jsonld, microdata, meta }'],
+        c: ["glom.semantics()"],
+        b: ['JSON-LD, microdata, og: metas.', 'Often the whole scrape — typed and labeled.'] },
     ],
     wire: [
-      { t: 'tap — wire capture', c: [
-        "tap(/api/)     <span class=cm>// wrap fetch + XHR; capture matching responses</span>",
-        "tap.hits       <span class=cm>// [{n, via, url, method, status, data}]</span>",
-        "tap.last   tap.find('bills')   tap.clear()   tap.stop()" ],
-        d: 'The DOM is a lossy rendering of data that arrives as JSON; tap watches the wire instead. Requests pass through untouched (responses cloned). Standalone — works without base.js. Shines when the API speaks JSON; can\'t help with payloads decrypted client-side.' },
-      { t: 'tap.replay / tap.walk — a hit is a template', c: [
-        "await tap.replay(0, {page: 7})               <span class=cm>// refetch, mutated params</span>",
-        "await tap.walk(0, {param:'page', to: 40})    <span class=cm>// paginate, no scrolling</span>" ],
-        d: 'A captured hit is also a request template. <code>walk</code> stops early when <code>until(data)</code> says dry (default: empty array) and waits <code>delay</code> ms between requests. GETs only. Capture one page\'s request, walk the parameter, and the 400-page scrape never touches the DOM.' },
+      { ic: '🚰', t: 'tap', g: 'Watch the wire, not the DOM.',
+        io: ['fetch / XHR', 'hits[]'],
+        c: ["tap(/api/)   tap.hits   tap.last", "tap.find('bills')   tap.clear()   tap.stop()"],
+        b: ['Requests pass through; responses cloned.', 'Standalone — works without base.js.'] },
+      { ic: '🚶', t: 'tap.replay / walk', g: 'A captured hit is a request template.',
+        io: ['one hit', 'the whole dataset'],
+        c: ["await tap.replay(0, {page:7})", "await tap.walk(0, {param:'page', to:40})"],
+        b: ['<code>replay</code> mutates params; <code>walk</code> paginates.', 'Stops when dry. GETs only, no DOM.'] },
     ],
     show: [
-      { t: 'deck — live side-window', c: [
-        "glom.deck()        <span class=cm>// dense monospace table in its own window</span>",
-        "glom.deck.close()" ],
-        d: 'Immediate visual validation without injecting UI into the host page: its own same-origin window (the page\'s CSS can\'t touch it, a rerender can\'t kill it), re-rendering on every <code>glom.set</code> — so verbs, pick, grow, and lasso all show live.' },
-      { t: 'mark — outline elements', c: [
-        "glom.mark()           <span class=cm>// outline the set (default red)</span>",
-        "glom.mark('#2563eb')  <span class=cm>// bare color → recolor the outline</span>",
-        "glom.mark('outline:3px dashed #059669; background:#fef9c3')" ],
-        d: 'Two modes, no dialect: a <b>bare color</b> recolors mark\'s layout-safe default outline; a <b>style string</b> (any token with a <code>:</code>) passes through verbatim, layout cost and all. Hover grows the <em>outline</em> only, so marks never shove the page — unless your own style string sets a border, which is your call. (The rich <code>bg-</code>/<code>p-</code> shorthand is console-<em>text</em> only, via <code>console.style</code>.)' },
-      { t: 'recipe — the session journal', c: [
-        "glom.recipe()   <span class=cm>// print the dance back as a replayable script</span>" ],
-        d: 'Records every console-level <code>glom</code>/<code>q</code> call (wraps the verbs at load, so it runs last). Strings, numbers, regexes, functions replay verbatim; element args appear as <code>/* elements */</code> — swap in <code>glom.infer()</code>\'s selector when hardening. <code>columns()</code> gives the data; <code>recipe()</code> the provenance.' },
-      { t: 'summary — structure stats', c: [
-        "summary()   <span class=cm>// count / geometry stats over the page or a set</span>" ],
-        d: 'The kernel behind census <code>geoReg</code>: union area over bounding box, the "does this tile its region" number, plus counts and text stats.' },
-      { t: 'export — get it out of the browser', c: [
-        "pop(html)              <span class=cm>// open content in a popup window</span>",
-        "packTable(rows)        <span class=cm>// columnar gzip+base64 → clipboard</span>",
-        "copy(value)            <span class=cm>// anything → clipboard</span>" ],
-        d: 'Carry results off the page: <code>packTable</code> for compact tabular payloads, <code>copy</code> for one-off values, <code>pop</code> to render HTML in its own window.' },
-      { t: 'console.* — styled output', c: [
-        "console.style(f('green;bold', 'ok'), f('gray', 'detail'))",
-        "console.box · console.nest · console.see · console.env",
-        "help(obj)   <span class=cm>// inspect an object; help() opens this guide</span>" ],
-        d: 'The <code>f(spec, text)</code> formatter is the rich shorthand (<code>bold</code>, <code>bg-…</code>, <code>p-…</code>, digits→font-size, bare token→text color) — console text only. <code>see</code> walks elements, <code>env</code> dumps globals, <code>help(obj)</code> inspects.' },
+      { ic: '🃏', t: 'deck', g: 'The set in a live side-window.',
+        io: ['set', 'its own window'],
+        c: ["glom.deck()   glom.deck.close()"],
+        b: ['Re-renders on every <code>glom.set</code>.', 'Page CSS can’t touch it; a rerender can’t kill it.'] },
+      { ic: '🖍️', t: 'mark', g: 'Outline the set — two modes, no dialect.',
+        io: ['color | CSS', 'outlined set'],
+        c: ["glom.mark('#2563eb')   <span class=cm>// bare color → outline</span>", "glom.mark('outline:3px dashed #059669')"],
+        b: ['<b>Bare color</b> recolors the layout-safe outline.', '<b>Style string</b> passes through — your call.'] },
+      { ic: '📜', t: 'recipe', g: 'The session as a replayable script.',
+        io: ['dance', 'script'],
+        c: ["glom.recipe()"],
+        b: ['Strings/regex/fns verbatim; elements → placeholders.', 'Swap in <code>infer()</code>’s selector to harden.'] },
+      { ic: '📐', t: 'summary', g: 'Structure stats over a set.',
+        io: ['set', 'counts + geometry'],
+        c: ["summary()"],
+        b: ['<code>geoReg</code>: does it tile its region? (census’s kernel).'] },
+      { ic: '📤', t: 'export', g: 'Get it out of the browser.',
+        io: ['value', 'clipboard / window'],
+        c: ["pop(html)   packTable(rows)   copy(value)"],
+        b: ['<code>packTable</code> for tables, <code>copy</code> for values.'] },
+      { ic: '🎨', t: 'console.*', g: 'Styled console output.',
+        io: ['(spec, text)', 'styled log'],
+        c: ["console.style(f('green;bold','ok'), f('gray','detail'))", "console.box · nest · see · env"],
+        b: ['<code>f()</code> shorthand: <code>bold</code>, <code>bg-</code>, <code>p-</code>, digits→size.', '<code>help(obj)</code> inspects; <code>help()</code> opens this guide.'] },
     ],
   };
 
@@ -380,13 +408,20 @@
   function buildPanel(id) {
     const panel = document.getElementById('tab-' + id);
     if (id === 'play' || panel.dataset.built) return;
+    const a = AREA[id];
     const parts = [];
     if (LEDE[id]) parts.push(`<p class="lede">${LEDE[id]}</p>`);
     parts.push('<div class="cards">');
     for (const e of DOCS[id]) {
-      let card = `<div class="card"><h3>${e.t}</h3><pre>${e.c.join('\n')}</pre><p>${e.d}</p>`;
+      let card = `<div class="card" style="--ac:${a.ac};--tint:${a.tint}">`;
+      card += `<div class="chead"><span class="ico">${e.ic}</span>` +
+              `<div class="ct"><h3>${e.t}</h3><span class="tag">${e.g}</span></div></div>`;
+      if (e.io) card += `<div class="io"><span class="pill">${e.io[0]}</span>` +
+              `<span class="arw">→</span><span class="pill">${e.io[1]}</span></div>`;
+      if (e.c) card += `<pre>${e.c.join('\n')}</pre>`;
+      if (e.b) card += `<ul class="beats">${e.b.map(x => `<li>${x}</li>`).join('')}</ul>`;
       if (e.stages) card += '<table class="stage">' +
-        Q_STAGES.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('') + '</table>';
+        Q_STAGES.map(([x, y]) => `<tr><td>${x}</td><td>${y}</td></tr>`).join('') + '</table>';
       card += '</div>';
       parts.push(card);
     }
