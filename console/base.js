@@ -3,11 +3,12 @@
 
   const _r = (n, k) => Math.round(n.getBoundingClientRect()[k]);
 
-  const _f = (v, els) => 
-    typeof v === 'string' ? (/^\d+$/.test(v) ? els.slice(0, +v) : els.filter(text.own.clean.lower.includes(v))) :
-    typeof v === 'number' ? els.filter((_, i) => i === v) :
+  const _f = (v, els) =>
+    typeof v === 'string'   ? (/^\d+$/.test(v) ? els.slice(0, +v) : els.filter(text.own.clean.lower.includes(v))) :
+    typeof v === 'number'   ? els.filter((_, i) => i === v) :
+    v instanceof RegExp     ? els.filter(text.own.clean.test(v)) :
     typeof v === 'function' ? els.filter(v) : els;
-  
+
   const getPath = (n, root, indexed = false, p = []) => {
     if (!n || n === root || n.nodeType !== 1) return p.join('/') || 'self';
     let t = n.tagName.toLowerCase();
@@ -194,7 +195,21 @@
 
   /** ── glom ───────────────────────────────────────────────────────────────── **/
 
-  const glom = (sel, filt) => glom.set(_f(filt, ea(sel)));
+  const SCOPE = 'body *:not(script):not(style)';
+
+  const glom = (...args) => {
+    const [payload, mod] = args;
+    const isContent = v => typeof v === 'string' || typeof v === 'number' ||
+                           typeof v === 'function' || v instanceof RegExp;
+    if (isContent(payload)) return glom.set(_f(payload, ea(SCOPE)));
+    const els =
+      payload instanceof Element ? [payload] :
+      payload === document       ? [document.documentElement] :
+      payload != null            ? Array.from(payload).filter(n => n instanceof Element) :
+      args.length                ? [] :
+      ea(SCOPE);
+    return glom.set(_f(mod, els));
+  };
 
   glom.history = [];
 
@@ -206,10 +221,10 @@
     res.forEach((n, i) => n.setAttribute('data-glom', i));
     return ea('[data-glom]');
   };
-  
+
   glom.get = (pred) => _f(pred, ea('[data-glom]'));
   glom.keep = v => { const p = glom.get(), r = _f(v, p); console.log(`keep: ${p.length} → ${r.length}`); return glom.set(r); };
-  glom.drop = v => { const p = glom.get(), m = new Set(_f(v, p)), r = p.filter(n => !m.has(n)); console.log(`drop: ${p.length} → ${r.length}`); return glom.set(r); };  
+  glom.drop = v => { const p = glom.get(), m = new Set(_f(v, p)), r = p.filter(n => !m.has(n)); console.log(`drop: ${p.length} → ${r.length}`); return glom.set(r); };
   glom.undo    = () => { const prev = glom.history.pop(); if (prev) { console.log(`undo: → ${prev.length}`); return glom.set(prev); } return []; };
   glom.clear   = () => { document.getElementById('mark-s-data-glom')?.remove(); glom.history = []; return glom.set([]); };
   glom.mark    = (spec) => { mark(glom.get(), spec, 'data-glom'); return glom.get(); };
@@ -469,12 +484,12 @@
 
   console.nest("Suite Loaded", () => {
     const g = (k, v) => console.style(f("bold;#4b8bd8", k.padEnd(11)), f("gray", v));
-    g("Selectors", "ea(sel), glom(sel)");
+    g("Selectors", "ea(sel), glom(filt|els)");
     g("Accessors", "text, rect, sig, dom, el");
     g("Ops",       "mark, summary, unionArea");
     g("Browser",   "pop, packTable, copy");
     g("Console",   "see, help, env, style, box, nest");
-   console.style(f("gray;italic", "try"), f("#345", "glom('a', 'foo').mark()"));  });
+   console.style(f("gray;italic", "try"), f("#345", "glom('foo').mark()"));  });
 
   window.look = {
     v: "initial",
