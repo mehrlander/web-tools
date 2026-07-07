@@ -2,7 +2,9 @@
 
 Retire the pages-index's four-quadrant grid favicon and adopt the canonical hex-nut project mark, and start a favicon archive under `docs/favicons/` so retired designs stay visible.
 
-⭐ [pages index (hex-nut mark in the header)](https://mehrlander.github.io/web-tools/pages/index.html?use=claude/pages-index-link-99qruu)
+🥏 [branch index via toss (hex-nut mark in the header)](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/pages-index-link-99qruu:pages/index.html)
+
+(Not `?use=`-previewable: the favicon lives in `pages/index.html` itself, and Pages serves that from main. `?use=` only swaps the runtime `lib/` ref, not the page HTML. The toss `#gh=` link fetches the branch's actual index.html; goes live on the [canonical index](https://mehrlander.github.io/web-tools/pages/) at merge.)
 
 **Changed:**
 - tools/build/pages-index.mjs ([new](https://github.com/mehrlander/web-tools/blob/claude/pages-index-link-99qruu/tools/build/pages-index.mjs)) — both favicon refs (`<link rel=icon>` + header logo) now point at `../lib/favicon.svg`
