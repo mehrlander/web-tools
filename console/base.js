@@ -4,7 +4,7 @@
   const _r = (n, k) => Math.round(n.getBoundingClientRect()[k]);
 
   const _f = (v, els) =>
-    typeof v === 'string'   ? (/^\d+$/.test(v) ? els.slice(0, +v) : els.filter(text.own.clean.lower.includes(v))) :
+    typeof v === 'string'   ? els.filter(text.own.clean.lower.includes(v)) :
     typeof v === 'number'   ? els.filter((_, i) => i === v) :
     v instanceof RegExp     ? els.filter(text.own.clean.test(v)) :
     typeof v === 'function' ? els.filter(v) : els;
