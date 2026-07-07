@@ -174,7 +174,7 @@
     out.sort((a, b) => (b.count - 1) * b.lit - (a.count - 1) * a.lit);
     groups = out.slice(0, top);
 
-    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, `outline-${HUES[i % HUES.length]}-2`, `data-tmpl-${i}`));
+    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, HUES[i % HUES.length], `data-tmpl-${i}`));
     console.table(groups.map(({ els, lit, slots, ...row }, i) =>
       ({ i, ...row, slots: slots.join(', '), template: row.template.length > 90 ? '…' + row.template.slice(-89) : row.template })));
     console.log('templates: glom.templates.grab(i) adopts a group; .clear() unmarks');
