@@ -39,7 +39,7 @@
   </template>
 </div>
 
-<!-- ── Header: brand + auth on left, repo picker on right ──────────────────── -->
+<!-- ── Header: brand, auth shield, then repo nav ──────────────────────────── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-3">
@@ -49,13 +49,11 @@
       <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
               title="web-tools">
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
-        <span class="font-bold tracking-tight text-lg hidden sm:inline">web-tools</span>
       </button>
-      <button @click="repoModal?.showModal()" class="tooltip tooltip-bottom shrink-0"
+      <button @click="document.getElementById('repoModal')?.showModal()" class="tooltip tooltip-bottom shrink-0"
               :data-tip="authTip">
         <i class="ph text-lg" :class="authIcon"></i>
       </button>
-      <div class="grow"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
     </div>
   </div>
@@ -354,22 +352,18 @@ function app(){ return {
   get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Overview'; },
   get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
 
-  get repoComponent(){ return document.getElementById('repo')?.__repo; },
+  _authState: 'public',
+  _authUser: '',
   get authIcon(){
-    const r = this.repoComponent;
-    if (!r) return 'ph-globe text-base-content/50';
-    if (r.auth) return 'ph-shield-check text-success';
-    if (r.tokenExpired) return 'ph-warning text-warning';
+    if (this._authState === 'auth') return 'ph-shield-check text-success';
+    if (this._authState === 'expired') return 'ph-warning text-warning';
     return 'ph-globe text-base-content/50';
   },
   get authTip(){
-    const r = this.repoComponent;
-    if (!r) return 'Loading...';
-    if (r.auth) return 'Authenticated: ' + r.user;
-    if (r.tokenExpired) return 'Token expired';
+    if (this._authState === 'auth') return 'Authenticated: ' + this._authUser;
+    if (this._authState === 'expired') return 'Token expired';
     return 'Public only';
   },
-  get repoModal(){ return document.getElementById('repoModal'); },
 
   get atlasUrl(){
     const s = Alpine.store('browser');
@@ -408,7 +402,13 @@ function app(){ return {
     if (!await waitFor(() => repoEl.__repo)) { notify('Repo component never mounted.'); return; }
     if (!this._setup){
       this._setup = true;
-      repoEl.__repo.setup(gh, { quiet: true }).catch(e => console.warn('repo setup:', e?.message || e));
+      const rc = repoEl.__repo;
+      const syncAuth = () => {
+        this._authState = rc.auth ? 'auth' : (rc.tokenExpired ? 'expired' : 'public');
+        this._authUser = rc.user || '';
+      };
+      this.$watch(() => rc.auth + '|' + rc.user + '|' + rc.tokenExpired, syncAuth);
+      rc.setup(gh, { quiet: true }).then(syncAuth).catch(e => console.warn('repo setup:', e?.message || e));
     }
     if (Alpine.store('browser').repo !== repo || (ref && Alpine.store('browser').ref !== ref)){
       try { await repoEl.__repo.pickByName(repo, ref ? { ref } : {}); }
