@@ -4,6 +4,17 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-08 Two-layer tracker task schema and comments model (PR #TBD)
+
+The tracker task-file schema was implicit about which frontmatter keys the generator acts on versus which it merely tolerates. Rewrote the schema section as two layers: a small closed set of recognized keys (required `id`/`title`/`status`, optional `project`/`track`/`opened`/`closed`/`session`) drives the board, and an open set of arbitrary scalar tags rides along, preserved and human-readable, ignored until promoted. Added the parser contract (flat `key: value`, split on first colon, no YAML library, unknown keys preserved), the graduation rule, and a Comments subsection stating the append-vs-overwrite model.
+
+⭐ **Result:** [docs/TRACKER.md](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md)
+
+**Changed:**
+- docs/TRACKER.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md), [diff](https://github.com/mehrlander/web-tools/commit/b269acf))
+
+**Notes:** No generator change; the reference board generator already keeps every colon-split key and buckets only on `status`, so the open-world contract documents existing behavior. `next` was demoted from a featured field to a tolerated open tag, with light consistency edits in the claiming and board-format sections. PORTABLE.md and the CONVENTIONS.md cross-references were left untouched.
+
 ## 2026-07-08 Enlarge hex-nut favicon to fill the tab slot (PR #TBD)
 
 The tab favicon rendered small because the hexagon path occupied only ~69% of the 32x32 canvas width and ~60% of its height, so the browser scaled a mostly-empty canvas into the ~16px tab slot. Tightening the SVG `viewBox` to `4.5 4.5 23 23` frames the artwork, so the mark now fills the slot like other tab icons.
