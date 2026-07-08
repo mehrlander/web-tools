@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-07-08 Show-repo: per-repo landing page with pinned sidebar (PR #TBD)
+## 2026-07-08 Show-repo: per-repo landing page with pinned sidebar (PR #199)
 
 Rebuilds `pages/show-repo/show-repo.html` around a per-repo landing page with a pinned sidebar. The sidebar lists the repo's views (landing, atlas, files) so there is no separate toggle; the repo picker and auth live in the header. Every repo gets a landing: web-tools' is its pages gallery, others get a synthesized overview. The atlas is light-themed. The repo component gains an `inline` mode for compact header embedding, with a redesigned dropdown showing language, stars, and recency per repo.
 
@@ -22,6 +22,17 @@ Rebuilds `pages/show-repo/show-repo.html` around a per-repo landing page with a 
 **Notes:** Landing mechanism is stubbed at one decision point (`app.landingKind`); only web-tools resolves ('gallery'). Per-repo `pages/landing.html`, default overview, and the task-0002 home-registry federation are future work. State rides the URL (`?repo&ref&file&view`); no remote persistence. Singleton fab integration with toss-render is tracked as task 0003.
 
 [Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/show-repo-pages-integration-uzn9gw)
+
+## 2026-07-08 Two-layer tracker task schema and comments model (PR #198)
+
+The tracker task-file schema was implicit about which frontmatter keys the generator acts on versus which it merely tolerates. Rewrote the schema section as two layers: a small closed set of recognized keys (required `id`/`title`/`status`, optional `project`/`track`/`opened`/`closed`/`session`) drives the board, and an open set of arbitrary scalar tags rides along, preserved and human-readable, ignored until promoted. Added the parser contract (flat `key: value`, split on first colon, no YAML library, unknown keys preserved), the graduation rule, and a Comments subsection stating the append-vs-overwrite model.
+
+⭐ **Result:** [docs/TRACKER.md](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md)
+
+**Changed:**
+- docs/TRACKER.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md), [diff](https://github.com/mehrlander/web-tools/commit/b269acf))
+
+**Notes:** No generator change; the reference board generator already keeps every colon-split key and buckets only on `status`, so the open-world contract documents existing behavior. `next` was demoted from a featured field to a tolerated open tag, with light consistency edits in the claiming and board-format sections. PORTABLE.md and the CONVENTIONS.md cross-references were left untouched.
 
 ## 2026-07-08 Enlarge hex-nut favicon to fill the tab slot (PR #TBD)
 
