@@ -1,9 +1,9 @@
-# Portable docs (the to-go set)
+# Portable set (the to-go bag)
 
-The docs in `mehrlander/web-tools` that are written to be used **from any repo**,
-not just this one. If you want this repo's working conventions, or its recipe for
-building with a favorite front-end stack and testing it headless, without
-adopting the whole library, this is the menu.
+The docs and scripts in `mehrlander/web-tools` that are written to be used **from
+any repo**, not just this one. If you want this repo's working conventions, its
+recipe for building with a favorite front-end stack and testing it headless, or
+its tracker board generator, without adopting the whole library, this is the menu.
 
 The loader skill is the front door; this file is the catalog it points at, and it
 points back. The skill is *how* you adopt; this is *what* there is.
@@ -28,13 +28,13 @@ public and that host is on the Claude Code web allowlist).
 ## Staying current: refresh at session start
 
 The skill fetches `CONVENTIONS.md` live on every run, so the *conventions* never
-go stale once the skill is **invoked**. The one piece that can drift is the
-loader **skill file** itself (its fetch URL, fallbacks, description). A consuming
-repo that wants that kept current too can re-fetch the skill each session with a
-fail-soft `SessionStart` hook, instead of re-running the installer by hand
-whenever the skill changes. The hook is the committed mechanism; the fetched
-skill is gitignored, so it's fresh every session and never a stale copy in the
-tree.
+go stale once the skill is **invoked**. The pieces that can drift are the loader
+**skill file** itself (its fetch URL, fallbacks, description) and any portable
+**scripts** a consumer runs. A consuming repo that wants these kept current can
+re-fetch them each session with a single fail-soft `SessionStart` hook, instead
+of re-running the installer by hand whenever anything changes. The hook is the
+committed mechanism; the fetched artifacts are gitignored, so they're fresh every
+session and never stale copies in the tree.
 
 > [!IMPORTANT]
 > **Fetch is not invoke. This hook keeps the skill current; it does not run it.**
@@ -57,21 +57,36 @@ tree.
 ```bash
 #!/bin/bash
 set -uo pipefail
-DEST="${CLAUDE_PROJECT_DIR:-.}/.claude/skills/web-tools-conventions"
-URL="https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools-conventions/SKILL.md"
-mkdir -p "$DEST" 2>/dev/null || exit 0
-if curl -fsSL --max-time 10 "$URL" -o "$DEST/SKILL.md.tmp" 2>/dev/null; then
-  mv "$DEST/SKILL.md.tmp" "$DEST/SKILL.md" 2>/dev/null || rm -f "$DEST/SKILL.md.tmp"
-else
-  rm -f "$DEST/SKILL.md.tmp" 2>/dev/null
-fi
+BASE="https://raw.githubusercontent.com/mehrlander/web-tools/main"
+ROOT="${CLAUDE_PROJECT_DIR:-.}"
+
+fetch() {
+  local url="$1" dest="$2"
+  mkdir -p "$(dirname "$dest")" 2>/dev/null || return
+  if curl -fsSL --max-time 10 "$url" -o "$dest.tmp" 2>/dev/null; then
+    mv "$dest.tmp" "$dest" 2>/dev/null || rm -f "$dest.tmp"
+  else
+    rm -f "$dest.tmp" 2>/dev/null
+  fi
+}
+
+# Loader skill
+fetch "$BASE/.claude/skills/web-tools-conventions/SKILL.md" \
+      "$ROOT/.claude/skills/web-tools-conventions/SKILL.md"
+
+# Portable scripts
+fetch "$BASE/scripts/build-board.py" \
+      "$ROOT/.web-tools-scripts/build-board.py"
+chmod +x "$ROOT/.web-tools-scripts/build-board.py" 2>/dev/null
+
 exit 0
 ```
 
-2. Gitignore the fetched skill, so the hook (not a checked-in copy) is the source of truth:
+2. Gitignore the fetched artifacts, so the hook (not a checked-in copy) is the source of truth:
 
 ```
 .claude/skills/web-tools-conventions/
+.web-tools-scripts/
 ```
 
 3. Register it under `SessionStart` in `.claude/settings.json`, alongside any hook already there:
@@ -91,15 +106,16 @@ exit 0
 }
 ```
 
-Why it holds: the hook is committed and the skill is gitignored (fresh each
-session, never a stale checked-in copy); it's fail-soft (10s cap, errors
-swallowed, always `exit 0`), so a hiccup or a web-tools outage degrades to "no
-auto-loaded conventions this session," not a blocked start; and it fetches over
-`raw.githubusercontent.com`, on the web allowlist (see "How to adopt" above), so
-no auth. Keep it **synchronous** (the default) so it completes before skill
-discovery and the freshly-fetched skill is live in the *same* session, not the
-next one. This is a recipe for *consuming* repos; web-tools is the source and
-doesn't run it on itself.
+Why it holds: the hook is committed and the fetched artifacts are gitignored
+(fresh each session, never stale copies in the tree); it's fail-soft (10s cap
+per fetch, errors swallowed, always `exit 0`), so a hiccup or a web-tools outage
+degrades to "no auto-loaded conventions this session," not a blocked start; and
+it fetches over `raw.githubusercontent.com`, on the web allowlist (see "How to
+adopt" above), so no auth. Keep it **synchronous** (the default) so it completes
+before skill discovery and the freshly-fetched skill is live in the *same*
+session, not the next one. To add a new portable script, add one `fetch` line.
+This is a recipe for *consuming* repos; web-tools is the source and doesn't run
+it on itself.
 
 ### Stronger variant: inject the conventions, don't just fetch them
 
@@ -155,6 +171,11 @@ present.
 
 ## The set
 
+Portability is per-item, not per-directory. Most of `tools/` is web-tools-specific
+machinery; most of `docs/` is portable. The tables below list what travels.
+
+### Docs
+
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
@@ -164,10 +185,27 @@ present.
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |
 
-**Not portable** (web-tools-specific machinery): `docs/loader.md`, `tools/**`,
-`CLAUDE.md`, `dist/`. And `docs/MERGE-GUIDE.md` travels only as a *format
-example*: it belongs to CONVENTIONS.md's opt-in surfacing course, so a repo keeps
-one of its own only if it adopts that layer.
+### Scripts
+
+Portable scripts live in `scripts/` at the repo root: fetchable by raw URL,
+runnable with no dependencies beyond python3 stdlib, and parameterized by argv so
+one fetched copy serves many callers.
+
+| Script | What it does | Interface |
+|---|---|---|
+| [`scripts/build-board.py`](../scripts/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter | `python3 build-board.py <tasks_dir> <board_out>` |
+
+Fetching and running a script is executing hub code, a step beyond fetching and
+reading a doc. That is why the hub must stay owned and trusted and the fetch stays
+fail-soft: a consumer can audit the script at its raw URL, but there is no
+signature or pinning beyond trusting the source repo.
+
+### Not portable
+
+Web-tools-specific machinery: `docs/loader.md`, `tools/**`, `CLAUDE.md`, `dist/`.
+And `docs/MERGE-GUIDE.md` travels only as a *format example*: it belongs to
+CONVENTIONS.md's opt-in surfacing course, so a repo keeps one of its own only if
+it adopts that layer.
 
 ## Pointing a session here
 

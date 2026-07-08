@@ -14,7 +14,7 @@
     "pages-index": "node tools/build/pages-index.mjs",
     "pages": "npm run pages-shots && npm run pages-index",
     "wsl-fetch": "node pages/wsl-sync/fetch-data.mjs",
-    "tracker-board": "node tools/build/tracker-board.mjs"
+    "tracker-board": "python3 scripts/build-board.py tracker/tasks tracker/board.md"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
