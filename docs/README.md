@@ -4,10 +4,11 @@ Reference docs that don't belong at the repo root. `README.md` (the project
 overview) and `CLAUDE.md` (web-session instructions) stay up top and link in
 here; everything longer-form lives in this folder.
 
-- **[PORTABLE.md](PORTABLE.md)** — the **to-go set**: which of these docs are
-  written to be used from *any* repo (the conventions, the headless-vendoring
-  recipe, the sandbox notes) and how to adopt them via the loader skill. Start
-  here if you came for one piece, not the whole library.
+- **[PORTABLE.md](PORTABLE.md)** — the **to-go bag**: which docs and scripts are
+  written to be used from *any* repo (the conventions, the board generator, the
+  headless-vendoring recipe, the sandbox notes) and how to adopt them via the
+  loader skill or the fetch hook. Start here if you came for one piece, not the
+  whole library.
 - **[SHARE.md](SHARE.md)** — a copy-paste message for pointing *another* session
   at the to-go set: it hands over the raw-fetch command, since a session can't
   always reach another repo by git or MCP scope but can read a public raw file.

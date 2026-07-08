@@ -70,45 +70,13 @@ To take a task, edit its file on `main`: set `status: in-progress`, set `session
 
 One line per task, keyed by title (not id); in-progress lines also show the owning branch. The reference generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
 
-Reference generator (python3, stdlib only; reimplement freely):
+The canonical generator is [`scripts/build-board.py`](../scripts/build-board.py) (python3, stdlib only, zero dependencies). Any implementation that emits the four sections from the frontmatter is correct; reimplement freely.
 
-```python
-#!/usr/bin/env python3
-# Regenerate board.md from tasks/*.md. Frontmatter is flat `key: value` pairs.
-import pathlib, sys
-
-tasks_dir = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "tasks")
-out = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else "board.md")
-
-def meta(p):
-    parts = p.read_text().split("---")
-    if len(parts) < 3:
-        return {}
-    d = {}
-    for line in parts[1].strip().splitlines():
-        if ":" in line:
-            k, v = line.split(":", 1)
-            d[k.strip()] = v.strip()
-    return d
-
-tasks = [meta(p) for p in sorted(tasks_dir.glob("*.md"))]
-buckets = {"backlog": [], "in-progress": [], "blocked": [], "done": []}
-for m in tasks:
-    buckets.get(m.get("status", "backlog"), buckets["backlog"]).append(m)
-
-def row(m):
-    who = f" (`{m['session']}`)" if m.get("session") else ""
-    nxt = f" next: {m['next']}" if m.get("next") else ""
-    return f"- {m.get('title', '(untitled)')}{who}{nxt}"
-
-lines = ["# Board", "", "_Generated from tasks/. Do not hand-edit._", ""]
-for head, key in [("On deck", "backlog"), ("In progress", "in-progress"),
-                  ("Blocked", "blocked"), ("Done", "done")]:
-    lines.append(f"## {head}")
-    lines += ([row(m) for m in buckets[key]] or ["- (none)"])
-    lines.append("")
-out.write_text("\n".join(lines))
 ```
+python3 scripts/build-board.py <tasks_dir> <board_out>
+```
+
+A consuming repo can fetch the script by raw URL into a gitignored path and run it against each tracker (see [PORTABLE.md](PORTABLE.md) for the fetch pattern).
 
 ## Conflicts
 
