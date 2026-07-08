@@ -4,6 +4,7 @@ _Generated from tasks/. Do not hand-edit._
 
 ## On deck
 - Private-repo landing federation via the home registry next: co-design the home manifest schema once the integrated landing page lands
+- Singleton fab with toss-render integration next: design the singleton guard and context-partition API in fab.js
 
 ## In progress
 - (none)
