@@ -1,22 +1,27 @@
-# Project tracker (portable)
+# Project tracker
 
-The cross-session memory layer for the *work* of a workspace: what is planned, in flight, blocked, and done, in a form the next branch can read. Opt-in and independent of the surfacing primitives and the surfacing course; adopt it alone or alongside either. Canonical source `mehrlander/web-tools` at `docs/TRACKER.md`; local `CLAUDE.md` sets the extension points and overrides these defaults. Substitute the current repo into all path examples.
+Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done, in a form the next session can read. Tracker state lives on `main`. That is the point: one shared place every session knows to check. Canonical source `mehrlander/web-tools` at `docs/TRACKER.md`; local `CLAUDE.md` sets placement and the board command.
 
-**Prose style:** zero em dashes. Use colons, commas, semicolons, parentheses, or new sentences.
+Prose style: no em dashes. Use colons, commas, semicolons, or new sentences.
 
-## Purpose
+## Why
 
-Short-lived branches and sessions cannot see each other. Without a durable list, every session re-derives the plan from chat, and progress evaporates when the context window closes. The tracker is the slow layer where the plan lives between sessions, so the next branch starts where the last one stopped. It is to *work* what a voice or identity doc is to *style*.
+Short-lived branches and sessions cannot see each other. Without a durable list on `main`, every session re-derives the plan from chat, and progress is lost when the context window closes. The tracker is where the plan lives between sessions, so the next session starts where the last one stopped.
 
 ## The model
 
-One file per task under `tasks/` is the source of truth; a generated `board.md` is the rollup and is never hand-edited. The shape is deliberately a folder of source files plus a generated index.
+Two kinds of file, both on `main`:
 
-Scope a tracker to a **workspace**: a bounded area you actively develop and keep coherent across sessions, not the whole repo. Several workspaces means several trackers, each in its own directory. A tracker never grows to cover the repo.
+- `tasks/NNNN.md`: one file per task, the source of truth.
+- `board.md`: a rollup generated from the task files, never hand-edited.
+
+Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look.
+
+Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 
 ## Task file schema
 
-Frontmatter (fields optional when not relevant); the body is the task.
+Frontmatter; `id`, `title`, and `status` are required. Other fields are optional when not relevant. The body is the task.
 
 ```markdown
 ---
@@ -38,6 +43,10 @@ next: <the intended next step>
 - YYYY-MM-DD: <what happened this session>
 ```
 
+## Claiming a task
+
+To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch. Update the task file on `main` when the status, owning branch, next step, or progress log changes, and set `status: done` with `closed:` when it lands.
+
 ## Board format
 
 `board.md` is generated from the task files, four sections in order:
@@ -47,9 +56,9 @@ next: <the intended next step>
 - **Blocked** (`status: blocked`)
 - **Done** (`status: done`)
 
-One line per task, keyed by **title** (not id); in-progress lines also show the owning branch, and any line may carry its `next`. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation.
+One line per task, keyed by title (not id); in-progress lines also show the owning branch, and any line may carry its `next`. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status, owning branch, or next step.
 
-Reference generator (python3, stdlib only; reference, reimplement freely):
+Reference generator (python3, stdlib only; reimplement freely):
 
 ```python
 #!/usr/bin/env python3
@@ -89,33 +98,24 @@ for head, key in [("On deck", "backlog"), ("In progress", "in-progress"),
 out.write_text("\n".join(lines))
 ```
 
-## The durable-status rule (the crux)
+## Conflicts
 
-In-flight status must land on a **durable shared surface**, so the board is authoritative across branches, not just within one. Claiming a task means: set `status: in-progress` and `session: <branch>`, append a progress-log line, and commit *that claim* to the shared surface **out of band**, separately from the feature work. The feature work rides its branch as usual; only the tracker status lands on the shared surface, so one place shows what is in flight and which branch owns it. Where that surface is (the default branch, a dedicated branch) is an extension point, not fixed here.
+Each session should edit only the task file it owns, so task conflicts should be rare. If two sessions edit the same task file, resolve that file as real content.
 
-## The conflict rule
+`board.md` is generated. If it conflicts, take either side and regenerate it.
 
-Each session edits only its own task file, so parallel branches never collide on task content. The one shared file is the generated `board.md`; a merge conflict there is not a real conflict, take either side and regenerate. Generated files are regenerated, never hand-merged.
+## Conventions
 
-## Referencing tasks
+- Refer to a task by its title, not its `NNNN` id. The id is a filing handle for filenames and the board; it means nothing to a reader who did not write the task.
+- Make a task for work that must survive across sessions, not for every edit.
+- When a tracker exists, the post-merge handoff collapses to "check the tracker and assess how to proceed." Follow-ups become tasks instead of riding forward in chat. Keep the full diagnostic handoff for repos without a tracker, and for one-off issues not worth a task.
 
-Refer to a task by its **title** (the work) in prose and handoffs, not its `NNNN` id. The id is a filing handle for filenames and the board; it means nothing to a reader who did not write the task.
+## One logging axis
 
-## When to make a task
-
-For work that must be remembered across sessions, not a quick edit you are finishing now. The backlog is for work that needs remembering, not a ledger of everything done.
-
-## Relation to the surfacing course
-
-The merge guide keys on the **PR** (a unit of delivery); the tracker keys on the **task** (a unit of intent). They cover the same logging need from different angles. Adopt **one** primary logging axis: running both in parallel produces two logs that drift. For solo, topic-driven work the task is the more natural unit. A repo can take the surfacing primitives and the tracker without the course, or the course without the tracker; all three layers are independent.
-
-## Relation to the post-merge handoff
-
-The post-merge handoff prompt (HP) is the trackerless form of this same cross-session handoff: it carries the next steps forward in chat because nothing durable holds them. When a tracker exists, follow-ups become tasks instead, and the HP collapses to "check the tracker and assess how to proceed." Keep the full diagnostic HP for repos without a tracker, and for one-off issues not worth a task.
+The surfacing course logs by PR (a unit of delivery); the tracker logs by task (a unit of intent). Pick one as the primary log. Running both produces two records that drift. For solo, topic-driven work the task is the more natural unit. The tracker is independent of the surfacing primitives and the course; adopt it alone or alongside either.
 
 ## Extension points (set in local CLAUDE.md)
 
-- **Status-claim channel:** the durable shared surface in-flight status lands on (the default branch out of band, a dedicated branch, and so on).
-- **Placement:** where trackers live in the repo (e.g. `projects/<name>/tracker/`, with an optional repo-root `tracker/` for repo-wide meta-work that belongs to no single project).
-- **Registry:** an optional generated index of all trackers in the repo, for multi-tracker repos; single-tracker repos omit it.
-- **Board generator:** the command that regenerates the board.
+- **Placement:** where trackers live (e.g. `projects/<name>/tracker/`, with an optional repo-root `tracker/` for repo-wide meta-work that belongs to no single project).
+- **Board generator:** the command that regenerates `board.md`.
+- **Registry:** an optional generated index of all trackers, for multi-tracker repos; single-tracker repos omit it.
