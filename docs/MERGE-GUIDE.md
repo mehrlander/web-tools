@@ -4,7 +4,7 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
-## 2026-07-08 Two-layer tracker task schema and comments model (PR #TBD)
+## 2026-07-08 Two-layer tracker task schema and comments model (PR #198)
 
 The tracker task-file schema was implicit about which frontmatter keys the generator acts on versus which it merely tolerates. Rewrote the schema section as two layers: a small closed set of recognized keys (required `id`/`title`/`status`, optional `project`/`track`/`opened`/`closed`/`session`) drives the board, and an open set of arbitrary scalar tags rides along, preserved and human-readable, ignored until promoted. Added the parser contract (flat `key: value`, split on first colon, no YAML library, unknown keys preserved), the graduation rule, and a Comments subsection stating the append-vs-overwrite model.
 
