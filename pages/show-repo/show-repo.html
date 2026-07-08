@@ -40,15 +40,11 @@
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-300">
   <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-    <button @click="openDrawer()" title="Browse files"
-            class="btn btn-sm btn-ghost gap-1.5 px-2">
-      <i class="ph ph-sidebar-simple text-lg"></i>
-      <span class="hidden sm:inline text-xs font-medium">Files</span>
-    </button>
-
-    <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-      <img src="../../lib/favicon.svg" alt="" width="24" height="24" class="w-6 h-6">
-      <span class="font-bold tracking-tight">web-tools</span>
+    <!-- Brand -->
+    <button @click="goPages()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+            title="web-tools pages index">
+      <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
+      <span class="font-bold tracking-tight text-lg hidden sm:inline">web-tools</span>
     </button>
 
     <!-- Breadcrumb of what the file view is showing -->
@@ -61,11 +57,20 @@
 
     <div class="grow"></div>
 
-    <button x-show="view==='file'" @click="goHome()" title="Back to the pages gallery"
-            class="btn btn-sm btn-ghost gap-1.5">
-      <i class="ph ph-squares-four text-lg"></i>
-      <span class="hidden sm:inline text-xs font-medium">Pages</span>
-    </button>
+    <!-- Standing view toggle: two activities, one switch -->
+    <div class="join">
+      <button class="btn btn-sm join-item gap-1.5"
+              :class="view==='gallery' ? 'btn-primary' : 'btn-ghost'" @click="goPages()">
+        <i class="ph ph-squares-four text-lg"></i>
+        <span class="hidden sm:inline text-xs font-medium">Pages</span>
+      </button>
+      <button class="btn btn-sm join-item gap-1.5"
+              :class="view==='file' ? 'btn-primary' : 'btn-ghost'" @click="goFiles()">
+        <i class="ph ph-folders text-lg"></i>
+        <span class="hidden sm:inline text-xs font-medium">Files</span>
+      </button>
+    </div>
+
     <a href="https://github.com/mehrlander/web-tools" target="_blank"
        class="btn btn-sm btn-ghost btn-square" title="mehrlander/web-tools on GitHub">
       <i class="ph ph-github-logo text-lg"></i>
@@ -102,7 +107,7 @@
       Browser-based tools and demos. Cards toggle between a
       <span class="font-medium">screenshot</span>, a <span class="font-medium">live</span> preview,
       and the <span class="font-medium">source</span>. Open the
-      <button @click="openDrawer()" class="link link-hover font-medium text-base-content/70">Files</button>
+      <button @click="openFiles()" class="link link-hover font-medium text-base-content/70">Files</button>
       drawer to browse any repo's raw contents.
     </p>
 
@@ -206,9 +211,18 @@
   </div>
 
   <!-- File viewer — the show-repo content pane, taking over when a file is picked -->
-  <div x-show="view==='file'" class="flex flex-col gap-4">
-    <div id="viewer" x-data="viewer()"></div>
-    <div id="compare" x-data="compare()"></div>
+  <div x-show="view==='file'">
+    <div x-show="!$store.browser.activeFile" class="text-center py-24 text-base-content/40">
+      <i class="ph ph-folder-open text-5xl opacity-40"></i>
+      <p class="mt-3 text-sm">
+        Open the <button @click="drawer=true" class="link link-hover font-medium text-base-content/60">Files</button>
+        drawer and pick a file.
+      </p>
+    </div>
+    <div x-show="$store.browser.activeFile" class="flex flex-col gap-4">
+      <div id="viewer" x-data="viewer()"></div>
+      <div id="compare" x-data="compare()"></div>
+    </div>
   </div>
 
 </main>
@@ -310,14 +324,21 @@ function app(){ return {
     await navEl.__navigator.sel(path);
   },
 
-  async openDrawer(){
-    await this.ensureBrowser();
-    this.drawer = true;
+  // Pages | Files is a standing toggle between the two views. Files reopens the
+  // drawer when there's nothing to show yet, or to switch files when one is up;
+  // it doesn't clear the active file, so toggling back to Files resumes it.
+  goPages(){
+    this.view = 'gallery';
+    this.drawer = false;
+    this.syncUrl();
   },
 
-  goHome(){
-    this.view = 'gallery';
-    Alpine.store('browser').activeFile = null;
+  async goFiles(){
+    await this.ensureBrowser();
+    const hasFile = !!Alpine.store('browser').activeFile;
+    if (this.view === 'file' && hasFile){ this.drawer = true; return; }
+    this.view = 'file';
+    if (!hasFile) this.drawer = true;
     this.syncUrl();
   }
 }}
@@ -397,8 +418,8 @@ function gallery(){
         catch(e){ p.source = '// failed to load source: ' + e; }
       }
     },
-    // Delegate the shell-owned drawer to the app scope.
-    openDrawer(){ window.__shell?.openDrawer(); },
+    // Delegate the shell-owned view switch to the app scope.
+    openFiles(){ window.__shell?.goFiles(); },
     // The bridge: open a card's source in the file browser. Its repo path is the
     // github blob URL after /blob/<ref>/; that always names the real file, even
     // for the out-of-tree kit demos under lib/.
