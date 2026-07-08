@@ -3,7 +3,7 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
-- (none)
+- Private-repo landing federation via the home registry next: co-design the home manifest schema once the integrated landing page lands
 
 ## In progress
 - (none)
