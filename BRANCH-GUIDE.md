@@ -1,6 +1,6 @@
 # Branch guide: claude/show-repo-pages-integration-uzn9gw
 
-Rebuilds `pages/show-repo/show-repo.html` so it opens as the perfect web-tools pages gallery (the index), with the file navigator folded into an expandable left drawer and the file viewer taking over the main area on selection. Header is the web-tools brand plus a standing Pages | Files toggle.
+Rebuilds `pages/show-repo/show-repo.html` around a per-repo landing page: the repo picker + ref switch + auth shield are up front in the header, the drawer is just the file tree for the selected repo, and the main area shows that repo's landing (web-tools' = its pages index) or the file viewer. Standing Landing | Files toggle.
 
 🥏 [pages/show-repo/show-repo.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/show-repo-pages-integration-uzn9gw:pages/show-repo/show-repo.html)
 
@@ -13,6 +13,6 @@ Rebuilds `pages/show-repo/show-repo.html` so it opens as the perfect web-tools p
 - CLAUDE.md — clarify the `?use=` (lib/dist) vs 🥏 toss `#gh=` (page shell) preview boundary
 
 **Next steps / open threads:**
-- Concept proposal for review. Gallery is web-tools-fixed (home); the drawer's repo picker repoints only the file browser. A repo-following gallery is a possible extension, deliberately not taken.
-- Dropped the mehrlander/home remote state persistence; state now rides the URL only.
-- Open review points: drawer pinned on desktop vs close-on-select; whether the per-card inspect bridge earns its place.
+- Landing mechanism is stubbed at one decision point (`app.landingKind`); only web-tools resolves ('gallery'). Design notes at the end of show-repo.html sketch the progression: per-repo `pages/landing.html`, an elegant default overview, then the task-0002 home-registry federation. Co-designing the home manifest (0002's "next") is now unblocked.
+- Dropped the mehrlander/home remote state persistence; state rides the URL (`?repo&ref&file`).
+- Open review points: default landing content (repo overview shape); drawer pinned on desktop vs close-on-select; whether the per-card inspect bridge earns its place.

@@ -23,9 +23,10 @@
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
-<!-- Two activities under one roof: the web-tools pages gallery (home) and a
-     go-anywhere file browser that lives in a left drawer. Picking a file in the
-     drawer swaps the main area from gallery to viewer; the header returns you. -->
+<!-- Repo browser fronted by a per-repo landing page. The repo picker and auth
+     are up front (header); the drawer is the file tree for the selected repo;
+     the main area is that repo's landing (web-tools' = its pages index) or the
+     file viewer. See the design notes at the end of this file. -->
 <body class="min-h-screen bg-base-100 text-base-content" x-data="app()" x-cloak>
 
 <div class="toast toast-top toast-end z-[60]" x-data x-show="$store.toasts && $store.toasts.length">
@@ -39,61 +40,56 @@
 
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-300">
-  <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-    <!-- Brand -->
-    <button @click="goPages()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
-            title="web-tools pages index">
-      <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
-      <span class="font-bold tracking-tight text-lg hidden sm:inline">web-tools</span>
-    </button>
+  <div class="max-w-6xl mx-auto px-4">
+    <!-- Row 1: brand + the standing view toggle -->
+    <div class="h-14 flex items-center gap-3">
+      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+              title="web-tools">
+        <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
+        <span class="font-bold tracking-tight text-lg hidden sm:inline">web-tools</span>
+      </button>
 
-    <!-- Breadcrumb of what the file view is showing -->
-    <div x-show="view==='file' && $store.browser.repo" class="min-w-0 flex items-center gap-1.5 text-xs font-mono text-base-content/50">
-      <i class="ph ph-caret-right opacity-40"></i>
-      <span class="truncate" x-text="$store.browser.repo"></span>
-      <span class="opacity-40">@</span>
-      <span class="truncate" x-text="$store.browser.ref || 'main'"></span>
+      <div class="grow"></div>
+
+      <!-- The landing button appears only when the selected repo has a landing
+           (web-tools does — its pages index); otherwise the view is just files. -->
+      <div class="join">
+        <button x-show="hasLanding" class="btn btn-sm join-item gap-1.5"
+                :class="view==='landing' ? 'btn-primary' : 'btn-ghost'" @click="goHome()">
+          <i class="ph text-lg" :class="landingIcon"></i>
+          <span class="hidden sm:inline text-xs font-medium" x-text="landingLabel"></span>
+        </button>
+        <button class="btn btn-sm join-item gap-1.5"
+                :class="view==='file' ? 'btn-primary' : 'btn-ghost'" @click="goFiles()">
+          <i class="ph ph-folders text-lg"></i>
+          <span class="hidden sm:inline text-xs font-medium">Files</span>
+        </button>
+      </div>
     </div>
 
-    <div class="grow"></div>
-
-    <!-- Standing view toggle: two activities, one switch -->
-    <div class="join">
-      <button class="btn btn-sm join-item gap-1.5"
-              :class="view==='gallery' ? 'btn-primary' : 'btn-ghost'" @click="goPages()">
-        <i class="ph ph-squares-four text-lg"></i>
-        <span class="hidden sm:inline text-xs font-medium">Pages</span>
-      </button>
-      <button class="btn btn-sm join-item gap-1.5"
-              :class="view==='file' ? 'btn-primary' : 'btn-ghost'" @click="goFiles()">
-        <i class="ph ph-folders text-lg"></i>
-        <span class="hidden sm:inline text-xs font-medium">Files</span>
-      </button>
-    </div>
-
-    <a href="https://github.com/mehrlander/web-tools" target="_blank"
-       class="btn btn-sm btn-ghost btn-square" title="mehrlander/web-tools on GitHub">
-      <i class="ph ph-github-logo text-lg"></i>
-    </a>
+    <!-- Row 2: repo navigation up front — picker, ref switch, and the auth
+         shield all live in the repo component. Files for the selected repo
+         stay in the drawer. -->
+    <div id="repo" x-data="repo()"></div>
   </div>
 </header>
 
-<!-- ── File drawer (slides in from the left) ──────────────────────────────── -->
+<!-- ── File drawer (slides in from the left) — just the tree for the repo ──── -->
 <div x-show="drawer" @click="drawer=false" x-transition.opacity
      class="fixed inset-0 bg-black/30 z-40" x-cloak></div>
 
 <aside class="fixed inset-y-0 left-0 w-80 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl flex flex-col transition-transform duration-200 ease-out"
        :class="drawer ? 'translate-x-0' : '-translate-x-full'">
   <div class="flex items-center justify-between px-4 h-14 border-b border-base-300 shrink-0">
-    <span class="font-semibold text-sm flex items-center gap-1.5">
-      <i class="ph ph-folders text-primary"></i> Browse files
-    </span>
+    <div class="min-w-0 flex items-center gap-1.5">
+      <i class="ph ph-folders text-primary shrink-0"></i>
+      <span class="font-mono text-xs truncate" x-text="$store.browser.repo || 'Files'"></span>
+    </div>
     <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost">
       <i class="ph ph-x text-lg"></i>
     </button>
   </div>
-  <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
-    <div id="repo" x-data="repo()"></div>
+  <div class="flex-1 overflow-y-auto px-3 py-3">
     <div id="navigator" x-data="navigator()"></div>
   </div>
 </aside>
@@ -101,8 +97,10 @@
 <!-- ── Main area: gallery (home) or the file viewer ───────────────────────── -->
 <main class="max-w-6xl mx-auto px-4 py-8">
 
-  <!-- Pages gallery — the perfect index, fed from pages.json -->
-  <div x-show="view==='gallery'" x-data="gallery()">
+  <!-- web-tools' landing: the pages gallery, fed from pages.json. Other repos'
+       landings will slot in here later (a repo's own pages/landing.html, or an
+       elegant default) — see the design notes at the bottom of this file. -->
+  <div x-show="view==='landing'" x-data="gallery()">
     <p class="text-base-content/50 text-sm mb-6">
       Browser-based tools and demos. Cards toggle between a
       <span class="font-medium">screenshot</span>, a <span class="font-medium">live</span> preview,
@@ -249,11 +247,13 @@ const notify = (msg, cls='alert-error', icon='warning') => {
   console.error(msg);
 };
 
-// ── Shell: owns view/drawer state, boots gh, wires the drawer to the viewer ──
+// ── Shell: repo context + view state (landing | file). The repo picker and
+// auth are up front (the repo component in the header); files for the selected
+// repo live in the drawer. Which landing a repo gets is a per-repo decision —
+// today only web-tools has one (its pages index); see landingKind(). ──────────
 function app(){ return {
-  view: 'gallery',        // 'gallery' | 'file'
+  view: 'landing',        // 'landing' | 'file'
   drawer: false,
-  booted: false,          // has the file browser been pointed at a repo yet
   DEFAULT_REPO: 'mehrlander/web-tools',
 
   async init(){
@@ -263,50 +263,66 @@ function app(){ return {
     const gh = new window.GH({ token: window.TOKEN });
     Alpine.store('browser').gh = gh;
 
-    // Selecting a file (from the drawer or a gallery card) sets activeFile;
-    // that alone flips us into the file view and closes the drawer.
+    // Selecting a file (drawer or a landing card) flips us into the file view.
     this.$watch(() => Alpine.store('browser').activeFile, (f) => {
       if (f) { this.view = 'file'; this.drawer = false; this.syncUrl(); }
     });
 
-    // Deep link: ?repo&ref&file boots straight into the file view.
+    // Changing the repo re-decides the view: a repo with a landing opens on it,
+    // one without drops straight to files (drawer open, so the tree is right
+    // there). pick() has already cleared activeFile by the time this fires.
+    this.$watch(() => Alpine.store('browser').repo, () => {
+      if (Alpine.store('browser').activeFile) return;
+      if (this.hasLanding) { this.view = 'landing'; }
+      else { this.view = 'file'; this.drawer = true; }
+      this.syncUrl();
+    });
+
+    // The repo bar is always visible, so point the browser at a repo now rather
+    // than lazily. Deep link ?repo&ref&file lands directly on that file.
     const url = this.parseUrl();
-    if (url && url.file) {
-      await this.ensureBrowser(url.repo, url.ref);
-      await this.openFile(url.file);
-    }
+    await this.ensureBrowser(url?.repo, url?.ref);
+    if (url && url.file) await this.openFile(url.file);
   },
+
+  // Which landing a repo gets. web-tools -> its pages index ('gallery'). Other
+  // repos: none yet, so the toggle hides the landing button and the view is
+  // just files. The design notes at the bottom of this file sketch where a
+  // repo's own pages/landing.html and an elegant default slot in.
+  landingKind(){
+    return Alpine.store('browser').repo === this.DEFAULT_REPO ? 'gallery' : null;
+  },
+  get hasLanding(){ return !!this.landingKind(); },
+  get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Home'; },
+  get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
 
   parseUrl(){
     const p = new URLSearchParams(location.search);
-    if (!p.has('file')) return null;
+    if (!p.has('repo') && !p.has('file')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '', file: p.get('file') };
   },
 
   syncUrl(){
     const s = Alpine.store('browser');
     const p = new URLSearchParams(location.search);
-    if (this.view === 'file' && s.activeFile){
-      if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
-      if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
-      p.set('file', s.activeFile.path);
-    } else {
-      p.delete('repo'); p.delete('ref'); p.delete('file');
-    }
+    // Off-default repo/ref is always worth pinning; file only in the file view.
+    if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
+    if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
+    if (this.view === 'file' && s.activeFile) p.set('file', s.activeFile.path); else p.delete('file');
     const qs = p.toString();
     history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
   },
 
-  // Point the file browser at a repo the first time it's needed. web-tools boots
-  // identity-free via pickByName; setup() fills the repo dropdown in the
-  // background (quiet: a missing/expired token won't hijack the gallery).
+  // Point the file browser at a repo. web-tools boots identity-free via
+  // pickByName; setup() fills the repo dropdown in the background (quiet: a
+  // missing/expired token won't hijack the page).
   async ensureBrowser(repo, ref){
     repo = repo || this.DEFAULT_REPO;
     const gh = Alpine.store('browser').gh;
     const repoEl = document.getElementById('repo');
     if (!await waitFor(() => repoEl.__repo)) { notify('Repo component never mounted.'); return; }
-    if (!this.booted){
-      this.booted = true;
+    if (!this._setup){
+      this._setup = true;
       repoEl.__repo.setup(gh, { quiet: true }).catch(e => console.warn('repo setup:', e?.message || e));
     }
     if (Alpine.store('browser').repo !== repo || (ref && Alpine.store('browser').ref !== ref)){
@@ -324,15 +340,16 @@ function app(){ return {
     await navEl.__navigator.sel(path);
   },
 
-  // Pages | Files is a standing toggle between the two views. Files reopens the
-  // drawer when there's nothing to show yet, or to switch files when one is up;
-  // it doesn't clear the active file, so toggling back to Files resumes it.
-  goPages(){
-    this.view = 'gallery';
+  // The landing button. Returns to the repo's landing view.
+  goHome(){
+    if (!this.hasLanding) return this.goFiles();
+    this.view = 'landing';
     this.drawer = false;
     this.syncUrl();
   },
 
+  // Files reopens the drawer when there's nothing to show yet, or to switch
+  // files when one is up; it keeps the active file, so toggling back resumes it.
   async goFiles(){
     await this.ensureBrowser();
     const hasFile = !!Alpine.store('browser').activeFile;
@@ -432,5 +449,39 @@ function gallery(){
   };
 }
 </script>
+
+<!-- ── Design notes: the landing mechanism ─────────────────────────────────────
+  This page treats a repo as having, potentially, a LANDING PAGE. The repo
+  picker and auth are up front; the drawer is just the file tree for whatever
+  repo is selected; the main area shows either that repo's landing or the file
+  viewer. app.landingKind(repo) is the one decision point.
+
+  Today only web-tools resolves to a landing ('gallery', its pages index). The
+  intended progression, aligned with tracker task 0002 (private-repo landing
+  federation via mehrlander/home):
+
+    1. Per-repo custom landing. A repo ships its own pages/landing.html; the
+       shell renders it live — for a mehrlander repo (public or private) via the
+       toss #gh= address mode (token-authed, relative deps handled), for any
+       public repo via its github.io URL or a ?use= iframe. "The repo builds its
+       own page." landingKind() returns 'custom' and the main area mounts an
+       iframe at that render URL.
+
+    2. Elegant default landing. For a repo with no landing of its own, synthesize
+       one instead of dropping to bare files: a repo overview — description +
+       stats (already in repoObj), the rendered README, and a compact strip of
+       any pages/*.html found (the old pages.js scan, reclaimed in the card
+       style). landingKind() returns 'overview'. Every repo then has a landing,
+       and the toggle is always Landing | Files.
+
+    3. Federation (task 0002). With a token, read mehrlander/home's landing.json
+       and fold each featured private repo's landing into web-tools' own gallery
+       as additional cards/sections. HOME_REPO becomes the one public-private
+       hinge, a single lib/ constant. No token: the private section is simply
+       absent, no leak.
+
+  The seam is deliberately small so 1-3 are additive: each is a new branch in
+  landingKind() plus the matching main-area block, no rework of the shell.
+─────────────────────────────────────────────────────────────────────────── -->
 </body>
 </html>
