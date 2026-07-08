@@ -39,7 +39,7 @@
   </template>
 </div>
 
-<!-- ── Header: brand + repo navigation (picker, ref, auth shield) ──────────── -->
+<!-- ── Header: brand + auth on left, repo picker on right ──────────────────── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-3">
@@ -51,10 +51,12 @@
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
         <span class="font-bold tracking-tight text-lg hidden sm:inline">web-tools</span>
       </button>
+      <button @click="repoModal?.showModal()" class="tooltip tooltip-bottom shrink-0"
+              :data-tip="authTip">
+        <i class="ph text-lg" :class="authIcon"></i>
+      </button>
       <div class="grow"></div>
-      <!-- Repo navigation up front: picker, ref switch, and the auth shield all
-           live in the repo component. -->
-      <div id="repo" x-data="repo()" class="min-w-0"></div>
+      <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
     </div>
   </div>
 </header>
@@ -351,6 +353,23 @@ function app(){ return {
   },
   get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Overview'; },
   get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
+
+  get repoComponent(){ return document.getElementById('repo')?.__repo; },
+  get authIcon(){
+    const r = this.repoComponent;
+    if (!r) return 'ph-globe text-base-content/50';
+    if (r.auth) return 'ph-shield-check text-success';
+    if (r.tokenExpired) return 'ph-warning text-warning';
+    return 'ph-globe text-base-content/50';
+  },
+  get authTip(){
+    const r = this.repoComponent;
+    if (!r) return 'Loading...';
+    if (r.auth) return 'Authenticated: ' + r.user;
+    if (r.tokenExpired) return 'Token expired';
+    return 'Public only';
+  },
+  get repoModal(){ return document.getElementById('repoModal'); },
 
   get atlasUrl(){
     const s = Alpine.store('browser');
