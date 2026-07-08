@@ -4,6 +4,25 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-08 Rewrite tracker spec and implement root-level tracker (PR #TBD)
+
+Rewrote `docs/TRACKER.md` for clarity (dropped jargon, stated the model in concrete terms) and stood up the first live tracker at `tracker/`.
+
+**Changed:**
+- docs/TRACKER.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md), [diff](https://github.com/mehrlander/web-tools/compare/291e7c0...claude/tracker-concept-assessment-yto1m1))
+- tracker/tasks/0001.md ([new](https://github.com/mehrlander/web-tools/blob/main/tracker/tasks/0001.md))
+- tracker/board.md ([new](https://github.com/mehrlander/web-tools/blob/main/tracker/board.md))
+- tools/build/tracker-board.mjs ([new](https://github.com/mehrlander/web-tools/blob/main/tools/build/tracker-board.mjs))
+- .claude/hooks/build-on-commit.sh ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/hooks/build-on-commit.sh), [diff](https://github.com/mehrlander/web-tools/compare/291e7c0...claude/tracker-concept-assessment-yto1m1))
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/compare/291e7c0...claude/tracker-concept-assessment-yto1m1))
+- package.json ([new](https://github.com/mehrlander/web-tools/blob/main/package.json), [diff](https://github.com/mehrlander/web-tools/compare/291e7c0...claude/tracker-concept-assessment-yto1m1))
+
+**Notes:** The spec rewrite drops "durable shared surface," "status-claim channel," and "out of band" in favor of plain language: tracker state lives on main, task files are committed directly to main. Scoping language softened to permit nested and repo-wide trackers. Implementation follows the existing commit-hook pattern (leg 4). The seed task (0001) is a bootstrap: it rides this branch because the tracker does not exist on main yet.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/tracker-concept-assessment-yto1m1)
+
+---
+
 ## 2026-07-07 Hex-nut index favicon + archive, the surfacing caption, and the project-tracker convention (PR #195)
 
 The pages index adopts the canonical hex-nut mark (retiring its four-quadrant grid) with a new `docs/favicons/` archive; the per-file caption primitive is rewritten as the **surfacing caption** (uniform list plus a trailing 🥏 render line); and the opt-in **project-tracker** convention is published.

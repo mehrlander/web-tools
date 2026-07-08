@@ -6,10 +6,10 @@ _Generated from tasks/. Do not hand-edit._
 - (none)
 
 ## In progress
-- Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`) next: commit and verify the hook leg regenerates board.md
+- (none)
 
 ## Blocked
 - (none)
 
 ## Done
-- (none)
+- Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`)
