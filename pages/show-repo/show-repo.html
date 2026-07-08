@@ -49,7 +49,9 @@
       <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
               title="web-tools">
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
+        <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
       </button>
+      <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <button @click="document.getElementById('repoModal')?.showModal()" class="tooltip tooltip-bottom shrink-0"
               :data-tip="authTip">
         <i class="ph text-lg" :class="authIcon"></i>
