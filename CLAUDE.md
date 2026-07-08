@@ -38,8 +38,16 @@ Every **deterministic** derived artifact is owned by one commit-time hook (`.cla
 
 - `lib/` changed → `npm run build:lib` → `dist/web-tools.js`
 - `pages/**/*.html` changed → `npm run pages-index` → `pages/README.md` + `pages/index.html`
+- `tracker/tasks/` changed → `npm run tracker-board` → `tracker/board.md`
 
-Don't hand-edit any of those three files; edit the source and let the hook refresh them. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
+Don't hand-edit any of those four files; edit the source and let the hook refresh them. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
+
+## Project tracker
+
+Root-level `tracker/` scoped to repo-wide work (conventions, build tooling, docs, environment). Follows [`docs/TRACKER.md`](docs/TRACKER.md).
+
+- **Placement:** `tracker/` (single tracker, no registry).
+- **Board generator:** `npm run tracker-board` (wired into the commit hook above).
 
 ## Environment & testing
 

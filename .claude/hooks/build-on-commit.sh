@@ -68,4 +68,13 @@ if [ -n "$changed_pages" ]; then
   done <<< "$changed_pages"
 fi
 
+# --- leg 4: tracker/tasks/ -> tracker/board.md --------------------------------
+if git status --porcelain -- tracker/tasks/ | grep -q .; then
+  if npm run tracker-board --silent >/dev/null 2>&1; then
+    git add tracker/board.md 2>/dev/null || true
+  else
+    echo "build hook: 'npm run tracker-board' failed — committing without refreshing tracker/board.md" >&2
+  fi
+fi
+
 exit 0
