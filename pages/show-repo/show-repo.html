@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="winter">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GH Browse</title>
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<title>web-tools · browse</title>
+<link rel="icon" type="image/svg+xml" href="../../lib/favicon.svg">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
   // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import URL,
-  // exposes window.gh, and loads gh-auth.js (which installs the boot-error
-  // handler). No per-page try/catch needed.
+  // exposes window.gh, and loads gh-auth.js. The landing needs no token; the
+  // file browser boots quietly and only prompts for auth on demand.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
   await gh.load('gh-store.js');
@@ -18,14 +19,18 @@
   await gh.load('alpineComponents/navigator.js');
   await gh.load('alpineComponents/viewer.js');
   await gh.load('alpineComponents/compare.js');
-  await gh.load('alpineComponents/pages.js');
   await gh.load('alpine-bundle.js');
 </script>
+<style>[x-cloak]{display:none!important}</style>
 </head>
-<!-- No x-init: Alpine auto-calls a data object's init(); declaring both runs boot twice. -->
-<body class="min-h-screen bg-base-100" x-data="app()">
+<!-- A repo browser fronted by a per-repo landing page. The repo picker + auth
+     are up front (header). One sidebar lists what you can look at for that repo
+     — its landing, its atlas, then its files — which is why there's no separate
+     Pages/Files toggle. The sidebar is pinned on desktop, a drawer on mobile.
+     See the design notes at the end of this file. -->
+<body class="h-screen flex flex-col overflow-hidden bg-base-100 text-base-content" x-data="app()" x-cloak>
 
-<div class="toast toast-top toast-end z-40" x-data x-show="$store.toasts && $store.toasts.length">
+<div class="toast toast-top toast-end z-[60]" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">
   <div class="alert text-sm gap-2" :class="t.cls">
     <i class="ph" :class="'ph-'+t.icon"></i>
@@ -34,29 +39,241 @@
   </template>
 </div>
 
-<div class="max-w-7xl mx-auto px-2 py-3">
-
-  <div id="repo" x-data="repo()"></div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-3">
-
-  <div id="navigator" x-data="navigator()" class="lg:col-span-1 flex flex-col gap-4"></div>
-
-  <div class="lg:col-span-3 flex flex-col gap-4">
-    <div>
-    <button @click="ui.content=!ui.content" class="flex items-center gap-1 font-semibold py-0.5 hover:text-primary mb-1 cursor-pointer">
-      <i class="ph" :class="ui.content?'ph-caret-down':'ph-caret-right'"></i>Content
-    </button>
-    <div x-show="ui.content" x-collapse>
-      <div id="viewer" x-data="viewer()"></div>
+<!-- ── Header: brand, auth shield, then repo nav ──────────────────────────── -->
+<header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
+  <div class="max-w-full px-4">
+    <div class="h-14 flex items-center gap-3">
+      <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost lg:hidden" title="Browse">
+        <i class="ph ph-list text-lg"></i>
+      </button>
+      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+              title="web-tools">
+        <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
+        <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
+      </button>
+      <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
+      <button @click="document.getElementById('repoModal')?.showModal()" class="tooltip tooltip-bottom shrink-0"
+              :data-tip="authTip">
+        <i class="ph text-lg" :class="authIcon"></i>
+      </button>
+      <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
     </div>
+  </div>
+</header>
+
+<div class="flex-1 flex min-h-0">
+
+  <!-- ── Sidebar: repo views + the file tree. Pinned on desktop, drawer on
+       mobile. ─────────────────────────────────────────────────────────────── -->
+  <div x-show="drawer" @click="drawer=false" x-transition.opacity
+       class="fixed inset-0 bg-black/30 z-40 lg:hidden" x-cloak></div>
+
+  <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl
+                flex flex-col transition-transform duration-200 ease-out
+                lg:static lg:z-auto lg:shadow-none lg:translate-x-0 lg:w-72 lg:shrink-0"
+         :class="drawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+    <!-- Mobile drawer header (the desktop sidebar sits under the page header) -->
+    <div class="h-14 flex items-center justify-between px-4 border-b border-base-300 shrink-0 lg:hidden">
+      <span class="font-mono text-xs truncate" x-text="$store.browser.repo || 'Browse'"></span>
+      <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost"><i class="ph ph-x text-lg"></i></button>
     </div>
 
-    <div id="compare" x-data="compare()"></div>
-  </div>
-  </div>
+    <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+      <!-- Repo views: the landing (web-tools' is its pages index, others get an
+           overview) and the atlas, always available regardless of landing. -->
+      <div class="flex flex-col gap-0.5">
+        <button @click="goLanding()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph text-base" :class="landingIcon"></i><span x-text="landingLabel"></span>
+        </button>
+        <button @click="goAtlas()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='atlas' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-map-trifold text-base"></i><span>Atlas</span>
+        </button>
+      </div>
 
-  <div id="pages" x-data="pages()" class="mt-4"></div>
+      <div class="border-t border-base-200"></div>
+
+      <!-- The file tree for the selected repo. -->
+      <div id="navigator" x-data="navigator()"></div>
+    </div>
+  </aside>
+
+  <!-- ── Main area: the selected view for the repo ────────────────────────── -->
+  <main class="flex-1 min-w-0 min-h-0">
+
+    <!-- Landing: web-tools' gallery, or a default overview for other repos. -->
+    <div x-show="view==='landing'" class="h-full overflow-y-auto">
+      <div class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- web-tools landing: the pages gallery, fed from pages.json -->
+        <div x-show="landingKind()==='gallery'">
+          <div x-data="gallery()">
+            <p class="text-base-content/50 text-sm mb-6">
+              Browser-based tools and demos. Cards toggle between a
+              <span class="font-medium">screenshot</span>, a <span class="font-medium">live</span> preview,
+              and the <span class="font-medium">source</span>. Use the sidebar to open a file,
+              the atlas, or another repo.
+            </p>
+
+            <div x-show="!loaded" class="flex justify-center py-20">
+              <span class="loading loading-dots loading-md opacity-30"></span>
+            </div>
+
+            <template x-if="loaded">
+            <div>
+              <div class="flex flex-wrap items-center gap-1.5 mb-8">
+                <template x-for="c in chips" :key="c.key">
+                  <button class="btn btn-xs font-mono"
+                          :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
+                          @click="filter=c.key">
+                    <span><span class="opacity-50 font-normal" x-text="c.pre"></span><span x-text="c.seg"></span></span>
+                    <span class="opacity-50" x-text="c.count"></span>
+                  </button>
+                </template>
+                <div class="grow"></div>
+                <label class="input input-xs input-bordered flex items-center gap-1.5 w-48">
+                  <i class="ph ph-magnifying-glass opacity-50"></i>
+                  <input type="search" x-model.debounce="q" placeholder="filter by name…" class="grow min-w-0">
+                </label>
+              </div>
+
+              <p x-show="!filteredGroups.length" class="text-base-content/40 text-sm">
+                No pages match<span x-show="q"> “<span x-text="q"></span>”</span>.
+              </p>
+
+              <template x-for="g in filteredGroups" :key="g.label">
+                <section class="mb-10">
+                  <h2 x-show="g.label" class="text-xs font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
+                    <i class="ph ph-folder"></i><span x-text="g.label"></span>
+                    <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+                  </h2>
+                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <template x-for="p in g.items" :key="p.href">
+                      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+
+                    <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
+                      <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
+                        <img :src="p.thumb" :alt="p.label" loading="lazy"
+                             class="w-full h-full object-cover object-top"
+                             @error="p.shotMissing = true" x-show="!p.shotMissing">
+                        <div x-show="p.shotMissing"
+                             class="w-full h-full flex items-center justify-center text-base-content/30 text-xs gap-1">
+                          <i class="ph ph-image-broken"></i> no screenshot
+                        </div>
+                      </a>
+                      <template x-if="p.view==='live'">
+                        <iframe :src="p.href + '?use=main'" loading="lazy"
+                                sandbox="allow-scripts allow-same-origin allow-popups"
+                                class="w-full h-full bg-base-100"></iframe>
+                      </template>
+                      <pre x-show="p.view==='html'"
+                           class="w-full h-full overflow-auto m-0 p-2 text-[10px] leading-snug bg-base-100"
+                           x-text="p.source"></pre>
+
+                      <div class="join absolute top-1.5 right-1.5 shadow">
+                        <button class="btn btn-xs join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
+                                @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
+                        <button class="btn btn-xs join-item" :class="p.view==='live' && 'btn-primary btn-active'"
+                                @click="show(p,'live')" title="Live preview"><i class="ph ph-play"></i></button>
+                        <button class="btn btn-xs join-item" :class="p.view==='html' && 'btn-primary btn-active'"
+                                @click="show(p,'html')" title="HTML source"><i class="ph ph-code"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="card-body p-3 gap-1">
+                      <div class="flex items-baseline justify-between gap-2">
+                        <a :href="p.href" class="font-semibold text-sm hover:text-primary transition-colors truncate"
+                           x-text="p.label"></a>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          <button @click="inspect(p)" title="Open the source in the file browser"
+                                  class="text-base-content/30 hover:text-primary transition-colors cursor-pointer">
+                            <i class="ph ph-sidebar-simple"></i></button>
+                          <a :href="p.code" target="_blank"
+                             class="text-base-content/30 hover:text-base-content/60" title="Source on GitHub">
+                            <i class="ph ph-github-logo"></i></a>
+                        </div>
+                      </div>
+                      <p class="text-xs text-base-content/50" x-text="p.note || p.title"></p>
+                    </div>
+
+                      </div>
+                    </template>
+                  </div>
+                </section>
+              </template>
+
+              <div class="mt-8 pt-4 border-t border-base-200">
+                <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
+                   class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1.5 transition-colors"
+                   target="_blank">
+                  <i class="ph ph-list-bullets"></i>
+                  Full catalog — every page incl. nested, with rendered + source links
+                </a>
+              </div>
+            </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Default landing for any other repo: an overview — stats, README,
+             and a jump to the atlas. -->
+        <div x-show="landingKind()==='overview'">
+          <div x-data="overview()">
+            <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+              <div class="min-w-0">
+                <h1 class="text-2xl font-bold tracking-tight font-mono truncate" x-text="repo"></h1>
+                <p x-show="desc" class="text-base-content/60 mt-1" x-text="desc"></p>
+              </div>
+              <button @click="goAtlas()" class="btn btn-sm btn-outline gap-1.5 shrink-0">
+                <i class="ph ph-map-trifold"></i> Atlas
+              </button>
+            </div>
+
+            <div x-show="repoObj" class="flex flex-wrap gap-1.5 mb-6">
+              <span class="badge badge-ghost gap-1"><i class="ph" :class="repoObj?.private?'ph-lock':'ph-globe'"></i>
+                <span x-text="visibility"></span></span>
+              <span class="badge badge-ghost gap-1"><i class="ph ph-star"></i><span x-text="stars"></span></span>
+              <span class="badge badge-ghost gap-1"><i class="ph ph-git-fork"></i><span x-text="forks"></span></span>
+              <span class="badge badge-ghost gap-1"><i class="ph ph-git-branch"></i><span x-text="defaultRef"></span></span>
+              <span x-show="pushed" class="badge badge-ghost gap-1"><i class="ph ph-clock"></i>
+                <span x-text="'pushed '+pushed"></span></span>
+            </div>
+
+            <div x-show="loading" class="flex justify-center py-16">
+              <span class="loading loading-dots loading-md opacity-30"></span>
+            </div>
+            <article x-show="!loading && html" class="prose prose-sm max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+                     x-html="html"></article>
+            <p x-show="!loading && !html" class="text-base-content/40 italic text-sm py-8">
+              No README found on this ref. Use the sidebar to browse files, or open the atlas.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Atlas: the treemap for the selected repo, embedded. Available for every
+         repo (the "ready mechanism"), even one with its own landing. -->
+    <div x-show="view==='atlas'" class="h-full">
+      <template x-if="atlasSeen">
+        <iframe :src="atlasUrl" class="w-full h-full border-0 bg-base-100"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
+      </template>
+    </div>
+
+    <!-- File viewer -->
+    <div x-show="view==='file'" class="h-full overflow-y-auto">
+      <div class="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-4">
+        <div id="viewer" x-data="viewer()"></div>
+        <div id="compare" x-data="compare()"></div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
@@ -64,124 +281,317 @@ window.TOKEN = '🎟️GitHubToken';
 if (window.TOKEN === '🎟️GitHubToken') {
   try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
 }
-const HOME_REPO = 'mehrlander/home';
-const STATE_FILE = 'gh-browse-state.json';
 
 const waitFor = async (pred, ms=8000, step=50) => {
   for (let t=0; t<ms; t+=step) {
-  if (pred()) return true;
-  await new Promise(r => setTimeout(r, step));
+    if (pred()) return true;
+    await new Promise(r => setTimeout(r, step));
   }
   return false;
 };
 
 const notify = (msg, cls='alert-error', icon='warning') => {
   try {
-  const t = Alpine.store('toast');
-  if (t) return t(icon, msg, cls, 6000);
+    const t = Alpine.store('toast');
+    if (t) return t(icon, msg, cls, 6000);
   } catch {}
   console.error(msg);
 };
 
+// marked, loaded once on demand for the overview README render.
+let _markedP = null;
+function loadMarked(){
+  return _markedP ??= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ── Shell: repo context + view state. The repo picker and auth are up front;
+// the sidebar lists the repo's views (landing, atlas) and its files. Which
+// landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  ui: { content: true },
-  stateSha: null,
+  view: 'landing',        // 'landing' | 'atlas' | 'file'
+  drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
+  atlasSeen: false,       // mount the atlas iframe lazily, on first visit
+  DEFAULT_REPO: 'mehrlander/web-tools',
 
   async init(){
-  const ready = await waitFor(() => window.GH);
-  if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
-  try {
+    window.__shell = this;
+    const ready = await waitFor(() => window.GH);
+    if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
     const gh = new window.GH({ token: window.TOKEN });
     Alpine.store('browser').gh = gh;
+
+    // Selecting a file (sidebar tree or a landing card) flips to the file view.
+    this.$watch(() => Alpine.store('browser').activeFile, (f) => {
+      if (f) { this.view = 'file'; this.drawer = false; this.syncUrl(); }
+    });
+
+    // Changing the repo takes you to its landing (default or specified).
+    this.$watch(() => Alpine.store('browser').repo, () => {
+      if (Alpine.store('browser').activeFile) return;
+      this.view = 'landing';
+      this.syncUrl();
+    });
+
+    // The repo bar is always visible, so point the browser at a repo now.
+    // Deep link: ?repo&ref then ?file / ?view=atlas.
+    const url = this.parseUrl();
+    await this.ensureBrowser(url?.repo, url?.ref);
+    if (url && url.file) await this.openFile(url.file);
+    else if (url && url.view === 'atlas') this.goAtlas();
+  },
+
+  // web-tools -> its pages index ('gallery'); every other repo -> a synthesized
+  // overview ('overview'). The design notes below sketch a third kind, 'custom'
+  // (a repo's own pages/landing.html), and the task-0002 federation.
+  landingKind(){
+    return Alpine.store('browser').repo === this.DEFAULT_REPO ? 'gallery' : 'overview';
+  },
+  get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Overview'; },
+  get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
+
+  _authState: 'public',
+  _authUser: '',
+  get authIcon(){
+    if (this._authState === 'auth') return 'ph-shield-check text-success';
+    if (this._authState === 'expired') return 'ph-warning text-warning';
+    return 'ph-globe text-base-content/50';
+  },
+  get authTip(){
+    if (this._authState === 'auth') return 'Authenticated: ' + this._authUser;
+    if (this._authState === 'expired') return 'Token expired';
+    return 'Public only';
+  },
+
+  get atlasUrl(){
+    const s = Alpine.store('browser');
+    const use = new URLSearchParams(location.search).get('use');
+    let u = '../repo-atlas.html?repo=' + encodeURIComponent(s.repo || this.DEFAULT_REPO);
+    if (s.ref && s.ref !== s.defaultRef) u += '&ref=' + encodeURIComponent(s.ref);
+    if (use) u += '&use=' + encodeURIComponent(use);
+    return u;
+  },
+
+  parseUrl(){
+    const p = new URLSearchParams(location.search);
+    if (!p.has('repo') && !p.has('file') && !p.has('view')) return null;
+    return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
+             file: p.get('file'), view: p.get('view') };
+  },
+
+  syncUrl(){
+    const s = Alpine.store('browser');
+    const p = new URLSearchParams(location.search);
+    if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
+    if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
+    if (this.view === 'file' && s.activeFile) p.set('file', s.activeFile.path); else p.delete('file');
+    if (this.view === 'atlas') p.set('view', 'atlas'); else p.delete('view');
+    const qs = p.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+  },
+
+  // Point the file browser at a repo. web-tools boots identity-free via
+  // pickByName; setup() fills the repo dropdown in the background (quiet: a
+  // missing/expired token won't hijack the page).
+  async ensureBrowser(repo, ref){
+    repo = repo || this.DEFAULT_REPO;
+    const gh = Alpine.store('browser').gh;
     const repoEl = document.getElementById('repo');
-    if (!await waitFor(() => repoEl.__repo)) return notify('Repo component never mounted.');
-
-    const urlState = this.parseUrlState();
-    const saved = urlState ? null : await this.loadState();
-    const state = urlState || saved;
-
-    try {
-    await repoEl.__repo.setup(gh);
-    } catch (e) {
-    console.error('setup:', e);
-    const status = e?.status;
-    if (status === 401) {
-      notify('GitHub rejected the token (401). Paste a new one.');
-      try { repoEl.__repo.tokenExpired = true; } catch {}
-    } else if (status === 403) {
-      notify('GitHub rate-limited this IP (403). A token raises the limit.');
-    } else {
-      notify('Could not load repos: ' + (e?.message || e));
+    if (!await waitFor(() => repoEl.__repo)) { notify('Repo component never mounted.'); return; }
+    if (!this._setup){
+      this._setup = true;
+      const rc = repoEl.__repo;
+      const syncAuth = () => {
+        this._authState = rc.auth ? 'auth' : (rc.tokenExpired ? 'expired' : 'public');
+        this._authUser = rc.user || '';
+      };
+      this.$watch(() => rc.auth + '|' + rc.user + '|' + rc.tokenExpired, syncAuth);
+      rc.setup(gh, { quiet: true }).then(syncAuth).catch(e => console.warn('repo setup:', e?.message || e));
     }
-    try { document.getElementById('repoModal').showModal(); } catch {}
-    return;
+    if (Alpine.store('browser').repo !== repo || (ref && Alpine.store('browser').ref !== ref)){
+      try { await repoEl.__repo.pickByName(repo, ref ? { ref } : {}); }
+      catch(e){ notify('Could not open ' + repo + ': ' + (e?.message || e)); }
     }
+  },
 
-    if (state?.repo) {
-    let target = repoEl.__repo.repos.find(r => r.full_name === state.repo);
-    if (!target) {
-      try { target = await gh.req('/repos/' + state.repo); }
-      catch (e) { notify('Could not load repo ' + state.repo + ': ' + (e?.message || e)); }
-    }
-    if (target) {
-      await repoEl.__repo.pick(target, { ref: state.ref || '' });
-      const navEl = document.getElementById('navigator');
-      if (await waitFor(() => navEl.__navigator) && state.file) {
-      const folder = state.file.split('/').slice(0, -1).join('/');
-      if (folder) await navEl.__navigator.load(folder, true);
-      await navEl.__navigator.sel(state.file, true);
+  async openFile(path){
+    const navEl = document.getElementById('navigator');
+    if (!await waitFor(() => navEl.__navigator)) return;
+    const folder = path.split('/').slice(0, -1).join('/');
+    if (folder) await navEl.__navigator.load(folder, true);
+    await navEl.__navigator.sel(path);
+  },
+
+  goHome(){ this.goLanding(); },
+  goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
+  goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
+  openSidebar(){ this.drawer = true; }
+}}
+
+// ── Gallery: the web-tools pages index, rendered from pages.json ─────────────
+function gallery(){
+  // show-repo sits one level below pages/, so pages.json's page-relative hrefs
+  // and thumbs rebase with a '../' prefix; absolute code URLs pass through.
+  const REBASE = '../';
+  return {
+    loaded: false,
+    filter: 'main',
+    q: '',
+    groups: [],
+
+    async init(){
+      try {
+        const raw = await (await fetch('../pages.json')).json();
+        this.groups = raw.map(g => ({
+          ...g,
+          items: g.items.map(p => ({
+            ...p,
+            href: REBASE + p.href,
+            thumb: REBASE + p.thumb,
+            view: 'shot', source: '', shotMissing: false,
+          })),
+        }));
+      } catch(e){
+        notify('Could not load the pages catalog: ' + (e?.message || e));
       }
-    }
-    }
+      this.loaded = true;
+      const p = new URLSearchParams(location.search);
+      const f = p.get('filter');
+      if (f && (f === 'all' || this.groups.some(g => g.top === f))) this.filter = f;
+      this.q = p.get('q') || '';
+      this.$watch('filter', () => this.syncUrl());
+      this.$watch('q', () => this.syncUrl());
+    },
 
-    Alpine.store('browser').save = (state) => this.saveState(state);
+    syncUrl(){
+      const p = new URLSearchParams(location.search);
+      if (this.filter === 'main') p.delete('filter'); else p.set('filter', this.filter);
+      if (this.q.trim()) p.set('q', this.q.trim()); else p.delete('q');
+      const qs = p.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    },
 
-  } catch(e) {
-    console.error('init:', e);
-    notify('Startup failed: ' + (e?.message || e));
-  }
+    get chips(){
+      const tops = [...new Set(this.groups.map(g => g.top))].filter(t => t !== 'main');
+      tops.sort((a, b) => (a === 'kit-demos') - (b === 'kit-demos') || a.localeCompare(b));
+      const countTop = t => this.groups.filter(g => g.top === t).reduce((n, g) => n + g.items.length, 0);
+      const all = this.groups.reduce((n, g) => n + g.items.length, 0);
+      const path = t => t === 'kit-demos' ? ['lib/', 'kits/demos/'] : ['pages/', t + '/'];
+      return [
+        { key: 'main', pre: '', seg: 'pages/', count: countTop('main') },
+        { key: 'all',  pre: '', seg: 'All',    count: all },
+        ...tops.map(t => ({ key: t, pre: path(t)[0], seg: path(t)[1], count: countTop(t) })),
+      ];
+    },
+    get visibleGroups(){
+      if (this.filter === 'all') return this.groups.filter(g => g.items.length);
+      return this.groups.filter(g => g.top === this.filter && g.items.length);
+    },
+    get filteredGroups(){
+      const q = this.q.trim().toLowerCase();
+      if (!q) return this.visibleGroups;
+      return this.visibleGroups
+        .map(g => ({ ...g, items: g.items.filter(p =>
+          (p.label + ' ' + (p.title || '') + ' ' + (p.note || '')).toLowerCase().includes(q)) }))
+        .filter(g => g.items.length);
+    },
+    async show(p, v){
+      p.view = v;
+      if (v === 'html' && !p.source){
+        p.source = 'Loading…';
+        try { p.source = await (await fetch(p.href)).text(); }
+        catch(e){ p.source = '// failed to load source: ' + e; }
+      }
+    },
+    // The bridge: open a card's source in the file browser. Its repo path is the
+    // github blob URL after /blob/<ref>/; that always names the real file, even
+    // for the out-of-tree kit demos under lib/.
+    async inspect(p){
+      const m = p.code.match(/\/blob\/[^/]+\/(.+)$/);
+      if (!m || !window.__shell) return;
+      await window.__shell.ensureBrowser();
+      await window.__shell.openFile(m[1]);
+    },
+  };
+}
+
+// ── Overview: the default landing for a repo with no gallery — stats + README
+// + a jump to the atlas. Reads the repo from the shared store; loads the README
+// through gh at the current ref. ─────────────────────────────────────────────
+function overview(){ return {
+  loading: false,
+  html: '',
+
+  init(){
+    this.$watch(() => Alpine.store('browser').repo + '@' + Alpine.store('browser').ref, () => this.load());
+    this.load();
   },
 
-  parseUrlState() {
-  const p = new URLSearchParams(location.search);
-  const out = {};
-  for (const k of ['repo', 'ref', 'path', 'file']) {
-    if (p.has(k)) out[k] = p.get(k);
-  }
-  return Object.keys(out).length ? out : null;
+  get repo(){ return Alpine.store('browser').repo; },
+  get repoObj(){ return Alpine.store('browser').repoObj; },
+  get desc(){ return this.repoObj?.description || ''; },
+  get stars(){ return this.repoObj?.stargazers_count ?? 0; },
+  get forks(){ return this.repoObj?.forks_count ?? 0; },
+  get visibility(){ return this.repoObj?.private ? 'private' : 'public'; },
+  get defaultRef(){ return this.repoObj?.default_branch || Alpine.store('browser').defaultRef || ''; },
+  get pushed(){
+    const g = Alpine.store('browser').gh, p = this.repoObj?.pushed_at;
+    return (g && p && g.ago) ? g.ago(p) : '';
   },
+  goAtlas(){ window.__shell?.goAtlas(); },
 
-  async loadState() {
-  try {
-    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
-    const res = await homeGh.get(STATE_FILE);
-    this.stateSha = res.sha;
-    return JSON.parse(res.text);
-  } catch { return null; }
-  },
-
-  async saveState(state) {
-  try {
-    const homeGh = new window.GH({ token: window.TOKEN, repo: HOME_REPO });
-    const content = btoa(JSON.stringify(state, null, 2));
-    const put = () => {
-    const body = { message: 'update gh-browse state', content };
-    if (this.stateSha) body.sha = this.stateSha;
-    return homeGh.req('contents/' + STATE_FILE, { method: 'PUT', body: JSON.stringify(body) });
-    };
-    let res;
-    try {
-    res = await put();
-    } catch(e) {
-    if (e.status !== 409) throw e;
-    const cur = await homeGh.get(STATE_FILE);
-    this.stateSha = cur.sha;
-    res = await put();
+  async load(){
+    // web-tools uses the gallery landing, so skip the README fetch there.
+    if (!this.repo || this.repo === window.__shell?.DEFAULT_REPO) return;
+    const gh = Alpine.store('browser').gh;
+    if (!gh) return;
+    this.loading = true; this.html = '';
+    let res = null;
+    for (const p of ['README.md', 'readme.md', 'README.markdown', 'Readme.md']){
+      try { res = await gh.get(p); break; } catch {}
     }
-    this.stateSha = res.content.sha;
-  } catch(e) { console.error('saveState:', e); }
+    if (res){
+      try { await loadMarked(); this.html = window.marked.parse(res.text); }
+      catch { this.html = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
+    }
+    this.loading = false;
   }
 }}
 </script>
+
+<!-- ── Design notes: the landing mechanism ─────────────────────────────────────
+  A repo has, potentially, a LANDING PAGE. The repo picker and auth are up front;
+  the sidebar lists what you can look at for that repo — its landing, its atlas,
+  then its files — so there is no separate Pages/Files toggle; that split is just
+  landing-vs-file, and it lives in the sidebar. app.landingKind(repo) is the one
+  decision point.
+
+  Today: web-tools -> 'gallery' (its pages index); every other repo -> 'overview'
+  (a synthesized default: stats + README + a jump to the atlas). The atlas is a
+  standing repo view, available for every repo regardless of its landing — the
+  "ready mechanism" for it.
+
+  Intended progression, aligned with tracker task 0002 (private-repo landing
+  federation via mehrlander/home):
+
+    1. Per-repo custom landing. A repo ships its own pages/landing.html; the
+       shell renders it live — a mehrlander repo (public or private) via the
+       toss #gh= address mode, any public repo via github.io or a ?use= iframe.
+       landingKind() returns 'custom' and the landing block mounts an iframe at
+       that render URL. "The repo builds its own page."
+
+    2. Federation (task 0002). With a token, read mehrlander/home's landing.json
+       and fold each featured private repo's landing into web-tools' own gallery
+       as additional cards/sections. HOME_REPO becomes the one public-private
+       hinge, a single lib/ constant. No token: the private section is absent, no
+       leak.
+
+  The seam is deliberately small so these are additive: each is a new branch in
+  landingKind() plus the matching landing block, no rework of the shell.
+─────────────────────────────────────────────────────────────────────────── -->
 </body>
 </html>

@@ -14,6 +14,8 @@ This is the repo's **preview mechanism** for the conventions' ⭐ links: a chang
 
 > `https://mehrlander.github.io/web-tools/pages/<page>.html?use=<ref>`
 
+**What `?use=` swaps, and what it doesn't (the boundary with 🥏).** `?use=` only redirects the code a page *loads* (`gh.load(...)`, the `dist/` import): github.io still serves the **page file itself from main**, and only its downstream lib is pinned to the ref. So `?use=` previews branch work that lives in `lib/` or `dist/`, but **not** a change to a page's own inline shell (its markup, or an `x-data` defined inline in the file). For a page whose branch change is in the shell, `?use=` on the deployed URL runs main's old shell with branch lib and shows the pre-change page. Preview those with the **🥏 toss `#gh=` address mode** instead (`pages/toss-render.html#gh=mehrlander/web-tools@<ref>:pages/<page>.html`): it fetches the branch's actual file via the token, stamps a `?use` shim so the shell's own lib chain loads from `<ref>` too, and reroutes the page's relative deps and `fetch()`es to the same ref (see the `toss-render.html` head comment). So the rule of thumb: **lib/dist change → ⭐ `?use=`; page-shell change on an un-deployed branch → 🥏 toss `#gh=`.** A 🥏 link always points at `toss-render.html`, never at the page's own URL.
+
 The honesty rule still applies: only a page renders this way; for a kit or doc, ⭐ links the `[new]` blob.
 
 ## Per-session refresh: thumbnails

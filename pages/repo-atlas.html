@@ -6,7 +6,7 @@
 <title>Repo Atlas</title>
 <!-- Zoomable treemap of a repo's git tree; also maps dropped folders/zips.
      Kernels live in lib/kits/treemap.js; colors are the dataviz reference
-     palette's dark categorical slots. -->
+     palette's light categorical slots. -->
 
 <meta name="shot-query" content="repo=mehrlander/web-tools">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -18,17 +18,17 @@
 </script>
 <style>
   :root {
-    /* dataviz reference palette, dark mode (validated vs #1a1a19) */
-    --plane: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
+    /* dataviz reference palette, light mode (validated vs #fcfcfb) */
+    --plane: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
     --ink-3: #898781;
-    --hairline: rgba(255,255,255,0.10);
-    --grid: #2c2c2a;
+    --hairline: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
     /* category colors live in CAT_COLORS (script); only the header icon
        needs one in CSS */
-    --cat-code: #3987e5;
+    --cat-code: #2a78d6;
   }
   html, body { height: 100%; }
   body {
@@ -47,24 +47,24 @@
     font-size: 13px;
     outline: none;
   }
-  .field:focus { border-color: rgba(255,255,255,0.28); }
+  .field:focus { border-color: rgba(11,11,11,0.28); }
   .field::placeholder { color: var(--ink-3); }
   .chip { border: 1px solid var(--hairline); border-radius: 6px; padding: 2px 8px; font-size: 12px; }
   .crumb:hover { color: var(--ink); text-decoration: underline; cursor: pointer; }
   .num { font-variant-numeric: tabular-nums; }
   .typerow { cursor: pointer; border-radius: 6px; }
-  .typerow:hover { background: rgba(255,255,255,0.05); }
+  .typerow:hover { background: rgba(0,0,0,0.05); }
   .typerow.off { opacity: 0.38; }
   .filerow { cursor: pointer; border-radius: 6px; }
-  .filerow:hover { background: rgba(255,255,255,0.05); }
+  .filerow:hover { background: rgba(0,0,0,0.05); }
   #tooltip {
     position: fixed; pointer-events: none; z-index: 50;
-    background: rgba(13,13,13,0.94); border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(252,252,251,0.96); border: 1px solid rgba(11,11,11,0.16);
     border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 340px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
   }
   ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-thumb { background: #333330; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #d0cfc9; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -80,10 +80,10 @@
     <div class="flex items-center gap-1.5">
       <input id="repoInput" class="field w-56" placeholder="owner/repo" spellcheck="false">
       <input id="refInput" class="field w-28" placeholder="ref (default)" spellcheck="false">
-      <button id="goBtn" class="field cursor-pointer hover:border-white/30" title="Load repo">
+      <button id="goBtn" class="field cursor-pointer hover:border-black/20" title="Load repo">
         <i class="ph ph-arrow-right"></i>
       </button>
-      <button id="localBtn" class="field cursor-pointer hover:border-white/30" title="Map a local folder (or drop a folder / .zip on the map)">
+      <button id="localBtn" class="field cursor-pointer hover:border-black/20" title="Map a local folder (or drop a folder / .zip on the map)">
         <i class="ph ph-folder-open"></i>
       </button>
       <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
@@ -96,11 +96,11 @@
     <div class="grow"></div>
     <div id="statChips" class="flex items-center gap-1.5 text-xs num" style="color:var(--ink-3)"></div>
     <div class="relative">
-      <span id="helpBtn" class="chip cursor-pointer hover:border-white/30 inline-flex items-center" title="Help">
+      <span id="helpBtn" class="chip cursor-pointer hover:border-black/20 inline-flex items-center" title="Help">
         <i class="ph ph-question"></i>
       </span>
       <div id="helpPop" class="hidden absolute right-0 top-8 z-40 w-72 rounded-lg p-3 text-xs leading-relaxed"
-           style="background:rgba(13,13,13,0.97); border:1px solid rgba(255,255,255,0.16); box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+           style="background:rgba(252,252,251,0.98); border:1px solid rgba(11,11,11,0.16); box-shadow:0 4px 24px rgba(0,0,0,0.18)">
         <div class="font-semibold mb-1.5" style="color:var(--ink)">Reading the map</div>
         Every file is a tile — area is its share of the view (bytes, or file count via the <b>area</b> toggle). Color is the file's type; directories are the darker frames.
         <div class="font-semibold mt-2 mb-1.5" style="color:var(--ink)">Getting around</div>
@@ -130,10 +130,10 @@
       <span style="color:var(--grid)">|</span>
       <span id="wFiles" class="cursor-pointer" >files</span>
     </span>
-    <span id="exportBtn" class="chip cursor-pointer hover:border-white/30" title="Download the map as PNG">
+    <span id="exportBtn" class="chip cursor-pointer hover:border-black/20" title="Download the map as PNG">
       <i class="ph ph-download-simple"></i>
     </span>
-    <span id="upBtn" class="chip cursor-pointer hover:border-white/30 hidden" title="Up one level (Backspace)">
+    <span id="upBtn" class="chip cursor-pointer hover:border-black/20 hidden" title="Up one level (Backspace)">
       <i class="ph ph-arrow-elbow-left-up"></i> up
     </span>
   </div>
@@ -183,13 +183,15 @@ const waitFor = async (pred, ms = 8000, step = 50) => {
 
 // ── Categories ───────────────────────────────────────────────────────────────
 // Taxonomy + kernels come from kits/treemap.js (window.treemap). Colors are
-// this page's choice: the six dark categorical slots of the dataviz reference
-// palette + neutral gray. All-pairs CVD ΔE for the subset is 10.3 (floor band)
-// — legal because the map ships secondary encoding everywhere: 2px tile gaps,
-// direct labels, a legend, hover tooltips, and the sidebar type table.
+// this page's choice: the six light categorical slots of the dataviz reference
+// palette + neutral gray, validated against the light surface #fcfcfb. Worst
+// adjacent CVD ΔE for the subset is 13.3, clear of the ≥12 target; yellow and
+// magenta sit below 3:1 on the light surface, so the relief rule applies — legal
+// because the map ships secondary encoding everywhere: 2px tile gaps, direct
+// labels, a legend, hover tooltips, and the sidebar type table.
 const CAT_COLORS = {
-  code: '#3987e5', docs: '#c98500', data: '#008300',
-  markup: '#e66767', media: '#d55181', styles: '#d95926', other: '#898781',
+  code: '#2a78d6', docs: '#eda100', data: '#008300',
+  markup: '#e34948', media: '#e87ba4', styles: '#eb6834', other: '#898781',
 };
 let CATS = {}; // key → { label, color }, filled once the kit lands
 
@@ -291,8 +293,10 @@ function bindKit() {
 }
 
 const depthFill = d => {
-  const v = Math.min(24 + d * 8, 62);
-  return `rgb(${v},${v},${v - 2})`;
+  // nested directory frames: light grays that darken subtly per level, staying
+  // just under the surface (#fcfcfb) so structure reads without going dark
+  const v = Math.max(247 - d * 6, 225);
+  return `rgb(${v},${v},${v - 1})`;
 };
 
 // mix a hex toward white (f>0) or black (f<0)
@@ -332,7 +336,7 @@ function buildScene() {
 
   S.hitFiles = []; S.hitZoom = []; S.dirRects = new Map();
 
-  c.fillStyle = '#1a1a19';
+  c.fillStyle = '#fcfcfb';
   c.fillRect(0, 0, cssW, cssH);
 
   if (S.viewRoot && nodeWeight(S.viewRoot) > 0) {
@@ -352,7 +356,7 @@ function layoutDir(c, dir, x, y, w, h, depth) {
     c.fillStyle = depthFill(depth);
     roundRect(c, x, y, w, h, 3);
     c.fill();
-    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    c.strokeStyle = 'rgba(0,0,0,0.08)';
     c.lineWidth = 1;
     roundRect(c, x + 0.5, y + 0.5, w - 1, h - 1, 3);
     c.stroke();
@@ -364,7 +368,7 @@ function layoutDir(c, dir, x, y, w, h, depth) {
     if (showHeader) {
       // header label, with size right-aligned when there's room
       c.font = '600 10.5px system-ui, sans-serif';
-      c.fillStyle = '#c3c2b7';
+      c.fillStyle = '#52514e';
       let labelMax = w - 12;
       if (w >= 110) {
         const sz = S.weightMode === 'files' ? dir.fileCount.toLocaleString() + ' files' : fmtBytes(dir.size);
@@ -426,7 +430,7 @@ function drawFile(c, n, x, y, w, h) {
   roundRect(c, x, y, w, h, r);
   c.fill();
   if (!visible) {
-    c.fillStyle = 'rgba(26,26,25,0.85)';
+    c.fillStyle = 'rgba(255,255,255,0.82)';
     roundRect(c, x, y, w, h, r);
     c.fill();
     return;
@@ -494,7 +498,7 @@ function paint() {
   };
   // sidebar type-row hover: recede every other category (paint-level, no rebuild)
   if (S.catHover) {
-    ctx.fillStyle = 'rgba(26,26,25,0.72)';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
     for (const f of S.hitFiles) {
       if (f.node.cat === S.catHover) continue;
       roundRect(ctx, f.x, f.y, f.w, f.h, 2.5);
@@ -503,14 +507,14 @@ function paint() {
   }
   if (S.selected) {
     const hit = S.hitFiles.find(f => f.node === S.selected);
-    if (hit) ring(hit, '#ffffff', 2);
+    if (hit) ring(hit, '#1a1a19', 2);
   }
   if (S.hover) {
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
     const r = S.hover;
     roundRect(ctx, r.x, r.y, r.w, r.h, 2.5);
     ctx.fill();
-    ring(r, 'rgba(255,255,255,0.85)', 1.5);
+    ring(r, 'rgba(0,0,0,0.6)', 1.5);
   }
 }
 
@@ -607,7 +611,7 @@ function renderSelection() {
   if (!S.selected) { p.classList.add('hidden'); return; }
   const f = S.selected;
   const link = S.source === 'github'
-    ? `<a class="chip inline-flex items-center gap-1 hover:border-white/30" style="color:var(--ink)" target="_blank"
+    ? `<a class="chip inline-flex items-center gap-1 hover:border-black/20" style="color:var(--ink)" target="_blank"
          href="${esc(ghUrl('blob', f.path))}">
          <i class="ph ph-github-logo"></i> open on GitHub</a>`
     : '';

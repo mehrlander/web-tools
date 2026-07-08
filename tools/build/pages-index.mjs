@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Regenerate the two catalogs of everything under pages/:
+// Regenerate the catalogs of everything under pages/:
 //   pages/README.md   — a dense markdown table (renders in the GitHub folder view)
 //   pages/index.html  — the visual index: a card per page, screenshot preview with
 //                        a live-iframe / source toggle, on a light daisyUI theme.
+//   pages/pages.json  — the same grouped card model index.html embeds, standalone,
+//                        so show-repo can render the identical gallery from one source.
 //
 //   node tools/build/pages-index.mjs        -> writes both files
 //   node tools/build/pages-index.mjs --check -> exit 1 if either is stale (CI-friendly)
@@ -55,6 +57,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pagesDir = path.join(repoRoot, 'pages');
 const mdPath = path.join(pagesDir, 'README.md');
 const htmlPath = path.join(pagesDir, 'index.html');
+const jsonPath = path.join(pagesDir, 'pages.json');
 
 const SITE = `https://mehrlander.github.io/${REPO.split('/')[1]}`;
 const BLOB = `https://github.com/${REPO}/blob/main`;
@@ -152,12 +155,14 @@ function buildMarkdown() {
   return lines.join('\n');
 }
 
-// ---- pages/index.html : visual card index ------------------------------------
-function buildHtml() {
-  // Every page except the index itself becomes a card, grouped by directory so the
-  // root pages lead and the nested folders (demos/, stories/, drop/, …) and the
-  // external kit-demos fall into labeled sections — mirroring README.md. The
-  // location chips key off each group's top-level segment. Rendered by Alpine.
+// The grouped card model shared by both the embedded index and the standalone
+// pages.json catalog. Every page except the index itself becomes a card, grouped
+// by directory so the root pages lead and the nested folders (demos/, stories/,
+// drop/, …) and the external kit-demos fall into labeled sections — mirroring
+// README.md. The location chips key off each group's top-level segment. Item
+// hrefs/thumbs are relative to pages/; consumers a level deeper (show-repo)
+// rebase with a '../' prefix.
+function buildGroups() {
   const toItem = m => ({
     href: m.href,
     label: m.name,
@@ -172,7 +177,7 @@ function buildHtml() {
     const dir = path.dirname(m.rel) === '.' ? '' : path.dirname(m.rel);
     (groupsMap.get(dir) ?? groupsMap.set(dir, []).get(dir)).push(toItem(m));
   }
-  const groups = [...groupsMap.keys()]
+  return [...groupsMap.keys()]
     .sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b)))
     .map(k => ({
       label: k === '' ? '' : dirLabel(k),
@@ -181,7 +186,12 @@ function buildHtml() {
       top: k === '' ? 'main' : k.split('/')[0],
       items: groupsMap.get(k).sort((a, b) => a.label.localeCompare(b.label)),
     }));
+}
 
+const groups = buildGroups();
+
+// ---- pages/index.html : visual card index ------------------------------------
+function buildHtml() {
   return `<!DOCTYPE html>
 <html lang="en" data-theme="winter">
 <head>
@@ -395,7 +405,11 @@ function index(){
 
 const md = buildMarkdown();
 const html = buildHtml();
-const outputs = [[mdPath, md], [htmlPath, html]];
+// pages.json is the same grouped card model index.html embeds, exposed as a
+// standalone catalog so other pages (show-repo) can render the identical gallery
+// without a stale hand-copy. Newline-terminated to match writeFile conventions.
+const json = JSON.stringify(groups, null, 2) + '\n';
+const outputs = [[mdPath, md], [htmlPath, html], [jsonPath, json]];
 
 if (process.argv.includes('--check')) {
   let stale = false;
@@ -410,5 +424,5 @@ if (process.argv.includes('--check')) {
   console.log('pages-index: pages/README.md and pages/index.html are up to date.');
 } else {
   for (const [p, want] of outputs) await writeFile(p, want);
-  console.log(`pages-index: wrote pages/README.md + pages/index.html (${meta.length} pages).`);
+  console.log(`pages-index: wrote pages/README.md + pages/index.html + pages/pages.json (${meta.length} pages).`);
 }
