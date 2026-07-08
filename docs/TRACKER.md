@@ -21,31 +21,43 @@ Scope a tracker to a workspace, a bounded area you keep coherent across sessions
 
 ## Task file schema
 
-Frontmatter; `id`, `title`, and `status` are required. Other fields are optional when not relevant. The body is the task.
+Two layers. A small closed set of recognized keys drives the tooling; an open set of arbitrary scalar tags rides along, preserved and human-readable, ignored by the generator until promoted.
+
+**Recognized keys.** `id`, `title`, and `status` are required. `project`, `track`, `opened`, `closed`, and `session` are optional and recognized: the generator acts on them when present. The body is the task.
+
+**Parser contract.** Frontmatter is flat `key: value` pairs, split on the first colon, scalars only. No YAML library, no lists, no nesting, no multi-line values. Unknown keys are preserved and ignored, never errors. This is deliberate: a file arriving from any channel (a web edit, a paste) needs no valid YAML to parse, so imperfect input degrades to an ignored tag rather than a failure. It is a feature, not a limitation to fix.
+
+**Open tags.** A session may add any scalar key it likes (`priority: high`, `size: L`, `owner: marcus`) with no predefinition. Open tags are preserved, shown to a human, and not acted on by the generator.
+
+**Graduation rule.** A tag starts open. It becomes recognized only when it earns it: when grouping or sorting the board by it is worth the code. Then you teach the generator that one key. The schema grows by evidence, not up front. Define only what the machine needs; leave the rest open.
 
 ```markdown
 ---
 id: NNNN
 title: <short imperative>
 status: backlog | in-progress | blocked | done
-project: <workspace or partition>
-track: anchor | independent | depends-on:NNNN
+project: <workspace or partition>   # optional, recognized
+track: anchor | independent | depends-on:NNNN   # optional, recognized
 opened: YYYY-MM-DD
 closed: YYYY-MM-DD    # set when done
-session: <branch>     # set while in-progress; names the owning branch
-next: <the intended next step>
+session: <branch>     # set while in-progress
+priority: high        # example open tag: not acted on until promoted
 ---
 # <title>
 
 <what the task is, why, and what "done" means>
 
 ## Progress log
-- YYYY-MM-DD: <what happened this session>
+- YYYY-MM-DD: <what happened, and the intended next step>
 ```
+
+## Comments
+
+A comment on a task splits by append vs. overwrite. Current-state comments (a priority, a size, a one-line flag) are scalar frontmatter tags, overwritten in place, so the file always shows the present value. Narrative and accumulating comments are body prose: the description for standing context, the `## Progress log` for the append-only dated thread, including what is next. There is no separate note file, and lists and threads stay out of frontmatter: that is the one thing that would force a real YAML parser, and the body already does it better.
 
 ## Claiming a task
 
-To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch. Update the task file on `main` when the status, owning branch, next step, or progress log changes, and set `status: done` with `closed:` when it lands.
+To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch. Update the task file on `main` when the status, owning branch, or progress log changes, and set `status: done` with `closed:` when it lands.
 
 ## Board format
 
@@ -56,7 +68,7 @@ To take a task, edit its file on `main`: set `status: in-progress`, set `session
 - **Blocked** (`status: blocked`)
 - **Done** (`status: done`)
 
-One line per task, keyed by title (not id); in-progress lines also show the owning branch, and any line may carry its `next`. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status, owning branch, or next step.
+One line per task, keyed by title (not id); in-progress lines also show the owning branch. The reference generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
 
 Reference generator (python3, stdlib only; reimplement freely):
 
