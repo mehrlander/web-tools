@@ -137,7 +137,7 @@
 
     <!-- Landing: web-tools' gallery, or a default overview for other repos. -->
     <div x-show="view==='landing'" class="h-full overflow-y-auto">
-      <div class="w-full px-6 py-8">
+      <div class="!max-w-none px-6 py-8">
 
         <!-- web-tools landing: the pages gallery, fed from pages.json -->
         <div x-show="landingKind()==='gallery'">
@@ -276,7 +276,7 @@
             <div x-show="loading" class="flex justify-center py-16">
               <span class="loading loading-dots loading-md opacity-30"></span>
             </div>
-            <article x-show="!loading && html" class="prose prose-sm max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
+            <article x-show="!loading && html" class="prose prose-sm !max-w-none prose-pre:bg-base-200 prose-pre:text-base-content"
                      x-html="html"></article>
             <p x-show="!loading && !html" class="text-base-content/40 italic text-sm py-8">
               No README found on this ref. Use the sidebar to browse files, or open the atlas.
