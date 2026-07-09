@@ -1,18 +1,15 @@
-# Branch guide: claude/portable-scripts-framework-36hror
+# Branch guide: claude/show-repo-page-improvements-1xpb0d
 
-Introduces portable scripts as a first-class category alongside portable docs, with the tracker board generator as the first one. Collapses the Node and Python board generators into one: `scripts/build-board.py` is the single source of truth, called by `npm run tracker-board` with this repo's paths as argv.
+Widens the show-repo sidebar on desktop, adds header shortcut buttons for home/web-tools/chat-histories, and adds a Recent section listing recently-committed files for the open repo@ref.
 
-⭐ [docs/PORTABLE.md](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/docs/PORTABLE.md#scripts)
+⭐ [pages/show-repo/show-repo.html](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html?use=claude/show-repo-page-improvements-1xpb0d)
 
 **Changed:**
-- scripts/build-board.py ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/scripts/build-board.py))
-- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/docs/PORTABLE.md), [main](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md), [diff](https://github.com/mehrlander/web-tools/commit/ed993df))
-- docs/TRACKER.md ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/docs/TRACKER.md), [main](https://github.com/mehrlander/web-tools/blob/main/docs/TRACKER.md), [diff](https://github.com/mehrlander/web-tools/commit/ed993df))
-- docs/README.md ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/docs/README.md), [main](https://github.com/mehrlander/web-tools/blob/main/docs/README.md), [diff](https://github.com/mehrlander/web-tools/commit/ed993df))
-- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/CLAUDE.md), [main](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), [diff](https://github.com/mehrlander/web-tools/commit/ed993df))
-- tools/build/tracker-board.mjs (deleted)
-- package.json ([new](https://github.com/mehrlander/web-tools/blob/claude/portable-scripts-framework-36hror/package.json), [main](https://github.com/mehrlander/web-tools/blob/main/package.json))
+- pages/show-repo/show-repo.html ([new](https://github.com/mehrlander/web-tools/blob/claude/show-repo-page-improvements-1xpb0d/pages/show-repo/show-repo.html), [main](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html), [diff](https://github.com/mehrlander/web-tools/compare/main...claude/show-repo-page-improvements-1xpb0d))
+- lib/gh-api.js ([new](https://github.com/mehrlander/web-tools/blob/claude/show-repo-page-improvements-1xpb0d/lib/gh-api.js), [main](https://github.com/mehrlander/web-tools/blob/main/lib/gh-api.js), [diff](https://github.com/mehrlander/web-tools/compare/main...claude/show-repo-page-improvements-1xpb0d))
 
 **Next steps / open threads:**
-- Review: does `scripts/` as the portable-scripts home feel right, or should it live elsewhere?
-- The home repo's next step: add a `SessionStart` hook that fetches `scripts/build-board.py` into `.web-tools-scripts/` and wires the tracker board command to run it.
+- The pinned home/chat-histories buttons dim (not hide) when unauthenticated, since both are private; verify that reads right in practice.
+- Recent list depends on `GH.recentFiles()` (commits + commits/{sha} calls); verified in the headless preview only via a stubbed `recentFiles`, since the local render harness (`tools/render/cdn.mjs`) doesn't impersonate the commits endpoint — real GitHub API behavior untested this session.
+- Thumbnail regen still owed at wrap-up per convention (this page changed).
+- This file was found stale on the branch (leftover content from an unrelated, already-merged branch); overwritten with this branch's own guide.
