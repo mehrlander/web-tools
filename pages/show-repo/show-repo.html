@@ -137,7 +137,7 @@
 
     <!-- Landing: web-tools' gallery, or a default overview for other repos. -->
     <div x-show="view==='landing'" class="h-full overflow-y-auto">
-      <div class="max-w-6xl mx-auto px-4 py-8">
+      <div class="mx-auto px-4 py-8">
 
         <!-- web-tools landing: the pages gallery, fed from pages.json -->
         <div x-show="landingKind()==='gallery'">
@@ -298,7 +298,7 @@
 
     <!-- File viewer -->
     <div x-show="view==='file'" class="h-full overflow-y-auto">
-      <div class="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-4">
+      <div class="mx-auto px-4 py-6 flex flex-col gap-4">
         <div id="viewer" x-data="viewer()"></div>
         <div id="compare" x-data="compare()"></div>
       </div>
