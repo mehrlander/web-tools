@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="nord">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,6 +11,7 @@
   const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
   await import(`${base}/gh-api.js`);
   await gh.load('kits/cm6.js');
+  await gh.load('kits/proof.js');
   await gh.load('vanilla-demo.js');
   await gh.load('kits/io.js');       // exporter.page() downloads through io.saveZip
   await gh.load('kits/export.js');   // the kit under test

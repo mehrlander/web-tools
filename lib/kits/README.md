@@ -260,6 +260,30 @@ guard at mount and log `window.cm6 is missing` if it isn't there. Put
 `gh.load('kits/cm6.js')` ahead of those components in the page's load chain.
 Used directly (no Alpine) by `vanilla-demo.js`.
 
+### proof.js
+
+Sandboxed proof documents: code in, self-contained `srcdoc` HTML out. Lifted
+out of `vanilla-demo.js` so the demo format and `chat-render.js` share one
+copy of the sandbox logic. String-building only — mounting the iframe (and
+sizing it from the reporter's `postMessage`) stays with the caller.
+
+```js
+proof.doc('render', code, opts);    // code is body markup
+proof.doc('context', code, opts);   // injected at {{slot}} in opts.context
+proof.doc('jsrender', code, opts);  // JS that builds nodes into the doc body
+proof.doc('console', code, opts);   // JS; console output posted as {__c:{level,text}}
+// opts: { tw, daisy, inject, base, context }
+proof.head(opts); proof.reporter; proof.guard(s);
+```
+
+Every doc targets an iframe with `sandbox="allow-scripts"` (opaque origin).
+The `render` family posts document height as `{__h: number}`; `console` docs
+are for hidden frames, streaming output instead.
+
+**Load-order requirement:** `vanilla-demo.js` and `chat-render.js` read
+`window.proof` at call time; put `gh.load('kits/proof.js')` ahead of either
+in the page's load chain.
+
 ### wring.js
 
 Single-document template induction: give it one document with repeated

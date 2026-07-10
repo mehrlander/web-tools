@@ -4,6 +4,14 @@
     "top": "main",
     "items": [
       {
+        "href": "chat-results.html",
+        "label": "chat-results",
+        "title": "Chat Search Results",
+        "note": "",
+        "thumb": "thumbs/chat-results.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html"
+      },
+      {
         "href": "compression-helper.html",
         "label": "compression-helper",
         "title": "Compression Helper (v5)",
