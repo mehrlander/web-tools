@@ -36,4 +36,4 @@ Removing a skill: delete its folder and remove its manifest entry. Consumers tha
 
 ## Snapshot lineage
 
-The initial population of this library on 2026-07-10 mirrors the set that lived at Marcus's claude.ai account skills at that date. That set is also snapshot in the home repo at `me/claude-skills/`, dated 2026-07-07. Those are historical; going forward, this folder is the source of truth.
+The initial population of this library on 2026-07-10 mirrors the set that lived at Marcus's claude.ai account skills at that date. An earlier snapshot of the same set lived in the home repo at `me/claude-skills/` (dated 2026-07-07) and was removed the day this library landed. Going forward, this folder is the source of truth.

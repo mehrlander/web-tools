@@ -4,6 +4,23 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-10 Skills library and load-skill mechanism (PR #206)
+
+Publishes Marcus's personal skill library at `skills/` (34 skills, manifest.json, README) as a static resource, deliberately outside `.claude/skills/` so nothing auto-fires, and adds the `load-skill` registered skill: given an explicit "load skill X," it fetches `<source>/<name>/SKILL.md` (default source this library, discovery via `skills/manifest.json`) and applies it in the current session. This gives the account-level chat skills a public, fetchable home and a third transport alongside account provisioning (chat, automatic) and the sync-hook pull (conventions, always-on): deliberate load-by-name. The follow-on commit wires load-skill into the portable process (PORTABLE.md hook recipe, gitignore block, catalog) and notes that home's `me/claude-skills/` snapshot is retired in favor of this library.
+
+⭐ **Result:** [skills/README.md](https://github.com/mehrlander/web-tools/blob/main/skills/README.md)
+
+**Changed:**
+- .claude/skills/load-skill/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/load-skill/SKILL.md)): the deliberate loader; explicit signal only, never opportunistic
+- skills/README.md ([new](https://github.com/mehrlander/web-tools/blob/main/skills/README.md)): the registered-vs-library split, editing and lineage notes
+- skills/manifest.json ([new](https://github.com/mehrlander/web-tools/blob/main/skills/manifest.json)): the discovery catalog
+- skills/* (34 skill folders, ~250 files): the library content, mirrored from the account-level set
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)): load-skill fetch line, gitignore path, catalog rows for the loader and the library
+
+**Notes:** The branch was pushed 2026-07-10 but its PR form was never submitted; the draft PR was recovered and merged the same day from the home session that reconciled the skill estate. Library content is public from this commit onward.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/skills-library-and-load-skill-2026-07-10)
+
 ## 2026-07-10 The PR becomes the branch guide (PR #205)
 
 Retires the per-branch `BRANCH-GUIDE.md`: a branch's draft PR, opened at first push, now carries the branch guide in its body (synced per push inside a `<!-- guide -->` managed region, narrative in PR comments), collapsing the surfacing course's three sequential drafts to two and mooting the fold-and-delete step and the leak-to-main problem. Adds the `/caption` and `/reorient` skills and the 🧭 guide pointer, and records the added-repo session mechanics in the environment docs.

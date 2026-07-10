@@ -75,6 +75,8 @@ fetch "$BASE/.claude/skills/web-tools-conventions/SKILL.md" \
       "$ROOT/.claude/skills/web-tools-conventions/SKILL.md"
 fetch "$BASE/.claude/skills/caption/SKILL.md" \
       "$ROOT/.claude/skills/caption/SKILL.md"
+fetch "$BASE/.claude/skills/load-skill/SKILL.md" \
+      "$ROOT/.claude/skills/load-skill/SKILL.md"
 
 # Portable scripts
 fetch "$BASE/scripts/build-board.py" \
@@ -89,6 +91,7 @@ exit 0
 ```
 .claude/skills/web-tools-conventions/
 .claude/skills/caption/
+.claude/skills/load-skill/
 .web-tools-scripts/
 ```
 
@@ -184,6 +187,8 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
 | [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) and the opt-in **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
+| [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
+| [`skills/`](../skills/) | the skill **library**: 34 personal skills published as static resources (not registered anywhere); the default source `load-skill` pulls from | fetched per skill by load-skill |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
