@@ -66,6 +66,28 @@ test -f .git/shallow && echo "shallow clone"
 git rev-parse main origin/main   # do they differ? stale pointer = bake predates a rewrite
 ```
 
+## Added repos: primary vs mid-session sources
+
+*(reported 2026-07-10 by a sibling session doing cross-repo work; mechanics not
+re-probed here)*
+
+- A session has one **primary repo**: at start the web UI provisions the session
+  branch and records it in the session's own metadata. That registration is what
+  lets the UI watch the branch and render the create-PR / view-PR buttons.
+- A repo added mid-session (`add_repo`) gets **symmetric git access**: a clone
+  and credentials through the same loopback proxy, with nothing "secondary"
+  about what can be pushed. But it gets no metadata entry, so the UI has no
+  branch to watch and no button to build. The gap is interface bookkeeping, not
+  git permissions.
+- The bridge is GitHub's own compare view, stateless and session-free:
+  `https://github.com/<owner>/<repo>/compare/main...<branch>`. Push the branch,
+  hand over that link; the signed-in owner sees the diff and a "Create pull
+  request" button, and the PR carries their identity. The MCP tools can open the
+  PR instead, but then it is authored by the integration identity, so that step
+  stays behind an explicit ask.
+- A PR needs a source branch distinct from its target: a direct-to-main push in
+  an added repo lands the work but leaves nothing to propose.
+
 > **Provenance discipline.** A result that matches the documented design proves
 > nothing about the mechanism: you can't tell understanding from recitation. The
 > stale local `main` was useful precisely because it shouldn't have been there. It

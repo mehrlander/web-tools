@@ -70,9 +70,13 @@ fetch() {
   fi
 }
 
-# Loader skill
+# Skills
 fetch "$BASE/.claude/skills/web-tools-conventions/SKILL.md" \
       "$ROOT/.claude/skills/web-tools-conventions/SKILL.md"
+fetch "$BASE/.claude/skills/caption/SKILL.md" \
+      "$ROOT/.claude/skills/caption/SKILL.md"
+fetch "$BASE/.claude/skills/reorient/SKILL.md" \
+      "$ROOT/.claude/skills/reorient/SKILL.md"
 
 # Portable scripts
 fetch "$BASE/scripts/build-board.py" \
@@ -86,6 +90,8 @@ exit 0
 
 ```
 .claude/skills/web-tools-conventions/
+.claude/skills/caption/
+.claude/skills/reorient/
 .web-tools-scripts/
 ```
 
@@ -179,7 +185,9 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, session diff) and the opt-in **surfacing course** (branch-guide/PR-body/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
+| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) and the opt-in **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
+| [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, or bare size) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
+| [`.claude/skills/reorient/SKILL.md`](../.claude/skills/reorient/SKILL.md) | `/reorient`: fixed-form recap of the session (goal, decisions, state with links, open questions, next) | install or hook-fetch |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |

@@ -1,13 +1,13 @@
 ---
 name: web-tools-conventions
-description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (branch guide, PR body, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, "file card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over the artifact"/SendUserFile, "lead with the live view", branch anchor, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (guide PR, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, "file card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over the artifact"/SendUserFile, "lead with the live view", branch anchor, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
 ---
 
 # web-tools conventions loader
 
 The user's cross-repo working conventions — surfacing rules, explicit-markdown
-links, the per-file `[new]/[main]/[diff]` list, the surfacing course (branch
-guide → PR body → merge-guide entry), wrap-up ritual, post-merge handoff — live in one canonical,
+links, the per-file `[new]/[main]/[diff]` list, the surfacing course (guide PR
+body → merge-guide entry), wrap-up ritual, post-merge handoff — live in one canonical,
 repo-agnostic file: `docs/CONVENTIONS.md` in the public repo
 `mehrlander/web-tools`. This skill fetches it fresh so any session in any repo
 follows the same conventions without keeping a stale copy.

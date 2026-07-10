@@ -2,7 +2,7 @@
 
 ## How these instructions are split
 
-The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools-conventions` skill (`.claude/skills/web-tools-conventions/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, branch-guide enforcement). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
+The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools-conventions` skill (`.claude/skills/web-tools-conventions/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, guide-PR support). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
 
 CONVENTIONS.md is one of several docs written to travel; the full to-go bag (conventions, scripts, the headless-vendoring recipe, the sandbox notes) is catalogued in [docs/PORTABLE.md](docs/PORTABLE.md), which the loader skill points at and which points back. When adding a doc or script meant for reuse elsewhere, list it there.
 
@@ -22,9 +22,9 @@ The honesty rule still applies: only a page renders this way; for a kit or doc, 
 
 The conventions' wrap-up step 1 means one thing here: if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit: screenshots are slow and not byte-deterministic, so the commit hook only nags about them (see "Build-on-commit hook" below). The catalogs need no separate step; the hook regenerates them with each commit.
 
-## Branch-guide enforcement: none yet
+## Guide-PR support: platform auto-create is on
 
-The branch-guide lifecycle (create+push first thing, accurate per push, fold+delete at wrap-up) runs convention-only here for now: the build-on-commit hook doesn't track `BRANCH-GUIDE.md`, and there's no CI guard against one leaking to main. If a stray guide is found on main (a merge bypassed wrap-up), delete it as cleanup.
+The Claude Code web settings for this account enable "Create pull requests automatically" with "Create as draft" (turned on 2026-07-10), so a session started after that gets its draft PR on first push; a session predating the toggle, or one working in an added repo, opens the draft itself via the GitHub MCP (the toggle was probed not to fire retroactively into an in-flight session). Body sync is by hand via `/caption`; no hook or CI tracks it. `BRANCH-GUIDE.md` files are historical (retired by PR #205); delete any stray one on sight.
 
 ## gh-api.js edits
 
