@@ -1,15 +1,16 @@
-# Branch guide: claude/show-repo-page-improvements-1xpb0d
+# Branch guide: claude/chat-search-results-ui-o8miz0
 
-Widens the show-repo sidebar on desktop, adds header shortcut buttons for home/web-tools/chat-histories, and adds a Recent section listing recently-committed files for the open repo@ref.
+Builds a chat search results page: a results-envelope viewer with facets and client-side filtering, on a transcript renderer whose fenced code blocks get live views (CM6 editor, sandboxed render, run-with-console, table) via a proof machinery lifted out of vanilla-demo.js.
 
-⭐ [pages/show-repo/show-repo.html](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html?use=claude/show-repo-page-improvements-1xpb0d)
+⭐ [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/chat-search-results-ui-o8miz0:pages/chat-results.html) (🥏 toss; page not on main yet)
 
 **Changed:**
-- pages/show-repo/show-repo.html ([new](https://github.com/mehrlander/web-tools/blob/claude/show-repo-page-improvements-1xpb0d/pages/show-repo/show-repo.html), [main](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html), [diff](https://github.com/mehrlander/web-tools/compare/main...claude/show-repo-page-improvements-1xpb0d))
-- lib/gh-api.js ([new](https://github.com/mehrlander/web-tools/blob/claude/show-repo-page-improvements-1xpb0d/lib/gh-api.js), [main](https://github.com/mehrlander/web-tools/blob/main/lib/gh-api.js), [diff](https://github.com/mehrlander/web-tools/compare/main...claude/show-repo-page-improvements-1xpb0d))
+- (first commit: this guide only; files land next)
 
 **Next steps / open threads:**
-- The pinned home/chat-histories buttons dim (not hide) when unauthenticated, since both are private; verify that reads right in practice.
-- Recent list depends on `GH.recentFiles()` (commits + commits/{sha} calls); verified in the headless preview only via a stubbed `recentFiles`, since the local render harness (`tools/render/cdn.mjs`) doesn't impersonate the commits endpoint — real GitHub API behavior untested this session.
-- Thumbnail regen still owed at wrap-up per convention (this page changed).
-- This file was found stale on the branch (leftover content from an unrelated, already-merged branch); overwritten with this branch's own guide.
+- kits/proof.js: lift sandbox doc builders (HEAD/reporter/render/context/jsrender/console) from vanilla-demo.js
+- fold vanilla-demo.js onto proof.js; add kits/proof.js to the 8 demo pages' load chains
+- lib/chat-render.js: transcript renderer (markdown prose + block artifacts with Code/Render/Run/Table/Preview views)
+- pages/chat-results.html: envelope viewer (narrative, facet chips, excerpt cards, filter bar; #gz= / ?src= / inline demo data)
+- docs/CHAT-RESULTS.md: envelope schema, the contract the search skill emits
+- Note: the BRANCH-GUIDE.md on main is a stray from the merged show-repo branch; this file replaces it here and the wrap-up deletion clears it from main on merge.
