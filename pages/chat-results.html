@@ -263,13 +263,13 @@ window.DEMO_ENVELOPE = {
       tags: ["bookmarklets", "gzip", "pipeline"],
       excerpts: [
         { role: "user", md: "Can I gzip a snippet in the browser and unpack it from the URL fragment?" },
-        { role: "assistant", md: "Yes — `CompressionStream` handles it natively. The round trip:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n  return b64;\n};\n\nconst text = 'hello '.repeat(40);\nconsole.log('packed length:', (await pack(text)).length,\n            'vs raw:', text.length);\n```\n\nPress **Run** on that block to see the compression win." }
+        { role: "assistant", md: "Yes — `CompressionStream` handles it natively, no library needed. The packing side looks like this:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  return btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n};\n```\n\nThe base64url step matters because `+` and `/` aren't fragment-safe." }
       ],
       transcript: [
         { role: "user", md: "Can I gzip a snippet in the browser and unpack it from the URL fragment?" },
-        { role: "assistant", md: "Yes — `CompressionStream` handles it natively. The round trip:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n  return b64;\n};\n\nconst text = 'hello '.repeat(40);\nconsole.log('packed length:', (await pack(text)).length,\n            'vs raw:', text.length);\n```" },
+        { role: "assistant", md: "Yes — `CompressionStream` handles it natively, no library needed. The packing side looks like this:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  return btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n};\n```\n\nThe base64url step matters because `+` and `/` aren't fragment-safe." },
         { role: "user", md: "And the unpack side?" },
-        { role: "assistant", md: "Mirror image with `DecompressionStream`:\n\n```js\nconst unpack = async (b64) => {\n  const pad = '='.repeat((4 - b64.length % 4) % 4);\n  const bytes = Uint8Array.from(\n    atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad),\n    c => c.charCodeAt(0));\n  const stream = new Blob([bytes]).stream()\n    .pipeThrough(new DecompressionStream('gzip'));\n  return new Response(stream).text();\n};\nconsole.log('round trip ok');\n```\n\nThe fragment never reaches the server, which is the private-safe property the toss renderer leans on." }
+        { role: "assistant", md: "Mirror image with `DecompressionStream`:\n\n```js\nconst unpack = async (b64) => {\n  const pad = '='.repeat((4 - b64.length % 4) % 4);\n  const bytes = Uint8Array.from(\n    atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad),\n    c => c.charCodeAt(0));\n  const stream = new Blob([bytes]).stream()\n    .pipeThrough(new DecompressionStream('gzip'));\n  return new Response(stream).text();\n};\n```\n\nSince the payload rides in the fragment, it never reaches the server — that's what makes the link private-safe." }
       ]
     },
     {
@@ -280,7 +280,7 @@ window.DEMO_ENVELOPE = {
       relevance: "Compares ratios on real snippets; lands on brotli-wasm for the helper, gzip for portability.",
       tags: ["brotli", "benchmarks"],
       excerpts: [
-        { role: "assistant", md: "On your sample set the ratios were close but consistent:\n\n```json\n[\n  { \"input\": \"table-compress.html\", \"raw\": 14210, \"gzip\": 4102, \"brotli\": 3688 },\n  { \"input\": \"suite.js\",            \"raw\": 9834,  \"gzip\": 3120, \"brotli\": 2851 },\n  { \"input\": \"fab.js\",              \"raw\": 6055,  \"gzip\": 2244, \"brotli\": 2019 }\n]\n```\n\nThe **Table** view makes the spread easier to scan." }
+        { role: "assistant", md: "On your sample set the ratios were close but consistent:\n\n```json\n[\n  { \"input\": \"table-compress.html\", \"raw\": 14210, \"gzip\": 4102, \"brotli\": 3688 },\n  { \"input\": \"suite.js\",            \"raw\": 9834,  \"gzip\": 3120, \"brotli\": 2851 },\n  { \"input\": \"fab.js\",              \"raw\": 6055,  \"gzip\": 2244, \"brotli\": 2019 }\n]\n```\n\nBrotli wins by 9 to 11 percent on every input, but gzip's native `CompressionStream` needs no wasm payload — so it depends on whether the helper can afford the brotli-wasm download." }
       ]
     },
     {
@@ -291,7 +291,7 @@ window.DEMO_ENVELOPE = {
       relevance: "Sketches the status-pill card that became the pages index; the fenced block renders live.",
       tags: ["daisyui", "layout"],
       excerpts: [
-        { role: "assistant", md: "A compact card with a status pill reads well at index density:\n\n```html\n<div class=\"max-w-xs rounded-lg border border-zinc-200 bg-white p-4 shadow-sm\">\n  <div class=\"flex items-center justify-between\">\n    <h3 class=\"text-sm font-semibold text-zinc-800\">compression-helper</h3>\n    <span class=\"inline-flex items-center gap-1.5 rounded bg-emerald-100\n      text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium\">\n      <span class=\"w-1.5 h-1.5 rounded-full bg-emerald-500\"></span> live\n    </span>\n  </div>\n  <p class=\"mt-2 text-xs text-zinc-500\">Pack a snippet into a link; unpack it anywhere.</p>\n</div>\n```\n\nHit **Render** to see it." }
+        { role: "assistant", md: "A compact card with a status pill reads well at index density:\n\n```html\n<div class=\"max-w-xs rounded-lg border border-zinc-200 bg-white p-4 shadow-sm\">\n  <div class=\"flex items-center justify-between\">\n    <h3 class=\"text-sm font-semibold text-zinc-800\">compression-helper</h3>\n    <span class=\"inline-flex items-center gap-1.5 rounded bg-emerald-100\n      text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium\">\n      <span class=\"w-1.5 h-1.5 rounded-full bg-emerald-500\"></span> live\n    </span>\n  </div>\n  <p class=\"mt-2 text-xs text-zinc-500\">Pack a snippet into a link; unpack it anywhere.</p>\n</div>\n```\n\nThe pill stays legible down to about 280px of card width, so it survives a three-column grid." }
       ]
     }
   ]
