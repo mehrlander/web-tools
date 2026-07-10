@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/clipboard"></script>
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+  <script defer src="https://cdn.jsdelivr.net/combine/npm/@alpinejs/collapse/dist/cdn.min.js,npm/@alpinejs/sort/dist/cdn.min.js,npm/alpinejs/dist/cdn.min.js"></script>
+</head>
+<body class="bg-base-100 p-6 md:p-12 font-sans antialiased" x-data="app()">
+
+  <div class="max-w-md mx-auto space-y-8">
+
+    <div class="space-y-3">
+      <template x-for="f in folders" :key="f.id">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-tight opacity-40 mb-1.5 px-1" x-text="f.label"></div>
+          <div class="min-h-[44px] rounded-lg border border-dashed border-base-300 px-3 py-2 transition-colors" :class="bg(f)">
+            <ul :data-target="f.id" :id="f.id" data-type="folder"
+                x-sort="[]" x-sort:group="files" x-sort:config="sortCfg(20)"
+                class="flex-1 flex flex-wrap gap-1.5 min-h-[32px] items-center">
+            </ul>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div x-data="{ open: true }">
+      <button @click="open = !open" class="flex items-center gap-2 mb-2 px-1 cursor-pointer group">
+        <span class="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-70 transition-colors">Unsorted Files</span>
+        <i class="ph ph-caret-down text-xs opacity-30 transition-transform duration-200" :class="open && 'rotate-180'"></i>
+      </button>
+      <div x-show="open" x-collapse>
+        <ul data-target="items" id="root-items" data-type="root"
+            x-sort="items" x-sort:group="files" x-sort:config="sortCfg()"
+            class="min-h-[150px] space-y-0.5">
+          <template x-for="id in items" :key="id">
+            <li x-sort:item="id" :data-name="byId[id].name" :class="ROOT">
+              <i class="ph ph-file-text opacity-30 mr-2"></i>
+              <span x-text="byId[id].name"></span>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-black uppercase tracking-widest opacity-40">Serialization</span>
+        <button class="btn btn-ghost btn-xs btn-circle"
+          :data-clipboard-text="json"
+          x-data="{ copied: false }"
+          x-init="new ClipboardJS($el).on('success', () => { copied = true; setTimeout(() => copied = false, 2000) })"
+          title="Copy JSON">
+          <i class="ph text-base" :class="copied ? 'ph-check text-success' : 'ph-copy'"></i>
+        </button>
+      </div>
+      <pre class="bg-neutral text-success rounded-lg font-mono text-[11px] overflow-auto leading-relaxed max-h-48 p-4" x-text="json"></pre>
+    </div>
+
+  </div>
+
+  <script>
+    const GRAB = 'cursor-grab active:cursor-grabbing'
+    const ROOT = `flex items-center px-3 py-2.5 rounded-lg hover:bg-base-200/60 transition-colors text-sm text-base-content/70 ${GRAB}`
+    const PILL = `badge badge-sm ${GRAB}`
+    const namesOf = id => [...document.querySelectorAll(`#${id} li`)].map(el => el.dataset.name)
+
+    function app() {
+      const names = ['database_sync.py','ui_refactor.css','bug_fix_login.js','documentation.md','config.json','init_server.sh','schema.sql','readme.txt','api_client.go','package.json']
+      const folders = [
+        { id: 'folder1', label: 'Alpha', color: 'primary' },
+        { id: 'folder2', label: 'Beta',  color: 'accent' }
+      ]
+      const fMap = Object.fromEntries(folders.map(f => [f.id, f]))
+
+      return {
+        ROOT, folders,
+        byId: Object.fromEntries(names.map((name, i) => [i + 1, { name }])),
+        items: names.map((_, i) => i + 1),
+        hot: null, serialized: {},
+        get json() { return JSON.stringify(this.serialized, null, 2) },
+        bg(f) { return this.hot === f.id ? `bg-${f.color}/10` : '' },
+        sortCfg(threshold) {
+          const self = this
+          return {
+            onStart: e => e.item.classList.remove('hidden','opacity-0','w-0','h-0','p-0','m-0','overflow-hidden'),
+            onMove: e => {
+              const { type, target } = e.to.dataset
+              self.hot = target
+              e.dragged.className = type === 'folder' ? `${PILL} badge-${fMap[target].color}` : ROOT
+            },
+            onEnd: () => {
+              self.hot = null
+              self.serialized = {
+                Folders: Object.fromEntries(folders.map(f => [f.label, namesOf(f.id)])),
+                Root: namesOf('root-items')
+              }
+            },
+            ...(threshold && { emptyInsertThreshold: threshold })
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

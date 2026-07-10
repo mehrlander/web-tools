@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Doc diff</title>
+<style>
+  :root{color-scheme:light dark}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{
+    font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:#fff;color:#1f2328;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.45rem .7rem;border-bottom:1px solid #e7e9ec;font-size:12px}
+  .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .name .sub{color:#8b949e;font-weight:400;margin-left:.4rem}
+  .right{flex:0 0 auto;display:flex;align-items:center;gap:.8rem}
+  .tally .a{color:#1a7f37}.tally .r{color:#cf222e;margin-left:.5rem}
+  .wrap{font:inherit;color:#57606a;background:none;border:1px solid #d0d7de;padding:.05rem .45rem;cursor:pointer}
+  #out{flex:1 1 auto;overflow:auto}
+  .row{display:flex;align-items:flex-start;min-height:1.65em}
+  .g{flex:0 0 auto;width:3ch;text-align:right;padding:0 .4ch;color:#9aa0a6;user-select:none}
+  .s{flex:0 0 auto;width:1.6ch;text-align:center;color:#9aa0a6;user-select:none}
+  .t{flex:1;white-space:pre-wrap;word-break:break-word;padding-right:.6rem}
+  body.nowrap .t{white-space:pre}
+  .add{background:#e6ffec}.add .t{color:#1a7f37}
+  .del{background:#ffebe9}.del .t{color:#cf222e}
+  @media (prefers-color-scheme:dark){
+    body{background:#0d1117;color:#c9d1d9}
+    .bar{border-bottom-color:#21262d}
+    .wrap{color:#8b949e;border-color:#30363d}
+    .tally .a{color:#3fb950}.tally .r{color:#f85149}
+    .g,.s{color:#6e7681}
+    .add{background:#12361f}.add .t{color:#3fb950}
+    .del{background:#3c1618}.del .t{color:#f85149}
+  }
+</style>
+</head>
+<body>
+
+<!-- Fill these two blocks with the document before and after, HTML-escaped (& < >).
+     Set the .name label below to the document under review. Nothing else to change. -->
+<pre id="a" hidden>title: draft
+count: 1</pre>
+
+<pre id="b" hidden>title: draft
+count: 2
+note: a new line</pre>
+
+<div class="bar">
+  <span class="name">document<span class="sub">proposed change</span></span>
+  <span class="right">
+    <span class="tally"><span class="a" id="add"></span> <span class="r" id="rem"></span></span>
+    <button class="wrap" id="wrapBtn" onclick="document.body.classList.toggle('nowrap');this.textContent=document.body.classList.contains('nowrap')?'no-wrap':'wrap'">wrap</button>
+  </span>
+</div>
+<div id="out"></div>
+
+<script>
+const splitLines = s => s.split('\n');
+
+function lineOps(aStr, bStr){
+  const a = splitLines(aStr), b = splitLines(bStr), n = a.length, m = b.length;
+  const dp = Array.from({length: n+1}, () => new Int32Array(m+1));
+  for (let i=n-1; i>=0; i--)
+    for (let j=m-1; j>=0; j--)
+      dp[i][j] = a[i]===b[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const ops = [];
+  let i=0, j=0;
+  while (i<n && j<m){
+    if (a[i]===b[j]) { ops.push(['=', a[i]]); i++; j++; }
+    else if (dp[i+1][j] >= dp[i][j+1]) { ops.push(['-', a[i]]); i++; }
+    else { ops.push(['+', b[j]]); j++; }
+  }
+  while (i<n) ops.push(['-', a[i++]]);
+  while (j<m) ops.push(['+', b[j++]]);
+  return ops;
+}
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+(function render(){
+  const a = document.getElementById('a').textContent;
+  const b = document.getElementById('b').textContent;
+  let newN = 0, add = 0, rem = 0, rows = '';
+  for (const [op, line] of lineOps(a, b)){
+    let num = '', cls = '', sign = '\u00a0';
+    if (op === '=') { newN++; num = newN; }
+    else if (op === '+') { newN++; num = newN; cls = 'add'; sign = '+'; add++; }
+    else { cls = 'del'; sign = '-'; rem++; }
+    rows += `<div class="row ${cls}"><span class="g">${num}</span><span class="s">${sign}</span><span class="t">${esc(line) || '\u00a0'}</span></div>`;
+  }
+  document.getElementById('out').innerHTML = rows;
+  document.getElementById('add').textContent = '+' + add;
+  document.getElementById('rem').textContent = '\u2212' + rem;
+})();
+</script>
+
+</body>
+</html>
