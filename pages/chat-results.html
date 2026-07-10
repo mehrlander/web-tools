@@ -142,10 +142,18 @@
 <body class="min-h-screen bg-base-200">
 <div x-data="app()" x-init="init()" class="max-w-3xl mx-auto px-4 py-8">
 
-  <!-- error -->
+  <!-- error. GitHub answers 404 (not 401) for a private repo fetched with
+       no token, so gh-auth's automatic prompt never fires here; offer it. -->
   <div x-show="error" x-cloak class="alert alert-error text-sm" role="alert">
     <i class="ph ph-warning-circle"></i>
-    <span x-text="error"></span>
+    <div>
+      <div x-text="error"></div>
+      <div class="text-xs opacity-70 mt-0.5" x-show="/404|401|403/.test(error)">
+        A 404 on a private repo usually means no GitHub token is stored in this browser.
+      </div>
+    </div>
+    <button class="btn btn-xs" x-show="/404|401|403/.test(error) && window.ghAuth"
+            @click="ghAuth.prompt('Token needed to read this envelope')">Set token</button>
   </div>
 
   <!-- loading -->
