@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en" data-theme="nord">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Search Results</title>
+<!--
+  Chat search results viewer. Renders a results envelope: a model-driven
+  search over the chat-histories repo emits it (see docs/CHAT-RESULTS.md for
+  the schema), this page presents it — narrative, facet chips, excerpt cards,
+  and full transcripts whose fenced code blocks are live artifacts
+  (lib/chat-render.js). A search bar filters within the loaded set.
+
+  Data sources, first match wins:
+    #gz=<base64url>   gzipped envelope JSON in the fragment (toss-style,
+                      private-safe: never reaches a server)
+    ?src=<path>       envelope JSON fetched via the GitHub contents API;
+                      plain path = this repo, or owner/repo@ref:path
+    (neither)         a small built-in demo envelope
+-->
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<style>[x-cloak]{display:none}</style>
+<script type="module">
+  // ?use=<branch|tag|sha> picks which ref the lib chain loads from; defaults
+  // to main. gh-api.js auto-boots window.gh from its own import URL.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('kits/proof.js');
+  await gh.load('chat-render.js');
+
+  const exCache = new Map();   // result id -> excerpt DOM (kept out of Alpine's proxy)
+  const trCache = new Map();   // result id -> transcript DOM
+
+  const gunzipB64url = async s => {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Response(stream).text();
+  };
+
+  const fetchText = async spec => {
+    // spec: 'owner/repo@ref:path' or a path in this repo
+    const m = String(spec).match(/^([\w.-]+\/[\w.-]+)(?:@([^:]+))?:(.+)$/);
+    if (!m) return (await gh.get(spec)).text;
+    const data = await gh.req(`/repos/${m[1]}/contents/${m[3]}?ref=${encodeURIComponent(m[2] || 'main')}`);
+    return gh.decode(data.content);
+  };
+
+  const PROVIDERS = {
+    claude:  'badge-primary',
+    chatgpt: 'badge-success',
+    gemini:  'badge-info',
+    kimi:    'badge-warning',
+  };
+
+  window.app = () => ({
+    env: null, error: '', q: '', active: [],
+
+    async init() {
+      while (!window.chatRender) await new Promise(r => setTimeout(r, 50));
+      await chatRender.ready();
+      try {
+        const gz = new URLSearchParams(location.hash.slice(1)).get('gz');
+        const src = new URLSearchParams(location.search).get('src');
+        if (gz) this.env = JSON.parse(await gunzipB64url(gz));
+        else if (src) this.env = JSON.parse(await fetchText(src));
+        else this.env = window.DEMO_ENVELOPE;
+      } catch (e) { this.error = e.message; return; }
+      document.title = this.env.query ? `Chats · ${this.env.query}` : 'Chat Search Results';
+    },
+
+    providerBadge: p => PROVIDERS[String(p || '').toLowerCase()] || 'badge-ghost',
+
+    // ── filtering: facet chips (union) ∩ search text ──
+    facetsOf(r) { return (this.env.facets || []).filter(f => (f.members || []).includes(r.id)); },
+    haystack(r) {
+      return [r.title, r.provider, r.date, r.relevance, (r.tags || []).join(' '),
+        (r.excerpts || []).map(e => e.md).join(' '),
+        this.facetsOf(r).map(f => f.label).join(' ')].join(' ').toLowerCase();
+    },
+    get results() {
+      let rs = this.env?.results || [];
+      if (this.active.length) rs = rs.filter(r => this.active.some(id => ((this.env.facets || []).find(f => f.id === id)?.members || []).includes(r.id)));
+      const q = this.q.trim().toLowerCase();
+      if (q) rs = rs.filter(r => this.haystack(r).includes(q));
+      return rs;
+    },
+    toggleFacet(id) {
+      this.active = this.active.includes(id) ? this.active.filter(x => x !== id) : [...this.active, id];
+    },
+
+    // ── imperative mounts (chat-render builds real DOM) ──
+    mountNarrative(el) {
+      if (this.env?.narrative) el.replaceChildren(chatRender.markdown(this.env.narrative));
+    },
+    mountExcerpts(el, r) {
+      if (!(r.excerpts || []).length) return;
+      if (!exCache.has(r.id)) {
+        const wrap = document.createElement('div');
+        wrap.className = 'space-y-3';
+        r.excerpts.forEach(e => wrap.append(chatRender.message(e, { collapse: 300 })));
+        exCache.set(r.id, wrap);
+      }
+      el.replaceChildren(exCache.get(r.id));
+    },
+    hasTranscript(r) { return !!(r.transcript?.length || r.source); },
+    async toggleTranscript(r, el) {
+      r._open = !r._open;
+      if (!r._open || trCache.has(r.id)) { this.paintTranscript(r, el); return; }
+      r._loading = true;
+      try {
+        let messages = r.transcript;
+        if (!messages) {
+          const spec = `${r.source.repo}@${r.source.ref || 'main'}:${r.source.path}`;
+          const text = await fetchText(spec);
+          messages = r.source.path.endsWith('.json') ? JSON.parse(text) : chatRender.parse(text);
+        }
+        trCache.set(r.id, chatRender.transcript(messages));
+      } catch (e) {
+        const err = document.createElement('div');
+        err.className = 'text-error text-xs';
+        err.textContent = `Couldn't load transcript: ${e.message}`;
+        trCache.set(r.id, err);
+      }
+      r._loading = false;
+      this.paintTranscript(r, el);
+    },
+    paintTranscript(r, el) {
+      const host = el.closest('[data-card]').querySelector('[data-transcript]');
+      if (r._open && trCache.has(r.id)) host.replaceChildren(trCache.get(r.id));
+      else host.replaceChildren();
+    },
+    blobUrl(r) {
+      return r.source ? `https://github.com/${r.source.repo}/blob/${r.source.ref || 'main'}/${r.source.path}` : null;
+    },
+  });
+
+  await gh.load('alpine-bundle.js');
+</script>
+</head>
+<body class="min-h-screen bg-base-200">
+<div x-data="app()" x-init="init()" class="max-w-3xl mx-auto px-4 py-8">
+
+  <!-- error -->
+  <div x-show="error" x-cloak class="alert alert-error text-sm" role="alert">
+    <i class="ph ph-warning-circle"></i>
+    <span x-text="error"></span>
+  </div>
+
+  <!-- loading -->
+  <div x-show="!env && !error" class="flex items-center gap-2 opacity-50 text-sm py-12 justify-center">
+    <span class="loading loading-spinner loading-sm"></span> Loading results…
+  </div>
+
+  <template x-if="env">
+    <div>
+      <!-- header: the question, then the filter bar -->
+      <header class="mb-5">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-1">Chat search</p>
+        <h1 class="text-[1.35rem] leading-tight font-bold tracking-tight" x-text="env.query || 'Results'"></h1>
+        <p class="text-xs opacity-50 mt-1" x-show="env.generated" x-text="env.generated"></p>
+      </header>
+
+      <!-- narrative: how the search was prosecuted, what it concluded -->
+      <section x-show="env.narrative" class="mb-5 rounded-box bg-base-100 border border-base-300 px-4 py-3">
+        <p class="font-mono text-[9.5px] tracking-widest uppercase opacity-40 mb-1.5">Findings</p>
+        <div x-init="mountNarrative($el)"></div>
+      </section>
+
+      <!-- filter bar -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <label class="input input-sm input-bordered flex items-center gap-2 flex-1 min-w-52 bg-base-100">
+          <i class="ph ph-magnifying-glass opacity-40"></i>
+          <input type="search" class="grow text-sm" placeholder="Filter these results…" x-model="q">
+        </label>
+        <span class="font-mono text-[10px] opacity-50 whitespace-nowrap"
+              x-text="`${results.length} of ${(env.results||[]).length} chats`"></span>
+      </div>
+
+      <!-- facet chips -->
+      <div x-show="(env.facets||[]).length" class="flex flex-wrap gap-1.5 mb-5">
+        <template x-for="f in env.facets" :key="f.id">
+          <button class="btn btn-xs gap-1.5 font-normal"
+                  :class="active.includes(f.id) ? 'btn-neutral' : 'btn-ghost bg-base-100 border border-base-300'"
+                  :title="f.note || ''"
+                  @click="toggleFacet(f.id)">
+            <span x-text="f.label"></span>
+            <span class="opacity-50 font-mono text-[10px]" x-text="(f.members||[]).length"></span>
+          </button>
+        </template>
+      </div>
+
+      <!-- result cards -->
+      <div class="space-y-4">
+        <template x-for="r in results" :key="r.id">
+          <article data-card class="rounded-box bg-base-100 border border-base-300 overflow-hidden">
+            <div class="px-4 pt-3.5 pb-3">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <h2 class="font-semibold text-[0.98rem] leading-snug" x-text="r.title"></h2>
+                <span class="badge badge-xs font-mono" :class="providerBadge(r.provider)" x-text="r.provider"></span>
+                <span class="font-mono text-[10px] opacity-40" x-text="r.date"></span>
+              </div>
+              <p class="text-[0.83rem] opacity-70 mt-1" x-show="r.relevance" x-text="r.relevance"></p>
+              <div class="flex flex-wrap gap-1 mt-1.5" x-show="(r.tags||[]).length">
+                <template x-for="t in r.tags" :key="t">
+                  <button class="badge badge-ghost badge-xs font-mono cursor-pointer" x-text="t" @click="q = t"></button>
+                </template>
+              </div>
+            </div>
+
+            <!-- excerpts: the matched passages, rendered as chat turns -->
+            <div class="px-4 pb-3 bg-base-200/30 pt-3 border-t border-base-300" x-show="(r.excerpts||[]).length">
+              <p class="font-mono text-[9.5px] tracking-widest uppercase opacity-40 mb-2">Matched passages</p>
+              <div x-init="mountExcerpts($el, r)"></div>
+            </div>
+
+            <!-- footer: transcript toggle + source link -->
+            <div class="flex items-center gap-1 px-2 py-1 border-t border-base-300 bg-base-200/50"
+                 x-show="hasTranscript(r) || blobUrl(r)">
+              <button x-show="hasTranscript(r)" class="btn btn-ghost btn-xs gap-1 font-mono text-[10px]"
+                      @click="toggleTranscript(r, $el)">
+                <span class="loading loading-spinner loading-xs" x-show="r._loading"></span>
+                <i class="ph text-[13px]" :class="r._open ? 'ph-caret-up' : 'ph-chat-circle-text'" x-show="!r._loading"></i>
+                <span x-text="r._open ? 'Hide transcript' : 'Transcript'"></span>
+              </button>
+              <a x-show="blobUrl(r)" :href="blobUrl(r)" target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-xs gap-1 font-mono text-[10px] opacity-60">
+                <i class="ph ph-github-logo text-[13px]"></i> Source
+              </a>
+            </div>
+            <div data-transcript class="px-4 [&:not(:empty)]:py-4 border-t border-base-300"></div>
+          </article>
+        </template>
+      </div>
+
+      <p x-show="!results.length" class="text-center text-sm opacity-50 py-10">
+        No chats match<span x-show="q"> “<span x-text="q"></span>”</span>.
+      </p>
+    </div>
+  </template>
+</div>
+
+<script>
+// Built-in demo envelope: what the page shows with no #gz= and no ?src=.
+// Doubles as living documentation of the schema (docs/CHAT-RESULTS.md).
+window.DEMO_ENVELOPE = {
+  query: "Where did I work out the compression bookmarklet approach?",
+  generated: "demo data — pass ?src= or #gz= for real results",
+  narrative: "Searched **chat-histories** three ways: by title keywords (*brotli, gzip, bookmarklet*), by fenced-code content (`CompressionStream`), and by date around the compression-helper commits. Three conversations carry the thread; the first has the working packer.",
+  facets: [
+    { id: "topic-compression", label: "Compression", note: "Chats that touch the packing pipeline", members: ["c1", "c2"] },
+    { id: "topic-ui", label: "Page UI", note: "Chats about presenting the tools", members: ["c3"] },
+    { id: "found-by-code", label: "Matched in code", note: "Hit was inside a fenced block", members: ["c1", "c3"] }
+  ],
+  results: [
+    {
+      id: "c1",
+      title: "Packing a bookmarklet with gzip",
+      provider: "claude",
+      date: "2025-11-03",
+      relevance: "Works out the compress-then-base64url pipeline the helper page still uses.",
+      tags: ["bookmarklets", "gzip", "pipeline"],
+      excerpts: [
+        { role: "user", md: "Can I gzip a snippet in the browser and unpack it from the URL fragment?" },
+        { role: "assistant", md: "Yes — `CompressionStream` handles it natively. The round trip:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n  return b64;\n};\n\nconst text = 'hello '.repeat(40);\nconsole.log('packed length:', (await pack(text)).length,\n            'vs raw:', text.length);\n```\n\nPress **Run** on that block to see the compression win." }
+      ],
+      transcript: [
+        { role: "user", md: "Can I gzip a snippet in the browser and unpack it from the URL fragment?" },
+        { role: "assistant", md: "Yes — `CompressionStream` handles it natively. The round trip:\n\n```js\nconst pack = async (text) => {\n  const stream = new Blob([text]).stream()\n    .pipeThrough(new CompressionStream('gzip'));\n  const buf = await new Response(stream).arrayBuffer();\n  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))\n    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n  return b64;\n};\n\nconst text = 'hello '.repeat(40);\nconsole.log('packed length:', (await pack(text)).length,\n            'vs raw:', text.length);\n```" },
+        { role: "user", md: "And the unpack side?" },
+        { role: "assistant", md: "Mirror image with `DecompressionStream`:\n\n```js\nconst unpack = async (b64) => {\n  const pad = '='.repeat((4 - b64.length % 4) % 4);\n  const bytes = Uint8Array.from(\n    atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad),\n    c => c.charCodeAt(0));\n  const stream = new Blob([bytes]).stream()\n    .pipeThrough(new DecompressionStream('gzip'));\n  return new Response(stream).text();\n};\nconsole.log('round trip ok');\n```\n\nThe fragment never reaches the server, which is the private-safe property the toss renderer leans on." }
+      ]
+    },
+    {
+      id: "c2",
+      title: "Choosing brotli vs gzip for the helper",
+      provider: "chatgpt",
+      date: "2025-11-19",
+      relevance: "Compares ratios on real snippets; lands on brotli-wasm for the helper, gzip for portability.",
+      tags: ["brotli", "benchmarks"],
+      excerpts: [
+        { role: "assistant", md: "On your sample set the ratios were close but consistent:\n\n```json\n[\n  { \"input\": \"table-compress.html\", \"raw\": 14210, \"gzip\": 4102, \"brotli\": 3688 },\n  { \"input\": \"suite.js\",            \"raw\": 9834,  \"gzip\": 3120, \"brotli\": 2851 },\n  { \"input\": \"fab.js\",              \"raw\": 6055,  \"gzip\": 2244, \"brotli\": 2019 }\n]\n```\n\nThe **Table** view makes the spread easier to scan." }
+      ]
+    },
+    {
+      id: "c3",
+      title: "A card layout for tool pages",
+      provider: "gemini",
+      date: "2026-02-07",
+      relevance: "Sketches the status-pill card that became the pages index; the fenced block renders live.",
+      tags: ["daisyui", "layout"],
+      excerpts: [
+        { role: "assistant", md: "A compact card with a status pill reads well at index density:\n\n```html\n<div class=\"max-w-xs rounded-lg border border-zinc-200 bg-white p-4 shadow-sm\">\n  <div class=\"flex items-center justify-between\">\n    <h3 class=\"text-sm font-semibold text-zinc-800\">compression-helper</h3>\n    <span class=\"inline-flex items-center gap-1.5 rounded bg-emerald-100\n      text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium\">\n      <span class=\"w-1.5 h-1.5 rounded-full bg-emerald-500\"></span> live\n    </span>\n  </div>\n  <p class=\"mt-2 text-xs text-zinc-500\">Pack a snippet into a link; unpack it anywhere.</p>\n</div>\n```\n\nHit **Render** to see it." }
+      ]
+    }
+  ]
+};
+</script>
+</body>
+</html>

@@ -12,6 +12,7 @@
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
   await gh.load('kits/cm6.js');
+  await gh.load('kits/proof.js');
   await gh.load('vanilla-demo.js');
 
   const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;

@@ -11,6 +11,7 @@
   const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
   await import(`${base}/gh-api.js`);
   await gh.load('kits/cm6.js');
+  await gh.load('kits/proof.js');
   await gh.load('vanilla-demo.js');
   await gh.load('kits/io.js');   // parent-kind snippets call window.io
 
