@@ -72,7 +72,7 @@ Then a common tail: the `[new]/[main]/[diff]` file list, a `renders on:` line fo
 
 The branch's PR opens as a **draft at first push**, and its body is the branch guide: the live answer to "where did I leave things," which matures into the reviewer's summary. The draft state marks work in flight; marking it ready is the actual request the name "pull request" makes. Keep "Follow-up to #N" when continuing an earlier PR; end with the harness's session-link footer.
 
-* **Open at first push.** Where the platform auto-creates draft PRs on push (see the guide-PR support extension point), that is the create. Otherwise the session opens the draft via the API, unprompted: creation is cheap and inward-facing. **Marking ready is the user's tap**, delegated only explicitly.
+* **Open at first push.** Where the platform auto-creates draft PRs on push (see the guide-PR support extension point), that is the create. Otherwise the session opens the draft via the API, unprompted: creation is cheap and inward-facing. **Marking the PR ready is the user's decision**; the session does it only when explicitly asked.
 * **Sync the body on every push:** the pushed state must not lie, and a stale guide is worse than none. Keep the machine-refreshed part inside the fenced managed region below, so a sync never clobbers hand-written text outside it. The cumulative diff lives in the PR's Files tab; the body's Changed list carries only the curated layer a diff can't show (⭐/🥏 preview links, `renders on:` lines, one-line whys).
 * **Narrative goes in PR comments,** append-only and dated, a progress log; the body holds only current state. (The same overwrite-vs-append split as the tracker's frontmatter tags vs progress log.)
 * **Abandon by closing the draft** with a final comment saying why; a closed draft is a durable record of a dead end, which an orphan branch never is.
@@ -125,7 +125,7 @@ Lead with the result, not the file list; primary file first; for a shared compon
 
 ### Wrap-up & marking ready
 
-Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (write the merge-guide entry and mark the PR ready)?"* Routing it through chat gets the docs and refreshes into the diff before review, and accepting the offer is the delegation of the ready tap.
+Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (write the merge-guide entry and mark the PR ready)?"* Routing it through chat gets the docs and refreshes into the diff before review, and accepting the offer is what authorizes marking the PR ready.
 
 **Sequence:**
 
