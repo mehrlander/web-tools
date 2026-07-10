@@ -1,6 +1,6 @@
 ---
 name: caption
-description: Emit the surfacing caption for the current branch: the uniform file list with [new]/[main]/[diff] links plus ⭐/🥏 render lines, at full (everything since main), turn (this turn's files), or bare (just the 🧭 guide link) size. Also the engine for syncing a guide PR body's managed region. Use when the user says "caption" or asks for the file-link list, or when a guide PR body needs a sync after a push.
+description: Emit the surfacing caption for the current branch: the uniform file list with [new]/[main]/[diff] links plus ⭐/🥏 render lines, at full (everything since main), turn (this turn's files), bare (just the 🧭 guide link), or recap (the full caption wrapped in a fixed-form session re-entry) size. Also the engine for syncing a guide PR body's managed region. Use when the user says "caption" or asks for the file-link list, when a guide PR body needs a sync after a push, or when the user says "reorient", "recap", "catch me up", or "where are we".
 ---
 
 # Caption
@@ -17,6 +17,9 @@ current repo into all URL templates.
   context (git cannot see turn boundaries); the default closer for a
   file-modifying reply.
 - **bare**: no list, just the 🧭 guide link; for turns that changed nothing.
+- **recap**: the re-entry size: the full caption wrapped in the session's
+  story, in the fixed form below. For "where are we", "catch me up", or a
+  long gap in the conversation.
 
 ## Rows
 
@@ -47,6 +50,24 @@ the portable fallback is the 🥏 `#gz=` toss.
 
 When the branch has a guide PR (or a branch-guide file), close with the
 pointer: `🧭 [PR #N](<url>)`.
+
+## The recap form
+
+The recap size wraps the caption in a fixed-form re-entry summary, kept to
+one screen. The fixed form is the point: every recap reads the same way, so
+the user can scan by section.
+
+1. **Goal:** one sentence: what this session set out to do and why.
+2. **Decisions:** the choices settled so far, one line each, in the order
+   they were made. State the decision, not the deliberation.
+3. **State:** the full caption: branch anchor, the file list per Rows above,
+   render lines, PRs and tracker tasks touched, the 🧭 tail.
+4. **Open:** questions raised but not settled, one line each.
+5. **Next:** the immediate next actions, in order.
+
+Rules: plain, dry register; no em dashes; a recap introduces nothing new (no
+proposals, no analysis); when a section is empty, write "none" rather than
+omitting it, so the form stays fixed.
 
 ## Syncing a guide PR body
 
