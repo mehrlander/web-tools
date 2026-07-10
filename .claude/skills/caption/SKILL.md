@@ -13,7 +13,8 @@ current repo into all URL templates.
 
 - **full** (default): every file changed since main, from
   `git diff origin/main...HEAD --name-status`.
-- **turn**: only the files this turn changed; the default closer for a
+- **turn**: only the files this turn changed, taken from the conversation
+  context (git cannot see turn boundaries); the default closer for a
   file-modifying reply.
 - **bare**: no list, just the 🧭 guide link; for turns that changed nothing.
 
@@ -28,6 +29,8 @@ bullet swaps, no per-row icons), a file's links not repeated within a turn:
 
 - `[new]` is the branch tip; omit `[main]` for an added file; a deleted file
   gets `[main]` and `[diff]` only.
+- `[diff]` is the newest branch commit touching the file
+  (`git log main..HEAD -1 --format=%h -- <path>`).
 - Add `#L120` or `#L120-L145` to a blob link when a specific change is the point.
 - Add an indented `renders on: [<consumer>](…)` line under a shared component.
 

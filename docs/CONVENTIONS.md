@@ -127,6 +127,8 @@ Lead with the result, not the file list; primary file first; for a shared compon
 
 Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (write the merge-guide entry and mark the PR ready)?"* Routing it through chat gets the docs and refreshes into the diff before review, and accepting the offer is what authorizes marking the PR ready.
 
+**"Wrap up" is the standing phrase for this whole process.** When the user says it, run the sequence below and mark the PR ready at its end: it is the request to finish and go green, not to merge. (Historically the phrase meant creating the PR; the guide PR now opens at first push, so creation left the wrap-up.)
+
 **Sequence:**
 
 1. **Preflight: confirm the branch still merges cleanly.** `git fetch origin main && git merge-tree --write-tree origin/main HEAD` test-merges without touching the tree (a nonzero exit names the conflicting paths). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (a sibling session or PR merging overlapping edits) the branch conflicts at merge time and this session never sees it; resolve it now, before GitHub flags the PR unmergeable. Committed generated artifacts (bundles, lockfiles, indexes) are the usual culprits, colliding on lines neither author wrote. Report either way, so a clean run reads as verified.
