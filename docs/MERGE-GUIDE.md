@@ -4,6 +4,25 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-10 The PR becomes the branch guide (PR #205)
+
+Retires the per-branch `BRANCH-GUIDE.md`: a branch's draft PR, opened at first push, now carries the branch guide in its body (synced per push inside a `<!-- guide -->` managed region, narrative in PR comments), collapsing the surfacing course's three sequential drafts to two and mooting the fold-and-delete step and the leak-to-main problem. Adds the `/caption` and `/reorient` skills and the 🧭 guide pointer, and records the added-repo session mechanics in the environment docs.
+
+⭐ **Result:** [docs/CONVENTIONS.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md)
+
+**Changed:**
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md)): guide-PR section replaces branch guide + PR body; wrap-up ends in "mark ready"; 🧭 pointer and caption sizes added to the primitives
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md)): guide-PR support extension point (platform auto-create on, 2026-07-10)
+- .claude/skills/caption/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/caption/SKILL.md)): the caption emitter and guide-PR body-sync engine
+- .claude/skills/reorient/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/reorient/SKILL.md)): fixed-form session recap
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)): catalog rows and sync-hook fetch lines for the two skills
+- docs/environment/container.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md)): added-repos section (session metadata, compare-link bridge)
+- BRANCH-GUIDE.md: deleted; also clears the stray guide PR #204 left on main
+
+**Notes:** Draft creation is platform-owned where the auto-create setting is on; it was probed not to fire retroactively into a session started before enabling, so such sessions (and added repos) open the draft via the API. Marking ready stays the user's tap. PR #205 is itself the first guide PR.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/repo-structure-branch-guide-m0v7ib)
+
 ## 2026-07-08 Show-repo: per-repo landing page with pinned sidebar (PR #199)
 
 Rebuilds `pages/show-repo/show-repo.html` around a per-repo landing page with a pinned sidebar. The sidebar lists the repo's views (landing, atlas, files) so there is no separate toggle; the repo picker and auth live in the header. Every repo gets a landing: web-tools' is its pages gallery, others get a synthesized overview. The atlas is light-themed. The repo component gains an `inline` mode for compact header embedding, with a redesigned dropdown showing language, stars, and recency per repo.

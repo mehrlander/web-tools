@@ -13,7 +13,7 @@ Adopt à la carte: two independent layers, take either alone.
 
 * **Preview mechanism:** how to open changed code live from a branch; ⭐ links use it, else the `[new]` blob.
 * **Per-session refreshes:** slow or non-deterministic artifacts regenerated once per session at wrap-up; none means no refresh step.
-* **Branch-guide enforcement:** optional CI or hooks backing the branch-guide lifecycle; none means convention-only.
+* **Guide-PR support:** whether the platform auto-creates draft PRs on push, and any body-sync tooling; none means the session opens the draft via the API and syncs the body by hand.
 
 ---
 
@@ -30,6 +30,7 @@ Adopt à la carte: two independent layers, take either alone.
     ```
   * **🥏 `#gh=owner/repo[@ref]:path` (owner-only address mode):** fetches the file live via the viewer's stored token, so it renders a **branch** (`@<ref>`), a **private repo**, or a **private-repo branch** as a live pointer (not a snapshot), and pulls the page's same-ref relative deps in whole. It is gated to the renderer owner's allowlist, so it renders only for that owner and is **not portable** (a link sent to someone without an authorized token 404s). Reach for `#gz=` when the reader isn't the owner.
 * **Branch anchor:** the first file-modifying reply leads with `Working branch: [branch-name](url)`.
+* **Guide pointer 🧭:** mark links to the branch's guide PR (or branch-guide file, where a repo still keeps one) with 🧭, the way ⭐ marks a hosted live view and 🥏 a toss render: the compass says "orient here." A reply may close with a bare `🧭 [PR #N](…)` line so the live state stays one tap away.
 * **Surfacing caption:** end a file-modifying turn with what changed, a uniform bulleted list, filename plain and the link words tappable. `[new]` is the branch tip, `[main]` the pre-change version on main (omit for a new file), `[diff]` the commit; add `#L120` or `#L120-L145` for a line anchor. Keep the rows plain and uniform (no bullet swaps, no per-row icons) and don't repeat a file's links within a turn. When a renderable HTML page changed, close the caption with a 🥏 render line *after* the list, not as a row: the list carries the source, the frisbee the running page. Link its live render per **Toss a live view** (link text the page path, one line per page, same honesty gate as ⭐, so a kit, doc, or asset gets none).
 
   ```
@@ -38,6 +39,8 @@ Adopt à la carte: two independent layers, take either alone.
 
   🥏 [pages/index.html](…)
   ```
+
+  The caption comes in three sizes, and saying **"caption"** requests one on demand: **full** (everything changed since main; what `/caption` emits by default, and the source for a guide-PR body sync), **turn** (this turn's files; the default closer for a file-modifying reply), and **bare** (no list, just the 🧭 guide link, for turns that changed nothing).
 * **Session diff:** summarize substantial work with `Session diff: [main...branch](url)`.
 * **External proxies:** prohibited. Third-party GitHub render services (`htmlpreview.github.io`, `raw.githack.com`, `gitcdn.link`, and the like) fetch the file server-side, so they 404 on private repos and route content through another host. The `[new]` blob is the canonical *source* view for every file type; when you want a *rendered* view of a private or un-deployed page, use the toss primitive above (content rides in the fragment, private-safe), not one of these.
 * **Skip the watch offer:** never offer to watch CI or monitor a PR.
@@ -46,63 +49,52 @@ Adopt à la carte: two independent layers, take either alone.
 
 ## The surfacing course (opt-in)
 
-An opt-in lifecycle for PR-driven repos. Requires maintaining `docs/MERGE-GUIDE.md` and a per-branch `BRANCH-GUIDE.md`; skip it and the primitives still stand.
+An opt-in lifecycle for PR-driven repos. Requires maintaining `docs/MERGE-GUIDE.md` and a **guide PR** per branch; skip it and the primitives still stand.
 
-Three artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the branch guide (live), the PR body (pre-merge), and the merge-guide entry (at or after merge). They are sequential drafts of one statement, kept aligned, and all open with the same preamble:
+Two artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the guide PR's body (live while draft, reviewer-facing when ready) and the merge-guide entry (at or after merge). They are sequential drafts of one statement, kept aligned, and both open with the same preamble:
 
 1. **Outcome + why:** one sentence, no preamble.
 2. **⭐ link to the thing to open:** the preview mechanism's target, or the honest `[new]` blob if there is none (say "view," and never promise a running preview the change can't deliver).
 
 Then a common tail: the `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff or compare link. Skimmable in seconds.
 
-|  | Branch guide | PR body | Merge guide |
-| --- | --- | --- | --- |
-| **Moment** | Live session | Pre-merge | At/after merge |
-| **Audience** | Resuming reader | Reviewer | Reader |
-| **⭐ target** | Branch | Branch | Main URL |
-| **File links** | Branch blobs | Branch blobs | Main blobs |
-| **Unique fields** | Next steps / open threads | Risk, testing, follow-ups | PR#, date, durable notes |
-| **Location** | `BRANCH-GUIDE.md` | GitHub PR | `docs/MERGE-GUIDE.md` |
-| **Fate** | Folded + deleted at wrap-up | Persists with PR | Persists in main |
+|  | Guide PR body | Merge guide |
+| --- | --- | --- |
+| **Moment** | Live session through review | At/after merge |
+| **Audience** | Resuming reader, then reviewer | Reader |
+| **⭐ target** | Branch | Main URL |
+| **File links** | Branch blobs | Main blobs |
+| **Unique fields** | Next steps / open threads; Notes / Risk | PR#, date, durable notes |
+| **Location** | GitHub PR | `docs/MERGE-GUIDE.md` |
+| **Fate** | Persists with the PR | Persists in main |
 
-### Branch guide
+### The guide PR
 
-Answers "where did I leave things" for unmerged work; never lands on main.
+The branch's PR opens as a **draft at first push**, and its body is the branch guide: the live answer to "where did I leave things," which matures into the reviewer's summary. The draft state marks work in flight; marking it ready is the actual request the name "pull request" makes. Keep "Follow-up to #N" when continuing an earlier PR; end with the harness's session-link footer.
 
-* **Create and push on the first commit,** before substantive work, so the branch exists on GitHub and every branch URL resolves from the first reply.
-* **Update on every push:** the pushed state must not lie, and a stale guide is worse than none.
-* **Fold and delete at wrap-up:** resolved into the merge-guide entry and deleted in one commit, so it nets out of the PR diff and never reaches main. If one leaks to main (a merge bypassed wrap-up), the next session deletes it.
+* **Open at first push.** Where the platform auto-creates draft PRs on push (see the guide-PR support extension point), that is the create. Otherwise the session opens the draft via the API, unprompted: creation is cheap and inward-facing. **Marking ready is the user's tap**, delegated only explicitly.
+* **Sync the body on every push:** the pushed state must not lie, and a stale guide is worse than none. Keep the machine-refreshed part inside the fenced managed region below, so a sync never clobbers hand-written text outside it. The cumulative diff lives in the PR's Files tab; the body's Changed list carries only the curated layer a diff can't show (⭐/🥏 preview links, `renders on:` lines, one-line whys).
+* **Narrative goes in PR comments,** append-only and dated, a progress log; the body holds only current state. (The same overwrite-vs-append split as the tracker's frontmatter tags vs progress log.)
+* **Abandon by closing the draft** with a final comment saying why; a closed draft is a durable record of a dead end, which an orphan branch never is.
+* **Nothing lands on main** by construction, so there is nothing to fold or delete at wrap-up. (This role was previously played by a per-branch `BRANCH-GUIDE.md` file; delete any stray one found on main as cleanup.)
 
-Keep it under one screen; **next steps / open threads** is the heart and the part each update must revise.
-
-```markdown
-# Branch guide: <branch>
-
-<One sentence: what this branch is doing and why.>
-
-⭐ [<the thing to open>](<branch preview w/ commit SHA, else [new] blob>)
-
-**Changed:**
-- <path> ([new](…), [main](…), [diff](…))
-
-**Next steps / open threads:**
-- <current and honest; the reason this file exists>
-```
-
-### PR body
-
-Answers "verify this" for reviewers; links resolve to the branch tip. Keep "Follow-up to #N" when continuing an earlier PR. End with the harness's session-link footer.
+Keep the body under one screen; **next steps / open threads** is the heart and the part each sync must revise.
 
 ```markdown
-<One sentence: what this does and why.> [Follow-up to #N.]
+<One sentence: what this branch is doing and why.> [Follow-up to #N.]
 
-⭐ **Look:** [<artifact>](<branch preview, else [new] blob>)
+<!-- guide -->
+⭐ **Look:** [<the thing to open>](<branch preview w/ commit SHA, else [new] blob>)
 
 **Changed:**
 - <path> ([new](…), [main](…), [diff](…))
   renders on: [<consumer>](…)     (shared component only)
 
+**Next steps / open threads:**
+- <current and honest; revise on every sync>
+
 **Notes / Risk:** <what to scrutinize, test status, non-obvious why>
+<!-- /guide -->
 
 <session-link footer>
 ```
@@ -131,22 +123,23 @@ Lead with the result, not the file list; primary file first; for a shared compon
 [Session diff](<compare link>)
 ```
 
-### Wrap-up & PR creation
+### Wrap-up & marking ready
 
-Never offer PR creation on its own (the web UI already has a button). Offer a bundled wrap-up: *"want me to wrap up (fold the branch guide into the merge-guide entry and open the PR)?"* Routing it through chat gets the docs and refreshes into the PR's initial diff.
+Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (write the merge-guide entry and mark the PR ready)?"* Routing it through chat gets the docs and refreshes into the diff before review, and accepting the offer is the delegation of the ready tap.
 
 **Sequence:**
 
 1. **Preflight: confirm the branch still merges cleanly.** `git fetch origin main && git merge-tree --write-tree origin/main HEAD` test-merges without touching the tree (a nonzero exit names the conflicting paths). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (a sibling session or PR merging overlapping edits) the branch conflicts at merge time and this session never sees it; resolve it now, before GitHub flags the PR unmergeable. Committed generated artifacts (bundles, lockfiles, indexes) are the usual culprits, colliding on lines neither author wrote. Report either way, so a clean run reads as verified.
 2. Execute per-session refreshes.
-3. Fold `BRANCH-GUIDE.md` into `docs/MERGE-GUIDE.md` and delete the branch guide (single commit).
-4. Open the PR.
+3. Write the merge-guide entry and commit.
+4. Final body sync: next steps become follow-ups (or tracker tasks), Notes / Risk current for the reviewer.
+5. Mark the PR ready.
 
-**UI trigger:** if a PR opens via the web UI button mid-session, run steps 1 through 3 silently (step 4 is already done), surfacing any conflict the preflight finds since the open PR will show it.
+**UI trigger:** if the user marks the PR ready (or merges it) from the UI before a wrap-up ran, run steps 1 through 4 silently, surfacing any conflict the preflight finds since the open PR will show it.
 
-### Creating the next PR
+### The next PR
 
-Post-merge edits on the same branch require a *new* PR; don't update the merged one. `git log main..HEAD` shows the commits waiting for it.
+Post-merge edits on the same branch require a *new* PR; don't update the merged one. The next push opens (or the session opens) a fresh draft, and `git log main..HEAD` shows the commits waiting for it.
 
 ---
 
