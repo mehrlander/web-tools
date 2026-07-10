@@ -2,10 +2,10 @@
 
 Builds the chat search results viewer: a results-envelope page (narrative, facet chips, excerpt cards, client-side filter) on a transcript renderer whose fenced code blocks become live artifacts (static code instantly; sandboxed Render/Table/Preview and a CM6 editor on demand; no Run for js, since chat fragments rarely execute meaningfully alone), with the sandbox machinery lifted out of vanilla-demo.js into a shared kit.
 
-⭐ [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@05494870ecb95f8301908b4ebc5388b9a6c3a458:pages/chat-results.html) (🥏 toss; page not on main yet)
+⭐ [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@177063f6eb465d2b1801b5da0d7d09debe1d2ea1:pages/chat-results.html) (🥏 toss; page not on main yet)
 
 **Changed:**
-- pages/chat-results.html ([new](https://github.com/mehrlander/web-tools/blob/claude/chat-search-results-ui-o8miz0/pages/chat-results.html), [diff](https://github.com/mehrlander/web-tools/commit/05494870ecb95f8301908b4ebc5388b9a6c3a458))
+- pages/chat-results.html ([new](https://github.com/mehrlander/web-tools/blob/claude/chat-search-results-ui-o8miz0/pages/chat-results.html), [diff](https://github.com/mehrlander/web-tools/commit/177063f6eb465d2b1801b5da0d7d09debe1d2ea1))
 - lib/chat-render.js ([new](https://github.com/mehrlander/web-tools/blob/claude/chat-search-results-ui-o8miz0/lib/chat-render.js))
 - lib/kits/proof.js ([new](https://github.com/mehrlander/web-tools/blob/claude/chat-search-results-ui-o8miz0/lib/kits/proof.js))
 - lib/vanilla-demo.js ([new](https://github.com/mehrlander/web-tools/blob/claude/chat-search-results-ui-o8miz0/lib/vanilla-demo.js), [main](https://github.com/mehrlander/web-tools/blob/main/lib/vanilla-demo.js)) — folds onto proof.js
