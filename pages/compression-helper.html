@@ -40,7 +40,16 @@
 </head>
 <body class="h-dvh font-mono text-sm">
 
-<div class="h-full flex flex-col p-4" x-data="{ outHeight: 150, resizing: false, startY: 0, startH: 0 }"
+<!--
+  Layout splits at 640px. Desktop keeps the draggable divider (outHeight in px).
+  Mobile foregoes the slider: the output panel takes a fixed share of the
+  viewport (40dvh) and the input fills the rest, so there is no thin drag
+  target to fight the host sheet's dismiss gesture. isDesktop gates the inline
+  px height so the mobile dvh class isn't overridden.
+-->
+<div class="h-full flex flex-col p-4"
+     x-data="{ outHeight: 150, resizing: false, startY: 0, startH: 0, isDesktop: window.matchMedia('(min-width: 640px)').matches }"
+     x-init="window.matchMedia('(min-width: 640px)').addEventListener('change', e => isDesktop = e.matches)"
      :class="resizing && 'select-none cursor-ns-resize'"
      @pointerup.window="resizing = false"
      @pointercancel.window="resizing = false"
@@ -48,9 +57,10 @@
 
   <h1 class="text-xl mb-4">Compression Helper</h1>
 
-  <div x-data="compressOutput()" :style="'height:'+outHeight+'px'" class="relative overflow-hidden flex-none mb-1"></div>
+  <div x-data="compressOutput()" :style="isDesktop ? ('height:'+outHeight+'px') : null"
+       class="relative overflow-hidden flex-none mb-1 h-[40dvh] sm:h-auto"></div>
 
-  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none"
+  <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none hidden sm:block"
        @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
 
   <div x-data="compressInputCm()" class="relative overflow-hidden flex-1 min-h-0 mt-1"></div>
