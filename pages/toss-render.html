@@ -45,6 +45,15 @@
   the text) and a field for a GitHub file. A global paste listener catches
   desktop Ctrl/Cmd-V too.
 
+  Token diagnostics: the panel reports the stored token's state (none /
+  rejected / valid as @user, via a GET /user probe) with a Set-token button,
+  and a failed #gh= fetch runs diagnoseAddress() to name the actual failure
+  instead of a bare 404: no token stored, token expired or revoked, token
+  valid but blind to that repo (fine-grained scoping), missing branch, or
+  missing path. GitHub answers 404 for any private repo the caller cannot
+  see, so without the follow-up probes those five cases are
+  indistinguishable.
+
   Page actions live in the FAB, not a floating pill. A tiny `tossRender`
   x-data component exposes the FAB's opt-in contract — a `description` and an
   `actions` array — so the toolbox renders "Copy toss link" (rebuilds the
@@ -109,6 +118,10 @@
   </form>
 
   <p id="empty-msg" class="text-error text-xs max-w-md font-mono"></p>
+  <div class="flex items-center gap-2">
+    <span id="token-status" class="text-[10px] font-mono text-base-content/40"></span>
+    <button id="token-btn" class="btn btn-ghost btn-xs">Set token</button>
+  </div>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
     URL forms: <code>#gh=owner/repo@ref:path</code>, <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL.
   </p>
@@ -151,6 +164,7 @@
     empty.classList.remove('hidden');
     empty.classList.add('flex');
     msg.textContent = error || '';
+    paintTokenStatus();
   }
   // Kept name for the existing error call sites; an error just re-shows the panel.
   const showEmpty = showInput;
@@ -285,13 +299,87 @@ window.fetch=function(input,init){try{
 
   // Auth headers for the contents API: the stored token (skipping the 🎟
   // sentinel) so private repos and un-deployed branches resolve.
-  function ghHeaders() {
-    const headers = { Accept: 'application/vnd.github.v3+json' };
+  function savedToken() {
     try {
       const t = localStorage.getItem('ghToken');
-      if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
-    } catch (e) {}
+      return (t && !t.includes('🎟')) ? t.trim() : '';
+    } catch (e) { return ''; }
+  }
+  function ghHeaders() {
+    const headers = { Accept: 'application/vnd.github.v3+json' };
+    const t = savedToken();
+    if (t) headers.Authorization = 'Bearer ' + t;
     return headers;
+  }
+
+  // --- token diagnostics ---
+  // The contents API answers 404 for a private repo the caller can't see, so
+  // a bare "not found" hides four distinct failures. These two helpers name
+  // the actual one: no token stored, token rejected, token valid but blind
+  // to the repo, bad ref, or bad path.
+
+  // The empty panel's one-line token report ("none stored" / "rejected" /
+  // "valid as @user"). Runs on every showInput; the /user probe is cheap.
+  async function paintTokenStatus() {
+    const el = document.getElementById('token-status');
+    if (!el) return;
+    if (!savedToken()) {
+      el.textContent = 'token: none stored. Private #gh= addresses will answer 404.';
+      return;
+    }
+    el.textContent = 'token: checking…';
+    try {
+      const res = await fetch('https://api.github.com/user', { headers: ghHeaders() });
+      if (res.status === 401) {
+        el.textContent = 'token: stored but rejected by GitHub (expired or revoked).';
+      } else if (res.ok) {
+        el.textContent = 'token: valid as @' + (await res.json()).login + '.';
+      } else {
+        el.textContent = 'token: stored; validity check returned HTTP ' + res.status + '.';
+      }
+    } catch (e) {
+      el.textContent = 'token: stored; could not reach api.github.com to verify.';
+    }
+  }
+
+  // Turn a failed #gh= fetch into a specific explanation.
+  async function diagnoseAddress(status, owner, name, ref, path) {
+    const where = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
+    if (status === 401) {
+      return where + ': the stored token was rejected (401). It is expired or revoked; save a fresh one below.';
+    }
+    if (status === 403) {
+      return where + ': forbidden or rate-limited (403).' +
+        (savedToken() ? '' : ' No token is stored, so anonymous rate limits apply.');
+    }
+    if (status !== 404) return where + ': GitHub error ' + status + '.';
+    if (!savedToken()) {
+      return where + ': not found (404), and no token is stored in this browser ' +
+        '(localStorage ghToken is empty). A private repo always answers 404 without a token. Set one below and retry.';
+    }
+    const h = ghHeaders();
+    const user = await fetch('https://api.github.com/user', { headers: h });
+    if (user.status === 401) {
+      return where + ': not found, and the stored token is itself rejected by GitHub (401). ' +
+        'It is expired or revoked; save a fresh one below.';
+    }
+    const login = user.ok ? (await user.json()).login : null;
+    const repo = await fetch('https://api.github.com/repos/' + owner + '/' + name, { headers: h });
+    if (!repo.ok) {
+      return where + ': the stored token is valid' + (login ? ' (@' + login + ')' : '') +
+        ' but cannot see ' + owner + '/' + name + '. A fine-grained token must explicitly include ' +
+        'that repository, with Contents read access.';
+    }
+    if (ref) {
+      const br = await fetch('https://api.github.com/repos/' + owner + '/' + name +
+        '/git/ref/heads/' + encodeURIComponent(ref), { headers: h });
+      if (!br.ok) {
+        return where + ': the repo is accessible but no branch "' + ref + '" exists. ' +
+          'If that ref is a tag or SHA, the path may be wrong instead.';
+      }
+    }
+    return where + ': the repo' + (ref ? ' and ref' : '') + ' resolve, so the path does not ' +
+      'exist at that ref. Check spelling and case.';
   }
 
   // Fetch a single repo file's text via the contents API at <ref>.
@@ -384,10 +472,14 @@ window.fetch=function(input,init){try{
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
     if (!res.ok) {
-      const why = res.status === 404 ? 'not found (or the stored token lacks access)'
-                : res.status === 403 ? 'rate-limited or forbidden (is a token saved?)'
-                : 'GitHub error ' + res.status;
-      return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + why + '.');
+      let why;
+      try {
+        why = await diagnoseAddress(res.status, owner, name, ref, path);
+      } catch (e) {
+        why = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path +
+          ': GitHub error ' + res.status + ' (diagnosis failed: ' + (e.message || e) + ').';
+      }
+      return showEmpty(why);
     }
     const data = await res.json();
     if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
@@ -427,6 +519,14 @@ window.fetch=function(input,init){try{
     e.preventDefault();
     const v = document.getElementById('addr-input').value.trim();
     if (v) showAddress(blobUrlToAddr(v) || v);
+  });
+  document.getElementById('token-btn').addEventListener('click', () => {
+    const t = prompt('Paste a GitHub token (fine-grained: include the target repo, Contents read). Empty clears the stored one.');
+    if (t === null) return;
+    try {
+      t.trim() ? localStorage.setItem('ghToken', t.trim()) : localStorage.removeItem('ghToken');
+    } catch (e) {}
+    paintTokenStatus();
   });
   // Desktop convenience: paste anywhere off a field renders straight away.
   window.addEventListener('paste', e => {
