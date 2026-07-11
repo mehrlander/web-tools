@@ -8,6 +8,10 @@ its tracker board generator, without adopting the whole library, this is the men
 The loader skill is the front door; this file is the catalog it points at, and it
 points back. The skill is *how* you adopt; this is *what* there is.
 
+The same set is also published as installable plugins through this repo's
+marketplace catalog; see [MARKETPLACE.md](MARKETPLACE.md). The fetch recipes
+below remain the no-install path.
+
 ## How to adopt
 
 You don't copy these in (except one). Install the loader **skill** once; it
