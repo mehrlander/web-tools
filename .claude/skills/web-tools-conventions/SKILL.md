@@ -1,6 +1,15 @@
 ---
 name: web-tools-conventions
-description: Load the portable working conventions from mehrlander/web-tools (docs/CONVENTIONS.md) into the current session: universal surfacing primitives plus an opt-in PR-workflow course (guide PR, merge-guide lifecycle), adoptable à la carte. Use in any repo when the user mentions "my conventions", "house rules", surfacing/per-file link format, "file card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over the artifact"/SendUserFile, "lead with the live view", branch anchor, merge-guide entries, wrap-up, or PR body shape — or when invoked explicitly as /web-tools-conventions.
+description: >-
+  Load the portable working conventions from mehrlander/web-tools
+  (docs/CONVENTIONS.md) into the current session: universal surfacing
+  primitives plus an opt-in PR-workflow course (guide PR, merge-guide
+  lifecycle), adoptable à la carte. Use in any repo when the user mentions
+  "my conventions", "house rules", surfacing/per-file link format, "file
+  card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over
+  the artifact"/SendUserFile, "lead with the live view", branch anchor,
+  merge-guide entries, wrap-up, or PR body shape, or when invoked explicitly
+  as /web-tools-conventions.
 ---
 
 # web-tools conventions loader

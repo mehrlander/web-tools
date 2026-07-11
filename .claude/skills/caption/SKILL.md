@@ -1,6 +1,14 @@
 ---
 name: caption
-description: Emit the surfacing caption for the current branch: the uniform file list with [new]/[main]/[diff] links plus ⭐/🥏/📦 render lines, at full (everything since main), turn (this turn's files), bare (just the 🧭 guide link), or recap (the full caption wrapped in a fixed-form session re-entry) size. Also the engine for syncing a guide PR body's managed region. Use when the user says "caption" or asks for the file-link list, when a guide PR body needs a sync after a push, or when the user says "reorient", "recap", "catch me up", or "where are we".
+description: >-
+  Emit the surfacing caption for the current branch: the uniform file list
+  with [new]/[main]/[diff] links plus ⭐/🥏/📦 render lines, at full
+  (everything since main), turn (this turn's files), bare (just the 🧭 guide
+  link), or recap (the full caption wrapped in a fixed-form session re-entry)
+  size. Also the engine for syncing a guide PR body's managed region. Use
+  when the user says "caption" or asks for the file-link list, when a guide
+  PR body needs a sync after a push, or when the user says "reorient",
+  "recap", "catch me up", or "where are we".
 ---
 
 # Caption
