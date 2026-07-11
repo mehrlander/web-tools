@@ -10,6 +10,27 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
+<style>
+  /* Mobile: tighten the toolbar controls. daisyUI v5's xs inputs/selects
+     inherit the body's text-sm and render ~40px tall here, too chunky on a
+     phone; btn-xs already sits at 24px/11px, so match the fields to it and
+     close the row gaps. Desktop (>=640px) keeps daisyUI's defaults. */
+  @media (max-width: 639px) {
+    .compress-panel .input,
+    .compress-panel .select,
+    .compress-panel .btn {
+      height: 1.6rem;
+      min-height: 1.6rem;
+      font-size: 0.6875rem;
+      padding-inline: 0.4rem;
+    }
+    .compress-panel .select { padding-inline-end: 1.4rem; }
+    .compress-panel .input { width: 5rem; }
+    .compress-panel .checkbox { height: 0.9rem; width: 0.9rem; }
+    .compress-panel .flex.flex-wrap { gap: 0.4rem; }
+  }
+</style>
+
 <!--
   v5: same UI as v4, plus a floating action button (bottom-right) that
   opens a modal with links to the source on GitHub, the repo browser
@@ -58,12 +79,12 @@
   <h1 class="text-xl mb-4">Compression Helper</h1>
 
   <div x-data="compressOutput()" :style="isDesktop ? ('height:'+outHeight+'px') : null"
-       class="relative overflow-hidden flex-none mb-1 h-[40dvh] sm:h-auto"></div>
+       class="compress-panel relative overflow-hidden flex-none mb-1 h-[40dvh] sm:h-auto"></div>
 
   <div class="h-2 bg-base-300 hover:bg-primary cursor-ns-resize rounded transition-colors flex-none touch-none hidden sm:block"
        @pointerdown.prevent="resizing = true; startY = $event.clientY; startH = outHeight; $event.target.setPointerCapture($event.pointerId)"></div>
 
-  <div x-data="compressInputCm()" class="relative overflow-hidden flex-1 min-h-0 mt-1"></div>
+  <div x-data="compressInputCm()" class="compress-panel relative overflow-hidden flex-1 min-h-0 mt-1"></div>
 </div>
 
 <div x-data="fab()"></div>
