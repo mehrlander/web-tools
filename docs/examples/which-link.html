@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which link do I send?</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+</head>
+<body class="bg-base-200 min-h-screen">
+<main class="max-w-3xl mx-auto px-4 py-10 space-y-8">
+
+  <header class="space-y-2">
+    <h1 class="text-3xl font-bold tracking-tight" style="text-wrap: balance">Which link do I send?</h1>
+    <p class="text-base-content/70">Four ways to hand over a rendered page from a web-tools session.
+    The right one depends on where the page lives and where the link gets opened.</p>
+  </header>
+
+  <section class="card bg-base-100 shadow-sm" x-data="{ loc: 'branch', viewer: 'app' }">
+    <div class="card-body space-y-4">
+      <h2 class="card-title text-lg"><i class="ph ph-compass"></i> Pick the situation</h2>
+
+      <div class="space-y-1">
+        <div class="text-sm font-medium text-base-content/70">Where does the page live?</div>
+        <div class="join">
+          <button class="btn btn-sm join-item" :class="loc === 'main' && 'btn-primary'" @click="loc = 'main'">Deployed on main</button>
+          <button class="btn btn-sm join-item" :class="loc === 'branch' && 'btn-primary'" @click="loc = 'branch'">Branch or private repo</button>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <div class="text-sm font-medium text-base-content/70">Who opens the link?</div>
+        <div class="join">
+          <button class="btn btn-sm join-item" :class="viewer === 'safari' && 'btn-primary'" @click="viewer = 'safari'">Me, browser with token</button>
+          <button class="btn btn-sm join-item" :class="viewer === 'app' && 'btn-primary'" @click="viewer = 'app'">Me, Claude app</button>
+          <button class="btn btn-sm join-item" :class="viewer === 'other' && 'btn-primary'" @click="viewer = 'other'">Someone else</button>
+        </div>
+      </div>
+
+      <div class="alert" x-show="loc === 'main'">
+        <i class="ph ph-star"></i>
+        <span><strong>&#11088; Deployed URL.</strong> The canonical <code>github.io</code> page works for
+        every viewer. For lib or dist work on a branch, add <code>?use=&lt;sha&gt;</code>.</span>
+      </div>
+
+      <div class="alert" x-show="loc === 'branch' &amp;&amp; viewer === 'safari'">
+        <i class="ph ph-git-branch"></i>
+        <span><strong>&#129359; Toss <code>#gh=</code>.</strong> A live pointer: the renderer fetches the
+        branch file with the <code>ghToken</code> in that browser's localStorage. Always current, owner only.</span>
+      </div>
+
+      <div class="alert" x-show="loc === 'branch' &amp;&amp; viewer === 'app'">
+        <i class="ph ph-device-mobile"></i>
+        <span><strong>Artifact.</strong> The app's in-app browser has no localStorage token, so
+        <code>#gh=</code> fails there. The app is signed in to claude.ai, so a baked artifact renders.
+        <code>#gz=</code> is the no-build fallback when the page is small and its CDN loads are fine.</span>
+      </div>
+
+      <div class="alert" x-show="loc === 'branch' &amp;&amp; viewer === 'other'">
+        <i class="ph ph-gift"></i>
+        <span><strong>&#129359; Toss <code>#gz=</code>.</strong> The page rides the link's fragment; nothing
+        is hosted and no token is needed. Artifacts are private to the author on Pro and Max, so they
+        do not travel.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-2">
+    <h2 class="text-lg font-semibold">The full matrix</h2>
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Link</th>
+            <th>Points at</th>
+            <th>Auth</th>
+            <th>Claude app</th>
+            <th>Currency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="whitespace-nowrap">&#11088; deployed URL</td>
+            <td>main (or branch lib via <code>?use=</code>)</td>
+            <td>none</td>
+            <td>works</td>
+            <td>live</td>
+          </tr>
+          <tr>
+            <td class="whitespace-nowrap">&#129359; <code>#gh=</code></td>
+            <td>any ref, any private repo on the allowlist</td>
+            <td>viewer's stored token</td>
+            <td>fails: no token in app storage</td>
+            <td>live pointer</td>
+          </tr>
+          <tr>
+            <td class="whitespace-nowrap">&#129359; <code>#gz=</code></td>
+            <td>snapshot in the fragment</td>
+            <td>none</td>
+            <td>works; CDN deps still load</td>
+            <td>frozen at link time</td>
+          </tr>
+          <tr>
+            <td class="whitespace-nowrap">artifact</td>
+            <td>baked snapshot on claude.ai</td>
+            <td>claude.ai sign-in</td>
+            <td>works; owner only</td>
+            <td>frozen; republishable, versioned</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="text-xs text-base-content/50 space-y-1">
+    <p>This page is itself the artifact trial: authored in CDN form (Tailwind, daisyUI, Alpine,
+    Phosphor), baked self-contained with <code>bake-page</code>, published under the artifact CSP.
+    If the buttons above work, the pipeline holds.</p>
+  </footer>
+
+</main>
+</body>
+</html>

@@ -193,6 +193,7 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |
+| [`docs/artifacts.md`](artifacts.md) | Claude Code **artifacts**: constraints, the bake-and-publish pipeline, and the 📦 marker's place beside ⭐/🥏 in the link-choice matrix. Platform-level, so it applies in any repo | fetch when relevant |
 
 ### Scripts
 
