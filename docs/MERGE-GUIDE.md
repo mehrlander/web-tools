@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-11 show-repo mobile header: brand icon toggles the drawer (PR #208)
+
+On the show-repo page's mobile header, the web-tools brand icon now doubles as the drawer toggle, replacing the separate hamburger button; on desktop, where the sidebar is pinned, the icon still goes home. The header auth shield is removed. Auth state is retained (it still dims unauthenticated pinned private repos and prompts on demand), so only the manual token-entry icon is gone.
+
+⭐ **Result:** [pages/show-repo/show-repo.html](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html)
+
+**Changed:**
+- pages/show-repo/show-repo.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html), [diff](https://github.com/mehrlander/web-tools/commit/94c6848db1e6a82e990aa1135669962f18e9e713)): brand `brandClick()` opens the drawer below `lg` and goes home at/above it; hamburger and auth-shield buttons dropped
+- pages/thumbs/show-repo/show-repo.png: regenerated for the header change
+
+**Notes:** Header-shell change only; the repo picker, file tree, and gallery wiring are untouched. Removing the shield leaves no in-header token-entry point, but on-demand auth still fires when a private repo is opened.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/mobile-show-repo-nav-mm9470)
+
 ## 2026-07-11 Compression helper: mobile layout and toolbar (PR #207)
 
 On mobile (below 640px) the compression helper foregoes its drag-resize slider and tightens its toolbar. The output panel takes a fixed 40dvh with the input filling the rest, so no thin divider fights the host sheet's dismiss gesture, and the daisyUI xs fields, which had inherited the body's text-sm and rendered ~40px tall, shrink to 26px to match the Copy button. Desktop keeps the draggable divider and daisyUI's defaults.

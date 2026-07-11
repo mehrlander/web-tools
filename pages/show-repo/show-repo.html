@@ -23,8 +23,8 @@
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
-<!-- A repo browser fronted by a per-repo landing page. The repo picker + auth
-     are up front (header). One sidebar lists what you can look at for that repo
+<!-- A repo browser fronted by a per-repo landing page. The repo picker is up
+     front (header). One sidebar lists what you can look at for that repo
      — its landing, its atlas, then its files — which is why there's no separate
      Pages/Files toggle. The sidebar is pinned on desktop, a drawer on mobile.
      See the design notes at the end of this file. -->
@@ -39,23 +39,16 @@
   </template>
 </div>
 
-<!-- ── Header: brand, auth shield, then repo nav ──────────────────────────── -->
+<!-- ── Header: brand (doubles as the mobile drawer toggle), then repo nav ─── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-3">
-      <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost lg:hidden" title="Browse">
-        <i class="ph ph-list text-lg"></i>
-      </button>
-      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
-              title="web-tools">
+      <button @click="brandClick()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+              :title="brandTip">
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
         <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
       </button>
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
-      <button @click="document.getElementById('repoModal')?.showModal()" class="tooltip tooltip-bottom shrink-0"
-              :data-tip="authTip">
-        <i class="ph text-lg" :class="authIcon"></i>
-      </button>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
       <div class="join shrink-0">
@@ -340,8 +333,9 @@ function loadMarked(){
   });
 }
 
-// ── Shell: repo context + view state. The repo picker and auth are up front;
-// the sidebar lists the repo's views (landing, atlas) and its files. Which
+// ── Shell: repo context + view state. The repo picker is up front; the brand
+// icon doubles as the mobile drawer toggle. The sidebar lists the repo's views
+// (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
   view: 'landing',        // 'landing' | 'atlas' | 'file'
@@ -422,18 +416,16 @@ function app(){ return {
   get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Overview'; },
   get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
 
+  // Auth state still drives which pinned private repos are dimmed; it just has
+  // no icon of its own anymore.
   _authState: 'public',
   _authUser: '',
-  get authIcon(){
-    if (this._authState === 'auth') return 'ph-shield-check text-success';
-    if (this._authState === 'expired') return 'ph-warning text-warning';
-    return 'ph-globe text-base-content/50';
-  },
-  get authTip(){
-    if (this._authState === 'auth') return 'Authenticated: ' + this._authUser;
-    if (this._authState === 'expired') return 'Token expired';
-    return 'Public only';
-  },
+
+  // The brand icon goes home on desktop, where the sidebar is pinned, and opens
+  // the drawer on mobile, where it stands in for the hamburger.
+  get isDesktop(){ return window.matchMedia('(min-width: 1024px)').matches; },
+  get brandTip(){ return this.isDesktop ? 'web-tools' : 'Browse'; },
+  brandClick(){ this.isDesktop ? this.goHome() : this.openSidebar(); },
 
   get atlasUrl(){
     const s = Alpine.store('browser');
@@ -639,8 +631,9 @@ function overview(){ return {
 </script>
 
 <!-- ── Design notes: the landing mechanism ─────────────────────────────────────
-  A repo has, potentially, a LANDING PAGE. The repo picker and auth are up front;
-  the sidebar lists what you can look at for that repo — its landing, its atlas,
+  A repo has, potentially, a LANDING PAGE. The repo picker is up front (the brand
+  icon doubles as the mobile drawer toggle); the sidebar lists what you can look
+  at for that repo — its landing, its atlas,
   then its files — so there is no separate Pages/Files toggle; that split is just
   landing-vs-file, and it lives in the sidebar. app.landingKind(repo) is the one
   decision point.
