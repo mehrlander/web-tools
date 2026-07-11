@@ -4,6 +4,20 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-11 show-repo mobile header: brand icon toggles the drawer (PR #208)
+
+On the show-repo page's mobile header, the web-tools brand icon now doubles as the drawer toggle, replacing the separate hamburger button; on desktop, where the sidebar is pinned, the icon still goes home. The header auth shield is removed. Auth state is retained (it still dims unauthenticated pinned private repos and prompts on demand), so only the manual token-entry icon is gone.
+
+⭐ **Result:** [pages/show-repo/show-repo.html](https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html)
+
+**Changed:**
+- pages/show-repo/show-repo.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/show-repo.html), [diff](https://github.com/mehrlander/web-tools/commit/94c6848db1e6a82e990aa1135669962f18e9e713)): brand `brandClick()` opens the drawer below `lg` and goes home at/above it; hamburger and auth-shield buttons dropped
+- pages/thumbs/show-repo/show-repo.png: regenerated for the header change
+
+**Notes:** Header-shell change only; the repo picker, file tree, and gallery wiring are untouched. Removing the shield leaves no in-header token-entry point, but on-demand auth still fires when a private repo is opened.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/mobile-show-repo-nav-mm9470)
+
 ## 2026-07-10 Skills library and load-skill mechanism (PR #206)
 
 Publishes Marcus's personal skill library at `skills/` (34 skills, manifest.json, README) as a static resource, deliberately outside `.claude/skills/` so nothing auto-fires, and adds the `load-skill` registered skill: given an explicit "load skill X," it fetches `<source>/<name>/SKILL.md` (default source this library, discovery via `skills/manifest.json`) and applies it in the current session. This gives the account-level chat skills a public, fetchable home and a third transport alongside account provisioning (chat, automatic) and the sync-hook pull (conventions, always-on): deliberate load-by-name. The follow-on commit wires load-skill into the portable process (PORTABLE.md hook recipe, gitignore block, catalog) and notes that home's `me/claude-skills/` snapshot is retired in favor of this library.
