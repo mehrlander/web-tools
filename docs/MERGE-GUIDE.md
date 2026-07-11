@@ -4,6 +4,27 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-11 📦 artifacts join the surfacing conventions (PR #209)
+
+Claude Code artifacts become the third live-view channel beside ⭐ and 🥏, marked 📦: a baked, self-contained page published to a stable private claude.ai URL, which renders where a 🥏 `#gh=` toss cannot (the Claude app, whose in-app browser holds no token). The caption skill also gains a purpose statement, topical captions (caption-formatted links on a named subject, independent of change state), and a strict-YAML fix to two skill frontmatters.
+
+⭐ **Result:** [docs/artifacts.md](https://github.com/mehrlander/web-tools/blob/main/docs/artifacts.md)
+
+📦 [docs/examples/which-link.html](https://claude.ai/code/artifact/f5ee6c4f-5474-4a77-9c3b-8a61b8d87e7c): the link-choice matrix as an interactive page, itself the pipeline's proof (baked 83 KB, zero external requests, verified on iPhone)
+
+**Changed:**
+- docs/artifacts.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/artifacts.md)): constraints, bake-and-publish pipeline, link-choice matrix, stale-session failure mode
+- docs/examples/which-link.html ([new](https://github.com/mehrlander/web-tools/blob/main/docs/examples/which-link.html)): CDN-form source of the artifact
+- docs/CONVENTIONS.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md)): the 📦 primitive; viewer-context caveat on `#gh=`
+- .claude/skills/caption/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/caption/SKILL.md)): purpose statement, topical captions, 📦 render line, YAML fix
+- .claude/skills/web-tools-conventions/SKILL.md ([new](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/web-tools-conventions/SKILL.md)): YAML fix
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)): artifacts.md row
+- CLAUDE.md ([new](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md)): 📦 pointer in the preview-mechanism section
+
+**Notes:** The bake pipeline needs one extra step for artifacts: strip the document scaffolding and carry body classes onto a wrapper div, since the Artifact tool wraps content in its own skeleton. Compiled daisyUI responds natively to the viewer's theme toggle (both stamp data-theme). Follow-up open: whether which-link.html graduates to pages/ for a canonical ⭐ URL.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/task-tracker-orientation-2mf290)
+
 ## 2026-07-11 show-repo mobile header: brand icon toggles the drawer (PR #208)
 
 On the show-repo page's mobile header, the web-tools brand icon now doubles as the drawer toggle, replacing the separate hamburger button; on desktop, where the sidebar is pinned, the icon still goes home. The header auth shield is removed. Auth state is retained (it still dims unauthenticated pinned private repos and prompts on demand), so only the manual token-entry icon is gone.

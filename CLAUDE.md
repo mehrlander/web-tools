@@ -18,6 +18,8 @@ This is the repo's **preview mechanism** for the conventions' ⭐ links: a chang
 
 The honesty rule still applies: only a page renders this way; for a kit or doc, ⭐ links the `[new]` blob.
 
+**Viewer context adds a third channel, the 📦 artifact.** Both 🥏 forms assume something about where the link opens: `#gh=` needs the viewer's browser to hold the `ghToken`, and the Claude app's in-app browser holds none, so `#gh=` fails there. For a link the user will open in the Claude app, bake the page self-contained (`bake-page` skill) and publish it as a 📦 artifact; 🥏 `#gz=` is the no-build fallback. Matrix and pipeline: [docs/artifacts.md](docs/artifacts.md).
+
 ## Per-session refresh: thumbnails
 
 The conventions' wrap-up step 1 means one thing here: if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit: screenshots are slow and not byte-deterministic, so the commit hook only nags about them (see "Build-on-commit hook" below). The catalogs need no separate step; the hook regenerates them with each commit.

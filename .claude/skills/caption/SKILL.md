@@ -1,13 +1,28 @@
 ---
 name: caption
-description: Emit the surfacing caption for the current branch: the uniform file list with [new]/[main]/[diff] links plus ⭐/🥏 render lines, at full (everything since main), turn (this turn's files), bare (just the 🧭 guide link), or recap (the full caption wrapped in a fixed-form session re-entry) size. Also the engine for syncing a guide PR body's managed region. Use when the user says "caption" or asks for the file-link list, when a guide PR body needs a sync after a push, or when the user says "reorient", "recap", "catch me up", or "where are we".
+description: >-
+  Emit the surfacing caption for the current branch: the uniform file list
+  with [new]/[main]/[diff] links plus ⭐/🥏/📦 render lines, at full
+  (everything since main), turn (this turn's files), bare (just the 🧭 guide
+  link), or recap (the full caption wrapped in a fixed-form session re-entry)
+  size. Also the engine for syncing a guide PR body's managed region. Use
+  when the user says "caption" or asks for the file-link list, when a guide
+  PR body needs a sync after a push, or when the user says "reorient",
+  "recap", "catch me up", or "where are we".
 ---
 
 # Caption
 
-Emit a surfacing caption per the conventions (`docs/CONVENTIONS.md` in
-`mehrlander/web-tools`, or the copy loaded in this session). Substitute the
-current repo into all URL templates.
+The caption is a fixed, predictable way to surface files in chat: one uniform
+row per file, filename plain, link words tappable. This skill emits that
+format. Two questions are separable: which files (selection) and how each row
+reads (format). The sizes below are selection presets over the session's
+changes; a caption can also be requested on a topic (see Topical captions),
+where the user names the file set and change state is beside the point.
+
+Formats follow the conventions (`docs/CONVENTIONS.md` in `mehrlander/web-tools`,
+or the copy loaded in this session). Substitute the current repo into all URL
+templates.
 
 ## Sizes
 
@@ -37,6 +52,20 @@ bullet swaps, no per-row icons), a file's links not repeated within a turn:
 - Add `#L120` or `#L120-L145` to a blob link when a specific change is the point.
 - Add an indented `renders on: [<consumer>](…)` line under a shared component.
 
+## Topical captions
+
+When the request names a subject rather than the session's changes ("caption
+the portable docs"), select by enumerating the topic, not by git diff. An
+unchanged file gets one link, the main blob:
+
+```
+- <path> ([main](https://github.com/<owner>/<repo>/blob/main/<path>))
+```
+
+The `[new]/[main]/[diff]` triple encodes change state, so for an unchanged
+file the extra links would be noise; omit them. A changed file caught in a
+topical caption keeps the full triple.
+
 ## Render lines
 
 After the list, a blank line, then one 🥏 or ⭐ line per changed renderable HTML
@@ -45,6 +74,13 @@ Choose per the repo's preview mechanism; in web-tools: lib/dist change → ⭐
 `?use=<sha>` on the deployed page URL; page-shell change on an un-deployed
 branch → 🥏 toss `#gh=<owner>/<repo>@<sha>:<path>`. With no preview mechanism,
 the portable fallback is the 🥏 `#gz=` toss.
+
+A page published as an artifact this session gets a 📦 line: link text the
+page path, URL the claude.ai artifact URL. Pick by where the link opens: the
+Claude app's in-app browser holds no token, so `#gh=` fails there, while 📦
+and `#gz=` both work (matrix in `docs/artifacts.md`). Record an artifact URL
+in a durable place (README, PR body, task file) or later sessions cannot
+find it.
 
 ## Tail
 
