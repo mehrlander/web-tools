@@ -128,3 +128,9 @@ themes with no extra work.
 Available on Pro, Max, Team, and Enterprise plans, only in sessions signed in
 to claude.ai (not API-key sessions). Publishing a new artifact prompts for
 permission once; republishing does not prompt again.
+
+One failure mode observed in practice: with a stale claude.ai session, an
+artifact you own renders as "Page not found" (claude.ai does not distinguish
+missing from unauthorized). Refresh the sign-in before suspecting the link;
+the "Sign in" button on the error page is the tell when it appears, but a
+stale session can 404 without offering one.
