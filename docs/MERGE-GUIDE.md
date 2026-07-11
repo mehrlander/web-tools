@@ -18,6 +18,19 @@ On the show-repo page's mobile header, the web-tools brand icon now doubles as t
 
 [Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/mobile-show-repo-nav-mm9470)
 
+## 2026-07-11 Compression helper: mobile layout and toolbar (PR #207)
+
+On mobile (below 640px) the compression helper foregoes its drag-resize slider and tightens its toolbar. The output panel takes a fixed 40dvh with the input filling the rest, so no thin divider fights the host sheet's dismiss gesture, and the daisyUI xs fields, which had inherited the body's text-sm and rendered ~40px tall, shrink to 26px to match the Copy button. Desktop keeps the draggable divider and daisyUI's defaults.
+
+⭐ **Result:** [Compression Helper](https://mehrlander.github.io/web-tools/pages/compression-helper.html)
+
+**Changed:**
+- pages/compression-helper.html ([new](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html)): mobile layout split (an `isDesktop` gate, 40dvh output, divider `hidden sm:block`) and a page-scoped `@media (max-width:639px)` block sizing the `.compress-panel` controls to 26px/11px
+
+**Notes:** Both changes are mobile-only, gated below 640px (the repo's sheet-modal breakpoint). Desktop drag verified headless (150 to 270px). The host-sheet gesture conflict and the cm6/CodeMirror input are not reproducible in the sandbox (no native sheet; esm.sh off the allowlist), so the on-device feel is unverified.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/compression-helped-page-render-oadoxe)
+
 ## 2026-07-10 Skills library and load-skill mechanism (PR #206)
 
 Publishes Marcus's personal skill library at `skills/` (34 skills, manifest.json, README) as a static resource, deliberately outside `.claude/skills/` so nothing auto-fires, and adds the `load-skill` registered skill: given an explicit "load skill X," it fetches `<source>/<name>/SKILL.md` (default source this library, discovery via `skills/manifest.json`) and applies it in the current session. This gives the account-level chat skills a public, fetchable home and a third transport alongside account provisioning (chat, automatic) and the sync-hook pull (conventions, always-on): deliberate load-by-name. The follow-on commit wires load-skill into the portable process (PORTABLE.md hook recipe, gitignore block, catalog) and notes that home's `me/claude-skills/` snapshot is retired in favor of this library.
