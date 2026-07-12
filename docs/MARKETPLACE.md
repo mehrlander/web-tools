@@ -41,7 +41,7 @@ Standing, for a repo (the committed form; cloud sessions install these at sessio
 ## Conventions for publishers
 
 - **One catalog per repo.** A project inside a repo publishes by adding an entry to its repo's catalog with a relative `source` path, not by minting its own marketplace.
-- **Scope the `source` to the subtree the plugin needs.** Install copies the whole source directory to the consumer's cache; a root-sourced plugin drags the entire repo along. The entries here source `./.claude` and `./skills/daisy-alpine`, not `./`.
+- **Scope the `source` to the subtree the plugin needs.** Install copies the whole source directory to the consumer's cache; a root-sourced plugin drags the entire repo along, and a directory that mixes shareable and repo-local files ships both. The `source` boundary is the sharing boundary, and it can only follow directory lines: draw it at the deepest directory that holds everything the plugin ships and nothing it doesn't, splitting the plugin into per-subtree entries when no single such directory exists. The entries here source `./.claude/skills` (not `./.claude`, whose `hooks/` and `settings.json` are this repo's own machinery) and `./skills/daisy-alpine` (not the whole skill library), not `./`.
 - **`strict: false` when the files already live where the repo wants them.** The catalog entry is then the complete plugin definition and no `plugin.json` or file moves are needed.
 - **Validate before pushing:** `claude plugin validate .` from the repo root, and when in doubt install from the local path and inspect `~/.claude/plugins/cache/`.
 

@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "portable",
-      "source": "./.claude",
+      "source": "./.claude/skills",
       "strict": false,
       "description": "The to-go bag: /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), and /portable:web-tools-conventions (load the portable working conventions).",
       "author": {
@@ -15,9 +15,9 @@
       },
       "homepage": "https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md",
       "skills": [
-        "./skills/caption",
-        "./skills/load-skill",
-        "./skills/web-tools-conventions"
+        "./caption",
+        "./load-skill",
+        "./web-tools-conventions"
       ],
       "keywords": ["conventions", "caption", "surfacing", "tracker"]
     },
