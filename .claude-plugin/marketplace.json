@@ -1,0 +1,39 @@
+{
+  "name": "web-tools",
+  "owner": {
+    "name": "mehrlander"
+  },
+  "description": "The portable set from mehrlander/web-tools as installable plugins: the working-conventions loader, the surfacing caption, the skill-library loader, and the daisy-alpine reference.",
+  "plugins": [
+    {
+      "name": "portable",
+      "source": "./.claude/skills",
+      "strict": false,
+      "description": "The to-go bag: /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), and /portable:web-tools-conventions (load the portable working conventions).",
+      "author": {
+        "name": "mehrlander"
+      },
+      "homepage": "https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md",
+      "skills": [
+        "./caption",
+        "./load-skill",
+        "./web-tools-conventions"
+      ],
+      "keywords": ["conventions", "caption", "surfacing", "tracker"]
+    },
+    {
+      "name": "daisy-alpine",
+      "source": "./skills/daisy-alpine",
+      "strict": false,
+      "description": "DaisyUI 5 + Tailwind 4 + Alpine.js reference for single-file HTML artifacts. Model-invocable, so it triggers on matching artifact work without being asked.",
+      "author": {
+        "name": "mehrlander"
+      },
+      "homepage": "https://github.com/mehrlander/web-tools/tree/main/skills/daisy-alpine",
+      "skills": [
+        "./"
+      ],
+      "keywords": ["daisyui", "tailwind", "alpine", "html-artifact"]
+    }
+  ]
+}

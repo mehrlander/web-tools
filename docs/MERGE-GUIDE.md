@@ -4,6 +4,21 @@ Newest-on-top log of what each session shipped. Convention: see the Merge guide 
 
 ---
 
+## 2026-07-12 The portable set becomes a plugin marketplace (PR #210)
+
+The repo now publishes its portable set as a Claude Code plugin marketplace: a `.claude-plugin/marketplace.json` catalog with two plugins, `portable` (caption, load-skill, web-tools-conventions) and `daisy-alpine` (the ambient reference), installable via `/plugin marketplace add mehrlander/web-tools`. The catalog arrived as a coordinated patch from the home repository, applied verbatim; a follow-up commit narrowed the portable plugin's source from `./.claude` to `./.claude/skills` so consumer caches receive exactly the three declared skills and none of the repo's own hooks or settings.
+
+⭐ **Result:** [docs/MARKETPLACE.md](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md)
+
+**Changed:**
+- .claude-plugin/marketplace.json ([new](https://github.com/mehrlander/web-tools/blob/main/.claude-plugin/marketplace.json)): the catalog; two plugins, versionless (every main commit ships), strict:false (no file moves)
+- docs/MARKETPLACE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md)): what the catalog publishes, subscription forms, publisher conventions, including the general scoping rule (the source boundary is the sharing boundary, drawn along directory lines)
+- docs/PORTABLE.md ([new](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)): points at MARKETPLACE.md as the second transport; raw-fetch recipes remain the no-install path
+
+**Notes:** Verified twice in the session environment: `claude plugin validate .` passes, both plugins install from the local path, and after the scoping fix the portable cache holds only the three skill directories. Skills are namespaced (`/portable:caption`), so hand-installed copies coexist. Nothing ships without a catalog entry; the other 35 skills, lib, and pages stay unpublished until someone lists them.
+
+[Session diff](https://github.com/mehrlander/web-tools/compare/main...claude/home-repo-patch-review-yznelr)
+
 ## 2026-07-11 📦 artifacts join the surfacing conventions (PR #209)
 
 Claude Code artifacts become the third live-view channel beside ⭐ and 🥏, marked 📦: a baked, self-contained page published to a stable private claude.ai URL, which renders where a 🥏 `#gh=` toss cannot (the Claude app, whose in-app browser holds no token). The caption skill also gains a purpose statement, topical captions (caption-formatted links on a named subject, independent of change state), and a strict-YAML fix to two skill frontmatters.
