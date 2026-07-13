@@ -1,0 +1,13 @@
+{
+  "pins": [
+    "pages",
+    "lib/alpineComponents",
+    "docs/CONVENTIONS.md"
+  ],
+  "stage": {
+    "files": [],
+    "targets": [
+      "mehrlander/home:inbox/web-tools"
+    ]
+  }
+}
