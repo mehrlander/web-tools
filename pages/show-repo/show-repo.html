@@ -100,6 +100,23 @@
 
       <div class="border-t border-base-200"></div>
 
+      <!-- Pinned: folders and files the repo designates in .show-repo.json. -->
+      <div x-show="pins.length" class="flex flex-col gap-0.5">
+        <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
+          <i class="ph ph-push-pin"></i>Pinned
+        </div>
+        <template x-for="p in pins" :key="p">
+          <button @click="openPin(p)"
+                  class="flex items-center gap-2 px-2 py-1 rounded-lg text-sm hover:bg-base-200 transition-colors text-left"
+                  :class="Alpine.store('browser').activeFile?.path===p ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+            <i class="ph text-base shrink-0" :class="pinIsFile(p) ? 'ph-file text-info' : 'ph-folder text-warning'"></i>
+            <span class="truncate font-mono text-xs" :title="p" x-text="p"></span>
+          </button>
+        </template>
+      </div>
+
+      <div x-show="pins.length" class="border-t border-base-200"></div>
+
       <!-- Recent: files touched by the newest commits on the current ref. -->
       <div x-show="recentLoading || recent.length" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
@@ -128,9 +145,18 @@
   <!-- ── Main area: the selected view for the repo ────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0">
 
-    <!-- Landing: web-tools' gallery, or a default overview for other repos. -->
+    <!-- Landing: web-tools' gallery, a manifest-designated custom page, or a
+         default overview for other repos. -->
     <div x-show="view==='landing'" class="h-full overflow-y-auto">
-      <div class="!max-w-none px-6 py-8">
+
+      <!-- Custom landing: the repo's own page (config.landing), rendered live
+           through toss-render's #gh= address mode. Full-bleed, like the atlas. -->
+      <template x-if="landingKind()==='custom'">
+        <iframe :src="customLandingUrl" class="w-full h-full border-0 bg-base-100"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
+      </template>
+
+      <div x-show="landingKind()!=='custom'" class="!max-w-none px-6 py-8">
 
         <!-- web-tools landing: the pages gallery, fed from pages.json -->
         <div x-show="landingKind()==='gallery'">
@@ -375,8 +401,12 @@ function app(){ return {
       this.syncUrl();
     });
 
-    // Recent files track whichever repo@ref is open, landing or file view alike.
-    this.$watch(() => Alpine.store('browser').repo + '@' + Alpine.store('browser').ref, () => this.loadRecent());
+    // Recent files and the repo's manifest track whichever repo@ref is open,
+    // landing or file view alike.
+    this.$watch(() => Alpine.store('browser').repo + '@' + Alpine.store('browser').ref, () => {
+      this.loadRecent();
+      this.loadConfig();
+    });
 
     // The repo bar is always visible, so point the browser at a repo now.
     // Deep link: ?repo&ref then ?file / ?view=atlas.
@@ -407,14 +437,61 @@ function app(){ return {
     }
   },
 
-  // web-tools -> its pages index ('gallery'); every other repo -> a synthesized
-  // overview ('overview'). The design notes below sketch a third kind, 'custom'
-  // (a repo's own pages/landing.html), and the task-0002 federation.
-  landingKind(){
-    return Alpine.store('browser').repo === this.DEFAULT_REPO ? 'gallery' : 'overview';
+  // ── The per-repo manifest: .show-repo.json at the repo root ───────────────
+  // A repo designates what this shell should consider — a landing page, pinned
+  // folders/files, a staged-files list with transfer targets. One GET per
+  // repo@ref; 404 means no config. Parsed as data, never executed, so probing
+  // any repo is safe. Consumers: landingKind() (landing), the sidebar Pinned
+  // block (pins), and the navigator's stage/transfer panel (stage).
+  _configKey: '',
+  async loadConfig(){
+    const s = Alpine.store('browser');
+    if (!s.repo || !s.gh) return;
+    const key = s.repo + '@' + s.ref;
+    this._configKey = key;
+    s.config = null;
+    let cfg = null;
+    try {
+      cfg = JSON.parse((await s.gh.get('.show-repo.json')).text);
+      if (typeof cfg !== 'object' || Array.isArray(cfg)) cfg = null;
+    } catch {}
+    if (this._configKey === key) s.config = cfg;
   },
-  get landingLabel(){ return this.landingKind() === 'gallery' ? 'Pages' : 'Overview'; },
-  get landingIcon(){ return this.landingKind() === 'gallery' ? 'ph-squares-four' : 'ph-house'; },
+
+  // web-tools -> its pages index ('gallery'); a repo whose manifest designates
+  // a landing page -> that page rendered live ('custom'); every other repo ->
+  // a synthesized overview ('overview'). The design notes below cover the
+  // custom render path and the task-0002 federation.
+  landingKind(){
+    const s = Alpine.store('browser');
+    if (s.repo === this.DEFAULT_REPO) return 'gallery';
+    if (s.config?.landing) return 'custom';
+    return 'overview';
+  },
+  get landingLabel(){ return { gallery: 'Pages', custom: 'Landing', overview: 'Overview' }[this.landingKind()]; },
+  get landingIcon(){ return { gallery: 'ph-squares-four', custom: 'ph-planet', overview: 'ph-house' }[this.landingKind()]; },
+
+  // Custom landings render through toss-render's #gh= address mode: fetched
+  // with the viewer's stored token (private repos and branches work), rendered
+  // same-origin, and gated by toss-render's OWNERS allowlist — a repo outside
+  // it shows toss-render's refusal, not the page.
+  get customLandingUrl(){
+    const s = Alpine.store('browser');
+    if (!s.config?.landing) return '';
+    const ref = s.ref && s.ref !== s.defaultRef ? '@' + s.ref : '';
+    return '../toss-render.html#gh=' + s.repo + ref + ':' + s.config.landing;
+  },
+
+  // Pinned folders and files from the manifest. A pin whose last segment has
+  // an extension opens as a file; anything else loads as a folder in the tree.
+  get pins(){ return Alpine.store('browser').config?.pins || []; },
+  pinIsFile(p){ return /\.[^./]+$/.test(p.split('/').pop()); },
+  async openPin(p){
+    if (this.pinIsFile(p)) return this.openFile(p);
+    const navEl = document.getElementById('navigator');
+    if (!await waitFor(() => navEl.__navigator)) return;
+    await navEl.__navigator.load(p.replace(/\/+$/, ''));
+  },
 
   // Auth state still drives which pinned private repos are dimmed; it just has
   // no icon of its own anymore.
@@ -638,28 +715,36 @@ function overview(){ return {
   landing-vs-file, and it lives in the sidebar. app.landingKind(repo) is the one
   decision point.
 
-  Today: web-tools -> 'gallery' (its pages index); every other repo -> 'overview'
-  (a synthesized default: stats + README + a jump to the atlas). The atlas is a
-  standing repo view, available for every repo regardless of its landing — the
-  "ready mechanism" for it.
+  Today: web-tools -> 'gallery' (its pages index); a repo whose manifest names a
+  landing -> 'custom' (see below); every other repo -> 'overview' (a synthesized
+  default: stats + README + a jump to the atlas). The atlas is a standing repo
+  view, available for every repo regardless of its landing — the "ready
+  mechanism" for it.
 
-  Intended progression, aligned with tracker task 0002 (private-repo landing
-  federation via mehrlander/home):
+  THE MANIFEST: .show-repo.json at the repo root is how a repo designates what
+  this shell should consider. Probed once per repo@ref (404 = no config),
+  parsed as data, never executed. Current fields:
 
-    1. Per-repo custom landing. A repo ships its own pages/landing.html; the
-       shell renders it live — a mehrlander repo (public or private) via the
-       toss #gh= address mode, any public repo via github.io or a ?use= iframe.
-       landingKind() returns 'custom' and the landing block mounts an iframe at
-       that render URL. "The repo builds its own page."
+    landing  path to the repo's own landing page (e.g. "pages/landing.html"),
+             rendered live via toss-render #gh= — token-authed, so private
+             repos and branches work; gated by toss-render's OWNERS allowlist.
+             "The repo builds its own page."
+    pins     folders/files surfaced in the sidebar Pinned block; a last
+             segment with an extension opens as a file, else as a folder.
+    stage    { files: [...], targets: ["owner/repo:dir", ...] } — a durable
+             staged-files list (seeds the navigator's combine panel) and the
+             default destinations its transfer UI offers. Copying goes through
+             gh-transfer.js (lib/): per-file Contents-API commits, base64
+             pass-through, viewer's token, two-tap confirm in the UI.
 
-    2. Federation (task 0002). With a token, read mehrlander/home's landing.json
-       and fold each featured private repo's landing into web-tools' own gallery
-       as additional cards/sections. HOME_REPO becomes the one public-private
-       hinge, a single lib/ constant. No token: the private section is absent, no
-       leak.
+  Next, aligned with tracker task 0002 (private-repo landing federation via
+  mehrlander/home): with a token, read mehrlander/home's landing.json and fold
+  each featured private repo's landing into web-tools' own gallery as
+  additional cards/sections. HOME_REPO becomes the one public-private hinge, a
+  single lib/ constant. No token: the private section is absent, no leak.
 
-  The seam is deliberately small so these are additive: each is a new branch in
-  landingKind() plus the matching landing block, no rework of the shell.
+  The seam stays small: each landing kind is a branch in landingKind() plus a
+  matching landing block; each manifest field has exactly one consumer.
 ─────────────────────────────────────────────────────────────────────────── -->
 </body>
 </html>
