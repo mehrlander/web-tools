@@ -38,6 +38,7 @@ const NOTES = {
   'table-compress-multi.html': 'Multi-function variant of table-compress.',
   'compression-helper.html':   'Compression bookmarklet packer.',
   'diff-tool.html':            'Side-by-side text diff tool.',
+  'shorter.html':              'Iterative text shortener on an in-browser LLM (WebGPU + web-llm).',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths — the 🥏 target.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
