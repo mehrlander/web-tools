@@ -6,10 +6,9 @@ _Generated from tasks/. Do not hand-edit._
 - Private-repo landing federation via the home registry next: co-design the home manifest schema once the integrated landing page lands
 - Singleton fab with toss-render integration next: design the singleton guard and context-partition API in fab.js
 - Automate the merge guide from PR bodies
-- Speed up show-repo's cold load
 
 ## In progress
-- (none)
+- Speed up show-repo's cold load (`claude/speed-up-show-repo-load-3cdvl0`)
 
 ## Blocked
 - (none)
