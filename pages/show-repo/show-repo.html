@@ -76,10 +76,15 @@
                 flex flex-col transition-transform duration-200 ease-out
                 lg:static lg:z-auto lg:shadow-none lg:translate-x-0 lg:w-80 xl:w-[22rem] lg:shrink-0"
          :class="drawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-    <!-- Mobile drawer header (the desktop sidebar sits under the page header) -->
-    <div class="h-14 flex items-center justify-between px-4 border-b border-base-300 shrink-0 lg:hidden">
-      <span class="font-mono text-xs truncate" x-text="$store.browser.repo || 'Browse'"></span>
-      <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost"><i class="ph ph-x text-lg"></i></button>
+    <!-- Sidebar top bar: repo name + auth shield (opens the token dialog), plus
+         the mobile-only drawer close button. -->
+    <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
+      <span class="font-mono text-xs truncate flex-1" x-text="$store.browser.repo || 'Browse'"></span>
+      <button @click="document.getElementById('repoModal')?.showModal()"
+              class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
+        <i class="ph text-lg" :class="authIcon"></i>
+      </button>
+      <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
@@ -493,10 +498,20 @@ function app(){ return {
     await navEl.__navigator.load(p.replace(/\/+$/, ''));
   },
 
-  // Auth state still drives which pinned private repos are dimmed; it just has
-  // no icon of its own anymore.
+  // Auth state drives which pinned private repos are dimmed, and the sidebar
+  // shield's icon/tooltip.
   _authState: 'public',
   _authUser: '',
+  get authIcon(){
+    if (this._authState === 'auth') return 'ph-shield-check text-success';
+    if (this._authState === 'expired') return 'ph-warning text-warning';
+    return 'ph-globe text-base-content/50';
+  },
+  get authTip(){
+    if (this._authState === 'auth') return 'Authenticated: ' + this._authUser;
+    if (this._authState === 'expired') return 'Token expired';
+    return 'Public only';
+  },
 
   // The brand icon goes home on desktop, where the sidebar is pinned, and opens
   // the drawer on mobile, where it stands in for the hamburger.
