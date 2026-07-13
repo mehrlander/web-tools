@@ -8,18 +8,19 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
-  // gh-api.js's auto-bootstrap parses owner/repo/ref from its own import URL,
-  // exposes window.gh, and loads gh-auth.js. The landing needs no token; the
-  // file browser boots quietly and only prompts for auth on demand.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  // The pre-build: one same-origin import carries the whole lib/ (the loader,
+  // the gh-boot chain, every Alpine component, alpine-bundle) — no per-file
+  // gh.load network for own code. ?use=<branch|tag|sha> re-pins to jsDelivr
+  // for branch preview (pass a SHA for fresh commits; branch tips cache ~12h).
+  // The landing needs no token; the file browser boots quietly and only
+  // prompts for auth on demand.
+  const ref = new URLSearchParams(location.search).get('use');
+  await import(ref
+    ? `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/dist/web-tools.js`
+    : '../../dist/web-tools.js');
+  // gh-store rides in the pre-build cached but unexecuted; this load runs it
+  // from the inlined cache (no network) so GH.prototype.save exists as before.
   await gh.load('gh-store.js');
-  await gh.load('alpineComponents/repo.js');
-  await gh.load('alpineComponents/navigator.js');
-  await gh.load('alpineComponents/viewer.js');
-  await gh.load('alpineComponents/compare.js');
-  await gh.load('alpine-bundle.js');
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
@@ -427,6 +428,13 @@ function app(){ return {
     if (!s.repo || !s.gh) return;
     this._recentKey = key;
     this.recentLoading = true; this.recent = [];
+    // Let the file tree win the early network window: hold this panel's
+    // fetches until the navigator's first listing has landed (loadedOnce),
+    // with a timeout so a tree that never mounts can't starve the panel.
+    // On later repo/ref switches the flag is already set, so this is a
+    // cold-load deferral only — the case the phone-load symptom came from.
+    await waitFor(() => document.getElementById('navigator')?.__navigator?.loadedOnce, 5000);
+    if (this._recentKey !== key) return;
     try {
       const files = await s.gh.recentFiles(12);
       if (this._recentKey !== key) return; // repo/ref changed while in flight
