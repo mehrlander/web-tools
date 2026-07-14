@@ -1,6 +1,13 @@
 # Merge guide
 
-Newest-on-top log of what each session shipped. Convention: see the Merge guide section in `docs/CONVENTIONS.md`. Say "merge guide" in a session to prepend an entry.
+Newest-on-top log of what each session shipped, generated from merged PR
+bodies by `scripts/build-merge-guide.py`. A PR body's guide region is the
+editable source; do not hand-edit entries below. Regenerate:
+
+    python3 scripts/build-merge-guide.py mehrlander/web-tools --out docs/MERGE-GUIDE.md
+
+Entries predating the generator were hand-authored and are preserved until
+backfilled (tracker task 0009).
 
 ---
 

@@ -208,6 +208,7 @@ one fetched copy serves many callers.
 | Script | What it does | Interface |
 |---|---|---|
 | [`scripts/build-board.py`](../scripts/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter | `python3 build-board.py <tasks_dir> <board_out>` |
+| [`scripts/build-merge-guide.py`](../scripts/build-merge-guide.py) | generate `docs/MERGE-GUIDE.md` from merged PR bodies (the guide region); non-destructive, `--refresh` to regenerate covered PRs | `python3 build-merge-guide.py [owner/repo] --out <file>` |
 
 Fetching and running a script is executing hub code, a step beyond fetching and
 reading a doc. That is why the hub must stay owned and trusted and the fetch stays

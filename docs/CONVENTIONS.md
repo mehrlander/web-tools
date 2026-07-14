@@ -52,7 +52,7 @@ Adopt à la carte: two independent layers, take either alone.
 
 An opt-in lifecycle for PR-driven repos. Requires maintaining `docs/MERGE-GUIDE.md` and a **guide PR** per branch; skip it and the primitives still stand.
 
-Two artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the guide PR's body (live while draft, reviewer-facing when ready) and the merge-guide entry (at or after merge). They are sequential drafts of one statement, kept aligned, and both open with the same preamble:
+Two artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the guide PR's body (live while draft, reviewer-facing when ready) and the merge-guide entry (generated from that body at or after merge). They are one statement in two places: the guide PR body is authored, the merge-guide entry is generated from it, and both open with the same preamble:
 
 1. **Outcome + why:** one sentence, no preamble.
 2. **⭐ link to the thing to open:** the preview mechanism's target, or the honest `[new]` blob if there is none (say "view," and never promise a running preview the change can't deliver).
@@ -102,11 +102,11 @@ Keep the body under one screen; **next steps / open threads** is the heart and t
 
 ### Merge guide
 
-Durable newest-on-top log of shipped sessions: one file, one URL. Written at wrap-up; outside a wrap-up only when the user asks. Never overwrite existing entries. Key each entry by PR number. (This log keys on the **PR**, a unit of delivery; the opt-in project tracker in [`docs/TRACKER.md`](TRACKER.md) keys on the **task**, a unit of intent. Same niche from two angles: pick one primary axis, since running both produces two logs that drift.)
+Durable newest-on-top log of shipped sessions: one file, one URL, **generated** from merged PR bodies by a repo-owned script (web-tools ships [`scripts/build-merge-guide.py`](../scripts/build-merge-guide.py); reimplement freely). The guide PR body's guide region is the editable source, so there is no hand-written merge-guide step: the generator projects each merged PR into an entry. It is non-destructive, keyed by PR number: existing entries are preserved, a generated entry is added for a PR the file does not yet cover, and `--refresh` regenerates covered PRs (the mode a retroactive backfill uses). Run it where API access exists (a merge-triggered Action, or a local run); the output stays a committed file so the projection survives offline. (This log keys on the **PR**, a unit of delivery; the opt-in project tracker in [`docs/TRACKER.md`](TRACKER.md) keys on the **task**, a unit of intent. Same niche from two angles: pick one primary axis, since running both produces two logs that drift.)
 
 **Reading it for inclusion:** an entry reaches main only on its own merge, so the main copy answers "Is PR #N in main?" (top entry is the latest). A merge made without an entry won't show, so absence isn't proof; git or GitHub's merged state is authoritative.
 
-Lead with the result, not the file list; primary file first; for a shared component add a `renders on:` line per consumer.
+The generated entry mirrors the guide region: result first, primary file first, a `renders on:` line per shared component, branch URLs rewritten to main, and the branch-only **next steps** dropped.
 
 ```markdown
 ## <date> <one-line title> (PR #<n>)
@@ -126,7 +126,7 @@ Lead with the result, not the file list; primary file first; for a shared compon
 
 ### Wrap-up & marking ready
 
-Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (write the merge-guide entry and mark the PR ready)?"* Routing it through chat gets the docs and refreshes into the diff before review, and accepting the offer is what authorizes marking the PR ready.
+Never offer to mark the PR ready on its own (the UI has that button too). Offer a bundled wrap-up: *"want me to wrap up (sync the PR body and mark the PR ready)?"* Routing it through chat gets the refreshes and the current guide region into the diff before review, and accepting the offer is what authorizes marking the PR ready.
 
 **"Wrap up" is the standing phrase for this whole process.** When the user says it, run the sequence below and mark the PR ready at its end: it is the request to finish and go green, not to merge. (Historically the phrase meant creating the PR; the guide PR now opens at first push, so creation left the wrap-up.)
 
@@ -134,11 +134,10 @@ Never offer to mark the PR ready on its own (the UI has that button too). Offer 
 
 1. **Preflight: confirm the branch still merges cleanly.** `git fetch origin main && git merge-tree --write-tree origin/main HEAD` test-merges without touching the tree (a nonzero exit names the conflicting paths). A fresh clone bases the branch on main-as-it-was at session start, so if main advanced under you (a sibling session or PR merging overlapping edits) the branch conflicts at merge time and this session never sees it; resolve it now, before GitHub flags the PR unmergeable. Committed generated artifacts (bundles, lockfiles, indexes) are the usual culprits, colliding on lines neither author wrote. Report either way, so a clean run reads as verified.
 2. Execute per-session refreshes.
-3. Write the merge-guide entry and commit.
-4. Final body sync: next steps become follow-ups (or tracker tasks), Notes / Risk current for the reviewer.
-5. Mark the PR ready.
+3. Final body sync: the guide region current (it is the source the merge guide is generated from after merge), next steps become follow-ups (or tracker tasks), Notes / Risk current for the reviewer. No hand-written merge-guide entry.
+4. Mark the PR ready.
 
-**UI trigger:** if the user marks the PR ready (or merges it) from the UI before a wrap-up ran, run steps 1 through 4 silently, surfacing any conflict the preflight finds since the open PR will show it.
+**UI trigger:** if the user marks the PR ready (or merges it) from the UI before a wrap-up ran, run steps 1 through 3 silently, surfacing any conflict the preflight finds since the open PR will show it.
 
 ### The next PR
 
