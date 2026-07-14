@@ -176,6 +176,14 @@
     "top": "drop",
     "items": [
       {
+        "href": "drop/at-file-nav.html",
+        "label": "at-file-nav",
+        "title": "@ File Nav",
+        "note": "",
+        "thumb": "thumbs/drop/at-file-nav.png",
+        "code": "https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html"
+      },
+      {
         "href": "drop/cm6-editor.html",
         "label": "cm6-editor",
         "title": "Literate Solo Editor",
