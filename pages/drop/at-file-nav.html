@@ -1,14 +1,588 @@
-<!--
-Placeholder — replace this file's contents with the real page.
-Demonstration of file navigation within a text box using @.
--->
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8">
-  <title>@ File Nav</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important }
+  </style>
 </head>
-<body>
-  <p>placeholder — content pending</p>
+
+<body class="min-h-dvh bg-base-200 p-4 sm:p-8">
+  <main
+    x-data="pathPicker()"
+    class="mx-auto max-w-3xl"
+  >
+    <header class="mb-5">
+      <h1 class="text-xl font-semibold">Path-following mention picker</h1>
+
+      <p class="mt-1 text-sm text-base-content/60">
+        Type <kbd class="kbd kbd-sm">@</kbd>, then type or follow the tree.
+      </p>
+    </header>
+
+    <div
+      class="relative"
+      @click.outside="open = false"
+    >
+      <textarea
+        x-ref="box"
+        x-model="text"
+        rows="6"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="Message"
+        aria-controls="path-options"
+        :aria-expanded="open"
+        @input="sync($event)"
+        @focus="sync($event)"
+        @click="sync($event)"
+        @keyup.left="sync($event)"
+        @keyup.right="sync($event)"
+        @keyup.home="sync($event)"
+        @keyup.end="sync($event)"
+        @keydown.down="navigate($event, 1)"
+        @keydown.up="navigate($event, -1)"
+        @keydown.enter="accept($event)"
+        @keydown.escape="close($event)"
+        class="
+          textarea textarea-bordered w-full resize-none
+          bg-base-100 p-4 text-base leading-relaxed
+          shadow-sm focus:outline-2
+        "
+        placeholder="Please inspect @"
+      ></textarea>
+
+      <!--
+        Mobile: fixed bottom sheet.
+        Desktop: dropdown anchored beneath the textarea.
+      -->
+      <section
+        x-cloak
+        x-show="open"
+        x-transition:enter="transition duration-150 ease-out"
+        x-transition:enter-start="translate-y-2 opacity-0 sm:-translate-y-1"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition duration-100 ease-in"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-2 opacity-0 sm:-translate-y-1"
+        class="
+          fixed inset-x-3
+          bottom-[max(.75rem,env(safe-area-inset-bottom))]
+          z-50 flex max-h-[58dvh] flex-col overflow-hidden
+          rounded-box border border-base-300
+          bg-base-100 shadow-2xl
+
+          sm:absolute sm:inset-x-0 sm:bottom-auto sm:top-full
+          sm:mt-2 sm:max-h-none sm:shadow-xl
+        "
+      >
+        <header
+          class="
+            flex min-h-12 shrink-0 items-center gap-2
+            border-b border-base-300 px-2
+          "
+        >
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm shrink-0"
+            :disabled="!scope.length"
+            aria-label="Go up one level"
+            @pointerdown.prevent="up()"
+          >
+            <span aria-hidden="true">‹</span>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+
+          <nav
+            aria-label="Current path"
+            class="
+              flex min-w-0 flex-1 items-center gap-1
+              overflow-x-auto whitespace-nowrap
+              [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+            "
+          >
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs shrink-0 font-normal"
+              :class="!scope.length && 'bg-base-200 font-medium'"
+              @pointerdown.prevent="jump(0)"
+            >
+              Repositories
+            </button>
+
+            <template
+              x-for="(node, index) in scope"
+              :key="`${index}:${node.name}`"
+            >
+              <span class="contents">
+                <span class="shrink-0 text-base-content/30">/</span>
+
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs shrink-0 font-normal"
+                  :class="index === scope.length - 1 && 'bg-base-200 font-medium'"
+                  @pointerdown.prevent="jump(index + 1)"
+                  x-text="node.name"
+                ></button>
+              </span>
+            </template>
+          </nav>
+
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm btn-square shrink-0"
+            aria-label="Close picker"
+            @pointerdown.prevent="open = false"
+          >
+            ×
+          </button>
+        </header>
+
+        <div
+          id="path-options"
+          x-ref="options"
+          role="listbox"
+          class="
+            min-h-0 flex-1 overscroll-contain overflow-y-auto p-1
+            sm:max-h-80
+          "
+        >
+          <template
+            x-for="(node, index) in matches()"
+            :key="`${index}:${node.name}`"
+          >
+            <button
+              type="button"
+              role="option"
+              :data-index="index"
+              :aria-selected="active === index"
+              class="
+                flex min-h-12 w-full touch-manipulation
+                items-center gap-3 rounded-field px-3 py-2
+                text-left transition-colors
+              "
+              :class="
+                active === index
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-base-200'
+              "
+              @mouseenter="active = index"
+              @pointerdown.prevent="choose(node)"
+            >
+              <span
+                class="
+                  grid size-7 shrink-0 place-items-center
+                  rounded-md bg-base-200 text-sm font-semibold
+                "
+                aria-hidden="true"
+                x-text="icon(node)"
+              ></span>
+
+              <span class="min-w-0 flex-1">
+                <span
+                  class="block truncate font-medium"
+                  x-text="node.name"
+                ></span>
+
+                <span
+                  class="block text-xs opacity-50"
+                  x-text="kindLabel(node)"
+                ></span>
+              </span>
+
+              <span
+                x-show="node.children"
+                class="badge badge-ghost badge-sm shrink-0"
+                x-text="node.children?.length"
+              ></span>
+
+              <span
+                x-show="node.children"
+                class="shrink-0 text-base-content/35"
+                aria-hidden="true"
+              >
+                ›
+              </span>
+            </button>
+          </template>
+
+          <div
+            x-show="!matches().length"
+            class="grid min-h-28 place-items-center px-4 text-center"
+          >
+            <div>
+              <p class="font-medium">No matching children</p>
+
+              <p
+                class="mt-1 text-sm text-base-content/50"
+                x-text="query ? `Nothing here matches "${query}".` : ''"
+              ></p>
+            </div>
+          </div>
+        </div>
+
+        <footer
+          class="
+            shrink-0 border-t border-base-300
+            px-3 py-2 text-xs text-base-content/45
+          "
+        >
+          <span class="sm:hidden">
+            Tap a folder to continue or a file to commit the path.
+          </span>
+
+          <span class="hidden sm:inline">
+            ↑↓ navigate · Enter select · Esc close
+          </span>
+        </footer>
+      </section>
+    </div>
+
+    <section class="mt-4 rounded-box border border-base-300 bg-base-100 p-4">
+      <h2 class="text-sm font-medium">Example</h2>
+
+      <p class="mt-2 break-all font-mono text-sm text-base-content/60">
+        @acme/dashboard/src/components/Chart.js
+      </p>
+    </section>
+  </main>
+
+  <script>
+    function pathPicker() {
+      const file = name => ({
+        name,
+        kind: "file"
+      })
+
+      const folder = (name, ...children) => ({
+        name,
+        kind: "folder",
+        children
+      })
+
+      const repo = (name, ...children) => ({
+        name,
+        kind: "repo",
+        children
+      })
+
+      return {
+        text: "",
+        open: false,
+
+        start: 0,
+        caret: 0,
+        query: "",
+        active: 0,
+        scope: [],
+
+        tree: [
+          repo(
+            "acme/dashboard",
+            folder(
+              "src",
+              folder(
+                "components",
+                file("Header.js"),
+                file("Sidebar.js"),
+                file("Chart.js")
+              ),
+              folder(
+                "utils",
+                file("api.js"),
+                file("format.js")
+              ),
+              file("App.js")
+            ),
+            folder(
+              "public",
+              file("index.html"),
+              file("favicon.ico")
+            ),
+            file("package.json"),
+            file("README.md")
+          ),
+
+          repo(
+            "acme/config-templates",
+            folder(
+              "docker",
+              file("Dockerfile"),
+              file("docker-compose.yml")
+            ),
+            folder(
+              "kubernetes",
+              file("deployment.yaml"),
+              file("service.yaml")
+            ),
+            folder(
+              "examples",
+              file("basic-setup.md"),
+              file("production.md")
+            ),
+            file("README.md")
+          ),
+
+          repo(
+            "acme/api-client",
+            folder(
+              "src",
+              file("client.js"),
+              file("request.js"),
+              file("response.js")
+            ),
+            folder(
+              "tests",
+              file("client.test.js"),
+              file("fixtures.json")
+            ),
+            file("package.json"),
+            file("LICENSE")
+          ),
+
+          repo(
+            "acme/data-pipeline",
+            folder(
+              "scripts",
+              file("extract.py"),
+              file("transform.py"),
+              file("load.py")
+            ),
+            folder(
+              "config",
+              file("sources.yaml"),
+              file("mappings.yaml")
+            ),
+            file("README.md")
+          )
+        ],
+
+        sync(event) {
+          const box = event.currentTarget || this.$refs.box
+
+          this.text = box.value
+          this.caret = box.selectionStart ?? this.text.length
+
+          const left = this.text.slice(0, this.caret)
+          const match = left.match(/@([^\s@]*)$/)
+
+          if (!match) {
+            this.open = false
+            this.scope = []
+            this.query = ""
+            return
+          }
+
+          this.start = this.caret - match[0].length
+
+          const resolved = this.resolve(match[1])
+          const oldPath = this.path()
+          const newPath = resolved.scope.map(node => node.name).join("/")
+          const changed =
+            resolved.query !== this.query ||
+            oldPath !== newPath
+
+          this.scope = resolved.scope
+          this.query = resolved.query
+          this.open = true
+
+          if (changed) {
+            this.active = 0
+            this.resetScroll()
+          }
+        },
+
+        resolve(raw) {
+          let nodes = this.tree
+          let rest = raw
+          const scope = []
+
+          while (true) {
+            const next = nodes
+              .filter(node => node.children)
+              .sort((a, b) => b.name.length - a.name.length)
+              .find(node => rest.startsWith(`${node.name}/`))
+
+            if (!next) break
+
+            scope.push(next)
+            rest = rest.slice(next.name.length + 1)
+            nodes = next.children
+          }
+
+          return {
+            scope,
+            query: rest
+          }
+        },
+
+        children() {
+          return this.scope.length
+            ? this.scope[this.scope.length - 1].children
+            : this.tree
+        },
+
+        matches() {
+          const query = this.query.trim().toLocaleLowerCase()
+
+          return this.children()
+            .map((node, order) => {
+              const name = node.name.toLocaleLowerCase()
+
+              const score =
+                !query ? 0 :
+                name === query ? 0 :
+                name.startsWith(query) ? 1 :
+                name.includes(query) ? 2 :
+                99
+
+              return {
+                node,
+                order,
+                score,
+                container: node.children ? 0 : 1
+              }
+            })
+            .filter(item => item.score < 99)
+            .sort((a, b) =>
+              a.score - b.score ||
+              a.container - b.container ||
+              a.order - b.order
+            )
+            .map(item => item.node)
+        },
+
+        path(nodes = this.scope) {
+          return nodes.map(node => node.name).join("/")
+        },
+
+        choose(node) {
+          if (!node) return
+
+          if (node.children) {
+            this.scope = [...this.scope, node]
+            this.query = ""
+            this.active = 0
+
+            this.write(`@${this.path()}/`)
+            this.open = true
+            this.resetScroll()
+
+            return
+          }
+
+          const path = this.path([...this.scope, node])
+
+          this.write(`@${path} `)
+          this.open = false
+          this.scope = []
+          this.query = ""
+        },
+
+        jump(depth) {
+          this.scope = this.scope.slice(0, depth)
+          this.query = ""
+          this.active = 0
+
+          const path = this.path()
+
+          this.write(`@${path}${path ? "/" : ""}`)
+          this.open = true
+          this.resetScroll()
+        },
+
+        up() {
+          this.jump(Math.max(0, this.scope.length - 1))
+        },
+
+        navigate(event, amount) {
+          if (!this.open) return
+
+          const count = this.matches().length
+          if (!count) return
+
+          event.preventDefault()
+
+          this.active =
+            (this.active + amount + count) % count
+
+          this.scrollActive()
+        },
+
+        accept(event) {
+          if (!this.open) return
+
+          const node = this.matches()[this.active]
+          if (!node) return
+
+          event.preventDefault()
+          this.choose(node)
+        },
+
+        close(event) {
+          if (!this.open) return
+
+          event.preventDefault()
+          this.open = false
+        },
+
+        write(token) {
+          const before = this.text.slice(0, this.start)
+          const after = this.text.slice(this.caret)
+
+          this.text = before + token + after
+          this.caret = before.length + token.length
+          this.start = before.length
+
+          this.$nextTick(() => {
+            const box = this.$refs.box
+
+            box.focus()
+            box.setSelectionRange(this.caret, this.caret)
+          })
+        },
+
+        resetScroll() {
+          this.$nextTick(() => {
+            if (this.$refs.options)
+              this.$refs.options.scrollTop = 0
+          })
+        },
+
+        scrollActive() {
+          this.$nextTick(() => {
+            this.$refs.options
+              ?.querySelector(`[data-index="${this.active}"]`)
+              ?.scrollIntoView({
+                block: "nearest"
+              })
+          })
+        },
+
+        icon(node) {
+          return node.kind === "repo"
+            ? "◉"
+            : node.children
+              ? "▸"
+              : "·"
+        },
+
+        kindLabel(node) {
+          return node.kind === "repo"
+            ? "Repository"
+            : node.children
+              ? "Folder"
+              : "File"
+        }
+      }
+    }
+  </script>
 </body>
 </html>
