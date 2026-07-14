@@ -8,6 +8,7 @@ _Generated from tasks/. Do not hand-edit._
 - Repo-level GitHub links in show-repo's shield dialog
 - Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
+- Extract drop-zone as a reusable Alpine component
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
