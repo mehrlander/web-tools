@@ -9,6 +9,7 @@ _Generated from tasks/. Do not hand-edit._
 
 ## In progress
 - Speed up show-repo's cold load (`claude/speed-up-show-repo-load-3cdvl0`)
+- Stage links and the main-area explorer in show-repo (`claude/task-tracker-discussion-wg27xv`)
 
 ## Blocked
 - (none)
