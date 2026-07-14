@@ -338,16 +338,19 @@
       <div class="mx-auto px-4 py-6 flex flex-col gap-4">
         <div id="explorer" x-data="explorer()"></div>
         <div id="viewer" x-data="viewer()" x-show="$store.browser.activeFile"></div>
-        <div id="compare" x-data="compare()" x-show="$store.browser.activeFile"></div>
       </div>
     </div>
 
     <!-- Stage: the shared cross-repo fileset, grouped by source repo@ref, with
-         send/save/mint actions. Opening a staged file lands in the Files view's
-         shared viewer. -->
+         send/save/mint actions and the concatenated bundle. Opening a staged
+         file lands in the Files view's shared viewer. Compare lives here too:
+         a ref-diff belongs with the fileset, not under the file viewer. -->
     <div x-show="view==='stage'" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
         <div x-data="stager()"></div>
+        <div class="border-t border-base-200 pt-3">
+          <div id="compare" x-data="compare()"></div>
+        </div>
       </div>
     </div>
 
@@ -823,12 +826,14 @@ function overview(){ return {
 
     #stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3
 
-  opens this page with those refs staged for action (view, copy out as text,
-  send to a repo); "Copy link" mints one from the current stage. This folds
-  toss-render's link-as-transport insight into show-repo on the transfer side:
-  a link can deliver a fileset for moving, not only a page for rendering. A
-  content-carrying bundle form (#gz= style, for token-less contexts like the
-  Claude app's in-app browser) is a contemplated follow-up, not built.
+  opens this page with those refs staged for action (view, copy out or download
+  the concatenated bundle, send to a repo); "Copy link" mints one from the
+  current stage. This folds toss-render's link-as-transport insight into
+  show-repo on the transfer side: a link can deliver a fileset for moving, not
+  only a page for rendering. Compare (ref-diff) also lives in this view: a diff
+  belongs with the fileset, not under the file viewer. A content-carrying
+  bundle form (#gz= style, for token-less contexts like the Claude app's
+  in-app browser) is a contemplated follow-up, not built.
 
   RENDERING stays toss-render's job: the viewer's "Toss render" action hands an
   HTML file to toss-render #gh= at the file's own repo@ref, and custom landings
