@@ -7,6 +7,7 @@ _Generated from tasks/. Do not hand-edit._
 - Singleton fab with toss-render integration next: design the singleton guard and context-partition API in fab.js
 - Automate the merge guide from PR bodies
 - Repo-level GitHub links in show-repo's shield dialog
+- Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 
 ## In progress
 - Speed up show-repo's cold load (`claude/speed-up-show-repo-load-3cdvl0`)
