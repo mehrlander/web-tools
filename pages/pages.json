@@ -178,7 +178,7 @@
       {
         "href": "drop/at-file-nav.html",
         "label": "at-file-nav",
-        "title": "@ File Nav",
+        "title": "Path-following mention picker",
         "note": "",
         "thumb": "thumbs/drop/at-file-nav.png",
         "code": "https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html"

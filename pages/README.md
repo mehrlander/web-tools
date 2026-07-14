@@ -44,7 +44,7 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
-| `at-file-nav` | @ File Nav | [view](https://mehrlander.github.io/web-tools/pages/drop/at-file-nav.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html) |
+| `at-file-nav` | Path-following mention picker | [view](https://mehrlander.github.io/web-tools/pages/drop/at-file-nav.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html) |
 | `cm6-editor` | Literate Solo Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/cm6-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/cm6-editor.html) |
 | `diff-tool` | Legislative Diff Tool | [view](https://mehrlander.github.io/web-tools/pages/drop/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/diff-tool.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/gist-editor.html) |

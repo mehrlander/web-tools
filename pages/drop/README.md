@@ -15,6 +15,7 @@ catalog doc.
 
 | Page | What it is |
 |---|---|
+| `at-file-nav.html` | A demonstration of file navigation inside a text box, triggered by typing `@`. |
 | `cm6-editor.html` | A CodeMirror-based single-file text editor. |
 | `diff-tool.html` | A diff tool for comparing legislative text. |
 | `gist-editor.html` | An editor for reading and writing GitHub gists. |
