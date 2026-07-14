@@ -25,9 +25,10 @@
 <style>[x-cloak]{display:none!important}</style>
 </head>
 <!-- A repo browser fronted by a per-repo landing page. The repo picker is up
-     front (header). One sidebar lists what you can look at for that repo
-     — its landing, its atlas, then its files — which is why there's no separate
-     Pages/Files toggle. The sidebar is pinned on desktop, a drawer on mobile.
+     front (header). The sidebar lists the repo's views — landing, atlas,
+     files, stage — plus pinned and recent shortcuts; the actual folder/file
+     navigation lives in the main area (breadcrumb + listing, file content
+     beneath). The sidebar is pinned on desktop, a drawer on mobile.
      See the design notes at the end of this file. -->
 <body class="h-screen flex flex-col overflow-hidden bg-base-100 text-base-content" x-data="app()" x-cloak>
 
@@ -90,7 +91,8 @@
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
       <!-- Repo views: the landing (web-tools' is its pages index, others get an
-           overview) and the atlas, always available regardless of landing. -->
+           overview), the atlas, the file explorer, and the stage (the shared
+           cross-repo fileset; badge shows its size). -->
       <div class="flex flex-col gap-0.5">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
@@ -101,6 +103,18 @@
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='atlas' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph ph-map-trifold text-base"></i><span>Atlas</span>
+        </button>
+        <button @click="goFiles()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='files' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-folders text-base"></i><span>Files</span>
+        </button>
+        <button @click="goStage()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='stage' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-stack text-base"></i><span>Stage</span>
+          <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
+                x-text="$store.browser.stage.length"></span>
         </button>
       </div>
 
@@ -141,10 +155,6 @@
         </template>
       </div>
 
-      <div x-show="recentLoading || recent.length" class="border-t border-base-200"></div>
-
-      <!-- The file tree for the selected repo. -->
-      <div id="navigator" x-data="navigator()"></div>
     </div>
   </aside>
 
@@ -321,11 +331,26 @@
       </template>
     </div>
 
-    <!-- File viewer -->
-    <div x-show="view==='file'" class="h-full overflow-y-auto">
+    <!-- Files: the folder navigation (breadcrumb + listing), with the selected
+         file's content beneath it. The explorer lives here in the main area;
+         the sidebar's pins and recents deep-link into it. -->
+    <div x-show="view==='files'" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 py-6 flex flex-col gap-4">
-        <div id="viewer" x-data="viewer()"></div>
-        <div id="compare" x-data="compare()"></div>
+        <div id="explorer" x-data="explorer()"></div>
+        <div id="viewer" x-data="viewer()" x-show="$store.browser.activeFile"></div>
+      </div>
+    </div>
+
+    <!-- Stage: the shared cross-repo fileset, grouped by source repo@ref, with
+         send/save/mint actions and the concatenated bundle. Opening a staged
+         file lands in the Files view's shared viewer. Compare lives here too:
+         a ref-diff belongs with the fileset, not under the file viewer. -->
+    <div x-show="view==='stage'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
+        <div x-data="stager()"></div>
+        <div class="border-t border-base-200 pt-3">
+          <div id="compare" x-data="compare()"></div>
+        </div>
       </div>
     </div>
 
@@ -370,7 +395,7 @@ function loadMarked(){
 // (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'landing' | 'atlas' | 'file'
+  view: 'landing',        // 'landing' | 'atlas' | 'files' | 'stage'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   DEFAULT_REPO: 'mehrlander/web-tools',
@@ -395,9 +420,10 @@ function app(){ return {
     const gh = new window.GH({ token: window.TOKEN });
     Alpine.store('browser').gh = gh;
 
-    // Selecting a file (sidebar tree or a landing card) flips to the file view.
+    // Selecting a file (explorer row, landing card, staged item) flips to the
+    // Files view, where the shared viewer shows it beneath the listing.
     this.$watch(() => Alpine.store('browser').activeFile, (f) => {
-      if (f) { this.view = 'file'; this.drawer = false; this.syncUrl(); }
+      if (f) { this.view = 'files'; this.drawer = false; this.syncUrl(); }
     });
 
     // Changing the repo takes you to its landing (default or specified).
@@ -414,12 +440,26 @@ function app(){ return {
       this.loadConfig();
     });
 
+    // Folder navigation in the explorer keeps the ?path deep link honest.
+    this.$watch(() => Alpine.store('browser').path, () => {
+      if (this.view === 'files') this.syncUrl();
+    });
+
     // The repo bar is always visible, so point the browser at a repo now.
-    // Deep link: ?repo&ref then ?file / ?view=atlas.
+    // Deep link: ?repo&ref then ?file / ?view=atlas|files|stage (&path with
+    // files). A #stage= fragment (a set of refs; see stage.js) preloads the
+    // stage and wins the initial view: it is the point of such a link.
     const url = this.parseUrl();
     await this.ensureBrowser(url?.repo, url?.ref);
     if (url && url.file) await this.openFile(url.file);
     else if (url && url.view === 'atlas') this.goAtlas();
+    else if (url && url.view === 'stage') this.goStage();
+    else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
+    const staged = window.StageLink ? window.StageLink.parse(location.hash) : [];
+    if (staged.length) {
+      Alpine.store('browser').stage = staged;
+      this.goStage();
+    }
   },
 
   async loadRecent(){
@@ -428,12 +468,12 @@ function app(){ return {
     if (!s.repo || !s.gh) return;
     this._recentKey = key;
     this.recentLoading = true; this.recent = [];
-    // Let the file tree win the early network window: hold this panel's
-    // fetches until the navigator's first listing has landed (loadedOnce),
-    // with a timeout so a tree that never mounts can't starve the panel.
+    // Let the file listing win the early network window: hold this panel's
+    // fetches until the explorer's first listing has landed (loadedOnce),
+    // with a timeout so a listing that never mounts can't starve the panel.
     // On later repo/ref switches the flag is already set, so this is a
     // cold-load deferral only — the case the phone-load symptom came from.
-    await waitFor(() => document.getElementById('navigator')?.__navigator?.loadedOnce, 5000);
+    await waitFor(() => document.getElementById('explorer')?.__explorer?.loadedOnce, 5000);
     if (this._recentKey !== key) return;
     try {
       const files = await s.gh.recentFiles(12);
@@ -496,14 +536,13 @@ function app(){ return {
   },
 
   // Pinned folders and files from the manifest. A pin whose last segment has
-  // an extension opens as a file; anything else loads as a folder in the tree.
+  // an extension opens as a file; anything else opens the Files view at that
+  // folder, where the explorer navigates onward.
   get pins(){ return Alpine.store('browser').config?.pins || []; },
   pinIsFile(p){ return /\.[^./]+$/.test(p.split('/').pop()); },
   async openPin(p){
     if (this.pinIsFile(p)) return this.openFile(p);
-    const navEl = document.getElementById('navigator');
-    if (!await waitFor(() => navEl.__navigator)) return;
-    await navEl.__navigator.load(p.replace(/\/+$/, ''));
+    await this.openFolder(p.replace(/\/+$/, ''));
   },
 
   // Auth state drives which pinned private repos are dimmed, and the sidebar
@@ -540,7 +579,7 @@ function app(){ return {
     const p = new URLSearchParams(location.search);
     if (!p.has('repo') && !p.has('file') && !p.has('view')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
-             file: p.get('file'), view: p.get('view') };
+             file: p.get('file'), view: p.get('view'), path: p.get('path') || '' };
   },
 
   syncUrl(){
@@ -548,8 +587,16 @@ function app(){ return {
     const p = new URLSearchParams(location.search);
     if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
     if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
-    if (this.view === 'file' && s.activeFile) p.set('file', s.activeFile.path); else p.delete('file');
-    if (this.view === 'atlas') p.set('view', 'atlas'); else p.delete('view');
+    p.delete('file'); p.delete('view'); p.delete('path');
+    if (this.view === 'files') {
+      // A cross-repo staged file (activeFile.origin from another repo) has no
+      // honest ?file= deep link against the open repo, so it gets none.
+      const f = s.activeFile;
+      if (f && (!f.origin || f.origin.repo === s.repo)) p.set('file', f.path);
+      else { p.set('view', 'files'); if (s.path) p.set('path', s.path); }
+    }
+    else if (this.view === 'atlas') p.set('view', 'atlas');
+    else if (this.view === 'stage') p.set('view', 'stage');
     const qs = p.toString();
     history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
   },
@@ -579,16 +626,25 @@ function app(){ return {
   },
 
   async openFile(path){
-    const navEl = document.getElementById('navigator');
-    if (!await waitFor(() => navEl.__navigator)) return;
+    const el = document.getElementById('explorer');
+    if (!await waitFor(() => el.__explorer)) return;
     const folder = path.split('/').slice(0, -1).join('/');
-    if (folder) await navEl.__navigator.load(folder, true);
-    await navEl.__navigator.sel(path);
+    if (folder) await el.__explorer.load(folder, true);
+    await el.__explorer.sel(path);
+  },
+
+  async openFolder(path){
+    const el = document.getElementById('explorer');
+    if (!await waitFor(() => el.__explorer)) return;
+    this.goFiles();
+    await el.__explorer.load(path);
   },
 
   goHome(){ this.goLanding(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
+  goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
+  goStage(){ this.view = 'stage'; this.drawer = false; this.syncUrl(); },
   openSidebar(){ this.drawer = true; },
 
   // Header shortcuts to frequently-visited repos. web-tools is always public;
@@ -730,12 +786,12 @@ function overview(){ return {
 }}
 </script>
 
-<!-- ── Design notes: the landing mechanism ─────────────────────────────────────
+<!-- ── Design notes: the landing mechanism, the views, and the stage ───────────
   A repo has, potentially, a LANDING PAGE. The repo picker is up front (the brand
-  icon doubles as the mobile drawer toggle); the sidebar lists what you can look
-  at for that repo — its landing, its atlas,
-  then its files — so there is no separate Pages/Files toggle; that split is just
-  landing-vs-file, and it lives in the sidebar. app.landingKind(repo) is the one
+  icon doubles as the mobile drawer toggle). The sidebar lists the repo's VIEWS
+  — landing, atlas, files, stage — plus pinned/recent shortcuts; the folder and
+  file navigation itself lives in the main area (explorer: breadcrumb + listing,
+  the selected file's content beneath). app.landingKind(repo) is the one landing
   decision point.
 
   Today: web-tools -> 'gallery' (its pages index); a repo whose manifest names a
@@ -753,12 +809,36 @@ function overview(){ return {
              repos and branches work; gated by toss-render's OWNERS allowlist.
              "The repo builds its own page."
     pins     folders/files surfaced in the sidebar Pinned block; a last
-             segment with an extension opens as a file, else as a folder.
+             segment with an extension opens as a file, else opens the Files
+             view at that folder.
     stage    { files: [...], targets: ["owner/repo:dir", ...] } — a durable
-             staged-files list (seeds the navigator's combine panel) and the
-             default destinations its transfer UI offers. Copying goes through
-             gh-transfer.js (lib/): per-file Contents-API commits, base64
-             pass-through, viewer's token, two-tap confirm in the UI.
+             staged-files list and the default destinations the Stage view's
+             transfer UI offers. Entries in files are bare paths (this repo at
+             its default branch) or qualified refs ("owner/repo[@ref]:path").
+             Copying goes through gh-transfer.js (lib/): per-file Contents-API
+             commits, base64 pass-through, viewer's token, two-tap confirm.
+
+  THE STAGE: a cross-repo fileset (store.stage, [{repo, ref, path}]) fed by the
+  explorer's "+" buttons, a manifest's stage.files, or a #stage= link, and
+  presented as its own main-area view (stager, lib/alpineComponents/stage.js).
+  The link is the transport — refs only, content stays behind the viewer's
+  token:
+
+    #stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3
+
+  opens this page with those refs staged for action (view, copy out or download
+  the concatenated bundle, send to a repo); "Copy link" mints one from the
+  current stage. This folds toss-render's link-as-transport insight into
+  show-repo on the transfer side: a link can deliver a fileset for moving, not
+  only a page for rendering. Compare (ref-diff) also lives in this view: a diff
+  belongs with the fileset, not under the file viewer. A content-carrying
+  bundle form (#gz= style, for token-less contexts like the Claude app's
+  in-app browser) is a contemplated follow-up, not built.
+
+  RENDERING stays toss-render's job: the viewer's "Toss render" action hands an
+  HTML file to toss-render #gh= at the file's own repo@ref, and custom landings
+  embed toss-render the same way. show-repo shows and moves files; toss-render
+  runs pages.
 
   Next, aligned with tracker task 0002 (private-repo landing federation via
   mehrlander/home): with a token, read mehrlander/home's landing.json and fold
