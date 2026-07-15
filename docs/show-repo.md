@@ -138,17 +138,19 @@ deprecation window. Fields:
 ### Editing the manifest from the shell
 
 The sidebar **shield** dialog (the repo dialog, `repoModal` in
-`lib/alpineComponents/repo.js`) carries a collapsible **Config** section for the
-**currently-open repo**. It is a JSON editor over the repo's manifest: it loads
-the current `.web-tools.json` (or an all-empty template when the repo has none,
-so the shape is there to fill in), validates on every keystroke, shows the known
-fields inline, and on Save commits the file through the viewer's token
-(`gh-store.js`'s `save`, a Contents API PUT to the repo's default branch).
-Editing needs auth, so Save is disabled until the same dialog's token is set.
+`lib/alpineComponents/repo.js`) has two tabs, switched top-right: a **link** tab
+(repo info, stats, auth, and URLs) and a **gear** tab, the config editor for the
+**currently-open repo**. The editor is a JSON editor over the repo's manifest:
+it loads the current `.web-tools.json` (or an all-empty template when the repo
+has none, so the shape is there to fill in), validates on every keystroke, links
+to this doc for the field format, and on Save commits the file through the
+viewer's token (`gh-store.js`'s `save`, a Contents API PUT to the repo's default
+branch). Editing needs auth, so Save is disabled until the link tab's token is
+set.
 
-- **Where it lives**: folded into the shield dialog rather than a standalone
-  control, so the repo's stats, links, auth, and config sit in one place. The
-  section is collapsed by default and seeds the editor when expanded.
+- **Where it lives**: a tab in the shield dialog rather than a standalone
+  control, so the repo's stats, links, auth, and config sit in one place.
+  Switching to the gear tab seeds the editor.
 - **Auto-migration**: a save always writes `.web-tools.json`. A repo still on the
   legacy `.show-repo.json` is edited the same way; the save lands the new name,
   which readers already prefer, so the legacy file goes inert. No delete step

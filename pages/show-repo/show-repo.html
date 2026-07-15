@@ -879,11 +879,11 @@ function overview(){ return {
   and how a repo designates what this shell should consider. Probed once per
   repo@ref (404 = no config), parsed as data, never executed. Reads
   .web-tools.json, falling back to the legacy .show-repo.json name. The sidebar
-  shield dialog (repoModal, lib/alpineComponents/repo.js) carries a collapsible
-  Config section: a JSON editor that writes the manifest via the viewer's token.
-  It always saves the new name, so editing a repo still on .show-repo.json
-  migrates it in place (no delete; the stale legacy file is inert since readers
-  prefer the new name). Current fields:
+  shield dialog (repoModal, lib/alpineComponents/repo.js) has a Config tab (the
+  gear, beside the info/links tab): a JSON editor that writes the manifest via
+  the viewer's token. It always saves the new name, so editing a repo still on
+  .show-repo.json migrates it in place (no delete; the stale legacy file is
+  inert since readers prefer the new name). Current fields:
 
     icon     Phosphor class (e.g. "ph-scales") for the repo's header quick-link
              button. Overrides the hardcoded default in PINNED_REPOS; the
