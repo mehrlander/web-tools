@@ -57,6 +57,14 @@ tasks (e.g. no `BLOCKED` table when nothing is blocked).
 | [Another task title](<blob url>) |
 ```
 
+## No tracker yet
+
+If `tracker/tasks/` doesn't exist in this repo, say so rather than silently
+improvising: don't invent a task file format or fail quietly. Offer to
+bootstrap one (an empty `tracker/tasks/` plus a first task file, per
+`docs/TRACKER.md`'s schema, landed on `main` per the rule below) rather than
+assuming a tracker is wanted. A repo may deliberately run no tracker.
+
 ## The one rule that is easy to miss
 
 **Task files and `board.md` commit directly to `main`, never to a feature
