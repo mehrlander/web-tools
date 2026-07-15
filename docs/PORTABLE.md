@@ -50,6 +50,7 @@ Top-level fields, not namespaced by consumer, so any web-tools page can read the
 
 | Field | Read by | What it sets |
 |---|---|---|
+| `icon` | show-repo | Phosphor class for the repo's header quick-link button (overrides the shell's default) |
 | `landing` | show-repo | path to the repo's own landing page (rendered live via toss-render `#gh=`) |
 | `pins` | show-repo | folders/files surfaced in the sidebar Pinned block |
 | `stage` | show-repo | `{ files, targets }`: a durable staged-files list and default transfer destinations |

@@ -102,6 +102,7 @@ deprecation window. Fields:
 
 ```json
 {
+  "icon": "ph-scales",
   "landing": "pages/landing.html",
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
@@ -112,6 +113,12 @@ deprecation window. Fields:
 }
 ```
 
+- **icon**: Phosphor icon class (e.g. `"ph-scales"`) for the repo's button in
+  the header quick-link row. Overrides the hardcoded default the shell ships for
+  that repo; the default is the floor, so a repo without an `icon` (or without a
+  manifest) still renders. The shell reads this field for every pinned repo at
+  load (`probePinned`), which also records whether each repo is **connected**
+  (carries a manifest at all).
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
@@ -127,6 +134,25 @@ deprecation window. Fields:
 - **conventions**: not a show-repo field. `"optout"` marks a repo that has
   deliberately not adopted the portable conventions, so a session-start nudge
   stops asking. Absent means unset. Documented in [PORTABLE.md](PORTABLE.md).
+
+### Editing the manifest from the shell
+
+The header **gear** (beside the quick-link row) opens a config editor for the
+**currently-open repo** (`lib/alpineComponents/config-editor.js`). It is a JSON
+editor over the repo's manifest: it loads the current `.web-tools.json` (or an
+empty object when the repo has none), validates on every keystroke, and on Save
+commits the file through the viewer's token (`gh-store.js`'s `save`, a Contents
+API PUT to the repo's default branch). Editing needs auth, so the gear dims and
+refuses when the viewer is unauthenticated.
+
+- **Auto-migration**: a save always writes `.web-tools.json`. A repo still on the
+  legacy `.show-repo.json` is edited the same way; the save lands the new name,
+  which readers already prefer, so the legacy file goes inert. No delete step
+  (the gh layer has no delete helper), and the editor flags the migration when
+  it loaded from the legacy name.
+- **Scope**: this is a raw-JSON editor, the thin first slice of the config-edit
+  surface (tracker task 0013). Per-field controls (an icon picker, a pins list)
+  are the larger goal, not built here.
 
 ## Transfer: moving files to another repo
 

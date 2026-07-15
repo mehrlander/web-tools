@@ -41,6 +41,10 @@
   </template>
 </div>
 
+<!-- Config editor: self-injecting dialog for the open repo's .web-tools.json.
+     Opened from the header gear; see lib/alpineComponents/config-editor.js. -->
+<div id="configEditor" x-data="configEditor()"></div>
+
 <!-- ── Header: brand (doubles as the mobile drawer toggle), then repo nav ─── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
@@ -53,15 +57,25 @@
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
-      <div class="join shrink-0">
-        <template x-for="p in PINNED_REPOS" :key="p.repo">
-          <button @click="openPinned(p.repo)"
-                  class="btn btn-sm btn-square join-item tooltip tooltip-bottom"
-                  :class="[Alpine.store('browser').repo===p.repo ? 'btn-primary btn-active' : 'btn-ghost', pinnedDim(p) && 'opacity-40']"
-                  :data-tip="pinnedTip(p)">
-            <i class="ph text-lg" :class="p.icon"></i>
-          </button>
-        </template>
+      <div class="flex items-center gap-1 shrink-0">
+        <div class="join">
+          <template x-for="p in PINNED_REPOS" :key="p.repo">
+            <button @click="openPinned(p.repo)"
+                    class="btn btn-sm btn-square join-item tooltip tooltip-bottom"
+                    :class="[Alpine.store('browser').repo===p.repo ? 'btn-primary btn-active' : 'btn-ghost', pinnedDim(p) && 'opacity-40']"
+                    :data-tip="pinnedTip(p)">
+              <i class="ph text-lg" :class="pinnedIcon(p)"></i>
+            </button>
+          </template>
+        </div>
+        <!-- Config editor for the open repo. Dimmed (write needs a token) when
+             not authenticated. -->
+        <button @click="openConfigEditor()"
+                class="btn btn-sm btn-square btn-ghost tooltip tooltip-bottom"
+                :class="_authState!=='auth' && 'opacity-40'"
+                :data-tip="configTip">
+          <i class="ph ph-gear-six text-lg"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -399,11 +413,20 @@ function app(){ return {
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   DEFAULT_REPO: 'mehrlander/web-tools',
+  // The header quick-link row. Each entry's icon here is the default (the
+  // floor): a repo's own .web-tools.json can override it via an "icon" field,
+  // resolved by pinnedIcon() after probePinned() reads each repo's manifest.
   PINNED_REPOS: [
     { repo: 'mehrlander/home', icon: 'ph-house' },
     { repo: 'mehrlander/web-tools', icon: 'ph-toolbox' },
     { repo: 'mehrlander/chat-histories', icon: 'ph-chats' },
+    { repo: 'mehrlander/wa-bills', icon: 'ph-scales' },
+    { repo: 'mehrlander/fn-data', icon: 'ph-chart-line-up' },
+    { repo: 'mehrlander/shortcut-tools', icon: 'ph-lightning' },
   ],
+  // repo -> { connected, icon }, filled by probePinned(). "Connected" means the
+  // repo carries a web-tools config; icon is its manifest override, if any.
+  pinnedConfigs: {},
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -439,6 +462,17 @@ function app(){ return {
       this.loadRecent();
       this.loadConfig();
     });
+
+    // The pinned row's icons come from each repo's manifest (probePinned).
+    // Private repos only resolve once authed, so re-probe when auth arrives.
+    // A config save re-reads the open repo and re-probes so a changed icon or a
+    // fresh connection lands without a reload.
+    this.$watch(() => this._authState, (s) => { if (s === 'auth') this.probePinned(); });
+    document.addEventListener('web-tools:config-saved', () => {
+      this.loadConfig();
+      this.probePinned();
+    });
+    this.probePinned();
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
@@ -506,17 +540,55 @@ function app(){ return {
     const key = s.repo + '@' + s.ref;
     this._configKey = key;
     s.config = null;
-    let cfg = null;
+    s.configName = null;
+    let cfg = null, name = null;
     // SUNSET(2026-08-15): the '.show-repo.json' entry is the legacy-name read
     // fallback. Drop it (read '.web-tools.json' only) once consumer repos are
-    // migrated. See docs/PORTABLE.md "Sunset markers".
-    for (const name of ['.web-tools.json', '.show-repo.json']) {
+    // migrated. See docs/PORTABLE.md "Sunset markers". The config editor writes
+    // the new name on save, so editing a legacy repo migrates it in place.
+    for (const n of ['.web-tools.json', '.show-repo.json']) {
       try {
-        const parsed = JSON.parse((await s.gh.get(name)).text);
-        if (typeof parsed === 'object' && !Array.isArray(parsed)) { cfg = parsed; break; }
+        const parsed = JSON.parse((await s.gh.get(n)).text);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) { cfg = parsed; name = n; break; }
       } catch {}
     }
-    if (this._configKey === key) s.config = cfg;
+    if (this._configKey === key) { s.config = cfg; s.configName = name; }
+  },
+
+  // Read each pinned repo's manifest on its own lightweight GH instance (the
+  // shared store.gh is bound to the open repo), recording whether it carries a
+  // config and any icon override. One GET per repo (two on a miss, for the
+  // legacy name); a 404/401 leaves the repo on its default icon. Reads main;
+  // config lives on the default branch, which is main for these repos.
+  async probePinned(){
+    await Promise.all(this.PINNED_REPOS.map(async (p) => {
+      const probe = new window.GH({ token: window.TOKEN, repo: p.repo, ref: 'main' });
+      for (const name of ['.web-tools.json', '.show-repo.json']) {
+        try {
+          const parsed = JSON.parse((await probe.get(name)).text);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            this.pinnedConfigs[p.repo] = { connected: true, icon: typeof parsed.icon === 'string' ? parsed.icon : null };
+            return;
+          }
+        } catch {}
+      }
+      this.pinnedConfigs[p.repo] = { connected: false, icon: null };
+    }));
+  },
+
+  // Manifest icon wins; the hardcoded default is the floor so the row never
+  // renders blank for a repo without a config yet.
+  pinnedIcon(p){ return this.pinnedConfigs[p.repo]?.icon || p.icon; },
+
+  // Open the config editor for the currently-selected repo. Writing needs a
+  // token, so guard on auth and explain the dim state.
+  get configTip(){
+    const repo = Alpine.store('browser').repo || 'repo';
+    return this._authState === 'auth' ? 'Edit ' + repo + ' config' : 'Sign in to edit config';
+  },
+  openConfigEditor(){
+    if (this._authState !== 'auth') return notify('Sign in to edit repo config.', 'alert-warning');
+    document.getElementById('configEditor')?.__configEditor?.open();
   },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates
@@ -811,9 +883,18 @@ function overview(){ return {
   THE MANIFEST: .web-tools.json at the repo root is the repo's web-tools config,
   and how a repo designates what this shell should consider. Probed once per
   repo@ref (404 = no config), parsed as data, never executed. Reads
-  .web-tools.json, falling back to the legacy .show-repo.json name. Current
-  fields:
+  .web-tools.json, falling back to the legacy .show-repo.json name. The header
+  gear opens a config editor (lib/alpineComponents/config-editor.js) for the
+  open repo: a JSON editor that writes the manifest via the viewer's token. It
+  always saves the new name, so editing a repo still on .show-repo.json migrates
+  it in place (no delete; the stale legacy file is inert since readers prefer
+  the new name). Current fields:
 
+    icon     Phosphor class (e.g. "ph-scales") for the repo's header quick-link
+             button. Overrides the hardcoded default in PINNED_REPOS; the
+             default is the floor so the row never renders blank. Read for every
+             pinned repo by probePinned(), which also records whether each repo
+             is "connected" (carries a config at all).
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
