@@ -20,3 +20,10 @@ here so the rules have a place to point.
 - **[post-merge-branch-mutation.md](post-merge-branch-mutation.md)** — why a
   merged branch should stop being a live workspace. Necromerging, zombie
   branches, and the rule of thumb: *merged means closed.*
+
+## How a session reaches GitHub
+
+- **[mcp-server-routing.md](mcp-server-routing.md)** — when two GitHub MCP
+  servers are connected at once, a call's approval prompt can be a routing
+  artifact, not a permission wall. Prefer the stable `mcp__github__*` server;
+  retry an unexpectedly-gated call on the sibling before re-approving.
