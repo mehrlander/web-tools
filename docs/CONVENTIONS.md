@@ -1,6 +1,6 @@
 # Working conventions (portable)
 
-Remote-sandbox conventions for Claude Code web sessions; output is strictly via chat. The canonical source is `mehrlander/web-tools` at `docs/CONVENTIONS.md`, loaded by `@`-import or the `web-tools-conventions` skill. Local `CLAUDE.md` rules override these defaults. Substitute the current repo into all URL templates.
+Remote-sandbox conventions for Claude Code web sessions; output is strictly via chat. The canonical source is `mehrlander/web-tools` at `docs/CONVENTIONS.md`, loaded by `@`-import or the `web-tools` skill. Local `CLAUDE.md` rules override these defaults. Substitute the current repo into all URL templates.
 
 The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): the **surfacing primitives** below (universal chat-handoff mechanics, no setup) and the **surfacing course** that follows (the guide-PR and merge-guide lifecycle). You get both. The course simply does nothing until you open a PR, so a repo that runs no PRs carries it at no cost; there is no separate opt-in step and nothing to stand up later.
 

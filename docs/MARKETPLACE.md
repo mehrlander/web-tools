@@ -6,7 +6,7 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | `/portable:web-tools-conventions`, `/portable:caption`, `/portable:load-skill`, `/portable:show-repo` | The to-go bag: the conventions loader, the surfacing caption, the library loader, and the show-repo instrument |
+| `portable` | `/portable:web-tools`, `/portable:caption`, `/portable:load-skill`, `/portable:show-repo`, `/portable:tasks` | The to-go bag: the conventions loader, the surfacing caption, the library loader, the show-repo instrument, and the tracker operator |
 | `daisy-alpine` | `/daisy-alpine:daisy-alpine` | The DaisyUI 5 + Tailwind 4 + Alpine.js reference, model-invocable so it fires on matching artifact work |
 
 Plugin skills are namespaced by plugin name, so `/caption` installed by hand and `/portable:caption` installed by plugin coexist without conflict.

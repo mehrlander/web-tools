@@ -61,7 +61,7 @@ in order:
 ## Relationship to the conventions
 
 The `#stage=` link is also a surfacing primitive in `docs/CONVENTIONS.md`
-("Stage a fileset 🗂️"), loaded by the `web-tools-conventions` skill. The
+("Stage a fileset 🗂️"), loaded by the `web-tools` skill. The
 convention carries the marker and the honesty gate; this skill and `show-repo.md`
 carry the full instrument (browse, transfer, manifest schema). Load the
 conventions for handoff rules; load this for how the shell works.

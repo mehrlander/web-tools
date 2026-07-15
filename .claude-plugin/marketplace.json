@@ -9,16 +9,17 @@
       "name": "portable",
       "source": "./.claude/skills",
       "strict": false,
-      "description": "The to-go bag: /portable:web-tools-conventions (load the portable working conventions), /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), and /portable:show-repo (browse and move files across repos).",
+      "description": "The to-go bag: /portable:web-tools (load the portable working conventions), /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), /portable:show-repo (browse and move files across repos), and /portable:tasks (operate the cross-session project tracker).",
       "author": {
         "name": "mehrlander"
       },
       "homepage": "https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md",
       "skills": [
-        "./web-tools-conventions",
+        "./web-tools",
         "./caption",
         "./load-skill",
-        "./show-repo"
+        "./show-repo",
+        "./tasks"
       ],
       "keywords": ["conventions", "caption", "surfacing", "tracker"]
     },

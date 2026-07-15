@@ -10,7 +10,7 @@ description: >-
   "check the tracker", "what's on the board", "regenerate the board", or
   "close task X", or when a follow-up needs to survive across sessions.
   Owns the tracker's file format and main-branch workflow; the
-  web-tools-conventions skill owns PR bodies, surfacing links, and the
+  web-tools skill owns PR bodies, surfacing links, and the
   merge guide, so route those there.
 ---
 
@@ -160,10 +160,10 @@ Never hand-edit it. Regenerate with `python3 scripts/build-board.py
 tracker/tasks tracker/board.md` (or `npm run tracker-board`) and commit it
 alongside the task change.
 
-## Boundary with web-tools-conventions
+## Boundary with web-tools
 
 This skill owns the tracker: the task-file format, the id scheme, and the
-main-branch workflow. The `web-tools-conventions` skill owns the surfacing
+main-branch workflow. The `web-tools` skill owns the surfacing
 layer: PR bodies, `[new]/[main]/[diff]` links, the merge guide, wrap-up. Both
 touch post-merge handoff language ("follow-ups become tasks"); when the ask is
 about a task file or the board, stay here; when it is about a PR, a caption, or
