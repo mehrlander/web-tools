@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>@-mention picker — living demo</title>
+<meta name="shot-query" content="repo=mehrlander/web-tools">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script type="module">
+  // ?use=<branch|tag|sha> overrides which ref the bundle loads from.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('gh-store.js');
+  await gh.load('alpineComponents/repo.js');
+  await gh.load('alpineComponents/mention.js');
+  await gh.load('alpine-bundle.js');
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+<!-- No x-init: Alpine auto-calls a data object's init(); declaring both runs boot twice. -->
+<body class="min-h-screen bg-base-200" x-data="app()">
+
+<div class="toast toast-top toast-end z-40" x-data x-show="$store.toasts && $store.toasts.length">
+  <template x-for="t in ($store.toasts || [])" :key="t.id">
+  <div class="alert text-sm gap-2" :class="t.cls">
+    <i class="ph" :class="'ph-'+t.icon"></i>
+    <span x-text="t.msg"></span>
+  </div>
+  </template>
+</div>
+
+<div class="max-w-3xl mx-auto px-3 py-6">
+  <header class="mb-5">
+    <h1 class="text-xl font-semibold">@-mention picker — living demo</h1>
+    <p class="mt-1 text-sm text-base-content/60">
+      The <code class="text-xs">mention</code> component wired to a live repo through the shared browser store.
+      Switch repo or branch below; the tree follows.
+    </p>
+  </header>
+
+  <div id="repo" x-data="repo()" class="mb-4"></div>
+
+  <div id="mention" x-data="mention()"
+       @mention-select="$store.toast('at', 'Inserted @'+$event.detail.path, 'alert-success', 2500)"></div>
+</div>
+
+<script>
+window.TOKEN = '🎟️GitHubToken';
+if (window.TOKEN === '🎟️GitHubToken') {
+  try { window.TOKEN = localStorage.getItem('ghToken') || window.TOKEN; } catch {}
+}
+
+const waitFor = async (pred, ms = 8000, step = 50) => {
+  for (let t = 0; t < ms; t += step) {
+    if (pred()) return true;
+    await new Promise(r => setTimeout(r, step));
+  }
+  return false;
+};
+
+const notify = (msg, cls = 'alert-error', icon = 'warning') => {
+  try { const t = Alpine.store('toast'); if (t) return t(icon, msg, cls, 6000); } catch {}
+  console.error(msg);
+};
+
+function app() { return {
+  async init() {
+    const ready = await waitFor(() => window.GH);
+    if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
+    const gh = new window.GH({ token: window.TOKEN });
+    Alpine.store('browser').gh = gh;
+
+    const repoEl = document.getElementById('repo');
+    if (!await waitFor(() => repoEl.__repo)) return notify('Repo component never mounted.');
+
+    const q = new URLSearchParams(location.search);
+    const repo = q.get('repo');
+    const refParam = q.get('ref') || '';
+
+    if (repo) {
+      // Identity-free boot: open the named repo directly, then populate the
+      // picker dropdown in the background so a missing token still browses
+      // public repos.
+      await repoEl.__repo.pickByName(repo, { ref: refParam });
+      repoEl.__repo.setup(gh, { quiet: true }).catch(e => console.warn('picker setup:', e?.message || e));
+    } else {
+      try {
+        await repoEl.__repo.setup(gh);
+      } catch (e) {
+        const status = e?.status;
+        if (status === 401) notify('GitHub rejected the token (401). Paste a new one.');
+        else if (status === 403) notify('GitHub rate-limited this IP (403). A token raises the limit.');
+        else notify('Could not load repos: ' + (e?.message || e));
+        try { document.getElementById('repoModal').showModal(); } catch {}
+      }
+    }
+  }
+}; }
+</script>
+</body>
+</html>
