@@ -126,6 +126,9 @@ export function makeWindow({ html = '<!doctype html><html><body></body></html>' 
   // Alpine's x-show transitions call these bare in the Node realm.
   global.requestAnimationFrame = window.requestAnimationFrame.bind(window);
   global.cancelAnimationFrame = window.cancelAnimationFrame?.bind(window) ?? clearTimeout;
+  // x-transition reads getComputedStyle (bare) to time transitions; jsdom's
+  // returns empty durations, so Alpine treats them as instantaneous.
+  global.getComputedStyle = window.getComputedStyle.bind(window);
 
   // Startup warning/error capture: window console (component code) AND the
   // Node-global console (Alpine itself runs in the Node realm).
