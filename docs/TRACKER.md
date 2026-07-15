@@ -25,6 +25,14 @@ Two layers. A small closed set of recognized keys drives the tooling; an open se
 
 **Recognized keys.** `id`, `title`, and `status` are required. `project`, `track`, `opened`, `closed`, and `session` are optional and recognized: the generator acts on them when present. The body is the task.
 
+**Task id.** The `id` is a filing handle: it names the task file (`<id>.md`) and nothing reads it as a number, since tasks are referred to by title. Mint it as a date plus a short random suffix, `YYYYMMDD-rrr` (three lowercase base36 characters), for example `20260715-k4p`. The date sorts files roughly chronologically; the random suffix is what keeps two sessions from colliding when they file at the same time. Do not use a sequential integer: two sessions each reading `main` and picking "the next free number" pick the same one, and the merge that lands second silently drops one task (see Conflicts). Mint one with:
+
+```
+python3 -c "import random,string,datetime;print(datetime.date.today().strftime('%Y%m%d')+'-'+''.join(random.choices(string.digits+string.ascii_lowercase,k=3)))"
+```
+
+Legacy integer ids (`0001`) are left as they are: still valid handles, keyed by title like any other. Only new tasks take the dated form.
+
 **Parser contract.** Frontmatter is flat `key: value` pairs, split on the first colon, scalars only. No YAML library, no lists, no nesting, no multi-line values. Unknown keys are preserved and ignored, never errors. This is deliberate: a file arriving from any channel (a web edit, a paste) needs no valid YAML to parse, so imperfect input degrades to an ignored tag rather than a failure. It is a feature, not a limitation to fix.
 
 **Open tags.** A session may add any scalar key it likes (`priority: high`, `size: L`, `owner: marcus`) with no predefinition. Open tags are preserved, shown to a human, and not acted on by the generator.
@@ -33,11 +41,11 @@ Two layers. A small closed set of recognized keys drives the tooling; an open se
 
 ```markdown
 ---
-id: NNNN
+id: YYYYMMDD-rrr    # date + 3 random base36 chars; see Task id
 title: <short imperative>
 status: backlog | in-progress | blocked | done
 project: <workspace or partition>   # optional, recognized
-track: anchor | independent | depends-on:NNNN   # optional, recognized
+track: anchor | independent | depends-on:<id>   # optional, recognized
 opened: YYYY-MM-DD
 closed: YYYY-MM-DD    # set when done
 session: <branch>     # set while in-progress
@@ -82,11 +90,13 @@ A consuming repo can fetch the script by raw URL into a gitignored path and run 
 
 Each session should edit only the task file it owns, so task conflicts should be rare. If two sessions edit the same task file, resolve that file as real content.
 
-`board.md` is generated. If it conflicts, take either side and regenerate it.
+The collision that is not rare is two sessions **filing** at once. With sequential integer ids they pick the same next number, so each creates the same filename with different content. Nothing warns the first pusher: a fast-forward push raises no conflict, and the add/add only surfaces at the second session's merge, where it is resolved in that session's favor and the earlier task drops from `main`. The dated random-suffix id above is the fix: two independently minted ids do not collide, so concurrent filings land as two separate files with no contact.
+
+`board.md` is generated. If it conflicts, take either side and regenerate it. A concurrent filing still leaves the board stale (each side regenerated it against a partial set of task files), so rerun the generator after resolving; that is the same benign generated-file case.
 
 ## Conventions
 
-- Refer to a task by its title, not its `NNNN` id. The id is a filing handle for filenames and the board; it means nothing to a reader who did not write the task.
+- Refer to a task by its title, not its id. The id is a filing handle for filenames and the board; it means nothing to a reader who did not write the task.
 - Make a task for work that must survive across sessions, not for every edit.
 - When a tracker exists, the post-merge handoff collapses to "check the tracker and assess how to proceed." Follow-ups become tasks instead of riding forward in chat. Keep the full diagnostic handoff for repos without a tracker, and for one-off issues not worth a task.
 

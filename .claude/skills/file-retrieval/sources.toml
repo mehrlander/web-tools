@@ -1,0 +1,34 @@
+# sources.toml — what corpus_search scans.
+#
+# Each [[source]] is a named set of path globs, resolved against the corpus
+# root (the git root by default; override with --root). Anchor every glob to a
+# real directory: a bare "**/*.md" would recurse node_modules/ and dist/.
+# Non-recursive "*.md" catches only root-level files.
+#
+# The default extractor is file-per-document: one file is one document, its
+# title the first heading or the filename. Any markdown/text/code tree works
+# out of the box; edit this file to point at yours.
+
+[[source]]
+name = "docs"
+globs = ["docs/**/*.md", "*.md"]
+
+[[source]]
+name = "tracker"
+globs = ["tracker/**/*.md"]
+
+[[source]]
+name = "skills"
+globs = ["skills/**/*.md", ".claude/skills/**/*.md"]
+
+[[source]]
+name = "lib"
+globs = ["lib/**/*.js"]
+
+[[source]]
+name = "pages"
+globs = ["pages/**/*.html"]
+
+[[source]]
+name = "tools"
+globs = ["tools/**/*.md", "tools/**/*.py", "scripts/**/*.py"]

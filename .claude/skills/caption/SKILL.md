@@ -52,6 +52,45 @@ bullet swaps, no per-row icons), a file's links not repeated within a turn:
 - Add `#L120` or `#L120-L145` to a blob link when a specific change is the point.
 - Add an indented `renders on: [<consumer>](…)` line under a shared component.
 
+## Dense variant: folder tables (optional)
+
+When a turn's changes cluster under folders, especially several new files in one
+folder (a new skill, a component dir), a markdown table can beat the bullet
+list: it carries each folder path once, links it to the tree, and drops the
+`[new]` scaffolding. Reach for it on that clustered case; for a short or
+scattered list the bullets stay clearer. Specials (🥏, ⭐, 🧭) stay outside the
+tables as their own lines.
+
+Shape: two tables, `New` and `Changed`. The word is the first header cell, the
+second header is blank. Column one is the folder, linked to its tree; column two
+lists the files. A filename always links to its `[new]` blob, so a `New` row
+stops there and a `Changed` row appends `([main], [diff])` in parens.
+
+```
+| New | |
+|---|---|
+| [<dir>/](…/tree/<branch>/<dir>) | [<file>](…/blob/<branch>/<dir>/<file>), … |
+
+| Changed | |
+|---|---|
+| [<dir>/](…/tree/<branch>/<dir>) | [<file>](…/blob/<branch>/<dir>/<file>) ([main](…/blob/main/<dir>/<file>), [diff](…/commit/<sha>)) |
+```
+
+Worked example (a turn that added a skill folder and edited one doc):
+
+| New | |
+|---|---|
+| [.claude/skills/task-tracker/](https://github.com/<owner>/<repo>/tree/<branch>/.claude/skills/task-tracker) | [SKILL.md](https://github.com/<owner>/<repo>/blob/<branch>/.claude/skills/task-tracker/SKILL.md) |
+| [.claude/skills/file-retrieval/](https://github.com/<owner>/<repo>/tree/<branch>/.claude/skills/file-retrieval) | [SKILL.md](https://github.com/<owner>/<repo>/blob/<branch>/.claude/skills/file-retrieval/SKILL.md), [corpus_search.py](https://github.com/<owner>/<repo>/blob/<branch>/.claude/skills/file-retrieval/corpus_search.py), [read_doc.py](https://github.com/<owner>/<repo>/blob/<branch>/.claude/skills/file-retrieval/read_doc.py), [sources.toml](https://github.com/<owner>/<repo>/blob/<branch>/.claude/skills/file-retrieval/sources.toml) |
+
+| Changed | |
+|---|---|
+| [docs/](https://github.com/<owner>/<repo>/tree/<branch>/docs) | [TRACKER.md](https://github.com/<owner>/<repo>/blob/<branch>/docs/TRACKER.md) ([main](https://github.com/<owner>/<repo>/blob/main/docs/TRACKER.md), [diff](https://github.com/<owner>/<repo>/commit/<sha>)) |
+
+A file deeper than its folder carries the sub-path in the link text
+(`searches/README.md`). The sizes, render lines, and tail above are unchanged;
+only the file list swaps shape.
+
 ## Topical captions
 
 When the request names a subject rather than the session's changes ("caption
