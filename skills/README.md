@@ -9,7 +9,7 @@ Static resource. **Not a registered skill folder.** Sits at `web-tools/skills/`,
 | `web-tools/.claude/skills/&lt;name&gt;/SKILL.md` | Registered skill | Available and matchable via description |
 | `web-tools/skills/&lt;name&gt;/SKILL.md` | Library resource | Not registered anywhere; fetched on demand |
 
-At session start, only `web-tools-conventions` and `load-skill` are registered from web-tools itself. Everything under `skills/` is content the `load-skill` mechanism can pull in.
+At session start, only `web-tools` and `load-skill` are registered from web-tools itself. Everything under `skills/` is content the `load-skill` mechanism can pull in.
 
 ## The library
 

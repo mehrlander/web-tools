@@ -2,7 +2,7 @@
 
 ## How these instructions are split
 
-The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools-conventions` skill (`.claude/skills/web-tools-conventions/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, guide-PR support). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
+The import above is the portable half: surfacing conventions that apply in any repo. Its canonical copy lives here ([docs/CONVENTIONS.md](docs/CONVENTIONS.md)); other repos load it via the `web-tools` skill (`.claude/skills/web-tools/SKILL.md`), which fetches it from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, guide-PR support). Portable guidance goes in CONVENTIONS.md; web-tools machinery goes here.
 
 CONVENTIONS.md is one of several docs written to travel; the full to-go bag (conventions, scripts, the headless-vendoring recipe, the sandbox notes) is catalogued in [docs/PORTABLE.md](docs/PORTABLE.md), which the loader skill points at and which points back. When adding a doc or script meant for reuse elsewhere, list it there.
 

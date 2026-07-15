@@ -29,14 +29,17 @@ start): add the `extraKnownMarketplaces` and `enabledPlugins` block to
 
 | Piece | What it gives you |
 |---|---|
-| `/portable:web-tools-conventions` | loads the working conventions live (surfacing primitives + the guide-PR/merge-guide course) |
+| `/portable:web-tools` | loads the working conventions live (surfacing primitives + the guide-PR/merge-guide course) |
 | `/portable:caption` | the surfacing caption, and the guide-PR body sync |
 | `/portable:load-skill` | fetch any skill from the [library](../skills/) on demand |
 | `/portable:show-repo` | browse any repo and move files across repos |
+| `/portable:tasks` | operate the cross-session project tracker (file, claim, close, regenerate the board) |
 
-That is the whole day-to-day set. The reference docs, the scripts, and the
-tracker below are not in the plugin: they are fetched by raw URL when a task
-needs them (the skills that use a script fetch it themselves). Everything is
+That is the whole day-to-day set. The reference docs and the scripts below are
+not in the plugin: they are fetched by raw URL when a task needs them (the
+skills that use a script fetch it themselves). The `tasks` skill ships in the
+bag, but the tracker it operates (the `docs/TRACKER.md` schema, the task files,
+`board.md`) stays per-repo and is fetched or bootstrapped when a repo adopts it. Everything is
 reachable directly from
 `https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
 public and that host is on the Claude Code web allowlist), which is also the
@@ -82,9 +85,9 @@ session and never stale copies in the tree.
 > *available*, not *invoked*, and it emits nothing to context. On its own it
 > never loads `CONVENTIONS.md`: the loader is model-invocable, so the conventions
 > govern a session only if the agent judges the skill relevant, the user types
-> `/web-tools-conventions`, or the repo's `CLAUDE.md` makes it always-on. **So
+> `/web-tools`, or the repo's `CLAUDE.md` makes it always-on. **So
 > this hook is not self-sufficient: pair it with the always-on CLAUDE.md line**
-> (see [the skill's install section](../.claude/skills/web-tools-conventions/SKILL.md)),
+> (see [the skill's install section](../.claude/skills/web-tools/SKILL.md)),
 > or the conventions stay fetched-but-unused: present on disk, absent from
 > context, governing nothing. (This is exactly how a downstream adopter's sync
 > silently no-op'd: the hook fetched faithfully every session, but nothing ever
@@ -111,8 +114,8 @@ fetch() {
 }
 
 # Skills
-fetch "$BASE/.claude/skills/web-tools-conventions/SKILL.md" \
-      "$ROOT/.claude/skills/web-tools-conventions/SKILL.md"
+fetch "$BASE/.claude/skills/web-tools/SKILL.md" \
+      "$ROOT/.claude/skills/web-tools/SKILL.md"
 fetch "$BASE/.claude/skills/caption/SKILL.md" \
       "$ROOT/.claude/skills/caption/SKILL.md"
 fetch "$BASE/.claude/skills/load-skill/SKILL.md" \
@@ -129,7 +132,7 @@ exit 0
 2. Gitignore the fetched artifacts, so the hook (not a checked-in copy) is the source of truth:
 
 ```
-.claude/skills/web-tools-conventions/
+.claude/skills/web-tools/
 .claude/skills/caption/
 .claude/skills/load-skill/
 .web-tools-scripts/
@@ -209,7 +212,7 @@ rather than a blocked start. (No `jq`? Swap the last line for
 Trade-offs versus the skill-fetch hook: this injects the conventions into **every**
 session unconditionally (always-on context cost, no model judgement), it loads
 `CONVENTIONS.md` raw rather than through the skill's à-la-carte "apply" framing,
-and it doesn't keep the loader **skill** itself installed (so `/web-tools-conventions`
+and it doesn't keep the loader **skill** itself installed (so `/web-tools`
 and the model-invocation path won't exist unless you also run the installer). The
 two are complementary, not exclusive: a repo can run the skill-fetch hook *and*
 this injector, or pick whichever matches how reliably it needs the conventions
@@ -224,11 +227,12 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 
 | Doc | What it's for | How you use it |
 |---|---|---|
-| [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
+| [`.claude/skills/web-tools/SKILL.md`](../.claude/skills/web-tools/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
 | [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions as one set: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff), which stays idle until you open a PR | fetched live by the skill |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
 | [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
+| [`.claude/skills/tasks/SKILL.md`](../.claude/skills/tasks/SKILL.md) | `/tasks`: operate the project tracker (file, claim, update, close a task; regenerate `board.md`) per the [`docs/TRACKER.md`](TRACKER.md) schema and the commit-to-`main` rule | install or hook-fetch |
 | [`skills/`](../skills/) | the skill **library**: 34 personal skills published as static resources (not registered anywhere); the default source `load-skill` pulls from | fetched per skill by load-skill |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |

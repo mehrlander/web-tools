@@ -1,5 +1,5 @@
 ---
-name: web-tools-conventions
+name: web-tools
 description: >-
   Load the portable working conventions from mehrlander/web-tools
   (docs/CONVENTIONS.md) into the current session: one set of universal
@@ -9,7 +9,7 @@ description: >-
   card"/"file chip"/"send the file", show-pixels/screenshot-it, "hand over
   the artifact"/SendUserFile, "lead with the live view", branch anchor,
   merge-guide entries, wrap-up, or PR body shape, or when invoked explicitly
-  as /web-tools-conventions.
+  as /web-tools.
 ---
 
 # web-tools conventions loader
@@ -77,9 +77,9 @@ Highlights it lists, fetchable directly by raw URL when relevant:
 From a session in the target repo:
 
 ```bash
-mkdir -p .claude/skills/web-tools-conventions
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools-conventions/SKILL.md \
-  -o .claude/skills/web-tools-conventions/SKILL.md
+mkdir -p .claude/skills/web-tools
+curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools/SKILL.md \
+  -o .claude/skills/web-tools/SKILL.md
 ```
 
 Then commit and push. Skills register at session start, so the skill becomes
@@ -87,7 +87,7 @@ invocable in sessions started from a branch that contains it (the session
 that installs it can still read the file directly). Optionally, make adoption
 always-on by adding one line to the target repo's own CLAUDE.md:
 
-> Run the `web-tools-conventions` skill at the start of any session that will modify files.
+> Run the `web-tools` skill at the start of any session that will modify files.
 
 `mehrlander/web-tools` holds the canonical copy of both this skill and the
 conventions; the conventions are fetched live, so target repos only need to
@@ -99,7 +99,7 @@ that with a fail-soft `SessionStart` hook that re-fetches this file each session
 **Fetch is not invoke.** Installing this skill, or re-fetching it (by hand or via
 that hook), only makes it *available*; it does not *run* it, and writing a skill
 file emits nothing to context. So the conventions govern a session only when the
-skill is actually invoked: by model judgement, by `/web-tools-conventions`, or by
+skill is actually invoked: by model judgement, by `/web-tools`, or by
 the always-on CLAUDE.md line above. Pair any install path with that line, or the
 conventions stay fetched-but-unused. To drop the dependency on the agent obeying
 the line entirely, use the stronger `SessionStart` variant in `docs/PORTABLE.md`

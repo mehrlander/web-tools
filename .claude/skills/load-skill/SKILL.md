@@ -82,7 +82,7 @@ Any URL that resolves to `<base>/<name>/SKILL.md` is a valid source. This makes 
 
 ## Installing this skill into another repo
 
-The mechanism itself installs the same way `web-tools-conventions` does. From a session in the target repo:
+The mechanism itself installs the same way `web-tools` does. From a session in the target repo:
 
 ```bash
 mkdir -p .claude/skills/load-skill
