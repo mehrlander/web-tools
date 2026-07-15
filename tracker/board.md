@@ -10,6 +10,7 @@ _Generated from tasks/. Do not hand-edit._
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
 - Extract drop-zone as a reusable Alpine component
 - Add a task-tracker skill
+- Build an agent-assisted file-retrieval skill next: build corpus_search.py (find) with a sources config and a file-per-document default, plus read_doc.py (read) and a SKILL.md that fixes the search-and-present flow; dogfood on this repo's content
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
