@@ -34,6 +34,7 @@ the link-dense text twin of the visual index above.
 | `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html) |
 | `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/demos/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/console-kit-demo.html) |
 | `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/demos/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/cross-repo-read-demo.html) |
+| `mention-demo` | @-mention picker — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/mention-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/mention-demo.html) |
 | `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html) |
 | `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html) |
 | `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html) |
@@ -44,6 +45,7 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
+| `at-file-nav` | Path-following mention picker | [view](https://mehrlander.github.io/web-tools/pages/drop/at-file-nav.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html) |
 | `cm6-editor` | Literate Solo Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/cm6-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/cm6-editor.html) |
 | `diff-tool` | Legislative Diff Tool | [view](https://mehrlander.github.io/web-tools/pages/drop/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/diff-tool.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/gist-editor.html) |
