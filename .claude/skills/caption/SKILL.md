@@ -91,6 +91,15 @@ A file deeper than its folder carries the sub-path in the link text
 (`searches/README.md`). The sizes, render lines, and tail above are unchanged;
 only the file list swaps shape.
 
+**Other grouping axes.** Folder-then-files is one instance of a general move:
+group by whatever axis clusters the rows, one bold or header line per group,
+members below it. The `tasks` skill applies this to tracker tasks grouped by
+owning branch (single-column table, bold branch row, `↳`-prefixed task rows),
+a longer-not-wider layout that reads better on a narrow screen than packing
+several items into one wide cell. Reach for that shape whenever rows cluster
+by an owner (branch, folder, author) rather than files under a folder
+specifically.
+
 ## Topical captions
 
 When the request names a subject rather than the session's changes ("caption
