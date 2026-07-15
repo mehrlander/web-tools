@@ -25,14 +25,37 @@ templates.
 ## Bare invocation: caption the board
 
 Called with no further ask (e.g. `/tasks` on its own), show a caption of the
-current board before doing anything else: one row per open task (backlog,
-in-progress, blocked), title linked to its task file, in-progress rows naming
-the owning branch, in the caption skill's row style (filename plain, link
-words tappable). Read `tracker/tasks/*.md` directly rather than parsing
-`board.md`'s prose, so the rows can link. Close with a one-line offer of the
-next action (file, claim, update, close, regenerate). When the ask names an
-action instead ("file a task", "claim X"), skip the caption and go straight
-to that operation.
+current board before doing anything else, one single-column table per status
+section, in the format below. Read `tracker/tasks/*.md` directly rather than
+parsing `board.md`'s prose, so the rows can link. Close with a one-line offer
+of the next action (file, claim, update, close, regenerate). When the ask
+names an action instead ("file a task", "claim X"), skip the caption and go
+straight to that operation.
+
+**Format:** one single-column table per section, the header the section name
+in caps (`IN PROGRESS`, `BACKLOG`, `BLOCKED`); no header row above the table,
+the column header is the label. In-progress groups by owning branch: the full
+branch name **bold** as its own row, then every task under it on its own row
+prefixed `↳` (always, even for a single task). Backlog and blocked have no
+branch to group by, so each is a flat one-row-per-task table, no arrow. This
+is a longer-not-wider layout: one task per line rather than packing several
+into a cell, which reads better on a narrow screen. Omit a section with no
+tasks (e.g. no `BLOCKED` table when nothing is blocked).
+
+```
+| IN PROGRESS |
+|---|
+| **claude/some-branch-abc123** |
+| ↳ [Task title](<blob url>) |
+| ↳ [Second task on the same branch](<blob url>) |
+| **claude/other-branch-xyz789** |
+| ↳ [Solo task on its own branch](<blob url>) |
+
+| BACKLOG |
+|---|
+| [Task title](<blob url>) |
+| [Another task title](<blob url>) |
+```
 
 ## The one rule that is easy to miss
 
