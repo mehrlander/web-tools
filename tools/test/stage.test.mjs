@@ -176,7 +176,7 @@ test('copyLink refuses a link when only local files are staged', () => {
   assert.equal(data.linkCopied, false, 'no link minted from local-only stage');
 });
 
-test('save writes only the ref items to .show-repo.json', async () => {
+test('save writes only the ref items to .web-tools.json', async () => {
   reset();
   calls.length = 0;
   store.repo = 'me/open';
@@ -185,6 +185,6 @@ test('save writes only the ref items to .show-repo.json', async () => {
     { local: true, id: 96, name: 'd.bin', path: 'd.bin', size: 1, isText: false, bytes: new Uint8Array([1]) },
   ];
   await data.save();
-  const cfgSave = calls.find(c => c.kind === 'save' && c.path === '.show-repo.json');
+  const cfgSave = calls.find(c => c.kind === 'save' && c.path === '.web-tools.json');
   assert.deepEqual(plain_(cfgSave.value.stage.files), ['lib/a.js']);
 });

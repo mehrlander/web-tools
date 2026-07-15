@@ -17,7 +17,7 @@ one-liner plus a `→`), so they cannot drift from the docs that hold the fix.
 
 *(Provisional. Whether snags are authored in guide-PR bodies and projected here
 like the merge guide, the recurrence mechanism, and the format are open in
-tracker task 0014. Each entry leads with a slug so a repeat can be matched and
+tracker task 0016. Each entry leads with a slug so a repeat can be matched and
 counted.)*
 
 ---
