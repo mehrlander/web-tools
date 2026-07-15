@@ -510,6 +510,9 @@ function app(){ return {
     this._configKey = key;
     s.config = null;
     let cfg = null;
+    // SUNSET(2026-08-15): the '.show-repo.json' entry is the legacy-name read
+    // fallback. Drop it (read '.web-tools.json' only) once consumer repos are
+    // migrated. See docs/PORTABLE.md "Sunset markers".
     for (const name of ['.web-tools.json', '.show-repo.json']) {
       try {
         const parsed = JSON.parse((await s.gh.get(name)).text);

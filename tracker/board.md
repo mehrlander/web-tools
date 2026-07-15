@@ -8,6 +8,8 @@ _Generated from tasks/. Do not hand-edit._
 - Repo-level GitHub links in show-repo's shield dialog
 - Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
+- Give show-repo the ability to edit a repo's .web-tools.json (`claude/skills-portable-conventions-8x1lua`) next: design a minimal config-edit surface in the show-repo shell; first use is a one-tap migrate of a legacy .show-repo.json to .web-tools.json
+- Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)

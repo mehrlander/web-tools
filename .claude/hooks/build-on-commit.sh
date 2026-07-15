@@ -77,4 +77,12 @@ if git status --porcelain -- tracker/tasks/ | grep -q .; then
   fi
 fi
 
+# --- leg 5: SUNSET markers now due (warn only) --------------------------------
+# Back-compat shims are tagged SUNSET(YYYY-MM-DD); warn at commit time once a
+# marker's date has passed so it gets removed rather than lingering forever.
+if [ -f scripts/sunset-scan.py ]; then
+  out="$(python3 scripts/sunset-scan.py 2>/dev/null || true)"
+  [ -n "$out" ] && printf '%s\n' "$out" >&2 || true
+fi
+
 exit 0

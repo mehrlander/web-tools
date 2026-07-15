@@ -56,8 +56,10 @@ Top-level fields, not namespaced by consumer, so any web-tools page can read the
 | `conventions` | session-start nudge | `"optout"` marks a repo that has deliberately not adopted the conventions, so the nudge stops asking |
 
 Full field semantics for the show-repo fields are in [`docs/show-repo.md`](show-repo.md).
-The file was formerly `.show-repo.json`; readers fall back to that name during the
-deprecation window, so an unconverted repo keeps working.
+The file was formerly `.show-repo.json`; readers fall back to that name so an
+unconverted repo keeps working. That fallback is a back-compat shim tagged
+`SUNSET(2026-08-15)` (see Sunset markers below); it is removed once repos are
+migrated, after which only `.web-tools.json` is read.
 
 ## Staying current on the fetch fallback: refresh at session start
 
@@ -223,7 +225,7 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) and the opt-in **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
+| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions as one set: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff), which stays idle until you open a PR | fetched live by the skill |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
 | [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
@@ -245,11 +247,29 @@ one fetched copy serves many callers.
 |---|---|---|
 | [`scripts/build-board.py`](../scripts/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter | `python3 build-board.py <tasks_dir> <board_out>` |
 | [`scripts/build-merge-guide.py`](../scripts/build-merge-guide.py) | generate `docs/MERGE-GUIDE.md` from merged PR bodies (the guide region); non-destructive, `--refresh` to regenerate covered PRs | `python3 build-merge-guide.py [owner/repo] --out <file>` |
+| [`scripts/sunset-scan.py`](../scripts/sunset-scan.py) | report `SUNSET(YYYY-MM-DD)` markers now due for removal (see Sunset markers below); quiet unless something is due, `--all` lists upcoming, `--strict` exits non-zero when due | `python3 sunset-scan.py [--all] [--strict] [root]` |
 
 Fetching and running a script is executing hub code, a step beyond fetching and
 reading a doc. That is why the hub must stay owned and trusted and the fetch stays
 fail-soft: a consumer can audit the script at its raw URL, but there is no
 signature or pinning beyond trusting the source repo.
+
+### Sunset markers
+
+Code kept only for backward compatibility (a legacy-name read fallback, a
+migration shim) is tagged with a dated marker so it gets removed rather than
+lingering:
+
+```js
+// SUNSET(2026-08-15): reads the legacy .show-repo.json name. Remove once
+// consumer repos are migrated to .web-tools.json.
+```
+
+The marker is one greppable token, `SUNSET(YYYY-MM-DD)`, with the date it can
+probably be removed. `scripts/sunset-scan.py` finds them: quiet until a marker's
+date passes, then it names the file and line. Wire it warn-only into the commit
+hook (as web-tools does) so a due marker resurfaces at commit time; run
+`npm run sunset` (or `sunset-scan.py --all`) any time to list upcoming ones.
 
 ### Not portable
 
