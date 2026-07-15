@@ -42,6 +42,23 @@ reachable directly from
 public and that host is on the Claude Code web allowlist), which is also the
 no-plugin fallback for the whole bag.
 
+## The repo's config file: `.web-tools.json`
+
+A repo's web-tools config lives in one file, root **`.web-tools.json`**, parsed as
+data and never executed. It is optional: a repo with none is simply unconfigured.
+Top-level fields, not namespaced by consumer, so any web-tools page can read them:
+
+| Field | Read by | What it sets |
+|---|---|---|
+| `landing` | show-repo | path to the repo's own landing page (rendered live via toss-render `#gh=`) |
+| `pins` | show-repo | folders/files surfaced in the sidebar Pinned block |
+| `stage` | show-repo | `{ files, targets }`: a durable staged-files list and default transfer destinations |
+| `conventions` | session-start nudge | `"optout"` marks a repo that has deliberately not adopted the conventions, so the nudge stops asking |
+
+Full field semantics for the show-repo fields are in [`docs/show-repo.md`](show-repo.md).
+The file was formerly `.show-repo.json`; readers fall back to that name during the
+deprecation window, so an unconverted repo keeps working.
+
 ## Staying current on the fetch fallback: refresh at session start
 
 The `portable` plugin auto-updates (it declares no `version`, so consumers track
@@ -209,14 +226,14 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) and the opt-in **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
-| [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.show-repo.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
+| [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
 | [`skills/`](../skills/) | the skill **library**: 34 personal skills published as static resources (not registered anywhere); the default source `load-skill` pulls from | fetched per skill by load-skill |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |
 | [`docs/artifacts.md`](artifacts.md) | Claude Code **artifacts**: constraints, the bake-and-publish pipeline, and the 📦 marker's place beside ⭐/🥏 in the link-choice matrix. Platform-level, so it applies in any repo | fetch when relevant |
-| [`docs/show-repo.md`](show-repo.md) | the **show-repo** instrument: the hosted shell that browses any repo and moves files between repos (the stage, the 🗂️ `#stage=` link grammar, `gh-transfer`, and the `.show-repo.json` manifest). The reference the `show-repo` skill fetches | fetch when relevant |
+| [`docs/show-repo.md`](show-repo.md) | the **show-repo** instrument: the hosted shell that browses any repo and moves files between repos (the stage, the 🗂️ `#stage=` link grammar, `gh-transfer`, and the `.web-tools.json` manifest). The reference the `show-repo` skill fetches | fetch when relevant |
 
 ### Scripts
 

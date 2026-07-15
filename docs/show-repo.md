@@ -64,7 +64,7 @@ Stage-view actions:
   is fetched once per file and cached, so add/remove is free after the first pull;
 - **Copy to repo**: transfer the fileset to a destination (below);
 - **Save stage**: write the current fileset to the open repo's
-  `.show-repo.json` `stage.files`;
+  `.web-tools.json` `stage.files`;
 - **Copy link**: mint a `#stage=` link that reopens this exact stage.
 
 ### The `#stage=` link grammar
@@ -89,11 +89,16 @@ from a branch of this repo plus one from another repo →
 …/show-repo.html#stage=mehrlander/web-tools@my-branch:lib/gh-api.js,lib/stage.js;mehrlander/home:inbox/note.md
 ```
 
-## `.show-repo.json`: the repo manifest
+## `.web-tools.json`: the repo manifest
 
-A repo declares what the shell should consider in a root `.show-repo.json`,
-probed once per `repo@ref` (a 404 means no config), parsed as **data**, never
-executed. Fields:
+Root `.web-tools.json` is the repo's **web-tools config file** (canonical location
+documented in [PORTABLE.md](PORTABLE.md)). show-repo is one consumer: it reads the
+`landing`, `pins`, and `stage` fields to decide how to present the repo. Those
+fields sit at the top level, not under a `showRepo` key, because they describe the
+repo in ways any web-tools page may read, not just this shell. The shell probes
+the file once per `repo@ref` (a 404 means no config), parses it as **data**, never
+executed, and falls back to the legacy `.show-repo.json` name during the rename's
+deprecation window. Fields:
 
 ```json
 {
@@ -102,7 +107,8 @@ executed. Fields:
   "stage": {
     "files": ["lib/foo.js", "owner/repo@ref:path/to/bar.js"],
     "targets": ["owner/repo:dir"]
-  }
+  },
+  "conventions": "optout"
 }
 ```
 
@@ -118,6 +124,9 @@ executed. Fields:
   otherwise empty, so a working set the user built always wins.
 - **stage.targets**: default transfer destinations (`"owner/repo:dir"`
   strings), offered in the Copy-to-repo field.
+- **conventions**: not a show-repo field. `"optout"` marks a repo that has
+  deliberately not adopted the portable conventions, so a session-start nudge
+  stops asking. Absent means unset. Documented in [PORTABLE.md](PORTABLE.md).
 
 ## Transfer: moving files to another repo
 
@@ -165,5 +174,5 @@ Three cross-repo live-view channels, one job each:
 - **Hand the user a stage link (🗂️):** mint `#stage=…` per the grammar above.
   State the token caveat. For a token-less reader, download the concatenated
   bundle and `SendUserFile` it instead.
-- **Set a repo up for show-repo:** write its `.show-repo.json` (`landing`,
+- **Set a repo up for show-repo:** write its `.web-tools.json` (`landing`,
   `pins`, `stage.files`, `stage.targets`).
