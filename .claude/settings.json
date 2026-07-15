@@ -1,4 +1,9 @@
 {
+  "permissions": {
+    "deny": [
+      "AskUserQuestion"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
