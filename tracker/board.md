@@ -10,7 +10,7 @@ _Generated from tasks/. Do not hand-edit._
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
 - Give show-repo the ability to edit a repo's .web-tools.json (`claude/skills-portable-conventions-8x1lua`) next: design a minimal config-edit surface in the show-repo shell; first use is a one-tap migrate of a legacy .show-repo.json to .web-tools.json
 - Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
-- Repo-designated inbox and deposit defaults in .web-tools.json (`claude/pr-219-review-22csrh`)
+- Repo-designated inbox and outbox in .web-tools.json (`claude/pr-219-review-22csrh`)
 - Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
 
 ## In progress
