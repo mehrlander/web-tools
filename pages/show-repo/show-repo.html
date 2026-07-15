@@ -57,7 +57,7 @@
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
-      <div class="flex items-center gap-1 shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <div class="join">
           <template x-for="p in PINNED_REPOS" :key="p.repo">
             <button @click="openPinned(p.repo)"
@@ -68,13 +68,14 @@
             </button>
           </template>
         </div>
-        <!-- Config editor for the open repo. Dimmed (write needs a token) when
-             not authenticated. -->
+        <!-- Config editor for the open repo. Deliberately a smaller, muted,
+             round control so it reads as a setting, not another repo pill.
+             Dimmed (write needs a token) when not authenticated. -->
         <button @click="openConfigEditor()"
-                class="btn btn-sm btn-square btn-ghost tooltip tooltip-bottom"
+                class="btn btn-xs btn-circle btn-ghost text-base-content/50 hover:text-base-content tooltip tooltip-bottom"
                 :class="_authState!=='auth' && 'opacity-40'"
                 :data-tip="configTip">
-          <i class="ph ph-gear-six text-lg"></i>
+          <i class="ph ph-gear-six text-sm"></i>
         </button>
       </div>
     </div>
