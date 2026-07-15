@@ -3,12 +3,12 @@ name: show-repo
 description: >-
   Use show-repo, the hosted shell that browses any GitHub repo and moves
   files between repos: mint a browse link, mint a stage link (the 🗂️
-  #stage= fileset transport), author a repo's .show-repo.json manifest
+  #stage= fileset transport), author a repo's .web-tools.json manifest
   (landing, pins, stage.files, stage.targets), or run a cross-repo file
   transfer. Loads docs/show-repo.md from mehrlander/web-tools. Use when the
   user says "show-repo", "the stage", "stage these files", "make a stage
   link", "browse repo X", "send/copy files to another repo", "cross-repo
-  transfer", "set up .show-repo.json", or "the show-repo manifest".
+  transfer", "set up .web-tools.json", or "the show-repo manifest".
 ---
 
 # show-repo loader
@@ -27,7 +27,7 @@ markers: 🗂️ a stage link, 🥏 a toss, 📦 an artifact.
 
 - **Browse link:** `…/show-repo/show-repo.html?repo=owner/repo[&ref=…][&view=files&path=<dir>]`. Public repos need no auth; private repos and branches need the viewer's stored token.
 - **Stage link 🗂️:** `…/show-repo/show-repo.html#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset for view, concatenated-bundle copy/download, or two-tap transfer into another repo. Refs only; content stays behind the viewer's token.
-- **Manifest:** a repo's root `.show-repo.json` (`landing`, `pins`, `stage.files`, `stage.targets`) configures how the shell presents it.
+- **Manifest:** a repo's root `.web-tools.json` (the repo's web-tools config; `landing`, `pins`, `stage.files`, `stage.targets`) configures how the shell presents it. The shell falls back to the legacy `.show-repo.json` name.
 
 ## The honesty caveat (state it on every stage handoff)
 

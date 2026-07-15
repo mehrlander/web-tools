@@ -3,21 +3,22 @@
   "owner": {
     "name": "mehrlander"
   },
-  "description": "The portable set from mehrlander/web-tools as installable plugins: the working-conventions loader, the surfacing caption, the skill-library loader, and the daisy-alpine reference.",
+  "description": "The portable set from mehrlander/web-tools as installable plugins: the working-conventions loader, the surfacing caption, the skill-library loader, the show-repo instrument, and the daisy-alpine reference.",
   "plugins": [
     {
       "name": "portable",
       "source": "./.claude/skills",
       "strict": false,
-      "description": "The to-go bag: /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), and /portable:web-tools-conventions (load the portable working conventions).",
+      "description": "The to-go bag: /portable:web-tools-conventions (load the portable working conventions), /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), and /portable:show-repo (browse and move files across repos).",
       "author": {
         "name": "mehrlander"
       },
       "homepage": "https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md",
       "skills": [
+        "./web-tools-conventions",
         "./caption",
         "./load-skill",
-        "./web-tools-conventions"
+        "./show-repo"
       ],
       "keywords": ["conventions", "caption", "surfacing", "tracker"]
     },

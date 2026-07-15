@@ -5,31 +5,67 @@ any repo**, not just this one. If you want this repo's working conventions, its
 recipe for building with a favorite front-end stack and testing it headless, or
 its tracker board generator, without adopting the whole library, this is the menu.
 
-The loader skill is the front door; this file is the catalog it points at, and it
-points back. The skill is *how* you adopt; this is *what* there is.
-
-The same set is also published as installable plugins through this repo's
-marketplace catalog; see [MARKETPLACE.md](MARKETPLACE.md). The fetch recipes
-below remain the no-install path.
+The **`portable` plugin** is the front door: one install brings the whole bag
+(see [MARKETPLACE.md](MARKETPLACE.md)). This file is the catalog behind it, the
+*what* to the plugin's *how*, and it lists the pieces that ride along outside the
+plugin (reference docs, scripts, the tracker) to fetch when you use them. The
+raw-URL fetch recipes below remain the no-install fallback for environments where
+plugins are unavailable.
 
 ## How to adopt
 
-You don't copy these in (except one). Install the loader **skill** once; it
-fetches the conventions live and points back here for the rest:
+Install the `portable` plugin once. One-off, in any session:
 
-```bash
-mkdir -p .claude/skills/web-tools-conventions
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools-conventions/SKILL.md \
-  -o .claude/skills/web-tools-conventions/SKILL.md
+```
+/plugin marketplace add mehrlander/web-tools
+/plugin install portable@web-tools
 ```
 
-Then invoke `/web-tools-conventions`, or make it always-on with one line in the
-target repo's CLAUDE.md (see the skill). Everything below can also be fetched
-directly, no skill needed, from
-`https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
-public and that host is on the Claude Code web allowlist).
+Standing, for a repo (the committed form; cloud sessions install it at session
+start): add the `extraKnownMarketplaces` and `enabledPlugins` block to
+`.claude/settings.json`, shown in [MARKETPLACE.md](MARKETPLACE.md).
 
-## Staying current: refresh at session start
+**What one install brings (the bag):**
+
+| Piece | What it gives you |
+|---|---|
+| `/portable:web-tools-conventions` | loads the working conventions live (surfacing primitives + the guide-PR/merge-guide course) |
+| `/portable:caption` | the surfacing caption, and the guide-PR body sync |
+| `/portable:load-skill` | fetch any skill from the [library](../skills/) on demand |
+| `/portable:show-repo` | browse any repo and move files across repos |
+
+That is the whole day-to-day set. The reference docs, the scripts, and the
+tracker below are not in the plugin: they are fetched by raw URL when a task
+needs them (the skills that use a script fetch it themselves). Everything is
+reachable directly from
+`https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
+public and that host is on the Claude Code web allowlist), which is also the
+no-plugin fallback for the whole bag.
+
+## The repo's config file: `.web-tools.json`
+
+A repo's web-tools config lives in one file, root **`.web-tools.json`**, parsed as
+data and never executed. It is optional: a repo with none is simply unconfigured.
+Top-level fields, not namespaced by consumer, so any web-tools page can read them:
+
+| Field | Read by | What it sets |
+|---|---|---|
+| `landing` | show-repo | path to the repo's own landing page (rendered live via toss-render `#gh=`) |
+| `pins` | show-repo | folders/files surfaced in the sidebar Pinned block |
+| `stage` | show-repo | `{ files, targets }`: a durable staged-files list and default transfer destinations |
+| `conventions` | session-start nudge | `"optout"` marks a repo that has deliberately not adopted the conventions, so the nudge stops asking |
+
+Full field semantics for the show-repo fields are in [`docs/show-repo.md`](show-repo.md).
+The file was formerly `.show-repo.json`; readers fall back to that name so an
+unconverted repo keeps working. That fallback is a back-compat shim tagged
+`SUNSET(2026-08-15)` (see Sunset markers below); it is removed once repos are
+migrated, after which only `.web-tools.json` is read.
+
+## Staying current on the fetch fallback: refresh at session start
+
+The `portable` plugin auto-updates (it declares no `version`, so consumers track
+the tip; see [MARKETPLACE.md](MARKETPLACE.md)), so a plugin install needs nothing
+here. This section is for the raw-URL fetch fallback only.
 
 The skill fetches `CONVENTIONS.md` live on every run, so the *conventions* never
 go stale once the skill is **invoked**. The pieces that can drift are the loader
@@ -189,17 +225,17 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools-conventions/SKILL.md`](../.claude/skills/web-tools-conventions/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions in two severable layers: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) and the opt-in **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff) | fetched live by the skill; adopt either layer |
+| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions as one set: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff), which stays idle until you open a PR | fetched live by the skill |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
-| [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.show-repo.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
+| [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
 | [`skills/`](../skills/) | the skill **library**: 34 personal skills published as static resources (not registered anywhere); the default source `load-skill` pulls from | fetched per skill by load-skill |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |
 | [`docs/artifacts.md`](artifacts.md) | Claude Code **artifacts**: constraints, the bake-and-publish pipeline, and the 📦 marker's place beside ⭐/🥏 in the link-choice matrix. Platform-level, so it applies in any repo | fetch when relevant |
-| [`docs/show-repo.md`](show-repo.md) | the **show-repo** instrument: the hosted shell that browses any repo and moves files between repos (the stage, the 🗂️ `#stage=` link grammar, `gh-transfer`, and the `.show-repo.json` manifest). The reference the `show-repo` skill fetches | fetch when relevant |
+| [`docs/show-repo.md`](show-repo.md) | the **show-repo** instrument: the hosted shell that browses any repo and moves files between repos (the stage, the 🗂️ `#stage=` link grammar, `gh-transfer`, and the `.web-tools.json` manifest). The reference the `show-repo` skill fetches | fetch when relevant |
 
 ### Scripts
 
@@ -211,11 +247,29 @@ one fetched copy serves many callers.
 |---|---|---|
 | [`scripts/build-board.py`](../scripts/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter | `python3 build-board.py <tasks_dir> <board_out>` |
 | [`scripts/build-merge-guide.py`](../scripts/build-merge-guide.py) | generate `docs/MERGE-GUIDE.md` from merged PR bodies (the guide region); non-destructive, `--refresh` to regenerate covered PRs | `python3 build-merge-guide.py [owner/repo] --out <file>` |
+| [`scripts/sunset-scan.py`](../scripts/sunset-scan.py) | report `SUNSET(YYYY-MM-DD)` markers now due for removal (see Sunset markers below); quiet unless something is due, `--all` lists upcoming, `--strict` exits non-zero when due | `python3 sunset-scan.py [--all] [--strict] [root]` |
 
 Fetching and running a script is executing hub code, a step beyond fetching and
 reading a doc. That is why the hub must stay owned and trusted and the fetch stays
 fail-soft: a consumer can audit the script at its raw URL, but there is no
 signature or pinning beyond trusting the source repo.
+
+### Sunset markers
+
+Code kept only for backward compatibility (a legacy-name read fallback, a
+migration shim) is tagged with a dated marker so it gets removed rather than
+lingering:
+
+```js
+// SUNSET(2026-08-15): reads the legacy .show-repo.json name. Remove once
+// consumer repos are migrated to .web-tools.json.
+```
+
+The marker is one greppable token, `SUNSET(YYYY-MM-DD)`, with the date it can
+probably be removed. `scripts/sunset-scan.py` finds them: quiet until a marker's
+date passes, then it names the file and line. Wire it warn-only into the commit
+hook (as web-tools does) so a due marker resurfaces at commit time; run
+`npm run sunset` (or `sunset-scan.py --all`) any time to list upcoming ones.
 
 ### Not portable
 
