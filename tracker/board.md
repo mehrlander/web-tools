@@ -9,6 +9,7 @@ _Generated from tasks/. Do not hand-edit._
 - Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
 - Repo-designated inbox and deposit defaults in .show-repo.json (`claude/pr-219-review-22csrh`)
+- Spike a learnings log (tiny insights from failure) (`claude/pr-219-review-22csrh`)
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)

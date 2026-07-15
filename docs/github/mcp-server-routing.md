@@ -32,6 +32,16 @@ on the UUID server went through untouched on `mcp__github__update_pull_request`.
 but the routing rule recurs whenever a provider has more than one server
 connected: a permission surprise on one server is often a routing problem, not a
 permission wall. Check for a sibling server exposing the same tool before
-treating the wall as real. To stop the prompts for good, add the reconnecting
-server's tools to `.claude/settings.json` (the `/update-config` path) so either
-server is pre-approved.
+treating the wall as real.
+
+**Why an allowlist is not the fix here.** The originally-configured servers
+(`mcp__github__*`, `mcp__mehrlander__*`) are trusted by default, with no `allow`
+entry in `.claude/settings.json`; the twin that prompts wears a per-connection
+UUID name, and permission entries key on the exact server name, so it cannot be
+pinned (next session's UUID differs). The durable fix is the routing rule above,
+not a settings entry. For prompt friction that *is* addressable, genuinely
+repetitive safe Bash/MCP calls, the built-in `/fewer-permission-prompts` skill
+scans transcripts and writes a prioritized `allow` list into
+`.claude/settings.json`; run it once per repo. In the web sandbox that committed
+file is the only allowlist that persists, since the container's `~/.claude` is
+ephemeral.
