@@ -2,18 +2,15 @@
 
 Remote-sandbox conventions for Claude Code web sessions; output is strictly via chat. The canonical source is `mehrlander/web-tools` at `docs/CONVENTIONS.md`, loaded by `@`-import or the `web-tools-conventions` skill. Local `CLAUDE.md` rules override these defaults. Substitute the current repo into all URL templates.
 
-Adopt à la carte: two independent layers, take either alone.
-
-1. **Surfacing primitives:** universal chat-handoff mechanics; apply anywhere, no setup.
-2. **The surfacing course:** an opt-in lifecycle for PR-driven repos. Standing it up is never a precondition for the primitives, and a repo can adopt it later.
+The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): the **surfacing primitives** below (universal chat-handoff mechanics, no setup) and the **surfacing course** that follows (the guide-PR and merge-guide lifecycle). You get both. The course simply does nothing until you open a PR, so a repo that runs no PRs carries it at no cost; there is no separate opt-in step and nothing to stand up later.
 
 **Prose style:** zero em dashes. Use colons, commas, semicolons, parentheses, or new sentences.
 
-**Extension points (set in local `CLAUDE.md`):**
+**One render path.** A page renders one way: the 🥏 toss below. There is no per-repo preview mechanism to pick. ⭐ marks a hosted live view where one already exists (the canonical URL of an already-deployed page); the toss covers every branch or private page that has no hosted URL of its own.
 
-* **Preview mechanism:** how to open changed code live from a branch; ⭐ links use it, else the `[new]` blob.
-* **Per-session refreshes:** slow or non-deterministic artifacts regenerated once per session at wrap-up; none means no refresh step.
-* **Guide-PR support:** whether the platform auto-creates draft PRs on push, and any body-sync tooling; none means the session opens the draft via the API and syncs the body by hand.
+**The one per-repo setting: per-session refreshes.** Normally none. Name a refresh only if the repo has a slow or non-deterministic generated artifact that cannot ride a commit hook (a screenshot, say); it is regenerated once per session at wrap-up. Most repos have none, so this stays empty. Set it in the local `CLAUDE.md`.
+
+**Adding your own, without clobbering.** The install owns only what it ships. Plugin skills are namespaced (`/portable:caption`), so a same-named skill of yours coexists; the fallback fetch hook writes a fixed file list and touches nothing else. Your own skills and any `CLAUDE.md` text below the import are never overwritten.
 
 ---
 
@@ -24,7 +21,7 @@ Adopt à la carte: two independent layers, take either alone.
 * **Hand over the artifact:** when you produce a file the user would open, run, or iterate on (an HTML page, a zip, an audio file), proactively send it with `SendUserFile` so they get a working in-chat downloader, rather than only describing it or pasting a path. Treat this as a default, not something to wait to be asked for. The UI renders the result as a **file card** (also **file chip**; the user may simply say "send the file"): a click-to-download chip for HTML / zip / audio and the like, an inline preview for images. Compose with Show pixels when the thing is visual (screenshot to show, card to hand over); use the tool's `proactive` status when surfacing unprompted, `normal` when replying.
 * **Lead with the live view:** a README (or folder readme) for something that renders opens, right under the title, with a prominent ⭐ link to the hosted version ("go here for the nice view"), before any prose. The rendered artifact is the first tappable thing, not something buried in description.
 * **Toss a live view (private-safe):** when a renderable HTML page has no hosted URL of its own (a private repo, an un-deployed branch), you can still hand over a live rendering instead of only the `[new]` source blob. **Mark a toss link with 🥏** the way ⭐ marks a hosted live view, so a reader sees at a glance it renders through the shared toss-render renderer, not source. Two forms:
-  * **🥏 `#gz=` (portable, works for anyone):** gzip the page into the fragment of the shared hosted renderer and link that: `https://mehrlander.github.io/web-tools/pages/toss-render.html#gz=<base64url>`. That host is a fixed shared endpoint (use it literally; it is not a per-repo URL template). The payload rides in the `#fragment`, so it never reaches a server: nothing has to be hosted, the private content stays inside the link, and it renders in a sandbox (opaque origin, no access to the renderer's stored token). Absolute-URL CDN libraries (`<script src="https://…">`) load normally inside the toss; only same-repo **relative** deps (`./app.js`, `fetch('./x.json')`) can't resolve, since the page exists only in the link. This is the portable fallback for the ⭐ preview when a repo defines no preview mechanism of its own. Encode a file to a link with:
+  * **🥏 `#gz=` (portable, works for anyone):** gzip the page into the fragment of the shared hosted renderer and link that: `https://mehrlander.github.io/web-tools/pages/toss-render.html#gz=<base64url>`. That host is a fixed shared endpoint (use it literally; it is not a per-repo URL template). The payload rides in the `#fragment`, so it never reaches a server: nothing has to be hosted, the private content stays inside the link, and it renders in a sandbox (opaque origin, no access to the renderer's stored token). Absolute-URL CDN libraries (`<script src="https://…">`) load normally inside the toss; only same-repo **relative** deps (`./app.js`, `fetch('./x.json')`) can't resolve, since the page exists only in the link. This is the render path for any page that has no hosted URL of its own, which is the default case. Encode a file to a link with:
     ```bash
     python3 -c "import gzip,base64,sys,pathlib; b=gzip.compress(pathlib.Path(sys.argv[1]).read_bytes()); s=base64.b64encode(b).decode().replace('+','-').replace('/','_').rstrip('='); print('https://mehrlander.github.io/web-tools/pages/toss-render.html#gz='+s)" page.html
     ```
@@ -49,14 +46,14 @@ Adopt à la carte: two independent layers, take either alone.
 
 ---
 
-## The surfacing course (opt-in)
+## The surfacing course
 
-An opt-in lifecycle for PR-driven repos. Requires maintaining `docs/MERGE-GUIDE.md` and a **guide PR** per branch; skip it and the primitives still stand.
+The lifecycle that engages once you open a PR: a **guide PR** per branch and a generated `docs/MERGE-GUIDE.md`. It is part of the bag, not a separate adoption; a repo that never opens a PR never reaches it, and nothing here is a precondition for the primitives above.
 
 Two artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the guide PR's body (live while draft, reviewer-facing when ready) and the merge-guide entry (generated from that body at or after merge). They are one statement in two places: the guide PR body is authored, the merge-guide entry is generated from it, and both open with the same preamble:
 
 1. **Outcome + why:** one sentence, no preamble.
-2. **⭐ link to the thing to open:** the preview mechanism's target, or the honest `[new]` blob if there is none (say "view," and never promise a running preview the change can't deliver).
+2. **⭐ link to the thing to open:** the hosted URL for an already-deployed page, else a 🥏 toss render of the branch page, else the honest `[new]` blob (say "view," and never promise a running preview the change can't deliver).
 
 Then a common tail: the `[new]/[main]/[diff]` file list, a `renders on:` line for shared components, Notes only for the non-obvious, and a diff or compare link. Skimmable in seconds.
 
@@ -74,8 +71,8 @@ Then a common tail: the `[new]/[main]/[diff]` file list, a `renders on:` line fo
 
 The branch's PR opens as a **draft at first push**, and its body is the branch guide: the live answer to "where did I leave things," which matures into the reviewer's summary. The draft state marks work in flight; marking it ready is the actual request the name "pull request" makes. Keep "Follow-up to #N" when continuing an earlier PR; end with the harness's session-link footer.
 
-* **Open at first push.** Where the platform auto-creates draft PRs on push (see the guide-PR support extension point), that is the create. Otherwise the session opens the draft via the API, unprompted: creation is cheap and inward-facing. **Marking the PR ready is the user's decision.** The action itself is one call (`gh pr ready <n>`, or the API's ready-for-review mutation) and flips the PR from gray draft to green in the GitHub UI; the session performs it only when the user explicitly says to.
-* **Keep the body synchronized as you work:** the body is the current-state summary, so it must not lie; keep it in step as the work progresses. This is a default, never a question: don't offer to sync it, defer it, or fold it into the wrap-up. It is not a per-push, per-file changelog: a single objective spanning many files or several pushes wants the body to reflect the resulting state, not a line for every change, so the right cadence is per meaningful change in state, not per commit. Keep the machine-refreshed part inside the fenced managed region below, so a sync never clobbers hand-written text outside it. The cumulative diff lives in the PR's Files tab; the body's Changed list carries only the curated layer a diff can't show (⭐/🥏 preview links, `renders on:` lines, one-line whys).
+* **Open at first push.** Where the platform auto-creates draft PRs on push (an account-level toggle in the Claude Code web settings, not a repo property), that is the create. Otherwise the session opens the draft via the API, unprompted: creation is cheap and inward-facing. **Marking the PR ready is the user's decision.** The action itself is one call (`gh pr ready <n>`, or the API's ready-for-review mutation) and flips the PR from gray draft to green in the GitHub UI; the session performs it only when the user explicitly says to.
+* **Keep the body synchronized as you work:** the body is the current-state summary, so it must not lie; keep it in step as the work progresses. This is a default, never a question: don't offer to sync it, defer it, or fold it into the wrap-up. It is not a per-push, per-file changelog: a single objective spanning many files or several pushes wants the body to reflect the resulting state, not a line for every change, so the right cadence is per meaningful change in state, not per commit. The sync engine is `/caption` (the `caption` skill in the bag), the same everywhere; keep the machine-refreshed part inside the fenced managed region below, so a sync never clobbers hand-written text outside it. The cumulative diff lives in the PR's Files tab; the body's Changed list carries only the curated layer a diff can't show (⭐/🥏 preview links, `renders on:` lines, one-line whys).
 * **Narrative goes in PR comments,** append-only and dated, a progress log; the body holds only current state. (The same overwrite-vs-append split as the tracker's frontmatter tags vs progress log.)
 * **Abandon by closing the draft** with a final comment saying why; a closed draft is a durable record of a dead end, which an orphan branch never is.
 * **Nothing lands on main** by construction, so there is nothing to fold or delete at wrap-up. (This role was previously played by a per-branch `BRANCH-GUIDE.md` file; delete any stray one found on main as cleanup.)

@@ -5,31 +5,48 @@ any repo**, not just this one. If you want this repo's working conventions, its
 recipe for building with a favorite front-end stack and testing it headless, or
 its tracker board generator, without adopting the whole library, this is the menu.
 
-The loader skill is the front door; this file is the catalog it points at, and it
-points back. The skill is *how* you adopt; this is *what* there is.
-
-The same set is also published as installable plugins through this repo's
-marketplace catalog; see [MARKETPLACE.md](MARKETPLACE.md). The fetch recipes
-below remain the no-install path.
+The **`portable` plugin** is the front door: one install brings the whole bag
+(see [MARKETPLACE.md](MARKETPLACE.md)). This file is the catalog behind it, the
+*what* to the plugin's *how*, and it lists the pieces that ride along outside the
+plugin (reference docs, scripts, the tracker) to fetch when you use them. The
+raw-URL fetch recipes below remain the no-install fallback for environments where
+plugins are unavailable.
 
 ## How to adopt
 
-You don't copy these in (except one). Install the loader **skill** once; it
-fetches the conventions live and points back here for the rest:
+Install the `portable` plugin once. One-off, in any session:
 
-```bash
-mkdir -p .claude/skills/web-tools-conventions
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/web-tools-conventions/SKILL.md \
-  -o .claude/skills/web-tools-conventions/SKILL.md
+```
+/plugin marketplace add mehrlander/web-tools
+/plugin install portable@web-tools
 ```
 
-Then invoke `/web-tools-conventions`, or make it always-on with one line in the
-target repo's CLAUDE.md (see the skill). Everything below can also be fetched
-directly, no skill needed, from
-`https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
-public and that host is on the Claude Code web allowlist).
+Standing, for a repo (the committed form; cloud sessions install it at session
+start): add the `extraKnownMarketplaces` and `enabledPlugins` block to
+`.claude/settings.json`, shown in [MARKETPLACE.md](MARKETPLACE.md).
 
-## Staying current: refresh at session start
+**What one install brings (the bag):**
+
+| Piece | What it gives you |
+|---|---|
+| `/portable:web-tools-conventions` | loads the working conventions live (surfacing primitives + the guide-PR/merge-guide course) |
+| `/portable:caption` | the surfacing caption, and the guide-PR body sync |
+| `/portable:load-skill` | fetch any skill from the [library](../skills/) on demand |
+| `/portable:show-repo` | browse any repo and move files across repos |
+
+That is the whole day-to-day set. The reference docs, the scripts, and the
+tracker below are not in the plugin: they are fetched by raw URL when a task
+needs them (the skills that use a script fetch it themselves). Everything is
+reachable directly from
+`https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
+public and that host is on the Claude Code web allowlist), which is also the
+no-plugin fallback for the whole bag.
+
+## Staying current on the fetch fallback: refresh at session start
+
+The `portable` plugin auto-updates (it declares no `version`, so consumers track
+the tip; see [MARKETPLACE.md](MARKETPLACE.md)), so a plugin install needs nothing
+here. This section is for the raw-URL fetch fallback only.
 
 The skill fetches `CONVENTIONS.md` live on every run, so the *conventions* never
 go stale once the skill is **invoked**. The pieces that can drift are the loader
