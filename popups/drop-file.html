@@ -2,51 +2,44 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>File Drop</title>
   <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-  <script defer src="https://unpkg.com/alpinejs"></script>
+  <script type="module">
+    // The minimal working example for the drop-zone component: mount it, listen
+    // for its bubbling `drop-file` event, log the payload. ?use=<branch|tag|sha>
+    // re-pins the lib load to a ref for previewing branch work.
+    const ref = new URLSearchParams(location.search).get('use') || 'main';
+    await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+    await gh.load('alpineComponents/drop-zone.js');
+    await gh.load('alpine-bundle.js');
+  </script>
+  <style>[x-cloak]{display:none!important}</style>
 </head>
 <body class="bg-base-200 min-h-screen flex items-center justify-center p-6">
 
-  <div x-data="{
-    hot: false,
-    name: '',
-    size: 0,
-    async drop(e) {
-      this.hot = false;
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      this.name = file.name;
-      this.size = file.size;
-      const buf = await file.arrayBuffer();
-      window.lastFile = { file, buf, bytes: new Uint8Array(buf) };
-      console.log('Dropped:', file.name, `${file.size.toLocaleString()} bytes`);
-      console.log('ArrayBuffer:', buf);
-      console.log('First 16 bytes:', [...new Uint8Array(buf, 0, Math.min(16, buf.byteLength))]
-        .map(b => b.toString(16).padStart(2, '0')).join(' '));
-      console.log('Available as window.lastFile');
-    }
-  }" class="w-full max-w-md">
+  <div class="w-full max-w-md" x-data="{ log: '' }" @drop-file="report($event.detail, (m) => log = m)">
+    <div x-data="dropZone()"></div>
 
-    <div
-      @dragenter.prevent="hot = true"
-      @dragover.prevent
-      @dragleave.prevent="hot = false"
-      @drop.prevent="drop($event)"
-      :class="hot ? 'border-primary bg-primary/5' : 'border-base-300 bg-base-100'"
-      class="border-2 border-dashed rounded-xl p-12 text-center transition-colors">
-
-      <div class="pointer-events-none">
-        <i class="ph ph-file-arrow-down text-5xl opacity-50"
-           :class="hot ? 'text-primary opacity-100' : ''"></i>
-        <p class="mt-4 text-sm font-medium" x-text="name || 'Drop a file here'"></p>
-        <p class="mt-1 text-xs opacity-60"
-           x-text="size ? `${size.toLocaleString()} bytes. See console.` : 'Binary logged to console'"></p>
-      </div>
-
-    </div>
+    <div x-show="log" x-cloak
+         class="mt-3 font-mono text-xs whitespace-pre bg-base-100 border border-base-300 rounded-lg p-3"
+         x-text="log"></div>
   </div>
+
+  <script>
+    // The host's handler: the drop-zone owns the gesture and the read; the page
+    // owns what to do with the bytes. Here: stash on window.lastFile and print
+    // a hex peek, the same output the standalone demo always gave.
+    function report(d, show) {
+      if (!d.file) return show('text  ' + d.size.toLocaleString() + ' chars');
+      window.lastFile = d;
+      const hex = [...new Uint8Array(d.buf, 0, Math.min(16, d.buf.byteLength))]
+        .map(b => b.toString(16).padStart(2, '0')).join(' ');
+      show(d.name + '  ' + d.size.toLocaleString() + ' bytes\n' +
+           'first 16: ' + hex + '\nAvailable as window.lastFile');
+    }
+  </script>
 
 </body>
 </html>
