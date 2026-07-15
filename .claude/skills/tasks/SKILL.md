@@ -1,24 +1,38 @@
 ---
-name: task-tracker
+name: tasks
 description: >-
   Operate the project tracker in mehrlander/web-tools: file a task, claim a
   task, update or close one, and regenerate the board, following the
   docs/TRACKER.md schema and the rule that task files and board.md commit
-  straight to main (not a feature branch). Use when the user says "add a
-  task", "file a task", "make a tracker task", "claim a task", "check the
-  tracker", "what's on the board", "regenerate the board", or "close task X",
-  or when a follow-up needs to survive across sessions. Owns the tracker's
-  file format and main-branch workflow; the web-tools-conventions skill owns
-  PR bodies, surfacing links, and the merge guide, so route those there.
+  straight to main (not a feature branch). Invoking this skill bare (no
+  further ask) surfaces a caption of the current board. Use when the user
+  says "add a task", "file a task", "make a tracker task", "claim a task",
+  "check the tracker", "what's on the board", "regenerate the board", or
+  "close task X", or when a follow-up needs to survive across sessions.
+  Owns the tracker's file format and main-branch workflow; the
+  web-tools-conventions skill owns PR bodies, surfacing links, and the
+  merge guide, so route those there.
 ---
 
-# task-tracker
+# tasks
 
 The tracker is cross-session memory on `main`: `tracker/tasks/<id>.md` is the
 source of truth, `tracker/board.md` is a generated rollup. Canonical spec is
 [`docs/TRACKER.md`](../../../docs/TRACKER.md); this skill carries the operations
 so a session need not hand-read it. Substitute the current repo into URL
 templates.
+
+## Bare invocation: caption the board
+
+Called with no further ask (e.g. `/tasks` on its own), show a caption of the
+current board before doing anything else: one row per open task (backlog,
+in-progress, blocked), title linked to its task file, in-progress rows naming
+the owning branch, in the caption skill's row style (filename plain, link
+words tappable). Read `tracker/tasks/*.md` directly rather than parsing
+`board.md`'s prose, so the rows can link. Close with a one-line offer of the
+next action (file, claim, update, close, regenerate). When the ask names an
+action instead ("file a task", "claim X"), skip the caption and go straight
+to that operation.
 
 ## The one rule that is easy to miss
 
