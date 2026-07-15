@@ -348,9 +348,6 @@
     <div x-show="view==='stage'" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
         <div x-data="stager()"></div>
-        <!-- Bring a local file in: drop it, set its path in the open repo (the
-             tree picker helps), commit. Stands beside the ref-based stage. -->
-        <div id="uploader" x-data="uploader()"></div>
         <div class="border-t border-base-200 pt-3">
           <div id="compare" x-data="compare()"></div>
         </div>

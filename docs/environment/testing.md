@@ -1,6 +1,6 @@
 # Testing HTML/JS in the sandbox
 
-*(verified 2026-06-12)*
+*(verified 2026-07-15)*
 
 How to exercise a page or component in the Claude Code web sandbox. This file
 states current truth only; superseded methods and discovery stories live in git
@@ -131,6 +131,19 @@ Component-test lessons that generalize:
   `initTree` only the new chrome.
 - Read state back with `Alpine.$data(el)`; let `$nextTick` callbacks flush
   with a couple of awaited timer ticks before asserting.
+- **A green logic test proves state, not visibility.** A component can mount,
+  hold correct state, and dispatch the right events while its panel renders at
+  zero size. The case that taught this: `x-collapse` on an element with no
+  companion `x-show` sets `el.hidden = true` (the plugin keys on `_x_isShown`,
+  which only `x-show` sets), so a browse panel mounted via `x-if` never showed,
+  though its picker was fully wired. Logic tests driving the data passed; only a
+  render (`npm run shot`) caught the blank panel. Pair `x-collapse` with an
+  `x-show`, or, when you only need presence toggling and not the height
+  animation, mount with a plain `x-if` and no `x-collapse`.
+- **Reactive values fail `deepStrictEqual`.** `Alpine.$data(el)` and anything
+  read through it are `@vue/reactivity` proxies; a strict structural compare
+  rejects the proxy prototype ("same structure but not reference-equal"). Strip
+  to plain first: `JSON.parse(JSON.stringify(v))`.
 
 ### Rolling jsdom + Alpine by hand
 
@@ -146,6 +159,11 @@ it.
 - **Polyfill `matchMedia`** (with a settable `matches`) and
   **`requestAnimationFrame`**, the latter on both the window and `global`;
   Alpine's `x-show` transitions call it bare in the Node realm.
+- **Bind `getComputedStyle`** onto `global` (`window.getComputedStyle.bind(window)`):
+  `x-transition` reads it bare to time transitions. Without it, a component
+  carrying an `x-transition` throws on mount (`getComputedStyle is not defined`)
+  in a `requestAnimationFrame` callback; jsdom's returns empty durations, so the
+  transition resolves instantly.
 
 ## Gotchas
 
