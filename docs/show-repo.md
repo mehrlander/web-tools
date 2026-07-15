@@ -137,18 +137,22 @@ deprecation window. Fields:
 
 ### Editing the manifest from the shell
 
-The header **gear** (beside the quick-link row) opens a config editor for the
-**currently-open repo** (`lib/alpineComponents/config-editor.js`). It is a JSON
-editor over the repo's manifest: it loads the current `.web-tools.json` (or an
-empty object when the repo has none), validates on every keystroke, and on Save
-commits the file through the viewer's token (`gh-store.js`'s `save`, a Contents
-API PUT to the repo's default branch). Editing needs auth, so the gear dims and
-refuses when the viewer is unauthenticated.
+The sidebar **shield** dialog (the repo dialog, `repoModal` in
+`lib/alpineComponents/repo.js`) carries a collapsible **Config** section for the
+**currently-open repo**. It is a JSON editor over the repo's manifest: it loads
+the current `.web-tools.json` (or an all-empty template when the repo has none,
+so the shape is there to fill in), validates on every keystroke, shows the known
+fields inline, and on Save commits the file through the viewer's token
+(`gh-store.js`'s `save`, a Contents API PUT to the repo's default branch).
+Editing needs auth, so Save is disabled until the same dialog's token is set.
 
+- **Where it lives**: folded into the shield dialog rather than a standalone
+  control, so the repo's stats, links, auth, and config sit in one place. The
+  section is collapsed by default and seeds the editor when expanded.
 - **Auto-migration**: a save always writes `.web-tools.json`. A repo still on the
   legacy `.show-repo.json` is edited the same way; the save lands the new name,
   which readers already prefer, so the legacy file goes inert. No delete step
-  (the gh layer has no delete helper), and the editor flags the migration when
+  (the gh layer has no delete helper), and the section flags the migration when
   it loaded from the legacy name.
 - **Scope**: this is a raw-JSON editor, the thin first slice of the config-edit
   surface (tracker task 0013). Per-field controls (an icon picker, a pins list)
