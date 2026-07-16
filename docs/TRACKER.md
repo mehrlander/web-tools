@@ -12,7 +12,7 @@ Short-lived branches and sessions cannot see each other. Without a durable list 
 
 Two kinds of file, both on `main`:
 
-- `tasks/NNNN.md`: one file per task, the source of truth.
+- `tasks/<id>.md`: one file per task, the source of truth.
 - `board.md`: a rollup generated from the task files, never hand-edited.
 
 Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look. Committing those two paths to `main` is what this document asks for throughout, so adopting the tracker is standing permission to do it: a session need not confirm the push, only note it in its reply. Nothing else about a repo's branch or PR flow changes.
@@ -25,13 +25,13 @@ Two layers. A small closed set of recognized keys drives the tooling; an open se
 
 **Recognized keys.** `id`, `title`, and `status` are required. `project`, `track`, `opened`, `closed`, and `session` are optional and recognized: the generator acts on them when present. The body is the task.
 
-**Task id.** The `id` is a filing handle: it names the task file (`<id>.md`) and nothing reads it as a number, since tasks are referred to by title. Mint it as a date plus a short random suffix, `YYYYMMDD-rrr` (three lowercase base36 characters), for example `20260715-k4p`. The date sorts files roughly chronologically; the random suffix is what keeps two sessions from colliding when they file at the same time. Do not use a sequential integer: two sessions each reading `main` and picking "the next free number" pick the same one, and the merge that lands second silently drops one task (see Conflicts). Mint one with:
+**Task id.** The `id` is a filing handle: it names the task file (`<id>.md`). Mint it as a short interpretable slug plus a random suffix, `<slug>-<rrrrrr>`, mirroring how a working branch is named (`fn-data-tracker-assessment-npjxbj`). The slug is a few lowercase hyphen-separated words drawn from the title, kept under about 40 characters, so a directory listing reads as a table of contents and a `depends-on:<id>` reference reads as a phrase. The six-character random suffix, from base36, is what keeps two sessions from colliding when they file at the same time. Do not use a sequential integer: two sessions each reading `main` and picking "the next free number" pick the same one, and the merge that lands second silently drops one task (see Conflicts). The slug is frozen at filing: it is a handle, not a live summary, so if the title later changes, leave the filename and `id` as they are. Mint one with:
 
 ```
-python3 -c "import random,string,datetime;print(datetime.date.today().strftime('%Y%m%d')+'-'+''.join(random.choices(string.digits+string.ascii_lowercase,k=3)))"
+python3 -c "import random,string,sys;print(sys.argv[1]+'-'+''.join(random.choices(string.digits+string.ascii_lowercase,k=6)))" cross-corpus-note-index
 ```
 
-Legacy integer ids (`0001`) are left as they are: still valid handles, keyed by title like any other. Only new tasks take the dated form.
+Bring existing tasks aboard the new form at first opportunity. The generator keys on the filename, so a mixed directory works and nothing forces a flag-day, but the target is one scheme everywhere, not a standing exception for old files. The next time a session touches a tracker that still carries legacy ids (integers like `0001`, or the earlier dated form `20260716-8p0`), migrate them: rename each `tasks/<old-id>.md` to a slug, set the file's `id` to match, update any `depends-on:<old-id>` references that point at it, regenerate `board.md`, and commit the renames to `main` like any other tracker change. The board is keyed by title, so the rename does not change it; the diff is the filenames and the one `id` line each.
 
 **Parser contract.** Frontmatter is flat `key: value` pairs, split on the first colon, scalars only. No YAML library, no lists, no nesting, no multi-line values. Unknown keys are preserved and ignored, never errors. This is deliberate: a file arriving from any channel (a web edit, a paste) needs no valid YAML to parse, so imperfect input degrades to an ignored tag rather than a failure. It is a feature, not a limitation to fix.
 
@@ -41,7 +41,7 @@ Legacy integer ids (`0001`) are left as they are: still valid handles, keyed by 
 
 ```markdown
 ---
-id: YYYYMMDD-rrr    # date + 3 random base36 chars; see Task id
+id: <slug>-<rrrrrr>    # interpretable slug + 6 random base36 chars; see Task id
 title: <short imperative>
 status: backlog | in-progress | blocked | done
 project: <workspace or partition>   # optional, recognized
@@ -90,7 +90,7 @@ A consuming repo can fetch the script by raw URL into a gitignored path and run 
 
 Each session should edit only the task file it owns, so task conflicts should be rare. If two sessions edit the same task file, resolve that file as real content.
 
-The collision that is not rare is two sessions **filing** at once. With sequential integer ids they pick the same next number, so each creates the same filename with different content. Nothing warns the first pusher: a fast-forward push raises no conflict, and the add/add only surfaces at the second session's merge, where it is resolved in that session's favor and the earlier task drops from `main`. The dated random-suffix id above is the fix: two independently minted ids do not collide, so concurrent filings land as two separate files with no contact.
+The collision that is not rare is two sessions **filing** at once. With sequential integer ids they pick the same next number, so each creates the same filename with different content. Nothing warns the first pusher: a fast-forward push raises no conflict, and the add/add only surfaces at the second session's merge, where it is resolved in that session's favor and the earlier task drops from `main`. The random suffix in the id above is the fix: two independently minted ids do not collide, so concurrent filings land as two separate files with no contact.
 
 `board.md` is generated. If it conflicts, take either side and regenerate it. A concurrent filing still leaves the board stale (each side regenerated it against a partial set of task files), so rerun the generator after resolving; that is the same benign generated-file case.
 
