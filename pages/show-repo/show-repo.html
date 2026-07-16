@@ -57,7 +57,7 @@
            below sm it collapses to a single dropdown. Config editing lives in
            the sidebar shield dialog (repoModal), not here. -->
       <div class="join shrink-0 hidden sm:flex">
-        <template x-for="p in PINNED_REPOS" :key="p.repo">
+        <template x-for="p in quickLinks" :key="p.repo">
           <button @click="openPinned(p.repo)"
                   class="btn btn-sm btn-square join-item tooltip tooltip-bottom"
                   :class="[Alpine.store('browser').repo===p.repo ? 'btn-primary btn-active' : 'btn-ghost', pinnedDim(p) && 'opacity-40']"
@@ -71,7 +71,7 @@
           <i class="ph ph-squares-four text-lg"></i>
         </summary>
         <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-56 p-1 shadow border border-base-300 mt-1">
-          <template x-for="p in PINNED_REPOS" :key="p.repo">
+          <template x-for="p in quickLinks" :key="p.repo">
             <li>
               <a @click="openPinned(p.repo)"
                  :class="[Alpine.store('browser').repo===p.repo && 'active', pinnedDim(p) && 'opacity-40']">
@@ -418,20 +418,16 @@ function app(){ return {
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   DEFAULT_REPO: 'mehrlander/web-tools',
-  // The header quick-link row. Each entry's icon here is the default (the
-  // floor): a repo's own .web-tools.json can override it via an "icon" field,
-  // resolved by pinnedIcon() after probePinned() reads each repo's manifest.
-  PINNED_REPOS: [
-    { repo: 'mehrlander/home', icon: 'ph-house' },
+  // The header quick-link row is data-driven. This public page must not
+  // enumerate private repos in its source, so the built-in default lists only
+  // the public repo. The real, curated list (order, membership, icons — private
+  // repos included) lives in a private registry repo and is fetched at boot
+  // when the viewer has a token (loadQuickLinks). No token: this default only.
+  REGISTRY_REPO: 'mehrlander/web-tools-private',
+  PUBLIC_QUICK_LINKS: [
     { repo: 'mehrlander/web-tools', icon: 'ph-toolbox' },
-    { repo: 'mehrlander/chat-histories', icon: 'ph-chats' },
-    { repo: 'mehrlander/wa-bills', icon: 'ph-scales' },
-    { repo: 'mehrlander/fn-data', icon: 'ph-chart-line-up' },
-    { repo: 'mehrlander/shortcut-tools', icon: 'ph-lightning' },
   ],
-  // repo -> { connected, icon }, filled by probePinned(). "Connected" means the
-  // repo carries a web-tools config; icon is its manifest override, if any.
-  pinnedConfigs: {},
+  quickLinks: [],   // resolved row; seeded from PUBLIC_QUICK_LINKS in init
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -468,16 +464,17 @@ function app(){ return {
       this.loadConfig();
     });
 
-    // The pinned row's icons come from each repo's manifest (probePinned).
-    // Private repos only resolve once authed, so re-probe when auth arrives.
-    // A config save re-reads the open repo and re-probes so a changed icon or a
-    // fresh connection lands without a reload.
-    this.$watch(() => this._authState, (s) => { if (s === 'auth') this.probePinned(); });
-    document.addEventListener('web-tools:config-saved', () => {
+    // The quick-link row is the public default until a token lets us read the
+    // private registry. Auth resolves after boot, so load then, and reload when
+    // auth arrives. Editing the registry repo's config (config-saved) reloads
+    // the row so a membership/icon change lands without a page reload.
+    this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
+    this.$watch(() => this._authState, (s) => { if (s === 'auth') this.loadQuickLinks(); });
+    document.addEventListener('web-tools:config-saved', (e) => {
       this.loadConfig();
-      this.probePinned();
+      if (e.detail?.repo === this.REGISTRY_REPO) this.loadQuickLinks();
     });
-    this.probePinned();
+    this.loadQuickLinks();
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
@@ -560,31 +557,32 @@ function app(){ return {
     if (this._configKey === key) { s.config = cfg; s.configName = name; }
   },
 
-  // Read each pinned repo's manifest on its own lightweight GH instance (the
-  // shared store.gh is bound to the open repo), recording whether it carries a
-  // config and any icon override. One GET per repo (two on a miss, for the
-  // legacy name); a 404/401 leaves the repo on its default icon. Reads main;
-  // config lives on the default branch, which is main for these repos.
-  async probePinned(){
-    await Promise.all(this.PINNED_REPOS.map(async (p) => {
-      const probe = new window.GH({ token: window.TOKEN, repo: p.repo, ref: 'main' });
-      for (const name of ['.web-tools.json', '.show-repo.json']) {
-        try {
-          const parsed = JSON.parse((await probe.get(name)).text);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            this.pinnedConfigs[p.repo] = { connected: true, icon: typeof parsed.icon === 'string' ? parsed.icon : null };
-            return;
-          }
-        } catch {}
-      }
-      this.pinnedConfigs[p.repo] = { connected: false, icon: null };
-    }));
+  // Resolve the quick-link row. With a token, read the private registry repo's
+  // .web-tools.json (a `quickLinks: [{repo, icon}]` list — the curated set,
+  // order, and icons, private repos included) on its own lightweight GH
+  // instance and use it. Without a token, or on any failure, fall back to the
+  // public-only default. The registry name is the one private string this
+  // public page references; it never enumerates the private repos themselves.
+  hasToken(){ return !!window.TOKEN && window.TOKEN !== '🎟️GitHubToken'; },
+  async loadQuickLinks(){
+    if (!this.hasToken()) { this.quickLinks = [...this.PUBLIC_QUICK_LINKS]; return; }
+    try {
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      const parsed = JSON.parse((await reg.get('.web-tools.json')).text);
+      const list = Array.isArray(parsed?.quickLinks)
+        ? parsed.quickLinks.filter(e => e && typeof e.repo === 'string')
+        : null;
+      this.quickLinks = list && list.length
+        ? list.map(e => ({ repo: e.repo, icon: e.icon || 'ph-bookmark-simple' }))
+        : [...this.PUBLIC_QUICK_LINKS];
+    } catch {
+      this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
+    }
   },
 
-  // Manifest icon wins; the hardcoded default is the floor so the row never
-  // renders blank for a repo without a config yet. Config editing itself lives
-  // in the sidebar shield dialog (repoModal, lib/alpineComponents/repo.js).
-  pinnedIcon(p){ return this.pinnedConfigs[p.repo]?.icon || p.icon; },
+  // The row's icon is the registry entry's icon. Config editing lives in the
+  // sidebar shield dialog (repoModal, lib/alpineComponents/repo.js).
+  pinnedIcon(p){ return p.icon; },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates
   // a landing page -> that page rendered live ('custom'); every other repo ->
@@ -886,10 +884,12 @@ function overview(){ return {
   inert since readers prefer the new name). Current fields:
 
     icon     Phosphor class (e.g. "ph-scales") for the repo's header quick-link
-             button. Overrides the hardcoded default in PINNED_REPOS; the
-             default is the floor so the row never renders blank. Read for every
-             pinned repo by probePinned(), which also records whether each repo
-             is "connected" (carries a config at all).
+             button. A repo may self-declare it, but the quick-link row's icon
+             comes from the registry entry (see THE QUICK-LINK REGISTRY below);
+             this field is the repo's own suggestion for consumers that read it.
+    quickLinks  (registry repo only) the curated header quick-link list:
+             [{ repo, icon }], membership + order + icon. Read from REGISTRY_REPO
+             (web-tools-private) by loadQuickLinks() when the viewer has a token.
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
@@ -903,6 +903,18 @@ function overview(){ return {
              its default branch) or qualified refs ("owner/repo[@ref]:path").
              Copying goes through gh-transfer.js (lib/): per-file Contents-API
              commits, base64 pass-through, viewer's token, two-tap confirm.
+
+  THE QUICK-LINK REGISTRY: the header row is data-driven, not a hardcoded list.
+  This page is public, so its source must not enumerate private repos. The
+  built-in default (PUBLIC_QUICK_LINKS) lists only the public repo. The real
+  curated list lives in a private registry repo (REGISTRY_REPO =
+  web-tools-private) as a `quickLinks: [{repo, icon}]` field in its root
+  .web-tools.json, and loadQuickLinks() fetches it when the viewer has a token
+  (the registry is private, so no token means the public default only). The one
+  private string this public page names is the registry repo itself, never the
+  repos it lists. Editing the registry's config in the shield dialog re-runs
+  loadQuickLinks (via the web-tools:config-saved event), so the row updates
+  without a reload.
 
   THE STAGE: a cross-repo fileset (store.stage, [{repo, ref, path}]) fed by the
   explorer's "+" buttons, a manifest's stage.files, or a #stage= link, and

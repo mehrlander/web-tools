@@ -113,12 +113,14 @@ deprecation window. Fields:
 }
 ```
 
-- **icon**: Phosphor icon class (e.g. `"ph-scales"`) for the repo's button in
-  the header quick-link row. Overrides the hardcoded default the shell ships for
-  that repo; the default is the floor, so a repo without an `icon` (or without a
-  manifest) still renders. The shell reads this field for every pinned repo at
-  load (`probePinned`), which also records whether each repo is **connected**
-  (carries a manifest at all).
+- **icon**: Phosphor icon class (e.g. `"ph-scales"`) a repo may self-declare for
+  its quick-link button. The quick-link row's icon is actually taken from the
+  registry entry (see below); this field is the repo's own suggestion for any
+  consumer that reads it.
+- **quickLinks** (registry repo only): the curated header quick-link list,
+  `[{ repo, icon }]` — membership, order, and icon. Read from the private
+  **registry repo** (`web-tools-private`), not from every repo. See "Quick-link
+  registry" below.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
@@ -134,6 +136,27 @@ deprecation window. Fields:
 - **conventions**: not a show-repo field. `"optout"` marks a repo that has
   deliberately not adopted the portable conventions, so a session-start nudge
   stops asking. Absent means unset. Documented in [PORTABLE.md](PORTABLE.md).
+
+### Quick-link registry
+
+The header quick-link row is data-driven, not a hardcoded list. `show-repo` is a
+public page, so its source must not enumerate private repos. The shell ships a
+public-only default (`PUBLIC_QUICK_LINKS`, just the public web-tools repo). The
+real, curated list lives in a **private registry repo** (`REGISTRY_REPO =
+mehrlander/web-tools-private`) as a `quickLinks` field in its root
+`.web-tools.json`:
+
+```json
+{ "quickLinks": [ { "repo": "mehrlander/home", "icon": "ph-house" }, … ] }
+```
+
+`loadQuickLinks()` fetches it when the viewer has a token; the registry repo is
+private, so no token means the public default only. The **one** private string
+this public page names is the registry repo itself, never the repos it lists.
+Editing the registry's config in the shield dialog re-runs the load (via the
+`web-tools:config-saved` event), so the row updates without a page reload. Adding
+or reordering a quick link is: open `web-tools-private` in show-repo, edit its
+config on the gear tab, save.
 
 ### Editing the manifest from the shell
 
