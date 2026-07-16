@@ -110,7 +110,15 @@
           <input x-model="fPaste" @keydown.enter="goPaste()"
                  placeholder="https://github.com/owner/repo/compare/main...branch · /blob/… · /pull/N"
                  class="input input-sm input-bordered font-mono text-xs join-item w-full">
-          <button @click="goPaste()" class="btn btn-sm btn-primary join-item">Open</button>
+          <button @click="goPaste()" :disabled="!fPaste.trim()" class="btn btn-sm btn-primary join-item">Open</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
+          <span class="opacity-50">Try:</span>
+          <template x-for="ex in examples" :key="ex.label">
+            <button @click="setHash(ex.target)" class="badge badge-sm badge-ghost gap-1 hover:badge-primary cursor-pointer">
+              <i class="ph" :class="ex.icon"></i><span x-text="ex.label"></span>
+            </button>
+          </template>
         </div>
       </div>
       <div class="divider my-0 text-xs opacity-60">or</div>
@@ -204,6 +212,18 @@ function reviewApp() { return {
   linkCopied: false,
   dumpCopied: false,
   fPaste: '', fRepo: '', fHead: '', fBase: '', fPath: '',
+
+  // Built-in demo targets. Durable by construction: commit SHAs never move and
+  // the repo is public, so these render with no token and survive branch
+  // deletion (which is why they address SHAs, not the merged branch names).
+  // They also make the empty state actionable inside a toss, where the address
+  // fragment cannot reach the rendered page (srcdoc iframe = empty hash).
+  examples: [
+    { label: 'file diff', icon: 'ph-file',
+      target: { repo: 'mehrlander/web-tools', ref: '08635d9', path: '.claude/skills/tasks/SKILL.md', base: '899e9d1' } },
+    { label: 'changeset', icon: 'ph-git-diff',
+      target: { repo: 'mehrlander/web-tools', ref: '820c137', base: '899e9d1' } },
+  ],
 
   async init() {
     window.addEventListener('hashchange', () => this.boot());
@@ -303,6 +323,7 @@ function reviewApp() { return {
   },
 
   goPaste() {
+    if (!this.fPaste.trim()) return;
     const t = reviewTarget.parse(this.fPaste);
     if (!t) { this.error = 'Could not parse that as a GitHub URL or #gh= address.'; return; }
     if (t.kind === 'pull') {
@@ -332,8 +353,11 @@ function reviewApp() { return {
 
   reset() {
     this.fPaste = ''; this.fPath = '';
-    history.pushState(null, '', location.pathname + location.search);
-    this.boot();
+    // Clear the fragment without pushState: inside a toss srcdoc iframe the
+    // document is about:srcdoc, where pushState to a pathname throws. Assigning
+    // an empty hash is same-document and fires our hashchange -> boot.
+    if (location.hash) location.hash = '';
+    else this.boot();
   },
 
   async copyLink() {
