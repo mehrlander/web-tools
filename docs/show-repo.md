@@ -19,8 +19,10 @@ in a browser that holds the viewer's stored `ghToken`, and only for the token
 owner. This is the same constraint as toss-render's `#gh=` address mode. Two
 consequences:
 
-- A stage link sent to someone without an authorized token, or opened in the
-  **Claude app's in-app browser** (which has its own empty storage), fails.
+- A stage link sent to someone without an authorized token fails. The **Claude
+  app's in-app browser** keeps its own storage, so the token is not guaranteed
+  there (historically absent, but it can be entered, after which the link works);
+  treat it as possibly token-less, not certainly so.
 - The token-less, works-for-anyone `#gz=` content-carrying form that toss-render
   has is **contemplated but not built** for the stage. To hand a fileset to a
   token-less reader today, download the concatenated bundle and `SendUserFile`
@@ -244,8 +246,8 @@ Three cross-repo live-view channels, one job each:
   live. show-repo's custom landings and the viewer's "Toss render" action both
   hand a file to toss-render at its own `repo@ref`.
 - **artifacts** (marked 📦) *publish* a self-contained snapshot to a stable
-  `claude.ai` URL, which renders in the Claude app where a token-gated toss or
-  stage cannot. See [`artifacts.md`](artifacts.md).
+  `claude.ai` URL, which renders in the Claude app on sign-in alone, so it needs
+  no token where a toss or stage would want one. See [`artifacts.md`](artifacts.md).
 
 ## Roadmap (not built)
 

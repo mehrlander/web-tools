@@ -125,8 +125,9 @@ the portable fallback is the 🥏 `#gz=` toss.
 
 A page published as an artifact this session gets a 📦 line: link text the
 page path, URL the claude.ai artifact URL. Pick by where the link opens: the
-Claude app's in-app browser holds no token, so `#gh=` fails there, while 📦
-and `#gz=` both work (matrix in `docs/artifacts.md`). Record an artifact URL
+Claude app's in-app browser has its own storage, so a token is not guaranteed
+there and `#gh=` may fail, while 📦 and `#gz=` always work (matrix in
+`docs/artifacts.md`). Record an artifact URL
 in a durable place (README, PR body, task file) or later sessions cannot
 find it.
 
