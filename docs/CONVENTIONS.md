@@ -12,6 +12,8 @@ The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): t
 
 **Adding your own, without clobbering.** The install owns only what it ships. Plugin skills are namespaced (`/portable:caption`), so a same-named skill of yours coexists; the fallback fetch hook writes a fixed file list and touches nothing else. Your own skills and any `CLAUDE.md` text below the import are never overwritten.
 
+**Standing decisions: write the answer down, not just the question.** A recurring fork (commit this class of file to main without asking, skip the watch offer, take the smaller of two options) becomes a standing decision the moment a doc states it as a default: name it in `CLAUDE.md` or the relevant portable doc (this file, `TRACKER.md`), and a session that hits it takes the default and notes the assumption in its reply rather than raising it fresh. Writing it down is also the only lever that reliably works: a `permissions.deny` entry naming the question tool does not suppress it, since asking is a model choice, not a gated call the permission layer can intercept. So a repo fielding the same question repeatedly has a missing standing decision, not a tool to disable.
+
 ---
 
 ## Surfacing primitives

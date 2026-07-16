@@ -15,7 +15,7 @@ Two kinds of file, both on `main`:
 - `tasks/NNNN.md`: one file per task, the source of truth.
 - `board.md`: a rollup generated from the task files, never hand-edited.
 
-Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look.
+Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look. Committing those two paths to `main` is what this document asks for throughout, so adopting the tracker is standing permission to do it: a session need not confirm the push, only note it in its reply. Nothing else about a repo's branch or PR flow changes.
 
 Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 
