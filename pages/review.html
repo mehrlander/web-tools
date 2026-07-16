@@ -24,7 +24,9 @@
     #gh=owner/repo                       opens the form prefilled
 
   Pasted GitHub URLs normalize into the same shape: /compare/a...b, /blob/,
-  /tree/, /pull/N (resolved to its head/base via the API), or a bare repo URL.
+  /tree/, /pull/N (resolved via the API: branch names while the PR is open,
+  head/base SHAs once merged or closed, since the branch is then usually gone),
+  or a bare repo URL.
 
   Per-file cards are alpineComponents/file-review.js: CM6 split/unified diff
   (kits/cm6-merge.js; word-level highlights, unchanged stretches folded), the
@@ -274,6 +276,14 @@ function reviewApp() { return {
 
   async resolvePull(t) {
     const pr = await new GH({ repo: t.repo }).req('pulls/' + t.number);
+    // A merged or closed PR usually has its head branch deleted, so a compare
+    // by branch name 404s. Address the head/base SHAs instead: a merged commit
+    // stays reachable in the base repo forever (this also resolves a merged
+    // fork PR, whose commits now live in the base history). A still-open PR
+    // keeps friendly branch names and tracks the live branch tip.
+    if (pr.state !== 'open') {
+      return { kind: 'ref', repo: t.repo, ref: pr.head.sha, base: pr.base.sha };
+    }
     if (pr.head?.repo?.full_name && pr.head.repo.full_name !== t.repo) {
       throw new Error('PR #' + t.number + ' comes from a fork (' + pr.head.repo.full_name + '); paste a compare URL of the fork instead.');
     }
