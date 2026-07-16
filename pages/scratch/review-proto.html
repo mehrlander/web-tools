@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review · styling prototype</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎨</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!-- Collapse plugin first (defers run in order): the repo's alpine-bundle ships
+     it, but the plain CDN Alpine build does not, and the card body uses x-collapse. -->
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+
+<!--
+  review-proto.html — a SELF-CONTAINED styling harness for pages/review.html.
+
+  Why this exists: the real review page can't be opened on its own. It imports
+  ../dist/web-tools.js (the repo boot chain), gh.loads three repo files at
+  runtime, and fills its cards from the live GitHub API. None of that is about
+  how it LOOKS. This file strips all of it out and keeps only the look:
+
+    - every dependency is an ABSOLUTE CDN url (daisyUI/Tailwind/Phosphor/Alpine,
+      and CM6 from esm.sh), so the file opens anywhere — file://, a paste, a
+      #gz= toss — with no token and no repo;
+    - the data is a FIXTURE baked in below (FIXTURE), a fake changeset of four
+      files, so nothing is fetched;
+    - the card markup and the app chrome are copied VERBATIM from
+      alpineComponents/file-review.js and pages/review.html, so edits here map
+      back one-to-one. Change a class here, change the same class there.
+
+  What is faithful vs. approximated:
+    - Chrome (header, stat badges, commits, empty state, the file-card frame,
+      link row, tabs, split/unified toggle): identical markup to the real page.
+      This is where most visual design lives; style it freely.
+    - The diff itself is real CM6 merge (the same @codemirror/merge the kit
+      uses), so the .cm-* DOM you'd theme in production is present here too.
+      In the real page that lives in kits/cm6-merge.js (the paneExts theme +
+      the .review-cm CSS below); this file inlines a trimmed copy (cm6Merge).
+    - No fetching, no auth, no routing. A prototype-only mode switcher (top
+      strip, marked) flips between empty / changeset / single-file so every
+      state is one click away.
+
+  Bringing style work back:
+    - chrome markup/classes  -> alpineComponents/file-review.js `template`
+                                and pages/review.html
+    - diff pane theming      -> kits/cm6-merge.js `paneExts` theme, and the
+                                `.review-cm` rules in pages/review.html <style>
+  The mode switcher and the FIXTURE block are the only parts with no counterpart
+  in the real page; drop them when transcribing.
+-->
+<style>
+  [x-cloak]{display:none!important}
+  /* ── Diff pane theming. This is the counterpart of the .review-cm rules in
+     pages/review.html plus kits/cm6-merge.js's paneExts theme. Style the CM6
+     merge DOM here; the .cm-* classes are CodeMirror's own. ── */
+  .review-cm .cm-editor { background: transparent; }
+  .review-cm .cm-mergeView { background: transparent; }
+  .review-cm .cm-scroller { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+</head>
+<body class="min-h-screen bg-base-200 text-base-content" x-data="proto()" x-cloak>
+
+<!-- ══ PROTOTYPE-ONLY control strip (no counterpart in review.html) ══ -->
+<div class="bg-warning/15 border-b border-warning/30">
+  <div class="max-w-4xl mx-auto px-4 py-1.5 flex items-center gap-2 text-xs">
+    <span class="font-semibold opacity-70">prototype:</span>
+    <div class="join">
+      <button class="btn btn-xs join-item" :class="mode==='empty' && 'btn-active'" @click="mode='empty'">empty</button>
+      <button class="btn btn-xs join-item" :class="mode==='changeset' && 'btn-active'" @click="mode='changeset'">changeset</button>
+      <button class="btn btn-xs join-item" :class="mode==='file' && 'btn-active'" @click="mode='file'">single file</button>
+    </div>
+    <span class="opacity-50">— fixture data; the real page fetches this live</span>
+  </div>
+</div>
+
+<!-- ══ Header (verbatim from review.html) ══ -->
+<header class="bg-base-100 border-b border-base-300 sticky top-0 z-20">
+  <div class="max-w-4xl mx-auto px-4 h-12 flex items-center gap-2">
+    <a href="#" @click.prevent="mode='empty'" class="flex items-center gap-2 hover:opacity-80 shrink-0">
+      <i class="ph ph-magnifying-glass text-xl text-primary"></i>
+      <span class="font-semibold hidden sm:inline">Review</span>
+    </a>
+    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode !== 'empty'">
+      <a :href="'https://github.com/' + FIXTURE.repo" target="_blank" class="link link-hover text-primary truncate" x-text="FIXTURE.repo"></a>
+      <span class="opacity-70 truncate" x-text="rangeLabel"></span>
+    </div>
+    <div class="grow"></div>
+    <button x-show="mode !== 'empty'" class="btn btn-ghost btn-xs gap-1"><i class="ph ph-link"></i><span class="hidden sm:inline">link</span></button>
+    <button class="btn btn-ghost btn-xs gap-1"><i class="ph ph-github-logo"></i><span class="hidden sm:inline">GitHub</span></button>
+    <button class="btn btn-ghost btn-xs gap-1"><i class="ph ph-key"></i></button>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-3">
+
+  <!-- ── Empty state (verbatim from review.html) ── -->
+  <div x-show="mode === 'empty'" class="card bg-base-100 border border-base-300 max-w-xl w-full mx-auto mt-8">
+    <div class="card-body gap-4">
+      <h2 class="card-title text-base">Review a changeset or a file</h2>
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-bold opacity-70 uppercase">Paste a GitHub URL or #gh= address</label>
+        <div class="join w-full">
+          <input x-model="fPaste" placeholder="https://github.com/owner/repo/compare/main...branch · /blob/… · /pull/N"
+                 class="input input-sm input-bordered font-mono text-xs join-item w-full">
+          <button :disabled="!fPaste.trim()" class="btn btn-sm btn-primary join-item">Open</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
+          <span class="opacity-50">Try:</span>
+          <button @click="mode='file'" class="badge badge-sm badge-ghost gap-1 hover:badge-primary cursor-pointer"><i class="ph ph-file"></i>file diff</button>
+          <button @click="mode='changeset'" class="badge badge-sm badge-ghost gap-1 hover:badge-primary cursor-pointer"><i class="ph ph-git-diff"></i>changeset</button>
+        </div>
+      </div>
+      <div class="divider my-0 text-xs opacity-60">or</div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="flex flex-col gap-1 col-span-2">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Repo</label>
+          <input placeholder="owner/repo" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Head (branch / tag / sha)</label>
+          <input placeholder="my-branch" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Base</label>
+          <input placeholder="default branch" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1 col-span-2">
+          <label class="text-[10px] font-bold opacity-70 uppercase">File (optional; blank reviews the whole changeset)</label>
+          <input placeholder="lib/foo.js" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+      </div>
+      <div class="card-actions justify-end">
+        <button @click="mode='changeset'" class="btn btn-sm btn-primary gap-1"><i class="ph ph-magnifying-glass"></i>Review</button>
+      </div>
+      <p class="text-xs opacity-60">
+        Private repos and branches need the stored token (<i class="ph ph-key"></i> above).
+        Links carry refs only; content stays behind the viewer's token.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Changeset header (verbatim from review.html) ── -->
+  <div x-show="mode === 'changeset'" class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+      <span class="badge badge-sm badge-success" x-text="FIXTURE.status"></span>
+      <span class="badge badge-sm badge-ghost font-mono">+<span x-text="FIXTURE.ahead_by"></span> ahead</span>
+      <span class="badge badge-sm badge-ghost font-mono">-<span x-text="FIXTURE.behind_by"></span> behind</span>
+      <span class="badge badge-sm badge-ghost font-mono"><span x-text="FIXTURE.files.length"></span> files</span>
+      <span class="badge badge-sm badge-ghost font-mono">+<span x-text="totalAdd"></span> / -<span x-text="totalDel"></span></span>
+      <span class="grow"></span>
+      <button class="btn btn-ghost btn-xs gap-1"><i class="ph ph-copy"></i>dump</button>
+    </div>
+
+    <div class="collapse collapse-arrow bg-base-100 border border-base-300 rounded-lg">
+      <input type="checkbox">
+      <div class="collapse-title min-h-0 py-2 px-3 text-xs font-semibold">
+        Commits (<span x-text="FIXTURE.commits.length"></span>)
+      </div>
+      <div class="collapse-content px-3">
+        <div class="text-xs font-mono flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+          <template x-for="c in FIXTURE.commits" :key="c.sha">
+            <div class="flex items-baseline gap-2">
+              <span class="text-primary shrink-0" x-text="c.sha"></span>
+              <span class="truncate" x-text="c.subject"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── File cards (both modes). fileReview is the trimmed inline copy.
+       Key includes the mode so the prototype switcher always builds fresh
+       components; the real page reboots per URL, so it keys on path alone. ── -->
+  <template x-for="f in cards" :key="mode + ':' + f.path">
+    <div x-data="fileReview(f)"></div>
+  </template>
+
+</main>
+
+<script type="module">
+// ── CM6 merge: a trimmed inline copy of kits/cm6-merge.js. In the real page
+//    this is the kit; here it is inlined so the prototype has no repo dep. Same
+//    esm.sh modules, so the .cm-* DOM you theme is identical. ────────────────
+let _mods = null;
+const mods = () => _mods || (_mods = (async () => {
+  const [merge, cm, state, view, js, html, css, md] = await Promise.all([
+    import('https://esm.sh/@codemirror/merge'),
+    import('https://esm.sh/codemirror'),
+    import('https://esm.sh/@codemirror/state'),
+    import('https://esm.sh/@codemirror/view'),
+    import('https://esm.sh/@codemirror/lang-javascript'),
+    import('https://esm.sh/@codemirror/lang-html'),
+    import('https://esm.sh/@codemirror/lang-css'),
+    import('https://esm.sh/@codemirror/lang-markdown'),
+  ]);
+  return {
+    MergeView: merge.MergeView, unifiedMergeView: merge.unifiedMergeView,
+    minimalSetup: cm.minimalSetup, EditorState: state.EditorState,
+    EditorView: view.EditorView, lineNumbers: view.lineNumbers,
+    langs: { js: js.javascript, html: html.html, css: css.css, md: md.markdown },
+  };
+})());
+const EXT_LANG = { js:'js', mjs:'js', ts:'js', html:'html', htm:'html', css:'css', md:'md' };
+const langFor = p => EXT_LANG[String(p||'').split('.').pop().toLowerCase()] || 'plain';
+const paneExts = (m, language) => [
+  m.minimalSetup, m.lineNumbers(),
+  m.langs[language] ? m.langs[language]() : [],
+  m.EditorView.lineWrapping,
+  m.EditorState.readOnly.of(true), m.EditorView.editable.of(false),
+  m.EditorView.theme({
+    '&': { fontSize: '12px', backgroundColor: 'transparent' },
+    '.cm-gutters': { backgroundColor: 'transparent', border: 'none' },
+    '&.cm-focused': { outline: 'none' },
+  }),
+];
+window.cm6Merge = {
+  langFor,
+  async split(parent, { a, b, language }) {
+    const m = await mods();
+    const view = new m.MergeView({ parent,
+      a: { doc: a, extensions: paneExts(m, language) },
+      b: { doc: b, extensions: paneExts(m, language) },
+      highlightChanges: true, gutter: true, collapseUnchanged: { margin: 3, minSize: 4 } });
+    return { view, destroy: () => view.destroy() };
+  },
+  async unified(parent, { original, doc, language }) {
+    const m = await mods();
+    const view = new m.EditorView({ parent, state: m.EditorState.create({ doc, extensions: [
+      paneExts(m, language),
+      m.unifiedMergeView({ original, highlightChanges: true, gutter: true, mergeControls: false, collapseUnchanged: { margin: 3, minSize: 4 } }),
+    ] }) });
+    return { view, destroy: () => view.destroy() };
+  },
+};
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+//  FIXTURE — the fake changeset. In the real page this is the GitHub compare
+//  API payload plus per-file content fetches. Edit freely for styling; add
+//  files, change statuses, lengthen a diff.
+// ══════════════════════════════════════════════════════════════════════════
+const RL_OLD = `export function rateLimit(fn, ms) {
+  let last = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - last < ms) return;
+    last = now;
+    return fn(...args);
+  };
+}
+`;
+const RL_NEW = `export function rateLimit(fn, ms) {
+  let last = 0;
+  let timer = null;
+  return (...args) => {
+    const now = Date.now();
+    const wait = ms - (now - last);
+    if (wait <= 0) {
+      last = now;
+      return fn(...args);
+    }
+    // trailing call: run once the window elapses, newest args win
+    clearTimeout(timer);
+    timer = setTimeout(() => { last = Date.now(); fn(...args); }, wait);
+  };
+}
+`;
+const FIXTURE = {
+  repo: 'acme/widgets', base: 'main', head: 'feat/rate-limit',
+  status: 'ahead', ahead_by: 3, behind_by: 0,
+  commits: [
+    { sha: 'a1b2c3d', subject: 'rate-limit: add trailing-edge call' },
+    { sha: 'e4f5a6b', subject: 'rate-limit: reset window on idle' },
+    { sha: '7c8d9e0', subject: 'docs + demo page for the limiter' },
+  ],
+  files: [
+    { path: 'lib/rate-limit.js', status: 'modified', additions: 9, deletions: 2,
+      newText: RL_NEW, baseText: RL_OLD,
+      patch: `@@ -1,9 +1,15 @@
+ export function rateLimit(fn, ms) {
+   let last = 0;
++  let timer = null;
+   return (...args) => {
+     const now = Date.now();
+-    if (now - last < ms) return;
+-    last = now;
+-    return fn(...args);
++    const wait = ms - (now - last);
++    if (wait <= 0) {
++      last = now;
++      return fn(...args);
++    }
++    clearTimeout(timer);
++    timer = setTimeout(() => { last = Date.now(); fn(...args); }, wait);
+   };
+ }` },
+    { path: 'pages/limiter-demo.html', status: 'added', additions: 24, deletions: 0,
+      newText: `<!DOCTYPE html>\n<title>Rate limiter demo</title>\n<button id="go">fire</button>\n<pre id="log"></pre>\n<script type="module">\n  import { rateLimit } from '../lib/rate-limit.js';\n  const log = document.getElementById('log');\n  const hit = rateLimit(() => { log.textContent += 'ran ' + new Date().toISOString() + '\\n'; }, 1000);\n  document.getElementById('go').onclick = hit;\n<\/script>\n`,
+      baseText: null, patch: '' },
+    { path: 'lib/util/throttle.js', status: 'renamed', additions: 0, deletions: 0,
+      prevPath: 'lib/throttle.js',
+      newText: `export { rateLimit as throttle } from '../rate-limit.js';\n`,
+      baseText: `export { rateLimit as throttle } from '../rate-limit.js';\n`,
+      patch: '' },
+    { path: 'docs/OLD-NOTES.md', status: 'removed', additions: 0, deletions: 5,
+      newText: null,
+      baseText: `# Old notes\n\nThe hand-rolled debounce here predates rate-limit.js.\nRemove once the limiter ships.\n`,
+      patch: `@@ -1,5 +0,0 @@
+-# Old notes
+-
+-The hand-rolled debounce here predates rate-limit.js.
+-Remove once the limiter ships.` },
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+//  fileReview — trimmed from alpineComponents/file-review.js. The `template`
+//  is COPIED VERBATIM (edit it and paste back). Only the data layer differs:
+//  content comes from the fixture, so there is no fetch, no gh, no lastCommit.
+// ══════════════════════════════════════════════════════════════════════════
+const STATUS_TAG = { added:'A', modified:'M', changed:'M', removed:'D', renamed:'R', copied:'C', unchanged:'·' };
+const STATUS_CLASS = { added:'text-success', modified:'text-warning', changed:'text-warning', removed:'text-error', renamed:'text-info', copied:'text-info', unchanged:'text-base-content/40' };
+
+document.addEventListener('alpine:init', function () {
+  Alpine.data('fileReview', function (opts) {
+    opts = opts || {};
+    return {
+      // ── template: VERBATIM from alpineComponents/file-review.js ──
+      template: `
+        <div class="border border-base-300 rounded-lg bg-base-100 overflow-hidden">
+          <button @click="toggle()" class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-base-200/60 cursor-pointer">
+            <i class="ph shrink-0" :class="open ? 'ph-caret-down' : 'ph-caret-right'"></i>
+            <span class="font-mono w-4 text-center text-xs shrink-0" :class="statusClass" x-text="statusTag"></span>
+            <span class="font-mono text-xs truncate flex-1" x-text="path" :title="path"></span>
+            <span class="font-mono text-[10px] opacity-60 shrink-0" x-show="additions != null">
+              +<span x-text="additions || 0"></span>/-<span x-text="deletions || 0"></span>
+            </span>
+          </button>
+
+          <div x-show="open" x-collapse>
+            <div class="border-t border-base-200 px-3 py-2 flex flex-col gap-2">
+
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <a :href="newUrl" target="_blank" class="link link-hover text-primary inline-flex items-center gap-1"
+                   x-show="status !== 'removed'"><i class="ph ph-file"></i>new</a>
+                <a :href="baseUrl" target="_blank" class="link link-hover text-primary inline-flex items-center gap-1"
+                   x-show="status !== 'added'"><i class="ph ph-git-branch"></i><span x-text="baseName"></span></a>
+                <a :href="rawUrl" target="_blank" class="link link-hover text-primary inline-flex items-center gap-1"
+                   x-show="status !== 'removed'"><i class="ph ph-file-text"></i>raw</a>
+                <span class="grow"></span>
+                <button x-show="newText !== null" class="btn btn-ghost btn-xs gap-1"><i class="ph ph-copy"></i>content</button>
+                <button x-show="patch" class="btn btn-ghost btn-xs gap-1"><i class="ph ph-copy"></i>patch</button>
+              </div>
+
+              <div x-show="binary" class="text-xs opacity-60 italic">
+                Binary or oversized content; the links above are the view.
+              </div>
+
+              <div x-show="!binary" class="flex items-center gap-2">
+                <div class="tabs tabs-boxed tabs-xs bg-base-200 p-0.5">
+                  <a class="tab tab-xs" :class="tab==='diff' && 'tab-active'" x-show="diffable" @click="setTab('diff')">Diff</a>
+                  <a class="tab tab-xs" :class="tab==='patch' && 'tab-active'" x-show="patch" @click="setTab('patch')">Patch</a>
+                  <a class="tab tab-xs" :class="tab==='new' && 'tab-active'" x-show="newText !== null" @click="setTab('new')">New</a>
+                  <a class="tab tab-xs" :class="tab==='base' && 'tab-active'" x-show="baseText !== null" @click="setTab('base')">Base</a>
+                </div>
+                <div class="grow"></div>
+                <div class="join" x-show="tab==='diff' && diffable">
+                  <button class="btn btn-xs join-item" :class="view==='split' ? 'btn-active' : 'btn-ghost'"
+                          @click="setView('split')"><i class="ph ph-columns"></i></button>
+                  <button class="btn btn-xs join-item" :class="view==='unified' ? 'btn-active' : 'btn-ghost'"
+                          @click="setView('unified')"><i class="ph ph-rows"></i></button>
+                </div>
+              </div>
+
+              <div x-show="!binary && identical" class="text-xs opacity-60 italic">
+                Content identical at both refs.
+              </div>
+
+              <div x-show="tab==='diff'" x-ref="cmhost"
+                   class="review-cm border border-base-200 rounded max-h-[70vh] overflow-auto text-xs bg-base-100"></div>
+
+              <pre x-show="tab==='patch'" class="border border-base-200 rounded max-h-[70vh] overflow-auto text-[11px] leading-snug font-mono p-2 m-0 whitespace-pre-wrap break-words"><template x-for="(l, i) in patchLines" :key="i"><span class="block px-1 rounded-sm" :class="l.cls" x-text="l.t"></span></template></pre>
+
+              <pre x-show="tab==='new' || tab==='base'"
+                   class="border border-base-200 rounded max-h-[70vh] overflow-auto text-[11px] leading-snug font-mono p-2 m-0 whitespace-pre-wrap break-words"
+                   x-text="tab==='new' ? (newText ?? '') : (baseText ?? '')"></pre>
+
+            </div>
+          </div>
+        </div>`,
+
+      // data (from fixture, not fetched)
+      repo: FIXTURE.repo, ref: FIXTURE.head, baseName: FIXTURE.base,
+      path: opts.path, prevPath: opts.prevPath || '',
+      status: opts.status, additions: opts.additions ?? null, deletions: opts.deletions ?? null,
+      patch: opts.patch || '',
+      newText: opts.newText ?? null, baseText: opts.baseText ?? null,
+      open: !!opts.open, binary: false, tab: '', view: '', _cm: null,
+
+      init() {
+        this.$el.innerHTML = this.template;
+        this.$nextTick(() => Alpine.initTree(this.$el));
+        this.view = (window.innerWidth < 768) ? 'unified' : 'split';
+        this.tab = this.diffable ? 'diff' : this.patch ? 'patch'
+          : this.newText !== null ? 'new' : this.baseText !== null ? 'base' : '';
+        if (this.open) this.$nextTick(() => this._render());
+      },
+
+      get statusTag() { return STATUS_TAG[this.status] || '·'; },
+      get statusClass() { return STATUS_CLASS[this.status] || 'text-base-content/40'; },
+      get newUrl() { return 'https://github.com/' + this.repo + '/blob/' + this.ref + '/' + this.path; },
+      get baseUrl() { return 'https://github.com/' + this.repo + '/blob/' + this.baseName + '/' + (this.prevPath || this.path); },
+      get rawUrl() { return 'https://raw.githubusercontent.com/' + this.repo + '/' + this.ref + '/' + this.path; },
+      get diffable() { return this.newText !== null && this.baseText !== null && this.newText !== this.baseText; },
+      get identical() { return this.newText !== null && this.baseText !== null && this.newText === this.baseText; },
+      get patchLines() {
+        return (this.patch || '').split('\n').map(t => ({ t,
+          cls: t.startsWith('+') ? 'bg-success/15 text-success-content'
+             : t.startsWith('-') ? 'bg-error/15 text-error-content'
+             : t.startsWith('@@') ? 'bg-info/15' : '' }));
+      },
+
+      toggle() { this.open = !this.open; if (this.open) this.$nextTick(() => this._render()); else this._teardown(); },
+      setTab(t) { this.tab = t; if (t === 'diff') this._render(); },
+      setView(v) { this.view = v; this._render(); },
+
+      async _render() {
+        if (this.tab !== 'diff' || !this.diffable) return;
+        const host = this.$refs.cmhost;
+        if (!host || !window.cm6Merge) return;
+        this._teardown();
+        const mine = this._seq = (this._seq || 0) + 1;
+        const language = cm6Merge.langFor(this.path);
+        try {
+          const h = this.view === 'unified'
+            ? await cm6Merge.unified(host, { original: this.baseText, doc: this.newText, language })
+            : await cm6Merge.split(host, { a: this.baseText, b: this.newText, language });
+          if (mine !== this._seq) { h.destroy(); return; }
+          this._cm = h;
+        } catch (e) {
+          if (this.$refs.cmhost) this.$refs.cmhost.innerHTML =
+            '<div class="p-3 text-xs opacity-60 italic">Diff view needs a network connection for CM6 (' + ((e && e.message) || e) + '). Use Patch / New / Base.</div>';
+        }
+      },
+      _teardown() { if (this._cm) { this._cm.destroy(); this._cm = null; } if (this.$refs.cmhost) this.$refs.cmhost.innerHTML = ''; },
+      destroy() { this._teardown(); },
+    };
+  });
+});
+
+// ── app chrome state (trimmed from review.html's reviewApp) ──
+function proto() { return {
+  FIXTURE,
+  mode: 'changeset',
+  fPaste: '',
+  get rangeLabel() {
+    if (this.mode === 'file') return FIXTURE.files[0].path + ' @ ' + FIXTURE.head;
+    if (this.mode === 'changeset') return FIXTURE.base + '...' + FIXTURE.head;
+    return '';
+  },
+  get totalAdd() { return FIXTURE.files.reduce((a, f) => a + (f.additions || 0), 0); },
+  get totalDel() { return FIXTURE.files.reduce((a, f) => a + (f.deletions || 0), 0); },
+  get cards() {
+    if (this.mode === 'file') return [{ ...FIXTURE.files[0], open: true }];
+    if (this.mode === 'changeset') return FIXTURE.files.map(f => ({ ...f, open: false }));
+    return [];
+  },
+}; }
+</script>
+
+</body>
+</html>

@@ -169,6 +169,24 @@ there and `#gh=` may fail, while 📦 and `#gz=` always work (matrix in
 in a durable place (README, PR body, task file) or later sessions cannot
 find it.
 
+## The review line (🔍)
+
+A caption with several changed files can add one 🔍 line after the render
+lines: a link into the hosted review page, which renders every row's
+`[new]/[main]/[diff]` as live views (CM6 diff against the merge base, patch
+text, raw content, and the outbound links per file):
+
+```
+🔍 [review main...<branch>](https://mehrlander.github.io/web-tools/pages/review.html#gh=<owner>/<repo>@<branch>&base=main)
+```
+
+A single file reviews with `#gh=<owner>/<repo>@<branch>:<path>&base=main`.
+Same honesty gate as 🥏 `#gh=` and 🗂️ `#stage=`: the link carries refs only
+and is token-gated, so it renders only in a browser holding the viewer's
+token (possibly absent in the Claude app's in-app browser). It supplements
+the rows, never replaces them: the plain GitHub links stay the portable
+fallback.
+
 ## Tail
 
 When the branch has a guide PR (or a branch-guide file), close with the

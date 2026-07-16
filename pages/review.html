@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔍</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  review.html — the caption, as a page: a branch changeset (or one file)
+  presented for reading. Where toss-render RUNS a page and show-repo MOVES
+  files, this page REVIEWS them: content at a ref, the diff against a base,
+  and the outbound links, per file.
+
+  Address grammar (kits/review-target.js), the toss-render #gh= address plus
+  a base; fragment preferred, query accepted:
+
+    #gh=owner/repo@branch                changeset: base...branch, one card
+                                         per changed file (GitHub compare API)
+    #gh=owner/repo@branch:path/to/file   one file at branch, diffed vs base
+    ...&base=main                        explicit base (else default branch)
+    #gh=owner/repo                       opens the form prefilled
+
+  Pasted GitHub URLs normalize into the same shape: /compare/a...b, /blob/,
+  /tree/, /pull/N (resolved via the API: branch names while the PR is open,
+  head/base SHAs once merged or closed, since the branch is then usually gone),
+  or a bare repo URL.
+
+  Per-file cards are alpineComponents/file-review.js: CM6 split/unified diff
+  (kits/cm6-merge.js; word-level highlights, unchanged stretches folded), the
+  API's patch text, raw content tabs, and the caption's [new]/[main]/[diff]
+  links. Changeset diffs are fetched against the compare's merge base, so a
+  base that advanced after branching does not pollute the branch's own diff;
+  single-file mode diffs against the base tip (no compare call is made).
+
+  Honesty and auth: like toss-render #gh= and show-repo #stage=, a link to a
+  private repo or un-deployed branch renders only in a browser holding the
+  viewer's ghToken (gh-auth.js resolves it from localStorage and raises the
+  token prompt on 401/403). Public repos read anonymously. Compare API limits
+  apply: at most 300 files listed, per-file patch text absent for large or
+  binary files; the contents API caps a fetched side at ~1 MB (the card then
+  falls back to its links).
+
+  The "Copy dump" action serializes the changeset (commits, file list,
+  patches, capped) for pasting into an LLM session — the return path from a
+  review to a working session.
+
+  ?use=<branch|tag|sha> pins this page's own lib chain to a ref (the repo's
+  standard preview mechanism; pass a SHA for fresh commits).
+-->
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use');
+  await import(ref
+    ? `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/dist/web-tools.js`
+    : '../dist/web-tools.js');
+  await gh.load('kits/review-target.js');
+  await gh.load('kits/cm6-merge.js');
+  await gh.load('alpineComponents/file-review.js');
+</script>
+<style>
+  [x-cloak]{display:none!important}
+  /* CM6 merge views render inside the card scroller; let them size naturally. */
+  .review-cm .cm-editor { background: transparent; }
+  .review-cm .cm-mergeView { background: transparent; }
+</style>
+</head>
+<body class="min-h-screen bg-base-200 text-base-content" x-data="reviewApp()" x-cloak>
+
+<header class="bg-base-100 border-b border-base-300 sticky top-0 z-20">
+  <div class="max-w-4xl mx-auto px-4 h-12 flex items-center gap-2">
+    <a href="#" @click.prevent="reset()" class="flex items-center gap-2 hover:opacity-80 shrink-0">
+      <i class="ph ph-magnifying-glass text-xl text-primary"></i>
+      <span class="font-semibold hidden sm:inline">Review</span>
+    </a>
+    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode !== 'empty'">
+      <a :href="'https://github.com/' + repo" target="_blank" class="link link-hover text-primary truncate" x-text="repo"></a>
+      <span class="opacity-70 truncate" x-text="rangeLabel"></span>
+    </div>
+    <div class="grow"></div>
+    <button x-show="mode !== 'empty'" @click="copyLink()" class="btn btn-ghost btn-xs gap-1" title="Copy a link to this review">
+      <i class="ph" :class="linkCopied ? 'ph-check' : 'ph-link'"></i><span class="hidden sm:inline">link</span>
+    </button>
+    <a x-show="githubUrl" :href="githubUrl" target="_blank" class="btn btn-ghost btn-xs gap-1" title="Open on GitHub">
+      <i class="ph ph-github-logo"></i><span class="hidden sm:inline">GitHub</span>
+    </a>
+    <button @click="ghAuth.prompt('Paste a GitHub token for private repos and branches.')"
+            class="btn btn-ghost btn-xs gap-1" title="Set the stored token">
+      <i class="ph ph-key"></i>
+    </button>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 py-4 flex flex-col gap-3">
+
+  <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
+    <i class="ph ph-warning"></i><span x-text="error"></span>
+  </div>
+
+  <div x-show="loading" class="flex justify-center py-16">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+
+  <!-- ── Empty state: paste anything, or spell out the target ────────────── -->
+  <div x-show="mode === 'empty' && !loading" class="card bg-base-100 border border-base-300 max-w-xl w-full mx-auto mt-8">
+    <div class="card-body gap-4">
+      <h2 class="card-title text-base">Review a changeset or a file</h2>
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-bold opacity-70 uppercase">Paste a GitHub URL or #gh= address</label>
+        <div class="join w-full">
+          <input x-model="fPaste" @keydown.enter="goPaste()"
+                 placeholder="https://github.com/owner/repo/compare/main...branch · /blob/… · /pull/N"
+                 class="input input-sm input-bordered font-mono text-xs join-item w-full">
+          <button @click="goPaste()" :disabled="!fPaste.trim()" class="btn btn-sm btn-primary join-item">Open</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
+          <span class="opacity-50">Try:</span>
+          <template x-for="ex in examples" :key="ex.label">
+            <button @click="setHash(ex.target)" class="badge badge-sm badge-ghost gap-1 hover:badge-primary cursor-pointer">
+              <i class="ph" :class="ex.icon"></i><span x-text="ex.label"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+      <div class="divider my-0 text-xs opacity-60">or</div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="flex flex-col gap-1 col-span-2">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Repo</label>
+          <input x-model="fRepo" placeholder="owner/repo" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Head (branch / tag / sha)</label>
+          <input x-model="fHead" placeholder="my-branch" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] font-bold opacity-70 uppercase">Base</label>
+          <input x-model="fBase" placeholder="default branch" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+        <div class="flex flex-col gap-1 col-span-2">
+          <label class="text-[10px] font-bold opacity-70 uppercase">File (optional; blank reviews the whole changeset)</label>
+          <input x-model="fPath" placeholder="lib/foo.js" class="input input-sm input-bordered font-mono text-xs">
+        </div>
+      </div>
+      <div class="card-actions justify-end">
+        <button @click="goForm()" :disabled="!fRepo.includes('/')" class="btn btn-sm btn-primary gap-1">
+          <i class="ph ph-magnifying-glass"></i>Review
+        </button>
+      </div>
+      <p class="text-xs opacity-60">
+        Private repos and branches need the stored token (<i class="ph ph-key"></i> above).
+        Links carry refs only; content stays behind the viewer's token.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Changeset header: stats, commits, dump ──────────────────────────── -->
+  <div x-show="mode === 'changeset' && data && !loading" class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+      <span class="badge badge-sm" :class="statusClass" x-text="data?.status"></span>
+      <span class="badge badge-sm badge-ghost font-mono">+<span x-text="data?.ahead_by ?? 0"></span> ahead</span>
+      <span class="badge badge-sm badge-ghost font-mono">-<span x-text="data?.behind_by ?? 0"></span> behind</span>
+      <span class="badge badge-sm badge-ghost font-mono"><span x-text="files.length"></span> files</span>
+      <span class="badge badge-sm badge-ghost font-mono">+<span x-text="totalAdd"></span> / -<span x-text="totalDel"></span></span>
+      <span class="grow"></span>
+      <button @click="copyDump()" class="btn btn-ghost btn-xs gap-1" title="Serialized changeset for an LLM session">
+        <i class="ph" :class="dumpCopied ? 'ph-check' : 'ph-copy'"></i>dump
+      </button>
+    </div>
+
+    <div x-show="(data?.commits || []).length" class="collapse collapse-arrow bg-base-100 border border-base-300 rounded-lg">
+      <input type="checkbox">
+      <div class="collapse-title min-h-0 py-2 px-3 text-xs font-semibold">
+        Commits (<span x-text="(data?.commits || []).length"></span>)
+      </div>
+      <div class="collapse-content px-3">
+        <div class="text-xs font-mono flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+          <template x-for="c in (data?.commits || [])" :key="c.sha">
+            <div class="flex items-baseline gap-2">
+              <a :href="'https://github.com/' + repo + '/commit/' + c.sha" target="_blank"
+                 class="text-primary shrink-0" x-text="c.sha.slice(0,7)"></a>
+              <span class="truncate" x-text="(c.commit?.message || '').split('\n')[0]"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="!files.length" class="text-sm opacity-60 italic px-1">
+      No changed files between these refs.
+    </div>
+  </div>
+
+  <!-- ── The file cards (both modes) ─────────────────────────────────────── -->
+  <template x-for="f in files" :key="f.path">
+    <div x-data="fileReview(f)"></div>
+  </template>
+
+</main>
+
+<script>
+const CANONICAL = 'https://mehrlander.github.io/web-tools/pages/review.html';
+
+function reviewApp() { return {
+  mode: 'empty',            // 'empty' | 'changeset' | 'file'
+  repo: '',
+  head: '',
+  base: '',                 // resolved base name (display + links)
+  path: '',
+  data: null,               // compare API payload (changeset mode)
+  files: [],                // fileReview opts, one per card
+  loading: false,
+  error: '',
+  linkCopied: false,
+  dumpCopied: false,
+  fPaste: '', fRepo: '', fHead: '', fBase: '', fPath: '',
+
+  // Built-in demo targets. Durable by construction: commit SHAs never move and
+  // the repo is public, so these render with no token and survive branch
+  // deletion (which is why they address SHAs, not the merged branch names).
+  // They also make the empty state actionable inside a toss, where the address
+  // fragment cannot reach the rendered page (srcdoc iframe = empty hash).
+  examples: [
+    { label: 'file diff', icon: 'ph-file',
+      target: { repo: 'mehrlander/web-tools', ref: '08635d9', path: '.claude/skills/tasks/SKILL.md', base: '899e9d1' } },
+    { label: 'changeset', icon: 'ph-git-diff',
+      target: { repo: 'mehrlander/web-tools', ref: '820c137', base: '899e9d1' } },
+  ],
+
+  async init() {
+    window.addEventListener('hashchange', () => this.boot());
+    await this.boot();
+  },
+
+  get rangeLabel() {
+    if (this.mode === 'file') return this.path + ' @ ' + this.head;
+    if (this.mode === 'changeset') return this.base + '...' + this.head;
+    return '';
+  },
+  get githubUrl() {
+    if (this.mode === 'changeset') return 'https://github.com/' + this.repo + '/compare/' + this.base + '...' + this.head;
+    if (this.mode === 'file') return 'https://github.com/' + this.repo + '/blob/' + this.head + '/' + this.path;
+    return '';
+  },
+  get statusClass() {
+    const s = this.data?.status;
+    return s === 'ahead' ? 'badge-success' : s === 'behind' ? 'badge-warning'
+      : s === 'diverged' ? 'badge-error' : 'badge-ghost';
+  },
+  get totalAdd() { return (this.data?.files || []).reduce((a, f) => a + (f.additions || 0), 0); },
+  get totalDel() { return (this.data?.files || []).reduce((a, f) => a + (f.deletions || 0), 0); },
+
+  async boot() {
+    this.error = '';
+    this.data = null;
+    this.files = [];
+    this.mode = 'empty';
+
+    const frag = location.hash && location.hash.length > 1 ? location.hash
+      : (location.search.includes('gh=') ? location.search : '');
+    if (!frag) return;
+    let t = reviewTarget.parse(frag);
+    if (!t) { this.error = 'Unrecognized address: ' + frag; return; }
+
+    this.loading = true;
+    try {
+      if (t.kind === 'pull') t = await this.resolvePull(t);
+      await this.open(t);
+    } catch (e) {
+      this.error = (e.status === 404)
+        ? 'Not found (a private repo or branch needs the stored token — key icon above).'
+        : 'Load failed: ' + (e.message || e);
+    }
+    this.loading = false;
+  },
+
+  async resolvePull(t) {
+    const pr = await new GH({ repo: t.repo }).req('pulls/' + t.number);
+    // A merged or closed PR usually has its head branch deleted, so a compare
+    // by branch name 404s. Address the head/base SHAs instead: a merged commit
+    // stays reachable in the base repo forever (this also resolves a merged
+    // fork PR, whose commits now live in the base history). A still-open PR
+    // keeps friendly branch names and tracks the live branch tip.
+    if (pr.state !== 'open') {
+      return { kind: 'ref', repo: t.repo, ref: pr.head.sha, base: pr.base.sha };
+    }
+    if (pr.head?.repo?.full_name && pr.head.repo.full_name !== t.repo) {
+      throw new Error('PR #' + t.number + ' comes from a fork (' + pr.head.repo.full_name + '); paste a compare URL of the fork instead.');
+    }
+    return { kind: 'ref', repo: t.repo, ref: pr.head.ref, base: pr.base.ref };
+  },
+
+  async open(t) {
+    this.repo = t.repo;
+    const gh = new GH({ repo: t.repo });
+    let base = t.base;
+    if (!base || (!t.ref && !t.path)) {
+      const info = await gh.req('/repos/' + t.repo);
+      base = base || info.default_branch || 'main';
+      if (!t.ref && !t.path) {
+        // Bare repo: prefill the form rather than guessing a head.
+        this.fRepo = t.repo; this.fBase = base;
+        this.mode = 'empty';
+        return;
+      }
+    }
+    this.base = base;
+    this.head = t.ref || base;
+    this.path = t.path || '';
+
+    if (this.path) {
+      this.mode = 'file';
+      this.files = [{
+        repo: this.repo, ref: this.head, base: this.base, baseName: this.base,
+        path: this.path, open: true,
+      }];
+      return;
+    }
+
+    if (this.head === this.base) throw new Error('Head and base are the same ref (' + this.base + '); nothing to compare.');
+    this.mode = 'changeset';
+    const d = await gh.compare(this.base, this.head);
+    this.data = d;
+    const mergeBase = d.merge_base_commit?.sha || this.base;
+    this.files = (d.files || []).map(f => ({
+      repo: this.repo, ref: this.head,
+      base: mergeBase, baseName: this.base,
+      path: f.filename, prevPath: f.previous_filename || '',
+      status: f.status, additions: f.additions, deletions: f.deletions,
+      patch: f.patch || '',
+      open: (d.files || []).length === 1,
+    }));
+  },
+
+  goPaste() {
+    if (!this.fPaste.trim()) return;
+    const t = reviewTarget.parse(this.fPaste);
+    if (!t) { this.error = 'Could not parse that as a GitHub URL or #gh= address.'; return; }
+    if (t.kind === 'pull') {
+      // No fragment form for a PR; resolve it now, then address the refs.
+      this.loading = true;
+      this.resolvePull(t)
+        .then(r => this.setHash(r))
+        .catch(e => { this.error = 'PR lookup failed: ' + (e.message || e); })
+        .finally(() => { this.loading = false; });
+      return;
+    }
+    this.setHash(t);
+  },
+
+  goForm() {
+    this.setHash({
+      repo: this.fRepo.trim(), ref: this.fHead.trim() || undefined,
+      path: this.fPath.trim() || undefined, base: this.fBase.trim() || undefined,
+    });
+  },
+
+  setHash(t) {
+    const h = '#' + reviewTarget.mint(t);
+    if (location.hash === h) this.boot();
+    else location.hash = h;
+  },
+
+  reset() {
+    this.fPaste = ''; this.fPath = '';
+    // Clear the fragment without pushState: inside a toss srcdoc iframe the
+    // document is about:srcdoc, where pushState to a pathname throws. Assigning
+    // an empty hash is same-document and fires our hashchange -> boot.
+    if (location.hash) location.hash = '';
+    else this.boot();
+  },
+
+  async copyLink() {
+    const t = this.mode === 'file'
+      ? { repo: this.repo, ref: this.head, path: this.path, base: this.base }
+      : { repo: this.repo, ref: this.head, base: this.base };
+    await this.$clip(CANONICAL + '#' + reviewTarget.mint(t));
+    this.linkCopied = true;
+    setTimeout(() => { this.linkCopied = false; }, 1500);
+  },
+
+  async copyDump() {
+    const d = this.data;
+    if (!d) return;
+    const CAP = 8000;
+    const lines = [];
+    lines.push('# Compare ' + this.base + '...' + this.head + ' (' + this.repo + ')');
+    lines.push('status: ' + d.status + ', ahead_by: ' + (d.ahead_by || 0) + ', behind_by: ' + (d.behind_by || 0));
+    lines.push('url: ' + this.githubUrl);
+    lines.push('');
+    if ((d.commits || []).length) {
+      lines.push('## Commits (' + d.commits.length + ')');
+      for (const c of d.commits) lines.push('- ' + c.sha.slice(0, 7) + ' ' + (c.commit?.message || '').split('\n')[0]);
+      lines.push('');
+    }
+    lines.push('## Files (' + (d.files || []).length + ')');
+    for (const f of (d.files || [])) lines.push('- [' + f.status[0].toUpperCase() + '] ' + f.filename + '  +' + (f.additions || 0) + '/-' + (f.deletions || 0));
+    lines.push('');
+    lines.push('## Patches');
+    for (const f of (d.files || [])) {
+      lines.push('### ' + f.filename);
+      const p = f.patch || '';
+      if (!p) lines.push('(no patch — binary or too large)');
+      else if (p.length > CAP) lines.push(p.slice(0, CAP), '... [truncated ' + (p.length - CAP) + ' bytes]');
+      else lines.push(p);
+      lines.push('');
+    }
+    await this.$clip(lines.join('\n').trim() + '\n');
+    this.dumpCopied = true;
+    setTimeout(() => { this.dumpCopied = false; }, 1500);
+  },
+}; }
+</script>
+
+</body>
+</html>

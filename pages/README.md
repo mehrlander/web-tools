@@ -22,6 +22,7 @@ the link-dense text twin of the visual index above.
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `nav-repo` | Nav Repo | [view](https://mehrlander.github.io/web-tools/pages/nav-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/nav-repo.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
+| `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `table-compress` | Transform | [view](https://mehrlander.github.io/web-tools/pages/table-compress.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress.html) |
 | `table-compress-multi` | Transform Multi | [view](https://mehrlander.github.io/web-tools/pages/table-compress-multi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/table-compress-multi.html) |
@@ -101,6 +102,7 @@ the link-dense text twin of the visual index above.
 | `define-test` | x-define — isolated test | [view](https://mehrlander.github.io/web-tools/pages/scratch/define-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/define-test.html) |
 | `demo-spacex` | SpaceX Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/scratch/demo-spacex.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/demo-spacex.html) |
 | `fab-sidebar-test` | FAB sidebar test | [view](https://mehrlander.github.io/web-tools/pages/scratch/fab-sidebar-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/fab-sidebar-test.html) |
+| `review-proto` | Review · styling prototype | [view](https://mehrlander.github.io/web-tools/pages/scratch/review-proto.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/review-proto.html) |
 | `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch/sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html) |
 
 ## pages/show-repo/

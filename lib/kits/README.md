@@ -471,6 +471,8 @@ examples.
 | `data-shelf.js` | `popups/data-shelf.html` | record shape + importer support |
 | `console.js` | `pages/demos/console-kit-demo.html` | console retention + `debugConsole` renderer |
 | `cm6.js` | `vanilla-demo.js` / `pages/drop/cm6-editor.html` | lazy CodeMirror 6 editor factory |
+| `cm6-merge.js` | `pages/review.html` | read-only CM6 split/unified diff views; display sibling of `cm6.js` |
+| `review-target.js` | `pages/review.html` | parse/mint the review address grammar (`gh=owner/repo[@ref][:path][&base=]`) |
 | `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
 | `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |
 | `build.js` | `tools/build/` + the FAB export | one emitter, two consumers |
