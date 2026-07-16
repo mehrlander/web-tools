@@ -12,6 +12,7 @@ _Generated from tasks/. Do not hand-edit._
 - Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
 - Repo-designated inbox and outbox in .web-tools.json (`claude/pr-219-review-22csrh`)
 - Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
+- Branch-review view in show-repo next: spec the branches view and confirm the content-level landed signal before building
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
