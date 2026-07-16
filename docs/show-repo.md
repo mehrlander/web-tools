@@ -175,6 +175,23 @@ operates on that repo. Stage history falls out for free: a repo's declared
 `stage.files` lives in its config, so versioning the config versions the declared
 stage. Design and future ideas: `web-tools-private/DESIGN.md`.
 
+### Mailbox (`mailbox/requests` → `mailbox/results`)
+
+An async request/response channel between an agent session (limited repo scope)
+and show-repo (the user's full-access token), built by `lib/repo-mailbox.js`.
+The agent drops a request file in the registry repo; show-repo, on load with a
+token, fulfills every pending request and writes the result back; the agent
+reads it on a later turn. This lets the agent see files and answers from repos it
+never added to its own scope, by borrowing the browser's token asynchronously.
+
+`processMailbox()` polls once per page load (a pending request wants prompt
+service, and listing is one call), keyed by request filename so nothing re-runs.
+It is **read-only**: the kinds (`tree`, `branches`, `fetch`) only read the user's
+repos and only write results into the mailbox, so auto-fulfilling on load never
+spends write access on agent-authored instructions. It is manual-triggered, not
+live: show-repo is the worker and only runs when the user opens it. Protocol and
+schema: `web-tools-private/mailbox/README.md`.
+
 ### Editing the manifest from the shell
 
 The sidebar **shield** dialog (the repo dialog, `repoModal` in

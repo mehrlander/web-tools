@@ -23,6 +23,8 @@
   await gh.load('gh-store.js');
   // Config-aggregate builders for the private cache (state/configs.json).
   await gh.load('repo-config-cache.js');
+  // The private request/response mailbox (mailbox/requests -> results).
+  await gh.load('repo-mailbox.js');
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
@@ -473,7 +475,7 @@ function app(){ return {
     // registry, and always refreshes the cache so the edit enters its history.
     this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
     this.$watch(() => this._authState, (s) => {
-      if (s === 'auth') this.loadQuickLinks().then(() => this.refreshConfigCache());
+      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.processMailbox(); }
     });
     document.addEventListener('web-tools:config-saved', async (e) => {
       this.loadConfig();
@@ -481,6 +483,7 @@ function app(){ return {
       this.refreshConfigCache(true);
     });
     this.loadQuickLinks().then(() => this.refreshConfigCache());
+    this.processMailbox();
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
@@ -634,6 +637,36 @@ function app(){ return {
         await reg.save(window.RepoConfigCache.CACHE_PATH, next, 'Update config cache (state/configs.json) via show-repo');
       }
     } catch(e){ console.warn('config cache refresh:', e?.message || e); }
+  },
+
+  // ── Private mailbox: fulfill request files an agent session dropped in the
+  // registry repo, using the viewer's token, and write results back. Read-only
+  // kinds only (tree / branches / fetch), so this never spends write access on
+  // agent-authored instructions. Polled once per page load (a pending request
+  // wants prompt service and listing is cheap); a dropped request is picked up
+  // on the next load. Results are keyed by the request filename so nothing
+  // re-runs. See lib/repo-mailbox.js and web-tools-private/mailbox/README.md.
+  async processMailbox(){
+    if (!this.hasToken() || !window.RepoMailbox) return;
+    const M = window.RepoMailbox;
+    try {
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      let reqs = [], results = [];
+      try { reqs = await reg.ls(M.REQ_DIR); } catch {}      // 404 = no mailbox yet
+      if (!reqs.length) return;
+      try { results = await reg.ls(M.RES_DIR); } catch {}
+      const names = M.pending(
+        reqs.filter(f => f.type === 'file').map(f => f.name),
+        results.filter(f => f.type === 'file').map(f => f.name)
+      );
+      for (const name of names){
+        let req;
+        try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
+        catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
+        const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
+        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via show-repo');
+      }
+    } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates
