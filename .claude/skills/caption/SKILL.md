@@ -39,18 +39,54 @@ templates.
 ## Rows
 
 One bullet per file, filename plain, link words tappable, rows uniform (no
-bullet swaps, no per-row icons), a file's links not repeated within a turn:
+bullet swaps, no per-row icons), a file's links not repeated within a turn. A
+diff link is slashed to the blob anchor it is measured against, so the pair
+shows what the diff is a diff of:
+
+- `[new]` is the file at the branch tip (`blob/<branch>/<path>`).
+- `[main]` is the file at the main baseline (`blob/main/<path>`).
+- `[main]/[diff]` is the net change against main (main as base, tip as head):
+  the reviewer's diff, and the only diff most rows need.
+- `[new]/[diff]` is the file's on-branch history (prior branch state to tip):
+  optional, only when more than one branch commit touched the file.
+
+The changed-file row, with URLs, is:
 
 ```
-- <path> ([new](https://github.com/<owner>/<repo>/blob/<branch>/<path>), [main](https://github.com/<owner>/<repo>/blob/main/<path>), [diff](https://github.com/<owner>/<repo>/commit/<sha>))
+- <path> ([new](https://github.com/<owner>/<repo>/blob/<branch>/<path>), [main](https://github.com/<owner>/<repo>/blob/main/<path>)/[diff](https://github.com/<owner>/<repo>/commit/<sha>))
 ```
 
-- `[new]` is the branch tip; omit `[main]` for an added file; a deleted file
-  gets `[main]` and `[diff]` only.
-- `[diff]` is the newest branch commit touching the file
+Per file state:
+
+- New file (absent on main): `[new]`. Built over several branch commits:
+  `[new]/[diff]`. No `[main]` side.
+- Changed file: `[new], [main]/[diff]`. Over several commits:
+  `[new]/[diff], [main]/[diff]`.
+- Deleted file: `[main]/[diff]` (the removal). No `[new]`.
+
+Diff URLs:
+
+- Exactly one branch commit touched the file: that commit diff is the
+  against-main diff, so `[diff]` = `commit/<sha>`
   (`git log main..HEAD -1 --format=%h -- <path>`).
-- Add `#L120` or `#L120-L145` to a blob link when a specific change is the point.
-- Add an indented `renders on: [<consumer>](…)` line under a shared component.
+- Several commits touched it: the true against-main diff is
+  `compare/main...<branch>#diff-<sha256(path)>`; that anchor is a sha256 of the
+  path and scrolls unreliably, so the newest commit is an acceptable fallback.
+- The `[new]/[diff]` history link is the newest commit or a commit-range
+  compare.
+
+Worked example, one row per state:
+
+```
+- README.md      (new, main/diff)       changed in one commit
+- CLAUDE.md      (new/diff, main/diff)  changed over several commits
+- foo/SKILL.md   (new)                  one-commit new file, no diff
+- notes.md       (new/diff)             new file built over several commits
+- old-tool.sh    (main/diff)            deleted
+```
+
+Add `#L120` or `#L120-L145` to a blob link when a specific change is the point.
+Add an indented `renders on: [<consumer>](…)` line under a shared component.
 
 ## Dense variant: folder tables (optional)
 
@@ -64,7 +100,9 @@ tables as their own lines.
 Shape: two tables, `New` and `Changed`. The word is the first header cell, the
 second header is blank. Column one is the folder, linked to its tree; column two
 lists the files. A filename always links to its `[new]` blob, so a `New` row
-stops there and a `Changed` row appends `([main], [diff])` in parens.
+stops at `[new]` and a `Changed` row appends `([main]/[diff])` in parens; a
+changed row touched by several commits may prepend `[new]/[diff]` before the
+`[main]/[diff]` pair.
 
 ```
 | New | |
@@ -73,7 +111,7 @@ stops there and a `Changed` row appends `([main], [diff])` in parens.
 
 | Changed | |
 |---|---|
-| [<dir>/](…/tree/<branch>/<dir>) | [<file>](…/blob/<branch>/<dir>/<file>) ([main](…/blob/main/<dir>/<file>), [diff](…/commit/<sha>)) |
+| [<dir>/](…/tree/<branch>/<dir>) | [<file>](…/blob/<branch>/<dir>/<file>) ([main](…/blob/main/<dir>/<file>)/[diff](…/commit/<sha>)) |
 ```
 
 Worked example (a turn that added a skill folder and edited one doc):
@@ -85,7 +123,7 @@ Worked example (a turn that added a skill folder and edited one doc):
 
 | Changed | |
 |---|---|
-| [docs/](https://github.com/<owner>/<repo>/tree/<branch>/docs) | [TRACKER.md](https://github.com/<owner>/<repo>/blob/<branch>/docs/TRACKER.md) ([main](https://github.com/<owner>/<repo>/blob/main/docs/TRACKER.md), [diff](https://github.com/<owner>/<repo>/commit/<sha>)) |
+| [docs/](https://github.com/<owner>/<repo>/tree/<branch>/docs) | [TRACKER.md](https://github.com/<owner>/<repo>/blob/<branch>/docs/TRACKER.md) ([main](https://github.com/<owner>/<repo>/blob/main/docs/TRACKER.md)/[diff](https://github.com/<owner>/<repo>/commit/<sha>)) |
 
 A file deeper than its folder carries the sub-path in the link text
 (`searches/README.md`). The sizes, render lines, and tail above are unchanged;
