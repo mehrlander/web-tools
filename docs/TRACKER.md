@@ -15,7 +15,7 @@ Two kinds of file, both on `main`:
 - `tasks/NNNN.md`: one file per task, the source of truth.
 - `board.md`: a rollup generated from the task files, never hand-edited.
 
-Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look.
+Feature work rides its branch as usual. Do not carry tracker changes on feature branches: task files and `board.md` are committed directly to `main`. That is what makes the tracker shared: every session knows where to look. Committing those two paths to `main` is what this document asks for throughout, so adopting the tracker is standing permission to do it: a session need not confirm the push, only note it in its reply. Nothing else about a repo's branch or PR flow changes.
 
 Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 
@@ -66,10 +66,6 @@ A comment on a task splits by append vs. overwrite. Current-state comments (a pr
 ## Claiming a task
 
 To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch. Update the task file on `main` when the status, owning branch, or progress log changes, and set `status: done` with `closed:` when it lands.
-
-## Standing permission to commit to main
-
-Adopting this tracker is standing permission for a session to commit `tasks/*.md` and `board.md` straight to `main`, no per-session confirmation needed: that direct-to-main path is what this document asks for throughout, not a one-off exception. A session weighing whether to ask before that push can treat this paragraph as the answer already given, and note the push in its reply instead of raising it as an open question. The permission is scoped to those two paths; nothing else about a repo's branch or PR flow changes.
 
 ## Board format
 
