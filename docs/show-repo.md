@@ -248,10 +248,19 @@ Three cross-repo live-view channels, one job each:
 - **artifacts** (marked 📦) *publish* a self-contained snapshot to a stable
   `claude.ai` URL, which renders in the Claude app on sign-in alone, so it needs
   no token where a toss or stage would want one. See [`artifacts.md`](artifacts.md).
+- **review** (`pages/review.html`, marked 🔍) *reads* a changeset: one card per
+  changed file with a CM6 diff against the base, patch text, and the caption's
+  `[new]/[main]/[diff]` links. Address grammar `#gh=owner/repo[@ref][:path][&base=…]`
+  (the toss `#gh=` address plus a base); token-gated the same way. Folding its
+  per-file dossier (`lib/alpineComponents/file-review.js`) into this shell as a
+  view is on the roadmap below.
 
 ## Roadmap (not built)
 
 - A content-carrying `#gz=`-style stage bundle for token-less contexts.
+- A review view: mount `fileReview` cards (pages/review.html's dossier) over
+  the stage's Compare result, so a ref-diff reads in place instead of only
+  listing files.
 - Batch-as-one-commit transfer (needs the Git Data API; Contents-API
   per-file commits are the current scope).
 - Private-repo landing federation via `mehrlander/home` (tracker task 0002):
