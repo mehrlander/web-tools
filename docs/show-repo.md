@@ -19,8 +19,10 @@ in a browser that holds the viewer's stored `ghToken`, and only for the token
 owner. This is the same constraint as toss-render's `#gh=` address mode. Two
 consequences:
 
-- A stage link sent to someone without an authorized token, or opened in the
-  **Claude app's in-app browser** (which has its own empty storage), fails.
+- A stage link sent to someone without an authorized token fails. The **Claude
+  app's in-app browser** keeps its own storage, so the token is not guaranteed
+  there (historically absent, but it can be entered, after which the link works);
+  treat it as possibly token-less, not certainly so.
 - The token-less, works-for-anyone `#gz=` content-carrying form that toss-render
   has is **contemplated but not built** for the stage. To hand a fileset to a
   token-less reader today, download the concatenated bundle and `SendUserFile`
@@ -102,6 +104,7 @@ deprecation window. Fields:
 
 ```json
 {
+  "icon": "ph-scales",
   "landing": "pages/landing.html",
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
@@ -112,6 +115,14 @@ deprecation window. Fields:
 }
 ```
 
+- **icon**: Phosphor icon class (e.g. `"ph-scales"`) a repo may self-declare for
+  its quick-link button. The quick-link row's icon is actually taken from the
+  registry entry (see below); this field is the repo's own suggestion for any
+  consumer that reads it.
+- **quickLinks** (registry repo only): the curated header quick-link list,
+  `[{ repo, icon }]` — membership, order, and icon. Read from the private
+  **registry repo** (`web-tools-private`), not from every repo. See "Quick-link
+  registry" below.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
@@ -127,6 +138,86 @@ deprecation window. Fields:
 - **conventions**: not a show-repo field. `"optout"` marks a repo that has
   deliberately not adopted the portable conventions, so a session-start nudge
   stops asking. Absent means unset. Documented in [PORTABLE.md](PORTABLE.md).
+
+### Quick-link registry
+
+The header quick-link row is data-driven, not a hardcoded list. `show-repo` is a
+public page, so its source must not enumerate private repos. The shell ships a
+public-only default (`PUBLIC_QUICK_LINKS`, just the public web-tools repo). The
+real, curated list lives in a **private registry repo** (`REGISTRY_REPO =
+mehrlander/web-tools-private`) as a `quickLinks` field in its root
+`.web-tools.json`:
+
+```json
+{ "quickLinks": [ { "repo": "mehrlander/home", "icon": "ph-house" }, … ] }
+```
+
+`loadQuickLinks()` fetches it when the viewer has a token; the registry repo is
+private, so no token means the public default only. The **one** private string
+this public page names is the registry repo itself, never the repos it lists.
+Editing the registry's config in the shield dialog re-runs the load (via the
+`web-tools:config-saved` event), so the row updates without a page reload. Adding
+or reordering a quick link is: open `web-tools-private` in show-repo, edit its
+config on the gear tab, save.
+
+### Config cache (`state/configs.json`)
+
+With a token, show-repo also keeps a **derived** cache of the participating
+repos' configs in the registry repo, built by `lib/repo-config-cache.js`. On
+load (and after a config edit), it crawls each quick-link repo's
+`.web-tools.json` and folds it into `web-tools-private/state/configs.json`,
+appending a bounded on-change version history per repo. A per-browser throttle
+(`localStorage`, default 6h) keeps the crawl occasional; a material-change check
+keeps commits sparse, so nav triggers cost nothing visible.
+
+Source of truth stays each repo's own `.web-tools.json`; the cache is derived,
+for breadth (looking across repos at once) and for config history a single read
+can't show. show-repo reads a repo's **live** config, not this cache, whenever it
+operates on that repo. Stage history falls out for free: a repo's declared
+`stage.files` lives in its config, so versioning the config versions the declared
+stage. Design and future ideas: `web-tools-private/DESIGN.md`.
+
+### Mailbox (`mailbox/requests` → `mailbox/results`)
+
+An async request/response channel between an agent session (limited repo scope)
+and show-repo (the user's full-access token), built by `lib/repo-mailbox.js`.
+The agent drops a request file in the registry repo; show-repo, on load with a
+token, fulfills every pending request and writes the result back; the agent
+reads it on a later turn. This lets the agent see files and answers from repos it
+never added to its own scope, by borrowing the browser's token asynchronously.
+
+`processMailbox()` polls once per page load (a pending request wants prompt
+service, and listing is one call), keyed by request filename so nothing re-runs.
+It is **read-only**: the kinds (`tree`, `branches`, `fetch`) only read the user's
+repos and only write results into the mailbox, so auto-fulfilling on load never
+spends write access on agent-authored instructions. It is manual-triggered, not
+live: show-repo is the worker and only runs when the user opens it. Protocol and
+schema: `web-tools-private/mailbox/README.md`.
+
+### Editing the manifest from the shell
+
+The sidebar **shield** dialog (the repo dialog, `repoModal` in
+`lib/alpineComponents/repo.js`) has two tabs, switched top-right: a **link** tab
+(repo info, stats, auth, and URLs) and a **gear** tab, the config editor for the
+**currently-open repo**. The editor is a JSON editor over the repo's manifest:
+it loads the current `.web-tools.json` (or an all-empty template when the repo
+has none, so the shape is there to fill in), validates on every keystroke, links
+to this doc for the field format, and on Save commits the file through the
+viewer's token (`gh-store.js`'s `save`, a Contents API PUT to the repo's default
+branch). Editing needs auth, so Save is disabled until the link tab's token is
+set.
+
+- **Where it lives**: a tab in the shield dialog rather than a standalone
+  control, so the repo's stats, links, auth, and config sit in one place.
+  Switching to the gear tab seeds the editor.
+- **Auto-migration**: a save always writes `.web-tools.json`. A repo still on the
+  legacy `.show-repo.json` is edited the same way; the save lands the new name,
+  which readers already prefer, so the legacy file goes inert. No delete step
+  (the gh layer has no delete helper), and the section flags the migration when
+  it loaded from the legacy name.
+- **Scope**: this is a raw-JSON editor, the thin first slice of the config-edit
+  surface (tracker task 0013). Per-field controls (an icon picker, a pins list)
+  are the larger goal, not built here.
 
 ## Transfer: moving files to another repo
 
@@ -155,8 +246,8 @@ Three cross-repo live-view channels, one job each:
   live. show-repo's custom landings and the viewer's "Toss render" action both
   hand a file to toss-render at its own `repo@ref`.
 - **artifacts** (marked 📦) *publish* a self-contained snapshot to a stable
-  `claude.ai` URL, which renders in the Claude app where a token-gated toss or
-  stage cannot. See [`artifacts.md`](artifacts.md).
+  `claude.ai` URL, which renders in the Claude app on sign-in alone, so it needs
+  no token where a toss or stage would want one. See [`artifacts.md`](artifacts.md).
 
 ## Roadmap (not built)
 

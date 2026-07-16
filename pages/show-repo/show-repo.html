@@ -21,6 +21,10 @@
   // gh-store rides in the pre-build cached but unexecuted; this load runs it
   // from the inlined cache (no network) so GH.prototype.save exists as before.
   await gh.load('gh-store.js');
+  // Config-aggregate builders for the private cache (state/configs.json).
+  await gh.load('repo-config-cache.js');
+  // The private request/response mailbox (mailbox/requests -> results).
+  await gh.load('repo-mailbox.js');
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
@@ -53,16 +57,35 @@
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
-      <div class="join shrink-0">
-        <template x-for="p in PINNED_REPOS" :key="p.repo">
+      <!-- Quick links to frequent repos. The full join row needs width, so
+           below sm it collapses to a single dropdown. Config editing lives in
+           the sidebar shield dialog (repoModal), not here. -->
+      <div class="join shrink-0 hidden sm:flex">
+        <template x-for="p in quickLinks" :key="p.repo">
           <button @click="openPinned(p.repo)"
                   class="btn btn-sm btn-square join-item tooltip tooltip-bottom"
                   :class="[Alpine.store('browser').repo===p.repo ? 'btn-primary btn-active' : 'btn-ghost', pinnedDim(p) && 'opacity-40']"
                   :data-tip="pinnedTip(p)">
-            <i class="ph text-lg" :class="p.icon"></i>
+            <i class="ph text-lg" :class="pinnedIcon(p)"></i>
           </button>
         </template>
       </div>
+      <details class="dropdown dropdown-end shrink-0 sm:hidden" data-auto-close>
+        <summary class="btn btn-sm btn-square btn-ghost list-none">
+          <i class="ph ph-squares-four text-lg"></i>
+        </summary>
+        <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-56 p-1 shadow border border-base-300 mt-1">
+          <template x-for="p in quickLinks" :key="p.repo">
+            <li>
+              <a @click="openPinned(p.repo)"
+                 :class="[Alpine.store('browser').repo===p.repo && 'active', pinnedDim(p) && 'opacity-40']">
+                <i class="ph text-base" :class="pinnedIcon(p)"></i>
+                <span class="font-mono text-xs truncate" x-text="p.repo"></span>
+              </a>
+            </li>
+          </template>
+        </ul>
+      </details>
     </div>
   </div>
 </header>
@@ -399,11 +422,16 @@ function app(){ return {
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   DEFAULT_REPO: 'mehrlander/web-tools',
-  PINNED_REPOS: [
-    { repo: 'mehrlander/home', icon: 'ph-house' },
+  // The header quick-link row is data-driven. This public page must not
+  // enumerate private repos in its source, so the built-in default lists only
+  // the public repo. The real, curated list (order, membership, icons — private
+  // repos included) lives in a private registry repo and is fetched at boot
+  // when the viewer has a token (loadQuickLinks). No token: this default only.
+  REGISTRY_REPO: 'mehrlander/web-tools-private',
+  PUBLIC_QUICK_LINKS: [
     { repo: 'mehrlander/web-tools', icon: 'ph-toolbox' },
-    { repo: 'mehrlander/chat-histories', icon: 'ph-chats' },
   ],
+  quickLinks: [],   // resolved row; seeded from PUBLIC_QUICK_LINKS in init
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -439,6 +467,23 @@ function app(){ return {
       this.loadRecent();
       this.loadConfig();
     });
+
+    // The quick-link row is the public default until a token lets us read the
+    // private registry. Auth resolves after boot, so load then, and reload when
+    // auth arrives. After the row resolves, refresh the config cache (guarded).
+    // Editing a repo's config (config-saved) reloads the row when it was the
+    // registry, and always refreshes the cache so the edit enters its history.
+    this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
+    this.$watch(() => this._authState, (s) => {
+      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.processMailbox(); }
+    });
+    document.addEventListener('web-tools:config-saved', async (e) => {
+      this.loadConfig();
+      if (e.detail?.repo === this.REGISTRY_REPO) await this.loadQuickLinks();
+      this.refreshConfigCache(true);
+    });
+    this.loadQuickLinks().then(() => this.refreshConfigCache());
+    this.processMailbox();
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
@@ -506,17 +551,122 @@ function app(){ return {
     const key = s.repo + '@' + s.ref;
     this._configKey = key;
     s.config = null;
-    let cfg = null;
+    s.configName = null;
+    let cfg = null, name = null;
     // SUNSET(2026-08-15): the '.show-repo.json' entry is the legacy-name read
     // fallback. Drop it (read '.web-tools.json' only) once consumer repos are
-    // migrated. See docs/PORTABLE.md "Sunset markers".
-    for (const name of ['.web-tools.json', '.show-repo.json']) {
+    // migrated. See docs/PORTABLE.md "Sunset markers". The config editor writes
+    // the new name on save, so editing a legacy repo migrates it in place.
+    for (const n of ['.web-tools.json', '.show-repo.json']) {
       try {
-        const parsed = JSON.parse((await s.gh.get(name)).text);
-        if (typeof parsed === 'object' && !Array.isArray(parsed)) { cfg = parsed; break; }
+        const parsed = JSON.parse((await s.gh.get(n)).text);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) { cfg = parsed; name = n; break; }
       } catch {}
     }
-    if (this._configKey === key) s.config = cfg;
+    if (this._configKey === key) { s.config = cfg; s.configName = name; }
+  },
+
+  // Resolve the quick-link row. With a token, read the private registry repo's
+  // .web-tools.json (a `quickLinks: [{repo, icon}]` list — the curated set,
+  // order, and icons, private repos included) on its own lightweight GH
+  // instance and use it. Without a token, or on any failure, fall back to the
+  // public-only default. The registry name is the one private string this
+  // public page references; it never enumerates the private repos themselves.
+  hasToken(){ return !!window.TOKEN && window.TOKEN !== '🎟️GitHubToken'; },
+  async loadQuickLinks(){
+    if (!this.hasToken()) { this.quickLinks = [...this.PUBLIC_QUICK_LINKS]; return; }
+    try {
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      const parsed = JSON.parse((await reg.get('.web-tools.json')).text);
+      const list = Array.isArray(parsed?.quickLinks)
+        ? parsed.quickLinks.filter(e => e && typeof e.repo === 'string')
+        : null;
+      this.quickLinks = list && list.length
+        ? list.map(e => ({ repo: e.repo, icon: e.icon || 'ph-bookmark-simple' }))
+        : [...this.PUBLIC_QUICK_LINKS];
+    } catch {
+      this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
+    }
+  },
+
+  // The row's icon is the registry entry's icon. Config editing lives in the
+  // sidebar shield dialog (repoModal, lib/alpineComponents/repo.js).
+  pinnedIcon(p){ return p.icon; },
+
+  // ── Config aggregate: crawl each participating repo's .web-tools.json and
+  // fold it into a derived cache (state/configs.json) in the registry repo,
+  // keeping a bounded on-change history per repo. Source of truth stays each
+  // repo's own file; this is breadth + history a single read can't give. A
+  // per-browser throttle (localStorage) keeps the crawl occasional, and a
+  // material-change check keeps commits sparse, so nav triggers cost nothing.
+  CONFIG_CACHE_INTERVAL_MS: 6 * 3600 * 1000,
+  _cacheCheckKey: 'wt:configCacheCheckedAt',
+  async refreshConfigCache(force){
+    if (!this.hasToken() || !window.RepoConfigCache) return;
+    const repos = this.quickLinks.map(q => q.repo);
+    if (!repos.length) return;
+    if (!force){
+      try {
+        const last = +localStorage.getItem(this._cacheCheckKey) || 0;
+        if (Date.now() - last < this.CONFIG_CACHE_INTERVAL_MS) return;
+      } catch {}
+    }
+    try {
+      // One GH per repo (the shared store.gh is bound to the open repo). Read
+      // the current manifest for each participant, legacy name as fallback.
+      const fetched = {};
+      await Promise.all(repos.map(async (repo) => {
+        const g = new window.GH({ token: window.TOKEN, repo, ref: 'main' });
+        let entry = { config: null, configName: null };
+        for (const name of ['.web-tools.json', '.show-repo.json']){
+          try {
+            const parsed = JSON.parse((await g.get(name)).text);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)){ entry = { config: parsed, configName: name }; break; }
+          } catch {}
+        }
+        fetched[repo] = entry;
+      }));
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      let prev = null;
+      try { prev = JSON.parse((await reg.get(window.RepoConfigCache.CACHE_PATH)).text); } catch {}
+      const next = window.RepoConfigCache.buildCache(prev, fetched, new Date().toISOString());
+      try { localStorage.setItem(this._cacheCheckKey, String(Date.now())); } catch {}
+      // Only commit when substance changed (buildCache always restamps
+      // timestamps, so a deep-equal would never skip).
+      if (window.RepoConfigCache.cacheChanged(prev, next)){
+        await reg.save(window.RepoConfigCache.CACHE_PATH, next, 'Update config cache (state/configs.json) via show-repo');
+      }
+    } catch(e){ console.warn('config cache refresh:', e?.message || e); }
+  },
+
+  // ── Private mailbox: fulfill request files an agent session dropped in the
+  // registry repo, using the viewer's token, and write results back. Read-only
+  // kinds only (tree / branches / fetch), so this never spends write access on
+  // agent-authored instructions. Polled once per page load (a pending request
+  // wants prompt service and listing is cheap); a dropped request is picked up
+  // on the next load. Results are keyed by the request filename so nothing
+  // re-runs. See lib/repo-mailbox.js and web-tools-private/mailbox/README.md.
+  async processMailbox(){
+    if (!this.hasToken() || !window.RepoMailbox) return;
+    const M = window.RepoMailbox;
+    try {
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      let reqs = [], results = [];
+      try { reqs = await reg.ls(M.REQ_DIR); } catch {}      // 404 = no mailbox yet
+      if (!reqs.length) return;
+      try { results = await reg.ls(M.RES_DIR); } catch {}
+      const names = M.pending(
+        reqs.filter(f => f.type === 'file').map(f => f.name),
+        results.filter(f => f.type === 'file').map(f => f.name)
+      );
+      for (const name of names){
+        let req;
+        try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
+        catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
+        const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
+        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via show-repo');
+      }
+    } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates
@@ -811,9 +961,20 @@ function overview(){ return {
   THE MANIFEST: .web-tools.json at the repo root is the repo's web-tools config,
   and how a repo designates what this shell should consider. Probed once per
   repo@ref (404 = no config), parsed as data, never executed. Reads
-  .web-tools.json, falling back to the legacy .show-repo.json name. Current
-  fields:
+  .web-tools.json, falling back to the legacy .show-repo.json name. The sidebar
+  shield dialog (repoModal, lib/alpineComponents/repo.js) has a Config tab (the
+  gear, beside the info/links tab): a JSON editor that writes the manifest via
+  the viewer's token. It always saves the new name, so editing a repo still on
+  .show-repo.json migrates it in place (no delete; the stale legacy file is
+  inert since readers prefer the new name). Current fields:
 
+    icon     Phosphor class (e.g. "ph-scales") for the repo's header quick-link
+             button. A repo may self-declare it, but the quick-link row's icon
+             comes from the registry entry (see THE QUICK-LINK REGISTRY below);
+             this field is the repo's own suggestion for consumers that read it.
+    quickLinks  (registry repo only) the curated header quick-link list:
+             [{ repo, icon }], membership + order + icon. Read from REGISTRY_REPO
+             (web-tools-private) by loadQuickLinks() when the viewer has a token.
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
@@ -827,6 +988,18 @@ function overview(){ return {
              its default branch) or qualified refs ("owner/repo[@ref]:path").
              Copying goes through gh-transfer.js (lib/): per-file Contents-API
              commits, base64 pass-through, viewer's token, two-tap confirm.
+
+  THE QUICK-LINK REGISTRY: the header row is data-driven, not a hardcoded list.
+  This page is public, so its source must not enumerate private repos. The
+  built-in default (PUBLIC_QUICK_LINKS) lists only the public repo. The real
+  curated list lives in a private registry repo (REGISTRY_REPO =
+  web-tools-private) as a `quickLinks: [{repo, icon}]` field in its root
+  .web-tools.json, and loadQuickLinks() fetches it when the viewer has a token
+  (the registry is private, so no token means the public default only). The one
+  private string this public page names is the registry repo itself, never the
+  repos it lists. Editing the registry's config in the shield dialog re-runs
+  loadQuickLinks (via the web-tools:config-saved event), so the row updates
+  without a reload.
 
   THE STAGE: a cross-repo fileset (store.stage, [{repo, ref, path}]) fed by the
   explorer's "+" buttons, a manifest's stage.files, or a #stage= link, and

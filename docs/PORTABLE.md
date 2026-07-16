@@ -53,6 +53,8 @@ Top-level fields, not namespaced by consumer, so any web-tools page can read the
 
 | Field | Read by | What it sets |
 |---|---|---|
+| `icon` | show-repo | Phosphor class a repo self-declares for its quick-link button (the row's icon actually comes from the registry, below) |
+| `quickLinks` | show-repo | registry repo only: the curated header quick-link list `[{repo, icon}]`, read from the private registry repo when the viewer has a token |
 | `landing` | show-repo | path to the repo's own landing page (rendered live via toss-render `#gh=`) |
 | `pins` | show-repo | folders/files surfaced in the sidebar Pinned block |
 | `stage` | show-repo | `{ files, targets }`: a durable staged-files list and default transfer destinations |

@@ -32,10 +32,12 @@ markers: 🗂️ a stage link, 🥏 a toss, 📦 an artifact.
 ## The honesty caveat (state it on every stage handoff)
 
 A stage link is **token-gated**, exactly like toss-render's `#gh=`: it works
-only for the token owner in a token-bearing browser, and fails in the Claude
-app's in-app browser. The token-less `#gz=`-style bundle form is contemplated,
-not built. For a token-less reader, download the stage's concatenated bundle and
-`SendUserFile` it instead of sending a link.
+only for the token owner in a token-bearing browser. The Claude app's in-app
+browser keeps its own storage, so the token is not guaranteed there (historically
+absent, but it can be entered, after which the link works); treat it as possibly
+token-less. The token-less `#gz=`-style bundle form is contemplated, not built.
+For a reader you can't count on having a token, download the stage's concatenated
+bundle and `SendUserFile` it instead of sending a link.
 
 ## Fetch (primary path)
 

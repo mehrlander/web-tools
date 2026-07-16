@@ -19,15 +19,18 @@ API at view time, or serve multiple routes.
 Mark artifact links **📦**, beside ⭐ (canonical hosted view) and 🥏 (toss
 render). The chooser is viewer context, not just where the code lives. The
 Claude app's in-app browser keeps its own storage, so the `ghToken` a 🥏
-`#gh=` toss needs is absent there; the app is already signed in to claude.ai,
-which is all an artifact needs.
+`#gh=` toss needs is not guaranteed there: historically absent, though it can be
+entered, after which `#gh=` works in the app too. An artifact needs no token
+(the app is already signed in to claude.ai), so it is the reliable choice when
+you can't count on a token being present.
 
 | Situation | Link |
 |---|---|
 | Page on main | ⭐ deployed URL |
 | Branch work in lib/dist only | ⭐ `?use=<sha>` on the deployed URL |
 | Branch or private page; owner in a browser holding the token | 🥏 `#gh=` (live pointer) |
-| Branch or private page; owner in the Claude app | 📦 artifact (baked); 🥏 `#gz=` when the page is small and no build is wanted |
+| Branch or private page; owner in the Claude app (no token entered there) | 📦 artifact (baked); 🥏 `#gz=` when the page is small and no build is wanted |
+| Branch or private page; owner in the Claude app with a token entered there | 🥏 `#gh=` works too; 📦 still the zero-setup choice |
 | Branch or private page; any other reader | 🥏 `#gz=` (artifacts do not travel on Pro/Max) |
 
 Interactive form of this matrix, itself the publish trial:
