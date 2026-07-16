@@ -158,6 +158,23 @@ Editing the registry's config in the shield dialog re-runs the load (via the
 or reordering a quick link is: open `web-tools-private` in show-repo, edit its
 config on the gear tab, save.
 
+### Config cache (`state/configs.json`)
+
+With a token, show-repo also keeps a **derived** cache of the participating
+repos' configs in the registry repo, built by `lib/repo-config-cache.js`. On
+load (and after a config edit), it crawls each quick-link repo's
+`.web-tools.json` and folds it into `web-tools-private/state/configs.json`,
+appending a bounded on-change version history per repo. A per-browser throttle
+(`localStorage`, default 6h) keeps the crawl occasional; a material-change check
+keeps commits sparse, so nav triggers cost nothing visible.
+
+Source of truth stays each repo's own `.web-tools.json`; the cache is derived,
+for breadth (looking across repos at once) and for config history a single read
+can't show. show-repo reads a repo's **live** config, not this cache, whenever it
+operates on that repo. Stage history falls out for free: a repo's declared
+`stage.files` lives in its config, so versioning the config versions the declared
+stage. Design and future ideas: `web-tools-private/DESIGN.md`.
+
 ### Editing the manifest from the shell
 
 The sidebar **shield** dialog (the repo dialog, `repoModal` in

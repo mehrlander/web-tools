@@ -21,6 +21,8 @@
   // gh-store rides in the pre-build cached but unexecuted; this load runs it
   // from the inlined cache (no network) so GH.prototype.save exists as before.
   await gh.load('gh-store.js');
+  // Config-aggregate builders for the private cache (state/configs.json).
+  await gh.load('repo-config-cache.js');
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
@@ -466,15 +468,19 @@ function app(){ return {
 
     // The quick-link row is the public default until a token lets us read the
     // private registry. Auth resolves after boot, so load then, and reload when
-    // auth arrives. Editing the registry repo's config (config-saved) reloads
-    // the row so a membership/icon change lands without a page reload.
+    // auth arrives. After the row resolves, refresh the config cache (guarded).
+    // Editing a repo's config (config-saved) reloads the row when it was the
+    // registry, and always refreshes the cache so the edit enters its history.
     this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
-    this.$watch(() => this._authState, (s) => { if (s === 'auth') this.loadQuickLinks(); });
-    document.addEventListener('web-tools:config-saved', (e) => {
-      this.loadConfig();
-      if (e.detail?.repo === this.REGISTRY_REPO) this.loadQuickLinks();
+    this.$watch(() => this._authState, (s) => {
+      if (s === 'auth') this.loadQuickLinks().then(() => this.refreshConfigCache());
     });
-    this.loadQuickLinks();
+    document.addEventListener('web-tools:config-saved', async (e) => {
+      this.loadConfig();
+      if (e.detail?.repo === this.REGISTRY_REPO) await this.loadQuickLinks();
+      this.refreshConfigCache(true);
+    });
+    this.loadQuickLinks().then(() => this.refreshConfigCache());
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
@@ -583,6 +589,52 @@ function app(){ return {
   // The row's icon is the registry entry's icon. Config editing lives in the
   // sidebar shield dialog (repoModal, lib/alpineComponents/repo.js).
   pinnedIcon(p){ return p.icon; },
+
+  // ── Config aggregate: crawl each participating repo's .web-tools.json and
+  // fold it into a derived cache (state/configs.json) in the registry repo,
+  // keeping a bounded on-change history per repo. Source of truth stays each
+  // repo's own file; this is breadth + history a single read can't give. A
+  // per-browser throttle (localStorage) keeps the crawl occasional, and a
+  // material-change check keeps commits sparse, so nav triggers cost nothing.
+  CONFIG_CACHE_INTERVAL_MS: 6 * 3600 * 1000,
+  _cacheCheckKey: 'wt:configCacheCheckedAt',
+  async refreshConfigCache(force){
+    if (!this.hasToken() || !window.RepoConfigCache) return;
+    const repos = this.quickLinks.map(q => q.repo);
+    if (!repos.length) return;
+    if (!force){
+      try {
+        const last = +localStorage.getItem(this._cacheCheckKey) || 0;
+        if (Date.now() - last < this.CONFIG_CACHE_INTERVAL_MS) return;
+      } catch {}
+    }
+    try {
+      // One GH per repo (the shared store.gh is bound to the open repo). Read
+      // the current manifest for each participant, legacy name as fallback.
+      const fetched = {};
+      await Promise.all(repos.map(async (repo) => {
+        const g = new window.GH({ token: window.TOKEN, repo, ref: 'main' });
+        let entry = { config: null, configName: null };
+        for (const name of ['.web-tools.json', '.show-repo.json']){
+          try {
+            const parsed = JSON.parse((await g.get(name)).text);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)){ entry = { config: parsed, configName: name }; break; }
+          } catch {}
+        }
+        fetched[repo] = entry;
+      }));
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      let prev = null;
+      try { prev = JSON.parse((await reg.get(window.RepoConfigCache.CACHE_PATH)).text); } catch {}
+      const next = window.RepoConfigCache.buildCache(prev, fetched, new Date().toISOString());
+      try { localStorage.setItem(this._cacheCheckKey, String(Date.now())); } catch {}
+      // Only commit when substance changed (buildCache always restamps
+      // timestamps, so a deep-equal would never skip).
+      if (window.RepoConfigCache.cacheChanged(prev, next)){
+        await reg.save(window.RepoConfigCache.CACHE_PATH, next, 'Update config cache (state/configs.json) via show-repo');
+      }
+    } catch(e){ console.warn('config cache refresh:', e?.message || e); }
+  },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates
   // a landing page -> that page rendered live ('custom'); every other repo ->
