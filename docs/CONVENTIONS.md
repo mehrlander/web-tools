@@ -12,9 +12,11 @@ The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): t
 
 **Adding your own, without clobbering.** The install owns only what it ships. Plugin skills are namespaced (`/portable:caption`), so a same-named skill of yours coexists; the fallback fetch hook writes a fixed file list and touches nothing else. Your own skills and any `CLAUDE.md` text below the import are never overwritten.
 
-**Standing decisions: write the answer down, not just the question.** A recurring fork (commit this class of file to main without asking, skip the watch offer, take the smaller of two options) becomes a standing decision the moment a doc states it as a default: name it in `CLAUDE.md` or the relevant portable doc (this file, `TRACKER.md`), and a session that hits it takes the default and notes the assumption in its reply rather than raising it fresh. Writing it down is also the only lever that reliably works: a `permissions.deny` entry naming the question tool does not suppress it, since asking is a model choice, not a gated call the permission layer can intercept. So a repo fielding the same question repeatedly has a missing standing decision, not a tool to disable.
+**Standing decisions: write the answer down, not just the question.** A recurring fork (commit this class of file to main without asking, skip the watch offer, take the smaller of two options) becomes a standing decision the moment a doc states it as a default: name it in `CLAUDE.md` or the relevant portable doc (this file, `TRACKER.md`), and a session that hits it takes the default and notes the assumption rather than raising it fresh. Writing it down is the only lever that works: a `permissions.deny` on the question tool does not help, since asking is a model choice, not a gated call. A repo fielding the same question has a missing standing decision, not a tool to disable.
 
-**Leave it nicer than you found it.** Adding to a doc is a pass over it, not just an append. New material has to match the surrounding voice and structure, not merely be correct: text that reads in a different register, or restates something already present, degrades the doc even when the addition itself is right. So when you add, check the fit against what is already there, and take the occasion to retire a redundancy or tighten a nearby line you would otherwise have left. Add one idea, clean one: that is the default, not extra credit.
+**Leave it nicer than you found it.** Adding to a doc is a pass over it, not just an append. New material has to match the surrounding voice and structure. Go a step further and tighten related material while you are there.
+
+**Beware make-work.** When asked to look for improvements, be wary of ideas that address a hypothetical problem. A simple, clear fix is worth making, especially when it is as easy to fix as to bring up. The trap is speculative work that draws attention and goes off course.
 
 ---
 
@@ -52,7 +54,7 @@ The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): t
 
 ## The surfacing course
 
-The lifecycle that engages once you open a PR: a **guide PR** per branch and a generated `docs/MERGE-GUIDE.md`. It is part of the bag, not a separate adoption; a repo that never opens a PR never reaches it, and nothing here is a precondition for the primitives above.
+The lifecycle that engages once you open a PR: a **guide PR** per branch and a generated `docs/MERGE-GUIDE.md`.
 
 Two artifacts surface a session's work, one at each **surfacing moment** (when the work breaks the surface for a reader): the guide PR's body (live while draft, reviewer-facing when ready) and the merge-guide entry (generated from that body at or after merge). They are one statement in two places: the guide PR body is authored, the merge-guide entry is generated from it, and both open with the same preamble:
 
