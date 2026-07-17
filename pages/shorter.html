@@ -1,219 +1,498 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="winter">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shorter</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>✂️</text></svg>">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
-<body class="bg-white text-zinc-900 antialiased">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+
   <!--
-    Standalone page: no gh.load chain, everything arrives from absolute CDN
-    URLs. It still can't run from a data URL or a sandboxed iframe: web-llm
-    persists model weights through the Cache API, which throws on opaque
-    origins. A real https origin (github.io) plus a WebGPU browser is the
-    supported combination; the boot check below names whichever is missing.
+    Shorter: a proposal-adjudication tool.
+
+    You bring two things: your original text, and a shorter version of it
+    (pasted from any model, or drafted here by the local model). The page
+    word-diffs them and lays the shorter version out as a stream of discrete
+    edits, each one defaulting to ACCEPTED. The work is then subtraction:
+    skim, reject the cuts that went too far, regenerate any span you don't
+    like, and copy the assembled result. Getting a shortening is cheap; this
+    page is the part that was expensive: going through it piece by piece.
+
+    The local model (Llama-3.2-1B via web-llm, WebGPU) is OPTIONAL and lazy.
+    Nothing is fetched from huggingface.co until you press a ✨ Shorten
+    action, so the review flow works with zero model, and a network that
+    can't reach the weights (cert/proxy) no longer breaks page load. web-llm
+    still needs a real https origin (github.io) and a WebGPU browser; when a
+    ✨ action can't get there, the failure is reported inline, on the span.
   -->
-  <main class="mx-auto max-w-2xl px-5 py-10">
-    <header class="mb-8 flex items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-      <h1 class="text-xl font-semibold">Shorter</h1>
-      <div class="flex items-center gap-2 text-sm text-zinc-500" aria-live="polite">
-        <span id="model-dot" class="h-2 w-2 rounded-full bg-amber-400"></span>
-        <span id="model-status">Loading model…</span>
-      </div>
-    </header>
 
-    <label for="source" class="mb-2 block text-sm font-medium">Text</label>
-    <textarea
-      id="source"
-      class="min-h-44 w-full resize-y rounded-md border border-zinc-300 p-3 leading-relaxed outline-none focus:border-zinc-500"
-      placeholder="Paste a paragraph here."
-    ></textarea>
-    <div id="source-count" class="mt-1 text-xs text-zinc-400">0 words</div>
+  <style>
+    :root { --seam:#e5e7eb; }
+    body { -webkit-font-smoothing:antialiased; }
 
-    <div class="my-5 flex flex-wrap gap-2">
-      <button id="shorten" disabled class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-30">Shorten</button>
-      <button id="another" disabled class="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-30">Another</button>
-      <button id="keep" disabled class="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-30">Keep + shorten</button>
-      <button id="copy" disabled class="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-30">Copy</button>
+    .review { white-space:pre-wrap; word-break:break-word; line-height:2.05; font-size:1.05rem; }
+
+    /* An edit span: the selected candidate for one changed region. Default
+       tone is "accept" (the shorter reading), so a clean skim reads as the
+       proposal; rejected/custom spans stand out against it. */
+    .seg { border-radius:4px; padding:1px 2px; transition:background .12s, box-shadow .12s; }
+    .seg-equal { }
+    .seg-edit  { cursor:pointer; box-shadow:inset 0 -1px 0 rgba(0,0,0,.18); }
+    .seg-edit:hover { background:rgba(0,0,0,.04); }
+    .seg-accept { background:#dcfce7; box-shadow:inset 0 -1px 0 #86efac; }
+    .seg-accept:hover { background:#bbf7d0; }
+    .seg-reject { background:#f1f5f9; box-shadow:inset 0 -1px 0 #cbd5e1; color:#475569; }
+    .seg-reject:hover { background:#e2e8f0; }
+    .seg-custom { background:#ede9fe; box-shadow:inset 0 -1px 0 #c4b5fd; }
+    .seg-custom:hover { background:#ddd6fe; }
+    .seg-empty  { background:#f1f5f9; box-shadow:inset 0 -1px 0 #cbd5e1; padding:1px 4px; color:#94a3b8; }
+    .seg-active { outline:2px solid #6366f1; outline-offset:1px; }
+
+    /* The ✨ affordance that lets you rewrite an *unchanged* sentence: the
+       stuff the proposal left alone but you might still want tightened. */
+    .seg-spark { opacity:0; margin-left:1px; font-size:.72em; color:#8b5cf6; vertical-align:super;
+      transition:opacity .12s; cursor:pointer; }
+    .seg-equal:hover .seg-spark { opacity:.55; }
+    .seg-spark:hover { opacity:1 !important; }
+
+    .pop { box-shadow:0 12px 40px -8px rgba(0,0,0,.35); }
+    .opt-preview { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  </style>
+</head>
+
+<body class="min-h-dvh bg-base-200 text-base-content">
+<div x-data="shorter()" x-init="init()" class="mx-auto max-w-3xl px-4 py-6 sm:py-9">
+
+  <!-- ── header ─────────────────────────────────────────────────────── -->
+  <header class="mb-6 flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2">
+        <i class="ph ph-scissors text-primary"></i> Shorter
+      </h1>
+      <p class="mt-1 text-sm text-base-content/60">Line up a shorter draft against your text and accept it piece by piece.</p>
     </div>
+    <button class="badge badge-sm gap-1 shrink-0 mt-1 cursor-default"
+            :class="{'badge-ghost':model.status==='idle','badge-warning':model.status==='loading','badge-success':model.status==='ready','badge-error':model.status==='error'}"
+            :title="model.status==='error' ? model.error : 'Local model runs in your browser; it loads only when you use ✨'">
+      <i class="ph" :class="{'ph-circle-dashed':model.status==='idle','ph-spinner-gap animate-spin':model.status==='loading','ph-check-circle':model.status==='ready','ph-warning-circle':model.status==='error'}"></i>
+      <span x-text="modelLabel()"></span>
+    </button>
+  </header>
 
-    <div id="activity" class="mb-5 min-h-5 text-sm text-zinc-500" aria-live="polite">First load downloads the model (~700 MB, cached after that). You can enter text now.</div>
+  <!-- ── EDIT MODE : the two inputs ─────────────────────────────────── -->
+  <template x-if="mode==='edit'">
+    <div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 flex items-center justify-between text-sm font-medium">
+            <span>Your text</span>
+            <span class="text-xs font-normal text-base-content/50" x-text="w(original)+' words'"></span>
+          </label>
+          <textarea x-model="original" placeholder="Paste the original, longer text."
+            class="textarea textarea-bordered min-h-52 w-full leading-relaxed"></textarea>
+        </div>
+        <div>
+          <label class="mb-1.5 flex items-center justify-between text-sm font-medium">
+            <span>A shorter version</span>
+            <span class="text-xs font-normal text-base-content/50" x-text="proposal.trim() ? w(proposal)+' words' : 'optional'"></span>
+          </label>
+          <textarea x-model="proposal" placeholder="Paste a shortened version from any model, or leave this empty and let the local model draft one."
+            class="textarea textarea-bordered min-h-52 w-full leading-relaxed"></textarea>
+        </div>
+      </div>
 
-    <label for="result" class="mb-2 block text-sm font-medium">Candidate</label>
-    <textarea
-      id="result"
-      readonly
-      class="min-h-44 w-full resize-y rounded-md border border-zinc-300 bg-zinc-50 p-3 leading-relaxed outline-none"
-      placeholder="A shorter version will appear here."
-    ></textarea>
-    <div id="result-count" class="mt-1 text-xs text-zinc-400">0 words</div>
-  </main>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <button class="btn btn-primary gap-2" :disabled="!original.trim() || busy" @click="compare()">
+          <i class="ph" :class="busy ? 'ph-spinner-gap animate-spin' : (proposal.trim() ? 'ph-git-diff' : 'ph-sparkle')"></i>
+          <span x-text="proposal.trim() ? 'Merge & review' : 'Draft a shorter version'"></span>
+        </button>
+        <button class="btn btn-ghost btn-sm gap-2" @click="loadExample()"><i class="ph ph-book-open-text"></i> Example</button>
+        <button class="btn btn-ghost btn-sm gap-2" :disabled="!original && !proposal" @click="clearAll()"><i class="ph ph-eraser"></i> Clear</button>
+        <span x-show="busy && !proposal.trim()" class="text-xs text-base-content/50" x-text="model.note"></span>
+      </div>
 
-  <script type="module">
-    import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.84";
+      <p class="mt-4 text-xs leading-relaxed text-base-content/50">
+        Two ways in. Paste both columns to review a draft you already have, or fill only the left and let the in-browser model
+        propose the right. Either way the next screen shows every change as an accept-by-default edit you can keep, reject, rewrite, or regenerate.
+      </p>
+    </div>
+  </template>
 
-    const $ = id => document.getElementById(id);
-    const source = $('source');
-    const result = $('result');
-    const activity = $('activity');
-    const modelStatus = $('model-status');
-    const modelDot = $('model-dot');
-    const shorten = $('shorten');
-    const another = $('another');
-    const keep = $('keep');
-    const copy = $('copy');
+  <!-- ── REVIEW MODE : the adjudication surface ─────────────────────── -->
+  <template x-if="mode==='review'">
+    <div>
+      <!-- toolbar -->
+      <div class="sticky top-2 z-20 mb-4 rounded-box border border-base-300 bg-base-100/95 backdrop-blur px-3 py-2 shadow-sm
+                  flex flex-wrap items-center gap-x-3 gap-y-2">
+        <button class="btn btn-ghost btn-sm gap-1" @click="mode='edit'"><i class="ph ph-arrow-left"></i> Edit</button>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="tabular-nums text-base-content/60" x-text="baseWords"></span>
+          <i class="ph ph-arrow-right text-xs text-base-content/40"></i>
+          <span class="tabular-nums font-semibold" x-text="curWords"></span>
+          <span class="text-base-content/50">words</span>
+          <span class="badge badge-sm" :class="reductionPct>=0 ? 'badge-success badge-outline' : 'badge-error badge-outline'"
+                x-text="(reductionPct>=0?'−':'+')+Math.abs(reductionPct)+'%'"></span>
+        </div>
+        <div class="ml-auto flex flex-wrap items-center gap-1">
+          <button class="btn btn-ghost btn-xs gap-1" @click="acceptAll()"><i class="ph ph-check-fat"></i> Accept all</button>
+          <button class="btn btn-ghost btn-xs gap-1" @click="rejectAll()"><i class="ph ph-arrow-counter-clockwise"></i> Restore original</button>
+          <button class="btn btn-primary btn-xs gap-1" @click="copyResult()">
+            <i class="ph" :class="copied ? 'ph-check' : 'ph-copy'"></i> <span x-text="copied ? 'Copied' : 'Copy result'"></span>
+          </button>
+        </div>
+      </div>
 
-    const strategies = [
-      'remove repetition and explanation',
-      'compress the syntax and combine related clauses',
-      'use plainer, more direct wording',
-      'restructure the passage rather than merely deleting words',
-      'preserve the voice while cutting every expendable word',
-      'make the central point arrive sooner'
-    ];
+      <!-- legend -->
+      <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-base-content/60">
+        <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-sm" style="background:#dcfce7;box-shadow:inset 0 -1px 0 #86efac"></span> accepted (shorter)</span>
+        <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-sm" style="background:#f1f5f9;box-shadow:inset 0 -1px 0 #cbd5e1"></span> original kept</span>
+        <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-sm" style="background:#ede9fe;box-shadow:inset 0 -1px 0 #c4b5fd"></span> rewritten</span>
+        <span class="flex items-center gap-1 text-base-content/45"><i class="ph ph-sparkle" style="color:#8b5cf6"></i> hover an unchanged sentence to rewrite it</span>
+      </div>
 
-    let engine;
-    let loading;
-    let generating = false;
-    let variants = [];
-    let turn = 0;
+      <!-- The assembled document, inline and interactive. NOTE: the container
+           is white-space:pre-wrap so paragraph breaks in the source text
+           survive, which means every character between these spans renders
+           literally. The x-for below is therefore written on a single line
+           with no incidental whitespace; the only whitespace in the flow is
+           the segment text itself. -->
+      <article class="review rounded-box border border-base-300 bg-base-100 p-5 sm:p-6"
+        ><template x-for="seg in segments" :key="seg.id"><span class="seg" :class="segClass(seg) + (activeId===seg.id ? ' seg-active' : '')" @click="seg.kind==='edit' && openPop(seg, $event)"><template x-if="!isEmpty(seg)"><span x-text="selectedText(seg)"></span></template><template x-if="isEmpty(seg)"><span class="seg-empty"><i class="ph ph-dots-three-outline"></i></span></template><template x-if="seg.kind==='equal' && seg.text.trim()"><button class="seg-spark" title="Rewrite this sentence with the local model" @click.stop="shorten(seg, $event)"><i class="ph ph-sparkle"></i></button></template><template x-if="seg.busy"><span class="loading loading-dots loading-xs align-middle text-primary"></span></template></span></template></article>
 
-    const words = text => text.trim() ? text.trim().split(/\s+/).length : 0;
+      <p class="mt-3 text-xs text-base-content/45">
+        Click any highlighted edit to switch between the shorter and original wording, write your own, or regenerate it. Green is what you'll copy.
+      </p>
+    </div>
+  </template>
 
-    function counts() {
-      $('source-count').textContent = `${words(source.value)} words`;
-      $('result-count').textContent = `${words(result.value)} words`;
-    }
+  <!-- ── shared popover for one edit ────────────────────────────────── -->
+  <div x-show="activeId!==null" x-transition.opacity @click="closePop()"
+       class="fixed inset-0 z-30" style="display:none"></div>
+  <div x-show="activeId!==null && aSeg()" x-transition
+       class="pop fixed z-40 w-[min(22rem,calc(100vw-1.5rem))] rounded-box border border-base-300 bg-base-100 p-3"
+       :style="popStyle()" @click.stop style="display:none">
+    <template x-if="aSeg()">
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wide text-base-content/50">Choose wording</span>
+          <button class="btn btn-ghost btn-xs btn-circle" @click="closePop()"><i class="ph ph-x"></i></button>
+        </div>
 
-    function updateButtons() {
-      shorten.disabled = !engine || generating || !source.value.trim();
-      another.disabled = generating || !result.value;
-      keep.disabled = generating || !result.value;
-      copy.disabled = generating || !result.value;
-    }
+        <div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-0.5">
+          <template x-for="opt in aSeg().options" :key="opt.id">
+            <button class="w-full rounded-btn border px-2.5 py-1.5 text-left transition"
+                    :class="aSeg().selected===opt.id ? 'border-primary bg-primary/5' : 'border-base-300 hover:bg-base-200'"
+                    @click="pick(aSeg(), opt.id)">
+              <div class="flex items-center justify-between gap-2">
+                <span class="badge badge-xs" :class="toneBadge(opt.tone)" x-text="opt.label"></span>
+                <span class="text-[11px] tabular-nums text-base-content/45" x-text="w(opt.text)+'w'"></span>
+              </div>
+              <div class="mt-1 text-xs leading-snug opt-preview"
+                   :class="opt.text.trim() ? 'text-base-content/80' : 'italic text-base-content/40'"
+                   x-text="opt.text.trim() || '(nothing; removes this text)'"></div>
+            </button>
+          </template>
+        </div>
 
-    // The q4f16 build needs the shader-f16 GPU feature; fall back to the
-    // f32 weights (larger, slower, same model) where the adapter lacks it.
-    async function pickModel() {
-      if (!('gpu' in navigator)) throw new Error('This browser has no WebGPU. Try current Chrome or Edge on desktop, or Safari 26+.');
-      if (!('caches' in window)) throw new Error('The Cache API is unavailable here (data URLs and sandboxed frames have opaque origins), so the model cannot be stored. Open the page from its https URL.');
-      const adapter = await navigator.gpu.requestAdapter();
-      if (!adapter) throw new Error('WebGPU is present but no GPU adapter was found.');
-      return adapter.features.has('shader-f16')
-        ? 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
-        : 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
-    }
+        <template x-if="aSeg().error">
+          <div class="mt-2 rounded-btn bg-error/10 px-2 py-1 text-[11px] text-error" x-text="aSeg().error"></div>
+        </template>
 
-    async function loadModel() {
-      if (engine) return engine;
-      if (loading) return loading;
+        <div class="mt-3 flex items-center gap-2">
+          <button class="btn btn-xs btn-secondary gap-1 flex-1" :disabled="aSeg().busy" @click="shorten(aSeg())">
+            <i class="ph" :class="aSeg().busy ? 'ph-spinner-gap animate-spin' : 'ph-sparkle'"></i>
+            <span x-text="aSeg().busy ? 'Working…' : 'Shorten with local model'"></span>
+          </button>
+          <button class="btn btn-xs btn-ghost gap-1" @click="toggleWrite()"><i class="ph ph-pencil-simple"></i> Write</button>
+        </div>
 
-      loading = pickModel().then(model => CreateMLCEngine(model, {
-        initProgressCallback: p => {
-          const percent = Math.round((p.progress || 0) * 100);
-          modelStatus.textContent = `Loading model ${percent}%`;
+        <template x-if="writing">
+          <div class="mt-2">
+            <textarea x-model="draft" rows="3" class="textarea textarea-bordered textarea-xs w-full leading-snug"
+                      placeholder="Your own wording for this span."></textarea>
+            <div class="mt-1 flex justify-end gap-1">
+              <button class="btn btn-ghost btn-xs" @click="writing=false">Cancel</button>
+              <button class="btn btn-primary btn-xs" :disabled="!draft.trim()" @click="saveCustom(aSeg())">Use this</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+</div>
+
+<script>
+function shorter() {
+  return {
+    mode: 'edit',
+    original: '',
+    proposal: '',
+    segments: [],
+    busy: false,
+    copied: false,
+    // popover
+    activeId: null,
+    anchor: null,
+    writing: false,
+    draft: '',
+    // local model
+    model: { status: 'idle', pct: 0, note: '', error: '', engine: null, _loading: null },
+
+    init() {
+      window.addEventListener('keydown', e => { if (e.key === 'Escape') this.closePop(); });
+    },
+
+    // ── helpers ──────────────────────────────────────────────────────
+    w(s) { return s ? (s.trim().match(/\S+/g) || []).length : 0; },
+    modelLabel() {
+      return { idle: 'model off', loading: 'model ' + this.model.pct + '%', ready: 'model ready', error: 'model unavailable' }[this.model.status];
+    },
+    toneBadge(t) { return { accept: 'badge-success', reject: 'badge-ghost', custom: 'badge-secondary' }[t] || 'badge-ghost'; },
+
+    // ── building the diff ────────────────────────────────────────────
+    async compare() {
+      if (!this.original.trim()) return;
+      let prop = this.proposal;
+      if (!prop.trim()) {
+        // No proposal supplied: draft one with the local model over the whole text.
+        this.busy = true;
+        this.model.note = 'loading model…';
+        try {
+          const engine = await this.ensureModel();
+          this.model.note = 'drafting…';
+          prop = await this.generate(engine, this.original);
+          this.proposal = prop;
+        } catch (e) {
+          this.busy = false;
+          this.model.note = '';
+          alert('Local model unavailable: ' + e.message + '\n\nPaste a shorter version into the right column instead.');
+          return;
         }
-      })).then(value => {
-        engine = value;
-        modelStatus.textContent = 'Model ready';
-        modelDot.className = 'h-2 w-2 rounded-full bg-emerald-500';
-        activity.textContent = 'Ready.';
-        updateButtons();
-        return value;
-      }).catch(error => {
-        modelStatus.textContent = 'Model failed to load';
-        modelDot.className = 'h-2 w-2 rounded-full bg-red-500';
-        activity.textContent = error.message;
-        throw error;
-      }).finally(() => loading = null);
+        this.busy = false;
+        this.model.note = '';
+      }
+      this.segments = this.build(this.original, prop);
+      this.mode = 'review';
+    },
 
-      return loading;
-    }
+    build(a, b) {
+      const parts = Diff.diffWordsWithSpace(a || '', b || '');
+      // 1. coarse equal / change nodes
+      const coarse = [];
+      let cur = null;
+      const flush = () => { if (cur) { coarse.push({ type: 'change', o: cur.o, p: cur.p }); cur = null; } };
+      for (const part of parts) {
+        if (part.added) { (cur ||= { o: '', p: '' }).p += part.value; }
+        else if (part.removed) { (cur ||= { o: '', p: '' }).o += part.value; }
+        else { flush(); coarse.push({ type: 'equal', text: part.value }); }
+      }
+      flush();
+      // 2. absorb tiny equal runs wedged between two changes, so a flipped
+      //    word doesn't shatter a sentence into a dozen toggles.
+      const T = 4;
+      for (let again = true; again;) {
+        again = false;
+        for (let i = 1; i < coarse.length - 1; i++) {
+          const e = coarse[i];
+          if (e.type === 'equal' && e.text.trim().length <= T && coarse[i - 1].type === 'change' && coarse[i + 1].type === 'change') {
+            const a2 = coarse[i - 1], b2 = coarse[i + 1];
+            coarse.splice(i - 1, 3, { type: 'change', o: a2.o + e.text + b2.o, p: a2.p + e.text + b2.p });
+            again = true; break;
+          }
+        }
+      }
+      // 3. expand to segments; equal runs split to sentences so each is a
+      //    click target for the ✨ rewrite.
+      let id = 0;
+      const segs = [];
+      for (const n of coarse) {
+        if (n.type === 'equal') {
+          for (const s of this.sentences(n.text)) if (s) segs.push({ id: id++, kind: 'equal', text: s, busy: false });
+        } else {
+          segs.push(this.makeEdit(id++, n.o, n.p));
+        }
+      }
+      return segs;
+    },
 
-    async function rewrite() {
-      const text = source.value.trim();
-      if (!text || !engine || generating) return;
+    sentences(text) {
+      // Keep trailing whitespace attached so re-assembly is lossless.
+      return text.match(/[^.!?]*[.!?]+[\s]*|[^.!?]+[\s]*$/g) || [text];
+    },
 
-      generating = true;
-      result.value = '';
-      counts();
-      updateButtons();
+    makeEdit(id, o, p) {
+      let changeLabel, origLabel;
+      if (o && p) { changeLabel = 'Shorter'; origLabel = 'Original'; }
+      else if (!o && p) { changeLabel = 'Added'; origLabel = 'Skip'; }
+      else { changeLabel = 'Removed'; origLabel = 'Keep'; }
+      return {
+        id, kind: 'edit', original: o, busy: false, error: '',
+        selected: 'change',            // accept-by-default
+        options: [
+          { id: 'change', label: changeLabel, text: p, tone: 'accept', isChange: true },
+          { id: 'original', label: origLabel, text: o, tone: 'reject', isOriginal: true },
+        ],
+      };
+    },
 
-      try {
-        const strategy = strategies[turn++ % strategies.length];
-        const earlier = variants.slice(-5).map((v, i) => `${i + 1}. ${v}`).join('\n');
-        const limit = Math.max(1, words(text) - 1);
+    // ── rendering the segments ───────────────────────────────────────
+    selOpt(seg) { return seg.options ? seg.options.find(o => o.id === seg.selected) : null; },
+    selectedText(seg) { return seg.kind === 'equal' ? seg.text : (this.selOpt(seg)?.text ?? ''); },
+    isEmpty(seg) { return seg.kind === 'edit' && this.selectedText(seg) === ''; },
+    segClass(seg) {
+      if (seg.kind === 'equal') return 'seg-equal';
+      if (this.isEmpty(seg)) return 'seg-edit seg-empty';
+      const t = this.selOpt(seg)?.tone;
+      return 'seg-edit ' + (t === 'accept' ? 'seg-accept' : t === 'custom' ? 'seg-custom' : 'seg-reject');
+    },
 
-        activity.textContent = `Editing: ${strategy}…`;
+    get assembled() {
+      return this.segments.map(s => this.selectedText(s)).join('');
+    },
+    get baseWords() { return this.w(this.original); },
+    get curWords() { return this.w(this.assembled); },
+    get reductionPct() {
+      const b = this.baseWords; if (!b) return 0;
+      return Math.round((1 - this.curWords / b) * 100);
+    },
 
-        const chunks = await engine.chat.completions.create({
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a severe but faithful editor. Preserve meaning, stance, factual qualifications, and voice. Add nothing. Return only the rewritten passage, with no explanation, label, or quotation marks.'
-            },
-            {
-              role: 'user',
-              content: `Rewrite the passage in no more than ${limit} words.\nApproach: ${strategy}.\n\nPassage:\n${text}${earlier ? `\n\nDo not repeat these earlier rewrites:\n${earlier}` : ''}`
-            }
-          ],
-          temperature: 0.85,
-          max_tokens: 250,
-          stream: true
+    // ── toolbar actions ──────────────────────────────────────────────
+    acceptAll() {
+      for (const s of this.segments) if (s.kind === 'edit') {
+        // prefer an explicit change; else the shortest non-... option.
+        const change = s.options.find(o => o.isChange);
+        s.selected = (change || [...s.options].sort((a, b) => this.w(a.text) - this.w(b.text))[0]).id;
+      }
+    },
+    rejectAll() {
+      for (const s of this.segments) if (s.kind === 'edit') {
+        s.selected = (s.options.find(o => o.isOriginal) || s.options[0]).id;
+      }
+    },
+    async copyResult() {
+      try { await navigator.clipboard.writeText(this.assembled); }
+      catch { const t = document.createElement('textarea'); t.value = this.assembled; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      this.copied = true; setTimeout(() => this.copied = false, 1400);
+    },
+
+    // ── popover ──────────────────────────────────────────────────────
+    aSeg() { return this.activeId === null ? null : this.segments.find(s => s.id === this.activeId); },
+    openPop(seg, ev) {
+      this.activeId = seg.id;
+      this.anchor = ev.currentTarget.getBoundingClientRect();
+      this.writing = false; this.draft = '';
+    },
+    closePop() { this.activeId = null; this.writing = false; },
+    pick(seg, id) { seg.selected = id; },
+    popStyle() {
+      if (!this.anchor) return '';
+      const vw = window.innerWidth, vh = window.innerHeight;
+      if (vw < 520) return 'left:0.75rem; right:0.75rem; bottom:0.75rem;';
+      const width = Math.min(352, vw - 24);
+      let left = Math.min(Math.max(this.anchor.left, 12), vw - width - 12);
+      let top = this.anchor.bottom + 8;
+      if (top > vh - 200) top = Math.max(12, this.anchor.top - 8 - 320);
+      return `left:${left}px; top:${top}px; width:${width}px;`;
+    },
+    toggleWrite() {
+      this.writing = !this.writing;
+      if (this.writing) this.draft = this.selectedText(this.aSeg());
+    },
+    saveCustom(seg) {
+      const n = seg.options.filter(o => o.tone === 'custom').length + 1;
+      const id = 'custom' + n;
+      seg.options.push({ id, label: 'Yours', text: this.draft, tone: 'custom' });
+      seg.selected = id;
+      this.writing = false; this.draft = '';
+    },
+
+    // ── the local model ──────────────────────────────────────────────
+    async ensureModel() {
+      if (this.model.engine) return this.model.engine;
+      if (this.model._loading) return this.model._loading;
+      this.model.status = 'loading'; this.model.pct = 0; this.model.error = '';
+      this.model._loading = (async () => {
+        if (!('gpu' in navigator)) throw new Error('This browser has no WebGPU. Try current Chrome or Edge on desktop, or Safari 26+.');
+        if (!('caches' in window)) throw new Error('The Cache API is unavailable here (opaque origin); open the page from its https URL.');
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) throw new Error('WebGPU is present but no GPU adapter was found.');
+        const model = adapter.features.has('shader-f16')
+          ? 'Llama-3.2-1B-Instruct-q4f16_1-MLC' : 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+        const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm@0.2.84');
+        const engine = await CreateMLCEngine(model, {
+          initProgressCallback: p => { this.model.pct = Math.round((p.progress || 0) * 100); },
         });
+        this.model.engine = engine; this.model.status = 'ready';
+        return engine;
+      })().catch(e => {
+        this.model.status = 'error'; this.model.error = e.message; throw e;
+      }).finally(() => { this.model._loading = null; });
+      return this.model._loading;
+    },
 
-        let reply = '';
-        for await (const chunk of chunks) {
-          reply += chunk.choices[0]?.delta?.content || '';
-          result.value = reply.trimStart();
-          counts();
-        }
+    async generate(engine, text) {
+      const limit = Math.max(1, this.w(text) - 1);
+      const res = await engine.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are a severe but faithful editor. Preserve meaning, stance, factual qualifications, and voice. Add nothing. Return only the rewritten text, with no explanation, label, or quotation marks.' },
+          { role: 'user', content: `Rewrite in no more than ${limit} words:\n\n${text}` },
+        ],
+        temperature: 0.8, max_tokens: 400,
+      });
+      return (res.choices[0]?.message?.content || '').trim();
+    },
 
-        result.value = reply.trim();
-        variants.push(result.value);
-        activity.textContent = `${words(text)} → ${words(result.value)} words · ${strategy}`;
-      } catch (error) {
-        activity.textContent = `Error: ${error.message}`;
-      } finally {
-        generating = false;
-        counts();
-        updateButtons();
+    // Regenerate one span with the model. Works on an unchanged sentence
+    // (converts it into an edit) or on an existing edit (appends a variant).
+    async shorten(seg, ev) {
+      if (ev) ev.stopPropagation();
+      if (seg.busy) return;
+
+      // Promote an equal sentence to an editable span first.
+      if (seg.kind === 'equal') {
+        const promoted = {
+          id: seg.id, kind: 'edit', original: seg.text, busy: true, error: '',
+          selected: 'original',
+          options: [{ id: 'original', label: 'Original', text: seg.text, tone: 'reject', isOriginal: true }],
+        };
+        const i = this.segments.findIndex(s => s.id === seg.id);
+        this.segments.splice(i, 1, promoted);
+        seg = promoted;
+        if (this.activeId !== null) this.activeId = seg.id;
       }
-    }
 
-    shorten.onclick = rewrite;
-    another.onclick = rewrite;
-    keep.onclick = () => {
-      source.value = result.value;
-      result.value = '';
-      variants = [];
-      turn = 0;
-      counts();
-      updateButtons();
-      rewrite();
-    };
-    copy.onclick = async () => {
+      const base = seg.original || this.selectedText(seg) || '';
+      const lead = (base.match(/^\s*/) || [''])[0];
+      const trail = (base.match(/\s*$/) || [''])[0];
+
+      seg.busy = true; seg.error = '';
       try {
-        await navigator.clipboard.writeText(result.value);
-        activity.textContent = 'Copied.';
-      } catch {
-        result.select();
-        activity.textContent = 'Clipboard blocked; text selected, copy manually.';
+        const engine = await this.ensureModel();
+        const out = await this.generate(engine, base.trim());
+        if (!out) throw new Error('Model returned nothing.');
+        const n = seg.options.filter(o => o.tone === 'custom').length + 1;
+        const id = 'model' + n;
+        seg.options.push({ id, label: 'Model' + (n > 1 ? ' ' + n : ''), text: lead + out + trail, tone: 'custom' });
+        seg.selected = id;
+      } catch (e) {
+        seg.error = e.message;
+      } finally {
+        seg.busy = false;
       }
-    };
-    source.oninput = () => {
-      result.value = '';
-      variants = [];
-      turn = 0;
-      counts();
-      updateButtons();
-    };
+    },
 
-    counts();
-    updateButtons();
-    loadModel().catch(() => {});
-  </script>
+    // ── inputs ───────────────────────────────────────────────────────
+    clearAll() { this.original = ''; this.proposal = ''; this.segments = []; },
+    loadExample() {
+      this.original = "In light of the fact that the committee had not yet reached a final determination on the matter, it was decided by the members that they would postpone the vote until such time as additional information could be gathered and reviewed in a comprehensive manner. It is worth noting that several of the participants expressed a degree of concern regarding the timeline, which they felt was perhaps somewhat too aggressive given the current circumstances.";
+      this.proposal = "Because the committee had not yet decided, the members postponed the vote until they could gather and review more information. Several participants worried the timeline was too aggressive.";
+    },
+  };
+}
+</script>
 </body>
 </html>
