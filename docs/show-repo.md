@@ -79,11 +79,34 @@ bare page open). It renders in two layers:
   GitHub API: description, visibility (lock/globe), pushed-ago. The card name
   opens the repo in the shell (its landing); the github-logo opens it on
   GitHub; the gear (authed) edits that repo's own `.web-tools.json` through the
-  shield dialog's config editor. Entries may carry a `group` for section
-  headers and a `note` that overrides the GitHub description. Each card also
+  shield dialog's config editor. Entries may carry a `group` (row assignment,
+  below) and a `note` that overrides the GitHub description. Each card also
   reads the repo's own `.web-tools.json` and renders its `pins` as
   direct-jump chips (open the repo straight at that folder or file), plus
   universal Files and Atlas jumps and a Landing jump when the repo declares one.
+
+**Layout: two scrollable rows, optional nesting.** Cards render as
+horizontally scrollable, snap-scrolled rows (native touch swipe on mobile,
+wheel or drag on desktop): the primary cards lead each row and the rest sit
+off to the side. Row membership is by `group`, configured by an optional
+`estate` field in the registry's `.web-tools.json`:
+
+```json
+"estate": {
+  "rows": [["core", "archives"], ["data", "tools"]],
+  "nest": { "mehrlander/web-tools-private": "mehrlander/web-tools" }
+}
+```
+
+`rows` is ordered group lists, one entry per row; `'*'` collects every group
+not named elsewhere, and groups no row names append as a trailing row so
+nothing silently drops. `nest` folds a companion repo into its parent's card
+as a compact strip (same identity row, pins, and Files/Atlas/Landing jumps,
+aligned under the parent's) instead of a standalone card. Both have defaults
+that need no registry edit: rows `[["core","archives"],["*"]]`, and the
+registry repo nested under the shell's home repo (the only two repo strings
+the public page already names). Delete the `nest` entry (or set
+`"nest": {}`) to split nested cards back apart.
 - **Surfaces (curated).** Every `surfaces/*.surface` file in the registry repo,
   rendered beneath the cards: the surfacer's format (a `manifest` block and an
   `items` array; see the home repo's `projects/surfacer/VISION.md`). Surfaces
@@ -219,6 +242,9 @@ deprecation window. Fields:
   facts (description, visibility, pushed) come from the GitHub API at render
   time, not from this file, so the manifest never carries a fact that can
   drift.
+- **estate** (registry repo only): the estate's layout config,
+  `{ rows, nest }` — row membership by group and card nesting. See "Layout"
+  under "The estate" above; both parts have registry-free defaults.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."

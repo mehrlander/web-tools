@@ -1094,6 +1094,9 @@ function overview(){ return {
     quickLinks  (registry repo only) the curated header quick-link list:
              [{ repo, icon }], membership + order + icon. Read from REGISTRY_REPO
              (web-tools-private) by loadQuickLinks() when the viewer has a token.
+    estate   (registry repo only) the estate layout: { rows: [[group,…],…],
+             nest: { child: parent } } — scrollable-row membership by group and
+             card nesting, with registry-free defaults (see estate.js).
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
