@@ -13,6 +13,10 @@ _Generated from tasks/. Do not hand-edit._
 - Repo-designated inbox and outbox in .web-tools.json (`claude/pr-219-review-22csrh`)
 - Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
 - Branch-review view in show-repo next: spec the branches view and confirm the content-level landed signal before building
+- Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
+- Estate activity signals from a registry activity cache next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
+- Render files over 1 MB in toss-render and the shell viewers next: switch the render-path fetches to the raw media type with a git-blobs fallback, and verify against the 5.9 MB DRS bundle
+- Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
 
 ## In progress
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
