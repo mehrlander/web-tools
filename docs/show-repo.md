@@ -37,11 +37,17 @@ Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
 Deep-link params: `&view=atlas|files|stage`, `&file=<path>`, `&path=<dir>`.
 
-Views in the sidebar:
+**Two context levels.** The page is either in the **estate** (the global,
+all-repo context) or in a **repo** (a per-repo context with its own views). The
+header repo selector switches between them: its top entry, "Repositories", is
+the estate; the owner's repos below it are the per-repo contexts. In the estate
+the header reads `mehrlander / Repositories` with no branch selector, and the
+sidebar hides every per-repo item; pick a repo and the per-repo sidebar and
+branch context return. The brand icon returns to the estate on desktop. See
+"The estate" below.
 
-- **estate**: the all-repo view, above the per-repo views, and the page's front
-  door: a bare open (no `?repo`/`?file`/`?view`, no `#stage=`) lands here, and
-  the brand icon returns here. See "The estate" below.
+The per-repo views in the sidebar:
+
 - **landing**: the repo's front door. `landingKind(repo)` decides: web-tools →
   its page gallery; a repo whose manifest names a `landing` → that custom page
   (rendered live through toss-render `#gh=`); every other repo → a synthesized
@@ -62,7 +68,9 @@ ship with its jump-over.
 ## The estate: the all-repo view
 
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
-whole repo constellation, in two layers:
+whole repo constellation, and the page's global context (above any single repo,
+reached from the header selector's "Repositories" entry, the brand icon, or a
+bare page open). It renders in two layers:
 
 - **Repo cards (mechanical).** One card per entry in the registry's `repos`
   list (the ecosystem manifest in `web-tools-private/.web-tools.json`; fallback:

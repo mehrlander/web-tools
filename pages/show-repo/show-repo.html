@@ -104,34 +104,27 @@
     <!-- Sidebar top bar: repo name + auth shield (opens the token dialog), plus
          the mobile-only drawer close button. -->
     <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
-      <span class="font-mono text-xs truncate flex-1" x-text="$store.browser.repo || 'Browse'"></span>
-      <a x-show="$store.browser.repo" :href="repoGithubUrl" target="_blank"
+      <span class="font-mono text-xs truncate flex-1"
+            x-text="view==='estate' ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+      <a x-show="view!=='estate' && $store.browser.repo" :href="repoGithubUrl" target="_blank"
          class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" data-tip="Open on GitHub">
-        <i class="ph ph-github-logo text-lg"></i>
+        <i class="ph ph-github-logo text-lg leading-none"></i>
       </a>
       <button @click="document.getElementById('repoModal')?.showModal()"
               class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
-        <i class="ph text-lg" :class="authIcon"></i>
+        <i class="ph text-lg leading-none" :class="authIcon"></i>
       </button>
       <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
-      <!-- The estate: the all-repo view, above the per-repo views. -->
-      <div class="flex flex-col gap-0.5">
-        <button @click="goEstate()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='estate' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-circles-four text-base"></i><span>All repos</span>
-        </button>
-      </div>
-
-      <div class="border-t border-base-200"></div>
-
-      <!-- Repo views: the landing (web-tools' is its pages index, others get an
+      <!-- Per-repo views, hidden in the estate (global) context. The estate is
+           reached from the header selector ("Repositories") and the brand icon,
+           not from here, since it is a context above the repo, not a view of it.
+           Repo views: the landing (web-tools' is its pages index, others get an
            overview), the atlas, the file explorer, and the stage (the shared
            cross-repo fileset; badge shows its size). -->
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col gap-0.5" x-show="view!=='estate'">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -156,10 +149,10 @@
         </button>
       </div>
 
-      <div class="border-t border-base-200"></div>
+      <div class="border-t border-base-200" x-show="view!=='estate'"></div>
 
       <!-- Pinned: folders and files the repo designates in .web-tools.json. -->
-      <div x-show="pins.length" class="flex flex-col gap-0.5">
+      <div x-show="pins.length && view!=='estate'" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i>Pinned
         </div>
@@ -173,10 +166,10 @@
         </template>
       </div>
 
-      <div x-show="pins.length" class="border-t border-base-200"></div>
+      <div x-show="pins.length && view!=='estate'" class="border-t border-base-200"></div>
 
       <!-- Recent: files touched by the newest commits on the current ref. -->
-      <div x-show="recentLoading || recent.length" class="flex flex-col gap-0.5">
+      <div x-show="(recentLoading || recent.length) && view!=='estate'" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-clock-counter-clockwise"></i>Recent
         </div>
@@ -989,13 +982,18 @@ function overview(){ return {
 </script>
 
 <!-- ── Design notes: the estate, the landing mechanism, the views, the stage ───
-  A repo has, potentially, a LANDING PAGE. The repo picker is up front (the brand
-  icon doubles as the mobile drawer toggle). The sidebar lists the ESTATE (the
-  all-repo view, above the per-repo views) and the repo's VIEWS — landing,
-  atlas, files, stage — plus pinned/recent shortcuts; the folder and file
-  navigation itself lives in the main area (explorer: breadcrumb + listing, the
-  selected file's content beneath). app.landingKind(repo) is the one landing
-  decision point.
+  The page has TWO CONTEXT LEVELS. The ESTATE is the global, all-repo context;
+  a REPO is a per-repo context, with its own VIEWS (landing, atlas, files,
+  stage) plus pinned/recent shortcuts. The header repo selector is the switcher
+  between them: its top entry, "Repositories", is the estate; the owner's repos
+  below it are the per-repo contexts. In the estate the header reads
+  "mehrlander / Repositories" with no branch selector (a branch is a repo-level
+  notion), and the sidebar hides every per-repo item (top bar reads
+  "Repositories", the view list / pinned / recent are gone), since none of them
+  applies above the repo. Pick a repo and the per-repo sidebar and branch
+  context come back. The brand icon doubles as the mobile drawer toggle and, on
+  desktop, returns to the estate. app.landingKind(repo) is the one landing
+  decision point within a repo.
 
   THE ESTATE: the all-repo view (lib/alpineComponents/estate.js), and the page's
   front door — a bare open (no ?repo/?file/?view, no #stage=) lands here, and
