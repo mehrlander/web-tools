@@ -74,7 +74,10 @@
   inlining (inlineRelativeDeps) pulls each relative <script src> and
   <link rel=stylesheet href> ahead of render, and a fetch shim (addressHtml)
   reroutes the page's relative runtime GET fetch()es (e.g. './data.json',
-  './rows.csv') on demand. Still unhandled: static <img src> and other
+  './rows.csv') on demand. A third shim makes history.replaceState/pushState
+  safe: in a srcdoc iframe they throw a SecurityError (URL resolved against
+  <base>, document at about:srcdoc), which would break hash-routing pages on
+  every view switch. Still unhandled: static <img src> and other
   relative-tag assets, CSS url()/@import, XHR, and dynamic import().
 
   The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
@@ -109,6 +112,8 @@
   </form>
 
   <p id="empty-msg" class="text-error text-xs max-w-md font-mono"></p>
+  <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
+     href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
     URL forms: <code>#gh=owner/repo@ref:path</code>, <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL.
   </p>
@@ -145,12 +150,15 @@
 
   const absUrl = frag => location.origin + location.pathname + frag;
 
-  function showInput(error) {
+  function showInput(error, tokenHint) {
     tossLinkFn = null;
     frame.classList.add('hidden');
     empty.classList.remove('hidden');
     empty.classList.add('flex');
     msg.textContent = error || '';
+    // Only token-shaped failures surface the token link; a decode or parse
+    // failure must not send the viewer off to mint a new token for nothing.
+    document.getElementById('empty-token').classList.toggle('hidden', !tokenHint);
   }
   // Kept name for the existing error call sites; an error just re-shows the panel.
   const showEmpty = showInput;
@@ -241,11 +249,13 @@ function mime(p){var e=(p.split('.').pop()||'').toLowerCase();return MIME[e]||'a
 function tok(){try{var t=localStorage.getItem('ghToken');return(t&&t.indexOf('🎟')<0)?('Bearer '+t.trim()):'';}catch(e){return'';}}
 function bytes(s){var b=atob(s.replace(/\\s/g,''));var u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
 function wrap(body,rp){return new Response(body,{status:200,headers:{'Content-Type':mime(rp)}});}
-function isJson(r){return (r.headers.get('Content-Type')||'').indexOf('json')>-1;}
+function isJson(r){var c=(r.headers.get('Content-Type')||'').toLowerCase();return c.indexOf('json')>-1&&c.indexOf('raw')<0;}
+function meta(d){return d&&typeof d==='object'&&!(d instanceof Array)&&('content' in d)&&('encoding' in d);}
 function blob(sha,h,rp){var api='https://api.github.com/repos/'+O+'/'+N+'/git/blobs/'+sha;
   return real(api,{headers:h}).then(function(b){if(!b.ok)return b;
     if(!isJson(b))return b.arrayBuffer().then(function(buf){return wrap(buf,rp);});
-    return b.json().then(function(bd){return wrap(bytes(bd.content||''),rp);});});}
+    return b.text().then(function(t){var d=null;try{d=JSON.parse(t);}catch(e){return wrap(t,rp);}
+      return wrap(meta(d)&&d.content?bytes(d.content):t,rp);});});}
 window.fetch=function(input,init){try{
   var url=(typeof input==='string')?input:(input&&input.url);
   var m=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
@@ -255,8 +265,10 @@ window.fetch=function(input,init){try{
     var h={Accept:'application/vnd.github.raw+json'};var a=tok();if(a)h.Authorization=a;
     return real(api,{headers:h}).then(function(r){if(!r.ok)return r;
       if(!isJson(r))return r.arrayBuffer().then(function(buf){return wrap(buf,rp);});
-      return r.json().then(function(d){
-        if(Array.isArray(d))return new Response('directory',{status:400});
+      return r.text().then(function(t){
+        var d=null;try{d=JSON.parse(t);}catch(e){return wrap(t,rp);}
+        if(d instanceof Array){if(!d.length||(d[0]&&d[0].sha&&d[0].path))return new Response('directory',{status:400});return wrap(t,rp);}
+        if(!meta(d))return wrap(t,rp);
         if(d.content)return wrap(bytes(d.content),rp);
         if(d.sha)return blob(d.sha,h,rp);
         return wrap('',rp);
@@ -273,6 +285,15 @@ window.fetch=function(input,init){try{
   function addressHtml(text, { owner, name, ref, path }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
+    // History-safe shim: in a srcdoc iframe history.replaceState/pushState
+    // throw a SecurityError (the URL resolves against <base> while the
+    // document is about:srcdoc), which kills hash-routing pages mid view
+    // switch. Wrap both so a failed call is a no-op instead of an exception.
+    prelude += '<script>(function(){var H=window.history;if(!H)return;' +
+      'var rs=H.replaceState,ps=H.pushState;' +
+      'H.replaceState=function(){try{return rs.apply(H,arguments)}catch(e){}};' +
+      'H.pushState=function(){try{return ps.apply(H,arguments)}catch(e){}};' +
+      '})();<\/script>';
     if (ref) {
       const r = JSON.stringify(ref);
       prelude += '<script>window.__ref=' + r + ';(function(){var R=' + r + ',g=URLSearchParams.prototype.get;' +
@@ -310,22 +331,47 @@ window.fetch=function(input,init){try{
     return headers;
   }
 
-  // Interpret a contents-API response fetched with the raw media type. A file
-  // arrives as its raw bytes (Content-Type is not JSON): hand back the text. A
-  // directory, or a JSON body, is parsed — a directory throws, inline content
-  // (files ≤1 MB) is decoded, and an empty-content JSON (the >1 MB case, if the
-  // raw ask was ignored) falls back to the git blobs API by sha (up to 100 MB).
+  // Interpret a contents-API response fetched with the raw media type. The
+  // Content-Type label alone cannot be trusted to say which body arrived: a
+  // raw success may be echoed as text/plain OR as the raw media type itself
+  // (whose name contains "+json"), and caches/proxies can mislabel either way
+  // (Safari surfaces the mismatch as "The string did not match the expected
+  // pattern"). So classify structurally: parse as JSON only when the label
+  // suggests it, and accept the parse only if the result actually is
+  // contents-API metadata (content + encoding fields); anything else is the
+  // file itself. Directory listings throw; >1 MB metadata (content "") falls
+  // back to the git blobs API by sha (served up to 100 MB).
+  function contentsMeta(data) {
+    return data && typeof data === 'object' && !Array.isArray(data) &&
+      'content' in data && 'encoding' in data;
+  }
+  function jsonLabeled(res) {
+    const ct = (res.headers.get('Content-Type') || '').toLowerCase();
+    return ct.includes('json') && !ct.includes('raw');
+  }
   async function readContents(res, apiBase) {
-    const ct = res.headers.get('Content-Type') || '';
-    if (!/json/i.test(ct)) return await res.text();
-    const data = await res.json();
-    if (Array.isArray(data)) throw new Error('is a directory');
+    const body = await res.text();
+    if (!jsonLabeled(res)) return body;
+    let data;
+    try { data = JSON.parse(body); } catch (e) { return body; }
+    if (Array.isArray(data)) {
+      // A listing's entries carry sha+path; anything else is a raw JSON array file.
+      if (!data.length || (data[0] && data[0].sha && data[0].path)) throw new Error('is a directory');
+      return body;
+    }
+    if (!contentsMeta(data)) return body;
     if (data.content) return decodeB64(data.content);
     if (data.sha) {
       const b = await fetch(apiBase + '/git/blobs/' + data.sha, { headers: ghHeaders(RAW_MEDIA) });
-      if (!b.ok) throw new Error('HTTP ' + b.status);
-      if (!/json/i.test(b.headers.get('Content-Type') || '')) return await b.text();
-      return decodeB64((await b.json()).content || '');
+      if (!b.ok) throw new Error('blob fetch: HTTP ' + b.status);
+      const bBody = await b.text();
+      if (jsonLabeled(b)) {
+        try {
+          const bd = JSON.parse(bBody);
+          if (contentsMeta(bd) && bd.content) return decodeB64(bd.content);
+        } catch (e) {}
+      }
+      return bBody;
     }
     throw new Error('empty response');
   }
@@ -419,18 +465,25 @@ window.fetch=function(input,init){try{
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
+    const at = owner + '/' + name + (ref ? '@' + ref : '') + ':' + path;
     if (!res.ok) {
-      const why = res.status === 404 ? 'not found (or the stored token lacks access)'
+      // Token-shaped failures say so and surface the token link; anything
+      // else is labeled as GitHub's answer, not the viewer's credentials.
+      const why = res.status === 404 ? 'not found, or the stored token lacks access (a private repo needs one)'
+                : res.status === 401 ? 'the stored token was rejected (expired or revoked)'
                 : res.status === 403 ? 'rate-limited or forbidden (is a token saved?)'
                 : 'GitHub error ' + res.status;
-      return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + why + '.');
+      return showEmpty(at + ' — ' + why + '.', [401, 403, 404].includes(res.status));
     }
     let text;
     try {
       text = await readContents(res, apiBase);
     } catch (e) {
       if (e.message === 'is a directory') return showEmpty('That path is a directory, not a file.');
-      return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + (e.message || e) + '.');
+      // The fetch itself succeeded: name the stage so this never reads as a
+      // token problem.
+      return showEmpty(at + ' — fetched OK, but the response could not be decoded (' +
+        (e.message || e) + '). A renderer decoding failure, not a token or access problem.');
     }
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
