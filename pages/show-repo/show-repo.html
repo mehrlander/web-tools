@@ -652,13 +652,28 @@ function app(){ return {
     if (!this.hasToken()) { this.quickLinks = [...this.PUBLIC_QUICK_LINKS]; return; }
     try {
       const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
-      const parsed = JSON.parse((await reg.get('.web-tools.json')).text);
-      const list = Array.isArray(parsed?.quickLinks)
-        ? parsed.quickLinks.filter(e => e && typeof e.repo === 'string')
-        : null;
-      this.quickLinks = list && list.length
-        ? list.map(e => ({ repo: e.repo, icon: e.icon || 'ph-bookmark-simple' }))
-        : [...this.PUBLIC_QUICK_LINKS];
+      let links = [];
+      // Per-repo model: read the config cache and take every repo opting in with
+      // quickLink:true, ordered by its own `order`. Membership and icon are the
+      // repo's, not a registry list.
+      try {
+        const cache = JSON.parse((await reg.get('state/configs.json')).text);
+        links = Object.entries(cache.repos || {})
+          .map(([repo, e]) => ({ repo, cfg: e?.config || {} }))
+          .filter(x => x.cfg.quickLink === true)
+          .sort((a, b) => ((a.cfg.order ?? 0) - (b.cfg.order ?? 0)) || a.repo.localeCompare(b.repo))
+          .map(x => ({ repo: x.repo, icon: x.cfg.icon || 'ph-bookmark-simple' }));
+      } catch {}
+      // Legacy fallback: the registry's own quickLinks list (pre-migration).
+      if (!links.length){
+        try {
+          const parsed = JSON.parse((await reg.get('.web-tools.json')).text);
+          const list = Array.isArray(parsed?.quickLinks)
+            ? parsed.quickLinks.filter(e => e && typeof e.repo === 'string') : null;
+          if (list && list.length) links = list.map(e => ({ repo: e.repo, icon: e.icon || 'ph-bookmark-simple' }));
+        } catch {}
+      }
+      this.quickLinks = links.length ? links : [...this.PUBLIC_QUICK_LINKS];
     } catch {
       this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
     }
@@ -678,7 +693,13 @@ function app(){ return {
   _cacheCheckKey: 'wt:configCacheCheckedAt',
   async refreshConfigCache(force){
     if (!this.hasToken() || !window.RepoConfigCache) return;
-    const repos = this.quickLinks.map(q => q.repo);
+    // Seed the crawl from the account's repos (the enumeration that discovers
+    // estate members), so a repo opting in via its own config is picked up
+    // without any registry list. Fall back to the quick-link row if the
+    // enumeration fails.
+    let repos = [];
+    try { repos = (await new window.GH({ token: window.TOKEN }).repos()).map(r => r.full_name); }
+    catch { repos = this.quickLinks.map(q => q.repo); }
     if (!repos.length) return;
     if (!force){
       try {
@@ -1088,14 +1109,18 @@ function overview(){ return {
   with two views of its own — Repos and Surfaces — shown in the sidebar the same
   way a repo shows landing/atlas/files/… One estate component renders both and
   switches on the shell view, sharing the one lazy mount.
-    Repos (?view=estate): a card per repo from the registry's `repos` list (the
-      ecosystem manifest in web-tools-private's .web-tools.json; fallback: the
-      quickLinks row), enriched with live GitHub metadata (description,
-      visibility, pushed-ago), laid out full-width as a three-wide grid grouped
-      by the registry group (like the pages index). estate.rows orders the
-      group sections; estate.nest still folds a companion repo into its parent's
-      card. ?view=estate is only stamped when a repo/ref param is also present;
-      the bare URL IS the Repos estate.
+    Repos (?view=estate): a card per repo that opts in with estate:true in its
+      OWN .web-tools.json. Membership and every descriptive field (group, note,
+      icon, order, nestUnder) live on the repo; the registry holds no per-repo
+      config. The estate discovers members by enumerating the account's repos
+      (gh.repos()) and reading their configs, served through the registry's
+      config cache (state/configs.json) with a live-scan fallback when the cache
+      has no members yet. Cards enrich with live GitHub metadata and lay out
+      full-width as a three-wide grid grouped by group (like the pages index);
+      group order and within-group order come from each repo's own `order`, and
+      a repo naming nestUnder folds into that parent's card. ?view=estate is
+      only stamped when a repo/ref param is also present; the bare URL IS the
+      Repos estate.
     Surfaces (?view=surfaces): the registry's surfaces/*.surface files (the
       surfacer's format; archive category excluded), tabbed, each editable in
       place through a JSON dialog the same shape as the repo config editor
@@ -1126,16 +1151,18 @@ function overview(){ return {
   .show-repo.json migrates it in place (no delete; the stale legacy file is
   inert since readers prefer the new name). Current fields:
 
-    icon     Phosphor class (e.g. "ph-scales") for the repo's header quick-link
-             button. A repo may self-declare it, but the quick-link row's icon
-             comes from the registry entry (see THE QUICK-LINK REGISTRY below);
-             this field is the repo's own suggestion for consumers that read it.
-    quickLinks  (registry repo only) the curated header quick-link list:
-             [{ repo, icon }], membership + order + icon. Read from REGISTRY_REPO
-             (web-tools-private) by loadQuickLinks() when the viewer has a token.
-    estate   (registry repo only) the estate layout: { rows: [[group,…],…],
-             nest: { child: parent } } — scrollable-row membership by group and
-             card nesting, with registry-free defaults (see estate.js).
+    icon     Phosphor class (e.g. "ph-scales") for the repo's estate card and
+             its header quick-link button. The repo owns it.
+    estate   true to appear on the all-repo estate. Membership is a repo
+             property: the estate enumerates account repos and includes those
+             whose config sets this. There is no registry membership list.
+    group    the estate section this card sits in (e.g. "core", "data").
+    note     the card's one-line description (overrides the GitHub description).
+    order    arrangement weight: group order (a group sorts by its lowest
+             member's order) and within-group order both derive from it.
+    quickLink  true to appear in the header quick-link row, ordered by `order`.
+    nestUnder  "owner/repo": render this card inside that parent's card instead
+             of on its own (the child declares its parent).
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
@@ -1150,17 +1177,25 @@ function overview(){ return {
              Copying goes through gh-transfer.js (lib/): per-file Contents-API
              commits, base64 pass-through, viewer's token, two-tap confirm.
 
-  THE QUICK-LINK REGISTRY: the header row is data-driven, not a hardcoded list.
-  This page is public, so its source must not enumerate private repos. The
-  built-in default (PUBLIC_QUICK_LINKS) lists only the public repo. The real
-  curated list lives in a private registry repo (REGISTRY_REPO =
-  web-tools-private) as a `quickLinks: [{repo, icon}]` field in its root
-  .web-tools.json, and loadQuickLinks() fetches it when the viewer has a token
-  (the registry is private, so no token means the public default only). The one
-  private string this public page names is the registry repo itself, never the
-  repos it lists. Editing the registry's config in the shield dialog re-runs
+  THE QUICK-LINK ROW: the header row is data-driven, not a hardcoded list. This
+  page is public, so its source must not enumerate private repos. The built-in
+  default (PUBLIC_QUICK_LINKS) lists only the public repo. With a token,
+  loadQuickLinks() reads the config cache (state/configs.json in REGISTRY_REPO =
+  web-tools-private) and takes every repo opting in with quickLink:true, ordered
+  by its own `order`, icon from its own config (legacy fallback: the registry's
+  old quickLinks list, retired at cutover). Membership is a repo property, like
+  estate membership. The one private string this public page names is the
+  registry repo itself, never the repos in it. Editing a repo's config re-runs
   loadQuickLinks (via the web-tools:config-saved event), so the row updates
   without a reload.
+
+  THE CONFIG CACHE: state/configs.json in the registry is a periodic crawl of
+  every account repo's .web-tools.json (refreshConfigCache, throttled ~6h,
+  forced after a config save), keeping bounded per-repo history
+  (lib/repo-config-cache.js). It is the read path for estate membership and the
+  quick-link row, so a normal load is two GETs (the cache + the account list),
+  not an N-repo scan. Each repo's own file stays the source of truth; the cache
+  is derived. Cold cache falls back to a live per-repo scan, then rebuilds.
 
   THE STAGE: a cross-repo fileset (store.stage, [{repo, ref, path}]) fed by the
   explorer's "+" buttons, a manifest's stage.files, or a #stage= link, and
