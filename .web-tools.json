@@ -1,4 +1,10 @@
 {
+  "icon": "ph-toolbox",
+  "estate": true,
+  "group": "core",
+  "order": 11,
+  "quickLink": true,
+  "note": "Browser tools and kits; hosts this shell and the portable conventions.",
   "pins": [
     "pages",
     "lib/alpineComponents",
