@@ -24,7 +24,7 @@ _Generated from tasks/. Do not hand-edit._
 - Extract drop-zone as a reusable Alpine component (`claude/tracker-summary-nu74te`)
 - Add a task-tracker skill (`claude/agent-file-retrieval-skill-tv4can`)
 - Build an agent-assisted file-retrieval skill (`claude/agent-file-retrieval-skill-tv4can`) next: build corpus_search.py (find) with a sources config and a file-per-document default, plus read_doc.py (read) and a SKILL.md that fixes the search-and-present flow; dogfood on this repo's content
-- Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: build the branches view on the ported content-level signal, with the CLI-agreement check
+- Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: session refreshes (show-repo thumbnail) at wrap-up, then review via PR #236
 
 ## Blocked
 - (none)
