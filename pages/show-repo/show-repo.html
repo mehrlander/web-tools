@@ -23,6 +23,8 @@
   await gh.load('gh-store.js');
   // Config-aggregate builders for the private cache (state/configs.json).
   await gh.load('repo-config-cache.js');
+  // The pure survey math behind the branches view (window.BranchSurvey).
+  await gh.load('branch-survey.js');
   // The private request/response mailbox (mailbox/requests -> results).
   await gh.load('repo-mailbox.js');
 </script>
@@ -30,7 +32,7 @@
 </head>
 <!-- A repo browser fronted by a per-repo landing page. The repo picker is up
      front (header). The sidebar lists the repo's views — landing, atlas,
-     files, stage — plus pinned and recent shortcuts; the actual folder/file
+     files, stage, branches — plus pinned and recent shortcuts; the actual folder/file
      navigation lives in the main area (breadcrumb + listing, file content
      beneath). The sidebar is pinned on desktop, a drawer on mobile.
      See the design notes at the end of this file. -->
@@ -125,8 +127,8 @@
            reached from the header selector ("Repositories") and the brand icon,
            not from here, since it is a context above the repo, not a view of it.
            Repo views: the landing (web-tools' is its pages index, others get an
-           overview), the atlas, the file explorer, and the stage (the shared
-           cross-repo fileset; badge shows its size). -->
+           overview), the atlas, the file explorer, the stage (the shared
+           cross-repo fileset; badge shows its size), and the branch review. -->
       <div class="flex flex-col gap-0.5" x-show="view!=='estate'">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
@@ -149,6 +151,11 @@
           <i class="ph ph-stack text-base"></i><span>Stage</span>
           <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
                 x-text="$store.browser.stage.length"></span>
+        </button>
+        <button @click="goBranches()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='branches' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-git-branch text-base"></i><span>Branches</span>
         </button>
       </div>
 
@@ -386,6 +393,19 @@
       </div>
     </div>
 
+    <!-- Branches: the branch-review rollup — every branch with the
+         content-level landed/stranded signal (lib/branch-survey.js, the
+         browser port of home's branch-survey.sh). Advisory only; rows link
+         out to GitHub's tree/compare and the header to its branches UI.
+         Mounted lazily on first visit, like the estate. -->
+    <div x-show="view==='branches'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-6 py-8 max-w-5xl">
+        <template x-if="branchesSeen">
+          <div x-data="branches()"></div>
+        </template>
+      </div>
+    </div>
+
     <!-- Stage: the shared cross-repo fileset, grouped by source repo@ref, with
          send/save/mint actions and the concatenated bundle. Opening a staged
          file lands in the Files view's shared viewer. Compare lives here too:
@@ -440,10 +460,11 @@ function loadMarked(){
 // (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage'
+  view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
+  branchesSeen: false,    // mount the branches component lazily, on first visit
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
   DEFAULT_REPO: 'mehrlander/web-tools',
   // The header quick-link row is data-driven. This public page must not
@@ -515,8 +536,8 @@ function app(){ return {
     });
 
     // The repo bar is always visible, so point the browser at a repo now.
-    // Deep link: ?repo&ref then ?file / ?view=atlas|files|stage (&path with
-    // files). A #stage= fragment (a set of refs; see stage.js) preloads the
+    // Deep link: ?repo&ref then ?file / ?view=atlas|files|stage|branches
+    // (&path with files). A #stage= fragment (a set of refs; see stage.js) preloads the
     // stage and wins the initial view: it is the point of such a link.
     const url = this.parseUrl();
     await this.ensureBrowser(url?.repo, url?.ref);
@@ -524,6 +545,7 @@ function app(){ return {
     else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
+    else if (url && url.view === 'branches') this.goBranches();
     else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
     const staged = window.StageLink ? window.StageLink.parse(location.hash) : [];
     if (staged.length) {
@@ -798,6 +820,7 @@ function app(){ return {
     }
     else if (this.view === 'atlas') p.set('view', 'atlas');
     else if (this.view === 'stage') p.set('view', 'stage');
+    else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
     const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
@@ -822,6 +845,7 @@ function app(){ return {
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
+      else if (url && url.view === 'branches') this.goBranches();
       else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
       else if (!url) this.goEstate();
       else this.goLanding();
@@ -873,6 +897,7 @@ function app(){ return {
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
   goStage(){ this.view = 'stage'; this.drawer = false; this.syncUrl(); },
+  goBranches(){ this.branchesSeen = true; this.view = 'branches'; this.drawer = false; this.syncUrl(); },
   openSidebar(){ this.drawer = true; },
 
   // Header shortcuts to frequently-visited repos. web-tools is always public;
@@ -1017,7 +1042,7 @@ function overview(){ return {
 <!-- ── Design notes: the estate, the landing mechanism, the views, the stage ───
   The page has TWO CONTEXT LEVELS. The ESTATE is the global, all-repo context;
   a REPO is a per-repo context, with its own VIEWS (landing, atlas, files,
-  stage) plus pinned/recent shortcuts. The header repo selector is the switcher
+  stage, branches) plus pinned/recent shortcuts. The header repo selector is the switcher
   between them: its top entry, "Repositories", is the estate; the owner's repos
   below it are the per-repo contexts. In the estate the header reads
   "mehrlander / Repositories" with no branch selector (a branch is a repo-level
@@ -1111,6 +1136,15 @@ function overview(){ return {
   belongs with the fileset, not under the file viewer. A content-carrying
   bundle form (#gz= style, for token-less contexts like the Claude app's
   in-app browser) is a contemplated follow-up, not built.
+
+  THE BRANCH REVIEW: a per-repo view (lib/alpineComponents/branches.js) that
+  rolls every branch up into recently-active / likely-landed / likely-stranded
+  on the content-level signal from lib/branch-survey.js — the browser port of
+  home's tools/branch-survey.sh, whose math is unit-tested and held in
+  agreement with the CLI by scripts/check-branch-survey.mjs. Advisory and
+  read-only: rows jump to GitHub's tree/compare (and the in-shell compare),
+  the header to GitHub's branches UI, where the delete action itself lives.
+  Deep link: ?view=branches.
 
   RENDERING stays toss-render's job: the viewer's "Toss render" action hands an
   HTML file to toss-render #gh= at the file's own repo@ref, and custom landings

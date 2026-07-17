@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=atlas|files|stage`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=atlas|files|stage|branches`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views). The
@@ -57,6 +57,7 @@ The per-repo views in the sidebar:
 - **files**: the explorer: breadcrumb + listing, selected file's content
   beneath. Each row has a `+` that stages the file.
 - **stage**: the cross-repo fileset (below).
+- **branches**: the branch review (below).
 
 **GitHub jump-overs.** show-repo is a wrapper over GitHub, not a wall: every
 view keeps a one-tap route to the GitHub presentation of what it is showing.
@@ -150,6 +151,35 @@ from a branch of this repo plus one from another repo →
 ```
 …/show-repo.html#stage=mehrlander/web-tools@my-branch:lib/gh-api.js,lib/stage.js;mehrlander/home:inbox/note.md
 ```
+
+## The branch review: landed / stranded per branch
+
+The **branches** view (`lib/alpineComponents/branches.js`) rolls every branch of
+the open repo into **recently active** (commits in the last 14 days; judge
+nothing yet), **likely landed**, and **likely stranded**, on a content-level
+signal rather than `ahead_by`: which of the branch's uniquely-touched paths
+hold, at the branch tip, bytes the default branch holds right now, at the same
+path or moved anywhere in the tree. **Missing** counts paths absent from the
+default branch in both path and bytes, the strong stranded evidence. Squash
+merges and history rewrites make ref-level "unmerged" (and `ahead_by`, whose
+count on a rewrite-orphaned branch spans its whole line, marked `*`) unreliable;
+the content columns are the ones to read.
+
+The math is the browser port of home's `tools/branch-survey.sh` (the CLI
+reference instrument), lives in `lib/branch-survey.js` as pure unit-tested
+functions, and is held in agreement with the CLI by
+`scripts/check-branch-survey.mjs` (on home's 56-branch estate: 52 exact, 4
+divergent only where the CLI's git rename detection credits moved-and-evolved
+content the API cannot see, all in the conservative direction). Fetch cost: one
+branch list, one recursive tree for the default branch, then per branch one
+compare (with a commits-list fallback for no-merge-base branches) and one
+recursive tree, streamed so rows fill in as they land.
+
+Advisory and read-only, matching the CLI's posture: the view frames the
+per-branch reconcile judgment and decides nothing. Each row jumps to the branch
+tree and `main...branch` compare on GitHub (ground truth), opens the branch or
+the in-shell compare here, and the header links GitHub's branches UI, where the
+delete action itself lives. Deep link: `?view=branches`.
 
 ## `.web-tools.json`: the repo manifest
 
