@@ -2,17 +2,19 @@
 
 Remote-sandbox conventions for Claude Code web sessions; output is strictly via chat. The canonical source is `mehrlander/web-tools` at `docs/CONVENTIONS.md`, loaded by `@`-import or the `web-tools` skill. Local `CLAUDE.md` rules override these defaults. Substitute the current repo into all URL templates.
 
-The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): the **surfacing primitives** below (universal chat-handoff mechanics, no setup) and the **surfacing course** that follows (the guide-PR and merge-guide lifecycle). You get both. The course simply does nothing until you open a PR, so a repo that runs no PRs carries it at no cost; there is no separate opt-in step and nothing to stand up later.
+The set comes as one bag, installed together (see [PORTABLE.md](PORTABLE.md)): the **surfacing primitives** below (universal chat-handoff mechanics, no setup) and the **surfacing course** that follows (the guide-PR and merge-guide lifecycle). You get both. The course does nothing until you open a PR, so a repo that runs no PRs carries it at no cost, with nothing to opt into or stand up.
 
 **Prose style:** zero em dashes. Use colons, commas, semicolons, parentheses, or new sentences.
 
 **One render path.** A page renders one way: the 🥏 toss below. There is no per-repo preview mechanism to pick. ⭐ marks a hosted live view where one already exists (the canonical URL of an already-deployed page); the toss covers every branch or private page that has no hosted URL of its own.
 
-**The one per-repo setting: per-session refreshes.** Normally none. Name a refresh only if the repo has a slow or non-deterministic generated artifact that cannot ride a commit hook (a screenshot, say); it is regenerated once per session at wrap-up. Most repos have none, so this stays empty. Set it in the local `CLAUDE.md`.
+**The one per-repo setting: per-session refreshes.** Normally none: name a refresh only if the repo has a slow or non-deterministic generated artifact that cannot ride a commit hook (a screenshot, say), regenerated once per session at wrap-up. Set it in the local `CLAUDE.md`.
 
 **Adding your own, without clobbering.** The install owns only what it ships. Plugin skills are namespaced (`/portable:caption`), so a same-named skill of yours coexists; the fallback fetch hook writes a fixed file list and touches nothing else. Your own skills and any `CLAUDE.md` text below the import are never overwritten.
 
 **Standing decisions: write the answer down, not just the question.** A recurring fork (commit this class of file to main without asking, skip the watch offer, take the smaller of two options) becomes a standing decision the moment a doc states it as a default: name it in `CLAUDE.md` or the relevant portable doc (this file, `TRACKER.md`), and a session that hits it takes the default and notes the assumption in its reply rather than raising it fresh. Writing it down is also the only lever that reliably works: a `permissions.deny` entry naming the question tool does not suppress it, since asking is a model choice, not a gated call the permission layer can intercept. So a repo fielding the same question repeatedly has a missing standing decision, not a tool to disable.
+
+**Leave it nicer than you found it.** Adding to a doc is a pass over it, not just an append. New material has to match the surrounding voice and structure, not merely be correct: text that reads in a different register, or restates something already present, degrades the doc even when the addition itself is right. So when you add, check the fit against what is already there, and take the occasion to retire a redundancy or tighten a nearby line you would otherwise have left. Add one idea, clean one: that is the default, not extra credit.
 
 ---
 
