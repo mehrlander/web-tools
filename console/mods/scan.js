@@ -10,26 +10,39 @@
 // because idb-nav / data-shelf read every database on the origin, whatever
 // scan writes is browsable there for free.
 //
-//   glom.scan.define('rows', {selector, format})   register a stream
+//   glom('msg'); glom.grow(); glom.scan.define('rows')   seed a stream from the set
+//   glom.scan.define('rows', {selector, format})         or define it explicitly
 //   glom.scan.tick()                                 one capture pass now
 //   glom.scan.watch()                                capture on DOM churn
 //   await glom.scan.sweep()                          scroll-until-dry capture
 //   glom.scan.start(ms) / glom.scan.stop()           crude interval fallback
+//   glom.scan.grab('rows')                           adopt a stream back into the set
 //   glom.scan.data('rows')                           the in-memory records
 //   glom.scan.join('a', 'b')                         merge two streams
 //   glom.scan.highlight()                            outline captured elements
 //   await glom.scan.chat()                           preset: sidebar ↔ articles
 //
-// A stream's format(el) must return { key, ... }; key is what dedups a record
-// across passes, so its stability (a href, a content hash, an id — not a
-// shifting ordinal) is where capture quality lives. Requires base.js + core.js.
+// This is a glom citizen, not a bystander parked in the namespace: a bare
+// define() reads the working set (infers the selector, snapshots each member),
+// and grab() writes captured elements back to it, so scan is the persistence
+// verb on the find → dance → grab loop. A stream's format(el) returns
+// { key, ... }; key is what dedups a record across passes, so its stability (a
+// href, a content hash, an id, not a shifting ordinal) is where capture
+// quality lives. Requires base.js + core.js (mods/infer.js for set-seeding).
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/scan: base.js + mods/core.js must load first');
-  const { clean, HUES } = g.core;
+  const { clean, HUES, docOrder } = g.core;
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const now = () => new Date().toISOString();
   const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+
+  // Default keyer/format when a stream is seeded from the working set instead
+  // of a hand-written format: a stable key (id, own or descendant href, else a
+  // text hash) plus a text/html snapshot. The same "prefer a durable handle
+  // over an ordinal" rule the docs preach, applied automatically.
+  const keyOf = el => el.id || el.getAttribute?.('href') || el.querySelector?.('a[href]')?.getAttribute('href') || hash(clean(el.textContent));
+  const snapshot = el => ({ key: keyOf(el), text: clean(el.textContent), html: el.outerHTML });
 
   // raw IndexedDB — one db, one keyPath:'key' store per stream.
   const idb = {
@@ -92,7 +105,13 @@
     db(name) { if (name) { S.name = name; S.db?.close(); S.db = null; S.stores = {}; return scan; } return S.name; },
 
     async define(name, { selector, format, filter = () => true, compress = false, field = 'content', hue } = {}) {
-      if (!selector || !format) return console.warn('scan.define: needs {selector, format}');
+      // Seed from the working set: glom/dance/grow to a set, and a bare
+      // define() infers the selector (via mods/infer.js) and snapshots each
+      // member, the same set-native shortcut watch and harvest take. Pass
+      // {selector, format} to override either half.
+      selector ??= g.infer ? g.infer()?.selector : null;
+      if (!selector) return console.warn('scan.define: pass {selector}, or glom a set (+ load mods/infer.js) to seed one');
+      format ??= snapshot;
       await ensure(name);
       const st = S.stores[name] ??= { records: [] };
       Object.assign(st, { selector, format, filter, compress, field, hue });
@@ -167,6 +186,23 @@
     data(name) {
       return name ? [...(S.stores[name]?.records || [])]
         : Object.fromEntries(Object.entries(S.stores).map(([n, s]) => [n, [...s.records]]));
+    },
+
+    // Adopt a stream's still-present elements as the working set, so a capture
+    // flows back into the dance (census.grab / harvest, but keyed on record).
+    grab(name) {
+      const names = name ? [name] : Object.keys(S.stores);
+      const els = [];
+      for (const n of names) {
+        const st = S.stores[n];
+        if (!st?.selector) continue;
+        const have = new Set(st.records.map(r => r.key));
+        for (const el of [...document.querySelectorAll(st.selector)].filter(st.filter)) {
+          const r = st.format(el);
+          if (r && have.has(r.key)) els.push(el);
+        }
+      }
+      return g.set(docOrder(els));
     },
 
     search(term, name) {

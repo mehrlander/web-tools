@@ -125,6 +125,31 @@ test('join: two streams merge, unmatched tail on; search + clear(term) prune', a
   assert.deepEqual([...w.glom.scan.data('caps')].map(r => r.key), ['/y']);
 });
 
+test('set-seeding: a bare define() infers the selector and snapshots the set', async () => {
+  const w = boot('<!doctype html><html><body><main></main></body></html>');
+  const main = w.document.querySelector('main');
+  for (const n of [1, 2, 3]) { const a = w.document.createElement('article'); a.textContent = `msg ${n}`; main.append(a); }
+  w.glom(w.q('article'));                              // dance to a set first
+  await w.glom.scan.define('rows');                    // no selector, no format
+  assert.equal(await w.glom.scan.tick(), 3);           // snapshot captured all three
+  const rec = w.glom.scan.data('rows')[0];
+  assert.equal(rec.text, 'msg 1');                     // default snapshot: text + html + key
+  assert.ok(rec.html.includes('<article'));
+});
+
+test('grab: adopts a stream\'s still-present elements back into the working set', async () => {
+  const w = boot();
+  const a = feed(w, 1), b = feed(w, 2);
+  await w.glom.scan.define('msgs', { selector: 'article', format: el => ({ key: el.textContent, text: el.textContent }) });
+  await w.glom.scan.tick();
+  w.glom.clear();
+  assert.equal(w.glom.get().length, 0);
+  const got = w.glom.scan.grab('msgs');
+  assert.equal(got.length, 2);
+  assert.deepEqual([...got], [a, b]);                  // the live captured elements, in document order
+  assert.equal(w.document.querySelectorAll('[data-glom]').length, 2);
+});
+
 test('highlight: outlines only the elements on record', async () => {
   const w = boot();
   const a = feed(w, 1), b = feed(w, 2);
