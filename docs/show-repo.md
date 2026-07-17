@@ -77,8 +77,12 @@ bare page open). It renders in two layers:
   the `quickLinks` row when `repos` is absent), each enriched live from the
   GitHub API: description, visibility (lock/globe), pushed-ago. The card name
   opens the repo in the shell (its landing); the github-logo opens it on
-  GitHub. Entries may carry a `group` for section headers and a `note` that
-  overrides the GitHub description.
+  GitHub; the gear (authed) edits that repo's own `.web-tools.json` through the
+  shield dialog's config editor. Entries may carry a `group` for section
+  headers and a `note` that overrides the GitHub description. Each card also
+  reads the repo's own `.web-tools.json` and renders its `pins` as
+  direct-jump chips (open the repo straight at that folder or file), plus
+  universal Files and Atlas jumps and a Landing jump when the repo declares one.
 - **Surfaces (curated).** Every `surfaces/*.surface` file in the registry repo,
   rendered beneath the cards: the surfacer's format (a `manifest` block and an
   `items` array; see the home repo's `projects/surfacer/VISION.md`). Surfaces
@@ -90,10 +94,20 @@ bare page open). It renders in two layers:
   agent session with registry access can write or extend a surface; the estate
   shows it on next load, which is the sessions-feed-the-dashboard loop.
 
+**Managing the estate (authed).** Two write surfaces, split by ownership.
+Membership is data in the registry, so an "Add repository" control on the
+estate appends `{repo, icon, note, group}` to `web-tools-private`'s `repos`
+list through the viewer's token (candidates come from the header picker's list
+of the viewer's repos, minus what is already on the estate). A repo's own
+presentation (icon, pins, landing) lives on that repo, so the card gear opens
+its `.web-tools.json` in the existing config editor, seeding an empty template
+when the repo has none. So: add-to-estate writes the registry; the gear writes
+the repo.
+
 Token gating, same as everything registry-driven: no token means the public
-default card only and no surfaces. Deep link: `?view=estate` (the bare URL is
-the estate already; the param is stamped only when a `repo`/`ref` param is also
-present).
+default card only, no surfaces, and neither write control. Deep link:
+`?view=estate` (the bare URL is the estate already; the param is stamped only
+when a `repo`/`ref` param is also present).
 
 ## The stage: a cross-repo fileset
 
