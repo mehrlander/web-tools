@@ -12,9 +12,10 @@
   if (!g) return console.warn('mods/core: console/base.js must load first');
 
   const clean = s => s.trim().replace(/\s+/g, ' ');
+  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
   g.core = {
     SCOPE: 'body *:not(script):not(style)',
-    HUES: ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'],
+    HUES,
     clean,
     own: n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('')),
     upath: n => {
@@ -62,6 +63,32 @@
       const mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(cb, settle); });
       mo.observe(document.body, { childList: true, subtree: true });
       return () => { mo.disconnect(); clearTimeout(timer); };
+    },
+    // A hued group layer for the rank-and-mark mods (census, templates): mark N
+    // groups each in its own hue under data-<prefix>-<i>, grab group i into the
+    // working set, and clear the marks. Owns the group list, so the two mods
+    // stop each carrying their own verbatim grab/clear/mark copy.
+    groupLayer: prefix => {
+      let groups = [];
+      const attr = i => `data-${prefix}-${i}`;
+      return {
+        mark(gs, on = true) {
+          groups = gs;
+          if (on) groups.forEach((grp, i) => window.mark(grp.els, HUES[i % HUES.length], attr(i)));
+          return groups;
+        },
+        grab: i => groups[i] ? window.glom(groups[i].els) : (console.warn(`${prefix}: no group ${i} — run it first`), []),
+        clear() {
+          for (let i = 0; ; i++) {
+            const style = document.getElementById(`mark-s-${attr(i)}`);
+            const els = document.querySelectorAll(`[${attr(i)}]`);
+            if (!style && !els.length) break;
+            style?.remove();
+            els.forEach(n => n.removeAttribute(attr(i)));
+          }
+          groups = [];
+        },
+      };
     },
   };
 

@@ -23,7 +23,7 @@
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/templates: base.js + mods/core.js must load first');
-  const { SCOPE, HUES } = g.core;
+  const { SCOPE, groupLayer } = g.core;
 
   /* ── engine (adapted from kits/wring.js: bookend merge, single slot) ── */
 
@@ -141,7 +141,7 @@
     return segs.join('.');
   };
 
-  let groups = [];
+  const layer = groupLayer('tmpl');
   const templates = (opts = {}) => {
     const { qualify = true, minGroupSize = 2, top = 12, mark: doMark = true, ...engineOpts } = opts;
     templates.clear();
@@ -172,26 +172,15 @@
         out.push({ template: s, count: members.length, slots: [], els: members, lit: s.length });
     }
     out.sort((a, b) => (b.count - 1) * b.lit - (a.count - 1) * a.lit);
-    groups = out.slice(0, top);
-
-    if (doMark) groups.forEach((grp, i) => window.mark(grp.els, HUES[i % HUES.length], `data-tmpl-${i}`));
+    const groups = layer.mark(out.slice(0, top), doMark);
     console.table(groups.map(({ els, lit, slots, ...row }, i) =>
       ({ i, ...row, slots: slots.join(', '), template: row.template.length > 90 ? '…' + row.template.slice(-89) : row.template })));
     console.log('templates: glom.templates.grab(i) adopts a group; .clear() unmarks');
     return groups;
   };
 
-  templates.grab = i => groups[i] ? g(groups[i].els) : (console.warn(`templates: no group ${i} — run glom.templates() first`), []);
-  templates.clear = () => {
-    for (let i = 0; ; i++) {
-      const style = document.getElementById(`mark-s-data-tmpl-${i}`);
-      const els = document.querySelectorAll(`[data-tmpl-${i}]`);
-      if (!style && !els.length) break;
-      style?.remove();
-      els.forEach(n => n.removeAttribute(`data-tmpl-${i}`));
-    }
-    groups = [];
-  };
+  templates.grab = layer.grab;
+  templates.clear = layer.clear;
   templates.group = groupStrings;
   templates.reconstruct = reconstruct;
   g.templates = templates;
