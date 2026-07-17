@@ -65,7 +65,7 @@ A comment on a task splits by append vs. overwrite. Current-state comments (a pr
 
 ## Claiming a task
 
-To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch. Update the task file on `main` when the status, owning branch, or progress log changes, and set `status: done` with `closed:` when it lands.
+To take a task, edit its file on `main`: set `status: in-progress`, set `session: <your branch>`, and add a progress-log line. Regenerate `board.md` and commit the task file and board to `main`. `main` now shows the task is in flight and which branch owns it. Do the feature work on your branch, updating the task file on `main` when the status, owning branch, or progress log changes. Set `status: done` with `closed:` in the session that completes the work, citing the delivering PR in the progress log (e.g. "Lands via PR #299"). Done does not wait for merge or wrap-up: the PR link carries delivery state. A branch may deliver more than one task, so a task can go done while another stays `in-progress` on the same branch.
 
 ## Board format
 
