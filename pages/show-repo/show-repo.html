@@ -110,8 +110,8 @@
            github link sits next to the repo address wherever it is shown). -->
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
         <span class="font-mono text-xs truncate"
-              x-text="view==='estate' ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
-        <a x-show="view!=='estate' && $store.browser.repo" :href="repoGithubUrl" target="_blank"
+              x-text="isEstate ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+        <a x-show="!isEstate && $store.browser.repo" :href="repoGithubUrl" target="_blank"
            class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
            title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
       </div>
@@ -123,13 +123,31 @@
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+      <!-- Estate-context views: the estate is a context above any repo, and has
+           two views of its own — the repo grid (Repos) and the curated surfaces
+           (Surfaces) — the same shape as the per-repo view list below. Shown
+           only in that context; the per-repo list takes over once a repo is
+           opened. -->
+      <div class="flex flex-col gap-0.5" x-show="isEstate">
+        <button @click="goEstate()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='estate' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-squares-four text-base"></i><span>Repos</span>
+        </button>
+        <button @click="goSurfaces()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='surfaces' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-cards text-base"></i><span>Surfaces</span>
+        </button>
+      </div>
+
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
            reached from the header selector ("Repositories") and the brand icon,
            not from here, since it is a context above the repo, not a view of it.
            Repo views: the landing (web-tools' is its pages index, others get an
            overview), the atlas, the file explorer, the stage (the shared
            cross-repo fileset; badge shows its size), and the branch review. -->
-      <div class="flex flex-col gap-0.5" x-show="view!=='estate'">
+      <div class="flex flex-col gap-0.5" x-show="!isEstate">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -159,10 +177,10 @@
         </button>
       </div>
 
-      <div class="border-t border-base-200" x-show="view!=='estate'"></div>
+      <div class="border-t border-base-200" x-show="!isEstate"></div>
 
       <!-- Pinned: folders and files the repo designates in .web-tools.json. -->
-      <div x-show="pins.length && view!=='estate'" class="flex flex-col gap-0.5">
+      <div x-show="pins.length && !isEstate" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i>Pinned
         </div>
@@ -176,10 +194,10 @@
         </template>
       </div>
 
-      <div x-show="pins.length && view!=='estate'" class="border-t border-base-200"></div>
+      <div x-show="pins.length && !isEstate" class="border-t border-base-200"></div>
 
       <!-- Recent: files touched by the newest commits on the current ref. -->
-      <div x-show="(recentLoading || recent.length) && view!=='estate'" class="flex flex-col gap-0.5">
+      <div x-show="(recentLoading || recent.length) && !isEstate" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-clock-counter-clockwise"></i>Recent
         </div>
@@ -202,11 +220,13 @@
   <!-- ── Main area: the selected view for the repo ────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0">
 
-    <!-- Estate: the all-repo view — registry-driven repo cards plus curated
-         surfaces from the private registry. Mounted lazily on first visit,
-         like the atlas. -->
-    <div x-show="view==='estate'" class="h-full overflow-y-auto">
-      <div class="mx-auto px-6 py-8 max-w-5xl">
+    <!-- Estate: the all-repo context, with two views of its own — the repo grid
+         (Repos) and the curated surfaces (Surfaces). One component renders both
+         and switches on the shell view, so both share this lazy mount. Full
+         width, so the repo grid runs three cards wide like the pages index; the
+         Surfaces view constrains its own column. -->
+    <div x-show="isEstate" class="h-full overflow-y-auto">
+      <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="estateSeen">
           <div x-data="estate()"></div>
         </template>
@@ -543,6 +563,7 @@ function app(){ return {
     await this.ensureBrowser(url?.repo, url?.ref);
     if (url && url.file) await this.openFile(url.file);
     else if (url && url.view === 'estate') this.goEstate();
+    else if (url && url.view === 'surfaces') this.goSurfaces();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
     else if (url && url.view === 'branches') this.goBranches();
@@ -821,6 +842,7 @@ function app(){ return {
     else if (this.view === 'atlas') p.set('view', 'atlas');
     else if (this.view === 'stage') p.set('view', 'stage');
     else if (this.view === 'branches') p.set('view', 'branches');
+    else if (this.view === 'surfaces') p.set('view', 'surfaces');
     else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
     const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
@@ -843,6 +865,7 @@ function app(){ return {
       await this.ensureBrowser(url?.repo, url?.ref);
       if (url && url.file) await this.openFile(url.file);
       else if (url && url.view === 'estate') this.goEstate();
+      else if (url && url.view === 'surfaces') this.goSurfaces();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
       else if (url && url.view === 'branches') this.goBranches();
@@ -891,8 +914,14 @@ function app(){ return {
     await el.__explorer.load(path);
   },
 
+  // The estate is a context above any repo, with two views of its own — the
+  // repo grid ('estate') and the curated surfaces ('surfaces') — mirroring how
+  // a repo has landing/atlas/files/… The estate component renders both and
+  // switches on this.view, so both share the one lazy mount (estateSeen).
+  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces'; },
   goHome(){ this.goEstate(); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
+  goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
@@ -1053,16 +1082,26 @@ function overview(){ return {
   desktop, returns to the estate. app.landingKind(repo) is the one landing
   decision point within a repo.
 
-  THE ESTATE: the all-repo view (lib/alpineComponents/estate.js), and the page's
-  front door — a bare open (no ?repo/?file/?view, no #stage=) lands here, and
-  the brand icon returns here on desktop. It renders a card per repo from the
-  registry's `repos` list (the ecosystem manifest in web-tools-private's
-  .web-tools.json; fallback: the quickLinks row), enriched with live GitHub
-  metadata (description, visibility, pushed-ago), then every curated surface in
-  the registry's surfaces/*.surface files (the surfacer's format; archive
-  category excluded). No token: the public default card only, no surfaces.
-  Deep link: ?view=estate (only stamped in the URL when a repo/ref param is
-  also present; the bare URL IS the estate).
+  THE ESTATE: the all-repo context (lib/alpineComponents/estate.js), and the
+  page's front door — a bare open (no ?repo/?file/?view, no #stage=) lands here,
+  and the brand icon returns here on desktop. It is a context above any repo,
+  with two views of its own — Repos and Surfaces — shown in the sidebar the same
+  way a repo shows landing/atlas/files/… One estate component renders both and
+  switches on the shell view, sharing the one lazy mount.
+    Repos (?view=estate): a card per repo from the registry's `repos` list (the
+      ecosystem manifest in web-tools-private's .web-tools.json; fallback: the
+      quickLinks row), enriched with live GitHub metadata (description,
+      visibility, pushed-ago), laid out full-width as a three-wide grid grouped
+      by the registry group (like the pages index). estate.rows orders the
+      group sections; estate.nest still folds a companion repo into its parent's
+      card. ?view=estate is only stamped when a repo/ref param is also present;
+      the bare URL IS the Repos estate.
+    Surfaces (?view=surfaces): the registry's surfaces/*.surface files (the
+      surfacer's format; archive category excluded), tabbed, each editable in
+      place through a JSON dialog the same shape as the repo config editor
+      (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
+      always stamped, so a Surfaces link is shareable without a repo param.
+  No token: the public default card only, and no surfaces.
 
   GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
   view keeps a one-tap route to the GitHub presentation of what it is showing.
