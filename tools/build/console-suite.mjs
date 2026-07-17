@@ -18,7 +18,7 @@ export const MODS = [
   'core.js',
   'verbs.js', 'query.js', 'grow.js', 'pick.js',
   'infer.js', 'watch.js', 'tap.js', 'veins.js',
-  'columns.js', 'harvest.js', 'lasso.js',
+  'columns.js', 'harvest.js', 'scan.js', 'lasso.js',
   'census.js', 'templates.js', 'sets.js', 'join.js',
   'semantics.js', 'deck.js', 'recipe.js',
 ];

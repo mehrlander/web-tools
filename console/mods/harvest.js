@@ -14,8 +14,7 @@
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/harvest: base.js + mods/core.js must load first');
-  const { SCOPE, clean, upath } = g.core;
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const { SCOPE, clean, upath, sweep } = g.core;
 
   g.harvest = async ({ selector, scroll, settle = 350, dry = 3, max = 200 } = {}) => {
     let match;
@@ -26,7 +25,6 @@
       const keys = new Set(seed.map(upath));
       match = () => ea(SCOPE).filter(n => keys.has(upath(n)));
     }
-    scroll ??= () => window.scrollBy(0, window.innerHeight);
 
     const seen = new Map();
     const collect = () => {
@@ -38,16 +36,9 @@
       return fresh;
     };
 
-    collect();
-    let drought = 0, rounds = 0;
-    while (drought < dry && rounds < max) {
-      rounds++;
-      scroll();
-      await wait(settle);
-      drought = collect() ? 0 : drought + 1;
-    }
+    const { rounds, hitMax } = await sweep(collect, { scroll, settle, dry, max });
     const out = [...seen.values()];
-    console.log(`harvest: ${out.length} records in ${rounds} scrolls${rounds >= max ? ' (hit max — raise {max})' : ''}`);
+    console.log(`harvest: ${out.length} records in ${rounds} scrolls${hitMax ? ' (hit max — raise {max})' : ''}`);
     return out;
   };
 })();

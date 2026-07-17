@@ -29,7 +29,8 @@ to orient, `pick` two examples, `grow` (or a template grab) to the full set,
 `deck` to watch it live, verbs or `q()` to move, `lasso` to trim spatially,
 `columns` + `packTable` to carry it off, `infer` to keep a replayable
 selector, `harvest` when the list is virtualized, `tap` when the DOM is
-hostile and the wire is honest.
+hostile and the wire is honest, `scan` when the capture has to run over time
+and survive the tab.
 - [`to-canvas.js`](to-canvas.js): unrelated one-off; renders the page into a
   scrollable canvas.
 
@@ -203,6 +204,36 @@ Virtualized grids keep only visible rows in the DOM. Harvest scrolls, waits
 (`settle` ms), re-collects, and accumulates records until `dry` consecutive
 rounds find nothing new. Returns `[{key, text, html, el}]`: snapshots survive
 element destruction (`el` may be dead by the time you look).
+
+### scan — durable capture over time
+
+```js
+glom('msg'); glom.grow(); glom.scan.define('rows')   // seed a stream from the working set
+await glom.scan.sweep()          // scroll-until-dry, persisting the fresh rows
+glom.scan.watch()                // or: capture on every DOM churn (debounced)
+glom.scan.grab('rows')           // adopt the captured elements back into the set
+glom.scan.data('rows')           // the in-memory records; scan.join(a,b) merges streams
+```
+
+Every other mod takes one snapshot of the DOM as it is now; scan adds the axis
+they lack, which is **time**. It is a glom citizen, not a bystander in the
+namespace: a bare `define(name)` reads the current working set, infers the
+selector (via `infer`), and snapshots each member, so scan is the persistence
+verb on the find → dance → grab loop; `scan.grab(name)` writes a stream's
+still-present elements back to the set. Pass `{selector, format}` to define a
+stream explicitly instead (`format(el)` returns `{key, …}`). However a stream
+is defined, trigger a pass on a scroll (`sweep`, the poll-scroll capture), on
+DOM churn (`watch`), or on an interval (`start`, the crude fallback). Each pass
+keeps only the records whose `key` it hasn't seen (the fresh diff) and persists
+them to IndexedDB, so capture survives the tab. The store is raw IndexedDB under one database (default
+`glom-scan`, rename with `scan.db(name)`), so whatever scan writes is browsable
+in [`popups/idb-nav.html`](../popups/idb-nav.html) and the data-shelf for free.
+`{compress:true}` gzips a record's text field in the store; `scan.highlight()`
+outlines the elements on record; `scan.chat()` presets a sidebar-links ↔
+article-bodies pair for chat UIs (content-hashed, so distinct messages persist
+rather than one blob per URL). Key stability is where capture quality lives: a
+href or a content hash dedups correctly across rerenders, a shifting ordinal
+does not. Standalone beyond base.js + core.js; no import, one paste.
 
 ### lasso — drag-rectangle select
 

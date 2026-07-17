@@ -12,9 +12,10 @@
   if (!g) return console.warn('mods/core: console/base.js must load first');
 
   const clean = s => s.trim().replace(/\s+/g, ' ');
+  const HUES = ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'];
   g.core = {
     SCOPE: 'body *:not(script):not(style)',
-    HUES: ['#e11d48', '#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#dc2626', '#4f46e5'],
+    HUES,
     clean,
     own: n => clean([...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('')),
     upath: n => {
@@ -35,6 +36,59 @@
       while (c && k > 0) { c = c.nextElementSibling; k--; }
       while (c && k < 0) { c = c.previousElementSibling; k++; }
       return c;
+    },
+    // Scroll-until-dry: run round() (which returns how many new items it saw),
+    // then scroll + settle + round() until `dry` consecutive rounds surface
+    // nothing or `max` rounds pass. harvest sweeps into memory, scan.sweep into
+    // a store; both drive this one loop. Returns { total, rounds, hitMax }.
+    sweep: async (round, { scroll, settle = 350, dry = 3, max = 200 } = {}) => {
+      const step = scroll ?? (() => window.scrollBy(0, window.innerHeight));
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      let total = await round(), drought = 0, rounds = 0;
+      while (drought < dry && rounds < max) {
+        rounds++;
+        step();
+        await wait(settle);
+        const n = await round();
+        total += n;
+        drought = n ? 0 : drought + 1;
+      }
+      return { total, rounds, hitMax: rounds >= max };
+    },
+    // Debounced DOM-churn subscription: fire cb() `settle` ms after mutations
+    // quiesce, and return a stop fn. The suite's SPA-fragility primitive —
+    // watch heals the set on churn, scan captures on it.
+    onChurn: (cb, settle = 250) => {
+      let timer;
+      const mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(cb, settle); });
+      mo.observe(document.body, { childList: true, subtree: true });
+      return () => { mo.disconnect(); clearTimeout(timer); };
+    },
+    // A hued group layer for the rank-and-mark mods (census, templates): mark N
+    // groups each in its own hue under data-<prefix>-<i>, grab group i into the
+    // working set, and clear the marks. Owns the group list, so the two mods
+    // stop each carrying their own verbatim grab/clear/mark copy.
+    groupLayer: prefix => {
+      let groups = [];
+      const attr = i => `data-${prefix}-${i}`;
+      return {
+        mark(gs, on = true) {
+          groups = gs;
+          if (on) groups.forEach((grp, i) => window.mark(grp.els, HUES[i % HUES.length], attr(i)));
+          return groups;
+        },
+        grab: i => groups[i] ? window.glom(groups[i].els) : (console.warn(`${prefix}: no group ${i} — run it first`), []),
+        clear() {
+          for (let i = 0; ; i++) {
+            const style = document.getElementById(`mark-s-${attr(i)}`);
+            const els = document.querySelectorAll(`[${attr(i)}]`);
+            if (!style && !els.length) break;
+            style?.remove();
+            els.forEach(n => n.removeAttribute(attr(i)));
+          }
+          groups = [];
+        },
+      };
     },
   };
 

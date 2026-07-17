@@ -12,8 +12,8 @@
 // heals once, at the end. Healing logs only when membership actually changed.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/watch: console/base.js must load first');
-  let mo = null, timer = null;
+  if (!g?.core) return console.warn('mods/watch: base.js + mods/core.js must load first');
+  let stopChurn = null;
 
   g.watch = ({ selector, settle = 250 } = {}) => {
     g.watch.stop();
@@ -27,16 +27,10 @@
       g.set(fresh);
       console.log(`watch: healed → ${fresh.length} (${sel})`);
     };
-    mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(heal, settle); });
-    mo.observe(document.body, { childList: true, subtree: true });
+    stopChurn = g.core.onChurn(heal, settle);
     g.watch.selector = sel;
     console.log(`watch: armed on "${sel}" — glom.watch.stop() to disarm`);
     return sel;
   };
-  g.watch.stop = () => {
-    mo?.disconnect();
-    mo = null;
-    clearTimeout(timer);
-    timer = null;
-  };
+  g.watch.stop = () => { stopChurn?.(); stopChurn = null; };
 })();
