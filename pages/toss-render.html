@@ -74,7 +74,10 @@
   inlining (inlineRelativeDeps) pulls each relative <script src> and
   <link rel=stylesheet href> ahead of render, and a fetch shim (addressHtml)
   reroutes the page's relative runtime GET fetch()es (e.g. './data.json',
-  './rows.csv') on demand. Still unhandled: static <img src> and other
+  './rows.csv') on demand. A third shim makes history.replaceState/pushState
+  safe: in a srcdoc iframe they throw a SecurityError (URL resolved against
+  <base>, document at about:srcdoc), which would break hash-routing pages on
+  every view switch. Still unhandled: static <img src> and other
   relative-tag assets, CSS url()/@import, XHR, and dynamic import().
 
   The 🥏 bookmarklet feeding the gz mode lives at bookmarklets/toss-render.js
@@ -273,6 +276,15 @@ window.fetch=function(input,init){try{
   function addressHtml(text, { owner, name, ref, path }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
+    // History-safe shim: in a srcdoc iframe history.replaceState/pushState
+    // throw a SecurityError (the URL resolves against <base> while the
+    // document is about:srcdoc), which kills hash-routing pages mid view
+    // switch. Wrap both so a failed call is a no-op instead of an exception.
+    prelude += '<script>(function(){var H=window.history;if(!H)return;' +
+      'var rs=H.replaceState,ps=H.pushState;' +
+      'H.replaceState=function(){try{return rs.apply(H,arguments)}catch(e){}};' +
+      'H.pushState=function(){try{return ps.apply(H,arguments)}catch(e){}};' +
+      '})();<\/script>';
     if (ref) {
       const r = JSON.stringify(ref);
       prelude += '<script>window.__ref=' + r + ';(function(){var R=' + r + ',g=URLSearchParams.prototype.get;' +
