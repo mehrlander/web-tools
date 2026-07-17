@@ -32,3 +32,4 @@ _Generated from tasks/. Do not hand-edit._
 - Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`)
 - History-safe shim for toss-render address-mode renders next: done; hash-routing pages now switch views inside toss #gh= renders
 - Render files over 1 MB in toss-render and the shell viewers next: done — raw media type with git-blobs fallback landed in toss-render (ghText, showAddress, fetchShim) and gh-api.js get(); A/B headless test confirms the 5.9 MB DRS bundle is delivered where the old path returned blank
+- Structural response decode + differentiated errors in toss-render next: done; renders survive every media-type labeling and the error panel names the failing stage
