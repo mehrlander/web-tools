@@ -32,8 +32,7 @@
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/scan: base.js + mods/core.js must load first');
-  const { clean, HUES, docOrder } = g.core;
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const { clean, HUES, docOrder, sweep, onChurn } = g.core;
   const now = () => new Date().toISOString();
   const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 
@@ -59,20 +58,10 @@
     }),
   };
 
-  // gzip via CompressionStream — string → base64, and back. Exposed for reuse.
-  const gzip = {
-    async compress(str) {
-      const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
-      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
-      return btoa([...bytes].map(c => String.fromCharCode(c)).join(''));
-    },
-    async decompress(b64) {
-      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    },
-  };
+  // gzip through base's single codec (pop.pack/unpack), not a private copy.
+  const gzip = { compress: s => window.pop.pack(s), decompress: s => window.pop.unpack(s) };
 
-  const S = { db: null, name: 'glom-scan', stores: {}, timer: null, mo: null, moTimer: null };
+  const S = { db: null, name: 'glom-scan', stores: {}, timer: null, stopChurn: null };
 
   // Ensure the db is open and holds `store`; adding a store means a version bump.
   const ensure = async store => {
@@ -150,7 +139,7 @@
     },
     stop() {
       clearInterval(S.timer); S.timer = null;
-      S.mo?.disconnect(); S.mo = null; clearTimeout(S.moTimer);
+      S.stopChurn?.(); S.stopChurn = null;
       return scan;
     },
 
@@ -159,28 +148,18 @@
     watch({ settle = 300 } = {}) {
       scan.stop();
       scan.tick();
-      S.mo = new MutationObserver(() => { clearTimeout(S.moTimer); S.moTimer = setTimeout(() => scan.tick(), settle); });
-      S.mo.observe(document.body, { childList: true, subtree: true });
+      S.stopChurn = onChurn(() => scan.tick(), settle);
       console.log(`scan: watching DOM churn (settle ${settle}ms) — scan.stop() to disarm`);
       return scan;
     },
 
     // Poll-scroll capture: scroll, settle, capture the fresh rows, repeat until
-    // `dry` consecutive rounds surface nothing new. The harvest engine with a
-    // durable sink. Returns total captured this sweep.
-    async sweep({ scroll, settle = 350, dry = 3, max = 200 } = {}) {
-      scroll ??= () => window.scrollBy(0, window.innerHeight);
-      let got = await scan.tick(), drought = 0, rounds = 0;
-      while (drought < dry && rounds < max) {
-        rounds++;
-        scroll();
-        await wait(settle);
-        const n = await scan.tick();
-        got += n;
-        drought = n ? 0 : drought + 1;
-      }
-      console.log(`scan: sweep captured ${got} over ${rounds} scrolls${rounds >= max ? ' (hit max — raise {max})' : ''}`);
-      return got;
+    // `dry` consecutive rounds surface nothing new. The harvest scroll engine
+    // (core.sweep) with a durable sink. Returns total captured this sweep.
+    async sweep(opts = {}) {
+      const { total, rounds, hitMax } = await sweep(() => scan.tick(), opts);
+      console.log(`scan: sweep captured ${total} over ${rounds} scrolls${hitMax ? ' (hit max — raise {max})' : ''}`);
+      return total;
     },
 
     data(name) {

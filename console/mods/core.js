@@ -36,6 +36,33 @@
       while (c && k < 0) { c = c.previousElementSibling; k++; }
       return c;
     },
+    // Scroll-until-dry: run round() (which returns how many new items it saw),
+    // then scroll + settle + round() until `dry` consecutive rounds surface
+    // nothing or `max` rounds pass. harvest sweeps into memory, scan.sweep into
+    // a store; both drive this one loop. Returns { total, rounds, hitMax }.
+    sweep: async (round, { scroll, settle = 350, dry = 3, max = 200 } = {}) => {
+      const step = scroll ?? (() => window.scrollBy(0, window.innerHeight));
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      let total = await round(), drought = 0, rounds = 0;
+      while (drought < dry && rounds < max) {
+        rounds++;
+        step();
+        await wait(settle);
+        const n = await round();
+        total += n;
+        drought = n ? 0 : drought + 1;
+      }
+      return { total, rounds, hitMax: rounds >= max };
+    },
+    // Debounced DOM-churn subscription: fire cb() `settle` ms after mutations
+    // quiesce, and return a stop fn. The suite's SPA-fragility primitive —
+    // watch heals the set on churn, scan captures on it.
+    onChurn: (cb, settle = 250) => {
+      let timer;
+      const mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(cb, settle); });
+      mo.observe(document.body, { childList: true, subtree: true });
+      return () => { mo.disconnect(); clearTimeout(timer); };
+    },
   };
 
   g.onSet = [];

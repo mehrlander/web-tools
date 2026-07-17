@@ -257,6 +257,9 @@
     toUrl(s, base64 = true) {
       return base64 ? 'data:text/html;base64,' + btoa(unescape(encodeURIComponent(s))) : 'data:text/html,' + encodeURIComponent(s);
     }
+    // gzip a string to a base64 payload, and back. pack/unpack are the pure
+    // codec (the suite's one gzip implementation — scan and packTable use it);
+    // inflate is unpack + render-in-a-popup.
     async pack(s) {
       const cs = new CompressionStream('gzip');
       const w = cs.writable.getWriter();
@@ -267,13 +270,16 @@
       for (const b of bytes) out += String.fromCharCode(b);
       return btoa(out);
     }
+    async unpack(s) {
+      const bytes = Uint8Array.from(atob(s.trim()), c => c.charCodeAt(0));
+      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    }
     async inflate(s) {
-      return new Response(new Blob([Uint8Array.from(atob(s.trim()), c => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer().then(b => new TextDecoder().decode(b)).then(d => new Promise(resolve => {
-         const w = window.open('', '_blank', `width=${this.width},height=${this.height}`);
-         w.document.write(d);
-         w.document.close();
-         w.onload = () => resolve(w);
-       }));
+      const d = await this.unpack(s);
+      const w = window.open('', '_blank', `width=${this.width},height=${this.height}`);
+      w.document.write(d);
+      w.document.close();
+      return new Promise(resolve => { w.onload = () => resolve(w); });
     }
   }
   const _pop = new Pop();

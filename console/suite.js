@@ -260,6 +260,9 @@
     toUrl(s, base64 = true) {
       return base64 ? 'data:text/html;base64,' + btoa(unescape(encodeURIComponent(s))) : 'data:text/html,' + encodeURIComponent(s);
     }
+    // gzip a string to a base64 payload, and back. pack/unpack are the pure
+    // codec (the suite's one gzip implementation — scan and packTable use it);
+    // inflate is unpack + render-in-a-popup.
     async pack(s) {
       const cs = new CompressionStream('gzip');
       const w = cs.writable.getWriter();
@@ -270,13 +273,16 @@
       for (const b of bytes) out += String.fromCharCode(b);
       return btoa(out);
     }
+    async unpack(s) {
+      const bytes = Uint8Array.from(atob(s.trim()), c => c.charCodeAt(0));
+      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    }
     async inflate(s) {
-      return new Response(new Blob([Uint8Array.from(atob(s.trim()), c => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer().then(b => new TextDecoder().decode(b)).then(d => new Promise(resolve => {
-         const w = window.open('', '_blank', `width=${this.width},height=${this.height}`);
-         w.document.write(d);
-         w.document.close();
-         w.onload = () => resolve(w);
-       }));
+      const d = await this.unpack(s);
+      const w = window.open('', '_blank', `width=${this.width},height=${this.height}`);
+      w.document.write(d);
+      w.document.close();
+      return new Promise(resolve => { w.onload = () => resolve(w); });
     }
   }
   const _pop = new Pop();
@@ -561,6 +567,33 @@
       while (c && k > 0) { c = c.nextElementSibling; k--; }
       while (c && k < 0) { c = c.previousElementSibling; k++; }
       return c;
+    },
+    // Scroll-until-dry: run round() (which returns how many new items it saw),
+    // then scroll + settle + round() until `dry` consecutive rounds surface
+    // nothing or `max` rounds pass. harvest sweeps into memory, scan.sweep into
+    // a store; both drive this one loop. Returns { total, rounds, hitMax }.
+    sweep: async (round, { scroll, settle = 350, dry = 3, max = 200 } = {}) => {
+      const step = scroll ?? (() => window.scrollBy(0, window.innerHeight));
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      let total = await round(), drought = 0, rounds = 0;
+      while (drought < dry && rounds < max) {
+        rounds++;
+        step();
+        await wait(settle);
+        const n = await round();
+        total += n;
+        drought = n ? 0 : drought + 1;
+      }
+      return { total, rounds, hitMax: rounds >= max };
+    },
+    // Debounced DOM-churn subscription: fire cb() `settle` ms after mutations
+    // quiesce, and return a stop fn. The suite's SPA-fragility primitive —
+    // watch heals the set on churn, scan captures on it.
+    onChurn: (cb, settle = 250) => {
+      let timer;
+      const mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(cb, settle); });
+      mo.observe(document.body, { childList: true, subtree: true });
+      return () => { mo.disconnect(); clearTimeout(timer); };
     },
   };
 
@@ -925,8 +958,8 @@
 // heals once, at the end. Healing logs only when membership actually changed.
 (() => {
   const g = window.glom;
-  if (!g) return console.warn('mods/watch: console/base.js must load first');
-  let mo = null, timer = null;
+  if (!g?.core) return console.warn('mods/watch: base.js + mods/core.js must load first');
+  let stopChurn = null;
 
   g.watch = ({ selector, settle = 250 } = {}) => {
     g.watch.stop();
@@ -940,18 +973,12 @@
       g.set(fresh);
       console.log(`watch: healed → ${fresh.length} (${sel})`);
     };
-    mo = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(heal, settle); });
-    mo.observe(document.body, { childList: true, subtree: true });
+    stopChurn = g.core.onChurn(heal, settle);
     g.watch.selector = sel;
     console.log(`watch: armed on "${sel}" — glom.watch.stop() to disarm`);
     return sel;
   };
-  g.watch.stop = () => {
-    mo?.disconnect();
-    mo = null;
-    clearTimeout(timer);
-    timer = null;
-  };
+  g.watch.stop = () => { stopChurn?.(); stopChurn = null; };
 })();
 
 /* ══ mods/tap.js ════════════════════════════════════════════════════ */
@@ -1227,8 +1254,7 @@
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/harvest: base.js + mods/core.js must load first');
-  const { SCOPE, clean, upath } = g.core;
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const { SCOPE, clean, upath, sweep } = g.core;
 
   g.harvest = async ({ selector, scroll, settle = 350, dry = 3, max = 200 } = {}) => {
     let match;
@@ -1239,7 +1265,6 @@
       const keys = new Set(seed.map(upath));
       match = () => ea(SCOPE).filter(n => keys.has(upath(n)));
     }
-    scroll ??= () => window.scrollBy(0, window.innerHeight);
 
     const seen = new Map();
     const collect = () => {
@@ -1251,16 +1276,9 @@
       return fresh;
     };
 
-    collect();
-    let drought = 0, rounds = 0;
-    while (drought < dry && rounds < max) {
-      rounds++;
-      scroll();
-      await wait(settle);
-      drought = collect() ? 0 : drought + 1;
-    }
+    const { rounds, hitMax } = await sweep(collect, { scroll, settle, dry, max });
     const out = [...seen.values()];
-    console.log(`harvest: ${out.length} records in ${rounds} scrolls${rounds >= max ? ' (hit max — raise {max})' : ''}`);
+    console.log(`harvest: ${out.length} records in ${rounds} scrolls${hitMax ? ' (hit max — raise {max})' : ''}`);
     return out;
   };
 })();
@@ -1301,8 +1319,7 @@
 (() => {
   const g = window.glom;
   if (!g?.core) return console.warn('mods/scan: base.js + mods/core.js must load first');
-  const { clean, HUES, docOrder } = g.core;
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const { clean, HUES, docOrder, sweep, onChurn } = g.core;
   const now = () => new Date().toISOString();
   const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 
@@ -1328,20 +1345,10 @@
     }),
   };
 
-  // gzip via CompressionStream — string → base64, and back. Exposed for reuse.
-  const gzip = {
-    async compress(str) {
-      const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
-      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
-      return btoa([...bytes].map(c => String.fromCharCode(c)).join(''));
-    },
-    async decompress(b64) {
-      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    },
-  };
+  // gzip through base's single codec (pop.pack/unpack), not a private copy.
+  const gzip = { compress: s => window.pop.pack(s), decompress: s => window.pop.unpack(s) };
 
-  const S = { db: null, name: 'glom-scan', stores: {}, timer: null, mo: null, moTimer: null };
+  const S = { db: null, name: 'glom-scan', stores: {}, timer: null, stopChurn: null };
 
   // Ensure the db is open and holds `store`; adding a store means a version bump.
   const ensure = async store => {
@@ -1419,7 +1426,7 @@
     },
     stop() {
       clearInterval(S.timer); S.timer = null;
-      S.mo?.disconnect(); S.mo = null; clearTimeout(S.moTimer);
+      S.stopChurn?.(); S.stopChurn = null;
       return scan;
     },
 
@@ -1428,28 +1435,18 @@
     watch({ settle = 300 } = {}) {
       scan.stop();
       scan.tick();
-      S.mo = new MutationObserver(() => { clearTimeout(S.moTimer); S.moTimer = setTimeout(() => scan.tick(), settle); });
-      S.mo.observe(document.body, { childList: true, subtree: true });
+      S.stopChurn = onChurn(() => scan.tick(), settle);
       console.log(`scan: watching DOM churn (settle ${settle}ms) — scan.stop() to disarm`);
       return scan;
     },
 
     // Poll-scroll capture: scroll, settle, capture the fresh rows, repeat until
-    // `dry` consecutive rounds surface nothing new. The harvest engine with a
-    // durable sink. Returns total captured this sweep.
-    async sweep({ scroll, settle = 350, dry = 3, max = 200 } = {}) {
-      scroll ??= () => window.scrollBy(0, window.innerHeight);
-      let got = await scan.tick(), drought = 0, rounds = 0;
-      while (drought < dry && rounds < max) {
-        rounds++;
-        scroll();
-        await wait(settle);
-        const n = await scan.tick();
-        got += n;
-        drought = n ? 0 : drought + 1;
-      }
-      console.log(`scan: sweep captured ${got} over ${rounds} scrolls${rounds >= max ? ' (hit max — raise {max})' : ''}`);
-      return got;
+    // `dry` consecutive rounds surface nothing new. The harvest scroll engine
+    // (core.sweep) with a durable sink. Returns total captured this sweep.
+    async sweep(opts = {}) {
+      const { total, rounds, hitMax } = await sweep(() => scan.tick(), opts);
+      console.log(`scan: sweep captured ${total} over ${rounds} scrolls${hitMax ? ' (hit max — raise {max})' : ''}`);
+      return total;
     },
 
     data(name) {

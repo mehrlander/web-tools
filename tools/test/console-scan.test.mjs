@@ -17,7 +17,7 @@ import { assemble } from '../build/console-suite.mjs';
 let dbn = 0;
 const boot = (html = '<!doctype html><html><head></head><body></body></html>') => {
   const { window } = makeWindow({ html });
-  for (const k of ['indexedDB', 'IDBKeyRange', 'CompressionStream', 'DecompressionStream', 'Blob', 'Response', 'btoa', 'atob'])
+  for (const k of ['indexedDB', 'IDBKeyRange', 'CompressionStream', 'DecompressionStream', 'Blob', 'Response', 'btoa', 'atob', 'TextEncoder', 'TextDecoder'])
     window[k] = globalThis[k];
   window.eval(assemble());
   window.glom.scan.db(`scan-test-${++dbn}`);

@@ -86,6 +86,24 @@ const results = await page.evaluate(async () => {
   const script = glom.recipe();
   assert('recipe', script.includes('glom.grow') && script.includes('glom.join'), `${glom.recipe.trail.length} entries`);
 
+  // 11. scan: durable poll-scroll of the virtualized feed into IndexedDB
+  glom.clear();
+  const feedEl = document.getElementById('feed');
+  feedEl.scrollTop = 0;
+  try {
+    glom.scan.db('pass-scan');
+    await glom.scan.clear();                                  // start from empty store
+    await glom.scan.define('feed', { selector: '#feed .feed-row', format: el => ({ key: el.textContent, text: el.textContent }) });
+    const captured = await glom.scan.sweep({ scroll: () => feedEl.scrollBy(0, 150), settle: 90, dry: 4 });
+    const persisted = glom.scan.data('feed').length;
+    const grabbed = glom.scan.grab('feed').length;            // only the ~12 rows still in the DOM
+    await glom.scan.clear();                                  // leave the store clean
+    assert('scan-idb', captured === 60 && persisted === 60 && grabbed > 0 && grabbed < 60,
+      `${captured} captured, ${persisted} persisted, grab re-selected ${grabbed} live rows`);
+  } catch (e) {
+    assert('scan-idb', false, `threw: ${e.message}`);
+  }
+
   return out;
 });
 
