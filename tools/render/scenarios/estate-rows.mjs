@@ -82,5 +82,16 @@ export default async function (page) {
   await page.evaluate(() => {
     document.querySelectorAll('.snap-x').forEach(el => { el.scrollLeft = 0; });
   });
+  // ESTATE_FLIP=1 renders the nested card's private face (the globe toggle
+  // flipped), so both faces can be screenshotted from the one scenario.
+  if (process.env.ESTATE_FLIP) {
+    await page.evaluate(() => {
+      const host = [...document.querySelectorAll('[x-data]')]
+        .find(el => (el.getAttribute('x-data') || '').includes('estate('));
+      const d = window.Alpine.$data(host);
+      const parent = d.entries.find(e => e.child);
+      if (parent) parent.showChild = true;
+    });
+  }
   await page.waitForTimeout(150);
 }

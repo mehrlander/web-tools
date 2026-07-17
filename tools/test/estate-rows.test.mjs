@@ -105,6 +105,21 @@ test('estate.nest overrides the default pairing; empty nest splits the cards apa
   assert.deepEqual(rowNames()[0], ['me/home', 'me/tools', 'me/registry', 'me/archive']);
 });
 
+test('face(): the visibility toggle flips a nested card between parent and companion', async () => {
+  REGISTRY = { repos: REPOS };
+  await data.load();
+  const parent = data.entries.find(e => e.repo === 'me/tools');
+  assert.equal(data.face(parent).repo, 'me/tools');
+  parent.showChild = true;
+  assert.equal(data.face(parent).repo, 'me/registry');
+  parent.showChild = false;
+  assert.equal(data.face(parent).repo, 'me/tools');
+  // A card with no companion never flips, whatever the flag says.
+  const lone = data.entries.find(e => e.repo === 'me/archive');
+  lone.showChild = true;
+  assert.equal(data.face(lone).repo, 'me/archive');
+});
+
 test('quickLinks fallback (no repos list) still renders, groupless, on one row', async () => {
   REGISTRY = { quickLinks: [{ repo: 'me/tools', icon: 'ph-toolbox' }, { repo: 'me/home', icon: 'ph-house' }] };
   await data.load();
