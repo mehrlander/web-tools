@@ -39,6 +39,9 @@ Deep-link params: `&view=atlas|files|stage`, `&file=<path>`, `&path=<dir>`.
 
 Views in the sidebar:
 
+- **estate**: the all-repo view, above the per-repo views, and the page's front
+  door: a bare open (no `?repo`/`?file`/`?view`, no `#stage=`) lands here, and
+  the brand icon returns here. See "The estate" below.
 - **landing**: the repo's front door. `landingKind(repo)` decides: web-tools →
   its page gallery; a repo whose manifest names a `landing` → that custom page
   (rendered live through toss-render `#gh=`); every other repo → a synthesized
@@ -48,6 +51,41 @@ Views in the sidebar:
 - **files**: the explorer: breadcrumb + listing, selected file's content
   beneath. Each row has a `+` that stages the file.
 - **stage**: the cross-repo fileset (below).
+
+**GitHub jump-overs.** show-repo is a wrapper over GitHub, not a wall: every
+view keeps a one-tap route to the GitHub presentation of what it is showing.
+The sidebar top bar links the open repo@ref, the explorer breadcrumb links the
+current folder, the viewer's actions link the open file's blob, and every
+estate card and surface item carries its github-logo link. A new view should
+ship with its jump-over.
+
+## The estate: the all-repo view
+
+The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
+whole repo constellation, in two layers:
+
+- **Repo cards (mechanical).** One card per entry in the registry's `repos`
+  list (the ecosystem manifest in `web-tools-private/.web-tools.json`; fallback:
+  the `quickLinks` row when `repos` is absent), each enriched live from the
+  GitHub API: description, visibility (lock/globe), pushed-ago. The card name
+  opens the repo in the shell (its landing); the github-logo opens it on
+  GitHub. Entries may carry a `group` for section headers and a `note` that
+  overrides the GitHub description.
+- **Surfaces (curated).** Every `surfaces/*.surface` file in the registry repo,
+  rendered beneath the cards: the surfacer's format (a `manifest` block and an
+  `items` array; see the home repo's `projects/surfacer/VISION.md`). Surfaces
+  sort `default` → `standing` → `showcase`; `archive` is excluded. Rendered
+  item kinds: `github_blob` / `github_dir` (open-in-shell + GitHub link; the
+  target as `{repo, ref, path}` per tracker task 0008's stage shape, or as a
+  github.com URL per the surfacer's native shape), `url` (external link),
+  `note` / `story` (inline body). Unknown kinds render title + commentary. An
+  agent session with registry access can write or extend a surface; the estate
+  shows it on next load, which is the sessions-feed-the-dashboard loop.
+
+Token gating, same as everything registry-driven: no token means the public
+default card only and no surfaces. Deep link: `?view=estate` (the bare URL is
+the estate already; the param is stamped only when a `repo`/`ref` param is also
+present).
 
 ## The stage: a cross-repo fileset
 
@@ -123,6 +161,12 @@ deprecation window. Fields:
   `[{ repo, icon }]` — membership, order, and icon. Read from the private
   **registry repo** (`web-tools-private`), not from every repo. See "Quick-link
   registry" below.
+- **repos** (registry repo only): the ecosystem manifest, one entry per
+  participating repo: `[{ repo, icon, note, group }]`. Feeds the estate view's
+  repo cards; `quickLinks` stays the header row's own (shorter) list. Live
+  facts (description, visibility, pushed) come from the GitHub API at render
+  time, not from this file, so the manifest never carries a fact that can
+  drift.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
@@ -270,9 +314,15 @@ Three cross-repo live-view channels, one job each:
 ## Using it from a Claude session
 
 - **Hand the user a browse link:** `…/show-repo.html?repo=owner/repo` (add
-  `&ref=` for a branch, `&view=files&path=<dir>` to land in a folder).
+  `&ref=` for a branch, `&view=files&path=<dir>` to land in a folder). The
+  bare page URL is the estate (the all-repo dashboard).
 - **Hand the user a stage link (🗂️):** mint `#stage=…` per the grammar above.
   State the token caveat. For a token-less reader, download the concatenated
   bundle and `SendUserFile` it instead.
 - **Set a repo up for show-repo:** write its `.web-tools.json` (`landing`,
   `pins`, `stage.files`, `stage.targets`).
+- **Surface something for the user:** with registry access, add an item to a
+  `surfaces/*.surface` file in `web-tools-private` (or add a new surface file);
+  the estate renders it on the user's next visit. Items follow the surfacer
+  schema (`id`, `title`, `kind`, `snippet`, `facet`, `commentary`, `added_at`,
+  plus kind fields); flip a surface's `category` to `archive` to retire it.
