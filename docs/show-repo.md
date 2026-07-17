@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=atlas|files|stage`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=atlas|files|stage|branches`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views). The
@@ -57,6 +57,7 @@ The per-repo views in the sidebar:
 - **files**: the explorer: breadcrumb + listing, selected file's content
   beneath. Each row has a `+` that stages the file.
 - **stage**: the cross-repo fileset (below).
+- **branches**: the branch review (below).
 
 **GitHub jump-overs.** show-repo is a wrapper over GitHub, not a wall: every
 view keeps a one-tap route to the GitHub presentation of what it is showing.
@@ -78,11 +79,37 @@ bare page open). It renders in two layers:
   GitHub API: description, visibility (lock/globe), pushed-ago. The card name
   opens the repo in the shell (its landing); the github-logo opens it on
   GitHub; the gear (authed) edits that repo's own `.web-tools.json` through the
-  shield dialog's config editor. Entries may carry a `group` for section
-  headers and a `note` that overrides the GitHub description. Each card also
+  shield dialog's config editor. Entries may carry a `group` (row assignment,
+  below) and a `note` that overrides the GitHub description. Each card also
   reads the repo's own `.web-tools.json` and renders its `pins` as
   direct-jump chips (open the repo straight at that folder or file), plus
   universal Files and Atlas jumps and a Landing jump when the repo declares one.
+
+**Layout: two scrollable rows, optional nesting.** Cards render as
+horizontally scrollable, snap-scrolled rows (native touch swipe on mobile,
+wheel or drag on desktop): the primary cards lead each row and the rest sit
+off to the side. Row membership is by `group`, configured by an optional
+`estate` field in the registry's `.web-tools.json`:
+
+```json
+"estate": {
+  "rows": [["core", "archives"], ["data", "tools"]],
+  "nest": { "mehrlander/web-tools-private": "mehrlander/web-tools" }
+}
+```
+
+`rows` is ordered group lists, one entry per row; `'*'` collects every group
+not named elsewhere, and groups no row names append as a trailing row so
+nothing silently drops. `nest` folds a companion repo into its parent's
+card, where the visibility glyph becomes a **toggle**: tap the globe and the
+card flips to the companion's face (title, icon, note, gear, github link,
+pins, jumps all switch, with the lock now in the glyph's place); tap the
+lock to flip back. On cards with no companion the glyph stays the static
+public/private status icon. Both have defaults
+that need no registry edit: rows `[["core","archives"],["*"]]`, and the
+registry repo nested under the shell's home repo (the only two repo strings
+the public page already names). Delete the `nest` entry (or set
+`"nest": {}`) to split nested cards back apart.
 - **Surfaces (curated).** Every `surfaces/*.surface` file in the registry repo,
   rendered beneath the cards: the surfacer's format (a `manifest` block and an
   `items` array; see the home repo's `projects/surfacer/VISION.md`). Surfaces
@@ -151,6 +178,35 @@ from a branch of this repo plus one from another repo →
 …/show-repo.html#stage=mehrlander/web-tools@my-branch:lib/gh-api.js,lib/stage.js;mehrlander/home:inbox/note.md
 ```
 
+## The branch review: landed / stranded per branch
+
+The **branches** view (`lib/alpineComponents/branches.js`) rolls every branch of
+the open repo into **recently active** (commits in the last 14 days; judge
+nothing yet), **likely landed**, and **likely stranded**, on a content-level
+signal rather than `ahead_by`: which of the branch's uniquely-touched paths
+hold, at the branch tip, bytes the default branch holds right now, at the same
+path or moved anywhere in the tree. **Missing** counts paths absent from the
+default branch in both path and bytes, the strong stranded evidence. Squash
+merges and history rewrites make ref-level "unmerged" (and `ahead_by`, whose
+count on a rewrite-orphaned branch spans its whole line, marked `*`) unreliable;
+the content columns are the ones to read.
+
+The math is the browser port of home's `tools/branch-survey.sh` (the CLI
+reference instrument), lives in `lib/branch-survey.js` as pure unit-tested
+functions, and is held in agreement with the CLI by
+`scripts/check-branch-survey.mjs` (on home's 56-branch estate: 52 exact, 4
+divergent only where the CLI's git rename detection credits moved-and-evolved
+content the API cannot see, all in the conservative direction). Fetch cost: one
+branch list, one recursive tree for the default branch, then per branch one
+compare (with a commits-list fallback for no-merge-base branches) and one
+recursive tree, streamed so rows fill in as they land.
+
+Advisory and read-only, matching the CLI's posture: the view frames the
+per-branch reconcile judgment and decides nothing. Each row jumps to the branch
+tree and `main...branch` compare on GitHub (ground truth), opens the branch or
+the in-shell compare here, and the header links GitHub's branches UI, where the
+delete action itself lives. Deep link: `?view=branches`.
+
 ## `.web-tools.json`: the repo manifest
 
 Root `.web-tools.json` is the repo's **web-tools config file** (canonical location
@@ -189,6 +245,9 @@ deprecation window. Fields:
   facts (description, visibility, pushed) come from the GitHub API at render
   time, not from this file, so the manifest never carries a fact that can
   drift.
+- **estate** (registry repo only): the estate's layout config,
+  `{ rows, nest }` — row membership by group and card nesting. See "Layout"
+  under "The estate" above; both parts have registry-free defaults.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
