@@ -104,19 +104,30 @@
     <!-- Sidebar top bar: repo name + auth shield (opens the token dialog), plus
          the mobile-only drawer close button. -->
     <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
-      <span class="font-mono text-xs truncate flex-1" x-text="$store.browser.repo || 'Browse'"></span>
+      <!-- Repo address with its GitHub jump right beside it (the pattern: the
+           github link sits next to the repo address wherever it is shown). -->
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <span class="font-mono text-xs truncate"
+              x-text="view==='estate' ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+        <a x-show="view!=='estate' && $store.browser.repo" :href="repoGithubUrl" target="_blank"
+           class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
+           title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
+      </div>
       <button @click="document.getElementById('repoModal')?.showModal()"
               class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
-        <i class="ph text-lg" :class="authIcon"></i>
+        <i class="ph text-lg leading-none" :class="authIcon"></i>
       </button>
       <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
-      <!-- Repo views: the landing (web-tools' is its pages index, others get an
+      <!-- Per-repo views, hidden in the estate (global) context. The estate is
+           reached from the header selector ("Repositories") and the brand icon,
+           not from here, since it is a context above the repo, not a view of it.
+           Repo views: the landing (web-tools' is its pages index, others get an
            overview), the atlas, the file explorer, and the stage (the shared
            cross-repo fileset; badge shows its size). -->
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col gap-0.5" x-show="view!=='estate'">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -141,10 +152,10 @@
         </button>
       </div>
 
-      <div class="border-t border-base-200"></div>
+      <div class="border-t border-base-200" x-show="view!=='estate'"></div>
 
       <!-- Pinned: folders and files the repo designates in .web-tools.json. -->
-      <div x-show="pins.length" class="flex flex-col gap-0.5">
+      <div x-show="pins.length && view!=='estate'" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i>Pinned
         </div>
@@ -158,10 +169,10 @@
         </template>
       </div>
 
-      <div x-show="pins.length" class="border-t border-base-200"></div>
+      <div x-show="pins.length && view!=='estate'" class="border-t border-base-200"></div>
 
       <!-- Recent: files touched by the newest commits on the current ref. -->
-      <div x-show="recentLoading || recent.length" class="flex flex-col gap-0.5">
+      <div x-show="(recentLoading || recent.length) && view!=='estate'" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-clock-counter-clockwise"></i>Recent
         </div>
@@ -183,6 +194,17 @@
 
   <!-- ── Main area: the selected view for the repo ────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0">
+
+    <!-- Estate: the all-repo view — registry-driven repo cards plus curated
+         surfaces from the private registry. Mounted lazily on first visit,
+         like the atlas. -->
+    <div x-show="view==='estate'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-6 py-8 max-w-5xl">
+        <template x-if="estateSeen">
+          <div x-data="estate()"></div>
+        </template>
+      </div>
+    </div>
 
     <!-- Landing: web-tools' gallery, a manifest-designated custom page, or a
          default overview for other repos. -->
@@ -418,9 +440,11 @@ function loadMarked(){
 // (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'landing' | 'atlas' | 'files' | 'stage'
+  view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
+  estateSeen: false,      // mount the estate component lazily, on first visit
+  _restoring: false,      // true while restoring state from a popstate (see syncUrl)
   DEFAULT_REPO: 'mehrlander/web-tools',
   // The header quick-link row is data-driven. This public page must not
   // enumerate private repos in its source, so the built-in default lists only
@@ -497,6 +521,7 @@ function app(){ return {
     const url = this.parseUrl();
     await this.ensureBrowser(url?.repo, url?.ref);
     if (url && url.file) await this.openFile(url.file);
+    else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
     else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
@@ -505,6 +530,13 @@ function app(){ return {
       Alpine.store('browser').stage = staged;
       this.goStage();
     }
+    // A bare open (no repo, file, view, or stage addressed) lands on the
+    // estate: the all-repo view is the page's front door.
+    else if (!url) this.goEstate();
+
+    // Browser Back/Forward restores state from the URL (syncUrl pushes an entry
+    // per distinct URL, so the history has real steps to walk).
+    window.addEventListener('popstate', () => this.restoreFromUrl());
   },
 
   async loadRecent(){
@@ -724,6 +756,17 @@ function app(){ return {
   get brandTip(){ return this.isDesktop ? 'web-tools' : 'Browse'; },
   brandClick(){ this.isDesktop ? this.goHome() : this.openSidebar(); },
 
+  // The open repo@ref on GitHub — the sidebar's standing jump-over. Every view
+  // keeps a one-tap route to the GitHub presentation of what it is showing
+  // (this link, the viewer's per-file GitHub action, the explorer's folder
+  // link, the estate cards): show-repo is a wrapper over GitHub, not a wall.
+  get repoGithubUrl(){
+    const s = Alpine.store('browser');
+    if (!s.repo) return '';
+    const ref = s.ref && s.ref !== s.defaultRef ? '/tree/' + s.ref : '';
+    return 'https://github.com/' + s.repo + ref;
+  },
+
   get atlasUrl(){
     const s = Alpine.store('browser');
     const use = new URLSearchParams(location.search).get('use');
@@ -755,8 +798,34 @@ function app(){ return {
     }
     else if (this.view === 'atlas') p.set('view', 'atlas');
     else if (this.view === 'stage') p.set('view', 'stage');
+    else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
-    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
+    const cur = location.pathname + location.search + location.hash;
+    // Push a new history entry per distinct URL so the browser Back button walks
+    // the navigation (repo, view, file, folder). A no-op change, or a change made
+    // while restoring from a popstate, replaces in place instead, so Back never
+    // needs a double press and popstate restoration doesn't re-push.
+    if (this._restoring || next === cur) history.replaceState(null, '', next);
+    else history.pushState(null, '', next);
+  },
+
+  // Browser Back/Forward: re-derive the shell state from the URL, mirroring the
+  // init routing. `_restoring` makes syncUrl replace-in-place during the restore,
+  // so the watchers this fires don't push new entries.
+  async restoreFromUrl(){
+    this._restoring = true;
+    try {
+      const url = this.parseUrl();
+      await this.ensureBrowser(url?.repo, url?.ref);
+      if (url && url.file) await this.openFile(url.file);
+      else if (url && url.view === 'estate') this.goEstate();
+      else if (url && url.view === 'atlas') this.goAtlas();
+      else if (url && url.view === 'stage') this.goStage();
+      else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
+      else if (!url) this.goEstate();
+      else this.goLanding();
+    } finally { this._restoring = false; }
   },
 
   // Point the file browser at a repo. web-tools boots identity-free via
@@ -798,7 +867,8 @@ function app(){ return {
     await el.__explorer.load(path);
   },
 
-  goHome(){ this.goLanding(); },
+  goHome(){ this.goEstate(); },
+  goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
@@ -944,13 +1014,37 @@ function overview(){ return {
 }}
 </script>
 
-<!-- ── Design notes: the landing mechanism, the views, and the stage ───────────
-  A repo has, potentially, a LANDING PAGE. The repo picker is up front (the brand
-  icon doubles as the mobile drawer toggle). The sidebar lists the repo's VIEWS
-  — landing, atlas, files, stage — plus pinned/recent shortcuts; the folder and
-  file navigation itself lives in the main area (explorer: breadcrumb + listing,
-  the selected file's content beneath). app.landingKind(repo) is the one landing
-  decision point.
+<!-- ── Design notes: the estate, the landing mechanism, the views, the stage ───
+  The page has TWO CONTEXT LEVELS. The ESTATE is the global, all-repo context;
+  a REPO is a per-repo context, with its own VIEWS (landing, atlas, files,
+  stage) plus pinned/recent shortcuts. The header repo selector is the switcher
+  between them: its top entry, "Repositories", is the estate; the owner's repos
+  below it are the per-repo contexts. In the estate the header reads
+  "mehrlander / Repositories" with no branch selector (a branch is a repo-level
+  notion), and the sidebar hides every per-repo item (top bar reads
+  "Repositories", the view list / pinned / recent are gone), since none of them
+  applies above the repo. Pick a repo and the per-repo sidebar and branch
+  context come back. The brand icon doubles as the mobile drawer toggle and, on
+  desktop, returns to the estate. app.landingKind(repo) is the one landing
+  decision point within a repo.
+
+  THE ESTATE: the all-repo view (lib/alpineComponents/estate.js), and the page's
+  front door — a bare open (no ?repo/?file/?view, no #stage=) lands here, and
+  the brand icon returns here on desktop. It renders a card per repo from the
+  registry's `repos` list (the ecosystem manifest in web-tools-private's
+  .web-tools.json; fallback: the quickLinks row), enriched with live GitHub
+  metadata (description, visibility, pushed-ago), then every curated surface in
+  the registry's surfaces/*.surface files (the surfacer's format; archive
+  category excluded). No token: the public default card only, no surfaces.
+  Deep link: ?view=estate (only stamped in the URL when a repo/ref param is
+  also present; the bare URL IS the estate).
+
+  GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
+  view keeps a one-tap route to the GitHub presentation of what it is showing.
+  The sidebar top bar links the open repo@ref (repoGithubUrl), the explorer's
+  breadcrumb links the current folder (ghFolderUrl), the viewer's actions link
+  the open file's blob, and every estate card and surface item carries its
+  github-logo link. When adding a view, add its jump-over.
 
   Today: web-tools -> 'gallery' (its pages index); a repo whose manifest names a
   landing -> 'custom' (see below); every other repo -> 'overview' (a synthesized
