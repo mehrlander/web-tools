@@ -165,8 +165,14 @@ class GH {
   async get(path) {
     const data = await this.req(`contents/${path}?ref=${this.ref}`);
     if (Array.isArray(data)) throw new Error('Path is a directory');
+    // The contents API empties "content" for files over 1 MB. Fall back to the
+    // git blobs API by sha (base64, served up to 100 MB) and keep the metadata
+    // this response already carries, so the return shape is unchanged.
+    const content = data.content
+      ? data.content
+      : (await this.req(`git/blobs/${data.sha}`)).content;
     return {
-      text: this.decode(data.content),
+      text: this.decode(content),
       sha: data.sha,
       size: data.size,
       url: data.html_url

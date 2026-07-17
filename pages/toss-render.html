@@ -225,9 +225,11 @@
   // './rows.csv' just works — the page is unchanged, only fetch is patched.
   // Relative string URLs only (the unresolved value the page passes): absolute
   // URLs, non-GET, root-relative '/…', and Request objects pass straight
-  // through. Bytes come back as base64 from the contents API, wrapped in a
-  // Response with a MIME guessed from the extension, so res.json()/text()/blob()
-  // behave. The shim reads the token itself (same-origin, allowlisted render).
+  // through. Bytes come back via the raw media type (served up to 100 MB; the
+  // JSON media type empties "content" over 1 MB, with a git-blobs fallback by
+  // sha), rewrapped in a Response with a MIME guessed from the extension so
+  // res.json()/text()/blob() behave. The shim reads the token itself
+  // (same-origin, allowlisted render).
   function fetchShim({ owner, name, ref, dir }) {
     const O = JSON.stringify(owner), N = JSON.stringify(name),
           R = JSON.stringify(ref || ''), D = JSON.stringify(dir);
@@ -238,17 +240,27 @@ var MIME={json:'application/json',csv:'text/csv',tsv:'text/tab-separated-values'
 function mime(p){var e=(p.split('.').pop()||'').toLowerCase();return MIME[e]||'application/octet-stream';}
 function tok(){try{var t=localStorage.getItem('ghToken');return(t&&t.indexOf('🎟')<0)?('Bearer '+t.trim()):'';}catch(e){return'';}}
 function bytes(s){var b=atob(s.replace(/\\s/g,''));var u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function wrap(body,rp){return new Response(body,{status:200,headers:{'Content-Type':mime(rp)}});}
+function isJson(r){return (r.headers.get('Content-Type')||'').indexOf('json')>-1;}
+function blob(sha,h,rp){var api='https://api.github.com/repos/'+O+'/'+N+'/git/blobs/'+sha;
+  return real(api,{headers:h}).then(function(b){if(!b.ok)return b;
+    if(!isJson(b))return b.arrayBuffer().then(function(buf){return wrap(buf,rp);});
+    return b.json().then(function(bd){return wrap(bytes(bd.content||''),rp);});});}
 window.fetch=function(input,init){try{
   var url=(typeof input==='string')?input:(input&&input.url);
   var m=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
   if(url&&m==='GET'&&!/^[a-z][a-z0-9+.-]*:/i.test(url)&&url.slice(0,2)!=='//'&&url.charAt(0)!=='/'&&url.charAt(0)!=='#'){
     var rp=new URL(url,'https://_/'+D).pathname.slice(1);
     var api='https://api.github.com/repos/'+O+'/'+N+'/contents/'+rp+(R?('?ref='+encodeURIComponent(R)):'');
-    var h={Accept:'application/vnd.github.v3+json'};var a=tok();if(a)h.Authorization=a;
-    return real(api,{headers:h}).then(function(r){if(!r.ok)return r;return r.json().then(function(d){
-      if(Array.isArray(d))return new Response('directory',{status:400});
-      return new Response(bytes(d.content||''),{status:200,headers:{'Content-Type':mime(rp)}});
-    });});
+    var h={Accept:'application/vnd.github.raw+json'};var a=tok();if(a)h.Authorization=a;
+    return real(api,{headers:h}).then(function(r){if(!r.ok)return r;
+      if(!isJson(r))return r.arrayBuffer().then(function(buf){return wrap(buf,rp);});
+      return r.json().then(function(d){
+        if(Array.isArray(d))return new Response('directory',{status:400});
+        if(d.content)return wrap(bytes(d.content),rp);
+        if(d.sha)return blob(d.sha,h,rp);
+        return wrap('',rp);
+      });});
   }
 }catch(e){}return real(input,init);};
 })();<\/script>`;
@@ -284,9 +296,13 @@ window.fetch=function(input,init){try{
   }
 
   // Auth headers for the contents API: the stored token (skipping the 🎟
-  // sentinel) so private repos and un-deployed branches resolve.
-  function ghHeaders() {
-    const headers = { Accept: 'application/vnd.github.v3+json' };
+  // sentinel) so private repos and un-deployed branches resolve. The raw media
+  // type is served for files 1–100 MB, where the JSON media type (v3+json)
+  // returns an empty "content" field, so the contents fetches below ask for raw
+  // and sniff the response; directories and errors come back as JSON regardless.
+  const RAW_MEDIA = 'application/vnd.github.raw+json';
+  function ghHeaders(accept) {
+    const headers = { Accept: accept || 'application/vnd.github.v3+json' };
     try {
       const t = localStorage.getItem('ghToken');
       if (t && !t.includes('🎟')) headers.Authorization = 'Bearer ' + t.trim();
@@ -294,14 +310,33 @@ window.fetch=function(input,init){try{
     return headers;
   }
 
-  // Fetch a single repo file's text via the contents API at <ref>.
-  async function ghText(owner, name, ref, filePath) {
-    const res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
-      filePath + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+  // Interpret a contents-API response fetched with the raw media type. A file
+  // arrives as its raw bytes (Content-Type is not JSON): hand back the text. A
+  // directory, or a JSON body, is parsed — a directory throws, inline content
+  // (files ≤1 MB) is decoded, and an empty-content JSON (the >1 MB case, if the
+  // raw ask was ignored) falls back to the git blobs API by sha (up to 100 MB).
+  async function readContents(res, apiBase) {
+    const ct = res.headers.get('Content-Type') || '';
+    if (!/json/i.test(ct)) return await res.text();
     const data = await res.json();
     if (Array.isArray(data)) throw new Error('is a directory');
-    return decodeB64(data.content);
+    if (data.content) return decodeB64(data.content);
+    if (data.sha) {
+      const b = await fetch(apiBase + '/git/blobs/' + data.sha, { headers: ghHeaders(RAW_MEDIA) });
+      if (!b.ok) throw new Error('HTTP ' + b.status);
+      if (!/json/i.test(b.headers.get('Content-Type') || '')) return await b.text();
+      return decodeB64((await b.json()).content || '');
+    }
+    throw new Error('empty response');
+  }
+
+  // Fetch a single repo file's text via the contents API at <ref>.
+  async function ghText(owner, name, ref, filePath) {
+    const apiBase = 'https://api.github.com/repos/' + owner + '/' + name;
+    const res = await fetch(apiBase + '/contents/' + filePath +
+      (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders(RAW_MEDIA) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await readContents(res, apiBase);
   }
 
   // Inline relative script/CSS deps (a render-time mini-bake). A private repo
@@ -376,10 +411,11 @@ window.fetch=function(input,init){try{
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
         '(sandboxed) with the 🥏 bookmarklet.');
     }
+    const apiBase = 'https://api.github.com/repos/' + owner + '/' + name;
     let res;
     try {
-      res = await fetch('https://api.github.com/repos/' + owner + '/' + name + '/contents/' +
-        path + (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders() });
+      res = await fetch(apiBase + '/contents/' + path +
+        (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders(RAW_MEDIA) });
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
@@ -389,9 +425,13 @@ window.fetch=function(input,init){try{
                 : 'GitHub error ' + res.status;
       return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + why + '.');
     }
-    const data = await res.json();
-    if (Array.isArray(data)) return showEmpty('That path is a directory, not a file.');
-    const text = decodeB64(data.content);
+    let text;
+    try {
+      text = await readContents(res, apiBase);
+    } catch (e) {
+      if (e.message === 'is a directory') return showEmpty('That path is a directory, not a file.');
+      return showEmpty(owner + '/' + name + (ref ? '@' + ref : '') + ':' + path + ' — ' + (e.message || e) + '.');
+    }
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
     const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
