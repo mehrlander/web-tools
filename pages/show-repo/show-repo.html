@@ -104,12 +104,15 @@
     <!-- Sidebar top bar: repo name + auth shield (opens the token dialog), plus
          the mobile-only drawer close button. -->
     <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
-      <span class="font-mono text-xs truncate flex-1"
-            x-text="view==='estate' ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
-      <a x-show="view!=='estate' && $store.browser.repo" :href="repoGithubUrl" target="_blank"
-         class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" data-tip="Open on GitHub">
-        <i class="ph ph-github-logo text-lg leading-none"></i>
-      </a>
+      <!-- Repo address with its GitHub jump right beside it (the pattern: the
+           github link sits next to the repo address wherever it is shown). -->
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <span class="font-mono text-xs truncate"
+              x-text="view==='estate' ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+        <a x-show="view!=='estate' && $store.browser.repo" :href="repoGithubUrl" target="_blank"
+           class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
+           title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
+      </div>
       <button @click="document.getElementById('repoModal')?.showModal()"
               class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
         <i class="ph text-lg leading-none" :class="authIcon"></i>
@@ -441,6 +444,7 @@ function app(){ return {
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
+  _restoring: false,      // true while restoring state from a popstate (see syncUrl)
   DEFAULT_REPO: 'mehrlander/web-tools',
   // The header quick-link row is data-driven. This public page must not
   // enumerate private repos in its source, so the built-in default lists only
@@ -529,6 +533,10 @@ function app(){ return {
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
     else if (!url) this.goEstate();
+
+    // Browser Back/Forward restores state from the URL (syncUrl pushes an entry
+    // per distinct URL, so the history has real steps to walk).
+    window.addEventListener('popstate', () => this.restoreFromUrl());
   },
 
   async loadRecent(){
@@ -792,7 +800,32 @@ function app(){ return {
     else if (this.view === 'stage') p.set('view', 'stage');
     else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
-    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
+    const cur = location.pathname + location.search + location.hash;
+    // Push a new history entry per distinct URL so the browser Back button walks
+    // the navigation (repo, view, file, folder). A no-op change, or a change made
+    // while restoring from a popstate, replaces in place instead, so Back never
+    // needs a double press and popstate restoration doesn't re-push.
+    if (this._restoring || next === cur) history.replaceState(null, '', next);
+    else history.pushState(null, '', next);
+  },
+
+  // Browser Back/Forward: re-derive the shell state from the URL, mirroring the
+  // init routing. `_restoring` makes syncUrl replace-in-place during the restore,
+  // so the watchers this fires don't push new entries.
+  async restoreFromUrl(){
+    this._restoring = true;
+    try {
+      const url = this.parseUrl();
+      await this.ensureBrowser(url?.repo, url?.ref);
+      if (url && url.file) await this.openFile(url.file);
+      else if (url && url.view === 'estate') this.goEstate();
+      else if (url && url.view === 'atlas') this.goAtlas();
+      else if (url && url.view === 'stage') this.goStage();
+      else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
+      else if (!url) this.goEstate();
+      else this.goLanding();
+    } finally { this._restoring = false; }
   },
 
   // Point the file browser at a repo. web-tools boots identity-free via
