@@ -101,9 +101,11 @@ off to the side. Row membership is by `group`, configured by an optional
 `rows` is ordered group lists, one entry per row; `'*'` collects every group
 not named elsewhere, and groups no row names append as a trailing row so
 nothing silently drops. `nest` folds a companion repo into its parent's card
-as one extra, unlabeled action row under the parent's (its pins and jumps,
-dimmed; no header — identity rides in a small leading glyph and the
-tooltips) instead of a standalone card. Both have defaults
+as just its three header icons (lock, gear, github-logo) right-aligned
+directly under the parent's three: the lock sitting where the globe sits
+above is the identity cue (tooltips carry the name), the lock opens the repo
+in the shell, and the companion contributes nothing else to the card. Both
+have defaults
 that need no registry edit: rows `[["core","archives"],["*"]]`, and the
 registry repo nested under the shell's home repo (the only two repo strings
 the public page already names). Delete the `nest` entry (or set
