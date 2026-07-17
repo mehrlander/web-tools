@@ -12,7 +12,6 @@ _Generated from tasks/. Do not hand-edit._
 - Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
 - Repo-designated inbox and outbox in .web-tools.json (`claude/pr-219-review-22csrh`)
 - Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
-- Branch-review view in show-repo next: spec the branches view and confirm the content-level landed signal before building
 - Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
 - Estate activity signals from a registry activity cache next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
 - Render files over 1 MB in toss-render and the shell viewers next: switch the render-path fetches to the raw media type with a git-blobs fallback, and verify against the 5.9 MB DRS bundle
@@ -25,6 +24,7 @@ _Generated from tasks/. Do not hand-edit._
 - Extract drop-zone as a reusable Alpine component (`claude/tracker-summary-nu74te`)
 - Add a task-tracker skill (`claude/agent-file-retrieval-skill-tv4can`)
 - Build an agent-assisted file-retrieval skill (`claude/agent-file-retrieval-skill-tv4can`) next: build corpus_search.py (find) with a sources config and a file-per-document default, plus read_doc.py (read) and a SKILL.md that fixes the search-and-present flow; dogfood on this repo's content
+- Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: build the branches view on the ported content-level signal, with the CLI-agreement check
 
 ## Blocked
 - (none)
