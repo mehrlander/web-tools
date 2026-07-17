@@ -70,7 +70,16 @@
   <header class="mb-6 flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2">
-        <i class="ph ph-diamond text-primary"></i> Shorter
+        <!-- Phosphor's ph-diamond is a bare rhombus; a brilliant-cut gem needs
+             facets, so this is a small inline SVG. currentColor keeps the
+             text-primary tint, and the faint fill gives it stone weight. -->
+        <svg viewBox="0 0 24 24" class="text-primary h-6 w-6" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+          <path d="M7 4 H17 L21 9 L12 20 L3 9 Z" fill="currentColor" fill-opacity=".1"/>
+          <path d="M3 9 H21"/>
+          <path d="M7 4 L9 9 L12 4 L15 9 L17 4"/>
+          <path d="M9 9 L12 20 L15 9"/>
+        </svg> Shorter
       </h1>
       <p class="mt-1 text-sm text-base-content/60">Line up a shorter draft against your text and accept it piece by piece.</p>
     </div>
