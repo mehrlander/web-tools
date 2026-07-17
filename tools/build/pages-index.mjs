@@ -39,7 +39,7 @@ const NOTES = {
   'compression-helper.html':   'Compression bookmarklet packer.',
   'diff-tool.html':            'Side-by-side text diff tool.',
   'review.html':               'A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target.',
-  'shorter.html':              'Iterative text shortener on an in-browser LLM (WebGPU + web-llm).',
+  'shorter.html':              'Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM.',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths — the 🥏 target.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
