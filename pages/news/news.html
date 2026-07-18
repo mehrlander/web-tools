@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>news · the outer log</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📰</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  news.html — the news panel, home's outer log, in two facets:
+
+    Ledger (view)   a read-only render of the record (news/ledger/*.jsonl in
+                    mehrlander/home): one view of the primary log, grouped and
+                    filterable by topic and date, with backfilled
+                    reconstructions held visibly distinct from live capture per
+                    the ledger's one honesty rule (news/README.md).
+    Sources (control) the connector spec (news/sources.json) as a subscription
+                    list: follow / unfollow (active: false) and param edits
+                    commit back to the file through the token, so the selection
+                    history stays a dated act in home's log.
+
+  Data contract (all in mehrlander/home, read/written through the viewer's token):
+    news/sources.json        the connector spec (the subscription universe)
+    news/ledger/*.jsonl      the record: monthly item shards, append-only
+    me/news-interests.md     the taste filter (view-layer only; not applied yet)
+
+  Renderer lives here in web-tools; the data lives in home. A private repo, so
+  it renders only in a browser holding the viewer's ghToken (gh-auth raises the
+  prompt on 401). The Sources facet writes to home's default branch on an
+  explicit Commit; every other interaction is local until then. Edits preserve
+  each source's structure and required params so the fetcher's spec validation
+  (news/README.md) never sees a malformed row.
+
+  ?use=<branch|tag|sha> pins this page's own lib chain to a ref (the repo's
+  standard preview mechanism; pass a SHA for fresh commits). &data=<ref> pins
+  which ref of home the data is read from (defaults to main).
+-->
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('gh-auth.js');    // token prompt on 401 for the private home read
+  await gh.load('gh-store.js');   // GH.prototype.save — the control facet's write path
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('news', () => ({
+      // ── data contract ────────────────────────────────────────────────────
+      REPO: 'mehrlander/home',
+      DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
+
+      // ── state ────────────────────────────────────────────────────────────
+      home: null,               // one GH instance for reads + writes (shares _shas)
+      items: [],
+      sources: [],
+      sourcesVersion: 1,
+      loading: true,
+      error: '',
+
+      // ── facet ────────────────────────────────────────────────────────────
+      facet: 'ledger',          // ledger | sources
+
+      // ── control-facet state ──────────────────────────────────────────────
+      draft: [],                // working copy of sources; edits mutate this
+      expanded: null,           // source id whose param editor is open
+      committing: false,
+      commitError: '',
+      justCommitted: false,
+
+      // ── filters ──────────────────────────────────────────────────────────
+      q: '',
+      topics: new Set(),        // empty = all
+      kinds: new Set(),         // empty = all
+      capture: 'all',           // all | live | backfilled
+      groupBy: 'topic',         // topic | date
+
+      // ── display maps ─────────────────────────────────────────────────────
+      TOPIC_LABEL: {
+        ai: 'AI', 'wa-gov': 'WA Gov', pensions: 'Pensions', powershell: 'PowerShell',
+        shortcuts: 'Shortcuts', 'civic-tech': 'Civic Tech', ideas: 'Ideas', general: 'General'
+      },
+      KIND_LABEL: { rss: 'RSS', 'hn-query': 'HN', 'page-watch': 'Watch' },
+      KIND_ICON: { rss: 'ph-rss', 'hn-query': 'ph-hacker-news-logo', 'page-watch': 'ph-eye' },
+
+      async init() {
+        try {
+          const home = this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
+          const [src, dir] = await Promise.all([
+            home.get('news/sources.json'),
+            home.req(`contents/news/ledger?ref=${this.DATA_REF}`)
+          ]);
+          const spec = JSON.parse(src.text);
+          this.sources = spec.sources || [];
+          this.sourcesVersion = spec.version ?? 1;
+          this.resetDraft();
+          // Seed the SHA so a later save() PUTs against the version we read.
+          (home._shas ||= {})['news/sources.json'] = src.sha;
+          const shards = (Array.isArray(dir) ? dir : [])
+            .filter(f => f.type === 'file' && f.name.endsWith('.jsonl'));
+          const texts = await Promise.all(shards.map(s => home.get(s.path).then(r => r.text)));
+          const items = [];
+          for (const t of texts) {
+            for (const line of t.split('\n')) {
+              const l = line.trim(); if (!l) continue;
+              try { items.push(JSON.parse(l)); } catch {}
+            }
+          }
+          // Newest first, by published_at, falling back to fetched_at.
+          items.sort((a, b) => this.when(b).localeCompare(this.when(a)));
+          this.items = items;
+        } catch (e) {
+          this.error = e.message || String(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      // ── helpers ──────────────────────────────────────────────────────────
+      when(it) { return it.published_at || it.fetched_at || ''; },
+      topicLabel(t) { return this.TOPIC_LABEL[t] || t; },
+      kindLabel(k) { return this.KIND_LABEL[k] || k; },
+      kindIcon(k) { return this.KIND_ICON[k] || 'ph-circle'; },
+
+      relTime(iso) {
+        if (!iso) return '';
+        const then = new Date(iso).getTime();
+        if (isNaN(then)) return '';
+        const s = Math.floor((Date.now() - then) / 1000);
+        if (s < 60) return s + 's ago';
+        const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+        const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+        const d = Math.floor(h / 24); if (d < 30) return d + 'd ago';
+        const mo = Math.floor(d / 30); if (mo < 12) return mo + 'mo ago';
+        return Math.floor(mo / 12) + 'y ago';
+      },
+      dayLabel(iso) {
+        if (!iso) return 'Undated';
+        const d = new Date(iso);
+        if (isNaN(d)) return 'Undated';
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      },
+      host(url) { try { return new URL(url).host.replace(/^www\./, ''); } catch { return ''; } },
+
+      // ── derived: the topic + kind universe (from items and the spec) ──────
+      get allTopics() {
+        const s = new Set(this.items.map(i => i.topic));
+        for (const src of this.sources) s.add(src.topic);
+        return [...s].filter(Boolean).sort((a, b) => this.topicLabel(a).localeCompare(this.topicLabel(b)));
+      },
+      get allKinds() {
+        const s = new Set(this.items.map(i => i.kind));
+        for (const src of this.sources) s.add(src.kind);
+        return [...s].filter(Boolean).sort();
+      },
+
+      toggle(set, v) {
+        this[set].has(v) ? this[set].delete(v) : this[set].add(v);
+      },
+      clearFilters() { this.topics.clear(); this.kinds.clear(); this.q = ''; this.capture = 'all'; },
+      get hasFilters() { return this.topics.size || this.kinds.size || this.q || this.capture !== 'all'; },
+
+      // ── derived: the filtered, grouped result ────────────────────────────
+      get filtered() {
+        const q = this.q.trim().toLowerCase();
+        return this.items.filter(it => {
+          if (this.topics.size && !this.topics.has(it.topic)) return false;
+          if (this.kinds.size && !this.kinds.has(it.kind)) return false;
+          if (this.capture === 'live' && it.backfilled) return false;
+          if (this.capture === 'backfilled' && !it.backfilled) return false;
+          if (q) {
+            const hay = ((it.title || '') + ' ' + (it.summary || '') + ' ' + (it.source || '')).toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+      },
+      get groups() {
+        const key = this.groupBy === 'date'
+          ? (it => (this.when(it) || '').slice(0, 10))
+          : (it => it.topic || 'general');
+        const map = new Map();
+        for (const it of this.filtered) {
+          const k = key(it);
+          if (!map.has(k)) map.set(k, []);
+          map.get(k).push(it);
+        }
+        let entries = [...map.entries()];
+        if (this.groupBy === 'date') {
+          entries.sort((a, b) => b[0].localeCompare(a[0]));           // newest day first
+          return entries.map(([k, v]) => ({ key: k, label: this.dayLabel(v[0] && this.when(v[0])), items: v }));
+        }
+        entries.sort((a, b) => b[1].length - a[1].length);            // fullest topic first
+        return entries.map(([k, v]) => ({ key: k, label: this.topicLabel(k), items: v }));
+      },
+
+      get backfilledCount() { return this.items.filter(i => i.backfilled).length; },
+      get dateRange() {
+        const ds = this.items.map(i => this.when(i)).filter(Boolean).sort();
+        if (!ds.length) return '';
+        const a = ds[0].slice(0, 10), b = ds[ds.length - 1].slice(0, 10);
+        return a === b ? a : `${a} → ${b}`;
+      },
+
+      // ── control facet: sources.json as a subscription list ───────────────
+      // The draft is a deep copy of the spec's sources; edits mutate it and
+      // never the read-in original, so `dirty` is a faithful diff and Discard
+      // is a reset. Structure and unknown fields are preserved; only `active`
+      // and `params` change, so the written spec stays valid for the fetcher.
+      // JSON round-trip, not structuredClone: Alpine wraps component data in a
+      // reactive Proxy, which structuredClone refuses to clone. Our sources are
+      // plain JSON, so the round-trip is a faithful deep copy.
+      clone(x) { return JSON.parse(JSON.stringify(x)); },
+      resetDraft() { this.draft = this.clone(this.sources); this.commitError = ''; },
+      isActive(s) { return s.active !== false; },
+      liveCount() { return this.draft.filter(s => this.isActive(s)).length; },
+
+      // The identifying param per kind, for the one-line row summary.
+      keyParam(s) {
+        if (s.kind === 'rss' || s.kind === 'page-watch') return s.params?.url || '';
+        if (s.kind === 'hn-query') return s.params?.query || '';
+        return Object.values(s.params || {})[0] || '';
+      },
+      paramKeys(s) { return Object.keys(s.params || {}); },
+
+      toggleFollow(s) {
+        if (this.isActive(s)) s.active = false; else delete s.active;
+      },
+      setParam(s, k, v) {
+        s.params ||= {};
+        s.params[k] = (k === 'min_points') ? (v === '' ? '' : Number(v)) : v;
+      },
+
+      // Per-row diff vs the original spec: followed/unfollowed or params edited.
+      original(id) { return this.sources.find(s => s.id === id); },
+      rowState(s) {
+        const o = this.original(s.id);
+        if (!o) return 'new';
+        const wasActive = o.active !== false, nowActive = this.isActive(s);
+        if (wasActive !== nowActive) return nowActive ? 'followed' : 'unfollowed';
+        if (JSON.stringify(o.params || {}) !== JSON.stringify(s.params || {})) return 'edited';
+        return '';
+      },
+      get changes() {
+        return this.draft.map(s => ({ s, state: this.rowState(s) })).filter(c => c.state);
+      },
+      get dirty() { return this.changes.length > 0; },
+
+      // A malformed row would make the fetcher refuse the whole spec, so gate
+      // the commit on the required param per kind being present and non-empty.
+      invalidRow(s) {
+        const p = s.params || {};
+        if (s.kind === 'rss' || s.kind === 'page-watch') return !String(p.url || '').trim();
+        if (s.kind === 'hn-query') return !String(p.query || '').trim() || p.min_points === '' || isNaN(Number(p.min_points));
+        return false;
+      },
+      get invalid() { return this.changes.some(c => this.invalidRow(c.s)); },
+
+      commitMessage() {
+        const by = { followed: [], unfollowed: [], edited: [] };
+        for (const c of this.changes) (by[c.state] ||= []).push(c.s.id);
+        const parts = [];
+        if (by.unfollowed?.length) parts.push(`unfollow ${by.unfollowed.join(', ')}`);
+        if (by.followed?.length) parts.push(`follow ${by.followed.join(', ')}`);
+        if (by.edited?.length) parts.push(`edit ${by.edited.join(', ')}`);
+        return 'news: ' + (parts.join('; ') || 'update sources');
+      },
+
+      async commit() {
+        if (!this.dirty || this.invalid || this.committing) return;
+        this.committing = true; this.commitError = '';
+        try {
+          const spec = { version: this.sourcesVersion, sources: this.draft };
+          await this.home.save('news/sources.json', spec, this.commitMessage());
+          this.sources = this.clone(this.draft);   // commit becomes the new baseline
+          this.justCommitted = true;
+          setTimeout(() => { this.justCommitted = false; }, 4000);
+        } catch (e) {
+          this.commitError = e.message || String(e);
+        } finally {
+          this.committing = false;
+        }
+      },
+    }));
+  });
+
+  await gh.load('alpine-bundle.js');   // starts Alpine
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased" x-data="news" x-cloak>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300">
+  <div class="max-w-5xl mx-auto px-4 py-3">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="text-xl">📰</span>
+      <div class="min-w-0">
+        <h1 class="font-semibold leading-tight">news <span class="opacity-40 font-normal text-sm">· the outer log</span></h1>
+        <p class="text-xs opacity-60 leading-tight" x-show="!loading && facet==='ledger'">
+          <span x-text="items.length"></span> items ·
+          <span x-text="sources.length"></span> sources ·
+          <span x-text="dateRange"></span>
+          <span x-show="backfilledCount" class="ml-1">· <span x-text="backfilledCount"></span> backfilled</span>
+        </p>
+        <p class="text-xs opacity-60 leading-tight" x-show="!loading && facet==='sources'">
+          <span x-text="liveCount()"></span> followed · <span x-text="draft.length"></span> total
+          <span x-show="dirty" class="text-warning ml-1">· <span x-text="changes.length"></span> pending</span>
+        </p>
+      </div>
+      <div class="grow"></div>
+
+      <!-- Facet switch: the two facets of the panel. -->
+      <div class="join" x-show="!loading && !error">
+        <button class="join-item btn btn-sm gap-1" :class="facet==='ledger' && 'btn-active btn-primary'" @click="facet='ledger'">
+          <i class="ph ph-newspaper"></i><span class="hidden sm:inline">Ledger</span>
+        </button>
+        <button class="join-item btn btn-sm gap-1" :class="facet==='sources' && 'btn-active btn-primary'" @click="facet='sources'">
+          <i class="ph ph-broadcast"></i><span class="hidden sm:inline">Sources</span>
+          <span x-show="dirty" class="badge badge-warning badge-xs" x-text="changes.length"></span>
+        </button>
+      </div>
+
+      <a :href="`https://github.com/${REPO}/tree/${DATA_REF}/news`" target="_blank"
+         class="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100" title="home/news on GitHub">
+        <i class="ph ph-github-logo"></i>
+      </a>
+    </div>
+
+    <!-- Ledger controls -->
+    <div x-show="!loading && !error && facet==='ledger'" class="mt-3 flex flex-col gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <label class="input input-bordered input-sm flex items-center gap-2 grow max-w-sm">
+          <i class="ph ph-magnifying-glass opacity-50"></i>
+          <input x-model="q" type="search" placeholder="Search titles, summaries, sources" class="grow min-w-0">
+        </label>
+
+        <div class="join">
+          <button class="join-item btn btn-xs" :class="groupBy==='topic' && 'btn-active btn-primary'" @click="groupBy='topic'">
+            <i class="ph ph-tag"></i> Topic
+          </button>
+          <button class="join-item btn btn-xs" :class="groupBy==='date' && 'btn-active btn-primary'" @click="groupBy='date'">
+            <i class="ph ph-calendar-blank"></i> Date
+          </button>
+        </div>
+
+        <div class="join">
+          <button class="join-item btn btn-xs" :class="capture==='all' && 'btn-active'" @click="capture='all'">All</button>
+          <button class="join-item btn btn-xs" :class="capture==='live' && 'btn-active'" @click="capture='live'">Live</button>
+          <button class="join-item btn btn-xs" :class="capture==='backfilled' && 'btn-active'" @click="capture='backfilled'">Backfilled</button>
+        </div>
+
+        <button x-show="hasFilters" @click="clearFilters()" class="btn btn-ghost btn-xs gap-1 opacity-60">
+          <i class="ph ph-x"></i> Clear
+        </button>
+      </div>
+
+      <!-- Topic pills -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <template x-for="t in allTopics" :key="t">
+          <button @click="toggle('topics', t)"
+                  class="badge badge-sm cursor-pointer transition-colors"
+                  :class="topics.has(t) ? 'badge-primary' : 'badge-ghost hover:badge-neutral'">
+            <span x-text="topicLabel(t)"></span>
+          </button>
+        </template>
+        <span class="w-px h-4 bg-base-300 mx-1"></span>
+        <template x-for="k in allKinds" :key="k">
+          <button @click="toggle('kinds', k)"
+                  class="badge badge-sm badge-outline gap-1 cursor-pointer transition-colors"
+                  :class="kinds.has(k) ? 'badge-secondary' : 'opacity-60 hover:opacity-100'">
+            <i class="ph text-[0.9em]" :class="kindIcon(k)"></i><span x-text="kindLabel(k)"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-5">
+
+  <!-- Loading -->
+  <div x-show="loading" class="flex items-center gap-3 justify-center py-20 opacity-60">
+    <span class="loading loading-spinner"></span> Reading the ledger…
+  </div>
+
+  <!-- Error -->
+  <div x-show="error" x-cloak class="alert alert-error max-w-xl mx-auto mt-10">
+    <i class="ph ph-warning"></i>
+    <div>
+      <div class="font-semibold">Could not read the ledger</div>
+      <div class="text-sm opacity-80" x-text="error"></div>
+      <div class="text-xs opacity-70 mt-1">A private read: set a GitHub token when prompted, then reload.</div>
+    </div>
+  </div>
+
+  <!-- Empty after filter -->
+  <div x-show="!loading && !error && facet==='ledger' && filtered.length === 0" x-cloak class="text-center py-20 opacity-50">
+    <i class="ph ph-funnel text-3xl"></i>
+    <p class="mt-2 text-sm">No items match these filters.</p>
+  </div>
+
+  <!-- Ledger groups -->
+  <div x-show="!loading && !error && facet==='ledger' && filtered.length" x-cloak class="flex flex-col gap-6">
+    <template x-for="g in groups" :key="g.key">
+      <section>
+        <div class="flex items-baseline gap-2 mb-2 sticky top-[104px] z-10 bg-base-200/90 backdrop-blur py-1">
+          <h2 class="font-semibold text-sm" x-text="g.label"></h2>
+          <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+        </div>
+        <div class="flex flex-col gap-2">
+          <template x-for="it in g.items" :key="it.id">
+            <!-- A backfilled item is a reconstruction, not a witness: dashed,
+                 amber-tinted, badged. A live item is a clean card. -->
+            <article class="rounded-lg border bg-base-100 px-4 py-3 transition-shadow hover:shadow-sm"
+                     :class="it.backfilled
+                       ? 'border-dashed border-warning/50 bg-warning/5'
+                       : 'border-base-300'">
+              <div class="flex items-start gap-3">
+                <div class="min-w-0 grow">
+                  <a :href="it.url" target="_blank"
+                     class="font-medium leading-snug hover:link hover:link-primary" x-text="it.title || '(untitled)'"></a>
+                  <p x-show="it.summary" class="text-sm opacity-70 mt-1 line-clamp-2" x-text="it.summary"></p>
+                  <div class="flex items-center gap-2 flex-wrap mt-1.5 text-xs opacity-60">
+                    <span class="inline-flex items-center gap-1">
+                      <i class="ph" :class="kindIcon(it.kind)"></i><span x-text="it.source"></span>
+                    </span>
+                    <span x-show="groupBy!=='topic'" class="badge badge-ghost badge-xs" x-text="topicLabel(it.topic)"></span>
+                    <span x-text="host(it.url)" class="opacity-50"></span>
+                    <span class="opacity-50" x-text="relTime(when(it))"></span>
+                    <span x-show="it.backfilled"
+                          class="badge badge-warning badge-xs gap-1">
+                      <i class="ph ph-clock-counter-clockwise"></i> backfilled
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </template>
+        </div>
+      </section>
+    </template>
+  </div>
+
+  <!-- ── Sources facet: the subscription list ──────────────────────────────── -->
+  <div x-show="!loading && !error && facet==='sources'" x-cloak class="flex flex-col gap-2 pb-32">
+    <template x-for="s in draft" :key="s.id">
+      <article class="rounded-lg border bg-base-100 transition-colors"
+               :class="[
+                 isActive(s) ? 'border-base-300' : 'border-base-200 bg-base-200/40',
+                 rowState(s) && 'ring-1 ring-warning/40'
+               ]">
+        <div class="flex items-center gap-3 px-4 py-2.5">
+          <!-- follow toggle -->
+          <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0"
+                 :checked="isActive(s)" @change="toggleFollow(s)"
+                 :title="isActive(s) ? 'Following — click to unfollow' : 'Unfollowed — click to follow'">
+
+          <div class="min-w-0 grow">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-sm" :class="!isActive(s) && 'opacity-50 line-through'" x-text="s.id"></span>
+              <span class="badge badge-outline badge-xs gap-1">
+                <i class="ph text-[0.9em]" :class="kindIcon(s.kind)"></i><span x-text="kindLabel(s.kind)"></span>
+              </span>
+              <span class="badge badge-ghost badge-xs" x-text="topicLabel(s.topic)"></span>
+              <span x-show="rowState(s)" class="badge badge-warning badge-xs" x-text="rowState(s)"></span>
+            </div>
+            <div class="text-xs opacity-50 truncate mt-0.5" x-text="keyParam(s)"></div>
+          </div>
+
+          <button class="btn btn-ghost btn-xs btn-square shrink-0"
+                  @click="expanded = (expanded===s.id ? null : s.id)" title="Edit params">
+            <i class="ph" :class="expanded===s.id ? 'ph-caret-up' : 'ph-sliders-horizontal'"></i>
+          </button>
+        </div>
+
+        <!-- param editor -->
+        <div x-show="expanded===s.id" x-collapse x-cloak class="px-4 pb-3 pt-1 border-t border-base-200">
+          <div class="grid gap-2 sm:grid-cols-2">
+            <template x-for="k in paramKeys(s)" :key="k">
+              <label class="flex flex-col gap-1">
+                <span class="text-xs uppercase tracking-wide opacity-50" x-text="k"></span>
+                <input class="input input-bordered input-xs w-full font-mono"
+                       :type="k==='min_points' ? 'number' : 'text'"
+                       :value="s.params[k]" @input="setParam(s, k, $event.target.value)">
+              </label>
+            </template>
+          </div>
+          <p x-show="invalidRow(s)" class="text-xs text-error mt-2">
+            <i class="ph ph-warning"></i> Required param is empty or invalid; the fetcher would refuse this row.
+          </p>
+        </div>
+      </article>
+    </template>
+  </div>
+
+</main>
+
+<!-- ── Pending-changes tray (control facet) ─────────────────────────────────── -->
+<div x-show="facet==='sources' && (dirty || justCommitted)" x-cloak
+     class="fixed bottom-0 inset-x-0 z-30 border-t border-base-300 bg-base-100/95 backdrop-blur">
+  <div class="max-w-5xl mx-auto px-4 py-5 flex items-center gap-3 flex-wrap">
+    <div class="text-sm grow min-w-0">
+      <template x-if="justCommitted && !dirty">
+        <span class="text-success"><i class="ph ph-check-circle"></i> Committed to <code class="text-xs">news/sources.json</code>.</span>
+      </template>
+      <template x-if="dirty">
+        <span>
+          <span class="font-medium" x-text="changes.length"></span> pending
+          <span x-text="changes.length===1 ? 'change' : 'changes'"></span>:
+          <span class="opacity-70 font-mono text-xs" x-text="commitMessage().replace(/^news: /,'')"></span>
+        </span>
+      </template>
+    </div>
+    <div x-show="commitError" class="text-xs text-error basis-full order-3" x-text="commitError"></div>
+    <span x-show="dirty" class="text-xs opacity-50 text-right leading-tight hidden sm:block">
+      Commit writes to <code>news/sources.json</code> on home.<br>Discard reverts to the committed spec.
+    </span>
+    <button class="btn btn-ghost btn-sm" @click="resetDraft()" x-show="dirty" :disabled="committing">Discard</button>
+    <button class="btn btn-primary btn-sm gap-2" @click="commit()" x-show="dirty"
+            :disabled="committing || invalid" :title="invalid ? 'Fix the invalid row first' : ''">
+      <span x-show="!committing"><i class="ph ph-git-commit"></i> Commit</span>
+      <span x-show="committing" class="loading loading-spinner loading-xs"></span>
+    </button>
+  </div>
+</div>
+</body>
+</html>

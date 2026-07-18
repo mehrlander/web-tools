@@ -41,6 +41,7 @@ const NOTES = {
   'review.html':               'A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target.',
   'shorter.html':              'Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM.',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
+  'news/news.html':            "Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct.",
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths — the 🥏 target.',
   'gist-editor.html':          'Browse and edit GitHub gists in the browser.',
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
