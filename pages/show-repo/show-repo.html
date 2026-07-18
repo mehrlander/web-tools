@@ -47,21 +47,22 @@
   </template>
 </div>
 
-<!-- ── Header: brand (doubles as the mobile drawer toggle), then repo nav ─── -->
+<!-- ── Header: brand (goes to the dashboard on every viewport), then repo nav ── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-3">
-      <button @click="brandClick()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
-              :title="brandTip">
+      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+              title="Dashboard">
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
         <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
       </button>
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
-      <!-- Quick links to frequent repos. The full join row needs width, so
-           below sm it collapses to a single dropdown. Config editing lives in
-           the sidebar shield dialog (repoModal), not here. -->
+      <!-- Quick links to frequent repos, desktop only: on mobile the dashboard
+           (brand tap) is the favorites surface, so no dropdown duplicates it.
+           Config editing lives in the sidebar shield dialog (repoModal), not
+           here. -->
       <div class="join shrink-0 hidden sm:flex">
         <template x-for="p in quickLinks" :key="p.repo">
           <button @click="openPinned(p.repo)"
@@ -72,22 +73,10 @@
           </button>
         </template>
       </div>
-      <details class="dropdown dropdown-end shrink-0 sm:hidden" data-auto-close>
-        <summary class="btn btn-sm btn-square btn-ghost list-none">
-          <i class="ph ph-squares-four text-lg"></i>
-        </summary>
-        <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-56 p-1 shadow border border-base-300 mt-1">
-          <template x-for="p in quickLinks" :key="p.repo">
-            <li>
-              <a @click="openPinned(p.repo)"
-                 :class="[Alpine.store('browser').repo===p.repo && 'active', pinnedDim(p) && 'opacity-40']">
-                <i class="ph text-base" :class="pinnedIcon(p)"></i>
-                <span class="font-mono text-xs truncate" x-text="p.repo"></span>
-              </a>
-            </li>
-          </template>
-        </ul>
-      </details>
+      <!-- Drawer toggle, where the sidebar is a drawer (below lg). -->
+      <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost shrink-0 lg:hidden" title="Menu">
+        <i class="ph ph-list text-lg"></i>
+      </button>
     </div>
   </div>
 </header>
@@ -476,8 +465,9 @@ function loadMarked(){
 }
 
 // ── Shell: repo context + view state. The repo picker is up front; the brand
-// icon doubles as the mobile drawer toggle. The sidebar lists the repo's views
-// (landing, atlas) and its files. Which
+// icon goes to the dashboard on every viewport, and the header's list button
+// opens the drawer where the sidebar isn't pinned. The sidebar lists the
+// repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
   view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches'
@@ -814,12 +804,6 @@ function app(){ return {
     return 'Public only';
   },
 
-  // The brand icon goes home on desktop, where the sidebar is pinned, and opens
-  // the drawer on mobile, where it stands in for the hamburger.
-  get isDesktop(){ return window.matchMedia('(min-width: 1024px)').matches; },
-  get brandTip(){ return this.isDesktop ? 'web-tools' : 'Browse'; },
-  brandClick(){ this.isDesktop ? this.goHome() : this.openSidebar(); },
-
   // The open repo@ref on GitHub — the sidebar's standing jump-over. Every view
   // keeps a one-tap route to the GitHub presentation of what it is showing
   // (this link, the viewer's per-file GitHub action, the explorer's folder
@@ -955,7 +939,13 @@ function app(){ return {
   // rather than let a click fail silently.
   pinnedDim(p){ return p.repo !== this.DEFAULT_REPO && this._authState !== 'auth'; },
   pinnedTip(p){ return this.pinnedDim(p) ? p.repo + ' (sign in to open)' : p.repo; },
-  async openPinned(repo){ await this.ensureBrowser(repo); }
+  // Land on the repo's landing explicitly: the view flip otherwise rides a
+  // repo-change watcher, which never fires when the tapped repo is already
+  // open (e.g. the default repo's card while on the estate).
+  async openPinned(repo){
+    await this.ensureBrowser(repo);
+    if (Alpine.store('browser').repo === repo) this.goLanding();
+  }
 }}
 
 // ── Gallery: the web-tools pages index, rendered from pages.json ─────────────
