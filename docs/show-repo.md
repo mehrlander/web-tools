@@ -140,6 +140,10 @@ one stage above any repo, since every item carries its own origin. Takes from:
 
 Stage-view actions:
 
+- **Recent**: the latest committed files across the estate's root repos (one
+  `recentFiles()` sweep per repo, loaded when the stage is first shown), each
+  row one tap to stage and a second tap to unstage; the muted line reads
+  `repo · folder` so the source is legible at a glance;
 - **view** a staged file inline (a preview panel in the stage itself, with a
   GitHub jump-over to the file's true home; it never routes through a repo's
   Files view);

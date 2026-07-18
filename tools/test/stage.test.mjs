@@ -16,6 +16,14 @@ const calls = [];
 class FakeGH {
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = 'main'; }
   async get(path) { return { text: 'CONTENT ' + this.repo + ':' + path, sha: 'x' }; }
+  async recentFiles() {
+    if (this.repo === 'me/open') return [
+      { path: 'lib/new.js', date: '2026-07-18T10:00:00Z', sha: 'a' },
+      { path: 'old.md', date: '2026-07-16T10:00:00Z', sha: 'b' },
+    ];
+    if (this.repo === 'me/fav') return [{ path: 'docs/mid.md', date: '2026-07-17T10:00:00Z', sha: 'c' }];
+    return [];
+  }
   async copyTo(dest, paths) { calls.push({ kind: 'copyTo', from: this.repo, dest, paths }); return paths.map(p => ({ path: p, status: 'ok' })); }
   async save(path, value, msg) { calls.push({ kind: 'save', repo: this.repo, path, value, msg }); return { content: { sha: 'x' } }; }
   async saveBytes(path, bytes, msg) { calls.push({ kind: 'saveBytes', repo: this.repo, path, bytes, msg }); return { content: { sha: 'x' } }; }
@@ -217,6 +225,36 @@ test('save to another repo (a general staging) fully qualifies the refs', async 
   const cfgSave = calls.find(c => c.kind === 'save' && c.path === '.web-tools.json');
   assert.equal(cfgSave.repo, 'me/registry');
   assert.deepEqual(plain_(cfgSave.value.stage.files), ['me/open:lib/a.js']);
+});
+
+test('loadRecent merges root repos newest-first, tagging each file with its repo', async () => {
+  reset();
+  store.repo = 'me/open';
+  store.config = null;
+  window.__shell = { quickLinks: [{ repo: 'me/fav' }] };
+  await data.loadRecent(true);
+  delete window.__shell;
+  assert.deepEqual(plain_(data.recent.map(r => [r.repo, r.path])), [
+    ['me/open', 'lib/new.js'],
+    ['me/fav', 'docs/mid.md'],
+    ['me/open', 'old.md'],
+  ]);
+});
+
+test('toggleRecent stages a recent file and unstages it on the second tap', () => {
+  reset();
+  const it = { repo: 'me/open', path: 'lib/new.js', date: '2026-07-18T10:00:00Z' };
+  assert.equal(data.recentStaged(it), false);
+  data.toggleRecent(it);
+  assert.deepEqual(plain_(data.refItems), [{ repo: 'me/open', ref: '', path: 'lib/new.js' }]);
+  assert.equal(data.recentStaged(it), true);
+  data.toggleRecent(it);
+  assert.equal(data.refItems.length, 0);
+});
+
+test('whereFrom reads as repo short name, then the folder', () => {
+  assert.equal(data.whereFrom({ repo: 'me/open', path: 'lib/alpineComponents/x.js' }), 'open · lib/alpineComponents');
+  assert.equal(data.whereFrom({ repo: 'me/open', path: 'README.md' }), 'open');
 });
 
 test('save refuses a malformed target without writing', async () => {
