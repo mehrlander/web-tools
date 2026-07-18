@@ -1,8 +1,9 @@
-// alpineComponents/stage.js — logic-level tests for the stager: the repo-first
-// "Copy to repo" destination picker (destRoots / onDestPicked) and the folding
-// of dropped local files into the one stage (a local item beside refs, both
-// flowing through the one send/save/mint). Driven directly against a fake
-// browser store; no network, no real files, no picker pixels.
+// alpineComponents/stage.js — logic-level tests for the stager: the estate-
+// level picker roots (pickerRoots), the grab flow, the inline preview, and the
+// folding of dropped local files into the one stage (a local item beside refs,
+// both flowing through the one send/save/mint, with save naming its target
+// repo). Driven directly against a fake browser store; no network, no real
+// files, no picker pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,11 +28,11 @@ const { window, problems } = makeWindow({
 });
 
 // alpine-bundle.js defines the browser store; the stager composes dropZone and
-// (lazily) mention, so both must be registered before it mounts.
+// pathPicker, so both must be registered before it mounts.
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/alpineComponents/drop-zone.js',
-  'lib/alpineComponents/mention.js',
+  'lib/alpineComponents/path-picker.js',
   'lib/alpineComponents/stage.js',
 ]);
 
@@ -46,39 +47,54 @@ test('mounts with no startup warnings or errors', () => {
   assert.ok(data.description.length > 0);
 });
 
-// ---- the destination picker (repo-first) --------------------------------
+// ---- the estate-level picker roots --------------------------------------
 
-test('destRoots leads with the open repo, then configured targets, deduped', () => {
+test('pickerRoots: open repo, then quick links, then targets, deduped', () => {
   store.repo = 'me/open';
   store.config = { stage: { targets: ['me/dest:pkg', 'me/open:vendor', 'other/lib@dev:src'] } };
-  assert.deepEqual(plain_(data.destRoots()), [
+  window.__shell = { quickLinks: [{ repo: 'me/fav' }, { repo: 'me/open' }] };
+  assert.deepEqual(plain_(data.pickerRoots()), [
     { repo: 'me/open', ref: '' },
+    { repo: 'me/fav', ref: '' },
     { repo: 'me/dest', ref: '' },
     { repo: 'other/lib', ref: 'dev' },
   ]);
+  delete window.__shell;
 });
 
-test('destRoots without configured targets is just the open repo', () => {
+test('pickerRoots without shell or targets is just the open repo', () => {
   store.repo = 'me/open';
   store.config = null;
-  assert.deepEqual(plain_(data.destRoots()), [{ repo: 'me/open', ref: '' }]);
+  assert.deepEqual(plain_(data.pickerRoots()), [{ repo: 'me/open', ref: '' }]);
 });
 
-test('onDestPicked writes owner/repo:dir from the picked file folder', () => {
-  data.destBrowsing = true;
-  data.onDestPicked({ repo: 'me/dest', ref: '', path: 'src/lib/index.js' });
-  assert.equal(data.destSpec, 'me/dest:src/lib');
-  assert.equal(data.destBrowsing, false);
+// ---- grabbing from a repo, previewing inline -----------------------------
+
+test('grab stages the picked ref once, deduped by key', () => {
+  reset();
+  data.grab({ repo: 'me/a', ref: '', path: 'lib/x.js' });
+  data.grab({ repo: 'me/a', ref: '', path: 'lib/x.js' });
+  data.grab({ repo: 'me/b', ref: 'dev', path: 'y.md' });
+  assert.deepEqual(plain_(data.refItems), [
+    { repo: 'me/a', ref: '', path: 'lib/x.js' },
+    { repo: 'me/b', ref: 'dev', path: 'y.md' },
+  ]);
 });
 
-test('a repo-root file yields a bare owner/repo (no dir = root)', () => {
-  data.onDestPicked({ repo: 'me/dest', ref: '', path: 'README.md' });
-  assert.equal(data.destSpec, 'me/dest');
+test('view loads a ref into the inline preview, not the shared activeFile', async () => {
+  reset();
+  store.activeFile = null;
+  await data.view({ repo: 'me/a', ref: '', path: 'lib/x.js' });
+  assert.equal(data.preview.name, 'me/a:lib/x.js');
+  assert.match(data.preview.text, /CONTENT me\/a:lib\/x.js/);
+  assert.match(data.preview.href, /github\.com\/me\/a\/blob/);
+  assert.equal(store.activeFile, null, 'stage preview never routes through Files');
 });
 
-test('a picked ref is carried into the destSpec', () => {
-  data.onDestPicked({ repo: 'other/lib', ref: 'dev', path: 'src/a.js' });
-  assert.equal(data.destSpec, 'other/lib@dev:src');
+test('view shows a local text item inline', async () => {
+  await data.view({ local: true, id: 90, name: 'n.txt', path: 'n.txt', size: 2, isText: true, text: 'hi' });
+  assert.equal(data.preview.name, 'n.txt');
+  assert.equal(data.preview.text, 'hi');
 });
 
 // ---- folding dropped local files into the stage -------------------------
@@ -176,15 +192,38 @@ test('copyLink refuses a link when only local files are staged', () => {
   assert.equal(data.linkCopied, false, 'no link minted from local-only stage');
 });
 
-test('save writes only the ref items to .web-tools.json', async () => {
+test('save writes only the ref items, to the NAMED target repo', async () => {
   reset();
   calls.length = 0;
   store.repo = 'me/open';
+  data.saveTarget = 'me/open';
   store.stage = [
     { repo: 'me/open', ref: '', path: 'lib/a.js' },
     { local: true, id: 96, name: 'd.bin', path: 'd.bin', size: 1, isText: false, bytes: new Uint8Array([1]) },
   ];
   await data.save();
   const cfgSave = calls.find(c => c.kind === 'save' && c.path === '.web-tools.json');
+  assert.equal(cfgSave.repo, 'me/open');
   assert.deepEqual(plain_(cfgSave.value.stage.files), ['lib/a.js']);
+});
+
+test('save to another repo (a general staging) fully qualifies the refs', async () => {
+  reset();
+  calls.length = 0;
+  store.repo = 'me/open';
+  data.saveTarget = 'me/registry';
+  store.stage = [{ repo: 'me/open', ref: '', path: 'lib/a.js' }];
+  await data.save();
+  const cfgSave = calls.find(c => c.kind === 'save' && c.path === '.web-tools.json');
+  assert.equal(cfgSave.repo, 'me/registry');
+  assert.deepEqual(plain_(cfgSave.value.stage.files), ['me/open:lib/a.js']);
+});
+
+test('save refuses a malformed target without writing', async () => {
+  reset();
+  calls.length = 0;
+  data.saveTarget = 'not a repo';
+  store.stage = [{ repo: 'me/open', ref: '', path: 'lib/a.js' }];
+  await data.save();
+  assert.equal(calls.length, 0);
 });

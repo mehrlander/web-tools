@@ -43,8 +43,10 @@ header repo selector switches between them: its top entry, "Repositories", is
 the estate; the owner's repos below it are the per-repo contexts. In the estate
 the header reads `mehrlander / Repositories` with no branch selector, and the
 sidebar hides every per-repo item; pick a repo and the per-repo sidebar and
-branch context return. The brand icon returns to the estate on desktop. See
-"The estate" below.
+branch context return. The brand icon returns to the estate on every viewport.
+The estate has three views of its own: **Repos** (the card grid), **Surfaces**,
+and the **Stage** (the cross-repo fileset, which belongs to no repo). See "The
+estate" and "The stage" below.
 
 The per-repo views in the sidebar:
 
@@ -56,7 +58,6 @@ The per-repo views in the sidebar:
   its landing.
 - **files**: the explorer: breadcrumb + listing, selected file's content
   beneath. Each row has a `+` that stages the file.
-- **stage**: the cross-repo fileset (below).
 - **branches**: the branch review (below).
 
 **GitHub jump-overs.** show-repo is a wrapper over GitHub, not a wall: every
@@ -126,22 +127,32 @@ already; the param is stamped only when a `repo`/`ref` param is also present) an
 
 ## The stage: a cross-repo fileset
 
-The stage is `store.stage`, a list of `{repo, ref, path}` refs. Three feeders:
+The stage is `store.stage`, a list of `{repo, ref, path}` refs (plus transient
+local items from drops). It is an **estate view**, beside Repos and Surfaces:
+one stage above any repo, since every item carries its own origin. Takes from:
 
-1. the explorer's `+` buttons (add the file you are looking at),
-2. a repo manifest's `stage.files`,
-3. a `#stage=` link.
+1. upload: the drop-zone (a file, or pasted text; pasted ref lines stage as refs),
+2. a repo: the grab picker in the view (an input-anchored path selector over the
+   estate's repos), or the explorer's `+` buttons while visiting a repo,
+3. a repo manifest's `stage.files` (seeds an empty stage when that repo opens),
+4. a `#stage=` link.
 
 Stage-view actions:
 
-- **view** a staged file in the shared viewer (its external links point at the
-  file's true home, not the open repo);
+- **view** a staged file inline (a preview panel in the stage itself, with a
+  GitHub jump-over to the file's true home; it never routes through a repo's
+  Files view);
 - **Concatenated**: the staged files spliced into one block, each under a
-  `// === owner/repo[@ref]:path ===` header; **Copy** or **Download** it. Content
-  is fetched once per file and cached, so add/remove is free after the first pull;
-- **Copy to repo**: transfer the fileset to a destination (below);
-- **Save stage**: write the current fileset to the open repo's
-  `.web-tools.json` `stage.files`;
+  `// === owner/repo[@ref]:path ===` header; **Copy** it (the clipboard put) or
+  **Download** it (the clipboard's fallback). Content is fetched once per file
+  and cached, so add/remove is free after the first pull;
+- **Copy to repo**: transfer the fileset to a destination (below). The
+  destination field is the same path selector in folder mode; hand-typed
+  `owner/repo@ref:dir` specs pass straight through;
+- **Save stage**: write the ref list to a NAMED repo's `.web-tools.json`
+  `stage.files`. The stage belongs to no repo, so saving one means saying
+  where: the registry by default (a general staging), or any repo the field
+  names. Refs outside the target save fully qualified;
 - **Copy link**: mint a `#stage=` link that reopens this exact stage.
 
 ### The `#stage=` link grammar
