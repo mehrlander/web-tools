@@ -3,7 +3,7 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
-- Private-repo landing federation via the home registry next: co-design the home manifest schema once the integrated landing page lands
+- Private-repo landing federation via the home registry next: superseded by tasks 20260718-3lu (gallery generalization) and 20260718-87z (app views); reassess whether any federation-specific work remains
 - Repo-level GitHub links in show-repo's shield dialog
 - Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
@@ -14,6 +14,8 @@ _Generated from tasks/. Do not hand-edit._
 - Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
 - Estate activity signals from a registry activity cache next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
 - Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
+- Generalize the gallery to a per-repo pages catalog next: add a pages field to .web-tools.json and branch landingKind() on it; render tiles live via toss-render #gh= (no committed thumbs for private repos)
+- App views - designate a page as an estate-level view next: add appView/viewLabel to a pages entry; collect app views across configs via the config cache, the quickLink sibling; render live via toss-render #gh=
 - Update estate tests to the groupSections layout
 - Converge the stage and surface item schemas
 
