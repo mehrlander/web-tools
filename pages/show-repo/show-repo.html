@@ -1111,7 +1111,7 @@ function overview(){ return {
   switches on the shell view, sharing the one lazy mount.
     Repos (?view=estate): a card per repo that opts in with estate:true in its
       OWN .web-tools.json. Membership and every descriptive field (group, note,
-      icon, order, nestUnder) live on the repo; the registry holds no per-repo
+      icon, order) live on the repo; the registry holds no per-repo
       config. The estate discovers members by enumerating the account's repos
       (gh.repos()) and reading their configs, served through the registry's
       config cache (state/configs.json) with a live-scan fallback when the cache
