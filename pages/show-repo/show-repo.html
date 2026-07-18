@@ -115,7 +115,7 @@
            class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
            title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
       </div>
-      <button @click="document.getElementById('repoModal')?.showModal()"
+      <button @click="document.getElementById('repo')?.__repo?.openDialog()"
               class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
         <i class="ph text-lg leading-none" :class="authIcon"></i>
       </button>
@@ -536,16 +536,16 @@ function app(){ return {
     // The quick-link row is the public default until a token lets us read the
     // private registry. Auth resolves after boot, so load then, and reload when
     // auth arrives. After the row resolves, refresh the config cache (guarded).
-    // Editing a repo's config (config-saved) reloads the row when it was the
-    // registry, and always refreshes the cache so the edit enters its history.
+    // Editing any repo's config (config-saved) can change membership or a
+    // quickLink flag, so rebuild the cache and reload the row.
     this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
     this.$watch(() => this._authState, (s) => {
       if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.processMailbox(); }
     });
-    document.addEventListener('web-tools:config-saved', async (e) => {
+    document.addEventListener('web-tools:config-saved', async () => {
       this.loadConfig();
-      if (e.detail?.repo === this.REGISTRY_REPO) await this.loadQuickLinks();
-      this.refreshConfigCache(true);
+      await this.refreshConfigCache(true);
+      this.loadQuickLinks();
     });
     this.loadQuickLinks().then(() => this.refreshConfigCache());
     this.processMailbox();
