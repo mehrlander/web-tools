@@ -1,5 +1,5 @@
 ---
-id: 0001
+id: stand-up-project-tracker-3t7h04
 title: Stand up the project tracker
 status: done
 opened: 2026-07-08

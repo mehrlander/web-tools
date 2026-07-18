@@ -27,7 +27,9 @@ for m in tasks:
 def row(m):
     who = f" (`{m['session']}`)" if m.get("session") else ""
     nxt = f" next: {m['next']}" if m.get("next") else ""
-    return f"- {m.get('title', '(untitled)')}{who}{nxt}"
+    # 🎫 marks a tracker task wherever one is surfaced (see CONVENTIONS.md /
+    # TRACKER.md): the ticket says "this is a filed task."
+    return f"- 🎫 {m.get('title', '(untitled)')}{who}{nxt}"
 
 lines = ["# Board", "", "_Generated from tasks/. Do not hand-edit._", ""]
 for head, key in [("On deck", "backlog"), ("In progress", "in-progress"),

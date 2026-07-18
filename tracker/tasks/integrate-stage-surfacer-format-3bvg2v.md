@@ -1,8 +1,8 @@
 ---
-id: 0008
+id: integrate-stage-surfacer-format-3bvg2v
 title: Integrate the stage with the surfacer's .surface format
 status: backlog
-track: depends-on:0006
+track: depends-on:stage-links-main-area-explorer-7a6gd7
 opened: 2026-07-14
 next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 ---

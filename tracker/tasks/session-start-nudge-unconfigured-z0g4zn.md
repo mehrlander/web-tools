@@ -1,5 +1,5 @@
 ---
-id: 0014
+id: session-start-nudge-unconfigured-z0g4zn
 title: Session-start nudge for unconfigured or legacy-manifest repos
 status: backlog
 project: conventions

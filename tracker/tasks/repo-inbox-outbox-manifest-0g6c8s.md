@@ -1,5 +1,5 @@
 ---
-id: 0015
+id: repo-inbox-outbox-manifest-0g6c8s
 title: Repo-designated inbox and outbox in .web-tools.json
 status: backlog
 project: repo

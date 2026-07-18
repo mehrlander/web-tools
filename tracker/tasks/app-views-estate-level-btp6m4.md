@@ -1,7 +1,8 @@
 ---
-id: 20260718-87z
+id: app-views-estate-level-btp6m4
 title: App views - designate a page as an estate-level view
-status: backlog
+status: in-progress
+session: claude/clone-home-repo-7486wk
 track: independent
 opened: 2026-07-18
 next: add appView/viewLabel to a pages entry; collect app views across configs via the config cache, the quickLink sibling; render live via toss-render #gh=
@@ -56,3 +57,4 @@ app view is the same move, but the target is a rendered page view instead of
 - 2026-07-18: filed out of the news-dashboard design conversation. Depends on
   the gallery generalization (20260718-3lu). Replaces the "Featured surface
   kind" idea floated earlier in the same conversation.
+- 2026-07-18: claimed on claude/clone-home-repo-7486wk; building after the gallery generalization it depends on.

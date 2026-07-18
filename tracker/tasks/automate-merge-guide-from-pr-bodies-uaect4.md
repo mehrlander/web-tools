@@ -1,5 +1,5 @@
 ---
-id: 0004
+id: automate-merge-guide-from-pr-bodies-uaect4
 title: Automate the merge guide from PR bodies
 status: done
 project: repo

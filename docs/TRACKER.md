@@ -76,7 +76,7 @@ To take a task, edit its file on `main`: set `status: in-progress`, set `session
 - **Blocked** (`status: blocked`)
 - **Done** (`status: done`)
 
-One line per task, keyed by title (not id); in-progress lines also show the owning branch. The reference generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
+One line per task, each prefixed with the 🎫 task marker (see Conventions below), keyed by title (not id); in-progress lines also show the owning branch. The reference generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
 
 The canonical generator is [`scripts/build-board.py`](../scripts/build-board.py) (python3, stdlib only, zero dependencies). Any implementation that emits the four sections from the frontmatter is correct; reimplement freely.
 
@@ -97,6 +97,7 @@ The collision that is not rare is two sessions **filing** at once. With sequenti
 ## Conventions
 
 - Refer to a task by its title, not its id. The id is a filing handle for filenames and the board; it means nothing to a reader who did not write the task.
+- Mark a surfaced task with the 🎫 task marker, and link it to its blob when a link fits: `🎫 [title](<blob url>)`. This is the tracker's entry in the portable marker vocabulary (⭐ hosted view, 🥏 toss, 📦 artifact, 🧭 guide PR); see [CONVENTIONS.md](CONVENTIONS.md). The marker is display-only: the id stays plain text (`<slug>-<rrrrrr>`) and never appears in what a reader sees.
 - Make a task for work that must survive across sessions, not for every edit.
 - When a tracker exists, the post-merge handoff collapses to "check the tracker and assess how to proceed." Follow-ups become tasks instead of riding forward in chat. Keep the full diagnostic handoff for repos without a tracker, and for one-off issues not worth a task.
 

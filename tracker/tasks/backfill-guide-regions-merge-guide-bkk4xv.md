@@ -1,9 +1,9 @@
 ---
-id: 0009
+id: backfill-guide-regions-merge-guide-bkk4xv
 title: Backfill guide regions into old PR bodies and full-regenerate the merge guide
 status: backlog
 project: repo
-track: depends-on:0004
+track: depends-on:automate-merge-guide-from-pr-bodies-uaect4
 opened: 2026-07-14
 ---
 # Backfill guide regions into old PR bodies and full-regenerate the merge guide

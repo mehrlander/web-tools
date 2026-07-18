@@ -1,5 +1,5 @@
 ---
-id: 0005
+id: speed-up-show-repo-cold-load-u3846j
 title: Speed up show-repo's cold load
 status: done
 project: repo

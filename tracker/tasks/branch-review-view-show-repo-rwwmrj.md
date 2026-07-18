@@ -1,5 +1,5 @@
 ---
-id: 20260716-jvi
+id: branch-review-view-show-repo-rwwmrj
 title: Branch-review view in show-repo
 status: done
 project: show-repo

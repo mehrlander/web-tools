@@ -1,5 +1,5 @@
 ---
-id: 20260717-r7q
+id: toss-render-decode-errors-xu3c6d
 title: Structural response decode + differentiated errors in toss-render
 status: done
 project: show-repo

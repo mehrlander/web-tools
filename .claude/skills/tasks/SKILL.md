@@ -34,7 +34,9 @@ straight to that operation.
 
 **Format:** one single-column table per section, the header the section name
 in caps (`IN PROGRESS`, `BACKLOG`, `BLOCKED`); no header row above the table,
-the column header is the label. In-progress groups by owning branch: the full
+the column header is the label. Each task row leads with the 🎫 task marker
+(after the `↳` where present) and links the title to its blob. In-progress
+groups by owning branch: the full
 branch name **bold** as its own row, then every task under it on its own row
 prefixed `↳` (always, even for a single task). Backlog and blocked have no
 branch to group by, so each is a flat one-row-per-task table, no arrow. This
@@ -46,15 +48,15 @@ tasks (e.g. no `BLOCKED` table when nothing is blocked).
 | IN PROGRESS |
 |---|
 | **claude/some-branch-abc123** |
-| ↳ [Task title](<blob url>) |
-| ↳ [Second task on the same branch](<blob url>) |
+| ↳ 🎫 [Task title](<blob url>) |
+| ↳ 🎫 [Second task on the same branch](<blob url>) |
 | **claude/other-branch-xyz789** |
-| ↳ [Solo task on its own branch](<blob url>) |
+| ↳ 🎫 [Solo task on its own branch](<blob url>) |
 
 | BACKLOG |
 |---|
-| [Task title](<blob url>) |
-| [Another task title](<blob url>) |
+| 🎫 [Task title](<blob url>) |
+| 🎫 [Another task title](<blob url>) |
 ```
 
 ## No tracker yet
@@ -94,15 +96,21 @@ it is generated, so take either side and rerun the generator.
 
 ## Minting an id
 
-Ids are a date plus a short random suffix, `YYYYMMDD-rrr`, so two sessions
-filing at once do not collide (a sequential integer would: both pick the same
-next number and the later merge silently drops one task). Mint one:
+An id is a short interpretable slug from the title plus a 6-char base36 random
+suffix, `<slug>-<rrrrrr>`, mirroring how a working branch is named. The slug is
+a few lowercase hyphen-separated words (under ~40 chars), so a directory listing
+reads as a table of contents and a `depends-on:<id>` reference reads as a phrase.
+The random suffix is what keeps two sessions from colliding when they file at
+once (a sequential integer would: both pick the same next number and the later
+merge silently drops one task). Mint one, passing the slug:
 
 ```
-python3 -c "import random,string,datetime;print(datetime.date.today().strftime('%Y%m%d')+'-'+''.join(random.choices(string.digits+string.ascii_lowercase,k=3)))"
+python3 -c "import random,string,sys;print(sys.argv[1]+'-'+''.join(random.choices(string.digits+string.ascii_lowercase,k=6)))" cross-corpus-note-index
 ```
 
-The filename is `<id>.md`. Legacy integer ids (`0001`) stay as they are.
+The filename is `<id>.md`. The slug is frozen at filing: if the title later
+changes, leave the id as it is. Migrate any legacy id (an integer like `0001`,
+or the earlier dated form) to this scheme the next time you touch the tracker.
 
 ## File a task
 

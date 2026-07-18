@@ -1,5 +1,5 @@
 ---
-id: 0016
+id: spike-snags-log-gobdyq
 title: Spike the snags log (friction learned the hard way)
 status: backlog
 project: repo

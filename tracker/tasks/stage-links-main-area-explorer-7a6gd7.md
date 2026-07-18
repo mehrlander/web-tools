@@ -1,5 +1,5 @@
 ---
-id: 0006
+id: stage-links-main-area-explorer-7a6gd7
 title: Stage links and the main-area explorer in show-repo
 status: done
 track: independent

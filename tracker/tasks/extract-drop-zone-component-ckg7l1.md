@@ -1,5 +1,5 @@
 ---
-id: 0010
+id: extract-drop-zone-component-ckg7l1
 title: Extract drop-zone as a reusable Alpine component
 status: done
 track: independent

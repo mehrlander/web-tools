@@ -1,5 +1,5 @@
 ---
-id: 0013
+id: show-repo-edit-web-tools-json-ygramz
 title: Give show-repo the ability to edit a repo's .web-tools.json
 status: backlog
 project: show-repo

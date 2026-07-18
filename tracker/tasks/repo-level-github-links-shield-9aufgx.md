@@ -1,5 +1,5 @@
 ---
-id: 0007
+id: repo-level-github-links-shield-9aufgx
 title: Repo-level GitHub links in show-repo's shield dialog
 status: backlog
 track: independent

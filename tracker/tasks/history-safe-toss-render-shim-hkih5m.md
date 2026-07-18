@@ -1,5 +1,5 @@
 ---
-id: 20260717-h1s
+id: history-safe-toss-render-shim-hkih5m
 title: History-safe shim for toss-render address-mode renders
 status: done
 project: show-repo

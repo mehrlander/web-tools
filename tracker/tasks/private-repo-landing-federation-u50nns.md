@@ -1,10 +1,10 @@
 ---
-id: 0002
+id: private-repo-landing-federation-u50nns
 title: Private-repo landing federation via the home registry
 status: backlog
 track: independent
 opened: 2026-07-08
-next: superseded by tasks 20260718-3lu (gallery generalization) and 20260718-87z (app views); reassess whether any federation-specific work remains
+next: superseded by tasks generalize-gallery-pages-catalog-m3b8pa (gallery generalization) and app-views-estate-level-btp6m4 (app views); reassess whether any federation-specific work remains
 ---
 # Private-repo landing federation via the home registry
 

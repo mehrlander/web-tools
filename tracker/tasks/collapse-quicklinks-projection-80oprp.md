@@ -1,5 +1,5 @@
 ---
-id: 20260717-2oy
+id: collapse-quicklinks-projection-80oprp
 title: Collapse quickLinks into a projection of the repos manifest
 status: backlog
 project: show-repo

@@ -1,5 +1,5 @@
 ---
-id: 20260717-5km
+id: estate-activity-signals-cache-38eze9
 title: Estate activity signals from a registry activity cache
 status: backlog
 project: show-repo

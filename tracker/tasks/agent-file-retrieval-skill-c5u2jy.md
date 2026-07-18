@@ -1,5 +1,5 @@
 ---
-id: 0012
+id: agent-file-retrieval-skill-c5u2jy
 title: Build an agent-assisted file-retrieval skill
 status: done
 project: search-skill
