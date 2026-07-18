@@ -17,6 +17,13 @@ _Generated from tasks/. Do not hand-edit._
 - Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
 
 ## In progress
+- (none)
+
+## Blocked
+- (none)
+
+## Done
+- Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`)
 - Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
 - Speed up show-repo's cold load (`claude/speed-up-show-repo-load-3cdvl0`)
 - Stage links and the main-area explorer in show-repo (`claude/task-tracker-discussion-wg27xv`)
@@ -24,12 +31,6 @@ _Generated from tasks/. Do not hand-edit._
 - Add a task-tracker skill (`claude/agent-file-retrieval-skill-tv4can`)
 - Build an agent-assisted file-retrieval skill (`claude/agent-file-retrieval-skill-tv4can`) next: build corpus_search.py (find) with a sources config and a file-per-document default, plus read_doc.py (read) and a SKILL.md that fixes the search-and-present flow; dogfood on this repo's content
 - Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: session refreshes (show-repo thumbnail) at wrap-up, then review via PR #236
-
-## Blocked
-- (none)
-
-## Done
-- Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`)
 - History-safe shim for toss-render address-mode renders next: done; hash-routing pages now switch views inside toss #gh= renders
 - Render files over 1 MB in toss-render and the shell viewers next: done — raw media type with git-blobs fallback landed in toss-render (ghText, showAddress, fetchShim) and gh-api.js get(); A/B headless test confirms the 5.9 MB DRS bundle is delivered where the old path returned blank
 - Structural response decode + differentiated errors in toss-render next: done; renders survive every media-type labeling and the error panel names the failing stage
