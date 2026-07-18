@@ -252,7 +252,7 @@ test('toggleRecent stages a recent file and unstages it on the second tap', () =
   assert.equal(data.refItems.length, 0);
 });
 
-test('repo pills count per repo; excluding one filters the finder rows', async () => {
+test('repo pills are single-select: one repo, switch, back to all', async () => {
   reset();
   store.repo = 'me/open';
   store.config = null;
@@ -260,10 +260,12 @@ test('repo pills count per repo; excluding one filters the finder rows', async (
   await data.loadRecent(true);
   delete window.__shell;
   assert.deepEqual(plain_(data.repoPills()), [{ repo: 'me/open', n: 2 }, { repo: 'me/fav', n: 1 }]);
+  data.togglePill('me/fav');
+  assert.deepEqual(plain_(data.finderRows().map(r => r.repo)), ['me/fav'], 'single-select shows only that repo');
   data.togglePill('me/open');
-  assert.deepEqual(plain_(data.finderRows().map(r => r.repo)), ['me/fav']);
+  assert.deepEqual(plain_(data.finderRows().map(r => r.repo)), ['me/open', 'me/open'], 'selecting another switches');
   data.togglePill('me/open');
-  assert.equal(data.finderRows().length, 3);
+  assert.equal(data.finderRows().length, 3, 'tapping the selected pill returns to all');
 });
 
 test('search matches filename-contains over the cached trees, capped', () => {
