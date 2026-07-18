@@ -15,6 +15,7 @@ _Generated from tasks/. Do not hand-edit._
 - Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
 - Estate activity signals from a registry activity cache next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
 - Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
+- Update estate tests to the groupSections layout
 
 ## In progress
 - (none)
