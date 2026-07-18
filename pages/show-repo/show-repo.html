@@ -47,21 +47,22 @@
   </template>
 </div>
 
-<!-- ── Header: brand (doubles as the mobile drawer toggle), then repo nav ─── -->
+<!-- ── Header: brand (goes to the dashboard on every viewport), then repo nav ── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-3">
-      <button @click="brandClick()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
-              :title="brandTip">
+      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
+              title="Dashboard">
         <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
         <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
       </button>
       <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
-      <!-- Quick links to frequent repos. The full join row needs width, so
-           below sm it collapses to a single dropdown. Config editing lives in
-           the sidebar shield dialog (repoModal), not here. -->
+      <!-- Quick links to frequent repos, desktop only: on mobile the dashboard
+           (brand tap) is the favorites surface, so no dropdown duplicates it.
+           Config editing lives in the sidebar shield dialog (repoModal), not
+           here. -->
       <div class="join shrink-0 hidden sm:flex">
         <template x-for="p in quickLinks" :key="p.repo">
           <button @click="openPinned(p.repo)"
@@ -72,22 +73,10 @@
           </button>
         </template>
       </div>
-      <details class="dropdown dropdown-end shrink-0 sm:hidden" data-auto-close>
-        <summary class="btn btn-sm btn-square btn-ghost list-none">
-          <i class="ph ph-squares-four text-lg"></i>
-        </summary>
-        <ul class="dropdown-content menu bg-base-100 rounded-box z-50 w-56 p-1 shadow border border-base-300 mt-1">
-          <template x-for="p in quickLinks" :key="p.repo">
-            <li>
-              <a @click="openPinned(p.repo)"
-                 :class="[Alpine.store('browser').repo===p.repo && 'active', pinnedDim(p) && 'opacity-40']">
-                <i class="ph text-base" :class="pinnedIcon(p)"></i>
-                <span class="font-mono text-xs truncate" x-text="p.repo"></span>
-              </a>
-            </li>
-          </template>
-        </ul>
-      </details>
+      <!-- Drawer toggle, where the sidebar is a drawer (below lg). -->
+      <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost shrink-0 lg:hidden" title="Menu">
+        <i class="ph ph-list text-lg"></i>
+      </button>
     </div>
   </div>
 </header>
@@ -110,8 +99,8 @@
            github link sits next to the repo address wherever it is shown). -->
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
         <span class="font-mono text-xs truncate"
-              x-text="isEstate ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
-        <a x-show="!isEstate && $store.browser.repo" :href="repoGithubUrl" target="_blank"
+              x-text="estateCtx ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+        <a x-show="!estateCtx && $store.browser.repo" :href="repoGithubUrl" target="_blank"
            class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
            title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
       </div>
@@ -128,7 +117,7 @@
            (Surfaces) — the same shape as the per-repo view list below. Shown
            only in that context; the per-repo list takes over once a repo is
            opened. -->
-      <div class="flex flex-col gap-0.5" x-show="isEstate">
+      <div class="flex flex-col gap-0.5" x-show="estateCtx">
         <button @click="goEstate()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='estate' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -139,15 +128,24 @@
                 :class="view==='surfaces' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph ph-cards text-base"></i><span>Surfaces</span>
         </button>
+        <!-- The stage is estate-level: one cross-repo fileset, above any repo,
+             so it sits beside Repos and Surfaces rather than in a repo's list. -->
+        <button @click="goStage()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='stage' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-stack text-base"></i><span>Stage</span>
+          <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
+                x-text="$store.browser.stage.length"></span>
+        </button>
       </div>
 
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
            reached from the header selector ("Repositories") and the brand icon,
            not from here, since it is a context above the repo, not a view of it.
            Repo views: the landing (web-tools' is its pages index, others get an
-           overview), the atlas, the file explorer, the stage (the shared
-           cross-repo fileset; badge shows its size), and the branch review. -->
-      <div class="flex flex-col gap-0.5" x-show="!isEstate">
+           overview), the atlas, the file explorer, and the branch review. (The
+           stage lives in the estate list above: it is cross-repo by nature.) -->
+      <div class="flex flex-col gap-0.5" x-show="!estateCtx">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -163,13 +161,6 @@
                 :class="view==='files' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph ph-folders text-base"></i><span>Files</span>
         </button>
-        <button @click="goStage()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='stage' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-stack text-base"></i><span>Stage</span>
-          <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
-                x-text="$store.browser.stage.length"></span>
-        </button>
         <button @click="goBranches()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='branches' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -177,10 +168,10 @@
         </button>
       </div>
 
-      <div class="border-t border-base-200" x-show="!isEstate"></div>
+      <div class="border-t border-base-200" x-show="!estateCtx"></div>
 
       <!-- Pinned: folders and files the repo designates in .web-tools.json. -->
-      <div x-show="pins.length && !isEstate" class="flex flex-col gap-0.5">
+      <div x-show="pins.length && !estateCtx" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i>Pinned
         </div>
@@ -194,10 +185,10 @@
         </template>
       </div>
 
-      <div x-show="pins.length && !isEstate" class="border-t border-base-200"></div>
+      <div x-show="pins.length && !estateCtx" class="border-t border-base-200"></div>
 
       <!-- Recent: files touched by the newest commits on the current ref. -->
-      <div x-show="(recentLoading || recent.length) && !isEstate" class="flex flex-col gap-0.5">
+      <div x-show="(recentLoading || recent.length) && !estateCtx" class="flex flex-col gap-0.5">
         <div class="text-xs font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-clock-counter-clockwise"></i>Recent
         </div>
@@ -423,6 +414,13 @@
         <template x-if="branchesSeen">
           <div x-data="branches()"></div>
         </template>
+        <!-- The ref compare (base...head over the open repo) lives with the
+             branch review it serves; the estate-level stage has its own
+             file-vs-file compare in its output box. Mounted outside the x-if
+             so #compare exists for openCompare() calls before a first visit. -->
+        <div class="border-t border-base-200 pt-3 mt-6">
+          <div id="compare" x-data="compare()"></div>
+        </div>
       </div>
     </div>
 
@@ -433,9 +431,6 @@
     <div x-show="view==='stage'" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
         <div x-data="stager()"></div>
-        <div class="border-t border-base-200 pt-3">
-          <div id="compare" x-data="compare()"></div>
-        </div>
       </div>
     </div>
 
@@ -476,8 +471,9 @@ function loadMarked(){
 }
 
 // ── Shell: repo context + view state. The repo picker is up front; the brand
-// icon doubles as the mobile drawer toggle. The sidebar lists the repo's views
-// (landing, atlas) and its files. Which
+// icon goes to the dashboard on every viewport, and the header's list button
+// opens the drawer where the sidebar isn't pinned. The sidebar lists the
+// repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
   view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches'
@@ -814,12 +810,6 @@ function app(){ return {
     return 'Public only';
   },
 
-  // The brand icon goes home on desktop, where the sidebar is pinned, and opens
-  // the drawer on mobile, where it stands in for the hamburger.
-  get isDesktop(){ return window.matchMedia('(min-width: 1024px)').matches; },
-  get brandTip(){ return this.isDesktop ? 'web-tools' : 'Browse'; },
-  brandClick(){ this.isDesktop ? this.goHome() : this.openSidebar(); },
-
   // The open repo@ref on GitHub — the sidebar's standing jump-over. Every view
   // keeps a one-tap route to the GitHub presentation of what it is showing
   // (this link, the viewer's per-file GitHub action, the explorer's folder
@@ -935,11 +925,14 @@ function app(){ return {
     await el.__explorer.load(path);
   },
 
-  // The estate is a context above any repo, with two views of its own — the
-  // repo grid ('estate') and the curated surfaces ('surfaces') — mirroring how
-  // a repo has landing/atlas/files/… The estate component renders both and
-  // switches on this.view, so both share the one lazy mount (estateSeen).
+  // The estate is a context above any repo, with three views of its own — the
+  // repo grid ('estate'), the curated surfaces ('surfaces'), and the stage
+  // ('stage', the cross-repo fileset, which belongs to no repo) — mirroring
+  // how a repo has landing/atlas/files/… isEstate gates the estate component
+  // (it renders the grid and surfaces, switching on this.view, sharing the one
+  // lazy mount); estateCtx is the wider context test the sidebar switches on.
   get isEstate(){ return this.view === 'estate' || this.view === 'surfaces'; },
+  get estateCtx(){ return this.isEstate || this.view === 'stage'; },
   goHome(){ this.goEstate(); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
@@ -955,7 +948,13 @@ function app(){ return {
   // rather than let a click fail silently.
   pinnedDim(p){ return p.repo !== this.DEFAULT_REPO && this._authState !== 'auth'; },
   pinnedTip(p){ return this.pinnedDim(p) ? p.repo + ' (sign in to open)' : p.repo; },
-  async openPinned(repo){ await this.ensureBrowser(repo); }
+  // Land on the repo's landing explicitly: the view flip otherwise rides a
+  // repo-change watcher, which never fires when the tapped repo is already
+  // open (e.g. the default repo's card while on the estate).
+  async openPinned(repo){
+    await this.ensureBrowser(repo);
+    if (Alpine.store('browser').repo === repo) this.goLanding();
+  }
 }}
 
 // ── Gallery: the web-tools pages index, rendered from pages.json ─────────────
