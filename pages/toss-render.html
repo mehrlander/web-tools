@@ -25,8 +25,11 @@
   and pasted URLs are treated as payloads too: same untrusted sandbox.
 
   Address mode (fetched by reference, TRUSTED via allowlist):
-    #gh=<owner>/<repo>[@<ref>]:<path>
+    #gh=<owner>/<repo>[@<ref>]:<path>[?<query>]
     e.g. #gh=mehrlander/web-tools@some-branch:pages/index.html
+    An optional ?query after the path is handed to the PAGE (via the params
+    shim, since a srcdoc iframe has no location.search), so a page's own
+    deep links work tossed: ...:pages/show-repo/show-repo.html?view=stage.
   Fetches the file via the GitHub API (using the stored token, so private
   repos and un-deployed branches work) and renders it same-origin, with a
   <base> stamped in so relative URLs resolve and a shim so the page's own
@@ -115,7 +118,7 @@
   <a id="empty-token" target="_blank" rel="noreferrer" class="link link-primary text-xs hidden"
      href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools">Get or renew a GitHub token</a>
   <p class="text-[10px] text-base-content/30 max-w-md leading-relaxed">
-    URL forms: <code>#gh=owner/repo@ref:path</code>, <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL.
+    URL forms: <code>#gh=owner/repo@ref:path?query</code> (the ?query reaches the page), <code>#gz=</code>/<code>#html=</code> base64 HTML, <code>#url=</code> base64 URL.
   </p>
 </div>
 
@@ -282,7 +285,7 @@ window.fetch=function(input,init){try{
   // plus (when a ref was addressed) a shim so the page's own ?use= read
   // returns that ref and its lib chain loads from the same place. Then the
   // fetch shim, so the page's relative runtime fetches resolve from the repo.
-  function addressHtml(text, { owner, name, ref, path }) {
+  function addressHtml(text, { owner, name, ref, path, pageQuery }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
     // History-safe shim: in a srcdoc iframe history.replaceState/pushState
@@ -294,11 +297,22 @@ window.fetch=function(input,init){try{
       'H.replaceState=function(){try{return rs.apply(H,arguments)}catch(e){}};' +
       'H.pushState=function(){try{return ps.apply(H,arguments)}catch(e){}};' +
       '})();<\/script>';
-    if (ref) {
-      const r = JSON.stringify(ref);
-      prelude += '<script>window.__ref=' + r + ';(function(){var R=' + r + ',g=URLSearchParams.prototype.get;' +
+    // Params shim: the srcdoc iframe has no location.search, so answer
+    // URLSearchParams lookups for the addressed ?query keys (the page's own
+    // deep links, e.g. ?view=stage) plus use=<ref> (the lib-chain pin, the
+    // shim's original job). Injected values only fill absent/empty keys, so a
+    // params string that really carries the key wins.
+    const injected = {};
+    if (pageQuery) for (const [k, v] of new URLSearchParams(pageQuery)) injected[k] = v;
+    if (ref) { injected.use = ref; prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>'; }
+    if (Object.keys(injected).length) {
+      const P = JSON.stringify(injected);
+      prelude += '<script>(function(){var P=' + P + ',O=Object.prototype.hasOwnProperty,' +
+        'g=URLSearchParams.prototype.get,h=URLSearchParams.prototype.has;' +
         'URLSearchParams.prototype.get=function(k){var v=g.call(this,k);' +
-        "return (k==='use'&&(v==null||v===''))?R:v;};})();<\/script>";
+        'return (v==null||v==="")&&O.call(P,k)?P[k]:v;};' +
+        'URLSearchParams.prototype.has=function(k){return h.call(this,k)||O.call(P,k);};' +
+        '})();<\/script>';
     }
     prelude += fetchShim({ owner, name, ref, dir });
     if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
@@ -447,11 +461,17 @@ window.fetch=function(input,init){try{
   }
 
   async function showAddress(addr) {
-    // <owner>/<repo>[@<ref>]:<path> — ':' can't appear in a git ref name.
+    // <owner>/<repo>[@<ref>]:<path>[?<query>] — ':' can't appear in a git ref
+    // name. The optional ?query is handed to the PAGE, not the API: the
+    // srcdoc iframe has no location.search, so the params shim below answers
+    // for these keys and the page's own deep links (?view=stage) work tossed.
     const m = addr.match(/^([^/@:]+)\/([^/@:]+)(?:@([^:]+))?:(.+)$/);
-    if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path, e.g. ' +
+    if (!m) return showEmpty('Could not parse the gh address. Expected owner/repo[@ref]:path[?query], e.g. ' +
       'gh=mehrlander/web-tools@main:pages/index.html');
-    const [, owner, name, ref, path] = m;
+    let [, owner, name, ref, path] = m;
+    let pageQuery = '';
+    const qi = path.indexOf('?');
+    if (qi !== -1) { pageQuery = path.slice(qi + 1); path = path.slice(0, qi); }
     if (!OWNERS.includes(owner)) {
       return showEmpty('Address mode renders same-origin with token access, so it only accepts ' +
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
@@ -488,7 +508,7 @@ window.fetch=function(input,init){try{
     // Inline the page's relative script/CSS deps from the same ref, so a
     // private/un-deployed page that uses ordinary references renders whole.
     const baked = await inlineRelativeDeps(text, { owner, name, ref, path });
-    showTrusted(addressHtml(baked, { owner, name, ref, path }),
+    showTrusted(addressHtml(baked, { owner, name, ref, path, pageQuery }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr);
   }
 

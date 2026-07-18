@@ -141,6 +141,19 @@ export function resolveCdn(rawUrl, repoRoot) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
   }
 
+  // --- Own code via GitHub Pages: <owner>.github.io/<repo>/<path>. The <base>
+  // a toss-render address render stamps resolves the tossed page's relative
+  // URLs here, so toss scenarios need it mapped to the working tree too. ---
+  {
+    const [owner, name] = REPO.split('/');
+    if (host === `${owner}.github.io` && u.pathname.startsWith(`/${name}/`)) {
+      const rel = decodeURIComponent(u.pathname.slice(name.length + 2));
+      const fp = path.join(repoRoot, rel);
+      if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `pages ${rel}` };
+      return { kind: 'empty', contentType: 'application/octet-stream', tag: `MISS pages ${rel}` };
+    }
+  }
+
   // --- Own repo metadata: /repos/<REPO> (identity-free page boots) ---
   if (host === 'api.github.com' && u.pathname === `/repos/${REPO}`) {
     const [login, name] = REPO.split('/');
