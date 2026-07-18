@@ -1,7 +1,7 @@
-// alpineComponents/path-picker.js — logic-level tests for the input-anchored
-// path selector: the whole-input path resolve, file picks (emit and stay open),
-// dir mode (folder-as-target, files naming their folder), and typed-spec
-// passthrough. The tree is injected directly; no network, no pixels.
+// alpineComponents/path-picker.js — logic-level tests for the tap-through
+// path selector: descent by choose(), crumb jumps, file picks (emit and stay
+// open), dir mode (folder-as-target, files naming their folder). There is no
+// text input by design. The tree is injected directly; no network, no pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,65 +43,65 @@ const plain_ = (v) => JSON.parse(JSON.stringify(v));
 const picks = [];
 window.document.getElementById('pf').addEventListener('path-pick', e => picks.push(plain_(e.detail)));
 window.document.getElementById('pd').addEventListener('path-pick', e => picks.push(plain_(e.detail)));
-const inputs = [];
-window.document.getElementById('pd').addEventListener('path-input', e => inputs.push(e.detail));
+
+const byName = (d, name) => d.children().find(n => n.name === name);
 
 test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
 
-test('a typed path resolves through the repo node into its folders', () => {
-  file.text = 'me/open/lib/a';
-  file.resolveText();
+test('children() lists roots at the top, folders before files inside a repo', () => {
+  file.scope = [];
+  assert.deepEqual(plain_(file.children().map(n => n.name)), ['me/open', 'other/lib@dev']);
+  file.choose(byName(file, 'me/open'));
+  assert.deepEqual(plain_(file.children().map(n => n.name)), ['lib', 'README.md']);
+});
+
+test('choosing folders descends; jump and up walk back', () => {
+  file.scope = []; file.open = true;
+  file.choose(byName(file, 'me/open'));
+  file.choose(byName(file, 'lib'));
   assert.deepEqual(plain_(file.scope.map(n => n.name)), ['me/open', 'lib']);
-  assert.equal(file.query, 'a');
-  assert.deepEqual(plain_(file.matches().map(n => n.name)), ['a.js']);
+  file.up();
+  assert.deepEqual(plain_(file.scope.map(n => n.name)), ['me/open']);
+  file.jump(0);
+  assert.equal(file.scope.length, 0);
 });
 
-test('choosing a folder descends and rewrites the input', () => {
-  file.text = ''; file.resolveText(); file.open = true;
-  file.choose(file.matches().find(n => n.name === 'me/open'));
-  assert.equal(file.text, 'me/open/');
-  file.choose(file.matches().find(n => n.name === 'lib'));
-  assert.equal(file.text, 'me/open/lib/');
-  assert.equal(file.open, true);
-});
-
-test('file mode: choosing a file emits repo/ref/path and stays open in place', () => {
+test('file mode: choosing a file emits repo/ref/path, labels, and stays open', () => {
   picks.length = 0;
-  file.text = 'me/open/lib/'; file.resolveText(); file.open = true;
-  file.choose(file.matches().find(n => n.name === 'b.js'));
+  file.scope = []; file.open = true;
+  file.choose(byName(file, 'me/open'));
+  file.choose(byName(file, 'lib'));
+  file.choose(byName(file, 'b.js'));
   assert.deepEqual(plain_(picks), [{ repo: 'me/open', ref: '', path: 'lib/b.js' }]);
   assert.equal(file.open, true, 'stays open for the next grab');
-  assert.equal(file.text, 'me/open/lib/');
+  assert.equal(file.label, 'lib/b.js');
 });
 
 test('dir mode: dirSpec is null at the top, a spec inside a repo', () => {
-  dir.text = ''; dir.resolveText();
+  dir.scope = [];
   assert.equal(dir.dirSpec(), null);
-  dir.text = 'other/lib@dev/src/'; dir.resolveText();
+  dir.choose(byName(dir, 'other/lib@dev'));
+  dir.choose(byName(dir, 'src'));
   assert.deepEqual(plain_(dir.dirSpec()), { repo: 'other/lib', ref: 'dev', dir: 'src', spec: 'other/lib@dev:src' });
 });
 
 test('dir mode: choosing a file picks its containing folder and closes', () => {
   picks.length = 0;
-  dir.text = 'other/lib@dev/src/'; dir.resolveText(); dir.open = true;
-  dir.choose(dir.matches().find(n => n.name === 'x.js'));
+  dir.scope = []; dir.open = true;
+  dir.choose(byName(dir, 'other/lib@dev'));
+  dir.choose(byName(dir, 'src'));
+  dir.choose(byName(dir, 'x.js'));
   assert.deepEqual(plain_(picks), [{ repo: 'other/lib', ref: 'dev', dir: 'src', spec: 'other/lib@dev:src' }]);
   assert.equal(dir.open, false);
-  assert.equal(dir.text, 'other/lib@dev:src');
+  assert.equal(dir.label, 'other/lib@dev:src');
 });
 
-test('typed text emits path-input so hand-written specs pass through', () => {
-  inputs.length = 0;
-  dir.text = 'someone/else:pkg';
-  dir.onInput();
-  assert.deepEqual(plain_(inputs), ['someone/else:pkg']);
-});
-
-test('folders sort before files and prefix matches lead', () => {
-  file.text = 'me/open/'; file.resolveText();
-  assert.deepEqual(plain_(file.matches().map(n => n.name)), ['lib', 'README.md']);
-  file.text = 'me/open/RE'; file.resolveText();
-  assert.deepEqual(plain_(file.matches().map(n => n.name)), ['README.md']);
+test('dir mode: pickDir commits the bare repo root as owner/repo', () => {
+  picks.length = 0;
+  dir.scope = []; dir.open = true;
+  dir.choose(byName(dir, 'me/open'));
+  dir.pickDir();
+  assert.deepEqual(plain_(picks), [{ repo: 'me/open', ref: '', dir: '', spec: 'me/open' }]);
 });

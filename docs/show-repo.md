@@ -132,8 +132,9 @@ local items from drops). It is an **estate view**, beside Repos and Surfaces:
 one stage above any repo, since every item carries its own origin. Takes from:
 
 1. upload: the drop-zone (a file, or pasted text; pasted ref lines stage as refs),
-2. a repo: the grab picker in the view (an input-anchored path selector over the
-   estate's repos), or the explorer's `+` buttons while visiting a repo,
+2. a repo: the grab picker in the view (a tap-through path selector over the
+   estate's repos; no text input, so no keyboard or iOS focus zoom), or the
+   explorer's `+` buttons while visiting a repo,
 3. a repo manifest's `stage.files` (seeds an empty stage when that repo opens),
 4. a `#stage=` link.
 
@@ -147,8 +148,8 @@ Stage-view actions:
   **Download** it (the clipboard's fallback). Content is fetched once per file
   and cached, so add/remove is free after the first pull;
 - **Copy to repo**: transfer the fileset to a destination (below). The
-  destination field is the same path selector in folder mode; hand-typed
-  `owner/repo@ref:dir` specs pass straight through;
+  destination is the same tap-through selector in folder mode ("Here" commits
+  the current folder; a file tap commits its folder);
 - **Save stage**: write the ref list to a NAMED repo's `.web-tools.json`
   `stage.files`. The stage belongs to no repo, so saving one means saying
   where: the registry by default (a general staging), or any repo the field
