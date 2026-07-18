@@ -18,7 +18,7 @@ _Generated from tasks/. Do not hand-edit._
 - Converge the stage and surface item schemas
 
 ## In progress
-- Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: implement the stamp, guard, subject adoption, and file-scoped branch list
+- Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: live-confirm branchesForPath (GraphQL Commit.file) with a token, then wrap up PR #241
 
 ## Blocked
 - (none)
