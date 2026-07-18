@@ -4,7 +4,6 @@ _Generated from tasks/. Do not hand-edit._
 
 ## On deck
 - Private-repo landing federation via the home registry next: co-design the home manifest schema once the integrated landing page lands
-- Singleton fab with toss-render integration next: stamp subject context in toss-render's prelude and add the fab mount guard that reads it
 - Repo-level GitHub links in show-repo's shield dialog
 - Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - Backfill guide regions into old PR bodies and full-regenerate the merge guide
@@ -19,7 +18,7 @@ _Generated from tasks/. Do not hand-edit._
 - Converge the stage and surface item schemas
 
 ## In progress
-- (none)
+- Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: implement the stamp, guard, subject adoption, and file-scoped branch list
 
 ## Blocked
 - (none)
