@@ -71,70 +71,58 @@ ship with its jump-over.
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
 whole repo constellation, and the page's global context (above any single repo,
 reached from the header selector's "Repositories" entry, the brand icon, or a
-bare page open). It renders in two layers:
+bare page open). It is a context with **two views of its own**, switched from
+the sidebar the way a repo shows landing/atlas/files/…:
 
-- **Repo cards (mechanical).** One card per entry in the registry's `repos`
-  list (the ecosystem manifest in `web-tools-private/.web-tools.json`; fallback:
-  the `quickLinks` row when `repos` is absent), each enriched live from the
-  GitHub API: description, visibility (lock/globe), pushed-ago. The card name
-  opens the repo in the shell (its landing); the github-logo opens it on
-  GitHub; the gear (authed) edits that repo's own `.web-tools.json` through the
-  shield dialog's config editor. Entries may carry a `group` (row assignment,
-  below) and a `note` that overrides the GitHub description. Each card also
-  reads the repo's own `.web-tools.json` and renders its `pins` as
-  direct-jump chips (open the repo straight at that folder or file), plus
-  universal Files and Atlas jumps and a Landing jump when the repo declares one.
+- **Repos** (`?view=estate`) — the repo cards.
+- **Surfaces** (`?view=surfaces`) — the curated surfaces.
 
-**Layout: two scrollable rows, optional nesting.** Cards render as
-horizontally scrollable, snap-scrolled rows (native touch swipe on mobile,
-wheel or drag on desktop): the primary cards lead each row and the rest sit
-off to the side. Row membership is by `group`, configured by an optional
-`estate` field in the registry's `.web-tools.json`:
+One component renders both, switching on the shell view, sharing one lazy mount.
 
-```json
-"estate": {
-  "rows": [["core", "archives"], ["data", "tools"]],
-  "nest": { "mehrlander/web-tools-private": "mehrlander/web-tools" }
-}
-```
+**Repos: membership and fields live on each repo.** A repo appears on the estate
+by opting in with `estate: true` in its **own** `.web-tools.json`. Every
+descriptive field is the repo's too: `group`, `note`, `icon`, `order`, plus its
+`pins` and `landing`. The registry holds **no per-repo config**. The single
+source of truth for how a repo appears is the repo.
 
-`rows` is ordered group lists, one entry per row; `'*'` collects every group
-not named elsewhere, and groups no row names append as a trailing row so
-nothing silently drops. `nest` folds a companion repo into its parent's
-card, where the visibility glyph becomes a **toggle**: tap the globe and the
-card flips to the companion's face (title, icon, note, gear, github link,
-pins, jumps all switch, with the lock now in the glyph's place); tap the
-lock to flip back. On cards with no companion the glyph stays the static
-public/private status icon. Both have defaults
-that need no registry edit: rows `[["core","archives"],["*"]]`, and the
-registry repo nested under the shell's home repo (the only two repo strings
-the public page already names). Delete the `nest` entry (or set
-`"nest": {}`) to split nested cards back apart.
-- **Surfaces (curated).** Every `surfaces/*.surface` file in the registry repo,
-  rendered beneath the cards: the surfacer's format (a `manifest` block and an
-  `items` array; see the home repo's `projects/surfacer/VISION.md`). Surfaces
-  sort `default` → `standing` → `showcase`; `archive` is excluded. Rendered
-  item kinds: `github_blob` / `github_dir` (open-in-shell + GitHub link; the
-  target as `{repo, ref, path}` per tracker task 0008's stage shape, or as a
-  github.com URL per the surfacer's native shape), `url` (external link),
-  `note` / `story` (inline body). Unknown kinds render title + commentary. An
-  agent session with registry access can write or extend a surface; the estate
-  shows it on next load, which is the sessions-feed-the-dashboard loop.
+The estate discovers members by enumerating the account's repos (`gh.repos()`,
+one list call that also carries description / visibility / pushed-ago) and
+reading each one's config. Reads are served through the registry's **config
+cache** (`state/configs.json`, below), so a normal load is two GETs, not an
+N-repo scan; a cold cache falls back to a live per-repo scan and then rebuilds.
 
-**Managing the estate (authed).** Two write surfaces, split by ownership.
-Membership is data in the registry, so an "Add repository" control on the
-estate appends `{repo, icon, note, group}` to `web-tools-private`'s `repos`
-list through the viewer's token (candidates come from the header picker's list
-of the viewer's repos, minus what is already on the estate). A repo's own
-presentation (icon, pins, landing) lives on that repo, so the card gear opens
-its `.web-tools.json` in the existing config editor, seeding an empty template
-when the repo has none. So: add-to-estate writes the registry; the gear writes
-the repo.
+Cards lay out full-width as a three-wide grid grouped by `group` (a section
+header + count per group, like the pages index). Group order and within-group
+order both derive from each repo's `order` (a group sorts by its lowest member's
+order). An `owner/foo-private` companion folds into `owner/foo`'s card by naming
+convention (both on the estate; no field), where the visibility glyph becomes a
+**toggle**: tap it to flip the card to the private repo's face (title, icon,
+note, gear, jumps all switch) and back. The card name opens the repo in the
+shell; the github-logo opens it on GitHub; the `pins` render as direct-jump
+chips. The gear opens the shared repo dialog on its **Settings** tab (a form for
+`icon` / `group` / `note` / …, beside the raw-JSON **Config** tab and **Links**),
+which writes the repo's own `.web-tools.json` without navigating away.
 
-Token gating, same as everything registry-driven: no token means the public
-default card only, no surfaces, and neither write control. Deep link:
-`?view=estate` (the bare URL is the estate already; the param is stamped only
-when a `repo`/`ref` param is also present).
+**Adding a repo** sets `estate: true` (plus `group` / `note`) in the chosen
+repo's own config through the viewer's token (candidates come from the header
+picker's account list, minus current members). So both add and edit write the
+**repo**, never a registry list.
+
+**Surfaces** are `surfaces/*.surface` files in the **registry** (these are
+estate content, not a repo describing itself, so they stay there): the surfacer's
+format (a `manifest` block and an `items` array; see the home repo's
+`projects/surfacer/VISION.md`). They render tabbed, sorted `default` → `standing`
+→ `showcase` (`archive` excluded), each editable in place through a JSON dialog
+(gear on the surface header; "New" seeds a fresh one). Rendered item kinds:
+`github_blob` / `github_dir` (open-in-shell + GitHub link; target as `{repo, ref,
+path}` or a github.com URL), `url` (external link), `note` / `story` (inline
+body). An agent session with registry access can write or extend a surface; the
+estate shows it on next load.
+
+Token gating: no token means the public default card only, no surfaces, and no
+write controls. Deep links: `?view=estate` (the bare URL is the Repos estate
+already; the param is stamped only when a `repo`/`ref` param is also present) and
+`?view=surfaces` (always stamped, so a Surfaces link is shareable on its own).
 
 ## The stage: a cross-repo fileset
 
@@ -221,6 +209,11 @@ deprecation window. Fields:
 ```json
 {
   "icon": "ph-scales",
+  "estate": true,
+  "group": "data",
+  "note": "One-line description shown on the estate card.",
+  "order": 30,
+  "quickLink": true,
   "landing": "pages/landing.html",
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
@@ -231,23 +224,20 @@ deprecation window. Fields:
 }
 ```
 
-- **icon**: Phosphor icon class (e.g. `"ph-scales"`) a repo may self-declare for
-  its quick-link button. The quick-link row's icon is actually taken from the
-  registry entry (see below); this field is the repo's own suggestion for any
-  consumer that reads it.
-- **quickLinks** (registry repo only): the curated header quick-link list,
-  `[{ repo, icon }]` — membership, order, and icon. Read from the private
-  **registry repo** (`web-tools-private`), not from every repo. See "Quick-link
-  registry" below.
-- **repos** (registry repo only): the ecosystem manifest, one entry per
-  participating repo: `[{ repo, icon, note, group }]`. Feeds the estate view's
-  repo cards; `quickLinks` stays the header row's own (shorter) list. Live
-  facts (description, visibility, pushed) come from the GitHub API at render
-  time, not from this file, so the manifest never carries a fact that can
-  drift.
-- **estate** (registry repo only): the estate's layout config,
-  `{ rows, nest }` — row membership by group and card nesting. See "Layout"
-  under "The estate" above; both parts have registry-free defaults.
+The **estate placement** fields let a repo describe how it appears on the
+all-repo estate. Membership is a repo property: there is no registry list of
+repos. All are optional; a repo with no config is simply off the estate.
+
+- **icon**: Phosphor icon class (e.g. `"ph-scales"`) for the repo's estate card
+  and its header quick-link button. The repo owns it.
+- **estate**: `true` to appear on the estate. The estate enumerates the account's
+  repos and includes those whose config sets this.
+- **group**: the estate section this card sits in (e.g. `"core"`, `"data"`).
+- **note**: the card's one-line description; overrides the GitHub description.
+- **order**: arrangement weight. Group order (a group sorts by its lowest
+  member's `order`) and within-group order both derive from it.
+- **quickLink**: `true` to appear in the header quick-link row, ordered by
+  `order`, icon from this repo's `icon`.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."
@@ -264,41 +254,39 @@ deprecation window. Fields:
   deliberately not adopted the portable conventions, so a session-start nudge
   stops asking. Absent means unset. Documented in [PORTABLE.md](PORTABLE.md).
 
-### Quick-link registry
+### Quick-link row
 
 The header quick-link row is data-driven, not a hardcoded list. `show-repo` is a
 public page, so its source must not enumerate private repos. The shell ships a
-public-only default (`PUBLIC_QUICK_LINKS`, just the public web-tools repo). The
-real, curated list lives in a **private registry repo** (`REGISTRY_REPO =
-mehrlander/web-tools-private`) as a `quickLinks` field in its root
-`.web-tools.json`:
-
-```json
-{ "quickLinks": [ { "repo": "mehrlander/home", "icon": "ph-house" }, … ] }
-```
-
-`loadQuickLinks()` fetches it when the viewer has a token; the registry repo is
-private, so no token means the public default only. The **one** private string
-this public page names is the registry repo itself, never the repos it lists.
-Editing the registry's config in the shield dialog re-runs the load (via the
-`web-tools:config-saved` event), so the row updates without a page reload. Adding
-or reordering a quick link is: open `web-tools-private` in show-repo, edit its
-config on the gear tab, save.
+public-only default (`PUBLIC_QUICK_LINKS`, just the public web-tools repo). With
+a token, `loadQuickLinks()` reads the **config cache** (below) and takes every
+repo opting in with `quickLink: true`, ordered by its own `order`, icon from its
+own `icon`. Membership is a repo property, like estate membership: there is no
+registry list. The **one** private string this public page names is the registry
+repo itself (`REGISTRY_REPO = mehrlander/web-tools-private`), where the cache
+lives, never the repos in it. Editing a repo's config re-runs the load (via the
+`web-tools:config-saved` event), so the row updates without a page reload. (A
+legacy `quickLinks` list in the registry is still read as a fallback until the
+cutover.)
 
 ### Config cache (`state/configs.json`)
 
-With a token, show-repo also keeps a **derived** cache of the participating
-repos' configs in the registry repo, built by `lib/repo-config-cache.js`. On
-load (and after a config edit), it crawls each quick-link repo's
-`.web-tools.json` and folds it into `web-tools-private/state/configs.json`,
-appending a bounded on-change version history per repo. A per-browser throttle
-(`localStorage`, default 6h) keeps the crawl occasional; a material-change check
-keeps commits sparse, so nav triggers cost nothing visible.
+With a token, show-repo keeps a **derived** cache of the account's repo configs
+in the registry repo, built by `lib/repo-config-cache.js`. `refreshConfigCache`
+enumerates the account's repos (`gh.repos()`) and folds each one's
+`.web-tools.json` into `web-tools-private/state/configs.json`, appending a
+bounded on-change version history per repo. A per-browser throttle
+(`localStorage`, default 6h) keeps the crawl occasional, forced after a config
+save; a material-change check keeps commits sparse.
 
-Source of truth stays each repo's own `.web-tools.json`; the cache is derived,
-for breadth (looking across repos at once) and for config history a single read
-can't show. show-repo reads a repo's **live** config, not this cache, whenever it
-operates on that repo. Stage history falls out for free: a repo's declared
+This cache is the **read path** for estate membership and the quick-link row, so
+a normal load is two GETs (the cache + the account list), not an N-repo scan; a
+cold cache falls back to a live per-repo scan and then rebuilds. Source of truth
+stays each repo's own `.web-tools.json`; the cache is derived, for breadth
+(reading across repos at once) and config history a single read can't show. The
+per-repo write flows (add-to-estate, the placement editor) read a repo's **live**
+config, not this cache, whenever they
+operate on that repo. Stage history falls out for free: a repo's declared
 `stage.files` lives in its config, so versioning the config versions the declared
 stage. Design and future ideas: `web-tools-private/DESIGN.md`.
 
