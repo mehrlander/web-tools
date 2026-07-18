@@ -1,9 +1,10 @@
 ---
 id: generalize-gallery-pages-catalog-m3b8pa
 title: Generalize the gallery to a per-repo pages catalog
-status: backlog
+status: in-progress
 track: independent
 opened: 2026-07-18
+session: claude/web-tools-app-views-m3pkyo
 next: add a pages field to .web-tools.json and branch landingKind() on it; render tiles live via toss-render #gh= (no committed thumbs for private repos)
 ---
 # Generalize the gallery to a per-repo pages catalog
@@ -54,3 +55,4 @@ thumbnails a later per-repo opt-in.
   20260718-87z (app views) depends on this.
 - 2026-07-18: claimed on claude/clone-home-repo-7486wk; building the `pages` catalog and gallery generalization.
 - 2026-07-18: claim released back to backlog; the clone-home-repo session designed and documented but did not build it. Ready for a fresh session.
+- 2026-07-18: claimed on claude/web-tools-app-views-m3pkyo; building the gallery generalization first, app views on top.

@@ -1,9 +1,10 @@
 ---
 id: app-views-estate-level-btp6m4
 title: App views - designate a page as an estate-level view
-status: backlog
+status: in-progress
 track: independent
 opened: 2026-07-18
+session: claude/web-tools-app-views-m3pkyo
 next: add appView/viewLabel to a pages entry; collect app views across configs via the config cache, the quickLink sibling; render live via toss-render #gh=
 ---
 # App views: designate a page as an estate-level view
@@ -58,3 +59,4 @@ app view is the same move, but the target is a rendered page view instead of
   kind" idea floated earlier in the same conversation.
 - 2026-07-18: claimed on claude/clone-home-repo-7486wk; building after the gallery generalization it depends on.
 - 2026-07-18: claim released back to backlog; unblocked once the gallery generalization lands. Ready for a fresh session.
+- 2026-07-18: claimed on claude/web-tools-app-views-m3pkyo; building on the gallery generalization in the same session.
