@@ -81,9 +81,9 @@ One component renders both, switching on the shell view, sharing one lazy mount.
 
 **Repos: membership and fields live on each repo.** A repo appears on the estate
 by opting in with `estate: true` in its **own** `.web-tools.json`. Every
-descriptive field is the repo's too: `group`, `note`, `icon`, `order`,
-`nestUnder`, plus its `pins` and `landing`. The registry holds **no per-repo
-config**. The single source of truth for how a repo appears is the repo.
+descriptive field is the repo's too: `group`, `note`, `icon`, `order`, plus its
+`pins` and `landing`. The registry holds **no per-repo config**. The single
+source of truth for how a repo appears is the repo.
 
 The estate discovers members by enumerating the account's repos (`gh.repos()`,
 one list call that also carries description / visibility / pushed-ago) and
@@ -94,13 +94,14 @@ N-repo scan; a cold cache falls back to a live per-repo scan and then rebuilds.
 Cards lay out full-width as a three-wide grid grouped by `group` (a section
 header + count per group, like the pages index). Group order and within-group
 order both derive from each repo's `order` (a group sorts by its lowest member's
-order). A repo naming `nestUnder: "owner/repo"` folds into that parent's card,
-where the visibility glyph becomes a **toggle**: tap it to flip the card to the
-nested repo's face (title, icon, note, gear, jumps all switch) and back. The
-card name opens the repo in the shell; the github-logo opens it on GitHub; the
-`pins` render as direct-jump chips. The gear opens the **placement editor** (a
-small form for `icon` / `group` / `note`, plus a drop-through to the full config
-editor and a "Remove from estate"), which writes the repo's own `.web-tools.json`.
+order). An `owner/foo-private` companion folds into `owner/foo`'s card by naming
+convention (both on the estate; no field), where the visibility glyph becomes a
+**toggle**: tap it to flip the card to the private repo's face (title, icon,
+note, gear, jumps all switch) and back. The card name opens the repo in the
+shell; the github-logo opens it on GitHub; the `pins` render as direct-jump
+chips. The gear opens the shared repo dialog on its **Settings** tab (a form for
+`icon` / `group` / `note` / …, beside the raw-JSON **Config** tab and **Links**),
+which writes the repo's own `.web-tools.json` without navigating away.
 
 **Adding a repo** sets `estate: true` (plus `group` / `note`) in the chosen
 repo's own config through the viewer's token (candidates come from the header
@@ -213,7 +214,6 @@ deprecation window. Fields:
   "note": "One-line description shown on the estate card.",
   "order": 30,
   "quickLink": true,
-  "nestUnder": "mehrlander/web-tools",
   "landing": "pages/landing.html",
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
@@ -238,8 +238,6 @@ repos. All are optional; a repo with no config is simply off the estate.
   member's `order`) and within-group order both derive from it.
 - **quickLink**: `true` to appear in the header quick-link row, ordered by
   `order`, icon from this repo's `icon`.
-- **nestUnder**: `"owner/repo"` to render this card inside that parent's card
-  instead of on its own. The child declares its parent.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
   toss-render's OWNERS allowlist). "The repo builds its own page."

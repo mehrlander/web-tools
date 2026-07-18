@@ -1118,9 +1118,9 @@ function overview(){ return {
       has no members yet. Cards enrich with live GitHub metadata and lay out
       full-width as a three-wide grid grouped by group (like the pages index);
       group order and within-group order come from each repo's own `order`, and
-      a repo naming nestUnder folds into that parent's card. ?view=estate is
-      only stamped when a repo/ref param is also present; the bare URL IS the
-      Repos estate.
+      an owner/foo-private companion folds into owner/foo's card by naming
+      convention (no field). ?view=estate is only stamped when a repo/ref param
+      is also present; the bare URL IS the Repos estate.
     Surfaces (?view=surfaces): the registry's surfaces/*.surface files (the
       surfacer's format; archive category excluded), tabbed, each editable in
       place through a JSON dialog the same shape as the repo config editor
@@ -1161,8 +1161,6 @@ function overview(){ return {
     order    arrangement weight: group order (a group sorts by its lowest
              member's order) and within-group order both derive from it.
     quickLink  true to appear in the header quick-link row, ordered by `order`.
-    nestUnder  "owner/repo": render this card inside that parent's card instead
-             of on its own (the child declares its parent).
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
