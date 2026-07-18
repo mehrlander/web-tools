@@ -414,6 +414,13 @@
         <template x-if="branchesSeen">
           <div x-data="branches()"></div>
         </template>
+        <!-- The ref compare (base...head over the open repo) lives with the
+             branch review it serves; the estate-level stage has its own
+             file-vs-file compare in its output box. Mounted outside the x-if
+             so #compare exists for openCompare() calls before a first visit. -->
+        <div class="border-t border-base-200 pt-3 mt-6">
+          <div id="compare" x-data="compare()"></div>
+        </div>
       </div>
     </div>
 
@@ -424,9 +431,6 @@
     <div x-show="view==='stage'" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
         <div x-data="stager()"></div>
-        <div class="border-t border-base-200 pt-3">
-          <div id="compare" x-data="compare()"></div>
-        </div>
       </div>
     </div>
 

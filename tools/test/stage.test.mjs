@@ -252,6 +252,64 @@ test('toggleRecent stages a recent file and unstages it on the second tap', () =
   assert.equal(data.refItems.length, 0);
 });
 
+test('repo pills count per repo; excluding one filters the finder rows', async () => {
+  reset();
+  store.repo = 'me/open';
+  store.config = null;
+  window.__shell = { quickLinks: [{ repo: 'me/fav' }] };
+  await data.loadRecent(true);
+  delete window.__shell;
+  assert.deepEqual(plain_(data.repoPills()), [{ repo: 'me/open', n: 2 }, { repo: 'me/fav', n: 1 }]);
+  data.togglePill('me/open');
+  assert.deepEqual(plain_(data.finderRows().map(r => r.repo)), ['me/fav']);
+  data.togglePill('me/open');
+  assert.equal(data.finderRows().length, 3);
+});
+
+test('search matches filename-contains over the cached trees, capped', () => {
+  data.finderTab = 'search';
+  data._treePaths = { 'me/open': ['lib/alpha.js', 'docs/notes.md'], 'me/fav': ['src/alpha-beta.js'] };
+  data.searchQ = 'alpha';
+  assert.deepEqual(plain_(data.finderRows().map(r => [r.repo, r.path])), [
+    ['me/open', 'lib/alpha.js'],
+    ['me/fav', 'src/alpha-beta.js'],
+  ]);
+  data.searchQ = 'x';
+  assert.equal(data.finderRows().length, 0, 'under 2 chars, no matches attempted');
+  data.finderTab = 'recent';
+  data._treePaths = null;
+});
+
+test('diffLines marks adds and dels around a trimmed common middle', () => {
+  const rows = data.diffLines('a\nb\nc\nd', 'a\nB\nc\nd');
+  assert.deepEqual(plain_(rows), [
+    { t: 'ctx', line: 'a' },
+    { t: 'del', line: 'b' },
+    { t: 'add', line: 'B' },
+    { t: 'ctx', line: 'c' },
+    { t: 'ctx', line: 'd' },
+  ]);
+});
+
+test('diffLines on identical text is all context', () => {
+  const rows = data.diffLines('x\ny', 'x\ny');
+  assert.ok(rows.every(r => r.t === 'ctx'));
+  assert.equal(rows.length, 2);
+});
+
+test('runDiff resolves a local text item against a ref item', async () => {
+  reset();
+  store.stage = [
+    { repo: 'me/a', ref: '', path: 'lib/x.js' },
+    { local: true, id: 97, name: 'pasted.txt', path: 'pasted.txt', size: 4, isText: true, text: 'CONTENT me/a:lib/x.js\nextra' },
+  ];
+  data.diffA = 0; data.diffB = 1; data.diffARef = ''; data.diffBRef = '';
+  await data.runDiff();
+  assert.ok(data.diffRows, 'diff produced');
+  assert.deepEqual(plain_(data.diffRows.filter(r => r.t !== 'ctx')), [{ t: 'add', line: 'extra' }]);
+  assert.equal(data.diffStat, '+1 \u22120');
+});
+
 test('whereFrom reads as repo short name, then the folder', () => {
   assert.equal(data.whereFrom({ repo: 'me/open', path: 'lib/alpineComponents/x.js' }), 'open · lib/alpineComponents');
   assert.equal(data.whereFrom({ repo: 'me/open', path: 'README.md' }), 'open');

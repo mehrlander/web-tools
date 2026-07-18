@@ -140,17 +140,25 @@ one stage above any repo, since every item carries its own origin. Takes from:
 
 Stage-view actions:
 
-- **Recent**: the latest committed files across the estate's root repos (one
-  `recentFiles()` sweep per repo, loaded when the stage is first shown), each
-  row one tap to stage and a second tap to unstage; the muted line reads
-  `repo · folder` so the source is legible at a glance;
+- **Recent / Search**: the finder, two tabs. Recent is the latest committed
+  files across the estate's root repos (one `recentFiles()` sweep per repo,
+  loaded when the stage is first shown), filterable by per-repo pills (tap to
+  exclude, tap to re-include). Search is filename-contains over the same
+  repos' full trees (one cached recursive-tree call per repo; matching is
+  local per keystroke). Either way each row is one tap to stage, a second to
+  unstage, and the muted line reads `repo · folder`;
 - **view** a staged file inline (a preview panel in the stage itself, with a
   GitHub jump-over to the file's true home; it never routes through a repo's
   Files view);
-- **Concatenated**: the staged files spliced into one block, each under a
+- **Concatenated / Compare**: the output box, two lenses. Concatenated is the
+  staged files spliced into one block, each under a
   `// === owner/repo[@ref]:path ===` header; **Copy** it (the clipboard put) or
-  **Download** it (the clipboard's fallback). Content is fetched once per file
-  and cached, so add/remove is free after the first pull;
+  **Download** it (the clipboard's fallback); content is fetched once per file
+  and cached. Compare is a line diff of two staged items (a pasted local file
+  counts), each side optionally read at an override ref, so the same file
+  picked twice with one ref changed is the version diff. (The base...head
+  branch compare is not here: it lives under the Branches view, with the
+  review it serves.);
 - **Copy to repo**: transfer the fileset to a destination (below). The
   destination is the same tap-through selector in folder mode ("Here" commits
   the current folder; a file tap commits its folder);
@@ -158,7 +166,8 @@ Stage-view actions:
   `stage.files`. The stage belongs to no repo, so saving one means saying
   where: the registry by default (a general staging), or any repo the field
   names. Refs outside the target save fully qualified;
-- **Copy link**: mint a `#stage=` link that reopens this exact stage.
+- **Persistent link**: mint the `#stage=` URL that reopens this exact stage
+  anywhere (ref items only; local files cannot ride a link).
 
 ### The `#stage=` link grammar
 
