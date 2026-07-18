@@ -94,6 +94,12 @@ the link-dense text twin of the visual index above.
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
 
+## pages/news/
+
+| Page | Title | Links |
+|---|---|---|
+| `news` | news · the outer log | [view](https://mehrlander.github.io/web-tools/pages/news/news.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html) |
+
 ## pages/scratch/
 
 | Page | Title | Links |

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>news · the outer log</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📰</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  news.html — the news panel's VIEW facet: a read-only render of home's outer
+  log. The ledger (news/ledger/YYYY-MM.jsonl in mehrlander/home) is primary;
+  this page is one view of it, grouped and filterable by topic and date, with
+  backfilled reconstructions held visibly distinct from live capture per the
+  ledger's one honesty rule (news/README.md).
+
+  Data contract (all in mehrlander/home, read through the viewer's token):
+    news/sources.json        the connector spec (the subscription universe)
+    news/ledger/*.jsonl      the record: monthly item shards, append-only
+    me/news-interests.md     the taste filter (view-layer only; not applied yet)
+
+  Renderer lives here in web-tools; the data lives in home. A private read, so
+  it renders only in a browser holding the viewer's ghToken (gh-auth raises the
+  prompt on 401). The control facet (sources.json follows/unfollows committed
+  back through the token) is the next slice; this page is view-only.
+
+  ?use=<branch|tag|sha> pins this page's own lib chain to a ref (the repo's
+  standard preview mechanism; pass a SHA for fresh commits). &data=<ref> pins
+  which ref of home the data is read from (defaults to main).
+-->
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  await gh.load('gh-auth.js');   // token prompt on 401 for the private home read
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('news', () => ({
+      // ── data contract ────────────────────────────────────────────────────
+      REPO: 'mehrlander/home',
+      DATA_REF: new URLSearchParams(location.search).get('data') || 'main',
+
+      // ── state ────────────────────────────────────────────────────────────
+      items: [],
+      sources: [],
+      loading: true,
+      error: '',
+
+      // ── filters ──────────────────────────────────────────────────────────
+      q: '',
+      topics: new Set(),        // empty = all
+      kinds: new Set(),         // empty = all
+      capture: 'all',           // all | live | backfilled
+      groupBy: 'topic',         // topic | date
+
+      // ── display maps ─────────────────────────────────────────────────────
+      TOPIC_LABEL: {
+        ai: 'AI', 'wa-gov': 'WA Gov', pensions: 'Pensions', powershell: 'PowerShell',
+        shortcuts: 'Shortcuts', 'civic-tech': 'Civic Tech', ideas: 'Ideas', general: 'General'
+      },
+      KIND_LABEL: { rss: 'RSS', 'hn-query': 'HN', 'page-watch': 'Watch' },
+      KIND_ICON: { rss: 'ph-rss', 'hn-query': 'ph-hacker-news-logo', 'page-watch': 'ph-eye' },
+
+      async init() {
+        try {
+          const home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
+          const [srcText, dir] = await Promise.all([
+            home.get('news/sources.json').then(r => r.text),
+            home.req(`contents/news/ledger?ref=${this.DATA_REF}`)
+          ]);
+          this.sources = (JSON.parse(srcText).sources) || [];
+          const shards = (Array.isArray(dir) ? dir : [])
+            .filter(f => f.type === 'file' && f.name.endsWith('.jsonl'));
+          const texts = await Promise.all(shards.map(s => home.get(s.path).then(r => r.text)));
+          const items = [];
+          for (const t of texts) {
+            for (const line of t.split('\n')) {
+              const l = line.trim(); if (!l) continue;
+              try { items.push(JSON.parse(l)); } catch {}
+            }
+          }
+          // Newest first, by published_at, falling back to fetched_at.
+          items.sort((a, b) => this.when(b).localeCompare(this.when(a)));
+          this.items = items;
+        } catch (e) {
+          this.error = e.message || String(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      // ── helpers ──────────────────────────────────────────────────────────
+      when(it) { return it.published_at || it.fetched_at || ''; },
+      topicLabel(t) { return this.TOPIC_LABEL[t] || t; },
+      kindLabel(k) { return this.KIND_LABEL[k] || k; },
+      kindIcon(k) { return this.KIND_ICON[k] || 'ph-circle'; },
+
+      relTime(iso) {
+        if (!iso) return '';
+        const then = new Date(iso).getTime();
+        if (isNaN(then)) return '';
+        const s = Math.floor((Date.now() - then) / 1000);
+        if (s < 60) return s + 's ago';
+        const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+        const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+        const d = Math.floor(h / 24); if (d < 30) return d + 'd ago';
+        const mo = Math.floor(d / 30); if (mo < 12) return mo + 'mo ago';
+        return Math.floor(mo / 12) + 'y ago';
+      },
+      dayLabel(iso) {
+        if (!iso) return 'Undated';
+        const d = new Date(iso);
+        if (isNaN(d)) return 'Undated';
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      },
+      host(url) { try { return new URL(url).host.replace(/^www\./, ''); } catch { return ''; } },
+
+      // ── derived: the topic + kind universe (from items and the spec) ──────
+      get allTopics() {
+        const s = new Set(this.items.map(i => i.topic));
+        for (const src of this.sources) s.add(src.topic);
+        return [...s].filter(Boolean).sort((a, b) => this.topicLabel(a).localeCompare(this.topicLabel(b)));
+      },
+      get allKinds() {
+        const s = new Set(this.items.map(i => i.kind));
+        for (const src of this.sources) s.add(src.kind);
+        return [...s].filter(Boolean).sort();
+      },
+
+      toggle(set, v) {
+        this[set].has(v) ? this[set].delete(v) : this[set].add(v);
+      },
+      clearFilters() { this.topics.clear(); this.kinds.clear(); this.q = ''; this.capture = 'all'; },
+      get hasFilters() { return this.topics.size || this.kinds.size || this.q || this.capture !== 'all'; },
+
+      // ── derived: the filtered, grouped result ────────────────────────────
+      get filtered() {
+        const q = this.q.trim().toLowerCase();
+        return this.items.filter(it => {
+          if (this.topics.size && !this.topics.has(it.topic)) return false;
+          if (this.kinds.size && !this.kinds.has(it.kind)) return false;
+          if (this.capture === 'live' && it.backfilled) return false;
+          if (this.capture === 'backfilled' && !it.backfilled) return false;
+          if (q) {
+            const hay = ((it.title || '') + ' ' + (it.summary || '') + ' ' + (it.source || '')).toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+      },
+      get groups() {
+        const key = this.groupBy === 'date'
+          ? (it => (this.when(it) || '').slice(0, 10))
+          : (it => it.topic || 'general');
+        const map = new Map();
+        for (const it of this.filtered) {
+          const k = key(it);
+          if (!map.has(k)) map.set(k, []);
+          map.get(k).push(it);
+        }
+        let entries = [...map.entries()];
+        if (this.groupBy === 'date') {
+          entries.sort((a, b) => b[0].localeCompare(a[0]));           // newest day first
+          return entries.map(([k, v]) => ({ key: k, label: this.dayLabel(v[0] && this.when(v[0])), items: v }));
+        }
+        entries.sort((a, b) => b[1].length - a[1].length);            // fullest topic first
+        return entries.map(([k, v]) => ({ key: k, label: this.topicLabel(k), items: v }));
+      },
+
+      get backfilledCount() { return this.items.filter(i => i.backfilled).length; },
+      get dateRange() {
+        const ds = this.items.map(i => this.when(i)).filter(Boolean).sort();
+        if (!ds.length) return '';
+        const a = ds[0].slice(0, 10), b = ds[ds.length - 1].slice(0, 10);
+        return a === b ? a : `${a} → ${b}`;
+      },
+    }));
+  });
+
+  await gh.load('alpine-bundle.js');   // starts Alpine
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased" x-data="news" x-cloak>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-20 bg-base-100/95 backdrop-blur border-b border-base-300">
+  <div class="max-w-5xl mx-auto px-4 py-3">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="text-xl">📰</span>
+      <div class="min-w-0">
+        <h1 class="font-semibold leading-tight">news <span class="opacity-40 font-normal text-sm">· the outer log</span></h1>
+        <p class="text-xs opacity-60 leading-tight" x-show="!loading">
+          <span x-text="items.length"></span> items ·
+          <span x-text="sources.length"></span> sources ·
+          <span x-text="dateRange"></span>
+          <span x-show="backfilledCount" class="ml-1">· <span x-text="backfilledCount"></span> backfilled</span>
+        </p>
+      </div>
+      <div class="grow"></div>
+      <a :href="`https://github.com/${REPO}/tree/${DATA_REF}/news/ledger`" target="_blank"
+         class="btn btn-ghost btn-xs gap-1 opacity-70 hover:opacity-100">
+        <i class="ph ph-github-logo"></i><span class="hidden sm:inline">ledger</span>
+      </a>
+    </div>
+
+    <!-- Controls -->
+    <div x-show="!loading && !error" class="mt-3 flex flex-col gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <label class="input input-bordered input-sm flex items-center gap-2 grow max-w-sm">
+          <i class="ph ph-magnifying-glass opacity-50"></i>
+          <input x-model="q" type="search" placeholder="Search titles, summaries, sources" class="grow min-w-0">
+        </label>
+
+        <div class="join">
+          <button class="join-item btn btn-xs" :class="groupBy==='topic' && 'btn-active btn-primary'" @click="groupBy='topic'">
+            <i class="ph ph-tag"></i> Topic
+          </button>
+          <button class="join-item btn btn-xs" :class="groupBy==='date' && 'btn-active btn-primary'" @click="groupBy='date'">
+            <i class="ph ph-calendar-blank"></i> Date
+          </button>
+        </div>
+
+        <div class="join">
+          <button class="join-item btn btn-xs" :class="capture==='all' && 'btn-active'" @click="capture='all'">All</button>
+          <button class="join-item btn btn-xs" :class="capture==='live' && 'btn-active'" @click="capture='live'">Live</button>
+          <button class="join-item btn btn-xs" :class="capture==='backfilled' && 'btn-active'" @click="capture='backfilled'">Backfilled</button>
+        </div>
+
+        <button x-show="hasFilters" @click="clearFilters()" class="btn btn-ghost btn-xs gap-1 opacity-60">
+          <i class="ph ph-x"></i> Clear
+        </button>
+      </div>
+
+      <!-- Topic pills -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <template x-for="t in allTopics" :key="t">
+          <button @click="toggle('topics', t)"
+                  class="badge badge-sm cursor-pointer transition-colors"
+                  :class="topics.has(t) ? 'badge-primary' : 'badge-ghost hover:badge-neutral'">
+            <span x-text="topicLabel(t)"></span>
+          </button>
+        </template>
+        <span class="w-px h-4 bg-base-300 mx-1"></span>
+        <template x-for="k in allKinds" :key="k">
+          <button @click="toggle('kinds', k)"
+                  class="badge badge-sm badge-outline gap-1 cursor-pointer transition-colors"
+                  :class="kinds.has(k) ? 'badge-secondary' : 'opacity-60 hover:opacity-100'">
+            <i class="ph text-[0.9em]" :class="kindIcon(k)"></i><span x-text="kindLabel(k)"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-5">
+
+  <!-- Loading -->
+  <div x-show="loading" class="flex items-center gap-3 justify-center py-20 opacity-60">
+    <span class="loading loading-spinner"></span> Reading the ledger…
+  </div>
+
+  <!-- Error -->
+  <div x-show="error" x-cloak class="alert alert-error max-w-xl mx-auto mt-10">
+    <i class="ph ph-warning"></i>
+    <div>
+      <div class="font-semibold">Could not read the ledger</div>
+      <div class="text-sm opacity-80" x-text="error"></div>
+      <div class="text-xs opacity-70 mt-1">A private read: set a GitHub token when prompted, then reload.</div>
+    </div>
+  </div>
+
+  <!-- Empty after filter -->
+  <div x-show="!loading && !error && filtered.length === 0" x-cloak class="text-center py-20 opacity-50">
+    <i class="ph ph-funnel text-3xl"></i>
+    <p class="mt-2 text-sm">No items match these filters.</p>
+  </div>
+
+  <!-- Groups -->
+  <div x-show="!loading && !error && filtered.length" x-cloak class="flex flex-col gap-6">
+    <template x-for="g in groups" :key="g.key">
+      <section>
+        <div class="flex items-baseline gap-2 mb-2 sticky top-[104px] z-10 bg-base-200/90 backdrop-blur py-1">
+          <h2 class="font-semibold text-sm" x-text="g.label"></h2>
+          <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
+        </div>
+        <div class="flex flex-col gap-2">
+          <template x-for="it in g.items" :key="it.id">
+            <!-- A backfilled item is a reconstruction, not a witness: dashed,
+                 amber-tinted, badged. A live item is a clean card. -->
+            <article class="rounded-lg border bg-base-100 px-4 py-3 transition-shadow hover:shadow-sm"
+                     :class="it.backfilled
+                       ? 'border-dashed border-warning/50 bg-warning/5'
+                       : 'border-base-300'">
+              <div class="flex items-start gap-3">
+                <div class="min-w-0 grow">
+                  <a :href="it.url" target="_blank"
+                     class="font-medium leading-snug hover:link hover:link-primary" x-text="it.title || '(untitled)'"></a>
+                  <p x-show="it.summary" class="text-sm opacity-70 mt-1 line-clamp-2" x-text="it.summary"></p>
+                  <div class="flex items-center gap-2 flex-wrap mt-1.5 text-xs opacity-60">
+                    <span class="inline-flex items-center gap-1">
+                      <i class="ph" :class="kindIcon(it.kind)"></i><span x-text="it.source"></span>
+                    </span>
+                    <span x-show="groupBy!=='topic'" class="badge badge-ghost badge-xs" x-text="topicLabel(it.topic)"></span>
+                    <span x-text="host(it.url)" class="opacity-50"></span>
+                    <span class="opacity-50" x-text="relTime(when(it))"></span>
+                    <span x-show="it.backfilled"
+                          class="badge badge-warning badge-xs gap-1">
+                      <i class="ph ph-clock-counter-clockwise"></i> backfilled
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </template>
+        </div>
+      </section>
+    </template>
+  </div>
+
+</main>
+</body>
+</html>
