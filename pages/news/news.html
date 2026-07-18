@@ -443,12 +443,7 @@
   </div>
 
   <!-- ── Sources facet: the subscription list ──────────────────────────────── -->
-  <div x-show="!loading && !error && facet==='sources'" x-cloak class="flex flex-col gap-2 pb-28">
-    <p class="text-sm opacity-60 mb-1">
-      The connector spec, as a subscription list. Follow, unfollow, and param edits stay local until you
-      <b>Commit</b>, which writes <code class="text-xs">news/sources.json</code> to home as one dated act in the log.
-    </p>
-
+  <div x-show="!loading && !error && facet==='sources'" x-cloak class="flex flex-col gap-2 pb-32">
     <template x-for="s in draft" :key="s.id">
       <article class="rounded-lg border bg-base-100 transition-colors"
                :class="[
@@ -504,7 +499,7 @@
 <!-- ── Pending-changes tray (control facet) ─────────────────────────────────── -->
 <div x-show="facet==='sources' && (dirty || justCommitted)" x-cloak
      class="fixed bottom-0 inset-x-0 z-30 border-t border-base-300 bg-base-100/95 backdrop-blur">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
+  <div class="max-w-5xl mx-auto px-4 py-5 flex items-center gap-3 flex-wrap">
     <div class="text-sm grow min-w-0">
       <template x-if="justCommitted && !dirty">
         <span class="text-success"><i class="ph ph-check-circle"></i> Committed to <code class="text-xs">news/sources.json</code>.</span>
@@ -518,6 +513,9 @@
       </template>
     </div>
     <div x-show="commitError" class="text-xs text-error basis-full order-3" x-text="commitError"></div>
+    <span x-show="dirty" class="text-xs opacity-50 text-right leading-tight hidden sm:block">
+      Commit writes to <code>news/sources.json</code> on home.<br>Discard reverts to the committed spec.
+    </span>
     <button class="btn btn-ghost btn-sm" @click="resetDraft()" x-show="dirty" :disabled="committing">Discard</button>
     <button class="btn btn-primary btn-sm gap-2" @click="commit()" x-show="dirty"
             :disabled="committing || invalid" :title="invalid ? 'Fix the invalid row first' : ''">
