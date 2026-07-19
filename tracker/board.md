@@ -18,8 +18,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Converge the stage and surface item schemas
 
 ## In progress
-- 🎫 App views - designate a page as an estate-level view (`claude/web-tools-app-views-m3pkyo`) next: add appView/viewLabel to a pages entry; collect app views across configs via the config cache, the quickLink sibling; render live via toss-render #gh=
-- 🎫 Generalize the gallery to a per-repo pages catalog (`claude/web-tools-app-views-m3pkyo`) next: add a pages field to .web-tools.json and branch landingKind() on it; render tiles live via toss-render #gh= (no committed thumbs for private repos)
 - 🎫 Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: live-confirm branchesForPath (GraphQL Commit.file) with a token, then wrap up PR #241
 
 ## Blocked
@@ -28,9 +26,11 @@ _Generated from tasks/. Do not hand-edit._
 ## Done
 - 🎫 Add a task-tracker skill (`claude/agent-file-retrieval-skill-tv4can`)
 - 🎫 Build an agent-assisted file-retrieval skill (`claude/agent-file-retrieval-skill-tv4can`) next: build corpus_search.py (find) with a sources config and a file-per-document default, plus read_doc.py (read) and a SKILL.md that fixes the search-and-present flow; dogfood on this repo's content
+- 🎫 App views - designate a page as an estate-level view (`claude/web-tools-app-views-m3pkyo`) next: landed; News goes live in the estate switcher when home#314 reaches main
 - 🎫 Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
 - 🎫 Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: session refreshes (show-repo thumbnail) at wrap-up, then review via PR #236
 - 🎫 Extract drop-zone as a reusable Alpine component (`claude/tracker-summary-nu74te`)
+- 🎫 Generalize the gallery to a per-repo pages catalog (`claude/web-tools-app-views-m3pkyo`) next: landed; live gallery for home needs home#314 on main (config cache reads main)
 - 🎫 History-safe shim for toss-render address-mode renders next: done; hash-routing pages now switch views inside toss #gh= renders
 - 🎫 Render files over 1 MB in toss-render and the shell viewers next: done — raw media type with git-blobs fallback landed in toss-render (ghText, showAddress, fetchShim) and gh-api.js get(); A/B headless test confirms the 5.9 MB DRS bundle is delivered where the old path returned blank
 - 🎫 Speed up show-repo's cold load (`claude/speed-up-show-repo-load-3cdvl0`)

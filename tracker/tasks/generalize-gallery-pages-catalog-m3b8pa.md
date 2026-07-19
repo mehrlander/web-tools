@@ -1,11 +1,12 @@
 ---
 id: generalize-gallery-pages-catalog-m3b8pa
 title: Generalize the gallery to a per-repo pages catalog
-status: in-progress
+status: done
 track: independent
 opened: 2026-07-18
+closed: 2026-07-19
 session: claude/web-tools-app-views-m3pkyo
-next: add a pages field to .web-tools.json and branch landingKind() on it; render tiles live via toss-render #gh= (no committed thumbs for private repos)
+next: landed; live gallery for home needs home#314 on main (config cache reads main)
 ---
 # Generalize the gallery to a per-repo pages catalog
 
@@ -56,3 +57,4 @@ thumbnails a later per-repo opt-in.
 - 2026-07-18: claimed on claude/clone-home-repo-7486wk; building the `pages` catalog and gallery generalization.
 - 2026-07-18: claim released back to backlog; the clone-home-repo session designed and documented but did not build it. Ready for a fresh session.
 - 2026-07-18: claimed on claude/web-tools-app-views-m3pkyo; building the gallery generalization first, app views on top.
+- 2026-07-19: done. Lands via web-tools PR #242. landingKind() branches on config.pages; gallery() reads either pages.json (web-tools, unchanged) or a synthesized group from config.pages (tiles live via toss-render #gh=). A pages path may be a cross-repo ref (owner/repo[@ref]:path). home declares budget-drs + news in home PR #314. Verified headlessly: web-tools gallery byte-unchanged, generic gallery renders with live tiles.
