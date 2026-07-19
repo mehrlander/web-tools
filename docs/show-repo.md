@@ -239,6 +239,10 @@ deprecation window. Fields:
   "order": 30,
   "quickLink": true,
   "landing": "pages/landing.html",
+  "pages": [
+    { "path": "pages/news/news.html", "title": "News", "note": "The news dashboard.",
+      "appView": true, "viewLabel": "News", "icon": "ph-newspaper" }
+  ],
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
     "files": ["lib/foo.js", "owner/repo@ref:path/to/bar.js"],
@@ -264,7 +268,39 @@ repos. All are optional; a repo with no config is simply off the estate.
   `order`, icon from this repo's `icon`.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
-  toss-render's OWNERS allowlist). "The repo builds its own page."
+  toss-render's OWNERS allowlist). "The repo builds its own page." A repo with a
+  `pages` catalog gets the gallery landing instead; `landing` is the single-page
+  form.
+- **pages**: a hand-declared page catalog: a flat list of `{ path, title, note }`
+  entries (optional `icon`, `thumb`, and the app-view fields below). A repo
+  declaring a non-empty `pages` gets the **gallery landing**: the same card grid
+  with the screenshot / live / source toggle, chip grouping, and search that
+  web-tools gets from its generated `pages.json`, but fed from this hand-declared
+  catalog as one group. A private repo has no committed thumbnails, so each tile
+  renders **live** through toss-render `#gh=` (token-authed, lazy on scroll); the
+  source toggle reads the file through the viewer's token. This is a sibling to
+  `pins`/`stage.files`, maintained by hand. (web-tools keeps its generated
+  `pages.json` for its own gallery; the component reads whichever catalog a repo
+  offers.)
+  - **path**: the page. A **bare repo-relative path** (`"pages/foo.html"`, this
+    repo at its default branch) or a **qualified cross-repo ref**
+    (`"owner/repo[@ref]:path"`), the same grammar as `stage.files`. The
+    cross-repo form lets a repo promote a page whose file lives elsewhere: home
+    declares the news app view as `"mehrlander/web-tools:pages/news/news.html"`,
+    owning the promotion while the renderer stays in web-tools (the page reads
+    home's data through the viewer's token regardless of where it is hosted).
+  - **title**: the card's heading (defaults to the filename).
+  - **note**: the card's one-line description.
+  - **icon**: Phosphor class, used as the app-view sidebar icon when promoted.
+  - **appView**: `true` to promote this page to its own **estate-level view**,
+    a peer of Repos / Surfaces / Stage in the switcher (the `quickLink` pattern,
+    one level up: the target is a rendered page, not a repo). Collected across
+    every repo's config through the config cache, token-gated (no token, no app
+    view, like Surfaces), and rendered live in the estate main area via
+    toss-render `#gh=`. The page still appears in the repo's own gallery too;
+    the flag is additive.
+  - **viewLabel**: the sidebar label for the promoted view (defaults to `title`,
+    then the filename).
 - **pins**: folders/files surfaced in the sidebar Pinned block. A last segment
   with an extension opens as a file; otherwise it opens the Files view at that
   folder.

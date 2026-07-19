@@ -137,6 +137,17 @@
           <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
                 x-text="$store.browser.stage.length"></span>
         </button>
+        <!-- App views: pages any repo promotes to an estate-level entry via
+             appView:true in its .web-tools.json, collected across configs
+             (loadAppViews). Each is a peer of Repos/Surfaces/Stage, rendered live
+             in the main area. Token-gated, so the list is empty when unauthed. -->
+        <template x-for="v in sidebarAppViews" :key="v.key">
+          <button @click="goAppView(v)"
+                  class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                  :class="view==='app' && appView && appView.key===v.key ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+            <i class="ph text-base" :class="v.icon"></i><span x-text="v.label"></span>
+          </button>
+        </template>
       </div>
 
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
@@ -224,6 +235,16 @@
       </div>
     </div>
 
+    <!-- App view: a page promoted to an estate-level entry (appView flag),
+         rendered live through toss-render's #gh= address mode, the same way a
+         custom landing embeds. Full-bleed, beside Repos / Surfaces / Stage. -->
+    <div x-show="view==='app'" class="h-full">
+      <template x-if="appView">
+        <iframe :src="appViewUrl" class="w-full h-full border-0 bg-base-100"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
+      </template>
+    </div>
+
     <!-- Landing: web-tools' gallery, a manifest-designated custom page, or a
          default overview for other repos. -->
     <div x-show="view==='landing'" class="h-full overflow-y-auto">
@@ -240,11 +261,17 @@
         <!-- web-tools landing: the pages gallery, fed from pages.json -->
         <div x-show="landingKind()==='gallery'">
           <div x-data="gallery()">
-            <p class="text-base-content/50 text-sm mb-6">
+            <p x-show="isDefault" class="text-base-content/50 text-sm mb-6">
               Browser-based tools and demos. Cards toggle between a
               <span class="font-medium">screenshot</span>, a <span class="font-medium">live</span> preview,
               and the <span class="font-medium">source</span>. Use the sidebar to open a file,
               the atlas, or another repo.
+            </p>
+            <p x-show="!isDefault" class="text-base-content/50 text-sm mb-6">
+              Pages this repo declares in its <span class="font-mono text-xs">.web-tools.json</span>.
+              Each card renders <span class="font-medium">live</span> through toss-render; the
+              toggle also shows the <span class="font-medium">source</span>. Use the sidebar to
+              open a file, the atlas, or another repo.
             </p>
 
             <div x-show="!loaded" class="flex justify-center py-20">
@@ -294,7 +321,7 @@
                         </div>
                       </a>
                       <template x-if="p.view==='live'">
-                        <iframe :src="p.href + '?use=main'" loading="lazy"
+                        <iframe :src="p.live" loading="lazy"
                                 sandbox="allow-scripts allow-same-origin allow-popups"
                                 class="w-full h-full bg-base-100"></iframe>
                       </template>
@@ -334,7 +361,7 @@
                 </section>
               </template>
 
-              <div class="mt-8 pt-4 border-t border-base-200">
+              <div x-show="isDefault" class="mt-8 pt-4 border-t border-base-200">
                 <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
                    class="text-xs text-base-content/40 hover:text-base-content/70 flex items-center gap-1.5 transition-colors"
                    target="_blank">
@@ -459,6 +486,18 @@ const notify = (msg, cls='alert-error', icon='warning') => {
   console.error(msg);
 };
 
+// A `pages` catalog entry's path is either a bare repo-relative path (the
+// declaring repo at its default branch) or a qualified cross-repo ref
+// ("owner/repo[@ref]:subpath"), mirroring stage.files. This lets a repo promote
+// a page that lives in another repo: home owns the news promotion while the
+// renderer stays in web-tools. Resolve against the declaring repo/ref into
+// { repo, ref, path } for the toss-render #gh= address and the GitHub blob link.
+function resolveCatalogPath(rawPath, declRepo, declRef){
+  const m = String(rawPath || '').match(/^([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?:(.+)$/);
+  if (m) return { repo: m[1], ref: m[2] || '', path: m[3] };
+  return { repo: declRepo, ref: declRef || '', path: rawPath };
+}
+
 // marked, loaded once on demand for the overview README render.
 let _markedP = null;
 function loadMarked(){
@@ -476,7 +515,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches'
+  view: 'landing',        // 'estate' | 'surfaces' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
@@ -493,6 +532,14 @@ function app(){ return {
     { repo: 'mehrlander/web-tools', icon: 'ph-toolbox' },
   ],
   quickLinks: [],   // resolved row; seeded from PUBLIC_QUICK_LINKS in init
+  // App views: pages any repo promotes to their own estate-level entry via an
+  // `appView:true` flag on a `pages` catalog entry (the quickLink pattern, one
+  // level up: the target is a rendered page, not a repo). Collected across every
+  // repo's config through the same config cache, token-gated: no token, no app
+  // views (like Surfaces). Each is a sidebar entry in the estate switcher,
+  // rendered live through toss-render #gh=.
+  appViews: [],     // resolved [{repo, path, label, icon, order, key}]
+  appView: null,    // the selected app view when view==='app'
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -536,14 +583,16 @@ function app(){ return {
     // quickLink flag, so rebuild the cache and reload the row.
     this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
     this.$watch(() => this._authState, (s) => {
-      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.processMailbox(); }
+      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.loadAppViews(); this.processMailbox(); }
     });
     document.addEventListener('web-tools:config-saved', async () => {
       this.loadConfig();
       await this.refreshConfigCache(true);
       this.loadQuickLinks();
+      this.loadAppViews();
     });
     this.loadQuickLinks().then(() => this.refreshConfigCache());
+    this.loadAppViews();
     this.processMailbox();
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
@@ -558,6 +607,7 @@ function app(){ return {
     const url = this.parseUrl();
     await this.ensureBrowser(url?.repo, url?.ref);
     if (url && url.file) await this.openFile(url.file);
+    else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
     else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'surfaces') this.goSurfaces();
     else if (url && url.view === 'atlas') this.goAtlas();
@@ -679,6 +729,43 @@ function app(){ return {
   // sidebar shield dialog (repoModal, lib/alpineComponents/repo.js).
   pinnedIcon(p){ return p.icon; },
 
+  // Collect estate-level app views across every repo's config, the same read
+  // path the quick-link row and the estate use: the config cache in the registry
+  // repo (state/configs.json). A `pages` entry flagged appView:true, in any
+  // repo, is promoted; viewLabel/icon come from the flag, order from it too.
+  // Token-gated: without a token there is no cache read, so the list is empty and
+  // no private page is named, matching Surfaces and the private estate.
+  async loadAppViews(){
+    if (!this.hasToken()) { this.appViews = []; return; }
+    try {
+      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+      const out = [];
+      try {
+        const cache = JSON.parse((await reg.get('state/configs.json')).text);
+        for (const [repo, e] of Object.entries(cache.repos || {})) {
+          const pages = e?.config?.pages;
+          if (!Array.isArray(pages)) continue;
+          for (const pg of pages) {
+            if (pg && pg.appView === true && pg.path) {
+              // The render target may be a cross-repo page (owner/repo[@ref]:path):
+              // home promotes the news view whose renderer lives in web-tools.
+              const t = resolveCatalogPath(pg.path, repo, '');
+              out.push({
+                repo: t.repo, ref: t.ref, path: t.path,
+                label: pg.viewLabel || pg.title || t.path.split('/').pop(),
+                icon: pg.icon || 'ph-app-window',
+                order: Number.isFinite(pg.order) ? pg.order : 0,
+                key: t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path,
+              });
+            }
+          }
+        }
+      } catch {}
+      out.sort((a, b) => (a.order - b.order) || a.label.localeCompare(b.label));
+      this.appViews = out;
+    } catch { this.appViews = []; }
+  },
+
   // ── Config aggregate: crawl each participating repo's .web-tools.json and
   // fold it into a derived cache (state/configs.json) in the registry repo,
   // keeping a bounded on-change history per repo. Source of truth stays each
@@ -761,13 +848,15 @@ function app(){ return {
     } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
-  // web-tools -> its pages index ('gallery'); a repo whose manifest designates
-  // a landing page -> that page rendered live ('custom'); every other repo ->
-  // a synthesized overview ('overview'). The design notes below cover the
-  // custom render path and the task-0002 federation.
+  // web-tools -> its pages index ('gallery'); any repo whose manifest declares a
+  // `pages` catalog -> the same gallery, fed from that catalog ('gallery'); a
+  // repo whose manifest designates a single landing page -> that page rendered
+  // live ('custom'); every other repo -> a synthesized overview ('overview').
+  // The design notes below cover the gallery catalog and the custom render path.
   landingKind(){
     const s = Alpine.store('browser');
     if (s.repo === this.DEFAULT_REPO) return 'gallery';
+    if (Array.isArray(s.config?.pages) && s.config.pages.length) return 'gallery';
     if (s.config?.landing) return 'custom';
     return 'overview';
   },
@@ -834,7 +923,9 @@ function app(){ return {
     const p = new URLSearchParams(location.search);
     if (!p.has('repo') && !p.has('file') && !p.has('view')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
-             file: p.get('file'), view: p.get('view'), path: p.get('path') || '' };
+             file: p.get('file'), view: p.get('view'), path: p.get('path') || '',
+             appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '',
+             appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '' };
   },
 
   syncUrl(){
@@ -843,6 +934,8 @@ function app(){ return {
     if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
     if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
     p.delete('file'); p.delete('view'); p.delete('path');
+    p.delete('appRepo'); p.delete('appPath'); p.delete('appRef');
+    p.delete('appLabel'); p.delete('appIcon');
     if (this.view === 'files') {
       // A cross-repo staged file (activeFile.origin from another repo) has no
       // honest ?file= deep link against the open repo, so it gets none.
@@ -854,6 +947,19 @@ function app(){ return {
     else if (this.view === 'stage') p.set('view', 'stage');
     else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'surfaces') p.set('view', 'surfaces');
+    // App views are estate-level, so the link stands alone (like Surfaces): stamp
+    // the view plus the promoted page's repo and path, independent of the open repo.
+    else if (this.view === 'app' && this.appView) {
+      p.set('view', 'app');
+      p.set('appRepo', this.appView.repo);
+      p.set('appPath', this.appView.path);
+      if (this.appView.ref) p.set('appRef', this.appView.ref);
+      // Carry the label/icon so a deep link is self-describing: the sidebar
+      // entry reads "News" with its icon even before the config cache (main-only
+      // discovery) has the entry.
+      if (this.appView.label) p.set('appLabel', this.appView.label);
+      if (this.appView.icon) p.set('appIcon', this.appView.icon);
+    }
     else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
     const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
@@ -875,6 +981,7 @@ function app(){ return {
       const url = this.parseUrl();
       await this.ensureBrowser(url?.repo, url?.ref);
       if (url && url.file) await this.openFile(url.file);
+      else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'surfaces') this.goSurfaces();
       else if (url && url.view === 'atlas') this.goAtlas();
@@ -932,7 +1039,10 @@ function app(){ return {
   // (it renders the grid and surfaces, switching on this.view, sharing the one
   // lazy mount); estateCtx is the wider context test the sidebar switches on.
   get isEstate(){ return this.view === 'estate' || this.view === 'surfaces'; },
-  get estateCtx(){ return this.isEstate || this.view === 'stage'; },
+  // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
+  // the estate sidebar context: the per-repo view list stays hidden and the
+  // header reads "Repositories".
+  get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'app'; },
   goHome(){ this.goEstate(); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
@@ -941,6 +1051,38 @@ function app(){ return {
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
   goStage(){ this.view = 'stage'; this.drawer = false; this.syncUrl(); },
   goBranches(){ this.branchesSeen = true; this.view = 'branches'; this.drawer = false; this.syncUrl(); },
+  // Select an estate-level app view; the main area renders it live via
+  // toss-render #gh= (appViewUrl).
+  goAppView(v){ this.appView = v; this.view = 'app'; this.drawer = false; this.syncUrl(); },
+  // Reconstruct an app view from a deep link (?view=app&appRepo&appPath). Prefer
+  // the loaded entry (its viewLabel/icon), since the collection may not have
+  // resolved yet on a cold open; fall back to a minimal object that still
+  // renders (label from the filename, a default icon).
+  appViewFromUrl(url){
+    const key = url.appRepo + (url.appRef ? '@' + url.appRef : '') + ':' + url.appPath;
+    return this.appViews.find(v => v.key === key) || {
+      repo: url.appRepo, ref: url.appRef, path: url.appPath,
+      label: url.appLabel || url.appPath.split('/').pop(),
+      icon: url.appIcon || 'ph-app-window', key,
+    };
+  },
+  get appViewUrl(){
+    const v = this.appView;
+    if (!v || !v.repo || !v.path) return '';
+    const ref = v.ref ? '@' + v.ref : '';
+    return '../toss-render.html#gh=' + v.repo + ref + ':' + v.path;
+  },
+  // The sidebar app-view list: the collected app views (from the config cache,
+  // main-only), plus the app view currently open if it is not already among
+  // them. Discovery is main-gated, so a deep link to an app view whose repo has
+  // not merged its config yet still shows its own sidebar entry, selected, so
+  // the estate-level promotion is visible rather than an orphan main-area view.
+  get sidebarAppViews(){
+    const list = this.appViews.slice();
+    const v = this.appView;
+    if (v && v.key && !list.some(x => x.key === v.key)) list.unshift(v);
+    return list;
+  },
   openSidebar(){ this.drawer = true; },
 
   // Header shortcuts to frequently-visited repos. web-tools is always public;
@@ -957,39 +1099,106 @@ function app(){ return {
   }
 }}
 
-// ── Gallery: the web-tools pages index, rendered from pages.json ─────────────
+// ── Gallery: the standard pages index. web-tools is fed from its generated
+// pages.json (grouped, with committed thumbnails and the shot/live/source
+// toggle); any other repo declaring a `pages` catalog in .web-tools.json is fed
+// from that catalog (one synthesized group, tiles rendered live through
+// toss-render's #gh= address mode, since a private repo has no committed
+// thumbnails). One component serves both; landingKind() gates which repos
+// reach it. ──────────────────────────────────────────────────────────────────
 function gallery(){
   // show-repo sits one level below pages/, so pages.json's page-relative hrefs
   // and thumbs rebase with a '../' prefix; absolute code URLs pass through.
   const REBASE = '../';
+  const DEFAULT_REPO = 'mehrlander/web-tools';
+  // A page's live-render address in another repo: toss-render's #gh= mode at the
+  // repo@ref, the same private-safe, token-authed path a custom landing uses.
+  const tossUrl = (repo, refSuffix, path) => '../toss-render.html#gh=' + repo + refSuffix + ':' + path;
   return {
     loaded: false,
+    isDefault: true,
     filter: 'main',
     q: '',
     groups: [],
 
     async init(){
-      try {
-        const raw = await (await fetch('../pages.json')).json();
-        this.groups = raw.map(g => ({
-          ...g,
-          items: g.items.map(p => ({
-            ...p,
-            href: REBASE + p.href,
-            thumb: REBASE + p.thumb,
-            view: 'shot', source: '', shotMissing: false,
-          })),
-        }));
-      } catch(e){
-        notify('Could not load the pages catalog: ' + (e?.message || e));
-      }
-      this.loaded = true;
+      await this.load();
       const p = new URLSearchParams(location.search);
       const f = p.get('filter');
       if (f && (f === 'all' || this.groups.some(g => g.top === f))) this.filter = f;
       this.q = p.get('q') || '';
       this.$watch('filter', () => this.syncUrl());
       this.$watch('q', () => this.syncUrl());
+      // The gallery serves whichever repo is open, so reload its catalog when the
+      // repo/ref changes (the component mounts once and persists behind x-show).
+      // The `pages` catalog is loaded by the shell's own loadConfig on a separate
+      // async watcher, so key on the config too: a repo change nulls config then
+      // sets it a tick later, and the gallery must reload once the catalog lands,
+      // not on the intermediate null. (web-tools ignores config, reading
+      // pages.json, so its redundant settle is harmless.)
+      this.$watch(() => {
+        const s = Alpine.store('browser');
+        const pages = Array.isArray(s.config?.pages) ? 'p' + s.config.pages.length : (s.config ? 'c' : 'n');
+        return s.repo + '@' + s.ref + '#' + pages;
+      }, () => this.load());
+    },
+
+    async load(){
+      const s = Alpine.store('browser');
+      const repo = s.repo || DEFAULT_REPO;
+      const isDefault = repo === (window.__shell?.DEFAULT_REPO || DEFAULT_REPO);
+      this.isDefault = isDefault;
+      // Only repos with the gallery landing reach here (landingKind gates it):
+      // web-tools, or a repo declaring a non-empty `pages` catalog. Bail
+      // otherwise so a mid-switch to a non-gallery repo leaves the stale catalog
+      // rather than clearing it.
+      if (!isDefault && !Array.isArray(s.config?.pages)) return;
+      this.loaded = false;
+      if (isDefault){
+        // web-tools: the generated, grouped pages.json. Live preview is the
+        // deployed page at ?use=main; thumbnails are the committed shots.
+        try {
+          const raw = await (await fetch('../pages.json')).json();
+          this.groups = raw.map(g => ({
+            ...g,
+            items: g.items.map(p => ({
+              ...p,
+              href: REBASE + p.href,
+              thumb: REBASE + p.thumb,
+              live: REBASE + p.href + '?use=main',
+              repo, path: null,
+              view: 'shot', source: '', shotMissing: false,
+            })),
+          }));
+        } catch(e){
+          notify('Could not load the pages catalog: ' + (e?.message || e));
+        }
+      } else {
+        // Any other repo: one synthesized group from its declared `pages`. No
+        // committed thumbnails (private repos have none), so each tile defaults
+        // to a live toss-render (#gh=), lazily loaded as it scrolls into view.
+        // A catalog entry may name a cross-repo page (owner/repo[@ref]:path), so
+        // resolve the render target rather than assuming the declaring repo.
+        const declRef = s.ref && s.ref !== s.defaultRef ? s.ref : '';
+        this.groups = [{
+          label: '', top: 'main',
+          items: (s.config.pages || []).filter(p => p && p.path).map(p => {
+            const t = resolveCatalogPath(p.path, repo, declRef);
+            const refSuffix = t.ref ? '@' + t.ref : '';
+            const url = tossUrl(t.repo, refSuffix, t.path);
+            const blobRef = t.ref || (t.repo === repo ? (s.defaultRef || 'main') : 'main');
+            return {
+              href: url, live: url, thumb: '',
+              label: p.title || t.path.split('/').pop(),
+              title: p.title || '', note: p.note || '',
+              code: 'https://github.com/' + t.repo + '/blob/' + blobRef + '/' + t.path,
+              repo: t.repo, ref: t.ref, path: t.path,
+              view: 'live', source: '', shotMissing: false,
+            };
+          }),
+        }];
+      }
+      this.loaded = true;
     },
 
     syncUrl(){
@@ -1028,17 +1237,29 @@ function gallery(){
       p.view = v;
       if (v === 'html' && !p.source){
         p.source = 'Loading…';
-        try { p.source = await (await fetch(p.href)).text(); }
+        try {
+          // A catalog page carries its own target repo/path, so read it through
+          // gh (token-authed, private-safe): reuse the open repo's gh when it is
+          // the target, else a fresh instance for a cross-repo page. web-tools'
+          // pages fetch by deployed URL.
+          if (p.path) {
+            const s = Alpine.store('browser');
+            const g = (p.repo === s.repo && (!p.ref || p.ref === s.ref))
+              ? s.gh : new window.GH({ token: window.TOKEN, repo: p.repo, ref: p.ref || 'main' });
+            p.source = (await g.get(p.path)).text;
+          } else p.source = await (await fetch(p.href)).text();
+        }
         catch(e){ p.source = '// failed to load source: ' + e; }
       }
     },
     // The bridge: open a card's source in the file browser. Its repo path is the
     // github blob URL after /blob/<ref>/; that always names the real file, even
-    // for the out-of-tree kit demos under lib/.
+    // for the out-of-tree kit demos under lib/. Target the card's own repo, so a
+    // catalog card opens its file in its repo rather than the default.
     async inspect(p){
       const m = p.code.match(/\/blob\/[^/]+\/(.+)$/);
       if (!m || !window.__shell) return;
-      await window.__shell.ensureBrowser();
+      await window.__shell.ensureBrowser(p.repo);
       await window.__shell.openFile(m[1]);
     },
   };
@@ -1125,7 +1346,14 @@ function overview(){ return {
       place through a JSON dialog the same shape as the repo config editor
       (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
       always stamped, so a Surfaces link is shareable without a repo param.
-  No token: the public default card only, and no surfaces.
+    App views (?view=app&appRepo&appPath): pages any repo promotes to their own
+      estate-level entry with appView:true on a `pages` catalog entry, collected
+      across every repo's config through the config cache (loadAppViews, the
+      quickLink pattern one level up). Each is a sidebar peer of Repos/Surfaces/
+      Stage rather than the estate grid, rendered live in the main area via
+      toss-render #gh=. The link stands alone (like Surfaces), stamping the
+      promoted page's repo and path independent of the open repo.
+  No token: the public default card only, and no surfaces or app views.
 
   GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
   view keeps a one-tap route to the GitHub presentation of what it is showing.
@@ -1134,11 +1362,12 @@ function overview(){ return {
   the open file's blob, and every estate card and surface item carries its
   github-logo link. When adding a view, add its jump-over.
 
-  Today: web-tools -> 'gallery' (its pages index); a repo whose manifest names a
-  landing -> 'custom' (see below); every other repo -> 'overview' (a synthesized
-  default: stats + README + a jump to the atlas). The atlas is a standing repo
-  view, available for every repo regardless of its landing — the "ready
-  mechanism" for it.
+  Today: web-tools -> 'gallery' (its pages index); any repo declaring a `pages`
+  catalog -> 'gallery' too (fed from that catalog, tiles live via toss-render);
+  a repo whose manifest names a single landing -> 'custom' (see below); every
+  other repo -> 'overview' (a synthesized default: stats + README + a jump to
+  the atlas). The atlas is a standing repo view, available for every repo
+  regardless of its landing: the "ready mechanism" for it.
 
   THE MANIFEST: .web-tools.json at the repo root is the repo's web-tools config,
   and how a repo designates what this shell should consider. Probed once per
@@ -1163,7 +1392,23 @@ function overview(){ return {
     landing  path to the repo's own landing page (e.g. "pages/landing.html"),
              rendered live via toss-render #gh= — token-authed, so private
              repos and branches work; gated by toss-render's OWNERS allowlist.
-             "The repo builds its own page."
+             "The repo builds its own page." (A repo with a `pages` catalog gets
+             the gallery landing instead; `landing` is the single-page form.)
+    pages    a hand-declared page catalog, a flat list of
+             { path, title, note } (optional icon, thumb, and the app-view
+             flags below). A `path` is a bare repo-relative path or a qualified
+             cross-repo ref ("owner/repo[@ref]:path", the stage.files grammar),
+             so a repo can promote a page whose file lives elsewhere (home
+             promotes the news view; its renderer stays in web-tools). A repo
+             declaring `pages` gets the gallery landing (the
+             same card/toggle/search view web-tools gets from its generated
+             pages.json), with each tile rendered live via toss-render #gh=
+             (no committed thumbs for a private repo). An entry also flagged
+             `appView: true` (with `viewLabel` and `icon`) is promoted to its
+             own estate-level view beside Repos/Surfaces/Stage, collected across
+             every repo's config through the config cache, the quickLink
+             pattern, one level up, the target a rendered page not a repo.
+             Token-gated: no token, no app views (like Surfaces).
     pins     folders/files surfaced in the sidebar Pinned block; a last
              segment with an extension opens as a file, else opens the Files
              view at that folder.
