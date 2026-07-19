@@ -282,7 +282,13 @@ repos. All are optional; a repo with no config is simply off the estate.
   `pins`/`stage.files`, maintained by hand. (web-tools keeps its generated
   `pages.json` for its own gallery; the component reads whichever catalog a repo
   offers.)
-  - **path**: repo-relative path to the page (e.g. `"pages/news/news.html"`).
+  - **path**: the page. A **bare repo-relative path** (`"pages/foo.html"`, this
+    repo at its default branch) or a **qualified cross-repo ref**
+    (`"owner/repo[@ref]:path"`), the same grammar as `stage.files`. The
+    cross-repo form lets a repo promote a page whose file lives elsewhere: home
+    declares the news app view as `"mehrlander/web-tools:pages/news/news.html"`,
+    owning the promotion while the renderer stays in web-tools (the page reads
+    home's data through the viewer's token regardless of where it is hosted).
   - **title**: the card's heading (defaults to the filename).
   - **note**: the card's one-line description.
   - **icon**: Phosphor class, used as the app-view sidebar icon when promoted.
