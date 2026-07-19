@@ -141,7 +141,7 @@
              appView:true in its .web-tools.json, collected across configs
              (loadAppViews). Each is a peer of Repos/Surfaces/Stage, rendered live
              in the main area. Token-gated, so the list is empty when unauthed. -->
-        <template x-for="v in appViews" :key="v.key">
+        <template x-for="v in sidebarAppViews" :key="v.key">
           <button @click="goAppView(v)"
                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                   :class="view==='app' && appView && appView.key===v.key ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
@@ -924,7 +924,8 @@ function app(){ return {
     if (!p.has('repo') && !p.has('file') && !p.has('view')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
              file: p.get('file'), view: p.get('view'), path: p.get('path') || '',
-             appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '' };
+             appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '',
+             appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '' };
   },
 
   syncUrl(){
@@ -934,6 +935,7 @@ function app(){ return {
     if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
     p.delete('file'); p.delete('view'); p.delete('path');
     p.delete('appRepo'); p.delete('appPath'); p.delete('appRef');
+    p.delete('appLabel'); p.delete('appIcon');
     if (this.view === 'files') {
       // A cross-repo staged file (activeFile.origin from another repo) has no
       // honest ?file= deep link against the open repo, so it gets none.
@@ -952,6 +954,11 @@ function app(){ return {
       p.set('appRepo', this.appView.repo);
       p.set('appPath', this.appView.path);
       if (this.appView.ref) p.set('appRef', this.appView.ref);
+      // Carry the label/icon so a deep link is self-describing: the sidebar
+      // entry reads "News" with its icon even before the config cache (main-only
+      // discovery) has the entry.
+      if (this.appView.label) p.set('appLabel', this.appView.label);
+      if (this.appView.icon) p.set('appIcon', this.appView.icon);
     }
     else if (this.view === 'estate' && (p.has('repo') || p.has('ref'))) p.set('view', 'estate');
     const qs = p.toString();
@@ -1055,7 +1062,8 @@ function app(){ return {
     const key = url.appRepo + (url.appRef ? '@' + url.appRef : '') + ':' + url.appPath;
     return this.appViews.find(v => v.key === key) || {
       repo: url.appRepo, ref: url.appRef, path: url.appPath,
-      label: url.appPath.split('/').pop(), icon: 'ph-app-window', key,
+      label: url.appLabel || url.appPath.split('/').pop(),
+      icon: url.appIcon || 'ph-app-window', key,
     };
   },
   get appViewUrl(){
@@ -1063,6 +1071,17 @@ function app(){ return {
     if (!v || !v.repo || !v.path) return '';
     const ref = v.ref ? '@' + v.ref : '';
     return '../toss-render.html#gh=' + v.repo + ref + ':' + v.path;
+  },
+  // The sidebar app-view list: the collected app views (from the config cache,
+  // main-only), plus the app view currently open if it is not already among
+  // them. Discovery is main-gated, so a deep link to an app view whose repo has
+  // not merged its config yet still shows its own sidebar entry, selected, so
+  // the estate-level promotion is visible rather than an orphan main-area view.
+  get sidebarAppViews(){
+    const list = this.appViews.slice();
+    const v = this.appView;
+    if (v && v.key && !list.some(x => x.key === v.key)) list.unshift(v);
+    return list;
   },
   openSidebar(){ this.drawer = true; },
 
