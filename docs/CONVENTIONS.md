@@ -142,6 +142,8 @@ Never offer to mark the PR ready on its own (the UI has that button too). Offer 
 3. Finalize the guide (the routine per-push sync already keeps it current; this is the content pass): next steps become follow-ups (or tracker tasks), Notes / Risk current for the reviewer. It is the source the merge guide is generated from after merge. No hand-written merge-guide entry.
 4. Mark the PR ready.
 
+**Last look before the container goes.** A wrap-up gets the PR green; it is also the last moment the session's volatile context still exists. Two cheap passes close the gap. First, harvest any **precious work product**: output that would cost real tokens to reproduce and lives only in this session (a fan-out's findings, a spike's conclusion, a diagnosis that never became a commit). Route it to the guide's next steps, a tracker task, or a PR comment; if the diff or a one-line note already rebuilds it cheaply, let the container take it. Second, widen "leave it nicer" from the doc to the repo: check the files you added landed where they belong, and name any placement that sits uneasily. Both are a sentence or two when there is nothing to report, so neither is make-work.
+
 **UI trigger:** if the user marks the PR ready (or merges it) from the UI before a wrap-up ran, run steps 1 through 3 silently, surfacing any conflict the preflight finds since the open PR will show it.
 
 ### The next PR
