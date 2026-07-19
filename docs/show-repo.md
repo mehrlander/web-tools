@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=atlas|files|stage|branches`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=atlas|files|stage|branches|public`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views). The
@@ -44,9 +44,10 @@ the estate; the owner's repos below it are the per-repo contexts. In the estate
 the header reads `mehrlander / Repositories` with no branch selector, and the
 sidebar hides every per-repo item; pick a repo and the per-repo sidebar and
 branch context return. The brand icon returns to the estate on every viewport.
-The estate has three views of its own: **Repos** (the card grid), **Surfaces**,
-and the **Stage** (the cross-repo fileset, which belongs to no repo). See "The
-estate" and "The stage" below.
+The estate has views of its own: **Repos** (the card grid), **Surfaces**, the
+**Stage** (the cross-repo fileset, which belongs to no repo), and **Public
+browse** (the no-token file browser), plus any promoted **app views**. See "The
+estate", "The stage", and "Public browse" below.
 
 The per-repo views in the sidebar:
 
@@ -99,10 +100,11 @@ order). An `owner/foo-private` companion folds into `owner/foo`'s card by naming
 convention (both on the estate; no field), where the visibility glyph becomes a
 **toggle**: tap it to flip the card to the private repo's face (title, icon,
 note, gear, jumps all switch) and back. The card name opens the repo in the
-shell; the github-logo opens it on GitHub; the `pins` render as direct-jump
-chips. The gear opens the shared repo dialog on its **Settings** tab (a form for
-`icon` / `group` / `note` / …, beside the raw-JSON **Config** tab and **Links**),
-which writes the repo's own `.web-tools.json` without navigating away.
+shell; the github-logo opens it on GitHub; the cloud-download icon opens the repo
+in **Public browse**; the `pins` render as direct-jump chips. The gear opens the
+shared repo dialog on its **Settings** tab (a form for `icon` / `group` / `note`
+/ …, beside the raw-JSON **Config** tab and the **Info** tab), which writes the
+repo's own `.web-tools.json` without navigating away.
 
 **Adding a repo** sets `estate: true` (plus `group` / `note`) in the chosen
 repo's own config through the viewer's token (candidates come from the header
@@ -121,9 +123,39 @@ body). An agent session with registry access can write or extend a surface; the
 estate shows it on next load.
 
 Token gating: no token means the public default card only, no surfaces, and no
-write controls. Deep links: `?view=estate` (the bare URL is the Repos estate
-already; the param is stamped only when a `repo`/`ref` param is also present) and
-`?view=surfaces` (always stamped, so a Surfaces link is shareable on its own).
+write controls. In that state the Repos view leads with a **public banner** that
+says exactly what is and isn't available and offers the two real next steps, a
+token or Public browse, instead of a vague "set a token" aside. Deep links:
+`?view=estate` (the bare URL is the Repos estate already; the param is stamped
+only when a `repo`/`ref` param is also present) and `?view=surfaces` (always
+stamped, so a Surfaces link is shareable on its own).
+
+**The shield dialog is scoped by context.** Opened from the sidebar shield at the
+estate level it is an **account panel**: the token control plus the estate
+actions (**Refresh views**, which forces a config-cache rebuild), with no repo
+tabs. Opened from a card gear or the repo-level shield it is the **repo dialog**:
+the **Info** tab (repo facts, the token control, a Public-browse shortcut, and
+the repo name as the one-tap GitHub link), plus the **Settings** and **Config**
+tabs. The dialog's former GitHub / jsDelivr-CDN / flat-tree link list was retired
+(2026-07-19): GitHub is the header link, and a file listing lives in Public
+browse.
+
+## Public browse: the no-token file browser
+
+Public browse (`lib/alpineComponents/public-browse.js`) is the intentional
+**non-auth** capability, an estate-level view beside Repos / Surfaces / Stage. It
+lists and previews any **public** repo entirely through jsDelivr: `GH.flatTree()`
+(the `data.jsdelivr.com` flat listing) for the file tree and `GH.rawUrl()` (the
+`cdn.jsdelivr.net` raw address) for a file's bytes. The point is the signed-out
+case: GitHub's anonymous REST API is capped at 60 requests/hour/IP and
+`recentFiles` alone can spend that, whereas jsDelivr serves public repos from its
+CDN with no token and no GitHub quota. It works signed in too, as a rate-safe
+listing. Honest limits: public repos only (a private repo 404s, with a specific
+message pointing at the token), and the listing is jsDelivr's cache of a ref, so
+a brand-new push can lag ~12h. Reached from the sidebar, an estate card's
+cloud-download icon (which seeds it to that repo via the reactive `publicSeed`),
+or `?view=public`. Further jsDelivr endpoints (versions, resolved, stats) are a
+tracker follow-up.
 
 ## The stage: a cross-repo fileset
 
