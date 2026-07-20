@@ -4,6 +4,9 @@
       "AskUserQuestion"
     ]
   },
+  "enabledPlugins": {
+    "portable@web-tools": false
+  },
   "hooks": {
     "SessionStart": [
       {
