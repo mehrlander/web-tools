@@ -7,10 +7,11 @@ description: >-
   straight to main (not a feature branch). Invoking this skill bare (no
   further ask) surfaces a caption of the current board. Use when the user
   says "add a task", "file a task", "make a tracker task", "claim a task",
-  "check the tracker", "what's on the board", "regenerate the board", or
-  "close task X", or when a follow-up needs to survive across sessions.
-  Owns the tracker's file format and main-branch workflow; the
-  web-tools skill owns PR bodies, surfacing links, and the
+  "check the tracker", "what's on the board", "regenerate the board",
+  "close task X", "groom the tracker", "clean up the backlog", "audit the
+  tasks", or "prune stale tasks", or when a follow-up needs to survive
+  across sessions. Owns the tracker's file format and main-branch workflow;
+  the web-tools skill owns PR bodies, surfacing links, and the
   merge guide, so route those there.
 ---
 
@@ -151,6 +152,22 @@ owning branch, or the progress log changes.
 A task is done when its work **lands** (merges to `main`), not when the branch
 is pushed. Then set `status: done` and `closed: <YYYY-MM-DD>`, and add a final
 progress-log line.
+
+## Groom the tracker
+
+Read every task file's body and progress log, not just `board.md`. Flag each
+`backlog`/`blocked` task that's superseded, stale, a duplicate, or oversized
+(wants splitting), and any `in-progress` task whose `session:` branch is
+merged or gone. Propose findings; get confirmation before closing or
+splitting anything.
+
+The schema has no status for a groomed (not landed) close — `done` means
+landed. Use an open tag instead: `status: done`, `closed: <date>`,
+`resolution: superseded | stale | duplicate | dropped`, and name the cause
+in a progress-log line.
+
+Regenerate `board.md` and commit via the usual scratch-branch-to-main flow.
+Report what closed, what's proposed, and what was left alone.
 
 ## Comments split by append vs overwrite
 
