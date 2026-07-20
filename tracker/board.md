@@ -17,6 +17,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
 - 🎫 Converge the stage and surface item schemas
 - 🎫 toss-render ?query forwarding drops multi-param page queries next: decode the gh param from the raw fragment slice (not URLSearchParams) so a bare & in the page query survives, or document the %26 requirement in the head comment and the on-page help
+- 🎫 Load the ?use= bundle by fetch + blob-import instead of jsDelivr
 
 ## In progress
 - 🎫 Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: live-confirm branchesForPath (GraphQL Commit.file) with a token, then wrap up PR #241
