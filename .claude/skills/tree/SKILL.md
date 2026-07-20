@@ -53,29 +53,39 @@ Defaults: `--mode codespan`, `--ref main`, repo inferred from
 another repo from
 `https://raw.githubusercontent.com/mehrlander/web-tools/main/scripts/build-tree.py`.
 
-The flow: run the script for the skeleton, then annotate the rows that earn
-a gloss. For an unglossed tree the raw output is the deliverable.
+The flow: run the script for the skeleton (the skill passes `--depth 1` for
+the bare view), then append the curated **Major folders** block below it
+(next section). The gloss column is a separate, per-row option; for a plain
+subtree with neither block nor gloss, the raw output is the deliverable.
 
 ## Parameterization
 
-Bare `/tree` renders the repo root at a curated depth in codespan mode.
+Bare `/tree` renders a **dense default**: the repo root as the table
+header, its top level one deep, and a curated **Major folders** block
+beneath (see below). Depth is opt-in from there; ask to go deeper.
 Free-form arguments refine it; interpret them into these dimensions (same
 preset-plus-free-form model as `caption`'s sizes):
 
 | Dimension | Bare default | Example phrasing |
 |---|---|---|
 | scope | repo root | "tree of `lib`", "the pages folder" |
-| depth | curated (~2) | "depth 3", "just top level", "all the way down" |
+| depth | 1 (top level) | "depth 3", "expand", "go deeper", "all the way down" |
 | filter | tracked, noise pruned | "only markdown", "include untracked" |
 | mode | codespan | "braille", "as ascii", "pasteable" |
 | ref | main | "on my branch", "at `<sha>`" |
+| major | on | "just the tree", "skip the notes" |
 | gloss | off | "annotate it", "with a note per folder" |
 
 ## The two recorded formats
 
-Both put one node per table row, filetype icon as the color anchor, name
-linked to its GitHub blob (files) or tree (folders) URL. They differ only
-in how depth is drawn.
+The root is the table **header**: the repo (or subtree) name, linked, no
+folder icon and no literal "Tree" label. A header cell renders bold and
+still holds a link, so the reader stands in that folder with its contents
+listed below. Everything under it is one node per table row, filetype icon
+as the color anchor, name linked to its GitHub blob (files) or tree
+(folders) URL. The two formats differ only in how depth is drawn: codespan
+keeps the box-art rail, so the first level hangs off the header the way a
+classic `tree` hangs off its root; braille indents it one step.
 
 ### A. codespan (default) — box art in an inline code span
 
@@ -86,9 +96,8 @@ the cell trim; the icon and link sit outside the span, so they stay
 tappable. This is the most capable format: full box art, perfect
 alignment, links, icons, optional gloss.
 
-| Tree | What it is |
+| [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) | What it is |
 |---|---|
-| 📁 [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) | hooks, settings, skill bag |
 | `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks) | commit + session hooks |
 | `│  └─ `📄 [build-on-commit.sh](https://github.com/mehrlander/web-tools/blob/main/.claude/hooks/build-on-commit.sh) | regenerates derived files |
 | `└─ `📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) | the portable bag |
@@ -102,15 +111,49 @@ not. The icon carries the folder-vs-file signal. Cleaner and quieter than
 box art; best for shallow trees where the eye does not need a rail to peg
 depth.
 
-| Tree |
+| [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
 |---|
-| 📁 [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
 | ⠀⠀⠀📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) |
 | ⠀⠀⠀⠀⠀⠀📁 [caption](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/caption) |
 | ⠀⠀⠀⠀⠀⠀⠀⠀⠀📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/caption/SKILL.md) |
 
 Pick A when depth or alignment matters, or a gloss column is wanted; pick B
 for a quiet, shallow orientation view. When unsure, A is the default.
+
+## The Major folders block
+
+The dense default closes with a short curated block naming the folders
+worth knowing, appended as rows in the **same** table (a second table would
+spend the vertical margin a table exists to avoid). It is the judged tier:
+the script emits the tree, this block is authored from what the tree shows.
+
+Form: a `🧳 **Major folders**` header row, then one row per folder as
+`**[name](url)** › Headline`. The chevron reads as "leads to"; the bold
+name is its own left anchor, so no bullet is needed.
+
+The note describes **structure, not content**: the shape of the subtree
+(`One Folder Per Skill`, `Flat, Two Shell Scripts`), not what the folder is
+for. Structure is exactly what a depth-1 view stops short of showing, and
+it sits nearer the deterministic tier, so it is harder to get wrong than a
+content judgement. Content, the "what it is for," goes in the gloss column
+when a caller wants it.
+
+Curate, do not enumerate: name the few folders that orient a newcomer, cite
+one anywhere in the tree (not only the top level), and drop the block when
+the tree is small enough to read whole or the caller asks for the bare
+tree.
+
+| [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
+|---|
+| `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks) |
+| `├─ `📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) |
+| `└─ `⚙️ [settings.json](https://github.com/mehrlander/web-tools/blob/main/.claude/settings.json) |
+| 🧳 **Major folders** |
+| **[hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks)** › Two Shell Scripts, Flat |
+| **[skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills)** › One Folder Per Skill |
+
+The `└─ ` last row separates cleanly from the `🧳` header below; the note
+rows carry no connector, so they read as a distinct block, not tree nodes.
 
 ## The fallback: ascii code block
 

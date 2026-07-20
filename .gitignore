@@ -1,5 +1,7 @@
 node_modules/
 tools/.preview/
+__pycache__/
+*.pyc
 dist/*
 !dist/web-tools.js
 package-lock.json
