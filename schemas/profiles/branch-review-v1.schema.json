@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/schemas/profiles/branch-review-v1.schema.json",
+  "title": "branch-review profile (v1)",
+  "description": "Profile schema for a surface that serializes a branch review package: a base/head compare plus a role-annotated selection of changed and context items. A document claiming this profile must validate against BOTH the core surface v2 schema and this schema. Documentation: docs/surface.md.",
+  "type": "object",
+  "required": ["manifest", "context", "items"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "required": ["profile"],
+      "properties": {
+        "profile": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "const": "branch-review" },
+            "version": { "const": 1 }
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "required": ["repository", "base", "head"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "description": "owner/repo of the primary compare. Items may still target other repositories explicitly; per-source base_revision/head_revision covers the mixed-repository case."
+        },
+        "base": { "$ref": "#/$defs/endpoint" },
+        "head": { "$ref": "#/$defs/endpoint" },
+        "intent": {
+          "type": "string",
+          "description": "Why the change exists, one short statement."
+        },
+        "review_focus": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["role", "view"],
+        "properties": {
+          "role": {
+            "description": "Required under this profile. Documented values: intent, changed, context, omitted.",
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            ]
+          },
+          "view": {
+            "type": "object",
+            "required": ["mode"]
+          }
+        },
+        "if": {
+          "properties": { "role": { "const": "changed" } }
+        },
+        "then": {
+          "required": ["change"],
+          "properties": {
+            "change": {
+              "type": "object",
+              "required": ["status"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "endpoint": {
+      "type": "object",
+      "required": ["ref"],
+      "properties": {
+        "ref": { "type": "string", "minLength": 1 },
+        "revision": {
+          "type": "string",
+          "description": "Resolved commit id. Strongly recommended: a ref moves, a revision does not."
+        }
+      }
+    }
+  }
+}
