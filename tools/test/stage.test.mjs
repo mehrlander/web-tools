@@ -396,6 +396,29 @@ test('copyDiff copies the diff dump and flips diffCopied', async () => {
   assert.equal(data.diffCopied, true);
 });
 
+test('invalidateDiff drops a shown diff so a stale copy can\'t mismatch the selection', () => {
+  reset();
+  data.diffRows = [{ t: 'add', line: 'x' }];
+  data._diffTextA = 'old A'; data._diffTextB = 'old B'; data.diffStat = '+1 −0';
+  data.invalidateDiff();
+  assert.equal(data.diffRows, null, 'rows cleared');
+  assert.equal(data._diffTextA, '', 'stored A text cleared');
+  assert.equal(data._diffTextB, '', 'stored B text cleared');
+  assert.equal(data.diffStat, '', 'stat cleared');
+});
+
+test('removing a staged item clamps a now-out-of-range B and clears the stale diff', async () => {
+  reset();
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }, { repo: 'me/b', ref: '', path: 'y.js' }];
+  await tick();
+  assert.equal(data.diffB, 1, 'auto-paired to the second item');
+  data.diffRows = [{ t: 'ctx', line: 'z' }];
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }];  // drop the B item
+  await tick();
+  assert.equal(data.diffB, 0, 'B clamped back into range');
+  assert.equal(data.diffRows, null, 'the stale diff was dropped');
+});
+
 test('copyPrompt assembles both texts, the diff, and the specific ask', async () => {
   reset();
   clipWrites.length = 0;
