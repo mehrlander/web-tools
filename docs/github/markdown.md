@@ -4,10 +4,16 @@ GitHub renders far more than paragraphs and lists. This page is a small gallery 
 things that show up **when you view a `.md` on GitHub** — no JavaScript, no build step,
 just static markdown that the renderer turns into pictures, charts, and callouts.
 
+This doc is scoped to **GitHub's static renderer**. For the *chat client's*
+renderer (a provider's app on a narrow phone, where nested bullets balloon and
+markdown tables carry a file tree), see the companion
+[`markdown-in-chat.md`](../markdown-in-chat.md). Same markup, different
+renderer, different good moves.
+
 The running example throughout is an **imaginary chat dialog plotted on a timeline**:
 each *response* is a mark whose **height is its size** (character count), time runs
 left-to-right in **five-minute slots**, and an empty slot is a **gap**. When two
-responses land in the same slot we **bank** the overflow — queue it and drain one per
+responses land in the same slot we **bank** the overflow: queue it and drain one per
 slot into the slots that follow, so every response keeps its own mark.
 
 ---

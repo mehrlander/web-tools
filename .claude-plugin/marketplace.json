@@ -9,7 +9,7 @@
       "name": "portable",
       "source": "./.claude/skills",
       "strict": false,
-      "description": "The to-go bag: /portable:web-tools (load the portable working conventions), /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), /portable:show-repo (browse and move files across repos), and /portable:tasks (operate the cross-session project tracker).",
+      "description": "The to-go bag: /portable:web-tools (load the portable working conventions), /portable:caption (the surfacing caption), /portable:load-skill (fetch any skill from the library), /portable:show-repo (browse and move files across repos), /portable:tasks (operate the cross-session project tracker), and /portable:tree (render a linked file tree for chat).",
       "author": {
         "name": "mehrlander"
       },
@@ -19,9 +19,10 @@
         "./caption",
         "./load-skill",
         "./show-repo",
-        "./tasks"
+        "./tasks",
+        "./tree"
       ],
-      "keywords": ["conventions", "caption", "surfacing", "tracker"]
+      "keywords": ["conventions", "caption", "surfacing", "tracker", "tree"]
     },
     {
       "name": "daisy-alpine",
