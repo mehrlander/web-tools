@@ -155,45 +155,22 @@ progress-log line.
 
 ## Groom the tracker
 
-Use when the ask is "groom the tracker", "clean up the backlog", "audit the
-tasks", "prune stale tasks", or similar: a review pass over the whole board,
-not a single task edit. File/claim/close act on one task the caller already
-has in mind; grooming is the operation that finds the ones nobody's looking
-at.
+Use for "groom the tracker", "clean up the backlog", "audit the tasks", or
+"prune stale tasks": a review pass over the whole board, not one task.
 
-Read every task file under `tracker/tasks/` directly (not `board.md`'s
-prose), body and progress log included, not just frontmatter. For each
-`backlog` or `blocked` task, check whether it is:
+Read every task file's body and progress log, not just `board.md`. Flag each
+`backlog`/`blocked` task that's superseded, stale, a duplicate, or oversized
+(wants splitting), and any `in-progress` task whose `session:` branch is
+merged or gone. Propose findings; get confirmation before closing or
+splitting anything.
 
-- **superseded**: a later task covers its scope (the board already has a
-  hand-written example of this — see `private-repo-landing-federation-u50nns`)
-- **stale**: it references code, a blocker, or a state that no longer exists
-- **duplicate**: another open task covers the same work
-- **oversized**: scope has grown past one task and wants splitting
-
-Also skim `in-progress` tasks for one thing grooming alone can catch: an
-owning branch (`session:`) that's merged or gone while the task still reads
-`in-progress`.
-
-Grooming makes judgment calls; file/claim/close don't. Propose findings and
-get the user's confirmation before closing or splitting anything — don't
-act unilaterally on a review pass the way a direct "close task X" would.
-
-For a task closed by grooming rather than by landed work, the schema has no
-dedicated status for that (`docs/TRACKER.md`'s `status` is `backlog |
-in-progress | blocked | done`, and "done" is defined as *landed*). Don't
-invent a new recognized status for this. Instead, per the schema's own
-graduation rule, use an open tag: set `status: done`, `closed: <date>`, add
+The schema has no status for a groomed (not landed) close — `done` means
+landed. Use an open tag instead: `status: done`, `closed: <date>`,
 `resolution: superseded | stale | duplicate | dropped`, and name the cause
-(and the superseding task's id, if any) in a final progress-log line, so a
-reader can tell a groomed close from a landed one at a glance. If
-`resolution` earns its keep across enough tasks, it's a candidate to graduate
-to a recognized key the board generator groups by — that's a separate,
-larger change, not something grooming does on its own.
+in a progress-log line.
 
-Regenerate `board.md` and commit through the same scratch-branch-to-main
-flow as any other tracker edit. Close by reporting what closed, what's
-proposed but awaiting confirmation, and what was left alone.
+Regenerate `board.md` and commit via the usual scratch-branch-to-main flow.
+Report what closed, what's proposed, and what was left alone.
 
 ## Comments split by append vs overwrite
 
