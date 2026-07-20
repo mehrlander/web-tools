@@ -1,13 +1,14 @@
 // alpineComponents/stage.js — logic-level tests for the stager: the estate-
-// level picker roots (pickerRoots), the grab flow, the inline preview, and the
+// level picker roots (pickerRoots), the grab flow, the inline preview, the
 // folding of dropped local files into the one stage (a local item beside refs,
 // both flowing through the one send/save/mint, with save naming its target
-// repo). Driven directly against a fake browser store; no network, no real
+// repo), and the Diff lens's A/B auto-pairing, diff dump, and review-prompts
+// copy. Driven directly against a fake browser store; no network, no real
 // files, no picker pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
 
 const calls = [];
 
@@ -48,7 +49,14 @@ const data = Alpine.$data(window.document.getElementById('st'));
 const store = Alpine.store('browser');
 store.gh = new FakeGH({ token: 't', repo: 'me/open' });
 const plain_ = (v) => JSON.parse(JSON.stringify(v));
-const reset = () => { store.stage = []; };
+const reset = () => { store.stage = []; data.diffA = 0; data.diffB = 0; data._diffTouched = false; data.diffRows = null; };
+
+// navigator.clipboard isn't polyfilled by makeWindow (see its header note).
+// Component code runs in the jsdom window realm (new window.Function(src)()),
+// so its bare `navigator` is window.navigator, not Node's globalThis.navigator
+// — stub it there so copyDiff/copyPrompt are exercisable without a real clipboard.
+const clipWrites = [];
+window.navigator.clipboard = { writeText: async (t) => { clipWrites.push(t); } };
 
 test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
@@ -324,4 +332,85 @@ test('save refuses a malformed target without writing', async () => {
   store.stage = [{ repo: 'me/open', ref: '', path: 'lib/a.js' }];
   await data.save();
   assert.equal(calls.length, 0);
+});
+
+// ---- Diff lens: A/B auto-pairing, dump, and the review-prompts copy -----
+
+test('a second staged item auto-pairs into B, untouched', async () => {
+  reset();
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }];
+  await tick();
+  assert.equal(data.diffA, 0);
+  assert.equal(data.diffB, 0, 'one item: nothing to pair yet');
+  store.stage = [...store.stage, { repo: 'me/b', ref: '', path: 'y.js' }];
+  await tick();
+  assert.equal(data.diffB, 1, 'second item auto-pairs into B');
+});
+
+test('auto-pairing stops once the user has picked A/B by hand', async () => {
+  reset();
+  await tick();
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }, { repo: 'me/b', ref: '', path: 'y.js' }];
+  await tick();
+  assert.equal(data.diffB, 1);
+  data._diffTouched = true;
+  data.diffB = 0;
+  store.stage = [...store.stage, { repo: 'me/c', ref: '', path: 'z.js' }];
+  await tick();
+  assert.equal(data.diffB, 0, 'a manual pick is not overridden by a later addition');
+});
+
+test('diffLabel names the override ref when given, else the item\'s own ref or "default"', () => {
+  const refItem = { repo: 'me/a', ref: 'dev', path: 'x.js' };
+  assert.equal(data.diffLabel(refItem, ''), 'me/a@dev:x.js');
+  assert.equal(data.diffLabel(refItem, 'main'), 'me/a@main:x.js');
+  assert.equal(data.diffLabel({ repo: 'me/a', ref: '', path: 'x.js' }, ''), 'me/a@default:x.js');
+  assert.equal(data.diffLabel({ local: true, name: 'pasted.txt' }, ''), '(local) pasted.txt');
+});
+
+test('diffDump renders a labeled header over the tagged rows', () => {
+  reset();
+  data.diffRows = [{ t: 'ctx', line: 'a' }, { t: 'del', line: 'b' }, { t: 'add', line: 'B' }];
+  store.stage = [{ repo: 'me/a', ref: 'main', path: 'x.js' }, { repo: 'me/a', ref: 'dev', path: 'x.js' }];
+  data.diffA = 0; data.diffB = 1;
+  assert.equal(data.diffDump,
+    '--- A: me/a@main:x.js\n+++ B: me/a@dev:x.js\n\n  a\n- b\n+ B');
+});
+
+test('diffPrompts is the fixed general-review list, label + ask', () => {
+  const prompts = data.diffPrompts;
+  assert.ok(prompts.length >= 5);
+  assert.ok(prompts.every(p => p.label && p.ask));
+  assert.ok(prompts.some(p => p.label === 'Tighten it'));
+});
+
+test('copyDiff copies the diff dump and flips diffCopied', async () => {
+  reset();
+  clipWrites.length = 0;
+  data.diffRows = [{ t: 'add', line: 'x' }];
+  store.stage = [{ repo: 'me/a', ref: '', path: 'f.js' }, { repo: 'me/b', ref: '', path: 'f.js' }];
+  data.diffA = 0; data.diffB = 1;
+  await data.copyDiff();
+  assert.equal(clipWrites.length, 1);
+  assert.match(clipWrites[0], /^--- A: me\/a@default:f.js/);
+  assert.equal(data.diffCopied, true);
+});
+
+test('copyPrompt assembles both texts, the diff, and the specific ask', async () => {
+  reset();
+  clipWrites.length = 0;
+  store.stage = [
+    { repo: 'me/a', ref: '', path: 'lib/x.js' },
+    { local: true, id: 201, name: 'pasted.txt', path: 'pasted.txt', size: 4, isText: true, text: 'CONTENT me/a:lib/x.js\nextra' },
+  ];
+  data.diffA = 0; data.diffB = 1; data.diffARef = ''; data.diffBRef = '';
+  await data.runDiff();
+  await data.copyPrompt('Make it more succinct.', 0);
+  assert.equal(clipWrites.length, 1);
+  const t = clipWrites[0];
+  assert.match(t, /A \(me\/a@default:lib\/x\.js\):\nCONTENT me\/a:lib\/x\.js/);
+  assert.match(t, /B \(\(local\) pasted\.txt\):\nCONTENT me\/a:lib\/x\.js\nextra/);
+  assert.match(t, /DIFF:\n--- A:/);
+  assert.match(t, /REVIEW REQUEST: Make it more succinct\.$/);
+  assert.equal(data.promptCopiedIdx, 0);
 });
