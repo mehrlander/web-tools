@@ -33,8 +33,10 @@ here; everything longer-form lives in this folder.
   `SessionStart` hook this repo runs).
 - **[github/](github/)** — working with GitHub itself: what its renderer turns
   markdown into ([markdown.md](github/markdown.md) — Mermaid, math, sparklines,
-  alerts), plus durable notes on how this repo treats git history and branches,
-  behind the workflow rules in `CLAUDE.md`. Starts with
+  alerts), the GitHub-native surfaces for exposing work
+  ([github-surfacing.md](github/github-surfacing.md) — branches, compare views,
+  draft PRs, permalinks, diffs), plus durable notes on how this repo treats git
+  history and branches, behind the workflow rules in `CLAUDE.md`. Starts with
   [post-merge branch mutation](github/post-merge-branch-mutation.md)
   (*merged means closed*).
 - **[MERGE-GUIDE.md](MERGE-GUIDE.md)** — a newest-on-top log of what each

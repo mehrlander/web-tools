@@ -27,3 +27,10 @@ here so the rules have a place to point.
   servers are connected at once, a call's approval prompt can be a routing
   artifact, not a permission wall. Prefer the stable `mcp__github__*` server;
   retry an unexpectedly-gated call on the sibling before re-approving.
+
+## How work is surfaced
+
+- **[github-surfacing.md](github-surfacing.md)** — GitHub-native ways to expose
+  work: branches, commits, compare views, draft pull requests, file permalinks,
+  and serialized diffs. The mechanical layer under the chat-handoff surfacing
+  primitives in [CONVENTIONS.md](../CONVENTIONS.md).

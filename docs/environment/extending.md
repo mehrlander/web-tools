@@ -1,109 +1,123 @@
-# The Claude Code Extension Model
+# Claude Code extension model
 
-A map of how Claude Code is extended. The pieces nest cleanly once you understand their purpose. Some change what Claude knows, some spin up a second worker, some connect Claude to the outside world, and others trigger automatically. A plugin is simply the container you pack a chosen few into for distribution.
+Claude Code supports [skills](https://code.claude.com/docs/en/skills), [subagents](https://code.claude.com/docs/en/sub-agents), [MCP servers](https://code.claude.com/docs/en/mcp), [hooks](https://code.claude.com/docs/en/hooks), [LSP servers](https://code.claude.com/docs/en/plugins-reference#lsp-servers), and [plugins](https://code.claude.com/docs/en/plugins).
 
-This page is the conceptual frame; where this repo actually configures one of these mechanisms, the concrete details live alongside the relevant component. Today that's two hooks: the [SessionStart install](#the-hook-this-repo-runs-sessionstart-install) (documented below) and the commit-time `build-on-commit.sh`, which keeps deterministic derived artifacts (the pre-build, the pages catalogs) staged into the commits that change their sources — documented in [`tools/README.md`](../../tools/README.md#the-refresh-model)'s refresh model.
+This repository uses two hooks:
 
-## The Components
+* A Claude Code `SessionStart` hook that installs repository dependencies.
+* A commit-time `build-on-commit.sh` hook that stages deterministic derived artifacts when their sources change. See the [`tools/README.md`](../../tools/README.md#the-refresh-model) refresh model.
 
-### Skills: What Claude Knows
+## Components
 
-Knowledge, loaded on demand. A SKILL.md file teaches Claude how to execute a convention, pattern, or methodology. Claude reads the frontmatter at session start and pulls the full skill into context only when required.
+### Skills
 
-Slash commands are no longer separate; they are now folded into skills. A command is simply a skill triggered explicitly with /name instead of relying on auto-detection. It is the same file accessed differently.
+A [skill](https://code.claude.com/docs/en/skills) is a directory containing a `SKILL.md` file and optional supporting files. Its description is included in the available-skills listing. Its full contents are loaded when invoked.
 
-Use a skill when you want Claude to know *how* to perform a task your way. (The root `CLAUDE.md` is the always-on form of this layer: project instructions Claude carries every session rather than loading on demand.)
+Skills may be invoked automatically or explicitly as `/name`. Files under `.claude/commands/` remain supported and are handled as skills, but new extensions should use `.claude/skills/`.
 
-### Agents (Subagents): A Bounded Second Worker
+[`CLAUDE.md`](https://code.claude.com/docs/en/memory) contains persistent project instructions loaded at session start.
 
-A separate Claude instance with its own context window, system prompt, and tool permissions. It takes a focused task, works in isolation, and reports back a summary to keep your main session lean.
+### Subagents
 
-The system prompt acts as the persona. An agent comes in cold, avoiding your main thread’s assumptions or half-finished reasoning. A code reviewer that never absorbed your justifications provides better feedback. Pair the persona with a strict toolset: a reviewer gets read-only access, while a test writer gets write access but is instructed to leave the source alone. The agent's identity and permissions are tightly coupled.
+A [subagent](https://code.claude.com/docs/en/sub-agents) is a separate Claude instance with its own context window, system prompt, tools, and permissions. It receives a bounded task and returns its result to the main session.
 
-Use an agent when your main context suffers from bloat or bias and requires a fresh, bounded worker.
+### MCP servers
 
-### MCP Servers: Reaching the Outside World
+[MCP servers](https://code.claude.com/docs/en/mcp) provide access to external tools and data sources such as APIs, databases, calendars, and issue trackers.
 
-The wiring to external systems like databases, APIs, calendars, or issue trackers. While skills tell Claude *how* to do something, MCP gives Claude something to *act on*.
+MCP tool definitions consume context. Claude Code can defer loading them through MCP tool search.
 
-Note the cost asymmetry. A skill description is cheap, but an MCP connection can be expensive because it pulls large tool definitions into context.
+### Hooks
 
-Use MCP when a task requires data or actions beyond the current session.
+[Hooks](https://code.claude.com/docs/en/hooks) run configured actions at Claude Code lifecycle events.
 
-### Hooks: Reflexes
+[`SessionStart`](https://code.claude.com/docs/en/hooks#sessionstart) fires at startup, resume, clear, and compaction. Other events cover tool use, file changes, subagents, notifications, and session termination.
 
-Automated actions that fire at specific lifecycle moments rather than on request. They require no persona or knowledge, just a trigger and an action. Examples include running a linter on file save or blocking a commit that fails a check. The work happens automatically.
+#### SessionStart dependency install
 
-Use a hook when you want a behavior to be automatic instead of requested.
+`.claude/settings.json` registers `.claude/hooks/session-start.sh` as a `SessionStart` hook.
 
-#### The hook this repo runs: SessionStart install
+The script:
 
-Every web session begins from a fresh clone of this repo with nothing installed. A small `SessionStart` hook runs `npm install` at startup so the repo's **devDependencies** are on disk before any work begins. Without it, the first test or preview each session has to stop and install packages first.
+1. Exits unless `CLAUDE_CODE_REMOTE=true`.
+2. Reads `devDependencies` from `package.json`.
+3. Exits if each dependency has a corresponding `node_modules/<package>` directory.
+4. Otherwise runs `npm install`.
 
-**What actually runs:**
+[`CLAUDE_CODE_REMOTE`](https://code.claude.com/docs/en/env-vars) is set to `true` in Claude Code cloud sessions. The check prevents the hook from installing dependencies in local sessions.
 
-- **`.claude/settings.json`** registers a `SessionStart` hook (it fires on a new session and on resume).
-- **`.claude/hooks/session-start.sh`** is the script it runs. It:
-  1. **Exits immediately on a local machine.** It only does work when `CLAUDE_CODE_REMOTE=true`, i.e. in Claude Code on the web. Your laptop manages its own dependencies.
-  2. **Skips if every declared devDependency is already there.** It reads the `devDependencies` from `package.json` and checks each has a `node_modules/<pkg>` dir; if all are present (e.g. a cached environment) it does nothing and exits. Safe to run any number of times. *(This check is derived from `package.json` on purpose: an earlier version hard-coded just `jsdom` + `alpinejs`, so once `playwright` and the vendored CDN libs were added a partially-populated cache slipped past the guard and left `npm run shot` broken.)*
-  3. **Otherwise runs `npm install`** — pulling the devDependencies below.
+The packages are repository `devDependencies`. They are declared in `package.json` and installed by the hook. They are not supplied as part of the Claude Code environment.
 
-**Why these dependencies exist.** The packages in `package.json` aren't shipped to users — the live pages load their UI libraries from CDNs at runtime. They're all **tooling for working on the repo**, in two groups.
+`jsdom`, `alpinejs`, `fake-indexeddb`, and `idb-keyval` support browser-logic tests under Node. `playwright` drives the Chromium installation supplied by the web environment. It is pinned to `1.56.0` to match that browser build. See [capabilities.md](capabilities.md).
 
-*Logic testing under jsdom* (the preview harness + the jsdom+Alpine recipe):
+The remaining packages are local copies of libraries used by the pages at runtime: `@tailwindcss/browser`, `@tailwindcss/typography`, `daisyui`, `@phosphor-icons/web`, `@alpinejs/collapse`, and `@alpinejs/sort`. The render tools use these copies in place of CDN requests.
 
-| Package | What it's for |
-|---|---|
-| `jsdom` | A fake browser DOM in Node, so component logic can be tested without a real browser. |
-| `alpinejs` | The real Alpine runtime, loaded into jsdom to drive components the way a page would. |
-| `fake-indexeddb` | An in-memory IndexedDB, so storage-backed code runs under Node. |
-| `idb-keyval` | The tiny IndexedDB wrapper several kits use; needed when exercising them. |
+The dependencies support:
 
-*Headless render + build* (the [`tools/`](../../tools/) harness — `npm run shot` / `build` / `bake` / `verify-build`), which serves the working tree over loopback and intercepts every CDN request to a local file:
+* `npm run preview <page-path>` through `tools/render/preview.mjs`.
+* `npm run shot`, `build`, `bake`, and `verify-build`.
+* jsdom and Alpine logic tests.
 
-| Package | What it's for |
-|---|---|
-| `playwright` | Drives the pre-installed Chromium for real-pixel screenshots. **Pinned to `1.56.0`** — build 1194 of the on-disk browser only matches `playwright@1.56.x` (see [capabilities.md](capabilities.md)); a floating `^` range drifts to a client that errors with "executable doesn't exist". |
-| `@tailwindcss/browser`, `@tailwindcss/typography`, `daisyui`, `@phosphor-icons/web`, `@alpinejs/collapse`, `@alpinejs/sort` | npm copies of the UI libraries the pages pull from jsDelivr/unpkg at runtime, so [`tools/render/cdn.mjs`](../../tools/render/cdn.mjs) can vendor each blocked CDN request from `node_modules` instead. |
+The preview harness runs the page under jsdom, executes the `gh.load` chain, mounts Alpine, and reports mounted components. Because jsdom does not run module scripts or dynamic imports, the harness rewrites the boot block as an async IIFE and shims the `gh-api.js` import. Failure to mount `kits/cm6.js` is reported but nonfatal. Pixel verification uses `npm run shot`.
 
-These power three jobs: the **preview harness** (`npm run preview <page-path>`, `tools/render/preview.mjs`) that loads a page under jsdom, runs the full `gh.load` chain, mounts Alpine, and reports which components mounted (jsdom runs no module scripts or dynamic `import()`, so preview rewrites the boot block to a classic async IIFE and shims the `import(gh-api.js)` call — `esm.sh`-loaded `kits/cm6.js` still can't mount, reported but non-fatal; use `npm run shot` for pixels); the **headless render/build tools** (`tools/`, see [testing.md](testing.md) and [`tools/README.md`](../../tools/README.md)); and the **jsdom + Alpine logic tests** (the recipe in [testing.md](testing.md)) for driving a component with the real Alpine runtime and asserting on its state.
+The render tools serve the working tree over loopback and replace CDN requests with files from `node_modules`.
 
-**Notes:**
+The hook runs synchronously. `npm install` requires package-registry access. Claude Code's default [Trusted network configuration](https://code.claude.com/docs/en/claude-code-on-the-web#network-access-and-security) permits access to npm and other common package registries.
 
-- **Network:** `npm install` needs `registry.npmjs.org`, which the sandbox allows (see [capabilities.md](capabilities.md)). It would fail only under a "None" network policy.
-- **Web-only is deliberate.** The script exits immediately unless `CLAUDE_CODE_REMOTE=true`. Local checkouts manage their own dependencies, so there's nothing for it to do there.
-- **Synchronous:** the session waits for the install to finish before starting, so dependencies are guaranteed ready. It can be switched to async (faster start, small race-condition risk) if that tradeoff is ever preferred.
-- **Not cached across fresh sessions.** A SessionStart hook runs on every session and is *not* part of the environment's filesystem snapshot — only a cloud **setup script** is cached that way. So the skip-if-present check mainly saves time on **resume** (same container); a brand-new web session starts from a clean clone and runs the full `npm install` (~6s). If startup speed ever outweighs keeping setup committed in the repo, the cache-it-once alternative is a setup script (configured in the web UI, cloud-only, so not visible in the repo) — see [capabilities.md](capabilities.md) and the web docs.
-- **Takes effect after merge:** a hook only runs for sessions started from a branch that contains it. Once this is on the default branch, every future web session picks it up.
+A fresh web session normally runs the installation. A resumed session may reuse the existing `node_modules` directory.
 
-### LSP Servers: Language Plumbing
+A cloud [setup script](https://code.claude.com/docs/en/claude-code-on-the-web#environment-caching) is the cached alternative. Claude Code runs the setup script when building an environment snapshot and reuses the resulting filesystem in later sessions. Repository hooks remain in source control and run at their configured lifecycle events.
 
-Language Server Protocol definitions that give Claude richer code intelligence for specific languages. This is essential plumbing but not something to configure manually early on. Acknowledge its existence and ignore it for now.
+The hook applies only to sessions using a branch that contains its configuration.
 
-## The Box
+### LSP servers
 
-### Plugins: The Distribution Unit
+[LSP servers](https://code.claude.com/docs/en/plugins-reference#lsp-servers) provide language-aware diagnostics, symbol lookup, references, and code navigation. Claude Code configures them through language-specific plugins. The corresponding language-server executable must be installed in the environment.
 
-A plugin bundles a selected set of the components above into one installable package. Its value lies in distribution, not runtime behavior. The plugin itself does nothing; it simply packages functional tools so a teammate can run a single install and inherit your entire setup, fully versioned, namespaced, and updatable.
+### Plugins
 
-Skills are namespaced as /pluginName:skillName to avoid collisions. If names clash, precedence follows this order: **enterprise > user > project > plugin**.
+A [plugin](https://code.claude.com/docs/en/plugins) is a self-contained package of extension components. It may contain skills, subagents, hooks, MCP servers, LSP servers, monitors, executables, and default settings.
 
-## The Token Tax
+Plugins provide distribution, versioning, installation, and updates. Plugin skills use `/plugin-name:skill-name`.
 
-Every skill and agent description sits in your context regardless of whether it fires. Consequently, a bloated plugin taxes every session, even when idle. Claude Code provides a /plugin inspector that displays a plugin’s component inventory and splits its cost two ways:
+Plugin skills are namespaced and do not conflict with project or user skills. Ordinary skill precedence is managed, user, then project. Subagent precedence is managed, command-line definition, project, user, then plugin. See [feature layering](https://code.claude.com/docs/en/features-overview#understand-how-features-layer).
 
- * **Always-on:** Tokens added to every session by listing text (skill descriptions, agent descriptions, command names), regardless of execution.
- * **On-invoke:** Tokens a component costs when it actually runs.
+## Settings
 
-This provides honest accounting. Bundle deliberately.
+[`settings.json`](https://code.claude.com/docs/en/settings) configures permissions, environment variables, hooks, model selection, plugins, and MCP servers.
 
-## The One-Line Mental Model
+| Scope | Location | Applies to |
+| --- | --- | --- |
+| Managed | OS policy path (`/etc/claude-code/` on Linux) | Organization or machine |
+| User | `~/.claude/settings.json` | User across all projects |
+| Project | `.claude/settings.json` | Everyone in the repository |
+| Local | `.claude/settings.local.json` | User in this repository |
 
-| Component | What it is | Reach for it when |
-|---|---|---|
-| **Skill** | Knowledge, loaded on demand | Claude should know *how* to do a task your way |
-| **Agent** | A persona in its own context, with bounded tools | Your main context needs a fresh or isolated worker |
-| **MCP server** | A connection to an external system | The task needs outside data or actions |
-| **Hook** | A trigger-and-action reflex | A behavior should be automatic, not requested |
-| **LSP server** | Language tooling | Later. Plumbing. |
-| **Plugin** | The suitcase you pack a few of these into | You want to share or version a coordinated setup |
+**Precedence, highest → lowest:** managed → command line → local → project → user.
+
+`permissions` and `hooks` merge across scopes instead of overriding. Precedence otherwise varies by feature: settings prefer project over user; skills prefer user over project.
+
+This setup uses:
+
+- [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion` and registers the two hooks above.
+- `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
+
+The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.
+
+## Context cost
+
+Skill and agent descriptions consume context even when their full contents are not invoked. Full skill contents enter the conversation when the skill runs and remain there for the session.
+
+The [`claude plugin inspect`](https://code.claude.com/docs/en/plugins-reference#plugin-inspect) command reports the plugin inventory and two cost estimates:
+
+* **Always-on:** listing text included in every session, including skill descriptions, agent descriptions, and command names.
+* **On-invoke:** context added when a component runs.
+
+| Component  | Function                                             |
+| ---------- | ---------------------------------------------------- |
+| Skill      | Instructions and reference material loaded on demand |
+| Subagent   | Separate bounded Claude instance                     |
+| MCP server | External tools and data                              |
+| Hook       | Lifecycle-triggered action                           |
+| LSP server | Language diagnostics and navigation                  |
+| Plugin     | Installable component package                        |
