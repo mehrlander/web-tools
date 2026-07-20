@@ -155,9 +155,6 @@ progress-log line.
 
 ## Groom the tracker
 
-Use for "groom the tracker", "clean up the backlog", "audit the tasks", or
-"prune stale tasks": a review pass over the whole board, not one task.
-
 Read every task file's body and progress log, not just `board.md`. Flag each
 `backlog`/`blocked` task that's superseded, stale, a duplicate, or oversized
 (wants splitting), and any `in-progress` task whose `session:` branch is
