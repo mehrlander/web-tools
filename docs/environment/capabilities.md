@@ -29,6 +29,28 @@ see [container.md](container.md); for how to use these to test HTML/JS, see
 - A real **Chromium is pre-installed** (see Browsers below). Headless rendering
   and screenshots *are* available in-sandbox.
 
+## Git transport: a per-push size ceiling
+
+*(verified 2026-07-20)*
+
+`git push` runs through the same proxy, which caps a single push's request
+body. A push of ~757 MB (a fresh corpus of 1,435 PDFs committed at once)
+returns **HTTP 413** and the whole pack is rejected:
+
+```
+error: RPC failed; HTTP 413 curl 22 The requested URL returned error: 413
+send-pack: unexpected disconnect while reading sideband packet
+```
+
+`http.postBuffer` does not help: the 413 is the proxy refusing the body, not a
+client buffer. The fix uses the fact that a push carries only the objects the
+remote lacks, so a smaller commit is a smaller push: **split a large addition
+across several commits and push after each.** Batches of ~90-130 MB cleared
+reliably; ~757 MB did not (the exact ceiling is unprobed, somewhere between).
+For a large tracked corpus, commit it in slices (by year, by prefix) and push
+per slice; the branch and any draft PR come up on the first small push, and the
+rest stream in behind it.
+
 ## Toolchain: `check-tools`, and what it omits
 
 *(verified 2026-05-30)*
@@ -47,6 +69,22 @@ Confirm with `command -v`.
 ```bash
 for t in ruby php composer psql redis-server bun; do command -v "$t" || echo "missing: $t"; done
 ```
+
+**A pip install can leave a broken system `cryptography` in place.**
+*(verified 2026-07-20)* Installing a package that depends on `pdfminer.six`
+(e.g. `pdfplumber`, common for PDF table work) finds the system
+`cryptography` 41.0.7 already satisfying the requirement and keeps it, but its
+Rust binding then panics at import under this Python:
+
+```
+pyo3_runtime.PanicException: Python API call failed
+```
+
+The failing line is innocuous (`import pdfplumber`), so it reads as a broken
+package rather than a version conflict. `pip install --user --upgrade
+cryptography` (reached 49.0.0) shadows the system copy and resolves it. Suspect
+this for any `pyo3_runtime.PanicException` on import from a freshly
+pip-installed library.
 
 ## Network access: a curated allowlist, not open egress
 
