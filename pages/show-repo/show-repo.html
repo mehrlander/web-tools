@@ -69,10 +69,13 @@
       <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
         <template x-for="v in estateNav" :key="v.view">
           <button @click="v.go()" :title="v.label"
-                  class="btn btn-sm btn-ghost gap-1.5 shrink-0 px-2"
+                  class="btn btn-sm btn-ghost gap-1.5 shrink-0 px-2.5"
                   :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70'">
             <i class="ph text-base leading-none" :class="v.icon"></i>
-            <span class="hidden md:inline text-xs font-medium" x-text="v.label"></span>
+            <!-- The label always shows for the active view (so the bar names
+                 where you are) and for every view on desktop; inactive views are
+                 icon-only on mobile, so the closed set fits without scrolling. -->
+            <span class="text-xs font-medium" :class="!navActive(v) && 'hidden md:inline'" x-text="v.label"></span>
           </button>
         </template>
       </nav>
