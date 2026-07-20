@@ -94,10 +94,13 @@ const data = Alpine.$data(window.document.getElementById('br'));
 const store = Alpine.store('browser');
 // Setting store.repo also fires the component's repo watcher, so a test's
 // explicit load() can overlap a watcher-triggered one; "settled" is when the
-// surviving run's rows have all landed, not when a loading flag dips.
+// surviving run's survey has landed (the load done, the pool idle, every older
+// branch classified), not when a loading flag dips. The fixtures stay under
+// SURVEY_CAP, so every older branch is surveyed rather than left idle.
 const settle = async () => {
   for (let i = 0; i < 100; i++) {
-    if (data.rows.length && data.rows.every(r => r.state !== 'pending') && !data.loading && !data.surveying) return;
+    const surveyed = (data.older || []).every(r => r.state === 'done' || r.state === 'error');
+    if (!data.loading && !data.surveying && surveyed) return;
     await new Promise(r => setTimeout(r, 20));
   }
 };
@@ -107,17 +110,18 @@ test('mounts with no startup warnings or errors', () => {
   assert.ok(data.description.length > 0);
 });
 
-test('surveys every branch except the default and groups on the content signal', async () => {
+test('surveys every older branch and groups on the content signal', async () => {
   store.repo = 'me/r'; store.defaultRef = 'main';
   store.gh = new FakeGH();
   await data.load();
   await settle();
 
-  assert.equal(data.rows.length, 4, 'main excluded');
-  assert.ok(data.rows.every(r => r.state === 'done'), JSON.stringify(data.rows.map(r => [r.name, r.state, r.err])));
+  assert.equal(data.list.length, 4, 'main excluded');
+  // Recent work is date-only, never surveyed; it fills the default Recent tab.
+  assert.deepEqual(data.recent.map(r => r.name), ['fresh']);
+  assert.ok(data.older.every(r => r.state === 'done'), JSON.stringify(data.older.map(r => [r.name, r.state, r.err])));
 
-  const byName = Object.fromEntries(data.rows.map(r => [r.name, r]));
-  assert.equal(byName.fresh.group, 'active', 'recent work is active regardless of signal');
+  const byName = Object.fromEntries(data.older.map(r => [r.name, r]));
   assert.equal(byName.landed.group, 'landed');
   assert.equal(byName.landed.nLanded, 2, 'same-path byte match plus moved blob');
   assert.equal(byName.stranded.group, 'stranded');
@@ -127,9 +131,8 @@ test('surveys every branch except the default and groups on the content signal',
 });
 
 test('a no-merge-base branch takes the commits fallback and is marked', () => {
-  const r = data.rows.find(x => x.name === 'orphan');
+  const r = data.older.find(x => x.name === 'orphan');
   assert.equal(r.noBase, true);
-  assert.equal(r.ahead, null, 'no honest ahead count without a merge base');
   assert.ok(calls.includes('req commits?sha=orphan&per_page=50'));
   assert.ok(calls.includes('compare parent-of-orphan...sha-orphan'), 'diff reaches back to the oldest listed parent');
   // orphan.txt is missing from main; only/here.txt is in the diff but absent
@@ -139,12 +142,11 @@ test('a no-merge-base branch takes the commits fallback and is marked', () => {
   assert.equal(r.nLanded, 1);
 });
 
-test('groupList orders active/landed/stranded and carries the rows', () => {
-  const groups = Object.fromEntries(data.groupList.map(g => [g.key, g.rows.map(r => r.name)]));
-  assert.deepEqual(Object.keys(groups), ['active', 'landed', 'stranded']);
-  assert.deepEqual(groups.active, ['fresh']);
-  assert.deepEqual(groups.landed, ['landed']);
-  assert.deepEqual(groups.stranded.sort(), ['orphan', 'stranded']);
+test('tabList carries active/landed/stranded counts', () => {
+  const counts = Object.fromEntries(data.tabList.map(t => [t.key, t.count]));
+  assert.equal(counts.active, 1, 'fresh');
+  assert.equal(counts.landed, 1, 'landed');
+  assert.equal(counts.stranded, 2, 'stranded + orphan');
 });
 
 test('falls back to the REST branch list when GraphQL is unavailable', async () => {
@@ -153,8 +155,9 @@ test('falls back to the REST branch list when GraphQL is unavailable', async () 
   store.gh = gh;
   await data.load();
   await settle();
-  assert.deepEqual(data.rows.map(r => r.name), ['rest-only']);
-  const r = data.rows[0];
+  // The REST list's one non-default branch has no date, so it surveys as older.
+  assert.deepEqual(data.older.map(r => r.name), ['rest-only']);
+  const r = data.older[0];
   assert.equal(r.state, 'done', r.err);
   // date and subject were backfilled from the compare's commit list
   assert.equal(r.subject, 'subject line');
