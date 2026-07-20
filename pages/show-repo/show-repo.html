@@ -68,14 +68,12 @@
            the brand at any phone width). Public browse left the header (a
            signed-out affordance, still on the no-token banner and every repo
            card); the nav scrolls rather than clipping on the narrowest devices. -->
-      <nav class="flex items-center gap-0 min-w-0 overflow-x-auto no-scrollbar">
+      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
         <template x-for="v in estateNav" :key="v.view">
           <button @click="v.go()" :title="v.label"
-                  class="flex items-center gap-1 shrink-0 px-1.5 py-1 rounded-lg text-xs font-medium transition-colors"
-                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
-            <i class="ph text-[13px] leading-none" :class="v.icon"></i>
-            <span x-text="v.label"></span>
-          </button>
+                  class="shrink-0 px-2.5 py-1 rounded-lg text-sm font-medium transition-colors"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'"
+                  x-text="v.label"></button>
         </template>
       </nav>
       <!-- In-repo context: owner/name @ref (ref switcher kept) + GitHub jump.
