@@ -199,15 +199,17 @@ def render(root, dirs_of, files_of, repo, ref, mode, gloss, indent, max_depth):
             lines.append(f"{prefix_codespan(stack)}{name}{'/' if is_dir else ''}")
         return "```\n" + "\n".join(lines) + "\n```"
 
-    head = f"{ICON_DIR} [{hname}]({hurl})" if hurl else f"{ICON_DIR} {hname}/"
+    # The root is the table header (bold, tappable), not a body row: no folder
+    # icon, no literal "Tree" label. Body rows keep their box art, so the first
+    # level still hangs off the root with a rail.
+    root_cell = f"[{hname}]({hurl})" if hurl else f"{hname}/"
     out = []
     if gloss:
-        out += ["| Tree | What it is |", "|---|---|"]
+        out += [f"| {root_cell} | What it is |", "|---|---|"]
         tail = " |  |"
     else:
-        out += ["| Tree |", "|---|"]
+        out += [f"| {root_cell} |", "|---|"]
         tail = " |"
-    out.append(f"| {head}{tail}")
 
     stack = []
     for depth, name, rel, is_dir, last in rows:
