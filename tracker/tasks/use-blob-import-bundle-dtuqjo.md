@@ -1,9 +1,11 @@
 ---
 id: use-blob-import-bundle-dtuqjo
 title: Load the ?use= bundle by fetch + blob-import instead of jsDelivr
-status: backlog
+status: done
 track: independent
 opened: 2026-07-20
+closed: 2026-07-20
+session: claude/loading-behavior-tracker-aqbf4f
 ---
 # Load the ?use= bundle by fetch + blob-import instead of jsDelivr
 
@@ -29,3 +31,4 @@ opened: 2026-07-20
 
 ## Progress log
 - 2026-07-20: Filed from the PR #244 thread. Root-caused the stale-preview to jsDelivr's ~12h branch-tip cache on the `?use=` bundle import; scoped the fix to fetch+blob-import on the `?use=` path only, jsDelivr retained for bookmarklets and off-Pages bundle consumers.
+- 2026-07-20: Done for the pre-build bundle. The three `dist/web-tools.js` `?use=` boots (`show-repo`, `review`, `prebuild-demo`) now fetch the reffed bundle from `raw.githubusercontent.com` and blob-import it; jsDelivr stays for the no-`?use` same-origin path and off-Pages consumers. Confirmed `raw` resolves slashed branch names (e.g. `microsoft/vscode@release/1.80`), so a `claude/*` branch is cache-safe. The toss leak closes as a consequence: a tossed show-repo's boot `import()` now hits `raw`, not jsDelivr, with no `inlineRelativeDeps` change. The parallel `lib/gh-api.js`-chain boot (~18 other `?use=` pages) is a separate follow-up, `use-gh-api-chain-blob-import-*`, because it needs a blob-safe fallback for `gh-api.js`'s `import.meta.url` ref-detection first. Lands via the loading-behavior-tracker PR.

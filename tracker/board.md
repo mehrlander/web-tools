@@ -16,7 +16,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
 - 🎫 Converge the stage and surface item schemas
 - 🎫 toss-render ?query forwarding drops multi-param page queries next: decode the gh param from the raw fragment slice (not URLSearchParams) so a bare & in the page query survives, or document the %26 requirement in the head comment and the on-page help
-- 🎫 Load the ?use= bundle by fetch + blob-import instead of jsDelivr
+- 🎫 Extend fetch + blob-import to the gh-api.js-chain ?use= boot
 
 ## In progress
 - 🎫 Estate activity signals from a registry activity cache (`claude/branches-view-api-caching-ef4l5d`) next: review the branch build; the cross-repo file-listing and the GraphQL-batched crawl (fewer calls) remain as follow-ons
@@ -39,3 +39,4 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Stage links and the main-area explorer in show-repo (`claude/task-tracker-discussion-wg27xv`)
 - 🎫 Stand up the project tracker (`claude/tracker-concept-assessment-yto1m1`)
 - 🎫 Structural response decode + differentiated errors in toss-render next: done; renders survive every media-type labeling and the error panel names the failing stage
+- 🎫 Load the ?use= bundle by fetch + blob-import instead of jsDelivr (`claude/loading-behavior-tracker-aqbf4f`)

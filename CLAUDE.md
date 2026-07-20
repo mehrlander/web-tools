@@ -8,7 +8,9 @@ CONVENTIONS.md is one of several docs written to travel; the full to-go bag (con
 
 ## Preview mechanism: test page on a branch via `?use=`
 
-GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `lib/gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block; for freshly-pushed commits, pass the SHA, since jsDelivr caches branch tips for ~12h.
+GitHub Pages serves from one branch, typically main, so to render branch code through the canonical URL `lib/gh-api.js` honors a `?use=<branch|tag|sha>` query parameter: pages that adopt the convention read it at boot and load the rest of their code from that ref. Useful when linking the user to a test page that exercises work on a branch. See `README.md` for the canonical boot block.
+
+The freshness of a `?use=` preview depends on which boot a page uses. The **pre-build `dist/web-tools.js` boot** (show-repo, review, prebuild-demo) fetches the reffed bundle from `raw.githubusercontent.com` and blob-imports it, so a branch name is cache-safe and a fresh push previews immediately (see [tools/README.md](tools/README.md#the-pre-build)). The **`lib/gh-api.js` chain boot** (the ~18 other `?use=` pages) still imports from jsDelivr's `/gh/` CDN, whose branch-tip listing lags a fresh push ~12h, so for those pass the SHA. Converting the chain boot to the same fetch + blob-import is a filed follow-up (the `import.meta.url` ref-detection in `gh-api.js` needs a blob-safe fallback first).
 
 This is the repo's **preview mechanism** for the conventions' ⭐ links: a changed page (or a component a page loads) previews live at
 

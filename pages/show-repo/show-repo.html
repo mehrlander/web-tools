@@ -10,14 +10,26 @@
 <script type="module">
   // The pre-build: one same-origin import carries the whole lib/ (the loader,
   // the gh-boot chain, every Alpine component, alpine-bundle) — no per-file
-  // gh.load network for own code. ?use=<branch|tag|sha> re-pins to jsDelivr
-  // for branch preview (pass a SHA for fresh commits; branch tips cache ~12h).
-  // The landing needs no token; the file browser boots quietly and only
-  // prompts for auth on demand.
+  // gh.load network for own code. The landing needs no token; the file browser
+  // boots quietly and only prompts for auth on demand.
+  //
+  // ?use=<branch|tag|sha> re-pins the bundle to that ref for preview. It loads
+  // by fetch + blob-import from raw.githubusercontent, NOT jsDelivr's /gh/ CDN
+  // whose branch-tip listing lags a fresh push ~12h (a just-pushed branch used
+  // to preview stale). raw serves public files anonymously with permissive
+  // CORS, and a blob: URL imports despite raw's text/plain type because the
+  // blob sets its own JS type; the bundle is one self-contained module (no
+  // internal imports), so blob-import is clean and a branch name is cache-safe
+  // (no SHA needed). The no-?use path stays the fastest same-origin import.
   const ref = new URLSearchParams(location.search).get('use');
-  await import(ref
-    ? `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/dist/web-tools.js`
-    : '../../dist/web-tools.js');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`);
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../../dist/web-tools.js');
+  }
   // gh-store rides in the pre-build cached but unexecuted; this load runs it
   // from the inlined cache (no network) so GH.prototype.save exists as before.
   await gh.load('gh-store.js');

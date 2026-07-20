@@ -15,7 +15,9 @@
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
 //
-// resolveCdn(url, repoRoot) classifies a request URL and returns one of:
+// resolveCdn(url, repoRoot, ref?) classifies a request URL and returns one of:
+// (ref is the render's --ref value, used to strip a slashed branch name from a
+// raw.githubusercontent own-code URL; optional, only the raw case reads it.)
 //   { kind:'fulfill', body, contentType }  serve these local bytes
 //   { kind:'empty',   contentType }        a known-but-unvendored dep: serve
 //                                          nothing (don't break on it), and the
@@ -123,7 +125,7 @@ function readSpec(spec, repoRoot) {
   return null;
 }
 
-export function resolveCdn(rawUrl, repoRoot) {
+export function resolveCdn(rawUrl, repoRoot, ref) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
   const host = u.host;
@@ -139,6 +141,24 @@ export function resolveCdn(rawUrl, repoRoot) {
   // Other /gh/ refs are third-party data (word lists, etc.) — not vendored.
   if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/gh/')) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
+  }
+
+  // --- Own code: raw.githubusercontent.com/<repo>/<ref>/<path>. The pre-build
+  // ?use= boot loads dist/web-tools.js this way (fetch + blob-import), so a
+  // --ref render must serve the working tree here too, or it would hit the
+  // real remote bundle and lose branch edits. Mirrors the jsDelivr /gh/ case.
+  // The ref is stripped by the exact --ref value (branch names carry slashes,
+  // so segment-counting can't find where the path starts); with no ref known,
+  // fall back to dropping one segment. ---
+  if (host === 'raw.githubusercontent.com' && u.pathname.startsWith(`/${REPO}/`)) {
+    const after = u.pathname.slice(`/${REPO}/`.length);
+    const tail = (ref && after.startsWith(ref + '/'))
+      ? after.slice(ref.length + 1)
+      : after.replace(/^[^/]+\//, '');
+    const rel = decodeURIComponent(tail);
+    const fp = path.join(repoRoot, rel);
+    if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `raw ${rel}` };
+    return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `MISS raw ${rel}` };
   }
 
   // --- Own code via GitHub Pages: <owner>.github.io/<repo>/<path>. The <base>
