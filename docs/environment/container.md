@@ -1,97 +1,87 @@
-# The container: what the box is, and what persists
+# Claude Code web environment and persistence
 
-What the Claude Code web sandbox *is* as a machine, and — the part that bites —
-what state carries across sessions and what doesn't. For what it can run and
-reach, see [capabilities.md](capabilities.md).
+This page describes the Claude Code web environment and the state that persists across sessions. See [capabilities.md](capabilities.md) for installed tools and network access.
 
-## The sandbox
+*Verified locally 2026-05-30; documentation checked 2026-07-20.*
 
-*(verified 2026-05-30)*
+## Environment
 
-- Runs in a **remote, ephemeral container**. The working tree is laid down from a
-  baked image, not minted at session start (see "Container provenance" below),
-  and the box is reclaimed after inactivity. Anything worth keeping must be
-  committed and pushed.
-- Working dir `/home/user/web-tools`.
-- Resource ceilings (approx, may shift): **4 vCPU, 16 GB RAM, 30 GB disk**.
-  Memory-heavy builds or tests can be killed.
+Claude Code web sessions run in an [isolated Anthropic-managed VM with a fresh repository clone](https://code.claude.com/docs/en/claude-code-on-the-web#the-cloud-environment).
 
-## Container provenance: what carries across sessions
+- Working directory: `/home/user/web-tools`.
+- Approximate limits: [4 vCPU, 16 GB RAM, and 30 GB disk](https://code.claude.com/docs/en/claude-code-on-the-web#resource-limits).
+- Memory-intensive builds and tests may be terminated.
+- The environment is [reclaimed after inactivity](https://code.claude.com/docs/en/claude-code-on-the-web#environment-expired).
+- Reopening an expired session provisions a fresh environment and restores the conversation history.
 
-*(verified 2026-05-30)*
+## Persistent state
 
-"Ephemeral" hides a wrinkle that governs what can leak between sessions. Two
-separate axes are at play, and it's easy to prove one and quietly claim the other.
+Project changes persist through GitHub. Files must be committed and pushed before the environment is reclaimed or before another session can use them.
 
-**Provable from inside one container:**
+Local machine state is separate. Files, configuration, dependencies, and unpushed commits on a laptop are not available to the web session. The laptop and web environment are independent Git checkouts.
 
-- **The working tree predates the session.** `.git`'s mtime is hours older than
-  the boot time (`uptime -s`), so the clone is inherited from a baked image, not
-  minted at session start. Boot just fetches and checks out a branch on top.
-- **"The repo" is GitHub, not your laptop.** `origin` is a loopback proxy
-  (`http://local_proxy@127.0.0.1:PORT/git/<owner>/<repo>`) forwarding to
-  github.com. One remote, no second, no path to a laptop's synced copy. Your
-  laptop and this box are independent clones sharing a center, never touching.
-- **It is a shallow clone** (`.git/shallow` present). Heavy history isn't dragged
-  down in full.
-- **Local `main` can lag `origin/main`.** If the image baked before a history
-  rewrite landed, the local ref stays frozen at bake time while the session
-  updates only the remote-tracking ref. That stale pointer is why a box can still
-  hold blobs already gone from the authoritative remote: snapshot leftover, not
-  memory of a past chat.
-- **Runtime writes are private to their session.** Two concurrent sessions can't
-  see each other's uncommitted files: a marker written in one was invisible in a
-  sibling, both ways. Only **commit + push** crosses between sessions. (This is
-  *isolation*, proven sideways between live siblings. It says nothing about whether
-  a single session's disk survives its own re-provision: that's untested and
-  untestable from inside.)
+Environment configuration has a separate persistence mechanism. A cloud [setup script](https://code.claude.com/docs/en/claude-code-on-the-web#setup-scripts) installs tools and dependencies before Claude Code starts. Anthropic [snapshots the resulting filesystem](https://code.claude.com/docs/en/claude-code-on-the-web#environment-caching) and uses that snapshot as the starting point for later sessions in the same environment.
 
-**Not provable from inside (don't overclaim):** whether the image is **reused**
-across sessions or **rebaked per session**, and whether a session's disk **survives
-its own re-provision**. You only ever see one container, in one continuous run. The
-defensible claims are narrow: *this session's clone predates its boot*, and *live
-siblings are isolated*. Anything about a disk "following a session forward" reaches
-past the evidence.
+The environment cache includes files, packages, tools, and Docker images installed by the setup script. It does not include running processes. The cache is rebuilt when the setup script or network configuration changes and after its approximate seven-day expiry.
 
-The durable state is only what's committed and pushed. A big file in history isn't
-re-moved by hand each session: it arrives once with the (shallow) clone, and after
-a rewrite future images carry a lean repo. A purged artifact lingers only in a box
-baked just before the rewrite, until that box is reclaimed.
+Packages installed during a session do not transfer to other sessions unless their installation is added to the setup script. Repository `SessionStart` hooks run separately at their configured lifecycle events.
+
+## Repository observations
+
+*Observed 2026-05-30.*
+
+- `origin` used a loopback URL of the form `http://local_proxy@127.0.0.1:PORT/git/<owner>/<repo>`.
+- The repository was shallow, indicated by `.git/shallow`.
+- The `.git` modification time predated the VM boot time.
+- Local `main` differed from `origin/main` after a remote history rewrite.
+- Git objects removed from the remote remained present in that running environment.
+- Concurrent sessions could not see each other's uncommitted files.
+
+Anthropic documents the [GitHub proxy](https://code.claude.com/docs/en/claude-code-on-the-web#github-proxy) as the authentication boundary for Git and GitHub API operations. Credentials remain outside the VM. The proxy supports cloning, fetching, pushing, and pull-request operations while restricting pushes to the current working branch and limiting operations to repositories attached to the session.
+
+The timestamps and stale local ref established the state of the observed environment. They did not establish that a repository clone is reused across sessions. The current documentation specifies a fresh clone for each session.
 
 ```bash
-stat -c '%y %n' .git      # snapshot-bake time...
-uptime -s                 # ...vs this session's boot
-git remote -v             # loopback proxy to GitHub; no laptop remote
+stat -c '%y %n' .git
+uptime -s
+git remote -v
 test -f .git/shallow && echo "shallow clone"
-git rev-parse main origin/main   # do they differ? stale pointer = bake predates a rewrite
+git rev-parse main origin/main
 ```
 
-## Added repos: primary vs mid-session sources
+## Concurrent sessions
 
-*(reported 2026-07-10 by a sibling session doing cross-repo work; mechanics not
-re-probed here)*
+Each web session runs in an [isolated VM](https://code.claude.com/docs/en/claude-code-on-the-web#security-and-isolation).
 
-- A session has one **primary repo**: at start the web UI provisions the session
-  branch and records it in the session's own metadata. That registration is what
-  lets the UI watch the branch and render the create-PR / view-PR buttons.
-- A repo added mid-session (`add_repo`) gets **symmetric git access**: a clone
-  and credentials through the same loopback proxy, with nothing "secondary"
-  about what can be pushed. But it gets no metadata entry, so the UI has no
-  branch to watch and no button to build. The gap is interface bookkeeping, not
-  git permissions.
-- The bridge is GitHub's own compare view, stateless and session-free:
-  `https://github.com/<owner>/<repo>/compare/main...<branch>`. Push the branch,
-  hand over that link; the signed-in owner sees the diff and a "Create pull
-  request" button, and the PR carries their identity. The MCP tools can open the
-  PR instead, but then it is authored by the integration identity, so that step
-  stays behind an explicit ask.
-- A PR needs a source branch distinct from its target: a direct-to-main push in
-  an added repo lands the work but leaves nothing to propose.
+A file created but not committed in one session was not visible in a concurrent session. Changes transfer between sessions only after commit, push, and fetch or clone.
 
-> **Provenance discipline.** A result that matches the documented design proves
-> nothing about the mechanism: you can't tell understanding from recitation. The
-> stale local `main` was useful precisely because it shouldn't have been there. It
-> forced a check against the filesystem instead of the story, and caught a sloppy
-> phrase ("leftover from before the rollback") that had smuggled in persistence
-> nobody earned. Trust an anomaly over a tidy match: it teaches the mechanism and
-> audits the explainer at once.
+Session isolation does not establish whether a particular session retains its writable filesystem when its environment is reprovisioned. Expired environments are documented as being replaced.
+
+## Added repositories
+
+*Reported 2026-07-10 during cross-repository work. Not independently reproduced here.*
+
+A session begins with one primary repository and branch. The web interface tracks that branch and displays its diff and pull-request controls.
+
+The connected GitHub account can provide cloud sessions with access to [other repositories it can read](https://code.claude.com/docs/en/claude-code-on-the-web#github-authentication-options). A repository added during the session with `add_repo` receives a clone and Git access through the [GitHub proxy](https://code.claude.com/docs/en/claude-code-on-the-web#github-proxy).
+
+In the reported session:
+
+- The added repository could fetch and push its current branch.
+- Its uncommitted files remained inside that session.
+- The web interface did not display branch or pull-request controls for it.
+
+The observed difference concerned web-interface integration, not Git access or filesystem persistence. The internal metadata mechanism responsible for that difference is not documented. For how to surface an added repository's work without those controls, see [github-surfacing.md](../github/github-surfacing.md#surfacing-an-added-repositorys-work).
+
+## Evidence limits
+
+Documented behavior and observed behavior are separate evidence.
+
+- Documentation states the supported operating model.
+- Filesystem and Git checks establish the state of a particular running environment.
+- Concurrent-session tests establish isolation between those sessions.
+- None of these observations establishes undocumented persistence across reprovisioning.
+
+The stale local `main` established that the observed checkout contained older repository state. It did not establish that state from one session had persisted into another.
+
+A result that matches the documented design is weak evidence about the mechanism, since it cannot separate understanding from recitation. The stale local `main` was useful precisely because it should not have been present: it forced a check against the filesystem rather than the documented story, and caught a phrase that had smuggled in persistence the evidence did not support. Prefer an anomaly over a tidy match.
