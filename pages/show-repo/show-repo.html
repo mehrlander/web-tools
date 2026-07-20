@@ -148,6 +148,16 @@
             <i class="ph text-base" :class="v.icon"></i><span x-text="v.label"></span>
           </button>
         </template>
+        <!-- Public browse: the no-token jsDelivr file browser, an estate-level
+             capability (any public repo, no token, no GitHub rate spend). A peer
+             of Repos / Surfaces / Stage, shown to everyone since the signed-out
+             case is its whole point. The config-cache refresh action moved to the
+             shield dialog (an account-level control, not a view). -->
+        <button @click="goPublicBrowse()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='public' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-cloud-arrow-down text-base"></i><span>Public browse</span>
+        </button>
       </div>
 
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
@@ -243,6 +253,16 @@
         <iframe :src="appViewUrl" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
+    </div>
+
+    <!-- Public browse: the no-token jsDelivr file browser (estate-level, beside
+         Repos / Surfaces / Stage). Lazy-mounted on first visit. -->
+    <div x-show="view==='public'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-6 py-8 !max-w-none">
+        <template x-if="publicSeen">
+          <div x-data="publicBrowse()"></div>
+        </template>
+      </div>
     </div>
 
     <!-- Landing: web-tools' gallery, a manifest-designated custom page, or a
@@ -515,11 +535,13 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'surfaces' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app'
+  view: 'landing',        // 'estate' | 'surfaces' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
   branchesSeen: false,    // mount the branches component lazily, on first visit
+  publicSeen: false,      // mount the public-browse component lazily, on first visit
+  publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
   DEFAULT_REPO: 'mehrlander/web-tools',
   // The header quick-link row is data-driven. This public page must not
@@ -540,6 +562,7 @@ function app(){ return {
   // rendered live through toss-render #gh=.
   appViews: [],     // resolved [{repo, path, label, icon, order, key}]
   appView: null,    // the selected app view when view==='app'
+  configRefreshing: false,  // the estate refresh button is mid-crawl
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -612,6 +635,7 @@ function app(){ return {
     else if (url && url.view === 'surfaces') this.goSurfaces();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
+    else if (url && url.view === 'public') this.goPublicBrowse();
     else if (url && url.view === 'branches') this.goBranches();
     else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
     const staged = window.StageLink ? window.StageLink.parse(location.hash) : [];
@@ -764,6 +788,24 @@ function app(){ return {
       out.sort((a, b) => (a.order - b.order) || a.label.localeCompare(b.label));
       this.appViews = out;
     } catch { this.appViews = []; }
+  },
+
+  // Manual config-cache rebuild for the estate refresh button. The app views,
+  // Repos cards, and quick links all read a throttled (~6h) crawl of every
+  // repo's .web-tools.json, so a just-merged config change (a repo newly
+  // declaring an app view, say) can lag until the crawl next runs. This forces
+  // the crawl now, then re-reads every consumer in order (the load path reads
+  // before the async crawl commits, so a plain reload lags a step; awaiting the
+  // crawl first is what makes the new entry appear immediately). The estate
+  // component reloads its cards off the dispatched event.
+  async refreshConfigs(){
+    if (this.configRefreshing || !this.hasToken()) return;
+    this.configRefreshing = true;
+    try {
+      await this.refreshConfigCache(true);
+      await Promise.all([this.loadQuickLinks(), this.loadAppViews()]);
+      document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
+    } finally { this.configRefreshing = false; }
   },
 
   // ── Config aggregate: crawl each participating repo's .web-tools.json and
@@ -945,6 +987,7 @@ function app(){ return {
     }
     else if (this.view === 'atlas') p.set('view', 'atlas');
     else if (this.view === 'stage') p.set('view', 'stage');
+    else if (this.view === 'public') p.set('view', 'public');
     else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'surfaces') p.set('view', 'surfaces');
     // App views are estate-level, so the link stands alone (like Surfaces): stamp
@@ -986,6 +1029,7 @@ function app(){ return {
       else if (url && url.view === 'surfaces') this.goSurfaces();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
+      else if (url && url.view === 'public') this.goPublicBrowse();
       else if (url && url.view === 'branches') this.goBranches();
       else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
       else if (!url) this.goEstate();
@@ -1013,7 +1057,7 @@ function app(){ return {
     }
     if (Alpine.store('browser').repo !== repo || (ref && Alpine.store('browser').ref !== ref)){
       try { await repoEl.__repo.pickByName(repo, ref ? { ref } : {}); }
-      catch(e){ notify('Could not open ' + repo + ': ' + (e?.message || e)); }
+      catch(e){ notify(this.openRepoError(repo, e)); }
     }
   },
 
@@ -1042,7 +1086,7 @@ function app(){ return {
   // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
-  get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'app'; },
+  get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'app' || this.view === 'public'; },
   goHome(){ this.goEstate(); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
@@ -1050,6 +1094,28 @@ function app(){ return {
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
   goStage(){ this.view = 'stage'; this.drawer = false; this.syncUrl(); },
+  // Public browse: the estate-level no-token file browser (lazy mount). An
+  // optional repo (from an estate card) seeds it via the reactive publicSeed the
+  // component watches; the bare sidebar entry passes none and keeps the default.
+  goPublicBrowse(repo){ if (repo) this.publicSeed = repo; this.publicSeen = true; this.view = 'public'; this.drawer = false; this.syncUrl(); },
+  // A specific, actionable open-repo failure instead of a bare "GitHub Error
+  // 404". The two failures a signed-out visitor hits map to the two fixes:
+  // sign in (private/404), or use the rate-safe public browser (403). Anything
+  // else falls back to the raw message so it is never swallowed.
+  openRepoError(repo, e){
+    const noTok = !this.hasToken();
+    if (e?.status === 404) {
+      return noTok
+        ? repo + ' is private or does not exist. You are browsing without a token, so private repos are invisible. Add one with the shield icon to see them.'
+        : repo + ' was not found (404). Check the name, or your token may lack access to it.';
+    }
+    if (e?.status === 403) {
+      return noTok
+        ? 'GitHub rate-limited this browser (no token, 60 requests/hour). Add a token with the shield icon, or open Public browse, which reads public repos through jsDelivr and does not count against the limit.'
+        : 'GitHub returned 403 for ' + repo + '. The token may lack access, or the rate limit is exhausted.';
+    }
+    return 'Could not open ' + repo + ': ' + (e?.message || e);
+  },
   goBranches(){ this.branchesSeen = true; this.view = 'branches'; this.drawer = false; this.syncUrl(); },
   // Select an estate-level app view; the main area renders it live via
   // toss-render #gh= (appViewUrl).
