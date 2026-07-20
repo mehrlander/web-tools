@@ -38,17 +38,27 @@ repos browse with no auth; private repos and branches need the viewer's token.
 Deep-link params: `&view=atlas|files|stage|branches|public|surfaces|activity`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
-all-repo context) or in a **repo** (a per-repo context with its own views). The
-header repo selector switches between them: its top entry, "Repositories", is
-the estate; the owner's repos below it are the per-repo contexts. In the estate
-the header reads `mehrlander / Repositories` with no branch selector, and the
-sidebar hides every per-repo item; pick a repo and the per-repo sidebar and
-branch context return. The brand icon returns to the estate on every viewport.
-The estate has views of its own: **Repos** (the card grid), **Surfaces**,
-**Activity** (the cross-repo activity read), the **Stage** (the cross-repo
-fileset, which belongs to no repo), and **Public browse** (the no-token file
-browser), plus any promoted **app views**. See "The estate", "The stage", and
-"Public browse" below.
+all-repo context) or in a **repo** (a per-repo context with its own views).
+
+The **header carries the app-level nav**: a fixed, app-owned set of the estate's
+own views, **Activity** (first), **Repos**, **Surfaces**, **Stage**, and
+**Public browse**, as icon buttons (icon + label on desktop, icon-only on
+mobile), lit on the active view and present on every viewport. Beside them, in a
+repo, sits a compact `owner/name @ref` readout (the ref switcher is kept; the
+GitHub jump too), and on the right the auth shield (token / config dialog). The
+brand icon returns to the **dashboard**: Activity for a signed-in viewer, Repos
+for a signed-out one. There is no repo-list dropdown and no quick-links row:
+**repo selection happens on the Repos dashboard** (a card opens the repo), which
+reads better than a dropdown and keeps the header a fixed set rather than one
+repos opt into.
+
+The **sidebar** holds what is contextual: in a repo, its views (landing, atlas,
+files, branches) plus pins and recents; in the estate, only the repo-sourced
+**app views** (promoted with `appView:true`, e.g. News), since those are the
+ones repos opt into. The header set never appears in the sidebar. On desktop the
+pinned sidebar hides entirely when the estate has no app views, so the dashboard
+runs full-width; on mobile it is a drawer behind the hamburger. See "The
+estate", "The stage", and "Public browse" below.
 
 The per-repo views in the sidebar:
 

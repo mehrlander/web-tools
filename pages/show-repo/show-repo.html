@@ -31,7 +31,9 @@
   // The private request/response mailbox (mailbox/requests -> results).
   await gh.load('repo-mailbox.js');
 </script>
-<style>[x-cloak]{display:none!important}</style>
+<style>[x-cloak]{display:none!important}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}</style>
 </head>
 <!-- A repo browser fronted by a per-repo landing page. The repo picker is up
      front (header). The sidebar lists the repo's views — landing, atlas,
@@ -50,32 +52,41 @@
   </template>
 </div>
 
-<!-- ── Header: brand (goes to the dashboard on every viewport), then repo nav ── -->
+<!-- ── Header: brand, the app-level view nav (a closed set the app owns), then
+     the in-repo context readout and the auth shield. The old repo-list dropdown
+     and the desktop quick-links row are gone: repo selection now happens on the
+     Repos dashboard, which is nicer than a dropdown, and keeps the header a
+     fixed set rather than one repos opt into. ─────────────────────────────── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
-    <div class="h-14 flex items-center gap-3">
-      <button @click="goHome()" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
-              title="Dashboard">
-        <img src="../../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">
-        <span class="font-semibold text-base-content text-base hidden sm:inline">web-tools</span>
+    <div class="h-14 flex items-center gap-1.5">
+      <button @click="goDashboard()" class="hover:opacity-80 transition-opacity shrink-0" title="Dashboard">
+        <img src="../../lib/favicon.svg" alt="web-tools" width="28" height="28" class="w-7 h-7">
       </button>
-      <div class="w-px h-6 bg-base-300 mx-1 hidden sm:block"></div>
-      <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
-      <div class="grow"></div>
-      <!-- Quick links to frequent repos, desktop only: on mobile the dashboard
-           (brand tap) is the favorites surface, so no dropdown duplicates it.
-           Config editing lives in the sidebar shield dialog (repoModal), not
-           here. -->
-      <div class="join shrink-0 hidden sm:flex">
-        <template x-for="p in quickLinks" :key="p.repo">
-          <button @click="openPinned(p.repo)"
-                  class="btn btn-sm btn-square join-item tooltip tooltip-bottom"
-                  :class="[Alpine.store('browser').repo===p.repo ? 'btn-primary btn-active' : 'btn-ghost', pinnedDim(p) && 'opacity-40']"
-                  :data-tip="pinnedTip(p)">
-            <i class="ph text-lg" :class="pinnedIcon(p)"></i>
+      <!-- App-level views: Activity / Repos / Surfaces / Stage / Public, the
+           estate's own closed set. Icon + label on desktop, icon-only on
+           mobile; scrolls rather than wraps if it ever overflows. -->
+      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+        <template x-for="v in estateNav" :key="v.view">
+          <button @click="v.go()" :title="v.label"
+                  class="btn btn-sm btn-ghost gap-1.5 shrink-0 px-2"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70'">
+            <i class="ph text-base leading-none" :class="v.icon"></i>
+            <span class="hidden md:inline text-xs font-medium" x-text="v.label"></span>
           </button>
         </template>
-      </div>
+      </nav>
+      <!-- In-repo context: owner/name @ref (ref switcher kept) + GitHub jump.
+           Renders only inside a repo; the estate context shows nothing here. -->
+      <div class="w-px h-6 bg-base-300 mx-0.5 hidden sm:block" x-show="$store.browser.repo && !estateCtx" x-cloak></div>
+      <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
+      <div class="grow"></div>
+      <!-- Auth shield (token / config dialog): an app-level control, so it lives
+           in the always-visible header rather than the sidebar drawer. -->
+      <button @click="document.getElementById('repo')?.__repo?.openDialog()"
+              class="tooltip tooltip-left btn btn-sm btn-square btn-ghost shrink-0" :data-tip="authTip">
+        <i class="ph text-lg leading-none" :class="authIcon"></i>
+      </button>
       <!-- Drawer toggle, where the sidebar is a drawer (below lg). -->
       <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost shrink-0 lg:hidden" title="Menu">
         <i class="ph ph-list text-lg"></i>
@@ -94,65 +105,29 @@
   <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl
                 flex flex-col transition-transform duration-200 ease-out
                 lg:static lg:z-auto lg:shadow-none lg:translate-x-0 lg:w-80 xl:w-[22rem] lg:shrink-0"
-         :class="drawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-    <!-- Sidebar top bar: repo name + auth shield (opens the token dialog), plus
-         the mobile-only drawer close button. -->
+         :class="[drawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', !showSidebar && 'lg:hidden']">
+    <!-- Sidebar top bar: the context label + GitHub jump, plus the mobile-only
+         drawer close button. The auth shield moved to the header (always
+         visible); repo selection moved to the Repos dashboard. -->
     <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
-      <!-- Repo address with its GitHub jump right beside it (the pattern: the
-           github link sits next to the repo address wherever it is shown). -->
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <span class="font-mono text-xs truncate"
-              x-text="estateCtx ? 'Repositories' : ($store.browser.repo || 'Browse')"></span>
+        <span class="font-mono text-xs truncate text-base-content/70"
+              x-text="estateCtx ? 'Views' : ($store.browser.repo || 'Browse')"></span>
         <a x-show="!estateCtx && $store.browser.repo" :href="repoGithubUrl" target="_blank"
            class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
            title="Open on GitHub"><i class="ph ph-github-logo text-sm leading-none"></i></a>
       </div>
-      <button @click="document.getElementById('repo')?.__repo?.openDialog()"
-              class="tooltip tooltip-left btn btn-sm btn-square btn-ghost" :data-tip="authTip">
-        <i class="ph text-lg leading-none" :class="authIcon"></i>
-      </button>
       <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
-      <!-- Estate-context views: the estate is a context above any repo, and has
-           two views of its own — the repo grid (Repos) and the curated surfaces
-           (Surfaces) — the same shape as the per-repo view list below. Shown
-           only in that context; the per-repo list takes over once a repo is
-           opened. -->
-      <div class="flex flex-col gap-0.5" x-show="estateCtx">
-        <button @click="goEstate()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='estate' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-squares-four text-base"></i><span>Repos</span>
-        </button>
-        <button @click="goSurfaces()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='surfaces' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-cards text-base"></i><span>Surfaces</span>
-        </button>
-        <!-- Activity: the cross-repo read (recent commits, branch rollups, open
-             PRs) off the private activity cache (state/activity.json), so it
-             renders the whole estate without a per-visit API fanout. A peer of
-             Repos and Surfaces; token-gated like them. -->
-        <button @click="goActivity()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='activity' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-pulse text-base"></i><span>Activity</span>
-        </button>
-        <!-- The stage is estate-level: one cross-repo fileset, above any repo,
-             so it sits beside Repos and Surfaces rather than in a repo's list. -->
-        <button @click="goStage()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='stage' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-stack text-base"></i><span>Stage</span>
-          <span x-show="$store.browser.stage.length" class="badge badge-ghost badge-sm ml-auto"
-                x-text="$store.browser.stage.length"></span>
-        </button>
-        <!-- App views: pages any repo promotes to an estate-level entry via
-             appView:true in its .web-tools.json, collected across configs
-             (loadAppViews). Each is a peer of Repos/Surfaces/Stage, rendered live
-             in the main area. Token-gated, so the list is empty when unauthed. -->
+      <!-- Estate-context sidebar: only the REPO-SOURCED app views (appView:true,
+           e.g. News) live here now. The app's own views (Repos / Activity /
+           Surfaces / Stage / Public) moved to the header nav, since that set is
+           fixed and app-owned; these are the ones repos opt into, so they stay
+           in the sidebar. Token-gated, so the list is empty when unauthed. -->
+      <div class="flex flex-col gap-0.5" x-show="estateCtx && sidebarAppViews.length">
+        <div class="text-[10px] font-mono uppercase tracking-widest text-base-content/40 px-2 pb-0.5">App views</div>
         <template x-for="v in sidebarAppViews" :key="v.key">
           <button @click="goAppView(v)"
                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
@@ -160,16 +135,6 @@
             <i class="ph text-base" :class="v.icon"></i><span x-text="v.label"></span>
           </button>
         </template>
-        <!-- Public browse: the no-token jsDelivr file browser, an estate-level
-             capability (any public repo, no token, no GitHub rate spend). A peer
-             of Repos / Surfaces / Stage, shown to everyone since the signed-out
-             case is its whole point. The config-cache refresh action moved to the
-             shield dialog (an account-level control, not a view). -->
-        <button @click="goPublicBrowse()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
-                :class="view==='public' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-          <i class="ph ph-cloud-arrow-down text-base"></i><span>Public browse</span>
-        </button>
       </div>
 
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
@@ -659,7 +624,7 @@ function app(){ return {
     }
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
-    else if (!url) this.goEstate();
+    else if (!url) this.goDashboard();
 
     // Browser Back/Forward restores state from the URL (syncUrl pushes an entry
     // per distinct URL, so the history has real steps to walk).
@@ -1175,7 +1140,7 @@ function app(){ return {
       else if (url && url.view === 'public') this.goPublicBrowse();
       else if (url && url.view === 'branches') this.goBranches();
       else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
-      else if (!url) this.goEstate();
+      else if (!url) this.goDashboard();
       else this.goLanding();
     } finally { this._restoring = false; }
   },
@@ -1230,7 +1195,32 @@ function app(){ return {
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
   get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'app' || this.view === 'public'; },
-  goHome(){ this.goEstate(); },
+  // Whether the pinned desktop sidebar has anything to show: always in a repo
+  // (its views / pins / recents), but in the estate only when repo-sourced app
+  // views (News) exist, since the app's own views now live in the header nav.
+  // When false, the dashboard takes the full width (the mobile drawer still
+  // opens via the hamburger regardless).
+  get showSidebar(){ return !this.estateCtx || (this.sidebarAppViews && this.sidebarAppViews.length > 0); },
+  goHome(){ this.goDashboard(); },
+  // The dashboard front door: Activity for a signed-in viewer (the richer
+  // all-repo read), Repos for a signed-out one (Activity is token-gated, so it
+  // would land on an empty state). Brand tap and a bare open route here.
+  goDashboard(){ this.hasToken() ? this.goActivity() : this.goEstate(); },
+  // The header's app-level nav: the CLOSED set of the estate's own views, in
+  // display order (Activity first). Repo-sourced app views (appView:true, e.g.
+  // News) are deliberately NOT here; they stay in the sidebar, since the header
+  // is a fixed set the app owns, not one repos opt into. Each item maps to the
+  // same go* method and `view` string the router already uses.
+  get estateNav(){
+    return [
+      { view: 'activity', icon: 'ph-pulse',            label: 'Activity', go: () => this.goActivity() },
+      { view: 'estate',   icon: 'ph-squares-four',     label: 'Repos',    go: () => this.goEstate() },
+      { view: 'surfaces', icon: 'ph-cards',            label: 'Surfaces', go: () => this.goSurfaces() },
+      { view: 'stage',    icon: 'ph-stack',            label: 'Stage',    go: () => this.goStage() },
+      { view: 'public',   icon: 'ph-cloud-arrow-down', label: 'Public',   go: () => this.goPublicBrowse() },
+    ];
+  },
+  navActive(v){ return this.view === v.view; },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   // Activity is the estate's third own-view; the one estate component renders it
@@ -1525,16 +1515,23 @@ function overview(){ return {
 <!-- ── Design notes: the estate, the landing mechanism, the views, the stage ───
   The page has TWO CONTEXT LEVELS. The ESTATE is the global, all-repo context;
   a REPO is a per-repo context, with its own VIEWS (landing, atlas, files,
-  stage, branches) plus pinned/recent shortcuts. The header repo selector is the switcher
-  between them: its top entry, "Repositories", is the estate; the owner's repos
-  below it are the per-repo contexts. In the estate the header reads
-  "mehrlander / Repositories" with no branch selector (a branch is a repo-level
-  notion), and the sidebar hides every per-repo item (top bar reads
-  "Repositories", the view list / pinned / recent are gone), since none of them
-  applies above the repo. Pick a repo and the per-repo sidebar and branch
-  context come back. The brand icon doubles as the mobile drawer toggle and, on
-  desktop, returns to the estate. app.landingKind(repo) is the one landing
-  decision point within a repo.
+  stage, branches) plus pinned/recent shortcuts.
+
+  The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
+  estate's own views — Activity, Repos, Surfaces, Stage, Public browse — as icon
+  buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
+  on every viewport. Beside them, in a repo, a compact owner/name @ref readout
+  (the #repo inline component, now just a label + ref switcher + GitHub jump; the
+  old repo-list dropdown is gone), and on the right the auth shield. The brand
+  icon returns to the DASHBOARD (goDashboard: Activity if signed in, else Repos)
+  and doubles as nothing else; the mobile drawer toggle is its own hamburger.
+  There is no repo-list dropdown and no quick-links row: REPO SELECTION HAPPENS
+  ON THE REPOS DASHBOARD (tap a card), which keeps the header a fixed set rather
+  than one repos opt into. The SIDEBAR holds only what is contextual: in a repo
+  its views + pins + recents; in the estate only the repo-sourced app views
+  (appView:true, e.g. News). It hides on desktop when the estate has no app views
+  (showSidebar), so the dashboard runs full-width, and is a drawer on mobile.
+  app.landingKind(repo) is the one landing decision point within a repo.
 
   THE ESTATE: the all-repo context (lib/alpineComponents/estate.js), and the
   page's front door — a bare open (no ?repo/?file/?view, no #stage=) lands here,
