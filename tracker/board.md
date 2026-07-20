@@ -14,7 +14,9 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
 - 🎫 Give show-repo the ability to edit a repo's .web-tools.json (`claude/skills-portable-conventions-8x1lua`) next: design a minimal config-edit surface in the show-repo shell; first use is a one-tap migrate of a legacy .show-repo.json to .web-tools.json
 - 🎫 Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
+- 🎫 Fix the stage Diff lens B-select display desync
 - 🎫 Converge the stage and surface item schemas
+- 🎫 Carry commentary on a stage (prompts= link field, seed of a surface schema)
 - 🎫 toss-render ?query forwarding drops multi-param page queries next: decode the gh param from the raw fragment slice (not URLSearchParams) so a bare & in the page query survives, or document the %26 requirement in the head comment and the on-page help
 - 🎫 Extend fetch + blob-import to the gh-api.js-chain ?use= boot
 
