@@ -41,7 +41,7 @@
      navigation lives in the main area (breadcrumb + listing, file content
      beneath). The sidebar is pinned on desktop, a drawer on mobile.
      See the design notes at the end of this file. -->
-<body class="h-screen flex flex-col overflow-hidden bg-base-100 text-base-content" x-data="app()" x-cloak>
+<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content" x-data="app()" x-cloak>
 
 <div class="toast toast-top toast-end z-[60]" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">
