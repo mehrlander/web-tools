@@ -23,8 +23,11 @@
   await gh.load('gh-store.js');
   // Config-aggregate builders for the private cache (state/configs.json).
   await gh.load('repo-config-cache.js');
-  // The pure survey math behind the branches view (window.BranchSurvey).
+  // The pure survey math + shared fetch orchestrators behind the branches view
+  // and the activity crawl (window.BranchSurvey).
   await gh.load('branch-survey.js');
+  // Activity-aggregate builders for the private cache (state/activity.json).
+  await gh.load('repo-activity-cache.js');
   // The private request/response mailbox (mailbox/requests -> results).
   await gh.load('repo-mailbox.js');
 </script>
@@ -127,6 +130,15 @@
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='surfaces' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph ph-cards text-base"></i><span>Surfaces</span>
+        </button>
+        <!-- Activity: the cross-repo read (recent commits, branch rollups, open
+             PRs) off the private activity cache (state/activity.json), so it
+             renders the whole estate without a per-visit API fanout. A peer of
+             Repos and Surfaces; token-gated like them. -->
+        <button @click="goActivity()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='activity' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-pulse text-base"></i><span>Activity</span>
         </button>
         <!-- The stage is estate-level: one cross-repo fileset, above any repo,
              so it sits beside Repos and Surfaces rather than in a repo's list. -->
@@ -535,7 +547,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'surfaces' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'surfaces' | 'activity' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
@@ -563,6 +575,7 @@ function app(){ return {
   appViews: [],     // resolved [{repo, path, label, icon, order, key}]
   appView: null,    // the selected app view when view==='app'
   configRefreshing: false,  // the estate refresh button is mid-crawl
+  activityRefreshing: false, // the activity crawl (heavier: per-repo survey) is running
   // Recently-committed files for the current repo@ref, shown in the sidebar.
   // Generated artifacts a build hook writes on every commit are noise here,
   // not real edits, so they're filtered out for web-tools specifically.
@@ -606,7 +619,7 @@ function app(){ return {
     // quickLink flag, so rebuild the cache and reload the row.
     this.quickLinks = [...this.PUBLIC_QUICK_LINKS];
     this.$watch(() => this._authState, (s) => {
-      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()); this.loadAppViews(); this.processMailbox(); }
+      if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()).then(() => this.refreshActivityCache()); this.loadAppViews(); this.processMailbox(); }
     });
     document.addEventListener('web-tools:config-saved', async () => {
       this.loadConfig();
@@ -633,6 +646,7 @@ function app(){ return {
     else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
     else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'surfaces') this.goSurfaces();
+    else if (url && url.view === 'activity') this.goActivity();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
     else if (url && url.view === 'public') this.goPublicBrowse();
@@ -860,6 +874,133 @@ function app(){ return {
     } catch(e){ console.warn('config cache refresh:', e?.message || e); }
   },
 
+  // Force the activity crawl and tell the estate to re-read (the Activity view's
+  // Refresh button and the estate refresh flow route here). Separate from the
+  // config refresh because the activity crawl is much heavier (a capped branch
+  // survey per repo), so it is not folded into every config refresh.
+  async refreshActivity(){
+    if (this.activityRefreshing || !this.hasToken()) return;
+    this.activityRefreshing = true;
+    try {
+      await this.refreshActivityCache(true);
+      document.dispatchEvent(new CustomEvent('web-tools:activity-refreshed'));
+    } finally { this.activityRefreshing = false; }
+  },
+
+  // ── Activity aggregate: crawl each ESTATE repo (estate:true, read from the
+  // config cache) and fold a per-repo activity snapshot into a second derived
+  // cache (state/activity.json) in the registry. This is the sibling of the
+  // config crawl above, but heavier: besides cheap summary signals (pushed-at,
+  // recent commits, open PRs, counts) it runs the capped landed/stranded branch
+  // survey (lib/branch-survey.js) once and stores it, so the branches view and
+  // the cross-repo Activity view render from the cache instead of a per-visit
+  // fanout. A longer per-browser throttle and the same material-change gate keep
+  // it occasional and commits sparse. See web-tools-private/DESIGN.md.
+  ACTIVITY_CACHE_INTERVAL_MS: 12 * 3600 * 1000,
+  ACTIVITY_SURVEY_CAP: 30,       // older branches surveyed per repo (view's SURVEY_CAP)
+  ACTIVITY_RECENT_COMMITS: 12,   // newest commits fetched per repo per crawl
+  ACTIVITY_REPO_POOL: 2,         // repos crawled at once (each runs its own survey pool)
+  _activityCheckKey: 'wt:activityCacheCheckedAt',
+  async refreshActivityCache(force){
+    if (!this.hasToken() || !window.RepoActivityCache || !window.BranchSurvey) return;
+    const A = window.RepoActivityCache, B = window.BranchSurvey;
+    if (!force){
+      try {
+        const last = +localStorage.getItem(this._activityCheckKey) || 0;
+        if (Date.now() - last < this.ACTIVITY_CACHE_INTERVAL_MS) return;
+      } catch {}
+    }
+    // Estate membership from the config cache (estate:true). The activity crawl
+    // is estate-scoped, not account-wide: only repos on the dashboard need the
+    // survey. No cache yet means nothing to crawl (the config crawl seeds it).
+    const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+    let members = [];
+    try {
+      const cc = JSON.parse((await reg.get(window.RepoConfigCache.CACHE_PATH)).text);
+      members = Object.entries(cc.repos || {}).filter(([, e]) => e?.config?.estate === true).map(([n]) => n);
+    } catch {}
+    if (!members.length) return;
+
+    // One account-repos read for pushed-at / default-branch, matched by name.
+    let metaByName = new Map();
+    try { metaByName = new Map((await new window.GH({ token: window.TOKEN }).repos()).map(r => [r.full_name, r])); } catch {}
+
+    try {
+      const now = Date.now(), nowISO = new Date().toISOString();
+      const fetched = {};
+      // Bounded outer concurrency: each repo runs its own inner survey pool, so
+      // a small repo pool keeps total in-flight GitHub calls reasonable.
+      let mi = 0;
+      const crawlOne = async () => {
+        while (mi < members.length){
+          const repo = members[mi++];
+          try { fetched[repo] = await this.crawlRepoActivity(repo, metaByName.get(repo), now, A, B); }
+          catch(e){ console.warn('activity crawl', repo, e?.message || e); }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(this.ACTIVITY_REPO_POOL, members.length) }, crawlOne));
+
+      let prev = null;
+      try { prev = JSON.parse((await reg.get(A.CACHE_PATH)).text); } catch {}
+      const next = A.buildCache(prev, fetched, nowISO);
+      try { localStorage.setItem(this._activityCheckKey, String(Date.now())); } catch {}
+      if (A.cacheChanged(prev, next)){
+        await reg.save(A.CACHE_PATH, next, 'Update activity cache (state/activity.json) via show-repo');
+      }
+    } catch(e){ console.warn('activity cache refresh:', e?.message || e); }
+  },
+
+  // Crawl one repo's activity: the cheap summary (pushed-at, recent commits,
+  // open PRs) plus the capped branch survey. Returns the <fetched> shape
+  // repo-activity-cache.mergeRepo folds. Failures on a sub-read degrade to an
+  // empty piece rather than dropping the whole repo.
+  async crawlRepoActivity(repo, meta, now, A, B){
+    const def = meta?.default_branch || 'main';
+    const g = new window.GH({ token: window.TOKEN, repo, ref: def });
+    const [recentCommits, openPRs] = await Promise.all([
+      g.commits(this.ACTIVITY_RECENT_COMMITS).catch(() => []),
+      g.pulls('open', 30).catch(() => []),
+    ]);
+    // Branch survey: the same split the branches view runs (recent = date-only
+    // active; older = surveyed, capped), through the shared orchestrator.
+    let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, surveyed: 0, older: 0, openPRs: openPRs.length };
+    let truncated = false;
+    try {
+      let list;
+      try { list = await g.branchesDated(); }
+      catch { list = (await g.branches()).map(b => ({ name: b.name, date: '', ago: '', sha: b.commit?.sha || '', subject: '' })); }
+      const dated = list.filter(b => b.name !== def)
+        .map(b => ({ ...b, daysAgo: b.date ? B.daysAgo(b.date, now) : Infinity }));
+      const recent = dated.filter(b => b.daysAgo <= B.RECENT_DAYS).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const older = dated.filter(b => b.daysAgo > B.RECENT_DAYS).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const surveyed = await B.surveyOlder(g, { defaultRef: def, older, cap: this.ACTIVITY_SURVEY_CAP, pool: 3, now });
+      truncated = surveyed.truncated;
+      const trim = b => ({ name: b.name, date: b.date || '', sha: b.sha || '', subject: b.subject || '', ago: b.ago || '',
+                           group: b.group, noBase: !!b.noBase, nUnique: b.nUnique || 0, nLanded: b.nLanded || 0,
+                           nMissing: b.nMissing || 0, missingPaths: b.missingPaths || [] });
+      branches = [...recent.map(b => trim({ ...b, group: 'active' })), ...surveyed.rows.map(trim)];
+      counts = {
+        branches: list.length,
+        active: recent.length,
+        landed: surveyed.rows.filter(r => r.group === 'landed').length,
+        stranded: surveyed.rows.filter(r => r.group === 'stranded').length,
+        surveyed: surveyed.rows.length,
+        older: older.length,
+        openPRs: openPRs.length,
+      };
+    } catch(e){ console.warn('activity survey', repo, e?.message || e); }
+
+    return {
+      pushedAt: meta?.pushed_at || '',
+      defaultBranch: def,
+      recentCommits,
+      openPRs,
+      counts,
+      survey: { surveyedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SURVEY_CAP,
+                surveyed: counts.surveyed, older: counts.older, truncated, branches },
+    };
+  },
+
   // ── Private mailbox: fulfill request files an agent session dropped in the
   // registry repo, using the viewer's token, and write results back. Read-only
   // kinds only (tree / branches / fetch), so this never spends write access on
@@ -990,6 +1131,7 @@ function app(){ return {
     else if (this.view === 'public') p.set('view', 'public');
     else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'surfaces') p.set('view', 'surfaces');
+    else if (this.view === 'activity') p.set('view', 'activity');
     // App views are estate-level, so the link stands alone (like Surfaces): stamp
     // the view plus the promoted page's repo and path, independent of the open repo.
     else if (this.view === 'app' && this.appView) {
@@ -1027,6 +1169,7 @@ function app(){ return {
       else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'surfaces') this.goSurfaces();
+      else if (url && url.view === 'activity') this.goActivity();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
       else if (url && url.view === 'public') this.goPublicBrowse();
@@ -1082,7 +1225,7 @@ function app(){ return {
   // how a repo has landing/atlas/files/… isEstate gates the estate component
   // (it renders the grid and surfaces, switching on this.view, sharing the one
   // lazy mount); estateCtx is the wider context test the sidebar switches on.
-  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces'; },
+  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces' || this.view === 'activity'; },
   // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
@@ -1090,6 +1233,10 @@ function app(){ return {
   goHome(){ this.goEstate(); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
+  // Activity is the estate's third own-view; the one estate component renders it
+  // by reading the shell view. A visit kicks the throttled activity crawl (like
+  // Repos kicks the config crawl) so the cache is warm and self-healing.
+  goActivity(){ this.estateSeen = true; this.view = 'activity'; this.drawer = false; this.refreshActivityCache?.(); this.syncUrl(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
@@ -1392,9 +1539,9 @@ function overview(){ return {
   THE ESTATE: the all-repo context (lib/alpineComponents/estate.js), and the
   page's front door — a bare open (no ?repo/?file/?view, no #stage=) lands here,
   and the brand icon returns here on desktop. It is a context above any repo,
-  with two views of its own — Repos and Surfaces — shown in the sidebar the same
-  way a repo shows landing/atlas/files/… One estate component renders both and
-  switches on the shell view, sharing the one lazy mount.
+  with three views of its own — Repos, Surfaces, and Activity — shown in the
+  sidebar the same way a repo shows landing/atlas/files/… One estate component
+  renders all three and switches on the shell view, sharing the one lazy mount.
     Repos (?view=estate): a card per repo that opts in with estate:true in its
       OWN .web-tools.json. Membership and every descriptive field (group, note,
       icon, order) live on the repo; the registry holds no per-repo
@@ -1412,6 +1559,18 @@ function overview(){ return {
       place through a JSON dialog the same shape as the repo config editor
       (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
       always stamped, so a Surfaces link is shareable without a repo param.
+    Activity (?view=activity): the cross-repo activity read off the registry's
+      activity cache (state/activity.json, lib/repo-activity-cache.js) in one
+      GET — recent commits across the estate, a per-repo rollup (branch counts,
+      landed/stranded, open PRs), each row deep-linking into that repo's branch
+      review. The Repos view borrows the same cache twice: a recent-activity
+      strip up top (the landing widget) and a freshness rollup on each card. The
+      cache is refreshActivityCache's output: a ~12h-throttled crawl that runs
+      the capped branch survey (shared with the branches view via
+      lib/branch-survey.js surveyBranchLive/surveyOlder) once and stores it, so
+      neither this view nor the branch review fans out per visit. The branch
+      review renders cache-first, live only on Refresh. See docs/show-repo.md
+      "The estate" and web-tools-private/DESIGN.md.
     App views (?view=app&appRepo&appPath): pages any repo promotes to their own
       estate-level entry with appView:true on a `pages` catalog entry, collected
       across every repo's config through the config cache (loadAppViews, the
@@ -1419,7 +1578,7 @@ function overview(){ return {
       Stage rather than the estate grid, rendered live in the main area via
       toss-render #gh=. The link stands alone (like Surfaces), stamping the
       promoted page's repo and path independent of the open repo.
-  No token: the public default card only, and no surfaces or app views.
+  No token: the public default card only, and no surfaces, activity, or app views.
 
   GITHUB JUMP-OVERS: show-repo is a wrapper over GitHub, not a wall — every
   view keeps a one-tap route to the GitHub presentation of what it is showing.

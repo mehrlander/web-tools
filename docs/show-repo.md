@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=atlas|files|stage|branches|public`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=atlas|files|stage|branches|public|surfaces|activity`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views). The
@@ -44,10 +44,11 @@ the estate; the owner's repos below it are the per-repo contexts. In the estate
 the header reads `mehrlander / Repositories` with no branch selector, and the
 sidebar hides every per-repo item; pick a repo and the per-repo sidebar and
 branch context return. The brand icon returns to the estate on every viewport.
-The estate has views of its own: **Repos** (the card grid), **Surfaces**, the
-**Stage** (the cross-repo fileset, which belongs to no repo), and **Public
-browse** (the no-token file browser), plus any promoted **app views**. See "The
-estate", "The stage", and "Public browse" below.
+The estate has views of its own: **Repos** (the card grid), **Surfaces**,
+**Activity** (the cross-repo activity read), the **Stage** (the cross-repo
+fileset, which belongs to no repo), and **Public browse** (the no-token file
+browser), plus any promoted **app views**. See "The estate", "The stage", and
+"Public browse" below.
 
 The per-repo views in the sidebar:
 
@@ -73,13 +74,14 @@ ship with its jump-over.
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
 whole repo constellation, and the page's global context (above any single repo,
 reached from the header selector's "Repositories" entry, the brand icon, or a
-bare page open). It is a context with **two views of its own**, switched from
+bare page open). It is a context with **three views of its own**, switched from
 the sidebar the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
+- **Activity** (`?view=activity`) — the cross-repo activity read (below).
 
-One component renders both, switching on the shell view, sharing one lazy mount.
+One component renders all three, switching on the shell view, sharing one lazy mount.
 
 **Repos: membership and fields live on each repo.** A repo appears on the estate
 by opting in with `estate: true` in its **own** `.web-tools.json`. Every
@@ -122,13 +124,38 @@ path}` or a github.com URL), `url` (external link), `note` / `story` (inline
 body). An agent session with registry access can write or extend a surface; the
 estate shows it on next load.
 
-Token gating: no token means the public default card only, no surfaces, and no
-write controls. In that state the Repos view leads with a **public banner** that
-says exactly what is and isn't available and offers the two real next steps, a
-token or Public browse, instead of a vague "set a token" aside. Deep links:
-`?view=estate` (the bare URL is the Repos estate already; the param is stamped
-only when a `repo`/`ref` param is also present) and `?view=surfaces` (always
-stamped, so a Surfaces link is shareable on its own).
+**Activity** (`?view=activity`) is the cross-repo read: recent commits across
+the estate, a per-repo rollup (branch counts, landed / stranded, open PRs), and
+a peek at each repo's open PRs and stranded branch names, every row deep-linking
+into that repo's branch review. It reads the registry's **activity cache**
+(`state/activity.json`, below) in one GET, so the whole estate renders without a
+per-repo API fanout. The Repos view borrows the same cache twice: a **recent-
+activity strip** at the top (the landing widget, a few freshest commits with a
+jump to Activity) and a **freshness rollup** on each card (branch count, stranded
+count, open-PR count, the branch count a one-tap route into the branch review).
+The view's Refresh forces the crawl through the shell (`refreshActivity`); a
+normal visit kicks it throttled.
+
+The cache is what makes this affordable. The branch review costs ~2 + 2N calls to
+survey N branches, so surveying every repo live on a dashboard is a flood.
+Instead `refreshActivityCache` crawls each estate repo on a ~12h per-browser
+throttle (heavier than the config crawl, so a longer interval) and stores the
+capped landed/stranded survey plus cheap summary signals; the branch review, the
+estate cards, and this view all render from the stored result. The per-repo
+branch review is **cache-first** too: with a token it renders Landed / Stranded
+from `state/activity.json` and marks the header `cached`, running the live fanout
+only on an explicit Refresh or where the cache has no coverage. Same survey math
+either way (`lib/branch-survey.js` `surveyBranchLive`, shared by the view and the
+crawl). Source-of-truth rule as ever: the cache is derived and may be briefly
+stale; Refresh re-surveys live.
+
+Token gating: no token means the public default card only, no surfaces, no
+activity, and no write controls. In that state the Repos view leads with a
+**public banner** that says exactly what is and isn't available and offers the
+two real next steps, a token or Public browse, instead of a vague "set a token"
+aside. Deep links: `?view=estate` (the bare URL is the Repos estate already; the
+param is stamped only when a `repo`/`ref` param is also present), `?view=surfaces`
+and `?view=activity` (always stamped, so each is shareable on its own).
 
 **The shield dialog is scoped by context.** Opened from the sidebar shield at the
 estate level it is an **account panel**: the token control plus the estate

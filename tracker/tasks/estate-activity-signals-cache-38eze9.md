@@ -1,10 +1,11 @@
 ---
 id: estate-activity-signals-cache-38eze9
 title: Estate activity signals from a registry activity cache
-status: backlog
+status: in-progress
 project: show-repo
 opened: 2026-07-17
-next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
+session: claude/branches-view-api-caching-ef4l5d
+next: review the branch build; the cross-repo file-listing and the GraphQL-batched crawl (fewer calls) remain as follow-ons
 ---
 # Estate activity signals from a registry activity cache
 
@@ -25,3 +26,18 @@ it, and a cold public load is unaffected.
 ## Progress log
 - 2026-07-17: Filed from the estate-view session (PR #232). Estate ships with
   live pushed-ago only; cache design deferred here.
+- 2026-07-20: Claimed on branch claude/branches-view-api-caching-ef4l5d and
+  built, co-designed with the branch-review view's caching as the task
+  anticipated. Shipped: lib/repo-activity-cache.js (pure fold builders, sibling
+  of repo-config-cache.js, unit-tested); state/activity.json in the registry
+  holding a two-tier per-repo snapshot (cheap summary: pushed-at, counts,
+  accumulating-capped recent commits, open PRs; plus the capped landed/stranded
+  branch survey stored whole); show-repo's refreshActivityCache crawl on a ~12h
+  throttle, sharing one survey path with the branches view via new orchestrators
+  in lib/branch-survey.js (surveyBranchLive / surveyOlder). Reads: the branches
+  view renders cache-first (live fanout only on Refresh); the estate gains an
+  Activity view (?view=activity, cross-repo commits + per-repo rollups), a
+  landing activity strip and per-card freshness rollups on the Repos view. Also
+  fixed the stale branches-view.test.mjs (drifted at the #246 tabs redesign) and
+  added repo-activity-cache tests. Flips to done on merge; the cross-repo file
+  listing and a GraphQL-batched crawl remain as follow-ons.
