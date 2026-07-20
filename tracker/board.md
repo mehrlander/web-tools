@@ -5,7 +5,6 @@ _Generated from tasks/. Do not hand-edit._
 ## On deck
 - 🎫 Backfill guide regions into old PR bodies and full-regenerate the merge guide
 - 🎫 Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
-- 🎫 Estate activity signals from a registry activity cache next: design state/activity.json (recent commits, branches, PRs per repo) and the estate freshness treatment that reads it
 - 🎫 Update estate tests to the groupSections layout
 - 🎫 Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
 - 🎫 Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
@@ -20,6 +19,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Extend fetch + blob-import to the gh-api.js-chain ?use= boot
 
 ## In progress
+- 🎫 Estate activity signals from a registry activity cache (`claude/branches-view-api-caching-ef4l5d`) next: review the branch build; the cross-repo file-listing and the GraphQL-batched crawl (fewer calls) remain as follow-ons
 - 🎫 Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: live-confirm branchesForPath (GraphQL Commit.file) with a token, then wrap up PR #241
 
 ## Blocked
