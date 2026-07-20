@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/schemas/surface-v2.schema.json",
+  "title": "Surface (v2)",
+  "description": "A surface: a curated, annotated set of items presented for a reason at a moment. Core schema; profiles layer further constraints (see schemas/profiles/). Documentation: docs/surface.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest", "items"],
+  "properties": {
+    "manifest": { "$ref": "#/$defs/manifest" },
+    "context": {
+      "type": "object",
+      "description": "Open, profile-defined block. The core schema places no constraints on it; the active profile defines and validates its fields."
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "manifest": {
+      "type": "object",
+      "required": ["name", "created_at", "schema"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "author": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "category": {
+          "type": "string",
+          "description": "Renderer placement. Documented values: default, standing, showcase, archive. Open to others; unknown values render as showcase."
+        },
+        "schema": { "$ref": "#/$defs/schemaIdentity" },
+        "profile": { "$ref": "#/$defs/profileIdentity" }
+      }
+    },
+    "schemaIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "surface" },
+        "version": { "const": 2 }
+      }
+    },
+    "profileIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "title", "type"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Genre of the item, independent of where it lives. Documented values: note, story, file, directory, repo, link, compare. Open to app-defined types (e.g. the surfacer's generated feeds). Renderers show unknown types as a generic card; they never drop them."
+        },
+        "format": {
+          "type": "string",
+          "description": "Content-format hint for inline or fetched content (e.g. markdown, json, text)."
+        },
+        "role": {
+          "description": "Semantic role of the item within the surface. Absent means the item claims no role. Profiles may require it and constrain its values.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          ]
+        },
+        "target": { "$ref": "#/$defs/target" },
+        "change": { "$ref": "#/$defs/change" },
+        "view": { "$ref": "#/$defs/view" },
+        "snippet": { "type": "string" },
+        "content": {
+          "type": "string",
+          "description": "Inline body carried by the item itself (a note or story). Interpreted per `format`."
+        },
+        "summary": {
+          "description": "Condensation of the item (what it says, shorter).",
+          "oneOf": [ { "type": "string" }, { "type": "object" } ]
+        },
+        "commentary": {
+          "type": "string",
+          "description": "Interpretation of or comment on the item (what the curator thinks about it). Distinct from summary."
+        },
+        "facet": {
+          "type": "string",
+          "description": "Renderer-visible grouping key; produces section headers."
+        },
+        "added_at": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" },
+        "related": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relation" }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/$defs/source" },
+        "line_ranges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/lineRange" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "Where the targeted resource lives. Repository sources use the structured {repository, ref, path} form; external resources use uri; a path with no repository is local to the environment rendering the surface. See docs/surface.md for the full convention.",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "description": "owner/repo. Always explicit for repository sources; never inferred from context."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Symbolic ref (branch or tag). Optional; absent means the repository's default branch."
+        },
+        "revision": {
+          "type": "string",
+          "description": "Resolved commit id pinning the ref at capture time."
+        },
+        "base_revision": { "type": "string" },
+        "head_revision": { "type": "string" },
+        "path": { "type": "string" },
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical external URI, for resources that already have one."
+        }
+      }
+    },
+    "lineRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 1 },
+        "end": { "type": "integer", "minimum": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["added", "modified", "deleted", "renamed", "copied", "unchanged"]
+        },
+        "previous_path": { "type": "string" },
+        "patch": {
+          "type": "string",
+          "description": "Unified diff for this item, when the surface carries the patch inline rather than by reference."
+        }
+      }
+    },
+    "view": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["full", "diff", "excerpt", "summary", "metadata", "omit"]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why this representation was chosen. Distinct from commentary (about the item) and summary (of the item)."
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "relation"],
+      "properties": {
+        "item": { "type": "string", "description": "The id of another item in this surface." },
+        "relation": { "type": "string" }
+      }
+    }
+  }
+}

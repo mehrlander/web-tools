@@ -246,6 +246,7 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | [`docs/github/mcp-server-routing.md`](github/mcp-server-routing.md) | when two GitHub MCP servers are connected at once, an unexpected approval prompt is often a routing artifact, not a permission wall: prefer/retry the stable `mcp__github__*` server before re-approving. Platform-level, applies in any repo | fetch when relevant |
 | [`docs/artifacts.md`](artifacts.md) | Claude Code **artifacts**: constraints, the bake-and-publish pipeline, and the 📦 marker's place beside ⭐/🥏 in the link-choice matrix. Platform-level, so it applies in any repo | fetch when relevant |
 | [`docs/show-repo.md`](show-repo.md) | the **show-repo** instrument: the hosted shell that browses any repo and moves files between repos (the stage, the 🗂️ `#stage=` link grammar, `gh-transfer`, and the `.web-tools.json` manifest). The reference the `show-repo` skill fetches | fetch when relevant |
+| [`docs/surface.md`](surface.md) | the **`.surface` format contract** (v2): a curated, annotated set of items as one JSON file, shared by the Surfacer desktop app, show-repo's estate view, and any agent writing surfaces. Concepts, source convention, profiles (first: `branch-review/1`), v1→v2 migration; the JSON Schemas in [`schemas/`](../schemas/) are the validation source of truth and travel with it | fetch when relevant |
 
 ### Scripts
 
