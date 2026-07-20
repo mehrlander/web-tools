@@ -41,3 +41,16 @@ Storage does not reconcile by format alone: the surfacer keeps its truth in a lo
   for the browser side: registry-repo surfaces/ is the token-reachable home.
   Still open here: the stage's save-as-surface authoring path and the written
   format contract.
+- 2026-07-20: Two resolutions from the surface-file-format session. (1) The
+  open question is answered: the surfacer's local surfaces/ is standalone by
+  explicit DEPLOY.md decision (gitignored, OneDrive-synced), not a clone, so
+  there is no shared store; the reconciliation is format-level, with local
+  surfaces staying machine-bound (path-only sources) and registry surfaces
+  portable. (2) Step 5, the written contract, landed as docs/surface.md plus
+  schemas/surface-v2.schema.json and schemas/profiles/branch-review-v1.schema.json
+  on branch claude/surface-file-format-88jynb: v2 splits kind into type +
+  target.source (the {repository, ref, path} form is the stage triple, per
+  step 1's intent), adds role/view/change/profile, and documents both readers'
+  migration targets without changing them. Steps 2 through 4 (per-item context
+  editing, save-as-surface, surface-into-stage) remain, now against the v2
+  item shape.

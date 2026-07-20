@@ -12,3 +12,10 @@ Related smaller lever, take or split: the finder's root repos (Recent/Search) co
 
 ## Progress log
 - 2026-07-18: Filed at wrap-up of the stage-rework session (PR #239), which moved the stage to the estate context and left this convergence as the agreed direction.
+- 2026-07-20: The shared item vocabulary now exists as a written contract:
+  docs/surface.md plus the v2 core schema and the branch-review/1 profile,
+  landed on branch claude/surface-file-format-88jynb. A stage item is the v2
+  file item's target.source triple ({repository, ref, path}) with annotations
+  empty, as this task predicted; the optional per-item note rides the shared
+  shape as commentary. The two bridges (open-as-stage, save-as-surface) and
+  the estate.js migration to dual-read remain the build work here.
