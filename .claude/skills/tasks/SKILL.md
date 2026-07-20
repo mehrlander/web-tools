@@ -7,10 +7,11 @@ description: >-
   straight to main (not a feature branch). Invoking this skill bare (no
   further ask) surfaces a caption of the current board. Use when the user
   says "add a task", "file a task", "make a tracker task", "claim a task",
-  "check the tracker", "what's on the board", "regenerate the board", or
-  "close task X", or when a follow-up needs to survive across sessions.
-  Owns the tracker's file format and main-branch workflow; the
-  web-tools skill owns PR bodies, surfacing links, and the
+  "check the tracker", "what's on the board", "regenerate the board",
+  "close task X", "groom the tracker", "clean up the backlog", "audit the
+  tasks", or "prune stale tasks", or when a follow-up needs to survive
+  across sessions. Owns the tracker's file format and main-branch workflow;
+  the web-tools skill owns PR bodies, surfacing links, and the
   merge guide, so route those there.
 ---
 
@@ -151,6 +152,48 @@ owning branch, or the progress log changes.
 A task is done when its work **lands** (merges to `main`), not when the branch
 is pushed. Then set `status: done` and `closed: <YYYY-MM-DD>`, and add a final
 progress-log line.
+
+## Groom the tracker
+
+Use when the ask is "groom the tracker", "clean up the backlog", "audit the
+tasks", "prune stale tasks", or similar: a review pass over the whole board,
+not a single task edit. File/claim/close act on one task the caller already
+has in mind; grooming is the operation that finds the ones nobody's looking
+at.
+
+Read every task file under `tracker/tasks/` directly (not `board.md`'s
+prose), body and progress log included, not just frontmatter. For each
+`backlog` or `blocked` task, check whether it is:
+
+- **superseded**: a later task covers its scope (the board already has a
+  hand-written example of this — see `private-repo-landing-federation-u50nns`)
+- **stale**: it references code, a blocker, or a state that no longer exists
+- **duplicate**: another open task covers the same work
+- **oversized**: scope has grown past one task and wants splitting
+
+Also skim `in-progress` tasks for one thing grooming alone can catch: an
+owning branch (`session:`) that's merged or gone while the task still reads
+`in-progress`.
+
+Grooming makes judgment calls; file/claim/close don't. Propose findings and
+get the user's confirmation before closing or splitting anything — don't
+act unilaterally on a review pass the way a direct "close task X" would.
+
+For a task closed by grooming rather than by landed work, the schema has no
+dedicated status for that (`docs/TRACKER.md`'s `status` is `backlog |
+in-progress | blocked | done`, and "done" is defined as *landed*). Don't
+invent a new recognized status for this. Instead, per the schema's own
+graduation rule, use an open tag: set `status: done`, `closed: <date>`, add
+`resolution: superseded | stale | duplicate | dropped`, and name the cause
+(and the superseding task's id, if any) in a final progress-log line, so a
+reader can tell a groomed close from a landed one at a glance. If
+`resolution` earns its keep across enough tasks, it's a candidate to graduate
+to a recognized key the board generator groups by — that's a separate,
+larger change, not something grooming does on its own.
+
+Regenerate `board.md` and commit through the same scratch-branch-to-main
+flow as any other tracker edit. Close by reporting what closed, what's
+proposed but awaiting confirmation, and what was left alone.
 
 ## Comments split by append vs overwrite
 
