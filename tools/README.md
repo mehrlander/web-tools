@@ -173,9 +173,17 @@ Everything is then live — `x-data="repo()"`, `x-data="counter()"`, etc. — wi
 no per-component load. The pure kits (`compression`, `persistence`, `io`, …)
 ride along **cached but not executed**; a page's `gh.load('kits/x.js')` resolves
 instantly from the inlined cache. Third-party libs (Tailwind/daisyUI/Phosphor/
-Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` still re-pins to the
-CDN for review. [`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html) is the
-worked example.
+Alpine/CodeMirror) stay on their CDN tags, and `?use=<ref>` re-pins the bundle to
+that ref for review. It does so by **fetch + blob-import from
+raw.githubusercontent**, not jsDelivr's `/gh/` CDN: raw serves public files
+anonymously with permissive CORS and no branch-tip cache, so a fresh push
+previews immediately (jsDelivr's `/gh/` listing lags ~12h, which used to make a
+just-pushed branch preview stale). A blob URL imports despite raw's `text/plain`
+type because the blob sets its own JS type, and the bundle is one self-contained
+module (no internal imports), so blob-import is clean and a branch name is
+cache-safe (no SHA needed). The no-`?use` path stays the same-origin Pages
+import, untouched. [`pages/demos/prebuild-demo.html`](../pages/demos/prebuild-demo.html)
+is the worked example.
 
 This is the **delivery** twin of the loader's **freshness**: develop against the
 `gh.load` chain (edit a file, reload, see it), ship against the pre-build (one

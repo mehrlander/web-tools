@@ -115,7 +115,7 @@ const page = await ctx.newPage();
 await page.route('**/*', route => {
   const url = route.request().url();
   if (url.startsWith(`http://127.0.0.1:${port}`)) return route.continue();
-  const r = resolveCdn(url, repoRoot);
+  const r = resolveCdn(url, repoRoot, opts.ref);
   tally[r.kind]++;
   if (r.tag) log.push(r.tag);
   if (r.kind === 'continue') return route.continue();
