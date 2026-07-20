@@ -59,42 +59,55 @@
      fixed set rather than one repos opt into. ─────────────────────────────── -->
 <header class="shrink-0 z-30 bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
-    <div class="h-14 flex items-center gap-1.5">
-      <button @click="goDashboard()" class="hover:opacity-80 transition-opacity shrink-0" title="Dashboard">
-        <img src="../../lib/favicon.svg" alt="web-tools" width="28" height="28" class="w-7 h-7">
+    <!-- Top row: brand, the desktop-inline nav, the in-repo readout, and the
+         actions. On mobile the nav drops to its own full-width row below (so all
+         four labels fit a narrow phone); on desktop it sits inline here. -->
+    <div class="h-12 lg:h-14 flex items-center gap-1">
+      <button @click="goDashboard()" class="hover:opacity-80 transition-opacity shrink-0 mr-0.5" title="Dashboard">
+        <img src="../../lib/favicon.svg" alt="web-tools" width="24" height="24" class="w-6 h-6">
       </button>
-      <!-- App-level views: Activity / Repos / Surfaces / Stage / Public, the
-           estate's own closed set. Icon + label on desktop, icon-only on
-           mobile; scrolls rather than wraps if it ever overflows. -->
-      <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
+      <!-- App-level views (desktop, inline): Activity / Repos / Surfaces / Stage,
+           the estate's own closed set, always labeled. Public browse left the
+           header (a signed-out affordance, still on the no-token banner and every
+           repo card). -->
+      <nav class="hidden lg:flex items-center gap-0 min-w-0">
         <template x-for="v in estateNav" :key="v.view">
           <button @click="v.go()" :title="v.label"
-                  class="btn btn-sm btn-ghost gap-1.5 shrink-0 px-2.5"
-                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70'">
-            <i class="ph text-base leading-none" :class="v.icon"></i>
-            <!-- The label always shows for the active view (so the bar names
-                 where you are) and for every view on desktop; inactive views are
-                 icon-only on mobile, so the closed set fits without scrolling. -->
-            <span class="text-xs font-medium" :class="!navActive(v) && 'hidden md:inline'" x-text="v.label"></span>
+                  class="flex items-center gap-1 shrink-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
+            <i class="ph text-sm leading-none" :class="v.icon"></i>
+            <span x-text="v.label"></span>
           </button>
         </template>
       </nav>
       <!-- In-repo context: owner/name @ref (ref switcher kept) + GitHub jump.
            Renders only inside a repo; the estate context shows nothing here. -->
-      <div class="w-px h-6 bg-base-300 mx-0.5 hidden sm:block" x-show="$store.browser.repo && !estateCtx" x-cloak></div>
+      <div class="w-px h-6 bg-base-300 mx-0.5 hidden lg:block" x-show="$store.browser.repo && !estateCtx" x-cloak></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
       <div class="grow"></div>
       <!-- Auth shield (token / config dialog): an app-level control, so it lives
            in the always-visible header rather than the sidebar drawer. -->
       <button @click="document.getElementById('repo')?.__repo?.openDialog()"
-              class="tooltip tooltip-left btn btn-sm btn-square btn-ghost shrink-0" :data-tip="authTip">
+              class="tooltip tooltip-left shrink-0 p-1.5 rounded-lg hover:bg-base-200 transition-colors" :data-tip="authTip">
         <i class="ph text-lg leading-none" :class="authIcon"></i>
       </button>
       <!-- Drawer toggle, where the sidebar is a drawer (below lg). -->
-      <button @click="openSidebar()" class="btn btn-sm btn-square btn-ghost shrink-0 lg:hidden" title="Menu">
-        <i class="ph ph-list text-lg"></i>
+      <button @click="openSidebar()" class="shrink-0 p-1.5 rounded-lg hover:bg-base-200 transition-colors lg:hidden" title="Menu">
+        <i class="ph ph-list text-lg leading-none"></i>
       </button>
     </div>
+    <!-- App-level views (mobile): the same closed set on its own full-width row,
+         so all four labels fit without clipping. Hidden on desktop (inline above). -->
+    <nav class="flex lg:hidden items-center gap-0.5 pb-1.5 -mt-0.5 overflow-x-auto no-scrollbar">
+      <template x-for="v in estateNav" :key="v.view">
+        <button @click="v.go()" :title="v.label"
+                class="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+                :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
+          <i class="ph text-sm leading-none" :class="v.icon"></i>
+          <span x-text="v.label"></span>
+        </button>
+      </template>
+    </nav>
   </div>
 </header>
 
@@ -1216,11 +1229,10 @@ function app(){ return {
   // same go* method and `view` string the router already uses.
   get estateNav(){
     return [
-      { view: 'activity', icon: 'ph-pulse',            label: 'Activity', go: () => this.goActivity() },
-      { view: 'estate',   icon: 'ph-squares-four',     label: 'Repos',    go: () => this.goEstate() },
-      { view: 'surfaces', icon: 'ph-cards',            label: 'Surfaces', go: () => this.goSurfaces() },
-      { view: 'stage',    icon: 'ph-stack',            label: 'Stage',    go: () => this.goStage() },
-      { view: 'public',   icon: 'ph-cloud-arrow-down', label: 'Public',   go: () => this.goPublicBrowse() },
+      { view: 'activity', icon: 'ph-pulse',        label: 'Activity', go: () => this.goActivity() },
+      { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
+      { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
+      { view: 'stage',    icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
     ];
   },
   navActive(v){ return this.view === v.view; },
