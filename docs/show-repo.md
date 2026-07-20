@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=atlas|files|stage|branches|public|surfaces|activity`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|activity`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views).
@@ -64,8 +64,18 @@ The per-repo views in the sidebar:
 
 - **landing**: the repo's front door. `landingKind(repo)` decides: web-tools →
   its page gallery; a repo whose manifest names a `landing` → that custom page
-  (rendered live through toss-render `#gh=`); every other repo → a synthesized
-  overview (stats + README + a jump to the atlas).
+  (rendered live through toss-render `#gh=`), even if the same manifest also
+  declares a `pages` catalog; a repo with a `pages` catalog and no `landing` →
+  the gallery, fed from that catalog; every other repo → a synthesized
+  overview (stats + README + a jump to the atlas). `landing` outranks `pages`
+  for this one front-door slot, but never hides the catalog: see **pages**
+  below.
+- **pages** *(shown only when it adds something the landing button doesn't
+  already)*: the standalone gallery entry, for a repo whose manifest declares
+  both `landing` and `pages` — the front door went to the custom page, so this
+  is where the catalog lives instead. Renders the identical gallery component
+  the landing view uses when `landingKind()==='gallery'`; a repo without both
+  fields set never needs it and the sidebar omits it.
 - **atlas**: a standing structural view, available for every repo regardless of
   its landing.
 - **files**: the explorer: breadcrumb + listing, selected file's content
@@ -337,20 +347,25 @@ repos. All are optional; a repo with no config is simply off the estate.
   `order`, icon from this repo's `icon`.
 - **landing**: path to the repo's own landing page, rendered live via
   toss-render `#gh=` (token-authed, so private repos and branches work; gated by
-  toss-render's OWNERS allowlist). "The repo builds its own page." A repo with a
-  `pages` catalog gets the gallery landing instead; `landing` is the single-page
-  form.
+  toss-render's OWNERS allowlist). "The repo builds its own page." Takes the
+  front-door slot ahead of `pages` when a repo sets both: the custom page is
+  the landing, and the catalog moves to the standalone **Pages** sidebar view
+  instead of disappearing. A repo with only `pages` (no `landing`) still gets
+  the gallery as its landing, unchanged.
 - **pages**: a hand-declared page catalog: a flat list of `{ path, title, note }`
   entries (optional `icon`, `thumb`, and the app-view fields below). A repo
-  declaring a non-empty `pages` gets the **gallery landing**: the same card grid
+  declaring a non-empty `pages` gets the **gallery**: the same card grid
   with the screenshot / live / source toggle, chip grouping, and search that
   web-tools gets from its generated `pages.json`, but fed from this hand-declared
-  catalog as one group. A private repo has no committed thumbnails, so each tile
-  renders **live** through toss-render `#gh=` (token-authed, lazy on scroll); the
-  source toggle reads the file through the viewer's token. This is a sibling to
-  `pins`/`stage.files`, maintained by hand. (web-tools keeps its generated
-  `pages.json` for its own gallery; the component reads whichever catalog a repo
-  offers.)
+  catalog as one group. It surfaces as the **landing** when the repo has no
+  `landing` field, or as a standalone **Pages** sidebar entry when the repo
+  also has one (so `landing` and `pages` aren't mutually exclusive: a repo can
+  set both, and both stay reachable). A private repo has no committed
+  thumbnails, so each tile renders **live** through toss-render `#gh=`
+  (token-authed, lazy on scroll); the source toggle reads the file through the
+  viewer's token. This is a sibling to `pins`/`stage.files`, maintained by
+  hand. (web-tools keeps its generated `pages.json` for its own gallery; the
+  component reads whichever catalog a repo offers.)
   - **path**: the page. A **bare repo-relative path** (`"pages/foo.html"`, this
     repo at its default branch) or a **qualified cross-repo ref**
     (`"owner/repo[@ref]:path"`), the same grammar as `stage.files`. The

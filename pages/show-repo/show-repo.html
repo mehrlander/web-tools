@@ -152,14 +152,22 @@
       <!-- Per-repo views, hidden in the estate (global) context. The estate is
            reached from the header selector ("Repositories") and the brand icon,
            not from here, since it is a context above the repo, not a view of it.
-           Repo views: the landing (web-tools' is its pages index, others get an
-           overview), the atlas, the file explorer, and the branch review. (The
+           Repo views: the landing (web-tools' is its pages index, a repo with a
+           custom `landing` gets that page, others get an overview), an optional
+           standalone Pages entry (showPagesNav; a repo with both `landing` and a
+           `pages` catalog reaches its gallery here since the landing slot is
+           taken), the atlas, the file explorer, and the branch review. (The
            stage lives in the estate list above: it is cross-repo by nature.) -->
       <div class="flex flex-col gap-0.5" x-show="!estateCtx">
         <button @click="goLanding()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
                 :class="view==='landing' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph text-base" :class="landingIcon"></i><span x-text="landingLabel"></span>
+        </button>
+        <button @click="goPages()" x-show="showPagesNav"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
+                :class="view==='pages' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-squares-four text-base"></i><span>Pages</span>
         </button>
         <button @click="goAtlas()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-base-200 transition-colors"
@@ -254,21 +262,28 @@
       </div>
     </div>
 
-    <!-- Landing: web-tools' gallery, a manifest-designated custom page, or a
-         default overview for other repos. -->
-    <div x-show="view==='landing'" class="h-full overflow-y-auto">
+    <!-- Landing + Pages: web-tools' gallery, a manifest-designated custom page,
+         or a default overview, all in the 'landing' view; plus the standalone
+         'pages' view (showPagesNav / goPages()) that a repo reaches when it has
+         both `landing` and a `pages` catalog, since `landing` took the front
+         door. Both views share one gallery mount below rather than duplicating
+         it, so the two entry points never drift apart. -->
+    <div x-show="view==='landing' || view==='pages'" class="h-full overflow-y-auto">
 
       <!-- Custom landing: the repo's own page (config.landing), rendered live
-           through toss-render's #gh= address mode. Full-bleed, like the atlas. -->
-      <template x-if="landingKind()==='custom'">
+           through toss-render's #gh= address mode. Full-bleed, like the atlas.
+           Only the 'landing' view can be custom; 'pages' always means gallery. -->
+      <template x-if="landingKind()==='custom' && view==='landing'">
         <iframe :src="customLandingUrl" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
 
-      <div x-show="landingKind()!=='custom'" class="!max-w-none px-6 py-8">
+      <div x-show="!(landingKind()==='custom' && view==='landing')" class="!max-w-none px-6 py-8">
 
-        <!-- web-tools landing: the pages gallery, fed from pages.json -->
-        <div x-show="landingKind()==='gallery'">
+        <!-- The pages gallery: web-tools' own (pages.json) or any repo's `pages`
+             catalog. Reached as the landing when landingKind()==='gallery', or
+             directly via the standalone Pages view regardless of landingKind(). -->
+        <div x-show="landingKind()==='gallery' || view==='pages'">
           <div x-data="gallery()">
             <p x-show="isDefault" class="text-base-content/50 text-sm mb-6">
               Browser-based tools and demos. Cards toggle between a
@@ -378,8 +393,9 @@
         </div>
 
         <!-- Default landing for any other repo: an overview — stats, README,
-             and a jump to the atlas. -->
-        <div x-show="landingKind()==='overview'">
+             and a jump to the atlas. 'pages' view never wants this, even on a
+             stray deep link to a repo with no pages catalog. -->
+        <div x-show="landingKind()==='overview' && view==='landing'">
           <div x-data="overview()">
             <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
               <div class="min-w-0">
@@ -518,7 +534,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'surfaces' | 'activity' | 'landing' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'surfaces' | 'activity' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
@@ -1002,20 +1018,33 @@ function app(){ return {
     } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
-  // web-tools -> its pages index ('gallery'); any repo whose manifest declares a
-  // `pages` catalog -> the same gallery, fed from that catalog ('gallery'); a
-  // repo whose manifest designates a single landing page -> that page rendered
-  // live ('custom'); every other repo -> a synthesized overview ('overview').
-  // The design notes below cover the gallery catalog and the custom render path.
+  // web-tools -> its pages index ('gallery'); a repo whose manifest designates a
+  // single landing page -> that page rendered live ('custom'), even if it also
+  // declares a `pages` catalog; a repo with only a `pages` catalog (no `landing`)
+  // -> the same gallery, fed from that catalog ('gallery'); every other repo ->
+  // a synthesized overview ('overview'). `landing` outranks `pages` here because
+  // this is the single front-door slot; a repo declaring both still reaches its
+  // gallery through the standalone Pages sidebar entry (goPages(), 'pages' view),
+  // gated on config.pages.length rather than on this function. The design notes
+  // below cover the gallery catalog and the custom render path.
   landingKind(){
     const s = Alpine.store('browser');
     if (s.repo === this.DEFAULT_REPO) return 'gallery';
-    if (Array.isArray(s.config?.pages) && s.config.pages.length) return 'gallery';
     if (s.config?.landing) return 'custom';
+    if (Array.isArray(s.config?.pages) && s.config.pages.length) return 'gallery';
     return 'overview';
   },
   get landingLabel(){ return { gallery: 'Pages', custom: 'Landing', overview: 'Overview' }[this.landingKind()]; },
   get landingIcon(){ return { gallery: 'ph-squares-four', custom: 'ph-planet', overview: 'ph-house' }[this.landingKind()]; },
+  // The standalone Pages sidebar entry: shown only when it would offer something
+  // the Landing button doesn't already — i.e. the repo has a `pages` catalog but
+  // `landingKind()` resolved to something else (a custom landing won the front
+  // door). A gallery-fronted repo (web-tools, or `pages`-only like home) has no
+  // use for a second identical button.
+  get showPagesNav(){
+    const s = Alpine.store('browser');
+    return Array.isArray(s.config?.pages) && s.config.pages.length > 0 && this.landingKind() !== 'gallery';
+  },
 
   // Custom landings render through toss-render's #gh= address mode: fetched
   // with the viewer's stored token (private repos and branches work), rendered
@@ -1097,6 +1126,7 @@ function app(){ return {
       if (f && (!f.origin || f.origin.repo === s.repo)) p.set('file', f.path);
       else { p.set('view', 'files'); if (s.path) p.set('path', s.path); }
     }
+    else if (this.view === 'pages') p.set('view', 'pages');
     else if (this.view === 'atlas') p.set('view', 'atlas');
     else if (this.view === 'stage') p.set('view', 'stage');
     else if (this.view === 'public') p.set('view', 'public');
@@ -1141,6 +1171,7 @@ function app(){ return {
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'surfaces') this.goSurfaces();
       else if (url && url.view === 'activity') this.goActivity();
+      else if (url && url.view === 'pages') this.goPages();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
       else if (url && url.view === 'public') this.goPublicBrowse();
@@ -1233,6 +1264,7 @@ function app(){ return {
   // Repos kicks the config crawl) so the cache is warm and self-healing.
   goActivity(){ this.estateSeen = true; this.view = 'activity'; this.drawer = false; this.refreshActivityCache?.(); this.syncUrl(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
+  goPages(){ this.view = 'pages'; this.drawer = false; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.drawer = false; this.syncUrl(); },
   goFiles(){ this.view = 'files'; this.drawer = false; this.syncUrl(); },
   goStage(){ this.view = 'stage'; this.drawer = false; this.syncUrl(); },
@@ -1704,7 +1736,11 @@ function overview(){ return {
   single lib/ constant. No token: the private section is absent, no leak.
 
   The seam stays small: each landing kind is a branch in landingKind() plus a
-  matching landing block; each manifest field has exactly one consumer.
+  matching landing block. `pages` now has two read sites (landingKind()'s
+  gallery branch, and showPagesNav's standalone-entry gate) rather than one,
+  since `landing` and `pages` can both be set on the same repo; both sites
+  render through the one gallery mount shared by the 'landing' and 'pages'
+  views, so there is still exactly one gallery implementation to maintain.
 ─────────────────────────────────────────────────────────────────────────── -->
 </body>
 </html>
