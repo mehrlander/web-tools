@@ -455,6 +455,53 @@ wsl.linkifyList(chapters, fullRcws)  // + linkifyTitles, chapterTooltip,
                                      //   buildChapterPopup, buildTitlePopup
 ```
 
+### xlsx.js
+
+OOXML (`.xlsx`) structural inspector: unzip, walk every XML/rels part, and
+surface the internal cross-references — shared strings, styles, sheet rels,
+comments, calc chain, defined names — plus reconstructed sheet data. Pulled
+from three dropped prototypes into one pure kit: no DOM rendering, no
+jQuery/Tabulator. `analyze()` takes already-extracted XML strings and is
+synchronous and part-order-independent (cross-file resolution happens in a
+finalize pass once every part is walked), which fixes a real bug in the
+source prototypes: they resolved shared-string cell values inline during a
+concurrent, unordered zip read, so a sheet processed before
+`sharedStrings.xml` got empty string values. `readZip()` is the thin
+JSZip-backed convenience wrapper a page actually calls (JSZip loads lazily,
+same pattern as `io.js`).
+
+```js
+const result = await window.xlsxKit.readZip(fileOrArrayBuffer);
+// result: { el, connectedPaths, conns, xl: { sheets, strings, styles,
+//           comments, relationships, definedNames, calcChain } }
+
+xlsxKit.summary(result)             // { total, connected, unconnected, connectedPct }
+xlsxKit.views.paths(result)         // one row per distinct XML element path
+xlsxKit.views.connections(result)   // one row per sheet: cells/strings/styles/
+                                    //   formulas/merged cells/comments/named
+                                    //   ranges/calc-chain entries
+xlsxKit.views.unconnected(result)   // paths with no recognized structure
+xlsxKit.views.files(result)         // one row per XML part: category, paths,
+                                    //   connected count, sheets touched
+xlsxKit.sheetRows(result.xl.sheets.sheet1)
+                                    // -> [{ Row, A, B, C, ... }], sparse rows/
+                                    //   columns left as gaps, not compacted
+xlsxKit.colLetter(26)               // 'AA'
+```
+
+`analyze(parts)` — the pure entry point — takes `[[path, xmlString], ...]` or
+`{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
+testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
+real `.xlsx` file or JSZip. Two known limitations inherited from the source
+prototypes (not fixed, since a real fix needs cross-referencing
+`workbook.xml`'s `<sheets>` order, a nontrivial addition): named-range and
+calc-chain sheet association assumes `sheetN.xml`'s file number matches
+workbook sheet order, which can drift after a sheet reorder or rename; and
+cell-to-column mapping trusts each `<c>`'s `r` attribute (falling back to
+positional order only when `r` is absent), which is standard but not
+universal among third-party writers. See `kits/demos/xlsx.html` for live
+examples.
+
 ## Salvage status
 
 Every kit is in active use. The custom-element wrapper that used to live
@@ -479,3 +526,4 @@ examples.
 | `export.js` | the FAB's export control | page + `read()` data as a zip |
 | `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |
 | `wsl.js` | `pages/wsl-sync/` | browser wrapper; lazy XML libs |
+| `xlsx.js` | `kits/demos/xlsx.html` | OOXML structural walk; pure/testable, lazy JSZip |

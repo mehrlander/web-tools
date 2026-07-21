@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xlsx — living demo</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/cm6.js');
+  await gh.load('kits/proof.js');
+  await gh.load('vanilla-demo.js');
+  await gh.load('kits/io.js');     // io.pick() supplies the real file/gesture
+  await gh.load('kits/xlsx.js');   // parent-kind snippets call window.xlsxKit
+
+  const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
+
+  const SECTIONS = [
+    {
+      title: 'Read a real .xlsx',
+      intro: 'xlsxKit.readZip needs a real file, so this uses the host kind: pressing Run opens a file dialog via io.pick(). Choose any .xlsx.',
+      examples: [
+        {
+          title: 'readZip + summary',
+          prose: `<code class="${c()}">readZip</code> unzips the file (lazy-loading JSZip on first call) and walks every <code class="${c()}">.xml</code>/<code class="${c()}">.rels</code> part. <code class="${c()}">summary</code> reduces the result to one line: how many XML element-paths were found, and how many are wired into something the kit recognizes (a sheet, shared strings, styles, comments, calc chain, relationships…).`,
+          lang: 'js', kind: 'parent',
+          code:
+`const buf = await io.pick('.xlsx');
+const result = await xlsxKit.readZip(buf);
+window.__xlsx = result;   // stashed for the snippets below
+
+const s = xlsxKit.summary(result);
+console.log(\`\${s.total} XML paths, \${s.connected} connected (\${s.connectedPct.toFixed(1)}%), \${s.unconnected} unconnected\`);
+console.log('sheets:', Object.keys(result.xl.sheets).join(', '));`
+        },
+      ],
+    },
+    {
+      title: 'The four views',
+      intro: 'Each view is a pure function over the result from readZip/analyze — no DOM, just arrays of plain objects a table (Tabulator, a &lt;table&gt;, whatever) can render directly. Run the section above first.',
+      examples: [
+        {
+          title: 'views.connections — per-sheet resource usage',
+          prose: `Cells, referenced shared-string ids, referenced styles, formulas, merged cells, comments, named ranges, and calc-chain entries, one row per sheet.`,
+          lang: 'js', kind: 'parent',
+          code:
+`console.table(xlsxKit.views.connections(window.__xlsx));`
+        },
+        {
+          title: 'views.files — one row per XML part',
+          prose: `Which OOXML part each path belongs to, its category (Sheet Data, Shared Strings, Relationships, …), and which sheets it touches.`,
+          lang: 'js', kind: 'parent',
+          code:
+`console.table(xlsxKit.views.files(window.__xlsx).slice(0, 15));`
+        },
+        {
+          title: 'views.paths and views.unconnected',
+          prose: `<code class="${c()}">paths</code> is one row per distinct XML element path across every part; <code class="${c()}">unconnected</code> is the subset the kit found no recognized structure for — usually drawing/theme extension blocks and other decoration.`,
+          lang: 'js', kind: 'parent',
+          code:
+`console.log(xlsxKit.views.paths(window.__xlsx).length, 'total paths');
+console.table(xlsxKit.views.unconnected(window.__xlsx).slice(0, 10));`
+        },
+      ],
+    },
+    {
+      title: 'Reconstructed sheet data',
+      intro: 'sheetRows turns one sheet’s raw cell map back into row objects keyed by column letter (Row, A, B, C…), gaps left as gaps rather than compacted away.',
+      examples: [
+        {
+          title: 'sheetRows on the first sheet',
+          prose: `Shared-string cells already carry their resolved text, not a string-table index — <code class="${c()}">analyze()</code> defers that resolution to a finalize pass, so it’s correct no matter which part of the zip got walked first.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const [firstSheet] = Object.values(window.__xlsx.xl.sheets);
+console.table(xlsxKit.sheetRows(firstSheet).slice(0, 20));`
+        },
+      ],
+    },
+  ];
+
+  demo.mount({
+    sections: SECTIONS,
+    sectionsEl: document.getElementById('sections'),
+    displayEl: document.getElementById('display-ctrl'),
+    legendEl: document.getElementById('legend'),
+    base,
+  });
+</script>
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content antialiased">
+
+  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
+    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
+      <div id="display-ctrl" class="pointer-events-auto"></div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+
+    <header class="mb-10">
+      <div class="flex items-baseline justify-between mb-3">
+        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/xlsx.js</p>
+        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+          <i class="ph ph-arrow-left"></i> demos
+        </a>
+      </div>
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+        Unzip it. <span class="opacity-50">See how Excel wires it together.</span>
+      </h1>
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+        <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.xlsxKit</code>
+        unzips an .xlsx, walks every XML/rels part, and returns the internal
+        cross-references (shared strings, styles, sheet rels, comments, calc
+        chain, defined names) plus reconstructed sheet data — no DOM, no
+        Tabulator, just plain objects. Needs a real file, so this uses the
+        <span class="font-mono text-[0.8em]">Console · host</span> kind — the
+        Run click is the gesture behind the file dialog.
+      </p>
+      <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
+    </header>
+
+    <main id="sections"></main>
+
+    <footer class="mt-4 pt-6 border-t border-base-300">
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Pulled from three dropped prototypes into one pure kit — see the <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/xlsx.js" class="link link-hover">source</a> for the extraction notes.</p>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

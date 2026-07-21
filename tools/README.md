@@ -44,7 +44,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior (compression round-trips, persistence over fake-indexeddb, messaging, wsl-core parsing/classification), a registration smoke test across every kit, and jsdom + real-Alpine component logic tests (counter, sheet-modal). Offline; third-party libs come vendored from `node_modules`. |
+| `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior (compression round-trips, persistence over fake-indexeddb, messaging, wsl-core parsing/classification, xlsx OOXML structural parsing), a registration smoke test across every kit, and jsdom + real-Alpine component logic tests (counter, sheet-modal). Offline; third-party libs come vendored from `node_modules`. |
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
