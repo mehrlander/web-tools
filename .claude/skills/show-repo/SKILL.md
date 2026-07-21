@@ -26,7 +26,7 @@ markers: 🗂️ a stage link, 🥏 a toss, 📦 an artifact.
 ## What it enables (before you fetch)
 
 - **Browse link:** `…/show-repo/show-repo.html?repo=owner/repo[&ref=…][&view=files&path=<dir>]`. Public repos need no auth; private repos and branches need the viewer's stored token.
-- **Stage link 🗂️:** `…/show-repo/show-repo.html#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset for view, concatenated-bundle copy/download, two-tap transfer into another repo, or a review diff. Optional `&prompts=<base64url>` (a `{label, ask}` review-prompt list) and `&mode=diff` (open on the Diff tab, run on open) ride the link, and the same keys also ride the `?query` (`StageLink.read`) for a fragment-stripping context. The refs carry pointers only, content stays behind the viewer's token; the prompts and mode are authored, so they ride the link.
+- **Stage link 🗂️:** `…/show-repo/show-repo.html#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset for view, concatenated-bundle copy/download, two-tap transfer into another repo, or a review diff. Refs are pointers (content stays behind the viewer's token); optional `&prompts=<base64url>` (a `{label, ask}` review-prompt list) and `&mode=diff` (open on the Diff tab, run on open) are authored, so they ride the link, and the `?query` too (`StageLink.read`) for a fragment-stripping context.
 - **Manifest:** a repo's root `.web-tools.json` (the repo's web-tools config; `landing`, `pins`, `stage.files`, `stage.targets`) configures how the shell presents it. The shell falls back to the legacy `.show-repo.json` name.
 
 ## The honesty caveat (state it on every stage handoff)
