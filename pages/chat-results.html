@@ -105,9 +105,8 @@
     },
     hasTranscript(r) { return !!(r.transcript?.length || r.source); },
     // Reading a chat is a fullscreen takeover: the one chat fills the screen as
-    // the swipe deck (chatRender.openTranscript), back/Esc/✕ returns to the
+    // the swipe deck (chatRender.openTranscript), back/Esc/←/→/✕ returns to the
     // list. The inline result card keeps only its excerpt preview.
-    // ?view=cards|scroll forces the initial view past the handheld auto-detect.
     async viewTranscript(r) {
       if (r._loading) return;
       r._loading = true;
@@ -119,11 +118,7 @@
           const text = await fetchText(spec);
           messages = r.source.path.endsWith('.json') ? JSON.parse(text) : text;
         }
-        const view = new URLSearchParams(location.search).get('view');
-        chatRender.openTranscript(messages, {
-          title: r.title, provider: r.provider, date: r.date,
-          ...(view ? { mode: view } : {}),
-        });
+        chatRender.openTranscript(messages, { title: r.title, provider: r.provider, date: r.date });
       } catch (e) {
         r._error = `Couldn't load transcript: ${e.message}`;
       } finally {
