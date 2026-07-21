@@ -99,7 +99,7 @@ the sidebar the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
-- **To-do** (`?view=todo`) — a general personal checklist (below).
+- **To-do** (`?view=todo`): a general personal checklist (below).
 - **Activity** (`?view=activity`) — the cross-repo activity read (below).
 
 One component renders all three, switching on the shell view, sharing one lazy mount.
