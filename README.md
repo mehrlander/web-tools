@@ -2,7 +2,7 @@
 
 A workshop for browser-based tools with a focus on working with data.
 
-⭐ **[Browse the live tools index →](https://mehrlander.github.io/web-tools/pages/)** — every page, with screenshots, live previews, and source links.
+⭐ **[Open show-repo, the dashboard →](https://mehrlander.github.io/web-tools/pages/show-repo/)** — browse any repo, stage and move files across repos, read cross-repo activity, and reach the tools. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
 
 [Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), plus the parts used to build them.
 
