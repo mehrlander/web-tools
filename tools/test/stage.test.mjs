@@ -396,6 +396,128 @@ test('copyDiff copies the diff dump and flips diffCopied', async () => {
   assert.equal(data.diffCopied, true);
 });
 
+test('invalidateDiff drops a shown diff so a stale copy can\'t mismatch the selection', () => {
+  reset();
+  data.diffRows = [{ t: 'add', line: 'x' }];
+  data._diffTextA = 'old A'; data._diffTextB = 'old B'; data.diffStat = '+1 −0';
+  data.invalidateDiff();
+  assert.equal(data.diffRows, null, 'rows cleared');
+  assert.equal(data._diffTextA, '', 'stored A text cleared');
+  assert.equal(data._diffTextB, '', 'stored B text cleared');
+  assert.equal(data.diffStat, '', 'stat cleared');
+});
+
+test('removing a staged item clamps a now-out-of-range B and clears the stale diff', async () => {
+  reset();
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }, { repo: 'me/b', ref: '', path: 'y.js' }];
+  await tick();
+  assert.equal(data.diffB, 1, 'auto-paired to the second item');
+  data.diffRows = [{ t: 'ctx', line: 'z' }];
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.js' }];  // drop the B item
+  await tick();
+  assert.equal(data.diffB, 0, 'B clamped back into range');
+  assert.equal(data.diffRows, null, 'the stale diff was dropped');
+});
+
+// ---- link commentary: prompts= carries bespoke review asks ---------------
+
+test('mint round-trips refs and prompts; parse stays refs-only', () => {
+  const StageLink = window.StageLink;
+  const refs = [{ repo: 'me/a', ref: 'dev', path: 'x.md' }];
+  const prompts = [{ label: 'Check the FTE count', ask: 'Did the FTE number stay consistent A to B?' }];
+  const url = StageLink.mint(refs, 'https://h/p', prompts);
+  assert.match(url, /#stage=me\/a@dev:x\.md&prompts=/);
+  const link = StageLink.parseLink(url);
+  assert.deepEqual(plain_(link.items), refs);
+  assert.deepEqual(plain_(link.prompts), prompts);
+  assert.deepEqual(plain_(StageLink.parse(url)), refs, 'bare parse ignores prompts');
+});
+
+test('mint omits the prompts param when there is no commentary', () => {
+  const url = window.StageLink.mint([{ repo: 'me/a', ref: '', path: 'x' }], 'https://h/p');
+  assert.ok(!url.includes('&prompts='), 'no empty prompts param');
+});
+
+test('mint/parseLink round-trip the diff mode, and legacy array opts still work', () => {
+  const StageLink = window.StageLink;
+  const refs = [{ repo: 'me/a', ref: '', path: 'x' }];
+  const url = StageLink.mint(refs, 'https://h/p', { mode: 'diff' });
+  assert.match(url, /&mode=diff$/);
+  assert.equal(StageLink.parseLink(url).mode, 'diff');
+  assert.equal(StageLink.parseLink(StageLink.mint(refs, 'https://h/p')).mode, '', 'no mode by default');
+  // legacy signature: third arg is a bare prompts array
+  const legacy = StageLink.mint(refs, 'https://h/p', [{ label: 'x', ask: 'y' }]);
+  assert.match(legacy, /&prompts=/);
+  assert.ok(!legacy.includes('&mode='), 'array opts carry no mode');
+});
+
+test('StageLink.read: hash wins, query is the fallback (tossed / deep-link form)', () => {
+  const StageLink = window.StageLink;
+  const spec = 'me/a@main:x.md;me/a@dev:x.md';
+  const enc = StageLink.encodePrompts([{ label: 'x', ask: 'y' }]);
+  // hash form
+  let r = StageLink.read({ hash: '#stage=' + spec + '&mode=diff', search: '' });
+  assert.equal(plain_(r.items).length, 2);
+  assert.equal(r.mode, 'diff');
+  // query fallback when the hash carries no stage
+  r = StageLink.read({ hash: '', search: '?view=stage&stage=' + spec + '&prompts=' + enc + '&mode=diff' });
+  assert.equal(plain_(r.items).length, 2);
+  assert.equal(r.mode, 'diff');
+  assert.deepEqual(plain_(r.prompts), [{ label: 'x', ask: 'y' }]);
+  // hash wins when both are present
+  r = StageLink.read({ hash: '#stage=me/z@main:only.md', search: '?stage=' + spec });
+  assert.equal(plain_(r.items).length, 1);
+  assert.equal(plain_(r.items)[0].repo, 'me/z');
+});
+
+test('decodePrompts drops malformed entries and bad payloads', () => {
+  const StageLink = window.StageLink;
+  assert.deepEqual(plain_(StageLink.decodePrompts('')), []);
+  assert.deepEqual(plain_(StageLink.decodePrompts('not-base64-@@@')), []);
+  const enc = StageLink.encodePrompts([{ label: 'ok', ask: 'a' }, { label: '', ask: 'no label' }, { label: 'no ask' }]);
+  assert.deepEqual(plain_(StageLink.decodePrompts(enc)), [{ label: 'ok', ask: 'a' }], 'only complete {label,ask} survive');
+});
+
+test('a diff-mode stage opens on the Diff tab and auto-runs the diff once', async () => {
+  reset();
+  data.outTab = 'out';
+  data.linkMode = 'diff';
+  data._autoDiffed = false;
+  store.stage = [
+    { local: true, id: 301, name: 'a.md', path: 'a.md', size: 4, isText: true, text: 'one\ntwo\n' },
+    { local: true, id: 302, name: 'b.md', path: 'b.md', size: 4, isText: true, text: 'one\nTWO\nthree\n' },
+  ];
+  await tick();
+  assert.equal(data.outTab, 'diff', 'flips to the Diff tab');
+  await tick();
+  assert.ok(data.diffRows, 'ran the diff without a click');
+  assert.equal(data._autoDiffed, true, 'and only arms once');
+  data.linkMode = '';
+});
+
+test('diffPrompts shows link-carried bespoke asks first, then the fixed set', () => {
+  reset();
+  data.linkPrompts = [{ label: 'Fund split', ask: 'Verify 70/30.' }];
+  const prompts = data.diffPrompts;
+  assert.equal(prompts[0].label, 'Fund split');
+  assert.equal(prompts[0].bespoke, true);
+  assert.ok(prompts.some(p => p.label === 'Tighten it' && p.bespoke === false), 'fixed set still present');
+  assert.equal(prompts.length, 1 + 6);
+  data.linkPrompts = [];
+});
+
+test('copyLink carries the bespoke prompts back into the minted link', () => {
+  reset();
+  clipWrites.length = 0;
+  store.stage = [{ repo: 'me/a', ref: '', path: 'x.md' }];
+  data.linkPrompts = [{ label: 'Tone', ask: 'Did the tone drift?' }];
+  data.copyLink();
+  assert.equal(clipWrites.length, 1);
+  assert.match(clipWrites[0], /&prompts=/);
+  assert.deepEqual(plain_(window.StageLink.parseLink(clipWrites[0]).prompts), plain_(data.linkPrompts));
+  data.linkPrompts = [];
+});
+
 test('copyPrompt assembles both texts, the diff, and the specific ask', async () => {
   reset();
   clipWrites.length = 0;

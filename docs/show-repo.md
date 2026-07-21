@@ -269,6 +269,44 @@ from a branch of this repo plus one from another repo →
 …/show-repo.html#stage=mehrlander/web-tools@my-branch:lib/gh-api.js,lib/stage.js;mehrlander/home:inbox/note.md
 ```
 
+#### Commentary: the `&prompts=` param
+
+A link is one object with two halves, **refs** (the `#stage=` spec) and
+**commentary** (an optional `&prompts=` param). The refs are pointers, so their
+content stays behind the token; the prompts are authored text, so they ride the
+link. `prompts=` is a base64url'd JSON list of `{label, ask}` review asks:
+
+```
+…/show-repo.html#stage=owner/repo@ref:before.md;owner/repo@head:before.md&prompts=<base64url(JSON)>
+```
+
+The Diff lens shows those bespoke asks first (a sparkle marks them), above its
+six fixed general prompts, each still one-click-copying both compared texts plus
+the diff plus that ask.
+
+An optional `&mode=diff` is the third part of the object: the intent that this
+stage opens as a diff. A `mode=diff` link opens on the **Diff** tab and runs the
+compare on open (no click), so a review link lands the reviewer straight on the
+diff; without it a stage opens on **Out** (a bundle handoff). `StageLink.mint(items,
+base, { prompts, mode })` encodes all of it (a bare prompts array is still
+accepted for the legacy call), and `StageLink.parseLink(hash)` returns `{ items,
+prompts, mode }`; the bare `StageLink.parse(hash)` still returns just the items
+for callers that only want refs. A soft cap (24 entries) keeps a runaway prompt
+list from bloating the URL. This `{refs, commentary, mode}` shape is the seed of
+a richer surface schema: the same object a manifest's `stage` block or a future
+standalone surface file would carry, with file content the file-only extra the
+token-gated link cannot hold.
+
+`StageLink.read(location)` reads that object from the **hash first, then the
+`?query`** (same keys: `stage`, `prompts`, `mode`). The fragment stays the
+default and the private form; the query fallback is what lets a stage ride a
+context that eats the `#`: a `toss-render` srcdoc (whose params shim answers
+`?query` lookups, so `…show-repo.html?stage=…&mode=diff` renders a staged diff
+inside the toss), an email or chat that strips the fragment, a deep link. When
+minting a query-form link into a toss `#gh=` address, encode the inner `&`
+separators as `%26` so the toss's own hash parser keeps them inside the `gh=`
+value.
+
 ## The branch review: landed / stranded per branch
 
 The **branches** view (`lib/alpineComponents/branches.js`) rolls every branch of

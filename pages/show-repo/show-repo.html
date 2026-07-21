@@ -475,7 +475,7 @@
          file lands in the Files view's shared viewer. Compare lives here too:
          a ref-diff belongs with the fileset, not under the file viewer. -->
     <div x-show="view==='stage'" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 py-6 flex flex-col gap-4 max-w-3xl w-full">
+      <div class="px-4 py-6 flex flex-col gap-4 w-full">
         <div x-data="stager()"></div>
       </div>
     </div>
@@ -639,7 +639,7 @@ function app(){ return {
     else if (url && url.view === 'public') this.goPublicBrowse();
     else if (url && url.view === 'branches') this.goBranches();
     else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
-    const staged = window.StageLink ? window.StageLink.parse(location.hash) : [];
+    const staged = window.StageLink ? window.StageLink.read(location).items : [];
     if (staged.length) {
       Alpine.store('browser').stage = staged;
       this.goStage();
