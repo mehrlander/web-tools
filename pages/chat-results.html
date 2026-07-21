@@ -218,16 +218,16 @@
             </div>
 
             <!-- footer: open the full chat (fullscreen takeover) + source link -->
-            <div class="flex items-center gap-1 px-2 py-1 border-t border-base-300 bg-base-200/50"
+            <div class="flex items-center gap-2 px-3 py-2 border-t border-base-300 bg-base-200/50"
                  x-show="hasTranscript(r) || blobUrl(r)">
-              <button x-show="hasTranscript(r)" class="btn btn-ghost btn-xs gap-1 font-mono text-[10px]"
+              <button x-show="hasTranscript(r)" class="btn btn-sm btn-primary gap-1.5"
                       @click="viewTranscript(r)">
                 <span class="loading loading-spinner loading-xs" x-show="r._loading"></span>
-                <i class="ph ph-cards-three text-[13px]" x-show="!r._loading"></i>
+                <i class="ph ph-cards-three text-[15px]" x-show="!r._loading"></i>
                 <span>Read chat</span>
               </button>
               <a x-show="blobUrl(r)" :href="blobUrl(r)" target="_blank" rel="noopener"
-                 class="btn btn-ghost btn-xs gap-1 font-mono text-[10px] opacity-60">
+                 class="btn btn-sm btn-ghost gap-1 font-mono text-[10px] opacity-60">
                 <i class="ph ph-github-logo text-[13px]"></i> Source
               </a>
             </div>
