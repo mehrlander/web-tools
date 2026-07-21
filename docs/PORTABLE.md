@@ -36,9 +36,11 @@ start): add the `extraKnownMarketplaces` and `enabledPlugins` block to
 | `/portable:tree` | render a linked file tree of the repo, table-first for mobile |
 | `/portable:tasks` | operate the cross-session project tracker (file, claim, close, regenerate the board) |
 
-That is the whole day-to-day set. The reference docs and the scripts below are
-not in the plugin: they are fetched by raw URL when a task needs them (the
-skills that use a script fetch it themselves). The `tasks` skill ships in the
+That is the whole day-to-day set. One script rides inside the plugin: the board
+generator (`build-board.py`) is bundled with the `tasks` skill, so `/tasks`
+regenerates a board with nothing to fetch. The reference docs and the other
+scripts below are not in the plugin: they are fetched by raw URL when a task
+needs them (the skills that use a script fetch it themselves). The `tasks` skill ships in the
 bag, but the tracker it operates (the `docs/TRACKER.md` schema, the task files,
 `board.md`) stays per-repo and is fetched or bootstrapped when a repo adopts it. Everything is
 reachable directly from
@@ -124,8 +126,9 @@ fetch "$BASE/.claude/skills/caption/SKILL.md" \
 fetch "$BASE/.claude/skills/load-skill/SKILL.md" \
       "$ROOT/.claude/skills/load-skill/SKILL.md"
 
-# Portable scripts
-fetch "$BASE/scripts/build-board.py" \
+# Portable scripts (board generator now ships in the plugin; a no-plugin repo
+# fetches the same file by raw URL from its bundled location)
+fetch "$BASE/.claude/skills/tasks/build-board.py" \
       "$ROOT/.web-tools-scripts/build-board.py"
 chmod +x "$ROOT/.web-tools-scripts/build-board.py" 2>/dev/null
 
@@ -250,13 +253,14 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 
 ### Scripts
 
-Portable scripts live in `scripts/` at the repo root: fetchable by raw URL,
-runnable with no dependencies beyond python3 stdlib, and parameterized by argv so
-one fetched copy serves many callers.
+Portable scripts live in `scripts/` at the repo root (the board generator
+excepted: it ships bundled with the `tasks` skill so the plugin carries it):
+fetchable by raw URL, runnable with no dependencies beyond python3 stdlib, and
+parameterized by argv so one fetched copy serves many callers.
 
 | Script | What it does | Interface |
 |---|---|---|
-| [`scripts/build-board.py`](../scripts/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter | `python3 build-board.py <tasks_dir> <board_out>` |
+| [`.claude/skills/tasks/build-board.py`](../.claude/skills/tasks/build-board.py) | regenerate a tracker's `board.md` from `tasks/*.md` frontmatter; bundled in the `portable` plugin, so `/tasks` runs it via `${CLAUDE_PLUGIN_ROOT}` | `python3 build-board.py <tasks_dir> <board_out>` |
 | [`scripts/build-merge-guide.py`](../scripts/build-merge-guide.py) | generate `docs/MERGE-GUIDE.md` from merged PR bodies (the guide region); non-destructive, `--refresh` to regenerate covered PRs | `python3 build-merge-guide.py [owner/repo] --out <file>` |
 | [`scripts/sunset-scan.py`](../scripts/sunset-scan.py) | report `SUNSET(YYYY-MM-DD)` markers now due for removal (see Sunset markers below); quiet unless something is due, `--all` lists upcoming, `--strict` exits non-zero when due | `python3 sunset-scan.py [--all] [--strict] [root]` |
 | [`scripts/build-tree.py`](../scripts/build-tree.py) | render a repo tree as a linked markdown table for chat (code-span box art, braille indent, or plain ascii); tracked-only by default, gloss column left to fill by hand | `python3 build-tree.py <root> [--repo o/r] [--ref R] [--depth N] [--mode M] [--gloss]` |
