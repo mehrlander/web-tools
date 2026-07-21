@@ -282,13 +282,20 @@ link. `prompts=` is a base64url'd JSON list of `{label, ask}` review asks:
 
 The Diff lens shows those bespoke asks first (a sparkle marks them), above its
 six fixed general prompts, each still one-click-copying both compared texts plus
-the diff plus that ask. `StageLink.mint(items, base, prompts)` encodes both ends
-and `StageLink.parseLink(hash)` returns `{ items, prompts }`; the bare
-`StageLink.parse(hash)` still returns just the items for callers that only want
-refs. A soft cap (24 entries) keeps a runaway list from bloating the URL. This
-`{refs, commentary}` shape is the seed of a richer surface schema: the same
-object a manifest's `stage` block or a future standalone surface file would
-carry, with file content the file-only extra the token-gated link cannot hold.
+the diff plus that ask.
+
+An optional `&mode=diff` is the third part of the object: the intent that this
+stage opens as a diff. A `mode=diff` link opens on the **Diff** tab and runs the
+compare on open (no click), so a review link lands the reviewer straight on the
+diff; without it a stage opens on **Out** (a bundle handoff). `StageLink.mint(items,
+base, { prompts, mode })` encodes all of it (a bare prompts array is still
+accepted for the legacy call), and `StageLink.parseLink(hash)` returns `{ items,
+prompts, mode }`; the bare `StageLink.parse(hash)` still returns just the items
+for callers that only want refs. A soft cap (24 entries) keeps a runaway prompt
+list from bloating the URL. This `{refs, commentary, mode}` shape is the seed of
+a richer surface schema: the same object a manifest's `stage` block or a future
+standalone surface file would carry, with file content the file-only extra the
+token-gated link cannot hold.
 
 ## The branch review: landed / stranded per branch
 

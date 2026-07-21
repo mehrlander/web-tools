@@ -438,12 +438,42 @@ test('mint omits the prompts param when there is no commentary', () => {
   assert.ok(!url.includes('&prompts='), 'no empty prompts param');
 });
 
+test('mint/parseLink round-trip the diff mode, and legacy array opts still work', () => {
+  const StageLink = window.StageLink;
+  const refs = [{ repo: 'me/a', ref: '', path: 'x' }];
+  const url = StageLink.mint(refs, 'https://h/p', { mode: 'diff' });
+  assert.match(url, /&mode=diff$/);
+  assert.equal(StageLink.parseLink(url).mode, 'diff');
+  assert.equal(StageLink.parseLink(StageLink.mint(refs, 'https://h/p')).mode, '', 'no mode by default');
+  // legacy signature: third arg is a bare prompts array
+  const legacy = StageLink.mint(refs, 'https://h/p', [{ label: 'x', ask: 'y' }]);
+  assert.match(legacy, /&prompts=/);
+  assert.ok(!legacy.includes('&mode='), 'array opts carry no mode');
+});
+
 test('decodePrompts drops malformed entries and bad payloads', () => {
   const StageLink = window.StageLink;
   assert.deepEqual(plain_(StageLink.decodePrompts('')), []);
   assert.deepEqual(plain_(StageLink.decodePrompts('not-base64-@@@')), []);
   const enc = StageLink.encodePrompts([{ label: 'ok', ask: 'a' }, { label: '', ask: 'no label' }, { label: 'no ask' }]);
   assert.deepEqual(plain_(StageLink.decodePrompts(enc)), [{ label: 'ok', ask: 'a' }], 'only complete {label,ask} survive');
+});
+
+test('a diff-mode stage opens on the Diff tab and auto-runs the diff once', async () => {
+  reset();
+  data.outTab = 'out';
+  data.linkMode = 'diff';
+  data._autoDiffed = false;
+  store.stage = [
+    { local: true, id: 301, name: 'a.md', path: 'a.md', size: 4, isText: true, text: 'one\ntwo\n' },
+    { local: true, id: 302, name: 'b.md', path: 'b.md', size: 4, isText: true, text: 'one\nTWO\nthree\n' },
+  ];
+  await tick();
+  assert.equal(data.outTab, 'diff', 'flips to the Diff tab');
+  await tick();
+  assert.ok(data.diffRows, 'ran the diff without a click');
+  assert.equal(data._autoDiffed, true, 'and only arms once');
+  data.linkMode = '';
 });
 
 test('diffPrompts shows link-carried bespoke asks first, then the fixed set', () => {

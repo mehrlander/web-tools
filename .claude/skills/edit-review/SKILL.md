@@ -34,17 +34,17 @@ this skill targets the stage.
 
 **Committed edit (the common case).** The file already exists at two refs
 (the edit's branch tip, and the base it diverged from, or two commits).
-Mint a `#stage=` link with the same path at both refs — this already works
-with the existing link grammar, no changes needed:
+Mint a `#stage=` link with the same path at both refs, and append `&mode=diff`
+so the stage opens on the Diff tab and runs the diff itself, no click:
 
 ```
-https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html#stage=owner/repo@<base-ref>:path/to/file.md;owner/repo@<head-ref>:path/to/file.md
+https://mehrlander.github.io/web-tools/pages/show-repo/show-repo.html#stage=owner/repo@<base-ref>:path/to/file.md;owner/repo@<head-ref>:path/to/file.md&mode=diff
 ```
 
 The Diff lens auto-pairs the two staged items into A/B (first stage item to
-A, the second to B) the moment they land, so opening the link and tapping
-**Diff** is the whole interaction — no manual A/B selection needed unless
-there are more than two items staged.
+A, the second to B) the moment they land, and `mode=diff` runs the compare on
+open, so the reviewer sees the diff immediately. Drop `&mode=diff` to open on
+the Out tab instead (a bundle handoff rather than a review).
 
 **Uncommitted edit.** The "after" text has no ref yet (a draft still being
 worked on, or content that will never be committed). Stage the committed
