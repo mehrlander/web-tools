@@ -1,9 +1,11 @@
 ---
 id: stage-diff-b-select-desync-v554kn
 title: Fix the stage Diff lens B-select display desync
-status: backlog
+status: done
 track: independent
 opened: 2026-07-20
+closed: 2026-07-20
+session: claude/web-tools-diff-review-s0nrq7
 ---
 # Fix the stage Diff lens B-select display desync
 
@@ -17,3 +19,4 @@ Done means: opening a two-item stage (or a `#stage=` two-refs link) shows the B 
 
 ## Progress log
 - 2026-07-20: Filed from the PR #257 review of #256. Found via the headless render of the Diff lens; the screenshot showed B labeled "before" over a correct before-to-after diff. Cosmetic but confusing; sits in the edit-review link-open path, which is also the path with no end-to-end test yet.
+- 2026-07-20: Done on branch claude/web-tools-diff-review-s0nrq7 (PR #257). Fixed during the stage redesign: the A/B selects dropped `x-model.number` for an explicit `:selected="i === diffX"` + `@change` binding, the reliable pattern for a programmatically-set value over `x-for` options. Verified in real Chromium (where it reproduced; jsdom never exhibited the desync, so no unit test was added, the headless render is the check): the B select now shows the paired item, not the first. The earlier `$nextTick` deferral attempt was the wrong lever.
