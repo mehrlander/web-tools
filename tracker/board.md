@@ -14,7 +14,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Session-start nudge for unconfigured or legacy-manifest repos (`claude/skills-portable-conventions-8x1lua`) next: write a global SessionStart hook that checks repo state and injects a nudge; wire its install into the Claude Code web account setup script
 - 🎫 Give show-repo the ability to edit a repo's .web-tools.json (`claude/skills-portable-conventions-8x1lua`) next: design a minimal config-edit surface in the show-repo shell; first use is a one-tap migrate of a legacy .show-repo.json to .web-tools.json
 - 🎫 Spike the snags log (friction learned the hard way) (`claude/pr-219-review-22csrh`)
-- 🎫 Propagate the stage link's new grammar to the portable docs
 - 🎫 Converge the stage and surface item schemas
 - 🎫 toss-render ?query forwarding drops multi-param page queries next: decode the gh param from the raw fragment slice (not URLSearchParams) so a bare & in the page query survives, or document the %26 requirement in the head comment and the on-page help
 - 🎫 Extend fetch + blob-import to the gh-api.js-chain ?use= boot
@@ -22,6 +21,7 @@ _Generated from tasks/. Do not hand-edit._
 ## In progress
 - 🎫 Estate activity signals from a registry activity cache (`claude/branches-view-api-caching-ef4l5d`) next: review the branch build; the cross-repo file-listing and the GraphQL-batched crawl (fewer calls) remain as follow-ons
 - 🎫 Singleton fab with toss-render integration (`claude/fab-render-toss-render-ua6p3p`) next: live-confirm branchesForPath (GraphQL Commit.file) with a token, then wrap up PR #241
+- 🎫 Propagate the stage link's new grammar to the portable docs (`claude/stage-link-grammar-docs-jukn37`)
 
 ## Blocked
 - (none)
