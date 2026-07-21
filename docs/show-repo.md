@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|activity`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|activity`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views).
@@ -99,6 +99,7 @@ the sidebar the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
+- **To-do** (`?view=todo`): a general personal checklist (below).
 - **Activity** (`?view=activity`) — the cross-repo activity read (below).
 
 One component renders all three, switching on the shell view, sharing one lazy mount.
@@ -143,6 +144,16 @@ format (a `manifest` block and an `items` array; see the home repo's
 path}` or a github.com URL), `url` (external link), `note` / `story` (inline
 body). An agent session with registry access can write or extend a surface; the
 estate shows it on next load.
+
+**To-do** (`?view=todo`) is a general, personal checklist: not repo-scoped and
+not a surface, so it keeps its own tiny file, `state/todo.json` in the
+registry (`{items: [{id, text, done, created_at, done_at}]}`), rather than
+reusing the surfaces schema. Add a line, check it off, or delete it; a
+checked item moves into a collapsed "done" pile instead of disappearing, so
+delete is the only way an item actually goes away. Every mutation writes the
+whole file straight through the viewer's token (`gh-store.js`'s `save`), the
+same as a surface edit, so it is durable across browsers and devices, not a
+per-browser `localStorage` list. Token-gated like Surfaces: no token, no list.
 
 **Activity** (`?view=activity`) is the cross-repo read: recent commits across
 the estate, a per-repo rollup (branch counts, landed / stranded, open PRs), and
