@@ -483,6 +483,11 @@
   </main>
 </div>
 
+<!-- Toolbox: page actions, zip/offline export, component/script/console tabs.
+     dist/web-tools.js's self-boot already runs fab.js (Alpine.data('fab', …)
+     registered before Alpine starts), so this is only a mount point. -->
+<div x-data="fab()" data-path="pages/show-repo/show-repo.html"></div>
+
 <script>
 window.TOKEN = '🎟️GitHubToken';
 if (window.TOKEN === '🎟️GitHubToken') {
