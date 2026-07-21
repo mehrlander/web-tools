@@ -639,7 +639,7 @@ function app(){ return {
     else if (url && url.view === 'public') this.goPublicBrowse();
     else if (url && url.view === 'branches') this.goBranches();
     else if (url && url.view === 'files') { this.goFiles(); if (url.path) await this.openFolder(url.path); }
-    const staged = window.StageLink ? window.StageLink.parse(location.hash) : [];
+    const staged = window.StageLink ? window.StageLink.read(location).items : [];
     if (staged.length) {
       Alpine.store('browser').stage = staged;
       this.goStage();

@@ -451,6 +451,25 @@ test('mint/parseLink round-trip the diff mode, and legacy array opts still work'
   assert.ok(!legacy.includes('&mode='), 'array opts carry no mode');
 });
 
+test('StageLink.read: hash wins, query is the fallback (tossed / deep-link form)', () => {
+  const StageLink = window.StageLink;
+  const spec = 'me/a@main:x.md;me/a@dev:x.md';
+  const enc = StageLink.encodePrompts([{ label: 'x', ask: 'y' }]);
+  // hash form
+  let r = StageLink.read({ hash: '#stage=' + spec + '&mode=diff', search: '' });
+  assert.equal(plain_(r.items).length, 2);
+  assert.equal(r.mode, 'diff');
+  // query fallback when the hash carries no stage
+  r = StageLink.read({ hash: '', search: '?view=stage&stage=' + spec + '&prompts=' + enc + '&mode=diff' });
+  assert.equal(plain_(r.items).length, 2);
+  assert.equal(r.mode, 'diff');
+  assert.deepEqual(plain_(r.prompts), [{ label: 'x', ask: 'y' }]);
+  // hash wins when both are present
+  r = StageLink.read({ hash: '#stage=me/z@main:only.md', search: '?stage=' + spec });
+  assert.equal(plain_(r.items).length, 1);
+  assert.equal(plain_(r.items)[0].repo, 'me/z');
+});
+
 test('decodePrompts drops malformed entries and bad payloads', () => {
   const StageLink = window.StageLink;
   assert.deepEqual(plain_(StageLink.decodePrompts('')), []);

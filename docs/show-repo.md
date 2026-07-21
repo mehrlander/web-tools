@@ -297,6 +297,16 @@ a richer surface schema: the same object a manifest's `stage` block or a future
 standalone surface file would carry, with file content the file-only extra the
 token-gated link cannot hold.
 
+`StageLink.read(location)` reads that object from the **hash first, then the
+`?query`** (same keys: `stage`, `prompts`, `mode`). The fragment stays the
+default and the private form; the query fallback is what lets a stage ride a
+context that eats the `#`: a `toss-render` srcdoc (whose params shim answers
+`?query` lookups, so `…show-repo.html?stage=…&mode=diff` renders a staged diff
+inside the toss), an email or chat that strips the fragment, a deep link. When
+minting a query-form link into a toss `#gh=` address, encode the inner `&`
+separators as `%26` so the toss's own hash parser keeps them inside the `gh=`
+value.
+
 ## The branch review: landed / stranded per branch
 
 The **branches** view (`lib/alpineComponents/branches.js`) rolls every branch of
