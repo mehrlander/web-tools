@@ -120,8 +120,10 @@
         // the swipe deck, the scroll list, and parsing a house-format string
         // (the shape real result envelopes ship). Keeping it there means the
         // deployed page previews the full feature via ?use= (the shell is only
-        // the call site).
-        trCache.set(r.id, chatRender.transcript(messages));
+        // the call site). ?view=cards|scroll forces the initial view past the
+        // handheld auto-detect (handy when a frame misreports the viewport).
+        const view = new URLSearchParams(location.search).get('view');
+        trCache.set(r.id, chatRender.transcript(messages, view ? { mode: view } : {}));
       } catch (e) {
         const err = document.createElement('div');
         err.className = 'text-error text-xs';
