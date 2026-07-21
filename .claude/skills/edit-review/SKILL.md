@@ -6,9 +6,10 @@ description: >-
   copy, and a fixed panel of general review prompts — tighten it, fresh-eyes
   clarity, consistency, fact/logic, was-it-worth-it, open critique — each
   one-click-copies both texts, the diff, and its ask for pasting into a
-  separate chat as a second, independent review), and add any bespoke,
-  document-specific prompts as plain chat text alongside the link. Use when
-  the user asks to "review this edit", "get a second opinion on this
+  separate chat as a second, independent review), and encode any bespoke,
+  document-specific prompts onto the link's &prompts= commentary so they
+  ride it too. Use when the user asks to "review this edit", "get a second
+  opinion on this
   change", wants a diff-plus-review-prompts handoff, or after making a
   substantive edit to a document they'll want reviewed.
 ---
@@ -58,14 +59,27 @@ drop-zone themselves).
 ## Bespoke prompts
 
 The Diff lens's prompts panel ships six fixed, general-purpose asks (see
-`DIFF_PROMPTS` in `stage.js`). Nothing document-specific rides the link yet
-(that's a follow-up, "encode bespoke prompts onto the `#stage=` link" —
-`kits`/`StageLink`'s grammar would need a `prompts=` field, symmetrical to
-the `prompts` follow-up review.html itself never got either). Until then,
-write 2-4 prompts tailored to what's actually at stake in *this* edit
-(a specific number, a term, a claim that changed) and hand them over as
-plain chat text right under the stage link, the way the fiscal-note mockup
-in this branch's earlier session did by hand.
+`DIFF_PROMPTS` in `stage.js`). Document-specific asks ride the link's
+`&prompts=` commentary: write 2-4 prompts tailored to what's actually at stake
+in *this* edit (a specific number, a term, a claim that changed) and encode
+them onto the link. They render first in the panel (a sparkle marks them),
+above the fixed six, each one-click-copying both texts plus the diff plus that
+ask.
+
+`prompts=` is a base64url'd JSON list of `{label, ask}`. Build the whole link
+(refs + commentary) with `StageLink.mint`, or in a session without the shell
+loaded, mint the `prompts` value directly:
+
+```bash
+python3 -c "import json,base64,sys; s=json.dumps(json.load(sys.stdin),separators=(',',':')); print('&prompts='+base64.urlsafe_b64encode(s.encode()).decode().rstrip('='))" <<'JSON'
+[{"label":"FTE count","ask":"Did the FTE figure stay consistent between the before and after?"},
+ {"label":"Fund split","ask":"The after adds a 70/30 fund split; is that supported by the source?"}]
+JSON
+```
+
+Append that to the `#stage=` link. Soft cap: 24 entries (a long list bloats the
+URL). For an uncommitted edit whose after-text is a local paste, the prompts
+still ride the link even though the after-text does not.
 
 ## Handoff
 
@@ -91,7 +105,6 @@ block (see `copyPrompt` in `stage.js`).
 
 ## Known gaps (v1)
 
-- Bespoke prompts aren't embedded in the link; they ride as chat text.
 - The Diff lens's compare is line-level (`diffLines`, a plain LCS), not the
   word-level highlighting `pages/review.html`'s CM6 diff gives changeset
   reviews. Good enough for the "here's what changed" read a copied prompt

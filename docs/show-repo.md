@@ -269,6 +269,27 @@ from a branch of this repo plus one from another repo →
 …/show-repo.html#stage=mehrlander/web-tools@my-branch:lib/gh-api.js,lib/stage.js;mehrlander/home:inbox/note.md
 ```
 
+#### Commentary: the `&prompts=` param
+
+A link is one object with two halves, **refs** (the `#stage=` spec) and
+**commentary** (an optional `&prompts=` param). The refs are pointers, so their
+content stays behind the token; the prompts are authored text, so they ride the
+link. `prompts=` is a base64url'd JSON list of `{label, ask}` review asks:
+
+```
+…/show-repo.html#stage=owner/repo@ref:before.md;owner/repo@head:before.md&prompts=<base64url(JSON)>
+```
+
+The Diff lens shows those bespoke asks first (a sparkle marks them), above its
+six fixed general prompts, each still one-click-copying both compared texts plus
+the diff plus that ask. `StageLink.mint(items, base, prompts)` encodes both ends
+and `StageLink.parseLink(hash)` returns `{ items, prompts }`; the bare
+`StageLink.parse(hash)` still returns just the items for callers that only want
+refs. A soft cap (24 entries) keeps a runaway list from bloating the URL. This
+`{refs, commentary}` shape is the seed of a richer surface schema: the same
+object a manifest's `stage` block or a future standalone surface file would
+carry, with file content the file-only extra the token-gated link cannot hold.
+
 ## The branch review: landed / stranded per branch
 
 The **branches** view (`lib/alpineComponents/branches.js`) rolls every branch of

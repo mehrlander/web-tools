@@ -13,7 +13,15 @@ export default async (page) => {
     await new Promise(r => setTimeout(r, 300));  // let auto-pair + watchers settle
     const el = document.querySelector('div[x-data="stager()"]');
     const stager = el && el.__stager;
-    if (stager) { stager.outTab = 'diff'; await stager.runDiff(); }
+    if (stager) {
+      // Bespoke asks as an opened #stage=…&prompts= link would carry them.
+      stager.linkPrompts = [
+        { label: 'FTE count', ask: 'Did the FTE figure stay consistent between A and B?' },
+        { label: 'Fund split', ask: 'The after adds a 70/30 fund split; is that supported?' },
+      ];
+      stager.outTab = 'diff';
+      await stager.runDiff();
+    }
     await new Promise(r => setTimeout(r, 200));
   });
   await page.waitForTimeout(400);
