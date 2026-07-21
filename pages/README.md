@@ -93,6 +93,7 @@ the link-dense text twin of the visual index above.
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
+| `xlsx` | xlsx — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/xlsx.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/xlsx.html) |
 
 ## pages/news/
 
