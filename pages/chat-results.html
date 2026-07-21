@@ -116,10 +116,12 @@
           const text = await fetchText(spec);
           messages = r.source.path.endsWith('.json') ? JSON.parse(text) : text;
         }
-        // A house-format markdown string (the shape real result envelopes ship,
-        // inline or fetched) is split into turns; an array passes through.
-        if (typeof messages === 'string') messages = chatRender.parse(messages);
-        trCache.set(r.id, this.transcriptView(messages));
+        // chatRender.transcript owns the whole view: the Cards | Scroll toggle,
+        // the swipe deck, the scroll list, and parsing a house-format string
+        // (the shape real result envelopes ship). Keeping it there means the
+        // deployed page previews the full feature via ?use= (the shell is only
+        // the call site).
+        trCache.set(r.id, chatRender.transcript(messages));
       } catch (e) {
         const err = document.createElement('div');
         err.className = 'text-error text-xs';
@@ -128,40 +130,6 @@
       }
       r._loading = false;
       this.paintTranscript(r, el);
-    },
-    // Full-transcript view: a header with a Cards | Scroll toggle over a body
-    // that swaps between the swipe deck and the scroll list. Cards default on
-    // narrow viewports (nicer to swipe on a phone); each mode's DOM builds once
-    // and is kept, so flipping back is instant.
-    transcriptView(messages) {
-      const wrap = document.createElement('div');
-      const bar = document.createElement('div');
-      bar.className = 'flex items-center justify-between gap-2 mb-2';
-      const label = document.createElement('p');
-      label.className = 'font-mono text-[9.5px] tracking-widest uppercase opacity-40';
-      label.textContent = `Full transcript · ${messages.length} message${messages.length === 1 ? '' : 's'}`;
-      const seg = document.createElement('div');
-      seg.className = 'join';
-      const body = document.createElement('div');
-      const built = {};
-      let mode = window.matchMedia('(max-width: 640px)').matches ? 'cards' : 'scroll';
-      const render = () => {
-        if (!built[mode]) built[mode] = mode === 'cards' ? chatRender.deck(messages) : chatRender.transcript(messages);
-        body.replaceChildren(built[mode]);
-        for (const b of seg.children)
-          b.className = 'btn btn-xs join-item font-mono text-[10px]' + (b.dataset.mode === mode ? ' btn-neutral' : ' btn-ghost bg-base-100 border border-base-300');
-      };
-      for (const [k, v, icon] of [['cards', 'Cards', 'ph-cards-three'], ['scroll', 'Scroll', 'ph-list']]) {
-        const b = document.createElement('button');
-        b.dataset.mode = k;
-        b.innerHTML = `<i class="ph ${icon} text-[12px]"></i> ${v}`;
-        b.addEventListener('click', () => { mode = k; render(); });
-        seg.append(b);
-      }
-      bar.append(label, seg);
-      wrap.append(bar, body);
-      render();
-      return wrap;
     },
     paintTranscript(r, el) {
       const host = el.closest('[data-card]').querySelector('[data-transcript]');
