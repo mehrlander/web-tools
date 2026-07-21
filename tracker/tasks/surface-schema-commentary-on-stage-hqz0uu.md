@@ -1,9 +1,11 @@
 ---
 id: surface-schema-commentary-on-stage-hqz0uu
 title: Carry commentary on a stage (prompts= link field, seed of a surface schema)
-status: backlog
+status: done
 track: independent
 opened: 2026-07-20
+closed: 2026-07-20
+session: claude/web-tools-diff-review-s0nrq7
 ---
 # Carry commentary on a stage (prompts= link field, seed of a surface schema)
 
@@ -27,3 +29,5 @@ Done means: an author can mint a `#stage=` link that carries bespoke review prom
 
 ## Progress log
 - 2026-07-20: Filed from the PR #257 review of #256, capturing the "one object, several carriers" framing before it scrolled off. Supersedes the loose "encode bespoke prompts onto the #stage= link" follow-up noted in the #256 PR body and the edit-review skill's Known gaps.
+- 2026-07-20: Done on branch claude/web-tools-diff-review-s0nrq7 (PR #257, reaches main on merge). Shipped `prompts=` as a base64url'd JSON `{label, ask}` list on the `#stage=` link, `StageLink` now a `{refs, commentary}` object (`mint`/`parseLink`, bare `parse` unchanged), the Diff lens shows link prompts first (sparkle-marked) and round-trips them through Persistent link, and the edit-review skill + docs/show-repo.md document the grammar. Left for the future schema (not built): the content-carrying surface file and a `.web-tools.json` `stage.commentary` field; the object shape is in place for both.
+
