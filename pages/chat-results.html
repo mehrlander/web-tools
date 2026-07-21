@@ -30,7 +30,6 @@
   await gh.load('chat-render.js');
 
   const exCache = new Map();   // result id -> excerpt DOM (kept out of Alpine's proxy)
-  const trCache = new Map();   // result id -> transcript DOM
 
   const gunzipB64url = async s => {
     const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
@@ -105,10 +104,14 @@
       el.replaceChildren(exCache.get(r.id));
     },
     hasTranscript(r) { return !!(r.transcript?.length || r.source); },
-    async toggleTranscript(r, el) {
-      r._open = !r._open;
-      if (!r._open || trCache.has(r.id)) { this.paintTranscript(r, el); return; }
+    // Reading a chat is a fullscreen takeover: the one chat fills the screen as
+    // the swipe deck (chatRender.openTranscript), back/Esc/✕ returns to the
+    // list. The inline result card keeps only its excerpt preview.
+    // ?view=cards|scroll forces the initial view past the handheld auto-detect.
+    async viewTranscript(r) {
+      if (r._loading) return;
       r._loading = true;
+      r._error = '';
       try {
         let messages = r.transcript;
         if (!messages) {
@@ -116,27 +119,16 @@
           const text = await fetchText(spec);
           messages = r.source.path.endsWith('.json') ? JSON.parse(text) : text;
         }
-        // chatRender.transcript owns the whole view: the Cards | Scroll toggle,
-        // the swipe deck, the scroll list, and parsing a house-format string
-        // (the shape real result envelopes ship). Keeping it there means the
-        // deployed page previews the full feature via ?use= (the shell is only
-        // the call site). ?view=cards|scroll forces the initial view past the
-        // handheld auto-detect (handy when a frame misreports the viewport).
         const view = new URLSearchParams(location.search).get('view');
-        trCache.set(r.id, chatRender.transcript(messages, view ? { mode: view } : {}));
+        chatRender.openTranscript(messages, {
+          title: r.title, provider: r.provider, date: r.date,
+          ...(view ? { mode: view } : {}),
+        });
       } catch (e) {
-        const err = document.createElement('div');
-        err.className = 'text-error text-xs';
-        err.textContent = `Couldn't load transcript: ${e.message}`;
-        trCache.set(r.id, err);
+        r._error = `Couldn't load transcript: ${e.message}`;
+      } finally {
+        r._loading = false;
       }
-      r._loading = false;
-      this.paintTranscript(r, el);
-    },
-    paintTranscript(r, el) {
-      const host = el.closest('[data-card]').querySelector('[data-transcript]');
-      if (r._open && trCache.has(r.id)) host.replaceChildren(trCache.get(r.id));
-      else host.replaceChildren();
     },
     blobUrl(r) {
       return r.source ? `https://github.com/${r.source.repo}/blob/${r.source.ref || 'main'}/${r.source.path}` : null;
@@ -230,21 +222,21 @@
               <div x-init="mountExcerpts($el, r)"></div>
             </div>
 
-            <!-- footer: transcript toggle + source link -->
+            <!-- footer: open the full chat (fullscreen takeover) + source link -->
             <div class="flex items-center gap-1 px-2 py-1 border-t border-base-300 bg-base-200/50"
                  x-show="hasTranscript(r) || blobUrl(r)">
               <button x-show="hasTranscript(r)" class="btn btn-ghost btn-xs gap-1 font-mono text-[10px]"
-                      @click="toggleTranscript(r, $el)">
+                      @click="viewTranscript(r)">
                 <span class="loading loading-spinner loading-xs" x-show="r._loading"></span>
-                <i class="ph text-[13px]" :class="r._open ? 'ph-caret-up' : 'ph-chat-circle-text'" x-show="!r._loading"></i>
-                <span x-text="r._open ? 'Hide transcript' : 'Transcript'"></span>
+                <i class="ph ph-cards-three text-[13px]" x-show="!r._loading"></i>
+                <span>Read chat</span>
               </button>
               <a x-show="blobUrl(r)" :href="blobUrl(r)" target="_blank" rel="noopener"
                  class="btn btn-ghost btn-xs gap-1 font-mono text-[10px] opacity-60">
                 <i class="ph ph-github-logo text-[13px]"></i> Source
               </a>
             </div>
-            <div data-transcript class="px-4 [&:not(:empty)]:py-4 border-t border-base-300"></div>
+            <p x-show="r._error" x-text="r._error" class="text-error text-xs px-4 py-2 border-t border-base-300"></p>
           </article>
         </template>
       </div>
