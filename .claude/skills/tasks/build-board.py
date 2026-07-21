@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # Regenerate board.md from tasks/*.md. Frontmatter is flat `key: value` pairs.
 # Portable: python3, stdlib only, zero dependencies.
-# Canonical source: mehrlander/web-tools at scripts/build-board.py
+# Canonical source: mehrlander/web-tools at .claude/skills/tasks/build-board.py
+# (bundled in the portable plugin; /tasks runs it via ${CLAUDE_PLUGIN_ROOT})
 # Usage: python3 build-board.py <tasks_dir> <board_out>
 import pathlib, sys
 

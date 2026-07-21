@@ -80,7 +80,7 @@ does not. Practically, do the tracker edit on a scratch branch cut fresh from
 git fetch origin main
 git checkout -B tmp-tracker origin/main
 #   ... edit tracker/tasks/*.md ...
-python3 scripts/build-board.py tracker/tasks tracker/board.md   # or: npm run tracker-board
+python3 "${CLAUDE_PLUGIN_ROOT}/tasks/build-board.py" tracker/tasks tracker/board.md   # web-tools: npm run tracker-board
 git add tracker/ && git commit -m "tracker: <what>"
 git push origin tmp-tracker:main
 git checkout <your-branch> && git branch -D tmp-tracker
@@ -181,9 +181,10 @@ parser.
 
 `tracker/board.md` is generated, four sections (On deck, In progress, Blocked,
 Done), one line per task keyed by title, in-progress lines naming the branch.
-Never hand-edit it. Regenerate with `python3 scripts/build-board.py
-tracker/tasks tracker/board.md` (or `npm run tracker-board`) and commit it
-alongside the task change.
+Never hand-edit it. The generator ships with the plugin, so regenerate with
+`python3 "${CLAUDE_PLUGIN_ROOT}/tasks/build-board.py" <tasks_dir> <board_out>`
+and commit it alongside the task change (web-tools' own copy runs it as
+`npm run tracker-board`).
 
 ## Boundary with web-tools
 

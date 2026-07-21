@@ -76,15 +76,15 @@ To take a task, edit its file on `main`: set `status: in-progress`, set `session
 - **Blocked** (`status: blocked`)
 - **Done** (`status: done`)
 
-One line per task, each prefixed with the 🎫 task marker (see Conventions below), keyed by title (not id); in-progress lines also show the owning branch. The reference generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files: any generator that emits these four sections from the frontmatter is a correct implementation. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
+One line per task, each prefixed with the 🎫 task marker (see Conventions below), keyed by title (not id); in-progress lines also show the owning branch. The generator also renders an optional `next` tag if a task carries one, an open tag it tolerates but the schema does not feature. The board is a faithful projection of the task files. Regenerate and commit `board.md` with any commit that changes what the board shows: status or owning branch.
 
-The canonical generator is [`scripts/build-board.py`](../scripts/build-board.py) (python3, stdlib only, zero dependencies). Any implementation that emits the four sections from the frontmatter is correct; reimplement freely.
+The generator ships with the `portable` plugin as `tasks/build-board.py` (python3, stdlib only, zero dependencies). It is one canonical implementation, so every tracker's board comes out the same shape and a repo does not write its own. Operate it through `/tasks`, which invokes the bundled copy:
 
 ```
-python3 scripts/build-board.py <tasks_dir> <board_out>
+python3 "${CLAUDE_PLUGIN_ROOT}/tasks/build-board.py" <tasks_dir> <board_out>
 ```
 
-A consuming repo can fetch the script by raw URL into a gitignored path and run it against each tracker (see [PORTABLE.md](PORTABLE.md) for the fetch pattern).
+A repo running without the plugin fetches that same script by raw URL into a gitignored path and runs it against each tracker (see [PORTABLE.md](PORTABLE.md)); it is the same file reached by a different transport, not a reimplementation.
 
 ## Conflicts
 
@@ -108,5 +108,6 @@ The surfacing course logs by PR (a unit of delivery); the tracker logs by task (
 ## Extension points (set in local CLAUDE.md)
 
 - **Placement:** where trackers live (e.g. `projects/<name>/tracker/`, with an optional repo-root `tracker/` for repo-wide meta-work that belongs to no single project).
-- **Board generator:** the command that regenerates `board.md`.
 - **Registry:** an optional generated index of all trackers, for multi-tracker repos; single-tracker repos omit it.
+
+The board generator is not an extension point: it ships with the plugin as one canonical script (above), so placement is the only per-repo choice about the board.
