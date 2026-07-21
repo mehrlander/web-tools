@@ -114,9 +114,17 @@
         if (!messages) {
           const spec = `${r.source.repo}@${r.source.ref || 'main'}:${r.source.path}`;
           const text = await fetchText(spec);
-          messages = r.source.path.endsWith('.json') ? JSON.parse(text) : chatRender.parse(text);
+          messages = r.source.path.endsWith('.json') ? JSON.parse(text) : text;
         }
-        trCache.set(r.id, chatRender.transcript(messages));
+        // A house-format markdown string (the shape real result envelopes ship,
+        // inline or fetched) is split into turns; an array passes through.
+        if (typeof messages === 'string') messages = chatRender.parse(messages);
+        const wrap = document.createElement('div');
+        const head = document.createElement('p');
+        head.className = 'font-mono text-[9.5px] tracking-widest uppercase opacity-40 mb-2';
+        head.textContent = `Full transcript · ${messages.length} message${messages.length === 1 ? '' : 's'}`;
+        wrap.append(head, chatRender.transcript(messages));
+        trCache.set(r.id, wrap);
       } catch (e) {
         const err = document.createElement('div');
         err.className = 'text-error text-xs';
