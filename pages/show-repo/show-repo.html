@@ -75,11 +75,12 @@
       <button @click="goDashboard()" class="hover:opacity-80 transition-opacity shrink-0" title="Dashboard">
         <img src="../../lib/favicon.svg" alt="web-tools" width="24" height="24" class="w-6 h-6">
       </button>
-      <!-- App-level views: Activity / Repos / Surfaces / Stage, the estate's own
-           closed set, always labeled, inline on one row (there is room next to
-           the brand at any phone width). Public browse left the header (a
-           signed-out affordance, still on the no-token banner and every repo
-           card); the nav scrolls rather than clipping on the narrowest devices. -->
+      <!-- App-level views: Activity / Repos / Surfaces / To-do / Stage, the
+           estate's own closed set, always labeled, inline on one row (there is
+           room next to the brand at any phone width). Public browse left the
+           header (a signed-out affordance, still on the no-token banner and
+           every repo card); the nav scrolls rather than clipping on the
+           narrowest devices. -->
       <nav class="flex items-center gap-0.5 min-w-0 overflow-x-auto no-scrollbar">
         <template x-for="v in estateNav" :key="v.view">
           <button @click="v.go()" :title="v.label"
@@ -539,7 +540,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'surfaces' | 'activity' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'activity' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
@@ -638,6 +639,7 @@ function app(){ return {
     else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
     else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'surfaces') this.goSurfaces();
+    else if (url && url.view === 'todo') this.goTodo();
     else if (url && url.view === 'activity') this.goActivity();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
@@ -1137,6 +1139,7 @@ function app(){ return {
     else if (this.view === 'public') p.set('view', 'public');
     else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'surfaces') p.set('view', 'surfaces');
+    else if (this.view === 'todo') p.set('view', 'todo');
     else if (this.view === 'activity') p.set('view', 'activity');
     // App views are estate-level, so the link stands alone (like Surfaces): stamp
     // the view plus the promoted page's repo and path, independent of the open repo.
@@ -1175,6 +1178,7 @@ function app(){ return {
       else if (url && url.view === 'app' && url.appRepo && url.appPath) this.goAppView(this.appViewFromUrl(url));
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'surfaces') this.goSurfaces();
+      else if (url && url.view === 'todo') this.goTodo();
       else if (url && url.view === 'activity') this.goActivity();
       else if (url && url.view === 'pages') this.goPages();
       else if (url && url.view === 'atlas') this.goAtlas();
@@ -1232,7 +1236,7 @@ function app(){ return {
   // how a repo has landing/atlas/files/… isEstate gates the estate component
   // (it renders the grid and surfaces, switching on this.view, sharing the one
   // lazy mount); estateCtx is the wider context test the sidebar switches on.
-  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces' || this.view === 'activity'; },
+  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces' || this.view === 'todo' || this.view === 'activity'; },
   // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
@@ -1258,12 +1262,14 @@ function app(){ return {
       { view: 'activity', icon: 'ph-pulse',        label: 'Activity', go: () => this.goActivity() },
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
+      { view: 'todo',     icon: 'ph-list-checks',  label: 'To-do',    go: () => this.goTodo() },
       { view: 'stage',    icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
     ];
   },
   navActive(v){ return this.view === v.view; },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
+  goTodo(){ this.estateSeen = true; this.view = 'todo'; this.drawer = false; this.syncUrl(); },
   // Activity is the estate's third own-view; the one estate component renders it
   // by reading the shell view. A visit kicks the throttled activity crawl (like
   // Repos kicks the config crawl) so the cache is warm and self-healing.
@@ -1598,6 +1604,13 @@ function overview(){ return {
       place through a JSON dialog the same shape as the repo config editor
       (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
       always stamped, so a Surfaces link is shareable without a repo param.
+    To-do (?view=todo): a general personal checklist, one flat item list
+      ({id, text, done, created_at}) in the registry's state/todo.json. Not a
+      surface (no kind/curation, just text + done), so it keeps its own tiny
+      file and tab rather than folding into the surfaces schema. Checking an
+      item off keeps it (moved to a collapsed "done" pile), it isn't deleted;
+      the trash icon is the only way an item goes away. ?view=todo is always
+      stamped, so a To-do link is shareable without a repo param.
     Activity (?view=activity): the cross-repo activity read off the registry's
       activity cache (state/activity.json, lib/repo-activity-cache.js) in one
       GET — recent commits across the estate, a per-repo rollup (branch counts,
