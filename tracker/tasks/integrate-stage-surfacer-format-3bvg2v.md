@@ -54,3 +54,9 @@ Storage does not reconcile by format alone: the surfacer keeps its truth in a lo
   migration targets without changing them. Steps 2 through 4 (per-item context
   editing, save-as-surface, surface-into-stage) remain, now against the v2
   item shape.
+- 2026-07-21: Noted from a chat-histories session: the "each surface reads
+  every kind, authors the kinds it knows" posture (above) is also the
+  mechanism that would let chat-results envelope items
+  (mehrlander/chat-histories' results/<slug>.json) appear in the estate view
+  as generic cards, once the v1-to-v2 migration lands. No work done; a
+  candidate future bridge, not scoped into this task.
