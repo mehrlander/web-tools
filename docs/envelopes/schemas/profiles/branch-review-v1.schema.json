@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/schemas/profiles/branch-review-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/profiles/branch-review-v1.schema.json",
   "title": "branch-review profile (v1)",
-  "description": "Profile schema for a surface that serializes a branch review package: a base/head compare plus a role-annotated selection of changed and context items. A document claiming this profile must validate against BOTH the core surface v2 schema and this schema. Documentation: docs/surface.md.",
+  "description": "Profile schema for a surface that serializes a branch review package: a base/head compare plus a role-annotated selection of changed and context items. A document claiming this profile must validate against BOTH the core surface v2 schema and this schema. Documentation: docs/envelopes/surface.md.",
   "type": "object",
   "required": ["manifest", "context", "items"],
   "properties": {
