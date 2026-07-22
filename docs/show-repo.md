@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|jots|activity`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|jots|activity|portable`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views).
@@ -102,6 +102,7 @@ the header nav the way a repo shows landing/atlas/files/…:
 - **To-do** (`?view=todo`) — a general personal checklist (below).
 - **Jots** (`?view=jots`) — quick-captured ideas (below).
 - **Open** (`?view=activity`) — the estate's live branches (below).
+- **Portable** (`?view=portable`) — the portable set and its per-repo adoption (below).
 
 One component renders them all, switching on the shell view, sharing one lazy mount.
 
@@ -245,6 +246,36 @@ the repo name as the one-tap GitHub link), plus the **Settings** and **Config**
 tabs. The dialog's former GitHub / jsDelivr-CDN / flat-tree link list was retired
 (2026-07-19): GitHub is the header link, and a file listing lives in Public
 browse.
+
+**Portable** (`?view=portable`, always stamped) turns the coordination layer
+itself into a first-class object: the documentation that travels, and how far
+each repo actually carries it. Two halves.
+
+*The set* renders the to-go bag from the hub's committed manifest,
+[`docs/portable.json`](portable.json), whose prose parent is
+[`docs/PORTABLE.md`](PORTABLE.md) (a test,
+`tools/test/portable-manifest.test.mjs`, holds the two consistent, so the UI
+never drifts from the catalog). Grouped as plugin skills, docs, and scripts;
+each row shows its role and adoption mode (in the plugin, fetched live, fetch
+to adopt, on demand) and opens in the shell's own viewer, rendered, so reading
+CONVENTIONS.md is one tap from the dashboard. Public: the hub repo is public,
+so this half needs no token.
+
+*Adoption* is the alignment matrix. The roster is the registry's `repos`
+manifest plus the hub and the registry themselves; each repo is probed live
+(three parallel reads on its default branch) for the environmental hooks that
+carry the set: the plugin-marketplace subscription and enabled plugins in
+`.claude/settings.json`, a conventions-wired `CLAUDE.md`, and a
+`.web-tools.json`. `lib/portable-align.js` grades the signals (pure, tested)
+into a verdict per repo: `aligned` (marketplace, plugins, and wiring all
+present), `partial`, `unaligned`, `optout` (the config's
+`conventions: "optout"`, respected as deliberate), and the role verdicts
+`source` (the hub) and `registry` (the private sister), which hold standing
+parts and are not graded on subscriptions they would never carry. Each row
+shows check/x chips per signal plus the hook events it registers. Token-gated
+(it reads private repos' settings); probes are live per view open with a
+Refresh, and persisting them as a registry crawl cache (`state/alignment.json`
+beside the config and activity caches) is the named follow-up.
 
 ## Public browse: the no-token file browser
 
