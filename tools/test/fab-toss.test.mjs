@@ -122,10 +122,28 @@ test('renderAtRef in a toss re-addresses the shell instead of opening the overla
 
   d.pickFrameRef('feature-z');
   d.renderAtRef();
-  assert.deepEqual(calls, ['mehrlander/other@feature-z:pages/thing.html']);
-  assert.equal(d.frameOpen, false, 'no overlay in a toss');
+  assert.deepEqual(calls, ['mehrlander/other@feature-z:pages/thing.html'],
+    're-addresses in place via __tossNavigate (no bespoke overlay)');
   window.__tossSubject = null;
   delete window.__tossNavigate;
+});
+
+test('mode getters: a toss reads as off-canonical, marks the subject ref', async () => {
+  window.__tossSubject = { repo: 'mehrlander/other', ref: 'feature-x', path: 'pages/thing.html' };
+  const { el } = await mountFab();
+  const d = Alpine.$data(el);
+  assert.equal(d.offRef, true, 'a toss is off-canonical');
+  assert.equal(d.previewRef, 'feature-x', 'previewRef is the adopted subject ref');
+  assert.equal(d.viewingRef, 'feature-x', 'viewingRef marks the ref being rendered');
+  assert.equal(d.canonicalUrl(),
+    'https://mehrlander.github.io/other/pages/thing.html', 'canonical deployed URL for the subject');
+
+  // Clearing the subject drops back to the live shell: not off-canonical.
+  window.__tossSubject = null;
+  window.dispatchEvent(new window.CustomEvent('toss-subject'));
+  await tick();
+  assert.equal(d.offRef, false, 'the live shell is not a preview');
+  assert.equal(d.previewRef, null);
 });
 
 test('no startup warnings or errors', () => {

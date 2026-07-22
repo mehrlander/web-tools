@@ -321,10 +321,12 @@ window.fetch=function(input,init){try{
 })();<\/script>`;
   }
 
-  // The fab.js frameHtml recipe: <base> so relative URLs resolve on github.io,
-  // plus (when a ref was addressed) a shim so the page's own ?use= read
-  // returns that ref and its lib chain loads from the same place. Then the
-  // fetch shim, so the page's relative runtime fetches resolve from the repo.
+  // The address-render recipe (toss-render is now the one renderer; the fab
+  // navigates here rather than carrying its own overlay copy): <base> so
+  // relative URLs resolve on github.io, plus (when a ref was addressed) a shim
+  // so the page's own ?use= read returns that ref and its lib chain loads from
+  // the same place. Then the fetch shim, so the page's relative runtime fetches
+  // resolve from the repo.
   function addressHtml(text, { owner, name, ref, path, pageQuery }) {
     const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
     let prelude = '<base href="https://' + owner + '.github.io/' + name + '/' + dir + '">';
