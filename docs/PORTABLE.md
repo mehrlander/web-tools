@@ -12,6 +12,12 @@ plugin (reference docs, scripts, the tracker) to fetch when you use them. The
 raw-URL fetch recipes below remain the no-install fallback for environments where
 plugins are unavailable.
 
+The machine-readable index of this catalog is [`docs/portable.json`](portable.json):
+show-repo's **Portable view** renders the set from it (each piece openable in
+the shell's viewer) beside a live per-repo adoption matrix, and
+`tools/test/portable-manifest.test.mjs` holds the manifest and this file's
+tables consistent so neither drifts.
+
 ## How to adopt
 
 Install the `portable` plugin once. One-off, in any session:
