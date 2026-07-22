@@ -63,7 +63,7 @@
   };
 
   window.app = () => ({
-    env: null, error: '', q: '', active: [],
+    env: null, error: '', q: '', active: [], copied: false,
 
     async init() {
       while (!window.chatRender) await new Promise(r => setTimeout(r, 50));
@@ -137,6 +137,36 @@
     blobUrl(r) {
       return r.source ? `https://github.com/${r.source.repo}/blob/${r.source.ref || 'main'}/${r.source.path}` : null;
     },
+
+    // ── copy-out: serialize the current filtered set to markdown ──
+    // Drives off `results` (the q + facet filter), not the whole envelope, so
+    // "filter then export" hands back exactly what's on screen. Optional
+    // fields (url, meta) emit only when the envelope carries them.
+    exportMd() {
+      const e = this.env, L = [`# ${e.query || 'Results'}`];
+      if (e.generated) L.push(`_${e.generated}_`);
+      if (e.narrative) L.push('', e.narrative);
+      for (const r of this.results) {
+        L.push('', '---', '', `## ${r.title}`);
+        const head = [r.provider, r.date, r.url].filter(Boolean).join(' · ');
+        if (head) L.push(head);
+        if (r.meta) L.push(`${r.meta.msgs} messages · ${Number(r.meta.chars).toLocaleString()} chars${(r.meta.langs || []).length ? ' · ' + r.meta.langs.join(', ') : ''}`);
+        if (r.relevance) L.push('', `*${r.relevance}*`);
+        for (const ex of (r.excerpts || [])) L.push('', ex.md);
+      }
+      return L.join('\n') + '\n';
+    },
+    async doCopy() {
+      const t = this.exportMd();
+      try { await navigator.clipboard.writeText(t); }
+      catch (_) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+      this.copied = true; setTimeout(() => this.copied = false, 1500);
+    },
+    download() {
+      const slug = (this.env.query || 'chat-results').toLowerCase().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'chat-results';
+      const b = new Blob([this.exportMd()], { type: 'text/markdown' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${slug}.md`; a.click(); URL.revokeObjectURL(a.href);
+    },
   });
 
   await gh.load('alpine-bundle.js');
@@ -187,6 +217,20 @@
         </label>
         <span class="font-mono text-[10px] opacity-50 whitespace-nowrap"
               x-text="`${results.length} of ${(env.results||[]).length} chats`"></span>
+        <!-- copy-out: serialize the filtered set to markdown. The point of a
+             search result is something to carry off, not just browse. -->
+        <div class="flex items-center gap-1">
+          <button class="btn btn-sm btn-ghost gap-1.5" @click="doCopy()" :disabled="!results.length"
+                  :title="`Copy ${results.length} chat${results.length === 1 ? '' : 's'} as markdown`">
+            <i class="ph text-[15px]" :class="copied ? 'ph-check text-success' : 'ph-copy'"></i>
+            <span x-text="copied ? 'Copied' : 'Copy'"></span>
+          </button>
+          <button class="btn btn-sm btn-ghost gap-1.5" @click="download()" :disabled="!results.length"
+                  title="Download the filtered set as markdown">
+            <i class="ph ph-download-simple text-[15px]"></i>
+            <span>.md</span>
+          </button>
+        </div>
       </div>
 
       <!-- facet chips -->
