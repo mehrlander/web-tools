@@ -134,16 +134,32 @@ repo's own config through the viewer's token (candidates come from the header
 picker's account list, minus current members). So both add and edit write the
 **repo**, never a registry list.
 
-**Surfaces** are `surfaces/*.surface` files in the **registry** (these are
-estate content, not a repo describing itself, so they stay there): the surfacer's
-format (a `manifest` block and an `items` array; see the home repo's
-`projects/surfacer/VISION.md`). They render tabbed, sorted `default` → `standing`
-→ `showcase` (`archive` excluded), each editable in place through a JSON dialog
-(gear on the surface header; "New" seeds a fresh one). Rendered item kinds:
+**Surfaces** come from two places, stacked in one view: the surfacer's format
+either way (a `manifest` block and an `items` array; see the home repo's
+`projects/surfacer/VISION.md`).
+
+- **General** (top): `surfaces/*.surface` files in the **registry**. These are
+  cross-repo estate content, not a repo describing itself, so they stay there.
+  Sorted `default` → `standing` → `showcase` (`archive` excluded), each editable
+  in place through a JSON dialog (gear on the surface header; "New" seeds a fresh
+  one). An agent session with registry access can write or extend one; the estate
+  shows it on next load.
+- **Per-repo** (below General): a repo that names a `surface` in its **own**
+  `.web-tools.json` (a path, or a list of paths, to `.surface` files in that
+  repo) contributes them under a section headed by the repo. The config cache
+  already carries the declaration, so the estate fetches only the repos that
+  declared one, on their default branch: a bounded read over opt-in repos, not a
+  scan of every member. These are **read-only** in the estate (the estate holds
+  the registry token, not each repo's); the section links each file to its blob,
+  edit it where it lives. A repo owns the surface that tells its own story; the
+  registry keeps the curated, cross-repo ones. (Follow-up: gate the re-fetch on
+  the repo's `pushed_at` so an unchanged file isn't re-read every load.)
+
+A repo that declares a surface also gets a **surface chip** on its Repos-grid
+card, deep-linking straight to its section. Rendered item kinds (both sources):
 `github_blob` / `github_dir` (open-in-shell + GitHub link; target as `{repo, ref,
 path}` or a github.com URL), `url` (external link), `note` / `story` (inline
-body). An agent session with registry access can write or extend a surface; the
-estate shows it on next load.
+body), `embed` (a renderer page in an iframe via toss-render page-sugar).
 
 **To-do** (`?view=todo`) is a general, personal checklist: not repo-scoped and
 not a surface, so it keeps its own tiny file, `state/todo.json` in the
@@ -437,6 +453,10 @@ repos. All are optional; a repo with no config is simply off the estate.
 - **pins**: folders/files surfaced in the sidebar Pinned block. A last segment
   with an extension opens as a file; otherwise it opens the Files view at that
   folder.
+- **surface**: a path (or a list of paths) to `.surface` file(s) in this repo,
+  surfaced under a per-repo section in the estate's Surfaces view and as a chip
+  on this repo's Repos-grid card. Read-only in the estate (edit the file in its
+  repo). See "The estate" → Surfaces above.
 - **stage.files**: a durable staged-files list. Entries are **bare paths**
   (`"lib/foo.js"`, meaning this repo at its default branch) or **qualified refs**
   (`"owner/repo[@ref]:path"`). Seeded into the stage only when the stage is
@@ -587,4 +607,8 @@ Three cross-repo live-view channels, one job each:
   `surfaces/*.surface` file in `web-tools-private` (or add a new surface file);
   the estate renders it on the user's next visit. Items follow the surfacer
   schema (`id`, `title`, `kind`, `snippet`, `facet`, `commentary`, `added_at`,
-  plus kind fields); flip a surface's `category` to `archive` to retire it.
+  plus kind fields); flip a surface's `category` to `archive` to retire it. For a
+  surface that belongs to one repo rather than the whole estate, commit the
+  `.surface` file **in that repo** and name it in the repo's `.web-tools.json`
+  (`surface`: path or list); it renders under that repo's section in the estate,
+  no registry access needed.
