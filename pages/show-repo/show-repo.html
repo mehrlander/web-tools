@@ -227,7 +227,7 @@
 
   <!-- ── Main area: the selected view for the repo. On touch devices a
        horizontal swipe here pages between the estate's dashboard views
-       (estateNav: Activity / Repos / Surfaces / To-do / Stage); see
+       (estateNav: Open / Repos / Surfaces / To-do / Jots / Stage); see
        swipeToView. ─────────────────────────────────────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0"
         @touchstart.passive="onSwipeStart($event)" @touchmove="onSwipeMove($event)"
@@ -543,7 +543,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'activity' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'jots' | 'activity' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
@@ -643,6 +643,7 @@ function app(){ return {
     else if (url && url.view === 'estate') this.goEstate();
     else if (url && url.view === 'surfaces') this.goSurfaces();
     else if (url && url.view === 'todo') this.goTodo();
+    else if (url && url.view === 'jots') this.goJots();
     else if (url && url.view === 'activity') this.goActivity();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
@@ -1158,6 +1159,7 @@ function app(){ return {
     else if (this.view === 'branches') p.set('view', 'branches');
     else if (this.view === 'surfaces') p.set('view', 'surfaces');
     else if (this.view === 'todo') p.set('view', 'todo');
+    else if (this.view === 'jots') p.set('view', 'jots');
     else if (this.view === 'activity') p.set('view', 'activity');
     // App views are estate-level, so the link stands alone (like Surfaces): stamp
     // the view plus the promoted page's repo and path, independent of the open repo.
@@ -1197,6 +1199,7 @@ function app(){ return {
       else if (url && url.view === 'estate') this.goEstate();
       else if (url && url.view === 'surfaces') this.goSurfaces();
       else if (url && url.view === 'todo') this.goTodo();
+      else if (url && url.view === 'jots') this.goJots();
       else if (url && url.view === 'activity') this.goActivity();
       else if (url && url.view === 'pages') this.goPages();
       else if (url && url.view === 'atlas') this.goAtlas();
@@ -1254,7 +1257,7 @@ function app(){ return {
   // how a repo has landing/atlas/files/… isEstate gates the estate component
   // (it renders the grid and surfaces, switching on this.view, sharing the one
   // lazy mount); estateCtx is the wider context test the sidebar switches on.
-  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces' || this.view === 'todo' || this.view === 'activity'; },
+  get isEstate(){ return this.view === 'estate' || this.view === 'surfaces' || this.view === 'todo' || this.view === 'jots' || this.view === 'activity'; },
   // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
@@ -1282,6 +1285,7 @@ function app(){ return {
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
       { view: 'todo',     icon: 'ph-list-checks',  label: 'To-do',    go: () => this.goTodo() },
+      { view: 'jots',     icon: 'ph-lightbulb',    label: 'Jots',     go: () => this.goJots() },
       { view: 'stage',    icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
     ];
   },
@@ -1289,6 +1293,7 @@ function app(){ return {
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.drawer = false; this.syncUrl(); },
+  goJots(){ this.estateSeen = true; this.view = 'jots'; this.drawer = false; this.syncUrl(); },
   // Open is the estate's cross-repo live-branch view; the one estate component
   // renders it by reading the shell view (internal key 'activity'). A visit
   // kicks the throttled activity crawl (like Repos kicks the config crawl) so
@@ -1357,11 +1362,11 @@ function app(){ return {
   openSidebar(){ this.drawer = true; },
 
   // ── Swipe paging between dashboard views (touch only) ─────────────────────
-  // The estateNav set (Activity / Repos / Surfaces / To-do / Stage) is a closed,
-  // ordered carousel. On a phone the active dashboard pane FOLLOWS THE FINGER
-  // through a horizontal drag and slides out to commit, so paging reads as one
-  // continuous surface rather than a dead-then-snap view swap. The four estate
-  // sub-views share one component (the estate pane re-renders its own content on
+  // The estateNav set (Open / Repos / Surfaces / To-do / Jots / Stage) is a
+  // closed, ordered carousel. On a phone the active dashboard pane FOLLOWS THE
+  // FINGER through a horizontal drag and slides out to commit, so paging reads
+  // as one continuous surface rather than a dead-then-snap view swap. The
+  // estate sub-views share one component (the estate pane re-renders its own content on
   // a view change), so a neighbour cannot be shown live mid-drag; instead the
   // commit slides the incoming content in from the dragged edge. It reuses the
   // go* methods a tab tap runs, so there is one navigation path and the lit
@@ -1702,12 +1707,12 @@ function overview(){ return {
   stage, branches) plus pinned/recent shortcuts.
 
   The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
-  estate's own views — Open, Repos, Surfaces, Stage, Public browse — as icon
+  estate's own views — Open, Repos, Surfaces, To-do, Jots, Stage — as icon
   buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
   on every viewport. On a touch device this set is also a SWIPE CAROUSEL: the
   active dashboard pane follows the finger through a horizontal drag and slides
   out to commit one step along estateNav (onSwipeStart/Move/End → _commit), an
-  accelerator for the tabs that stay the visible state. The four estate sub-views
+  accelerator for the tabs that stay the visible state. The estate sub-views
   share one component, so the incoming content slides in on commit rather than
   previewing live mid-drag; it rubber-bands at the ends, no-ops inside a repo, and
   yields to any horizontally-scrollable region the gesture starts in.
@@ -1748,12 +1753,21 @@ function overview(){ return {
       (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
       always stamped, so a Surfaces link is shareable without a repo param.
     To-do (?view=todo): a general personal checklist, one flat item list
-      ({id, text, done, created_at}) in the registry's state/todo.json. Not a
+      ({id, text, done, created_at}) in the registry's lists/todo.json. Not a
       surface (no kind/curation, just text + done), so it keeps its own tiny
       file and tab rather than folding into the surfaces schema. Checking an
       item off keeps it (moved to a collapsed "done" pile), it isn't deleted;
       the trash icon is the only way an item goes away. ?view=todo is always
       stamped, so a To-do link is shareable without a repo param.
+    Jots (?view=jots): quick-captured ideas, one flat item list
+      ({id, text, created_at}) in the registry's lists/jots.json. The capture
+      sibling of To-do: same file mechanics, no done state. The pile renders
+      newest first with each jot's age; a jot leaves by deletion, normally
+      after being promoted somewhere real (a chron entry, a tracker task, a
+      to-do). The add commit carries the jot's text, so the file's history is
+      itself a capture log, and the registry is in agent-session scope, so an
+      agent can drain the pile. ?view=jots is always stamped, so a Jots link
+      is shareable without a repo param.
     Open (?view=activity): the estate's live branches in one cross-repo list,
       read off the registry's activity cache (state/activity.json,
       lib/repo-activity-cache.js) in one GET — every branch with recent work

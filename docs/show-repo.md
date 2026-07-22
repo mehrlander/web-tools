@@ -35,7 +35,7 @@ states its `#gh=`-vs-`#gz=` split.
 
 Open a repo with `?repo=owner/repo`, optionally `&ref=<branch|tag|sha>`. Public
 repos browse with no auth; private repos and branches need the viewer's token.
-Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|activity`, `&file=<path>`, `&path=<dir>`.
+Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|jots|activity`, `&file=<path>`, `&path=<dir>`.
 
 **Two context levels.** The page is either in the **estate** (the global,
 all-repo context) or in a **repo** (a per-repo context with its own views).
@@ -94,15 +94,16 @@ ship with its jump-over.
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
 whole repo constellation, and the page's global context (above any single repo,
 reached from the header selector's "Repositories" entry, the brand icon, or a
-bare page open). It is a context with **three views of its own**, switched from
-the sidebar the way a repo shows landing/atlas/files/…:
+bare page open). It is a context with **views of its own**, switched from
+the header nav the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
-- **To-do** (`?view=todo`): a general personal checklist (below).
+- **To-do** (`?view=todo`) — a general personal checklist (below).
+- **Jots** (`?view=jots`) — quick-captured ideas (below).
 - **Open** (`?view=activity`) — the estate's live branches (below).
 
-One component renders all three, switching on the shell view, sharing one lazy mount.
+One component renders them all, switching on the shell view, sharing one lazy mount.
 
 **Repos: membership and fields live on each repo.** A repo appears on the estate
 by opting in with `estate: true` in its **own** `.web-tools.json`. Every
@@ -162,7 +163,7 @@ path}` or a github.com URL), `url` (external link), `note` / `story` (inline
 body), `embed` (a renderer page in an iframe via toss-render page-sugar).
 
 **To-do** (`?view=todo`) is a general, personal checklist: not repo-scoped and
-not a surface, so it keeps its own tiny file, `state/todo.json` in the
+not a surface, so it keeps its own tiny file, `lists/todo.json` in the
 registry (`{items: [{id, text, done, created_at, done_at}]}`), rather than
 reusing the surfaces schema. Add a line, check it off, or delete it; a
 checked item moves into a collapsed "done" pile instead of disappearing, so
@@ -170,6 +171,20 @@ delete is the only way an item actually goes away. Every mutation writes the
 whole file straight through the viewer's token (`gh-store.js`'s `save`), the
 same as a surface edit, so it is durable across browsers and devices, not a
 per-browser `localStorage` list. Token-gated like Surfaces: no token, no list.
+
+**Jots** (`?view=jots`) is the capture sibling of To-do: quick ideas, one flat
+item list in the registry's `lists/jots.json` (`{items: [{id, text,
+created_at}]}`), same whole-file write mechanics. The lifecycles differ: a
+to-do tracks work and completes; a jot has no done state. It sits in the pile,
+newest first with its age showing, until it is promoted somewhere with a real
+home (a chron entry, a tracker task, a to-do) or deleted. Two hooks anticipate
+the maintenance cycle around that promotion without building it yet: the add
+commit carries the jot's text, so the file's git history is itself a capture
+log, and the registry sits in agent-session scope, so an agent session can
+read the pile and drain it (promote, then delete) the way `chron/dump/` is
+drained. The two lists live under `lists/` because they are authored content
+with the registry as their source of truth; `state/` stays derived caches
+only.
 
 **Open** (`?view=activity`) is the estate's live branches in one cross-repo list,
 freshest first. A branch qualifies only if it holds genuinely-open work: it has an
