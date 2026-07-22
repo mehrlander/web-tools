@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/schemas/surface-v2.schema.json",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/surface-v2.schema.json",
   "title": "Surface (v2)",
-  "description": "A surface: a curated, annotated set of items presented for a reason at a moment. Core schema; profiles layer further constraints (see schemas/profiles/). Documentation: docs/surface.md.",
+  "description": "A surface: a curated, annotated set of items presented for a reason at a moment. Core schema; profiles layer further constraints (see schemas/profiles/). Documentation: docs/envelopes/surface.md.",
   "type": "object",
   "additionalProperties": false,
   "required": ["manifest", "items"],
@@ -116,7 +116,7 @@
     },
     "source": {
       "type": "object",
-      "description": "Where the targeted resource lives. Repository sources use the structured {repository, ref, path} form; external resources use uri; a path with no repository is local to the environment rendering the surface. See docs/surface.md for the full convention.",
+      "description": "Where the targeted resource lives. Repository sources use the structured {repository, ref, path} form; external resources use uri; a path with no repository is local to the environment rendering the surface. See docs/envelopes/surface.md for the full convention.",
       "properties": {
         "repository": {
           "type": "string",
