@@ -41,12 +41,12 @@ Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|a
 all-repo context) or in a **repo** (a per-repo context with its own views).
 
 The **header carries the app-level nav**: a fixed, app-owned set of the estate's
-own views, **Activity** (first), **Repos**, **Surfaces**, **Stage**, and
+own views, **Open** (first), **Repos**, **Surfaces**, **Stage**, and
 **Public browse**, as icon buttons (icon + label on desktop, icon-only on
 mobile), lit on the active view and present on every viewport. Beside them, in a
 repo, sits a compact `owner/name @ref` readout (the ref switcher is kept; the
 GitHub jump too), and on the right the auth shield (token / config dialog). The
-brand icon returns to the **dashboard**: Activity for a signed-in viewer, Repos
+brand icon returns to the **dashboard**: Open for a signed-in viewer, Repos
 for a signed-out one. There is no repo-list dropdown and no quick-links row:
 **repo selection happens on the Repos dashboard** (a card opens the repo), which
 reads better than a dropdown and keeps the header a fixed set rather than one
@@ -100,7 +100,7 @@ the sidebar the way a repo shows landing/atlas/files/…:
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
 - **To-do** (`?view=todo`): a general personal checklist (below).
-- **Activity** (`?view=activity`) — the cross-repo activity read (below).
+- **Open** (`?view=activity`) — the estate's live branches (below).
 
 One component renders all three, switching on the shell view, sharing one lazy mount.
 
@@ -171,17 +171,34 @@ whole file straight through the viewer's token (`gh-store.js`'s `save`), the
 same as a surface edit, so it is durable across browsers and devices, not a
 per-browser `localStorage` list. Token-gated like Surfaces: no token, no list.
 
-**Activity** (`?view=activity`) is the cross-repo read: recent commits across
-the estate, a per-repo rollup (branch counts, landed / stranded, open PRs), and
-a peek at each repo's open PRs and stranded branch names, every row deep-linking
-into that repo's branch review. It reads the registry's **activity cache**
+**Open** (`?view=activity`) is the estate's live branches in one cross-repo list,
+freshest first. A branch qualifies only if it holds genuinely-open work: it has an
+**open PR**, or the content survey marks it **stranded** (its content is nowhere on
+the default branch, the honest "ahead of main" signal). A branch that is merely
+recent does **not** qualify on recency alone: one merged via a merge commit is an
+ancestor of the default, so it holds nothing ahead and would stage to nothing, yet
+its commit date still reads recent. Gating on open-PR-or-stranded drops the flood
+of merged-but-undeleted session branches that would otherwise fill the list. Each row is **highlighted by PR state** (a colored left rail plus
+faint tint: green for a ready PR, amber for a draft, muted for a branch with no
+PR yet) and carries a **caption-style link cluster**. The row's **primary action
+(the branch name, and the leading Stage link) stages the files this branch
+changed** against its default (one `compare` call, removed paths skipped) and
+jumps to the Stage: navigating a whole branch tree is rarely the point, its diff
+is. The staged set is appended and deduped onto any working stage, at `ref=branch`
+so an item reads the branch's version and the Stage's Diff tab compares it back.
+The rest of the cluster is Tree and Compare (on GitHub), the guide **PR**, and the
+**Session** that authored it (the `claude.ai/code/session_…` link lifted from the
+PR body's footer, shown only when present); a per-repo **Branches** drill-down
+sits at the row's right (whole-tree browse lives there). It reads the registry's **activity cache**
 (`state/activity.json`, below) in one GET, so the whole estate renders without a
-per-repo API fanout. The Repos view borrows the same cache twice: a **recent-
-activity strip** at the top (the landing widget, a few freshest commits with a
-jump to Activity) and a **freshness rollup** on each card (branch count, stranded
-count, open-PR count, the branch count a one-tap route into the branch review).
-The view's Refresh forces the crawl through the shell (`refreshActivity`); a
-normal visit kicks it throttled.
+per-repo API fanout: the branch join to its open PR is `pr.head === branch`, and
+the session link rides the cached PR, so nothing is fetched per visit. Landed and
+stranded older branches are the per-repo branch review's job, not this "what's in
+flight" read. The Repos view borrows the same cache for a **freshness rollup** on
+each card (branch count, stranded count, open-PR count, the branch count a one-tap
+route into the branch review). The view's Refresh forces the crawl through the
+shell (`refreshActivity`); a normal visit kicks it throttled. The internal view
+key stays `activity` (and `?view=activity`), so existing links resolve.
 
 The cache is what makes this affordable. The branch review costs ~2 + 2N calls to
 survey N branches, so surveying every repo live on a dashboard is a flood.

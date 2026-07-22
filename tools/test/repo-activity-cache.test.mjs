@@ -25,6 +25,8 @@ test('hashEntry ignores timestamps but tracks material fields', () => {
   assert.equal(A.hashEntry(base), A.hashEntry(restamped)); // surveyedAt is volatile
   const moved = { ...base, survey: { branches: [{ name: 'x', sha: 'S', group: 'stranded' }] } };
   assert.notEqual(A.hashEntry(base), A.hashEntry(moved));  // a group flip is material
+  const ahead = { ...base, survey: { branches: [{ name: 'x', sha: 'S', group: 'landed', aheadBy: 3 }] } };
+  assert.notEqual(A.hashEntry(base), A.hashEntry(ahead));  // an ahead-count change is material
 });
 
 test('mergeCommits unions by sha, newest-first, capped', () => {

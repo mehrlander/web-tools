@@ -75,7 +75,7 @@
       <button @click="goDashboard()" class="hover:opacity-80 transition-opacity shrink-0" title="Dashboard">
         <img src="../../lib/favicon.svg" alt="web-tools" width="24" height="24" class="w-6 h-6">
       </button>
-      <!-- App-level views: Activity / Repos / Surfaces / To-do / Stage, the
+      <!-- App-level views: Open / Repos / Surfaces / To-do / Stage, the
            estate's own closed set, always labeled, inline on one row (there is
            room next to the brand at any phone width). Public browse left the
            header (a signed-out affordance, still on the no-token banner and
@@ -115,32 +115,30 @@
   <div x-show="drawer" @click="drawer=false" x-transition.opacity
        class="fixed inset-0 bg-black/30 z-40 lg:hidden" x-cloak></div>
 
-  <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl
-                flex flex-col transition-transform duration-200 ease-out
-                lg:static lg:z-auto lg:shadow-none lg:translate-x-0 lg:w-80 xl:w-[22rem] lg:shrink-0"
+  <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl flex flex-col transition-transform duration-200 ease-out lg:static lg:z-auto lg:shadow-none lg:translate-x-0 lg:w-80 xl:w-[22rem] lg:shrink-0"
          :class="[drawer ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', !showSidebar && 'lg:hidden']">
     <!-- Sidebar top bar: the context label + GitHub jump, plus the mobile-only
          drawer close button. The auth shield moved to the header (always
          visible); repo selection moved to the Repos dashboard. -->
     <div class="h-14 flex items-center gap-2 px-4 border-b border-base-300 shrink-0">
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <span class="font-mono text-sm truncate text-base-content/70"
+        <span class="font-mono text-base truncate text-base-content/70"
               x-text="estateCtx ? 'Views' : ($store.browser.repo || 'Browse')"></span>
         <a x-show="!estateCtx && $store.browser.repo" :href="repoGithubUrl" target="_blank"
            class="shrink-0 text-base-content/40 hover:text-base-content/80 transition-colors"
            title="Open on GitHub"><i class="ph ph-github-logo text-base leading-none"></i></a>
       </div>
-      <button @click="drawer=false" class="btn btn-sm btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
+      <button @click="drawer=false" class="btn btn-square btn-ghost lg:hidden"><i class="ph ph-x text-lg"></i></button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
       <!-- Estate-context sidebar: only the REPO-SOURCED app views (appView:true,
-           e.g. News) live here now. The app's own views (Repos / Activity /
+           e.g. News) live here now. The app's own views (Repos / Open /
            Surfaces / Stage / Public) moved to the header nav, since that set is
            fixed and app-owned; these are the ones repos opt into, so they stay
            in the sidebar. Token-gated, so the list is empty when unauthed. -->
       <div class="flex flex-col gap-0.5" x-show="estateCtx && sidebarAppViews.length">
-        <div class="text-sm font-mono uppercase tracking-widest text-base-content/40 px-2 pb-0.5">App views</div>
+        <div class="text-base font-mono uppercase tracking-widest text-base-content/40 px-2 pb-0.5">App views</div>
         <template x-for="v in sidebarAppViews" :key="v.key">
           <button @click="goAppView(v)"
                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-base hover:bg-base-200 transition-colors"
@@ -191,7 +189,7 @@
 
       <!-- Pinned: folders and files the repo designates in .web-tools.json. -->
       <div x-show="pins.length && !estateCtx" class="flex flex-col gap-0.5">
-        <div class="text-sm font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
+        <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-push-pin"></i>Pinned
         </div>
         <template x-for="p in pins" :key="p">
@@ -199,7 +197,7 @@
                   class="flex items-center gap-2 px-2 py-1 rounded-lg text-base hover:bg-base-200 transition-colors text-left"
                   :class="Alpine.store('browser').activeFile?.path===p ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
             <i class="ph text-base shrink-0" :class="pinIsFile(p) ? 'ph-file text-info' : 'ph-folder text-warning'"></i>
-            <span class="truncate font-mono text-sm" :title="p" x-text="p"></span>
+            <span class="truncate font-mono text-base" :title="p" x-text="p"></span>
           </button>
         </template>
       </div>
@@ -208,18 +206,18 @@
 
       <!-- Recent: files touched by the newest commits on the current ref. -->
       <div x-show="(recentLoading || recent.length) && !estateCtx" class="flex flex-col gap-0.5">
-        <div class="text-sm font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
+        <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5">
           <i class="ph ph-clock-counter-clockwise"></i>Recent
         </div>
         <div x-show="recentLoading" class="flex justify-center py-2">
-          <span class="loading loading-dots loading-sm opacity-30"></span>
+          <span class="loading loading-dots loading-md opacity-30"></span>
         </div>
         <template x-for="f in recent" :key="f.path">
           <button @click="openFile(f.path)"
                   class="flex items-center justify-between gap-2 px-2 py-1 rounded-lg text-base hover:bg-base-200 transition-colors text-left"
                   :class="Alpine.store('browser').activeFile?.path===f.path ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
-            <span class="truncate font-mono text-sm" :title="f.path" x-text="f.path.split('/').pop()"></span>
-            <span class="text-sm text-base-content/40 shrink-0" x-text="f.age"></span>
+            <span class="truncate font-mono text-base" :title="f.path" x-text="f.path.split('/').pop()"></span>
+            <span class="text-base text-base-content/40 shrink-0" x-text="f.age"></span>
           </button>
         </template>
       </div>
@@ -306,7 +304,7 @@
             <div>
               <div class="flex flex-wrap items-center gap-1.5 mb-8">
                 <template x-for="c in chips" :key="c.key">
-                  <button class="btn btn-sm font-mono"
+                  <button class="btn font-mono"
                           :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
                           @click="filter=c.key">
                     <span><span class="opacity-50 font-normal" x-text="c.pre"></span><span x-text="c.seg"></span></span>
@@ -314,7 +312,7 @@
                   </button>
                 </template>
                 <div class="grow"></div>
-                <label class="input input-sm input-bordered flex items-center gap-1.5 w-48">
+                <label class="input input-bordered flex items-center gap-1.5 w-48">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
                   <input type="search" x-model.debounce="q" placeholder="filter by name…" class="grow min-w-0">
                 </label>
@@ -326,7 +324,7 @@
 
               <template x-for="g in filteredGroups" :key="g.label">
                 <section class="mb-10">
-                  <h2 x-show="g.label" class="text-sm font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
+                  <h2 x-show="g.label" class="text-base font-mono uppercase tracking-widest text-base-content/40 mb-3 flex items-center gap-2">
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
                     <span class="badge badge-ghost badge-sm" x-text="g.items.length"></span>
                   </h2>
@@ -340,7 +338,7 @@
                              class="w-full h-full object-cover object-top"
                              @error="p.shotMissing = true" x-show="!p.shotMissing">
                         <div x-show="p.shotMissing"
-                             class="w-full h-full flex items-center justify-center text-base-content/30 text-sm gap-1">
+                             class="w-full h-full flex items-center justify-center text-base-content/30 text-base gap-1">
                           <i class="ph ph-image-broken"></i> no screenshot
                         </div>
                       </a>
@@ -350,15 +348,15 @@
                                 class="w-full h-full bg-base-100"></iframe>
                       </template>
                       <pre x-show="p.view==='html'"
-                           class="w-full h-full overflow-auto m-0 p-2 text-sm leading-snug bg-base-100"
+                           class="w-full h-full overflow-auto m-0 p-2 text-base leading-snug bg-base-100"
                            x-text="p.source"></pre>
 
                       <div class="join absolute top-1.5 right-1.5 shadow">
-                        <button class="btn btn-sm join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
+                        <button class="btn join-item" :class="p.view==='shot' && 'btn-primary btn-active'"
                                 @click="show(p,'shot')" title="Screenshot"><i class="ph ph-image"></i></button>
-                        <button class="btn btn-sm join-item" :class="p.view==='live' && 'btn-primary btn-active'"
+                        <button class="btn join-item" :class="p.view==='live' && 'btn-primary btn-active'"
                                 @click="show(p,'live')" title="Live preview"><i class="ph ph-play"></i></button>
-                        <button class="btn btn-sm join-item" :class="p.view==='html' && 'btn-primary btn-active'"
+                        <button class="btn join-item" :class="p.view==='html' && 'btn-primary btn-active'"
                                 @click="show(p,'html')" title="HTML source"><i class="ph ph-code"></i></button>
                       </div>
                     </div>
@@ -376,7 +374,7 @@
                             <i class="ph ph-github-logo"></i></a>
                         </div>
                       </div>
-                      <p class="text-sm text-base-content/50" x-text="p.note || p.title"></p>
+                      <p class="text-base text-base-content/50" x-text="p.note || p.title"></p>
                     </div>
 
                       </div>
@@ -387,7 +385,7 @@
 
               <div x-show="isDefault" class="mt-8 pt-4 border-t border-base-200">
                 <a href="https://github.com/mehrlander/web-tools/blob/main/pages/README.md"
-                   class="text-sm text-base-content/40 hover:text-base-content/70 flex items-center gap-1.5 transition-colors"
+                   class="text-base text-base-content/40 hover:text-base-content/70 flex items-center gap-1.5 transition-colors"
                    target="_blank">
                   <i class="ph ph-list-bullets"></i>
                   Full catalog — every page incl. nested, with rendered + source links
@@ -408,7 +406,7 @@
                 <h1 class="text-2xl font-bold tracking-tight font-mono truncate" x-text="repo"></h1>
                 <p x-show="desc" class="text-base-content/60 mt-1" x-text="desc"></p>
               </div>
-              <button @click="goAtlas()" class="btn btn-sm btn-outline gap-1.5 shrink-0">
+              <button @click="goAtlas()" class="btn btn-outline gap-1.5 shrink-0">
                 <i class="ph ph-map-trifold"></i> Atlas
               </button>
             </div>
@@ -960,6 +958,20 @@ function app(){ return {
       g.commits(this.ACTIVITY_RECENT_COMMITS).catch(() => []),
       g.pulls('open', 30).catch(() => []),
     ]);
+    // Ahead/behind for each open PR head, so the Open view can show it without a
+    // per-visit compare. Bounded pool, best-effort: a failure leaves it null.
+    {
+      let pi = 0;
+      const prAheadBehind = async () => {
+        while (pi < openPRs.length){
+          const p = openPRs[pi++];
+          if (!p.head) continue;
+          try { const d = await g.compare(def, p.head); p.aheadBy = d.ahead_by ?? null; p.behindBy = d.behind_by ?? null; }
+          catch { p.aheadBy = null; p.behindBy = null; }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, openPRs.length) }, prAheadBehind));
+    }
     // Branch survey: the same split the branches view runs (recent = date-only
     // active; older = surveyed, capped), through the shared orchestrator.
     let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, surveyed: 0, older: 0, openPRs: openPRs.length };
@@ -976,7 +988,8 @@ function app(){ return {
       truncated = surveyed.truncated;
       const trim = b => ({ name: b.name, date: b.date || '', sha: b.sha || '', subject: b.subject || '', ago: b.ago || '',
                            group: b.group, noBase: !!b.noBase, nUnique: b.nUnique || 0, nLanded: b.nLanded || 0,
-                           nMissing: b.nMissing || 0, missingPaths: b.missingPaths || [] });
+                           nMissing: b.nMissing || 0, missingPaths: b.missingPaths || [],
+                           aheadBy: b.aheadBy ?? null, behindBy: b.behindBy ?? null });
       branches = [...recent.map(b => trim({ ...b, group: 'active' })), ...surveyed.rows.map(trim)];
       counts = {
         branches: list.length,
@@ -1253,18 +1266,19 @@ function app(){ return {
   // opens via the hamburger regardless).
   get showSidebar(){ return !this.estateCtx || (this.sidebarAppViews && this.sidebarAppViews.length > 0); },
   goHome(){ this.goDashboard(); },
-  // The dashboard front door: Activity for a signed-in viewer (the richer
-  // all-repo read), Repos for a signed-out one (Activity is token-gated, so it
+  // The dashboard front door: Open for a signed-in viewer (the richer
+  // all-repo read), Repos for a signed-out one (Open is token-gated, so it
   // would land on an empty state). Brand tap and a bare open route here.
   goDashboard(){ this.hasToken() ? this.goActivity() : this.goEstate(); },
   // The header's app-level nav: the CLOSED set of the estate's own views, in
-  // display order (Activity first). Repo-sourced app views (appView:true, e.g.
+  // display order (Open first). Repo-sourced app views (appView:true, e.g.
   // News) are deliberately NOT here; they stay in the sidebar, since the header
   // is a fixed set the app owns, not one repos opt into. Each item maps to the
-  // same go* method and `view` string the router already uses.
+  // same go* method and `view` string the router already uses. The Open view
+  // keeps the internal key 'activity' so existing ?view=activity links resolve.
   get estateNav(){
     return [
-      { view: 'activity', icon: 'ph-pulse',        label: 'Activity', go: () => this.goActivity() },
+      { view: 'activity', icon: 'ph-git-pull-request', label: 'Open',   go: () => this.goActivity() },
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
       { view: 'todo',     icon: 'ph-list-checks',  label: 'To-do',    go: () => this.goTodo() },
@@ -1275,9 +1289,10 @@ function app(){ return {
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.drawer = false; this.syncUrl(); },
-  // Activity is the estate's third own-view; the one estate component renders it
-  // by reading the shell view. A visit kicks the throttled activity crawl (like
-  // Repos kicks the config crawl) so the cache is warm and self-healing.
+  // Open is the estate's cross-repo live-branch view; the one estate component
+  // renders it by reading the shell view (internal key 'activity'). A visit
+  // kicks the throttled activity crawl (like Repos kicks the config crawl) so
+  // the cache is warm and self-healing.
   goActivity(){ this.estateSeen = true; this.view = 'activity'; this.drawer = false; this.refreshActivityCache?.(); this.syncUrl(); },
   goLanding(){ this.view = 'landing'; this.drawer = false; this.syncUrl(); },
   goPages(){ this.view = 'pages'; this.drawer = false; this.syncUrl(); },
@@ -1687,7 +1702,7 @@ function overview(){ return {
   stage, branches) plus pinned/recent shortcuts.
 
   The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
-  estate's own views — Activity, Repos, Surfaces, Stage, Public browse — as icon
+  estate's own views — Open, Repos, Surfaces, Stage, Public browse — as icon
   buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
   on every viewport. On a touch device this set is also a SWIPE CAROUSEL: the
   active dashboard pane follows the finger through a horizontal drag and slides
@@ -1699,7 +1714,7 @@ function overview(){ return {
   Beside them, in a repo, a compact owner/name @ref readout
   (the #repo inline component, now just a label + ref switcher + GitHub jump; the
   old repo-list dropdown is gone), and on the right the auth shield. The brand
-  icon returns to the DASHBOARD (goDashboard: Activity if signed in, else Repos)
+  icon returns to the DASHBOARD (goDashboard: Open if signed in, else Repos)
   and doubles as nothing else; the mobile drawer toggle is its own hamburger.
   There is no repo-list dropdown and no quick-links row: REPO SELECTION HAPPENS
   ON THE REPOS DASHBOARD (tap a card), which keeps the header a fixed set rather
@@ -1712,7 +1727,7 @@ function overview(){ return {
   THE ESTATE: the all-repo context (lib/alpineComponents/estate.js), and the
   page's front door — a bare open (no ?repo/?file/?view, no #stage=) lands here,
   and the brand icon returns here on desktop. It is a context above any repo,
-  with three views of its own — Repos, Surfaces, and Activity — shown in the
+  with three views of its own — Repos, Surfaces, and Open — shown in the
   sidebar the same way a repo shows landing/atlas/files/… One estate component
   renders all three and switches on the shell view, sharing the one lazy mount.
     Repos (?view=estate): a card per repo that opts in with estate:true in its
@@ -1739,12 +1754,14 @@ function overview(){ return {
       item off keeps it (moved to a collapsed "done" pile), it isn't deleted;
       the trash icon is the only way an item goes away. ?view=todo is always
       stamped, so a To-do link is shareable without a repo param.
-    Activity (?view=activity): the cross-repo activity read off the registry's
-      activity cache (state/activity.json, lib/repo-activity-cache.js) in one
-      GET — recent commits across the estate, a per-repo rollup (branch counts,
-      landed/stranded, open PRs), each row deep-linking into that repo's branch
-      review. The Repos view borrows the same cache twice: a recent-activity
-      strip up top (the landing widget) and a freshness rollup on each card. The
+    Open (?view=activity): the estate's live branches in one cross-repo list,
+      read off the registry's activity cache (state/activity.json,
+      lib/repo-activity-cache.js) in one GET — every branch with recent work
+      ahead of its default or an open PR, freshest first, highlighted by PR state
+      (ready / draft / no-PR) and carrying a caption-style link cluster (browse
+      here, tree, compare, the guide PR, the authoring Claude Code session lifted
+      from the PR body). The key stays 'activity' so old links resolve. The Repos
+      view borrows the same cache for a freshness rollup on each card. The
       cache is refreshActivityCache's output: a ~12h-throttled crawl that runs
       the capped branch survey (shared with the branches view via
       lib/branch-survey.js surveyBranchLive/surveyOlder) once and stores it, so
