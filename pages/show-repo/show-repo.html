@@ -955,6 +955,20 @@ function app(){ return {
       g.commits(this.ACTIVITY_RECENT_COMMITS).catch(() => []),
       g.pulls('open', 30).catch(() => []),
     ]);
+    // Ahead/behind for each open PR head, so the Open view can show it without a
+    // per-visit compare. Bounded pool, best-effort: a failure leaves it null.
+    {
+      let pi = 0;
+      const prAheadBehind = async () => {
+        while (pi < openPRs.length){
+          const p = openPRs[pi++];
+          if (!p.head) continue;
+          try { const d = await g.compare(def, p.head); p.aheadBy = d.ahead_by ?? null; p.behindBy = d.behind_by ?? null; }
+          catch { p.aheadBy = null; p.behindBy = null; }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, openPRs.length) }, prAheadBehind));
+    }
     // Branch survey: the same split the branches view runs (recent = date-only
     // active; older = surveyed, capped), through the shared orchestrator.
     let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, surveyed: 0, older: 0, openPRs: openPRs.length };
@@ -971,7 +985,8 @@ function app(){ return {
       truncated = surveyed.truncated;
       const trim = b => ({ name: b.name, date: b.date || '', sha: b.sha || '', subject: b.subject || '', ago: b.ago || '',
                            group: b.group, noBase: !!b.noBase, nUnique: b.nUnique || 0, nLanded: b.nLanded || 0,
-                           nMissing: b.nMissing || 0, missingPaths: b.missingPaths || [] });
+                           nMissing: b.nMissing || 0, missingPaths: b.missingPaths || [],
+                           aheadBy: b.aheadBy ?? null, behindBy: b.behindBy ?? null });
       branches = [...recent.map(b => trim({ ...b, group: 'active' })), ...surveyed.rows.map(trim)];
       counts = {
         branches: list.length,
