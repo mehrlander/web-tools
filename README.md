@@ -2,7 +2,7 @@
 
 A workshop for browser-based tools with a focus on working with data.
 
-⭐ **[Browse the live tools index →](https://mehrlander.github.io/web-tools/pages/)** — every page, with screenshots, live previews, and source links.
+⭐ **[Open show-repo, the dashboard →](https://mehrlander.github.io/web-tools/pages/show-repo/)** — browse any repo, stage and move files across repos, read cross-repo activity, and reach the tools. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
 
 [Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), plus the parts used to build them.
 
@@ -258,13 +258,24 @@ The shape of a loaded page in one block:
 
 ```html
 <script type="module">
-  // ?use=<branch|tag|sha> overrides which ref the bundle loads from;
-  // defaults to main. gh-api.js's auto-bootstrap parses owner/repo/ref
-  // from its own import URL, instantiates window.gh, and chains gh-boot.js,
+  // gh-api.js's auto-bootstrap instantiates window.gh and chains gh-boot.js,
   // which auto-loads gh-auth.js, gh-fetch.js, kits/console.js, and
   // vanilla-bundle.js. The page just calls gh.load() from here on.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  //   - No ?use: import from jsDelivr @main (cache-stable, this repo's one CDN
+  //     entry point); the bootstrap parses owner/repo/ref from that import URL.
+  //   - ?use=<ref>: fetch gh-api.js from raw.githubusercontent (no branch-tip
+  //     lag) and blob-import it, handing repo/ref via window.__ghBlobBoot since
+  //     a blob: import URL has no ref to parse.
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
+    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`);
+    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
+    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await import(u); } finally { URL.revokeObjectURL(u); }
+  } else {
+    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+  }
 
   await gh.load('kits/persistence.js');                   // logic kits (resolved under lib/)
   await gh.load('alpineComponents/viewer.js');            // UI components
@@ -272,7 +283,7 @@ The shape of a loaded page in one block:
 </script>
 ```
 
-The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any page that adopts the convention. For freshly-pushed commits, prefer the SHA, since jsDelivr caches branch tips for ~12h.
+The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any page that adopts the convention. A branch name is cache-safe: the `?use=` boot fetches `gh-api.js` from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. jsDelivr is used only for the no-`?use` `@main` default, which is cache-stable and shared.
 
 `?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML shell itself, the FAB's "Render page" box fetches the current page's HTML as text via the contents API at the branch you pick from the dropdown — private-safe, and dodging jsDelivr's `text/plain` Content-Type on `/gh/` HTML — then hosts it in an overlay iframe via `srcdoc`. Because an `srcdoc` document's `location` has no query string, the host stamps a small prelude into the fetched HTML so the embedded page's runtime tracks the chosen ref: it sets `window.__ref` (read it directly if you like) and patches `URLSearchParams.get('use')` to return that ref, so any page already following the `?use=` convention picks it up unmodified. A `<base>` is stamped in too so the page's relative links resolve against its real directory.
 
