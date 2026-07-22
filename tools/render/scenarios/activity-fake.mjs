@@ -41,7 +41,7 @@ export default async (page) => {
         ],
         survey: { surveyedAt: iso(3), cap: 30, surveyed: 8, older: 12, truncated: false, branches: [
           { name: 'claude/open-view-live-branches-yk24d9', sha: 'a1', group: 'active', date: iso(2), subject: 'Open view: highlight branches ahead of main, link the session' },
-          { name: 'claude/tighten-mobile-grid-mm01', sha: 'a2', group: 'active', date: iso(9), subject: 'Tighten the mobile grid and drop the hard borders' },
+          { name: 'claude/tighten-mobile-grid-mm01', sha: 'a2', group: 'stranded', date: iso(9), subject: 'Tighten the mobile grid and drop the hard borders' },
         ] },
       },
       'mehrlander/web-tools-private': {
@@ -70,7 +70,7 @@ export default async (page) => {
         counts: { branches: 7, active: 1, landed: 2, stranded: 0, surveyed: 3, older: 4, openPRs: 0 },
         openPRs: [],
         survey: { surveyedAt: iso(31), cap: 30, surveyed: 3, older: 4, truncated: false, branches: [
-          { name: 'claude/catalog-coverage-refresh-ss05', sha: 'd1', group: 'active', date: iso(30), subject: 'Refresh the coverage report after the July batch' },
+          { name: 'claude/catalog-coverage-refresh-ss05', sha: 'd1', group: 'stranded', date: iso(30), subject: 'Refresh the coverage report after the July batch' },
         ] },
       },
     };

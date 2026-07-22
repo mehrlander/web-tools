@@ -155,9 +155,14 @@ whole file straight through the viewer's token (`gh-store.js`'s `save`), the
 same as a surface edit, so it is durable across browsers and devices, not a
 per-browser `localStorage` list. Token-gated like Surfaces: no token, no list.
 
-**Open** (`?view=activity`) is the estate's live branches in one cross-repo list:
-every branch with recent work ahead of its default, or the head of an open PR,
-freshest first. Each row is **highlighted by PR state** (a colored left rail plus
+**Open** (`?view=activity`) is the estate's live branches in one cross-repo list,
+freshest first. A branch qualifies only if it holds genuinely-open work: it has an
+**open PR**, or the content survey marks it **stranded** (its content is nowhere on
+the default branch, the honest "ahead of main" signal). A branch that is merely
+recent does **not** qualify on recency alone: one merged via a merge commit is an
+ancestor of the default, so it holds nothing ahead and would stage to nothing, yet
+its commit date still reads recent. Gating on open-PR-or-stranded drops the flood
+of merged-but-undeleted session branches that would otherwise fill the list. Each row is **highlighted by PR state** (a colored left rail plus
 faint tint: green for a ready PR, amber for a draft, muted for a branch with no
 PR yet) and carries a **caption-style link cluster**. The row's **primary action
 (the branch name, and the leading Stage link) stages the files this branch
