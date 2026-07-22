@@ -99,9 +99,9 @@ the header nav the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
 - **Surfaces** (`?view=surfaces`) — the curated surfaces.
-- **To-do** (`?view=todo`) — a general personal checklist (below).
-- **Jots** (`?view=jots`) — quick-captured ideas (below).
-- **Open** (`?view=activity`) — the estate's live branches (below).
+- **Activity** — the live layer: one nav stop with three pill-switched
+  sub-tabs, each keeping its own deep link: **Open** (`?view=activity`),
+  **To-do** (`?view=todo`), **Jots** (`?view=jots`) (all below).
 - **Portable** (`?view=portable`) — the portable set and its per-repo adoption (below).
 
 One component renders them all, switching on the shell view, sharing one lazy mount.
@@ -162,6 +162,15 @@ card, deep-linking straight to its section. Rendered item kinds (both sources):
 `github_blob` / `github_dir` (open-in-shell + GitHub link; target as `{repo, ref,
 path}` or a github.com URL), `url` (external link), `note` / `story` (inline
 body), `embed` (a renderer page in an iframe via toss-render page-sugar).
+
+**Activity** gathers the estate's live layer under one header-nav stop: Open,
+To-do, and Jots as sub-tabs on a segmented pill (the shared internal-tab
+style), each pill carrying its live count. The trio reads as a gradient of
+commitment: a jot is unshaped intent, a to-do is shaped intent, an open branch
+is intent in flight. Each sub-tab keeps its own view key, so
+`?view=activity`, `?view=todo`, and `?view=jots` all deep-link directly and
+old links resolve unchanged; the pill just switches among them in place.
+Open's as-of readout and Refresh ride the pill row.
 
 **To-do** (`?view=todo`) is a general, personal checklist: not repo-scoped and
 not a surface, so it keeps its own tiny file, `lists/todo.json` in the

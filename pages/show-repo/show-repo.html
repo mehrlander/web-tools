@@ -229,8 +229,9 @@
 
   <!-- ── Main area: the selected view for the repo. On touch devices a
        horizontal swipe here pages between the estate's dashboard views
-       (estateNav: Open / Repos / Surfaces / To-do / Jots / Stage / Portable);
-       see swipeToView. ────────────────────────────────────────────────────── -->
+       (estateNav: Activity / Repos / Surfaces / Stage / Portable; Activity's
+       Open / To-do / Jots sub-tabs switch by pill, not swipe); see
+       swipeToView. ─────────────────────────────────────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0"
         @touchstart.passive="onSwipeStart($event)" @touchmove="onSwipeMove($event)"
         @touchend.passive="onSwipeEnd($event)" @touchcancel.passive="onSwipeCancel()">
@@ -1290,23 +1291,25 @@ function app(){ return {
   // would land on an empty state). Brand tap and a bare open route here.
   goDashboard(){ this.hasToken() ? this.goActivity() : this.goEstate(); },
   // The header's app-level nav: the CLOSED set of the estate's own views, in
-  // display order (Open first). Repo-sourced app views (appView:true, e.g.
+  // display order (Activity first). Repo-sourced app views (appView:true, e.g.
   // News) are deliberately NOT here; they stay in the sidebar, since the header
   // is a fixed set the app owns, not one repos opt into. Each item maps to the
-  // same go* method and `view` string the router already uses. The Open view
-  // keeps the internal key 'activity' so existing ?view=activity links resolve.
+  // same go* method and `view` string the router already uses. Activity is one
+  // nav stop covering three sub-views (`views`): Open (internal key
+  // 'activity', kept so existing ?view=activity links resolve), To-do, and
+  // Jots; the estate component's segmented pill switches among them, and the
+  // URL still stamps the specific key, so each sub-view deep-links on its own.
   get estateNav(){
     return [
-      { view: 'activity', icon: 'ph-git-pull-request', label: 'Open',   go: () => this.goActivity() },
+      { view: 'activity', views: ['activity', 'todo', 'jots'],
+        icon: 'ph-pulse',    label: 'Activity', go: () => this.goActivity() },
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
-      { view: 'todo',     icon: 'ph-list-checks',  label: 'To-do',    go: () => this.goTodo() },
-      { view: 'jots',     icon: 'ph-lightbulb',    label: 'Jots',     go: () => this.goJots() },
       { view: 'stage',    icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
       { view: 'portable', icon: 'ph-package',      label: 'Portable', go: () => this.goPortable() },
     ];
   },
-  navActive(v){ return this.view === v.view; },
+  navActive(v){ return (v.views || [v.view]).includes(this.view); },
   goEstate(){ this.estateSeen = true; this.view = 'estate'; this.drawer = false; this.syncUrl(); },
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.drawer = false; this.syncUrl(); },
@@ -1380,8 +1383,9 @@ function app(){ return {
   openSidebar(){ this.drawer = true; },
 
   // ── Swipe paging between dashboard views (touch only) ─────────────────────
-  // The estateNav set (Open / Repos / Surfaces / To-do / Jots / Stage /
-  // Portable) is a closed, ordered carousel. On a phone the active dashboard pane FOLLOWS THE
+  // The estateNav set (Activity / Repos / Surfaces / Stage / Portable) is a
+  // closed, ordered carousel; Activity's three sub-views count as one stop
+  // (navActive matches the alias list), switched by pill rather than swipe. On a phone the active dashboard pane FOLLOWS THE
   // FINGER through a horizontal drag and slides out to commit, so paging reads
   // as one continuous surface rather than a dead-then-snap view swap. The
   // estate sub-views share one component (the estate pane re-renders its own content on
@@ -1437,7 +1441,7 @@ function app(){ return {
     }
     if (this._pLock !== 'h') return;                            // vertical: let the page scroll
     e.preventDefault();                                        // own the horizontal axis
-    const nav = this.estateNav, i = nav.findIndex(v => v.view === this.view);
+    const nav = this.estateNav, i = nav.findIndex(v => this.navActive(v));
     // Rubber-band a drag toward an edge with no neighbour, so the ends feel
     // bounded rather than broken.
     const atEdge = (dx > 0 && i <= 0) || (dx < 0 && i >= nav.length - 1);
@@ -1449,7 +1453,7 @@ function app(){ return {
     if (!pane || this._pLock !== 'h') return;
     const end = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : this._pX;
     const dx = end - this._pX;
-    const nav = this.estateNav, i = nav.findIndex(v => v.view === this.view);
+    const nav = this.estateNav, i = nav.findIndex(v => this.navActive(v));
     const j = i + (dx < 0 ? 1 : -1);
     const w = this._pW || pane.clientWidth || window.innerWidth;
     const committed = Math.abs(dx) > Math.min(this.COMMIT_MAX, w * this.COMMIT_FRAC) && j >= 0 && j < nav.length;
@@ -1725,7 +1729,8 @@ function overview(){ return {
   stage, branches) plus pinned/recent shortcuts.
 
   The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
-  estate's own views — Open, Repos, Surfaces, To-do, Jots, Stage, Portable — as icon
+  estate's own views — Activity (Open / To-do / Jots by pill), Repos, Surfaces,
+  Stage, Portable — as icon
   buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
   on every viewport. On a touch device this set is also a SWIPE CAROUSEL: the
   active dashboard pane follows the finger through a horizontal drag and slides
@@ -1770,6 +1775,9 @@ function overview(){ return {
       place through a JSON dialog the same shape as the repo config editor
       (gear on the surface header; "New" seeds a fresh one). ?view=surfaces is
       always stamped, so a Surfaces link is shareable without a repo param.
+    Activity: one header-nav stop bundling the three live sub-views below
+      (Open / To-do / Jots), switched by a segmented pill inside the estate
+      pane; each keeps its own ?view key, so their deep links are unchanged.
     To-do (?view=todo): a general personal checklist, one flat item list
       ({id, text, done, created_at}) in the registry's lists/todo.json. Not a
       surface (no kind/curation, just text + done), so it keeps its own tiny
