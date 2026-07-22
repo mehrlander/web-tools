@@ -37,11 +37,13 @@ const { window, problems } = makeWindow({
 });
 
 // alpine-bundle.js defines the browser store; the stager composes dropZone and
-// pathPicker, so both must be registered before it mounts.
+// pathPicker, and its inline preview mounts a viewer, so all three must be
+// registered before it mounts.
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/alpineComponents/drop-zone.js',
   'lib/alpineComponents/path-picker.js',
+  'lib/alpineComponents/viewer.js',
   'lib/alpineComponents/stage.js',
 ]);
 
@@ -97,20 +99,34 @@ test('grab stages the picked ref once, deduped by key', () => {
   ]);
 });
 
+// The preview opens the modal ({ name } is the bare path) and drives the file's
+// content + origin into the embedded viewer (#stage-preview-viewer.__viewer), so
+// the assertions read the viewer's state, not preview fields it no longer holds.
+const previewViewer = () => window.document.getElementById('stage-preview-viewer').__viewer;
+
 test('view loads a ref into the inline preview, not the shared activeFile', async () => {
   reset();
   store.activeFile = null;
   await data.view({ repo: 'me/a', ref: '', path: 'lib/x.js' });
-  assert.equal(data.preview.name, 'me/a:lib/x.js');
-  assert.match(data.preview.text, /CONTENT me\/a:lib\/x.js/);
-  assert.match(data.preview.href, /github\.com\/me\/a\/blob/);
+  await tick(3);
+  assert.equal(data.preview.name, 'lib/x.js');
   assert.equal(store.activeFile, null, 'stage preview never routes through Files');
+  const vwr = previewViewer();
+  assert.equal(vwr.file, 'lib/x.js');
+  assert.match(vwr.content, /CONTENT me\/a:lib\/x.js/);
+  assert.ok(vwr.fileUrls.some(u => /github\.com\/me\/a\/blob/.test(u.u)),
+    'the origin gives the preview its GitHub link');
 });
 
 test('view shows a local text item inline', async () => {
   await data.view({ local: true, id: 90, name: 'n.txt', path: 'n.txt', size: 2, isText: true, text: 'hi' });
+  await tick(3);
   assert.equal(data.preview.name, 'n.txt');
-  assert.equal(data.preview.text, 'hi');
+  const vwr = previewViewer();
+  assert.equal(vwr.file, 'n.txt');
+  assert.equal(vwr.content, 'hi');
+  assert.equal(vwr.origin?.local, true);
+  assert.equal(vwr.fileUrls.length, 0, 'a local-only item has no GitHub home, so no repo links');
 });
 
 // ---- folding dropped local files into the stage -------------------------
