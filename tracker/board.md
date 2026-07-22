@@ -6,7 +6,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 Backfill guide regions into old PR bodies and full-regenerate the merge guide
 - 🎫 Fold chat-results into the surface schema, or keep it a sibling
 - 🎫 Collapse quickLinks into a projection of the repos manifest next: decide the projection rule (a flag on repos entries, or first-N) and migrate loadQuickLinks
-- 🎫 Update estate tests to the groupSections layout
 - 🎫 Finish GitHub jump-over coverage across show-repo views next: sweep the remaining views (stage rows, atlas, recent panel, compare) for missing one-tap GitHub links
 - 🎫 Integrate the stage with the surfacer's .surface format next: run in a session with both web-tools and the home repo, to read the surfacer's .surface files directly
 - 🎫 Private-repo landing federation via the home registry next: superseded by tasks generalize-gallery-pages-catalog-m3b8pa (gallery generalization) and app-views-estate-level-btp6m4 (app views); reassess whether any federation-specific work remains
@@ -34,6 +33,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 App views - designate a page as an estate-level view (`claude/web-tools-app-views-m3pkyo`) next: landed; News goes live in the estate switcher when home#314 reaches main
 - 🎫 Automate the merge guide from PR bodies (`claude/task-tracker-discussion-wg27xv`)
 - 🎫 Branch-review view in show-repo (`claude/web-tools-branch-tracking-n1zawm`) next: session refreshes (show-repo thumbnail) at wrap-up, then review via PR #236
+- 🎫 Update estate tests to the groupSections layout (`claude/viewer-button-dropdown-0h4u57`)
 - 🎫 Extract drop-zone as a reusable Alpine component (`claude/tracker-summary-nu74te`)
 - 🎫 Generalize the gallery to a per-repo pages catalog (`claude/web-tools-app-views-m3pkyo`) next: landed; live gallery for home needs home#314 on main (config cache reads main)
 - 🎫 History-safe shim for toss-render address-mode renders next: done; hash-routing pages now switch views inside toss #gh= renders

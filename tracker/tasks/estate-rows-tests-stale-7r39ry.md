@@ -1,8 +1,10 @@
 ---
 id: estate-rows-tests-stale-7r39ry
 title: Update estate tests to the groupSections layout
-status: backlog
+status: done
 opened: 2026-07-18
+closed: 2026-07-22
+session: claude/viewer-button-dropdown-0h4u57
 ---
 # Update estate tests to the groupSections layout
 
@@ -10,3 +12,4 @@ tools/test/estate-rows.test.mjs fails 6 of its tests on main. PR #236 shipped th
 
 ## Progress log
 - 2026-07-18: Filed from the mobile-nav session, which hit the failures while verifying an unrelated show-repo change and traced them to the post-#236 layout refactor.
+- 2026-07-22: Done on `claude/viewer-button-dropdown-0h4u57`; rewrote estate-rows.test.mjs and the estate render scenario to the groupSections shape, and registered viewer.js in stage.test.mjs (the same refactor family had broken it). Full suite green, 317/317. Lands via PR #276.
