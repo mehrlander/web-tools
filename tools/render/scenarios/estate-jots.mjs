@@ -16,6 +16,13 @@ export default async function (page) {
     window.TOKEN = 'fixture-token';
 
     const h = (n) => new Date(Date.now() - n * 36e5).toISOString();
+    const TODOS = {
+      items: [
+        { id: 't1', text: 'Wire the news dashboard panel', done: false, created_at: h(50) },
+        { id: 't2', text: 'Refresh the show-repo thumbnail', done: false, created_at: h(20) },
+        { id: 't3', text: 'Migrate the legacy .show-repo.json readers', done: true, created_at: h(80), done_at: h(6) },
+      ],
+    };
     const JOTS = {
       items: [
         { id: 'j1', text: 'A jots pile beside the to-do list: capture has no done state, only promotion or deletion', created_at: h(90) },
@@ -30,8 +37,9 @@ export default async function (page) {
     const origLs = window.GH.prototype.ls;
     window.GH.prototype.get = async function (name) {
       if (name === 'lists/jots.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(JOTS) };
+      if (name === 'lists/todo.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(TODOS) };
       if (name === '.web-tools.json' && this.repo === window.__shell.REGISTRY_REPO) return { text: '{"repos":[]}' };
-      if (name === 'state/configs.json' || name === 'state/activity.json' || name === 'lists/todo.json')
+      if (name === 'state/configs.json' || name === 'state/activity.json')
         throw Object.assign(new Error('404'), { status: 404 });
       return origGet.call(this, name);
     };

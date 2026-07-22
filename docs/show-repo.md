@@ -164,13 +164,16 @@ path}` or a github.com URL), `url` (external link), `note` / `story` (inline
 body), `embed` (a renderer page in an iframe via toss-render page-sugar).
 
 **Activity** gathers the estate's live layer under one header-nav stop: Open,
-To-do, and Jots as sub-tabs on a segmented pill (the shared internal-tab
-style), each pill carrying its live count. The trio reads as a gradient of
-commitment: a jot is unshaped intent, a to-do is shaped intent, an open branch
-is intent in flight. Each sub-tab keeps its own view key, so
-`?view=activity`, `?view=todo`, and `?view=jots` all deep-link directly and
-old links resolve unchanged; the pill just switches among them in place.
-Open's as-of readout and Refresh ride the pill row.
+To-do, and Jots, a trio that reads as a gradient of commitment (a jot is
+unshaped intent, a to-do is shaped intent, an open branch is intent in
+flight). The layout is responsive: on a wide screen all three render at once,
+Open as the main column and To-do plus Jots as a right rail, each pane with
+its own header and count; on a narrow screen the panes collapse behind a
+segmented pill (the shared internal-tab style), each pill carrying its live
+count, with Open's as-of readout and Refresh riding the pill row. Each
+sub-view keeps its own view key either way, so `?view=activity`,
+`?view=todo`, and `?view=jots` all deep-link directly and old links resolve
+unchanged.
 
 **To-do** (`?view=todo`) is a general, personal checklist: not repo-scoped and
 not a surface, so it keeps its own tiny file, `lists/todo.json` in the
