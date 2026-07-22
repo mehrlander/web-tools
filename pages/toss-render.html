@@ -43,6 +43,17 @@
   github.com/.../blob/<ref>/<path> URL both route here, so a private file is
   one paste away.
 
+  Page-sugar (typed content tosses, built on address mode):
+    #<page>=<owner>/<repo>[@<ref>]:<path>
+    e.g. #chat-results=mehrlander/chat-histories:results/webi-drs-data.json
+    The key names a registered renderer page (the PAGE_SUGAR map in the router
+    below); the value is a content envelope's address. toss-render renders that
+    page and hands it the envelope via ?src=, so a caller addresses the CONTENT,
+    not the renderer, and this stays a schema-blind router: it never parses the
+    envelope. Desugars onto address mode above (the params shim delivers ?src=
+    to the page), so a reference-form sugar toss needs no per-page code. Add a
+    renderer by adding one PAGE_SUGAR entry. Per-type schema doc: docs/CHAT-RESULTS.md.
+
   Empty state: with no input, the page shows a panel — a "Paste & render"
   button (Clipboard API, so it works from one tap on iOS without revealing
   the text) and a field for a GitHub file. A global paste listener catches
@@ -598,8 +609,8 @@ window.fetch=function(input,init){try{
   document.addEventListener('alpine:init', () => {
     Alpine.data('tossRender', () => ({
       description: 'Full-viewport renderer for tossed HTML, URLs, and GitHub files ' +
-        '(#gz / #html / #url / #gh). Paste or use the panel to render; "Copy toss link" ' +
-        'rebuilds the durable bookmark for whatever is on screen.',
+        '(#gz / #html / #url / #gh, plus typed #<page>= content tosses). Paste or use ' +
+        'the panel to render; "Copy toss link" rebuilds the durable bookmark for what is on screen.',
       get actions() {
         const list = [];
         if (tossLinkFn) list.push({
