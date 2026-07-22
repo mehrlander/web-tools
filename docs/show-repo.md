@@ -159,11 +159,16 @@ per-browser `localStorage` list. Token-gated like Surfaces: no token, no list.
 every branch with recent work ahead of its default, or the head of an open PR,
 freshest first. Each row is **highlighted by PR state** (a colored left rail plus
 faint tint: green for a ready PR, amber for a draft, muted for a branch with no
-PR yet) and carries a **caption-style link cluster**: Browse (open the branch in
-the file viewer here), Tree and Compare (on GitHub), the guide **PR**, and the
+PR yet) and carries a **caption-style link cluster**. The row's **primary action
+(the branch name, and the leading Stage link) stages the files this branch
+changed** against its default (one `compare` call, removed paths skipped) and
+jumps to the Stage: navigating a whole branch tree is rarely the point, its diff
+is. The staged set is appended and deduped onto any working stage, at `ref=branch`
+so an item reads the branch's version and the Stage's Diff tab compares it back.
+The rest of the cluster is Tree and Compare (on GitHub), the guide **PR**, and the
 **Session** that authored it (the `claude.ai/code/session_…` link lifted from the
-PR body's footer, shown only when present). A per-repo **Branches** drill-down
-sits at the row's right. It reads the registry's **activity cache**
+PR body's footer, shown only when present); a per-repo **Branches** drill-down
+sits at the row's right (whole-tree browse lives there). It reads the registry's **activity cache**
 (`state/activity.json`, below) in one GET, so the whole estate renders without a
 per-repo API fanout: the branch join to its open PR is `pr.head === branch`, and
 the session link rides the cached PR, so nothing is fetched per visit. Landed and
