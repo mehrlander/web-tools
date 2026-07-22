@@ -227,8 +227,12 @@
     </div>
   </aside>
 
-  <!-- ── Main area: the selected view for the repo ────────────────────────── -->
-  <main class="flex-1 min-w-0 min-h-0">
+  <!-- ── Main area: the selected view for the repo. On touch devices a
+       horizontal swipe here pages between the estate's dashboard views
+       (estateNav: Activity / Repos / Surfaces / To-do / Stage); see
+       swipeToView. ─────────────────────────────────────────────────────────── -->
+  <main class="flex-1 min-w-0 min-h-0"
+        @touchstart.passive="onSwipeStart($event)" @touchend.passive="onSwipeEnd($event)">
 
     <!-- Estate: the all-repo context, with two views of its own — the repo grid
          (Repos) and the curated surfaces (Surfaces). One component renders both
@@ -1336,6 +1340,56 @@ function app(){ return {
   },
   openSidebar(){ this.drawer = true; },
 
+  // ── Swipe paging between dashboard views (touch only) ─────────────────────
+  // The estateNav set (Activity / Repos / Surfaces / To-do / Stage) is a closed,
+  // ordered carousel; on a phone a horizontal swipe over the main area pages
+  // through it, an accelerator for the header tabs that stay the visible source
+  // of truth. Discrete switch, not a tracked-transform carousel: it reuses the
+  // same go* methods a tap runs, so there is one navigation path and the header
+  // highlight is the feedback. Only touch fires these handlers, so pointer users
+  // are never affected; a swipe outside the carousel (inside a repo) no-ops.
+  _swipeX: 0, _swipeY: 0, _swipeOK: false,
+  // Ignore a gesture that begins inside a horizontally-scrollable region (a code
+  // block, the stage bundle) so paging never steals its native scroll.
+  _inHScroll(el){
+    for (; el && el !== document.body; el = el.parentElement){
+      if (el.scrollWidth - el.clientWidth > 8){
+        const ox = getComputedStyle(el).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+      }
+    }
+    return false;
+  },
+  onSwipeStart(e){
+    // Single-finger only, drawer closed, and only when a dashboard view is open
+    // (findIndex in swipeToView guards the rest).
+    if (this.drawer || !e.touches || e.touches.length !== 1){ this._swipeOK = false; return; }
+    const t = e.touches[0];
+    this._swipeX = t.clientX; this._swipeY = t.clientY;
+    this._swipeOK = !this._inHScroll(e.target);
+  },
+  onSwipeEnd(e){
+    if (!this._swipeOK) return;
+    this._swipeOK = false;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - this._swipeX, dy = t.clientY - this._swipeY;
+    // A committed horizontal fling: past the threshold and clearly sideways, so
+    // a vertical scroll or a diagonal drag never pages.
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.7) this.swipeToView(dx < 0 ? 1 : -1);
+  },
+  // Move one step along the estateNav carousel; clamp at the ends (no wrap, so a
+  // swipe past the edge is a no-op rather than a surprising jump). A no-op when
+  // the open view is not one of the dashboard views.
+  swipeToView(dir){
+    const nav = this.estateNav;
+    const i = nav.findIndex(v => v.view === this.view);
+    if (i === -1) return;
+    const j = i + dir;
+    if (j < 0 || j >= nav.length) return;
+    nav[j].go();
+  },
+
   // Header shortcuts to frequently-visited repos. web-tools is always public;
   // the other two are private, so dim (not hide) the button when unauthed
   // rather than let a click fail silently.
@@ -1568,7 +1622,12 @@ function overview(){ return {
   The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
   estate's own views — Activity, Repos, Surfaces, Stage, Public browse — as icon
   buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
-  on every viewport. Beside them, in a repo, a compact owner/name @ref readout
+  on every viewport. On a touch device this set is also a SWIPE CAROUSEL: a
+  horizontal swipe over the main area pages one step through estateNav
+  (onSwipeStart/onSwipeEnd/swipeToView), an accelerator for the tabs that stay the
+  visible state; it clamps at the ends, no-ops inside a repo, and yields to any
+  horizontally-scrollable region the gesture starts in.
+  Beside them, in a repo, a compact owner/name @ref readout
   (the #repo inline component, now just a label + ref switcher + GitHub jump; the
   old repo-list dropdown is gone), and on the right the auth shield. The brand
   icon returns to the DASHBOARD (goDashboard: Activity if signed in, else Repos)
