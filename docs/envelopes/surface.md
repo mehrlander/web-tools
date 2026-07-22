@@ -4,8 +4,8 @@ A **surface** is a JSON file: a curated, annotated set of items presented for a 
 
 **Authoritative artifacts:** the JSON Schemas beside this doc are the validation source of truth; this document carries the concepts, conventions, and worked examples.
 
-- [`schemas/surface-v2.schema.json`](../schemas/surface-v2.schema.json): the core schema.
-- [`schemas/profiles/branch-review-v1.schema.json`](../schemas/profiles/branch-review-v1.schema.json): the first profile.
+- [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json): the core schema.
+- [`schemas/profiles/branch-review-v1.schema.json`](schemas/profiles/branch-review-v1.schema.json): the first profile.
 
 **Status (2026-07-20):** this contract defines **v2**. Both existing readers (the Surfacer C# app and `lib/alpineComponents/estate.js`) still read v1; their migration targets are documented at the end of this file and are deliberately not part of this pass. New surfaces should be authored as v2 once a reader exists; v1 files remain valid v1.
 
@@ -209,7 +209,7 @@ The core schema is deliberately light: `role`, `view`, and `context` are optiona
 "profile": { "name": "branch-review", "version": 1 }
 ```
 
-A document claiming a profile must validate against **both** the core schema and the profile schema. The core leaves `context` open; the profile defines and requires its fields, and may raise optional core fields (`role`, `view`) to required. Profile schemas live in [`schemas/profiles/`](../schemas/profiles/), one file per profile version.
+A document claiming a profile must validate against **both** the core schema and the profile schema. The core leaves `context` open; the profile defines and requires its fields, and may raise optional core fields (`role`, `view`) to required. Profile schemas live in [`schemas/profiles/`](schemas/profiles/), one file per profile version.
 
 ### `branch-review/1`
 

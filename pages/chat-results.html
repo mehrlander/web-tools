@@ -6,7 +6,7 @@
 <title>Chat Search Results</title>
 <!--
   Chat search results viewer. Renders a results envelope: a model-driven
-  search over the chat-histories repo emits it (see docs/CHAT-RESULTS.md for
+  search over the chat-histories repo emits it (see docs/envelopes/chat-results.md for
   the schema), this page presents it — narrative, facet chips, excerpt cards,
   and full transcripts whose fenced code blocks are live artifacts
   (lib/chat-render.js). A search bar filters within the loaded set.
@@ -245,7 +245,7 @@
 
 <script>
 // Built-in demo envelope: what the page shows with no #gz= and no ?src=.
-// Doubles as living documentation of the schema (docs/CHAT-RESULTS.md).
+// Doubles as living documentation of the schema (docs/envelopes/chat-results.md).
 window.DEMO_ENVELOPE = {
   query: "Where did I work out the compression bookmarklet approach?",
   generated: "demo data — pass ?src= or #gz= for real results",
