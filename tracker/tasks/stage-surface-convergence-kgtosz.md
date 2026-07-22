@@ -19,3 +19,9 @@ Related smaller lever, take or split: the finder's root repos (Recent/Search) co
   empty, as this task predicted; the optional per-item note rides the shared
   shape as commentary. The two bridges (open-as-stage, save-as-surface) and
   the estate.js migration to dual-read remain the build work here.
+- 2026-07-21: A chat-histories session, working an unrelated trawl-display
+  review, noticed the same convergence applies one repo over:
+  `results/<slug>.json`'s `source{repo,path,ref}` (docs/CHAT-RESULTS.md in
+  that repo) is the same ref triple as the stage item / v2 `target.source`.
+  No work done here; noted so extending this convergence outward doesn't
+  start from scratch later.

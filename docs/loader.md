@@ -37,13 +37,24 @@ Every loader-based page's `<head>` looks like this, with minor variation:
 <link href=".../daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script type="module">
   // ?use=<branch|tag|sha> picks which ref the bundle loads from; defaults to main.
-  // gh-api.js auto-bootstraps from the URL it was imported by (parses owner/repo/ref
-  // out of import.meta.url, sets window.gh, chains gh-boot.js), so the page just
+  // gh-api.js auto-bootstraps (sets window.gh, chains gh-boot.js), so the page just
   // chains gh.load() calls below. By the time the import resolves, gh-boot has
   // already loaded gh-auth.js, gh-fetch.js, kits/console.js, and
   // vanilla-bundle.js; gh-store.js stays opt-in.
-  const ref = new URLSearchParams(location.search).get('use') || 'main';
-  await import(`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib/gh-api.js`);
+  //   - No ?use: import from jsDelivr @main; the bootstrap parses repo/ref from
+  //     that import URL (import.meta.url).
+  //   - ?use=<ref>: fetch gh-api.js from raw.githubusercontent (no branch-tip lag)
+  //     and blob-import it, handing repo/ref via window.__ghBlobBoot.
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
+    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`);
+    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
+    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await import(u); } finally { URL.revokeObjectURL(u); }
+  } else {
+    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+  }
 
   // await gh.load('gh-store.js');                // optional: write methods
 
@@ -59,14 +70,23 @@ components each use `x-data="repo()"`, `x-data="navigator()"`,
 `x-data="viewer()"`.
 
 The `?use=` convention is opt-in per page. Pages that adopt it gain a runtime
-ref-pinning hatch: append `?use=<branch-or-sha>` to the URL and every file
+ref-pinning hatch: append `?use=<branch|tag|sha>` to the URL and every file
 loaded after `gh-api.js` comes from that ref instead of main. The HTML itself
 still comes from GitHub Pages on main; only the runtime-loaded files are
-ref-pinned. Older pages that hard-code the bundle URL without `@<ref>` are
-unaffected; the auto-bootstrap inside `lib/gh-api.js` only triggers when the
-import URL carries an `@<ref>` segment and points at `lib/gh-api.js`. That
-same match sets the loader's `loadBase` to `lib/`, so every later
-`gh.load('kits/x.js')` resolves under `lib/`.
+ref-pinned. A branch name is cache-safe: the `?use=` boot fetches `gh-api.js`
+from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and
+`gh-api.js` then loads the rest through the contents API at that ref, both
+fresh on a just-pushed branch. jsDelivr serves only the no-`?use` `@main`
+default, which is cache-stable and shared.
+
+The `gh-api.js` auto-bootstrap triggers on either carrier: an import URL with an
+`@<ref>` segment pointing at `lib/gh-api.js` (the jsDelivr path), or
+`window.__ghBlobBoot = { repo, ref }` set before a blob-import (the `?use=`
+path, where `import.meta.url` is an opaque `blob:` URL). Either way it sets the
+loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
+under `lib/`. Older pages that hard-code the bundle URL without `@<ref>` and set
+no `__ghBlobBoot` are unaffected: neither carrier matches, so the bootstrap
+stays dormant and the page instantiates `GH` by hand.
 
 ### What each piece contributes
 
