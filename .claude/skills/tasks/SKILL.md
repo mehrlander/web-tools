@@ -149,9 +149,17 @@ owning branch, or the progress log changes.
 
 ## Close a task
 
-A task is done when its work **lands** (merges to `main`), not when the branch
-is pushed. Then set `status: done` and `closed: <YYYY-MM-DD>`, and add a final
-progress-log line.
+Close a task when its branch work is complete. Do not wait for merge; nothing
+updates the task then.
+
+Set `status: done`, `closed: <YYYY-MM-DD>`, and `session:` to the completing
+branch. Add a final log entry citing the branch and delivery PR:
+
+> Done on `claude/foo-ab12`; lands via PR #299.
+
+Close tasks as they finish, even when other tasks remain in progress on the
+same branch. Commit the closed task file directly to `main` under the tracker
+exception, and report that you closed it and on which branch.
 
 ## Groom the tracker
 
@@ -161,10 +169,10 @@ Read every task file's body and progress log, not just `board.md`. Flag each
 merged or gone. Propose findings; get confirmation before closing or
 splitting anything.
 
-The schema has no status for a groomed (not landed) close — `done` means
-landed. Use an open tag instead: `status: done`, `closed: <date>`,
-`resolution: superseded | stale | duplicate | dropped`, and name the cause
-in a progress-log line.
+The schema has no status for a groomed close, a task retired without being
+done (a real `done` means its work was completed). Use an open tag instead:
+`status: done`, `closed: <date>`, `resolution: superseded | stale | duplicate |
+dropped`, and name the cause in a progress-log line.
 
 Regenerate `board.md` and commit via the usual scratch-branch-to-main flow.
 Report what closed, what's proposed, and what was left alone.
