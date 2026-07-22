@@ -91,7 +91,10 @@
                   x-text="v.label"></button>
         </template>
       </nav>
-      <!-- In-repo context: owner/name @ref (ref switcher kept) + GitHub jump.
+      <!-- In-repo context: owner/name + GitHub jump. The ref switcher left the
+           header (it fit poorly on mobile and blurred two different refs):
+           branch selection for file viewing lives in the Files view (explorer),
+           and rendering the app at a ref is the FAB's Render tab / a toss.
            Renders only inside a repo; the estate context shows nothing here. -->
       <div class="w-px h-6 bg-base-300 mx-0.5 hidden sm:block" x-show="$store.browser.repo && !estateCtx" x-cloak></div>
       <div id="repo" x-data="repo({ inline: true })" class="min-w-0"></div>
@@ -556,6 +559,26 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
+  description: 'show-repo shell: per-repo views (landing, files, atlas, branches, stage) over the estate dashboard',
+  // FAB opt-in contract (the `actions` the FAB surfaces as page buttons).
+  // When the main area is an iframe embed — a custom landing, an app view, or
+  // the atlas — the one action is the way out of the embed: open the framed
+  // page directly, full-viewport ("bust out"). The framed page's own FAB
+  // declines to mount inside an iframe (fab.js's framed guard), so busting
+  // out is how you reach its full experience, subject-adopted FAB included.
+  get actions(){
+    let src = '', label = '';
+    if (this.view === 'landing' && this.landingKind() === 'custom' && this.customLandingUrl) {
+      src = this.customLandingUrl; label = 'Open landing full-page';
+    } else if (this.view === 'app' && this.appView && this.appViewUrl) {
+      src = this.appViewUrl; label = 'Open ' + (this.appView.label || 'app view') + ' full-page';
+    } else if (this.view === 'atlas') {
+      src = this.atlasUrl; label = 'Open atlas full-page';
+    }
+    if (!src) return [];
+    const href = new URL(src, location.href).href;
+    return [{ label, icon: 'ph-arrow-square-out', run: () => { location.href = href; } }];
+  },
   view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'jots' | 'activity' | 'portable' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
@@ -643,6 +666,12 @@ function app(){ return {
 
     // Folder navigation in the explorer keeps the ?path deep link honest.
     this.$watch(() => Alpine.store('browser').path, () => {
+      if (this.view === 'files') this.syncUrl();
+    });
+
+    // A ref switch in the Files view keeps the ?ref deep link honest the same
+    // way (the header switcher never synced it; the picker lives in Files now).
+    this.$watch(() => Alpine.store('browser').ref, () => {
       if (this.view === 'files') this.syncUrl();
     });
 
@@ -1088,14 +1117,15 @@ function app(){ return {
   },
 
   // Custom landings render through toss-render's #gh= address mode: fetched
-  // with the viewer's stored token (private repos and branches work), rendered
-  // same-origin, and gated by toss-render's OWNERS allowlist — a repo outside
-  // it shows toss-render's refusal, not the page.
+  // with the viewer's stored token (private repos work), rendered same-origin,
+  // and gated by toss-render's OWNERS allowlist — a repo outside it shows
+  // toss-render's refusal, not the page. Pinned to the default branch: the
+  // Files-view ref picker chooses what the file browser reads, not what the
+  // repo's app renders (rendering at a ref is the FAB's Render tab / a toss).
   get customLandingUrl(){
     const s = Alpine.store('browser');
     if (!s.config?.landing) return '';
-    const ref = s.ref && s.ref !== s.defaultRef ? '@' + s.ref : '';
-    return '../toss-render.html#gh=' + s.repo + ref + ':' + s.config.landing;
+    return '../toss-render.html#gh=' + s.repo + ':' + s.config.landing;
   },
 
   // Pinned folders and files from the manifest. A pin whose last segment has
@@ -1134,11 +1164,12 @@ function app(){ return {
     return 'https://github.com/' + s.repo + ref;
   },
 
+  // Pinned to the default branch, like the custom landing: the Files-view ref
+  // picker does not re-point rendered surfaces.
   get atlasUrl(){
     const s = Alpine.store('browser');
     const use = new URLSearchParams(location.search).get('use');
     let u = '../repo-atlas.html?repo=' + encodeURIComponent(s.repo || this.DEFAULT_REPO);
-    if (s.ref && s.ref !== s.defaultRef) u += '&ref=' + encodeURIComponent(s.ref);
     if (use) u += '&use=' + encodeURIComponent(use);
     return u;
   },
@@ -1156,7 +1187,9 @@ function app(){ return {
     const s = Alpine.store('browser');
     const p = new URLSearchParams(location.search);
     if (s.repo && s.repo !== this.DEFAULT_REPO) p.set('repo', s.repo); else p.delete('repo');
-    if (s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
+    // ?ref= is Files-scoped, like the picker that sets it: it deep-links which
+    // ref the file browser reads, so it only accompanies ?file=/?view=files.
+    if (this.view === 'files' && s.ref && s.ref !== s.defaultRef) p.set('ref', s.ref); else p.delete('ref');
     p.delete('file'); p.delete('view'); p.delete('path');
     p.delete('appRepo'); p.delete('appPath'); p.delete('appRef');
     p.delete('appLabel'); p.delete('appIcon');

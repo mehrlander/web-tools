@@ -229,8 +229,12 @@
   // Announce the rendered subject (the repo/ref/path the viewer is actually
   // looking at) to the shell's own chrome; the fab adopts it. Cleared for
   // renders with no repo behind them (inline HTML, external URLs, the panel).
+  // __tossFrame hands the frame itself along: an address-mode render is
+  // same-origin, so the fab's Inspect can scan the subject document and its
+  // script registry (payload renders are opaque-origin; access just fails).
   function setSubject(s) {
     window.__tossSubject = s || null;
+    window.__tossFrame = s ? frame : null;
     window.dispatchEvent(new CustomEvent('toss-subject'));
   }
 
