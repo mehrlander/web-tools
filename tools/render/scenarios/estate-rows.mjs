@@ -1,4 +1,4 @@
-// screenshot.mjs interaction scenario: the estate's scrollable-row layout
+// screenshot.mjs interaction scenario: the estate's grouped-grid Repos view
 // with a nested companion card.
 //
 //   node tools/render/screenshot.mjs pages/show-repo/show-repo.html \
@@ -6,41 +6,35 @@
 //
 // The sandbox blocks api.github.com and the real registry is private, so the
 // scenario stubs the GH instance methods the estate touches with a neutral
-// fixture registry (repo names invented; only the strings the public page
-// already names — the default repo, the registry repo, the home hinge — are
-// real). What the pixels prove: the two snap-scroll rows, trailing cards off
-// to the side, and the web-tools-private strip nested under the web-tools
+// fixture. Membership and fields now come from the registry's crawled config
+// cache (state/configs.json), one entry per repo, so the fixture serves that;
+// repo names are invented except the strings the public page already names (the
+// default repo, the registry repo, the home hinge). What the pixels prove: the
+// grouped sections, and the web-tools-private strip nested under the web-tools
 // card, at the viewport the shot is taken at.
 export default async function (page) {
   const ok = await page.evaluate(() => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';
     window.TOKEN = 'fixture-token';
 
-    const REGISTRY = {
-      repos: [
-        { repo: 'mehrlander/home', icon: 'ph-house', group: 'core', note: 'Knowledge base and agent memory layer.' },
-        { repo: 'mehrlander/web-tools', icon: 'ph-toolbox', group: 'core', note: 'Browser tools and kits; hosts this shell.' },
-        { repo: 'mehrlander/web-tools-private', icon: 'ph-shield-check', group: 'core', note: 'The private registry.' },
-        { repo: 'mehrlander/field-notes', icon: 'ph-chats', group: 'archives', note: 'An archive repo, off to the side.' },
-        { repo: 'mehrlander/data-one', icon: 'ph-scales', group: 'data', note: 'A data repo on the second row.' },
-        { repo: 'mehrlander/data-two', icon: 'ph-chart-line-up', group: 'data', note: 'Another data repo.' },
-        { repo: 'mehrlander/gizmos', icon: 'ph-lightning', group: 'tools', note: 'A tools repo, off to the side.' },
-      ],
-    };
-    const PINS = {
-      'mehrlander/web-tools': ['pages', 'lib', 'docs/CONVENTIONS.md'],
-      'mehrlander/web-tools-private': ['surfaces', 'state'],
-      'mehrlander/home': ['chron', 'created'],
-    };
+    // The config cache the estate reads: { repos: { name: { config } } }, each
+    // repo carrying its own estate:true, group, order, icon, note, and pins.
+    const CONFIGS = { repos: {
+      'mehrlander/home':              { config: { estate: true, icon: 'ph-house',         group: 'core',     order: 0, note: 'Knowledge base and agent memory layer.', pins: ['chron', 'created'] } },
+      'mehrlander/web-tools':         { config: { estate: true, icon: 'ph-toolbox',       group: 'core',     order: 1, note: 'Browser tools and kits; hosts this shell.', pins: ['pages', 'lib', 'docs/CONVENTIONS.md'] } },
+      'mehrlander/web-tools-private': { config: { estate: true, icon: 'ph-shield-check',  group: 'core',     order: 2, note: 'The private registry.', pins: ['surfaces', 'state'] } },
+      'mehrlander/field-notes':       { config: { estate: true, icon: 'ph-chats',         group: 'archives', order: 3, note: 'An archive repo, off to the side.' } },
+      'mehrlander/data-one':          { config: { estate: true, icon: 'ph-scales',        group: 'data',     order: 4, note: 'A data repo.' } },
+      'mehrlander/data-two':          { config: { estate: true, icon: 'ph-chart-line-up', group: 'data',     order: 5, note: 'Another data repo.' } },
+      'mehrlander/gizmos':            { config: { estate: true, icon: 'ph-lightning',     group: 'tools',    order: 6, note: 'A tools repo, off to the side.' } },
+    } };
 
     const origGet = window.GH.prototype.get;
     const origReq = window.GH.prototype.req;
     const origLs = window.GH.prototype.ls;
     window.GH.prototype.get = async function (name) {
-      if (name === '.web-tools.json') {
-        if (this.repo === window.__shell.REGISTRY_REPO) return { text: JSON.stringify(REGISTRY) };
-        if (PINS[this.repo]) return { text: JSON.stringify({ pins: PINS[this.repo] }) };
-        throw Object.assign(new Error('404'), { status: 404 });
+      if (/configs\.json$/.test(name) && this.repo === window.__shell.REGISTRY_REPO) {
+        return { text: JSON.stringify(CONFIGS) };
       }
       return origGet.call(this, name);
     };
@@ -74,14 +68,9 @@ export default async function (page) {
       .find(el => (el.getAttribute('x-data') || '').includes('estate('));
     if (!host) return false;
     const d = window.Alpine.$data(host);
-    return !d.loading && d.rows.length >= 2 && d.entries.some(e => e.child);
+    return !d.loading && d.groupSections.length >= 2 && d.entries.some(e => e.child);
   }, { timeout: 20000 });
   await page.waitForTimeout(400);
-  // Settle every row at its resting position: the shot shows the layout as
-  // opened, not wherever async fills left the scroll.
-  await page.evaluate(() => {
-    document.querySelectorAll('.snap-x').forEach(el => { el.scrollLeft = 0; });
-  });
   // ESTATE_FLIP=1 renders the nested card's private face (the globe toggle
   // flipped), so both faces can be screenshotted from the one scenario.
   if (process.env.ESTATE_FLIP) {
