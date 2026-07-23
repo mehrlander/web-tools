@@ -295,8 +295,11 @@ present), `partial`, `unaligned`, `optout` (the config's
 `conventions: "optout"`, respected as deliberate), and the role verdicts
 `source` (the hub) and `registry` (the private sister), which hold standing
 parts and are not graded on subscriptions they would never carry. Each card
-shows the scope headline, the verdict, check/x chips per signal, and a gear link
-to the repo's `.web-tools.json`. Token-gated (it reads private repos' settings);
+shows the scope headline, the verdict, check/x chips per signal, and a gear that
+opens the shell's repo dialog on that repo's Config tab in place (no navigation,
+the same `openDialog(repo, { tab })` call the estate Repos card makes), so a
+repo's `.web-tools.json` is one tap from the Map. Token-gated (it reads private
+repos' settings);
 probes are live per view open with a Refresh, and persisting them as a registry
 crawl cache (`state/alignment.json` beside the config and activity caches) is the
 named follow-up.

@@ -68,8 +68,13 @@ test('scope helpers split an inline story from a file pointer', () => {
     'https://github.com/me/proj/blob/HEAD/docs/SCOPE.md');
 });
 
-test('the doctrine and config links resolve to GitHub blobs', () => {
+test('the hub doc link resolves to a GitHub blob', () => {
   assert.equal(data.hubUrl('docs/PORTABLE.md'),
     'https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md');
-  assert.equal(data.configGh('me/proj'), 'https://github.com/me/proj/blob/HEAD/.web-tools.json');
+});
+
+test('openConfig opens the repo dialog on the Config tab without throwing', () => {
+  // No #repo element is mounted in this harness, so the call must no-op safely
+  // (optional chaining) rather than throw; the real wiring is the shell dialog.
+  assert.doesNotThrow(() => data.openConfig('me/proj'));
 });
