@@ -43,6 +43,30 @@ drop the drafts as proposals and let the user apply them from show-repo.
 - On the user's confirm, it commits to the target via `gh-transfer`; the
   proposal moves to a `results/`-style done state, the way the mailbox does.
 
+## Ready drafts (the first proposals to apply)
+
+Draft `scope` values for the four roster repos not yet carrying one, authored
+2026-07-23 from home's `repos/*.md` notes and the registry roster. Paste-ready
+into each repo's `.web-tools.json`; treat as starting points, and confirm each
+repo's visibility (the doctrine keys the boundary on it).
+
+- **chat-histories** (confident, private): "The chat archive: raw conversations
+  plus the catalogs, arcs, and indexes that navigate them, all keyed by chat URL
+  (GUIDE.md). Private, since it is a personal conversation record, and referenced
+  from other repos by chat URL rather than vendored."
+- **wa-bills** (confirm visibility): "Washington State legislation as structured
+  data and its tooling: bill corpora across many biennia (JSON and CSV, with a
+  catalog index) plus the subprojects that extract, normalize, and analyze bill
+  structure, budget bills especially. Downstream analysis in home draws on its
+  corpus by reference rather than copying it in."
+- **fn-data** (thinnest, confirm contents): "Fiscal-note data: OFM fiscal-note
+  pulls kept as a standalone source for the budget and pension work to draw on,
+  with its own refresh cadence separate from the analysis that consumes it."
+- **shortcut-tools** (confirm visibility): "An Apple Shortcuts reference: an
+  action dictionary mapping human-readable names to WFWorkflowActionIdentifier
+  values across the built-in and third-party bundles, packaged with a small CLI
+  to search it. A self-contained dataset and tool, useful on its own."
+
 ## Open questions
 
 - Patch vs whole-file content (whole-file is simpler and matches gh-transfer;
