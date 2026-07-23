@@ -232,7 +232,7 @@
 
   <!-- ── Main area: the selected view for the repo. On touch devices a
        horizontal swipe here pages between the estate's dashboard views
-       (estateNav: Activity / Repos / Surfaces / Stage / Portable; Activity's
+       (estateNav: Activity / Repos / Surfaces / Stage / Tools / Map; Activity's
        Open / To-do / Jots sub-tabs switch by pill, not swipe); see
        swipeToView. ─────────────────────────────────────────────────────────── -->
   <main class="flex-1 min-w-0 min-h-0"
@@ -490,12 +490,26 @@
       </div>
     </div>
 
-    <!-- The Portable view: the to-go bag (docs/portable.json) and the per-repo
-         adoption matrix. Estate-level, its own component and lazy mount. -->
-    <div x-show="view==='portable'" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6">
-        <template x-if="portableSeen">
-          <div x-data="portable()"></div>
+    <!-- The Map view: the coordination layer made inspectable — the portable
+         to-go bag (docs/portable.json), and a per-repo card carrying the
+         repo-owned scope story plus a live adoption read. The operational face
+         of the constellation doctrine. Estate-level, its own component and lazy
+         mount. (Formerly "Portable"; ?view=portable still resolves here.) -->
+    <div x-show="view==='map'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
+        <template x-if="mapSeen">
+          <div x-data="map()"></div>
+        </template>
+      </div>
+    </div>
+
+    <!-- The Tools view: a curated gallery of the owner's utility pages (the
+         text-diff tool and the like), fed from the hub's docs/tools.json.
+         Estate-level, public (no token), its own component and lazy mount. -->
+    <div x-show="view==='tools'" class="h-full overflow-y-auto">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
+        <template x-if="toolsSeen">
+          <div x-data="tools()"></div>
         </template>
       </div>
     </div>
@@ -579,12 +593,13 @@ function app(){ return {
     const href = new URL(src, location.href).href;
     return [{ label, icon: 'ph-arrow-square-out', run: () => { location.href = href; } }];
   },
-  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'jots' | 'activity' | 'portable' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'jots' | 'activity' | 'map' | 'tools' | 'landing' | 'pages' | 'atlas' | 'files' | 'stage' | 'branches' | 'app' | 'public'
   drawer: false,          // mobile sidebar (pinned on desktop, ignores this)
   atlasSeen: false,       // mount the atlas iframe lazily, on first visit
   estateSeen: false,      // mount the estate component lazily, on first visit
   branchesSeen: false,    // mount the branches component lazily, on first visit
-  portableSeen: false,    // mount the portable component lazily, on first visit
+  mapSeen: false,         // mount the map component lazily, on first visit
+  toolsSeen: false,       // mount the tools component lazily, on first visit
   publicSeen: false,      // mount the public-browse component lazily, on first visit
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
@@ -688,7 +703,8 @@ function app(){ return {
     else if (url && url.view === 'todo') this.goTodo();
     else if (url && url.view === 'jots') this.goJots();
     else if (url && url.view === 'activity') this.goActivity();
-    else if (url && url.view === 'portable') this.goPortable();
+    else if (url && (url.view === 'map' || url.view === 'portable')) this.goMap();
+    else if (url && url.view === 'tools') this.goTools();
     else if (url && url.view === 'atlas') this.goAtlas();
     else if (url && url.view === 'stage') this.goStage();
     else if (url && url.view === 'public') this.goPublicBrowse();
@@ -1209,7 +1225,8 @@ function app(){ return {
     else if (this.view === 'todo') p.set('view', 'todo');
     else if (this.view === 'jots') p.set('view', 'jots');
     else if (this.view === 'activity') p.set('view', 'activity');
-    else if (this.view === 'portable') p.set('view', 'portable');
+    else if (this.view === 'map') p.set('view', 'map');
+    else if (this.view === 'tools') p.set('view', 'tools');
     // App views are estate-level, so the link stands alone (like Surfaces): stamp
     // the view plus the promoted page's repo and path, independent of the open repo.
     else if (this.view === 'app' && this.appView) {
@@ -1250,7 +1267,8 @@ function app(){ return {
       else if (url && url.view === 'todo') this.goTodo();
       else if (url && url.view === 'jots') this.goJots();
       else if (url && url.view === 'activity') this.goActivity();
-      else if (url && url.view === 'portable') this.goPortable();
+      else if (url && (url.view === 'map' || url.view === 'portable')) this.goMap();
+      else if (url && url.view === 'tools') this.goTools();
       else if (url && url.view === 'pages') this.goPages();
       else if (url && url.view === 'atlas') this.goAtlas();
       else if (url && url.view === 'stage') this.goStage();
@@ -1311,7 +1329,7 @@ function app(){ return {
   // App views are estate-level (peers of Repos/Surfaces/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
-  get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'portable' || this.view === 'app' || this.view === 'public'; },
+  get estateCtx(){ return this.isEstate || this.view === 'stage' || this.view === 'map' || this.view === 'tools' || this.view === 'app' || this.view === 'public'; },
   // Whether the pinned desktop sidebar has anything to show: always in a repo
   // (its views / pins / recents), but in the estate only when repo-sourced app
   // views (News) exist, since the app's own views now live in the header nav.
@@ -1339,7 +1357,8 @@ function app(){ return {
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       { view: 'surfaces', icon: 'ph-cards',        label: 'Surfaces', go: () => this.goSurfaces() },
       { view: 'stage',    icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
-      { view: 'portable', icon: 'ph-package',      label: 'Portable', go: () => this.goPortable() },
+      { view: 'tools',    icon: 'ph-wrench',       label: 'Tools',    go: () => this.goTools() },
+      { view: 'map',      icon: 'ph-compass',      label: 'Map',      go: () => this.goMap() },
     ];
   },
   navActive(v){ return (v.views || [v.view]).includes(this.view); },
@@ -1347,7 +1366,13 @@ function app(){ return {
   goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.drawer = false; this.syncUrl(); },
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.drawer = false; this.syncUrl(); },
   goJots(){ this.estateSeen = true; this.view = 'jots'; this.drawer = false; this.syncUrl(); },
-  goPortable(){ this.portableSeen = true; this.view = 'portable'; this.drawer = false; this.syncUrl(); },
+  // The Map view: the coordination layer made inspectable (the portable set +
+  // per-repo scope + adoption). Renamed from "Portable"; goPortable stays as a
+  // thin alias so any caller or old ?view=portable link still resolves.
+  goMap(){ this.mapSeen = true; this.view = 'map'; this.drawer = false; this.syncUrl(); },
+  goPortable(){ this.goMap(); },
+  // The Tools view: the curated utility-page gallery (docs/tools.json), public.
+  goTools(){ this.toolsSeen = true; this.view = 'tools'; this.drawer = false; this.syncUrl(); },
   // Open is the estate's cross-repo live-branch view; the one estate component
   // renders it by reading the shell view (internal key 'activity'). A visit
   // kicks the throttled activity crawl (like Repos kicks the config crawl) so
@@ -1416,7 +1441,7 @@ function app(){ return {
   openSidebar(){ this.drawer = true; },
 
   // ── Swipe paging between dashboard views (touch only) ─────────────────────
-  // The estateNav set (Activity / Repos / Surfaces / Stage / Portable) is a
+  // The estateNav set (Activity / Repos / Surfaces / Stage / Tools / Map) is a
   // closed, ordered carousel; Activity's three sub-views count as one stop
   // (navActive matches the alias list), switched by pill rather than swipe. On a phone the active dashboard pane FOLLOWS THE
   // FINGER through a horizontal drag and slides out to commit, so paging reads
@@ -1763,7 +1788,7 @@ function overview(){ return {
 
   The HEADER carries the app-level nav (estateNav): a fixed, app-owned set of the
   estate's own views — Activity (Open / To-do / Jots by pill), Repos, Surfaces,
-  Stage, Portable — as icon
+  Stage, Tools, Map — as icon
   buttons (icon+label on desktop, icon-only on mobile), lit on the active view,
   on every viewport. On a touch device this set is also a SWIPE CAROUSEL: the
   active dashboard pane follows the finger through a horizontal drag and slides
@@ -1827,18 +1852,30 @@ function overview(){ return {
       itself a capture log, and the registry is in agent-session scope, so an
       agent can drain the pile. ?view=jots is always stamped, so a Jots link
       is shareable without a repo param.
-    Portable (?view=portable): the coordination layer itself, first-class.
-      Two halves. The set: the portable docs, plugin skills, and scripts, read
-      from the hub's committed manifest (docs/portable.json, prose parent
-      docs/PORTABLE.md), each row opening in the shell's own viewer. Adoption:
-      every ecosystem repo (the registry's repos manifest plus the hub and the
-      registry) probed live for the environmental hooks that carry the set
-      (.claude/settings.json marketplace subscription and plugins, a
+    Map (?view=map; ?view=portable still resolves here): the coordination layer
+      made inspectable, and the operational face of the constellation doctrine
+      (home's created/2026-06-27-constellation-architecture.md, kernel at the
+      hub's docs/CONSTELLATION.md, linked from the set header). Three parts.
+      The set: the portable docs, plugin skills, and scripts, read from the
+      hub's committed manifest (docs/portable.json, prose parent
+      docs/PORTABLE.md), each row opening in the shell's own viewer; the
+      doctrine kernel rides here as a doc. Scope and Adoption share one per-repo
+      card: Scope is the repo's own account of what it holds and why, read live
+      from its .web-tools.json `scope` field (the repo owns the story; the
+      estate only stacks the statements); Adoption is how far the repo carries
+      the set (.claude/settings.json marketplace subscription and plugins, a
       conventions-wired CLAUDE.md, a .web-tools.json), graded by
       lib/portable-align.js into source / registry / aligned / partial /
-      optout / unaligned. The set is public; Adoption is token-gated. Probes
-      are live per open (in-memory cache + Refresh); a persisted registry
+      optout / unaligned. The set is public; the per-repo half is token-gated.
+      Probes are live per open (in-memory cache + Refresh); a persisted registry
       crawl cache (state/alignment.json) is a named follow-up.
+    Tools (?view=tools): a curated gallery of the owner's utility pages (the
+      text-diff tool and the like), fed from the hub's hand-curated
+      docs/tools.json (lib/alpineComponents/tools.js). Reuses the pages-catalog
+      card (thumbnail/live toggle, open link, source link). Public: the hub is
+      public, so thumbnails (jsDelivr), the hosted render URL, and the blob
+      source all resolve with no token. A cross-repo or off-default entry
+      renders through toss-render #gh= the same way the pages catalog does.
     Open (?view=activity): the estate's live branches in one cross-repo list,
       read off the registry's activity cache (state/activity.json,
       lib/repo-activity-cache.js) in one GET — every branch with recent work

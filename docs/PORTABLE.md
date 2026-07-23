@@ -65,6 +65,7 @@ Top-level fields, not namespaced by consumer, so any web-tools page can read the
 | `icon` | show-repo | Phosphor class a repo self-declares for its quick-link button (the row's icon actually comes from the registry, below) |
 | `quickLinks` | show-repo | registry repo only: the curated header quick-link list `[{repo, icon}]`, read from the private registry repo when the viewer has a token |
 | `landing` | show-repo | path to the repo's own landing page (rendered live via toss-render `#gh=`) |
+| `scope` | show-repo (Map) | the repo's own account of what it holds and why: inline prose, or a repo path ending in `.md` (a file pointer). The repo owns the story; the Map view stacks the per-repo statements rather than keeping a central list |
 | `pins` | show-repo | folders/files surfaced in the sidebar Pinned block |
 | `stage` | show-repo | `{ files, targets }`: a durable staged-files list and default transfer destinations |
 | `conventions` | session-start nudge | `"optout"` marks a repo that has deliberately not adopted the conventions, so the nudge stops asking |
@@ -257,6 +258,7 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | [`docs/markdown-in-chat.md`](markdown-in-chat.md) | working visually with markdown in a **chat client** (mobile): why nested bullets balloon and tables beat them, which characters survive a table-cell trim, and the file-tree formats that fall out. Companion to [`docs/github/markdown.md`](github/markdown.md) (GitHub's static renderer) | fetch when relevant |
 | [`skills/`](../skills/) | the skill **library**: 34 personal skills published as static resources (not registered anywhere); the default source `load-skill` pulls from | fetched per skill by load-skill |
 | [`docs/TRACKER.md`](TRACKER.md) | opt-in **project tracker**: cross-session work-tracking, one file per task under `tasks/` plus a generated `board.md`, the slow layer where the plan lives between sessions. Independent of the primitives and the course | fetch when adopting |
+| [`docs/CONSTELLATION.md`](CONSTELLATION.md) | the portable **kernel** of the what-goes-where doctrine: the ephemeral-clone constraint, commit discipline, visibility forces repo boundaries, conventions pull from a public hub, bootstrapping equals staying-in-sync, and the repo owns its own scope. The theory show-repo's **Map** view applies; the full worked instance stays in the private `home` repo | fetch when relevant |
 | [`docs/headless-vendoring.md`](headless-vendoring.md) | build with Tailwind / daisyUI / Alpine / Phosphor and screenshot or test them **headless** in a sandbox that blocks their CDNs (the "Playwright won't load my libraries" problem) | fetch or copy; self-contained |
 | [`docs/environment/`](environment/) | dated facts about the Claude Code **web sandbox** itself: network allowlist, what persists, the testing recipes. Sandbox-level, so they apply to a session in any repo | fetch when relevant |
 | [`docs/github/markdown.md`](github/markdown.md) | what GitHub's renderer does with markdown (Mermaid, math, alerts, sparklines): GitHub-level, not web-tools-level | fetch when relevant |

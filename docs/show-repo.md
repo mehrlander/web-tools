@@ -41,9 +41,9 @@ Deep-link params: `&view=pages|atlas|files|stage|branches|public|surfaces|todo|j
 all-repo context) or in a **repo** (a per-repo context with its own views).
 
 The **header carries the app-level nav**: a fixed, app-owned set of the estate's
-own views, **Open** (first), **Repos**, **Surfaces**, **Stage**, and
-**Public browse**, as icon buttons (icon + label on desktop, icon-only on
-mobile), lit on the active view and present on every viewport. Beside them, in a
+own views, **Activity** (Open / To-do / Jots by pill), **Repos**, **Surfaces**,
+**Stage**, **Tools**, and **Map**, as icon buttons (icon + label on desktop,
+icon-only on mobile), lit on the active view and present on every viewport. Beside them, in a
 repo, sits a compact `owner/name @ref` readout (the ref switcher is kept; the
 GitHub jump too), and on the right the auth shield (token / config dialog). The
 brand icon returns to the **dashboard**: Open for a signed-in viewer, Repos
@@ -102,9 +102,11 @@ the header nav the way a repo shows landing/atlas/files/…:
 - **Activity** — the live layer: one nav stop with three pill-switched
   sub-tabs, each keeping its own deep link: **Open** (`?view=activity`),
   **To-do** (`?view=todo`), **Jots** (`?view=jots`) (all below).
-- **Portable** (`?view=portable`) — the portable set and its per-repo adoption (below).
+- **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
+- **Map** (`?view=map`) — the portable set, each repo's scope, and its adoption (below).
 
-One component renders them all, switching on the shell view, sharing one lazy mount.
+The estate component renders Repos / Surfaces / Activity, sharing one lazy mount;
+Tools and Map are their own components on their own lazy mounts.
 
 **Repos: membership and fields live on each repo.** A repo appears on the estate
 by opting in with `estate: true` in its **own** `.web-tools.json`. Every
@@ -259,9 +261,11 @@ tabs. The dialog's former GitHub / jsDelivr-CDN / flat-tree link list was retire
 (2026-07-19): GitHub is the header link, and a file listing lives in Public
 browse.
 
-**Portable** (`?view=portable`, always stamped) turns the coordination layer
-itself into a first-class object: the documentation that travels, and how far
-each repo actually carries it. Two halves.
+**Map** (`?view=map`, always stamped; `?view=portable` still resolves here) turns
+the coordination layer itself into a first-class object, and is the operational
+face of the constellation doctrine ([`docs/CONSTELLATION.md`](CONSTELLATION.md)
+is the portable kernel, opened from the set header; the full worked instance is
+in the private `home` repo). Three parts, `lib/alpineComponents/map.js`.
 
 *The set* renders the to-go bag from the hub's committed manifest,
 [`docs/portable.json`](portable.json), whose prose parent is
@@ -270,24 +274,46 @@ each repo actually carries it. Two halves.
 never drifts from the catalog). Grouped as plugin skills, docs, and scripts;
 each row shows its role and adoption mode (in the plugin, fetched live, fetch
 to adopt, on demand) and opens in the shell's own viewer, rendered, so reading
-CONVENTIONS.md is one tap from the dashboard. Public: the hub repo is public,
-so this half needs no token.
+CONVENTIONS.md is one tap from the dashboard. The doctrine kernel rides here as
+a doc, so the theory sits beside the conventions it governs. Public: the hub
+repo is public, so this half needs no token.
 
-*Adoption* is the alignment matrix. The roster is the registry's `repos`
-manifest plus the hub and the registry themselves; each repo is probed live
-(three parallel reads on its default branch) for the environmental hooks that
-carry the set: the plugin-marketplace subscription and enabled plugins in
-`.claude/settings.json`, a conventions-wired `CLAUDE.md`, and a
+*Scope* and *Adoption* share one per-repo card, since they are two facets of one
+object. **Scope** is the repo's own account of what it holds and why, read live
+from its `.web-tools.json` `scope` field (inline prose, or a repo path ending in
+`.md` linked to its blob). The repo owns the story; the Map view only stacks the
+statements, so the cross-repo picture is a view, never an authored central list.
+This is the same shape as estate membership and the surface split: a repo owns
+what tells its own story. **Adoption** is the alignment read. The roster is the
+registry's `repos` manifest plus the hub and the registry themselves; each repo
+is probed live (three parallel reads on its default branch) for the environmental
+hooks that carry the set: the plugin-marketplace subscription and enabled plugins
+in `.claude/settings.json`, a conventions-wired `CLAUDE.md`, and a
 `.web-tools.json`. `lib/portable-align.js` grades the signals (pure, tested)
 into a verdict per repo: `aligned` (marketplace, plugins, and wiring all
 present), `partial`, `unaligned`, `optout` (the config's
 `conventions: "optout"`, respected as deliberate), and the role verdicts
 `source` (the hub) and `registry` (the private sister), which hold standing
-parts and are not graded on subscriptions they would never carry. Each row
-shows check/x chips per signal plus the hook events it registers. Token-gated
-(it reads private repos' settings); probes are live per view open with a
-Refresh, and persisting them as a registry crawl cache (`state/alignment.json`
-beside the config and activity caches) is the named follow-up.
+parts and are not graded on subscriptions they would never carry. Each card
+shows the scope headline, the verdict, check/x chips per signal, and a gear link
+to the repo's `.web-tools.json`. Token-gated (it reads private repos' settings);
+probes are live per view open with a Refresh, and persisting them as a registry
+crawl cache (`state/alignment.json` beside the config and activity caches) is the
+named follow-up.
+
+**Tools** (`?view=tools`) is a curated gallery of the utility pages the owner
+reaches for (the text-diff tool, the transform/compress round-trip, and so on),
+an estate-level peer beside Repos / Surfaces / Stage / Map. It reuses the
+pages-catalog card (thumbnail or live preview, an open link, a source link),
+fed from a hand-curated manifest, [`docs/tools.json`](tools.json), rather than a
+repo scan. Each entry is `{ path, title, note, icon }`, where `path` is a bare
+hub path (`pages/diff-tool.html`, the hub at main) or a qualified cross-repo ref
+(`owner/repo[@ref]:path`), the same grammar as a pages catalog entry. Public: the
+hub is public, so the thumbnails (jsDelivr), the hosted render URL, and the blob
+source resolve with no token; a cross-repo or off-default entry renders through
+toss-render `#gh=` the same way the pages catalog does. The list is authored, a
+sibling to `pins` and `stage.files`, maintained by hand
+(`lib/alpineComponents/tools.js`).
 
 ## Public browse: the no-token file browser
 
@@ -528,6 +554,14 @@ repos. All are optional; a repo with no config is simply off the estate.
 - **pins**: folders/files surfaced in the sidebar Pinned block. A last segment
   with an extension opens as a file; otherwise it opens the Files view at that
   folder.
+- **scope**: the repo's own account of what it holds and why, surfaced as the
+  headline of its card in the estate's **Map** view. Either **inline prose**
+  (`"scope": "A private orchestration base…"`, a sentence or a few) or a **file
+  pointer** (a repo path ending in `.md`, e.g. `"scope": "docs/SCOPE.md"`, linked
+  to its blob, for a repo with a longer story). The repo owns the story; the Map
+  view stacks the per-repo statements rather than keeping a central list, so a
+  repo's scope is stated on its own terms and does not depend on its siblings.
+  The state carried by the config cache, so a scope edit versions with the config.
 - **surface**: a path (or a list of paths) to `.surface` file(s) in this repo,
   surfaced under a per-repo section in the estate's Surfaces view and as a chip
   on this repo's Repos-grid card. Read-only in the estate (edit the file in its
