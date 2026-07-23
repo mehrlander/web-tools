@@ -670,10 +670,13 @@ function app(){ return {
       if (s === 'auth') { this.loadQuickLinks().then(() => this.refreshConfigCache()).then(() => this.refreshActivityCache()); this.loadAppViews(); this.processMailbox(); }
     });
     document.addEventListener('web-tools:config-saved', async () => {
+      // Rebuild the cache, THEN fan out the reload. refreshConfigs awaits the
+      // forced rebuild before it dispatches web-tools:configs-refreshed, so the
+      // estate re-reads its cards after the new config commits, not before it.
+      // A bare reload here would race the async rebuild and leave the estate
+      // showing the pre-save group/order until the next manual refresh.
       this.loadConfig();
-      await this.refreshConfigCache(true);
-      this.loadQuickLinks();
-      this.loadAppViews();
+      await this.refreshConfigs();
     });
     this.loadQuickLinks().then(() => this.refreshConfigCache());
     this.loadAppViews();
