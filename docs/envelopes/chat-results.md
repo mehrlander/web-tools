@@ -12,7 +12,7 @@ First match wins:
 | `?src=<spec>` | envelope fetched via the contents API; `<spec>` is a path in web-tools or `owner/repo@ref:path` | big constellations; write the envelope into `chat-histories` (a `results/` directory) and link it |
 | (neither) | built-in demo envelope | schema demo, page development |
 
-The `#gz=` form is produced the same way as a toss link (see `docs/CONVENTIONS.md`, "Toss a live view"): gzip the JSON, base64url it, put it after `#gz=`.
+The `#gz=` form is produced the same way as a toss link (see `docs/SURFACING.md`, "Toss a live view"): gzip the JSON, base64url it, put it after `#gz=`.
 
 ### The `#chat-results=` toss (address the content, not the page)
 

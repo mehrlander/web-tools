@@ -1,6 +1,6 @@
 # Surfacing work on GitHub
 
-GitHub provides several native ways to expose repository state. This page is the mechanical reference for those surfaces: branches, commits, compare views, pull requests, permalinks, and serialized diffs. For how this repository hands one of them to a reader in chat, the ⭐/🥏/📦 link vocabulary and the per-file caption format, see the surfacing primitives in [CONVENTIONS.md](../CONVENTIONS.md).
+GitHub provides several native ways to expose repository state. This page is the mechanical reference for those surfaces: branches, commits, compare views, pull requests, permalinks, and serialized diffs. For how this repository hands one of them to a reader in chat, the ⭐/🥏/📦 link vocabulary and the per-file caption format, see the surfacing primitives in [SURFACING.md](../SURFACING.md).
 
 The appropriate surface depends on whether the work is mutable, whether discussion is required, and whether the recipient needs a web view or serialized text.
 

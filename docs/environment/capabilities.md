@@ -189,7 +189,7 @@ UI draws each delivered file as a clickable element, a **file card** (also
 **file chip**): image types preview inline; HTML, ZIP, and MP3 (and similar
 non-previewable types) render as a chip that downloads on click. Reach for it
 whenever you make an artifact the user would open, run, or iterate on (the
-*Hand over the artifact* primitive in [CONVENTIONS.md](../CONVENTIONS.md)); the
+*Hand over the artifact* primitive in [SURFACING.md](../SURFACING.md)); the
 screenshot-specific case (show a rendered PNG) is in
 [headless-vendoring.md](../headless-vendoring.md#showing-the-result-in-chat).
 

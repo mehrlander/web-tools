@@ -9,7 +9,7 @@ page is a different job (that is `toss-render`, see the boundary below); show-re
 shows and moves files.
 
 This doc is the reference. The `#stage=` link is also a surfacing primitive in
-[`CONVENTIONS.md`](CONVENTIONS.md) ("Stage a fileset 🗂️"), the transfer-side
+[`SURFACING.md`](SURFACING.md) ("Stage a fileset 🗂️"), the transfer-side
 sibling of the toss `#gh=`/`#gz=` forms.
 
 ## The one honesty caveat, up front
