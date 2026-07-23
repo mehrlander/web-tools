@@ -188,15 +188,22 @@ text is simply *there* at the start of every session, the same as if the skill
 had run. Use this when you want the conventions unconditionally governing every
 file-modifying session and don't mind paying their context cost up front.
 
-This hook fetches `CONVENTIONS.md` itself (not the skill file) and prints the
-SessionStart `additionalContext` JSON the harness reads:
+This hook fetches the conventions themselves (not the skill file) and prints the
+SessionStart `additionalContext` JSON the harness reads. The conventions are two
+files now, `CONVENTIONS.md` (the hub) and `SURFACING.md` (the surfacing system),
+so it fetches and concatenates both; fetching only the hub would inject a session
+with no surfacing rules:
 
 ```bash
 #!/bin/bash
 set -uo pipefail
-URL="https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/CONVENTIONS.md"
-BODY="$(curl -fsSL --max-time 10 "$URL" 2>/dev/null)" || exit 0
-[ -n "$BODY" ] || exit 0
+BASE="https://raw.githubusercontent.com/mehrlander/web-tools/main/docs"
+BODY=""
+for f in CONVENTIONS SURFACING; do
+  PART="$(curl -fsSL --max-time 10 "$BASE/$f.md" 2>/dev/null)" || exit 0
+  [ -n "$PART" ] || exit 0
+  BODY="$BODY$PART"$'\n\n'
+done
 command -v jq >/dev/null 2>&1 || exit 0
 printf '%s' "$BODY" | jq -Rs \
   '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
@@ -240,7 +247,8 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools/SKILL.md`](../.claude/skills/web-tools/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | cross-repo working conventions as one set: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff), which stays idle until you open a PR | fetched live by the skill |
+| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | the general-behavior **hub**: prose style, standing decisions, leave-it-nicer, make-work, and the session / repository / workstream scope vocabulary. Behavior that applies regardless of whether anything is being surfaced | fetched live by the skill |
+| [`docs/SURFACING.md`](SURFACING.md) | the **surfacing system**, split out of CONVENTIONS.md: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, reference-is-a-link, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR/merge-guide lifecycle, wrap-up, handoff), which stays idle until you open a PR. Loaded with CONVENTIONS.md as one set | fetched live by the skill |
 | [`.claude/skills/caption/SKILL.md`](../.claude/skills/caption/SKILL.md) | `/caption`: emit the surfacing caption (full, turn, bare, or recap size; recap wraps the full caption in a fixed-form session re-entry) for the current branch; also the sync engine for a guide PR body's managed region | install or hook-fetch |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.json`. Explicit signal only, never opportunistic | install or hook-fetch |
 | [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |

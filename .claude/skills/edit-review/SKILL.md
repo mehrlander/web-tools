@@ -83,7 +83,7 @@ still ride the link even though the after-text does not.
 
 ## Handoff
 
-Mark the link 🗂️ per the surfacing conventions (`docs/CONVENTIONS.md`,
+Mark the link 🗂️ per the surfacing conventions (`docs/SURFACING.md`,
 "Stage a fileset"), and state the honesty caveat: it's token-gated, so it
 renders only for the link owner in a browser holding their `ghToken`.
 

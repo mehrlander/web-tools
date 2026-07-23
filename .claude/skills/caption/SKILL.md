@@ -20,9 +20,9 @@ reads (format). The sizes below are selection presets over the session's
 changes; a caption can also be requested on a topic (see Topical captions),
 where the user names the file set and change state is beside the point.
 
-Formats follow the conventions (`docs/CONVENTIONS.md` in `mehrlander/web-tools`,
-or the copy loaded in this session). Substitute the current repo into all URL
-templates.
+Formats follow the surfacing conventions (`docs/SURFACING.md` in
+`mehrlander/web-tools`, or the copy loaded in this session). Substitute the
+current repo into all URL templates.
 
 ## Sizes
 
