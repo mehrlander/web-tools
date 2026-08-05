@@ -35,6 +35,7 @@
     { "kind": "doc", "path": "docs/github/mcp-server-routing.md", "title": "MCP server routing", "role": "unexpected approval prompts with two GitHub MCP servers are often routing artifacts", "use": "on-demand" },
     { "kind": "dir", "path": "docs/environment", "title": "Web sandbox environment", "role": "dated facts about the Claude Code web sandbox: network, persistence, testing recipes", "use": "on-demand" },
     { "kind": "dir", "path": "docs/envelopes", "title": "Content envelopes", "role": "the envelope family: the surface contract, chat-results, and the schemas that validate them", "use": "on-demand" },
+    { "kind": "dir", "path": "docstruct", "title": "docstruct", "role": "multi-method structure extraction from scanned documents: lossless page images, measured orientation, recognition, and a record holding competing readings", "use": "on-demand" },
     { "kind": "dir", "path": "skills", "title": "Skill library", "role": "the personal skill library load-skill pulls from, published as static resources", "use": "on-demand" },
     { "kind": "script", "path": ".claude/skills/tasks/build-board.py", "title": "build-board.py", "role": "regenerate a tracker's board.md from task frontmatter; ships inside the plugin", "use": "plugin" },
     { "kind": "script", "path": ".claude/skills/in-flight/in-flight.py", "title": "in-flight.py", "role": "classify a branch estate into live / merged / unrelated and reconcile tracker claims against it; ships inside the plugin", "use": "plugin" },
@@ -42,6 +43,6 @@
     { "kind": "script", "path": "scripts/sunset-scan.py", "title": "sunset-scan.py", "role": "report SUNSET(date) markers now due for removal", "use": "on-demand" },
     { "kind": "script", "path": "scripts/link-survey.py", "title": "link-survey.py", "role": "report markdown links that no longer resolve, internal / cross-repo / dead github URL", "use": "on-demand" },
     { "kind": "script", "path": "scripts/build-tree.py", "title": "build-tree.py", "role": "render a repo tree as a linked markdown table for chat", "use": "on-demand" },
-    { "kind": "script", "path": "scripts/ocr-pdf.py", "title": "ocr-pdf.py", "role": "OCR a scanned PDF and report per-page confidence; needs tesseract + poppler", "use": "on-demand" }
+    { "kind": "script", "path": "scripts/ocr-pdf.py", "title": "ocr-pdf.py", "role": "OCR a scanned PDF and report per-page confidence; needs tesseract + poppler. The single-file starting point; docstruct/ is the multi-method successor", "use": "on-demand" }
   ]
 }
