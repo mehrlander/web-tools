@@ -47,6 +47,12 @@ const { window, problems } = makeWindow({
          path: 'lib/c.js', status: 'modified', patch: '@@ -1 +1 @@', bare: true })"></div>
     <div id="blob" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'main',
          path: 'data/x.dat', status: 'modified' })"></div>
+    <div id="page" x-data="fileReview({ repo: 'mehrlander/web-tools', ref: 'feat/x', base: 'main',
+         path: 'pages/a.html', status: 'modified', patch: '@@ -1 +1 @@', read: true, open: true })"></div>
+    <div id="pageList" x-data="fileReview({ repo: 'mehrlander/web-tools', ref: 'feat/x', base: 'main',
+         path: 'pages/a.html', status: 'modified', open: true })"></div>
+    <div id="pageElsewhere" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'main',
+         path: 'pages/a.html', status: 'modified', patch: '@@ -1 +1 @@', read: true, open: true })"></div>
     <div id="srcRead" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'mb-sha',
          baseName: 'main', path: 'lib/d.js', status: 'modified', patch: '@@ -1 +1 @@',
          read: true, bare: true, open: true })"></div>
@@ -63,7 +69,7 @@ window.GH = class {
     // whose content depends on the ref, which is what gives the compare cases
     // below something to actually differ about.
     return { text: /x\.dat$/.test(p) ? 'ab\u0000cd'
-                 : /d\.js$/.test(p) ? 'body at ' + this.ref : 'x', size: 8 };
+                 : /d\.js$/.test(p) || /a\.html$/.test(p) ? 'body at ' + this.ref : 'x', size: 8 };
   }
   async bytes(p) { fetched.push(this.ref + ':bytes:' + p);
                    return { bytes: new Uint8Array([1, 2, 3]), size: 3 }; }
@@ -310,6 +316,153 @@ test('the controls sit on the tab row, not on a strip above it', () => {
 });
 
 
+// ── One row on a reading card ───────────────────────────────────────────────
+//
+// A presented file had two rows of chrome above it and five controls across
+// them: the collapsed header, then a File/Compare tab pair, a split/unified
+// icon pair, a copy, a deck action and a github menu. On a 390px phone that is
+// most of the first screen spent before the document starts, which is what the
+// reader called too many buttons hovering at the top (2026-09-05).
+test('a reading card puts its name, its layouts and one menu on a single row', () => {
+  const card = window.document.getElementById('page');
+  // The collapsed header stands down once the card is open, because the control
+  // row below carries the name instead. Closed it has to come back, or the card
+  // would have nothing left to tap.
+  const header = [...card.querySelectorAll('div')]
+    .find(e => /hover:bg-base-200\/50/.test(e.className || ''));
+  assert.ok(header, 'the header element is still there');
+  assert.equal(header.style.display, 'none', 'and hidden while the card is open');
+
+  // No text tabs: three layout icons in one group, and the file is the first.
+  assert.equal(data('page').panes.length, 2, 'the file and its comparison');
+  assert.deepEqual(JSON.parse(JSON.stringify(data('page').viewModes.map(m => m.icon))),
+    ['ph-square', 'ph-columns', 'ph-rows'], 'one pane, two columns, two rows');
+  assert.equal(card.querySelector('[role="tablist"]').style.display, 'none',
+    'the text tab strip is not drawn on a reading card');
+
+  // And the utilities fold into the menu rather than sitting beside it.
+  // Copy stays a button on the row rather than a row in the menu: it is the
+  // one utility used often enough to be worth a tap instead of two.
+  const copies = [...card.querySelectorAll('.ph-copy')]
+    .filter(i => i.closest('button').style.display !== 'none');
+  assert.equal(copies.length, 1, 'one copy control on screen');
+  assert.ok(!copies[0].closest('li'), 'and it is a button on the row, not a menu row');
+  // THE MENU IS A GITHUB MENU, and it wears the logo because every row in it
+  // goes to GitHub. That was nearly true already and the one exception was the
+  // Render row, which a card whose first layout icon IS the render has no
+  // business offering a second door onto. It sits beside the name rather than
+  // at the end of the row, by flex order, so the same element serves both
+  // surfaces.
+  assert.ok(card.querySelector('.ph-github-logo'), 'the menu is a github menu');
+  const menu = card.querySelector('details[x-ref="ghMenu"]');
+  assert.match(menu.className, /order-2/, 'and it sits beside the name');
+  const hosts = [...new Set(data('page').ghLinks.map(l => new URL(l.url).host))].sort();
+  assert.deepEqual(hosts, ['github.com', 'raw.githubusercontent.com'],
+    'every row is a GitHub destination: ' + JSON.stringify(data('page').ghLinks.map(l => l.label)));
+  assert.ok(!data('page').ghLinks.some(l => l.label === 'Render'),
+    'the render row is gone, the first layout icon being the same door');
+});
+
+// The row reads left to right as identity, then arrangement, then the one
+// utility: who and which copy on the left, what shape in the middle, take it
+// with you at the end. The middle group is centred by a grow spacer on each
+// side rather than pushed against whichever end is shorter, which is only
+// visible above about 500px and is the reason for the second spacer.
+test('a reading card orders its row identity, arrangement, utility', () => {
+  const card = window.document.getElementById('page');
+  const row = [...card.querySelectorAll('div')].find(e =>
+    /flex items-center gap-1$/.test(e.className || '') &&
+    e.querySelector('details[x-ref="ghMenu"]'));
+  assert.ok(row, 'the single control row');
+
+  const name = (el) => {
+    if (el.querySelector('.ph-github-logo')) return 'github';
+    if (el.querySelector('.ph-git-diff')) return 'compare';
+    if (el.querySelector('.ph-copy')) return 'copy';
+    if (el.querySelector('.ph-square')) return 'layouts';
+    if (el.querySelector('[x-text="namePart"]')) return 'name';
+    if (/\bgrow\b/.test(el.className || '')) return 'spacer';
+    return el.tagName.toLowerCase();
+  };
+  const seen = [...row.children]
+    .filter(el => el.style.display !== 'none')
+    .map(el => ({ n: name(el), o: Number((/\border-(\d+)\b/.exec(el.className || '') || [])[1]) }))
+    .sort((a, b) => a.o - b.o)
+    .map(e => e.n);
+  assert.deepEqual(seen,
+    ['name', 'github', 'compare', 'spacer', 'layouts', 'spacer', 'copy'],
+    'read order: ' + JSON.stringify(seen));
+});
+
+// ── The comparison, as a control ────────────────────────────────────────────
+//
+// A reading card carried a caption reading "against main" under its tabs:
+// true, and inert, since the pair is chosen in a sidebar that is closed on a
+// phone. The fact the reader met in the one place they could do nothing about
+// it is a dropdown now, and the row it took is back.
+test('what a file is compared against is a control, not a caption', () => {
+  const card = window.document.getElementById('page');
+  const d = data('page');
+  assert.ok(!/against\s*<span/.test(card.innerHTML), 'the caption line is gone');
+  assert.ok(d.comparePicker, 'and the picker is offered in its place');
+  assert.ok(card.querySelector('details[x-ref="cmpMenu"]'), 'as a dropdown on the row');
+
+  const choices = JSON.parse(JSON.stringify(d.compareChoices));
+  assert.ok(choices.some(c => c.base === 'main' && c.on), 'the base it was mounted with, and it is the one on');
+  assert.ok(choices.some(c => c.off), 'and a way to turn the comparison off');
+});
+
+// The picker publishes rather than deciding: adoptCompare is what hears it,
+// here and in every other card on the page, so a choice made on one moves all
+// of them and the sidebar with them.
+test('picking a comparison goes out on the channel the sidebar already speaks', () => {
+  const d = data('page');
+  const heard = [];
+  const listen = (e) => heard.push(e.detail);
+  window.addEventListener('web-tools:compare-ref', listen);
+  try {
+    d.pickCompare({ key: 'off', off: true });
+    assert.equal(heard.length, 1);
+    assert.equal(heard[0].off, true);
+    assert.equal(heard[0].repo, 'mehrlander/web-tools', 'addressed, so a sibling deck does not adopt it');
+    assert.equal(window.__compareRef.off, true, 'and left where a card mounting later will find it');
+  } finally {
+    window.removeEventListener('web-tools:compare-ref', listen);
+  }
+});
+
+// The one that would have been a dead end: turning the comparison off empties
+// viewModes, since there is nothing left to lay out, so a picker that appeared
+// only alongside the layouts would be the way out of a state with no way back.
+test('the picker survives the comparison being off', async () => {
+  const d = data('page');
+  d.compareOff = true;
+  await tick(2);
+  try {
+    assert.equal(d.viewModes.length, 0, 'no layouts, there being nothing to lay out');
+    assert.ok(d.comparePicker, 'but the picker is still there to turn it back on');
+    assert.ok(d.compareChoices.some(c => c.off && c.on), 'and says which state it is in');
+  } finally { d.compareOff = false; await tick(2); }
+});
+
+// The list is untouched by all of that: there the top row is the LIST ROW,
+// thirty of them scanned at once, and the tab strip names panes a reader is
+// choosing between rather than layouts.
+test('a list card keeps both rows and its named tabs', () => {
+  // pageList, not withPatch: the layout group only exists where there is a
+  // comparison to lay out, and withPatch has loaded two identical sides by the
+  // time this runs, so it would pass the last assertion for the wrong reason.
+  // Same file as the reading card above, same comparison, different surface.
+  const card = window.document.getElementById('pageList');
+  const header = [...card.querySelectorAll('div')]
+    .find(e => /hover:bg-base-200\/50/.test(e.className || ''));
+  assert.notEqual(header.style.display, 'none', 'the list row stays');
+  assert.notEqual(card.querySelector('[role="tablist"]').style.display, 'none');
+  assert.equal(data('pageList').comparable, true, 'there IS a comparison here');
+  assert.equal(data('pageList').viewModes.length, 0, 'and no layout group is offered for it');
+  assert.ok(card.querySelector('.ph-github-logo'), 'the github menu is still a github menu');
+});
+
 // ── the classifier, and why there are two of them ───────────────────────────
 //
 // kits/source-peek.js already decides what a path IS, and map.js's renderDoc
@@ -337,6 +490,52 @@ const kindOfPath = async (path) => {
   await tick(2);
   return Alpine.$data(el).kind;
 };
+
+// ── An html file, shown as the page ─────────────────────────────────────────
+//
+// The pane is an iframe of the shared toss at this ref, so a page previewed in
+// a card and a page opened from a caption link are the same rendering. Three
+// things are checkable without a browser that can actually paint it, and all
+// three were wrong in a draft of this: which tab a surface lands on, whether
+// the card still fetches the bytes, and whether the tab appears at all where
+// the renderer cannot reach the repo.
+test('a reading surface opens an html file on the page; a list opens it on the diff', async () => {
+  const reading = data('page');
+  await tick(3);
+  assert.equal(reading.shownPane, 'render');
+  assert.equal(reading.tab, 'render', 'the deck and the reviewable section want the page');
+  assert.match(reading.tossUrl, /toss-render\.html#gh=mehrlander\/web-tools@feat\/x:pages\/a\.html$/,
+    'and the frame is the same address a caption link carries');
+  const list = data('pageList');
+  await tick(3);
+  assert.equal(list.shownPane, 'render', 'the tab is offered either way');
+  assert.equal(list.tab, 'diff', 'but a changed-file list is asking how it changed');
+  assert.ok(list.panes.some(p => p.id === 'render'), 'and the page is one tap away');
+});
+
+// The trap: `load()` reads "has a kind" as "is not text" and takes the bytes
+// path. Adding html to KIND without adding it to TEXTUAL would leave every
+// page card with empty Diff, New and Base behind a Render tab that worked.
+test('an html card still fetches both sides as text, so its diff survives', async () => {
+  const d = data('page');
+  await tick(3);
+  assert.equal(typeof d.newText, 'string', 'the new side is text, not bytes');
+  assert.equal(typeof d.baseText, 'string');
+  assert.ok(fetched.some(f => f.endsWith(':pages/a.html')), 'and it went down the text path');
+  assert.ok(!fetched.some(f => f.includes('bytes:pages/a.html')), 'not the bytes one');
+  assert.equal(d.copyable, d.newText, 'so the copy button takes the file behind the page');
+});
+
+// tossUrl is the allowlist: the renderer fetches same-origin, so it answers for
+// mehrlander repos and nothing else. A Render tab over a frame that could load
+// nothing would put the source tabs one tap further away for no gain.
+test('no render tab where the renderer cannot reach the repo', async () => {
+  const d = data('pageElsewhere');
+  await tick(3);
+  assert.equal(d.tossUrl, '');
+  assert.equal(d.shownPane, '', 'so the card is plain source again');
+  assert.ok(!d.panes.some(p => p.id === 'render'));
+});
 
 test('the two classifiers agree about what markdown is', async () => {
   window.document.body.insertAdjacentHTML('beforeend', '<div id="m2"></div>');
