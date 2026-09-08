@@ -4,6 +4,7 @@ headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/daisy-alpine/SKILL.md
 mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as well as read",3,2026-08-16,2026-08-05;2026-08-05;2026-08-16,SURFACING.md
+output-on-disk-is-not-agent-done,a launch was refused at the concurrency cap on a hand count of nineteen,2,2026-09-06,2026-09-06;2026-09-06,environment/capabilities.md
 merge-drops-authored-csv-cells,"taking one side of a derived registry loses the authored half, and the generator refills it blank",2,2026-09-04,2026-09-04;2026-09-04,../tools/README.md#the-refresh-model
 phosphor-weight-is-a-family,an icon renders as nothing at all,2,2026-08-31,2026-07-28;2026-08-31,../skills/phosphor-icons/SKILL.md;../scripts/blank-icons.py
 hand-rolled-use-block-boots-nothing,"a copied boot block was rewritten instead, and shipped blank",2,2026-08-30,2026-08-22;2026-08-30,loader.md;../tools/test/use-boot-block.test.mjs
@@ -73,6 +74,7 @@ an-unlayered-rule-beats-every-layer,`max-w-none` reads as the undo and is not on
 backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",0,,,
 boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
+browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
 gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,
 line-clamp-is-not-a-height,"the utility collided with a display four times in one branch, then failed only on the phone",0,,,

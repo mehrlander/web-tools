@@ -532,23 +532,23 @@ test('a fact carries its definition on data-note, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-note]')];
-  // Every fact, plus two notes that are not facts about the SESSION: the id,
-  // and the `running <ref>` marker, which names the ref this page's own code
-  // booted from. The marker arrived on a branch while this count was written on
-  // main, so the merge is what taught the gate about it; naming both here is
-  // what keeps the count meaning something rather than being loosened.
-  // Two of these are not facts about the SESSION: the id, and the `running
-  // <ref>` marker naming the ref this page's own code booted from. They are
-  // found by SUBTRACTING the strip rather than by matching their own text, so
-  // the count stays exact without a second list to keep in step. The marker
-  // arrived on a branch while this count was written on main, and the merge is
-  // what taught the gate about it.
+  // Every fact, plus three notes that are not facts about the SESSION: the id,
+  // the `running <ref>` marker naming the ref this page's own code booted from,
+  // and the scope row, whose note says what tapping it will do. They are found
+  // by SUBTRACTING the strip rather than by matching their own text, so the
+  // count stays exact without a second list to keep in step.
+  //
+  // TWICE NOW A BRANCH HAS ADDED ONE while this count was written on main, and
+  // both times the merge is what taught the gate about it. That is the gate
+  // working: a note is cheap to add and this is the only thing that asks what
+  // it is for, so it is raised by naming the newcomer, never by loosening the
+  // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 2,
-    'the id and the running-ref marker, and nothing else off-strip: '
+  assert.equal(extras.length, 3,
+    'the id, the running-ref marker and the scope row, and nothing else off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 2, 'every fact and those two, and nothing else');
+  assert.equal(noted.length, d.strip.length + 3, 'every fact and those three, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -596,4 +596,44 @@ test('the page tells the brief that no embedder draws its header', () => {
   assert.doesNotMatch(page, /framed: this\.framed/, 'and no address form still passes it through');
   // The page keeps its own flag, which still stands its address bar down.
   assert.match(page, /x-show="!framed \|\| !target"/);
+});
+
+// ── Work on this scope ──────────────────────────────────────────────────────
+// The one act this page offers, and the second attempt at placing it. The first
+// put two icons on every row of the Sessions LIST, which came off the same day:
+// a control whose value is in specifying what will happen cannot live where
+// there is no room to say it. Here there is room, so what is under test is that
+// the row carries the scope truthfully and chooses nothing else.
+
+test('the scope link carries the checkouts, owned by the mounted store', () => {
+  const u = new URL(lent().scopeUrl);
+  assert.equal(u.pathname, '/web-tools/pages/dictate.html');
+  assert.equal(u.searchParams.get('repo'), 'me/web-tools',
+    'the owner comes from the store this brief was mounted with, not a constant');
+  assert.equal(u.searchParams.get('to'), 'send', 'painted as the lead, never acted on');
+  assert.equal(u.searchParams.get('target'), 'code');
+  assert.equal(lent().scopeNames, 'web-tools');
+});
+
+test('the wider `attached` list wins where the record carries it', () => {
+  // Record schema 8. `repos` is where the shell stood and misses a checkout
+  // worked entirely through absolute paths; `attached` is what the container
+  // held. The union is what the link should preselect.
+  const d = lent();
+  const was = d.rec;
+  try {
+    d.record = { ...was, attached: ['home', 'web-tools'] };
+    assert.deepEqual([...d.scopeRepos], ['home', 'web-tools']);
+    assert.equal(new URL(d.scopeUrl).searchParams.get('repo'), 'me/home,me/web-tools');
+  } finally { d.record = was; }
+});
+
+test('a session that names no checkout offers no row', () => {
+  const d = lent();
+  const was = d.record;
+  try {
+    d.record = { ...d.rec, repos: [], attached: [] };
+    assert.deepEqual([...d.scopeRepos], []);
+    assert.equal(d.scopeUrl, '', 'absent rather than a link that preselects nothing');
+  } finally { d.record = was; }
 });
