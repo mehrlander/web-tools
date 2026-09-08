@@ -1,5 +1,5 @@
 path,subject,status,reach,words,maintenance,formerly
-docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1058,"authored; revised on deliberate reframing, not per feature",
+docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1279,"authored; revised on deliberate reframing, not per feature",
 docs/CONSTELLATION.md,the portable kernel of the what-goes-where doctrine,living,app,1199,"authored; the argument is the content, so no data carrier applies",
 docs/CONVENTIONS.md,the portable working conventions: the general-behavior hub,living,injected,1143,"authored, edited in place; vendored copy byte-gated (portable-manifest.test.mjs)",
 docs/HTML-STYLE.md,"a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it",living,skill,312,"authored, edited in place. It holds no rules, so it cannot drift from them; the pair it used to duplicate was the repo's largest, at 76 shared ten-word windows, and is now below the detector's floor",

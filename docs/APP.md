@@ -14,15 +14,35 @@ problem it serves: something exists somewhere, and someone needs to look at it.
 
 **Web Tools** is the product name, used wherever a reader is addressed: the
 page title, the README's front door, the app's own address. **show-repo** is
-the shell's internal name and stays on everything that keys by it: the route
-registry ([app-routes.csv](app-routes.csv)), the reference doc, the redirect
-stub's path, and the tracker project tag. The old name records the app's origin
+the shell's internal name and stays on the identifiers that key by it: the
+`consumer` column of [manifest-fields.csv](manifest-fields.csv), 55 of its 58
+rows and the largest holding by far; the reference doc; the skill that operates
+the shell (`.claude/skills/show-repo/`, typed as `/show-repo`); the redirect
+stub's path; and the tracker project tag. The old name records the app's origin
 as a repo viewer; the scope outgrew it.
+
+**The route registry was on that list and never belonged there.**
+[app-routes.csv](app-routes.csv) does not carry the string in any field: its
+twenty-one keys are `shell`, `landing`, `estate`, `stage` and the rest, each
+named for what its route shows. The recount on 2026-09-08 found the real
+holding to be `manifest-fields.csv`'s `consumer` column, which the list had
+never mentioned, so one sentence was wrong about the largest case and the
+absent one at once. Corrected the same day, along with
+[registries.csv](registries.csv), which described app-routes as
+`show-repo.html`'s VIEWS table: that table is real and is in `app/index.html`,
+while the file the row named redirects.
+
+**A slash command is an identifier, not a page a reader meets.** `/show-repo`
+is typed rather than read, the way a route key is, so the test it takes is
+accuracy: the skill operates the shell, and the shell is what the name denotes.
+Reading it as reader-facing and renaming it on that ground was proposed in this
+session and withdrawn on the same rule the rest of the list answers to.
 
 **A name is kept because it is accurate, or because someone outside holds it.
 Never because renaming would be expensive.** This sentence used to claim the
 name also stayed on "the component and harness filenames," and both halves had
-already stopped being true. The component is `app()`, renamed with the page when
+already stopped being true. The route registry above is the third correction of
+the same kind: a list of what holds a name goes wrong by not being recounted. The component is `app()`, renamed with the page when
 it moved to `app/index.html`; only the test files still carried the prefix, and
 they named a page path that redirects and a component that had never been called
 that in the file they read. They are `shell-*.test.mjs` now, after
