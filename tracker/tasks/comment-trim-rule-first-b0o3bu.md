@@ -1,9 +1,10 @@
 ---
 id: comment-trim-rule-first-b0o3bu
 title: Trim code commentary to its criterion, rule first
-status: backlog
+status: in-progress
 opened: 2026-09-08
 size: L
+session: claude/code-comments-assessment-sqzvrz
 ---
 # Trim code commentary to its criterion, rule first
 
@@ -35,11 +36,22 @@ earlier.
   the pilot is a rewrite against a known target rather than a fresh judgment.
   A second reader then checks the removed text adversarially for a condition
   absent from what remains, which is the check that makes the operation safe.
-- **Fan out.** One agent per file over the heaviest twenty or so files per repo,
-  ranked by comment mass. Exclude `archive/`, `dist/`, vendored skill scripts,
-  generated payloads, and the paths frozen in home's
-  `projects/budget-drs/.paths.json`. Use the stronger model: the expensive
-  failure is a lost criterion, not a wasted word.
+- **Fan out, in a shape the pilot corrected.** One agent per file over the
+  heaviest files per repo, ranked by comment mass, PLUS a second agent per file
+  whose only job is to find where the first was wrong. That pairing is not
+  optional and is not a review formality: unpaired, the six pilot rewrites
+  introduced seven false statements, and the mechanical equivalence check cannot
+  see one. Both agents want the stronger model, since the thing being hunted is a
+  plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
+  scripts, generated payloads, and the paths frozen in home's
+  `projects/budget-drs/.paths.json`.
+
+  **Consider the cheaper operation first.** The four header-contract fixes and
+  the five stale counts were most of what the pilot actually bought. An accuracy
+  pass that touches nothing else, reading each header against its code and each
+  figure against its file, costs a fraction of a trim and captures the larger
+  share of the value. `embedded-prose.py --dated` lists half its worklist
+  already.
 
 ## Done when
 The rule is stated where the conventions live, the six pilot files are rewritten
@@ -64,3 +76,25 @@ that trims on tone or on position cuts the load-bearing half.
   here, 408 in 157 in home), which is one of the two defects the read found. The
   other, a file header drifting from the code, has no mechanical report and is
   logged as `header-essay-outlives-its-code` in SNAGS.
+- 2026-09-08: Steps 1 and 2 done on `claude/code-comments-assessment-sqzvrz`
+  (web-tools PR #625, home PR #605). The rule is in `docs/CONVENTIONS.md` under
+  "Prose that describes state is unimplemented"; the six pilot files are
+  rewritten and mechanically verified comment-only, by stripping comments and
+  comparing the remainder rather than by reading the diff. Comment words fell
+  about 8,400 of 57,000 across the six, each file landing where its read
+  predicted. An adversarial second read is running against every diff, which is
+  the gate that decides whether step 3 is worth starting.
+  Two findings worth carrying into the fan-out. The file header was the least
+  accurate prose in four of the six, so the accuracy fixes may be worth more
+  than the word count. And stale counts are commoner than the sample showed:
+  the readers found two, the rewriters found five.
+- 2026-09-08: Step 2 finished and adversarially checked. Eleven defects came back
+  across the six files and **seven were claims the rewrites added**, not text
+  they lost; all are restored. The measured lesson and the corrected shape for
+  step 3 are in [docs/text-content.md](../../docs/text-content.md), "What the
+  pilot taught about running the pass", and indexed in SNAGS as
+  `rewriter-marks-its-own-work`. The relocated history is recorded in the same
+  document and in home's `chron/2026/09/2026-09-08-code-comment-census.md`,
+  filtered against what a test or data file already holds.
+  Step 3 is not started and should not start without the pairing above, or
+  without first weighing the accuracy-only pass against it.
