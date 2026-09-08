@@ -10,8 +10,8 @@
   "repo": "mehrlander/web-tools",
   "ref": "main",
   "url": "https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md",
-  "bytes": 6370,
-  "sha256": "f8158736c317f28d5f493951e85e37c67b5d6b62842523e3385fc100f7e6f591"
+  "bytes": 7496,
+  "sha256": "aa78e26afc2547fba21cbb3d143f0750b147f97b537296e1f4b92e0df81a041e"
  },
  "vocabulary": [
   {
@@ -558,9 +558,97 @@
    "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
   },
   {
-   "uid": "conven-048",
+   "uid": "conven-058a",
    "start": 5463,
-   "end": 5476,
+   "end": 5494,
+   "kind": "h3",
+   "words": 7,
+   "label": "META",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058b",
+   "start": 5496,
+   "end": 5683,
+   "kind": "sent",
+   "words": 33,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058c",
+   "start": 5684,
+   "end": 5786,
+   "kind": "sent",
+   "words": 20,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058d",
+   "start": 5787,
+   "end": 5864,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058e",
+   "start": 5865,
+   "end": 6037,
+   "kind": "sent",
+   "words": 30,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058f",
+   "start": 6038,
+   "end": 6157,
+   "kind": "sent",
+   "words": 24,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058g",
+   "start": 6158,
+   "end": 6400,
+   "kind": "sent",
+   "words": 47,
+   "label": "WHY",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-058h",
+   "start": 6401,
+   "end": 6587,
+   "kind": "sent",
+   "words": 14,
+   "label": "NAV",
+   "verdict": "KEEP",
+   "from": "insert:comment-rule",
+   "why": "the comment rule, inserted 2026-09-08; re-anchored by quote, offsets only"
+  },
+  {
+   "uid": "conven-048",
+   "start": 6589,
+   "end": 6602,
    "kind": "h2",
    "words": 3,
    "label": "META",
@@ -568,8 +656,8 @@
   },
   {
    "uid": "conven-049",
-   "start": 5478,
-   "end": 5568,
+   "start": 6604,
+   "end": 6694,
    "kind": "sent",
    "words": 15,
    "label": "WHAT",
@@ -577,8 +665,8 @@
   },
   {
    "uid": "conven-050",
-   "start": 5569,
-   "end": 5656,
+   "start": 6695,
+   "end": 6782,
    "kind": "sent",
    "words": 16,
    "label": "WHY",
@@ -586,8 +674,8 @@
   },
   {
    "uid": "conven-051",
-   "start": 5657,
-   "end": 5736,
+   "start": 6783,
+   "end": 6862,
    "kind": "sent",
    "words": 14,
    "label": "WHAT",
@@ -595,8 +683,8 @@
   },
   {
    "uid": "conven-052",
-   "start": 5738,
-   "end": 5820,
+   "start": 6864,
+   "end": 6946,
    "kind": "sent",
    "words": 14,
    "label": "NAV",
@@ -604,8 +692,8 @@
   },
   {
    "uid": "conven-053",
-   "start": 5821,
-   "end": 6038,
+   "start": 6947,
+   "end": 7164,
    "kind": "sent",
    "words": 26,
    "label": "WHAT",
@@ -613,8 +701,8 @@
   },
   {
    "uid": "conven-054",
-   "start": 6040,
-   "end": 6078,
+   "start": 7166,
+   "end": 7204,
    "kind": "h2",
    "words": 6,
    "label": "META",
@@ -622,8 +710,8 @@
   },
   {
    "uid": "conven-055",
-   "start": 6080,
-   "end": 6116,
+   "start": 7206,
+   "end": 7242,
    "kind": "sent",
    "words": 7,
    "label": "WHAT",
@@ -631,8 +719,8 @@
   },
   {
    "uid": "conven-056",
-   "start": 6117,
-   "end": 6284,
+   "start": 7243,
+   "end": 7410,
    "kind": "sent",
    "words": 25,
    "label": "WHY",
@@ -640,8 +728,8 @@
   },
   {
    "uid": "conven-057",
-   "start": 6285,
-   "end": 6365,
+   "start": 7411,
+   "end": 7491,
    "kind": "sent",
    "words": 13,
    "label": "WHAT",
