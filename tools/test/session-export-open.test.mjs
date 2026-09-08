@@ -43,8 +43,11 @@ const RECORD = {
   repos: [{ name: 'web-tools', branch: 'claude/x' }],
   opening_ask: 'First ask',
   exchanges: 2, prompts_stored: 2,
-  prompts: [{ at: '2026-09-01T10:00:00Z', text: 'First ask' },
-            { at: '2026-09-01T10:30:00Z', text: 'Second ask' }],
+  prompts: [{ at: '2026-09-01T10:00:00Z',
+              text: 'First ask, and a good deal more of it so the line has something '
+                  + 'to clamp and the chip has something to report on.' },
+            { at: '2026-09-01T10:30:00Z',
+              text: 'Second ask, likewise long enough that its own line overflows.' }],
   replies_total: 2, replies_stored: 2,
   replies: [{ at: '2026-09-01T10:05:00Z', text: LONG },
             { at: '2026-09-01T10:35:00Z', text: 'Short reply.' }],
@@ -76,10 +79,11 @@ const SE = window.sessionExport;
 // The estate's Claude colour, in the form jsdom normalizes the hex to.
 const CLAY = 'rgb(217, 119, 87)';   // #d97757
 
+let lastView = null;
 const build = (opts = {}) => {
   const view = SE.index(RECORD, opts);
   window.document.body.replaceChildren(view.el);
-  layOut(view);
+  lastView = view;
   return view;
 };
 
@@ -103,7 +107,7 @@ const MD_RECORD = {
 const buildWith = (rec, opts = {}) => {
   const view = SE.index(rec, opts);
   window.document.body.replaceChildren(view.el);
-  layOut(view);
+  lastView = view;
   return view;
 };
 
@@ -130,23 +134,31 @@ const askOf = (n = 1) => rowOf(n)?.querySelector(':scope > div');
 // offset "still visible", which lands the search at the end and reports the
 // characters past it. Two nodes' worth is enough to make the number non-zero.
 const OVER = 40;                       // "hidden" line height, in fake pixels
-const layOut = (view, hide = 20) => {
+const layOut = (hide = 20, view = lastView) => {
   for (const line of window.document.querySelectorAll('.line-clamp-1,.line-clamp-2')) {
     Object.defineProperty(line, 'scrollHeight', { value: OVER, configurable: true });
     Object.defineProperty(line, 'clientHeight', { value: 10, configurable: true });
     line.getBoundingClientRect = () => ({ bottom: 10, top: 0, left: 0, right: 0, width: 0, height: 10 });
     line.getClientRects = () => [{ bottom: 10 }];
-    // Every Range probe lands "visible" except past the tail, so the search
-    // stops `hide` characters from the end and that is what the chip reports.
-    const text = [...line.childNodes].filter(n => n.nodeType === 3);
-    if (!text.length) continue;
   }
-  const R = window.Range.prototype;
-  R.getClientRects = function () {
-    const n = this.endOffset;
-    const host = this.endContainer;
-    const len = host.length ?? 0;
-    return [{ bottom: n > Math.max(0, len - hide) ? 99 : 5 }];
+  // Every Range probe lands "visible" until `hide` characters from the end of
+  // THE LINE, so the binary search stops there and that is the cut the pass
+  // makes. Counted across the line's text nodes rather than within the one the
+  // offset landed in: a reply line carries bold runs from richLine, so a
+  // per-node reading answered a different question on every probe and the
+  // search converged somewhere arbitrary.
+  window.Range.prototype.getClientRects = function () {
+    const line = this.endContainer.parentElement?.closest('.line-clamp-1,.line-clamp-2');
+    if (!line) return [{ bottom: 5 }];
+    let before = 0, seen = false;
+    const walk = window.document.createTreeWalker(line, 4 /* SHOW_TEXT */);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (n === this.endContainer) { seen = true; break; }
+      before += n.length;
+    }
+    const at = before + this.endOffset;
+    const full = line.textContent.length;
+    return [{ bottom: seen && at > Math.max(0, full - hide) ? 99 : 5 }];
   };
   view.measure();
 };
@@ -259,6 +271,7 @@ test('the panel is drawn by the deck\'s renderer, not by a second one here', asy
   // sends a prompt through rawPre, verbatim in a <pre>, since a prompt is typed
   // text. The reply is the half that has to arrive as prose.
   build();
+  layOut();
   trigReply(1).click();
   await drawn();
   const panel = peekOf(1);
@@ -307,7 +320,7 @@ test('one control per destination: the chip peeks, the glyph decks', () => {
   const opened = [];
   const v = SE.index(RECORD, { onOpen: (i) => opened.push(i) });
   window.document.body.replaceChildren(v.el);
-  layOut(v);
+  layOut(20, v);
 
   trig(1).click();
   assert.deepEqual(opened, [], 'tapping the chip does not leave for the deck');
@@ -317,6 +330,7 @@ test('one control per destination: the chip peeks, the glyph decks', () => {
 
 test('the row carries the ask clamped, and the panel carries that line whole', async () => {
   build();
+  layOut();
   const title = rowOf(1).querySelector('.line-clamp-2');
   assert.ok(title, 'closed, the ask is clamped to two lines');
   // The trap that made the clamp inert for one commit: `block` and
@@ -339,6 +353,7 @@ test('the panel is the line under the pointer, not the exchange around it', asyn
   // reader a second copy of the other and a scroll. The exchange has a better
   // home: the deck glyph on the same row reads the whole card.
   build();
+  layOut();
   trig(1).click();
   await drawn();
   const onAsk = peekOf(1).textContent;
@@ -360,6 +375,7 @@ test('the panel is labelled with its own turn\'s clock, not the card\'s', () => 
   // The card's clock is its FIRST turn, so it is wrong on the reply by however
   // long the work took. RECORD asks at 10:00 and answers at 10:05.
   build();
+  layOut();
   trig(1).click();
   assert.match(peekOf(1).textContent, /10:00:00/, 'the ask says when it was asked');
   trigReply(1).click();
@@ -512,6 +528,7 @@ test('a second tap on the owning row closes the panel, rather than reopening it'
   // one gesture reads as nothing happening. Measured 2026-09-07 with hasTouch:
   // tapping row 2 twice left it open on row 2 both times.
   buildWith(STATEFUL);
+  layOut();
   const down = (el) => el.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
 
   down(trig(1)); trig(1).click();
@@ -524,6 +541,7 @@ test('a tap on a DIFFERENT row moves the panel rather than stacking a second', (
   // The other half of the same listener, and the half that was already right:
   // excluding the owning trigger must not exclude any other one.
   buildWith(STATEFUL);
+  layOut();
   const down = (el) => el.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
 
   down(trig(1)); trig(1).click();
@@ -545,6 +563,7 @@ test('a tap INSIDE the panel does not dismiss it on a coarse pointer', async () 
   // here and this file tests the coarse-pointer path by default, which is why
   // the gate belongs on the panel rather than on the timer.
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   assert.ok(peekOf(1), 'the row opens its panel');
 
@@ -572,6 +591,7 @@ test('the panel is bounded, so a long comment stays a panel in the list', () => 
   // trigger the panel only opens on purpose, and its job is the rest of a
   // comment.
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   const panel = peekOf(1);
   assert.ok(panel.className.includes('overflow-y-auto'));
@@ -639,6 +659,7 @@ test('the row is unchanged by a peek, because the panel overlays it', async () =
   // and no display to toggle: the collision `hidden` and `line-clamp-1` had
   // over `display`, shipped twice in this file, has no site left here.
   buildWith(MD_RECORD);
+  layOut();
   const before = rowOf(1).innerHTML;
   trig(1).click();
   await drawn();
@@ -674,6 +695,7 @@ test('without the kit the row still previews, and the emphasis still lands', () 
 
 test('the panel takes the card\'s measure, not the row\'s', async () => {
   buildWith(MD_RECORD);
+  layOut();
   trig(1).click();
   await drawn();
   // The open body used to be a cell of the head, pinned to the ask's column so
@@ -706,9 +728,12 @@ test('the panel takes the card\'s measure, not the row\'s', async () => {
 const STATEFUL = {
   ...RECORD,
   exchanges: 3, prompts_stored: 3,
-  prompts: [{ at: '2026-09-01T10:00:00Z', text: 'First ask' },
-            { at: '2026-09-01T10:30:00Z', text: 'Second ask' },
-            { at: '2026-09-01T11:00:00Z', text: 'Third ask' }],
+  prompts: [{ at: '2026-09-01T10:00:00Z',
+              text: 'First ask, and a good deal more of it so the line overflows.' },
+            { at: '2026-09-01T10:30:00Z',
+              text: 'Second ask, likewise long enough to clamp and carry a chip.' },
+            { at: '2026-09-01T11:00:00Z',
+              text: 'Third ask, also long enough that its own line overflows here.' }],
   replies_total: 4, replies_stored: 4,
   replies: [
     { at: '2026-09-01T10:05:00Z', text: 'Did it.\n\n🟢 **Ready to continue.** The first offer.' },
@@ -817,6 +842,7 @@ test('the CHIP is the trigger, the line is not, and the card is still the scope'
   // the line is only a place to be hovered. What did not move is the scope: the
   // panel hangs on the box and lights the card's rule, however it was opened.
   buildWith(STATEFUL);
+  layOut();
   assert.equal(rowOf(1).getAttribute('role'), null, 'the row opens nothing');
   const lines = [...rowOf(1).querySelectorAll('.line-clamp-1,.line-clamp-2')];
   assert.equal(lines.length, 3, 'the ask, the reply, and the closing state under it');
@@ -872,6 +898,7 @@ test('the capture note has no closing state, and draws no line', () => {
 
 test('one panel at a time, and opening another card moves it', async () => {
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   await drawn();
   assert.ok(peekOf(1));
@@ -883,6 +910,7 @@ test('one panel at a time, and opening another card moves it', async () => {
 
 test('a second tap on the same row closes it, so the trigger is a toggle', () => {
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.click();
   assert.ok(peekOf(1));
@@ -913,6 +941,7 @@ test('the panel is dismissed from inside the component, not from the document', 
   // This index is mounted per swiper slide, so a document listener would
   // outlive every copy of it.
   buildWith(STATEFUL);
+  layOut();
   const src = readFileSync(path.join(repoRoot, 'lib/kits/session-export.js'), 'utf8');
   assert.doesNotMatch(src, /document\.addEventListener/, 'no listener outlives the mount');
   trig(1).click();
@@ -937,6 +966,7 @@ test('a fine pointer opens on hover after a dwell, and closes after leaving both
   // panel is `pointer-events:none` and this one is not.
   hoverable(true);
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   assert.equal(peekOf(1), null, 'not on arrival');
@@ -952,6 +982,7 @@ test('a fine pointer opens on hover after a dwell, and closes after leaving both
 test('entering the panel keeps it, which is why the grace exists', async () => {
   hoverable(true);
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   await wait(220);
@@ -967,6 +998,7 @@ test('a coarse pointer never hover-opens, because a tap synthesises one', async 
   // toggles itself shut.
   hoverable(false);
   buildWith(STATEFUL);
+  layOut();
   trig(1).dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   await wait(220);
   assert.equal(peekOf(1), null);
@@ -983,9 +1015,12 @@ test('the ask reads at the panel\'s size, and its double spaces are squeezed', a
   // after a sentence, which the row directly above collapses.
   buildWith({
     ...STATEFUL,
-    prompts: [{ at: '2026-09-01T10:00:00Z', text: 'One.  Two.\n\n    indented line' },
+    prompts: [{ at: '2026-09-01T10:00:00Z',
+                text: 'One.  Two. And a good deal more of it so the line overflows '
+                    + 'and the ask has a chip of its own.\n\n    indented line' },
               ...STATEFUL.prompts.slice(1)],
   });
+  layOut();
   trig(1).click();
   await drawn();
   const pre = peekOf(1).querySelector('pre');
@@ -1022,6 +1057,7 @@ test('each card is an item, and the hovered one is scoped without a fill', () =>
 
 test('the scope stays lit while the panel is open, and is handed back after', () => {
   buildWith(STATEFUL);
+  layOut();
   const rule = boxOf(1).querySelector('.pointer-events-none');
   assert.equal(rule.style.opacity, '', 'hover governs it to begin with');
   trig(1).click();
