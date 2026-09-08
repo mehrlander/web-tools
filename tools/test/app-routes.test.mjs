@@ -122,13 +122,21 @@ test('the two sub-tab encodings, counted', () => {
   // somebody restate. Back to 6 the same day: the Guides pill was retired, so
   // its key is gone rather than re-encoded. 6 to 5 on 2026-08-27, when the
   // Stage's Saved pill went and `surfaces` became an alias rather than a key
-  // of its own: an alias is not a sub-tab, since nothing addresses it. 5 to 6
-  // on 2026-09-08: Activity gained Writes, which reads the commit stream for
-  // who wrote it rather than what changed.
+  // of its own: an alias is not a sub-tab, since nothing addresses it.
+  //
+  // 5 to 6 on 2026-09-08, and only one of that day's two changes moved it.
+  // Activity gained Writes, which reads the commit stream for who wrote it
+  // rather than what changed: that is the +1. Routes left Activity for a tab
+  // of the Map view the same day and KEPT its key, so one flattened key moved
+  // from the Activity stop to the Map stop and the total did not notice. This
+  // figure counts how many sub-tabs wear a top-level key, not where they hang,
+  // so a relocation is invisible to it by design; a promotion or a retirement
+  // is what moves it.
   assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
-  // 2026-09-05: it gained a Kits tab.
-  assert.equal(params, 15, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
+  // tab, which is the Routes pane arriving from Activity.
+  assert.equal(params, 16, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
