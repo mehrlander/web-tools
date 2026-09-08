@@ -1,5 +1,5 @@
 // ops.test.mjs — every op in lib/ops/ is a value a caller can evaluate, and
-// session-menu.js answers correctly for the three things a clipboard can hold.
+// session-menu.js answers correctly for each thing a clipboard can hold.
 //
 // The op runs on a phone inside a data: page that is coerced to text and never
 // shown, so nothing about it can be inspected there. It is exercised here the
@@ -23,7 +23,7 @@ function load(name, { status = 200, body = {} } = {}) {
   const src = readFileSync(path.join(OPS, name), 'utf8');
   const sent = [];
   const ctx = vm.createContext({
-    Date, JSON, Math, RegExp, Error, isFinite, sent,
+    Date, JSON, Math, RegExp, Error, Array, String, Object, isFinite, sent,
     XMLHttpRequest: function () {
       this.open = (method, url, async) => sent.push({ method, url, async });
       this.setRequestHeader = (k, v) => sent.push([k, v]);
@@ -48,63 +48,50 @@ test('every op evaluates to one function and reaches neither window nor document
   }
 });
 
-// Styling is a presentation layer over the same words: undo it to assert on content.
+// Styling is a presentation layer over the same words: undo both alphabets to
+// assert on content. Sans-serif bold carries values inside a line; sans-serif
+// bold italic carries the rule line's own words.
 const plainText = (s) => Array.from(s).map(ch => {
   const c = ch.codePointAt(0);
   if (c >= 0x1D5D4 && c <= 0x1D5ED) return String.fromCharCode(65 + c - 0x1D5D4);
   if (c >= 0x1D5EE && c <= 0x1D607) return String.fromCharCode(97 + c - 0x1D5EE);
   if (c >= 0x1D7EC && c <= 0x1D7F5) return String.fromCharCode(48 + c - 0x1D7EC);
+  if (c >= 0x1D656 && c <= 0x1D66F) return String.fromCharCode(97 + c - 0x1D656);
   return ch;
-}).join('').replace(/^[\u{1F33F}\u{1F558}] /u, '').replace(/ {2}/g, ' · ');
+}).join('');
+// The header as two comparable pieces: the rule's words, and the line under it.
+const header = (caption) => {
+  const [bar, line = ''] = plainText(caption).split('\n');
+  return { rule: bar.trim().replace(/^- | -$/g, '').trim(), line: line.trim() };
+};
+const rowText = (l) => plainText(l).replace(/^[\u{1F33F}\u{1F558}] /u, '').replace(/ {2}/g, ' · ');
 
-// ONE CLOCK for every row. Read per call, two rows meant to tie ("the repeat
-// earns its id" below) landed a millisecond apart whenever the runner was slow
-// between the two calls, the later one sorted first, and the check on which
-// row carries the id failed on CI while passing here. Fixed once at load, the
-// tie is a tie.
+// ONE CLOCK for every row: read per call, two rows meant to tie land a
+// millisecond apart whenever the runner is slow between two calls.
 const NOW = Date.now();
 const stamp = (minsAgo) => new Date(NOW - minsAgo * 60000).toISOString();
-// `endedMinsAgo` is omitted by most callers on purpose: a row without `ended` is
-// exactly what the op's fallback is for, so leaving it off keeps that path under
-// test everywhere the ordering itself is not the subject.
-const row = (id, minsAgo, ask, branches = [], repos = [], endedMinsAgo = null) => {
-  const r = { id, started: stamp(minsAgo), ask, branches, repos };
-  if (endedMinsAgo !== null) r.ended = stamp(endedMinsAgo);
-  return r;
-};
+// The payload's entry shape, which is the whole thing the phone reads:
+// [id, last active, one plain line of the ask].
+const entry = (id, minsAgo, ask) => [id, stamp(minsAgo), ask];
+const index = ({ recent = [], branches = {}, minsOld = 5 } = {}) =>
+  ({ generatedAt: stamp(minsOld), recent, branches });
 
-test('session-menu reads the index once, synchronously, raw, with the token as given', () => {
-  const { fn, sent } = load('session-menu.js', { body: { rows: [] } });
-  fn({ input: 'claude/x', token: 'ghp_x' });
+test('session-menu reads the purpose-built index once, synchronously, raw, with the token as given', () => {
+  const { fn, sent } = load('session-menu.js', { body: index() });
+  fn({ input: 'claude/x-aa11bb', token: 'ghp_x' });
   const open = sent.find(s => s.method);
   assert.equal(open.async, false, 'an async read returns after the coercion has captured the page');
-  assert.match(open.url, /web-tools-private\/contents\/state\/sessions\.json\?ref=main$/);
+  // NOT state/sessions.json, which is 1.16 MB and holds a session's every tool
+  // call. This file exists so the phone reads 46 KB and looks a branch up.
+  assert.match(open.url, /web-tools-private\/contents\/state\/session-menu\.json\?ref=main$/);
   assert.deepEqual(sent.find(s => s[0] === 'Authorization'), ['Authorization', 'Bearer ghp_x']);
   assert.deepEqual(sent.find(s => s[0] === 'Accept'), ['Accept', 'application/vnd.github.raw']);
   assert.equal(sent.filter(s => s.method).length, 1, 'no probe on the happy path');
 });
 
-test('session-menu: no token is an ERROR result, and the index is never read without one', () => {
-  const { fn, sent } = load('session-menu.js');
-  const r = fn({ input: 'claude/x' });
-  assert.equal(r.caption, 'ERROR no token reached the op at start');
-  assert.deepEqual(r.rows, []);
-  assert.equal(sent.filter(s => s.method && /sessions\.json/.test(s.url) && !/zen/.test(s.url)).length, 1,
-    'only the probe touches the index address, once, with the token alone');
-  assert.deepEqual(Object.keys(r.probe), ['zen plain', 'zen auth', 'index auth only']);
-});
-
-test('session-menu: a failed read is an ERROR result naming the status, the stage, and a network probe', () => {
-  const { fn } = load('session-menu.js', { status: 401 });
-  const r = fn({ input: 'claude/x', token: 't' });
-  assert.equal(r.caption, 'ERROR HTTP 401 reading state/sessions.json at status 401');
-  assert.equal(r.error, r.caption);
-  assert.deepEqual(Object.keys(r.probe), ['zen plain', 'zen auth', 'index auth only']);
-});
-
-test('session-menu: the clipboard shapes all reduce to the branch', () => {
+test('session-menu: the clipboard shapes that carry a branch all reduce to it', () => {
   const want = 'claude/double-tap-read-aloud-shortcut-wb6uh9';
-  const body = { rows: [row('aaaaaaaa', 30, 'On the branch', [want])] };
+  const body = index({ branches: { [want]: entry('aaaaaaaa', 30, 'On the branch') } });
   for (const clip of [
     want, 'origin/' + want, 'refs/heads/' + want, '  ' + want + '\n',
     'https://github.com/mehrlander/web-tools/tree/' + want,
@@ -112,83 +99,137 @@ test('session-menu: the clipboard shapes all reduce to the branch', () => {
     'https://mehrlander.github.io/web-tools/pages/branch.html#gh=mehrlander/web-tools@' + want,
     want + '\nsecond line of a caption',
   ]) {
-    const { fn } = load('session-menu.js', { body });
-    assert.equal(plainText(fn({ input: clip, token: 't' }).caption), 'This branch · double-tap-read-aloud-shortcut', JSON.stringify(clip));
+    const r = load('session-menu.js', { body }).fn({ input: clip, token: 't' });
+    assert.equal(r.state, 'on-branch', JSON.stringify(clip));
+    assert.equal(r.branch, want, JSON.stringify(clip));
   }
 });
 
-test('session-menu: the caption names each case in words, by branch slug, and stamps the index age', () => {
-  const here = row('aaaaaaaa', 30, 'Ask', ['claude/x']);
-  const other = row('bbbbbbbb', 90, 'Ask', ['claude/y']);
-  const fresh = new Date(Date.now() - 3 * 3600000).toISOString();
-  const stale = new Date(Date.now() - 16 * 3600000).toISOString();
-  const run = (rows, input, at) => load('session-menu.js', { body: { rows, generatedAt: at } }).fn({ input, token: 't' }).caption;
-  assert.equal(plainText(run([here, other], 'claude/x', fresh)), 'This branch · x');
-  assert.equal(plainText(run([other], 'not a branch', fresh)), 'Recent · no branch on the clipboard');
-  // A branch that matched NOTHING carries the age however fresh the index is,
-  // because there the age is the difference between "no such session" and "the
-  // crawl has not run since it started". Three hours, and five minutes:
-  assert.equal(plainText(run([other], 'claude/x', fresh)), 'Recent · none yet on x · index 3h old');
-  assert.equal(plainText(run([other], 'claude/x', stamp(5))), 'Recent · none yet on x · index 5m old');
-  // A branch that DID match keeps the six-hour threshold: there the age only
-  // warns that a newer session may be missing.
-  assert.equal(plainText(run([here, other], 'claude/x', stale)), 'This branch · x · index 16h old');
-  assert.equal(plainText(run([other], 'claude/x', stale)), 'Recent · none yet on x · index 16h old');
-  assert.match(run([here], 'claude/x', fresh), /^\u{1F33F} /u, 'the branch header carries the branch glyph');
-  assert.match(run([other], 'claude/x', fresh), /^\u{1F558} /u, 'the recent header carries the recent glyph');
+test('session-menu: a plain URL is not a branch', () => {
+  // The 2026-09-08 defect: the guard was "has a slash, has no whitespace",
+  // which every http address passes, so pasting any page produced a header
+  // asserting a branch that never existed, 54 characters of it.
+  const body = index({ recent: [entry('bbbbbbbb', 10, 'Something else')] });
+  for (const clip of [
+    'https://mehrlander.github.io/web-tools/pages/index.html',
+    'http://example.com/a/b',
+    'github.com/mehrlander/web-tools',
+    'mehrlander.github.io/web-tools/pages/session.html',
+  ]) {
+    const r = load('session-menu.js', { body }).fn({ input: clip, token: 't' });
+    assert.equal(r.branch, '', JSON.stringify(clip));
+    assert.equal(r.state, 'no-branch', JSON.stringify(clip));
+  }
 });
 
-test('session-menu: branch rows lead and are marked, recent rows fill, nothing repeats, every label maps to its page', () => {
-  const body = { rows: [
-    row('aaaaaaaa', 600, 'Older, on the branch', ['claude/x']),
-    row('bbbbbbbb', 30, 'Newest, elsewhere', ['claude/y']),
-    row('cccccccc', 60, 'On the branch too', [], [{ name: 'home', branch: 'claude/x' }]),
-  ] };
-  const r = load('session-menu.js', { body }).fn({ input: 'claude/x', token: 't' });
-  const ids = r.rows.map(l => r.urls[l].slice(-8));
-  assert.deepEqual(ids, ['cccccccc', 'aaaaaaaa', 'bbbbbbbb']);
-  assert.equal(plainText(r.rows[0]), '1h · On the branch too');
-  assert.match(r.rows[0], /^\u{1F33F} /u, 'a branch row carries the branch glyph');
-  assert.match(r.rows[2], /^\u{1F558} /u, 'a recent row carries the recent glyph');
-  for (const l of r.rows) assert.doesNotMatch(l, /[0-9a-f]{8}$/, 'no id on a row that is already distinct');
-  for (const l of r.rows) assert.match(r.urls[l], /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/session\.html#id=[0-9a-f]{8}$/);
-  assert.equal(Object.keys(r.urls).length, 3);
-  assert.equal(r.count, 3);
+test('session-menu: the header names the case in words and the line under it carries the evidence', () => {
+  const want = 'claude/x-aa11bb';
+  const found = index({ branches: { [want]: entry('aaaaaaaa', 30, 'Ask') } });
+  const empty = index({ recent: [entry('bbbbbbbb', 90, 'Ask')] });
+  const run = (body, input) => header(load('session-menu.js', { body }).fn({ input, token: 't' }).caption);
+
+  assert.deepEqual(run(found, want), { rule: '🌿 branch recognized', line: 'x · 30m' });
+  // A branch with no row says so, and stamps the index's age at every age: there
+  // the age is the difference between "no such session" and "the crawl has not
+  // run since this one started", and nothing else distinguishes them.
+  assert.deepEqual(run(empty, want), { rule: '🌿 branch, no session yet', line: 'x · index 5m old' });
+  // No branch shows what WAS read, so the verdict is checkable rather than
+  // merely asserted.
+  assert.deepEqual(run(empty, 'just some prose'), { rule: '📋 no branch on clipboard', line: '“just some prose”' });
+  assert.deepEqual(run(empty, '   '), { rule: '📋 clipboard is empty', line: '' });
 });
 
-test('session-menu: rows order by last activity, not by when the session started', () => {
-  const body = { rows: [
-    // Picked up ten hours ago and STILL RUNNING: the one a reader means.
-    row('aaaaaaaa', 600, 'Long one, still going', ['claude/x'], [], 5),
-    // Started later and finished long ago, so `started` alone puts it first.
-    row('bbbbbbbb', 120, 'Short one, done', ['claude/x'], [], 110),
-  ] };
-  const r = load('session-menu.js', { body }).fn({ input: 'claude/x', token: 't' });
+test('session-menu: a matched branch stamps the index age only past six hours', () => {
+  const want = 'claude/x-aa11bb';
+  const at = (minsOld) => index({ branches: { [want]: entry('aaaaaaaa', 30, 'Ask') }, minsOld });
+  assert.equal(header(load('session-menu.js', { body: at(180) }).fn({ input: want, token: 't' }).caption).line, 'x · 30m');
+  assert.equal(header(load('session-menu.js', { body: at(16 * 60) }).fn({ input: want, token: 't' }).caption).line,
+    'x · 30m · index 16h old');
+});
+
+test('session-menu: the branch row leads, recent rows fill, nothing repeats, every row maps to its page', () => {
+  const want = 'claude/x-aa11bb';
+  const body = index({
+    branches: { [want]: entry('aaaaaaaa', 600, 'On the branch') },
+    recent: [entry('bbbbbbbb', 30, 'Newest, elsewhere'), entry('aaaaaaaa', 600, 'On the branch')],
+  });
+  const r = load('session-menu.js', { body }).fn({ input: want, token: 't' });
+  // The branch's own session leads even though it is older, and does not come
+  // round again in the recent fill.
   assert.deepEqual(r.rows.map(l => r.urls[l].slice(-8)), ['aaaaaaaa', 'bbbbbbbb']);
-  // And the age on the row is the same value the sort used, so a reader can
-  // check the order against what the rows say rather than taking it on faith.
-  assert.equal(plainText(r.rows[0]), '5m · Long one, still going');
-  assert.equal(plainText(r.rows[1]), '2h · Short one, done');
+  assert.equal(rowText(r.rows[0]), '10h · On the branch');
+  assert.match(r.rows[0], /^\u{1F33F} /u, 'the branch row carries the branch glyph');
+  assert.match(r.rows[1], /^\u{1F558} /u, 'a recent row carries the recent glyph');
+  for (const l of r.rows) assert.match(r.urls[l], /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/session\.html#id=[0-9a-f]{8}$/);
+  assert.equal(r.id, 'aaaaaaaa');
 });
 
-test('session-menu: a row with no `ended` falls back to `started` and sorts against one that has it', () => {
-  const body = { rows: [
-    row('aaaaaaaa', 30, 'No ended field'), // ordered on `started`, 30m
-    row('bbbbbbbb', 600, 'Ended ten minutes ago', [], [], 10),
-  ] };
-  const r = load('session-menu.js', { body }).fn({ input: '', token: 't' });
-  assert.deepEqual(r.rows.map(l => r.urls[l].slice(-8)), ['bbbbbbbb', 'aaaaaaaa']);
+test('session-menu: a branch with no row still gets a row, and it bypasses this index', () => {
+  // The arm that matters most. The payload is rebuilt only when someone opens
+  // the estate, so a session reaches it two hops behind; session.html's
+  // `#branch=` walks the store itself and reaches no cache, so it answers for
+  // exactly the session this index cannot see.
+  const want = 'claude/brand-new-work-zz99yy';
+  const body = index({ recent: [entry('bbbbbbbb', 30, 'Something else')] });
+  const r = load('session-menu.js', { body }).fn({ input: want, token: 't' });
+  assert.equal(r.state, 'no-session');
+  assert.equal(r.urls[r.rows[0]], 'https://mehrlander.github.io/web-tools/pages/session.html#branch=' + want);
+  assert.equal(rowText(r.rows[0]), 'look it up · brand-new-work');
+  assert.equal(r.id, '', 'no session was identified, and the result says so');
 });
 
-test('session-menu: an ask is plain and bounded, and a duplicate ask still yields distinct labels', () => {
-  const long = '**Bold** and `code` and [label](https://x.y/z) ' + 'word '.repeat(60);
-  const body = { rows: [row('aaaaaaaa', 5, long), row('bbbbbbbb', 5, long)] };
+test('session-menu: `menu` is the whole menu and always ends in the verbs', () => {
+  // Choose-Claude is a shell that draws `menu` without testing anything first,
+  // so the verbs have to be there in every result, an ERROR included.
+  const body = index({ recent: [entry('bbbbbbbb', 30, 'Ask')] });
+  const ok = load('session-menu.js', { body }).fn({ input: '', token: 't' });
+  assert.deepEqual(ok.menu.slice(-2), ['Show-Loop', 'Out']);
+  assert.deepEqual(ok.menu.slice(0, -2), ok.rows);
+  for (const verb of ok.menu.slice(-2))
+    assert.equal(ok.urls[verb], undefined, 'a verb is a shortcut name, never a page');
+});
+
+test('session-menu: the row count is bounded so the menu stays a menu', () => {
+  const body = index({ recent: Array.from({ length: 40 }, (_, i) =>
+    entry(String(i).padStart(8, '0'), i, 'Ask ' + i)) });
   const r = load('session-menu.js', { body }).fn({ input: '', token: 't' });
-  assert.ok(r.rows[0].length < 70, 'row was ' + r.rows[0].length);
-  assert.doesNotMatch(r.rows[0], /[*`\[\]]/);
-  assert.match(r.rows[0], /…/);
-  assert.notEqual(r.rows[0], r.rows[1], 'the repeat earns its id');
-  assert.match(r.rows[1], / · bbbbbbbb$/);
-  assert.match(r.rows[0], /^\u{1F558} \u{1D7F1}\u{1D5FA}  /u, 'the age is set in mathematical sans-serif bold');
-  assert.equal(Object.keys(r.urls).length, 2);
+  assert.equal(r.rows.length, 12);
+  assert.equal(r.menu.length, 14);
+});
+
+test('session-menu: no token is an ERROR result, and the index is never read without one', () => {
+  const { fn, sent } = load('session-menu.js');
+  const r = fn({ input: 'claude/x-aa11bb' });
+  assert.equal(r.state, 'error');
+  assert.equal(r.error, 'ERROR no token reached the op at start');
+  assert.deepEqual(r.rows, []);
+  assert.equal(sent.filter(s => s.method && /session-menu\.json/.test(s.url)).length, 1,
+    'only the probe touches the index address, once, with the token alone');
+  assert.deepEqual(Object.keys(r.probe), ['zen plain', 'zen auth', 'index auth only']);
+});
+
+test('session-menu: a failed read keeps the header shape, names the status and stage, and still draws a menu', () => {
+  const { fn } = load('session-menu.js', { status: 401 });
+  const r = fn({ input: 'claude/x-aa11bb', token: 't' });
+  const h = header(r.caption);
+  assert.equal(h.rule, '⚠️ sessions unreachable');
+  assert.equal(h.line, 'ERROR HTTP 401 reading state/session-menu.json at status 401');
+  // Claude-Session tests the caption for the word ERROR and shows the text
+  // rather than drawing a menu, so the word has to survive the header.
+  assert.match(r.caption, /ERROR/);
+  assert.equal(r.error, h.line);
+  assert.deepEqual(r.menu, ['Show-Loop', 'Out']);
+  assert.deepEqual(Object.keys(r.probe), ['zen plain', 'zen auth', 'index auth only']);
+});
+
+test('session-menu: the two menus are set in one register, so they read as siblings', () => {
+  // Describe-Input titles the OTHER back-tap menu (Choose-BackTap, in
+  // shortcut-tools) with a rule centred in a 68-column field, its words in
+  // sans-serif bold italic and lowercased. Copied rather than shared, because
+  // the two run in different places, so the copy is held here.
+  const body = index({ recent: [entry('bbbbbbbb', 30, 'Ask')] });
+  const bar = load('session-menu.js', { body }).fn({ input: '', token: 't' }).caption.split('\n')[0];
+  assert.match(bar, /^ +- \u{1F4CB} [\u{1D656}-\u{1D66F} ]+ -$/u, 'centred rule, sans-serif bold italic words');
+  const width = Array.from(bar.trim()).length;
+  assert.equal(bar.length - bar.trimStart().length, Math.floor((68 - width) / 2) + 2);
 });
