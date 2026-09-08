@@ -105,11 +105,11 @@ export default async function (page) {
   // never built. On a device opened through a #gh= toss it is, which makes it
   // the largest piece of the drawer this driver cannot reach and the device's
   // trail can.
-  for (const want of ['paint', 'frame1', 'frame3', 'd:end', 'd:body', 'd:render-head', 'd:inspect',
+  for (const want of ['paint', 't300', 'd:end', 'd:body', 'd:render-head', 'd:inspect',
                       'd:traffic', 'd:render-body', 'd:rb-console'])
     if (!reached.includes(want)) throw new Error(`the trail never reached ${want}: ${reached.join(',')}`);
-  if (!reached.some(s => /^dom:\d+$/.test(s)))
-    throw new Error(`no dom count in the trail: ${reached.join(',')}`);
+  if (!reached.some(s => /^t0:\d+$/.test(s)))
+    throw new Error(`no node count in the trail: ${reached.join(',')}`);
 
   console.log('stages past the component:', reached.join(' → '));
   console.log('crumb reported:', after.text.split('\n')[0]);
