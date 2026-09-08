@@ -237,14 +237,44 @@
 <script type="module">
   const q = new URLSearchParams(location.search);
   const ref = q.get('use');
+  // THE PAGE ADOPTS ITS OWN PRE-BUILD (dist/dictate.js), and the reason is
+  // arrival time on a phone rather than bytes. The gh.load chain below is a
+  // WATERFALL: each await is a round trip that cannot start until the one
+  // before it ends, and gh-boot's own eight sit inside the first of them.
+  // Measured 2026-09-08 on this page: 25 requests, fourteen of them serial
+  // contents-API calls to api.github.com, which is uncached and rate-limited.
+  // On a phone that is seconds of pure serialization, and it is exactly what
+  // "slow the first time, fast on the second" describes: nothing was wrong but
+  // the cache was cold.
+  //
+  // The build is the same loader with GH.prototype.get served from an inlined
+  // cache, so every gh.load below still runs and simply costs no network. One
+  // same-origin request of 189k (64k over the wire) replaces the fourteen.
+  //
+  // It is walked from THIS page's reach (tools/build/build.mjs), not the whole
+  // library: dist/web-tools.js would be 1.4 MB gzipped for a page that touches
+  // a tenth of it. Tracked, refreshed by the commit hook, and held to its
+  // sources by tools/test/derived-artifacts.test.mjs.
+  //
+  // ?use=<ref> keeps working the way the app's does: the build is fetched from
+  // raw.githubusercontent at that ref and blob-imported, since jsDelivr's /gh/
+  // cache holds a branch name for hours and a preview has to be the tip.
   if (ref) {
-    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref };
-    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/lib/gh-api.js`, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`?use=${ref}: could not fetch gh-api.js (HTTP ${r.status})`);
-    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    let sha = /^[0-9a-f]{40}$/.test(ref) ? ref : '';
+    if (!sha) {
+      try {
+        const r = await fetch(`https://api.github.com/repos/mehrlander/web-tools/commits/${encodeURIComponent(ref)}`,
+                              { headers: { Accept: 'application/vnd.github.sha' } });
+        if (r.ok) sha = (await r.text()).trim();
+      } catch {}
+    }
+    const at = sha || ref;
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${at}/dist/dictate.js`, sha ? {} : { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the build (HTTP ${src.status})`);
+    const u = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
     try { await import(u); } finally { URL.revokeObjectURL(u); }
   } else {
-    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+    await import('../dist/dictate.js');
   }
   await gh.load('gh-auth.js');
   await gh.load('gh-store.js');
@@ -260,6 +290,10 @@
   const JOTS = 'lists/jots.json';
   const AUTOCORRECT = 'lists/autocorrect.json';
   const DRAFT = 'dictate:draft';
+  // What a handoff displaced, kept so replacing is not discarding. One slot,
+  // overwritten by the next arrival and spent by restoring it: a queue here
+  // would be a second draft store nobody asked for.
+  const ASIDE = 'dictate:aside';
   const GRANT = 'dictate:granted';
 
   const ls = {
@@ -314,6 +348,9 @@
       // that page was. Reported rather than merged silently: a buffer that
       // gained words the reader did not speak here has to say so.
       arrived: 0, arrivedFrom: '',
+      // The draft a handoff displaced, offered back in the band. Empty is the
+      // ordinary case: nothing was here, or it has already been brought back.
+      aside: '',
       saving: '',
       canShare: typeof navigator !== 'undefined' && !!navigator.share,
       destName: DEST.repo.split('/')[1] + '/' + DEST.dir,
@@ -428,28 +465,40 @@
         // An interrupted session comes back. A finished one does not: `save`
         // is cleared wherever the words reach somewhere durable, so a blank
         // page here means the last note was filed, not that one was lost.
-        // A HANDOFF WINS OVER A STORED DRAFT, and the order is the whole
-        // decision. Both are "words that were here before", but one of them
-        // was sent HERE, deliberately, seconds ago, and the other is whatever
-        // this page was last left holding. Restoring the older one over it
-        // would silently discard the gesture the reader just made.
+        // A HANDOFF REPLACES A STORED DRAFT, and does not join it. Both are
+        // "words that were here before", but one was sent HERE, deliberately,
+        // seconds ago, and the other is whatever this page was last left
+        // holding.
         //
-        // Nothing is lost either way: take() is one-shot, so the arriving
-        // draft is appended to a stored one rather than replacing it, and the
-        // reader sees both and cuts what they do not want. A composer draft is
-        // usually a sentence, so the join is cheap; deciding for them which
-        // one to keep would not be.
+        // IT USED TO JOIN THEM, on the reasoning that nothing should be lost
+        // and the reader could cut what they did not want. What that missed is
+        // that this page SAVES what it is shown: an arrival was joined, saved
+        // over the draft key, and then joined again by the next arrival, so
+        // expanding a second note opened on the first one stacked above it and
+        // a third opened on both. The pile grows by one note per expand, which
+        // is what "it is showing content it held from storage" describes.
+        //
+        // NOTHING IS SILENTLY DISCARDED EITHER. The draft that was here is set
+        // aside under its own key and offered back in the band above the words,
+        // one tap, above whatever is there by then. That is the same join, made
+        // when the reader asks for it rather than guessed on their behalf.
         const sent = window.dictateHandoff?.take?.() || null;
-        const held = ls.get(DRAFT);
-        const parts = [];
-        if (held && held.trim()) parts.push(held.replace(/\s+$/, ''));
-        if (sent) parts.push(sent.text.replace(/\s+$/, ''));
-        if (parts.length) {
-          this.d.text = parts.join('\n\n');
+        const held = (ls.get(DRAFT) || '').replace(/\s+$/, '');
+        this.aside = (ls.get(ASIDE) || '').replace(/\s+$/, '');
+        if (sent) {
+          this.d.text = sent.text.replace(/\s+$/, '');
+          // The newest set-aside wins: an older one the reader has walked past
+          // twice is not what "bring back what was here" means to them.
+          this.aside = held;
+          if (held) ls.set(ASIDE, held); else ls.del(ASIDE);
           this.restored = this.d.text.length;
           this.started = true;
-          this.arrived = sent ? sent.text.length : 0;
-          this.arrivedFrom = sent ? sent.at : '';
+          this.arrived = sent.text.length;
+          this.arrivedFrom = sent.at;
+        } else if (held) {
+          this.d.text = held;
+          this.restored = this.d.text.length;
+          this.started = true;
         }
 
         // A TARGET THE SHEET NO LONGER HAS falls back rather than stranding it.
@@ -1731,6 +1780,20 @@
         window.open(link.url, '_blank', 'noopener');
       },
 
+      // BRING BACK WHAT THE ARRIVAL DISPLACED, above whatever is here now.
+      // It is the join the arrival used to make by itself, and the difference
+      // is the whole point: asked for rather than guessed. Spent on use, so
+      // the band stops offering something that is already in the buffer.
+      restoreAside() {
+        if (!this.aside) return;
+        const now = this.d.text.replace(/\s+$/, '');
+        this.d.text = now ? this.aside + '\n\n' + now : this.aside;
+        this.aside = '';
+        ls.del(ASIDE);
+        this.save();
+        this.paint();
+      },
+
       // Back to blank, and still listening if it was. The buffer goes through
       // the kit's setter, so undo can bring it back for one step, which is
       // the whole safety net a clear needs here.
@@ -1738,7 +1801,11 @@
         this.d.text = '';
         this.draft = ''; this.interim = ''; this.armed = null; this.pinDrag = null;
         this.breaks = false; this.restored = 0;
+        // Starting fresh means the set-aside too: a reader clearing the page
+        // is not asking to be offered an older draft on the next line.
+        this.aside = '';
         ls.del(DRAFT);
+        ls.del(ASIDE);
         this.elapsed = 0; this.since = Date.now();
         this.menu = false;
         this.paint();
@@ -1863,13 +1930,18 @@
        handed over by a composer on another page are somebody's sentence from
        somewhere else, and a buffer that gained those without saying so is a
        buffer the reader cannot trust. Same band, same Start fresh, different
-       first clause. -->
+       first clause.
+       "Bring back" appears only on the second, and only where the arrival
+       displaced something: it is the way back to the draft this page was
+       holding, which an arrival replaces rather than joins (see init). -->
   <div x-show="restored" class="shrink-0 px-4 py-1.5 text-sm bg-warning/10 flex items-center gap-2">
     <i class="ph" :class="arrived ? 'ph-arrows-out' : 'ph-clock-counter-clockwise'"></i>
     <span x-show="!arrived">Picked up where you left off.</span>
     <span x-show="arrived" class="min-w-0 truncate"
           :title="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
+    <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
+            title="Put the draft this page was holding back above these words">Bring back</button>
     <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
 
