@@ -1363,16 +1363,19 @@ test('an empty turn is dropped before the cap, not after it', () => {
 
 const menuRow = (id, ended, ask, branches = []) => ({ id, ended, ask, branches });
 
-test('the menu index carries three fields a session, keyed by branch, newest first', () => {
+test('the menu index carries what a phone row needs and no more, keyed by branch, newest first', () => {
   const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
     menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', ['claude/older-aa11bb']),
     menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd']),
   ] };
   const m = S.buildMenuIndex(cache);
   assert.equal(m.generatedAt, cache.generatedAt, 'one stamp, so the two files cannot disagree about freshness');
+  // A recent entry carries its branch as a fourth field and a `branches` entry
+  // does not, because there the key already is one. The row's label leads with
+  // the slug, so without the fourth field every recent row falls back to prose.
   assert.deepEqual(m.recent, [
-    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask'],
-    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask'],
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'claude/newer-cc22dd'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', 'claude/older-aa11bb'],
   ]);
   assert.deepEqual(m.branches['claude/older-aa11bb'], ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask']);
   assert.deepEqual(Object.keys(m), ['generatedAt', 'recent', 'branches'],

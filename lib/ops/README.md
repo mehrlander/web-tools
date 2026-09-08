@@ -50,6 +50,16 @@ that draws `menu` and looks the chosen row up in `urls`. A change to the menu's
 wording, order or verbs is therefore a commit here and costs no install, which
 is the point: that repo ranks the device as the expensive resource.
 
+Two rules the result has to keep, both learned from the phone rather than
+inferred, and both held by `tools/test/ops.test.mjs`:
+
+- **The caption never pads.** iOS draws the prompt in a proportional font, so
+  leading spaces move a line by an amount no character count predicts.
+- **A `menu` row either opens an `https` page or is a bare shortcut name.** The
+  shell runs a row it cannot find in `urls` as a name, which is measured;
+  opening a `shortcuts://` link from inside a running shortcut is not, and
+  appears in none of the fifteen library dumps.
+
 It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
 46 KB index written by the same crawl that writes `state/sessions.json`
 (`lib/kits/repo-sessions-cache.js`, "The phone's copy"). Not the 1.16 MB cache
