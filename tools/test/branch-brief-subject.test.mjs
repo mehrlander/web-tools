@@ -37,10 +37,16 @@ const compare = {
   ],
 };
 
+// The options travel through a global rather than an object literal in the
+// x-data attribute, the way show-repo's branch deck passes them: the test needs
+// a reference to the very object the component closed over, since `onSubject`
+// is the half under test here.
 const { window, problems } = makeWindow({
   html: `<!doctype html><html><body><div id="m"
-           x-data="branchBrief({ repo: '${REPO}', branch: 'feat/x', base: 'main' })"></div></body></html>`,
+           x-data="branchBrief(window.__opts)"></div></body></html>`,
 });
+const optsRef = { repo: REPO, branch: 'feat/x', base: 'main' };
+window.__opts = optsRef;
 
 for (const f of ['lib/kits/branch-status.js', 'lib/kits/branch-brief.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, f), 'utf8'))(window);
@@ -142,23 +148,51 @@ test('a deck over the page owns the subject, so the strip underneath stays quiet
   assert.equal(subject().path, 'docs/b.md');
 });
 
-test('framed, it says nothing at all', async () => {
+test('framed, it reports upward instead of announcing', async () => {
   // As a slide of show-repo's branch deck three of these are mounted at once
-  // and this component cannot tell which the reader is on. The flag is driven
-  // directly because the guard under test is the flag: mounting a second
-  // framed view would need a second window, and the assertion would be the
-  // same one.
+  // and none can tell which the reader is on, so a framed view hands its
+  // subject to the host and the host announces. The flag is driven directly
+  // because the flag IS the guard: mounting a second framed view would need a
+  // second window for the same assertion.
   const d = data();
   const before = subject().path;
+  const heard = [];
+  const opts = optsRef;
+  opts.onSubject = (s) => heard.push(s);
   d.framed = true;
   try {
     d.goRev(1);
     await tick(4);
-    assert.equal(subject().path, before, 'no announcement from a framed slide');
+    assert.equal(subject().path, before, 'the channel was not touched');
+    const last = heard[heard.length - 1];
+    assert.ok(last, 'but the host was told');
+    assert.equal(last.path, 'docs/c.md', 'and told which document');
+    assert.equal(last.base, 'main');
+    assert.equal(last.route, 'deck');
   } finally {
+    delete opts.onSubject;
     d.framed = false;
     d.goRev(0);
     await tick(4);
+  }
+});
+
+test('framed with nothing reviewable, the host is told so rather than left holding the last one', async () => {
+  const d = data();
+  const heard = [];
+  const opts = optsRef;
+  opts.onSubject = (s) => heard.push(s);
+  d.framed = true;
+  try {
+    d.setFileState('missing');
+    await tick(4);
+    assert.equal(d.reviewableFiles.length, 0);
+    assert.equal(heard[heard.length - 1], null, 'null, not silence');
+  } finally {
+    d.setFileState('missing');
+    await tick(4);
+    delete opts.onSubject;
+    d.framed = false;
   }
 });
 
