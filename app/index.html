@@ -2571,7 +2571,7 @@ function app(){ return {
       if (list.length) cfg.hidden = list; else delete cfg.hidden;
       if (typeof reg.save !== 'function' && window.gh?.load) await window.gh.load('gh-store.js');
       await reg.save('.web-tools.json', cfg,
-                     (hide ? 'Hide ' : 'Show ') + repo + ' on the estate via show-repo',
+                     (hide ? 'Hide ' : 'Show ') + repo + ' on the estate via Web Tools',
                      { sha });
       this._hiddenOverride = list;
       this.estateHidden = [...list];
@@ -2952,7 +2952,7 @@ function app(){ return {
           skipped: cskipped.length,
         }) ?? prev?.runs;
         await this.saveFold(reg, window.RepoConfigCache.CACHE_PATH, next,
-                            'Update config cache (state/configs.json) via show-repo', base);
+                            'Update config cache (state/configs.json) via Web Tools', base);
       }
       return { committed: moved.length > 0, changed: moved.length, checked: repos.length };
     } catch(e){
@@ -3346,7 +3346,7 @@ function app(){ return {
           pass: deep ? 'scan' : 'quick',
         }) ?? prev?.runs;
         await this.saveFold(reg, A.CACHE_PATH, next,
-                            'Update activity cache (state/activity.json) via show-repo', base);
+                            'Update activity cache (state/activity.json) via Web Tools', base);
       }
       // `doc` rides the summary so a view that re-reads this file on the refresh
       // event does not have to: it is 370 KB and the crawl is holding it
@@ -3534,7 +3534,7 @@ function app(){ return {
           checked: listing.length, read: Object.keys(fetched).length, deferred,
         }) ?? prev?.runs;
         await this.saveFold(reg, S.CACHE_PATH, next,
-                            'Update sessions cache (state/sessions.json) via show-repo', base);
+                            'Update sessions cache (state/sessions.json) via Web Tools', base);
       }
       // `doc` rides the summary for the reason the activity crawl's does, plus
       // one this crawl has and that one does not. The shared reason is cost:
@@ -3793,7 +3793,7 @@ function app(){ return {
     const next = { generatedAt: new Date().toISOString(),
                    runs: { ...(base?.doc?.runs || {}), [key]: run } };
     await this.saveFold(reg, this.CALLS_PATH, next,
-                        'Log ' + key + ' crawl calls (state/calls.json) via show-repo', base);
+                        'Log ' + key + ' crawl calls (state/calls.json) via Web Tools', base);
   },
 
   tickCrawl(key, patch){
@@ -4044,7 +4044,7 @@ function app(){ return {
         // anyone saw it. The stage lists these and a person closes them.
         if (M.isAsk && M.isAsk(req)) continue;
         const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
-        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via show-repo');
+        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
       }
     } catch(e){ console.warn('mailbox:', e?.message || e); }
   },

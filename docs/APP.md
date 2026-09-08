@@ -72,6 +72,19 @@ Seventeen more were the test filenames and their references, which read as
 identifiers until anyone checked what they named. The rest are accurate or are
 records.
 
+**That count of two was wrong, and it missed the largest reader-facing use by
+far: every commit the app writes.** Twenty-four string literals across six files
+signed each write `via show-repo`, so 608 commits already in this estate carry
+the internal name on the line a reader meets most often (584 in
+web-tools-private, 23 in home, 1 here). A commit message is a caption on a
+change, which the paragraph above already puts on the product-name side of the
+split. The grep that found "two" had counted prose in documents and never
+looked at strings in code, which is where a name a reader meets is most likely
+to hide. The literals now read `via Web Tools`; nothing parses the phrase, so
+it was output only, and two test files asserting it were updated with them. The
+608 existing messages stand, because history is a record and a record keeps the
+name it was written with. Recounted 2026-09-08.
+
 **The address moved on 2026-08-16, the identifiers did not,** and the
 distinction is the whole of the decision. This doc first ruled that renaming
 "would break every saved deep link and buy nothing the prose split does not."
