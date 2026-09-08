@@ -628,6 +628,14 @@ const reader = () => doc.querySelector('.sd-overlay');
 // leaves on the popstate rather than on close(). Both are the container's real
 // behaviour, so the test waits rather than reaching past them.
 const settle = () => new Promise(r => setTimeout(r, 40));
+// AND ABSENCE IS POLLED, NOT SLEPT ON. A fixed wait passed alone and failed
+// inside the full suite, where the loop is busier and the popstate lands
+// later: the assertion was measuring the scheduler rather than the teardown.
+// Bounded, so a reader that genuinely never goes still fails.
+const gone = async (get, n = 100) => {
+  for (let i = 0; i < n && get(); i++) await new Promise(r => setTimeout(r, 20));
+  return get();
+};
 
 test('opening a draft warms the far end, once, so the tap lands on a warm cache', async () => {
   // The expand was fast on the second try and slow on the first, which is a
@@ -688,8 +696,7 @@ test('with room beside the page, the expand opens the house reader instead of le
   const raw = window.localStorage.getItem(window.dictateHandoff.KEY);
   assert.ok(raw && JSON.parse(raw).text.includes('a bigger room'));
   A.disable();
-  await settle();
-  assert.equal(reader(), null, 'and turning the annotator off takes the reader with it');
+  assert.equal(await gone(reader), null, 'and turning the annotator off takes the reader with it');
 });
 
 test('with no host to dock it, the kit frames the reader and gives the width back', async () => {
@@ -717,8 +724,7 @@ test('with no host to dock it, the kit frames the reader and gives the width bac
   assert.equal(root.style.getPropertyValue('--deck-bottom'), '0px');
 
   A._closeDock();
-  await settle();
-  assert.equal(reader(), null);
+  assert.equal(await gone(reader), null);
   assert.equal(root.dataset.deckPane, undefined, 'every value is put back');
   assert.equal(root.style.getPropertyValue('--deck-left'), '');
   assert.equal(root.style.getPropertyValue('--deck-bottom'), '');
@@ -833,7 +839,7 @@ test('a phone still leaves for the page, since a strip beside a reader is not a 
   A.notePage({ listen: false });
   const S = A._state;
   S.dict.text = 'spoken on a phone';
-  await settle();
+  assert.equal(await gone(reader), null, 'nothing left standing from the test before');
   assert.equal(await A._dockDictate(), false, 'no room, so no dock');
   assert.equal(reader(), null);
   A.disable();
@@ -855,8 +861,7 @@ test('a second expand rebuilds the reader rather than standing a second one besi
   assert.equal(doc.querySelectorAll('.sd-overlay').length, 1, 'one reader, always');
   assert.notEqual(S.dockFrame, first, 'and it is a new load, not the old one re-pointed');
   A._closeDock();
-  await settle();
-  assert.equal(reader(), null);
+  assert.equal(await gone(reader), null);
   A.disable();
 });
 
