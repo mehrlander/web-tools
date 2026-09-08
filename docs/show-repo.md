@@ -2643,24 +2643,11 @@ Three cross-repo live-view channels, one job each:
 - **review** (`pages/review.html`, marked 🔍) *reads* a changeset: one card per
   changed file with a CM6 diff against the base, patch text, and the caption's
   `[new]/[main]/[diff]` links. Address grammar `#gh=owner/repo[@ref][:path][&base=…]`
-  (the toss `#gh=` address plus a base); token-gated the same way. Folding its
-  per-file dossier (`lib/alpineComponents/file-review.js`) into this shell as a
-  view is on the roadmap below.
-
-## Roadmap (not built)
-
-- A review view: mount `fileReview` cards (pages/review.html's dossier) over
-  the stage's Compare result, so a ref-diff reads in place instead of only
-  listing files.
-- Batch-as-one-commit transfer (needs the Git Data API; Contents-API
-  per-file commits are the current scope).
-
-Private-repo landing presence used to sit on this list as *federation*: a
-curated `landing.json` in `mehrlander/home`, read through a single `HOME_REPO`
-hinge. It is off the list because it shipped in the per-repo form described
-above: a repo opts itself in through its own `.web-tools.json` (`estate`, plus `pages`
-and `appView` for what it publishes), the config cache aggregates the opt-ins, and
-the registry repo is the only private name this public page carries.
+  (the toss `#gh=` address plus a base); token-gated the same way. Its per-file
+  dossier (`lib/alpineComponents/file-review.js`) is already in this shell: the
+  branch view mounts `branchBrief`, which builds the same `fileReview` cards and
+  drills into them through `kits/file-deck.js`. So `review.html` is the
+  standalone ADDRESS for a changeset rather than a capability the app lacks.
 
 ## Using it from a Claude session
 

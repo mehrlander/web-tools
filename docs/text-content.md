@@ -171,8 +171,9 @@ two halves want opposite treatments:
 
 The contract half checks out as redundant on every probe run against it: all
 ten `.web-tools.json` fields in its table are in the doc, and
-[`manifest-fields.csv`](manifest-fields.csv) governs forty-six; the federation account is in
-the doc's Roadmap with the same reasoning; the branch overlay section is longer
+[`manifest-fields.csv`](manifest-fields.csv) governs forty-six; the federation account was in
+the doc's Roadmap with the same reasoning, and is now in the closed tracker task
+`private-repo-landing-federation-u50nns`, which holds the fuller version; the branch overlay section is longer
 and carries a "why this needs to exist" analysis the block lacks; the boundary
 covers four channels where the block covers two.
 
