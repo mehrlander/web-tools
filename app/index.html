@@ -2952,7 +2952,7 @@ function app(){ return {
           skipped: cskipped.length,
         }) ?? prev?.runs;
         await this.saveFold(reg, window.RepoConfigCache.CACHE_PATH, next,
-                            'Update config cache (state/configs.json) via Web Tools', base);
+                            'Update config cache (state/configs.json)', base);
       }
       return { committed: moved.length > 0, changed: moved.length, checked: repos.length };
     } catch(e){
@@ -3346,7 +3346,7 @@ function app(){ return {
           pass: deep ? 'scan' : 'quick',
         }) ?? prev?.runs;
         await this.saveFold(reg, A.CACHE_PATH, next,
-                            'Update activity cache (state/activity.json) via Web Tools', base);
+                            'Update activity cache (state/activity.json)', base);
       }
       // `doc` rides the summary so a view that re-reads this file on the refresh
       // event does not have to: it is 370 KB and the crawl is holding it
@@ -3534,7 +3534,7 @@ function app(){ return {
           checked: listing.length, read: Object.keys(fetched).length, deferred,
         }) ?? prev?.runs;
         await this.saveFold(reg, S.CACHE_PATH, next,
-                            'Update sessions cache (state/sessions.json) via Web Tools', base);
+                            'Update sessions cache (state/sessions.json)', base);
       }
       // `doc` rides the summary for the reason the activity crawl's does, plus
       // one this crawl has and that one does not. The shared reason is cost:
@@ -3793,7 +3793,7 @@ function app(){ return {
     const next = { generatedAt: new Date().toISOString(),
                    runs: { ...(base?.doc?.runs || {}), [key]: run } };
     await this.saveFold(reg, this.CALLS_PATH, next,
-                        'Log ' + key + ' crawl calls (state/calls.json) via Web Tools', base);
+                        'Log ' + key + ' crawl calls (state/calls.json)', base);
   },
 
   tickCrawl(key, patch){

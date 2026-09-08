@@ -2643,6 +2643,39 @@ never executed; a 404 means no config.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
 
+## What the app's own commits say, and why
+
+Every write the app makes is a real commit on a real branch, made with the
+viewer's token, so it lands in `git log` beside development history and is
+indistinguishable from it by author. **Three writers share the same GitHub
+identity in the registry repo**: this app, the phone (through `Log-Repo` in
+`mehrlander/shortcut-tools`, which is where `page report:`, `probe-unattended:`
+and `manifest:` come from), and a pull-request merge. Only a Claude session
+stands apart, authored as `Claude <noreply@anthropic.com>` and carrying its own
+trailers. So the subject line is the only thing that says who wrote a commit,
+and that makes its shape a contract rather than a courtesy.
+
+**`via Web Tools` marks a write a person made by tapping in this app.** It is
+on the twenty-one sites a person reaches: a jot, a to-do, a pin, a
+`.web-tools.json` save, an estate join or set-aside, a proposal applied or
+retired, a mailbox request fulfilled, a stage deposit.
+
+**The crawl's writes carry no trailer**, and the absence is the signal. The four
+cache refreshes (`state/configs.json`, `state/activity.json`,
+`state/sessions.json`, `state/calls.json`) run on a tab-arrival kick as well as
+on the Refresh button, so nobody deliberately made them. Their subjects already
+name a derived file, which is all a reader needs.
+
+That split was measured on 2026-09-08 and it is lopsided: of 584 stamped
+commits in the registry repo, 563 were the crawl and about twenty were a
+person. Claiming a person acted on all of them made the twenty unfindable,
+which is the whole cost of a trailer that means nothing.
+
+**A commit here is application state, not development history.** It has no
+branch, no pull request and no review, and it is not a step toward a release; it
+is the app using a repo as its store. Both halves are real GitHub commits, so
+nothing separates them but this convention.
+
 ## Boundary: show-repo vs toss-render vs artifacts
 
 Three cross-repo live-view channels, one job each:

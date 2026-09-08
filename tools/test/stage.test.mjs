@@ -1504,7 +1504,8 @@ test('the commit message names the deposit and lists what is in it', async () =>
   await data.send();
   await data.send();
   const msg = calls.find(c => c.kind === 'commitFiles').message;
-  assert.equal(msg.split('\n')[0], 'Add 2 files to me/dest:pkg');
+  assert.equal(msg.split('\n')[0], 'Add 2 files to me/dest:pkg via Web Tools',
+    'the trailer marks a write a person made by tapping, not the crawl');
   assert.match(msg, /- pkg\/one\.txt\n- pkg\/two\.txt/, 'the paths the per-file messages used to carry');
 });
 
@@ -1512,7 +1513,7 @@ test('a long deposit caps the message body rather than writing a line per file',
   const files = Array.from({ length: 25 }, (_, i) => ({ path: 'p/f' + i + '.txt' }));
   const msg = data.depositMessage(files, { repo: 'me/dest', dir: 'p' });
   const lines = msg.trim().split('\n');
-  assert.equal(lines[0], 'Add 25 files to me/dest:p');
+  assert.equal(lines[0], 'Add 25 files to me/dest:p via Web Tools');
   assert.equal(lines.filter(l => l.startsWith('- ')).length, 21, '20 paths plus the tail');
   assert.equal(lines.at(-1), '- …and 5 more');
 });
