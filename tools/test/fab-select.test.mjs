@@ -33,6 +33,13 @@ await tick(3);
 const d = Alpine.$data(host.firstElementChild);
 d.SEL_SETTLE = 5;
 
+// jsdom has no layout, so every rect is zero and the offer would read every
+// selection as detached. One stub on the prototype covers the range the fab
+// clones as well as the one the selection hands out; `rect` is what the
+// placement test varies.
+let rect = { left: 120, top: 300, right: 260, bottom: 318, width: 140, height: 18 };
+window.Range.prototype.getBoundingClientRect = () => rect;
+
 const select = (node, a, b) => {
   const r = doc.createRange();
   r.setStart(node, a); r.setEnd(node, b);
@@ -41,9 +48,13 @@ const select = (node, a, b) => {
   doc.dispatchEvent(new window.Event('selectionchange'));
 };
 const settle = async () => { await new Promise(r => setTimeout(r, 30)); await tick(2); };
-const offerEl = () => host.querySelector('[data-fab-sel-offer]');
+// TELEPORTED, so it is a child of the BODY rather than of the fab: the
+// launcher's root carries a transform for the drag, which is a containing
+// block for fixed descendants, so an offer inside it would be placed against
+// that box and would travel with the launcher.
+const offerEl = () => doc.body.querySelector('[data-fab-sel-offer]');
 
-test('selecting text on the page raises the offer above the launcher, with the words', async () => {
+test('selecting text on the page raises the offer, on the passage', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
@@ -53,7 +64,44 @@ test('selecting text on the page raises the offer above the launcher, with the w
   // menu test does, rather than counting the scheduler's flushes.
   for (let i = 0; i < 20 && offerEl().style.display === 'none'; i++) await tick(1);
   assert.notEqual(offerEl().style.display, 'none');
-  assert.equal(offerEl().textContent.replace(/\s+/g, ' ').trim(), 'quick brown fox + note');
+  // NO QUOTE ON IT: the offer sits on the words, so printing them would be the
+  // text saying itself twice, in width taken from the thing being read. The
+  // passage rides the button's title instead.
+  assert.equal(offerEl().textContent.replace(/\s+/g, ' ').trim(), '+ note');
+  assert.match(offerEl().querySelector('button').title, /quick brown fox/);
+});
+
+test('the offer is placed on the passage, and follows it when the page scrolls', async () => {
+  // It sat above the launcher first, which put a control about these words in
+  // the corner where the fab lives. jsdom has no layout, so the range's rect is
+  // stubbed: what is under test is the placement rule, not the geometry engine.
+  const p1 = doc.getElementById('p1').firstChild;
+  const base = rect;
+  try {
+    select(p1, 4, 19);
+    await settle();
+    assert.ok(d.selOffer, 'the offer is up');
+    // Below the passage by default: iOS puts its own callout above a selection
+    // where there is room, so the underside is the freer one more often.
+    assert.equal(d.selOffer.top, 326, 'just under the passage');
+    assert.equal(d.selOffer.left, 120, 'aligned to its left edge');
+
+    // Scrolling moves the words and fires no selectionchange, so the offer has
+    // to be told; otherwise it points at whatever scrolled into its place.
+    rect = { ...base, top: 60, bottom: 78 };
+    doc.dispatchEvent(new window.Event('scroll'));
+    await tick(2);
+    assert.equal(d.selOffer.top, 86, 'and it followed');
+
+    // Scrolled clear of the viewport, the offer goes rather than clamping to an
+    // edge, where it would point at nothing.
+    rect = { ...base, top: -400, bottom: -382 };
+    doc.dispatchEvent(new window.Event('scroll'));
+    await tick(2);
+    assert.equal(d.selOffer, null);
+  } finally {
+    rect = base;
+  }
 });
 
 test('a collapsed selection takes the offer down; a caret is not a passage', async () => {
