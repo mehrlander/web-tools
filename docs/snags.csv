@@ -17,6 +17,9 @@ ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
 header-essay-outlives-its-code,the file-header contract drifted while every per-site comment stayed true,1,2026-09-08,2026-09-08,text-content.md
 rewriter-marks-its-own-work,a comment pass that changed no code still made the file wrong,1,2026-09-08,2026-09-08,text-content.md
+diagnostic-took-the-page-down,the readout added to find the failure was the failure,1,2026-09-07,2026-09-07,../pages/audit-render.html
+long-press-threshold-eats-the-tap,a control read as dead because an ordinary tap was a long press,1,2026-09-07,2026-09-07,../lib/alpineComponents/fab.js
+use-swaps-the-lib-not-the-page,"a page-file fix was handed over on a `?use=` link, twice",1,2026-09-07,2026-09-07,../CLAUDE.md;../scripts/showing.py
 shot-of-a-prebuilt-page-ignores-lib,a break-check that proved nothing,1,2026-09-06,2026-09-06,../tools/README.md#the-pre-build
 id-called-the-filename-stem,a session id read off the store's own directory listing found no record,1,2026-09-05,2026-09-05,../lib/alpineComponents/session-brief.js;../tools/test/session-brief.test.mjs
 toss-carries-no-page-address,"a render link that resolved, rendered, and opened an empty form",1,2026-09-05,2026-09-05,showing.md;../scripts/showing.py
@@ -83,6 +86,7 @@ line-clamp-is-not-a-height,"the utility collided with a display four times in on
 proxy-is-never-its-target,an identity test that reads right and is always false,0,,,
 python-offsets-read-as-utf16,an emoji shifts every standoff offset the browser reads,0,,,
 safari-button-sizes-from-unclipped-content,"the child clipped, the fade landed, and the button stayed tall",0,,,
+shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,0,,,
 tick-count-guesses-a-chain,a passing test that starts failing on somebody else's change,0,,,
 tightest-band-becomes-the-default,"one page's spacing, spent on seven surfaces",0,,,
 touch-synthesises-a-hover,"the same gate, missed on the second of two elements",0,,,

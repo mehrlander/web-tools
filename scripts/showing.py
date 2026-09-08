@@ -373,7 +373,32 @@ def address(mech, page, sha, slug, view=None, at=""):
         q = f"?use={sha}" + (f"&view={view}" if view else "")
         return base + pretty + q + frag
     if mech == "toss-gh":
-        return f"{base}pages/toss-render.html?use={sha}#gh={slug}@{sha}:{page}{frag}"
+        # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
+        # crashes Safari's web process on an iPhone, every time, which is what
+        # made every render link handed over on 2026-09-07/08 unusable.
+        #
+        # It is redundant to begin with. The `@{sha}` in the fragment already
+        # pins the SUBJECT: toss-render injects use=<ref> into the framed page,
+        # so the tossed page gets the branch's lib either way. The ?use= only
+        # pins the SHELL, and what it changes there is HOW that shell's lib
+        # arrives: gh-api.js fetched from raw.githubusercontent and imported
+        # through a blob URL, then every module read from the GitHub contents
+        # API, rather than the same modules imported from jsDelivr. The module
+        # SET is identical either way; only the delivery differs.
+        #
+        # Why that is fatal is not yet established, and an earlier version of
+        # this comment claimed it was the 4.5 MB dist/web-tools.js pre-build.
+        # That was wrong: toss-render loads gh-api.js, alpineComponents/fab.js
+        # and alpine-bundle.js by name and never touches the pre-build. The
+        # measurement below stands on its own and does not depend on knowing
+        # the mechanism.
+        #
+        # Measured on the device by matrix: shell pinned plus a frame dies
+        # whatever the frame contains, including a twenty-line page that loads
+        # nothing; the same pin with no frame survives; a frame with the shell
+        # unpinned survives even with the subject pinned to the branch. Only
+        # the intersection fails.
+        return f"{base}pages/toss-render.html#gh={slug}@{sha}:{page}{frag}"
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
