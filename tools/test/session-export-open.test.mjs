@@ -79,6 +79,7 @@ const CLAY = 'rgb(217, 119, 87)';   // #d97757
 const build = (opts = {}) => {
   const view = SE.index(RECORD, opts);
   window.document.body.replaceChildren(view.el);
+  layOut(view);
   return view;
 };
 
@@ -102,6 +103,7 @@ const MD_RECORD = {
 const buildWith = (rec, opts = {}) => {
   const view = SE.index(rec, opts);
   window.document.body.replaceChildren(view.el);
+  layOut(view);
   return view;
 };
 
@@ -113,16 +115,57 @@ const mark = (n = 1) => rowOf(n)?.querySelector('.ph-sparkle');
 const lead = (n = 1) => rowOf(n)?.querySelector('i.ph');
 const askOf = (n = 1) => rowOf(n)?.querySelector(':scope > div');
 
+// ── Making the chips real in jsdom ─────────────────────────────────────────
+// The chip is the panel's trigger since 2026-09-08, and it appears only where
+// the CSS clamp actually hid something. jsdom lays nothing out, so scrollHeight
+// and clientHeight are both 0 and no line ever overflows: left alone, every row
+// here would have no trigger at all and every panel test would be asserting an
+// absence. So the geometry is stubbed to the shape a real overflow has, the
+// pass is driven by hand through the view's own `measure`, and what is under
+// test stays the wiring rather than the arithmetic.
+//
+// `hidden` is what gates the chip, so a stub that only reported overflow would
+// still leave the count at zero and the chip hidden. getClientRects answers the
+// binary search: a rect whose bottom sits ABOVE the line's own puts every
+// offset "still visible", which lands the search at the end and reports the
+// characters past it. Two nodes' worth is enough to make the number non-zero.
+const OVER = 40;                       // "hidden" line height, in fake pixels
+const layOut = (view, hide = 20) => {
+  for (const line of window.document.querySelectorAll('.line-clamp-1,.line-clamp-2')) {
+    Object.defineProperty(line, 'scrollHeight', { value: OVER, configurable: true });
+    Object.defineProperty(line, 'clientHeight', { value: 10, configurable: true });
+    line.getBoundingClientRect = () => ({ bottom: 10, top: 0, left: 0, right: 0, width: 0, height: 10 });
+    line.getClientRects = () => [{ bottom: 10 }];
+    // Every Range probe lands "visible" except past the tail, so the search
+    // stops `hide` characters from the end and that is what the chip reports.
+    const text = [...line.childNodes].filter(n => n.nodeType === 3);
+    if (!text.length) continue;
+  }
+  const R = window.Range.prototype;
+  R.getClientRects = function () {
+    const n = this.endOffset;
+    const host = this.endContainer;
+    const len = host.length ?? 0;
+    return [{ bottom: n > Math.max(0, len - hide) ? 99 : 5 }];
+  };
+  view.measure();
+};
+
 // The row's controls, read off the element the way a finger would find them.
-// Two destinations: a LINE opens the panel on itself, and the glyph goes to the
-// deck. There is no third.
+// Two destinations: a chip opens the panel on its line, and the glyph goes to
+// the deck. There is no third.
 const decks = () => [...window.document.querySelectorAll('button[aria-label*="in the deck"]')];
 // The panel, and the triggers that open it: since 2026-09-08 the panel carries
 // ONE comment, so each of the row's two lines is its own trigger, in order.
 const peekOf = (n = 1) => boxOf(n)?.querySelector('.shadow-xl');
-const trigs = (n = 1) => [...(rowOf(n)?.querySelectorAll(':scope > [role="button"]') || [])];
-const trig = (n = 1) => trigs(n)[0];          // the ask line
-const trigReply = (n = 1) => trigs(n)[1];     // the reply line
+// Non-hidden only, which is what a finger can find: a chip is wired as a
+// trigger when the row is built and revealed only where the clamp hid
+// something, so the DOM holds one per line either way.
+const trigs = (n = 1) =>
+  [...(rowOf(n)?.querySelectorAll('[role="button"]') || [])].filter(t => !t.hidden);
+const trig = (n = 1) => trigs(n)[0];          // the ask line's chip
+const trigReply = (n = 1) => trigs(n)[1];     // the reply line's chip
+const chipsOf = (n = 1) => [...(rowOf(n)?.querySelectorAll('.not-prose') || [])];
 
 test('a row offers the panel and the deck, and nothing else', () => {
   // With a host that takes onOpen, the deck glyph is the row's ONLY button. The
@@ -257,16 +300,17 @@ test('there is one list, and no route from the deck to a second copy of it', () 
   assert.equal(typeof SE.index, 'function');
 });
 
-test('one control per destination: the text peeks, the glyph decks', () => {
+test('one control per destination: the chip peeks, the glyph decks', () => {
   // It was the other way round, with the title AND the glyph both entering the
   // deck and a pill doing the expanding: two doors to one place, and the third
   // hidden behind a chip. Two destinations, and each has exactly one.
   const opened = [];
   const v = SE.index(RECORD, { onOpen: (i) => opened.push(i) });
   window.document.body.replaceChildren(v.el);
+  layOut(v);
 
   trig(1).click();
-  assert.deepEqual(opened, [], 'tapping the row does not leave for the deck');
+  assert.deepEqual(opened, [], 'tapping the chip does not leave for the deck');
   decks()[1].click();
   assert.deepEqual(opened, [1], 'the glyph is the only way out to the deck');
 });
@@ -522,14 +566,16 @@ test('the panel is bounded, so a long comment stays a panel in the list', () => 
   // it was unreachable without dragging past it all. The panel is capped, and
   // it overlays rather than pushing, so the list never moves at all.
   //
-  // 14rem since 2026-09-08, down from 26rem with the content it caps: a panel
-  // holding a whole exchange needed the room, one comment rarely does, and the
-  // old ceiling let a single long reply stand taller than the list under it.
+  // 26rem, and it went to 14rem for half a day in between. The reason to keep
+  // it short was that a panel could open on a hover anywhere along a line, so
+  // the height was a cost paid on every pass of the pointer; with a chip as the
+  // trigger the panel only opens on purpose, and its job is the rest of a
+  // comment.
   buildWith(STATEFUL);
   trig(1).click();
   const panel = peekOf(1);
   assert.ok(panel.className.includes('overflow-y-auto'));
-  assert.match(panel.className, /max-h-\[min\(45vh,14rem\)\]/);
+  assert.match(panel.className, /max-h-\[min\(60vh,26rem\)\]/);
   assert.ok(panel.className.includes('absolute'), 'it overlays, so nothing below it moves');
   assert.equal(panel.parentElement, boxOf(1), 'hung on the card it belongs to');
   // BOUNDED SIDEWAYS TOO. It spanned the whole card, so at 1280 the panel ran
@@ -765,24 +811,42 @@ test('the disc opens nothing, because it is inside the row\'s own button', () =>
   assert.equal(mark.getAttribute('aria-hidden'), 'true', 'the line beside it says the same thing');
 });
 
-test('each LINE is a trigger, the row is none, and the card is still the scope', () => {
-  // The row was the single trigger from 2026-09-02 to 2026-09-08, carrying a
-  // panel of the whole exchange. Hovering either line then handed the reader
-  // both halves and a scroll, which is what was reported as awkward. The lines
-  // own their own panels again; what does NOT come back with them is a second
-  // scope, since a panel still hangs on the box and lights the card's rule.
+test('the CHIP is the trigger, the line is not, and the card is still the scope', () => {
+  // Three shapes in three days. The row was the single trigger and carried the
+  // whole exchange; then each line was its own; now the chip on a line is, and
+  // the line is only a place to be hovered. What did not move is the scope: the
+  // panel hangs on the box and lights the card's rule, however it was opened.
   buildWith(STATEFUL);
-  assert.equal(rowOf(1).getAttribute('role'), null,
-    'the row opens nothing, so the empty space beside a line is not a control');
+  assert.equal(rowOf(1).getAttribute('role'), null, 'the row opens nothing');
+  const lines = [...rowOf(1).querySelectorAll('.line-clamp-1,.line-clamp-2')];
+  assert.equal(lines.length, 3, 'the ask, the reply, and the closing state under it');
+  for (const l of lines) assert.equal(l.getAttribute('role'), null,
+    'and no line opens anything: crossing prose must not open a panel');
+  // THE STATE LINE IS CLAMPED AND GETS NO CHIP, deliberately. It is a closing
+  // block's own words, already the short form of the reply above it, so the
+  // rest of it is the reply's panel rather than a third one.
+  assert.equal(lines[2].querySelector('.not-prose'), null, 'no chip on the state line');
   const inner = trigs(1);
-  assert.equal(inner.length, 2, 'the ask and the reply, and nothing else on the row');
-  assert.match(inner[0].textContent, /First ask/, 'in the order they are read');
-  assert.match(inner[1].textContent, /And again/, 'the reply line being the LAST reply');
+  assert.equal(inner.length, 2, 'one chip a line, and nothing else on the row');
+  for (const c of inner) assert.match(c.textContent, /^\+[\d,]+ chars$/, 'each is the chip');
+  assert.ok(lines[0].contains(inner[0]), 'the ask chip sits inside the ask line');
+  assert.ok(lines[1].contains(inner[1]), 'and the reply chip inside the reply');
   // One panel element, moved between them, so two open lines cannot coexist.
   inner[0].click();
   const first = peekOf(1);
   inner[1].click();
   assert.equal(peekOf(1), first, 'the same panel, moved rather than a second one');
+});
+
+test('a line that fits gets no chip, so nothing offers to repeat a whole line', () => {
+  // The chip is gated on the clamp having hidden something. A panel repeating a
+  // line the reader can already see whole is the copy this row does not need,
+  // and with the line no longer a trigger there is nothing else to open one.
+  const view = SE.index(RECORD, {});
+  window.document.body.replaceChildren(view.el);
+  view.measure();          // no layout stub, so nothing overflows
+  assert.deepEqual(trigs(1), [], 'no trigger on the row at all');
+  for (const c of chipsOf(1)) assert.equal(c.hidden, true, 'and the chips stay hidden');
 });
 
 test('the capture note has no closing state, and draws no line', () => {
@@ -828,17 +892,20 @@ test('a second tap on the same row closes it, so the trigger is a toggle', () =>
   assert.equal(t.getAttribute('aria-expanded'), 'false');
 });
 
-test('a trigger is not a button, because Safari sizes one from unclipped content', () => {
-  // The row's lines are clamped, and this branch already shipped a clipped
-  // child inside a button that left the button at its full height (snags:
-  // safari-button-sizes-from-unclipped-content). `role` and a tabindex buy the
-  // same reach without the box.
+test('the trigger reaches a keyboard, and is the chip inside the clamped line', () => {
+  // asTrigger emits role and tabindex rather than a real button because the
+  // trigger used to be a clamped line, and Safari sizes a button from its
+  // UNCLIPPED content: this branch shipped one at its full height (snags:
+  // safari-button-sizes-from-unclipped-content). The chip is not clamped, so
+  // that hazard no longer reaches it; the mechanism stayed because a chip needs
+  // exactly the same reach and nothing about a button would buy more.
   buildWith(STATEFUL);
-  for (const t of [trig(1)]) {
+  for (const t of trigs(1)) {
     assert.notEqual(t.tagName, 'BUTTON');
     assert.equal(t.getAttribute('tabindex'), '0');
-    assert.ok(t.className.includes('line-clamp-1') || t.className.includes('line-clamp-2')
-              || t.querySelector('.line-clamp-1'), 'every trigger is a clamped line: ' + t.className);
+    assert.equal(t.getAttribute('role'), 'button');
+    assert.match(t.textContent, /^\+[\d,]+ chars$/, 'and every trigger is a chip');
+    assert.ok(t.closest('.line-clamp-1,.line-clamp-2'), 'sitting inside the line it reports on');
   }
 });
 
@@ -934,9 +1001,12 @@ test('each card is an item, and the hovered one is scoped without a fill', () =>
   // under each is the cheapest thing that reads as a list, and the objection
   // this file used to carry against one went with the rule it named.
   //
-  // The scope is a 2px strip at the card's own edge, NOT a tint behind the
-  // head: a band washes the blue ask sitting on it, since this theme's greys
-  // are cool, and it was reported twice and removed for it.
+  // The scope is a strip at the card's own edge, NOT a tint behind the head: a
+  // band washes the blue ask sitting on it, since this theme's greys are cool,
+  // and it was reported twice and removed for it. 3px at /40 since 2026-09-08,
+  // up from 2px at /20, which was quiet enough that a reader asked for a hover
+  // effect on the row while this one was already there. The strip is the part
+  // that must not change; its weight is not.
   buildWith(STATEFUL);
   const boxes = [...window.document.querySelectorAll('.mb-0\\.5.pl-3')];
   for (const b of boxes) assert.match(b.className, /border-b/, 'every card is bounded');
@@ -946,7 +1016,7 @@ test('each card is an item, and the hovered one is scoped without a fill', () =>
   // The step matters: 25 is not one Tailwind generates, so the class renders
   // fully transparent and reads as a colour that did not arrive. `dead-opacity`
   // is the gate for that and it named both the line and the nearest step.
-  assert.match(rule.className, /bg-base-content\/20/);
+  assert.match(rule.className, /bg-base-content\/40/);
   assert.equal(boxes[0].style.background, '', 'and nothing behind the head');
 });
 
