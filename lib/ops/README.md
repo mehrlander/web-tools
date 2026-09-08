@@ -42,7 +42,19 @@ as attaching to `expression`. The rule and its place among the other layers:
 
 | File | Input | Result |
 | --- | --- | --- |
-| `session-menu.js` | `{ input: <clipboard text>, token }` | `{ caption, rows: [label], urls: { label: url }, branch, count }` |
+| `session-menu.js` | `{ input: <clipboard text>, token }` | `{ caption, rows, urls, menu, branch, id, state }` |
+
+`session-menu.js` is the whole Claude menu the phone draws after a double back
+tap, header and rows together, so `Choose-Claude` in shortcut-tools is a shell
+that draws `menu` and looks the chosen row up in `urls`. A change to the menu's
+wording, order or verbs is therefore a commit here and costs no install, which
+is the point: that repo ranks the device as the expensive resource.
+
+It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
+46 KB index written by the same crawl that writes `state/sessions.json`
+(`lib/kits/repo-sessions-cache.js`, "The phone's copy"). Not the 1.16 MB cache
+itself, which carries every tool call of every session to answer a question that
+needs three fields.
 
 The public address of an op, for a caller off the app:
 `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/ops/<name>.js`.

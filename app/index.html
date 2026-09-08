@@ -3535,6 +3535,24 @@ function app(){ return {
         }) ?? prev?.runs;
         await this.saveFold(reg, S.CACHE_PATH, next,
                             'Update sessions cache (state/sessions.json) via show-repo', base);
+        // THE PHONE'S COPY, written in the same pass and only when the cache
+        // itself moved. It is a separate 46 KB file rather than a view of the
+        // megabyte above, because its whole reason to exist is that the phone
+        // cannot afford the megabyte (lib/kits/repo-sessions-cache.js, "The
+        // phone's copy"). Sharing the crawl is what keeps the two stamps
+        // identical, so the menu's age reading can never contradict the
+        // estate's.
+        //
+        // Its own change gate, because the cache moves for things this file
+        // does not carry: a tool count or a closing reply changes the cache
+        // and leaves every id, timestamp and ask here identical.
+        try {
+          const menu = S.buildMenuIndex(next);
+          const mbase = await this.readForFold(reg, S.MENU_PATH);
+          if (S.menuChanged(mbase?.doc || null, menu))
+            await this.saveFold(reg, S.MENU_PATH, menu,
+                                'Update session menu index (state/session-menu.json) via show-repo', mbase);
+        } catch(e){ console.warn('session menu index:', e?.message || e); }
       }
       // `doc` rides the summary for the reason the activity crawl's does, plus
       // one this crawl has and that one does not. The shared reason is cost:
