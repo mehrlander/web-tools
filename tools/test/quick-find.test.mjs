@@ -262,7 +262,7 @@ test('jotThis appends to a fresh read of lists/jots.json with the estate\'s comm
   assert.equal(SAVES[0].value.items.length, 2);
   assert.equal(SAVES[0].value.items[0].text, 'earlier');
   assert.equal(SAVES[0].value.items[1].text, 'quick idea');
-  assert.match(SAVES[0].message, /^Jot "quick idea" via show-repo$/);
+  assert.match(SAVES[0].message, /^Jot "quick idea" via Web Tools$/);
 });
 
 test('the content and session gates appear on plain queries of three characters or more', () => {

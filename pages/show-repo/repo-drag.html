@@ -32,7 +32,7 @@
                 </button>
               </template>
               <template x-if="counts[bc.id]">
-                <span class="absolute -bottom-2 -right-2 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold text-primary-content shadow-sm ring-1 ring-base-100 transition-all duration-300" :class="hot === bc.id ? 'bg-error scale-125' : 'bg-primary'" x-text="counts[bc.id]"></span>
+                <span class="absolute -bottom-2 -right-2 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold text-primary-content shadow-sm ring-1 ring-[var(--color-base-100)] transition-all duration-300" :class="hot === bc.id ? 'bg-error scale-125' : 'bg-primary'" x-text="counts[bc.id]"></span>
               </template>
             </span>
           </ul>
@@ -43,7 +43,7 @@
   </header>
 
   <main class="flex-1 overflow-y-auto bg-base-100 border-b border-base-300">
-    <div class="bg-base-200/50 border-b border-base-200 divide-y divide-base-200">
+    <div class="bg-base-200/50 border-b border-base-200 divide-y divide-[var(--color-base-200)]">
       <template x-for="dir in directories" :key="dir.id">
         <ul :id="dir.id" :data-target="dir.id" data-type="folder" :data-path="dir.path"
             x-sort="[]" x-sort:group="files"
@@ -58,7 +58,7 @@
               </button>
             </template>
             <template x-if="counts[dir.id]">
-              <span class="absolute -bottom-1 -right-4 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold text-warning-content shadow-sm ring-1 ring-base-100 transition-all duration-300" :class="hot === dir.id ? 'bg-error scale-125' : 'bg-warning'" x-text="counts[dir.id]"></span>
+              <span class="absolute -bottom-1 -right-4 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold text-warning-content shadow-sm ring-1 ring-[var(--color-base-100)] transition-all duration-300" :class="hot === dir.id ? 'bg-error scale-125' : 'bg-warning'" x-text="counts[dir.id]"></span>
             </template>
           </div>
         </ul>
@@ -68,7 +68,7 @@
     <ul id="file-list" data-target="file-list" data-type="root"
         x-sort="items" x-sort:group="files"
         x-sort:config="{ onStart: e => handleStart(e), onMove: e => handleMove(e), onEnd: e => handleEnd(e) }"
-        class="divide-y divide-base-200 min-h-[100px] bg-base-100">
+        class="divide-y divide-[var(--color-base-200)] min-h-[100px] bg-base-100">
       <template x-for="id in items" :key="id">
         <li x-sort:item="id" :data-id="id" :data-name="byId[id]?.name" :data-path="byId[id]?.path" :class="css.ROOT">
           <i class="ph ph-file-text text-base-content/30 text-lg"></i>

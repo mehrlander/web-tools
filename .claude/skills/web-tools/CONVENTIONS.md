@@ -7,7 +7,18 @@ This hub holds behavior that applies whether or not anything is being surfaced. 
 - **[SURFACING.md](SURFACING.md)**: the surfacing system, the primitives that make session work visible in chat (no setup) plus the surfacing course (the guide-PR lifecycle, idle until you open a PR).
 - **[PORTABLE.md](https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md)**: installation, the plugin, and the full catalog of what travels from the hub to any repo.
 
-**Prose style:** zero em dashes. Use colons, commas, semicolons, parentheses, or new sentences.
+## Qualified writing
+
+Qualify noun phrases to increase clarity, strengthen claims, highlight questions, and support narrative direction. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
+
+1. **Introduce before you refer.** Use *this*, *it*, or a definite phrase only when the immediate context identifies a single referent.
+   *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
+2. **Use plain language.** Avoid in-group phrasings, and pin terms to what you mean by them.
+   *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
+3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
+   *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. A bare quantifier is the common case.
+   *Not:* Both are good. *But:* Both restructuring proposals are good.
 
 ## Scope and precedence
 
@@ -58,6 +69,10 @@ A document that restates what an app derives, or what a check enforces, is carry
 **There is no fourth question that saves a passage, and a reason is not exempt because it is a reason.** What earns its place inside a reason is the **criterion**: the condition, threshold, or named exception that changes how the rule applies at an edge. Lift that into the rule; the rest goes to the PR body or the dated record that owns the decision. Operated by [`state-the-rule`](https://github.com/mehrlander/web-tools/blob/main/skills/state-the-rule/SKILL.md), which carries the labels and the checks.
 
 The cut is only safe when something will notice it being undone, so leave a gate behind: a pointer the doc must keep, and a ceiling it must stay under.
+
+### The same rule, in a comment
+
+A code comment is prose with the same failure, and the criterion is what it keeps: the condition, the threshold, the named exception, whatever changes how the line must be read or edited. The date, the measurement and the story of the bug go to the dated record; git history holds the rest. Two shapes are the ones that actually rot, so treat them as the rule's edges. **A file header states a contract, so it is checked against the code whenever the contract changes**, and it points at the comment beside the code rather than restating it. **A figure in a comment is traceable to a file or it goes**, since a count is true when written and nothing re-runs it. Neither is a length rule: a header essay of 40 to 249 words is the house convention and is good, and the shouty lead-in this estate favors reliably marks a criterion rather than noise, so a trim keyed on tone or on length cuts the wrong half. Measured in [text-content.md](https://github.com/mehrlander/web-tools/blob/main/docs/text-content.md); `embedded-prose.py --dated` reports the second shape and nothing reports the first.
 
 ## Keep focus
 
