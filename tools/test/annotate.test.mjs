@@ -8,7 +8,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow } from './bootstrap.mjs';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { makeWindow, repoRoot } from './bootstrap.mjs';
 import { loadKit } from './bootstrap.mjs';
 
 const { window } = makeWindow({
@@ -239,12 +241,13 @@ test('selection is state: one note is current, and update edits it in place', ()
   A.clear();
 });
 
-test('the set announces its changes, and Review is a request rather than a surface', () => {
+test('the set announces its changes, for anyone outside the card who wants to know', () => {
   A.enable({ doc, subject: { title: 'sample', url: 'https://example.test/s' } });
   A.clear();
 
-  // The kit owns the data and announces that it moved; the reading surface is
-  // the FAB drawer's Notes tab. There is deliberately no sheet here to find.
+  // The kit owns the data and announces that it moved. The card is the reading
+  // surface now; the announcement survives it as a public signal, and is what
+  // the drawer's Notes tab used to live on before that tab was retired.
   const seen = [];
   const onChange = () => seen.push(A.items.length);
   window.addEventListener('annotate:change', onChange);
@@ -255,29 +258,16 @@ test('the set announces its changes, and Review is a request rather than a surfa
   A.remove(it.id);
   assert.deepEqual(seen, [1, 1, 1, 0], 'add, update, select and remove each announce');
   window.removeEventListener('annotate:change', onChange);
-
-  // Review asks; a listener claims it by preventing the default. Unclaimed, it
-  // says so on the status line rather than appearing to do nothing.
-  let asked = 0;
-  const claim = (e) => { asked++; e.preventDefault(); };
-  window.addEventListener('annotate:review', claim);
-  A.review();
-  assert.equal(asked, 1);
-  assert.equal(A._state.status.textContent, '', 'a claimed request is silent');
-  window.removeEventListener('annotate:review', claim);
-
-  A.review();
-  assert.match(A._state.status.textContent, /No drawer/,
-    'unclaimed, it names the gap instead of failing quietly');
+  assert.equal(typeof A.review, 'undefined', 'and Review is gone with the tab it asked for');
   A.clear();
 });
 
-test('announcements climb to the top window, since the drawer is usually up there', () => {
-  // A toss runs the annotated page in an iframe whose own drawer declines to
-  // mount, so the listener is in the TOP window while the kit is in the frame.
-  // An announcement that only reached its own window was shouted into the frame
-  // nobody watches: measured 2026-08-09, Review reporting "no drawer" with the
-  // launcher visible in the same screenshot.
+test('announcements climb to the top window, since a listener is usually up there', () => {
+  // A toss runs the annotated page in an iframe, so a listener is in the TOP
+  // window while the kit is in the frame. An announcement that only reached its
+  // own window was shouted into the frame nobody watches: measured 2026-08-09,
+  // when Review reported "no drawer" with the launcher visible in the same
+  // screenshot. Review is retired; the climb is what outlived it.
   //
   // jsdom's window.top is non-configurable, so the framed kit gets its own
   // stub window. That is honest to the case anyway: a second kit instance in a
@@ -295,8 +285,8 @@ test('announcements climb to the top window, since the drawer is usually up ther
   assert.deepEqual(seen.top, ['annotate:change'], 'and it reached the shell one frame up');
 
   topWin.claim = true;
-  assert.equal(F._announce('annotate:review', true), true,
-    'a drawer one frame up counts as a drawer');
+  assert.equal(F._announce('annotate:change', true), true,
+    'and a listener one frame up can claim it');
 
   // Unframed, top IS the window, and one dispatch must not become two: a
   // doubled change event is a doubled re-read of the whole set.
@@ -1239,37 +1229,90 @@ test('the Page chip opens a draft outright: no gesture to make first', () => {
   A.disable();
 });
 
-test('the review button says what a tap will do before it is tapped', () => {
-  // It was a yellow pill reading "Review" that looked the same whether it would
-  // open the drawer, close it, or reach nothing at all. The drawer broadcasts
-  // its state; the button reads it.
-  let asked = 0;
-  const query = () => asked++;
-  window.addEventListener('annotate:drawer-query', query);
+// ── A quote resolves into the block it starts, not the whitespace before it ──
+//
+// offsetPoint maps a text offset back to a (node, offset) pair, and an offset
+// that ends one text node also begins the next, so at a block boundary two
+// rows match. Taking the first for both ends of a range put every START on the
+// trailing edge of what came before, which between two blocks is the
+// inter-element whitespace, whose parent is the container. The quote, the
+// anchor and the highlight were all correct; what got the wrong answer was
+// "which element is this range in", which elementOf asks (blockOf on the
+// range's start) for scrollToTarget and for anything else that needs the node.
+//
+// The gate has to select from a block's FIRST character, which is what
+// selecting a whole sentence does. Every other quote in this suite starts
+// mid-block, which is why the defect lived here unseen until 2026-09-07.
+test('a quote that starts a block resolves into that block', () => {
   A.enable({ doc, subject: { title: 'x', url: '' } });
-  const S = A._state;
-  assert.equal(asked, 1, 'the card asks once on mount rather than waiting to be told');
-  window.removeEventListener('annotate:drawer-query', query);
+  const p1 = doc.getElementById('p1').firstChild;
+  const r = doc.createRange();
+  r.setStart(p1, 0); r.setEnd(p1, 19);
+  const q = A._quoteFor(doc.body, r);
+  assert.match(q.exact, /^The quick brown fox/, 'the quote itself was never the problem');
 
-  const say = (detail) => window.dispatchEvent(new window.CustomEvent('annotate:drawer', { detail }));
-
-  say({ open: false, tab: 'render' });
-  assert.match(S.reviewBtn.title, /^Open/);
-  assert.equal(S.reviewBtn.disabled, false);
-
-  say({ open: true, tab: 'render' });
-  assert.match(S.reviewBtn.title, /^Open/, 'open on another tab is still an open');
-
-  say({ open: true, tab: 'notes' });
-  assert.match(S.reviewBtn.title, /^Close/, 'and in front of you, the only honest offer is to put it away');
-  assert.equal(S.reviewBtn.style.background, 'rgb(250, 204, 21)', 'lit, the way a live mode chip is');
-
-  // No drawer at all: the click that proves it is the click that disables the
-  // button, so it stops offering something it cannot do.
-  A.review();
-  assert.equal(S.reviewBtn.disabled, true);
-  assert.match(S.reviewBtn.title, /No drawer/);
+  const rr = A._resolveQuote(doc.body, q);
+  assert.equal(rr.startContainer, p1,
+    'the start lands in the paragraph, not the whitespace text node before it');
+  assert.equal(rr.startOffset, 0);
   A.disable();
+});
+
+test('the count rides the list reading, and is empty until there is one', () => {
+  // It was the expander's, `Notes 3 ⌄`, and the expander went with the
+  // collapsed state (2026-09-06): a number saying how many notes there are
+  // belongs on the control that shows them, not on one that used to open them.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+
+  assert.equal(S.countEl.textContent, '', 'no number until there is one');
+  assert.equal(S.readChips.notes.contains(S.countEl), true, 'and it rides the list key');
+  A.add({ type: 'page' }, 'one');
+  A.add({ type: 'page' }, 'two');
+  assert.equal(S.countEl.textContent, '2');
+  A.remove(A.items[0].id);
+  assert.equal(S.countEl.textContent, '1', 'and follows the set down');
+  A.clear();
+  assert.equal(S.countEl.textContent, '', 'back to a bare glyph on an empty set');
+  A.disable();
+});
+
+// ── One card state, and the launcher owns the other one ────────────────────
+//
+// Collapsed was the writing surface and expanded the reading surface, and the
+// reader carried a toggle between them on a header with no room for it. The
+// real question was whether the card is THERE, and nothing anywhere answered
+// it: a card raised by a long press could not be put down by one.
+
+test('there is no collapsed state left to reach', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  assert.equal(A.expand, undefined, 'the API no longer offers to open what is always open');
+  assert.equal(A.expanded, undefined, 'nor a flag saying which of two states it is in');
+  assert.equal(S.expandBtn, undefined, 'and the header carries no key for it');
+
+  // The window applies on arrival rather than on a first tap, so the readings
+  // strip, the list and the set actions are all there to be reached.
+  assert.equal(S.readBar.style.display, 'flex');
+  A.add({ type: 'page' }, 'one');
+  assert.equal(S.listEl.style.display, 'flex');
+  assert.equal(S.setActs.style.display, 'flex');
+  assert.match(S.panel.style.height, /^\d+px$/, 'and the card is windowed from the start');
+  A.clear();
+  A.disable();
+});
+
+test('the height came down 15% to pay for the card always being windowed', () => {
+  // Writing a note used to happen over a content-sized card. Every figure took
+  // the same cut so the shape holds at every viewport rather than the cap
+  // moving relative to the fraction.
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/annotate.js'), 'utf8');
+  assert.match(src, /Math\.max\(204, Math\.min\(374, Math\.round\(vh \* 0\.47\)/,
+    'the windowed height is 204/374/0.47, which is 240/440/0.55 less 15%');
+  assert.match(src, /PANEL_MAX = 'min\(408px,60vh\)'/,
+    'and the declared fallback is 480/70vh less 15%');
 });
 
 test('the launcher-staged page draft opens idle: an offer, not a recorder', () => {
@@ -1301,6 +1344,74 @@ test('the launcher-staged page draft opens idle: an offer, not a recorder', () =
   A.disable();
 });
 
+test('the aim menu is placed inside the card, not against the viewport', () => {
+  // It hung off the body at fixed coordinates read from the button, which a
+  // pinch-zoomed phone put most of a screen away from it: the card's position
+  // is declarative and the browser keeps it consistent as the visual viewport
+  // moves, while the menu's was a number computed once and frozen. Reported
+  // from a device 2026-08-27.
+  //
+  // What this holds is the SHAPE of the fix, which is all jsdom can see: the
+  // menu is a child of the card and positioned absolutely, so the browser does
+  // the arithmetic and zoom moves both together. The pixel result needs a real
+  // viewport and is not gated anywhere.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+
+  assert.equal(S.aimMenu.style.position, 'absolute',
+    'absolute, so it resolves against the card rather than the viewport');
+  assert.ok(S.ui.contains(S.aimMenu),
+    'and it hangs off the card, so a dragged or zoomed card carries it');
+  assert.ok(!S.panel.contains(S.aimMenu),
+    'but outside the panel, which clips for its corners');
+  assert.notEqual(S.aimMenu.parentElement, doc.body,
+    'never the body: that is what made its coordinates independent of the card');
+  A.disable();
+});
+
+test('an unaimed note is a page note, and the menu names the aim in force', async () => {
+  // The page was a chip on the header, which read as though page association
+  // were something a control supplied. It never was: mdHead and jsonFor put the
+  // title and address at the head of every serialization, whatever the target.
+  // What the page target carries is the ABSENCE of an anchor, so it is what an
+  // unaimed note resolves to, and the card offers only the aims that are not
+  // the default.
+  A.enable({ doc, subject: { title: 'x', url: 'https://e.test/p' } });
+  A.clear();
+  const S = A._state;
+
+  const bare = A.add(null, 'no aim at all');
+  assert.deepEqual(bare.target, { type: 'page' }, 'an omitted target is the page');
+  assert.match(A.toMarkdown(), /## 1\. the page/, 'and it serializes as one');
+
+  // The button carries the aim in force, which at rest is the default. It
+  // carries it as a GLYPH, so the header holds one line on a phone once the
+  // card is expanded; the word is in the title and the aria-label.
+  assert.match(S.aimGlyph.className, /\bph-file\b/);
+  assert.equal(S.aimBtn.title, 'What the next note is about: Page');
+  assert.equal(S.aimMenu.style.display, 'none', 'and the alternatives cost nothing until asked for');
+
+  S.aimBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(S.aimMenu.style.display, 'block');
+
+  // Arming an aim renames the button and lights it, so a mode is never a state
+  // you have to remember being in.
+  S.modeChips.region.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.match(S.aimGlyph.className, /\bph-frame-corners\b/);
+  assert.equal(S.aimBtn.title, 'What the next note is about: Region');
+  assert.equal(S.aimBtn.style.backgroundColor, 'rgb(250, 204, 21)');
+  assert.equal(S.aimMenu.style.display, 'none', 'and picking closes the menu');
+
+  // AND PAGE IS THE WAY OUT. Backing out of a mode used to mean knowing to tap
+  // the lit chip again, an exit with nothing on screen naming it.
+  S.pageChip.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(S.mode, null, 'the mode is off');
+  assert.match(S.aimGlyph.className, /\bph-file\b/);
+  A.clear();
+  A.disable();
+});
+
 test('the card spends its whitespace evenly: an empty list is not a band', () => {
   // The list's bottom padding separates the last note from the card's edge.
   // With no notes there is nothing to separate, and the 8px stacked under the
@@ -1317,8 +1428,10 @@ test('the card spends its whitespace evenly: an empty list is not a band', () =>
   A.add({ target: { type: 'page' }, note: 'one' });
   assert.equal(S.listEl.style.paddingBottom, '8px', 'and it returns with the first note');
 
-  assert.match(S.reviewBtn.getAttribute('style'), /min-height:\s*30px/, 'the title matches the action row');
-  assert.match(S.pageChip.getAttribute('style'), /min-height:\s*28px/, 'and a chip plus its group border makes 30');
+  // The aim button is the header's third control and matches the two beside
+  // it: a control half the height of its neighbours reads as a label that
+  // happens to be tappable.
+  assert.match(S.aimBtn.getAttribute('style'), /min-height:\s*30px/, 'and the aim button matches the title and the eye');
   A.disable();
 });
 
@@ -1512,7 +1625,7 @@ test('a drag surface cancels the touch itself, not just its touch-action', () =>
   // `cursor:move` with a space, so a style-substring match is a false negative
   // waiting to happen.)
   const header = S.panel.firstChild;
-  assert.ok(header.textContent.includes('Notes'), 'the header, by position');
+  assert.equal(header.firstChild, S.placeBtn, 'the header, by position');
   assert.equal(touch(header, 'touchstart'), true, 'the bare header cancels');
   assert.equal(touch(S.pageChip, 'touchstart'), false,
     'and a chip inside it does not, or a tap on it would never become a click');
@@ -1596,12 +1709,86 @@ test('the card recognizes a selection and offers it, and the offer outlives the 
     assert.match(S.selQuote.textContent, /quick brown fox/, 'and quotes it back');
     assert.equal(A.staged.type, 'text');
 
+    // AND THE OTHER HALF OF THE STAGE CARRIES THE SAME WAY OUT. The floating
+    // chip beside the text is built from the same offer pair the two aims use,
+    // so its ✕ drops the passage, the bar and the chip together. Before
+    // 2026-08-31 the chip had no ✕ at all: it vanished on its own when the
+    // browser dropped the highlight while the bar kept the stage, which is one
+    // stage answering a tap two ways.
+    const chip = doc.querySelector('[data-annotate-offer]');
+    assert.ok(chip, 'the floating chip is an offer pair');
+    assert.deepEqual([...chip.querySelectorAll('button')].map(b => b.textContent),
+      ['+ note', '✕'], 'take it, or let it go');
+
+    // A SECOND POINTERUP OVER THE SAME LIVE SELECTION LEAVES THE CHIP ALONE.
+    // It used to tear it down and build an identical one, which is what made
+    // the tap meant to dismiss the chip rebuild it instead: iOS collapses a
+    // selection as the tap's default action, after this handler has already
+    // run, so the handler sees the passage still selected and re-offers it.
+    doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+    await new Promise((done) => setTimeout(done, 40));
+    assert.equal(doc.querySelector('[data-annotate-offer]'), chip,
+      'the same passage must keep the same chip, not get a twin');
+
     // The tap that reaches the card is the tap most likely to have collapsed
     // the selection, so the stage has to survive it.
     sel.removeAllRanges();
     doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
     await new Promise((done) => setTimeout(done, 40));
     assert.equal(S.selBar.style.display, 'flex', 'a collapsed selection leaves the offer standing');
+
+    // BUT THE CHIP GOES WITH THE SELECTION, and it does not need a pointerup to
+    // notice. A chip pointing at text that is no longer selected still refuses
+    // pointerdown, which is how it came to swallow the next tap.
+    assert.equal(doc.querySelector('[data-annotate-offer]'), null,
+      'the chip belongs to the selection, not to the stage');
+
+    const again = doc.getElementById('p1').firstChild;
+    const r2 = doc.createRange();
+    r2.setStart(again, 4); r2.setEnd(again, 19);
+    sel.removeAllRanges(); sel.addRange(r2);
+    doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+    await new Promise((done) => setTimeout(done, 40));
+    const fresh = doc.querySelector('[data-annotate-offer]');
+    assert.ok(fresh, 'a fresh selection offers again');
+
+    // ACROSS A BLOCK BOUNDARY, which is where the first version of this guard
+    // failed: it compared the staged quote against `String(sel)`, and in a
+    // BROWSER those are not the same string, since a selection's text carries
+    // block breaks and `exact` is cut from the annotator's text index, which
+    // does not. So the guard agreed inside one paragraph and disagreed the
+    // moment a selection crossed one.
+    //
+    // AND THIS ASSERTION CANNOT SEE THAT. jsdom's Selection.toString
+    // concatenates text nodes with no block breaks at all ("First para
+    // here.HeadSecond"), so both strings agree here and the broken guard passes
+    // this test: checked by running it against the old comparison, which failed
+    // nothing. The behavioral gate is the browser scenario
+    // (tools/render/scenarios/annotate-drop-stage.mjs); what holds it HERE is
+    // the structural check below, that the comparison never goes through
+    // `String(sel)` again. Kept anyway, since it holds the same-passage rule
+    // for the single-block case that jsdom can answer for.
+    const wide = doc.createRange();
+    wide.setStart(doc.getElementById('p1').firstChild, 4);
+    wide.setEnd(doc.getElementById('p2').firstChild, 20);
+    sel.removeAllRanges(); sel.addRange(wide);
+    doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+    await new Promise((done) => setTimeout(done, 40));
+    const spanning = doc.querySelector('[data-annotate-offer]');
+    assert.ok(spanning, 'a selection across blocks is offered');
+    assert.notEqual(spanning, fresh, 'and it is a different passage, so a new chip');
+    doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+    await new Promise((done) => setTimeout(done, 40));
+    assert.equal(doc.querySelector('[data-annotate-offer]'), spanning,
+      'a repeat pointerup over the same multi-block selection keeps its chip');
+
+    sel.removeAllRanges(); sel.addRange(r2);
+    doc.dispatchEvent(new window.Event('pointerup', { bubbles: true }));
+    await new Promise((done) => setTimeout(done, 40));
+    sel.removeAllRanges();
+    doc.dispatchEvent(new window.Event('selectionchange', { bubbles: true }));
+    assert.equal(doc.querySelector('[data-annotate-offer]'), null,
+      'selectionchange alone clears it, with no pointer event behind it');
 
     const go = [...S.selBar.querySelectorAll('button')].find(b => b.textContent === '+ note');
     go.dispatchEvent(new window.Event('click', { bubbles: true }));
@@ -1641,5 +1828,472 @@ test('the set has a second reading: on the page, where a screenshot can hold it'
   assert.equal(S.listEl.style.display, 'flex');
   assert.equal(painted(), '', 'and the page is clean again');
   A.clear();
+  A.disable();
+});
+
+test('the card grows upward whatever it is anchored by', () => {
+  // The card is anchored bottom-left, so a taller panel grows up and the header
+  // stays under the thumb. A header drag re-anchors it to the TOP, though, and
+  // a taller panel then grows down and off the screen: the sizer re-pins the
+  // bottom edge so the direction is the same either way. That used to be the
+  // expander's job; with one card state it belongs to whatever resizes the
+  // window, which is a rotation or a keyboard rather than a tap.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+
+  // What a drag leaves behind: bottom released, top pinned.
+  S.ui.style.bottom = 'auto';
+  S.ui.style.top = '40px';
+
+  A.add({ type: 'page' }, 'about the page');
+  assert.equal(S.ui.style.top, 'auto', 'the top anchor is released');
+  assert.match(S.ui.style.bottom, /px$/, 'and the bottom edge is pinned, so the growth goes up');
+  assert.match(S.panel.style.maxHeight, /px$/, 'the ceiling is computed from the room above that edge');
+  assert.equal(S.readBar.style.display, 'flex', 'the readings are there from the start');
+  assert.equal(S.setActs.style.display, 'flex', 'and the actions on the set');
+  assert.equal(S.listEl.style.display, 'flex', 'opening on the list');
+
+  // In place is the one reading that is not windowed, and the only thing left
+  // that falls back to the declared cap.
+  A.showInPlace(true);
+  assert.equal(S.panel.style.maxHeight, 'min(408px,60vh)');
+  assert.equal(S.readBar.style.display, 'none');
+  A.showInPlace(false);
+  A.clear();
+  A.disable();
+});
+
+test('three readings of one set, and a serialization is shown rather than described', () => {
+  // A button labelled by its format that copies without saying so is the thing
+  // this replaced: what will land on the clipboard is on screen first.
+  A.enable({ doc, subject: { title: 'Sample doc', url: 'https://e.test/p' } });
+  A.clear();
+  A.add({ type: 'element', selector: '#p1', excerpt: 'the quick brown fox' }, 'about the paragraph');
+  A.add({ type: 'page' }, 'about the page');
+  const S = A._state;
+
+  S.readChips.md.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(A.reading, 'md');
+  assert.equal(S.listEl.style.display, 'none', 'the list gives up the strip of card it shares');
+  assert.equal(S.serial.style.display, 'flex');
+  assert.equal(S.serialPre.textContent, A.toMarkdown(), 'exactly what Copy hands over, not a paraphrase');
+  assert.equal(S.readChips.md.style.backgroundColor, 'rgb(250, 204, 21)', 'lit, the way a live mode chip is');
+  assert.equal(S.readChips.md._icon.className, 'ph ph-markdown-logo', 'and the cell is a glyph, not the word');
+
+  S.readChips.json.dispatchEvent(new window.Event('click', { bubbles: true }));
+  // Everything but `at`, which is stamped at the moment of serializing and so
+  // differs by a millisecond between the pane's copy and this one.
+  const shape = (o) => { const { at, ...rest } = o; return rest; };
+  assert.deepEqual(shape(JSON.parse(S.serialPre.textContent)), shape(A.toJSON()));
+
+  // The set stays live under the reading: a note filed while the JSON is up
+  // repaints the JSON rather than leaving a stale copy on screen.
+  A.add({ type: 'page' }, 'a third');
+  assert.match(S.serialPre.textContent, /a third/);
+
+  S.readChips.notes.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(S.listEl.style.display, 'flex');
+  assert.equal(S.serial.style.display, 'none');
+  A.clear();
+  A.disable();
+});
+
+test('a serialization is of the whole set, whatever row is selected', () => {
+  // The pane used to narrow to one selected note behind a scope chip, and the
+  // markdown, the JSON and Copy all followed it. Selecting a row is how a
+  // reader scrolls to a note or edits it, so the narrowing arrived unasked for,
+  // and a set is what the two serializations are for. Copying ONE note's words
+  // is still offered, from that note's own row.
+  A.enable({ doc, subject: { title: 'Sample doc', url: 'https://e.test/p' } });
+  A.clear();
+  A.add({ type: 'page' }, 'first');
+  const two = A.add({ type: 'element', selector: '#p1', excerpt: 'the quick brown fox' }, 'second');
+  A.add({ type: 'page' }, 'third');
+  const S = A._state;
+  A.setReading('md');
+
+  assert.equal(S.serialPre.textContent, A.toMarkdown());
+  A.select(two.id, { scroll: false });
+  assert.equal(S.serialPre.textContent, A.toMarkdown(), 'a selected row does not narrow the pane');
+  assert.match(S.serialPre.textContent, /3 notes/, 'and it still says how many it is of');
+  for (const word of ['first', 'second', 'third']) assert.match(S.serialPre.textContent, new RegExp(word));
+
+  A.setReading('json');
+  const all = JSON.parse(S.serialPre.textContent);
+  assert.equal(all.format, 'annotate/1');
+  assert.equal(all.notes.length, 3, 'the JSON is the set too, selection or none');
+
+  // Nothing on the row offers to narrow it, and nothing in the API does.
+  assert.equal(S.scopeBtn, undefined, 'the scope chip is gone, not merely hidden');
+  for (const gone of ['setScope', 'noteMarkdown', 'noteJSON']) {
+    assert.equal(A[gone], undefined, gone + ' went with it');
+  }
+  A.clear();
+  A.disable();
+});
+
+test('a note row\'s copy key reports too, and on itself', async () => {
+  // The report was written for the header's key and hardwired to it, which left
+  // the key on each row silent: the row calls copyNote, copyNote reported
+  // through setStatus, and setStatus became a no-op when the status line went.
+  // A copy is the one action here whose success is invisible until the paste.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'the words on this note');
+  A.add({ type: 'page' }, '');
+  const S = A._state;
+
+  let copied = null;
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true, value: { clipboard: { writeText: async (t) => { copied = t; } } },
+  });
+
+  const keyOf = (row) => [...row.querySelectorAll('button')][1];
+  const first = keyOf(S.listEl.children[0]);
+  assert.equal(first._icon.className, 'ph ph-copy');
+  first.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(copied, 'the words on this note', 'the row copies its own words');
+  assert.equal(first._icon.className, 'ph ph-check', 'and says so on the key that was tapped');
+
+  // Its own grey, not the header key's: the idle colour is captured per button.
+  assert.equal(first._idleColor, 'rgb(161, 161, 170)');
+
+  // An empty note is a failure to report, not a silence: nothing reaches the
+  // clipboard, and unmarked the reader pastes whatever they copied last.
+  const second = keyOf(S.listEl.children[1]);
+  second.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(second._icon.className, 'ph ph-warning');
+  assert.equal(copied, 'the words on this note', 'and nothing was written');
+
+  // Two keys mid-flash at once, which one shared timer could not have done.
+  assert.equal(first._icon.className, 'ph ph-check', 'the first is still reporting');
+  A.clear();
+  A.disable();
+});
+
+test('the copy key reports on itself, since the card has no status line', async () => {
+  // The card's status line was removed deliberately (a confirmation with no
+  // expiry, still claiming a note was added ten notes later), which left the
+  // one action whose success a reader cannot otherwise see saying nothing at
+  // all: a copy that failed and a copy that took looked identical until the
+  // paste. So the key wears the answer and puts it back, the same swap
+  // kits/chat-render.js and kits/session-export.js make.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'one');
+  const S = A._state;
+  A.setReading('md');
+
+  let copied = null;
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true, value: { clipboard: { writeText: async (t) => { copied = t; } } },
+  });
+
+  assert.equal(S.serialCopy._icon.className, 'ph ph-copy', 'at rest it offers the errand');
+  S.serialCopy.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(copied, A.toMarkdown(), 'and it hands over the whole set');
+  assert.equal(S.serialCopy._icon.className, 'ph ph-check', 'then says so');
+  assert.equal(S.serialCopy.style.color, 'rgb(21, 128, 61)');
+
+  // A failure is not a confirmation, and must not read as one.
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { clipboard: { writeText: async () => { throw new Error('denied'); } } },
+  });
+  S.serialCopy.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(S.serialCopy._icon.className, 'ph ph-warning', 'the other answer, not silence');
+
+  // And no border to carry, which is now true of the whole row rather than of
+  // this key alone. See the header-uniformity test below.
+  assert.equal(S.serialCopy.style.border, '0px');
+  assert.equal(S.serialCopy.style.backgroundColor, 'transparent');
+  A.clear();
+  A.disable();
+});
+
+// ── One key shape for the whole header row ──────────────────────────────────
+//
+// The row carried two vocabularies until 2026-09-06: the readings strip and the
+// copy key were bare glyphs on transparent ground, while the title, the eye and
+// the aim button were outlined pills with a white fill. Nothing distinguished
+// the groups except when each was built, and an outline at rest was drawing a
+// box to say what the spacing already said. Reported as the outlines not being
+// typical of what this estate does.
+//
+// The gate is on the SHAPE, not on a count, so a sixth key added later has to
+// join the shape rather than bring a sixth reading of it.
+test('every key in the header row wears one shape, and states on with a fill', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'one');
+  const S = A._state;
+  A.setReading('md');
+
+  const keys = [S.placeBtn, ...Object.values(S.readChips), S.serialCopy, S.aimBtn];
+  for (const b of keys) {
+    const css = b.getAttribute('style');
+    assert.match(css, /min-height:\s*30px/, 'one height: ' + (b.title || b.textContent));
+    assert.equal(b.style.border, '0px', 'no outline at rest: ' + (b.title || b.textContent));
+    assert.equal(b.style.borderRadius, '7px', 'one corner: ' + (b.title || b.textContent));
+  }
+
+  // ON IS A FILL AND AN INK, and nothing else, wherever it appears.
+  const lit = (b) => b.style.backgroundColor === 'rgb(250, 204, 21)'
+                  && b.style.color === 'rgb(24, 24, 27)';
+  const dark = (b) => b.style.backgroundColor === 'transparent';
+  assert.ok(lit(S.readChips.md), 'the reading that is showing is lit');
+  assert.ok(dark(S.readChips.json), 'not the ones that are not');
+  assert.ok(dark(S.placeBtn), 'nor the eye, which is at rest');
+  assert.ok(dark(S.aimBtn), 'nor the aim button on the default aim');
+
+  A.startRegion();
+  assert.ok(lit(S.aimBtn), 'and it lights on an armed aim, by the same pair');
+  A.clear();
+  A.disable();
+});
+
+test('the set band goes when the notes go, and when the page takes them', () => {
+  // Copy, Save and Clear over an empty set are three offers that cannot be
+  // taken up. And the in-place reading exists to leave one 30px strip for a
+  // screenshot, which the windowed card would be the loudest thing to break.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'one');
+  const S = A._state;
+  assert.equal(S.setActs.style.display, 'flex');
+
+  A.showInPlace(true);
+  assert.equal(S.readBar.style.display, 'none', 'the readings fold away with the list');
+  assert.equal(S.setActs.style.display, 'none');
+
+  A.showInPlace(false);
+  assert.equal(S.readBar.style.display, 'flex', 'the card comes back the way it was left');
+  assert.equal(S.setActs.style.display, 'flex');
+
+  A.clear();
+  assert.equal(S.setActs.style.display, 'none', 'an empty set has no actions to offer');
+  assert.equal(S.readBar.style.display, 'flex', 'but the readings stay, which is how they are ever found');
+  A.disable();
+});
+
+test('an empty set says where notes come from, rather than showing an empty one', () => {
+  // Arriving with nothing filed is the state that has to teach the gesture, so
+  // it cannot be a blank pane: an empty markdown document under a lit Markdown
+  // chip reads as something broken. The readings strip stays, since seeing what
+  // is on offer is most of what an empty card is for; the list, the
+  // serialization and the actions all wait for a note.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+
+  assert.equal(S.empty.style.display, 'flex');
+  assert.match(S.empty.textContent, /Select text on the page/, 'and it names the gesture with no chip of its own');
+  assert.equal(S.readBar.style.display, 'flex', 'the three readings are still on offer');
+  assert.equal(S.listEl.style.display, 'none');
+  assert.equal(S.serial.style.display, 'none');
+  assert.equal(S.setActs.style.display, 'none');
+
+  // Picking a reading over nothing does not conjure an empty document.
+  A.setReading('md');
+  assert.equal(S.empty.style.display, 'flex');
+  assert.equal(S.serial.style.display, 'none');
+
+  // The first note spends the line and the pane takes over, still on Markdown.
+  A.add({ type: 'page' }, 'the first one');
+  assert.equal(S.empty.style.display, 'none');
+  assert.equal(S.serial.style.display, 'flex');
+  assert.match(S.serialPre.textContent, /the first one/);
+  A.clear();
+  assert.equal(S.empty.style.display, 'flex', 'and removing the last note brings it back');
+  A.disable();
+});
+
+test('the three readings are one window, and what does not fit scrolls inside it', () => {
+  // Sized to content, the card jumped on every tap of the strip: three short
+  // notes made a short card and their markdown a tall one, so the reader's own
+  // tap moved the thing they were reading. One height, and the body takes the
+  // leftover rather than the card taking the content.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'one');
+  A.add({ type: 'page' }, 'two');
+  const S = A._state;
+
+  const h = S.panel.style.height;
+  assert.match(h, /px$/, 'an open set is a window of a fixed size');
+  assert.equal(S.panel.style.maxHeight, h, 'and the composer opens inside it rather than growing it');
+  assert.equal(S.listEl.style.flexGrow, '1', 'the list takes the leftover height');
+  assert.equal(S.listEl.style.flexBasis, '0px', 'from zero, so a short list does not set the window');
+  assert.equal(S.listEl.style.minHeight, '0px', 'and may shrink below its content, which is what lets it scroll');
+  assert.match(S.listEl.getAttribute('style'), /overflow-y:\s*auto/);
+
+  A.setReading('md');
+  assert.equal(S.panel.style.height, h, 'markdown is the same window');
+  A.setReading('json');
+  assert.equal(S.panel.style.height, h, 'so is the JSON');
+  assert.match(S.serialPre.getAttribute('style'), /overflow:\s*auto/, 'the pane scrolls rather than the card growing');
+
+  // In place is the one reading left that is not windowed: it exists to leave a
+  // single strip of card behind, so it falls back to the declared cap.
+  A.showInPlace(true);
+  assert.equal(S.panel.style.height, '');
+  assert.equal(S.panel.style.maxHeight, 'min(408px,60vh)');
+  assert.equal(S.listEl.style.flexGrow, '');
+  A.showInPlace(false);
+
+  // AN EMPTY SET TAKES THE WINDOW TOO, which is a reversal. It used to stay
+  // small, on the reading that one italic line does not need a window: true of
+  // the line, false of the reader, who then watched the card jump to a new size
+  // the moment they filed anything. One gesture, one size.
+  const full = S.panel.style.height;
+  A.clear();
+  assert.equal(S.panel.style.height, full, 'nothing filed, and the card is the same window');
+  assert.equal(S.empty.style.display, 'flex');
+  A.disable();
+});
+
+test('copy rides the header beside the readings, so it needs no word at all', () => {
+  // "Copy markdown" and "Copy JSON" sat in the footer naming a format the strip
+  // a row above had already named, and the reader had to check which of the two
+  // they were about to press. Beside the chips, the chips are the qualifier,
+  // which left the word doing nothing the glyph was not already doing.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'one');
+  const S = A._state;
+  A.setReading('md');
+
+  assert.equal(S.serialCopy.textContent.trim(), '', 'the glyph alone: the chips beside it are the qualifier');
+  assert.match(S.serialCopy.title, /markdown/, 'the title still says which, for a pointer that hovers');
+  assert.equal(S.serialCopy.parentElement, S.aimBtn.parentElement,
+    'the header holds it: one row of controls, none under the composer');
+  assert.ok(!S.readBar.contains(S.serialCopy),
+    'and NOT inside the centred group, whose three keys would slide as this came and went');
+  assert.equal(S.serialCopy.style.display, 'flex');
+
+  A.setReading('json');
+  assert.match(S.serialCopy.title, /JSON/, 'and it follows the chip it sits beside');
+
+  // Both leave the row where they mean nothing. A Copy beside the Notes chip
+  // has no bytes on screen to take.
+  A.setReading('notes');
+  assert.equal(S.serialCopy.style.display, 'none',
+    'it leaves the row rather than holding a place, so the keys stay centred on what a reader sees');
+
+  // The footer keeps only what is neither a reading nor a format.
+  const acts = [...S.setActs.querySelectorAll('button')].map(b => b.textContent);
+  assert.deepEqual(acts, ['Save jot', 'Clear']);
+  assert.ok(!acts.some(t => /markdown|JSON/i.test(t)), 'no format is named twice over');
+  A.clear();
+  A.disable();
+});
+
+test('a note being edited is not also a row underneath it', () => {
+  // The pencil put one note on screen twice: in the composer with a caret in
+  // it, and as a static row below still showing the text being replaced.
+  // Which of the two WAS the note was left to the reader, and the row was the
+  // one that looked settled.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const one = A.add({ type: 'page' }, 'first');
+  const two = A.add({ type: 'page' }, 'second');
+  const S = A._state;
+  const rows = () => [...S.listEl.children].length;
+
+  assert.equal(rows(), 2);
+  A.editNote(two.id);
+  assert.equal(S.draft.editId, two.id);
+  assert.equal(rows(), 1, 'the edited note leaves the list while it is in the composer');
+  assert.equal(S.countEl.textContent, '2', 'but the count does not move: nothing was deleted');
+
+  // Saving brings it back, carrying the new words.
+  S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(rows(), 2);
+  assert.equal(A.items.find(i => i.id === two.id).note, 'second', 'unchanged text survives the round trip');
+
+  // And so does leaving the edit any other way: every exit runs through
+  // cancelDraft, which is why the row is put back there rather than at each
+  // call site.
+  A.editNote(one.id);
+  assert.equal(rows(), 1);
+  A.notePage({ listen: false });
+  assert.equal(rows(), 2, 'aiming a fresh draft ends the edit, and the row returns with it');
+
+  A.clear();
+  A.disable();
+});
+
+// The comparison the case above cannot reach. Both sides have to come from
+// targetForRange, so the strings are cut the same way; comparing a staged quote
+// against the live selection's own text is the bug, not a style choice.
+test('the staged-passage guard never compares against the raw selection string', () => {
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/annotate.js'), 'utf8');
+  // The CODE, not the paragraph above it: that paragraph names the wrong
+  // comparison in order to warn about it, and matching prose would fail on the
+  // warning rather than on the bug.
+  const guard = src.match(/\n {6}const was = S\.sel[\s\S]*?hideSelBtn\(\);/);
+  assert.ok(guard, 'the idempotence guard is gone from onSelectionEnd');
+  assert.doesNotMatch(guard[0], /String\(sel\)|sel\.toString\(\)/,
+    'a selection\'s own text carries block breaks that quote.exact does not');
+  assert.match(guard[0], /target\.quote\.exact/,
+    'compare through targetForRange on both sides');
+});
+
+// ── Out of the card: the handoff to pages/dictate.html ─────────────────────
+// The card is where a note is spoken and the dictation page is where it is
+// read back and aimed. What crosses is assembled TEXT, not a note, because the
+// far end is a text buffer and teaching it this kit's target model would be a
+// second implementation of something owned here. So the assembly is what is
+// worth pinning: the address has to LEAD, since a prompt aimed at a coding
+// session is read from the top and where-to-look is the half nobody would type.
+
+test('the handoff leads with where, then the words', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+  S.dict = { text: 'this heading is doing two jobs', stop() {} };
+  S.editing = false;
+  // A FILED NOTE, not a live aim. The transient aim state this used to set
+  // belonged to the DOM reading, which is gone; what the card is about is now
+  // read off the notes it holds.
+  A.add({ type: 'element', selector: '#li1', label: 'Doc title \u203a Section two' }, 'promote to heading');
+
+  const out = A.handoffText();
+  const lines = out.split('\n');
+  assert.match(lines[0], /^On https?:\/\//, 'the page comes first');
+  assert.match(out, /#li1|li:nth|li\b/, 'the aim resolves to something addressable');
+  assert.ok(out.trimEnd().endsWith('this heading is doing two jobs'),
+    'the words are last, so a reader edits the top and speaks at the bottom');
+  A.disable();
+});
+
+test('with nothing aimed the handoff is still the words plus the page', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+  S.dict = { text: 'just a thought', stop() {} };
+  S.editing = false;
+  // NOTHING FILED, which is what "nothing aimed" means now: the aim is read off
+  // the note set, so emptying it is how a card with no subject is built.
+  S.items = []; S.selId = null; S.draft = null;
+
+  const out = A.handoffText();
+  assert.match(out, /just a thought/);
+  assert.equal(out.includes('undefined'), false, 'an unresolved aim costs the line, not the handoff');
+  A.disable();
+});
+
+test('an empty draft assembles to nothing worth carrying', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+  S.dict = { text: '   ', stop() {} };
+  S.editing = false;
+  S.items = []; S.selId = null; S.draft = null;
+  // The header may still render, but goDictate checks the whole string for
+  // words and refuses on the button rather than navigating to a blank page.
+  assert.equal(A.handoffText().replace(/^On .*$/m, '').trim(), '');
   A.disable();
 });

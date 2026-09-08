@@ -29,6 +29,46 @@ see [container.md](container.md); for how to use these to test HTML/JS, see
 - A real **Chromium is pre-installed** (see Browsers below). Headless rendering
   and screenshots *are* available in-sandbox.
 
+## SessionStart hooks: a per-hook size ceiling, and where the cut lands
+
+*(measured 2026-08-30)*
+
+Past a size threshold the harness saves a hook's whole stdout to a file and
+passes the session a preview wrapped in `<persisted-output>`, opening
+`Output too large (28KB). Full output saved to: …` and then
+`Preview (first 2KB):`. The hook exits 0 and reports success, so from inside the
+script the cut is invisible; this is the failure the injector's rungs and the
+dispatcher's warning both exist for.
+
+Four things measured on one live session:
+
+- **The preview is 1,997 bytes**, and it ended partway into `CONVENTIONS.md`'s
+  opening. Only the head of a payload is guaranteed to arrive, which is why
+  [`inject-conventions.sh`](../../.claude/skills/hooks/inject-conventions.sh)
+  prints its recovery block first and
+  [`session-dispatch.sh`](../../.claude/skills/hooks/session-dispatch.sh) prints
+  its warning first.
+- **The cap is per hook entry, not across the event.** In the same session the
+  dispatcher's 28,670-character payload was cut while a separate 298-character
+  SessionStart hook arrived whole. Each registered hook command gets its own
+  attachment and its own verdict, so the dispatcher's guard is correctly scoped
+  to its own output.
+- **The transcript keeps both halves**, which is what makes the cut detectable
+  after the fact rather than only at the moment it happens: the `hook_success`
+  attachment's `stdout` is the full output and its `content` is what was
+  injected. `web-tools-private` `sessions/tools/record.py` reads the pair into
+  each record's `startup_delivery` (schema 7), and the Map view's Injection tab
+  renders it.
+- **The receipts are the half that is lost.** They print last, so a cut
+  session's `startup_context` is byte-identical to a delivered session's. Any
+  reading of what a session *received* has to come from the delivery pair above,
+  never from the receipts.
+
+The exact ceiling is still undocumented. The bound is that the smallest
+persisted output in the session archive is 29.4 KB, so it sits at or below that;
+`session-dispatch.sh` guards at 28,000 and the injector derives its own budget
+from that number rather than carrying a second copy.
+
 ## Git transport: a per-push size ceiling
 
 *(verified 2026-07-20)*
@@ -124,8 +164,9 @@ succeed, `python3 -m spacy download en_core_web_sm` fetches and loads its
 model (install `click` first; the spacy CLI imports it and errors without
 it), and model2vec pulls `minishlab/potion-base-8M` from the Hugging Face
 Hub unauthenticated, so a tiny static-embedding model runs in-session with
-no torch. Measured in the concept-lab experiments
-([tools/concept-lab/findings.md](../../tools/concept-lab/findings.md)).
+no torch. Measured in the concept-lab experiments, whose findings log moved to
+the private estate (`local-models/instruments/concept-lab/findings.md`) on
+2026-08-25.
 Heavier stacks (torch, sentence-transformers) untested.
 
 ## Network access: a curated allowlist, not open egress
@@ -265,6 +306,16 @@ B="$PLAYWRIGHT_BROWSERS_PATH/chromium-1194/chrome-linux/chrome"
 "$B" --headless --no-sandbox --disable-gpu \
   --dump-dom 'data:text/html,<h1>ok</h1>' 2>/dev/null | grep -o '<h1>ok</h1>'
 ```
+
+**It decodes no H.264, so a page carrying video cannot be verified here**
+*(measured 2026-09-05)*. `canPlayType('video/mp4; codecs="avc1.42E01E"')` returns
+the empty string: this is an open-source Chromium build, which ships without the
+proprietary codecs. A `<video>` element then never learns its intrinsic size, so
+a screenshot shows a 300x150 default box and no frame, which reads exactly like a
+broken file. Check the file itself with `ffprobe` before believing the pixels.
+`document.pictureInPictureEnabled` is true, so the PiP *API* is present and
+feature detection works; only playback is missing. Neither WebM nor VP9 was
+tested, so an all-open-codec file may well render.
 
 **Driving it** — launching Playwright, screenshotting, the TLS-proxy launch flag,
 and rendering a full repo page — is in [testing.md](testing.md).
@@ -411,6 +462,14 @@ was a gain: the workaround is one character of the address, not a different link
 *(measured 2026-08-09, PR #388, two writes of eight probe links, each read back
 through the MCP)*
 
+> [!WARNING]
+> **Stale 2026-08-25 → "The trigger is length, not shape" below:** this
+> conclusion does not reproduce. A 132-character `#gh=` address carrying both a
+> slashed ref and a `:path` survives today, so the trigger is the URL's length
+> and not the scp-style ambiguity argued for here. Whether the behavior changed
+> or this probe's real URLs were longer than the abbreviated forms in the table
+> suggest cannot be told from what was recorded.
+
 | Address | Result |
 | --- | --- |
 | `toss-render.html#gh=o/r@claude/some-branch:pages/p.html` | **wrapped** |
@@ -498,6 +557,14 @@ entry is their evidence.
 
 *(measured 2026-08-10, PR #385, eight probes over two comments)*
 
+> [!WARNING]
+> **Stale 2026-08-25 → "The trigger is length, not shape" below:** depth was the
+> correlate and length was the cause. Every observation here is retrodicted
+> exactly by the 150-character rule: `:pages/annotate.html` on a SHA ref is 146
+> characters and passed, `:docs/envelopes/data-view.md` is 154 and wrapped,
+> `:pages/show-repo/show-repo.html` is 157 and wrapped. A deeper path is a
+> longer URL, which is why counting slashes worked as far as it did.
+
 On a `#gh=` address the `:path` may carry **at most one slash**.
 `:pages/annotate.html` passes and `:pages/show-repo/show-repo.html` is wrapped,
 on the same SHA ref; so is `:docs/envelopes/data-view.md`, which shares no name
@@ -512,6 +579,158 @@ one-slash path and leaves a two-slash one exactly as broken, so the fix appears
 not to have worked. A nested page therefore cannot be tossed from a body at
 all; link the branch page, which carries no `:path` and passed clean, or hand
 the reader a `#gz=`.
+
+### The trigger is length, not shape
+
+*(measured 2026-08-25, PR #497, five rounds: four written into the PR body, one
+into an issue comment, each read back through the MCP)*
+
+**A URL of 150 characters or more inside a markdown link is wrapped. 149 or
+fewer survives.** Nothing else about the URL matters, and the threshold is the
+same on both write paths, a PR body and an issue comment alike.
+
+| round | held fixed | varied | result |
+| --- | --- | --- | --- |
+| 1 | base URL | at-sign, slashed ref, percent-encoding, bare text | all six intact; only the original (168) wrapped |
+| 2 | at-sign present | 40-hex SHA, branch length, param count | 130, 131, 143 intact; 155 wrapped |
+| 3 | 40-hex SHA present | length, and the at-sign swapped for a hyphen at equal length | 138, 144, 148 intact; **both** 155 rows wrapped |
+| 4 | everything else | length, one character apart | 148, 149 intact; 150 to 156 wrapped |
+| 5 | length under 150 | `#gh=` with a slashed ref and a `:path`, ref only, path only, plain blob | all four intact, including 132 with both |
+
+Round 3's hyphen control is what carries the argument. The same 155-character
+URL wraps whether or not it contains the `owner/repo@ref` that the two
+subsections above name as the trigger, so the ref cannot be doing the work.
+Round 5 is the other side of it: the exact shape those subsections say is
+doomed passes when it is short enough.
+
+The prior findings are not wrong observations, they are correctly observed
+correlates. The 2026-08-10 depth measurement is retrodicted exactly by the
+threshold, all three of its cases falling on the right side of it, which is a
+stronger check than any of my own rows: a deeper `:path` is a longer URL, and
+counting slashes was counting characters by proxy. A toss carrying `?use=` adds
+a 40-character SHA. A `claude/…` branch is longer than the SHA that replaces it.
+Every substitution SURFACING.md prescribed works, and works because it shortens.
+
+Two things this does not settle, and the subsection below settles both. The
+caption's `](url)/[` pair wrapped in 2026-08-08's probe **with clean short URLs
+on both sides**, which no length rule explains, so that row stands on its own and
+was not re-tested here. And the threshold is a count of the URL, not of the whole
+link: whether the label or the surrounding line contributes was not varied, since
+every round held the label at `row`.
+
+The practical form: **count the URL.** Under 150 and the link lives.
+
+### What gets counted, and the slash-joined pair is one URL
+
+*(measured 2026-08-25, issue #498, three comments of probe rows read back through
+the MCP; the arithmetic below retrodicts all nine pair rows exactly)*
+
+Three questions the section above left open. Each was measured against a control
+at equal length, on a real resolvable URL padded to an exact character count with
+a `?x=` query string.
+
+**The label does not count. The URL alone does.** Round 6 held the URL fixed and
+varied only the label across the boundary:
+
+| row | URL | label | whole `[label](url)` | result |
+| --- | --- | --- | --- | --- |
+| 6a | 149 | 1 | 154 | intact |
+| 6b | 149 | 60 | 213 | intact |
+| 6c | 149 | 120 | 273 | intact |
+| 6d | 100 | 60 | 164 | intact |
+| 6e | 150 | 1 | 155 | **wrapped** |
+| 6f | 150 | 60 | 214 | **wrapped** |
+
+A 149-character URL survives carrying a 120-character label, and a 150-character
+URL wraps carrying a one-character label. So "count the URL" was exactly right,
+and a construct running well past 150 is fine as long as its URL does not.
+
+**The boundary is inclusive at 150.** Round 7 held the label at one character and
+stepped the URL one character at a time: 146, 147, 148 and 149 intact; 150, 151
+and 152 wrapped. 150 is the first length that wraps, and 149 the last that
+survives, which is what the rule already said and had not bracketed.
+
+**The slash-joined pair is not an exception. It is the same rule over a longer
+span.** `)/[` does not end the URL token, so the sanitizer measures from the
+first URL's first character through the second URL's last character, the joining
+punctuation and the *second label* included:
+
+```
+span = len(url1) + len(")/[label2](") + len(url2)
+```
+
+Round 8 used pairs whose URLs were individually far under the boundary, and round
+9 bracketed the span itself one character apart:
+
+| row | url1 | label2 | url2 | span | result |
+| --- | --- | --- | --- | --- | --- |
+| 9c | 45 | `diff` | 45 | 99 | intact |
+| 9a | 70 | `diff` | 70 | **149** | intact |
+| 9b | 70 | `diff` | 71 | **150** | **wrapped** |
+| 8d | 72 | `diff` | 73 | 154 | **wrapped** |
+| 9e | 70 | `diffdiffdiffdiffdiff` | 70 | 165 | **wrapped** |
+| 8a | 80 | `diff` | 81 | 170 | **wrapped** |
+| 8c | 100 | `diff` | 101 | 210 | **wrapped** |
+
+The 9a/9b pair is what pins it: one character apart, on the same 149/150
+boundary the lone URL obeys, which also fixes the span's extent exactly (had the
+trailing `)` been inside it, 9a would have measured 150 and wrapped). 8d is the
+row that made the pair look like an exception, since 72 and 73 characters are
+less than half the threshold, yet their span is 154. And 9e is why the second
+label counts while the first does not: the first label sits *before* the token
+starts, the second sits *inside* it.
+
+Comma-joined controls at identical URLs, 8b (80, 81) and 9d (70, 71), are intact,
+as is 8e, a lone 80-character link. `, ` ends the run, so each URL is measured on
+its own.
+
+So `[main](…), [diff](…)` remains the rule, and it is now an instance of the
+arithmetic rather than a standing exception to it. The 2026-08-08 observation
+that a pair wraps "with clean URLs on both sides" was true and its conclusion was
+one measurement short: two clean URLs of 70-odd characters make one dirty span of
+150-odd.
+
+**Both write paths agree, confirmed rather than assumed.** Rounds 6 through 9
+ran on issue comments; round 10 put the two discriminating rows into PR #499's
+body and got the same answers: a 149-character URL under a 120-character label
+intact, a 150-character URL under a one-character label wrapped, a pair at span
+149 intact and at span 150 wrapped, and the comma control intact. The earlier
+150 bracket was measured on a PR body and this one on an issue comment, so each
+finding now stands on both paths.
+
+**A code span is rewritten too, so it is not the safe harbour it looks like.**
+*(measured 2026-08-25, issue #498 round 11, after five repaired PR bodies showed
+it incidentally)* The threshold applies to a URL **anywhere in the markdown**,
+not only inside a link. A plain single-backtick code span holding a 148 or
+149-character URL comes back untouched; at 150 and 151 it is stored as
+`` ``'URL'`` ``, double-backticked with single quotes added around the address.
+Nothing dies, since a code span was never a link, but a reader copying it picks
+up the quotes. So "state the toss address as a code span" further up this file
+still beats a defanged link and is still not a way to write a long URL that the
+write path leaves alone. The only untouched forms are a URL under 150 and a
+chat reply.
+
+**One caveat on the wrapped form.** Where the span opens and closes is not
+consistent in the stored body. 9b came back with the backtick opening after
+`[main](` and closing before the final `)`, while 8a's closing backtick fell
+after it and 8c's opening backtick fell before `[main](`. The measured length is
+stable across all of them; only the re-serialization wanders. Look for a backtick
+anywhere near a URL, not at a fixed offset.
+
+**An angle-bracket placeholder is eaten, backticks included.**
+*(one observation, 2026-08-29, PR #546's body; not bracketed the way the length
+rows above are)* A body written through the MCP had `` `stale -> <id>` `` in it
+and read back as `` `stale -> ` ``, the placeholder gone and the `>` of the
+arrow escaped to `&gt;`. That is HTML sanitization rather than the length rule:
+`<id>` parses as an unknown tag and is dropped, while a bare `>` survives as
+text. A code span did not protect it, which is the part worth knowing, since
+the length rule's safe harbour is the same construct.
+
+Distinct from wrapping in the way that matters: a wrapped URL is disfigured but
+still there, and a dropped placeholder leaves a sentence that reads as finished
+and says nothing. Write a concrete example (`stale -> ccb6cfc`) rather than a
+placeholder in any body or comment written this way. Chat replies are untouched,
+as with everything else in this section.
 
 ## MCP: two servers can share a tool name, and only one may work
 
@@ -647,6 +866,31 @@ rejection but a **silent drop**: an item that was in the roster, never
 dispatched successfully, and therefore never reports. Reconcile the roster
 against what actually launched, never against what was dispatched.
 `ListAgents` settles it in one call.
+
+**The Workflow tool's cap is a different number, and it is a function of the
+machine** *(measured 2026-09-06)*: min(16, CPUs minus 2) per run, per the
+authoring reference, and this container reported 4 CPUs (`nproc`), so a
+Workflow would have run two agents at a time against the Agent tool's twenty.
+Read `nproc` before choosing the venue for a fan-out; on this box the Agent
+tool wins by a factor of ten. Two more facts from the same run of 124 agents
+(62 Sonnet readers of 40 items, 62 Opus skeptics of 11 to 23 rows, 17 minutes
+at the cap):
+
+- The Agent tool has no effort parameter; only Workflow's `agent()` takes one.
+  A "low effort" instruction has to travel in the prompt.
+- **Output on disk is not agent done.** An agent that has written its file and
+  run a checker still holds its slot until it returns, so a ledger kept from
+  file arrivals overcounts free slots by one or two and the next launch is
+  refused. `ListAgents` is the count; the refusal is cheap and the relaunch is
+  the fix.
+- A validator the agent runs on its own output before returning, one script
+  named in the prompt, made 124 of 124 outputs parse and conform. It is the
+  Agent-tool equivalent of Workflow's `schema` option, and it is committed.
+- Cost lives in the transcripts, not the notification: each transcript line's
+  `message.usage` block sums to the agent's spend. That run: 91.3M tokens, of
+  which 74.4M were cache reads of the shared prompt and 300k were output;
+  readers averaged 105k tokens and about two minutes, skeptics 97k and about
+  90 seconds.
 
 ## Subagent transcripts are durable, greppable, and outside every repo
 

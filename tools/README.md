@@ -20,7 +20,9 @@ share no module imports — render and build touch only via subprocess and the
 `dist/` artifact):
 
 - [`render/`](render/) — exercise a page headlessly, offline. `preview.mjs`
-  (jsdom logic render) + `screenshot.mjs` (Chromium pixel render), with
+  (jsdom logic render) + `screenshot.mjs` (Chromium pixel render) +
+  `netlog.mjs` (Chromium request log: what a load costs, by host and endpoint,
+  writes blocked), with
   `cdn.mjs` (the URL → local resolver) and `scenarios/` (interaction scripts).
 - [`build/`](build/) — snapshot a page's own-code graph into an offline
   artifact. `build.mjs` / `bake.mjs`, with `graph.mjs` (the static `gh.load`
@@ -53,12 +55,13 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
 | `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run build:lib` | Emit `dist/web-tools.js`: **the pre-build** — the whole `lib/` as one self-booting offline artifact (see [The pre-build](#the-pre-build)). |
+| `npm run build:app` | Emit `dist/app.js`: the app's own pre-build, the part of `lib/` that `app/index.html` can reach, by the same emitter (see [The app's pre-build](#the-apps-pre-build)). |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
 | `npm run pages-shots` | Regenerate `pages/thumbs/*.png` — one headless screenshot per page, the card previews for the visual index. Uses the [`screenshot.mjs`](render/screenshot.mjs) renderer; see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages-index` | Regenerate both catalogs of every page: [`pages/README.md`](../pages/README.md) (link-dense table) and [`pages/index.html`](../pages/index.html) (visual card index). A *catalog* generator, not part of the code pipeline below — see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages` | `pages-shots` then `pages-index` — refresh thumbnails and both catalogs in one step. |
-| `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the lockstep test; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
+| `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the derived-artifacts gate; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
 | `node tools/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> --out <thumbs-dir>` | Shoot ANOTHER repo's `pages` catalog into the private thumb cache (`web-tools-private/thumbs/`), so show-repo's gallery can show clickable screenshots for that repo. Serves the source checkout, vendors CDN libs from this repo's `node_modules`. Not an npm script (it takes a target). |
 
 Shared internals: [`render/cdn.mjs`](render/cdn.mjs) (URL → local
@@ -205,9 +208,26 @@ needs a build per page; the pre-build is one artifact reused everywhere, at the
 cost of carrying components a given page may not use (harmless — an unused
 `Alpine.data` registration only costs anything when an `x-data` references it).
 
+### The app's pre-build
+
+`app/index.html` imports `dist/app.js`, not the whole library:
+[`build-app.mjs`](build/build-app.mjs) walks the app's **reach** (every lib path
+named as a string literal, transitively, plus every component an `x-data`
+names, mapped through its `Alpine.data('name')` registration) and hands that
+set to the same emitter. Measured 2026-09-02: 73 of 104 lib files, 22
+components registered at import rather than 32, 3.1 MB against 4.0 (0.93 MB
+gzipped against 1.2). Four heavy kits a reader reaches only by an explicit act
+(`annotate`, `pdf`, `dictate`, `xlsx`) are left out on purpose and load on
+first use through the contents API, which is the loader's ordinary cache-miss
+path. The same limit as the per-page walker applies: a path computed at
+runtime is invisible, and falls through to the API at runtime, correctly.
+Both artifacts are committed and held to `lib/` by the commit hook and by
+`derived-artifacts.test.mjs`; `npm run build:app -- --check` is the app's
+half of that gate.
+
 **Staying current.** `dist/web-tools.js` is **committed** (the one exception to
 the gitignored `dist/`) and served same-origin by Pages — never back onto
-jsDelivr, whose cache the loader exists to dodge. It's kept in lockstep with
+jsDelivr, whose cache the loader exists to dodge. It's held to
 `lib/` by the commit-time hook (see [The refresh model](#the-refresh-model)).
 The build is deterministic (sorted cache + sorted boot, no date stamp), so it
 only shows a diff when `lib/` actually changed. Don't hand-edit
@@ -259,9 +279,45 @@ changes touch:
 | `lib/` | `npm run build:lib` | `dist/web-tools.js` |
 | `console/` | `npm run build:console` | `console/suite.js` |
 | `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html`, `pages/pages.csv` |
-| skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.json` |
-| `docs/docs.json` | `npm run docs-readme` | `docs/README.md` |
+| skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
+| `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
+| `tools/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
+| `tools/`, `scripts/` | `npm run tools-index` | derived fields in `docs/harness.csv` |
+| `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
+| `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
+| `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
+| any markdown | `npm run themes-graph` | `docs/themes.json` |
+| `docs/CONVENTIONS.md`, `docs/SURFACING.md` | `cp` | the plugin's copies under `.claude/skills/web-tools/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
+
+Most of these files are generated whole. Four are not. `docs/docs.csv`,
+`docs/harness.csv`, `docs/tests.csv` and `docs/registries.csv` are hand-edited
+except for the fields a generator stamps. Edit a row freely and leave those
+fields alone.
+
+`docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
+the registry and is also a row in it, so the hook runs `docs-reach` a second
+time after `docs-readme`. One more stamp settles it.
+
+**Order is part of the contract, and it runs one way: a leg that WRITES into a
+folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
+file's length into the registry's `words`, so `tests-index`, `tools-index`,
+`registries-reach` and `snags-index` all run above it: each writes a file under
+`docs/`, and a stamp taken before that write is stale by exactly that file's own
+delta. Nothing local reports it either, because the hook does not verify what it
+stamps; `docs-registry.test.mjs` catches it in CI, after the push. Three legs
+learned this separately and each left the finding as a comment on its own leg,
+which is how the fourth was free to repeat it in 2026-08-23. So it is stated
+here once: a new generator that writes under `docs/` goes above leg 3a, and one
+that only reads goes wherever it likes.
+
+**And a leg has to stage the file it actually writes.** Every `git add` in the
+hook goes through a `stage()` helper that reports a path that is not there,
+because the bare form swallowed two renames for a month: `docs/docs.json` and
+`tracker/board.json` both became CSVs in PR #441 and their adds silently
+addressed nothing, so two registries were regenerated on every commit and
+committed on none. `git add X 2>/dev/null || true` cannot tell "nothing to
+stage" from "renamed," and the second is the one worth hearing about.
 
 Every generator is byte-deterministic, so the hook can fire on every commit and
 no-op invisibly when nothing real changed. It's non-blocking: a generator failure
@@ -274,7 +330,7 @@ them on every run. Same input, different bytes,
 in an artifact whose own closing comment promises the opposite, unnoticed
 because it is read by machines and diffed by no one. The suite now asserts
 determinism directly rather than inferring it from one passing run, since a
-nondeterministic generator makes a lockstep test flaky rather than false.
+nondeterministic generator makes a byte-comparison gate flaky rather than false.
 
 **Thumbnails (`pages/thumbs/*.png`) refresh once per session, at wrap-up.**
 Screenshots are slow (a Chromium render per page) and not byte-deterministic

@@ -34,7 +34,7 @@ const toCsv = (rows) => {
 // copies of .claude-plugin/marketplace.json anyway.
 const manifest = {
   items: [
-    { kind: 'skill', command: '/portable:caption', path: '.claude/skills/caption/SKILL.md', title: 'caption', role: 'the caption', use: 'plugin' },
+    { kind: 'skill', command: '/portable:tasks', path: '.claude/skills/tasks/SKILL.md', title: 'tasks', role: 'the tracker', use: 'plugin' },
     { kind: 'doc', path: 'docs/CONVENTIONS.md', title: 'Working conventions', role: 'the conventions', use: 'live' },
     { kind: 'script', path: 'scripts/sunset-scan.py', title: 'sunset-scan.py', role: 'sunset markers', use: 'on-demand' },
   ],
@@ -49,9 +49,11 @@ const routesJson = readFileSync(path.join(repoRoot, 'docs', 'routes.json'), 'utf
 // and every row assertion below would pass on nothing.
 const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.csv'), 'utf8');
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
+const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
+const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
 const ownersCsv = readFileSync(path.join(repoRoot, 'docs', 'owners.csv'), 'utf8');
 const repsCsv = readFileSync(path.join(repoRoot, 'docs', 'repetitions.csv'), 'utf8');
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
@@ -60,6 +62,8 @@ const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv
 const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8');
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
+const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
+const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
 // is the join the readership column has to get right.
@@ -80,9 +84,11 @@ window.GH = class {
     if (p === 'docs/routes.json') return { text: routesJson };
     if (p === 'docs/routes-modes.csv') return { text: routesModesCsv };
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
+    if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
     if (p === 'docs/docs.csv') return { text: docsCsv };
     if (p === 'docs/surfacing.csv') return { text: surfCsv };
+    if (p === 'docs/SURFACING.md') return { text: surfDoc };
     if (p === 'docs/owners.csv') return { text: ownersCsv };
     if (p === 'docs/repetitions.csv') return { text: repsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
@@ -91,6 +97,8 @@ window.GH = class {
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
+    if (p === 'docs/kits.csv') return { text: kitsCsv };
+    if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
     return { text: toCsv(manifest.items) };
   }
@@ -101,6 +109,9 @@ window.GH = class {
 // The Registries tab reads three CSVs, so the kit that parses them has to be in
 // the window the same way the pre-build puts it there.
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))();
+// The ambient bundle, in the same position gh-boot's BOOT manifest gives it
+// (first): the doc deck's rendition escapes through window.esc.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8'))();
 Alpine.start();
 await tick(3);
@@ -115,11 +126,32 @@ test('mounts and loads the public set with no startup warnings; adoption stays g
   assert.ok(data.manifest && data.manifest.items.length === 3);
 });
 
+// The Markdown copy is a second rendering of docs/aims.json, so it is built
+// from the manifest rather than scraped off the page. Asserted whole: a
+// per-line check would pass on a rendering that lost the goal numbering.
+test('the Aims tab renders its manifest as Markdown', () => {
+  data.aims = { mission: 'M.', goals: [
+    { key: 'a', name: 'One', gloss: 'First.' },
+    { key: 'b', name: 'Two', gloss: 'Second.' },
+  ], reading: [
+    { path: 'docs/X.md', gloss: 'Hub doc.' },
+    { repo: 'mehrlander/home', path: 'created/Y.md', private: true, gloss: 'Elsewhere.' },
+  ] };
+  assert.equal(data.aimsMd(),
+    '# Aims\n\n## Mission\n\nM.\n\n## Goals\n\n1. **One.** First.\n2. **Two.** Second.\n'
+    + '\n## Reading\n\n'
+    + '- [docs/X.md](' + data.hubUrl('docs/X.md') + ') Hub doc.\n'
+    + '- [mehrlander/home created/Y.md](https://github.com/mehrlander/home/blob/main/created/Y.md)'
+    + ' (private) Elsewhere.\n');
+  data.aims = null;
+  assert.equal(data.aimsMd(), '', 'nothing loaded copies nothing rather than a heading');
+});
+
 test('the set groups into plugin / docs / scripts sections', () => {
   const secs = data.setSections;
   // [...] rebuilds the realm-crossed array on this side for deepEqual.
   assert.deepEqual([...secs.map(s => s.label)], ['In the plugin', 'Docs', 'Scripts']);
-  assert.equal(secs[0].items[0].title, 'caption');
+  assert.equal(secs[0].items[0].title, 'tasks');
 });
 
 
@@ -140,6 +172,32 @@ test('Showing loads on demand, not at mount', async () => {
   assert.equal(data.routes, before, 'a second open reuses the loaded manifest');
 });
 
+// The kinds table is the fourth carrier the Showing tab assembles, and the one
+// whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
+// by three. Every x-show in the template tests the string, so this checks that
+// the sparse rows survive the parse rather than that the tab has content.
+test('Showing carries the kinds, and the sparse cells survive the parse', () => {
+  const kinds = data.routes.kinds;
+  assert.ok(kinds.length > 8, 'the kinds table did not load');
+  const md = kinds.find(k => k.kind === 'markdown');
+  assert.equal(md.aim, 'section');
+  assert.equal(md.aim_label, 'Markdown section');
+  assert.equal(md.kit, 'lib/kits/md-doc.js');
+  // The join columns, which are what put this table on this tab rather than a
+  // tab of its own. routes-manifest.test.mjs checks they RESOLVE; this checks
+  // the app is handed them at all.
+  assert.ok(md.shown_by.split(';').filter(Boolean).length > 0);
+  // Source code is the second kind, and it is the one that shows the aim column
+  // is optional rather than unfilled: it declares (so it has a kit) and offers
+  // no gesture of its own, since a line range is what a text selection already
+  // spans. `delimited` is the other shape, a kind nothing declares yet.
+  const code = kinds.find(k => k.kind === 'code');
+  assert.equal(code.kit, 'lib/kits/code-doc.js');
+  assert.equal(code.aim, '', 'a kind with no added aim carries an empty cell, not a missing one');
+  assert.equal(kinds.find(k => k.kind === 'delimited').kit, '',
+    'a kind nothing declares yet carries a blank, which the card renders as absence');
+});
+
 test('with no ?use=, both manifests are read at main', () => {
   // The deployed case. The branch-preview case is map-view-use-ref.test.mjs,
   // which needs its own window because the ref comes from location.search.
@@ -153,6 +211,24 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
   assert.equal(data.surfErr, '');
   assert.ok(data.surf.primitives.length > 10);
   assert.equal(data.SURF_DOC, 'docs/SURFACING.md');
+});
+
+// The cards index one region of the doc, and the tab says so with a door to
+// each of the others. The doors are read off the doc's h2 headings, so this
+// holds two things: the list IS the doc's headings minus the primitives, and
+// every gloss the tab keeps about WHEN a region arrives names a heading that
+// exists. A renamed heading fails here rather than leaving a gloss orphaned.
+test('Surfacing derives its region doors from the doc, and every gloss names a real heading', async () => {
+  await data.loadSurf();
+  const headings = [...surfDoc.matchAll(/^## (.+?)\s*$/gm)].map(m => m[1]);
+  // Serialized, since the component's arrays come back through Alpine's proxy
+  // and deepEqual reads the prototype before it reads the strings.
+  assert.equal(JSON.stringify(Array.from(data.surf.regions, r => r.heading)),
+    JSON.stringify(headings.filter(h => h !== 'Surfacing primitives')),
+    'one door per region of the doc, the primitives excepted');
+  for (const h of Object.keys(data.SURF_REGION_GLOSS))
+    assert.ok(headings.includes(h), 'gloss for a heading the doc does not carry: ' + h);
+  assert.ok(data.surf.regions.some(r => r.gloss), 'at least one door says when its region arrives');
 });
 
 test('Docs loads on demand and carries the registry', async () => {
@@ -170,11 +246,43 @@ test('Owners loads its own carrier, separately from Docs', async () => {
   await data.loadOwnersReg();
   assert.equal(data.ownersErr, '');
   assert.ok(data.ownersReg.owners.length > 3);
-  // The scope moved to the registry row on 2026-08-16, where every other
-  // registry's scope already lived; owners.csv used to carry a second copy.
-  assert.ok(data.ownersReg.scope, 'the tab reads the scope from the registry row');
+  // Two files, not three: the tab pulled docs/registries.csv as well while its
+  // header carried a scope line, and stopped on 2026-08-26 when the header came
+  // off. The scope is read on the Registries tab, where every registry's is.
+  assert.equal(data.propsReg, null, 'opening Claims does not pull the registry pair');
   assert.equal(data.OWNERS_MANIFEST, 'docs/owners.csv');
   assert.equal(data.OWNERS_REPS, 'docs/repetitions.csv');
+});
+
+// The kit shelf: every column derived, so the tab's whole job is to filter
+// and to make the warning states countable. The demo link is an APP VIEW of
+// this app, which is what puts the FAB's layer strip and takes over the demo.
+test('Kits loads on demand, filters on its derived columns, and opens a demo as an app view', async () => {
+  assert.equal(data.kitsReg, null, 'the registry is not fetched until the tab is opened');
+  await data.loadKitsReg();
+  assert.equal(data.kitsErr, '');
+  const kits = data.kitsReg.kits;
+  assert.ok(kits.length > 50, 'the shelf has more than fifty kits');
+  assert.ok(kits.every(k => k.name && k.path.startsWith('lib/kits/')), 'every row is a kit on the shelf');
+  const peek = kits.find(k => k.name === 'peek');
+  assert.ok(peek && peek.namespace === 'Peek', 'the namespace is read off the file');
+  assert.match(peek.gloss, /under the pointer/, 'the gloss is the header sentence');
+  assert.equal(data.KITS_MANIFEST, 'docs/kits.csv');
+  // The strip: a filter narrows the rows to the kits it counts, and clearing
+  // it restores them, so the count on the pill and the rows under it agree.
+  const demo = data.kitFilterCounts.find(r => r.key === 'demo');
+  assert.ok(demo && demo.n > 0, 'some kit has a demo');
+  data.kitFilter = 'demo';
+  assert.equal(data.kitRows.length, demo.n, 'the filtered rows are exactly the counted ones');
+  assert.ok(data.kitRows.every(k => k.demo));
+  data.kitFilter = '';
+  assert.equal(data.kitRows.length, kits.length);
+  // The demo opens through this app's own app-view route, not as a bare page.
+  const withDemo = kits.find(k => k.demo);
+  const href = data.kitDemoHref(withDemo);
+  assert.match(href, /^\?view=app&/, 'an app view of this app');
+  assert.ok(href.includes('appPath=lib%2Fkits%2Fdemos%2F' + withDemo.name + '.html'), href);
+  assert.equal(data.kitTotals.kits, kits.length);
 });
 
 test('the Docs folder rail rolls up, nests, and prunes by reach without changing shape', () => {
@@ -208,14 +316,34 @@ test('a row title opens the doc deck: full folder, tapped row first, rendered by
   // component only lazily loads the CDN copy when window.marked is absent.
   window.marked = { parse: (t) => '<h1>md</h1><!-- ' + t.length + ' chars -->' };
 
+  // MOUNTED, not returned: the section controls kits/md-doc.js hangs on each
+  // heading are listeners on real nodes, so the renderer fills a box it is
+  // handed rather than handing back a string somebody would innerHTML.
+  const into = () => window.document.createElement('div');
   const fetchesBefore = asked.length;
-  assert.match(await data.docDeckRead('docs/CONVENTIONS.md'), /prose/, 'markdown renders as prose');
-  assert.ok((await data.docDeckRead('docs/docs.csv')).startsWith('<pre'),
-    'a JSON doc renders as source, not prose');
+  const mdBox = into();
+  await data.docDeckRead(mdBox, 'docs/CONVENTIONS.md');
+  assert.match(mdBox.innerHTML, /prose/, 'markdown renders as prose');
+  // A CSV renders as a TABLE since 2026-09-04, not as the <pre> this used to
+  // assert: docs/ holds a dozen registries and the deck showed every one of
+  // them as wrapped raw text. It reaches prose by conversion, so the marked
+  // stub above is what proves the markdown path ran.
+  const csvBox = into();
+  await data.docDeckRead(csvBox, 'docs/docs.csv');
+  assert.match(csvBox.innerHTML, /prose/, 'a CSV doc renders as a table, not raw source');
   const fetchesAfter = asked.length;
-  await data.docDeckRead('docs/CONVENTIONS.md');
+  await data.docDeckRead(into(), 'docs/CONVENTIONS.md');
   assert.equal(asked.length, fetchesAfter, 're-reading hits the cache, not the network');
   assert.ok(fetchesAfter > fetchesBefore, 'first reads did fetch');
+
+  // The address a copied section carries: assembled by the deck, since it is
+  // the only place that knows the repo, the ref, the path and the blob URL at
+  // once. mdDoc adds the line span to it.
+  const addr = data.docDeckAddr('docs/CONVENTIONS.md');
+  assert.equal(addr.repo, 'mehrlander/web-tools');
+  assert.equal(addr.ref, 'main');
+  assert.equal(addr.path, 'docs/CONVENTIONS.md');
+  assert.equal(addr.url, data.hubUrl('docs/CONVENTIONS.md'));
 
   const opened = [];
   window.swipeDeck = { open(o){
@@ -279,16 +407,24 @@ test('readership joins the repo-qualified cache path to the hub-relative registr
   assert.equal(data.docReadsSessions, 42);
   assert.equal(data.docReadLabel({ path: 'docs/show-repo.md', reach: 'project' }), '9 reads');
   assert.match(data.docReadHint({ path: 'docs/show-repo.md', reach: 'project' }), /9 of 42/);
-  assert.match(data.docReadHint({ path: 'docs/show-repo.md', reach: 'project' }), /file tools only/,
-    'the counting caveat moved from the retired standing paragraph into the title');
+  assert.match(data.docReadHint({ path: 'docs/show-repo.md', reach: 'project' }), /shell reads/,
+    'the counting caveat moved from the retired standing paragraph into the title, and names both channels');
   // Another repo's docs/ file is in the same rollup and must not be read as this one's.
   assert.equal(data.docReadLabel({ path: 'docs/elsewhere.md', reach: 'orphan' }), '');
 });
 
-test('an injected doc says so instead of reporting the zero no file tool can avoid', () => {
+// The label used to close with "not measurable here, and not zero". The first
+// half is a fact about this column; the second was a claim about a delivery
+// path nothing was checking, and it was false from 2026-08-07, when the hook
+// carrying both documents began arriving as a 2 KB preview of 36 KB. So what is
+// pinned here is that the label states the limit rather than vouching for the
+// channel: a tooltip is a bad place to keep a promise nothing enforces.
+test('an injected doc says what this column cannot see, not that the text arrived', () => {
   const injected = { path: 'docs/CONVENTIONS.md', reach: 'injected' };
   assert.equal(data.docReadLabel(injected), 'injected');
-  assert.match(data.docReadHint(injected), /not zero/);
+  assert.match(data.docReadHint(injected), /cannot measure it/);
+  assert.doesNotMatch(data.docReadHint(injected), /not zero/,
+    'the retired half: never vouch for a delivery path from a tooltip');
   // Unmeasurable stays distinguishable from unread: injected carries a word,
   // a never-opened doc shows nothing at all (the tail hides on empty).
   assert.equal(data.docReadLabel({ path: 'docs/nobody-opens-this.md', reach: 'orphan' }), '');
@@ -346,8 +482,8 @@ test('openConfig opens the repo dialog on the Config tab without throwing', () =
 // its manifest. Both halves are asserted here, since a passing half is exactly
 // the failure mode (a stamped URL nothing reads, or a rendered tab with no
 // address). The shell's app() lives inline in app/index.html, hence the
-// show-repo-shell.mjs harness.
-const { page, makeShell } = await import('./show-repo-shell.mjs');
+// shell.mjs harness.
+const { page, makeShell } = await import('./shell.mjs');
 
 test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   const taps = [];
@@ -383,6 +519,52 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
+  // The comparison-grain reading rides the same load, non-fatally, and joins
+  // on the test file named first in each row's `check`.
+  assert.ok(d3.testExplain, 'the explanations carrier loaded beside the registry');
+  assert.ok(d3.explainOf({ path: 'tools/test/tests-registry.test.mjs' }).length >= 2,
+    'the registry test carries its two comparisons (membership, drift)');
+  assert.equal(d3.explainOf({ path: 'tools/test/no-such.test.mjs' }).length, 0);
+  // Attachment is asserted, not counted: every row's script must be a registry
+  // path. The first cut counted rows and called them attached, and a trailing
+  // comma in one row's join column made the count true and the claim false.
+  const tot = d3.testExplainTotals;
+  const rowsInCarrier = window.Csv.rows(explainCsv).filter(r => r.script && r.kind).length;
+  assert.equal(tot.rows, rowsInCarrier, 'every carrier row is folded');
+  assert.equal(tot.attached, tot.rows, 'every row names a registry file: ' +
+    [...d3.testExplain.keys()].filter(k => !d3.testsReg.tests.some(t => t.path === k)).join(', '));
+  assert.equal(tot.files + tot.unexplained, d3.testsReg.tests.length, 'explained plus unexplained is the registry');
+  // Grouping keeps every comparison: the sum over kinds is the row count.
+  const grouped = d3.groupsOf(d3.explainOf({ path: 'tools/test/derived-artifacts.test.mjs' }));
+  assert.equal(grouped.reduce((n, g) => n + g.rows.length, 0),
+    d3.explainOf({ path: 'tools/test/derived-artifacts.test.mjs' }).length);
+  // The estate sources: the crawl's declared key, then the address override,
+  // which replaces a crawl entry for the same repo rather than duplicating it.
+  const cache = { repos: {
+    'mehrlander/web-tools': { config: { checking: { files: 'x', comparisons: 'y' } } },
+    'mehrlander/home': { config: { checking: { files: 'r.csv', comparisons: 'e.csv' } } },
+    'mehrlander/other': { config: {} },
+  } };
+  const srcs = d3.checkingSources(cache, 'mehrlander/home@abc123:r2.csv,e2.csv;mehrlander/third:f.csv,c.csv');
+  // Compared as JSON: the arrays are built in the jsdom realm, whose Array
+  // prototype is not node's, and strict deep-equality checks prototypes.
+  assert.equal(JSON.stringify(srcs.map(x => [x.repo, x.ref, x.files, x.comparisons, x.from])), JSON.stringify([
+    ['mehrlander/home', 'abc123', 'r2.csv', 'e2.csv', 'query'],
+    ['mehrlander/third', 'main', 'f.csv', 'c.csv', 'query'],
+  ]), 'the hub is excluded, an undeclared repo contributes nothing, the override wins');
+  assert.equal(JSON.stringify(d3.checkingSources(cache, '').map(x => x.repo)), JSON.stringify(['mehrlander/home']));
+  // The drift signal: a script whose blob hash moved since its rows were
+  // written is named; an unchanged one and an unstamped one are not, and a
+  // script the tree no longer carries is not called changed either.
+  const byPath = new Map([
+    ['a.mjs', [{ script_sha: 'aaa' }]], ['b.mjs', [{ script_sha: 'bbb' }]],
+    ['c.mjs', [{ script_sha: '' }]], ['gone.mjs', [{ script_sha: 'ggg' }]],
+  ]);
+  const now = new Map([['a.mjs', 'aaa'], ['b.mjs', 'b2b'], ['c.mjs', 'ccc']]);
+  assert.equal(JSON.stringify([...d3.changedSet(byPath, now)]), JSON.stringify(['b.mjs']));
+  // Every committed row carries the hash it was read at.
+  const stamped = window.Csv.rows(explainCsv).filter(r => r.script && /^[0-9a-f]{40}$/.test(r.script_sha)).length;
+  assert.equal(stamped, rowsInCarrier, 'every row is stamped with its script blob hash');
   window.__shell = undefined;
 });
 
@@ -424,7 +606,7 @@ test('the shell reads the tab back off a deep link, on both boot paths', () => {
   assert.equal(url.tab, 'docs');
   // Boot and popstate share one dispatch through the VIEWS table, so routing
   // the tab is the map row's job rather than a line copied into two chains.
-  // That the two paths cannot disagree is show-repo-routing.test.mjs's beat.
+  // That the two paths cannot disagree is shell-routing.test.mjs's beat.
   shell.routeFor('map').open.call(shell, url);
   assert.equal(shell.mapTab, 'docs', 'the map row does not route the tab off the URL');
 });
@@ -434,11 +616,14 @@ test('the shell and the component agree on the tab set', () => {
   assert.ok(m, 'MAP_TABS is not where the shell can validate against it');
   const tabs = m[1].split(',').map(s => s.trim().replace(/'/g, ''));
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
+  // The strip became one x-for over TABS on 2026-08-31, so the component's tab
+  // set is that array rather than twelve setTab literals. map-tabs.test.mjs
+  // holds the array against the sections; this holds it against the shell.
   for (const t of tabs) {
-    assert.ok(src.includes(`setTab('${t}')`), `no tab button renders ${t}`);
+    assert.ok(src.includes(`{ k: '${t}',`), `no TABS entry declares ${t}`);
     assert.ok(src.includes(`mapTab==='${t}'`), `no section renders ${t}`);
   }
-  const buttons = [...src.matchAll(/setTab\('(\w+)'\)/g)].map(x => x[1]);
+  const buttons = [...src.matchAll(/\{ k: '(\w+)', n: '[^']+', i: '[^']+',\s*\n\s*g: '/g)].map(x => x[1]);
   assert.deepEqual([...new Set(buttons)].sort(), [...tabs].sort(),
     'a tab the shell will not validate is a tab the URL cannot carry');
 });
@@ -632,3 +817,90 @@ test('every field the Registries markup reads exists on a registry row', async (
   assert.equal(missing.join(', '), '', 'markup reads fields the row does not carry: ' + missing.join(', '));
 });
 
+
+// ── The CSV rendition ────────────────────────────────────────────────────
+// The deck's markdown path renders a registry as a table, and the risk in that
+// conversion is not layout: it is a cell being READ as markdown. docs/ holds a
+// dozen registries and several of them describe markdown, so the first pass
+// turned surfacing.csv's own `[caption](url)` into a link labelled "caption",
+// which is a file misreporting itself in the one view meant to show it whole.
+
+test('a registry converts to a table with a delimiter row', () => {
+  const md = data.csvToMarkdown('a,b\nx,y\n');
+  assert.deepEqual(md.split('\n'), ['| a | b |', '| --- | --- |', '| x | y |']);
+});
+
+test('a cell is data, so its markdown is escaped rather than run', () => {
+  const md = data.csvToMarkdown('key,use\nk,"Explicit [caption](url), **bold**, a_b and `code`"\n');
+  assert.match(md, /\\\[caption\\\]\(url\)/, 'brackets survive as brackets');
+  assert.match(md, /\\\*\\\*bold\\\*\\\*/, 'asterisks are not emphasis');
+  assert.match(md, /a\\_b/, 'an underscore in an identifier is not emphasis');
+  assert.match(md, /\\`code\\`/, 'a backtick is not a code span');
+});
+
+test('a pipe inside a cell does not split the row', () => {
+  // surfacing.csv carries `#gz= | #gh=` in one field; unescaped it would read
+  // as two columns and shift every cell after it.
+  const md = data.csvToMarkdown('key,form\nk,"#gz= | #gh="\n');
+  const row = md.split('\n')[2];
+  assert.equal(row, '| k | #gz= \\| #gh= |');
+  assert.equal(row.split(/(?<!\\)\|/).length - 2, 2, 'two columns, not three');
+});
+
+test('a ragged row is padded to the widest, never truncated to the header', () => {
+  // A row with a field the header does not name is a file that has drifted, and
+  // dropping the field would hide the drift.
+  const md = data.csvToMarkdown('a,b\nx,y,z\n');
+  assert.deepEqual(md.split('\n'), ['| a | b |   |', '| --- | --- | --- |', '| x | y | z |']);
+});
+
+test('what is not a table declines rather than rendering as one', () => {
+  // The caller falls back to the source rendition on null, so a one-column or
+  // header-only file stays what it is.
+  assert.equal(data.csvToMarkdown('just a header\n'), null, 'no rows');
+  assert.equal(data.csvToMarkdown('one\ncolumn\n'), null, 'one column is a list');
+  assert.equal(data.csvToMarkdown(''), null);
+});
+
+// ── A card and its bullet ────────────────────────────────────────────────
+// The corpus half (does every card resolve against the rendered doc) is
+// surfacing-lead-anchor.test.mjs, which renders SURFACING.md for real. This is
+// the component half: the normalization and the selector the card actually
+// calls, plus the one failure mode that matters, which is a hit on the wrong
+// bullet rather than a miss.
+
+test('the lead key is normalized the way the manifest gate normalizes it', () => {
+  assert.equal(data.leadKey('Reference is a link.'), 'Reference is a link');
+  assert.equal(data.leadKey('Boundary:'), 'Boundary');
+  assert.equal(data.leadKey('  Show pixels.  '), 'Show pixels');
+  assert.equal(data.leadKey(''), '');
+  assert.equal(data.leadKey(undefined), '');
+});
+
+test('findLead reaches a loose list item, which is the shape marked emits', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = '<ul>' +
+    '<li><p><strong>Show pixels.</strong> body one</p></li>' +
+    '<li><p><strong>Hand over the artifact.</strong> body two</p></li></ul>';
+  assert.match(data.findLead(box, 'Show pixels').textContent, /body one/);
+  assert.match(data.findLead(box, 'Hand over the artifact').textContent, /body two/);
+  assert.equal(data.findLead(box, 'Not a primitive'), null);
+});
+
+test('and a tight list item too, so the doc may drop its blank lines', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = '<ul><li><strong>Branch anchor.</strong> body</li></ul>';
+  assert.match(data.findLead(box, 'Branch anchor').textContent, /body/);
+});
+
+test('a bold run that is not the item lead-in is not the anchor', () => {
+  // Every primitive carries a **Boundary:** run inside its own paragraph, and
+  // several carry **Form**. Matching one of those would scroll the reader to
+  // the middle of the right bullet or the wrong one; :first-child is what
+  // keeps the anchor the lead-in.
+  const box = window.document.createElement('div');
+  box.innerHTML = '<ul><li><p><strong>Show pixels.</strong> body ' +
+    '<strong>Boundary:</strong> a viewport shot</p></li></ul>';
+  assert.equal(data.findLead(box, 'Boundary'), null, 'a mid-paragraph run is not a lead-in');
+  assert.ok(data.findLead(box, 'Show pixels'), 'the lead-in still resolves');
+});

@@ -75,10 +75,16 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
-function nodeFile(repoRoot, pkg, sub, esm) {
+function nodeFile(repoRoot, pkg, sub, esm, combine) {
   const dir = path.join(repoRoot, 'node_modules', pkg);
   if (sub) return path.join(dir, sub);
-  if (CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
+  // CDN_DEFAULT models the /npm/ route, which honors the `unpkg` field. The
+  // /combine/ route does NOT: it resolves through package.json main, so a bare
+  // `npm/alpinejs` spec there yields dist/module.cjs.js and the page gets a
+  // CommonJS file that defines no global. Applying the map to a combine request
+  // served a working Alpine no browser would ever receive, and pages/doc-growth
+  // shipped dead while passing every local render (SNAGS: combine-serves-cjs).
+  if (!combine && CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
   const pj = path.join(dir, 'package.json');
   if (existsSync(pj)) {
     try {
@@ -112,9 +118,31 @@ function parseNpm(spec) {
   return { pkg: scope + name, sub, esm };
 }
 
-function readSpec(spec, repoRoot) {
-  const { pkg, sub, esm } = parseNpm(spec);
-  let fp = nodeFile(repoRoot, pkg, sub, esm);
+// A package whose CDN path and whose npm path are different packages.
+//
+// Pages load `@tailwindcss/typography/dist/typography.min.css`. That file has
+// not been published since 0.5.0: every version after it ships the Tailwind
+// PLUGIN and no built CSS. jsDelivr answers the versionless URL by falling back
+// to the last version that has the file, which its own header confirms
+// (`x-jsd-version: 0.5.0`), so a real browser has been loading 0.5.0 all along
+// while `node_modules/@tailwindcss/typography` holds the current plugin. The
+// resolver saw a package with no such file and served an honest MISS, which is
+// why every headless screenshot of a prose surface was taken with no prose
+// styles at all: no 65ch measure, no paragraph rhythm, no list markers.
+//
+// So 0.5.0 is installed a second time under an alias (package.json,
+// `typography-dist`) and this table points the CDN path at it. Real bytes,
+// byte-identical to what the CDN serves, which is the vendoring rule in
+// docs/headless-vendoring.md rather than an exception to it. Found on
+// 2026-09-02 by a prose block that wrapped at 470px on a phone and at the full
+// 1171px in every screenshot taken of it.
+const PKG_ALIAS = { '@tailwindcss/typography': 'typography-dist' };
+
+function readSpec(spec, repoRoot, combine) {
+  const { pkg: cdnPkg, sub, esm } = parseNpm(spec);
+  const pkg = (PKG_ALIAS[cdnPkg] && existsSync(path.join(repoRoot, 'node_modules', PKG_ALIAS[cdnPkg], sub)))
+    ? PKG_ALIAS[cdnPkg] : cdnPkg;
+  let fp = nodeFile(repoRoot, pkg, sub, esm, combine);
   // jsDelivr auto-minifies: a `.min.js`/`.min.css` URL works on the CDN even
   // when the npm tarball ships only the unminified file (e.g. codemirror@5).
   if (!existsSync(fp) && /\.min\.(js|css)$/.test(fp)) {
@@ -335,7 +363,7 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     const parts = [];
     let ct = null, miss = [];
     for (const s of specs) {
-      const r = readSpec(s, repoRoot);
+      const r = readSpec(s, repoRoot, true);
       if (r) { parts.push(Buffer.from(r.body)); ct = ct || r.contentType; }
       else miss.push(s);
     }

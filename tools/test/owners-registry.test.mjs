@@ -14,7 +14,7 @@
 // written scope (the `scope` field), and whether some fourth document has begun
 // repeating a statement nobody has filed is not decidable from the carrier. The
 // detectors answer that question (home's tools/duplicated-claims.py,
-// tools/concept-lab/termlab.py); a registry gate here would only assert that the
+// local-models/instruments/concept-lab/termlab.py); a registry gate here would only assert that the
 // file agrees with itself.
 
 import test from 'node:test';
@@ -112,8 +112,12 @@ test('every row names one authoritative carrier and at least one repetition', ()
       assert.ok(rep.where, `${r.subject}: a repetition says where`);
       assert.ok(RELATIONS.has(rep.relation),
         `${r.subject}: relation must be one of ${[...RELATIONS]}, got ${rep.relation}`);
-      if (rep.kept) assert.equal(rep.relation, 'copy', `${r.subject}: kept applies only to copies`);
-      if (rep.relation === 'copy') assert.ok(rep.kept, `${r.subject}: a copy says who keeps it`);
+      // `kept` came off on 2026-08-31. It was declared to tell a hand-kept copy
+      // from one a named builder writes, and across the registry's whole life it
+      // read `by hand` on every copy and blank on everything else: fully
+      // determined by `relation`, so the badge said "copy, kept by hand", which
+      // is "copy, copy". A column no value distinguishes is not a field.
+      assert.ok(!('kept' in rep), `${r.subject}: kept was retired; the relation carries it`);
     }
   }
 });

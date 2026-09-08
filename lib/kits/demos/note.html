@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>note — the small tooltip</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../note.js"></script>
+</head>
+<body class="bg-base-100 text-base-content">
+<main class="px-6 py-8 space-y-8">
+
+  <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <h1 class="text-2xl font-semibold">note</h1>
+    <code class="font-mono text-[13px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">data-note="…"</code>
+    <span class="text-[13px] text-base-content/50">hover · tap · Tab · tap the note to close it</span>
+    <span class="ml-auto flex gap-2">
+      <button class="btn btn-sm" onclick="Note.open('#ext')">Open one</button>
+      <button class="btn btn-sm btn-ghost" onclick="Note.close()">Close</button>
+    </span>
+  </header>
+
+  <section class="space-y-2">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A tab strip</h2>
+    <div class="flex items-center gap-4 border-b border-base-300 pb-2 text-[15px]">
+      <span class="font-medium border-b-2 border-primary pb-2 -mb-2.5">Levels</span>
+      <span class="text-base-content/60">By item</span>
+      <span class="text-base-content/60">Requests</span>
+      <span class="w-px h-4 bg-base-300"></span>
+      <span id="ext" class="text-[10px] uppercase tracking-wider text-base-content/40"
+            data-note="Fetched from the repository when opened">External</span>
+      <span class="text-base-content/60"><i class="ph ph-cloud-arrow-down align-[-2px]"></i> Budget bill</span>
+    </div>
+  </section>
+
+  <section class="space-y-2">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Running text</h2>
+    <p class="text-[15px] leading-relaxed">
+      The schedule reconciles to the
+      <span data-note="Fund 600, appropriated lane only">appropriated ledger</span>
+      to the dollar, and the
+      <span data-note="Annual Comprehensive Financial Report">ACFR schedule</span>
+      does not.
+    </p>
+  </section>
+
+  <section class="space-y-2">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A table header and a cell</h2>
+    <table class="text-[13px] border border-base-300">
+      <thead class="bg-base-200">
+        <tr>
+          <th class="text-left font-medium px-3 py-1.5 border-b border-base-300">Item</th>
+          <th class="text-left font-medium px-3 py-1.5 border-b border-base-300"
+              data-note="Net of reversions">Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="px-3 py-1.5">Recordkeeping</td><td class="px-3 py-1.5 font-mono">1,204</td></tr>
+        <tr><td class="px-3 py-1.5">CORE-PAM</td>
+            <td class="px-3 py-1.5 font-mono" data-note-bare
+                data-note="Gated: released by proviso, not appropriated">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="space-y-2" data-note-look="plain">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">The plain look, set once on the section</h2>
+    <table class="text-[13px] border border-base-300">
+      <thead class="bg-base-200">
+        <tr>
+          <th class="text-left font-medium px-3 py-1.5 border-b border-base-300">Fund</th>
+          <th class="text-right font-medium px-3 py-1.5 border-b border-base-300" data-note="Full-time equivalents">FTE</th>
+          <th class="text-right font-medium px-3 py-1.5 border-b border-base-300" data-note="Thousands of dollars">$K</th>
+          <th class="text-left font-medium px-3 py-1.5 border-b border-base-300 max-w-24 truncate" data-note="Non-appropriated lane of fund 600">Non-approp…</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="px-3 py-1.5">600</td><td class="px-3 py-1.5 font-mono text-right">312.4</td><td class="px-3 py-1.5 font-mono text-right">92,118</td><td class="px-3 py-1.5">yes</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="space-y-2">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Capturing one</h2>
+    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>// open-note.mjs
+export default async (page) =&gt; {
+  await page.evaluate(() =&gt; Note.open('#ext'));
+  await page.waitForTimeout(250);
+};
+
+npm run shot -- lib/kits/demos/note.html --script open-note.mjs</code></pre>
+  </section>
+
+  <section class="space-y-2">
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Where the line is</h2>
+    <table class="text-[13.5px] border border-base-300">
+      <tbody>
+        <tr class="border-b border-base-300">
+          <td class="px-3 py-2 font-medium align-top w-40">note</td>
+          <td class="px-3 py-2">Meant to be one line: what the page already implies and cannot fit, so nobody asks where it came from. Nothing tappable, no scrollbar; on touch, tapping the note closes it. Six lines is the ceiling; past it the console says so.</td>
+        </tr>
+        <tr>
+          <td class="px-3 py-2 font-medium align-top">card</td>
+          <td class="px-3 py-2">Anything the reader taps inside, or scrolls: a link, a copy button, a table; and anything a reader might ask the source of, which the card names with a ↗. Carries its ✕ on touch. The rule, once: <code class="font-mono text-[0.9em]">daisy-alpine/references/mechanics.md</code>, "Notes and cards".</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+</body>
+</html>

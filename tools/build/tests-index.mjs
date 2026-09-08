@@ -58,7 +58,7 @@
 // `protects` and `assertion_names` answer different questions, and the split is
 // why deriving the names does not make the authored field redundant. The names
 // say WHAT the file asserts; `protects` says what BREAKS if it goes, which for
-// a gate or a lockstep is not recoverable from any test name. What the names do
+// a gate is not recoverable from any test name. What the names do
 // retire is the inventory: `protects` had been absorbing coverage lists because
 // coverage was invisible in the view, and twelve rows had grown past 300
 // characters restating what the file already said better. One sentence here,
@@ -74,7 +74,15 @@ import { parseCsv, writeCsv, splitList } from './registries-load.mjs';
 const TEST_COLS = ['path', 'kind', 'protects', 'assertions', 'method', 'runner', 'boot_smoke', 'assertion_names'];
 import { fileURLToPath } from 'node:url';
 
-export const KINDS = ['behavior', 'component', 'kit', 'tool', 'gate', 'lockstep', 'guard'];
+// Two values, because `method` already answers the question the other five
+// were answering. component/kit/tool glossed to `alpine`/`kit`/`spawn` word
+// for word, and `guard` glossed to a convention check while three of its
+// five rows were behaviour with a quiet failure mode. What is left is the
+// one split method cannot recover: is the subject code being run, or a
+// committed file's content? `read` does not predict it (41 behaviour rows
+// read a file; 14 gates do too), which is the test of whether this column
+// earns its place beside `method`.
+export const KINDS = ['behavior', 'gate'];
 export const METHODS = ['kit', 'alpine', 'spawn', 'read', 'pure'];
 
 const TEST_DIR = 'tools/test';
@@ -82,7 +90,7 @@ const TEST_DIR = 'tools/test';
 // browser-driven checks, which are named without `.test.` so `node --test`
 // skips them. The registry covers both, since a check the suite never runs is
 // exactly the kind of thing that goes quietly stale.
-const NOT_A_TEST = new Set(['bootstrap.mjs', 'show-repo-shell.mjs']);
+const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs']);
 
 // A boot smoke assertion proves one thing: the component mounted and logged
 // nothing. Two things changed here on 2026-08-10, and both are about level.

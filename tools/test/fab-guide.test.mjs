@@ -252,15 +252,32 @@ test('the github mark is a menu over the ref on display, with the file rows firs
   delete window.GithubLinks;
 });
 
+// The picker ARRIVES rather than being there: its mount is gated on
+// pickerReady, which the fab sets after asking its loader for
+// path-picker.js, so it lands a tick after `open` rather than with it.
+// Waiting for it is the honest assertion; a fixed tick count would be a
+// guess that goes stale the next time the gate moves.
+async function awaitPicker(d, host) {
+  for (let i = 0; i < 40; i++) {
+    if (d._picker && d._picker()) return d._picker();
+    if (host && host.querySelector('[x-data^="pathPicker"]')) return true;
+    await tick(1);
+  }
+  return null;
+}
+
 test('the path row is a picker, and a picked file is a request to render it', async () => {
   const d = await mountFab();
   d.viaToss = true;
   d.defaultBranch = 'main';
   d.ref = 'claude/thing';
+  // The drawer's body is built on the first open (2026-09-02), the picker with it.
+  d.open = true;
+  await tick(3);
 
   // The picker really mounts and gets its GH from the fab rather than from
   // Alpine's browser store.
-  const picker = d._picker();
+  const picker = await awaitPicker(d);
   assert.ok(picker, 'pathPicker mounted inside the render tab');
 
   // ROOTS: this repo at the ref on display, first and carrying its ref, then
@@ -384,6 +401,9 @@ test('a real tap on the trigger opens the tree and leaves it open', async () => 
   Alpine.initTree(host);
   await tick(3);
   const d = Alpine.$data(host.firstElementChild);
+  d.open = true;            // the body, the trigger in it, is built on first open
+  await tick(3);
+  await awaitPicker(d, host);
 
   const trigger = host.querySelector('button[class*="group/id"]');
   assert.ok(trigger, 'the repo/path block is one trigger');
@@ -614,4 +634,52 @@ test('an old shell stamps only the app, so the fab reads the route off the addre
     window.__tossSubject = null;
     at(back);
   }
+});
+
+// ── The guide reads on open without the branch scan (2026-09-02) ───────────
+// Opening the drawer used to run branchesForPath (five GraphQL pages over
+// 500-odd heads), then a compare per row and a session walk, and the guide
+// waited for all of it behind two loading marks. It reads with cheap calls
+// now, and the scan belongs to the dropdown.
+test('opening the drawer reads the guide with cheap calls and leaves the scan to the dropdown', async () => {
+  const realGH = window.GH;
+  const asked = [];
+  window.GH = class {
+    constructor(o) { this.repo = o.repo; }
+    async req(p) {
+      asked.push(p);
+      if (p.startsWith('/repos/')) return { default_branch: 'trunk', has_pages: true };
+      if (p.startsWith('pulls?state=all')) return [{ number: 41, title: 'the guide', body: 'read me', state: 'open' }];
+      if (p.startsWith('commits?path=')) return [{ sha: 'abcdef0123456789', html_url: 'https://x/c',
+        commit: { message: 'touch the page\n\nmore', committer: { date: new Date().toISOString() } } }];
+      if (p.startsWith('commits?sha=')) return [];
+      return [];
+    }
+    async branchesForPath() { asked.push('SCAN'); return { defaultBranch: 'trunk', defaultOid: 'o', branches: [] }; }
+    async branches() { asked.push('SCAN'); return []; }
+  };
+  try {
+    const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/a.html"');
+    // Stand in a preview of another branch, the way a toss does; a name no
+    // earlier test read, since branch-brief's read-through memo is per page.
+    d.viaToss = true; d.ref = 'claude/fresh';
+    d.activeTab = 'render';
+    d.toggle();
+    await tick(6);
+    assert.ok(!asked.includes('SCAN'), 'no branch scan on open: ' + asked.join(' | '));
+    assert.equal(d.viewingRef, 'claude/fresh');
+    assert.ok(asked.some(p => p.startsWith('pulls?state=all')), 'the PR walk is read');
+    assert.ok(asked.some(p => p.startsWith('commits?path=pages%2Fa.html')), 'and the file\'s last change on this ref');
+    assert.equal(d.guidePr?.number, 41, 'the guide is up; asked=' + asked.join(' | ') + ' prsFor=' + d._prsFor + ' n=' + d.prHistory.length);
+    assert.equal(d.guideBusy, false);
+    assert.equal(d.defaultBranch, 'trunk', 'the default branch comes from the repo read, not the scan');
+    assert.equal(d.pageLast?.sha, 'abcdef0', 'the page row names the commit');
+    assert.equal(d.pageLast?.subject, 'touch the page', 'first line only');
+    assert.equal(d.pageBranchesLoaded, false, 'the dropdown has not scanned');
+
+    // Opening the dropdown is what scans.
+    d.toggleRefMenu();
+    await tick(4);
+    assert.ok(asked.includes('SCAN'), 'the dropdown runs the scan');
+  } finally { window.GH = realGH; }
 });

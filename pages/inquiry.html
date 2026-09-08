@@ -41,6 +41,7 @@
   const ref = new URLSearchParams(location.search).get('use');
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
     const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
     try { await import(url); } finally { URL.revokeObjectURL(url); }
   } else {
@@ -61,7 +62,7 @@
           class="btn btn-ghost btn-xs" title="Set the stored token"><i class="ph ph-key"></i></button>
 </header>
 
-<main class="max-w-2xl mx-auto px-3 py-4 flex flex-col gap-3">
+<main class="mx-auto px-3 py-4 flex flex-col gap-3">
 
   <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
     <i class="ph ph-warning"></i><span x-text="error"></span>

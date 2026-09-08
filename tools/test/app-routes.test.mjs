@@ -120,9 +120,13 @@ test('the two sub-tab encodings, counted', () => {
   // 6 to 7 on 2026-08-23: State stopped being a nav stop of its own and became
   // Activity's last pill, which is the promotion this figure exists to make
   // somebody restate. Back to 6 the same day: the Guides pill was retired, so
-  // its key is gone rather than re-encoded.
-  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
-  assert.equal(params, 13, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // its key is gone rather than re-encoded. 6 to 5 on 2026-08-27, when the
+  // Stage's Saved pill went and `surfaces` became an alias rather than a key
+  // of its own: an alias is not a sub-tab, since nothing addresses it.
+  assert.equal(flattened, 5, 'sub-tabs addressed as their own ?view= key');
+  // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
+  // 2026-09-05: it gained a Kits tab.
+  assert.equal(params, 15, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
@@ -273,6 +277,22 @@ test('routesTouched applies the same narrow/wide rule as the forward join', () =
   assert.deepEqual(wide.near.map(x => x.key), ['one', 'two', 'three']);
 });
 
+// The near set gets one slot in both views, so the sentence behind that slot is
+// folded here rather than written twice. It was written twice: branch-brief
+// collapsed the set and the estate's branch rows rendered a ghosted LINK per
+// route, which is the disagreement routesTouched exists to prevent, and the
+// links offered exactly the addresses the near rule says to withhold.
+test('nearNote names the routes, the shared files, and why they do not count', () => {
+  const { near } = R.routesTouched(FIXTURE, ['wide.js']);
+  const note = R.nearNote(near);
+  assert.match(note, /^One, Two, Three: touched only through wide\.js, /);
+  assert.match(note, /cannot be said to change them$/);
+  // Each shared file once, however many routes carry it.
+  assert.equal(note.split('wide.js').length - 1, 1);
+  assert.equal(R.nearNote([]), '', 'no near set, no note to show');
+  assert.equal(R.nearNote(undefined), '');
+});
+
 test('routesTouched never counts the shell, and reports the hits it used', () => {
   assert.deepEqual(R.routesTouched(FIXTURE, ['shell.html']), { on: [], near: [] });
   const r = R.routesTouched(FIXTURE, ['one.js', 'wide.js']);
@@ -353,7 +373,9 @@ test('a row with no address, or none at all, is not openable', () => {
 // link which resolves and renders into a link that shows last week's code.
 test('a lib change without a rebuilt pre-build is reported, not swallowed', () => {
   assert.equal(R.bundleStale(['lib/alpineComponents/stage.js']), true);
-  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/web-tools.js']), false);
+  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/app.js']), false);
+  assert.equal(R.bundleStale(['lib/alpineComponents/stage.js', 'dist/web-tools.js']), true,
+    'the app pins its own bundle now; the whole-library one is not what ?use= fetches here');
   assert.equal(R.bundleStale(['pages/branch.html']), false, 'a page change does not ride the bundle');
   assert.equal(R.bundleStale([]), false);
 });

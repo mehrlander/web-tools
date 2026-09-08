@@ -151,19 +151,6 @@ fill(document, {
 });`
         },
         {
-          title: 'html.tip — rich tooltip',
-          prose: `A daisyUI tooltip with an HTML body. <code class="${c()}">mods</code> takes a position and text mods. Hover the trigger in the frame.`,
-          lang: 'js', kind: 'jsrender', inject, daisy: true,
-          code:
-`document.body.innerHTML = '<div id="t" class="flex justify-center p-2"></div>';
-
-fill(document, {
-  '#t': html.tip(['top', 'xs'],
-    '<button class="btn btn-sm">Hover me</button>',
-    '<strong>Tooltip body</strong><div class="opacity-60">rich HTML, not escaped text</div>')
-});`
-        },
-        {
           title: 'html.modal — full-screen dialog',
           prose: `Mints a <code class="${c()}">&lt;dialog&gt;</code>; open it via its <code class="${c()}">showModal()</code>. Click the button in the frame.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
@@ -201,6 +188,28 @@ tpl\`
   <li class="flex items-center gap-2 py-0.5">
     <i class="ph ph-\${r => r.icon} opacity-70"></i> \${r => r.label}
   </li>\`(rows)(ids.list);`
+        },
+      ],
+    },
+    {
+      title: 'Escaping',
+      intro: 'The other half of tpl and fill: those place raw markup, so the caller decides what is markup and what is text. esc is how a value says it is text.',
+      examples: [
+        {
+          title: 'esc(value): the estate\'s one escape helper',
+          prose: `All five characters, so the same call is safe in a text node and inside a quoted attribute. It escapes only: whether a source's <code class="${c()}">&amp;amp;</code> is an encoded ampersand or five literal characters cannot be read off the string, so decoding belongs once at the ingestion boundary, never here.`,
+          lang: 'js', kind: 'jsrender', inject, daisy: true,
+          code:
+`const hostile = '<img src=x onerror="alert(1)"> & "quoted"';
+
+document.body.innerHTML = '<div id="out" class="text-sm space-y-2"></div>';
+
+// esc'd: the markup is shown, not run, and the quote cannot close the title.
+ids.out.innerHTML = \`
+  <div class="p-2 rounded bg-base-200 font-mono text-xs break-all"
+       title="\${esc(hostile)}">\${esc(hostile)}</div>
+  <div class="text-xs opacity-70">hover the box: the same value rode into the title attribute</div>
+  <div class="text-xs opacity-70">esc(null) is \${JSON.stringify(esc(null))}, not the word "null"</div>\`;`
         },
       ],
     },

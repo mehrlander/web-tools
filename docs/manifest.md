@@ -45,7 +45,7 @@ configured repo already on the new name. Fields:
   "landing": "pages/landing.html",
   "pages": [
     { "path": "pages/news/news.html", "title": "News", "note": "The news dashboard.",
-      "appView": true, "viewLabel": "News", "icon": "ph-newspaper" }
+      "appView": true, "viewLabel": "News", "icon": "ph-newspaper", "slug": "news" }
   ],
   "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
   "stage": {
@@ -55,6 +55,32 @@ configured repo already on the new name. Fields:
   "conventions": "optout"
 }
 ```
+
+A promoted page's `slug` is the one field that is an address rather than a
+description of one, and a slug no repo declares lands the reader on the estate
+rather than an empty frame. The registry row carries the rest of its contract.
+
+**Every promoted page declares one**, which is a rule about the set rather than
+about the field, so it lives here. The shell's `stamp()` rewrites the address on
+every navigation, writing the slug where the open view has one and the five-key
+`appRepo`/`appPath`/`appLabel`/`appIcon` form where it does not. A page without
+a slug therefore cannot hold a short address: the middle form,
+`?app=owner/repo[@ref]:path`, parses and opens, but the first tap inside the app
+replaces it with the long one. That was the state of five of the estate's six
+promoted views until 2026-09-04, when only the budget-drs lens carried a slug,
+because `?app=` was built for it (tracker task `app-view-address-and-icon-tc1a91`)
+and the field was applied once rather than across the set.
+
+A deep link INTO a promoted page rides the fragment, not the query. The shell
+owns the query and the subject owns the fragment, so
+`?app=news#view=archive&q=budget` hands `view=archive&q=budget` to the page as
+its own params, and neither side needs to know the other's key names. That
+matters because they would otherwise have to: the shell's route table and a
+framed page's params already collide on `view` and `tab`, and the pages gallery
+claims `q` from outside the route table, where a convention would never have
+looked. The rule and its fallback for contexts that strip the '#' are in
+[`lib/kits/url-params.js`](../lib/kits/url-params.js) (`subject()`), pinned by
+`tools/test/url-params.test.mjs` and `tools/test/app-view-address.test.mjs`.
 
 Every path in that config is an address, and nothing used to read them: `dead-links.py` enumerates a repo with `git ls-files *.md`, so a declared page could be moved or deleted with no check anywhere noticing. [`scripts/declared-paths.py`](../scripts/declared-paths.py) checks `landing`, `pages[].path` and `stage.files` against the working tree and sibling checkouts, and belongs in the declaring repo's own verify suite: the mover is the only party who can catch a rename at the moment of the rename. That makes declaring a page load-bearing rather than decorative. If it is worth another repo embedding, it is worth declaring here.
 
@@ -284,7 +310,7 @@ refusal wastes its time as surely as silence.
 
 Two optional manifest fields naming where material lands and where it is
 staged. `inbox` is the **receiver's** declared landing spot for a deposit that
-names no directory; `outbox` is a **sender's** shelf of material it is making
+names no directory; `outbox` is a **sender's** folder of material it is making
 available to be pulled. Both are read by `lib/kits/repo-address.js`
 (`RepoAddress.box(config, 'inbox'|'outbox', repo)`).
 
@@ -295,7 +321,7 @@ one, with the discoverable option as the default:
 | Declaration | Means |
 | --- | --- |
 | `"inbox": "inbox"` | the folder `inbox/` on the repo's default branch |
-| `"outbox": "@shelf:out"` | the folder `out/` on the branch `shelf` |
+| `"outbox": "@share:out"` | the folder `out/` on the branch `share` |
 | `"inbox": "owner/repo@ref:dir"` | a box that lives in another repo |
 | absent | nothing declared (deposits land at the root) |
 
@@ -379,7 +405,7 @@ without a gesture. The nav entry appears only while something is pending, so an
 empty channel costs no attention.
 
 A proposal record (`proposals/pending/<id>.json`) carries `id`, `kind`, `repo`,
-`path`, `why`, and an optional `ref`. Three kinds:
+`path`, `why`, and an optional `ref`. Three of the four kinds write a file:
 
 - **`put-file`** replaces `path` with `content` in full. Use when the session
   knows the file end to end.
@@ -404,10 +430,39 @@ A proposal record (`proposals/pending/<id>.json`) carries `id`, `kind`, `repo`,
   applied* path below and is retired rather than written again. A missing target
   file counts the same way, so a removal never creates a file.
 
-**Three deliveries, and the tap decides.** A record may suggest one with
-`deliver`, but both routes are always on the card, because the person holding
-the token knows whether this repo wants a PR today and the proposing session
-does not:
+**The fourth kind performs an act instead**, and the split runs through
+everything below. **`delete-issue`** deletes `issue` (a number) from `repo`. It
+exists because GitHub REST cannot delete an issue at all: only the GraphQL
+`deleteIssue` mutation can, and a sandbox session cannot POST GraphQL, since the
+proxy serves pinned operations only. The app holds `GH.graphql` and the user's
+token, so the act belongs on the surface that already reviews proposals.
+
+**The kind is named, not general.** A `graphql-mutation` kind carrying an
+arbitrary query would let any record reach any mutation the token can reach,
+which is capability escalation wearing a data field. One kind per act is what
+lets the validator say what a record does, and lets the card show it.
+
+What follows from a mutation having no bytes:
+
+| | |
+| --- | --- |
+| **no `path`** | nothing on disk is addressed; `path`, `deliver`, and `expectSha` are refused rather than ignored |
+| **no delivery** | a commit or a branch is meaningless for an act that touches no file, so the card offers one button, not two |
+| **no diff** | the card shows the object it will destroy, read live, in place of a before/after |
+| **staleness in issue currency** | optional `expectComments` and `expectTitle` against a live read, since there is no blob sha to pin |
+
+The three preflight checks still run, read in the same order and meaning the
+same things: the issue is readable, the deletion is still needed (an issue
+already gone reports *Already done, retire it*), and the issue is unchanged
+since the record was written. The card says the deletion is permanent, because
+GitHub keeps no tombstone: a deleted issue's number is not reused and its URL
+404s, so every link and cross-reference to it dies with it. That is worth
+saying on the card rather than in a doc nobody has open.
+
+**Three deliveries, and the tap decides.** For the file kinds: a record may
+suggest one with `deliver`, but both routes are always on the card, because the
+person holding the token knows whether this repo wants a PR today and the
+proposing session does not:
 
 | `deliver` | What the apply does |
 | --- | --- |
@@ -676,7 +731,7 @@ token.
   The pane's cap is high enough that on a 1440 screen its own width is what
   binds, and it gives the form three fifths to the JSON pane's two, the JSON
   being a mirror of the form rather than the thing people came to use. Both
-  rules generalize and are in [HTML-STYLE.md](HTML-STYLE.md).
+  rules generalize and are in [the house style](../skills/daisy-alpine/SKILL.md).
 
   **Two things follow from the form being several screens long** once a repo
   declares projects and pages. The JSON pane **sticks** on desktop and fills the

@@ -42,7 +42,11 @@
   alpineComponents/fab.js).
   Same-origin rendering means the page could read the stored token — which
   is exactly why this mode only accepts repos owned by the OWNERS allowlist
-  below. A crafted link to someone else's repo is refused outright, so the
+  below. Read the other way, that is what makes this mode the preview route
+  for a page that NEEDS the token: an un-deployed branch copy reaches the same
+  localStorage the deployed page will, so it can be handed over and used for
+  real before its merge lands, which a #gz= payload cannot do (opaque origin,
+  no storage). Measured 2026-08-29 against pages/shortcut-log.html. A crafted link to someone else's repo is refused outright, so the
   token can neither fetch it nor be exposed to it. The ':' before <path> is
   unambiguous because git forbids ':' in ref names. No @ref means the
   repo's default branch (and no ?use shim). The on-page field and a pasted
@@ -163,7 +167,7 @@
 <iframe id="frame"
         class="w-full h-full border-0 block bg-base-100 hidden"
         referrerpolicy="no-referrer"
-        allow="fullscreen"></iframe>
+        allow="fullscreen; picture-in-picture"></iframe>
 
 <!-- Input panel (empty state). -->
 <div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
@@ -290,6 +294,40 @@
     // The forced-width layout owns the body's overflow, and only while there
     // is a frame under it: the input panel scrolls on its own terms.
     if (window.__tossWidthNow) document.body.style.overflow = 'hidden';
+    focusFrame();
+    // Again once the document is in, since swapping src or srcdoc lands focus
+    // back on the top document. Twice rather than once because the element is
+    // focusable before its content arrives and the two moments are different.
+    frame.addEventListener('load', focusFrame, { once: true });
+  }
+
+  // ── THE FRAME IS THE CONTENT, so give it the keyboard ─────────────────────
+  //
+  // A FRESH IFRAME NEVER RECEIVES A KEYSTROKE. Focus stays on the top document
+  // until something is clicked, so a rendered page's own shortcuts did nothing
+  // here until the reader clicked into the frame first: `document.hasFocus()`
+  // inside it read false and no keydown arrived at all. Measured 2026-09-04
+  // against the Web Tools app rendered in this shell, which is where it showed:
+  // its type-to-find needed a click on a page the reader had just opened to
+  // read. One focus() on the frame ELEMENT takes it, with no user activation,
+  // and does not scroll the frame into view (measured with the frame 1200px
+  // below the fold, parent scrollY unchanged).
+  //
+  // THE COST, named because it is real: the shell's paste-anywhere below then
+  // reaches the framed page instead of re-rendering here. That window was
+  // already only open until the reader's first click, so this closes it rather
+  // than removing something dependable; and the empty panel, where paste is
+  // the primary action and carries its own button, is untouched.
+  //
+  // Never taken from a field that SURVIVES the render, which is the only kind
+  // this can protect: a re-render from the drawer must not pull the caret out
+  // of the address input the reader is typing in. The empty panel's own field
+  // is a different case and needs no guard, since the reveal hides the panel
+  // and the browser blurs it a moment before this runs.
+  function focusFrame() {
+    const a = document.activeElement;
+    if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName || '') || a.isContentEditable)) return;
+    try { frame.focus(); } catch (e) {}
   }
 
   // ── Forced frame width: seeing a page at a shape the device is not ────────
@@ -390,6 +428,33 @@
   let frameBlobUrl = null;
   function mountFrame(html, sandbox, frag) {
     frame.setAttribute('sandbox', sandbox);
+    // THE MICROPHONE, granted in ADDRESS MODE and withheld in payload mode.
+    // For pages/dictate.html, which is a page whose whole job is hearing you
+    // and which is handed over for review as a toss.
+    //
+    // WHAT WAS MEASURED, since the obvious story is not quite the true one.
+    // Permissions Policy defaults `microphone` to `self`, and an address-mode
+    // frame is same-origin (allow-same-origin, over a blob: URL that inherits
+    // this origin), so Chromium already answered allowsFeature('microphone')
+    // with true before this line existed: tools/test/toss-microphone.mjs was
+    // written expecting a denial and reported the grant instead. Safari is not
+    // measured, and WebKit has been the stricter of the two about capture
+    // inside a frame for as long as it has had one.
+    //
+    // So this is an EXPLICIT grant standing in for an implicit one, which is
+    // worth its line for two reasons rather than as a fix. The implicit grant
+    // is load-bearing on a sandbox flag several hundred lines away: drop
+    // allow-same-origin from address mode and the frame goes opaque and the
+    // microphone goes with it, silently. And a grant nobody wrote down is a
+    // grant nobody can see is missing.
+    //
+    // The line between the modes is the one this file already draws
+    // everywhere. Address mode is a repo file the viewer's own token reached;
+    // payload mode is whatever anyone pasted into a link. Payload frames are
+    // opaque-origin, so the withholding is also the only honest option: a
+    // delegation to an opaque origin grants nothing either way.
+    frame.setAttribute('allow', sandbox.includes('allow-same-origin')
+      ? 'fullscreen; microphone' : 'fullscreen');
     frame.removeAttribute('srcdoc');
     // charset=utf-8 is load-bearing, not decoration. A blob: document takes its
     // encoding from the Blob's type, and with none declared the browser sniffs,
@@ -610,25 +675,81 @@
     });
   }
 
+  // ── Handing the subject's MARK up: how the page names and pictures itself ─
+  //
+  // Whoever framed this render may have a tab of its own to fill, and the
+  // subject is what that tab is showing. show-repo's app view is the case: a
+  // page some repo promoted, framed through here, whose address is a
+  // destination rather than a preview.
+  //
+  // THE ICON GOES UP UNDIMMED and the dimming below stays local. That is the
+  // honest split rather than a convenience: a toss says it is a rendering of a
+  // page, a promoted view does not, and each surface should get to say its own
+  // thing about the same file.
+  //
+  // The TITLE rides the same channel because it answers the same question and
+  // is free to read: the subject renders same-origin in address mode, so its
+  // <title> is one property away. It is announced separately from the icon,
+  // which resolves later and then usually never changes again.
+  //
+  // The host list is the subject channel's, minus its `__fabHosted` gate,
+  // which this file is the one that sets. An address-mode render is
+  // same-origin so the parent is reachable; a payload toss is opaque and the
+  // access throws, which is the end of it. The event is constructed with the
+  // TARGET window's own CustomEvent, the way kits/subject-channel.js does it.
+  function markHosts() {
+    const out = [window];
+    try {
+      if (window.parent && window.parent !== window && window.parent.document)
+        out.push(window.parent);
+    } catch (e) { /* opaque origin: nothing to reach */ }
+    return out;
+  }
+  // Merged per host rather than replaced, so the title announced on load is
+  // still there when the icon lands seconds later.
+  function announceMark(patch) {
+    for (const w of markHosts()) {
+      try {
+        w.__tossSubjectMark = Object.assign(
+          { icon: null, title: '' }, w.__tossSubjectMark, patch);
+        w.dispatchEvent(new w.CustomEvent('toss-subject-mark'));
+      } catch (e) { /* cosmetic; never surface this */ }
+    }
+  }
+  function clearMark() {
+    for (const w of markHosts()) {
+      try {
+        w.__tossSubjectMark = null;
+        w.dispatchEvent(new w.CustomEvent('toss-subject-mark'));
+      } catch (e) {}
+    }
+  }
+
   // Watch the frame for its icon. gh-boot injects its default asynchronously
   // and a page may set its own later still, so sample on load and then keep
   // observing briefly, rather than reading once and accepting whatever was
   // there first.
   let cancelIconWatch = null;
   function adoptSubjectIcon(subject) {
-    let stopped = false, seen = '';
+    let stopped = false, seen = '', seenTitle = '';
     const apply = async () => {
       if (stopped) return;
       let doc;
       try { doc = frame.contentDocument; } catch (e) { return; }   // opaque origin
       if (!doc) return;
+      // The title first, and on its own: it is there from the first sample,
+      // where the icon may take a fetch and a canvas to arrive, and gating one
+      // on the other would hold the cheap fact behind the expensive one.
+      const t = (doc.title || '').trim();
+      if (t && t !== seenTitle) { seenTitle = t; announceMark({ title: t }); }
       const el = doc.querySelector('link[rel~="icon"]');
       const href = el && el.getAttribute('href');
       if (!href || href === seen) return;
       seen = href;
       try {
         const src = await iconDataUri(href, subject);
-        if (!src) return;
+        if (!src || stopped) return;
+        announceMark({ icon: src });
         const icon = await isCanonicalSubject(subject) ? src : await dimIcon(src);
         if (icon && !stopped) setFavicon(icon);
       } catch (e) { /* a favicon is cosmetic; never surface this */ }
@@ -682,6 +803,11 @@
     window.__tossFrame = s ? frame : null;
     if (cancelIconWatch) { cancelIconWatch(); cancelIconWatch = null; }
     setFavicon(baseIcon);
+    // The host's mark resets with ours. Without this, switching between two
+    // app views would leave the first one's icon and name on the shell's tab
+    // for as long as the second took to resolve, which reads as the wrong app
+    // being open rather than as one still loading.
+    clearMark();
     if (s) adoptSubjectIcon(s);
     window.dispatchEvent(new CustomEvent('toss-subject'));
   }

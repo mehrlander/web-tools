@@ -1,0 +1,651 @@
+{
+ "kind": "standoff/1",
+ "question": "is this unit binding?",
+ "self": {
+  "path": "skills/state-the-rule/runs/2026-08-29-conventions/standoff.json",
+  "repo": "mehrlander/web-tools"
+ },
+ "target": {
+  "path": "docs/CONVENTIONS.md",
+  "repo": "mehrlander/web-tools",
+  "ref": "main",
+  "url": "https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md",
+  "bytes": 6370,
+  "sha256": "f8158736c317f28d5f493951e85e37c67b5d6b62842523e3385fc100f7e6f591"
+ },
+ "vocabulary": [
+  {
+   "label": "WHAT",
+   "side": "declaration",
+   "gloss": "a rule, a fact of the system, a value it may hold"
+  },
+  {
+   "label": "HOW",
+   "side": "declaration",
+   "gloss": "syntax, a procedure, an invocation"
+  },
+  {
+   "label": "WHY",
+   "side": "hinge",
+   "gloss": "the reason behind the rule"
+  },
+  {
+   "label": "PROV",
+   "side": "explanation",
+   "gloss": "when it changed, what it replaced, what failed"
+  },
+  {
+   "label": "EVID",
+   "side": "explanation",
+   "gloss": "a measurement, a probe, an observation"
+  },
+  {
+   "label": "NAV",
+   "side": "apparatus",
+   "gloss": "a pointer to the document or gate that owns something"
+  },
+  {
+   "label": "META",
+   "side": "apparatus",
+   "gloss": "a statement about this document"
+  }
+ ],
+ "verdicts": [
+  {
+   "verdict": "KEEP",
+   "gloss": "stands as written"
+  },
+  {
+   "verdict": "REWRITE",
+   "gloss": "the content earns its place; the sentence does not"
+  },
+  {
+   "verdict": "MOVE",
+   "gloss": "belongs in another document"
+  },
+  {
+   "verdict": "DROP",
+   "gloss": "says nothing the document needs"
+  }
+ ],
+ "units": [
+  {
+   "uid": "conven-001",
+   "start": 0,
+   "end": 32,
+   "kind": "h1",
+   "words": 4,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-002",
+   "start": 34,
+   "end": 119,
+   "kind": "sent",
+   "words": 12,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-003",
+   "start": 120,
+   "end": 239,
+   "kind": "sent",
+   "words": 14,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-004",
+   "start": 240,
+   "end": 291,
+   "kind": "sent",
+   "words": 8,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-005",
+   "start": 293,
+   "end": 372,
+   "kind": "sent",
+   "words": 13,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-006",
+   "start": 373,
+   "end": 412,
+   "kind": "sent",
+   "words": 8,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-007",
+   "start": 414,
+   "end": 614,
+   "kind": "sent",
+   "words": 29,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-008",
+   "start": 615,
+   "end": 792,
+   "kind": "sent",
+   "words": 18,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-009",
+   "start": 794,
+   "end": 826,
+   "kind": "sent",
+   "words": 5,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-010",
+   "start": 827,
+   "end": 889,
+   "kind": "sent",
+   "words": 8,
+   "label": "HOW",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-011",
+   "start": 891,
+   "end": 914,
+   "kind": "h2",
+   "words": 4,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-012",
+   "start": 916,
+   "end": 1014,
+   "kind": "sent",
+   "words": 14,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-013",
+   "start": 1016,
+   "end": 1062,
+   "kind": "sent",
+   "words": 7,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-014",
+   "start": 1063,
+   "end": 1128,
+   "kind": "sent",
+   "words": 10,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-015",
+   "start": 1129,
+   "end": 1208,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-016",
+   "start": 1209,
+   "end": 1288,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-017",
+   "start": 1289,
+   "end": 1452,
+   "kind": "sent",
+   "words": 21,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-018",
+   "start": 1454,
+   "end": 1626,
+   "kind": "sent",
+   "words": 27,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-019",
+   "start": 1627,
+   "end": 1775,
+   "kind": "sent",
+   "words": 22,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-020",
+   "start": 1777,
+   "end": 1844,
+   "kind": "h2",
+   "words": 11,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-021",
+   "start": 1846,
+   "end": 2101,
+   "kind": "sent",
+   "words": 47,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-022",
+   "start": 2102,
+   "end": 2137,
+   "kind": "sent",
+   "words": 7,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-023",
+   "start": 2139,
+   "end": 2390,
+   "kind": "sent",
+   "words": 26,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-024",
+   "start": 2391,
+   "end": 2486,
+   "kind": "sent",
+   "words": 17,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-025a",
+   "start": 2487,
+   "end": 2571,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "split:conven-025",
+   "why": "the rule, then the reason a deny cannot supply it"
+  },
+  {
+   "uid": "conven-025b",
+   "start": 2571,
+   "end": 2656,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHY",
+   "verdict": "KEEP",
+   "from": "split:conven-025",
+   "why": "the rule, then the reason a deny cannot supply it"
+  },
+  {
+   "uid": "conven-026",
+   "start": 2658,
+   "end": 2689,
+   "kind": "h2",
+   "words": 5,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-027",
+   "start": 2691,
+   "end": 2765,
+   "kind": "sent",
+   "words": 14,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-028",
+   "start": 2766,
+   "end": 3072,
+   "kind": "sent",
+   "words": 46,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-029",
+   "start": 3074,
+   "end": 3287,
+   "kind": "sent",
+   "words": 37,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-030",
+   "start": 3289,
+   "end": 3347,
+   "kind": "h2",
+   "words": 12,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-031",
+   "start": 3349,
+   "end": 3708,
+   "kind": "sent",
+   "words": 58,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-032",
+   "start": 3710,
+   "end": 4014,
+   "kind": "sent",
+   "words": 36,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-033",
+   "start": 4016,
+   "end": 4051,
+   "kind": "h2",
+   "words": 8,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-034",
+   "start": 4053,
+   "end": 4107,
+   "kind": "sent",
+   "words": 13,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-035",
+   "start": 4108,
+   "end": 4170,
+   "kind": "sent",
+   "words": 10,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-036",
+   "start": 4171,
+   "end": 4238,
+   "kind": "sent",
+   "words": 12,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-037",
+   "start": 4240,
+   "end": 4286,
+   "kind": "h2",
+   "words": 7,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-038",
+   "start": 4288,
+   "end": 4441,
+   "kind": "sent",
+   "words": 30,
+   "label": "WHY",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-039",
+   "start": 4442,
+   "end": 4538,
+   "kind": "sent",
+   "words": 17,
+   "label": "HOW",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-040a",
+   "start": 4540,
+   "end": 4580,
+   "kind": "sent",
+   "words": 9,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "split:conven-040",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-040b",
+   "start": 4580,
+   "end": 4607,
+   "kind": "sent",
+   "words": 6,
+   "label": "HOW",
+   "verdict": "KEEP",
+   "from": "split:conven-040",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-041a",
+   "start": 4608,
+   "end": 4651,
+   "kind": "sent",
+   "words": 9,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "split:conven-041",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-041b",
+   "start": 4651,
+   "end": 4701,
+   "kind": "sent",
+   "words": 9,
+   "label": "HOW",
+   "verdict": "KEEP",
+   "from": "split:conven-041",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-042",
+   "start": 4702,
+   "end": 4728,
+   "kind": "sent",
+   "words": 5,
+   "label": "WHY",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-043a",
+   "start": 4729,
+   "end": 4775,
+   "kind": "sent",
+   "words": 8,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "split:conven-043",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-043b",
+   "start": 4775,
+   "end": 4799,
+   "kind": "sent",
+   "words": 5,
+   "label": "HOW",
+   "verdict": "KEEP",
+   "from": "split:conven-043",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-044",
+   "start": 4801,
+   "end": 5055,
+   "kind": "sent",
+   "words": 45,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-045",
+   "start": 5056,
+   "end": 5153,
+   "kind": "sent",
+   "words": 20,
+   "label": "HOW",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-046",
+   "start": 5154,
+   "end": 5308,
+   "kind": "sent",
+   "words": 10,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-047a",
+   "start": 5310,
+   "end": 5375,
+   "kind": "sent",
+   "words": 12,
+   "label": "WHY",
+   "verdict": "KEEP",
+   "from": "split:conven-047",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-047b",
+   "start": 5375,
+   "end": 5461,
+   "kind": "sent",
+   "words": 18,
+   "label": "WHAT",
+   "verdict": "KEEP",
+   "from": "split:conven-047",
+   "why": "the 2026-08-30 grain pass split this seam; re-segmented 2026-09-05"
+  },
+  {
+   "uid": "conven-048",
+   "start": 5463,
+   "end": 5476,
+   "kind": "h2",
+   "words": 3,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-049",
+   "start": 5478,
+   "end": 5568,
+   "kind": "sent",
+   "words": 15,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-050",
+   "start": 5569,
+   "end": 5656,
+   "kind": "sent",
+   "words": 16,
+   "label": "WHY",
+   "verdict": "REWRITE"
+  },
+  {
+   "uid": "conven-051",
+   "start": 5657,
+   "end": 5736,
+   "kind": "sent",
+   "words": 14,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-052",
+   "start": 5738,
+   "end": 5820,
+   "kind": "sent",
+   "words": 14,
+   "label": "NAV",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-053",
+   "start": 5821,
+   "end": 6038,
+   "kind": "sent",
+   "words": 26,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-054",
+   "start": 6040,
+   "end": 6078,
+   "kind": "h2",
+   "words": 6,
+   "label": "META",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-055",
+   "start": 6080,
+   "end": 6116,
+   "kind": "sent",
+   "words": 7,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-056",
+   "start": 6117,
+   "end": 6284,
+   "kind": "sent",
+   "words": 25,
+   "label": "WHY",
+   "verdict": "KEEP"
+  },
+  {
+   "uid": "conven-057",
+   "start": 6285,
+   "end": 6365,
+   "kind": "sent",
+   "words": 13,
+   "label": "WHAT",
+   "verdict": "KEEP"
+  }
+ ]
+}

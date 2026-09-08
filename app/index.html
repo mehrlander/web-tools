@@ -86,14 +86,36 @@
   // since a branch ref MOVES and the HTTP cache is keyed by URL alone: blob
   // import defeats the module cache and nothing was defeating the other one
   // (no SHA needed). The no-?use path stays the fastest same-origin import.
+  //
+  // The bundle is the APP'S OWN since 2026-09-02 (dist/app.js, tools/build/
+  // build-app.mjs): the part of lib/ this page can reach, 22 components rather
+  // than 32 registered at import, and the heavy on-demand kits (annotate, pdf,
+  // dictate, xlsx) left to load on first use. dist/web-tools.js, the whole
+  // library, stays for the pages that import it.
+  //
+  // A branch NAME moves, which is why the fetch by name is no-store, and that
+  // re-downloaded the whole bundle on every preview load. So a name is resolved
+  // to its commit first (one small anonymous API call) and the bundle fetched
+  // by SHA, an address that cannot move and that the HTTP cache may keep; a
+  // SHA given directly skips the resolve, and a failed resolve falls back to
+  // the uncached fetch by name.
   const ref = new URLSearchParams(location.search).get('use');
   if (ref) {
-    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    let sha = /^[0-9a-f]{40}$/.test(ref) ? ref : '';
+    if (!sha) {
+      try {
+        const r = await fetch(`https://api.github.com/repos/mehrlander/web-tools/commits/${encodeURIComponent(ref)}`,
+                              { headers: { Accept: 'application/vnd.github.sha' } });
+        if (r.ok) sha = (await r.text()).trim();
+      } catch {}
+    }
+    const at = sha || ref;
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${at}/dist/app.js`, sha ? {} : { cache: 'no-store' });
     if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
     const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
     try { await import(url); } finally { URL.revokeObjectURL(url); }
   } else {
-    await import('../dist/web-tools.js');
+    await import('../dist/app.js');
   }
   // gh-store rides in the pre-build cached but unexecuted; this load runs it
   // from the inlined cache (no network) so GH.prototype.save exists as before.
@@ -113,7 +135,11 @@
   await gh.load('kits/branch-status.js');
   // Activity-aggregate builders for the private cache (state/activity.json).
   await gh.load('kits/repo-activity-cache.js');
+  // Comma-separated parsing, shared. Loaded before the sessions cache, whose
+  // title join reads the Dispatch export's CSV through it.
+  await gh.load('kits/csv.js');
   // Sessions-aggregate builders for the private cache (state/sessions.json).
+  await gh.load('kits/closing-state.js');
   await gh.load('kits/repo-sessions-cache.js');
   // The pure fold behind Activity's Routes pane: the app's own destinations
   // ranked by when the code behind each last moved (window.routeActivity).
@@ -137,6 +163,17 @@
   // The line/word differ behind the stage's Diff lens, shared with
   // pages/diff-tool.html (window.textDiff).
   await gh.load('kits/text-diff.js');
+  // The drag handle on the docked deck's edge. swipe-deck treats it as an
+  // OPTIONAL dependency and mounts the seam only when `window.dockSplit` is
+  // present, the same bargain session-render makes with session-export: the
+  // host loads it, the kit notices. Nothing here loaded it, so this shell
+  // installed both dock hooks, docked correctly, and never grew a seam, from
+  // the day the splitter shipped until 2026-08-23. What hid it is that the
+  // splitter's own test loads the kit itself before driving the app, which is
+  // exactly the dependency the app was missing, so a passing check and a dead
+  // feature were perfectly consistent. deck-dock-reflow.mjs now asserts the
+  // seam is there on the app's OWN boot, which is the claim that was untested.
+  await gh.load('kits/dock-split.js');
 </script>
 <style>[x-cloak]{display:none!important}
 .no-scrollbar::-webkit-scrollbar{display:none}
@@ -582,10 +619,13 @@ html.dk-dragging main{transition:none !important}
          passes sit behind their own tap gates: "Search file contents" calls the
          code-search API (snippets via text-match; default branches only), and
          "Search sessions" greps the captured records in web-tools-private client-
-         side, hits opening the Sessions pane's paged reader. `/` focuses it; branch
-         and session hits travel the web-tools:open-branch-detail and web-tools:open-
-         session events, consumed in estate.js beside the &detail= deep link they
-         mirror. -->
+         side, hits opening the Sessions pane's paged reader. Any bare printable
+         key reaches it, `/` included, through the shell's own router
+         (wireAppTypeahead) rather than a listener of the component's; a view
+         carrying its own search box (data-find-box) takes the keystroke first.
+         Branch and session hits travel the web-tools:open-branch-detail and
+         web-tools:open-session events, consumed in estate.js beside the &detail=
+         deep link they mirror. -->
     <!-- ── The finder: one input, always ready ─────────────────────────────
          Directly under the crumb bar, above the scroll area so its results
          panel (the crumb menu's anchored idiom) overlays the lists rather
@@ -1067,13 +1107,21 @@ html.dk-dragging main{transition:none !important}
         @touchend.passive="onSwipeEnd($event)" @touchcancel.passive="onSwipeCancel()">
 
     <!-- Estate: the all-repo context, with two views of its own — the repo grid
-         (Repos) and the Stage (the surface shelf, bench on top). One component
+         (Repos) and the Stage (the cross-repo working set). One component
          renders both and switches on the shell view, so both share this lazy
          mount. Full width, so the repo grid runs three cards wide like the
          pages index; the Stage constrains its own column. -->
     <div x-show="isEstate" data-pane="estate" class="h-full"
          :class="listsFill ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'">
-      <div class="mx-auto px-4 lg:px-6 pt-4 !max-w-none"
+      <!-- w-full is load-bearing under listsFill and inert without it. An auto
+           inline margin on a flex ITEM sizes it to its content instead of
+           stretching it, so the moment listsFill turned the pane into a flex
+           column, mx-auto quietly capped this div at the width of its widest
+           row: the Lists pane came out 548px wide inside a 1280px window,
+           whatever !max-w-none said, and the Pin grid split that into two
+           266px columns and truncated a 26-character title for want of 5px.
+           In the ordinary block case width:100% is what the div already had. -->
+      <div class="mx-auto w-full px-4 lg:px-6 pt-4 !max-w-none"
            :class="listsFill ? 'flex-1 min-h-0 flex flex-col pb-4 lg:pt-6' : 'pb-8 lg:pt-6'">
         <template x-if="estateSeen">
           <div x-data="estate()" :class="listsFill && 'flex-1 min-h-0 flex flex-col'"></div>
@@ -1143,7 +1191,10 @@ html.dk-dragging main{transition:none !important}
                 <div class="grow"></div>
                 <label class="input input-bordered flex items-center gap-1.5 w-48">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
-                  <input type="search" x-model.debounce="q" placeholder="filter by name…" class="grow min-w-0">
+                  <!-- data-find-box: the Pages view's own filter, so a bare
+                       keystroke narrows this list instead of opening the
+                       sidebar finder (wireAppTypeahead). -->
+                  <input type="search" x-model.debounce="q" placeholder="filter by name…" data-find-box class="grow min-w-0">
                 </label>
               </div>
 
@@ -1473,8 +1524,9 @@ html.dk-dragging main{transition:none !important}
                    recursive tree read. The workspace's own root files lead,
                    then one group per folder with its full relative path as the
                    header, so depth reads without a tree control; a curated
-                   DOCS.md, where the workspace keeps one, renders above the
-                   mechanical listing. Rows open in the shell's viewer, the
+                   docs/README.md (or the older DOCS.md), where the workspace
+                   keeps one, renders above the mechanical listing, and source
+                   packages are counted rather than listed. Rows open in the shell's viewer, the
                    same place the Board button reads. -->
               <div x-show="projectTab==='docs'">
                 <div x-show="projectDocsLoading" class="flex justify-center py-16">
@@ -1488,9 +1540,12 @@ html.dk-dragging main{transition:none !important}
                     <div class="flex items-center gap-3 mb-4">
                       <label class="input input-bordered flex items-center gap-1.5 w-64">
                         <i class="ph ph-magnifying-glass opacity-50"></i>
-                        <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" class="grow min-w-0">
+                        <!-- data-find-box: the Docs tab's own filter. -->
+                        <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0">
                       </label>
                       <span class="text-base text-base-content/40" x-text="projectDocsCount + ' files'"></span>
+                      <span x-show="projectDocsSourced" class="text-base text-base-content/40"
+                            x-text="'· ' + projectDocsSourced + ' inside source packages, not listed'"></span>
                     </div>
                     <template x-for="g in projectDocsGroups" :key="g.dir">
                       <section class="mb-6">
@@ -1561,10 +1616,10 @@ html.dk-dragging main{transition:none !important}
       </div>
     </div>
 
-    <!-- No separate Stage pane: the Stage IS the estate pane's own view, two
-         pill-switched sub-views (Stage, the bench; Saved, the shelf) in
-         lib/alpineComponents/estate.js. ?view=stage and ?view=surfaces are
-         those two, so every old link and every #stage= transport lands. -->
+    <!-- No separate Stage pane: the Stage IS the estate pane's own view, in
+         lib/alpineComponents/estate.js. It had a second sub-view, Saved,
+         addressed as ?view=surfaces; that pane went on 2026-08-27 and the key
+         is a retired alias onto the bench, so an old link still lands. -->
 
     <!-- The Map view: the coordination layer made inspectable — the portable
          to-go bag (docs/portable.csv), and a per-repo card carrying the
@@ -1584,7 +1639,7 @@ html.dk-dragging main{transition:none !important}
          token. Estate-level, token-gated, its own component and lazy mount;
          the nav entry appears only while something is pending. -->
     <div x-show="view==='proposals'" data-pane="proposals" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 max-w-4xl">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6">
         <template x-if="proposalsSeen">
           <div x-data="proposals()"></div>
         </template>
@@ -1612,11 +1667,14 @@ html.dk-dragging main{transition:none !important}
          query carried over (goSearch → searchSeed).
 
          It READS the file too, through the shared viewer embedded inside it,
-         which is why this pane is no longer capped at max-w-4xl: a results
-         column and a file beside it want the width the Tools gallery takes.
-         The per-repo Files view (?view=files) keeps the tree walk. -->
+         so a results column and a file beside it want every pixel the window
+         has. It was capped at max-w-4xl, then at max-w-7xl, and both were the
+         same mistake one size apart: measured at a 1920 viewport on 2026-09-03,
+         the 7xl cap left 320px of dead margin down each side while the reader's
+         own column ran 455px. Uncapped now, like Tools and Map. A cap on this
+         pane is not a small size choice; it is the corridor. -->
     <div x-show="view==='search'" data-pane="search" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 max-w-7xl">
+      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="searchSeen">
           <div x-data="searchView()"></div>
         </template>
@@ -1706,17 +1764,37 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // The Map view's tabs, in render order, first = default. Named HERE rather than
 // in map() because the shell validates the ?tab= param before the component
 // mounts; map() renders whichever of these is set.
-const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'tests', 'harness', 'skills', 'registries'];
+const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'growth', 'claims', 'tests', 'harness', 'kits', 'skills', 'registries', 'injection'];
 
-// marked, loaded once on demand for the overview README render.
+// marked, loaded once on demand for the overview README render. kits/md-doc.js
+// rides with it, because every one of these renders lands in a fixed-width
+// column and a wide table in a README would widen that column until the page
+// itself scrolled sideways. The kit is what puts the table in its own box, and
+// mdHtml() is the one call every README-ish render here goes through, so a
+// fifth one cannot be added without it. Best effort on the kit: if the load
+// fails the prose still renders, and only the containment is missing.
 let _markedP = null;
 function loadMarked(){
-  return _markedP ??= new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-    s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
+  return _markedP ??= Promise.all([
+    new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    }),
+    window.mdDoc ? Promise.resolve()
+      : (window.gh?.load
+          ? window.gh.load('kits/src-doc.js')
+              .then(() => window.gh.load('kits/md-doc.js')).catch(() => {})
+          : Promise.resolve()),
+  ]);
+}
+// One markdown string → the prose markup these views hang on x-html. The
+// container class lives on the <article> in the template, so what comes back
+// here is the body: mdDoc.html() would wrap it in a second prose box, and its
+// `proseClass: ''` says the caller already has one.
+function mdHtml(src){
+  return window.mdDoc ? window.mdDoc.html(src, { proseClass: '' }) : window.marked.parse(src);
 }
 
 // ── Shell: repo context + view state. The header carries the app-level nav,
@@ -1725,7 +1803,7 @@ function loadMarked(){
 // repo's views (landing, atlas) and its files. Which
 // landing a repo gets is one decision — landingKind(). ────────────────────────
 function app(){ return {
-  description: 'show-repo shell: per-repo views (landing, files, atlas, branches, config) over the estate dashboard',
+  description: 'Web Tools shell: per-repo views (landing, files, atlas, branches, config) over the estate dashboard',
   // FAB opt-in contract (the `actions` the FAB surfaces as page buttons).
   // When the main area is an iframe embed — a custom landing, an app view, or
   // the atlas — the one action is the way out of the embed: open the framed
@@ -1772,10 +1850,18 @@ function app(){ return {
   // this stays the app's implementation and the fab's fallback (parking the
   // paste through kits/stage-handoff.js) is for everywhere else.
   //
-  // The `menu` contract itself stays. It has no user now, which is a fact
-  // worth stating rather than a reason to delete: the row it carried earned
-  // promotion by being built through it.
-  view: 'landing',        // 'estate' | 'surfaces' | 'todo' | 'jots' | 'activity' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
+  // ── What the contract carried, and no longer does: the header ────────────
+  //
+  // From 2026-08-22 to 2026-09-03 this getter also contributed a "Hide the
+  // header" row, on the theory that an app view opens at `shell: none` with
+  // no header on screen and the launcher is the only control always
+  // reachable: a row BEFORE the drawer, found without knowing which tab to
+  // open. Retired: the launcher's drawer is that control too, one tab-switch
+  // away on the Render tab's own Header toggle (`toggles`, below), and the
+  // long-press menu is for a verb wanted before the drawer opens at all, not
+  // a second address for one already inside it. The contract is unused here
+  // now, kept for a future row rather than removed.
+  view: 'landing',        // 'estate' | 'todo' | 'jots' | 'activity' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
   // Window-level drag counter for the app-wide drop (init wires the listeners;
   // nested enter/leave is why it counts rather than flips), and what the cue
   // says about the drag in flight (dragNote). The app-wide PASTE beside it
@@ -1795,6 +1881,24 @@ function app(){ return {
   //   nav   header, sidebar closed at every width (open it from the header)
   //   none  neither; the view alone, which is what an unframed link wants
   //
+  // THE DEFAULT IS PER VIEW, not one constant. An app view opens at `none`:
+  // it is one page some repo promoted, framed whole, and a reader who
+  // addressed it by name asked for that page rather than for the app around
+  // it. A home-screen tile is the case that makes it obvious. Every other
+  // route IS the app and keeps its header.
+  //
+  // Derived per view rather than latched at boot, and that is the whole of why
+  // this is a getter. A latched default would follow the reader out of the app
+  // view and strand the estate dashboard with no nav, reachable only through
+  // the FAB. Deriving it means the shell leaves when you enter an app view and
+  // comes back when you leave, with nothing to remember or clear.
+  //
+  // It also keeps the ADDRESS minimal in both directions, since the stamp
+  // compares against this rather than against a constant: `?app=budget-drs`
+  // carries no `shell` key and opens bare, and turning the header on there
+  // stamps `shell=full`, which is the honest reading of a screen showing the
+  // app's chrome around a promoted page.
+  //
   // `none` is not a trap: the FAB's Render tab carries this as a bar (the
   // `modes` contract below), beside the ref and width bars, since which ref,
   // what width, and how much shell are three readings of one question. That is
@@ -1808,7 +1912,12 @@ function app(){ return {
   // `frame` was dropped too, since the Render tab's width bar already means a
   // frame, and two meanings in one tab is how a bar gets misread.
   SHELL_MODES: ['full', 'nav', 'none'],
-  shellMode: 'full',
+  // The reader's explicit choice, '' for none made. Held apart from the mode
+  // because the two answer different questions: what was asked for, and what
+  // this screen opens as when nothing was.
+  _shellChoice: '',
+  get defaultShellMode(){ return this.view === 'app' ? 'none' : 'full'; },
+  get shellMode(){ return this._shellChoice || this.defaultShellMode; },
 
   // Whether the sidebar is showing. One boolean at every width, which is the
   // whole of the mobile/desktop difference now: below lg it is an overlay with
@@ -1837,6 +1946,8 @@ function app(){ return {
   publicSeen: false,      // mount the public-browse component lazily, on first visit
   publicSeed: '',         // repo the public browser should open; a card sets it, the component watches it
   _restoring: false,      // true while restoring state from a popstate (see syncUrl)
+  _routed: Promise.resolve(),   // settled once init has routed the address (see init)
+  _routedResolve: () => {},
   DEFAULT_REPO: 'mehrlander/web-tools',
   // The one private string this public page names. The repos inside it are
   // never enumerated here: membership is each repo's own `estate: true`, read
@@ -1852,7 +1963,15 @@ function app(){ return {
   // repo's config through the same config cache, token-gated: no token, no app
   // views (like the Stage). Each is a sidebar entry in the estate switcher,
   // rendered live through toss-render #gh=.
-  appViews: [],     // resolved [{repo, path, label, icon, order, key}]
+  appViews: [],     // resolved [{repo, path, label, icon, order, slug, key}]
+  // Settles when the crawl above has been read once. A slug address awaits it;
+  // a token-less or failed load still settles, so the wait cannot hang, and the
+  // lookup then simply misses. Pre-set to a resolved promise so a caller that
+  // runs before init (a test, a popstate on a cold frame) awaits nothing.
+  appViewsReady: Promise.resolve(),
+  // One-shot fragment for the next syncUrl; see goAppView. `undefined` means
+  // "carry location.hash through", which is every other caller.
+  _nextHash: undefined,
   appView: null,    // the selected app view when view==='app'
   // The rail: `rail: true` items from the links board a repo declares with
   // `links` in its own config (loadRail). Outbound destinations, not views, so
@@ -1967,8 +2086,11 @@ function app(){ return {
     // Read before anything paints, so the shell never flashes its full self on
     // the way to a ?shell=none load. Same read on popstate (restoreFromUrl).
     this.readShellMode();
+    // Settled once the address has been routed, so a warm that keys on
+    // `view` (the auth watcher's) waits for the view to be the linked one.
+    this._routed = new Promise(r => { this._routedResolve = r; });
     const ready = await waitFor(() => window.GH);
-    if (!ready) return notify('Boot timed out waiting for modules. Reload to retry.');
+    if (!ready) { this._routedResolve(); return notify('Boot timed out waiting for modules. Reload to retry.'); }
     const gh = new window.GH({ token: window.TOKEN });
     Alpine.store('browser').gh = gh;
 
@@ -1998,7 +2120,48 @@ function app(){ return {
     // and reload when auth arrives. Editing any repo's config (config-saved)
     // can change membership, so that path rebuilds the cache and reloads.
     this.$watch(() => this._authState, (s) => {
-      if (s === 'auth') { this.loadEstateSidebar().then(() => this.refreshConfigCache()).then(() => this.refreshActivityCache()); this.processMailbox(); this.loadProposalCount(); }
+      // Sessions rides beside activity here, and its absence was a real gap:
+      // a load that lands straight on ?view=sessions routes before auth
+      // resolves, so the pane's own arrival kick ran against no token and
+      // declined, and nothing afterwards went back for it. Announced through
+      // warmSessionsCache, so a commit reaches the pane.
+      //
+      // ONE BOOT PATH. This watcher used to repeat the sidebar read, the
+      // mailbox and the proposals count that init() had already fired, and
+      // then ran the deep activity crawl and the sessions crawl whatever view
+      // was open. Measured 2026-09-02 on a plain README landing: configs.json
+      // read four to seven times, /user/repos five to seven, both crawls'
+      // FRESH re-reads, and the estate pane reloading its 7 MB sessions file
+      // a second time off the configs-refreshed that followed. The stored
+      // token is all those reads need, so init() already made them when one
+      // was there; what auth arriving adds is the case where it was NOT there
+      // (a token pasted mid-session), and the crawl the open view reads.
+      if (s === 'auth') {
+        const sidebar = this._sidebarToken === window.TOKEN
+          ? this.appViewsReady
+          : (this.appViewsReady = this.loadEstateSidebar(), this._sidebarToken = window.TOKEN, this.appViewsReady);
+        // Crawl, and RE-READ WHEN THE CRAWL MOVED SOMETHING. The sidebar is
+        // built from the cache as it stood when the page opened, so a manifest
+        // change merged since the last crawl is invisible to that read; the
+        // crawl fixes the cache and the nav kept rendering what it read before
+        // it, which is how two "Doc Growth" rows outlived the merge that
+        // removed them (2026-08-28). refreshConfigCache reports whether it
+        // committed, so the re-read costs one cache GET on the loads that
+        // changed something and nothing on the rest.
+        Promise.resolve(sidebar)
+          .then(() => this.refreshConfigCache())
+          .then(r => r?.committed ? this.loadEstateSidebar() : null)
+          .catch(() => {});
+        // Only what the pane on screen reads (warmEstateCaches), once the
+        // address has been routed: a deep link to ?view=sessions lands before
+        // auth resolves, so its own arrival kick ran against no token and
+        // declined, and this is what goes back for it.
+        this._routed.then(() => this.warmEstateCaches());
+        if (this._inboxToken !== window.TOKEN) {
+          this._inboxToken = window.TOKEN;
+          this.processMailbox(); this.loadProposalCount();
+        }
+      }
       // Announced for views that mount before auth resolves and would otherwise
       // sit on their signed-out state forever. A deep link is exactly that case:
       // ?view=state mounts the view during boot, its first read finds no token,
@@ -2014,7 +2177,16 @@ function app(){ return {
       this.loadConfig();
       await this.refreshConfigs();
     });
-    this.loadEstateSidebar().then(() => this.refreshConfigCache());
+    // Held rather than dropped, because ?app=<slug> resolves against what this
+    // fills in and nothing else can tell it where the page is. Everything else
+    // still routes without waiting; see appViewFromUrl.
+    this.appViewsReady = this.loadEstateSidebar();
+    // The token these ran with, so the auth watcher above can tell "already
+    // read" from "a token arrived". The crawls are the watcher's: they need
+    // auth to have RESOLVED, not merely a token to be stored, and running them
+    // from both places was the double-fire the watcher's note describes.
+    this._sidebarToken = this.hasToken() ? window.TOKEN : '';
+    this._inboxToken = this._sidebarToken;
     this.processMailbox();
     this.loadProposalCount();
 
@@ -2032,7 +2204,7 @@ function app(){ return {
     const url = this.parseUrl();
     if (url && url.window) this.branchWindow = url.window;
     await this.ensureBrowser(url?.repo, url?.ref);
-    await this.routeFromUrl(url);
+    try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
     const staged = window.StageLink ? window.StageLink.read(location).items : [];
     if (staged.length) {
       Alpine.store('browser').stage = staged;
@@ -2041,6 +2213,16 @@ function app(){ return {
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
     else if (!url) this.goDashboard();
+
+    // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
+    // arrival settled on is the one change the shellMode watcher never sees.
+    // Re-derive once, here, where the view is final. Without it a cold `?app=`
+    // opened with the header correctly gone (x-show reads the mode live) and
+    // the sidebar still standing as a column beside it, a pairing no navigation
+    // inside the app can produce. Found in a browser, not by the suite, which
+    // is the shape of this bug: every unit was right and only the order was
+    // wrong.
+    this.sidebarOpen = this.defaultSidebarOpen;
 
     // A PASTE TAKEN SOMEWHERE ELSE, arriving. The fab's paste row runs on every
     // page carrying the launcher, and off this app there is no Stage to put
@@ -2058,6 +2240,7 @@ function app(){ return {
 
     this.wireAppDrop();
     this.wireAppPaste();
+    this.wireAppTypeahead();
     // PRELOAD THE CLIPBOARD KIT, because the header's Paste button cannot
     // afford to fetch it. Reading the clipboard needs the tap's own user
     // activation, and an await inside the handler spends it, so a lazy load
@@ -2069,11 +2252,23 @@ function app(){ return {
     this.__installDeckPane();
     this.$watch('sidebarOpen', () => this.syncDeckFrame());
     this.$watch('showSidebar', () => this.syncDeckFrame());
-    this.$watch('shellMode', () => this.syncDeckFrame());
+    // The sidebar re-derives whenever the MODE changes, which is the half a
+    // per-view default cannot do on its own: entering an app view puts the
+    // sidebar away with the header, leaving brings back whatever that width
+    // opens with. Toggling it WITHIN a mode stays the reader's and is not
+    // touched here. Ordered before syncDeckFrame, which reads sidebarOpen.
+    this.$watch('shellMode', () => {
+      this.sidebarOpen = this.defaultSidebarOpen;
+      this.syncDeckFrame();
+    });
 
     // Browser Back/Forward restores state from the URL (syncUrl pushes an entry
     // per distinct URL, so the history has real steps to walk).
     window.addEventListener('popstate', () => this.restoreFromUrl());
+    // The framed page's mark, announced up by toss-render. Wired here rather
+    // than on the frame so it is registered before any app view can load.
+    window.addEventListener('toss-subject-mark', () => this.onSubjectMark());
+    this.wireRevisit();
   },
 
   async loadRecent(){
@@ -2261,16 +2456,71 @@ function app(){ return {
               const t = resolveCatalogPath(pg.path, repo, '');
               views.push({
                 repo: t.repo, ref: t.ref, path: t.path,
+                // WHO PROMOTED IT, which is not where it lives. A cross-repo
+                // promotion resolves `repo` to the page's home (home promotes
+                // the hub's doc-growth page, so t.repo is the hub), and the
+                // fact a reader needs is whose view this is. Only the
+                // disambiguation below reads it; the address uses t.repo.
+                declaredBy: repo,
                 label: pg.viewLabel || pg.title || t.path.split('/').pop(),
                 icon: pg.icon || 'ph-app-window',
                 order: Number.isFinite(pg.order) ? pg.order : 0,
-                key: t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path,
+                // The short address, when the promoting repo declares one. It
+                // is the page's name rather than its location, which is what
+                // makes ?app=<slug> short: a path is most of an address and
+                // none of the meaning. Optional, so a page that declares none
+                // is reached by its address and nothing changes for it.
+                slug: typeof pg.slug === 'string' ? pg.slug.trim() : '',
+                // A page a repo promotes may need arguments to be the view that
+                // repo means: home and web-tools promote the same doc-growth
+                // page and differ only in which payload it reads. appViewUrl
+                // already carries a query; without this it could only ever come
+                // from the address bar, so a manifest could name the page but
+                // not what it should show.
+                query: typeof pg.query === 'string' ? pg.query.replace(/^\?/, '') : '',
+                // Query is part of the identity: two repos may promote the same
+                // page and differ only in what they point it at, and a key that
+                // ignored the query would make them one entry.
+                key: t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path +
+                     (typeof pg.query === 'string' && pg.query ? '?' + pg.query.replace(/^\?/, '') : ''),
               });
             }
           }
         }
       } catch {}
       views.sort((a, b) => (a.order - b.order) || a.label.localeCompare(b.label));
+      // A ROW MUST NAME ITSELF. The sidebar and the header nav render an app
+      // view as its icon and its label and nothing else, so two views sharing a
+      // label are one view listed twice as far as any reader can tell. That is
+      // not hypothetical: web-tools and home both promoted pages/doc-growth.html
+      // as "Doc Growth", correctly (two payloads are two views), and the estate
+      // nav said the same two words twice for two days.
+      //
+      // The federated Growth tab fixed that instance and manifest-registry's
+      // slug gate stops one namespace collision, but neither reaches this:
+      // viewLabel is free text, two repos may legitimately choose the same
+      // words, and no gate should stop them. So the fix belongs where the
+      // ambiguity appears. A repeated label takes the PROMOTING repo as a
+      // suffix, which is the fact that actually differs: a cross-repo promotion
+      // resolves to the page's own repo, so home's Doc Growth and the hub's
+      // both address mehrlander/web-tools and suffixing by that names one repo
+      // twice. `declaredBy` is whose manifest said so.
+      //
+      // Only the repeats are suffixed: a unique label is already an answer, and
+      // qualifying every row would spend the sidebar's width saying what the
+      // Repos section says. `baseLabel` keeps the declared text for anything
+      // that wants the name rather than the disambiguated display.
+      const labelCount = views.reduce((m, v) => m.set(v.label, (m.get(v.label) || 0) + 1), new Map());
+      for (const v of views) {
+        v.baseLabel = v.label;
+        // Two views from ONE repo cannot be told apart this way. The suffix
+        // still points at the manifest to fix, which is the next question a
+        // reader has.
+        if (labelCount.get(v.label) > 1) {
+          const owner = v.declaredBy || v.repo;
+          v.label = v.label + ' · ' + (owner.split('/')[1] || owner);
+        }
+      }
       repos.sort((a, b) => a.group.localeCompare(b.group) || (a.order - b.order) || a.repo.localeCompare(b.repo));
       this.appViews = views;
       this.estateRepos = repos;
@@ -2457,6 +2707,20 @@ function app(){ return {
   // before the async crawl commits, so a plain reload lags a step; awaiting the
   // crawl first is what makes the new entry appear immediately). The estate
   // component reloads its cards off the dispatched event.
+  // Wait out a refresh ALREADY IN FLIGHT. refreshConfigs() returns immediately
+  // when one is running, so awaiting it there would prove nothing and the
+  // caller would retry against the same stale table it just missed on. Raced
+  // against a timeout because the in-flight run can finish between the caller's
+  // check and this listener, and a router that hangs is worse than one that
+  // falls back.
+  _slugRefetched: false,
+  configsSettled(ms = 8000){
+    return Promise.race([
+      new Promise(res => document.addEventListener('web-tools:configs-refreshed', res, { once: true })),
+      new Promise(res => setTimeout(res, ms)),
+    ]);
+  },
+
   async refreshConfigs(){
     if (this.configRefreshing || !this.hasToken()) return;
     this.configRefreshing = true;
@@ -2511,10 +2775,25 @@ function app(){ return {
   // which mis-filed these writes: the hazardous class is writes whose INPUTS
   // or TARGETS the overlay touches, and a main-read, main-derived crawl is
   // not in it. The invariant that keeps this true is held by
-  // tools/test/show-repo-overlay.test.mjs: every client the crawl constructs
+  // tools/test/shell-overlay.test.mjs: every client the crawl constructs
   // reads at main, never at the overlay branch.
+  // Returns {committed, changed} when it ran, {skipped:true} when it declined,
+  // {error} when it failed. It reported NOTHING until 2026-08-25, which is why
+  // the Repos pane could only be re-read by the manual Refresh: an announcement
+  // needs a commit to announce, and there was no way to ask whether one had
+  // happened. Every existing caller ignores the value.
   async refreshConfigCache(force){
-    if (!this.hasToken() || !window.RepoConfigCache) return;
+    if (!this.hasToken() || !window.RepoConfigCache) return { skipped: true };
+    // Single-flight, the guard the other two crawls already had: the boot
+    // path, an arrival kick and the Refresh button could run two of these at
+    // once, each re-reading the account list and the cache FRESH, and the
+    // loser saving a fold built on a pre-commit read. A call that finds a
+    // crawl in flight joins it and gets that crawl's result.
+    if (this._configCrawl) return this._configCrawl;
+    this._configCrawl = this._crawlConfigs(force);
+    try { return await this._configCrawl; } finally { this._configCrawl = null; }
+  },
+  async _crawlConfigs(force){
     // Seed the crawl from the account's repos (the enumeration that discovers
     // estate members), so a repo opting in via its own config is picked up
     // without any registry list. If the enumeration fails, fall back to the
@@ -2526,7 +2805,7 @@ function app(){ return {
     if (!force){
       try {
         const last = +localStorage.getItem(this._cacheCheckKey) || 0;
-        if (Date.now() - last < this.CRAWL_FLOOR_MS) return;
+        if (Date.now() - last < this.CRAWL_FLOOR_MS) return { skipped: true };
       } catch {}
     }
     // This listing is the enumeration that discovers estate members AND, from
@@ -2539,7 +2818,7 @@ function app(){ return {
       pushedAt = new Map(all.map(r => [r.full_name, r.pushed_at || '']));
     }
     catch { repos = this.estateRepos.map(r => r.repo); }
-    if (!repos.length) return;
+    if (!repos.length) return { skipped: true, reason: 'no repos to read' };
     const t0 = Date.now();   // for the run record, appended below if this commits
 
     // A repo is QUIET when it has not been pushed since this crawl last read
@@ -2675,7 +2954,11 @@ function app(){ return {
         await this.saveFold(reg, window.RepoConfigCache.CACHE_PATH, next,
                             'Update config cache (state/configs.json) via show-repo', base);
       }
-    } catch(e){ console.warn('config cache refresh:', e?.message || e); }
+      return { committed: moved.length > 0, changed: moved.length, checked: repos.length };
+    } catch(e){
+      console.warn('config cache refresh:', e?.message || e);
+      return { error: e?.message || String(e) };
+    }
   },
 
   // Force the activity crawl and tell the estate to re-read (the Activity view's
@@ -2705,6 +2988,16 @@ function app(){ return {
       this.announceActivity(r);
       this.reportActivityRefresh(r);
     } finally { this.activityRefreshing = false; this.closeCrawl('activity'); }
+  },
+
+  // Announce a finished sessions crawl, handing the document along. The exact
+  // sibling of announceActivity below, and it did not exist until 2026-08-27:
+  // every caller dispatched the bare event by hand, so the Sessions pane went
+  // back to the API for a file the crawl was holding, and its age pill reported
+  // the last COMMIT rather than the last check. See the crawl's own note.
+  announceSessions(r){
+    document.dispatchEvent(new CustomEvent('web-tools:sessions-refreshed',
+      { detail: r?.doc ? { cache: r.doc } : null }));
   },
 
   // Announce a finished activity crawl, handing the document along. A listener
@@ -3091,6 +3384,29 @@ function app(){ return {
   SESSIONS_FETCH_POOL: 6,        // record blobs read at once
   SESSIONS_MAX_FETCH: 120,       // records read per crawl; the rest wait for the next
   _sessionsCheckKey: 'wt:sessionsCacheCheckedAt',
+  // ── The title join's second input ────────────────────────────────────────
+  // A session's real title reaches no container, so the recorder cannot capture
+  // one (web-tools-private sessions/README.md, "The third name"). A Dispatch
+  // session on the desktop scrapes the claude.ai/code sidebar instead and
+  // commits one dated CSV per capture to mehrlander/chat-histories. Two calls a
+  // crawl: list the folder, read the newest file.
+  //
+  // Every failure here returns null, which the fold reads as "carry the titles
+  // you already have." A repo the token cannot see, a folder that does not
+  // exist, and a malformed CSV are all the same answer, and none of them may
+  // cost the crawl its records.
+  async _readSessionTitles(){
+    const S = window.RepoSessionsCache;
+    try {
+      const gh = new window.GH({ token: window.TOKEN, repo: S.TITLES_REPO, ref: 'main' });
+      const pick = S.newestExport(await gh.req('contents/' + S.TITLES_DIR));
+      if (!pick) return null;
+      const byId = S.parseTitles((await gh.get(pick.path)).text);
+      // An export that parsed to nothing is a broken export, not an empty one:
+      // treating it as empty would blank every title on the next fold.
+      return Object.keys(byId).length ? { at: pick.at, path: pick.path, byId } : null;
+    } catch(e){ console.warn('session titles export:', e?.message || e); return null; }
+  },
   async refreshSessionsCache(force){
     if (!this.hasToken() || !window.RepoSessionsCache) return { skipped: true };
     // Single-flight: opening the Sessions tab kicks the throttled crawl, and a
@@ -3188,11 +3504,14 @@ function app(){ return {
       };
       await Promise.all(Array.from({ length: Math.min(this.SESSIONS_FETCH_POOL, take.length) }, readOne));
 
+      // The titles export, read after the records so a slow or missing
+      // chat-histories cannot delay the part of the crawl that matters.
+      const titles = await this._readSessionTitles();
       // The scope is the FULL listing, never `take`: a record the cap deferred
       // must keep its row, and only a record genuinely gone from the store
       // loses one.
       const deferred = Math.max(0, stale.length - take.length);
-      const next = S.buildCache(prev, fetched, listing.map(e => e.path), nowISO);
+      const next = S.buildCache(prev, fetched, listing.map(e => e.path), nowISO, titles);
       try { localStorage.setItem(this._sessionsCheckKey, String(Date.now())); } catch {}
       // ONLY WHEN THIS PASS LEFT NOTHING BEHIND, and this is the clause the
       // gate is wrong without. `stale` can exceed the cap, and a record whose
@@ -3216,9 +3535,38 @@ function app(){ return {
         }) ?? prev?.runs;
         await this.saveFold(reg, S.CACHE_PATH, next,
                             'Update sessions cache (state/sessions.json) via show-repo', base);
+        // THE PHONE'S COPY, written in the same pass and only when the cache
+        // itself moved. It is a separate 46 KB file rather than a view of the
+        // megabyte above, because its whole reason to exist is that the phone
+        // cannot afford the megabyte (lib/kits/repo-sessions-cache.js, "The
+        // phone's copy"). Sharing the crawl is what keeps the two stamps
+        // identical, so the menu's age reading can never contradict the
+        // estate's.
+        //
+        // Its own change gate, because the cache moves for things this file
+        // does not carry: a tool count or a closing reply changes the cache
+        // and leaves every id, timestamp and ask here identical.
+        try {
+          const menu = S.buildMenuIndex(next);
+          const mbase = await this.readForFold(reg, S.MENU_PATH);
+          if (S.menuChanged(mbase?.doc || null, menu))
+            await this.saveFold(reg, S.MENU_PATH, menu,
+                                'Update session menu index (state/session-menu.json) via show-repo', mbase);
+        } catch(e){ console.warn('session menu index:', e?.message || e); }
       }
+      // `doc` rides the summary for the reason the activity crawl's does, plus
+      // one this crawl has and that one does not. The shared reason is cost:
+      // state/sessions.json is a megabyte and the crawl is holding it, so a
+      // listener that re-reads it is paying twice. The extra reason is the
+      // STAMP. A pass that changes nothing does not commit, so the stored file
+      // still carries the previous pass's `generatedAt`, and a listener that
+      // re-read it snapped its age pill back to that: press Refresh on a quiet
+      // estate and Branches said "now" while Sessions said "1h", off one
+      // gesture. The built document always carries `generatedAt: nowISO`
+      // whether or not it was worth committing, which is the honest answer to
+      // "when was this last checked".
       return { total: listing.length, read: Object.keys(fetched).length,
-               deferred, committed: changed };
+               deferred, committed: changed, titlesAt: next.titlesAt || '', doc: next };
     } catch(e){
       console.warn('sessions cache refresh:', e?.message || e);
       return { error: e?.message || String(e) };
@@ -3237,7 +3585,7 @@ function app(){ return {
     this.openCrawl('sessions', 'Listing records', 'records');
     try {
       const r = await this.refreshSessionsCache(true);
-      document.dispatchEvent(new CustomEvent('web-tools:sessions-refreshed'));
+      this.announceSessions(r);
       const toast = Alpine.store('toast');
       if (!toast || !r) return;
       const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
@@ -3281,7 +3629,7 @@ function app(){ return {
       this.openCrawl('sessions', 'Listing records', 'records');
       try { s = await this.refreshSessionsCache(true); }
       finally { this.sessionsRefreshing = false; this.closeCrawl('sessions'); }
-      document.dispatchEvent(new CustomEvent('web-tools:sessions-refreshed'));
+      this.announceSessions(s);
 
       this.activityRefreshing = true;
       this.openCrawl('activity', 'Refreshing activity', 'repos');
@@ -3897,7 +4245,8 @@ function app(){ return {
   projectDocs: null,        // grouped listing; null = not loaded (or the tree read failed)
   projectDocsLoading: false,
   projectDocsQ: '',
-  projectDocsIndexHtml: '', // a curated DOCS.md, rendered above the mechanical listing
+  projectDocsIndexHtml: '', // the curated docs/README.md (or DOCS.md), rendered above the mechanical listing
+  projectDocsSourced: 0,    // markdown inside source packages, counted rather than listed
   _projectDocsKey: '',
   // The open project as a row: the declared entry where there is one, so its
   // label, board, and landing carry, else a minimal one derived from the path
@@ -4032,7 +4381,7 @@ function app(){ return {
     try { res = await s.gh.get(file); } catch {}
     if (key !== this._projectBoardKey) return;
     if (res){
-      try { await loadMarked(); this.projectBoardHtml = window.marked.parse(res.text); }
+      try { await loadMarked(); this.projectBoardHtml = mdHtml(res.text); }
       catch { this.projectBoardHtml = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
     }
     this.projectBoardLoading = false;
@@ -4123,29 +4472,46 @@ function app(){ return {
     this._projectDocsKey = key;
     this.projectDocsLoading = true; this.projectDocs = null; this.projectDocsIndexHtml = '';
     const prefix = this.projectPath + '/';
-    let rels = null;
+    let rels = null, sourced = 0;
     try {
       const t = await s.gh.req('git/trees/' + encodeURIComponent(s.ref || 'HEAD') + '?recursive=1');
-      rels = (t.tree || [])
+      const all = (t.tree || [])
         .filter(n => n.type === 'blob' && n.path.startsWith(prefix) && /\.(md|markdown)$/i.test(n.path))
         .map(n => n.path.slice(prefix.length));
+      // Source packages are pulled material with a provenance README each, not
+      // the workspace's documentation: budget-drs holds 1,605 of them against
+      // 300 documents, so listed together the packages are all a reader sees.
+      // Counted and named below the filter rather than listed.
+      rels = all.filter(r => !this.isSourcePackageDoc(r));
+      sourced = all.length - rels.length;
     } catch { /* rels stays null: the pane says the listing failed */ }
     // A late reply for a project the reader has since left must not paint over
     // the current one (loadProjectReadme's rule).
     if (key !== this._projectDocsKey) return;
     this.projectDocs = rels ? this.groupProjectDocs(rels) : null;
+    this.projectDocsSourced = sourced;
     this.projectDocsLoading = false;
-    // The curated layer: a workspace keeping a DOCS.md gets it rendered above
-    // the mechanical listing. Curation on top, mechanism underneath, nothing
-    // owed when no index exists.
-    if (rels && rels.includes('DOCS.md')){
+    // The curated layer: a workspace keeping a documentation map gets it
+    // rendered above the mechanical listing. The map is docs/README.md, the
+    // four-slot rule's own answer (CONSTELLATION.md principle 6); DOCS.md is the
+    // older name and still honoured. Curation on top, mechanism underneath,
+    // nothing owed when no index exists.
+    const lead = rels && (rels.includes('docs/README.md') ? 'docs/README.md'
+                        : rels.includes('DOCS.md') ? 'DOCS.md' : null);
+    if (lead){
       try {
-        const res = await s.gh.get(this.projectPath + '/DOCS.md');
+        const res = await s.gh.get(this.projectPath + '/' + lead);
         if (key !== this._projectDocsKey) return;
         await loadMarked();
-        this.projectDocsIndexHtml = window.marked.parse(res.text);
+        this.projectDocsIndexHtml = mdHtml(res.text);
       } catch {}
     }
+  },
+  // A markdown file inside a source package: a dated pull under data/source/
+  // or a supplied document set under source-docs/. Pure, so the rule is
+  // testable beside groupProjectDocs.
+  isSourcePackageDoc(rel){
+    return /^data\/source\//.test(rel) || /(^|\/)source-docs\//.test(rel);
   },
   // Group project-relative markdown paths for the Docs tab: the workspace's
   // own root files first, then one group per folder in path order, each
@@ -4199,7 +4565,7 @@ function app(){ return {
     // the current one.
     if (key !== this._projectKey) return;
     if (res){
-      try { await loadMarked(); this.projectHtml = window.marked.parse(res.text); }
+      try { await loadMarked(); this.projectHtml = mdHtml(res.text); }
       catch { this.projectHtml = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
     }
     this.projectLoading = false;
@@ -4504,7 +4870,7 @@ function app(){ return {
     });
   },
   // A repo's declared outbox, from the config cache the estate already holds:
-  // the shelf it stages material on for others to pull. Menu-only, so a repo
+  // the folder it stages material in for others to pull. Menu-only, so a repo
   // that declares none simply has no row, and no read is spent asking.
   get menuRepoOutbox(){
     const cfg = this.estateConfigs?.[this.menuRepo];
@@ -4554,7 +4920,16 @@ function app(){ return {
     const b = el?.getBoundingClientRect?.();
     if (!b) return null;
     const w = opts.width || this.MENU_W;
-    const h = Math.min(rows * this.MENU_ROW + 8, Math.round(innerHeight * 0.6));
+    // How tall the panel will BE, which decides whether it fits below the
+    // trigger. `rows * MENU_ROW` estimates that for a list of menu rows, which
+    // every caller here was until the session pane's reply card became a
+    // scrolling transcript: it is 60vh whatever its row count, and estimating
+    // it at nine rows put 210px of an 800px-tall phone's card below the fold,
+    // where the part you would touch to scroll it is not on screen. A caller
+    // whose panel is not a list of rows passes its own height.
+    const h = opts.height
+      ? Math.min(opts.height, Math.round(innerHeight * 0.6))
+      : Math.min(rows * this.MENU_ROW + 8, Math.round(innerHeight * 0.6));
     if (opts.side === 'right' && b.right + 2 + w <= innerWidth - 8)
       return { x: b.right + 2, y: Math.max(8, Math.min(b.top, innerHeight - h - 8)) };
     const below = innerHeight - b.bottom > h + 8;
@@ -4714,13 +5089,21 @@ function app(){ return {
   // reach and could not name. A row here cannot be half-addressable, which is
   // the promise three parallel chains could not make.
   //
-  //   key    the ?view= value AND the this.view value; deliberately one name
-  //   alias  a retired key that still resolves, so saved links land somewhere real
+  //   key    the this.view value, and the ?view= value unless `writes` overrides
+  //   writes the ?view= spelling when it must differ from the key. A view can be
+  //          renamed in the ADDRESS without being renamed in the shell, which is
+  //          the only way to move a spelling whose internal name is load-bearing:
+  //          'activity' is the branch pane's this.view and a crawl id besides, in
+  //          31 places, while ?view=activity has to mean Sessions, the pane the
+  //          Activity nav stop actually opens.
+  //   alias  a retired ?view= spelling that still resolves, so saved links land
   //   open   what a link to it does. `u` is the parsed URL
   //   when   the address carries what open() needs; a miss falls through to the landing
   //   ready  the shell holds what stamp() needs; a miss stamps nothing
   //   stamp  the view's OWN keys. The caller has already set ?view=
-  //   self   this view names itself another way, so the caller sets no ?view=
+  //   self   this view names itself another way, so the caller sets no ?view=.
+  //          A function where the answer depends on WHICH spelling the view is
+  //          about to stamp: `app` names itself only in its short form.
   VIEWS: [
     // The landing names itself by naming its repo, not with a ?view=: a repo's
     // front page IS ?repo=owner/name, and stamping a view key beside it would
@@ -4745,14 +5128,17 @@ function app(){ return {
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
       } },
     { key: 'estate',   open(){ this.goEstate(); } },
-    { key: 'stage',    open(){ this.goStage(); } },
-    { key: 'surfaces', open(){ this.goSurfaces(); } },
+    // `surfaces` is the retired Saved pane, which listed the registry's
+    // .surface files and could load one onto the bench. It went on 2026-08-27,
+    // and the key aliases onto the Stage so an old link lands on the bench.
+    { key: 'stage', alias: 'surfaces', open(){ this.goStage(); } },
     { key: 'public',   open(){ this.goPublicBrowse(); } },
     { key: 'todo',     open(){ this.goTodo(); } },
     { key: 'jots',     open(){ this.goJots(); } },
-    // `branches` is the retired per-repo branch review, whose rollup this tab
-    // already carried for every repo at once.
-    { key: 'activity', alias: 'branches', open(){ this.goActivity(); },
+    // The branch rollup. Its this.view stays 'activity' (see `writes` above) and
+    // its address is ?view=branches, which is also what the retired per-repo
+    // branch review was called, so an old link still lands where it always did.
+    { key: 'activity', writes: 'branches', open(){ this.goActivity(); },
       stamp(p){
         // The branch open in the takeover, when one is. Being inside the swiper
         // is a state worth linking to and was the one state here without an
@@ -4765,7 +5151,21 @@ function app(){ return {
         const w = this.branchWindow;
         if (w && w !== this.BRANCH_WINDOW_DEFAULT) p.set('window', this.windowParam(w));
       } },
-    { key: 'sessions', open(){ this.goSessions(); } },
+    // ?view=activity resolves HERE, not to the branch pane, because Activity is
+    // the nav stop and Sessions is the pane it opens. A link is an address, and
+    // an address that lands somewhere other than the tap of the same name is the
+    // bug this alias fixes.
+    { key: 'sessions', alias: 'activity', open(){ this.goSessions(); },
+      stamp(p){
+        // The session open in its swiper, the exact counterpart of `detail` on
+        // the row above. Sessions were the one thing in the Activity group with
+        // no address of their own: the branch rows beside them got a standalone
+        // page and a copied link months ago, and tapping a session opened a
+        // takeover that could not be pointed at. The id alone is enough,
+        // because it is the record's filename stem and resolves against the
+        // store by suffix.
+        if (this.sessionSpec) p.set('session', this.sessionSpec);
+      } },
     { key: 'chats',    open(){ this.goChats(); } },
     { key: 'routes',   open(){ this.goRoutes(); } },
     { key: 'map', alias: 'portable',
@@ -4805,10 +5205,65 @@ function app(){ return {
       } },
     // App views are estate-level, so the link stands alone (like the Stage):
     // the promoted page's repo and path ride it, independent of the open repo.
-    { key: 'app', when: u => !!(u.appRepo && u.appPath),
-      open(u){ this.goAppView(this.appViewFromUrl(u)); },
+    // Three spellings, one destination. `?app=` is the short form and takes
+    // either a slug a repo declared or the estate's `owner/repo[@ref]:path`
+    // address; the five-key form is what this route was born with and still
+    // resolves, so no minted link ever stops working.
+    { key: 'app', when: u => !!(u.app || (u.appRepo && u.appPath)),
+      async open(u){
+        let v = await this.appViewFromUrl(u);
+        // A SLUG THE CACHE CANNOT ANSWER IS USUALLY A CACHE ONE MANIFEST BEHIND,
+        // not a dead link. Slugs resolve out of the registry's config cache, so
+        // the first load after a repo edits its .web-tools.json asks a cache
+        // that predates the edit, misses, and lands on the estate. The refresh
+        // that would have answered it commits moments later, too late for the
+        // routing decision it just lost, and goDashboard's stamp has by then
+        // rewritten `?app=<slug>` to `?view=estate`, so reloading retries the
+        // wrong address and the reader cannot get back without the original
+        // link. Hit three times between 2026-09-07 and 2026-09-08, twice on one
+        // link, each time reported as "it didn't work".
+        //
+        // So a missed slug buys one forced refresh and one retry. Bounded: the
+        // guard fires at most once per load, and only a genuinely dead slug
+        // pays for it.
+        if (!v && u.app && !this._slugRefetched) {
+          this._slugRefetched = true;
+          await (this.configRefreshing ? this.configsSettled() : this.refreshConfigs());
+          v = await this.appViewFromUrl(u);
+        }
+        // Captured HERE, not read at render time, and the ordering is the whole
+        // reason: goAppView stamps, the stamp deletes `on` (it is in VIEW_KEYS),
+        // and a render-time read would then find the fallback already gone. So
+        // the ?on= form worked in theory and delivered nothing, which a source
+        // assertion could not have seen. Measured in a browser, 2026-08-25.
+        if (v && !v.query) v.query = this.subjectParamsFor(u);
+        // A slug naming nothing lands on the estate, the page's front door,
+        // rather than on an app view with no page in it. Silent, because a
+        // stale bookmark is not an error worth a dialog, and the estate shows
+        // what the reader can reach instead.
+        if (v) this.goAppView(v); else this.goDashboard();
+      },
       ready(){ return !!this.appView; },
+      // Self-naming in the SHORT form only. `?app=<slug>` is a whole address,
+      // since parseUrl reads the presence of `app` as view=app, so a `view=app`
+      // beside it is a key that says nothing and the reader has to look past.
+      // The five-key fallback writes no `app` at all, so there it is the only
+      // thing naming the route and dropping it would make the address inert.
+      // Hence a function: one row, two spellings, and only one of them answers
+      // yes.
+      self(){ return !!(this.appView && this.appView.slug); },
       stamp(p){
+        // The short form is what gets WRITTEN, whenever the open view has a
+        // slug to write. The alternative was to read it and stamp the long one
+        // back, which turns every short link into a long one the moment the
+        // reader touches anything, and an address nobody can keep is not worth
+        // having minted. Precedented: ?view=branches rewrites to ?view=sessions.
+        //
+        // The slug also makes appLabel/appIcon unnecessary. They exist so a
+        // cold deep link is self-describing before the config cache resolves,
+        // and a slug cannot resolve without that cache at all, so by the time
+        // this view is on screen its label and icon are already known.
+        if (this.appView.slug) { p.set('app', this.appView.slug); return; }
         p.set('appRepo', this.appView.repo);
         p.set('appPath', this.appView.path);
         if (this.appView.ref) p.set('appRef', this.appView.ref);
@@ -4826,11 +5281,26 @@ function app(){ return {
   // list so a stale one is cleared rather than carried into a screen that does
   // not mean it; nothing stamps them now. `ref` is deleted here and re-stamped
   // above, being repo-scoped rather than any view's.
+  // `on` is here to be DELETED and never written: it is the query fallback for
+  // the subject's own params (appViewUrl), and the fragment is where they
+  // belong, so an address arriving with ?on= leaves with '#'. That is the
+  // self-heal, and it is why the key is in this list rather than a stamp.
   VIEW_KEYS: ['file', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
-              'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
+              'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
-  routeFor(view){ return this.VIEWS.find(r => r.key === view || r.alias === view); },
+  // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
+  // spelling, so the URL side reads aliases and reads them FIRST; the shell's own
+  // `this.view` is never an alias, so the stamp side matches the key alone. They
+  // were one function until 2026-09-08, and being one meant an alias could point
+  // nowhere but at its own row: ?view=activity had to open the pane internally
+  // named 'activity' even after the Activity nav stop had moved to Sessions, so
+  // the word meant Sessions when tapped and Branches when typed.
+  routeForUrl(view){
+    return this.VIEWS.find(r => r.alias === view)
+        || this.VIEWS.find(r => (r.writes || r.key) === view);
+  },
+  routeFor(view){ return this.VIEWS.find(r => r.key === view); },
 
   // The one dispatch, shared by the boot and the popstate restore. Reports
   // whether the address named a view it could open, so each caller decides what
@@ -4839,7 +5309,7 @@ function app(){ return {
   async routeFromUrl(url){
     if (!url) return false;
     if (url.file) { await this.openFile(url.file); return true; }
-    const r = this.routeFor(url.view);
+    const r = this.routeForUrl(url.view);
     if (!r || (r.when && !r.when(url))) return false;
     await r.open.call(this, url);
     return true;
@@ -4847,9 +5317,18 @@ function app(){ return {
 
   parseUrl(){
     const p = new URLSearchParams(location.search);
-    if (!p.has('repo') && !p.has('file') && !p.has('view')) return null;
+    // `app` joins the gate because it is a route key that names no repo and no
+    // view: `?app=budget-drs` is a complete address and would otherwise parse
+    // to null and land on the estate.
+    if (!p.has('repo') && !p.has('file') && !p.has('view') && !p.has('app')) return null;
     return { repo: p.get('repo') || this.DEFAULT_REPO, ref: p.get('ref') || '',
-             file: p.get('file'), view: p.get('view'), path: p.get('path') || '',
+             file: p.get('file'),
+             // `?app=` names its own route, so it implies view=app: the dispatch
+             // in routeFromUrl keys on url.view, and a short address that named
+             // no view would find no row to open and fall through to the estate.
+             view: p.get('view') || (p.has('app') ? 'app' : null),
+             path: p.get('path') || '',
+             app: p.get('app') || '', on: p.get('on') || '',
              project: p.get('project') || '', tab: p.get('tab') || '',
              appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '',
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
@@ -4876,7 +5355,8 @@ function app(){ return {
     // survives a view change and travels with the address the header's ref
     // switch mints (which starts from an empty base, where ?use= must not
     // survive but this must, or a ref switch would silently reframe the page).
-    if (this.shellMode !== 'full') p.set('shell', this.shellMode); else p.delete('shell');
+    if (this.shellMode !== this.defaultShellMode) p.set('shell', this.shellMode);
+    else p.delete('shell');
     for (const k of this.VIEW_KEYS) p.delete(k);
     // The browsed ref rides beside the repo, not on a view. It was the Files
     // view's key while the Files view was the only thing that read it; the
@@ -4888,7 +5368,8 @@ function app(){ return {
     // shell cannot yet describe.
     const r = this.routeFor(this.view);
     if (r && (!r.ready || r.ready.call(this))) {
-      if (!r.self) p.set('view', r.key);
+      const self = typeof r.self === 'function' ? r.self.call(this) : r.self;
+      if (!self) p.set('view', r.writes || r.key);
       r.stamp?.call(this, p, s);
     }
     return p;
@@ -4909,11 +5390,27 @@ function app(){ return {
     this.detailSpec = spec || '';
     this.syncUrl();
   },
+  // The same pair for the Sessions pane's own swiper. Two keys rather than one
+  // shared one, because the two decks hold different objects and a link that
+  // said `detail=` for either would have to be disambiguated by the ?view= it
+  // rides with, which is a rule nobody reading the address could apply.
+  sessionSpec: new URLSearchParams(location.search).get('session') || '',
+  setSession(spec){
+    if (this.sessionSpec === spec) return;
+    this.sessionSpec = spec || '';
+    this.syncUrl();
+  },
 
   syncUrl(){
     this.dropDecksOnNav();
     const qs = this.deepLinkParams(new URLSearchParams(location.search)).toString();
-    const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
+    // The fragment is carried through untouched unless a caller has just asked
+    // for a different one (goAppView, whose view owns its fragment). One shot:
+    // cleared on read, so every other caller keeps the carry-through that has
+    // always been the rule here.
+    const hash = this._nextHash === undefined ? location.hash : this._nextHash;
+    this._nextHash = undefined;
+    const next = location.pathname + (qs ? '?' + qs : '') + hash;
     const cur = location.pathname + location.search + location.hash;
     // Push a new history entry per distinct URL so the browser Back button walks
     // the navigation (repo, view, file, folder). A no-op change, or a change made
@@ -4925,9 +5422,47 @@ function app(){ return {
     // exactly when deepLinkParams stamps `repo` (off the default only), owner
     // dropped the way the sidebar crumb drops it. Stamped here rather than in
     // a watcher so the title and the address cannot disagree.
+    //
+    // AN APP VIEW NAMES ITSELF FIRST, which is the one place the order flips.
+    // Everywhere else the product leads, because the repo is context on a Web
+    // Tools screen. A promoted page is not a Web Tools screen: `?app=` is a
+    // whole address and the three surfaces that read this title (the tab strip,
+    // a bookmark, a home-screen tile) all truncate from the RIGHT, so leading
+    // with the product spends the visible characters saying which shell rather
+    // than which app. It takes the disambiguated `label` rather than
+    // `baseLabel`, so two repos promoting one page are still told apart here.
+    this.stampTitle();
+    // Every route change passes through here, so this is the one place that
+    // reliably sees an app view being LEFT. A watcher on `view` would miss the
+    // boot case, where the shell arrives on a route without ever changing it.
+    if (this.view !== 'app') { this._appTitle = ''; this.resetAppIcon(); }
+  },
+
+  // Its own method because the mark arrives LATE, after the address is
+  // already stamped, and re-running syncUrl for it would push a history entry
+  // for a tab caption.
+  stampTitle(){
+    const av = this.view === 'app' ? this.appView : null;
+    const name = this.appTabName(av);
+    if (name) { document.title = `${name} · Web Tools`; return; }
     const repo = Alpine.store('browser').repo;
     document.title = repo && repo !== this.DEFAULT_REPO
       ? `Web Tools · ${repo.split('/')[1] || repo}` : 'Web Tools';
+  },
+
+  // What an app view is called in a tab. THE DECLARED LABEL WINS wherever
+  // there is one, because that is the name the sidebar and the header nav
+  // render, and a tab disagreeing with them is worse than a plain tab.
+  //
+  // The exception is the one case that has no declared label: a cold deep link
+  // by address, before (or without) the crawl that carries the manifest, falls
+  // back to the filename and reads `app.html`, which names nothing. The framed
+  // page's own <title> answers exactly that case, and nothing else: it would
+  // otherwise overrule a name its own repo chose for it.
+  appTabName(av){
+    if (!av) return '';
+    if (av.labelFrom !== 'path') return av.label || '';
+    return this._appTitle || av.label || '';
   },
 
   // Browser Back/Forward: re-derive the shell state from the URL through the
@@ -4997,14 +5532,13 @@ function app(){ return {
                     ref: s.ref && s.ref !== s.defaultRef ? s.ref : '', path });
   },
 
-  // The estate is a context above any repo, with three views of its own — the
-  // repo grid ('estate') and the Stage ('stage', the shelf of surfaces with the
-  // cross-repo working set on top, belonging to no repo) — mirroring how a repo
-  // has landing/atlas/files/… isEstate gates the estate component (it renders
-  // the grid and the Stage, switching on this.view, sharing the one lazy
-  // mount); estateCtx is the wider context test the sidebar switches on.
-  // 'surfaces' is in this list as the Stage's alias, not as a second pane.
-  get isEstate(){ return ['estate', 'surfaces', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'routes', 'state'].includes(this.view); },
+  // The estate is a context above any repo, with views of its own: the repo
+  // grid ('estate') and the Stage ('stage', the cross-repo working set,
+  // belonging to no repo), mirroring how a repo has landing/atlas/files/…
+  // isEstate gates the estate component (it renders the grid and the Stage,
+  // switching on this.view, sharing the one lazy mount); estateCtx is the
+  // wider context test the sidebar switches on.
+  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'routes', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -5039,7 +5573,12 @@ function app(){ return {
   // The dashboard front door: Open for a signed-in viewer (the richer
   // all-repo read), Repos for a signed-out one (Open is token-gated, so it
   // would land on an empty state). Brand tap and a bare open route here.
-  goDashboard(){ this.hasToken() ? this.goActivity() : this.goEstate(); },
+  // SESSIONS, not Branches, for a signed-in viewer. Both are Activity panes and
+  // the group opened on Branches because Branches was the pane that existed
+  // first. The front door should answer "what have I been doing", which is the
+  // session's question; a branch is what a session left behind, and the Sessions
+  // pane nests the branch row itself under the session that made it.
+  goDashboard(){ this.hasToken() ? this.goSessions() : this.goEstate(); },
   // The header's app-level nav: the estate's own views, in
   // display order (Activity first). Repo-sourced app views ride behind it as a
   // second group (appNav below), separated by a hairline, so the header carries
@@ -5063,19 +5602,18 @@ function app(){ return {
   // Both old keys still route (?view=todo and ?view=jots land on Lists).
   get estateNav(){
     return [
-      { view: 'activity', views: ['activity', 'sessions', 'chats', 'routes', 'state'],
-        icon: 'ph-pulse',    label: 'Activity', go: () => this.goActivity() },
+      // `views` is the set that keeps this entry lit and `view` is only its
+      // identity, so moving the door to Sessions is the `go` and the `view`;
+      // ?view=activity still resolves to Branches, and the pill row still
+      // leads with it, since a chip that moves is a target a reader has to
+      // learn twice.
+      { view: 'sessions', views: ['sessions', 'activity', 'chats', 'routes', 'state'],
+        icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       { view: 'todo', views: ['todo', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
       { view: 'estate',   icon: 'ph-squares-four', label: 'Repos',    go: () => this.goEstate() },
       // One stop, named Stage, over the two things a surface is for, switched
-      // by a segmented pill inside the view the way Activity switches its
-      // three and Map its two. A staged fileset IS a surface
-      // (docs/envelopes/surface.md, the stage/1 profile), so the bench works
-      // one and the shelf displays the saved ones. Each sub-view keeps its own
-      // ?view key: 'stage' is the bench, 'surfaces' the shelf, which is what
-      // that key always meant, so old links land where they used to.
-      { view: 'stage', views: ['stage', 'surfaces'],
+      { view: 'stage',
         icon: 'ph-stack',        label: 'Stage',    go: () => this.goStage() },
       { view: 'tools',    icon: 'ph-wrench',       label: 'Tools',    go: () => this.goTools() },
       // Named for the thing, not the verb, so it sits with Repos and Stage
@@ -5111,7 +5649,11 @@ function app(){ return {
   get appNav(){
     return this.sidebarAppViews.map(v => ({
       view: 'app', key: v.key, icon: v.icon, label: v.label,
-      title: v.label + ' — ' + v.repo, go: () => this.goAppView(v),
+      // The declaring repo, for the same reason the suffix uses it: a
+      // cross-repo promotion's `repo` is the page's home, and "whose view is
+      // this" is what a tooltip on a repeated label is being asked.
+      title: (v.baseLabel || v.label) + ' — ' + (v.declaredBy || v.repo),
+      go: () => this.goAppView(v),
     }));
   },
   // The board behind the rail, if some repo also promotes it as an app view:
@@ -5132,10 +5674,11 @@ function app(){ return {
   // just changed (a repo's views for the estate's, say). It now closes only
   // when you say so, by the scrim or the X. The pinned desktop sidebar never
   // closed, so the two behave alike now.
-  goEstate(){ this.estateSeen = true; this.view = 'estate'; this.syncUrl(); },
-  // The Stage's other sub-view: the shelf of saved surfaces. Its own ?view key,
-  // the way each of Activity's three has one, so a pill tap deep-links.
-  goSurfaces(){ this.estateSeen = true; this.view = 'surfaces'; this.syncUrl(); },
+  // Repos kicks its own throttled crawl on arrival, the way Open and Sessions
+  // do. It was the one estate pane that did not, warmed only at boot and by its
+  // own Refresh, so a session that opened elsewhere and walked over to Repos an
+  // hour later read whatever the boot had left.
+  goEstate(){ this.estateSeen = true; this.view = 'estate'; this.warmConfigCache(); this.syncUrl(); },
   // Lists: To-do over Jot, one pane. Both keys route here and each still
   // stamps its own, so an old ?view=jots link lands on the pane rather than
   // 404ing into Repos; the pane no longer switches on which one arrived.
@@ -5269,10 +5812,99 @@ function app(){ return {
       if (r?.committed) this.announceActivity(r);
     } catch(e){ console.warn('arrival activity refresh:', e?.message || e); }
   },
+  // The Repos pane's half of the same contract. Its cards reload on
+  // web-tools:configs-refreshed, which until now only the manual Refresh
+  // dispatched, so the config crawl had the identical silence the sessions
+  // crawl did: a background pass could commit a new cache and leave the cards
+  // and the age pill drawn from the one before it.
+  async warmConfigCache(){
+    try {
+      const r = await this.refreshConfigCache(false);
+      if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
+    } catch(e){ console.warn('arrival config refresh:', e?.message || e); }
+  },
+
+  // ── Coming back to a page that never left ─────────────────────────────
+  // Every cache-backed pane warms itself on ARRIVAL, and arrival means a
+  // navigation inside a running app: goActivity, goSessions, goState. On a
+  // phone there is no such navigation. Safari keeps the page and restores it,
+  // so the boot ran once, whenever the tab was first opened, and each pane has
+  // been rendering the copy it read then for as long as the tab has existed.
+  //
+  // That is what an age pill stuck at "as of 1d" is reporting, and it is the
+  // worst reading the estate can show: it is precise, it is correct, and the
+  // one control it offers re-crawls a cache the mounted view will not re-read.
+  // A reader who can see the lag and cannot clear it is being told the app
+  // knows and has decided not to act.
+  //
+  // So the return itself is treated as the arrival. Hidden for less than
+  // REVISIT_MS is a tab flick and warms nothing; longer runs exactly the
+  // throttled crawls a fresh arrival would run, and each announces on commit
+  // so the pane re-reads rather than sitting on what it mounted with.
+  //
+  // A bfcache restore always warms, whatever the clock says: `pageshow` with
+  // `persisted` means the page came back with no boot at all, which is the
+  // case this whole handler exists for and the one where a missed
+  // visibilitychange would leave the reading frozen for good.
+  REVISIT_MS: 5 * 60 * 1000,
+  _hiddenAt: 0,
+  wireRevisit(){
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { this._hiddenAt = Date.now(); return; }
+      // No recorded hide means the page was restored or resumed without one,
+      // so the away time is unknown rather than zero, and unknown warms.
+      if (!this._hiddenAt || Date.now() - this._hiddenAt >= this.REVISIT_MS) this.warmEstateCaches();
+      this._hiddenAt = 0;
+    });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) this.warmEstateCaches(); });
+  },
+  // Only what the pane on screen actually reads. The branch crawl is the
+  // expensive one (tens of seconds when the estate has moved), so it runs for
+  // the view that renders it and not for a reader sitting on Chats. State
+  // reads both, so it warms both.
+  warmEstateCaches(){
+    if (!this.hasToken()) return;
+    const v = this.view;
+    if (v === 'sessions' || v === 'state') this.warmSessionsCache();
+    if (v === 'activity' || v === 'state') this.arrivalActivityRefresh();
+    if (v === 'estate' || v === 'state') this.warmConfigCache();
+  },
+
   // Activity's other pill: the sessions that made the branches. Kicks its own
   // throttled crawl on visit, the way Open kicks the activity crawl, so the
   // cache warms itself and a cold one is one tap from being warm.
-  goSessions(){ this.estateSeen = true; this.view = 'sessions'; this.refreshSessionsCache?.(); this.syncUrl(); },
+  // TWO CACHES, because this pane renders two. The session records are its
+  // rows and the branch cache is its tiles: every session nests the Branches
+  // pane's own row under it, so arriving here on a cold branch cache draws
+  // current sessions over stale branches. Cheap to ask for: a non-forced
+  // refresh returns skipped inside CRAWL_FLOOR_MS and joins any crawl already
+  // in flight, so a pill tap costs nothing the floor has not already paid.
+  goSessions(){
+    this.estateSeen = true; this.view = 'sessions';
+    this.warmSessionsCache(); this.arrivalActivityRefresh?.();
+    this.syncUrl();
+  },
+  // The sessions half of the arrival kick, and it exists because the plain
+  // refreshSessionsCache call it replaces was SILENT. A crawl that commits a
+  // new cache has changed nothing the reader can see until the pane re-reads
+  // the file, and the pane re-reads on web-tools:sessions-refreshed, which
+  // only the manual Refresh dispatched. So a background pass could do all its
+  // work, save a current cache, and leave the pill still saying "as of 1d"
+  // over it, with the one control it offers being the crawl that had just run.
+  // Announcing on commit is what closes that: same shape as
+  // arrivalActivityRefresh, which had it from the start.
+  //
+  // The gate is `doc OR committed`, not `committed` alone, and the widening is
+  // the 2026-08-27 fix seen from this end. A pass that RAN and found nothing to
+  // commit still checked the store, and the document it built says so; only a
+  // pass that was THROTTLED has neither a document nor a commit, and that one
+  // must stay silent or every arrival costs a read of a megabyte for no news.
+  async warmSessionsCache(){
+    try {
+      const r = await this.refreshSessionsCache(false);
+      if (r?.doc || r?.committed) this.announceSessions(r);
+    } catch(e){ console.warn('arrival sessions refresh:', e?.message || e); }
+  },
   // Chats warms nothing, and the absence is the design. The other three panes
   // read a crawl cache this shell keeps fresh; the archive's month shards are
   // immutable once committed, so there is no staleness for a crawl to chase.
@@ -5605,6 +6237,16 @@ function app(){ return {
         return;
       }
       e.preventDefault();
+      // AN ADDRESS IS A DESTINATION, NOT CONTENT. Tried before the intake, and
+      // only ever declined into it: pasteRoute answers false for everything it
+      // does not recognise, so the staging path below is unchanged for every
+      // paste that is not one of the four shapes it names.
+      //
+      // Reading text/plain here does not break the one-reader contract above.
+      // That contract is about who TAKES the flavors and owns the offer bar;
+      // getData on a DataTransfer consumes nothing, and this path ends in a
+      // navigation with no bar to populate.
+      if (await this.pasteRoute(cd)) return;
       const { added } = await window.StageIntake.takePaste(cd);
       if (!added.length || onStage) return;
       // Off the Stage the paste is also a navigation, the way a drop is: it
@@ -5613,6 +6255,150 @@ function app(){ return {
       this.goStage();
       if (added.length === 1) window.StageIntake.focus(added[0]);
     });
+  },
+
+  // ── TYPING ANYWHERE FINDS ─────────────────────────────────────────────────
+  // The keyboard's version of the paste above, and it was missing for the same
+  // reason: the app had one search box, in the sidebar, reachable by `/` and by
+  // tapping it. On every view that carries no box of its own (Activity is the
+  // one that showed it) a typed character went nowhere and nothing on screen
+  // said where it should have gone.
+  //
+  // ONE OWNER, like the paste. quick-find used to register its own `/` listener
+  // and this rule is a superset of that one, so the component's listener is gone
+  // rather than coordinated with; a page that mounts quickFind without this
+  // shell wires its own. The box declares itself with an id the router names
+  // (`quick-find-box`), and a VIEW's own box declares itself with
+  // `data-find-box`.
+  //
+  // THE VIEW'S BOX WINS WHERE IT IS ON SCREEN. Typing while looking at a list
+  // and its filter means "narrow this", not "search the estate", so a visible
+  // `data-find-box` takes the keystroke and the sidebar never opens. Visibility
+  // is `getClientRects()`, not `offsetParent`, which is null for any fixed
+  // element and so would have reported the phone's sidebar hidden while it was
+  // out.
+  //
+  // WHO CARRIES THE CHARACTER, which is the whole subtlety. Focusing an input
+  // inside a keydown handler and NOT calling preventDefault leaves the browser
+  // to run the default action against whatever is focused when it runs, which
+  // is by then the box: the character lands, fast typing keeps landing, and
+  // dead keys and IME composition are untouched. That only works on a box that
+  // is already there. Where the sidebar has to be revealed first, Alpine's
+  // class change lands a tick later and the default action has nowhere to go,
+  // so that one path preventDefaults and seeds the character by hand, through
+  // an `input` event so x-model writes it back to the component's own `q`.
+  wireAppTypeahead(){
+    window.addEventListener('keydown', (e) => {
+      // A bare printable key, one character wide, so every named key (Tab,
+      // Enter, Escape, the arrows, the function row) passes untouched. Space
+      // goes with them: it scrolls, it activates a focused button, and no
+      // query opens with one.
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      if (e.key.length !== 1 || e.key === ' ') return;
+      const t = e.target;
+      if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '') || t.isContentEditable)) return;
+      // A deck or a modal is a screen of its own, and pulling focus to a box
+      // behind it would type into something the reader cannot see. Those are
+      // the app's two overlays that own the screen; the fab's drawer is
+      // deliberately not one, since it passes pointer events through and
+      // leaves the page beneath it live. A third that does own the screen owes
+      // this router a tell of its own: a component whose panel sits in the DOM
+      // at all times and slides cannot be found by its presence, so it has to
+      // say `shown` in an attribute the way the deck says it in a stack.
+      if (window.swipeDeck?.stack?.length) return;
+      if (document.querySelector('dialog[open]')) return;
+
+      // WHICH BOX MAY WEAR data-find-box: a VIEW's own primary search, over the
+      // content that view is showing. Only one view is on screen, so at most
+      // one such box is ever visible and `first visible` is not a race. A box
+      // inside something that OVERLAYS a view is disqualified for exactly that
+      // reason: the fab drawer's debug console carries a filter, and marking it
+      // would put two boxes on screen at once with DOM order deciding between
+      // them. The membership is held by app-typeahead.test.mjs.
+      const own = Array.from(document.querySelectorAll('[data-find-box]'))
+        .find(el => el.getClientRects().length);
+      if (own) { own.focus(); return; }
+
+      // showSidebar is about CONTENT, not about the viewer's choice: a
+      // signed-out dashboard has no sidebar to open, so the finder is not
+      // somewhere the key can be sent and the keystroke is left where a
+      // reader's eye already is, which is nowhere. Measured 2026-09-04: without
+      // this gate the seeded character landed in a box that stayed
+      // display:none, and focus never moved.
+      const box = document.getElementById('quick-find-box');
+      if (!box || !this.showSidebar) return;
+      if (this.sidebarOpen) { box.focus(); return; }
+      e.preventDefault();
+      this.openSidebar();
+      this.$nextTick(() => {
+        box.focus();
+        // Seed only once focus has actually landed. A reveal that did not take
+        // would otherwise leave a character in a box nobody is looking at, and
+        // the next keystroke would append to it.
+        if (document.activeElement !== box) return;
+        box.value = e.key;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    });
+  },
+
+  // ── A PASTED ADDRESS OPENS WHAT IT NAMES ──────────────────────────────────
+  //
+  // Until 2026-08-28 this app had exactly one paste behavior, unconditional:
+  // everything went to the Stage as content, so an address pasted here became a
+  // staged text file. toss-render has routed a paste by shape since it was
+  // written (looksLikeAddress -> showAddress), and the estate, the one surface
+  // that can actually OPEN what an address names, was the one that could not.
+  //
+  // Three shapes route; everything else declines into the intake unchanged.
+  // Two of them are RepoAddress.fromPaste's job (the bare grammar and a toss
+  // link, whose subject is what pasting it means), and it is the whole of the
+  // recognition so that the same answer is available to any other surface. The
+  // third is this app's own address, which only this app can recognise, since
+  // "my own page" is a location read and the kit is pure.
+  //
+  // A FILE IN THE CLIPBOARD ALWAYS WINS. A screenshot is content whatever text
+  // rides beside it, and pasting one is the gesture the Stage exists for.
+  async pasteRoute(cd){
+    if (!window.RepoAddress) return false;
+    if ([...(cd.items || [])].some(i => i.kind === 'file')) return false;
+    const text = (cd.getData('text/plain') || '').trim();
+    if (!text) return false;
+
+    const addr = window.RepoAddress.fromPaste(text);
+    if (addr) return this.openAddress(addr);
+
+    // THIS APP'S OWN ADDRESS, replayed rather than reloaded. Writing it and
+    // re-running the boot route keeps the shell's invariant true (the address
+    // bar names what is on screen) without dropping the Stage, the token, or
+    // anything else a real navigation would take with it. Pathname-exact, so a
+    // link to some other page on this origin is content rather than a route
+    // this app can honour.
+    let u;
+    try { u = new URL(text); } catch (e) { return false; }
+    if (u.origin !== location.origin || u.pathname !== location.pathname) return false;
+    history.replaceState(null, '', u.href);
+    const url = this.parseUrl();
+    await this.ensureBrowser(url?.repo, url?.ref);
+    await this.routeFromUrl(url);
+    return true;
+  },
+
+  // Open what an address names: an app view where the estate promotes one at
+  // that path, the file otherwise. The app-view check comes first because a
+  // promoted page has a rendered face, and handing back its SOURCE for an
+  // address that names the app itself is the one answer nobody pasting it wants.
+  // The address's `?query` tail rides along as that view's query, which is what
+  // carries a deep link like ?data=<table> through to the framed page.
+  async openAddress(addr){
+    await this.appViewsReady;
+    const key = addr.repo + (addr.ref ? '@' + addr.ref : '') + ':' + addr.path;
+    const v = this.appViews.find(x => x.key === key);
+    if (v) { this.goAppView(addr.query ? { ...v, query: addr.query } : v); return true; }
+    await this.ensureBrowser(addr.repo, addr.ref || undefined);
+    if (Alpine.store('browser').repo !== addr.repo) return false;
+    this.openFile(addr.path);
+    return true;
   },
 
   // A dragged file's MIME as a short label. An empty type is common and is
@@ -5670,31 +6456,265 @@ function app(){ return {
   openRepoDialog(repo){ document.getElementById('repo')?.__repo?.openDialog(repo, { tab: 'settings' }); },
   // Select an estate-level app view; the main area renders it live via
   // toss-render #gh= (appViewUrl).
-  goAppView(v){ this.appView = v; this.view = 'app'; this.syncUrl(); },
-  // Reconstruct an app view from a deep link (?view=app&appRepo&appPath). Prefer
-  // the loaded entry (its viewLabel/icon), since the collection may not have
-  // resolved yet on a cold open; fall back to a minimal object that still
-  // renders (label from the filename, a default icon).
-  appViewFromUrl(url){
+  goAppView(v){
+    // Switching between two app views never passes through stamp()'s reset
+    // (both are `view === 'app'`), so the outgoing mark is dropped here or it
+    // sits on the tab naming the wrong app until the new frame resolves.
+    if (!v || !this.appView || v.key !== this.appView.key) this.resetAppIcon();
+    this.appView = v;
+    this.view = 'app';
+    // The fragment is THIS view's address, not the shell's, so it moves with the
+    // view. Two things fall out, and both are bugs without it: a ?on= arrival
+    // self-heals into the fragment form the reader can keep, and switching app
+    // views drops the previous one's params instead of handing News the deep
+    // link that belonged to budget-drs. The shell's own fragment keys are the
+    // exception and survive, since a stage link is not any view's.
+    const kept = String(location.hash || '').replace(/^#/, '').split('&')
+      .filter(seg => seg && this.SHELL_FRAGMENT_KEYS.includes(seg.split('=')[0]));
+    const body = kept.concat(v && v.query ? [v.query] : []).join('&');
+    this._nextHash = body ? '#' + body : '';
+    this.syncUrl();
+  },
+  // Reconstruct an app view from a deep link. Three spellings arrive here and
+  // they resolve differently, which is the whole of this method:
+  //
+  //   ?app=<slug>              a name a repo declared on a promoted page. It
+  //                            carries no repo and no path, so it can ONLY be
+  //                            resolved against the collected list, and that
+  //                            list is a crawl. Hence the await below.
+  //   ?app=owner/repo[@ref]:p  the estate's one address grammar, self-contained.
+  //   ?view=app&appRepo=&…     the five-key form this route was born with.
+  //
+  // The slug and the address are told apart by RepoAddress.parse, which returns
+  // null for anything that is not an address. That is the discriminator rather
+  // than a slug regex of my own, so the grammar keeps one implementation and a
+  // slug is simply "not an address".
+  async appViewFromUrl(url){
+    if (url.app) {
+      const addr = window.RepoAddress && window.RepoAddress.parse(url.app);
+      if (!addr) {
+        // A slug is a lookup, and the table is loaded asynchronously, so this
+        // is the one address form that must wait. It waits HERE rather than at
+        // boot, so every other address still routes at first paint: the cost is
+        // paid only by the form that cannot be resolved without paying it.
+        // A slug that resolves to nothing falls through to null, and the caller
+        // (routeFromUrl) then lands on the estate rather than an empty frame.
+        await this.appViewsReady;
+        return this.appViews.find(v => v.slug === url.app) || null;
+      }
+      const key = addr.repo + (addr.ref ? '@' + addr.ref : '') + ':' + addr.path;
+      // `labelFrom` says whether the name below is one somebody CHOSE or one
+      // this line invented from the path; the tab caption is the only reader,
+      // and it needs to know which so it can prefer the page's own title over
+      // a filename. See appTabName().
+      return this.appViews.find(v => v.key === key) || {
+        repo: addr.repo, ref: addr.ref, path: addr.path,
+        label: addr.path.split('/').pop(), icon: 'ph-app-window', key,
+        labelFrom: 'path',
+      };
+    }
+    // Prefer the loaded entry (its viewLabel/icon/slug), since the collection
+    // may not have resolved yet on a cold open; fall back to a minimal object
+    // that still renders (label from the filename, a default icon).
     const key = url.appRepo + (url.appRef ? '@' + url.appRef : '') + ':' + url.appPath;
     return this.appViews.find(v => v.key === key) || {
       repo: url.appRepo, ref: url.appRef, path: url.appPath,
       label: url.appLabel || url.appPath.split('/').pop(),
       icon: url.appIcon || 'ph-app-window', key,
+      // The five-key form carries a label of its own, which is why it exists;
+      // only its absence falls back to the filename.
+      labelFrom: url.appLabel ? 'url' : 'path',
     };
   },
-  // An app view's toss address. `query` is optional and rides the address the
-  // way the toss grammar allows (?query on the addressed path), which the
-  // renderer's params shim answers inside the frame; the Links pencil uses it
-  // to open the board straight into edit mode. It is deliberately NOT stamped
-  // into the shell's URL: opening an editor is an action, not a place, so a
-  // reload lands on the board's reading view.
+
+  // ── What the framed page is handed, and whose namespace is whose ──────────
+  //
+  // THE SHELL OWNS THE QUERY. THE FRAGMENT IS THE SUBJECT'S.
+  //
+  // That is the whole rule, and it needs no list of reserved names on either
+  // side, which is the point: the shell's key set grows (VIEW_KEYS carries two
+  // retired keys already) and a framed page's grows too, in another repo, with
+  // nothing comparing them. Under a shared namespace the next addition on
+  // either side is a silent collision that presents as "the deep link opened
+  // the wrong screen". `?view=`, `?tab=` and `?q=` collide today.
+  //
+  // It is also not a new rule. docs/routes.json states it for every parameter
+  // in the estate ("read fragment first, query as fallback"), lib/kits/url-params.js
+  // implements it, StageLink.read already applies it to stage/prompts/mode, and
+  // this shell's own syncUrl has always rebuilt the query while carrying
+  // location.hash through byte for byte. The fragment was a namespace the shell
+  // preserved and did not use; this is the half that was missing.
+  //
+  // Precedence, highest first:
+  //   1. v.query      set programmatically. An action, not an address: the
+  //                   Links pencil opens the board in edit mode this way.
+  //   2. the fragment the reader's address carries, minus the three keys the
+  //      shell claims there (stage, prompts, mode; see StageLink.read).
+  //   3. ?on=<encoded>  the query fallback, for a context that eats the '#'
+  //      (a link-preview crawler, a rewriter). Inbound only: `on` is in
+  //      VIEW_KEYS, so the next stamp drops it and the address self-heals into
+  //      the fragment form.
+  //
+  // The delivery is a ?query on the addressed path, which the toss grammar
+  // allows and the renderer's params shim answers inside the frame. So a framed
+  // page reads its params exactly as it always has and needs no change to be
+  // deep-linkable: budget-drs still reads ?view= and ?data= off its own search.
+  //
+  // One honest limit: this is the address going IN. Navigating inside the frame
+  // does not write back out, so the shell's fragment names where the reader
+  // arrived rather than where they are now. The toss address has always had the
+  // same property, so it is parity rather than a regression, and closing it
+  // would need the framed page to postMessage its address to the shell.
+  // The three keys the shell claims in the fragment, and the only exception to
+  // "the fragment is the subject's". They are the stage link's, and they travel
+  // as one unit; see StageLink.read.
+  SHELL_FRAGMENT_KEYS: ['stage', 'prompts', 'mode'],
+  //
+  // Takes the PARSED url rather than reading `location`, and that is not a
+  // style choice. parseUrl() snapshots the address at boot; by the time this
+  // route opens, two unrelated syncUrl writes have already run (ensureBrowser
+  // moves the browsed ref, and the ref watcher stamps), and each of them
+  // deletes every VIEW_KEY it does not stamp, `on` included. So a live read
+  // finds the fallback gone and the ?on= form delivers nothing, silently.
+  // Measured in a browser on 2026-08-25, after the source assertions passed.
+  // The fragment has no such problem, since syncUrl carries it through, so it
+  // is still read live and only the fallback is threaded.
+  subjectParamsFor(u){
+    if (!window.UrlParams) return '';
+    return window.UrlParams.subject(this.SHELL_FRAGMENT_KEYS, {
+      hash: location.hash,
+      search: u && u.on ? '?on=' + encodeURIComponent(u.on) : '',
+    });
+  },
+  // An app view's toss address, with whatever the subject's namespace holds
+  // riding it as a ?query on the addressed path.
   get appViewUrl(){
     const v = this.appView;
     if (!v || !v.repo || !v.path) return '';
     const ref = v.ref ? '@' + v.ref : '';
-    return '../pages/toss-render.html#gh=' + v.repo + ref + ':' + v.path + (v.query ? '?' + v.query : '');
+    // v.query only. A live subjectParams read here would hand the NEXT app view
+    // the fragment belonging to the one before it.
+    const q = v.query || '';
+    return '../pages/toss-render.html#gh=' + v.repo + ref + ':' + v.path + (q ? '?' + q : '');
   },
+  // ── The app view's mark: what the tab, the bookmark and the tile carry ────
+  //
+  // The shell ships one favicon for every route (lib/favicon.svg, the hex nut),
+  // so budget-drs, News and the estate dashboard all read as the same thing in
+  // a tab strip and in a bookmark list. An app view is a page some repo
+  // PROMOTED, and its address names it; the mark should too.
+  //
+  // THE MARK IS THE FRAMED PAGE'S OWN, not a reconstruction of it. toss-render
+  // resolves the real icon (a private repo's icon file is reachable no other
+  // way than through the token, at the subject's ref) and announces the
+  // undimmed result on `toss-subject-icon`; the dimming stays down there, since
+  // a toss says it is a rendering and a promoted view does not. The two
+  // alternatives both get the runtime cases wrong: drawing the Phosphor glyph
+  // from `.web-tools.json` shows a mark the page never chose, and parsing the
+  // page source misses an icon set after boot, which is most of them (gh-boot
+  // injects the default asynchronously).
+  //
+  // Keyed on the app view it belongs to, so a mark can never outlive the view
+  // that earned it: every apply re-checks the key it started with, and any
+  // route that is not an app view resets (see stamp()).
+  APP_ICON_PX: 180,        // apple-touch-icon's size; a tab renders it far smaller
+  _appIconKey: '',         // which app view the mark on screen belongs to
+  _appTitle: '',           // the framed page's own <title>, when it announced one
+  _baseIcon: '',           // the hex nut, captured before anything replaces it
+
+  // Lazy rather than read at init, but always called before the first
+  // replacement, which is what makes it safe: setFavicon REMOVES the link it
+  // is replacing, so a capture that ran afterwards would find nothing.
+  baseIcon(){
+    if (!this._baseIcon) {
+      const el = document.querySelector('link[rel~="icon"]');
+      this._baseIcon = (el && el.getAttribute('href')) || '';
+    }
+    return this._baseIcon;
+  },
+
+  // Replace rather than append. Two <link rel=icon> elements leave the choice
+  // to the browser, which is not a thing to bet a mark on; toss-render's
+  // setFavicon settled this the same way.
+  setFavicon(href, rel){
+    document.querySelectorAll(`link[rel~="${rel}"]`).forEach(el => el.remove());
+    if (!href) return;
+    const link = document.createElement('link');
+    link.rel = rel;
+    link.href = href;
+    document.head.appendChild(link);
+  },
+
+  resetAppIcon(){
+    if (!this._appIconKey) return;              // nothing of ours is on screen
+    this._appIconKey = '';
+    this.setFavicon(this.baseIcon(), 'icon');
+    this.setFavicon('', 'apple-touch-icon');    // there is no base one to restore
+  },
+
+  // One listener on THIS window, wired at init, because the announcement comes
+  // to us: an address-mode render is same-origin, so toss-render writes into
+  // its parent. Nothing hangs off the frame, so there is no per-load
+  // registration to leak and no handle to clear when the frame goes.
+  //
+  // A cleared mark is a real message, not an absence. toss-render clears on
+  // every setSubject, which is how the tab drops the old app the moment the
+  // frame starts on another one rather than at whatever later point the next
+  // mark resolves.
+  onSubjectMark(){
+    const mark = window.__tossSubjectMark || null;
+    if (!mark) {
+      this._appTitle = '';
+      this.resetAppIcon();
+      this.stampTitle();
+      return;
+    }
+    if (this.view !== 'app' || !this.appView) return;
+    this._appTitle = mark.title || '';
+    this.stampTitle();
+    if (mark.icon) this.applyAppIcon(this.appView.key, mark.icon);
+  },
+
+  // Rasterize before hanging it on either link, and the tile is the reason:
+  // iOS reads apple-touch-icon and will not take an SVG, which is what most of
+  // these pages declare. A canvas is also where a letterboxed square comes
+  // from, so one step answers both. Best-effort throughout: a mark is cosmetic
+  // and a failure here leaves the tab alone rather than drawing a broken one.
+  async applyAppIcon(key, src){
+    this.baseIcon();                            // capture before the first replace
+    const png = await this.iconPng(src);
+    // The reader may have moved on while the canvas was decoding.
+    if (this.view !== 'app' || !this.appView || this.appView.key !== key) return;
+    this._appIconKey = key;
+    this.setFavicon(png || src, 'icon');
+    if (png) this.setFavicon(png, 'apple-touch-icon');
+  },
+
+  iconPng(src){
+    return new Promise(resolve => {
+      try {
+        const img = new window.Image();
+        img.onload = () => {
+          try {
+            const px = this.APP_ICON_PX;
+            const c = document.createElement('canvas');
+            c.width = c.height = px;
+            const ctx = c.getContext('2d');
+            // An SVG carrying only a viewBox reports no intrinsic size in some
+            // engines; square is the honest fallback.
+            const iw = img.naturalWidth || px, ih = img.naturalHeight || px;
+            const s = Math.min(px / iw, px / ih);      // letterbox, never stretch
+            const w = iw * s, h = ih * s;
+            ctx.drawImage(img, (px - w) / 2, (px - h) / 2, w, h);
+            resolve(c.toDataURL('image/png'));
+          } catch (e) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      } catch (e) { resolve(null); }
+    });
+  },
+
   // The sidebar app-view list: the collected app views (from the config cache,
   // main-only), plus the app view currently open if it is not already among
   // them. Discovery is main-gated, so a deep link to an app view whose repo has
@@ -5712,9 +6732,15 @@ function app(){ return {
   // returns null when the address names no repo, file, or view: a bare
   // `?shell=none` on the estate is a real link and would otherwise be dropped
   // on the floor.
+  // Stores whatever valid mode arrived, WITHOUT setShellMode's agreement rule,
+  // because this runs before the route resolves: `this.view` is still the
+  // landing and every address would look like it agreed with `full`. So
+  // `?shell=full&app=budget-drs` would have its own request thrown away. A
+  // redundant incoming mode costs nothing instead: the stamp drops it at the
+  // next syncUrl and the address self-heals.
   readShellMode(){
     const v = (new URLSearchParams(location.search).get('shell') || '').trim();
-    this.shellMode = this.SHELL_MODES.includes(v) ? v : 'full';
+    this._shellChoice = this.SHELL_MODES.includes(v) ? v : '';
     this.sidebarOpen = this.defaultSidebarOpen;
   },
   // Desktop opens with the sidebar out, a phone with it away, and only the
@@ -5730,7 +6756,17 @@ function app(){ return {
   setShellMode(mode){
     if (!this.SHELL_MODES.includes(mode) || mode === this.shellMode) return;
     if (mode === 'none') this._shellReturn = this.shellMode;
-    this.shellMode = mode;
+    // A CHOICE THAT AGREES WITH THE VIEW'S DEFAULT IS NOT A CHOICE, and
+    // clearing it is what keeps a toggle local to the screen it was made on.
+    // Turning the header off on an app view says "this page, bare", which is
+    // already what that view does; latching it as a choice carried `shell=none`
+    // out to the dashboard and left the estate with no nav and only the fab as
+    // the way back. Measured in a browser: two taps on one app view and the
+    // whole app had lost its chrome.
+    //
+    // It also keeps the state and the address agreeing by construction, since
+    // deepLinkParams stamps against exactly this comparison.
+    this._shellChoice = mode === this.defaultShellMode ? '' : mode;
     this.sidebarOpen = this.defaultSidebarOpen;
     this.syncUrl();
   },
@@ -5775,6 +6811,27 @@ function app(){ return {
     }];
   },
 
+  // The SAME switch, on the launcher's long-press menu, because the Render tab
+  // is the wrong and only place for it on the view that needs it most. An app
+  // view opens at shellMode 'none' by design, so it arrives with no header on
+  // screen and no clue that a header exists; finding the way back meant knowing
+  // which of the drawer's four tabs holds it, and then spotting one word at the
+  // end of the width-preset row. Reported from a phone on 2026-09-08 by a
+  // reader who knew the control existed and still could not find it.
+  //
+  // fab.js's own description already claimed show-repo contributed this row,
+  // and it did not: nothing declared `menu` anywhere, so readPageMenu found
+  // none. The claim is now true rather than deleted, since the reason it gave
+  // was the right one.
+  get menu(){
+    const on = this.shellMode !== 'none';
+    return [{
+      label: on ? 'Hide the header' : 'Show the header',
+      icon: 'ph-layout',
+      run: () => this.setHeader(!on),
+    }];
+  },
+
   // ── Swipe paging between dashboard views (touch only) ─────────────────────
   // The estateNav set (Activity / Repos / Stage / Tools / Map, plus
   // Proposals while it is showing) is a closed, ordered carousel. The header's
@@ -5816,7 +6873,7 @@ function app(){ return {
   // and no-op'd, so the carousel was a one-way trip and paging out again took
   // the header. Nothing reported it: a pager whose pane lookup returns null
   // looks exactly like a pager on a repo view, where declining is correct.
-  // tools/test/show-repo-panes.test.mjs holds the two lists in step.
+  // tools/test/shell-panes.test.mjs holds the two lists in step.
   get _paneKey(){ return this.isEstate ? 'estate' : this.view; },
   _activePane(){
     return document.querySelector('main [data-pane="' + this._paneKey + '"]');
@@ -6211,7 +7268,7 @@ function overview(){ return {
       try { res = await gh.get(p); break; } catch {}
     }
     if (res){
-      try { await loadMarked(); this.html = window.marked.parse(res.text); }
+      try { await loadMarked(); this.html = mdHtml(res.text); }
       catch { this.html = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
     }
     this.loading = false;

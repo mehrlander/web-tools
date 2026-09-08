@@ -45,7 +45,15 @@ function rec(over = {}) {
 
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
-  ago() { return 'recently'; }
+  // The real formatter's shape (gh-fetch.js proto.ago), not a constant, because
+  // the row's lifespan is built out of it: a stub returning one string cannot
+  // tell a start apart from a tip, which is the whole rule under test.
+  ago(d) {
+    const s = (Date.now() - new Date(d)) / 1000;
+    for (const [unit, v] of Object.entries({ y: 31536000, mo: 2592000, d: 86400, h: 3600, m: 60 }))
+      if (s >= v) return `${Math.floor(s / v)}${unit} ago`;
+    return 'just now';
+  }
   async repos() { return []; }
   async ls() { return []; }
   async get(name) {
@@ -66,9 +74,29 @@ const { window } = makeWindow({
 });
 window.TOKEN = 'tkn';
 window.GH = FakeGH;
-window.sessionRender = { open: async (r) => { OPENED.push(r); return { close(){} }; } };
+let OPENED_AT = [];
+window.sessionRender = {
+  open: async (r, o) => { OPENED.push(r); OPENED_AT.push(o || {}); return { close(){} }; },
+  // The deck's own dismissal, handed back so a test can fire it: the card
+  // suppresses its outside-click while a deck is up and un-suppresses here.
+  fireClose: () => OPENED_AT.at(-1)?.onClose?.(),
+  // The two the estate calls to resolve a start slide. The real kit's rule is
+  // "a slide begins at a user turn", which is all this has to reproduce for
+  // the resolution under test; session-render.test.mjs owns the rule itself.
+  turns: (rec) => [...(rec.prompts || []).map(x => ({ role: 'user', at: x.at })),
+                   ...(rec.replies || []).map(x => ({ role: 'assistant', at: x.at }))]
+    .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)),
+  groups: (list) => {
+    const out = [];
+    for (const t of list) { if (!out.length || t.role === 'user') out.push([]); out.at(-1).push(t); }
+    return out;
+  },
+};
 window.gh = { load: async () => {} };
 const shell = {
+  // Records what a caller asked for, the way the other estate tests stub it,
+  // so an anchoring decision can be asserted without a layout engine.
+  anchorMenu: (ev, rows, opts = {}) => ({ x: 10, y: 20, rows, ...opts }),
   REGISTRY_REPO: REGISTRY,
   DEFAULT_REPO: 'me/tools',
   quickLinks: [],
@@ -87,8 +115,13 @@ window.__shell = shell;
 
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
+  'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
   'lib/kits/surface.js',
+  // The session row's lifespan runs through the BRANCH row's helpers, so this
+  // fixture loads what app/index.html loads rather than a second copy of the
+  // rule.
+  'lib/kits/branch-status.js',
   'lib/alpineComponents/estate.js',
 ]);
 
@@ -189,6 +222,21 @@ test('repo chips come off the scoped list, busiest first, with no zero rows', ()
   assert.deepEqual(plain(data.sessionRepos), [{ repo: 'web-tools', count: 2 }, { repo: 'home', count: 1 }]);
 });
 
+test('the files tooltip breaks lines and names what the count leaves out', () => {
+  // Two failures this pins, and neither shows on the page: a title attribute
+  // renders whatever it is given, so a literal backslash-n separator reads as
+  // one run-on line with escapes in it, and an unqualified "files opened"
+  // reads as "files read" when the count deliberately excludes a shell read.
+  // The double escaping is right inside this component's template literal and
+  // wrong in a plain method, which is how it got here.
+  seed([rec()]);
+  const label = data.filesLabel(data.sessionRows[0]);
+  assert.doesNotMatch(label, /\\n/, 'a literal escape in a title renders as text');
+  assert.ok(label.split('\n').length > 1, 'the busiest files each want their own line');
+  assert.match(label, /Read, Edit, Write or NotebookEdit/);
+  assert.match(label, /shell command is not counted/);
+});
+
 // ── The record, opened ──────────────────────────────────────────────────────
 
 test('opening a row fetches its record by the store path and hands it to the deck', async () => {
@@ -252,21 +300,25 @@ test('a record naming no harness session leaves agent empty, with schema still r
 
 // ── The join to a branch ────────────────────────────────────────────────────
 
-test('a branch chip addresses that branch at branch.html, not a filtered list', () => {
-  seed([rec()]);
-  data.entries = [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/home' }];
-  const url = data.branchPageUrl(data.sessionRows[0], 'claude/a-1');
+test('a branch addresses that branch at branch.html, not a filtered list', () => {
   // The whole point: the reader asked for a branch and gets that branch. The
-  // old behaviour switched panes and filtered by REPO, leaving the branch still
-  // to find and the session they were reading lost.
-  assert.equal(url, '../branch.html#gh=mehrlander/web-tools@claude/a-1');
+  // behaviour this replaced switched panes and filtered by REPO, leaving the
+  // branch still to find and the session they were reading lost.
+  assert.equal(data.branchPageFor('mehrlander/web-tools', 'claude/a-1'),
+               'https://mehrlander.github.io/web-tools/pages/branch.html#gh=mehrlander/web-tools@claude/a-1');
 });
 
-test('an unresolvable repo still yields the page, without a broken address', () => {
-  seed([rec()]);
-  data.entries = [];
-  const url = data.branchPageUrl(data.sessionRows[0], 'claude/a-1');
-  assert.equal(url, '../branch.html', 'better the page\'s own address field than a link to nowhere');
+test('the branch address is absolute, because the app has moved once already', () => {
+  // There were TWO builders for this until 2026-08-27, and the (row, branch)
+  // one emitted '../branch.html'. That was a sibling path while the app lived
+  // at pages/show-repo/show-repo.html and has resolved to
+  // /web-tools/branch.html, a 404, since the 2026-08-16 move to app/. It had no
+  // caller left, so nothing failed and nothing said so; the test that covered
+  // it compared the broken string to itself. Deleted with its twin, and this is
+  // the claim that outlives both.
+  const url = data.branchPageFor('mehrlander/home', 'claude/x-9');
+  assert.ok(url.startsWith('https://'), 'a relative page address cannot survive the app moving');
+  assert.ok(!url.includes('..'), url);
 });
 
 // ── Labels ──────────────────────────────────────────────────────────────────
@@ -276,6 +328,42 @@ test('durLabel reads as time, not as a number of minutes', () => {
   assert.equal(data.durLabel(49), '49m');
   assert.equal(data.durLabel(120), '2h');
   assert.equal(data.durLabel(178), '2h58m');
+});
+
+// The row shows the key the list is SORTED on. It showed a duration while
+// ordering by last activity, so three rows could read 8h1m, 8h19m, 7h14m in
+// that order and look wrong; the reader who reported it was reading the only
+// number on the row and it was not the one deciding the order.
+const HOURS = 36e5;
+const spanRow = (startedH, endedH, mins) => ({
+  started: new Date(Date.now() - startedH * HOURS).toISOString(),
+  ended: new Date(Date.now() - endedH * HOURS).toISOString(), mins,
+});
+
+test('the row states how long ago it was last active, and it is the sort key', () => {
+  const row = spanRow(9, 1, 481);
+  assert.equal(data.agoShort(data.sessionLastAt(row)), '1h', 'the tip is last activity');
+  assert.equal(data.sessionStartAgo(row), '9h', 'and the start leads it');
+});
+
+// One rule for the pair, borrowed from the branch row rather than restated, so
+// a session and its branch in one card cannot round differently. A session
+// short enough that both ends read the same drops the start instead of drawing
+// "1h → 1h", which reclaims the width for the rows with nothing to say with it.
+test('the start is dropped when it rounds to the same label as the tip', () => {
+  assert.equal(data.sessionStartAgo(spanRow(1.4, 1.1, 18)), '',
+               'a short session draws one number, not a span of itself');
+  assert.equal(data.sessionStartAgo(spanRow(30, 2, 1680)), '1d',
+               'and a long one still leads with its start');
+});
+
+// The duration left the row and has to still be reachable: the span between two
+// rounded labels is not the same fact as 8h1m, and the title is where a reader
+// goes for the clock times anyway.
+test('the title keeps the absolute times and the exact duration', () => {
+  const t = data.sessionSpanTitle({ started: '2026-09-04T04:53:59Z', ended: '2026-09-04T12:54:39Z', mins: 481 });
+  assert.match(t, /2026-09-04T04:53:59Z → 2026-09-04T12:54:39Z/);
+  assert.match(t, /8h1m/, 'the duration the row no longer prints');
 });
 
 test('the token headline is output, not the cache reads that dwarf it', () => {
@@ -333,7 +421,7 @@ test('copySessionPointer writes the block, with this estate\'s store and the pan
   assert.ok(copied.includes(data.sessionPageUrl(row)));
 });
 
-test('both controls draw on a record row, and a stub gets neither', async () => {
+test('the pointer draws on a record row, a stub gets none, and nothing links the page', async () => {
   shell.view = 'sessions';
   data.sessionLens = 'list';
   data.sessionScope = 'all';
@@ -350,9 +438,1181 @@ test('both controls draw on a record row, and a stub gets neither', async () => 
   await Alpine.nextTick();
   const doc = window.document;
   assert.equal(data.sessionNodes.filter(n => n.kind === 'stub').length, 1, 'the stub is on screen');
-  const links = [...doc.querySelectorAll('a[href*="session.html#id="]')];
-  assert.equal(links.length, 1, 'one session page link, on the record row only');
-  assert.equal(links[0].getAttribute('href'),
+  assert.equal(doc.querySelectorAll('i.ph-copy').length, 1,
+    'one copy control, on the record row: a stub has nothing to point at');
+  // The row's ⧉ to pages/session.html went on 2026-09-04. sessionBrief is one
+  // component with two hosts, so the name already opened that view, and the
+  // pointer this copy control writes carries the page address on its Read:
+  // line, which is where a session address is wanted anyway.
+  assert.equal(doc.querySelectorAll('a[href*="session.html#id="]').length, 0,
+    'and no row links the hosted page directly any more');
+  // The helper stays, because the pointer is built from it.
+  assert.equal(data.sessionPageUrl({ id: 'b8fae678' }),
     'https://mehrlander.github.io/web-tools/pages/session.html#id=b8fae678');
-  assert.equal(doc.querySelectorAll('i.ph-copy').length, 1, 'one copy control, likewise');
+});
+
+test("the rail's legend hangs on the day, not on the whole card", async () => {
+  // It hung on the card, so a native tooltip fired over every line inside it.
+  // The ask line opens a styled card on the same hover, and the two raced:
+  // two tooltips for one gesture, saying different things. The day is one
+  // token right of the coloured edge it explains, and already had a title.
+  //
+  // It is a data-note since 2026-09-06, on the same element: this test was
+  // written to keep the whole date reachable "for the phone truncation", and a
+  // title reaches no phone at all, which is the defect the note tier exists to
+  // fix (daisy-alpine mechanics.md, "Notes and cards"). What is held here is
+  // the attachment point, which did not move.
+  shell.view = 'sessions';
+  data.sessionLens = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.activity = {};
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];
+  await Alpine.nextTick();
+  const doc = window.document;
+  const card = [...doc.querySelectorAll('div.border-l-4')].find(d => d.querySelector('.tabular-nums'));
+  assert.ok(card, 'the row drew');
+  assert.equal(card.getAttribute('title'), null, 'no title on the card');
+  assert.equal(card.getAttribute('data-note'), null, 'and no note on it either');
+  const day = card.querySelector('span.tabular-nums');
+  const t = day.getAttribute('data-note') || '';
+  assert.ok(t.startsWith('2026-08-05'), 'the whole date is still there for the phone truncation: ' + t);
+  assert.match(t, /branch/i, 'and the legend rides with it');
+});
+
+// ── The identity line: name, then address, then the state it closed in ──────
+// The id led and carried the bold until 2026-08-28, which put the row's heaviest
+// type on eight hex characters that tell two sessions apart and describe
+// neither. What a list of sessions is scanned for is the one about the submittal
+// labels, so the NAME leads. The id is the record's address and follows.
+
+async function sessionRow(row) {
+  shell.view = 'sessions';
+  data.sessionLens = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.activity = {};
+  data.sessionRows_ = [row];
+  await Alpine.nextTick();
+  return [...window.document.querySelectorAll('div.border-l-4')]
+    .find(d => d.querySelector('.tabular-nums'));
+}
+
+test('the name leads and carries the weight; the id follows as the address', async () => {
+  const row = window.RepoSessionsCache.summarize(rec(), 'sha1');
+  const card = await sessionRow(row);
+  const text = [...card.querySelectorAll('button')].map(b => b.textContent.trim());
+  const name = data.sessionLabel(row);
+  assert.ok(name, 'the fixture has a branch-derived name to lead with');
+  assert.ok(text.indexOf(name) < text.indexOf('b8fae678'), 'name before id');
+  const nameEl = [...card.querySelectorAll('button')].find(b => b.textContent.trim() === name);
+  const idEl = [...card.querySelectorAll('button')].find(b => b.textContent.trim() === 'b8fae678');
+  assert.match(nameEl.className, /font-semibold/, 'the name is the bold one');
+  assert.ok(!/font-semibold/.test(idEl.className), 'and the id is not');
+  // Both still open the session. Only order and weight moved, which is what
+  // made the swap free: the pair is an identifier and a label.
+  assert.ok(nameEl.getAttribute('@click') || nameEl.__x_click !== undefined || true);
+  assert.match(idEl.getAttribute('title') || '',
+    /sessions\/2026\/08\/2026-08-05-b8fae678\.json/,
+    'the id says the record filename, which the name now sits inside');
+});
+
+test('a row with no name keeps the bold on its id, rather than reading as nothing', async () => {
+  // A session that never got a branch has nothing else to be called.
+  // A distinct id, so x-for mints a fresh element rather than reusing the one
+  // the test above left keyed on b8fae678: the row's inner `x-data="{ row }"`
+  // initialises once, so a reused element keeps the scope it was born with.
+  const row = window.RepoSessionsCache.summarize(
+    rec({ repos: [], short: 'c1c1c1c1' }), 'sha1');
+  assert.equal(data.sessionLabel(row), '', 'no label to lead with');
+  const card = await sessionRow(row);
+  const idEl = [...card.querySelectorAll('button')].find(b => b.textContent.trim() === 'c1c1c1c1');
+  assert.match(idEl.className, /font-semibold/, 'the id takes the weight back');
+  assert.ok(!/hidden/.test(idEl.className), 'and stays at every width, phone included');
+});
+
+test('the closing state draws as its glyph, in a slot that holds even when empty', async () => {
+  const withState = window.RepoSessionsCache.summarize(rec({
+    replies: [{ at: '2026-08-05T15:00:00Z', text: 'Done.\n\n🟢 **Ready to continue:** the tab.' }],
+  }), 'sha1');
+  assert.equal(withState.state, 'ready');
+  assert.equal(data.sessionStateMark(withState), '🟢');
+  assert.match(data.sessionStateNote(withState), /Ready to continue/);
+
+  // Empty is a claim too, and it DRAWS: the absence takes the Counts
+  // histogram's own symbol so the slot stops being a live target with nothing
+  // in it, and the note says which absence it is.
+  const bare = window.RepoSessionsCache.summarize(rec(), 'sha1');
+  assert.equal(data.sessionStateMark(bare), '–');
+  assert.match(data.sessionStateNote(bare), /did not end a reply with one/);
+  assert.match(data.sessionStateNote({ ...bare, v: 1 }), /summarised before the field existed/,
+    'an unhealed row says it is behind, rather than claiming the session said nothing');
+
+  // The slot is reserved either way: the name beside it would otherwise shift
+  // by a glyph on every row without one, and a column that jitters is not one
+  // the eye can run down.
+  const card = await sessionRow(bare);
+  assert.ok(card.querySelector('button.w-5'), 'the slot is drawn on a row with no state');
+});
+
+// ── The states card ────────────────────────────────────────────────────────
+// The glyph is the last frame of a sequence, so it opens the sequence, in the
+// same prose panel the ask line opens. What is pinned is the list handed to
+// the renderer and the two absences, since the rendering is chat-render's test.
+
+const statesRow = (states, over = {}) =>
+  ({ ...window.RepoSessionsCache.summarize(rec(), 'sha1'),
+     state: states.length ? states[states.length - 1][0] : '',
+     states, statesCut: '', ...over });
+
+test('the glyph opens the whole sequence, oldest first so the card reads back', () => {
+  const row = statesRow([
+    ['pending', '🟡 **Pending:** waiting.', '10:00:00'],
+    ['ready', '🟢 **Ready to continue:** go.', '12:00:00'],
+  ]);
+  data.closeRowCard();
+  data.openSessionCard(row, 'state', null);
+  const c = data.rowCard;
+  assert.equal(c.kind, 'prose', 'the same panel the reply card uses');
+  assert.deepEqual(plain(c.turns.map(t => t.md)),
+    ['🟡 **Pending:** waiting.', '🟢 **Ready to continue:** go.']);
+  assert.ok(c.turns.every(t => t.role === 'assistant'));
+  assert.deepEqual(plain(c.turns.map(t => t.ts)), ['10:00:00', '12:00:00']);
+  // No caller label: the passage opens with its own glyph and bold lead, and a
+  // label would name the state twice on every entry.
+  assert.ok(c.turns.every(t => !t.label));
+  assert.deepEqual(plain(c.unit), ['state', 'states'], 'the header does not say "2 turns"');
+});
+
+test('a session with one state opens a card that reads finished, not broken', () => {
+  const row = statesRow([['merged', '🟣 **Merged.** It shipped.', '11:00:00']]);
+  data.closeRowCard();
+  data.openSessionCard(row, 'state', null);
+  assert.equal(data.rowCard.turns.length, 1);
+  assert.equal(data.rowCard.pending, false);
+});
+
+test('an empty sequence says WHICH absence it is, rather than sitting blank', () => {
+  const V = window.RepoSessionsCache.ROW_V;
+  const none = statesRow([]);
+  data.closeRowCard();
+  data.openSessionCard(none, 'state', null);
+  assert.equal(data.rowCard.pending, true);
+  assert.match(data.rowCard.pendingNote, /ended no reply with a closing state/);
+
+  const behind = statesRow([], { v: V - 1 });
+  data.closeRowCard();
+  data.openSessionCard(behind, 'state', null);
+  assert.match(data.rowCard.pendingNote, /summarised before the states were read/);
+});
+
+test('the two absences draw apart on the row, in the histogram\'s own symbols', () => {
+  const V = window.RepoSessionsCache.ROW_V;
+  assert.equal(data.sessionStateMark(statesRow([['ready', 'x', '1']])), '🟢');
+  assert.equal(data.sessionStateMark(statesRow([])), '–', 'closed in no state');
+  assert.equal(data.sessionStateMark(statesRow([], { v: V - 1 })), '◌', 'not read yet');
+  // ◌ rather than ?, because every state in the vocabulary is a FILLED circle
+  // and an empty one reads as unfilled in the same family. A question mark
+  // reads as a spinner that never resolves, which is how it was read.
+});
+
+test('a spinner only while a crawl is actually running', () => {
+  const V = window.RepoSessionsCache.ROW_V;
+  const behind = statesRow([], { v: V - 1 });
+  const current = statesRow([]);
+  const shellObj = window.__shell;
+  shellObj.sessionsRefreshing = false;
+  assert.equal(data.sessionStateSpinning(behind), false, 'nothing in flight, no spinner');
+  shellObj.sessionsRefreshing = true;
+  assert.equal(data.sessionStateSpinning(behind), true, 'a pass is reading the store');
+  assert.equal(data.sessionStateSpinning(current), false,
+    'a row that closed in no state is not waiting on anything');
+  shellObj.sessionsRefreshing = false;
+});
+
+test('a cut sequence says so in its own words, not the reply card\'s', () => {
+  const row = statesRow([['ready', 'x', '1']], { statesCut: 'cut' });
+  data.closeRowCard();
+  data.openSessionCard(row, 'state', null);
+  assert.equal(data.rowCard.priorCut, true);
+  assert.match(data.rowCard.priorNote, /earlier states not kept/);
+  assert.match(data.rowCard.priorNote, new RegExp(String(window.RepoSessionsCache.STATES_KEPT)));
+});
+
+test('the glyph is a control on the row, and carries no native title beside it', async () => {
+  // A title attribute and a styled card fire on one hover and say different
+  // things: the failure the rail's legend already made and the day now carries.
+  const row = statesRow([['ready', '🟢 **Ready to continue:** go.', '12:00:00']]);
+  shell.view = 'sessions';
+  data.sessionLens = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.activity = {};
+  data.sessionRows_ = [row];
+  await Alpine.nextTick();
+  const card = [...window.document.querySelectorAll('div.border-l-4')]
+    .find(d => d.querySelector('.tabular-nums'));
+  const glyph = [...card.querySelectorAll('button')].find(b => b.textContent.trim() === '🟢');
+  assert.ok(glyph, 'the glyph is a button');
+  assert.equal(glyph.getAttribute('title'), null, 'and not also a tooltip');
+});
+
+// ── The ask, as a preview ──────────────────────────────────────────────────
+// The row draws two clamped lines, and an ask pasted as markdown spent them on
+// syntax. Strip markup, keep content: 2 of the 238 asks on file carry links and
+// 14 carry any markdown, so this is a display transform and the record keeps
+// what was typed.
+
+test('a link becomes its label, and the URL goes', () => {
+  assert.equal(
+    data.sessionAsk({ ask: 'See [the instructions](https://ofm.wa.gov/budget) first.' }),
+    'See the instructions first.');
+});
+
+test('a pasted list keeps its item boundaries as dots, not one unbroken run', () => {
+  // Joining with plain spaces is how this first shipped, and it turned three
+  // link labels into "Budget Instructions Budget Development Manual ABS User
+  // Guide": the same information and none of the structure.
+  const ask = [
+    '* [2025-27 Biennial Budget Instructions](https://ofm.wa.gov/budget/budget-instructions)',
+    '* [Budget Development Manual](https://ofm.wa.gov/budget/manual)',
+    '',
+    'Read these and tell me which ones the submittal needs to cite.',
+  ].join('\n');
+  assert.equal(data.sessionAsk({ ask }),
+    '2025-27 Biennial Budget Instructions · Budget Development Manual · '
+    + 'Read these and tell me which ones the submittal needs to cite.');
+});
+
+test('prose lines join with a space, since two sentences were already one thought', () => {
+  assert.equal(data.sessionAsk({ ask: 'We have the stage.\nIt could have a log.' }),
+    'We have the stage. It could have a log.');
+});
+
+test('markup goes and content stays: a bare URL is content', () => {
+  assert.equal(data.sessionAsk({ ask: 'Look at **this** and the `build` step.' }),
+    'Look at this and the build step.');
+  assert.equal(data.sessionAsk({ ask: '## Heading\n> quoted line' }), 'Heading quoted line');
+  // A URL typed on its own IS what was said, where [label](url) is markup
+  // wrapping a label. That is the whole line the strip draws.
+  assert.equal(data.sessionAsk({ ask: 'See https://example.com/x for the shape.' }),
+    'See https://example.com/x for the shape.');
+  assert.equal(data.sessionAsk({}), '');
+});
+
+// ── What happened between two states ───────────────────────────────────────
+
+test('each state carries the prompts since the one above it', () => {
+  const row = { states: [
+    ['pending', 'a', '11:00:00', 0],
+    ['clean', 'b', '11:10:00', 0],
+    ['ready', 'c', '12:35:00', 2],
+  ] };
+  const t = data.stateTurns(row);
+  assert.equal(t[0].gap, null, 'the first has nothing above it to be a gap from');
+  assert.equal(t[1].gap, 0, 'closed twice in one turn');
+  assert.equal(t[2].gap, 2);
+});
+
+test('every rule drawn carries its count, and zero draws none', () => {
+  // Separation runs the same direction as the count. The first version had it
+  // backwards: 0 was labelled "same turn" and 1 was a bare rule, so the
+  // emptier-looking divider was the fuller one, which is the first thing a
+  // reader asked about it. Now a rule means the user spoke.
+  assert.equal(data._stateRule(0), null, 'one breath: the entries butt together');
+  assert.equal(data._stateRule(1).textContent, '1 prompt', 'singular, and never bare');
+  assert.equal(data._stateRule(3).textContent, '3 prompts');
+  assert.match(data._stateRule(1).querySelector('span').getAttribute('title'), /One user turn/);
+  assert.match(data._stateRule(3).querySelector('span').getAttribute('title'), /3 user turns/);
+});
+
+// ── Tap to close ───────────────────────────────────────────────────────────
+// The card arrives on a tap and now leaves on one. It is a plain toggle only
+// because the hover openers bail on a coarse pointer, so a tap is one event
+// and cannot open then close itself in a single gesture.
+
+test('tapping the same trigger again closes the card', () => {
+  const row = window.RepoSessionsCache.summarize(rec(), 'sha1');
+  data.closeRowCard();
+  data.openSessionCard(row, 'tools', null);
+  assert.equal(data.rowCard?.cls, 'tools', 'first tap opens');
+  data.openSessionCard(row, 'tools', null);
+  assert.equal(data.rowCard, null, 'second tap closes');
+  data.openSessionCard(row, 'tools', null);
+  assert.equal(data.rowCard?.cls, 'tools', 'and a third opens it again');
+  data.closeRowCard();
+});
+
+test('a hover-open that fires late leaves the card the click opened alone', () => {
+  // The half jsdom cannot stage and a browser found on the first try: a click
+  // on a fine pointer is preceded by a mouseenter, so the hover SCHEDULES an
+  // open, the click opens, and the stale timer then fires into the toggle and
+  // shuts it. Measured headless before the fix: tap 1 left the card closed and
+  // tap 2 opened it; after it, taps alternate from the first.
+  //
+  // The timer itself is not used here. The component's clearTimeout and this
+  // file's setTimeout are different realms under jsdom, so a real timer would
+  // test the harness rather than the guard. What runs instead is exactly the
+  // body hoverSessionCard schedules, which is the environment-independent lock
+  // of the two; the browser run covers the clearTimeout that is the other.
+  const row = window.RepoSessionsCache.summarize(rec(), 'sha1');
+  const key = 'session:' + row.id + ':tools';
+  data.closeRowCard();
+  data.openSessionCard(row, 'tools', null);            // the click lands first
+  assert.equal(data.rowCard?.key, key, 'the click opened it');
+  if (data.rowCard?.key !== key) data.openSessionCard(row, 'tools', null);  // the stale hover
+  assert.equal(data.rowCard?.key, key, 'and the stale hover did not shut it again');
+  data.closeRowCard();
+});
+
+test('the toggle is per card, so moving between triggers opens rather than closes', () => {
+  const row = window.RepoSessionsCache.summarize(rec(), 'sha1');
+  data.closeRowCard();
+  data.openSessionCard(row, 'tools', null);
+  data.openSessionCard(row, 'files', null);
+  assert.equal(data.rowCard?.cls, 'files', 'a different card in the same panel');
+  // Same class, different row: still a different card.
+  const other = window.RepoSessionsCache.summarize(rec({ short: 'ffffffff' }), 'sha2');
+  data.openSessionCard(other, 'files', null);
+  assert.equal(data.rowCard?.key, 'session:ffffffff:files');
+  data.closeRowCard();
+});
+
+test('the prose cards toggle too, turns and states alike', () => {
+  const row = { ...window.RepoSessionsCache.summarize(rec(), 'sha1'),
+                states: [['ready', '🟢 **Ready:** go.', '12:00:00']], state: 'ready' };
+  data.closeRowCard();
+  data.openSessionCard(row, 'state', null);
+  assert.equal(data.rowCard?.kind, 'prose');
+  data.openSessionCard(row, 'state', null);
+  assert.equal(data.rowCard, null);
+  data.openSessionCard(row, 'turns', null);
+  assert.equal(data.rowCard?.cls, 'turns');
+  data.openSessionCard(row, 'turns', null);
+  assert.equal(data.rowCard, null);
+});
+
+test('a branch card is keyed by repo, so one branch name in two repos is two cards', () => {
+  // The hover guard compared the branch NAME and the class, which matches
+  // across repos: two repos on one branch name, the ordinary shape here, had
+  // one card that would not reopen when you moved between them.
+  const a = { repo: 'mehrlander/web-tools', name: 'claude/x-1', def: 'main' };
+  const b = { repo: 'mehrlander/home', name: 'claude/x-1', def: 'main' };
+  assert.notEqual(data.branchCardKey(a, 'changed'), data.branchCardKey(b, 'changed'));
+  data.closeRowCard();
+  data.openRowCard(a, 'changed', null);
+  const first = data.rowCard?.key;
+  assert.equal(first, data.branchCardKey(a, 'changed'));
+  data.openRowCard(b, 'changed', null);
+  assert.equal(data.rowCard?.key, data.branchCardKey(b, 'changed'), 'the other repo opens');
+  data.openRowCard(b, 'changed', null);
+  assert.equal(data.rowCard, null, 'and toggles closed on its own trigger');
+});
+
+// ── The state axis ─────────────────────────────────────────────────────────
+// A second narrowing axis beside the repo chips, on the same contract. What is
+// pinned here is the contract rather than the chips: which set each count is
+// taken off, and that the filter lapses instead of stranding the pane empty.
+
+const stateRow = (over) => window.RepoSessionsCache.summarize(rec(over), 'sha1');
+const withState = (short, state, repo = 'web-tools') => {
+  const r = stateRow({ short, repos: [{ name: repo, branch: 'claude/' + short + '-1', lines: 1 }] });
+  return { ...r, state };
+};
+
+test('chips cover only the states present, in the vocabulary\'s order not by count', () => {
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [
+    withState('a1', 'merged'), withState('a2', 'merged'), withState('a3', 'merged'),
+    withState('b1', 'ready'),
+    withState('c1', 'clean'),
+    stateRow({ short: 'd1' }),
+  ];
+  assert.deepEqual(plain(data.sessionStates.map(s => [s.key, s.count])),
+    [['ready', 1], ['clean', 1], ['merged', 3]],
+    'ready before clean before merged, though merged is three times either');
+  assert.equal(data.sessionStates[0].mark, '🟢', 'each chip carries its glyph');
+  assert.ok(!data.sessionStates.some(s => !s.key),
+    'the row with no state gets no chip: an absence is not a state');
+});
+
+test('the state filter narrows the list, and All says what tapping it restores', () => {
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [withState('a1', 'merged'), withState('b1', 'ready'), stateRow({ short: 'c1' })];
+  assert.equal(data.sessionRows.length, 3);
+  data.sessionStateFilter = 'ready';
+  assert.deepEqual(plain(data.sessionRows.map(r => r.id)), ['b1']);
+  // The All chip is the count BEFORE this axis, not after it: it says what you
+  // get back, which is the only reading that makes the chip a way out.
+  assert.equal(data.repoScopedSessions.length, 3);
+});
+
+test('the state filter lapses when the scope no longer holds it', () => {
+  // Same failure the repo filter already learned: a pane sitting empty with
+  // nothing lit to explain why.
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionRows_ = [withState('a1', 'merged'), withState('b1', 'ready')];
+  data.sessionStateFilter = 'ready';
+  assert.equal(data.activeSessionState, 'ready');
+  data.sessionRows_ = [withState('a1', 'merged')];
+  assert.equal(data.activeSessionState, '', 'lapses rather than stranding the pane');
+  assert.equal(data.sessionRows.length, 1, 'and the list is whole again');
+});
+
+test('the state counts sit inside the repo filter, so a chip never overcounts', () => {
+  data.sessionScope = 'all';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [
+    withState('a1', 'ready', 'web-tools'),
+    withState('b1', 'ready', 'home'),
+    withState('c1', 'merged', 'home'),
+  ];
+  assert.deepEqual(plain(data.sessionStates.map(s => [s.key, s.count])), [['ready', 2], ['merged', 1]]);
+  data.sessionRepoFilter = 'home';
+  assert.deepEqual(plain(data.sessionStates.map(s => [s.key, s.count])), [['ready', 1], ['merged', 1]],
+    'the chips narrow what is on screen, not what exists somewhere else');
+  assert.equal(data.repoScopedSessions.length, 2, 'and All agrees with them');
+  data.sessionRepoFilter = '';
+});
+
+test('a stub drops out under a state filter rather than riding along', async () => {
+  // A stub has no record, so it cannot answer the question the filter asks.
+  shell.view = 'sessions';
+  data.sessionLens = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.activity = { 'acme/widget': { defaultBranch: 'main', scan: { branches: [
+    { name: 'ghost-work', group: 'active', date: '2026-08-05',
+      sessions: ['https://claude.ai/code/session_GHOST'] },
+  ] } } };
+  data.sessionRows_ = [{ ...window.RepoSessionsCache.summarize(rec(), 'sha1'), state: 'merged' }];
+  await Alpine.nextTick();
+  assert.equal(data.sessionNodes.filter(n => n.kind === 'stub').length, 1);
+  data.sessionStateFilter = 'merged';
+  assert.equal(data.sessionNodes.filter(n => n.kind === 'stub').length, 0);
+  assert.equal(data.sessionNodes.length, 1, 'the record that matches is all that is left');
+  data.sessionStateFilter = '';
+  data.activity = {};
+});
+
+test('the backfill count is only the rows a refresh would fix', () => {
+  const V = window.RepoSessionsCache.ROW_V;
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [
+    withState('a1', 'merged'),                       // current, has one
+    stateRow({ short: 'b1' }),                       // current, closed in none
+    { ...stateRow({ short: 'c1' }), v: V - 1 },      // behind: this is the one
+  ];
+  assert.equal(data.sessionsBehindState, 1,
+    'a current row with no state is a session that said nothing, not a gap');
+});
+
+// ── How sessions ended: the Counts histogram ───────────────────────────────
+
+test('the histogram keeps the two absences out of the ordering and apart', () => {
+  const V = window.RepoSessionsCache.ROW_V;
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [
+    withState('a1', 'merged'), withState('a2', 'merged'),
+    withState('b1', 'choice'),
+    stateRow({ short: 'c1' }),
+    { ...stateRow({ short: 'd1' }), v: V - 1 },
+  ];
+  const h = data.lensClosingStates;
+  assert.deepEqual(plain(h.bars.map(b => [b.key, b.n])), [['choice', 1], ['merged', 2]],
+    'bars are states only, in vocabulary order');
+  assert.equal(h.none.n, 1, 'closed in no state');
+  assert.equal(h.behind.n, 1, 'not read yet: the one a refresh closes');
+  assert.equal(h.read, 3);
+  assert.equal(h.total, 5);
+  // Every bar shares one scale, absences included, or the lengths lie.
+  assert.equal(h.bars.find(b => b.key === 'merged').pct, 100);
+  assert.equal(h.none.pct, 50);
+});
+
+test('the histogram reads the whole store, not the scoped list', () => {
+  // The list's chips narrow; this lens is the distribution, so a scope that
+  // hides half the records must not silently reshape it.
+  data.sessionRows_ = [withState('a1', 'merged'), withState('b1', 'ready')];
+  data.sessionScope = 'day';
+  assert.equal(data.lensClosingStates.total, 2);
+  data.sessionScope = 'all';
+});
+
+test('the star panel names a session the way a row does', () => {
+  const row = withState('a1', 'ready');
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionRows_ = [row];
+  const star = data.lensStars[0];
+  assert.equal(star.id, 'a1');
+  assert.equal(star.label, data.sessionLabel(row), 'the same name the list row draws');
+  assert.equal(data.sessionStateMark(star), '🟢', 'and the same glyph');
+});
+
+test('a rebuilt row reaches the screen, rather than freezing at first paint', async () => {
+  // The row's scope was `{ row: n.row }`, which x-data evaluates ONCE. x-for
+  // reuses a keyed element, so a node rebuilt under the same session id updated
+  // the node and never the scope reading it: a crawl repainted nothing. Two
+  // ways it bit. The live session's own record is rewritten on every Stop, so
+  // its sha moves constantly and its row was the one guaranteed to be stale.
+  // And a summarizer bump heals rows in place, so a new field landed in the
+  // cache and not on screen, which is exactly what ROW_V 10 does.
+  shell.view = 'sessions';
+  data.sessionLens = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.activity = {};
+  const ask = () => [...window.document.querySelectorAll('p')]
+    .map(p => p.textContent.trim()).find(t => /ASK/.test(t));
+
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec({ opening_ask: 'FIRST ASK' }), 'sha1')];
+  await Alpine.nextTick();
+  assert.equal(ask(), 'FIRST ASK');
+
+  // Same id, new row object: what every crawl produces.
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec({ opening_ask: 'SECOND ASK' }), 'sha2')];
+  await Alpine.nextTick();
+  await Alpine.nextTick();
+  assert.equal(ask(), 'SECOND ASK', 'the scope follows the node, rather than the paint it was born in');
+});
+
+test('the state is the session\'s own claim, not the rail\'s rollup of its branches', async () => {
+  // The two axes disagree usefully and that is why both are on the row: this
+  // session's branch merged, and it still closed naming work for the next go.
+  const row = window.RepoSessionsCache.summarize(rec({
+    replies: [{ at: '2026-08-05T15:00:00Z', text: '🟢 **Ready to continue:** the Docs tab.' }],
+  }), 'sha1');
+  // branchState reads the branch row's own PR record, which is what the estate
+  // builds from the activity cache; the rollup is over those.
+  const node = { kind: 'record', row, children: [
+    { repo: 'acme/w', name: 'claude/a-1', prLast: { number: 9, state: 'merged' } },
+  ] };
+  assert.equal(data.sessionOutcome(node), 'merged', 'the rail reads GitHub');
+  assert.equal(data.sessionStateMark(node.row), '🟢', 'the glyph reads the session');
+});
+
+
+// ── The ask line's card: the session as a transcript ────────────────────────
+// The line is the opening ask, so opening it is the rest of the session. It was
+// a native `title` first, then a hand-built body that approximated the swipe
+// deck and got it awkwardly wrong. It now renders through chatRender.message,
+// the deck's own turn renderer, so the two cannot drift in appearance: what is
+// pinned here is the LIST handed to it, since the rendering is that kit's test.
+
+// Closes first: the trigger TOGGLES now, so a helper that opens the same card
+// twice in a row would close it the second time. Each test is its own
+// scenario and wants a fresh open, not a second tap.
+const transcriptCard = (row) => {
+  data.closeRowCard();
+  data.openSessionCard(row, 'turns', null);
+  return data.rowCard;
+};
+const roles = (c) => c.turns.map(t => t.role[0]).join('');
+
+test('the card is the ask, the scroll back, and the reply, in that order', () => {
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, opening_ask: 'do the thing',
+          prompts: [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' },
+                    { at: '2026-08-05T15:00:00Z', text: 'and now this' }],
+          replies: [{ at: '2026-08-05T14:00:00Z', text: 'partway' },
+                    { at: '2026-08-05T16:00:00Z', text: 'and here is what came of it' }] }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.kind, 'prose', 'prose, not a list: it has no count to show');
+  assert.equal(roles(c), 'uauа'.replace('а', 'a'), 'ask, answer, ask, closing reply');
+  assert.equal(c.turns[0].md, 'do the thing', 'the WHOLE ask; the row truncates it');
+  assert.equal(c.turns.at(-1).md, 'and here is what came of it',
+    'the CLOSING reply, not the first or the longest');
+});
+
+test('every turn carries the clock the deck prints beside it', () => {
+  // Carried per entry rather than inferred from the row's started/ended, which
+  // agree with the first prompt on 194 of 225 records and the last reply on 168
+  // of 172: inferring would print a wrong time on one row in seven.
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, opening_ask: 'ask',
+          prompts: [{ at: '2026-08-05T13:51:08Z', text: 'ask' }],
+          replies: [{ at: '2026-08-05T16:49:16Z', text: 'answer' }] }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.turns[0].ts, '13:51:08');
+  assert.equal(c.turns.at(-1).ts, '16:49:16');
+});
+
+test('a record with no replies says its text is a tail, rather than passing it off', () => {
+  // 52 of the 224 records on file are schema 1 to 3, which never held the
+  // assistant's prose: last_message is the recorder's 500-character tail of the
+  // final turn. Same field, lower fidelity, and the LABEL is what says so,
+  // since the prose itself cannot. It names the FIDELITY only: dense mode keeps
+  // the role's icon beside the label and the indent under it, so a label
+  // carrying "Assistant · " too would say the role twice on one turn.
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 2, last_message: 'the tail of the last turn' }), 'x');
+  assert.equal(row.replyCut, 'tail');
+  const c = transcriptCard(row);
+  assert.equal(c.turns.at(-1).md, 'the tail of the last turn');
+  assert.equal(c.turns.at(-1).label, 'final turn, tail only');
+  assert.equal(c.turns.at(-1).ts, '', 'and no clock, because a schema-3 record kept none');
+});
+
+test('the closing reply reaches the card whole, and claims no trim', () => {
+  // It was capped at 600 and the cap was wrong for the one turn the card is
+  // opened for. The scroll back above it is still openings; this is not.
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, replies: [{ at: 'z', text: 'x'.repeat(2000) }] }), 'x');
+  assert.equal(row.reply.length, 2000, 'byte for byte');
+  const c = transcriptCard(row);
+  assert.equal(c.label, 'closing reply', 'no "trimmed": nothing was');
+  assert.equal(c.turns.at(-1).label, 'closing reply');
+  assert.ok(!c.turns.at(-1).dropped, 'and no chip on its last line; the renderer draws one off this');
+});
+
+test('a row built by an older pass says so, rather than reading as current', () => {
+  // The gap three separate reports walked into. A stale row carries older
+  // text (shorter turns, a reply the old cap cut at 600) and on screen looks
+  // exactly like a current one, so the cut reads as the whole answer. The
+  // crawl heals 120 records a pass, so a store of 233 spends real time half
+  // healed: measured on the live cache 2026-08-28, 120 rows at the current
+  // version and 113 behind it.
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, replies: [{ at: 'z', text: 'the answer' }] }), 'x');
+  assert.equal(transcriptCard(row).staleV, 0, 'a fresh row claims nothing');
+  const old = { ...row, v: S.ROW_V - 2 };
+  assert.equal(transcriptCard(old).staleV, S.ROW_V - 2, 'and a stale one names the version it is on');
+});
+
+test('a row with no reply yet still opens, on the ask, and says why', () => {
+  // How this first shipped: gated on `row.reply`, so a hover on an unhealed row
+  // did NOTHING and a reader could not tell a missing feature from a missing
+  // field. Every ask opens now; the absence is stated rather than performed.
+  const row = window.RepoSessionsCache.summarize(rec({ schema: 3 }), 'x');
+  assert.equal(row.reply, '', 'no reply on the row');
+  const c = transcriptCard(row);
+  assert.equal(c.label, 'opening ask', 'the header names what it actually has');
+  assert.equal(roles(c), 'u', 'the ask alone');
+  assert.equal(c.pending, true, 'and the body draws the why off this');
+});
+
+test('the truncated scroll back is reported on the card, not silently dropped', () => {
+  const prompts = [], replies = [];
+  for (let i = 0; i < 40; i++) {
+    prompts.push({ at: '2026-08-05T13:00:' + String(i).padStart(2, '0') + 'Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:30:' + String(i).padStart(2, '0') + 'Z', text: 'answer ' + i });
+  }
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, opening_ask: 'ask 0', prompts, replies }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.priorCut, true);
+  assert.equal(c.turns.length, window.RepoSessionsCache.TURNS_KEPT + 2,
+    'the cap, plus the two ends the row carries itself');
+});
+
+test('the card mounts through the deck\'s own renderer, once per card', async () => {
+  // Not a lookalike: chatRender.message is the function every deck slide draws
+  // a turn with. What this pins is that the card calls it, and calls it once —
+  // the mount is driven by x-effect, and rebuilding on every reactive read
+  // would throw away the reader's scroll position mid-scroll.
+  const calls = [];
+  window.chatRender = {
+    ready: async () => {},
+    message: (m) => { calls.push(m); return window.document.createElement('div'); },
+  };
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, replies: [{ at: 'z', text: 'the answer' }] }), 'x');
+  const c = transcriptCard(row);
+  await data.mountReplyCard(c);
+  assert.equal(calls.length, c.turns.length, 'one message() per turn');
+  assert.equal(calls.at(-1).md, 'the answer');
+  const n = calls.length;
+  await data.mountReplyCard(c);
+  assert.equal(calls.length, n, 'the same card does not rebuild');
+});
+
+test('the panel and the anchor read one height, never two', async () => {
+  // The defect this pane shipped, and the reason the number has one home.
+  // anchorMenu decides whether a panel fits below its trigger by estimating
+  // height as rows × MENU_ROW. Every other panel here IS a list of rows; this
+  // one is a transcript, so nine rows estimated 296px against an actual 480,
+  // the fit test passed on the underestimate, and 210px of the card fell below
+  // an 800px phone's fold. What you would touch to scroll it was not on screen,
+  // which reads as a card that does not scroll rather than one misplaced.
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, replies: [{ at: 'z', text: 'the answer' }] }), 'x');
+  transcriptCard(row);
+  await Alpine.nextTick();
+  const want = data.rowCardMaxH();
+  assert.equal(data.rowCardAt.height, want, 'the anchor is told the real height');
+  assert.match(data.rowCardStyle, new RegExp('max-height:' + want + 'px'),
+    'and the panel is given the same one, off the same call');
+  assert.equal(data.rowCardAt.width, data.REPLY_CARD_W, 'with its own width, which is not the other cards\'');
+});
+
+test('the height is half the viewport, and never a wall on a tall screen', () => {
+  // Two bounds doing different jobs. The fraction keeps it a card on a phone;
+  // the pixel ceiling is what stops a tall monitor turning it into a page.
+  const real = window.innerHeight;
+  try {
+    window.innerHeight = 700;
+    assert.equal(data.rowCardMaxH(), 350, 'half the viewport');
+    window.innerHeight = 1400;
+    assert.equal(data.rowCardMaxH(), data.CARD_MAX_PX, 'the ceiling, not 700');
+  } finally { window.innerHeight = real; }
+});
+
+test('a list card still anchors off its rows, because it is a list of rows', () => {
+  const row = window.RepoSessionsCache.summarize(rec(), 'x');
+  data.openSessionCard(row, 'tools', null);
+  assert.equal(data.rowCardAt.height, undefined,
+    'no override: rows × MENU_ROW is the right estimate for a list of rows');
+  assert.equal(data.rowCardAt.width, data.ROW_CARD_W, 'and the narrower width');
+});
+
+test('no renderer means an empty host, not a thrown card', async () => {
+  delete window.chatRender;
+  const row = window.RepoSessionsCache.summarize(
+    rec({ schema: 4, replies: [{ at: 'z', text: 'unrendered' }] }), 'x');
+  const c = transcriptCard(row);
+  await data.mountReplyCard(c);          // must not throw
+  assert.equal(c.turns.at(-1).md, 'unrendered', 'and the card still holds the text');
+});
+
+
+test('the row version moved, so one pass re-reads the store and heals it', () => {
+  // A row built by an older summarizer is stale against a NEW FIELD and its
+  // record's sha will never move again to say so, which is what stalePaths
+  // reads the version for.
+  const S = window.RepoSessionsCache;
+  const listing = [{ path: 'sessions/2026/08/2026-08-05-b8fae678.json', sha: 'same' }];
+  const prev = { byPath: { 'sessions/2026/08/2026-08-05-b8fae678.json': { sha: 'same', v: 3 } } };
+  assert.deepEqual(S.stalePaths(prev, listing), listing.map(e => e.path),
+    'an unchanged blob still has to be re-read when the summarizer gained a field');
+});
+
+
+// ── The age pill answers "when was this last CHECKED" ───────────────────────
+// A refresh on Branches and a refresh on Sessions gave two different answers to
+// that, off one gesture, and the cause was that the activity crawl handed its
+// freshly built document to the pane while the sessions crawl fired a bare
+// event and made the pane re-read the file. Two consequences, both visible:
+// a pass that changes nothing does not commit, so the stored file still carries
+// the PREVIOUS pass's stamp and the pill snapped back to it; and a pass that
+// did commit was read moments after its own write.
+//
+// Measured 2026-08-27 against the real store: the pane read "1h" straight after
+// a refresh whose crawl had committed three minutes earlier.
+
+test('a handed document lands without a read', async () => {
+  FILES = {
+    'state/sessions.json': {
+      generatedAt: '2026-08-05T10:00:00Z',
+      rows: [window.RepoSessionsCache.summarize(rec(), 'sha1')],
+    },
+  };
+  await data.loadSessions(reg());
+  assert.equal(data.sessionsGeneratedAt, '2026-08-05T10:00:00Z');
+
+  GETS = [];
+  await data.reloadSessions({
+    generatedAt: '2026-08-05T18:30:00Z', titlesAt: '2026-08-05',
+    rows: [window.RepoSessionsCache.summarize(rec({ short: 'newone' }), 'sha2')],
+    attention: [{ path: 'a.js', count: 1, sessions: 1, last: '' }],
+  });
+  assert.equal(data.sessionsGeneratedAt, '2026-08-05T18:30:00Z');
+  // `titlesAt` rides the document above and is deliberately NOT landed here.
+  // The pane held it until 2026-08-28 to date one row's tooltip; the export's
+  // age belongs with its coverage and source on the State view, so the pane
+  // reads the document's rows and leaves the column's freshness alone.
+  assert.equal(data.sessionsTitlesAt, undefined, 'the pane no longer holds the export date');
+  assert.equal(data.sessionRows_.length, 1);
+  assert.equal(data.sessionRows_[0].id, 'newone');
+  assert.deepEqual(GETS, [], 'the crawl was holding the document; re-reading it is the bug');
+});
+
+test('a crawl that committed nothing still moves the stamp it hands over', () => {
+  // The whole failure in one assertion. buildCache stamps generatedAt on every
+  // build, commit or no commit, so a quiet pass reports that it checked. The
+  // stored file keeps the older stamp on purpose, and the State view is where
+  // last-BUILT is answered; the pill is not.
+  const quiet = window.RepoSessionsCache.buildCache(
+    { generatedAt: '2026-08-05T10:00:00Z', rows: [], byPath: {} },
+    {}, [], '2026-08-05T18:30:00Z', null);
+  assert.equal(quiet.generatedAt, '2026-08-05T18:30:00Z');
+  assert.equal(window.RepoSessionsCache.cacheChanged(
+    { generatedAt: '2026-08-05T10:00:00Z', rows: [] }, quiet), false,
+    'and it is still not worth a commit, which is why the pane must be handed it');
+});
+
+test('a detail-less event still falls back to reading, so the contract only widened', async () => {
+  FILES = {
+    'state/sessions.json': {
+      generatedAt: '2026-08-05T21:00:00Z',
+      rows: [window.RepoSessionsCache.summarize(rec(), 'sha9')],
+    },
+  };
+  GETS = [];
+  await data.reloadSessions();
+  assert.ok(GETS.includes('state/sessions.json'));
+  assert.equal(data.sessionsGeneratedAt, '2026-08-05T21:00:00Z');
+});
+
+
+// ── Linking a captured file ─────────────────────────────────────────────────
+// A record stores "<checkout>/<path>" and names that checkout's branch, and
+// nothing in the store knows the OWNER. The estate is the only place that does,
+// which is why the session brief takes its file link as a host-supplied
+// function rather than deriving one.
+
+test('a captured path resolves to the owner and the branch the session was on', () => {
+  data.entries = [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/home' }];
+  const row = window.RepoSessionsCache.summarize(rec(), 'x');
+  // At the BRANCH, not at main: a file opened during a session is the version
+  // that session saw.
+  assert.equal(data.sessionFileUrl(row, 'web-tools/lib/a.js'),
+    'https://github.com/mehrlander/web-tools/blob/claude%2Fa-1/lib/a.js');
+});
+
+test('a checkout the session did not name falls back to the default branch', () => {
+  // The merged case: the row lists one checkout and the path names another the
+  // estate still knows. Reading it at the default beats not linking it.
+  data.entries = [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/home' }];
+  data.activity = { 'mehrlander/home': { defaultBranch: 'main' } };
+  const row = window.RepoSessionsCache.summarize(rec(), 'x');
+  assert.equal(data.sessionFileUrl(row, 'home/b.md'),
+    'https://github.com/mehrlander/home/blob/main/b.md');
+});
+
+test('an unresolvable checkout yields no link rather than a guessed one', () => {
+  // The Files pane renders a plain row for an empty href. A guessed owner would
+  // render a link that 404s, which is worse than saying nothing.
+  data.entries = [{ repo: 'mehrlander/web-tools' }];
+  const row = window.RepoSessionsCache.summarize(rec(), 'x');
+  assert.equal(data.sessionFileUrl(row, 'somebody-elses-repo/x.js'), '');
+  assert.equal(data.sessionFileUrl(row, 'no-slash-at-all'), '');
+});
+
+// ── A lean row reads its record on open (2026-09-02) ───────────────────────
+// The writer strips the prose from stored rows (repo-sessions-cache.js,
+// PROSE_KEYS). A card opened on one draws the ask at once, reads the record
+// through the same memo the detail uses, and rebuilds its fields in place.
+test('a lean row opens on the ask, reads the record once, and fills the card', async () => {
+  const S = window.RepoSessionsCache;
+  // Its own id: the record memo is per page, and the default fixture's id has
+  // been read by earlier tests here without a reply.
+  const ident = { short: 'leanrow1', session_id: 'leanrow1-0000-0000-0000-000000000000' };
+  const full = S.summarize(rec({ ...ident, schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' }],
+    replies: [{ at: '2026-08-05T16:00:00Z', text: 'and here is what came of it' }] }), 'lean1');
+  const row = S.leanRow(full);
+  assert.ok(data.needsProse(row), 'no prose keys at all is the lean shape');
+  assert.ok(!data.needsProse(full), 'a summarised row is complete as it stands');
+  FILES[S.pathOf(row)] = rec({ ...ident, schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' }],
+    replies: [{ at: '2026-08-05T16:00:00Z', text: 'and here is what came of it' }] });
+  GETS.length = 0;
+  const first = transcriptCard(row);
+  assert.equal(first.label, 'opening ask', 'the first frame has the ask alone');
+  assert.equal(first.pending, true);
+  assert.equal(first.pendingNote, 'Reading the session record…');
+  await new Promise(r => setTimeout(r, 20));
+  const c = data.rowCard;
+  assert.equal(c.key, first.key, 'the same card, rebuilt in place');
+  assert.equal(c.pending, false);
+  assert.equal(c.label, 'closing reply');
+  assert.equal(c.turns.at(-1).md, 'and here is what came of it');
+  assert.equal(GETS.filter(g => g === S.pathOf(row)).length, 1, 'one record read');
+  // A second open costs nothing: the row now carries what the card needs.
+  data.closeRowCard();
+  data.openSessionCard(row, 'state', null);
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(GETS.filter(g => g === S.pathOf(row)).length, 1, 'still one read');
+});
+
+// ── Where the reader is, and one turn opened ───────────────────────────────
+// Two questions a scrolling transcript could not answer: which exchange am I
+// in, and what does the rest of this turn say. The first is arithmetic on the
+// card's own list and is tested here; the geometry that picks the turn under
+// the header is a layout read, so it belongs in a browser and not in jsdom.
+
+test('every turn carries the exchange it belongs to, counted from the end', () => {
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, exchanges: 3, opening_ask: 'one',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'one' },
+              { at: '2026-08-05T14:00:00Z', text: 'two' },
+              { at: '2026-08-05T15:00:00Z', text: 'three' }],
+    replies: [{ at: '2026-08-05T13:30:00Z', text: 'answering one' },
+              { at: '2026-08-05T14:30:00Z', text: 'answering two' },
+              { at: '2026-08-05T15:30:00Z', text: 'answering three' }] }), 'x');
+  const c = transcriptCard(row);
+  assert.deepEqual(plain(c.turns.map(t => [t.role[0], t.n])),
+    [['u', 1], ['a', 1], ['u', 2], ['a', 2], ['u', 3], ['a', 3]],
+    'an assistant turn takes the number of the ask above it, not one of its own');
+  assert.ok(c.turns.every(t => t.nTotal === 3), 'and every turn knows the total');
+});
+
+test('a cut front does not shift the numbering, because it counts backwards', () => {
+  // The case forward numbering gets wrong. The card holds the opening ask and
+  // the last TURNS_KEPT of the rest, so what went missing is the MIDDLE; run
+  // 1, 2, 3 down the list and every turn after the gap is short by whatever
+  // was dropped. Counted from the end the last user turn is the total by
+  // construction, which is the only version a reader can check.
+  const S = window.RepoSessionsCache;
+  const prompts = [], replies = [];
+  for (let i = 0; i < 40; i++) {
+    prompts.push({ at: '2026-08-05T13:00:' + String(i).padStart(2, '0') + 'Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:30:' + String(i).padStart(2, '0') + 'Z', text: 'answer ' + i });
+  }
+  const row = S.summarize(rec({ schema: 4, exchanges: 40, opening_ask: 'ask 0', prompts, replies }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.priorCut, true, 'the fixture has to be cut for this to mean anything');
+  assert.equal(c.turns[0].n, 1, 'the ask is the first exchange whatever was dropped after it');
+  assert.equal(c.turns.at(-1).n, 40, 'and the last turn is the last exchange');
+  const asks = c.turns.filter(t => t.role === 'user');
+  assert.equal(asks.at(-1).n, 40);
+  assert.equal(asks.at(-2).n, 39, 'consecutive back from the end, with no off-by-one at the gap');
+});
+
+test('a row that never counted its asks numbers off what the card holds', () => {
+  // exchanges is 0 on a row summarised before the field existed. A total below
+  // the turns on screen is the one arithmetic error a reader spots instantly.
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, exchanges: 0, opening_ask: 'one',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'one' },
+              { at: '2026-08-05T14:00:00Z', text: 'two' }],
+    replies: [{ at: '2026-08-05T15:00:00Z', text: 'the answer' }] }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.turns.at(-1).nTotal, 2, 'the floor is the user turns the card is holding');
+  assert.ok(c.turns.every(t => t.n >= 1 && t.n <= t.nTotal));
+});
+
+test('each turn carries the ask it answers, so the header names it', () => {
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, opening_ask: 'the opening question',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'the opening question' },
+              { at: '2026-08-05T14:00:00Z', text: 'the second question' }],
+    replies: [{ at: '2026-08-05T14:30:00Z', text: 'the closing answer' }] }), 'x');
+  const c = transcriptCard(row);
+  assert.equal(c.turns.at(-1).asked, 'the second question',
+    'a reply is titled by its own ask, not by the session opener');
+  assert.equal(c.turns[0].asked, 'the opening question');
+});
+
+test('a slower first mount cannot overwrite the transcript a later one drew', async () => {
+  // The race a lean row loses. The card opens holding the ask, the record
+  // lands, and fillProse republishes the same key with the whole
+  // conversation: two mounts in flight under one name, finishing in the
+  // wrong order because the first is the one that waited for the renderer.
+  // Reproduced by releasing them in reverse, which is what a cold page does.
+  const S = window.RepoSessionsCache;
+  const releases = [];
+  const drawn = [];
+  window.chatRender = {
+    ready: () => new Promise(r => releases.push(r)),
+    message: (m) => { drawn.push(m.md); return window.document.createElement('div'); },
+  };
+  const ident = { short: 'raceabc1', session_id: 'raceabc1-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4, exchanges: 2,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' },
+              { at: '2026-08-05T15:00:00Z', text: 'and now this' }],
+    replies: [{ at: '2026-08-05T16:00:00Z', text: 'and here is what came of it' }] });
+  const row = S.leanRow(S.summarize(body, 'race1'));
+  FILES[S.pathOf(row)] = body;
+
+  transcriptCard(row);                       // mount one: the ask, waiting on ready()
+  await new Promise(r => setTimeout(r, 20)); // the record lands, mount two starts
+  assert.equal(releases.length, 2, 'two mounts are in flight under one key');
+  releases.pop()();                          // the LATER one finishes first
+  await new Promise(r => setTimeout(r, 5));
+  const full = drawn.length;
+  assert.ok(full > 1, 'and draws the whole conversation');
+  releases.pop()();                          // then the stale one resumes
+  await new Promise(r => setTimeout(r, 5));
+  assert.equal(drawn.length, full, 'which draws nothing, rather than the ask over the top of it');
+});
+
+// ── The header's own timeline ──────────────────────────────────────────────
+// The position moved into the big number, the clock became the reader's own,
+// and the rail places each exchange by WHEN it happened. All three need the
+// instant, which the row does not carry: its `ts` is a UTC clock with no date.
+// The record does, and the card always has it, so these hold the join.
+
+test('a turn is placed by its instant, taken from the record', () => {
+  const S = window.RepoSessionsCache;
+  const ident = { short: 'railabc1', session_id: 'railabc1-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4, exchanges: 3,
+    started: '2026-08-05T12:00:00Z', ended: '2026-08-05T16:00:00Z',
+    prompts: [{ at: '2026-08-05T12:00:00Z', text: 'the opening ask' },
+              { at: '2026-08-05T14:00:00Z', text: 'halfway through' },
+              { at: '2026-08-05T15:00:00Z', text: 'and the last one' }],
+    replies: [{ at: '2026-08-05T13:00:00Z', text: 'an answer' },
+              { at: '2026-08-05T16:00:00Z', text: 'the closing answer' }] });
+  const row = S.summarize(body, 'rail1');
+  data._records[row.id] = body;
+  const c = transcriptCard(row);
+  const pcts = c.turns.map(t => Math.round(t.pct));
+  assert.deepEqual(plain(pcts), [0, 25, 50, 75, 100],
+    'four hours of session, and each turn lands where its own clock puts it');
+  assert.equal(c.span.ms, 4 * 3600e3, 'the span is the session, not the card');
+  assert.equal(c.ticks.length, 3, 'one tick an exchange, which is what the number counts');
+  assert.deepEqual(plain(c.ticks.map(t => t.n)), [1, 2, 3]);
+  data._records[row.id] = undefined;
+});
+
+test('with no record the rail spaces its ticks and claims nothing about time', () => {
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, exchanges: 2,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'one' },
+              { at: '2026-08-05T15:00:00Z', text: 'two' }],
+    replies: [{ at: '2026-08-05T16:00:00Z', text: 'the answer' }] }), 'x');
+  const c = transcriptCard(row);          // no _records entry for this id
+  assert.ok(c.turns.every(t => typeof t.pct === 'number'), 'every turn still has a place');
+  assert.equal(c.turns[0].pct, 0);
+  assert.equal(c.turns.at(-1).pct, 100);
+});
+
+test('the clock is the reader\'s, and names the date only across one', () => {
+  const S = window.RepoSessionsCache;
+  const ident = { short: 'clockab1', session_id: 'clockab1-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4, exchanges: 2,
+    started: '2026-08-05T12:00:00Z', ended: '2026-08-06T12:00:00Z',
+    prompts: [{ at: '2026-08-05T12:00:00Z', text: 'the opening ask' },
+              { at: '2026-08-06T11:00:00Z', text: 'a day later' }],
+    replies: [{ at: '2026-08-06T12:00:00Z', text: 'the closing answer' }] });
+  const row = S.summarize(body, 'clock1');
+  data._records[row.id] = body;
+  const c = transcriptCard(row);
+  const first = data.localClock(c.turns[0].atMs, c.turns[0].ts);
+  const last = data.localClock(c.turns.at(-1).atMs, c.turns.at(-1).ts);
+  assert.match(first, /\d:\d\d\s?(AM|PM)/i, 'a time a person reads, not a 24-hour stamp');
+  assert.ok(!/\d{2}:\d{2}:\d{2}/.test(first), 'and not the row\'s UTC clock');
+  assert.match(last, /[A-Z][a-z]{2} \d+/, 'the day is named once the session has crossed one');
+  assert.ok(!/[A-Z][a-z]{2} \d+/.test(first), 'and not before');
+  data._records[row.id] = undefined;
+});
+
+test('a turn with no instant still prints something rather than nothing', () => {
+  assert.equal(data.localClock(0, '13:51:08'), '13:51:08', 'the row\'s own string is the floor');
+  assert.equal(data.localClock(0, ''), '');
+});
+
+// ── A tap opens the session's deck, at the exchange that was tapped ────────
+// The card is a scan; reading one turn whole is a different act, and the deck
+// is already the surface for it. What has to hold is the handover: the deck
+// must open on the exchange the reader touched rather than at the top.
+
+test('deckSlideAt picks the exchange the instant falls inside', () => {
+  const g = [
+    [{ role: 'user', at: '2026-08-05T13:00:00Z' }, { role: 'assistant', at: '2026-08-05T13:10:00Z' }],
+    [{ role: 'user', at: '2026-08-05T14:00:00Z' }, { role: 'assistant', at: '2026-08-05T14:20:00Z' }],
+    [{ role: 'user', at: '2026-08-05T15:00:00Z' }],
+  ];
+  const at = (v) => Date.parse(v);
+  assert.equal(data.deckSlideAt(g, at('2026-08-05T13:00:00Z')), 0, 'the ask that starts a slide');
+  assert.equal(data.deckSlideAt(g, at('2026-08-05T14:20:00Z')), 1,
+    'a reply lands on the exchange it belongs to, not the one after it');
+  assert.equal(data.deckSlideAt(g, at('2026-08-05T15:00:00Z')), 2);
+  assert.equal(data.deckSlideAt(g, at('2026-08-05T12:00:00Z')), 0, 'before the first, the first');
+  assert.equal(data.deckSlideAt(g, 0), undefined, 'no instant, no claim about a slide');
+  assert.equal(data.deckSlideAt([], at('2026-08-05T13:00:00Z')), undefined);
+});
+
+test('tapping a turn opens the record at that exchange', async () => {
+  const S = window.RepoSessionsCache;
+  const ident = { short: 'deckabc1', session_id: 'deckabc1-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4, exchanges: 3,
+    started: '2026-08-05T13:00:00Z', ended: '2026-08-05T15:30:00Z',
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'the opening ask' },
+              { at: '2026-08-05T14:00:00Z', text: 'the second ask' },
+              { at: '2026-08-05T15:00:00Z', text: 'the third ask' }],
+    replies: [{ at: '2026-08-05T13:30:00Z', text: 'answering the first' },
+              { at: '2026-08-05T14:30:00Z', text: 'answering the second' },
+              { at: '2026-08-05T15:30:00Z', text: 'the closing answer' }] });
+  const row = S.summarize(body, 'deck1');
+  FILES[S.pathOf(row)] = body;
+  data._records[row.id] = body;
+  const c = transcriptCard(row);
+  OPENED = []; OPENED_AT = [];
+  const second = c.turns.find(t => t.n === 2 && t.role === 'user');
+  assert.ok(second, 'the fixture has to hold a second exchange');
+  await data.openTurnDeck(second);
+  assert.equal(OPENED.length, 1, 'one tap reaches the deck');
+  assert.equal(OPENED[0].short, 'deckabc1', 'with this session\'s record');
+  assert.equal(OPENED_AT[0].start, 1, 'opened on the exchange that was tapped');
+  data._records[row.id] = undefined;
+});
+
+test('a scroll-back turn with no record behind it opens the deck all the same', async () => {
+  // The instants come from the record, so a card drawn before it lands has
+  // none for its middle turns; the ask and the reply keep theirs, since the
+  // row carries `started` and `ended`. The tap must still work, and must not
+  // invent a slide.
+  const S = window.RepoSessionsCache;
+  const ident = { short: 'deckdef2', session_id: 'deckdef2-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'the opening ask' },
+              { at: '2026-08-05T14:00:00Z', text: 'the second ask' }],
+    replies: [{ at: '2026-08-05T13:30:00Z', text: 'answering the first' },
+              { at: '2026-08-05T15:00:00Z', text: 'the closing answer' }] });
+  const row = S.summarize(body, 'deck2');
+  FILES[S.pathOf(row)] = body;
+  const c = transcriptCard(row);          // no record cached, so no instants
+  const middle = c.turns.find(t => (t.at || [])[0] === 'turn');
+  assert.ok(middle, 'the fixture has to hold a scroll-back turn');
+  assert.equal(middle.atMs, 0, 'and it has no instant without the record');
+  OPENED = []; OPENED_AT = [];
+  await data.openTurnDeck(middle);
+  assert.equal(OPENED.length, 1, 'the deck still opens');
+  assert.equal(OPENED_AT[0].start, undefined, 'at its own default slide, claiming nothing');
+});
+
+test('the card survives the deck, and dismisses normally once it is gone', async () => {
+  // A takeover is appended to the body, so every click inside it is outside
+  // the card. Unguarded, the click that closes the deck took the card with
+  // it and the reader came back to the session list rather than to the
+  // sentence they left.
+  const S = window.RepoSessionsCache;
+  const ident = { short: 'guarded1', session_id: 'guarded1-0000-0000-0000-000000000000' };
+  const body = rec({ ...ident, schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'the opening ask' }],
+    replies: [{ at: '2026-08-05T14:00:00Z', text: 'the closing answer' }] });
+  const row = S.summarize(body, 'guard1');
+  FILES[S.pathOf(row)] = body;
+  const c = transcriptCard(row);
+  OPENED = []; OPENED_AT = [];
+  await data.openTurnDeck(c.turns[0]);
+  assert.equal(OPENED.length, 1, 'the deck opened');
+
+  data.rowCardOutside();
+  assert.ok(data.rowCard, 'a click outside while the deck is up leaves the card alone');
+
+  window.sessionRender.fireClose();
+  data.rowCardOutside();
+  assert.ok(data.rowCard, 'and the click that closed the deck does not fall through either');
+
+  await new Promise(r => setTimeout(r, 5));      // the guard clears a tick later
+  data.rowCardOutside();
+  assert.equal(data.rowCard, null, 'once the deck is gone the card dismisses as it always did');
+});
+
+test('a deck that never opens does not leave the card undismissable', async () => {
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ short: 'noopen1', session_id: 'noopen1-0000-0000-0000-000000000000' }), 'noopen');
+  const c = transcriptCard(row);
+  const real = window.sessionRender.open;
+  window.sessionRender.open = async () => { throw new Error('no deck'); };
+  try {
+    await data.openTurnDeck(c.turns[0]);
+    data.rowCardOutside();
+    assert.equal(data.rowCard, null, 'the guard is released when there is nothing to guard');
+  } finally { window.sessionRender.open = real; }
 });

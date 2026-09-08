@@ -90,6 +90,9 @@ const reset = () => {
   if (data._rDeck) { data._rDeck.drop(); data._rDeck = null; }
   if (data._tfDeck) { data._tfDeck.drop?.(); data._tfDeck = null; }
   data._rNotes = {};
+  // The conversion cache is keyed by source text now rather than cleared on a
+  // new bar, so a fresh stage in a test has to say so itself.
+  data._mdText = null;
   store.stage = []; store.stageFocus = ''; store.stageOffers = []; data.reader = null;
   data.diffA = 0; data.diffB = 0; data._diffTouched = false; data.diffRows = null;
 };
@@ -490,7 +493,7 @@ const paste = async (cd, target) => {
   return r;
 };
 
-test('a spreadsheet paste stages one flavor and offers the rest', async () => {
+test('a spreadsheet paste stages one flavor and lists all three', async () => {
   reset();
   await paste(fakeCd({
     types: ['text/plain', 'text/html', 'Files'],
@@ -499,15 +502,19 @@ test('a spreadsheet paste stages one flavor and offers the rest', async () => {
   }));
   assert.equal(data.localItems.length, 1, 'one flavor is staged, not three');
   assert.match(data.localItems[0].name, /\.png$/, 'the image, which is what this handler always took');
-  assert.deepEqual(plain_(data.offers.map(o => data.flavorLabel(o)).sort()), ['html', 'tsv'],
-    'the two it could not take are offered, not discarded');
+  assert.deepEqual(plain_(data.offers.map(o => data.flavorLabel(o)).sort()), ['html', 'png', 'tsv'],
+    'the bar says what the copy held, which is all of it');
+  const ticked = data.offers.filter(o => data.flavorStaged(o)).map(o => data.flavorLabel(o));
+  assert.deepEqual(plain_(ticked), ['png'],
+    'and marks the one it took, so the bar is a choice rather than an add list');
 });
 
 test('a text/plain grid is named .tsv, so it opens as a table', async () => {
   reset();
   await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': TSV } }));
   assert.match(data.localItems[0].name, /\.tsv$/);
-  assert.equal(data.offers.length, 0, 'one flavor offers nothing');
+  assert.equal(data.offers.length, 1, 'one flavor is still worth naming: it is what the copy held');
+  assert.equal(data.flavorStaged(data.offers[0]), true, 'and it is on the stage');
 });
 
 // ---- what a paste is NAMED is what it routes to ----------------------------
@@ -569,6 +576,151 @@ test('a multi-line function body is a function, not a comma grid', async () => {
   await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': fn } }));
   assert.match(data.localItems[0].name, /\.js$/,
     'the grid test runs after this one precisely so this cannot be renamed .csv');
+});
+
+// ---- .json is a parse, not a first character -------------------------------
+//
+// Reported 2026-08-24: a PowerShell script pasted into the stage was named
+// .json on the strength of its opening `[`, and READ_MODE sent it to the tree
+// view, which shows nothing for text that will not parse. The extension is the
+// routing decision, so a wrong one here does not merely mislabel the paste, it
+// hides it.
+
+const PS_SCRIPT = `[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$Path,
+    [switch]$Force
+)
+
+$ErrorActionPreference = 'Stop'
+Get-ChildItem -Path $Path | Where-Object { $_.Length -gt 1kb }`;
+
+const extOf = (text) => window.StageIntake.nameForText(text).split('.').pop();
+
+test('a pasted PowerShell script is not JSON, whatever its first character', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': PS_SCRIPT } }));
+  const name = data.localItems[0].name;
+  assert.doesNotMatch(name, /\.json$/, 'the reported bug: `[CmdletBinding()]` opened with a bracket');
+  assert.match(name, /\.ps1$/, 'and it is named for what it is, not left as .txt');
+});
+
+test('a bare script block is not JSON either', () => {
+  assert.equal(extOf('{\n    param($x)\n    Write-Host $x\n}'), 'ps1',
+    'the other half of /^[{[]/, and the same misread');
+});
+
+test('JSON that parses is still named .json', () => {
+  assert.equal(extOf('{"a": 1, "b": [2, 3]}'), 'json');
+  assert.equal(extOf('[{"a": 1}, {"a": 2}]'), 'json');
+  assert.equal(extOf('\n\n  [1, 2, 3]  \n'), 'json', 'surrounding whitespace is not content');
+});
+
+test('a scalar parses but is not what pasting JSON means', () => {
+  assert.equal(window.StageIntake.isJson('42'), false);
+  assert.equal(window.StageIntake.isJson('"a string"'), false);
+  assert.equal(window.StageIntake.isJson('{ not json'), false, 'nor is a truncated object');
+});
+
+test('a commented PowerShell script is not markdown', () => {
+  const src = `# Build the report and drop it on disk.
+function New-Report {
+    param([string]$Out)
+    Get-Process | Select-Object Name, CPU | Export-Csv -Path $Out -NoTypeInformation
+}`;
+  assert.equal(extOf(src), 'ps1',
+    'a leading `# comment` reads as an H1 to the markdown pattern, so ps1 runs first');
+});
+
+test('prose that names one cmdlet is prose, and a fenced example is markdown', () => {
+  const doc = `# Cleaning up the share
+
+Run Get-ChildItem against the archive and see what is left.`;
+  assert.equal(extOf(doc), 'md', 'one signal is a mention, not a script');
+  const withFence = doc + '\n\n```\nGet-ChildItem -Path C:\\x | Where-Object { $_.Length -gt 0 }\n```\n';
+  assert.equal(extOf(withFence), 'md',
+    'a fence is exact markdown and is not PowerShell at all, so it settles the tie');
+});
+
+test('isPowerShell wants two distinct signals, and counts each one once', () => {
+  assert.equal(window.StageIntake.isPowerShell('Get-ChildItem and Set-Location and New-Item'), false,
+    'three cmdlets are one signal: the cmdlet signal');
+  assert.equal(window.StageIntake.isPowerShell('$rows = Import-Csv .\\in.csv\n$rows | Where-Object { $_.Amount -gt 0 }'), true,
+    'a cmdlet, $_, and a word operator');
+});
+
+test('a CSV is still a CSV, and prose is still prose', () => {
+  assert.equal(extOf(CSV), 'csv', 'the PowerShell test sits ahead of the grid test and must not eat one');
+  assert.equal(extOf('Just a couple of sentences.\nWith a second line.'), 'txt');
+});
+
+// ---- a guessed extension looks guessed --------------------------------------
+//
+// A sniff will always be wrong sometimes, and the pencil has always been the
+// correction. What was missing is any sign that a correction was wanted: a name
+// the sniff invented read exactly like one a file or a clipboard MIME type
+// stated, so nobody had reason to reach for the rename. `sniffed` is that
+// distinction, set at the one intake that guesses and drawn on the row as a
+// dimmed, dotted extension.
+
+test('a pasted plain-text item is marked as guessed', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': PS_SCRIPT } }));
+  assert.equal(data.localItems[0].sniffed, true);
+});
+
+test('a name the platform stated is not a guess', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': HTML } }));
+  assert.equal(data.localItems[0].sniffed, false,
+    'text/html is named from the clipboard MIME type, which is a declaration');
+  reset();
+  window.StageIntake.take({ text: 'anything at all', name: 'given.md', size: 15 });
+  assert.equal(data.localItems[0].sniffed, false,
+    'and so is a #gz= payload, which carries the name it was minted with');
+});
+
+test('a dropped file keeps its own name and is never marked', async () => {
+  reset();
+  await window.StageIntake.takeFile(fakeFile('script.ps1', 'text/plain', 3));
+  assert.ok(!data.localItems[0].sniffed, 'the person who saved it named it');
+});
+
+test('nameParts splits at the last dot, never at the slash', () => {
+  // plain_ because the component builds its array in the jsdom realm, so the
+  // prototype differs and a strict deep-equal reads that as a mismatch.
+  const parts = (it) => plain_(data.nameParts(it));
+  assert.deepEqual(parts({ name: '2026-08-24-paste.ps1' }), ['2026-08-24-paste', '.ps1']);
+  assert.deepEqual(parts({ name: 'docs/note.md' }), ['docs/note', '.md']);
+  assert.deepEqual(parts({ name: 'README' }), ['README', ''],
+    'no dot means no marker to draw');
+  assert.deepEqual(parts({ path: 'a.b', name: 'c.d' }), ['a', '.b'],
+    'path wins, which is the field the row reads');
+});
+
+test('the row draws a guessed extension differently from a stated one', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': PS_SCRIPT } }));
+  window.StageIntake.take({ text: '<h1>hi</h1>', size: 11, name: '2026-08-24-paste.html' });
+  await tick(3);
+  // The tail span is the extension; the marker is its class, so this is the
+  // gate on the pixels rather than on the flag the pixels are drawn from.
+  const tails = [...window.document.getElementById('st').querySelectorAll('span')]
+    .filter(s => /^\.(ps1|html)$/.test(s.textContent || ''));
+  const cls = Object.fromEntries(tails.map(s => [s.textContent, s.className]));
+  assert.match(cls['.ps1'], /decoration-dotted/, 'the sniffed one is drawn as a guess');
+  assert.doesNotMatch(cls['.html'] || '', /decoration-dotted/, 'the stated one is drawn plain');
+});
+
+test('a rename clears the guess, since the name is then authored', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': PS_SCRIPT } }));
+  assert.equal(data.localItems[0].sniffed, true);
+  data.startRename(data.localItems[0]);
+  data.renameDraft = 'deploy.ps1';
+  data.commitRename();
+  assert.equal(data.localItems[0].sniffed, false,
+    'leaving it on would tell a reader their own correction was still a sniff');
 });
 
 test('a JSON array of records opens as a table; any other JSON stays a tree', () => {
@@ -673,25 +825,350 @@ test('the chip row names one item per qualifying local, and skips the rest', () 
     'each chip carries a stable key and says what it would open');
 });
 
+// ── What can be read out of markup ─────────────────────────────────────────
+//
+// One derivation, and the reason there is only one: a copy off a web page puts
+// every link's LABEL in text/plain and every link's ADDRESS in text/html, so
+// both were stageable and neither answered "just give me the links". A links
+// extractor answered it for a day, as a csv and then as a markdown list, and
+// went: converting the markup carries every link as `[text](url)` already, in
+// its own context, so the reduction was a second reader of html earning its
+// keep by being shorter and nothing else.
+
+const IN = () => window.StageIntake;
+
+const PAGE = `<p>Read <a href="https://example.com/a">the first</a> and
+  <a href="/docs/b">a relative one</a>, skip <a href="#top">this anchor</a>
+  and <a href="javascript:void(0)">this handler</a>, mail
+  <a href="mailto:x@y.z">someone</a>.</p>`;
+
+test('a derivation is named for its source, and always carries its tag', () => {
+  assert.equal(IN().derivedName('2026-08-28-paste.html', 'markdown'), '2026-08-28-paste-markdown.md');
+  assert.equal(IN().derivedName('noext', 'markdown'), 'noext-markdown.md');
+  assert.notEqual(IN().derivedName('2026-08-28-paste.md', 'markdown'), '2026-08-28-paste.md',
+    'a plain-text paste opening with a heading is already named .md, and two items '
+    + 'under one name is worse than a long one');
+});
+
+test('a conversion opens raw, where every other markdown in the app renders', () => {
+  assert.equal(IN().opensRaw('2026-08-28-paste-markdown.md'), true,
+    'a conversion is a payload to copy, so its question is what it IS');
+  assert.equal(IN().opensRaw('README.md'), false,
+    'and a document is a document: READ_MODE still sends that to preview');
+  assert.equal(IN().opensRaw('notes-markdown.txt'), false);
+});
+
+test('only markup is a source, since text is already what it is', () => {
+  assert.equal(IN().isMarkup('page.html'), true);
+  assert.equal(IN().isMarkup('feed.xml'), true);
+  assert.equal(IN().isMarkup('notes.md'), false);
+  assert.equal(IN().isMarkup('rows.csv'), false);
+});
+
+// ---- the preview, which is the house hover card ----------------------------
+//
+// kits/source-peek.js draws it; what this component owns is the KEY on each pill
+// and the bytes behind it. The card itself (its look, its dwell, where it lands)
+// is the kit's and is tested there.
+
+const peeks = () => {
+  const seeded = new Map();
+  window.SourcePeek = { seed: (k, t) => seeded.set(k, t) };
+  data.seedPeeks();
+  return seeded;
+};
+
+test('a text flavor carries its own name as the key, and its bytes behind it', async () => {
+  reset();
+  await paste(fakeCd({
+    types: ['text/plain', 'text/html'],
+    data: { 'text/plain': 'the first a relative one someone', 'text/html': PAGE },
+  }));
+  const html = data.offers.find(o => data.flavorLabel(o) === 'html');
+  assert.equal(data.peekKey(html), html.name,
+    'the key is the file name, so the card head says what it is without an address');
+  assert.equal(peeks().get(html.name), PAGE,
+    'and the bytes are handed over, so a key that is not an address never reaches the network');
+});
+
+test('a conversion previews as source, not as the markdown its name implies', async () => {
+  reset();
+  stubTurndown();
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  await data.runAction(data.offers.find(o => data.flavorLabel(o) === 'html'),
+                       { id: 'markdown', label: 'Markdown' });
+  await tick(3);
+  const seeded = [];
+  window.SourcePeek = { seed: (k, text, kind) => seeded.push([k, kind]) };
+  data.seedPeeks();
+  const md = seeded.find(r => /-markdown\.md$/.test(r[0]));
+  assert.deepEqual(plain_(md && md[1]), 'source',
+    'the card previews what the reader is about to see, and a conversion opens raw');
+  assert.equal(seeded.find(r => /-paste\.html$/.test(r[0]))[1], undefined,
+    'a flavor the clipboard carried keeps the rendition its extension picks');
+});
+
+test('an image carries no peek, since the card reads text', async () => {
+  reset();
+  await paste(fakeCd({ types: ['Files'], files: [fakeFile('image.png', 'image/png', 4096)] }));
+  assert.equal(data.peekKey(data.offers[0]), '');
+  assert.equal(peeks().size, 0);
+});
+
+// ---- the pill's menu -------------------------------------------------------
+//
+// The pill is the SUBJECT and its menu the verbs. Markdown had a pill of its own
+// for a day, which put a derivation beside the formats it is made from and could
+// hold only the one conversion anybody had asked for.
+
+const stubTurndown = () => {
+  const seen = [];
+  window.TurndownService = class {
+    constructor(opts) { seen.push(opts); }
+    use() {}
+    turndown(html) { return 'MD<' + String(html).length + '>'; }
+  };
+  window.turndownPluginGfm = { gfm: {} };
+  return seen;
+};
+
+const ids = (fl) => plain_(data.flavorActions(fl).map(a => a.id));
+const flavor = (label) => data.offers.find(o => data.flavorLabel(o) === label);
+
+test('a text flavor offers copy and base64; markup adds markdown', async () => {
+  reset();
+  await paste(fakeCd({
+    types: ['text/plain', 'text/html'],
+    data: { 'text/plain': 'plain words here', 'text/html': PAGE },
+  }));
+  assert.deepEqual(ids(flavor('txt')), ['copy', 'base64'],
+    'text is already what it is, so converting it to markdown is not an offer');
+  assert.deepEqual(ids(flavor('html')), ['copy', 'markdown', 'base64']);
+});
+
+test('an image offers only base64, which is the one thing bytes can answer', async () => {
+  reset();
+  await paste(fakeCd({ types: ['Files'], files: [fakeFile('image.png', 'image/png', 4096)] }));
+  assert.deepEqual(ids(data.offers[0]), ['base64']);
+});
+
+test('base64 is offered back only where it decodes to text', async () => {
+  reset();
+  const b64 = window.btoa('a document that was encoded on the way here');
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': b64 } }));
+  assert.ok(ids(data.offers[0]).includes('unbase64'),
+    'looksBase64 runs the decode it is deciding about, so the item always works');
+});
+
+test('prose is not base64, however long it runs', () => {
+  const IN = window.StageIntake;
+  assert.equal(IN.looksBase64('deadbeef'), false, 'under the floor, and a hex word qualifies on arithmetic alone');
+  assert.equal(IN.looksBase64('one, two, three and a fourth thing'), false, 'the alphabet rules out spaces');
+  assert.equal(IN.looksBase64('QUJDRA'), false, 'a length that is not a multiple of four is not padded base64');
+  assert.equal(IN.looksBase64(window.btoa('sixteen or more characters here')), true);
+});
+
+test('base64 round-trips text past the byte range btoa refuses', () => {
+  const IN = window.StageIntake;
+  const text = 'a smart quote \u2019 and an accent \u00e9 with enough length to pass the floor';
+  assert.equal(IN.base64Info(IN.b64OfText(text)).text, text,
+    'btoa alone throws on either of those, which is what the utf-8 sandwich is for');
+});
+
+// ---- what a decode LANDS as, which is not always text ----------------------
+
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+                            0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1]);
+
+test('bytes are named by their first four, and unknown binary is refused', () => {
+  const IN = window.StageIntake;
+  const b64 = IN.b64OfBytes(PNG);
+  assert.equal(IN.base64Info(b64).ext, 'png');
+  assert.equal(IN.base64Info(b64).text, null, 'a png is not text, however it arrived');
+  const junk = IN.b64OfBytes(new Uint8Array([0xde, 0xad, 0xbe, 0xef, 0, 1, 2, 3,
+                                             4, 5, 6, 7, 8, 9, 10, 11]));
+  assert.equal(IN.base64Info(junk), null,
+    '"here are some bytes" is not an answer the menu was asked for');
+});
+
+test('a data: URI is read, and its own media type beats the sniff', () => {
+  const IN = window.StageIntake;
+  const png = 'data:image/png;base64,' + IN.b64OfBytes(PNG);
+  assert.equal(IN.base64Info(png).ext, 'png');
+  assert.equal(IN.base64Info(png).mime, 'image/png');
+  const svg = 'data:image/svg+xml;base64,' + IN.b64OfText('<svg xmlns="http://www.w3.org/2000/svg"/>');
+  assert.equal(IN.base64Info(svg).ext, 'xml',
+    'text wins where the bytes are text: the decode reads as markup and is named for it');
+});
+
+test('the decode of a data: URI lands as a staged file, not as mojibake', async () => {
+  reset();
+  const uri = 'data:image/png;base64,' + window.StageIntake.b64OfBytes(PNG);
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': uri } }));
+  await data.runAction(data.offers[0], { id: 'unbase64', label: 'Decoded' });
+  await tick(3);
+  const made = data.localItems.find(it => /-decoded\.png$/.test(it.name));
+  assert.ok(made, 'named for its flavor and for what the bytes turned out to be');
+  assert.equal(made.isText, false, 'a png stays bytes');
+  assert.equal(made.bytes.length, PNG.length);
+});
+
+test('to base64 stages a .txt named for its flavor, and back again sniffs what it was', async () => {
+  reset();
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  const html = data.offers[0];
+  await data.runAction(html, { id: 'base64', label: 'Base64' });
+  await tick(3);
+  const enc = data.localItems.find(it => /-base64\.txt$/.test(it.name));
+  assert.ok(enc, 'named for its source, so the pair reads as a pair');
+  assert.equal(window.atob(enc.text), window.btoa ? window.atob(window.StageIntake.b64OfText(PAGE)) : '',
+    'and it is the flavor, encoded');
+
+  // Now the inverse, from a paste of that encoding.
+  reset();
+  await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': enc.text } }));
+  await data.runAction(data.offers[0], { id: 'unbase64', label: 'Decoded' });
+  await tick(3);
+  const dec = data.localItems.find(it => /-decoded\./.test(it.name));
+  assert.ok(dec, 'the decode lands');
+  assert.equal(dec.text, PAGE);
+  assert.match(dec.name, /-decoded\.xml$/,
+    'named by what the bytes turned out to be, not by the .txt they arrived as. A bare '
+    + 'fragment sniffs as xml rather than html, which wants a doctype or an <html>; both '
+    + 'are markup, so the markdown action is offered either way');
+});
+
+test('copy hands the flavor to the house clipboard helper, and says which', async () => {
+  reset();
+  const copied = [];
+  const said = [];
+  const realToast = Alpine.store('toast');
+  const realIo = window.io;
+  window.io = { copy: async (t) => { copied.push(t); return true; } };
+  Alpine.store('toast', (kind, msg) => said.push(msg));
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  await data.runAction(data.offers[0], { id: 'copy', label: 'Copy' });
+  assert.deepEqual(plain_(copied), [PAGE]);
+  assert.match(said[0] || '', /^Copied .*\.html$/);
+  assert.equal(data.localItems.length, 1, 'copying stages nothing: it is the one verb with no file');
+  window.io = realIo;
+  Alpine.store('toast', realToast);
+});
+
+test('the markdown action converts once and stages the result under its own name', async () => {
+  reset();
+  const opts = stubTurndown();
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  const html = data.offers[0];
+  await data.runAction(html, { id: 'markdown', label: 'Markdown' });
+  await tick(3);
+  assert.equal(opts.length, 1);
+  assert.equal(opts[0].headingStyle, 'atx');
+  const made = data.localItems.find(it => /-markdown\.md$/.test(it.name));
+  assert.ok(made, 'staged under the name derivedName mints');
+  assert.equal(data.reader, null,
+    'and the reader does NOT open: the ask was for this version, not for a look at it');
+  const pill = data.offers.find(o => o.name === made.name);
+  assert.ok(pill, 'the bar says what the paste has produced, not only what the clipboard held');
+  assert.equal(data.flavorStaged(pill), true, 'ticked, since it is on the stage');
+  assert.deepEqual(ids(pill), ['copy', 'base64'],
+    'and it is composable: the markdown has its own copy without a trip through the list');
+});
+
+test('nothing is loaded or converted until the action is chosen', async () => {
+  reset();
+  delete window.TurndownService;
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  assert.ok(ids(data.offers[0]).includes('markdown'), 'the menu draws from the flavor alone');
+  assert.equal(data._mdText, null, 'and 31 KB is not fetched to fill it in');
+  assert.equal(data.localItems.length, 1, 'nor is anything converted');
+});
+
+test('a converter that will not load is reported, not swallowed', async () => {
+  reset();
+  delete window.TurndownService;
+  const said = [];
+  const realToast = Alpine.store('toast');
+  const realDeps = data.loadMarkdownDeps.bind(data);
+  Alpine.store('toast', (kind, msg) => said.push(msg));
+  // A load that resolves without the global arriving, which is what a blocked
+  // host or a bad pin actually looks like: the script tag settles and the
+  // window is still missing what it was fetched for. mdOf's own guard catches
+  // that, and runAction turns it into the menu item's name plus the reason.
+  data.loadMarkdownDeps = async () => {};
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  await data.runAction(data.offers[0], { id: 'markdown', label: 'Markdown' });
+  assert.equal(data.localItems.length, 1, 'nothing half-made is staged');
+  assert.match(said[0] || '', /^Markdown: the markdown converter is not loaded/);
+  assert.equal(data.mdBusy, false, 'and the pill stops spinning');
+  data.loadMarkdownDeps = realDeps;
+  Alpine.store('toast', realToast);
+});
+
+test('a second paste under the same sniffed name is converted again', async () => {
+  reset();
+  stubTurndown();
+  const OTHER = PAGE + '<p>and a second document entirely</p>';
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': PAGE } }));
+  const first = await data.mdFor(data.offers[0]);
+  reset();
+  await paste(fakeCd({ types: ['text/html'], data: { 'text/html': OTHER } }));
+  const second = await data.mdFor(data.offers[0]);
+  assert.notEqual(second, first,
+    'two pastes on one day carry the same sniffed name, so a name-keyed cache '
+    + 'would hand the second the first one\'s markdown');
+});
+
+test('the reader\'s header converts a staged file, however it arrived', () => {
+  reset();
+  IN().take({ text: PAGE, name: 'page.html' });
+  const it = data.localItems[0];
+  assert.equal(it.local && it.isText && IN().isMarkup(it.name), true,
+    'the bar is about the paste; a dropped or fetched file keeps its route through the reader');
+  assert.equal(IN().derivedName(it.name, 'markdown'), 'page-markdown.md');
+});
+
+test('a ref is never a source, since it has no text until it is fetched', () => {
+  reset();
+  IN().take({ text: 'me/a:docs/page.html', size: 18 });
+  assert.equal(data.refItems.length, 1);
+  assert.deepEqual(plain_(data.offers), [], 'a ref line stages refs and carries no flavor bar');
+});
+
 test('prose with a stray tab is not a grid', async () => {
   reset();
   await paste(fakeCd({ types: ['text/plain'], data: { 'text/plain': 'a note\twith a tab\nand a second line' } }));
   assert.match(data.localItems[0].name, /\.txt$/, 'the tab counts differ, so it is text');
 });
 
-test('staging an offered flavor moves it onto the stage and off the bar', async () => {
+test('tapping an unticked flavor stages it, and the chip ticks', async () => {
   reset();
   await paste(fakeCd({
     types: ['text/plain', 'text/html'],
     data: { 'text/plain': TSV, 'text/html': HTML },
   }));
   assert.equal(data.localItems.length, 1);
-  assert.equal(data.offers.length, 1);
-  await data.stageFlavor(data.offers[0]);
+  const html = data.offers.find(o => data.flavorLabel(o) === 'html');
+  await data.toggleFlavor(html);
   assert.equal(data.localItems.length, 2);
-  assert.equal(data.offers.length, 0);
-  const html = data.localItems.find(it => /\.html$/.test(it.name));
-  assert.equal(html.text, HTML, 'the html flavor is staged as html, not sniffed from its first characters');
+  assert.equal(data.flavorStaged(html), true, 'the chip is read off the stage, so it follows on its own');
+  assert.equal(data.localItems.find(it => /\.html$/.test(it.name)).text, HTML,
+    'the html flavor is staged as html, not sniffed from its first characters');
+});
+
+test('tapping a ticked flavor takes it off, which is how you choose the other one', async () => {
+  reset();
+  await paste(fakeCd({
+    types: ['text/plain', 'text/html'],
+    data: { 'text/plain': TSV, 'text/html': HTML },
+  }));
+  const tsv = data.offers.find(o => data.flavorLabel(o) === 'tsv');
+  await data.toggleFlavor(data.offers.find(o => data.flavorLabel(o) === 'html'));
+  await data.toggleFlavor(tsv);
+  assert.deepEqual(plain_(data.localItems.map(it => it.name.split('.').pop())), ['html'],
+    'the html instead of the text, which used to mean staging both and hunting one down');
+  assert.equal(data.offers.length, 2, 'both stay on the bar: the paste still carried them');
+  assert.equal(data.flavorStaged(tsv), false);
 });
 
 test('a paste into a form field keeps its native paste, and offers the rest', async () => {
@@ -702,8 +1179,10 @@ test('a paste into a form field keeps its native paste, and offers the rest', as
     files: [fakeFile('image.png', 'image/png', 4096)],
   }), { tagName: 'INPUT' });
   assert.equal(data.localItems.length, 0, 'the field pastes its own text; nothing is stolen');
-  assert.deepEqual(plain_(data.offers.map(o => data.flavorLabel(o)).sort()), ['html', 'png'],
-    'what a text field cannot hold is offered instead of lost');
+  assert.deepEqual(plain_(data.offers.map(o => data.flavorLabel(o)).sort()), ['html', 'png', 'tsv'],
+    'what a text field cannot hold is offered, and what it took is still named');
+  assert.equal(data.offers.every(o => !data.flavorStaged(o)), true,
+    'nothing is ticked, because the field took the text and the stage took nothing');
 });
 
 test('ref lines still stage as refs, through the flavor path', async () => {
@@ -713,13 +1192,17 @@ test('ref lines still stage as refs, through the flavor path', async () => {
   assert.equal(data.localItems.length, 0);
 });
 
-test('an offer already on the stage under that name is not offered again', async () => {
+test('the same paste twice is quiet, because the chips just show as ticked', async () => {
   reset();
   const cd = fakeCd({ types: ['text/plain', 'text/html'], data: { 'text/plain': TSV, 'text/html': HTML } });
   await paste(cd);
-  await data.stageFlavor(data.offers[0]);
+  await data.toggleFlavor(data.offers.find(o => data.flavorLabel(o) === 'html'));
   await paste(cd);
-  assert.equal(data.offers.length, 0, 'the same paste twice is quiet, not cumulative');
+  assert.equal(data.offers.every(o => data.flavorStaged(o)), true,
+    'the bar says both are on the stage rather than going blank, which read as "nothing here"');
+  assert.equal(data.localItems.length, 3,
+    'the primary is re-staged, which every repeated paste has always done: the old bar filter '
+    + 'kept only the BAR quiet, never the stage');
 });
 
 // ---- the paste fold is the intake's, so it works with no bench mounted ----
@@ -737,8 +1220,9 @@ test('takePaste reports what landed and what the paste also carried', async () =
   }));
   assert.equal(r.added.length, 1, 'the primary flavor lands');
   assert.match(r.added[0].name, /\.tsv$/);
-  assert.equal(r.offers.length, 1, 'and the caller learns what it did not take');
-  assert.match(r.offers[0].name, /\.html$/, 'an offer is named on the way out, not by the bench');
+  assert.equal(r.offers.length, 2, 'and the caller learns everything the copy held');
+  assert.deepEqual(plain_(r.offers.map(o => o.name.split('.').pop()).sort()), ['html', 'tsv'],
+    'a flavor is named on the way out, not by the bench');
 });
 
 test('the offers a paste leaves ride the store, so a bench that mounts later finds them', async () => {
@@ -747,8 +1231,8 @@ test('the offers a paste leaves ride the store, so a bench that mounts later fin
     types: ['text/plain', 'text/html'],
     data: { 'text/plain': TSV, 'text/html': HTML },
   }));
-  assert.equal(store.stageOffers.length, 1, 'the store holds the bar, not the component');
-  assert.equal(data.offers.length, 1, 'and the component reads it through');
+  assert.equal(store.stageOffers.length, 2, 'the store holds the bar, not the component');
+  assert.equal(data.offers.length, 2, 'and the component reads it through');
   data.dismissOffers();
   assert.equal(store.stageOffers.length, 0, 'clearing the bar clears the store');
 });
@@ -761,8 +1245,8 @@ test('a paste into a field stages nothing, and says so rather than silently taki
   }), { editable: true });
   assert.equal(r.added.length, 0, 'the field keeps its own paste');
   assert.equal(r.native, true, 'and the caller is told to leave the event alone');
-  assert.equal(r.offers.length, 1, 'only what the field cannot hold is offered');
-  assert.match(r.offers[0].name, /\.html$/, 'text/plain is what the field just pasted, so it is not offered back');
+  assert.equal(r.offers.length, 2, 'the bar still says what the copy held');
+  assert.equal(r.offers.some(o => /\.html$/.test(o.name)), true, 'including what the field could not hold');
 });
 
 test('offer: false reads the clipboard without touching the bar', async () => {
@@ -772,7 +1256,7 @@ test('offer: false reads the clipboard without touching the bar', async () => {
     types: ['text/plain', 'text/html'],
     data: { 'text/plain': TSV, 'text/html': HTML },
   }), { offer: false });
-  assert.equal(r.offers.length, 1, 'the caller still learns what was carried');
+  assert.equal(r.offers.length, 2, 'the caller still learns what was carried');
   assert.equal(store.stageOffers.length, 0, 'but nothing was written where a bar would draw it');
 });
 
@@ -1036,81 +1520,6 @@ test('a paste past the link budget reports the overflow instead of minting', asy
     assert.match(e.message, /over the \d+K a link can carry/);
     return true;
   });
-});
-
-// ---- Save as surface: the bench-to-shelf bridge ------------------------
-//
-// This replaced a write of stage.files into a NAMED repo's .web-tools.json.
-// That save overwrote (each one destroyed the last), wrote a cross-repo set
-// into one repo's config, and dropped every local file in silence. What is
-// asserted here is that all three are gone: the write lands in the registry's
-// surfaces/ as a new file, it is a v2 stage/1 surface, and what cannot be
-// carried is named. The envelope itself is covered in surface.test.mjs; this
-// is about where the component puts it.
-
-test('save mints a surface in the registry, never a repo manifest', async () => {
-  reset();
-  calls.length = 0;
-  store.repo = 'me/open';
-  window.__shell = { REGISTRY_REPO: 'me/registry' };
-  store.stage = [
-    { repo: 'me/open', ref: '', path: 'lib/a.js' },
-    { local: true, id: 96, name: 'd.bin', path: 'd.bin', size: 1, isText: false, bytes: new Uint8Array([1]) },
-  ];
-  await data.saveAsSurface();
-  delete window.__shell;
-  const wrote = calls.filter(c => c.kind === 'save');
-  assert.equal(wrote.length, 1);
-  assert.equal(wrote[0].repo, 'me/registry', 'a cross-repo set belongs to no repo, so it lands in the registry');
-  assert.match(wrote[0].path, /^surfaces\/\d{8}-\d{6}-.*\.surface$/, 'dated, so the directory sorts as history');
-  assert.equal(calls.some(c => c.kind === 'save' && c.path === '.web-tools.json'), false,
-    'no repo manifest is touched');
-  const doc = plain_(wrote[0].value);
-  assert.deepEqual(doc.manifest.schema, { name: 'surface', version: 2 });
-  assert.deepEqual(doc.manifest.profile, { name: 'stage', version: 1 });
-  assert.equal(doc.items.length, 1, 'binary bytes cannot ride a JSON string');
-  assert.deepEqual(doc.items[0].target.source, { repository: 'me/open', path: 'lib/a.js' });
-});
-
-test('a second save appends rather than replacing the first', async () => {
-  reset();
-  calls.length = 0;
-  window.__shell = { REGISTRY_REPO: 'me/registry' };
-  store.stage = [{ repo: 'me/open', ref: '', path: 'lib/a.js' }];
-  data.saveName = 'first';
-  await data.saveAsSurface();
-  data.saveName = 'second';
-  await data.saveAsSurface();
-  delete window.__shell;
-  const paths = calls.filter(c => c.kind === 'save').map(c => c.path);
-  assert.equal(paths.length, 2);
-  assert.notEqual(paths[0], paths[1], 'a history that overwrites is not one');
-});
-
-test('the dialog reads exactly what will be written', async () => {
-  reset();
-  window.__shell = { REGISTRY_REPO: 'me/registry' };
-  store.stage = [
-    { repo: 'me/open', ref: '', path: 'lib/a.js' },
-    { local: true, id: 97, name: 'shot.png', path: 'shot.png', size: 1, isText: false, bytes: new Uint8Array([1]) },
-  ];
-  data.saveDest = 'me/other:docs';
-  // The serialized form is not guessable from the list on screen, which is the
-  // whole reason the dialog shows it rather than describing it.
-  const written = JSON.parse(data.savePreview);
-  assert.deepEqual(written.context, { destination: 'me/other:docs' });
-  assert.equal(written.items.length, 1);
-  assert.deepEqual(plain_(data.saveSkipped), ['shot.png'], 'and what it will leave behind');
-  assert.match(data.savePath, /^surfaces\//);
-  delete window.__shell;
-});
-
-test('save does nothing with an empty stage', async () => {
-  reset();
-  calls.length = 0;
-  store.stage = [];
-  await data.saveAsSurface();
-  assert.equal(calls.length, 0);
 });
 
 test('loadRecent merges root repos newest-first, tagging each file with its repo', async () => {
@@ -2649,6 +3058,10 @@ test('the stage paints through the kit and its pad turns into casing keys', asyn
   assert.equal(data.dictText, 'the QUICK brown fox.');
   data.dictDrop();
   assert.equal(data.dictSel, false);
+  // The plain marks: the buffer ends with a full stop and nothing follows it,
+  // so there is no break to close and the stitch has nothing to offer. Taking a
+  // trailing mark off is the backspace's job, which is exactly why the stitch
+  // stopped answering for one (kits/dictate.js, stitchAim).
   assert.deepEqual(plain_(data.dictMarks), ['.', ',', '?'], 'and the marks came back');
   data.dictCancel();
 });

@@ -13,12 +13,31 @@
 // CARD=turns|tools|files|tokens opens that pair's card on the first row. Those
 // four numbers said what they counted only in a title, so the card is the only
 // way a phone reader learns that 206 is tool calls and which tools they were.
+// CARD=reply opens the ask line's card, which renders the session as a
+// transcript through kits/chat-render.js and so needs the network the other
+// four do not.
+// CARDTOP=1 scrolls that card back to its first entry (it opens at the last).
+// STALE=1 puts the first row a summarizer version behind.
+//
+// LIVE=1 replaces the first row's hand-written prose with a lean row plus a
+// stubbed record (TURNS_RECORD below), so the card runs the real path: the
+// summarizer heads the turns, the header numbers them off their own instants,
+// and a tap has a record to open the deck against. Anything about TRUNCATION,
+// the header's clock or the rail's placement has to be shot this way: a
+// hand-written row carries a UTC clock string and no instants, so its rail
+// falls back to even spacing and its clock to the string. With it:
+//   TAP=<n>      taps the nth turn (1-based), which opens the session deck on
+//                that exchange; the card stays open underneath it
+//   SCROLL=<px>  scrolls the card down that far, for the header's position
 
 const SESSIONS = [
   {
     id: 'b8fae678', agent: 'https://claude.ai/code/session_01SXuNTt', day: '2026-08-05',
     started: '2026-08-05T13:51:08Z', ended: '2026-08-05T16:49:16Z', mins: 178,
-    ask: 'We recently done some significant work on surfacing our documentation in the show repo app. Discuss where we are at with that.',
+    // A markdown ask, which is the case the row's preview strip exists for:
+    // 2 of the 238 on file open with a pasted list of links, and unstripped
+    // the two clamped lines are an asterisk, a bracketed title and a URL.
+    ask: '* [2025-27 Biennial Budget Instructions](https://ofm.wa.gov/budget/budget-instructions)\n* [Budget Development Manual](https://ofm.wa.gov/budget/manual)\n* [ABS User Guide](https://ofm.wa.gov/abs/guide)\n\nRead these and tell me which ones the submittal needs to cite.',
     repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
             { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
     branches: ['claude/show-repo-docs-surfacing-3sr7ab'],
@@ -26,7 +45,67 @@ const SESSIONS = [
     tools: [['Bash', 132], ['Edit', 34], ['Read', 17]],
     tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
     filesTotal: 14, files: [['web-tools/lib/alpineComponents/estate.js', 11], ['web-tools/docs/showing.md', 4]],
-    schema: 3, sha: 'a',
+    // MARKDOWN, because a Claude reply is markdown and the store keeps it
+    // verbatim: code spans, a bold run, a list, a fence. The fixture was plain
+    // prose, so the card could print its source and look right.
+    reply: [
+      'The docs surfacing now runs through the **Map view** rather than through prose in `CLAUDE.md`:',
+      '',
+      '- `docs/showing-mechanisms.csv` is the data',
+      '- the Showing tab renders it',
+      '- `npm run showing` prints the line to paste',
+      '',
+      '```bash',
+      'npm run showing',
+      '```',
+      '',
+      'So the choice is executable rather than remembered.',
+    ].join('\n'),
+    replyCut: '',
+    // The scroll back, in the shape repo-sessions-cache's priorTurns emits:
+    // [role, head, clock, dropped?] tuples, chronological, both an ask and a
+    // reply cut at 240 since 2026-08-28, the closing reply excluded because
+    // `reply` above carries it. A user turn long enough to be cut is in here
+    // deliberately: 36% of the store's are, and the chip that says so is the
+    // one piece of card chrome with no other surface to be shot on.
+    // Sentence-shaped heads at TURN_HEAD, the way priorTurns emits them: an
+    // entry ends where a thought does. Narration turns are absent because the
+    // card drops anything followed by tool calls, which the deck keeps.
+    turns: [
+      ['a', 'Here is where it stands. The mechanisms live as data in `docs/showing-mechanisms.csv`, and the Map view renders that file directly rather than restating it in prose.', '14:02:11', 2264],
+      ['u', 'Can we get the render line printed rather than remembered? I keep handing over the wrong link and the section that was meant to stop it is the longest one in the file, so reading it is clearly not the thing that fixes this.', '14:19:40', 168],
+      ['a', '`npm run showing` now reads the branch\'s changed files and prints the line to paste, or an honest no-link with the reason. The rule the section stated in prose is executable.', '14:31:07'],
+      ['u', '[3 images]', '15:12:44'],
+      ['u', 'Good. Please proceed with the Map view tab.', '15:20:03'],
+      ['a', 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it.', '15:44:29', 891],
+    ],
+    turnsCut: 'cut',
+    askAt: '13:51:08',
+    replyAt: '16:49:16',
+    // The closing state, and it deliberately DISAGREES with the rail above it:
+    // this session's branches shipped, and it still closed naming work for the
+    // next go. That pair is the whole reason the glyph is on the row, so the
+    // fixture has to be able to show it.
+    state: 'ready',
+    // And the sequence behind it, in the shape closingStates emits: [key,
+    // passage, clock] chronological, newest last, every passage whole. A
+    // session closes at the end of every stretch of work (median 12 across the
+    // store), and the states CHANGE, which is what makes the card worth
+    // opening rather than a tooltip. This one walks pending → assess → clean →
+    // ready, so the shot shows a history rather than four of the same glyph.
+    // Fourth element is the GAP: user prompts since the state above it. All
+    // three shapes are here on purpose, since the divider exists to tell them
+    // apart. 0 = closed twice in one turn and no rule at all (15% of the
+    // store's pairs), 1 = the ordinary rhythm (73%), 2+ = a stretch that ran
+    // long (12%). Every rule drawn carries its count.
+    states: [
+      ['pending', '🟡 **Pending:** the Map view needs `docs/showing-mechanisms.csv` to exist before the tab can read it, and the CSV is still being derived from the prose. Nothing to look at yet.', '14:31:07', 0],
+      ['assess', '❇️ **Ready to assess:** whether the render line should be printed rather than remembered. The section that was meant to stop the wrong link is the longest one in the file, so reading it is evidently not what fixes this.', '15:02:44', 0],
+      ['clean', '⚪ **Clean exit.** The Showing tab reads the CSV directly, so a new mechanism is a row rather than a paragraph. `npm run showing` prints the line to paste.', '16:10:22', 1],
+      ['ready', '🟢 **Ready to continue.** Available on "go": (1) the Docs tab\'s growth-versus-readership quadrant, which the registry already has both axes for; (2) folding `docs/showing.md` down now that the app holds the mechanisms; (3) a gate on the honesty rule, which is the one part no script can supply.', '16:48:51', 3],
+    ],
+    statesCut: '',
+    schema: 4, sha: 'a',
   },
   {
     id: 'ae761f5d', agent: 'https://claude.ai/code/session_011jJdgM', day: '2026-08-05',
@@ -38,7 +117,16 @@ const SESSIONS = [
     tools: [['Bash', 71], ['Read', 22], ['Edit', 12]],
     tokens: { input: 400, output: 121000, cache_read: 41000000, cache_write: 2100000 },
     filesTotal: 6, files: [['web-tools/tools/build/tracker-board.mjs', 9]],
-    schema: 3, sha: 'b',
+    reply: 'Found it: the board sorted on a Map iteration order that follows insertion, so two tasks closed in one commit swapped places on every regeneration. Sorting by id inside the group makes it byte-deterministic and the lockstep test now catches a relapse.',
+    replyCut: '',
+    state: 'merged',
+    // The other end of the range: one state and nothing to scroll back
+    // through. The card has to read as finished rather than as broken.
+    states: [
+      ['merged', '🟣 **Merged.** The board sorts by id inside each group, so two tasks closed in one commit no longer swap places on every regeneration. The lockstep test catches a relapse.', '11:38:02', 0],
+    ],
+    statesCut: '',
+    schema: 4, sha: 'b',
   },
   {
     id: '3f3e759b', agent: '', day: '2026-08-03',
@@ -50,7 +138,64 @@ const SESSIONS = [
     tools: [['Bash', 33], ['Read', 6]],
     tokens: { input: 210, output: 38000, cache_read: 12000000, cache_write: 900000 },
     filesTotal: 0, files: [],
+    reply: 'Nine crosswalk CSVs, and the verify suite passes.',
+    replyCut: 'tail',
+    // No `state`, and that is the schema-2 case: the record kept a tail of the
+    // final turn and no replies, so there is nothing to read a marker out of.
+    // Its slot draws empty, which is what holds the column straight.
     schema: 2, sha: 'c',
+  },
+  // Three more, for the two surfaces the state axis added: the chip row needs
+  // more than one state to appear at all, and the Counts histogram needs a
+  // distribution rather than a pair. Deliberately thin otherwise, since what
+  // they exist to draw is one field.
+  {
+    id: '7c4a1e02', agent: '', day: '2026-08-04',
+    started: '2026-08-04T10:00:00Z', ended: '2026-08-04T11:12:00Z', mins: 72,
+    ask: 'The wsl-fetch cron has not landed its errand in three days. Work out whether it is the schedule or the runner.',
+    repos: [{ name: 'web-tools', branch: 'claude/wsl-fetch-cron-8dk2mq', lines: 41 }],
+    branches: ['claude/wsl-fetch-cron-8dk2mq'],
+    exchanges: 5, messages: 88, calls: 63, failures: 0,
+    tools: [['Bash', 44], ['Read', 11]],
+    tokens: { input: 300, output: 71000, cache_read: 19000000, cache_write: 1200000 },
+    filesTotal: 3, files: [['web-tools/.github/workflows/wsl-fetch.yml', 5]],
+    reply: 'The schedule is fine and the runner is asleep: the cron fires while the machine is off, and a hosted runner cannot reach the share. It needs the self-hosted runner, which is yours to start.',
+    replyCut: '', state: 'pending',
+    states: [['pending', "🟡 **Pending:** the schedule is fine and the runner is asleep. The cron fires while the machine is off, and a hosted runner cannot reach the share, so this needs the self-hosted runner started.", '11:10:40', 0]], statesCut: '',
+    schema: 4, sha: 'd',
+  },
+  {
+    id: '2f81b9dd', agent: '', day: '2026-08-04',
+    started: '2026-08-04T08:00:00Z', ended: '2026-08-04T09:05:00Z', mins: 65,
+    ask: 'Should the snags log get a projector or stay hand-appended? Assess both and recommend.',
+    repos: [{ name: 'web-tools', branch: 'claude/snags-projector-p91xzr', lines: 18 }],
+    branches: ['claude/snags-projector-p91xzr'],
+    exchanges: 4, messages: 51, calls: 29, failures: 0,
+    tools: [['Read', 16], ['Bash', 9]],
+    tokens: { input: 220, output: 44000, cache_read: 11000000, cache_write: 800000 },
+    filesTotal: 2, files: [['web-tools/docs/SNAGS.md', 6]],
+    reply: 'Both work and they cost differently. A projector keeps the index honest and adds a generator to the hook chain; hand-appending stays free and drifts. The call is yours.',
+    replyCut: '', state: 'choice',
+    states: [['choice', "🆚 **Choice needed.** A projector keeps the index honest and adds a generator to the hook chain; hand-appending stays free and drifts. I lean projector, since the index is already wrong twice. Your call.", '09:03:15', 0]], statesCut: '',
+    schema: 4, sha: 'e',
+  },
+  // The unhealed row: a record the crawl has not re-read since the field
+  // landed. It is the case the backfill line exists for, and the one absence
+  // a Refresh can actually close. Its `v` is set in the page, off the live
+  // ROW_V, so this fixture never hardcodes a version that drifts.
+  {
+    id: '5b0d33af', agent: '', day: '2026-08-02', behindV: true,
+    started: '2026-08-02T13:00:00Z', ended: '2026-08-02T14:30:00Z', mins: 90,
+    ask: 'Walk the docs registry and tell me which rows have gone orphan since the last skill rename.',
+    repos: [{ name: 'web-tools', branch: 'claude/docs-reach-orphans-4mq7wz', lines: 96 }],
+    branches: ['claude/docs-reach-orphans-4mq7wz'],
+    exchanges: 7, messages: 120, calls: 84, failures: 0,
+    tools: [['Bash', 58], ['Read', 14]],
+    tokens: { input: 410, output: 96000, cache_read: 24000000, cache_write: 1500000 },
+    filesTotal: 5, files: [['web-tools/docs/docs.csv', 7]],
+    reply: 'Seventeen orphans, and the count is the smaller half of the story: they are 11% of the folder by words.',
+    replyCut: '',
+    schema: 4, sha: 'f',
   },
 ];
 
@@ -60,6 +205,45 @@ const ATTENTION = [
   { path: 'web-tools/docs/SURFACING.md', count: 9, sessions: 4, last: '2026-08-04T18:10:00Z' },
   { path: 'home/tracker/board.md', count: 8, sessions: 3, last: '2026-08-04T09:00:00Z' },
 ];
+
+// The branch cache, in the shape allBranchRows reads: a scan per repo, an open
+// PR index, and an any-state one. The Sessions pane nests these under the
+// session that made them, and since 2026-08-27 the session card's own rail is
+// their rollup, so a fixture without them would shoot the one thing the pane
+// no longer does.
+const ACTIVITY = {
+  'mehrlander/web-tools': {
+    defaultBranch: 'main', prReach: '',
+    openPRs: [{ number: 271, head: 'claude/show-repo-docs-surfacing-3sr7ab', draft: false,
+                title: 'Surface the docs registry in the Map view', aheadBy: 8, behindBy: 0,
+                stats: { n: 14, added: 3, changed: 11, removed: 0, renamed: 0, split: true } }],
+    branchPRs: [{ number: 271, head: 'claude/show-repo-docs-surfacing-3sr7ab', state: 'open' },
+                { number: 262, head: 'claude/board-determinism-k2p1x', state: 'merged' }],
+    scan: { branches: [
+      { name: 'claude/show-repo-docs-surfacing-3sr7ab', sha: 'a1', group: 'active',
+        date: '2026-08-05T16:49:16Z', firstDate: '2026-08-04T09:00:00Z',
+        subject: 'Render showing-mechanisms.csv in the Map view',
+        nUnique: 14, nLanded: 0, nMissing: 0, nDiffers: 14 },
+      { name: 'claude/board-determinism-k2p1x', sha: 'b1', group: 'landed',
+        date: '2026-08-05T11:40:00Z', firstDate: '2026-08-05T09:12:00Z',
+        subject: 'Sort the board by id inside each group',
+        stats: { n: 6, added: 0, changed: 6, removed: 0, renamed: 0, split: true },
+        nUnique: 6, nLanded: 6, nMissing: 0, nDiffers: 0, aheadBy: 4, behindBy: 0 },
+    ] },
+  },
+  'mehrlander/home': {
+    defaultBranch: 'main', prReach: '',
+    openPRs: [],
+    branchPRs: [{ number: 118, head: 'claude/show-repo-docs-surfacing-3sr7ab', state: 'merged' }],
+    scan: { branches: [
+      { name: 'claude/show-repo-docs-surfacing-3sr7ab', sha: 'c1', group: 'landed',
+        date: '2026-08-05T16:20:00Z', firstDate: '2026-08-05T14:00:00Z',
+        subject: 'Point the conventions at the Map view',
+        stats: { n: 3, added: 0, changed: 3, removed: 0, renamed: 0, split: true },
+        nUnique: 3, nLanded: 3, nMissing: 0, nDiffers: 0, aheadBy: 1, behindBy: 0 },
+    ] },
+  },
+};
 
 const TODOS = [
   { id: 't1', text: 'Reconcile the landed branches in home and web-tools', done: false },
@@ -80,16 +264,111 @@ const JOTS = [
   { id: 'j5', text: 'Presence is not use. The repos field is cwd, not what was attached.', created_at: '2026-08-03T11:20:00Z' },
 ];
 
+// One record, for the DECK shot below. The list rows are the cache's summaries;
+// this is the captured file behind the first of them, in the store's schema-4
+// shape (sessions/README.md).
+const RECORD = {
+  schema: 4, short: 'b8fae678', day: '2026-08-05',
+  session_id: 'b8fae678-1111-2222-3333-444455556666',
+  agent_session: 'https://claude.ai/code/session_01SXuNTt',
+  started: '2026-08-05T13:51:08Z', ended: '2026-08-05T16:49:16Z',
+  repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
+          { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
+  opening_ask: 'We recently done some significant work on surfacing our documentation in the show repo app. Discuss where we are at with that.',
+  exchanges: 10, assistant_messages: 340, calls_total: 206, failures: 1,
+  files_total: 14, tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
+  tools: { Bash: 132, Edit: 34, Read: 17 },
+  // The map the Files pane lists. Checkout-prefixed, as every key in a record's
+  // `files` is, so the shot also exercises the estate's owner resolution.
+  files: {
+    'web-tools/lib/alpineComponents/estate.js': { read: 3, edit: 11 },
+    'web-tools/docs/showing-mechanisms.csv': { read: 2, write: 1 },
+    'web-tools/CLAUDE.md': { read: 6 },
+    'web-tools/docs/showing.md': { read: 1, edit: 4 },
+    'home/CLAUDE.md': { read: 2 },
+  },
+  prompts: [
+    { at: '2026-08-05T13:51:08Z', text: 'We recently done some significant work on surfacing our documentation in the show repo app. Discuss where we are at with that.' },
+    { at: '2026-08-05T14:40:00Z', text: 'Good. Can we get the mechanisms table rendering from the CSV rather than from prose?' },
+    { at: '2026-08-05T16:10:00Z', text: 'Wrap up.' },
+  ],
+  replies: [
+    { at: '2026-08-05T13:58:00Z', text: 'The docs registry is in place: docs.csv carries a row per document, the reach and words fields are derived by the commit hook, and the Map view renders both.' },
+    { at: '2026-08-05T15:02:00Z', text: 'Done. showing-mechanisms.csv is the data now and the Showing tab renders it; CLAUDE.md keeps a pointer and the executable rule.' },
+    { at: '2026-08-05T16:48:00Z', text: 'The docs surfacing now runs through the Map view rather than through prose in CLAUDE.md: showing-mechanisms.csv is the data, the Showing tab renders it, and npm run showing prints the render line so the choice is executable rather than remembered.' },
+  ],
+  calls: [],
+};
+
+// ── The record behind the first row, for LIVE=1 ──────────────────────────────
+// Longer, and long on purpose. The card heads every scroll-back turn at 240
+// characters and reports what it left; a fixture whose turns all fit under the
+// cap can draw the transcript and cannot draw the one thing the reader is
+// being offered, which is the rest of the turn. So most of these run past it,
+// the opening ask included, and three of the replies are followed by tool
+// calls, which is the case the card drops as work in progress.
+//
+// Nothing here is headed by hand: the row is built from this record by the
+// real summarizer inside the page, so the fixture cannot state a cut the code
+// would not make.
+const at = (t) => '2026-08-05T' + t + 'Z';
+const TURNS_RECORD = {
+  ...RECORD,
+  opening_ask: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
+  prompts: [
+    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
+    { at: at('14:19:40'), text: 'Can we get the render line printed rather than remembered? I keep handing over the wrong link, and the section that was meant to stop it is the longest one in the file, so reading it is evidently not the thing that fixes this.' },
+    { at: at('14:52:10'), text: 'Good. What does the honesty rule cost us if no script can supply it?' },
+    { at: at('15:12:44'), text: '[3 images]' },
+    { at: at('15:20:03'), text: 'Please proceed with the Map view tab.' },
+    { at: at('15:58:20'), text: 'Does the CSV need a column for what each mechanism misses, or is that already implied by what it reaches? I do not want two columns saying one thing, but I also do not want a reader inferring the gap.' },
+    { at: at('16:22:15'), text: 'Take the second option.' },
+    { at: at('16:38:02'), text: 'One more: does the tab survive a mechanism being added, or does somebody have to touch the renderer too?' },
+    { at: at('16:44:30'), text: 'That is what I wanted. Anything left open?' },
+    { at: at('16:47:10'), text: 'Wrap up.' },
+  ],
+  replies: [
+    { at: at('13:58:00'), text: 'Reading the three surfaces before answering.' },
+    { at: at('14:02:11'), text: 'Here is where it stands. The mechanisms live as data in `docs/showing-mechanisms.csv`, and the Map view renders that file directly rather than restating it in prose. What is still in CLAUDE.md is the part no table can carry: the honesty gate, which says that where no link reaches a change you say so and send a screenshot instead. That paragraph is 63% of the file and it did not stop a session with all of it in context from handing over the wrong link, which is the whole reason the data moved into the app.' },
+    { at: at('14:31:07'), text: '`npm run showing` now reads the branch\'s changed files and prints the line to paste, or an honest no-link with the reason. The rule the section stated in prose is executable, so the failure mode changes shape: a session that skips the script gets nothing rather than a plausible wrong link, and a session that runs it cannot pick the mechanism by mood.' },
+    { at: at('14:58:44'), text: 'It costs the one judgement the script cannot make, and that is the right thing to leave in prose. A script can tell you which mechanism reaches a file. It cannot tell you whether the reader will read the resulting link as a claim about something the link does not actually show, which is what the honesty gate is about. So the rule stays a sentence, and the sentence is short enough to survive being read.\n\n🟡 **Pending:** the Map view needs the CSV to exist before the tab can read it, and the CSV is still being derived from the prose.' },
+    { at: at('15:44:29'), text: 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it. The tab sorts by what each mechanism reaches, which is the column a reader scans, and the misses ride beside it rather than in a second table.\n\n❇️ **Ready to assess:** whether the CSV wants a column for what each mechanism misses, or whether that is already implied by what it reaches.' },
+    { at: at('16:10:22'), text: 'Two readings, and they are not the same. If "misses" is the complement of "reaches" then yes, it is implied and a second column is a copy that will drift the first time one side is edited. But most of these do not have a clean complement: a toss reaches a page and misses same-repo relative dependencies, which is not the negation of anything in the reaches column. So the honest shape is one column for reach and one for the named exception, and the exception is empty for the mechanisms that have none.' },
+    { at: at('16:30:40'), text: 'Done. The column is `misses`, empty where there is no named exception, and the tab renders it beside the reach rather than under it.' },
+    { at: at('16:41:18'), text: 'It survives. The tab is a renderer over the CSV with no per-row code, so a new mechanism is one row and nothing else. The one thing that does need touching is the test that holds the CSV against the prose in SURFACING.md, which is the gate that keeps a mechanism from being added to one and not the other.\n\n⚪ **Clean exit.** The column is in, the tab renders it, and the gate holds both sides.' },
+    { at: at('16:46:05'), text: 'Nothing blocking. The one open thread is that `docs/showing.md` still carries the frame and the record, and now that the app holds the mechanisms it could fold down to a pointer plus the dated decisions.' },
+    { at: at('16:49:16'), text: 'The docs surfacing now runs through the **Map view** rather than through prose in `CLAUDE.md`:\n\n- `docs/showing-mechanisms.csv` is the data\n- the Showing tab renders it\n- `npm run showing` prints the line to paste\n\n```bash\nnpm run showing\n```\n\nSo the choice is executable rather than remembered.\n\n🟢 **Ready to continue.** Available on "go": folding `docs/showing.md` down to a pointer, now that the app holds the mechanisms.' },
+  ],
+  // Three replies are narration: a sentence announcing a step, with the calls
+  // it issued at the same stamp. The card drops these and the deck keeps them,
+  // which is the one place the two part company on purpose.
+  calls: [{ at: at('13:58:00') }, { at: at('16:30:40') }, { at: at('16:41:18') }],
+  exchanges: 10,
+};
+
 export default async function (page) {
-  await page.evaluate(({ SESSIONS, ATTENTION, TODOS, JOTS }) => {
+  await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS }) => {
     // The estate component's own root carries its Alpine scope.
     const host = document.querySelector('[x-data^="estate"]');
     const st = window.Alpine.$data(host);
     st.authed = true;
     st.loading = false;
     st.sessionsLoading = false;
-    st.sessionRows_ = SESSIONS;
+    // Every row at the CURRENT summarizer version except the one flagged
+    // behindV, so the pane's backfill line and the Counts histogram's
+    // "not read yet" bar have exactly one row to speak for.
+    const V = window.RepoSessionsCache.ROW_V;
+    st.sessionRows_ = SESSIONS.map(r => {
+      const { behindV, ...row } = r;
+      return { ...row, v: behindV ? V - 1 : V };
+    });
     st.sessionAttention = ATTENTION;
+    st.activity = ACTIVITY;
+    // The estate's own membership, which is the only place a checkout name
+    // ("web-tools") resolves to an owner. The session brief's Files pane takes
+    // its link from here, so a fixture without it shoots the unlinked rows.
+    st.entries = [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/home' }];
+    st.activityGeneratedAt = new Date(Date.now() - 42 * 60000).toISOString();
     st.sessionsGeneratedAt = new Date(Date.now() - 42 * 60000).toISOString();
     st.sessionScope = 'all';
     st.showAttention = true;
@@ -99,24 +378,190 @@ export default async function (page) {
     st.jotItems = JOTS;
     // The shell gates the header nav and the pane chrome on a token too.
     window.__shell.hasToken = () => true;
-  }, { SESSIONS, ATTENTION, TODOS, JOTS });
+  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS });
   await page.waitForTimeout(600);
+
+  // The ROUTE CHIPS on the nested branch tiles, seeded the way activity-fake
+  // seeds them for the Branches pane: the join is the same one, and the pane
+  // would otherwise fetch it (no token here). Without this the tiles render
+  // with the one item on their control line whose width is a branch's data,
+  // missing, which is the half of the row worth shooting.
+  //
+  // The two branches cover the two cases. show-repo-docs-surfacing touches
+  // lib/alpineComponents/estate.js, which nine routes declare, so it draws one
+  // solid chip for the narrow carrier beside it and a ghosted chip per shared
+  // route: the widest a tile ever gets, and the one that wraps. Board
+  // determinism touches a single narrow carrier and draws one chip.
+  await page.evaluate(async () => {
+    const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+    try {
+      if (!window.routeActivity) await window.gh.load('kits/route-activity.js');
+      const split = (v) => String(v || '').split(';').map(x => x.trim()).filter(Boolean);
+      const rows = window.Csv.rows(await (await fetch('/docs/app-routes.csv')).text());
+      const vocab = window.Csv.rows(await (await fetch('/docs/vocabularies.csv')).text());
+      st.routeManifest = window.routeActivity.manifest(
+        rows.map(r => ({ ...r, files: split(r.files), tabs: split(r.tabs) })), vocab);
+    } catch (e) { console.warn('route chips unavailable:', e.message); }
+    st.routeJoinTried = true;
+    st.routeBranchFiles = [
+      { repo: 'mehrlander/web-tools', name: 'claude/show-repo-docs-surfacing-3sr7ab', pr: 271,
+        files: ['lib/alpineComponents/estate.js', 'lib/kits/route-activity.js', 'docs/showing.md'] },
+      { repo: 'mehrlander/web-tools', name: 'claude/board-determinism-k2p1x', pr: 262,
+        files: ['lib/alpineComponents/stage.js', 'tools/build/tracker-board.mjs'] },
+    ];
+  });
+  await page.waitForTimeout(300);
+
+  // DECK=1 opens the session swiper on the first row: the brief mounted as a
+  // slide, which is the whole reason the view left pages/session.html. The
+  // record lives in a private store this sandbox has no token for, so GH is
+  // swapped for one that answers with a fixture; everything else, the deck
+  // chrome, the lent head, the outline, is the page's own.
+  if (process.env.DECK) {
+    if (process.env.PANE) await page.evaluate((v) => { window.__PANE = v; }, process.env.PANE);
+    await page.evaluate((RECORD) => {
+      const Real = window.GH;
+      window.GH = class extends Real {
+        async get(p) {
+          if (p.startsWith('sessions/')) return { text: JSON.stringify(RECORD) };
+          return super.get(p);
+        }
+      };
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      if (window.__PANE) st._openCard = { pane: window.__PANE };
+      st.openSessionDetail(st.sessionRows[0]);
+    }, RECORD);
+    await page.waitForTimeout(2500);
+    return;
+  }
+
+  // PENDING=1 strips the reply from the first row, which is the state most of
+  // the store is in until the crawl has run twice against row version 5. It is
+  // the case the reply card was invisible on when it first shipped.
+  // STALE=1 sets the first row a version behind, which is what most of a
+  // half-healed store looks like: current text on some rows, older and shorter
+  // text on the rest, with nothing on screen to tell them apart until now.
+  if (process.env.STALE) {
+    await page.evaluate(() => {
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      const behind = window.RepoSessionsCache.ROW_V - 2;
+      st.sessionRows_ = st.sessionRows_.map((r, i) => (i ? r : { ...r, v: behind }));
+    });
+    await page.waitForTimeout(200);
+  }
+
+  if (process.env.PENDING) {
+    await page.evaluate(() => {
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      st.sessionRows_ = st.sessionRows_.map((r, i) =>
+        (i ? r : { ...r, reply: '', replyCut: '', turns: [], turnsCut: '', replyAt: '' }));
+    });
+    await page.waitForTimeout(200);
+  }
+
+  // LIVE=1: the first row goes LEAN and a record stands behind it, which is
+  // the state most of the store is in since the writer stopped carrying prose
+  // on a row. The card's own ensureProse path then reads the record and
+  // summarises it, so the turns on screen are the ones the real summarizer
+  // makes, cuts and all, and a tap has somewhere to read the rest from.
+  if (process.env.LIVE) {
+    if (process.env.SLOW) await page.evaluate((ms) => { window.__slowRecord = +ms; }, process.env.SLOW);
+    await page.evaluate((REC) => {
+      const Real = window.GH;
+      window.GH = class extends Real {
+        async get(p) {
+          if (p.startsWith('sessions/')) {
+            // SLOW=<ms> holds the record back, which is the field's own timing:
+            // the card opens on the ask, and the transcript lands a beat later.
+            // Anything about what the card does WHILE it waits has to be shot
+            // against a delay, since a local fixture answers in one microtask.
+            if (window.__slowRecord) await new Promise(r => setTimeout(r, window.__slowRecord));
+            return { text: JSON.stringify(REC) };
+          }
+          return super.get(p);
+        }
+      };
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      // The registry client is memoised on the component, so a swap of the
+      // class alone would be read through a client built before it. Dropping
+      // the key is what makes the next read go through the stub.
+      st._regKey = '';
+      const S = window.RepoSessionsCache;
+      st.sessionRows_ = st.sessionRows_.map((r, i) => {
+        if (i) return r;
+        const lean = { ...r };
+        for (const k of S.PROSE_KEYS) delete lean[k];
+        // `ask` is not a prose key (the row keeps it, cut at ASK_CHARS), so it
+        // has to be brought over from this record or the card opens on the old
+        // fixture's question and answers a different one under it.
+        return { ...lean, exchanges: REC.exchanges, messages: REC.replies.length,
+                 ask: String(REC.opening_ask || '').slice(0, S.ASK_CHARS),
+                 askAt: String(REC.prompts[0].at || '').slice(11, 19) };
+      });
+    }, TURNS_RECORD);
+    await page.waitForTimeout(200);
+  }
 
   const card = process.env.CARD;
   if (card) {
     // Anchored off the real trigger, so the panel lands where a reader's tap
     // would put it rather than at an invented coordinate.
     const sel = { turns: 'ph-chats-circle', tools: 'ph-wrench',
-                  files: 'ph-files', tokens: null }[card];
+                  files: 'ph-files', tokens: null, reply: null, state: null }[card];
     await page.evaluate(({ card, sel }) => {
       const host = document.querySelector('[x-data^="estate"]');
       const st = window.Alpine.$data(host);
       const row = st.sessionRows[0];
-      const btn = sel
+      // The reply card opens off the ask LINE, which is a <p> and not a
+      // button: that is the whole point of it staying prose.
+      // The states card opens off the GLYPH, the row's first control, which
+      // is the one button on the line carrying no text of its own.
+      const btn = card === 'state'
+        ? document.querySelector('button.w-5')
+        : card === 'reply'
+        ? document.querySelector('p.truncate.mt-0\\.5')
+        : sel
         ? document.querySelector(`.ph.${sel}`)?.closest('button')
         : [...document.querySelectorAll('button')].find(b => /^\s*\d+k?\s*$/.test(b.textContent));
       st.openSessionCard(row, card, btn || null);
     }, { card, sel });
     await page.waitForTimeout(400);
+    // CARDTOP=1 scrolls the reply card back to its first entry. The card opens
+    // at the BOTTOM, on the closing reply, so the head of the scroll back and
+    // the truncation note are otherwise unshootable.
+    if (process.env.CARDTOP) {
+      await page.evaluate(() => {
+        const el = [...document.querySelectorAll('div.fixed.overflow-y-auto')]
+          .find(d => d.scrollHeight > d.clientHeight);
+        if (el) el.scrollTop = 0;
+      });
+      await page.waitForTimeout(150);
+    }
+
+    // SCROLL=<px> puts the card somewhere in the middle of the transcript,
+    // which is the only place the header's position line says anything a
+    // reader could not already see. Driven as a real scroll event, so what
+    // updates the header is the page's own handler.
+    if (process.env.SCROLL) {
+      await page.evaluate((y) => {
+        const el = [...document.querySelectorAll('div.fixed.overflow-y-auto')]
+          .find(d => d.scrollHeight > d.clientHeight);
+        if (el) { el.scrollTop = +y; el.dispatchEvent(new Event('scroll')); }
+      }, process.env.SCROLL);
+      await page.waitForTimeout(300);
+    }
+
+    // TAP=<n> taps the nth turn, 1-based, and the session deck takes over on
+    // that exchange. A real click on the turn itself rather than a call into
+    // the component, since the guard that makes a tap on a link or a Copy
+    // button do nothing is part of what is being shot. Scoped to the
+    // transcript host, so the header's rail is not one of the tap targets.
+    if (process.env.TAP) {
+      await page.evaluate((i) => {
+        const host = document.querySelector('[x-ref="replyBody"]');
+        [...host.querySelectorAll('.cursor-pointer')][i - 1]?.click();
+      }, +process.env.TAP);
+      await page.waitForTimeout(2500);
+    }
   }
 }

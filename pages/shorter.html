@@ -94,7 +94,7 @@
 </head>
 
 <body class="min-h-dvh bg-base-200 text-base-content">
-<div x-data="shorter()" x-init="init()" class="mx-auto max-w-3xl px-4 py-6 sm:py-9">
+<div x-data="shorter()" x-init="init()" class="mx-auto px-4 py-6 sm:py-9">
 
   <!-- ── header ─────────────────────────────────────────────────────── -->
   <header class="mb-6 flex items-start justify-between gap-4">
@@ -156,7 +156,7 @@
       </div>
 
       <div class="mt-4 flex flex-wrap items-center gap-2">
-        <button class="btn btn-primary gap-2" :disabled="!original.trim() || busy" @click="compare()">
+        <button class="btn btn-primary gap-2" :disabled="!!(!original.trim() || busy)" @click="compare()">
           <i class="ph" :class="busy ? 'ph-spinner-gap animate-spin' : (proposal.trim() ? 'ph-git-diff' : 'ph-sparkle')"></i>
           <span x-text="proposal.trim() ? 'Merge & review' : 'Draft a shorter version'"></span>
         </button>

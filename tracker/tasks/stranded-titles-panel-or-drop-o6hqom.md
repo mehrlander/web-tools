@@ -8,7 +8,8 @@ priority: low
 ---
 # Decide the remaining stranded title attributes, panel or leave
 
-`npm run title-survey` reports 89 **stranded** titles across the app: places
+`npm run stranded-titles` reported 89 **stranded** titles across the app when
+this was filed, and 120 on 2026-09-04: places
 where a `title` attribute is the only route to a fact, so a phone reader never
 reaches it at all. PR #447 fixed the worst cases on the branch row and the
 sessions row and left the rest, because HTML-STYLE.md's rule turns on judgment
@@ -56,3 +57,17 @@ not the total.
   and its survey comment; the reasoning about why three hand passes got this
   wrong is recorded in home `chron/2026/08/2026-08-19-the-hand-audit-was-wrong-three-times.md`.
   Next step is a component at a time, `map.js` first as the largest untouched one.
+- 2026-08-28: Command name corrected here; it is `npm run stranded-titles`, and
+  `npm run title-survey` never shipped. The count has moved 89 to 110, and the
+  three largest components have all grown: estate.js 24 to 29, map.js 20 to 27,
+  state-view.js 15 to 16. The rule this task decides against now carries the
+  replacement it was missing (web-tools PR #543): HTML-STYLE.md states the four
+  behaviours a built panel owes, and daisy-alpine carries it as house-style rule
+  7, which is what should stop the total climbing while the backlog is worked.
+- 2026-09-04: 120 stranded, up from 110 a week earlier and 89 at filing. That is
+  the second consecutive reading where the count rose after the fix meant to hold
+  it: house-style rule 7 (PR #543) landed 2026-08-28 and the total gained ten in
+  the six days after. The rule is not holding the line on its own, which argues
+  for working the list a component at a time rather than waiting on it. The
+  four-component table is the 2026-08-19 survey and is not restamped; rerun the
+  command for current per-component figures.

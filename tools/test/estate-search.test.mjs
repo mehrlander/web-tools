@@ -17,6 +17,12 @@ let FILES = {};    // registry "<path>" -> parsed JSON
 // size on the entry and most of these tests do not care what it is.
 let TREES = {};
 let SEARCH = null; // response served for /search/code
+// The two knobs the code lane's own diagnosis needs. SEARCH_REJECT stands in
+// for a browser-level rejection (status 0, no response ever seen); RATE is what
+// /rate_limit answers, or null to make that call fail too.
+let SEARCH_REJECT = null;
+let RATE = null;
+let RATE_CALLS = 0;
 let TREE_CALLS = [];
 
 class FakeGH {
@@ -39,7 +45,15 @@ class FakeGH {
       };
       throw Object.assign(new Error('GitHub Error 404'), { status: 404 });
     }
-    if (String(path).startsWith('/search/code') && SEARCH) return SEARCH;
+    if (String(path).startsWith('/search/code')) {
+      if (SEARCH_REJECT) throw SEARCH_REJECT;
+      if (SEARCH) return SEARCH;
+    }
+    if (String(path) === '/rate_limit') {
+      RATE_CALLS++;
+      if (!RATE) throw Object.assign(new Error('Network error on GET /rate_limit: Failed to fetch'), { status: 0 });
+      return RATE;
+    }
     throw Object.assign(new Error('404'), { status: 404 });
   }
 }
@@ -49,6 +63,7 @@ window.TOKEN = 'tkn';
 window.GH = FakeGH;
 await startAlpine(window, [
   'lib/alpine-bundle.js',
+  'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
   'lib/kits/estate-search.js',
 ]);
@@ -172,6 +187,61 @@ test('code: scope rides the query, fragments become clipped snippets', async () 
   assert.match(res.hits[0].frag, /needle sits here/);
 });
 
+// ── The code lane's diagnosis ────────────────────────────────────────────────
+//
+// A rejected fetch is the browser refusing to hand the response over, so the
+// page never sees a status and gh-api can only report "Failed to fetch". These
+// hold the second call that turns that into a reading. `status: 0` is the
+// signal, set by gh-api on exactly that path.
+const REJECTED = () => Object.assign(
+  new Error('Network error on GET /search/code?q=x: Failed to fetch'), { status: 0 });
+const budget = (remaining, limit = 10, inSecs = 42) => ({
+  resources: { code_search: { limit, remaining, reset: Math.round(Date.now() / 1000) + inSecs } },
+});
+
+test('code: a spent code-search limit is named, with the seconds until it resets', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = budget(0); RATE_CALLS = 0;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    assert.match(e.message, /Code search is rate limited: 0 of 10 left, resets in 4[12]s\./);
+    assert.equal(e.status, 0);
+    assert.match(e.cause.message, /Failed to fetch/, 'the browser\'s own words are kept underneath');
+    return true;
+  });
+  assert.equal(RATE_CALLS, 1, 'one extra call, and only on a rejection');
+});
+
+test('code: budget left means the refusal was not the limit, and says so', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = budget(9);
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    assert.match(e.message, /Not the rate limit: 9 of 10 left/);
+    assert.match(e.message, /repo scope/, 'and names the thing left to check');
+    return true;
+  });
+});
+
+test('code: when /rate_limit fails too, the unreachable host is named as that', async () => {
+  SEARCH_REJECT = REJECTED(); RATE = null;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
+    // All three outcomes have to be TOLD APART by their wording. Passing the
+    // original through here read exactly like the un-diagnosed behaviour, so a
+    // reader could not tell whether the second call had run.
+    assert.match(e.message, /could not be reached at all/);
+    assert.doesNotMatch(e.message, /Failed to fetch/,
+      'the browser\'s words are the cause, not the message');
+    assert.match(e.cause.message, /Failed to fetch/, 'and they are still on the cause');
+    return true;
+  });
+});
+
+test('code: a GitHub answer speaks for itself and costs no second call', async () => {
+  SEARCH_REJECT = Object.assign(new Error('GitHub Error 422: Validation Failed'), { status: 422 });
+  RATE = budget(0); RATE_CALLS = 0;
+  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }),
+    /GitHub Error 422: Validation Failed/);
+  assert.equal(RATE_CALLS, 0, 'a status means the page saw the response; there is nothing to diagnose');
+  SEARCH_REJECT = null;
+});
+
 test('sessions: greps what a record quotes, caches the corpus, newest first', async () => {
   FILES = {
     'state/sessions.json': { rows: [
@@ -214,6 +284,47 @@ test('sessions: the derived name is searchable, and says so in the hit', async (
   assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
 });
 
+test('sessions: the exported title is searchable beside the derived name', async () => {
+  ES.reset();
+  FILES = {
+    'state/sessions.json': { titlesAt: '2026-08-04', rows: [
+      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'],
+        title: 'FAB naming convention' },
+    ] },
+    'sessions/2026/08/2026-08-02-aaaa1111.json':
+      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+  };
+  // The title as it was actually read in the sidebar, which the slug cannot
+  // reach: "convention" is the word the branch name truncated away.
+  const byTitle = await ES.sessions({ q: 'naming convention', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...byTitle.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(byTitle.hits[0].frag, /session title:/);
+  // Both forms are carried, so the slug still finds the same session. That is
+  // the point of the pair: a titled row must not become unreachable by the name
+  // it was findable by yesterday.
+  ES.reset();
+  const bySlug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...bySlug.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(bySlug.hits[0].frag, /session name:/);
+});
+
+test('sessions: an untitled row still answers to its derived name', async () => {
+  // The per-row fallback, from the search side. Most of the store is in this
+  // state: the join keys on the record's session URL and nothing written before
+  // 2026-08-06 has one.
+  ES.reset();
+  FILES = {
+    'state/sessions.json': { titlesAt: '2026-08-04', rows: [
+      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'] },
+    ] },
+    'sessions/2026/08/2026-08-02-aaaa1111.json':
+      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+  };
+  const res = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...res.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(res.hits[0].frag, /session name:/);
+});
+
 test('sessions: a match on what was said beats the name to the note line', async () => {
   ES.reset();
   FILES = {
@@ -234,4 +345,20 @@ test('clip: one line of context around the first case-insensitive hit', () => {
   assert.match(c, /^…/);
   assert.match(c, /NEEDLE appears/);
   assert.ok(c.length < 130);
+});
+
+test('code: the three rejection outcomes are told apart by their wording', async () => {
+  // The rule the pass-through broke. A diagnosis whose outcomes read alike is
+  // not a diagnosis: the reader cannot tell which of the three happened, and
+  // one of them is indistinguishable from no diagnosis at all.
+  const said = async (rate) => {
+    SEARCH_REJECT = REJECTED(); RATE = rate;
+    try { await ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }); return '(no error)'; }
+    catch (e) { return e.message; }
+  };
+  const msgs = [await said(null), await said(budget(0)), await said(budget(9))];
+  assert.equal(new Set(msgs).size, 3, 'each outcome must read differently:\n  ' + msgs.join('\n  '));
+  // And none of them may be the browser's own words, which say nothing.
+  for (const m of msgs) assert.doesNotMatch(m, /^Network error on GET/);
+  SEARCH_REJECT = null;
 });

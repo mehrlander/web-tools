@@ -55,39 +55,14 @@ See [`docs/loader.md`](../../docs/loader.md) for the full loader contract.
 
 ## Current kits
 
-The long-form sections below predate the 2026-08-08 migration and cover the
-original shelf. The 22 kits that moved in from `lib/` root that day are listed
-here with their namespace and role; each carries its full story in its own
-header comment, which is the authoritative doc for this group. **(boot)** marks
-membership in gh-boot.js's declared BOOT manifest, a fact about cost that the
-folder deliberately no longer encodes.
+Open the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits)
+for the full list. Each row gives the namespace, the first line of the header
+comment, how many files load the kit, whether it loads on every page, and
+whether it has a demo. The data is in [`docs/kits.csv`](../../docs/kits.csv).
+A script rebuilds that file from the kits.
 
-| Kit | Namespace | Role |
-|---|---|---|
-| `branch-status.js` | `BranchStatus` | branch-estate scan math: the content-level landed/stranded signal |
-| `chat-render.js` | `chatRender` | chat transcript renderer; fenced code promoted to live artifacts |
-| `claude-mark.js` | `claudeMark` | the Claude logomark, as markup or a node, from one path |
-| `content-registry.js` | `ContentRegistry` | the epistemic content registry (`data/design/content.csv`), read in the browser |
-| `data-payload.js` | `DataPayload` | reading a data toss: one rule for what a payload is |
-| `estate-search.js` | `EstateSearch` | the estate's search calls (tree, names, code, sessions), one cache |
-| `github-links.js` | `GithubLinks` | the GitHub destinations for one repo, as menu rows |
-| `portable-align.js` | `PortableAlign` | pure assessment of a repo's alignment with the portable set |
-| `repo-activity-cache.js` | `RepoActivityCache` | per-repo activity snapshots folded into one cache |
-| `repo-address.js` | `RepoAddress` | the `owner/repo[@ref]:path` address grammar **(boot)** |
-| `repo-checks.js` | `RepoChecks` | declared staleness checks for a repo, evaluated on sight |
-| `repo-config-cache.js` | `RepoConfigCache` | `.web-tools.json` aggregate, history, and alignment grade |
-| `repo-mailbox.js` | `RepoMailbox` | the private git-backed request/response channel |
-| `repo-proposals.js` | `RepoProposals` | cross-repo edit proposals, the mailbox's write side |
-| `repo-sessions-cache.js` | `RepoSessionsCache` | session-record aggregate over the private registry |
-| `session-render.js` | `sessionRender` | a session record as a readable, paged conversation |
-| `shorter-payload.js` | `ShorterPayload` | reading a shorter toss |
-| `source-peek.js` | `SourcePeek` | the hover card behind an exact-file GitHub jump-over **(boot;** the manifest calls `install()`, the kit no longer self-installs**)** |
-| `subject-channel.js` | `subjectChannel` | telling the FAB sidebar which file a surface is showing, and giving the page its own back |
-| `surface.js` | `Surface` | the surface envelope, in one place **(boot)** |
-| `swipe-deck.js` | `swipeDeck` | the house swipe format and its fullscreen takeover |
-| `traffic.js` | `Traffic` | the pure read over the traffic ledger gh-boot collects **(boot)** |
-| `url-params.js` | `UrlParams` | a page's own input params, fragment first, query fallback |
-| `vanilla-demo.js` | `demo` | the living-documentation demo format |
+The sections below cover only some kits. They were written before the
+2026-08-08 migration. Each kit is documented in its own header comment.
 
 ### compression.js
 
@@ -536,6 +511,88 @@ specializes in choosing among them. It mints the single-group case of
 `StageLink`'s grammar directly, since `stage.js` is a full Alpine component
 and is not loaded on an ordinary page.
 
+### md-doc.js
+
+A markdown document rendered as something you can read and take pieces **out
+of**. Two jobs over one render, and they are the same complaint from two sides:
+a rendered document has thrown away its source, so the table has lost the pipes
+that would have let it wrap and the section has lost the `##` that would have
+let it travel.
+
+```js
+window.mdDoc.split(src)            // [{ index, depth, title, slug, raw, start, end, startLine, endLine }]
+window.mdDoc.reference(sec, addr)  // the provenance line(s), as an array
+window.mdDoc.payload(sec, addr)    // reference + blank line + sec.raw
+window.mdDoc.html(src, o)          // a prose HTML string, tables contained
+window.mdDoc.render(host, src, o)  // mounts into host -> { box, sections }
+window.mdDoc.enhance(box, src, o)  // the same over markup another renderer made
+window.mdDoc.contain(el)           // el, nothing left that can widen a column
+window.mdDoc.locate(node)          // { addr, sections, section } for any node in a render
+window.mdDoc.sourceRef(node)       // "docs/APP.md § Mechanism (lines 16-28)"
+```
+
+**Contain.** A table's intrinsic min-content width is a floor no ancestor can
+shrink below, so a wide one widens whatever it is in until something scrolls. In
+a swipe-deck slide that something is the slide, which drags the headings and the
+prose sideways along with the table. The wrapper does not force `max-content`:
+typography's `width: 100%` still wraps cells, so only a table that genuinely
+cannot fit starts scrolling.
+
+**Cut.** Every top-level heading gets a control over **that section's source**:
+copy it, copy it with a revision ask on top, or open a note pinned to it. One
+menu rather than three glyphs, since a heading has room for one mark. Sections
+nest the way Wikipedia's do: a section runs to the next heading of equal or
+higher rank, so `##` carries its `###`s and each of those still has its own
+control. Headings are found through `marked.lexer`, not a line regex, so a `#`
+inside a fence is not one; the rendered box's direct-child headings pair against
+the same list by order.
+
+**Declare.** The rendered box says which source and which address it is a
+rendering of, so `locate()` can answer for any node inside it in the source's
+terms. `annotate.js` reads that: on a declared render every note's `Path:` line
+is `docs/APP.md § Mechanism (lines 16-28)` rather than a css path, and its
+`section` targeting mode is raised from this menu, since the heading is the one
+thing that knows which section it opens.
+
+The declaration also carries the kind's own vocabulary, from the `KIND` literal
+here, which is why the annotator's aim reads **Markdown section** rather than
+the implementation's word for it. `docs/routes-kinds.csv` is the owner of that
+row and `tools/test/routes-manifest.test.mjs` holds the two together; the same
+arrangement `docs/routes-routes.csv` has with toss-render's inlined
+`TOSS_ROUTES`. Declaring is what a render OPTS INTO, and a render that skips it
+is indistinguishable from a page with no markdown on it: `pages/data-view.html`
+called `contain()` alone until 2026-08-31 and so offered neither the heading
+menus nor the Section aim, on the same files the file deck gave both.
+
+**Enhance** is render's second half, for markup another renderer produced.
+`guide-render.js` renders a doc with the link re-aiming a guide body needs, and
+the Files pane reads markdown through it; that reader wants the containment and
+the controls without giving up the re-aiming. The `src` handed to it must be the
+source that produced that markup, and nothing can check it: get it wrong and
+every control copies the wrong lines.
+
+Copying the **source** rather than the selection is the whole point. A rendered
+section copies as prose with the structure flattened out, and a model asked to
+revise that returns a revision of the flattening. The source slice is the thing
+that can be revised and put back, which the reference's `lines 43-91` is there
+to make possible.
+
+`window.marked` must already be loaded; `window.io.copy` is read when present
+for the iOS clipboard path. The copy control carries `data-annotate-ui`, which
+is how `annotate.js` knows to keep it out of the text a note is anchored in.
+`chat-render.js` keeps its own copy of the table wrap, deliberately: it is a
+standalone script a page can drop in from jsDelivr with nothing else.
+
+
+**Sections nest, and the hierarchy is arithmetic rather than a walk.** `chain`
+gives a section's ancestors by rank (innermost first, the shape `Peek.chainOf`
+uses so one renderer serves both), `children` the sections exactly one rank
+finer before a peer closes the run, `headOf` the heading node for any section
+index, and `stats` what a passage holds counted in markdown's units: words,
+paragraphs, list items, code blocks, tables, quotes, links. Counted off the
+SOURCE, so a fence full of hyphens is one code block rather than the list it
+resembles.
+
 ### annotate.js
 
 Notes pinned to pieces of a page: select text (or pick an element, or drag a
@@ -561,10 +618,147 @@ window.Annotate.enable({ doc?, subject? })  // mount on a target document
                                             // = {title, url} for serialization
 window.Annotate.add(target, note)           // programmatic add
 window.Annotate.toMarkdown() / .toJSON()    // the set, serialized
+window.Annotate.noteMarkdown(id)            // one note, same shape and preamble
+window.Annotate.noteJSON(id)                //   (still annotate/1, one note in it)
 await window.Annotate.copy('md' | 'json')   // serialize + clipboard
 await window.Annotate.saveJot()             // one jot (fresh-read → mutate → save)
+window.Annotate.expand(true)                // open the card onto the set
+window.Annotate.setReading('notes'|'md'|'json')
+window.Annotate.setScope('set' | 'note')    // which subject a serialization has
 window.Annotate.disable()
 ```
+
+Reopening a note through its pencil folds that note's ROW out of the list: the
+composer is the note while it is open, and the row comes back when the edit is
+saved. It used to be on screen twice, once with a caret in it and once as a
+static row still showing the text being replaced.
+
+The card reads its own set behind an **expander**, which is its header's
+`Notes` button: the card's name, its count and its way in are one control. It
+grows upward from the card's bottom edge, pinning that edge first so a card
+that has been dragged (which re-anchors it to the top) grows the same
+direction as one that has not.
+
+What opens is one window of a fixed height, the same for every reading and the
+same empty as full, with the body scrolling inside it. The window is 55% of the
+viewport and never past 440px, so the card stays a window over the document
+rather than a takeover of it. One row carries the format chips and then a copy
+key, which is a glyph and no word because the chips beside it are the
+qualifier. The footer is Save jot and Clear, and there is no status line: Save
+jot reports on its own label, and every other message it used to carry
+announced something the reader had just watched happen and then stayed.
+
+**Four readings, and the fourth is not of the set.** The list, then markdown and
+JSON exactly as Copy hands them over, then **DOM** (2026-08-29): the element the
+note is pinned to, its selector and how many nodes that selector matches, its
+box, layout and tree position, then its subtree and the ancestors containing it.
+
+**And it is DRAWN, not printed.** The other two readings ARE bytes, so a `<pre>`
+is the honest shape for them: what is on screen is what Copy hands over. This
+one is a description, and it first shipped as a monospace blob holding its
+columns with `padEnd(9)`, which is a serialization pretending to be a layout and
+loses the pretence the moment a value wraps. It has its own pane now: the tag as
+a pill with its id and classes as chips, the ancestor trail as a scrolling row,
+the selector in a box with a green `unique` or amber `N matches` verdict beside
+it, an aligned label grid, the own text clamped, and the subtree indented by
+padding rather than by spaces. `domText` survives as the copy payload, so Copy
+still hands over something a model can read.
+
+**The outlines live in the document, not the viewport.** Every live highlight
+(the pick's hover and staged boxes, the region's rectangle, and its "+ note")
+is `position: absolute` in document coordinates, so it travels with the thing it
+is drawn around and needs no repainting. They were fixed, placed from a viewport
+rect and never repainted, so a scroll left the highlight sitting where the
+element used to be: measured 2026-08-30, a 260px scroll produced exactly 260px
+of drift. The filed notes' outlines were already drawn this way; this makes the
+live ones agree with them. The region's box is the one exception and only while
+the drag is live, where the page cannot scroll anyway and viewport coordinates
+are exact; it pins to the document the moment it stages.
+
+**The trail is tappable**, and it is the only thing in the pane that is. A crumb
+re-points the reading at that ancestor, and where a mode is running it moves the
+outline too, through a `S.restage` hook the pick publishes: a crumb that renames
+the pane while the highlight stays three levels down is two answers to one
+question. The subject is always the last crumb, so the trail scrolls to its end
+after every draw.
+
+**A section reads in markdown's units, and steps through markdown's hierarchy.**
+Section was excluded from this reading at first, on the grounds that it would
+answer with an `h2` in a div where the reader is asking about a passage. That was
+the right observation and the wrong fix: a section gets its own reading rather
+than none. It shows the rank and title, the source address with its line span,
+the size in words, what the passage HOLDS (paragraphs, list items, code blocks,
+tables, links), the slug, the first lines of the source with its hashes intact,
+and the subsections under it.
+
+The two structures over a rendered markdown document **do not agree**, which is
+the whole reason this is a second reading rather than a relabelled first.
+`### Form` is inside `## Marker` inside `# Status` in markdown, and all three are
+flat siblings in the DOM. So the repeat tap and the trail walk `mdDoc.chain`,
+which is arithmetic over the ranks `split` already knows, and `mdDoc.headOf`
+reaches the heading node of a section other than the located one. The aim carries
+its KIND for the same reason: a heading element can be aimed at either way and
+the node alone cannot say which was meant.
+
+Structure cannot be a reading of the set, because "what is this element and what
+contains it" is a question about one node and eight notes have no single answer
+to it. **The subject is the LIVE AIM first**: the node a pick has staged, or the
+rectangle a region has drawn, then the selected note, then the draft being
+written, then the most recent note.
+
+That order is the correction the reading needed, and both halves of it were
+measured wrong first. It keyed on the filed note, so a reader aiming at things
+watched the pane say "select a note" through an entire pick, cycling included:
+the answer arrived only after the question had stopped being asked. And with one
+note filed and nothing selected it showed instructions where an answer was
+expected.
+
+**A rectangle gets its own answer**, since it is not a node: what it covers,
+through `Peek.covers`. Contained roots where there are any, the text blocks it
+touches where there are none, and the heading says which. Contain alone is
+useless on a phone, where a box drawn with a thumb is narrower than any block in
+a text column and the precise answer is almost always empty.
+
+**Both aims open the card on it**, Region when the box is drawn and Element when
+the aim is chosen. Each is one deliberate act with one question behind it, and
+the pane that answers should be open before the first tap rather than found
+afterwards. What is still refused is expanding on every TAP, which would grow
+the card under a reader mid-gesture. Section stays out too: its notes are about
+markdown SOURCE and its aim resolves to the heading that owns a run, so this
+reading would answer with an `h2` where the reader is asking about a passage.
+
+The "+ note" offer moves out of the card's way when they do, through one shared
+`placeOffer`: two candidate tops in the caller's order, then a fallback clear of
+the card's top edge. Measured at 430px, the region's had been landing at 528
+inside a card spanning 488 to 928 and could not be tapped at all, which made the
+answer cost the control it was an answer about. The element pick's offer had the
+same latent clash, sitting 30px above whatever it outlined.
+
+Two consequences of not being of the set. An empty set does not empty it, where
+markdown and JSON go bare. And the copy key is offered on a draft with nothing
+filed yet, since `copyShown` takes what is on screen.
+
+`kits/peek.js` is what it calls, and it is a soft dependency the way `dictate.js`
+is: load `annotate.js` alone and every other reading works with the chip simply
+absent. Peek's computations read the element's own document and need no
+`enable()`, so nothing of Peek's own UI is mounted by asking. Both loaders chain
+the trio, and the FAB's `_loadAnnotate` treats either extra as best-effort: a
+failure costs one chip, not the notes.
+
+**The element pick steps up.** A second tap within 14px of the last one selects
+the parent, then its parent, wrapping at `<body>`: the same gesture and the same
+slop as `peek.js`, and the fix for the complaint this mode always invited, that
+a tap lands on the smallest node under the finger. Section mode is exempt, since
+its own resolve already answers with the heading that owns a section and
+stepping would leave the aim the chip is named for.
+
+**The FAB drawer's Notes tab is retired** (2026-08-25). It was the only place a
+set could be READ until the expander existed, which made it a second
+implementation of one view, on a page that might not have a drawer, kept in
+step by three window events (`annotate:review`, `annotate:drawer`,
+`annotate:drawer-query`). All of that is gone, along with the card's own title
+button that opened it. What the FAB still does is START the annotator: the take
+grid's Annotate entry and the launcher's long-press "Take a note".
 
 The FAB's take grid carries it as **Annotate** (the one take that operates on
 the view rather than carrying it away), aiming at the subject frame's
@@ -613,6 +807,89 @@ Dictate.available(win)              // is there a recognizer there
 `win` is a parameter rather than a global read because the annotator points it
 at a frame's window: the kit runs in the shell realm and dictates into a
 document it does not own.
+
+### peek.js
+
+What is under the pointer, and what contains it. Point at something and the page
+answers with the element; point again in the same spot and it answers with that
+element's parent, then its parent, up to `<body>` and around.
+
+**The chain is the unit, not the element.** A tap builds the ancestor chain from
+the hit node to `<body>` and parks at index 0; everything after that moves an
+index rather than re-querying, so stepping is exact and reversible and the
+outline growing is all the feedback the gesture needs. The step is a *proximity*
+test (a tap within 14px of the last one steps up) because a phone has no Alt and
+no hover, and it wraps because on a touch screen there is no other way back from
+an overshoot.
+
+```js
+window.Peek.enable({ doc, onSelect })   // doc defaults to this one
+window.Peek.select(el) / .up() / .down() / .to(i)
+window.Peek.current() / .chain()
+window.Peek.facts(el) / .tree(el, {depth, nodes}) / .html(el) / .json()
+await window.Peek.copy('facts'|'tree'|'html'|'json'|'selector')
+```
+
+Four readings of one node, because "what is this" has four answers depending on
+why you are asking: **facts** (identity, the selector *and its match count*, the
+box, layout, tree position), **tree** (the subtree as an indented outline, depth-
+and node-capped: structure plus own text with the attribute noise dropped),
+**html** (the exact `outerHTML`, truncated on screen and whole on copy), and
+**json** (the facts as a record, for a model or a note).
+
+`layout` reports what kind of box it is rather than one `display`. A flex or grid
+CONTAINER names its own axis, gaps and alignment; a flex or grid CHILD names its
+parent's mode and its own side of that contract, since `display: block` for
+something a grid is placing says nothing at all. Defaults are dropped throughout,
+so a row of `normal` and `auto` never reaches the panel.
+
+Two things it does that are easy to get wrong, both measured on 2026-08-29:
+
+- **The selector pins siblings by position, not by climbing.** Prefixing
+  ancestors separates cousins and never separates siblings, since two `<li>` with
+  the same classes have the same ancestor path by construction. The first
+  algorithm climbed to `<body>` still matching two, then fell back to something
+  matching three. Each segment now carries `:nth-child(n)` only where its atom is
+  ambiguous among its own siblings, which both terminates and stays readable.
+- **The panel docks away from the tap point.** A panel that grows over the point
+  just tapped eats the repeat tap, and the second tap landed on the breadcrumb
+  strip instead of stepping up. It docks off the *point*, not the selection: the
+  point is fixed for the length of a walk, where the selection grows to fill the
+  screen and would flip the dock under the reader.
+
+**It is a library before it is a UI.** Every computation reads the element's own
+document rather than the enabled one, so `facts()`, `tree()`, `html()`,
+`chainOf()`, `atom()`, `selectorFor()` and `covers()` work on any element or
+rectangle in any document with no `enable()`, no cover and no panel.
+
+`covers(rect, {doc, mode})` is the rectangle half, in document coordinates so a
+live drag and a filed region note ask the same question. `contain` returns the
+covered elements whose parent is not covered, which is `console/mods/lasso.js`'s
+selection-roots rule; `touch` returns the text blocks the box overlaps, keeping
+the innermost where they nest. Blocks rather than whatever element is deepest,
+because a box over prose overlaps the links inside it and "three `<a>` elements"
+is a true answer to a question nobody drew a box to ask. The block set is the one
+annotate's region excerpt already reads, so the two agree about what a region
+covers. That is what `annotate.js`'s DOM
+reading calls; reading the enabled document here would have made the whole kit
+conditional on its own UI.
+
+Its outlines are `position: absolute` in document coordinates. They were fixed
+and repainted from a scroll listener, which works and lags: the box is redrawn
+AFTER the scroll it is reacting to, so it swims against the element on a phone.
+Document coordinates never move relative to what they are drawn around and need
+no listener at all.
+
+The pointer path is a full-screen cover taking `pointerup`, with
+`elementsFromPoint` to see past it. `console/mods/pick.js` does the same job off
+`mousemove` + `click`, which does not work on iOS; `annotate.js` carries the
+field report and the fix, and this is that fix extracted. Self-contained on
+purpose, and it does duplicate about twenty lines of `console/base.js`'s `sig`
+and `rect`: base.js is a DevTools paste installing a dozen globals, this is a
+`gh.load` kit installing one, and sharing would mean one adopting the other's
+distribution. The page half is [`pages/peek.html`](../../pages/peek.html), whose fixtures are chosen so each structure buries the thing you would actually want several levels under whatever your finger lands on;
+the browser facts (pointer path, outlines, auto-dock) are driven by
+`tools/render/scenarios/peek-walk.mjs`, since jsdom has no layout.
 
 ### wsl-core.js
 
@@ -783,8 +1060,9 @@ same pattern as `io.js`).
 
 ```js
 const result = await window.xlsxKit.readZip(fileOrArrayBuffer);
-// result: { el, connectedPaths, conns, xl: { sheets, strings, styles,
-//           comments, relationships, definedNames, calcChain } }
+// result: { el, connectedPaths, conns, xl: { sheets, strings, styles, theme,
+//           fonts, fills, borders, xfs, comments, relationships,
+//           definedNames, calcChain } }
 
 xlsxKit.summary(result)             // { total, connected, unconnected, connectedPct }
 xlsxKit.views.paths(result)         // one row per distinct XML element path
@@ -794,24 +1072,189 @@ xlsxKit.views.connections(result)   // one row per sheet: cells/strings/styles/
 xlsxKit.views.unconnected(result)   // paths with no recognized structure
 xlsxKit.views.files(result)         // one row per XML part: category, paths,
                                     //   connected count, sheets touched
-xlsxKit.sheetRows(result.xl.sheets.sheet1)
+xlsxKit.sheetRows(result.xl.sheets.sheet1, result.xl)
                                     // -> [{ Row, A, B, C, ... }], sparse rows/
-                                    //   columns left as gaps, not compacted
+                                    //   columns left as gaps, not compacted.
+                                    //   Pass `xl` to read values through their
+                                    //   number format; omit it for raw strings
+xlsxKit.sheetLayout(sheet, xl, opts) // the same sheet AS A PAGE: cells in place,
+                                    //   merges as spans, column widths and row
+                                    //   heights in px, spill runs, a style
+                                    //   index per cell, anchored `images`, and
+                                    //   `truncated` where opts.maxRows/maxCells
+                                    //   cut it short. Each cell may carry `cf`
+                                    //   (the dxf a conditional rule applies)
+                                    //   and `note` (a comment somebody left,
+                                    //   the form's input message, the choices
+                                    //   a list allows; `note.kind` is the
+                                    //   strongest of the three, for a caller
+                                    //   drawing one mark per cell) and `link`
+                                    //   ({ href, location, tooltip }: the
+                                    //   hyperlink on the cell, external by
+                                    //   URL or into the workbook by place)
+xlsxKit.workbookNotes(xl)           // every annotation in the workbook as one
+                                    //   list: { sheet, cell, span, kind,
+                                    //   author, title, text, options }. One row
+                                    //   per comment, one per validation RULE,
+                                    //   read off the sheets so it costs nothing
+                                    //   to ask and does not stop at a draw cap
+xlsxKit.cellStyle(xl, styleIndex)   // { bold, size, color, fill, border, align,
+                                    //   valign, wrap, indent, format }
+xlsxKit.dxfStyle(xl, dxfId)         // the same record for a conditional format,
+                                    //   with every field optional
+xlsxKit.cfApplies(rule, cell)       // true / false / null, where null is "not
+                                    //   decidable here"
 xlsxKit.colLetter(26)               // 'AA'
 ```
+
+**Addressing a place inside a workbook** is the viewer's, not the kit's:
+`ViewRegistry.parsePlace` reads `Sheet!H11`, `H11`, `A1:C3` or a bare name, and
+a mounted sheet publishes `locate({ sheet, cell, text })` on its root's
+`__sheets`, which switches sheets, resolves a covered cell to the merge that
+draws it, scrolls and marks. What makes it possible here is that `sheetLayout`
+gives every cell its A1 address, so the render can carry one.
+
+**Three boundaries worth knowing, each a case where the kit declines rather
+than guesses.** A conditional rule of type `expression` is a formula, and
+evaluating one means a formula engine; those are skipped and counted in
+`sheetLayout`'s `cfSkipped`, so a caller can say how much of Excel's painting
+it is not showing. A picture is read from DrawingML anchors; the legacy VML
+drawings Excel uses for comments and form controls are not, so a comment's TEXT
+is read while the box Excel would draw it in is not. And a list validation
+resolves an inline `"a,b,c"` or a cell range on any sheet, but a defined name
+returns null and the cell then carries only its prompt.
+
+**Comments are the legacy kind, and the part is found by walking the rels.**
+Nothing in the sheet XML names it: `<legacyDrawing>` points at the VML, and the
+comments part rides a relationship with no referring element, so `comments3.xml`
+can belong to `sheet1` and does in OFM's OneWA template. Excel writes the
+author's name as the comment's first run, followed by a colon; it is the same
+string the author field carries, so the kit strips it once rather than leaving
+every consumer to. A threaded comment (`xl/threadedComments/`) is skipped, since
+Excel writes the same text into a legacy part beside it and reading both lists
+each comment twice.
+
+**Two readings, and the second is why the style records exist.** `sheetRows`
+answers "what values are in this sheet" and feeds a data grid. `sheetLayout`
+answers "what does this sheet look like" and feeds a render that reproduces the
+document: it is what the viewer's `sheet` mode draws, and what makes an OFM
+budget form arrive as a form rather than as a list of strings. Neither touches
+the DOM; a caller turns a style record into whatever it draws with.
 
 `analyze(parts)` — the pure entry point — takes `[[path, xmlString], ...]` or
 `{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
 testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
-real `.xlsx` file or JSZip. Two known limitations inherited from the source
-prototypes (not fixed, since a real fix needs cross-referencing
-`workbook.xml`'s `<sheets>` order, a nontrivial addition): named-range and
-calc-chain sheet association assumes `sheetN.xml`'s file number matches
-workbook sheet order, which can drift after a sheet reorder or rename; and
-cell-to-column mapping trusts each `<c>`'s `r` attribute (falling back to
-positional order only when `r` is absent), which is standard but not
-universal among third-party writers. See `kits/demos/xlsx.html` for live
-examples.
+real `.xlsx` file or JSZip. One known limitation remains: cell-to-column
+mapping trusts each `<c>`'s `r` attribute, falling back to positional order
+only when `r` is absent, which is standard but not universal among third-party
+writers. The sheet-order limitation this paragraph used to carry alongside it
+is gone: named ranges and calc-chain entries resolve through `workbook.xml`'s
+`<sheets>` and its rels, so they survive a reorder or a rename. See
+`kits/demos/xlsx.html` for live examples.
+
+### docx.js
+
+WordprocessingML (`.docx`) preparation: what a Word file has to have done to
+it before a browser renderer draws it faithfully, and what it knows about
+itself that a render cannot show. The viewer's `page` mode paints a `.docx`
+with [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) (Apache-2.0,
+pinned at 0.4.0, one dependency: JSZip), which reads page geometry, headers and
+footers, shading, fonts, tab stops and list numbering off the file. Measured on
+the 30 committed `.docx` in `mehrlander/home` (2026-09-04) it had six gaps, and
+this kit closes them **before the bytes reach the painter**, so the estate
+depends on a pinned upstream build and nothing patched inside it.
+
+```js
+const { bytes, report } = await window.docxKit.prepare(fileBytes);
+// bytes:  the same package, rewritten where normalize() changed a part
+// report: { controls, bullets, breaks, headerRefs, simpleFields, fields, byPart, skipped, survey }
+
+docxKit.normalize(parts)            // the pure entry point: [[path, xml], ...]
+                                    //   or { path: xml } for the body parts and
+                                    //   word/numbering.xml -> { parts: changed
+                                    //   only, report }. Idempotent.
+docxKit.unwrapControls(xmlDoc)      // every w:sdt replaced by its content,
+                                    //   deepest first; returns the count
+docxKit.mapBullets(numberingDoc)    // a Symbol/Wingdings byte in a bullet
+                                    //   level -> its Unicode glyph, font hint
+                                    //   dropped; returns the count
+docxKit.survey(documentDoc)         // { paragraphs, tables, headings: [{ id,
+                                    //   style, text }], controls: [{ kind,
+                                    //   level, parent, alias, tag,
+                                    //   placeholder, checked, text }] }
+docxKit.listControls(xmlDoc)        // the controls half of survey, any part
+docxKit.markPageBreaks(documentDoc) // a paragraph's pageBreakBefore ->
+                                    //   w:br type="page" (the painter reads
+                                    //   only the style-level one)
+docxKit.fixHeaderRefs(documentDoc, settingsXml)
+                                    // inherit missing header/footer refs;
+                                    //   drop even-page refs unless enabled
+docxKit.expandSimpleFields(xmlDoc)  // w:fldSimple -> the complex run form
+docxKit.markPageFields(xmlDoc)      // PAGE / NUMPAGES results -> sentinels
+docxKit.BULLET_GLYPHS               // the glyph table, by font and byte
+```
+
+**Six gaps, each a fact about docx-preview 0.4.0, each closed in the file
+before it is painted.** A content control (`w:sdt`) inside a table row or cell
+is dropped: its row and cell parsers have no case for one, while its body and
+paragraph parsers do. That was 45 controls across the corpus, including every
+section label in OFM's Decision Package Template fiscal table, which rendered
+as empty grey bands. A bullet set in Symbol or Wingdings is a private-use
+character in that font (U+F0B7 for the Symbol dot); where the font is absent it
+draws as nothing. The glyph table is mammoth's `dingbat-to-unicode`, cut to
+the codes Word's bullet library uses; the corpus pairs `F0B7` with Symbol and
+`F0A7` with Wingdings, and a Courier New `o` is a letter and is left alone.
+A paragraph's own `pageBreakBefore` is ignored (the property is read off the
+style only), so it is written as the explicit page break the painter does
+honour. A section naming no header or footer does not inherit the previous
+section's as the spec says, and an even-page reference is applied to every
+second page whether or not `settings.xml` enabled even and odd headers (no file
+in the corpus does), so the references are copied forward and the even ones
+dropped. And a PAGE or NUMPAGES field is drawn as its cached result, so the
+result is replaced with a sentinel (`PAGE_FIELD`, `NUMPAGES_FIELD`) the page
+mode swaps for the real numbers once the pages exist. And a field in its simple
+form (`w:fldSimple`) is parsed with no children, so its result is not drawn at
+all; each is rewritten as the complex form (begin, instruction, separate,
+result, end) the painter does draw. The corpus writes every field in the
+complex form, so the gap showed only on a fixture.
+
+**The survey is taken before the unwrap**, because a control's kind, its
+checkbox state and whether it still shows its placeholder are facts the
+rendered page no longer carries. Headings come with their `w14:paraId`, on
+2,713 of the corpus's 3,713 paragraphs: the Word analogue of a cell address,
+and the unit an aim would be built on. `KIND` is the kit's copy of its
+`docs/routes-kinds.csv` row, held to the registry by
+`tools/test/routes-manifest.test.mjs`.
+
+**Boundaries, each a case where the kit declines rather than guesses.** A
+`w:sym` run (a symbol typed into the text rather than a list level) is not
+mapped; none occur in the corpus. A bullet byte the table lacks stays as
+written. A part that does not parse is skipped and named in `report.skipped`,
+so one malformed header cannot stop the document. Tracked changes, footnotes
+and comments are the painter's to draw and are not prepared here; the corpus
+has none of the first two and one of the third. `SECTIONPAGES` and every other
+field keep their cached result. Word's saved page-break markers
+(`lastRenderedPageBreak`) are not honoured and not repaired: measured across the
+corpus they reproduce Word's own page count in 14 files of 30, missing where a
+break fell inside a table and stale where the file was edited after its last
+full save. The painter draws each section as one tall box and the page mode
+cuts it into pages of the section's page height, at block boundaries and at
+table rows (`ViewRegistry.paginate`), so the count NUMPAGES reports is the
+viewer's, which for the two OFM forms matches Word's (6 and 5) and elsewhere
+can differ by a line's worth of font metrics. Header geometry is the painter's: header at the file's header
+margin, body at its top margin, a floating logo where its anchor puts it, so a
+logo that overlaps body text in the render most likely overlaps in Word.
+
+**Held two ways.** `tools/test/docx.test.mjs` exercises `normalize()` on
+fixture XML with a control at every level and a bullet in each font.
+`npm run test:viewer-docx` drives the real viewer in a browser: the fixture
+document opens on the page render, a cell-level label is drawn, the bullet is a
+list marker, a `javascript:` link has lost its `href`, the fixture's 40 filler
+paragraphs and 40-row table cut into pages of page height with every word still
+there once and the footer counting them, `__doc.locate` lands on
+a phrase, and a pinch or a ctrl-wheel zooms the page about the fingers with the
+pdf column's pill as the way back to fit width. `--docx <file> --shot out.png` renders a real file and writes the
+pane, which is how the two OFM forms in the PR were pictured.
 
 ## Salvage status
 
@@ -840,4 +1283,5 @@ examples.
 | `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |
 | `wsl.js` | `pages/wsl-sync/` | browser wrapper; lazy XML libs |
 | `xlsx.js` | `kits/demos/xlsx.html` | OOXML structural walk; pure/testable, lazy JSZip |
+| `docx.js` | `npm run test:viewer-docx` | WordprocessingML preparation for the page render; pure/testable, lazy JSZip |
 | `pdf.js` | `pages/pdf-inspect.html` + `npm run test:pdf` | pure geom/stream/lattice/view; lazy pdf.js + pdf-lib |

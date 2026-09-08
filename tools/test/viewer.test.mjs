@@ -145,17 +145,20 @@ test('no stray warnings or errors after the resolves', async () => {
   assert.deepEqual(problems, []);
 });
 
-test('the markdown preview scrolls on its pane, not on its text column', () => {
+test('the markdown preview scrolls on its pane, and its column is uncapped', () => {
   // One element carrying both `overflow-auto` and the prose measure put the
   // scrollbar at the end of the TEXT, stranded mid-pane with empty space to its
   // right. It read as a layout bug and was reported as one.
   //
-  // The class list looked right the whole time: it carried `max-w-none`. That
-  // never took, because Tailwind v4 emits utilities into `@layer utilities`
-  // while the typography plugin's stylesheet is unlayered, and an unlayered
-  // declaration beats a layered one whatever the specificity or order. So the
-  // structure is the fix, not the utility: the scroll container is the pane and
-  // the measured column is its child.
+  // Two separate things are pinned here, and they were once conflated. The
+  // SCROLLBAR is fixed by structure: the scroll container is the pane and the
+  // measured column is its child. The WIDTH is fixed by the bang. `max-w-none`
+  // alone never took, because Tailwind v4 emits utilities into `@layer
+  // utilities` while the typography plugin's stylesheet is unlayered, and an
+  // unlayered declaration beats a layered one whatever the specificity or
+  // order; `!max-w-none` carries `!important` and reaches past the layer.
+  // Reading that as "no utility can reach it" left the column centred at 506px
+  // for as long as it stood (daisy-alpine rule 3, fixed 2026-09-03).
   //
   // Rendered as a string, so this reads it as one rather than mounting: show()
   // pulls marked from the CDN, which never resolves under jsdom.
@@ -169,9 +172,9 @@ test('the markdown preview scrolls on its pane, not on its text column', () => {
   assert.ok(column, 'the prose column is a child, not the pane itself');
   assert.match(pane.className, /overflow-auto/, 'the PANE scrolls');
   assert.doesNotMatch(column.className, /overflow-/, 'and the column does not');
-  assert.match(column.className, /mx-auto/, 'the column is centred in the pane it no longer fills');
-  assert.doesNotMatch(column.className, /max-w-/,
-    'a max-w utility here loses to the unlayered .prose rule; use an inline style if a width is wanted');
+  assert.doesNotMatch(column.className, /mx-auto/, 'the column is flush left, not a centred corridor');
+  assert.match(column.className, /!max-w-none/,
+    'the BANG form: a plain max-w-none is layered and loses to the unlayered .prose 65ch measure');
 
   // An html payload is a framed document and has none of this. jsdom has no
   // URL.createObjectURL, so stand one up for the length of the call.
@@ -222,32 +225,46 @@ test('the pdf mode is exclusive: it beats a host blanket default of raw', () => 
 });
 
 test('the pdf pane starts as a message and nothing else', () => {
-  // The bar is revealed only when it has a pager or an address to carry, and
-  // the page track is appended by `after` once the document opens, so a failed
-  // fetch leaves the message visible rather than an empty frame that reads as
-  // a blank page.
+  // Everything else is built by `after` once the document opens: the column,
+  // the floating pager, and the two controls that go to the VIEWER's header.
+  // So a failed fetch leaves the message visible rather than an empty frame
+  // that reads as a blank page.
   const mod = VR.modules.find(m => m.id === 'pdf');
   const doc = new window.DOMParser().parseFromString(mod.render(), 'text/html');
-  assert.match(doc.getElementById('viewer-pdf-bar').className, /hidden/);
-  assert.match(doc.getElementById('viewer-pdf-open').className, /hidden/,
-    'the inspect link stays hidden until there is an address behind it');
-  assert.ok(doc.getElementById('viewer-pdf-msg').textContent.trim().length,
-    'and the pane says what it is doing meanwhile');
+  assert.ok(doc.querySelector('[data-pdf="msg"]').textContent.trim().length,
+    'the pane says what it is doing meanwhile');
   assert.equal(doc.querySelectorAll('canvas').length, 0,
-    'no canvas is authored: one per page is built lazily by the deck');
+    'no canvas is authored: one per page is built lazily');
 });
 
-test('the pdf stage can host a flex track, which needs min-h-0', () => {
-  // A flex child defaults to min-height auto, so a track dropped into the
-  // stage would be floored at its content height and grow the pane instead of
-  // scrolling inside it. Same class of trap swipe-deck documents for min-w-0
-  // on the horizontal axis, and it fails the same quiet way: it looks like a
-  // styling slip rather than a broken pager.
+test('the pdf module authors no chrome of its own', () => {
+  // The rule the viewer's header comment states, held as a check rather than
+  // as a hope: a mode puts its controls in the host's header through
+  // ctx.controls, and a strip of its own is a second row of chrome for one
+  // file. This module had one, carrying a pager, a byte size, a flow switch
+  // and an Inspect link, and inside the stage reader it was the THIRD band
+  // above the page.
   const mod = VR.modules.find(m => m.id === 'pdf');
   const doc = new window.DOMParser().parseFromString(mod.render(), 'text/html');
-  const stage = doc.getElementById('viewer-pdf-stage');
-  assert.match(stage.className, /flex-1/);
-  assert.match(stage.className, /min-h-0/);
+  for (const gone of ['bar', 'open', 'flow', 'size', 'prev', 'next', 'page']) {
+    assert.equal(doc.querySelector(`[data-pdf="${gone}"]`), null,
+      `${gone} is not authored into the pane`);
+  }
+  assert.equal(doc.querySelectorAll('button, a').length, 0,
+    'and the pane holds no control at all before the document opens');
+});
+
+test('the pdf stage is the positioning context its column and pager need', () => {
+  // Both are `absolute inset-0`/`absolute bottom-3`, so they resolve against
+  // the nearest positioned ancestor. Without `relative` here that is whatever
+  // the host happens to offer, which in the stage reader is the deck's own
+  // panel: the column would then cover the deck's header and footer rather
+  // than the page area. It fails as a layout that looks deliberate.
+  const mod = VR.modules.find(m => m.id === 'pdf');
+  const doc = new window.DOMParser().parseFromString(mod.render(), 'text/html');
+  const stage = doc.querySelector('[data-pdf="stage"]');
+  assert.match(stage.className, /relative/);
+  assert.match(stage.className, /h-full/);
 });
 
 // ── the header's path split ─────────────────────────────────────────────────
@@ -284,7 +301,7 @@ test('the name can still be truncated once the directory is gone', () => {
   assert.match(dir.className, /shrink-\[9999\]/, 'the directory absorbs the shrinking first');
 });
 
-test('a workbook opens in the sheets mode, whatever the host asked for', () => {
+test('a workbook opens in the sheet mode, whatever the host asked for', () => {
   // The registry mounted above sets defaultMode { md, json, '*': 'raw' }, so a
   // workbook would fall to 'raw' by that map. It must not: raw for a ZIP is a
   // screen of replacement characters, which is what every surface here showed
@@ -294,10 +311,11 @@ test('a workbook opens in the sheets mode, whatever the host asked for', () => {
   const modes = R.getModes(f);
   // Spread into a node-realm literal: getModes builds its array inside jsdom,
   // and assert/strict compares prototypes, so a cross-realm Array never matches.
-  assert.deepEqual([...modes.map(m => m.id)], ['raw', 'xlsx'], 'raw stays available, one tap away');
+  assert.deepEqual([...modes.map(m => m.id)], ['raw', 'sheet', 'xlsx'],
+    'the sheet render, the grid, and raw one tap away');
 
   const v = window.Alpine.$data(window.document.getElementById('v'));
-  assert.equal(v.resolveDefaultMode(f, modes).id, 'xlsx');
+  assert.equal(v.resolveDefaultMode(f, modes).id, 'sheet');
 });
 
 test('isWorkbook and mimeFor agree on which extensions are workbooks', () => {
@@ -313,10 +331,62 @@ test('isWorkbook and mimeFor agree on which extensions are workbooks', () => {
   assert.equal(R.mimeFor('png'), 'image/png', 'and the image map still answers');
 });
 
-test('the sheets mode is exclusive, and the image mode still is too', () => {
+test('the sheet mode is exclusive, and the image mode still is too', () => {
   // Both make the same argument about a host's blanket defaultMode, so if one
   // ever loses the flag the other's reasoning has quietly changed as well.
   const byId = Object.fromEntries(window.ViewRegistry.modules.map(m => [m.id, m]));
-  assert.equal(byId.xlsx.exclusive, true);
+  assert.equal(byId.sheet.exclusive, true);
   assert.equal(byId.image.exclusive, true);
+  // The grid reads the same extension and must NOT be exclusive: two exclusive
+  // modules over one extension make resolveDefaultMode's "take the first"
+  // arbitrary, which is a coin toss decided by array order.
+  assert.ok(!byId.xlsx.exclusive, 'the grid defers to the sheet render');
+});
+
+test('one exclusive mode per file, which is what resolveDefaultMode assumes', () => {
+  const R = window.ViewRegistry;
+  for (const ext of ['xlsx', 'xlsm', 'png', 'pdf', 'docx', 'md', 'csv', 'json', 'js']) {
+    const exclusive = R.getModes({ name: 'f.' + ext, ext, content: '' }).filter(m => m.exclusive);
+    assert.ok(exclusive.length <= 1, `${ext} has ${exclusive.length} exclusive modes`);
+  }
+});
+
+test('a Word document opens on the page render, and the reading view is still offered', () => {
+  const R = window.ViewRegistry;
+  const modes = R.getModes({ name: 'form.docx', ext: 'docx', content: '' });
+  const ids = modes.map(m => m.id);
+  assert.ok(ids.includes('page'), `page missing from ${ids}`);
+  assert.ok(ids.includes('docx'), `docx missing from ${ids}`);
+  assert.equal(modes.find(m => m.exclusive)?.id, 'page');
+  assert.equal(resolve('form.docx', '', 'raw'), 'page', 'a host\'s blanket raw cannot mean "the ZIP as text"');
+  // And a workbook is untouched by the document pair.
+  assert.ok(!R.getModes({ name: 'f.xlsx', ext: 'xlsx', content: '' }).some(m => m.id === 'page'));
+});
+
+test('the page render scrubs a link it cannot vouch for and opens the rest in a new tab', () => {
+  const R = window.ViewRegistry;
+  const box = window.document.createElement('div');
+  box.innerHTML = '<a href="https://ofm.wa.gov/x">web</a><a href="mailto:a@b.gov">mail</a>' +
+    '<a href="#_Toc123">anchor</a><a href="javascript:alert(1)">bad</a><a href="file:///etc/passwd">worse</a>';
+  R.scrubLinks(box);
+  const links = [...box.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), a.target]);
+  assert.deepEqual(links, [
+    ['web', 'https://ofm.wa.gov/x', '_blank'],
+    ['mail', 'mailto:a@b.gov', '_blank'],
+    ['anchor', '#_Toc123', ''],
+    ['bad', null, ''],
+    ['worse', null, ''],
+  ]);
+});
+
+test('a narrowed workbook reference is claimed by the grid', () => {
+  const R = window.ViewRegistry;
+  const grid = R.modules.find(m => m.id === 'xlsx');
+  const f = { name: 'book.xlsx', ext: 'xlsx', content: '' };
+  assert.ok(grid.claims(f, { filter: { col: 'Fund', find: '600-6' } }),
+    'rows are what a col/find reference names, and only the grid narrows to rows');
+  assert.ok(!grid.claims(f, {}), 'an unnarrowed workbook opens on the sheet render');
+  assert.ok(!grid.claims(f, { filter: { col: 'Fund' } }), 'half a narrowing is not one');
+  assert.ok(!grid.claims({ name: 'a.csv', ext: 'csv', content: '' }, { filter: { col: 'a', find: 'b' } }),
+    'a csv is the table mode, not this one');
 });

@@ -17,7 +17,7 @@ The mechanisms, what each reaches and misses, and the rule for picking one are *
 
 **So do not decide it by reading. Run it:** `npm run showing` reads the branch's
 changed files and prints the render line to paste, or an honest no-link with the
-reason ([`scripts/showing.py`](scripts/showing.py); `/caption` calls it). It
+reason ([`scripts/showing.py`](scripts/showing.py)). It
 happened again on 2026-08-22, with the `?use=` trap itself in context, which is
 why the last rule this section stated in prose is now executable. The honesty
 rule survives, since no script supplies it: only a page renders this way, for a
@@ -40,37 +40,17 @@ Any turn that modifies `lib/gh-api.js` must end with the jsDelivr purge link so 
 
 ## The pre-build & the build-on-commit hook
 
-`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page can adopt the entire library with one import instead of a `gh.load` chain. It's generated (`npm run build:lib`) and it's the one tracked file under the otherwise-gitignored `dist/`. Full story in [`tools/README.md`](tools/README.md#the-pre-build).
+`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`tools/README.md`](tools/README.md#the-pre-build).
 
 The `gh.load` chain it replaces is the repo's default, not a legacy path: 36 page files use it, and [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in at all is the prior question, answered once in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`. It is also the argument that load and build are two readings of one set of rules, which is why the pre-build works at all.
 
-Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch:
+Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`tools/README.md`](tools/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
 
-- `lib/` changed → `npm run build:lib` → `dist/web-tools.js`
-- `pages/**/*.html` changed → `npm run pages-index` → `pages/README.md` + `pages/index.html`
-- skills, `lib/`, `pages/`, or `docs/` changed → `npm run docs-reach` → the `reach` and `words` fields in `docs/docs.json`
-- `docs/docs.json` changed → `npm run docs-readme` → `docs/README.md`, then `npm run docs-reach` again (leg 3c)
-- `docs/SNAGS.md` changed → `npm run snags-index` → the index block at its top
-- `tracker/tasks/` changed → `npm run tracker-board` → `tracker/board.md` + `tracker/board.json`
-
-`reach` and `words` are the odd ones: derived fields in an otherwise authored
-file, so `docs/docs.json` is hand-edited everywhere except those two keys.
-`reach` says who can get to a doc and moves when a skill or page names a file,
-an edit nowhere near the registry; `words` says how much of the folder it is.
-The two disagree, which is why the Docs tab shows both: the orphans are the
-larger count and the smaller mass. `tools/test/docs-registry.test.mjs` holds
-both to the derivation and names the restamp command when they part.
-
-Leg 3c exists because 3a and 3b are a cycle: `docs/README.md` is generated *from*
-the registry and is also a row *in* it. One more stamp settles it. The stamp
-itself runs to a fixpoint for the same reason one level down, and asserts
-convergence rather than assuming it.
-
-Don't hand-edit any of those five files; edit the source and let the hook refresh them. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
 
 **It is a git hook, not a Claude Code hook, deliberately:** a `PreToolUse` hook is read only when the session's project root IS this repo, so a multi-repo session ran it never and said nothing. [`.claude/hooks/session-githooks.sh`](.claude/hooks/session-githooks.sh) sets `core.hooksPath`; `--no-verify` bypasses. Why, and what it does not generalize to: [extending.md](docs/environment/extending.md).
 
-**Best-effort still.** A clone that never set `core.hooksPath` runs nothing, so `npm test` keeps [`tools/test/artifacts-lockstep.test.mjs`](tools/test/artifacts-lockstep.test.mjs), which re-runs each generator in `--check` mode and fails if a tracked artifact is behind its source. Run the command it names and commit the result.
+**Best-effort still.** A clone that never set `core.hooksPath` runs nothing, so `npm test` keeps [`tools/test/derived-artifacts.test.mjs`](tools/test/derived-artifacts.test.mjs), which re-runs each generator in `--check` mode and fails if a tracked artifact is behind its source. Run the command it names and commit the result.
 
 Regenerating by hand after touching `lib/` or `pages/` is still the fast path; the test makes forgetting loud instead of silent. Why each generator has to be byte-deterministic, and the tracker board's 2026-08-05 counterexample, are in [`tools/README.md`](tools/README.md#the-refresh-model).
 

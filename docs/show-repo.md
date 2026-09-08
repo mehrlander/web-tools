@@ -70,7 +70,7 @@ dispatched by both chains and stamped by neither, `?view=estate` stamped only
 beside a `repo`/`ref` param on a premise that had expired. Each was a view the
 app could reach and could not name, and none of the three was visible from
 inside any one chain.
-[`tools/test/show-repo-routing.test.mjs`](../tools/test/show-repo-routing.test.mjs)
+[`tools/test/shell-routing.test.mjs`](../tools/test/shell-routing.test.mjs)
 keeps the collapse honest (no view name may be compared directly inside the
 routing functions; every view the shell enters has a row) and then re-parses
 each row's own stamped address, on the default repo and on another, since the
@@ -111,21 +111,48 @@ repos opt into.
 ### The shell mode: how much of the app surrounds the view
 
 `?shell=` decides how much of show-repo is drawn around whichever view the rest
-of the address names. Three values, and `full` is the default and stays out of
-the URL, so nothing written before this existed changed shape:
+of the address names. Three values:
 
 | Value | Header | Sidebar |
 | --- | --- | --- |
-| `full` (default) | yes | out on a wide screen, away on a phone |
+| `full` | yes | out on a wide screen, away on a phone |
 | `nav` | yes | away at every width; the header's hamburger opens it |
-| `none` | no | away; the FAB's Render tab is the way back |
+| `none` | no | away; the launcher's menu and the FAB's Render tab are the way back |
+
+**The default is per view, not one constant.** An app view opens at `none`,
+every other route at `full`, and whichever applies stays out of the URL. So
+`?app=budget-drs` is already "that page, bare", and turning the header on there
+is what gets recorded (`&shell=full`), which is the honest reading of a screen
+showing the app's chrome around a promoted page. A promoted page is one page
+some repo published, framed whole; the reader who addressed it by name asked
+for the page, not for the app around it, and a home-screen tile is the case
+that makes it obvious.
+
+It is derived per view rather than latched at boot, and a toggle back to a
+view's own default clears itself rather than latching. Both exist for one
+failure: a mode that follows the reader out of an app view leaves the estate
+dashboard with no nav at all, reachable only through the FAB.
 
 **It exists because most of these views have no page behind them.** Four do: a
 custom landing, a project landing, an app view, and the atlas are all iframes
 over a real standalone page, so the FAB offers a **bust-out** that leaves the
 embed and opens that page full-viewport. Files, Branches, Map, Search, State,
 Activity, and a repo's default overview are the shell's own, with nothing to
-bust out to. `?shell=none` is the address that shows one of them alone.
+bust out to. `?shell=none` is the address that shows one of them alone, and it
+is what an app view does without being asked.
+
+**An app view names and pictures itself.** The tab, the bookmark and the iOS
+home-screen tile all read the shell's `<title>` and its icon links, and one
+title under one favicon for every route made `?app=budget-drs` indistinguishable
+from the dashboard on all three. An open app view now takes the tab: its name
+leads (`Budget DRS · Web Tools`, subject first, since those three surfaces
+truncate from the right), and the framed page's own icon replaces the hex nut,
+rasterized to a PNG so it can also fill the `apple-touch-icon` iOS demands and
+will not take an SVG for. Both come from `toss-render`, which resolves the
+subject's mark anyway and announces it up undimmed on `toss-subject-mark`; its
+own tab keeps the dimming, because a toss is a rendering of a page and a
+promoted view is a destination. The mark drops with the view, so a tab never
+names an app the reader has left.
 
 **The sidebar is one boolean at every width now** (`sidebarOpen`), and the
 viewports differ in two things only: below `lg` it overlays with a scrim, at
@@ -147,7 +174,7 @@ belong to: it says how to present the screen, not which screen. So it gets no
 `VIEWS` row and is stamped unconditionally beside whatever the view table
 stamped, which is also what carries it through a ref switch (that mints its
 address from an empty base, where `?use=` must not survive but this must).
-`show-repo-routing.test.mjs` holds the two properties the table's own rows get
+`shell-routing.test.mjs` holds the two properties the table's own rows get
 for free: the address reopens as itself, and an unrecognized value reads as
 `full` rather than hiding the header with no way back.
 
@@ -277,6 +304,8 @@ you were already looking at rather than at the front door.
 The branch list is the same scan the fab's Render tab runs
 (`branchesForPath`, degrading to an undated list without a token) and it loads
 **on hover or focus, once**: a page nobody touches the control on pays nothing.
+The fab holds it to the same rule since 2026-09-02: its ref dropdown scans when
+opened, and the guide under it reads with one pull-request call on open.
 
 The fab remains the fuller instrument, and the only one on a phone, since this
 cluster is desktop-only, like the rail and for the same overflow reason; the
@@ -454,6 +483,34 @@ It opens on hover where the pointer can hover, and on focus for a keyboard
 reader. On a touch screen it never opens: the icon keeps its single meaning,
 which is a tap that jumps to GitHub.
 
+**One address, one destination**, since 2026-09-04. The mark was four
+attributes, `:href="hubUrl(p)" :data-peek="peek(p)" target="_blank"
+rel="noopener"`, and nothing held the first two to the same file: a site could
+open one path and preview another, silently, because both halves render fine
+when they disagree. The `x-blob` directive
+([`lib/alpine-bundle.js`](https://github.com/mehrlander/web-tools/blob/main/lib/alpine-bundle.js))
+takes the address once and derives the href from it through `SourcePeek.blobUrl`,
+the same builder the card's own head uses. The GLYPH stays at the call site,
+because it is not invariant: a github mark says "the file on GitHub" and a
+`ph-function` mark says "the builder that stamps this", which is a different
+claim about the same kind of link. Nineteen sites in the Map view are converted;
+`estate.js`, `stage.js`, `state-view.js` and `tools.js` still spell the pair by
+hand. [`tools/test/x-blob.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/x-blob.test.mjs)
+holds the directive and keeps the Map view's count from going back up.
+
+The card's head carries a mark of its own (2026-09-04), inline after the
+filename, and it is the same destination the trigger has: the card is enterable,
+so a reader who has moved onto it to read the excerpt has left a 16 px glyph
+behind, and going to GitHub meant travelling back to it. The URL is derived from
+the address the head displays rather than read off the trigger's `href`, so a
+card cannot name one commit and open another; a key that is not an address (the
+stage's pasted flavors) names no repo and gets no mark. It is one anchor, not a
+control: nothing at the call site changes, and the narrow rule above is
+unaltered. Whether it can be pressed at all is a claim a browser has to make,
+since mousedown focuses an anchor before the click resolves and the focus
+handler used to dismiss on that, so [`tools/test/peek-head-link.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/peek-head-link.mjs)
+(`npm run test:peek-link`) drives a real press.
+
 ## The estate: the all-repo view
 
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
@@ -463,9 +520,9 @@ open). It is a context with **views of its own**, switched from
 the header nav the way a repo shows landing/atlas/files/…:
 
 - **Repos** (`?view=estate`) — the repo cards.
-- **Stage** — one nav stop with two pill-switched sub-views, each keeping its
-  own deep link: the **bench** (`?view=stage`) and **Saved** (`?view=surfaces`)
-  (below).
+- **Stage** (`?view=stage`) — the cross-repo working set (below). It carried a
+  second sub-view, Saved, until 2026-08-27; `?view=surfaces` is now a retired
+  alias onto the bench.
 - **Activity** — the estate's own motion: one nav stop with five pill-switched
   sub-tabs, each keeping its own deep link: **Sessions** (`?view=sessions`),
   **Branches** (`?view=activity`), **State** (`?view=state`), **Chats**
@@ -597,8 +654,8 @@ better space in front of the decision than a dialog here would be. So the page
 names the destination, GitHub performs the act, and the next load tells the truth
 on its own: because `archived` arrives in the list call, a repo archived on GitHub
 moves itself into Retired with nothing stored here. An archived row is muted, keeps
-its browse jump (the point of archiving rather than deleting is that it stays a
-reference shelf), and drops both write actions rather than offering what the API
+its browse jump (the point of archiving rather than deleting is that it stays
+readable), and drops both write actions rather than offering what the API
 will refuse. The foot of the section carries the other end of the same errand, a
 link to `github.com/new`: create there, adopt on the row, it gets a card.
 
@@ -612,38 +669,16 @@ The same population is what the tracker's *session-start nudge for unconfigured
 repos* addresses from the agent side. Both read `conventions: 'optout'`, so keep
 them on that one field rather than growing a second vocabulary.
 
-**Saved surfaces** (the Stage's Saved pane) come from two places,
-stacked in one scroll: the surface format
-either way (a `manifest` block and an `items` array). The contract is
-[`docs/envelopes/surface.md`](envelopes/surface.md); `lib/kits/surface.js` dual-reads
-v1 and v2 and normalizes to v2, so an existing v1 file keeps working untouched
-and is never rewritten by having been read. Each surface offers **Load onto the
-stage**, the bridge onto the bench described under
-[The stage](#the-stage-the-working-surface), and a registry one can be edited
-in place or deleted (two-tap).
-
-- **General** (top): `surfaces/*.surface` files in the **registry**. These are
-  cross-repo estate content, not a repo describing itself, so they stay there.
-  Sorted `default` → `standing` → `showcase` (`archive` excluded), each editable
-  in place through a JSON dialog (gear on the surface header; "New" seeds a fresh
-  one). An agent session with registry access can write or extend one; the estate
-  shows it on next load.
-- **Per-repo** (below General): a repo that names a `surface` in its **own**
-  `.web-tools.json` (a path, or a list of paths, to `.surface` files in that
-  repo) contributes them under a section headed by the repo. The config cache
-  already carries the declaration, so the estate fetches only the repos that
-  declared one, on their default branch: a bounded read over opt-in repos, not a
-  scan of every member. These are **read-only** in the estate (the estate holds
-  the registry token, not each repo's); the section links each file to its blob,
-  edit it where it lives. A repo owns the surface that tells its own story; the
-  registry keeps the curated, cross-repo ones. (Follow-up: gate the re-fetch on
-  the repo's `pushed_at` so an unchanged file isn't re-read every load.)
-
-A repo that declares a surface also gets a **surface chip** on its Repos-grid
-card, deep-linking straight to its section. Rendered item kinds (both sources):
-`github_blob` / `github_dir` (open-in-shell + GitHub link; target as `{repo, ref,
-path}` or a github.com URL), `url` (external link), `note` / `story` (inline
-body), `embed` (a renderer page in an iframe via a toss-render route).
+**Saved surfaces are gone, and so is the repo surface chip** (2026-08-27). The
+Stage's Saved pane listed `.surface` files from two places, the registry's
+`surfaces/` and any repo declaring a `surface` in its own `.web-tools.json`,
+and offered Load onto the stage; the bench could save its set back as one. All
+of it went, because a surface is not a saved stage: two files ever existed,
+neither came from a bench, and the curated content they hold was filed behind a
+workbench pill. The format keeps its reader
+([`lib/kits/surface.js`](../lib/kits/surface.js)) and its contract
+([`docs/envelopes/surface.md`](envelopes/surface.md)); the one page reading a
+surface today is `pages/branch.html`, through `branch-review/1`.
 
 **Activity** gathers the estate's own motion under one header-nav stop. Five
 panes on a segmented pill (the shared internal-tab style), switching at every
@@ -667,7 +702,7 @@ passes is the one the others pass, that it reports where work actually
 happens; it is the only one that can say so about thinking done outside a
 checkout. To-do and Jot failed exactly that test and left (below).
 
-**Guides was a third reading and left 2026-08-23:** the shelf held one file
+**Guides was a third reading and left 2026-08-23:** the view held one file
 estate-wide, and its "in flight" was the open PRs Branches and Sessions already
 carry. `pages/guides/` stays, indexed by Pages; so does `kits/guide-render.js`,
 which renders a guide PR body and is a different thing wearing a similar name.
@@ -735,7 +770,7 @@ routes belong to one page in one repo, so the read is about two dozen requests
 and is taken live, which is also why this pane has no age pill.
 
 **Every read is at the ref the code came from, not at main.** The manifest and
-the `VIEWS` table are held in lockstep at a ref, so reading the code from one
+the `VIEWS` table are held to each other at a ref, so reading the code from one
 and the manifest from another breaks the invariant the gate protects. Pinning
 the manifest to main did exactly that on the first preview of the branch that
 added it: the pane reported `GitHub Error 404` for a file that did not exist on
@@ -835,7 +870,14 @@ The split is fixed halves, each scrolling **inside itself**, so adding to one
 never pushes the other off screen. That needs a definite height, which the shell
 hands down: for this view only (`listsFill`), the estate pane and its column
 become `flex` + `overflow-hidden` instead of the ordinary scrolling column, and
-the component root joins the chain. Nothing in the pane adds a card, a border
+the component root joins the chain. That change of display had a cost nobody
+saw for three weeks: an auto inline margin sizes a flex **item** to its content
+rather than stretching it, so the `mx-auto` this wrapper already carried
+silently capped the pane at the width of its widest row. Lists came out 548px
+wide inside a 1280px window, `!max-w-none` and all, which is what made the Pin
+grid split a half-width pane into two columns and clip a 26-character title.
+`w-full` on that wrapper is the fix and is inert in every other view, where the
+parent is still a block. Nothing in the pane adds a card, a border
 box, or a second layer of padding: two sections, one hairline between them, and
 the scroll on the list rather than the page. Each half keeps its heading and add
 form pinned while its list scrolls, since the add form is the reason you came;
@@ -873,8 +915,8 @@ across browsers and devices, not a per-browser `localStorage` list. Token-gated
 like Surfaces: no token, no list.
 
 **Jot** is the capture sibling: quick ideas, one flat item list in the
-registry's `lists/jots.json` (`{items: [{id, text, created_at}]}`), same
-whole-file write mechanics. Singular, because you jot one thing; the file keeps
+registry's `lists/jots.json` (`{items: [{id, text, created_at, kind}]}`, `kind`
+optional), same whole-file write mechanics. Singular, because you jot one thing; the file keeps
 its plural name, since renaming a data file to match a label is a migration that
 buys nothing. The lifecycles differ: a to-do tracks work and completes; a jot has
 no done state. It sits in the pile, newest first with its age showing, until it
@@ -884,6 +926,34 @@ without building it yet: the add commit carries the jot's text, so the file's gi
 history is itself a capture log, and the registry sits in agent-session scope, so
 an agent session can read the pile and drain it (promote, then delete) the way
 `chron/dump/` is drained.
+
+**A jot's `kind` is the drain's routing hint, and it is open.** The estate had
+already answered this question twice in opposite directions, and which answer
+applies turns on one thing: `links/board.json`'s `kind` is a closed set of four
+because the **renderer switches on it**, so the code has to exhaust the cases,
+while `lists/pins.json`'s `group` is free text because it only groups, and
+`pinGroups` derives the set from the items. A jot is the second sort. Every jot
+renders identically and the only thing that acts on a kind is the drain, which
+reads the text anyway, so nothing declares the set: it grows from use, and a
+kind nobody uses again leaves with its last jot. The one discipline an open
+vocabulary needs is a normal form (lowercase, hyphenated, 24 characters), or
+`Snag`, `snag ` and `Doc Failure` become three kinds and the chips stop
+converging.
+
+The chips are what keep it converging rather than sprawling: the add form
+offers the kinds already in the pile, commonest first, so tapping is always
+cheaper than typing and nobody writes `snag` twice; a trailing `+` is how a kind
+that does not exist yet gets made. They sit inside the capture form, ahead of
+the box and always visible, so a kind can be picked before the text is typed
+and the field is not something you have to know is there. A row of their own
+was the first shape and it charged every jot a line; inside the form they cost
+nothing until the pane is too narrow to hold chips and box on one line, where
+the form wraps and the box drops below them. A kind
+earns a chip by naming a **destination the text cannot imply**: `snag` names the
+owning repo's [`SNAGS.md`](SNAGS.md), where a topic is in the text already and
+grep finds it. Seeded with `snag` alone, 2026-08-26, because every jot in the
+pile that day was the same thing, an idea for this app, which is the pile's
+default and so needs no name.
 
 **Pins** render above the two lists rather than beside them, and have no
 `?view` key of their own. They are internal links kept at hand, one flat item
@@ -900,6 +970,15 @@ something that already has a home.
 All three live under `lists/` because they are
 authored content with the registry as their source of truth; `state/` stays
 derived caches only.
+
+**Each heading links its own file**, which is the jump-over convention arriving
+somewhere it had been missed: three panes were writing three files in a private
+registry with nothing on screen naming the repo, the path, or the fact that
+checking a box is a commit. The glyph names an exact file, so it carries a
+**peek** (`lib/kits/source-peek.js`): hover shows the JSON, a tap opens the
+blob. The card is seeded from the bytes the loader already read, and re-seeded
+by every saver, because a peek that kept its copy from mount would answer "what
+is in the file" with a file that one check-off had already replaced.
 
 **Branches** (`?view=activity`, called Open until the scope chips arrived) is
 **every** branch of the estate in one cross-repo list, freshest first, narrowed
@@ -1108,7 +1187,7 @@ measuring something wider than the branch. A tooltip never appears on a phone,
 so on a phone it said nothing at all. Thirteen characters is a real cost on this
 row and it is the right trade, since the alternative was a caveat nobody could
 reach. The general rule it is a case of is now in
-[HTML-STYLE.md](HTML-STYLE.md), and [`scripts/stranded-titles.py`](../scripts/stranded-titles.py)
+[the house style](../skills/daisy-alpine/SKILL.md), and [`scripts/stranded-titles.py`](../scripts/stranded-titles.py)
 counts the remaining cases.
 
 **Stage** sends the files this branch changed to the Stage (one `compare` call,
@@ -1470,10 +1549,15 @@ scoped list, and lapse back to All when the scope stops holding that repo.
 
 Tapping a row, on either the ask or the short id, opens the session as a
 **conversation**: the record is fetched and handed to the swipe deck
-(`lib/kits/session-render.js`), one card per ask and per assistant prose turn, with
-the tool calls attaching to the turn that issued them. Both halves are there,
-the calls carry their arguments and whatever body the record kept, and fenced
-blocks get chat-render's live views. The record is cached per id, and the
+(`lib/kits/session-render.js`), one card per exchange, so a slide carries a
+question, every sentence of its answer, and everything that ran in between.
+The work folds into one line: a run of tool calls plus the short sentence that
+announced it is a **step**, and a run of adjacent steps collapses into a single
+fold. So a card closed is the question, one line for everything done to answer
+it, and the reply; opening that line lays the work out flat, sentence then
+calls, step after step. The calls carry their
+arguments and whatever body the record kept, and fenced blocks get chat-render's
+live views. The record is cached per id, and the
 renderer chain loads on first use, so a visit that never opens a session pays
 nothing for it.
 
@@ -1654,7 +1738,54 @@ authoritative carrier, since it is what sessions load and follow, and the
 manifest is its gated index (membership held two-way to the doc's bullet
 lead-ins by `tools/test/surfacing-manifest.test.mjs`; the card summaries are
 paraphrases and stay unchecked, which the Docs registry's claims table states).
-Surfacing decides what to hand over; Showing is what makes it openable.
+A card's TITLE opens the doc at the bullet it paraphrases (2026-09-04), docking
+the deck so the two sit side by side, scrolling smoothly to the bullet and
+tinting it yellow for four seconds. That treatment is
+[`lib/kits/land.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js)'s
+rather than this tab's, and the kit is a SECOND implementation lifted rather
+than a first invented: `mehrlander/home`'s budget-drs submittal view has
+answered the same question for months over two subjects, a block of prose in an
+office document and a rectangle on a page of a PDF, and this tab arrived at a
+near-identical scroller walk independently. A landing sits 28% down rather than
+centred, since centred puts half the previous section above the heading that was
+asked for; only the nearest scrolling ancestor moves, since scrollIntoView walks
+every one and scrolled the card list out from under the reader. home's copy is
+still inline in its own page and is the adopter, not the source.
+
+**The estate had six landings and they disagreed on both axes.** A survey on
+2026-09-04 found them in five files across two repos, sitting at the centre, at
+28%, at a fixed 80px and at the page top, in three different yellows, two of
+them a hardcoded orange the theme does not carry. Nothing reported it, because
+each one looked right on its own surface. `kits/pdf.js` is the one now brought
+alongside: its find hit lands at the kit's height and its marks read
+`--color-warning` through the same `color-mix` the kit compiles to, held by
+[`tools/test/land-parity.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/land-parity.test.mjs)
+rather than by a call, since pdf.js has no kit dependencies and one consumer
+loads it straight from jsDelivr. Three of its lessons went the other way: a set
+has a **current** member and is drawn at two strengths; an overlay mark
+**multiplies** so it sits under the glyphs it covers; and a mark over a rendered
+page needs a stronger percentage than one behind DOM text, because multiplying
+against white washes the same number out. `state-view.js`'s `aim` takes the kit's
+scroll and keeps its own tint, since `item` already drives a reactive class
+there and two owners for one mark leaves one behind. Two stay put on purpose:
+`fab.js`'s highlight has no dwell and a clear button, which makes it a
+highlighter rather than a landing, and `annotate.js` lands on a foreign page
+where its 80px is a gap above a drawn rectangle rather than a fraction of a
+pane.
+No correspondence is invented for it: `surfacing.csv`'s `lead` already is that
+bullet's bold lead-in, held both ways by `surfacing-manifest.test.mjs`. What the
+manifest gate cannot say is whether the key survives RENDERING, and it barely
+does: the primitives are a loose list, so marked wraps each item in a `<p>` and
+the lead-in is `li > p > strong:first-child`. The tight `li > strong` matched
+none of the twenty-two. [`tools/test/surfacing-lead-anchor.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/surfacing-lead-anchor.test.mjs)
+renders the real doc and holds both facts.
+
+The header's deck door opens that carrier and its index as two slides of the
+house swipe deck rather than routing to the Files view (2026-09-04): docked, the
+prose sits beside the cards it is authoritative for, where the route change put
+them off screen. It wears `swipeDeck.entry`'s glyph and wording like every other
+door in the estate, ghost-toned because the cards are the subject. Surfacing
+decides what to hand over; Showing is what makes it openable.
 
 *Showing* (named Transport until 2026-08-04; renamed because
 [`SURFACING.md`](SURFACING.md) already uses "transport" for the stage link, and
@@ -1709,7 +1840,19 @@ cannot drift, paging through the selected folder's files as filtered, opened
 on the tapped row; its GitHub icon, inline with the badges and always visible,
 carries the source peek for the desktop glance, one details toggle on the
 reach strip shows every row's maintenance at once, and the files view stays
-the route for working on a file rather than reading it. The file list runs two
+the route for working on a file rather than reading it. The folder heading
+carries the deck's own door beside its GitHub mark (2026-09-04), since the row
+tap was a gesture nobody was told about. The **Tests** and **Harness** tabs
+answer the same tap the same way from that date: a row title opens the deck
+rather than routing to the Files view, and each carries the door. Tests pages
+the suite as its strip has cut it, counted in checks rather than files, since
+what a check protects is prose at the top of its own file; Harness pages the
+selected folder, the Docs tab's shape exactly. A `.csv` row opens as a TABLE rather
+than as raw text: the deck converts it to a markdown table so md-doc's wide-table
+scroller and prose styling apply, with each cell's markdown escaped, since a
+registry that describes markdown was otherwise rendering its own
+`[caption](url)` as a link. The peek keeps the raw excerpt, which is what a
+glance at the head of a file wants. The file list runs two
 columns above `xl` so a wide screen is used rather than left as a gutter. And the **shared claims**: statements that live in
 more than one place, each with its one authoritative carrier and its typed
 repetitions (copy, paraphrase, pointer, live read; a copy says who keeps it, by
@@ -1745,8 +1888,8 @@ estate and are precisely the two no file tool can see, so a bare count would ran
 them last.
 
 *Tests* is the same shape one axis over, from [`docs/tests.csv`](tests.csv):
-every file in the suite with its kind (gate, lockstep, tool, kit, behavior,
-component, guard) and what breaks if it is deleted, its assertions, method,
+every file in the suite with its kind (gate or behavior)
+and what breaks if it is deleted, its assertions, method,
 runner and boot-smoke count all derived from the files and gated against the
 registry. The strip cuts the total by kind rather than reporting it, since a
 pass count cannot tell a boot check from an adversarial gate, and a browser
@@ -1934,21 +2077,36 @@ cache and made the Sessions row look like a half that had been split off. Under
 the group heading the row is Branches, which is what its own `used by` chip
 always said.
 
-**Each row says who uses it, as view keys.** `feeds` is a list of shell view
-keys (`estate`, `activity`, `sessions`, `search`) rendered as chips
-that route through the shell's own `go*` methods, so a tap goes and looks at the
-data being consumed. The list is deliberately only the clean answers. The prose
-it replaced also named the sidebar, quick links, and things below view
-granularity, which is where the detail now lives instead: configs also drives
-the sidebar, the quick-link row, and every promoted app view; activity also
-feeds the Repos cards' per-repo rollups; sessions also feeds the branch rows'
-session links and the Search view's session lane. None of those is a view, so
-inventing keys for them would be the over-normalization
-[registries.md](registries.md) warns against. The entity index's consumers are
-`pages` rather than views, kept as a separate field because a page opens at its
-own URL while a view is a stop inside this shell, and one chip cannot honestly
-mean both. Each row's crawl cost rides its Refresh button's tooltip, where it is
-actionable, rather than a line of its own.
+**Each row says who uses it, as view keys**, rendered as chips that route
+through the shell's own `go*` methods, so a tap goes and looks at the data being
+consumed.
+
+**The chips are composed, not authored.** The authored side is `reads` on
+[`docs/app-routes.csv`](app-routes.csv), one column on the registry that already
+owns a routed view, naming what each view consumes; a cache row's chips are that
+relation read backwards, built at read time and stored nowhere. A scan
+([`cache-readers.mjs`](../tools/build/cache-readers.mjs)) bounds what may be
+claimed there, and [`state-feeds.test.mjs`](../tools/test/state-feeds.test.mjs)
+is where the two meet: it holds the upper bound (no view claims a read no file
+of its own makes) and the lower (a row listing a cache's own kit, or carrying a
+file that backs no other route, must declare it). The residue between the bounds
+is what only a person can settle, which is which of `estate.js`'s seven views
+consumes which cache.
+
+The list is still deliberately only the clean answers. The prose it replaced
+also named the sidebar, quick links, and things below view granularity, which is
+where the detail now lives instead: configs also drives the sidebar, the
+quick-link row, and every promoted app view; activity also feeds the Repos
+cards' per-repo rollups; sessions also feeds the branch rows' session links.
+None of those is a view, so inventing keys for them would be the
+over-normalization [registries.md](registries.md) warns against. The entity
+index's consumers are `pages` rather than views, kept as a separate field
+because a page opens at its own URL while a view is a stop inside this shell,
+and one chip cannot honestly mean both. Session titles have no file of their own
+at all: the crawl joins the export onto the sessions rows, so the row declares
+`via: 'sessions'` and a view claiming titles must claim sessions too. Each row's
+crawl cost rides its Refresh button's tooltip, where it is actionable, rather
+than a line of its own.
 
 **The JSON is read in the app, not on GitHub.** Every registry row carries one
 **Expand** control, a bare caret at the row's end: expanding a row to see its
@@ -2029,7 +2187,7 @@ and the as-of reading that says whether to press was the part hidden below `sm`,
 so a phone kept the control and dropped the fact. Three sections carry the
 split: **Derived** (the registry's `state/`) and **This browser** (the search
 caches and the page itself, both gone on reload, neither estate state). A third,
-**Read live**, held the guides shelf alone and went with it.
+**Read live**, held the guides list alone and went with it.
 
 **Built and checked are two different ages, and one alone misreads.** `built` is
 the last commit touching the file; `checked` is this browser's throttle stamp
@@ -2288,14 +2446,12 @@ tracker follow-up.
 ## The stage: the working surface
 
 The stage's contract lives in its own reference now, [stage.md](stage.md):
-the bench and Saved, intake (the paste offer bar, the Add panes, manifest
-seeds), the walkable preview and its diff, the Out surface, save-as-surface,
-and the `#stage=` link grammar with `&prompts=` and `&mode=`. What stays here
-is the boundary: the stage is `store.stage`, one list of `{repo, ref, path}`
-refs (plus local items) sitting above any repo, and a staged fileset *is* a
-surface ([envelopes/surface.md](envelopes/surface.md), the `stage/1`
-profile), which is why the Stage view holds the bench and the shelf as one
-nav stop.
+the bench, intake (the paste offer bar, the Add panes, manifest seeds), the
+walkable preview and its diff, the Out surface, and the `#stage=` link grammar
+with `&prompts=` and `&mode=`. What stays here is the boundary: the stage is
+`store.stage`, one list of `{repo, ref, path}` refs (plus local items) sitting
+above any repo, which is why it is a nav stop of the estate rather than
+anything a repo owns.
 
 The other things that stay here are the **app-wide drop and paste**, because
 they are the shell's gestures rather than the stage's: a file dropped, or

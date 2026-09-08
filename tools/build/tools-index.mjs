@@ -60,7 +60,14 @@ function npmScriptMap(repoRoot) {
   return out;
 }
 
-/** Files another node file imports, so a helper is not read as dead. */
+/**
+ * Files another node file imports, so a helper is not read as dead. The
+ * importers include tools/test/, which is not itself a subject: a derivation
+ * a gate imports has a route, and reading it as `none found` would report the
+ * warning state on a file the suite runs on every push. It changes exactly one
+ * row today, the other four helpers imported only by tests having an npm
+ * script that outranks `imported` anyway.
+ */
 function importedSet(repoRoot, files) {
   const imported = new Set();
   for (const rel of files) {
@@ -85,7 +92,7 @@ export function deriveTools(repoRoot) {
     !f.startsWith('tools/test/') &&
     CODE_EXT.some(e => f.endsWith(e)));
   const npm = npmScriptMap(repoRoot);
-  const imported = importedSet(repoRoot, subjects);
+  const imported = importedSet(repoRoot, [...subjects, ...files.filter(f => f.startsWith('tools/test/'))]);
   const prose = files.filter(f => f.endsWith('.md')).map(f => read(repoRoot, f)).join('\n');
   const tests = files.filter(f => f.startsWith('tools/test/')).map(f => read(repoRoot, f)).join('\n');
 
@@ -108,7 +115,13 @@ export function deriveTools(repoRoot) {
       // closed domain so the gate holds it. Letting a JS boolean stringify
       // itself was how this column came out `true` while its one reader tested
       // for 'yes', and the Harness strip read 0 named of 147 for two days.
-      emits: /writeFileSync|open\([^)]*['"][wa]/.test(src) ? 'yes' : 'no',
+      // Both fs spellings, because the async one is the estate's default in
+      // tools/build/ and the sync-only pattern reported `no` for seven files
+      // that plainly write, docs-readme, pages-index and snags-index among
+      // them: three of the generators whose output the derived-artifacts gate
+      // exists to hold. A field claiming "writes a file" was wrong about the
+      // files most depended on being right.
+      emits: /writeFileSync|\bwriteFile\(|open\([^)]*['"][wa]/.test(src) ? 'yes' : 'no',
       named: (prose.includes(rel) || prose.includes(base)) ? 'yes' : 'no',
       tested: tests.includes(base) ? 'yes' : 'no',
     });

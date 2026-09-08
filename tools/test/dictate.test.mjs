@@ -554,27 +554,149 @@ test('the whole gap is one target, since a thumb cannot aim at one offset', () =
     'whatever the gap held, the join is one space');
 });
 
-test('the stitch declines where there is no seam to close', () => {
-  const away = withText('so I went to the store. And then I came back');
-  away.caretAt(10);
-  assert.equal(away.canStitch, false, 'a caret four words off reaches nothing');
-  assert.equal(away.stitch(), false);
-  assert.equal(away.text, 'so I went to the store. And then I came back');
-
-  const end = withText('this sentence ends here.');
-  end.caretAt(24);
-  assert.equal(end.canStitch, false, 'a mark at the end of the buffer joins to nothing');
-
-  const resting = withText('this sentence ends here.');
-  assert.equal(resting.canStitch, false, 'and neither does the resting null range');
-
+test('the stitch declines where there is no sentence break anywhere', () => {
+  // Narrowed on 2026-09-06 to what STILL declines. A caret away from the seam
+  // and a buffer ending in a pause period both used to be refusals; both are
+  // now readings of their own, covered in "reaching back" below.
   const tight = withText('nasa.gov is a site');
   tight.caretAt(5);
   assert.equal(tight.canStitch, false, 'no gap means the join is already tight');
+  assert.equal(tight.stitch(), false);
 
   const bare = withText('. A stray mark');
   bare.caretAt(1);
   assert.equal(bare.canStitch, false, 'a mark with no sentence in front of it is not an ending');
+  assert.equal(bare.stitch(), false);
+
+  const none = withText('nothing to undo here');
+  assert.equal(none.canStitch, false);
+  assert.equal(none.stitch(), false);
+});
+
+// ── Walking back through the breaks ─────────────────────────────────────────
+// The stitch reached backwards by itself for a few hours on 2026-09-06 and no
+// ordering of its targets could be right: during dictation the buffer almost
+// always ends in a full stop the pause just wrote, so "the most recent break"
+// is that one, and whether the reader wants it gone or wants to keep it and
+// repair an earlier one is a fact about what they are about to say, not one the
+// buffer holds. So the reach became its own key, which changes nothing and
+// shows the target.
+
+test('with no caret placed the stitch takes the newest break', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  assert.equal(d.range, null, 'the resting state, which is where dictation leaves it');
+  assert.equal(d.stitchAim, 'back');
+  assert.equal(d.stitch(), true);
+  assert.equal(d.text, 'one thing. Two things three things happened');
+  assert.equal(d.range, null, 'and the caret is not moved, since none was placed');
+});
+
+test('a trailing full stop is not a break, because the backspace already takes it', () => {
+  // The stitch answered for one for a single commit, and that reading is what
+  // made its target ambiguous: during dictation the buffer almost always ends
+  // in the mark the pause just wrote, so the trailing case shadowed every older
+  // one. A break needs words after it.
+  const one = withText('so I went to the store.');
+  assert.equal(one.stitchAim, '', 'nothing follows the mark, so nothing to join');
+  assert.equal(one.stitch(), false);
+
+  // And the backspace does the job, continuation included, which is what makes
+  // dropping the reading free rather than a loss.
+  const d = engine();
+  d.start();
+  FakeSR.last.say([{ t: 'so I went to the store', final: true }]);
+  assert.equal(d.text, 'so I went to the store.');
+  d.backWord();
+  assert.equal(d.text, 'so I went to the store');
+  FakeSR.last.say([{ t: 'And then I came back', final: true }]);
+  assert.equal(d.text, 'so I went to the store and then I came back.',
+    'the capital comes down, so the sentence really did run on');
+  d.stop();
+});
+
+test('jumping back walks to the previous break, and again walks past it', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  assert.equal(d.canJumpBack, true);
+  assert.equal(d.jumpBack(), true);
+  assert.deepEqual(d.range, { start: 23, end: 23 }, 'on the front of "Three"');
+  assert.equal(d.stitchAim, 'caret', 'and the stitch is now aimed');
+
+  d.jumpBack();
+  assert.deepEqual(d.range, { start: 11, end: 11 }, 'on the front of "Two"');
+  assert.equal(d.canJumpBack, false, 'and there is nothing older to reach');
+});
+
+test('the walk changes nothing until the stitch is tapped', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  // The setter itself records one step, so the claim is that the two jumps add
+  // none: one undo has to reach past them to the buffer being set.
+  d.jumpBack(); d.jumpBack();
+  assert.equal(d.text, 'one thing. Two things. Three things happened');
+  d.undo();
+  assert.equal(d.text, '', 'one undo reaches the empty buffer, so no jump left a step of its own');
+  assert.equal(d.canUndo, false);
+});
+
+test('a jumped caret is handed back to the end, so dictation keeps appending', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  d.jumpBack();
+  d.stitch();
+  assert.equal(d.text, 'one thing. Two things three things happened');
+  assert.equal(d.range, null,
+    'the caret was on loan for the repair; leaving it mid-buffer would land the next sentence inside this one');
+
+  d.start();
+  FakeSR.last.say([{ t: 'and more', final: true }]);
+  assert.match(d.text, /three things happened and more\.$/, 'the words land at the end');
+  d.stop();
+});
+
+test('a caret the reader placed is theirs, and stays on the join', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  d.caretAt(23);                          // the same seam, placed by hand
+  d.stitch();
+  assert.equal(d.text, 'one thing. Two things three things happened');
+  assert.deepEqual(d.range, { start: 22, end: 22 }, 'the caret stays where the work is');
+});
+
+test('placing a caret elsewhere ends the loan', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  d.jumpBack();                           // borrowed
+  d.caretAt(11);                          // and handed back by the reader's own move
+  d.stitch();
+  assert.equal(d.text, 'one thing two things. Three things happened');
+  assert.deepEqual(d.range, { start: 10, end: 10 }, 'so this caret stays put');
+});
+
+test('the trailing full stop survives, because the stitch never wanted it', () => {
+  // The case that sent the first reach back to the drawing board: with a full
+  // stop ending the buffer, one tap used to take THAT back, which is wrong
+  // whenever the reader meant to keep it and repair the break before it.
+  const d = withText('one thing. Two things.');
+  assert.equal(d.stitchAim, 'back');
+  d.stitch();
+  assert.equal(d.text, 'one thing two things.', 'the older break went, the trailing mark stayed');
+
+  // And the walk reaches the same one, for a reader who wants to see it first.
+  const e = withText('one thing. Two things.');
+  e.jumpBack();
+  assert.equal(e.stitchAim, 'caret');
+  e.stitch();
+  assert.equal(e.text, 'one thing two things.');
+});
+
+test('jumping declines with nothing behind, and with a selection live', () => {
+  assert.equal(withText('no breaks at all').canJumpBack, false);
+  assert.equal(withText('no breaks at all').jumpBack(), false);
+
+  const one = withText('one thing. Two things');
+  one.jumpBack();
+  assert.equal(one.canJumpBack, false, 'the only break is the one we are on');
+
+  const sel = withText('one thing. Two things');
+  sel.select(0, 3);
+  assert.equal(sel.canJumpBack, false, 'a selection means the reader is aiming at a word');
+  assert.equal(sel.jumpBack(), false);
 });
 
 test('a live selection is not a stitch: the pad is showing casing keys then', () => {
@@ -622,6 +744,103 @@ test('a paragraph break is a gap too, so the caret closes it the same way', () =
   assert.equal(d.canStitch, true);
   d.stitch();
   assert.equal(d.text, 'first thought second thought');
+});
+
+// ── Un-ending, and the capital ──────────────────────────────────────────────
+// The stitch one keystroke earlier: the pause has written its full stop and
+// the reader has not said the next words yet, so there is no seam to find.
+
+test('un-ending takes back the pause\'s full stop and the sentence runs on', () => {
+  const d = engine();
+  d.start();
+  FakeSR.last.say([{ t: 'so I went to the store', final: true }]);
+  assert.equal(d.text, 'so I went to the store.');
+  assert.equal(d.canUnend, true);
+  // Still its own verb, and still what the desk's Control tap calls. The pad
+  // reaches it through the backspace instead, which does the same thing on a
+  // buffer ending in a mark; the stitch deliberately does not, since answering
+  // for a trailing mark is what made its target ambiguous.
+  assert.equal(d.canStitch, false, 'nothing follows the mark, so there is no break');
+  assert.equal(d.unend(), true);
+  assert.equal(d.text, 'so I went to the store');
+
+  FakeSR.last.say([{ t: 'And then I came back', final: true }]);
+  assert.equal(d.text, 'so I went to the store and then I came back.',
+    'the capital comes down, the way it does after a stitch');
+  d.stop();
+});
+
+test('un-ending declines where there is nothing to take back', () => {
+  assert.equal(withText('no mark here').canUnend, false);
+  assert.equal(withText('no mark here').unend(), false);
+  assert.equal(withText('a comma, then').canUnend, false,
+    'only the full stop is the pause\'s guess; a comma was meant');
+
+  const mid = withText('one. two.');
+  mid.caretAt(4);
+  assert.equal(mid.canUnend, false, 'the caret is not at the end, so this is stitch territory');
+
+  const sel = withText('one two.');
+  sel.select(0, 3);
+  assert.equal(sel.canUnend, false, 'a live selection means the reader is aiming at a word');
+});
+
+test('un-ending is one undo step', () => {
+  const d = withText('done.');
+  d.unend();
+  assert.equal(d.text, 'done');
+  d.undo();
+  assert.equal(d.text, 'done.');
+});
+
+test('an armed capital rides every revision of the interim and is spent once', () => {
+  const seen = [];
+  const d = engine({ onInterim: (t) => seen.push(t) });
+  d.start();
+  d.armCapital();
+  assert.equal(d.capitalArmed, true);
+
+  FakeSR.last.say([{ t: 'dexie' }]);
+  FakeSR.last.say([{ t: 'dexie is' }]);
+  assert.deepEqual(seen.slice(-2), ['Dexie', 'Dexie is'],
+    'the capital holds across revisions rather than flickering off');
+
+  FakeSR.last.say([{ t: 'dexie is the store', final: true }]);
+  assert.equal(d.text, 'Dexie is the store.');
+  assert.equal(d.capitalArmed, false, 'one shot: the segment that landed spent it');
+
+  FakeSR.last.say([{ t: 'and it works', final: true }]);
+  assert.equal(d.text, 'Dexie is the store. and it works.',
+    'the next segment is left alone');
+  d.stop();
+});
+
+test('an armed capital beats the continuation rule, which would have lowered it', () => {
+  // A comma left at the end is what a continuation IS here, and backWord is
+  // the shortest honest way into that state: it reads the flag off the buffer.
+  const d = withText('we shipped it, so');
+  d.backWord();
+  d.start();
+  FakeSR.last.say([{ t: 'Dexie held the rest', final: true }]);
+  assert.match(d.text, /it, dexie held/, 'a continuation lowers a plain capital');
+  d.stop();
+
+  const e = withText('we shipped it, so');
+  e.backWord();
+  e.start();
+  e.armCapital();
+  FakeSR.last.say([{ t: 'Dexie held the rest', final: true }]);
+  assert.match(e.text, /it, Dexie held/, 'unless the reader asked for the capital');
+  e.stop();
+});
+
+test('stopping drops an arming whose word is not coming', () => {
+  const d = engine();
+  d.start();
+  d.armCapital();
+  d.stop();
+  assert.equal(d.capitalArmed, false);
+  assert.equal(d.armCapital(false), false, 'and it can be disarmed by hand');
 });
 
 test('delete takes the selection when there is one, and the word before a caret otherwise', () => {
@@ -713,6 +932,86 @@ test('the painter renders text, caret and selection as marked parts', () => {
     [['text', 'the '], ['sel', 'quick'], ['text', ' fox'], ['handle-start', ''], ['handle-end', '']]);
   const hs = h.querySelector('[data-edge="start"]');
   assert.match(hs.getAttribute('style'), /position:absolute/, 'so the text never moves for them');
+});
+
+// `reach` puts the ARMED ball on a stalk so a thumb dragging it clears the
+// text. Two things have to hold, and jsdom can check both from the style
+// strings even with no layout: only the armed pin reaches, and the option is
+// off unless asked for, since the composer and the stage share this painter
+// and neither wants it.
+test('reach extends the armed pin only, and only when asked for', () => {
+  const h = host();
+  const stem = (el) => el.firstElementChild.getAttribute('style');
+  const ball = (el) => el.lastElementChild.getAttribute('style');
+  const pins = () => ({
+    start: h.querySelector('[data-edge="start"]'),
+    end: h.querySelector('[data-edge="end"]'),
+  });
+
+  D.paint(h, { text: 'the quick fox', range: { start: 4, end: 9 }, armed: 'end' });
+  const plain = pins();
+  assert.match(stem(plain.end), /height:0px/, 'no reach by default, so the stem is the line');
+  assert.match(ball(plain.end), /translateY\(0px\)/, 'and the ball sits on it');
+  assert.doesNotMatch(ball(plain.end), /transition/, 'with nothing to animate');
+
+  D.paint(h, { text: 'the quick fox', range: { start: 4, end: 9 }, armed: 'end', reach: 18 });
+  const out = pins();
+  assert.match(stem(out.end), /height:18px/, 'the armed stem carries the reach');
+  assert.match(ball(out.end), /translateY\(18px\)/, 'and the ball rides out to the end of it');
+  assert.match(stem(out.start), /height:0px/, 'the unarmed pin does not reach');
+  assert.match(ball(out.start), /translateY\(0px\)/, 'nor does its ball move');
+
+  // The mark itself must not move: the stem still starts on the line, so what
+  // the pin POINTS at is the same and only where you hold it changed.
+  assert.match(stem(out.end), /top:17px/, 'the stem still begins on the line');
+  assert.match(out.end.getAttribute('style'), /height:52px/, 'the hit box grew with it');
+
+  // THE REACH IS A TRANSFORM SO IT CAN BE ANIMATED, and position is not, so a
+  // drag is not made to trail the finger by the same transition.
+  assert.match(ball(out.end), /transition:transform/, 'the ball eases out');
+  assert.doesNotMatch(out.end.getAttribute('style'), /transition/, 'the hit box does not');
+});
+
+// SEVERAL HYPOTHESES IN ONE EVENT need a separator putting back. normalize()
+// trims each segment on the way in, because the join belongs in one place and
+// that place is spliceIn: engines disagree about whether a continuation carries
+// a leading space. But the interim accumulator concatenated them raw, so the
+// trim it had just done was what glued them, and the reader watched a word
+// arrive stuck to the one before it and then separate when it finalized.
+test('interim segments arriving together are joined, not concatenated', () => {
+  const seen = [];
+  const d = engine({ onInterim: (t) => seen.push(t) });
+  d.start();
+  FakeSR.last.say([{ t: 'the point of' }, { t: ' this page' }]);
+  assert.equal(seen.at(-1), 'the point of this page');
+  d.stop();
+});
+
+// The pins are KEPT across paints, because a rebuilt element has no previous
+// value to transition from. Identity is the gate: a caller may have attached a
+// listener to the node, and the reach cannot ease out of a node that is new.
+test('a pin survives a repaint, and goes when it is no longer drawn', () => {
+  // AN OVERLAY IS THE PRECONDITION, and it is not a detail: paint() clears the
+  // host to redraw the text, so a pin living in the host cannot survive by
+  // construction. Only a caller that hands over a separate overlay gets kept
+  // nodes, which is the same caller that wanted the pins unclipped.
+  const h = host();
+  const overlay = h.ownerDocument.createElement('div');
+  const draw = (o) => D.paint(h, { text: 'the quick fox', overlay, ...o });
+
+  draw({ range: { start: 4, end: 9 } });
+  const was = overlay.querySelector('[data-edge="start"]');
+  was.__mark = 1;
+  draw({ range: { start: 4, end: 9 }, armed: 'start', reach: 18 });
+  assert.equal(overlay.querySelector('[data-edge="start"]').__mark, 1,
+    'the same node was restyled, so the reach has something to ease out of');
+
+  draw({ range: { start: 4, end: 4 } });
+  assert.equal(overlay.querySelector('[data-edge]'), null,
+    'a collapsed range leaves no pins behind');
+  draw({ range: { start: 4, end: 9 }, handles: false });
+  assert.equal(overlay.querySelector('[data-edge]'), null,
+    'nor does turning them off for a mouse');
 });
 
 test('the caret is a plain inline, so it cannot break the word it sits inside', () => {
@@ -1186,4 +1485,235 @@ test('a caret move is not an undo step, and a no-op assignment is not either', (
   assert.equal(e.undo(), true, 'the one assignment that changed something');
   assert.equal(e.text, '');
   assert.equal(e.canUndo, false, 'and the two that changed nothing recorded nothing');
+});
+
+// ── Keeping the engine alive ──────────────────────────────────────────────
+// The rule these hold: an end the READER did not ask for is the device's own
+// silence timeout, not the end of the session. Everything here drives the
+// stub's `onend` directly, which is what a WebKit silence timeout looks like
+// from inside the kit: an end with no stop() behind it.
+
+// A relaunch is scheduled on a timer, so a test has to let the loop turn. The
+// wait is the kit's own gap plus a little, and the loop below is what a real
+// pause looks like: end, wait, and a fresh engine is up.
+// `relaunchMs: 0` is what keeps a dozen relaunches from costing two seconds
+// of wall clock; the delay itself is the kit's business, not a rule to hold.
+const fast = (opts = {}) => engine({ relaunchMs: 0, ...opts });
+const tick = () => new Promise(r => setTimeout(r, 5));
+
+test('an end nobody asked for relaunches, and the mic does not blink', async () => {
+  // The whole point. Before this the reader paused to think, WebKit ended the
+  // recognition at its own silence timeout, and the words stopped arriving
+  // with nothing said about it.
+  const states = [];
+  const d = fast({ onState: () => states.push({ listening: d.listening, live: d.live }) });
+  d.start();
+  const first = FakeSR.last;
+  FakeSR.last.say([{ t: 'the opening sentence', final: true }]);
+
+  first.onend();                       // the device gives up on the silence
+  assert.equal(d.listening, true, 'the reader never stopped, so the session has not');
+  assert.equal(d.live, false, 'and the engine really is down for the moment');
+
+  await tick();
+  assert.notEqual(FakeSR.last, first, 'a fresh engine came up behind it');
+  assert.equal(d.live, true);
+  assert.equal(d.relaunches, 1);
+
+  FakeSR.last.say([{ t: 'and the one after the pause', final: true }]);
+  assert.equal(d.text, 'the opening sentence. and the one after the pause.',
+    'both sides of the pause are in one buffer (the stub does not capitalize)');
+
+  assert.ok(states.every(s => s.listening),
+    'no state the surface was told about painted the mic as off');
+  d.stop();
+});
+
+test('stop() ends it for good: the relaunch reads intent, not the engine', async () => {
+  const d = fast();
+  d.start();
+  const only = FakeSR.last;
+  d.stop();
+  assert.equal(d.listening, false);
+  await tick();
+  assert.equal(FakeSR.last, only, 'nothing came up behind the reader');
+  assert.equal(d.live, false);
+});
+
+test('the dry budget gives up on a device that never hears anything', async () => {
+  // A microphone that is muted, seized by another app, or pointed at a silent
+  // room ends at once and forever. Without a cap this is a hot loop.
+  const errs = [];
+  const d = fast({ onError: (m) => errs.push(m) });
+  d.start();
+  for (let i = 0; i < 20 && d.listening; i++) {
+    FakeSR.last.onend();
+    await tick();
+  }
+  assert.equal(d.listening, false, 'the kit stopped asking');
+  assert.match(errs.join(' '), /nothing was heard/, 'and said why rather than going quiet');
+  assert.ok(d.relaunches <= 13, 'the budget bounded it: ' + d.relaunches);
+});
+
+test('any result refills the budget, since an engine returning words is working', async () => {
+  const d = fast();
+  d.start();
+  // Ten dry ends, then a hypothesis, then ten more. Without the refill the
+  // second run would exhaust a budget the first had already spent.
+  for (let i = 0; i < 10; i++) { FakeSR.last.onend(); await tick(); }
+  assert.equal(d.listening, true);
+  FakeSR.last.say([{ t: 'still here' }]);
+  for (let i = 0; i < 10; i++) { FakeSR.last.onend(); await tick(); }
+  assert.equal(d.listening, true, 'the interim alone settled the question the budget asks');
+  d.stop();
+});
+
+test('a permission refusal is not a silence: it never relaunches', async () => {
+  // Relaunching into a denied microphone asks the reader to refuse again ten
+  // times a second, and on a phone each refusal is a sheet over the page.
+  const errs = [];
+  const d = fast({ onError: (m) => errs.push(m) });
+  d.start();
+  const only = FakeSR.last;
+  only.onerror({ error: 'not-allowed' });
+  only.onend();
+  await tick();
+  assert.equal(d.listening, false);
+  assert.equal(FakeSR.last, only, 'no second prompt');
+  assert.match(errs.join(' '), /not-allowed/);
+});
+
+test('keepAlive: false keeps the old behavior exactly', async () => {
+  const d = fast({ keepAlive: false });
+  d.start();
+  const only = FakeSR.last;
+  only.onend();
+  await tick();
+  assert.equal(d.listening, false, 'an end is the end');
+  assert.equal(FakeSR.last, only);
+});
+
+test('a tapped mark still rides its own relaunch, with keep-alive on', async () => {
+  // punct() parks the mark, stops the engine, and the end handler writes it
+  // and comes back up. That path predates keep-alive and must not now do it
+  // twice, nor spend a dry credit on an end the kit itself asked for.
+  const d = fast();
+  d.start();
+  FakeSR.last.say([{ t: 'a clause', final: true }]);
+  d.punct(',');
+  assert.match(d.text, /a clause, $/, 'the mark replaced the pause period');
+  await tick();
+  assert.equal(d.live, true, 'and the engine came back');
+  assert.equal(d.relaunches, 0, 'the mark path is not counted as a silence relaunch');
+  FakeSR.last.say([{ t: 'Carrying on', final: true }]);
+  assert.match(d.text, /a clause, carrying on\.$/, 'and the continuation casing survived it');
+  d.stop();
+});
+
+test('starting twice is one engine, and toggle reads the intent', async () => {
+  const d = fast();
+  d.start();
+  const first = FakeSR.last;
+  d.start();
+  assert.equal(FakeSR.last, first, 'no second engine on the same microphone');
+  d.toggle();
+  assert.equal(d.listening, false);
+  d.toggle();
+  assert.equal(d.listening, true);
+  d.stop();
+});
+
+test('un-ending does not reach back across a paragraph break', () => {
+  // `endSentence` refuses to write a full stop after a paragraph mark, so a
+  // buffer ending "line.\n\n" holds a pause period the reader then deliberately
+  // broke after. Taking the mark back would take their paragraph with it.
+  //
+  // Latent while `unend` was bound to a tapped Control key and nothing else;
+  // the pads reached the stitch instead. Offering it on the pad made the case
+  // ordinary, and the stage's own pad test is what caught it.
+  const d = withText('a line.\n\n');
+  assert.equal(d.canUnend, false);
+  assert.equal(d.canStitch, false, 'and the pad does not offer it either');
+  assert.equal(d.unend(), false);
+  assert.equal(d.text, 'a line.\n\n');
+
+  const spaces = withText('a line.   ');
+  assert.equal(spaces.canUnend, true, 'trailing spaces are not a break');
+  spaces.unend();
+  assert.equal(spaces.text, 'a line');
+});
+
+// ── The pending stitch, painted ─────────────────────────────────────────────
+// A confirm step is only worth a tap if the marker says what the next tap will
+// do. So it is painted as the EDIT, not as a highlight: the full stop struck
+// through and the capital behind it shown in the case it would take.
+
+test('stitchSeam answers with the same seam stitch would take', () => {
+  const d = withText('one thing. Two things. Three things happened');
+  assert.deepEqual(d.stitchSeam, { start: 21, end: 23 }, 'the newest, with no caret placed');
+  d.jumpBack(); d.jumpBack();
+  assert.deepEqual(d.stitchSeam, { start: 9, end: 11 }, 'and the caret leads it back');
+
+  // The pair has to agree, since one paints the marker and the other acts.
+  const e = withText('one thing. Two things. Three things happened');
+  const seam = e.stitchSeam;
+  e.stitch();
+  assert.equal(e.text, 'one thing. Two things three things happened');
+  assert.equal(seam.start, 21, 'the marker named the seam that went');
+});
+
+test('stitchSeam is null with nothing to close, and with a selection live', () => {
+  assert.equal(withText('no breaks here').stitchSeam, null);
+  assert.equal(withText('a trailing mark.').stitchSeam, null);
+  const sel = withText('one. Two things');
+  sel.select(0, 3);
+  assert.equal(sel.stitchSeam, null);
+});
+
+test('the marker changes not one character of the text', () => {
+  // The first cut of this painted the edit in place, the full stop struck
+  // through and the capital behind it drawn in the case the join would give
+  // it. It read well and it moved the words: a capital and its lower-case twin
+  // are different widths, so the paragraph reflowed the moment the marker went
+  // on. A marker that moves the text it points at is worse than none.
+  const { window: w } = makeWindow({ html: '<!doctype html><html><body><div id="h"></div></body></html>' });
+  const host = w.document.getElementById('h');
+  const text = 'one thing. Two things';
+  D.paint(host, { text, mend: { start: 9, end: 11 } });
+
+  const parts = [...host.childNodes].map((n) => [n.getAttribute('data-d'), n.textContent]);
+  assert.deepEqual(parts, [
+    ['text', 'one thing'],
+    ['mend', '. '],
+    ['text', 'Two things'],
+  ], 'the seam is wrapped to be measured and styled not at all');
+  assert.equal(host.querySelector('[data-d="mend"]').getAttribute('style'), null,
+    'no style on the wrapper, so it cannot cost a pixel of layout');
+  assert.equal(host.textContent, text, 'byte for byte what was passed in');
+});
+
+test('the badge is swept when nothing is armed', () => {
+  const { window: w } = makeWindow({
+    html: '<!doctype html><html><body><div id="lay"><div id="h"></div></div></body></html>' });
+  const host = w.document.getElementById('h');
+  const lay = w.document.getElementById('lay');
+  const text = 'one thing. Two things';
+
+  // jsdom reports no client rects, so the badge itself cannot be drawn here.
+  // What IS testable, and what actually broke, is the sweep: a badge left over
+  // from an armed pass must not outlive the state that put it there.
+  const stale = w.document.createElement('div');
+  stale.setAttribute('data-mend', 'mark');
+  lay.appendChild(stale);
+  D.paint(host, { text, overlay: lay });
+  assert.equal(lay.querySelector('[data-mend]'), null);
+});
+
+test('the marker takes the screen from the caret while it is up', () => {
+  const { window: w } = makeWindow({ html: '<!doctype html><html><body><div id="h"></div></body></html>' });
+  const host = w.document.getElementById('h');
+  D.paint(host, { text: 'one thing. Two things', range: { start: 11, end: 11 },
+                  mend: { start: 9, end: 11 } });
+  assert.equal(host.querySelector('[data-d="caret"]'), null,
+    'a caret inside the marker is a second thing to look at in a one-question moment');
 });

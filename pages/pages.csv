@@ -1,22 +1,31 @@
 top,group,label,title,href,thumb,code,note
 main,,annotate,Annotate,annotate.html,thumbs/annotate.png,https://github.com/mehrlander/web-tools/blob/main/pages/annotate.html,
+main,,audit-render,Audit render,audit-render.html,thumbs/audit-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html,
+main,,bench,Bench,bench.html,thumbs/bench.png,https://github.com/mehrlander/web-tools/blob/main/pages/bench.html,
 main,,branch,Branch,branch.html,thumbs/branch.png,https://github.com/mehrlander/web-tools/blob/main/pages/branch.html,
 main,,chat-results,Chat Search Results,chat-results.html,thumbs/chat-results.png,https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html,
 main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com/mehrlander/web-tools/blob/main/pages/citations.html,
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
 main,,console-playground,Console Suite Guide,console-playground.html,thumbs/console-playground.png,https://github.com/mehrlander/web-tools/blob/main/pages/console-playground.html,
 main,,data-view,Data View,data-view.html,thumbs/data-view.png,https://github.com/mehrlander/web-tools/blob/main/pages/data-view.html,
+main,,delivery,Conventions Delivery,delivery.html,thumbs/delivery.png,https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html,
+main,,dictate,Dictate,dictate.html,thumbs/dictate.png,https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html,"The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Share, Jot or Drop at the end of it."
 main,,diff-tool,Diff,diff-tool.html,thumbs/diff-tool.png,https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html,Side-by-side text diff tool.
+main,,doc-growth,Doc Growth,doc-growth.html,thumbs/doc-growth.png,https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html,
 main,,entities,Entities,entities.html,thumbs/entities.png,https://github.com/mehrlander/web-tools/blob/main/pages/entities.html,
 main,,gist-editor,Gist Editor,gist-editor.html,thumbs/gist-editor.png,https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html,Browse and edit GitHub gists in the browser.
 main,,inquiry,Inquiry,inquiry.html,thumbs/inquiry.png,https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html,
 main,,launcher,Popup Launcher · setup,launcher.html,thumbs/launcher.png,https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html,"Popup launcher setup — paste a token, copy out the bookmarklet."
 main,,links,Links,links.html,thumbs/links.png,https://github.com/mehrlander/web-tools/blob/main/pages/links.html,"home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place."
 main,,pdf-inspect,PDF Inspect,pdf-inspect.html,thumbs/pdf-inspect.png,https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html,
+main,,peek,Peek — DOM under a selection,peek.html,thumbs/peek.png,https://github.com/mehrlander/web-tools/blob/main/pages/peek.html,
+main,,pip-steps,Floating steps,pip-steps.html,thumbs/pip-steps.png,https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html,"Steps that float over another app, through iOS Picture-in-Picture."
 main,,repo-atlas,Repo Atlas,repo-atlas.html,thumbs/repo-atlas.png,https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html,"Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count."
 main,,review,Review,review.html,thumbs/review.png,https://github.com/mehrlander/web-tools/blob/main/pages/review.html,"A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target."
 main,,session,Session,session.html,thumbs/session.png,https://github.com/mehrlander/web-tools/blob/main/pages/session.html,
+main,,shortcut-log,Shortcut Log,shortcut-log.html,thumbs/shortcut-log.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html,
 main,,shorter,Shorter,shorter.html,thumbs/shorter.png,https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html,"Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM."
+main,,text-lab,Text Lab,text-lab.html,thumbs/text-lab.png,https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html,
 main,,toss-render,Toss Render,toss-render.html,thumbs/toss-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html,"Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves."
 main,,transform,Transform,transform.html,thumbs/transform.png,https://github.com/mehrlander/web-tools/blob/main/pages/transform.html,"Multi-tab rows ⇒ rows workbench: $name refs, worker run, profile and pivot views, gz bundles. The standalone face of lib/alpineComponents/transform-workbench.js."
 main,,word-select,Word Select,word-select.html,thumbs/word-select.png,https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html,"Touch-first word-level selection: tap, hold-drag, discontinuous runs, adjustable pins, no native selection anywhere."
@@ -47,17 +56,30 @@ drop,pages/drop/fills-concepts/3-reactive-surface/,aic-2,fill · Art Institute B
 drop,pages/drop/fills-concepts/3-reactive-surface/,aic-kimi,Art Institute Collection — fill,drop/fills-concepts/3-reactive-surface/aic-kimi.html,thumbs/drop/fills-concepts/3-reactive-surface/aic-kimi.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/aic-kimi.html,
 drop,pages/drop/fills-concepts/3-reactive-surface/,collection-browser,The Art Institute of Chicago · Collection Browser,drop/fills-concepts/3-reactive-surface/collection-browser.html,thumbs/drop/fills-concepts/3-reactive-surface/collection-browser.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/collection-browser.html,
 guides,pages/guides/,code-layers,Code layers: current state and migration plan,guides/code-layers.html,thumbs/guides/code-layers.png,https://github.com/mehrlander/web-tools/blob/main/pages/guides/code-layers.html,
+kit-demos,lib/kits/demos/,annotate,annotate — notes pinned to pieces of a page,../lib/kits/demos/annotate.html,thumbs/kit-demos/annotate.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/annotate.html,
+kit-demos,lib/kits/demos/,card,card — the way out of a card,../lib/kits/demos/card.html,thumbs/kit-demos/card.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/card.html,Card kit — the ghost ✕ and the three ways out of a card.
+kit-demos,lib/kits/demos/,cm6,"cm6 — a CodeMirror 6 editor, framework free",../lib/kits/demos/cm6.html,thumbs/kit-demos/cm6.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/cm6.html,
 kit-demos,lib/kits/demos/,compression,compression — living demo,../lib/kits/demos/compression.html,thumbs/kit-demos/compression.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/compression.html,"Compression kit — brotli/gz round-trip, live."
+kit-demos,lib/kits/demos/,dictate,dictate — voice input as a plain text buffer,../lib/kits/demos/dictate.html,thumbs/kit-demos/dictate.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/dictate.html,
+kit-demos,lib/kits/demos/,dock-split,dock-split — the drag handle between two panes,../lib/kits/demos/dock-split.html,thumbs/kit-demos/dock-split.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/dock-split.html,
 kit-demos,lib/kits/demos/,export,export — living demo,../lib/kits/demos/export.html,thumbs/kit-demos/export.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html,Export kit — file download from a user gesture.
 kit-demos,lib/kits/demos/,io,io — living demo,../lib/kits/demos/io.html,thumbs/kit-demos/io.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html,"IO kit — read/write helpers, shown live."
+kit-demos,lib/kits/demos/,land,land — where the reader was just sent,../lib/kits/demos/land.html,thumbs/kit-demos/land.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html,
 kit-demos,lib/kits/demos/,messaging,messaging — living demo,../lib/kits/demos/messaging.html,thumbs/kit-demos/messaging.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html,Messaging kit — cross-context postMessage helpers.
+kit-demos,lib/kits/demos/,note,note — the small tooltip,../lib/kits/demos/note.html,thumbs/kit-demos/note.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html,
+kit-demos,lib/kits/demos/,peek,peek — the region under the pointer,../lib/kits/demos/peek.html,thumbs/kit-demos/peek.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html,
 kit-demos,lib/kits/demos/,persistence,persistence — living demo,../lib/kits/demos/persistence.html,thumbs/kit-demos/persistence.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html,Persistence kit — local storage / state retention.
+kit-demos,lib/kits/demos/,read-aloud,read-aloud — markdown reduced to what is worth hearing,../lib/kits/demos/read-aloud.html,thumbs/kit-demos/read-aloud.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/read-aloud.html,
+kit-demos,lib/kits/demos/,row-menu,"row-menu — a tap on a row, and what you can do with it",../lib/kits/demos/row-menu.html,thumbs/kit-demos/row-menu.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/row-menu.html,
+kit-demos,lib/kits/demos/,source-peek,source-peek — the hover card behind an exact-file GitHub jump-over,../lib/kits/demos/source-peek.html,thumbs/kit-demos/source-peek.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/source-peek.html,
+kit-demos,lib/kits/demos/,swipe-deck,swipe-deck — the house swipe format,../lib/kits/demos/swipe-deck.html,thumbs/kit-demos/swipe-deck.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/swipe-deck.html,
 kit-demos,lib/kits/demos/,xlsx,xlsx — living demo,../lib/kits/demos/xlsx.html,thumbs/kit-demos/xlsx.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/xlsx.html,
 news,pages/news/,news,news · the outer log,news/news.html,thumbs/news/news.png,https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html,"Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct."
 scratch,pages/scratch/,base64-render-engine,Base64 Render Engine,scratch/base64-render-engine.html,thumbs/scratch/base64-render-engine.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/base64-render-engine.html,
 scratch,pages/scratch/,define-test,x-define — isolated test,scratch/define-test.html,thumbs/scratch/define-test.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/define-test.html,
 scratch,pages/scratch/,demo-spacex,SpaceX Viewer Demo,scratch/demo-spacex.html,thumbs/scratch/demo-spacex.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/demo-spacex.html,
 scratch,pages/scratch/,fab-sidebar-test,FAB sidebar test,scratch/fab-sidebar-test.html,thumbs/scratch/fab-sidebar-test.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/fab-sidebar-test.html,
+scratch,pages/scratch/,haptics-probe,Haptics probe,scratch/haptics-probe.html,thumbs/scratch/haptics-probe.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/haptics-probe.html,
 scratch,pages/scratch/,review-proto,Review · styling prototype,scratch/review-proto.html,thumbs/scratch/review-proto.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/review-proto.html,
 scratch,pages/scratch/,sidebar-drawer-mwe,Sidebar Drawer MWE,scratch/sidebar-drawer-mwe.html,thumbs/scratch/sidebar-drawer-mwe.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html,
 show-repo,pages/show-repo/,demo-viewer,Assembled Viewer Demo,show-repo/demo-viewer.html,thumbs/show-repo/demo-viewer.png,https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html,

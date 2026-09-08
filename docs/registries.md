@@ -84,7 +84,7 @@ That is what lets an inheriting registry declare a property it fills only where
 no computed set owns it.
 
 **Comparison needs an identity space**, since the same page is `annotate.html` to
-the page gallery and `pages/annotate.html` to the tools shelf. That is what
+the page gallery and `pages/annotate.html` to the Tools gallery. That is what
 `identity` is for. An opaque key is comparable to nothing, which is honest rather
 than lax: a route key and a docs path are not the same kind of name, so no
 comparison of them means anything. Matching is exact, so `content.csv`'s
@@ -184,11 +184,39 @@ Where an assertion lives follows from its mode and its readers. **Recorded**
 values are stored, always: judgment cannot be recomputed. **Computed** values are
 stored only where a page or a gate needs a committed artifact (the browser
 fetches files, it does not run generators; a gate needs a stable thing to hold; a
-diff makes a derived change reviewable), and then lockstep discipline applies.
+diff makes a derived change reviewable), and then the gate holds it to its source.
 What a live read already answers is never stored, branch state and CI status
 being the standing examples. Model-bridged output is stored when it is expensive
 and irreproducible, regenerated when it is scripted; chat-histories' two catalog
 layers are the worked precedent.
+
+## When a registry is the wrong answer
+
+A committed CSV that inventories part of the tree is a registry, and the rule
+above ("adding one means adding a row here") reads as an instruction to create
+one. It is a rule about *declaring* a carrier, not about *needing* one, and the
+distinction has teeth: a registry beside data that already exists is the
+duplication the integrity rule exists to prevent, and it will be the copy that
+ages.
+
+**The worked case, 2026-09-06.** `lib/kits/prompt-link.js` holds the outbound
+prompt targets (a new Claude Code session, a chat, and one that cannot be
+reached, with its reason) as a `TARGETS` array. A `prompt-targets.csv` was
+proposed so the app's Map view could render them beside the showing mechanisms.
+It was not built. The array is already data, already gated by
+`tools/test/prompt-link.test.mjs`, and already carries the reasons in the kit's
+header; a CSV would have been a verbatim second copy whose only advantage was
+being readable by a view that reads CSVs. (The consumer that prompted the
+proposal, a pair of link buttons on every session row, was itself withdrawn the
+same day as too much furniture for a list row. The registry would have outlived
+its reason by hours.)
+
+**The test is where the assertions already live, not where they would be
+convenient to read.** Where a kit or a generator holds them, the registry is the
+kit, and what is missing is a renderer, which is a smaller and more honest thing
+to want. Where the prose holds them and the CSV indexes it (`surfacing.csv`), a
+two-way gate makes the pair safe. What has no defence is a CSV transcribing an
+array in the same repository.
 
 ## What the audits keep teaching
 
@@ -226,6 +254,23 @@ values because it carries `npm:<script>`, a grammar rather than an enumeration,
 which no ratio can see. Where a check cannot decide, the honest move is to say so
 here rather than ship a gate that is right twice and wrong twice and therefore
 ignored. A noisy gate is a third way for an unchecked claim to hide.
+
+**Where a check can decide only part of a field, spend it on bounds.** The
+question above is put as though a claim were either checkable or not, and
+`app-routes.reads` is the case that is both. It names the derived caches each
+routed view consumes, and a scan settles less of it than it looks: every cache
+read goes through a kit constant, so `cache → module` derives cleanly, but
+`estate.js` reads three of the four caches and backs seven routed views, so the
+derivation stops one hop short of the answer and a composition through it would
+be coarser than the sentence it replaced. Neither authoring the field nor
+deriving it works. So the field is authored at the resolution the answer needs
+and the scan is spent on **bounds**: no view may claim a read no file of its own
+makes, and where a reading file backs exactly one route the claim is forced
+rather than merely allowed. That leaves 4 of its 11 entries genuinely authored,
+the residue being which of one wide component's views consumes which cache.
+[`cache-readers.mjs`](../tools/build/cache-readers.mjs) derives it,
+[`state-feeds.test.mjs`](../tools/test/state-feeds.test.mjs) holds both bounds,
+and nothing stores the composition.
 
 ### Two limits of the model, neither visible from inside it
 
@@ -278,6 +323,28 @@ with exactly one declaration hanging off each entry.
 one-to-one does not. That is a property of the estate being described, not of the
 describer, so a repo adopting this model picks the form its own carriers imply
 rather than the form the hub happens to use. Neither is the canonical shape.
+
+**The column grain is the same shape under two vocabularies.** This repo's
+`properties.csv` describes the columns of its registries, and budget-drs's
+`data/design/lineage/columns.csv` describes the columns of its tables (145 of
+them, 12 of which are registries). The hub needs no separate column file because
+its registries are its only governed tables; budget-drs does because most of its
+tables are not. Field for field:
+
+| hub `properties.csv` | budget-drs `columns.csv` | difference |
+| --- | --- | --- |
+| `registry`, `property` | `table`, `column` | the key |
+| `mode`: recorded, computed | `role`: source, carried, computed | `carried` has no hub value; the hub says borrowing at registry grain, as `inherits` |
+| `deriver` | `op`, `sources` | budget-drs carries the refs, the hub names the script |
+| `values` | `domain`, resolved in `domains.csv` | an inline set against a keyed universe |
+| `gloss` | `transform`, `note` | one sentence either side |
+| `required`, `form`, `exclusive` | `additivity` | the enrichment each side needed |
+
+Neither vocabulary converts to the other, for the reason above: no consumer
+reads both, and a rename is a cost with nothing waiting for it. What this table
+buys is that a reader meeting `mode` here and `role` there does not have to
+rediscover that they are one concept, which is how the sentence "neither shape
+maps onto the other" got written on 2026-09-05 and retracted the same day.
 
 **The borrowing runs both ways, and one attempt at it failed usefully.** The
 origin instrument carries a `definition_owner` field, naming per property the
