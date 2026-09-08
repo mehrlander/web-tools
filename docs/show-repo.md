@@ -2617,14 +2617,29 @@ never executed; a 404 means no config.
 (lazy-loaded on first send). Mechanics:
 
 - Destination spec: `owner/repo`, `owner/repo:dir`, or `owner/repo@ref:dir`.
-- Each file lands as **its own commit** through the Contents API; the payload
-  stays **base64 end to end**, so binaries copy as faithfully as text.
+- The whole deposit lands as **one commit** through the Git Data API (a blob per
+  file, one tree over the branch's current one, one commit, then the ref moves).
+  The payload stays **base64 end to end**, so binaries copy as faithfully as
+  text, and refs and pasted files ride the same commit. `gh.copyTo` is still
+  there and still writes one commit per file through the Contents API; nothing
+  in the app calls it now.
+- The commit message names the deposit and lists its paths, capped at twenty:
+  that list is what the per-file messages used to carry, and once a deposit is
+  one commit it is the only record of what was in it.
+- A source file that cannot be read is **reported and left out**, and the rest
+  still commit; when nothing reads, no commit is made. The tolerance is the one
+  `copyTo` always had. The atomic part is the write.
+- A branch that takes another commit while the blobs upload makes the ref move
+  fail rather than clobber it, and the tree is rebuilt on the new tip. Three
+  attempts, then the error stands.
 - **Two-tap confirm**: the first tap arms for 3 seconds, the second sends. A
   cross-repo write with the viewer's token stays a deliberate gesture.
 - Writes land on the destination's **default branch** unless an `@ref`/branch is
   given.
 - The Contents API caps a file at ~1 MB; a larger file **errors** rather than
-  writing an empty file at the destination.
+  writing an empty file at the destination. The cap is on the READ, so batching
+  the write does not lift it. Nor is a file's mode carried: the Contents API
+  never returned one, so everything lands `100644`.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
 
