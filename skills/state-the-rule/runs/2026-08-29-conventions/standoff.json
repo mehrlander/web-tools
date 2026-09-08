@@ -10,8 +10,8 @@
   "repo": "mehrlander/web-tools",
   "ref": "main",
   "url": "https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md",
-  "bytes": 4728,
-  "sha256": "51a064c9900a4fc14b46293721d9f45c4f44019e9f3cfc3166cedb7f60ca098b"
+  "bytes": 2773,
+  "sha256": "445681137336d57d8690d2127e806c0e8391f072d2d6088d01fc9d513951a7dd"
  },
  "vocabulary": [
   {
@@ -288,244 +288,91 @@
   {
    "uid": "conven-025",
    "start": 1898,
-   "end": 1921,
+   "end": 1909,
    "kind": "h2",
-   "words": 4,
+   "words": 2,
    "label": "META",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-026",
-   "start": 1923,
-   "end": 2021,
+   "start": 1911,
+   "end": 2030,
    "kind": "sent",
-   "words": 14,
-   "label": "WHAT",
+   "words": 25,
+   "label": "META",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-027",
-   "start": 2023,
-   "end": 2186,
+   "start": 2032,
+   "end": 2125,
    "kind": "sent",
-   "words": 21,
+   "words": 12,
    "label": "WHAT",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-028",
-   "start": 2188,
-   "end": 2360,
+   "start": 2126,
+   "end": 2231,
    "kind": "sent",
-   "words": 27,
-   "label": "WHAT",
+   "words": 18,
+   "label": "NAV",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-029",
-   "start": 2361,
-   "end": 2509,
+   "start": 2232,
+   "end": 2286,
    "kind": "sent",
-   "words": 22,
+   "words": 9,
    "label": "WHAT",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-030",
-   "start": 2511,
-   "end": 2542,
-   "kind": "h2",
-   "words": 5,
-   "label": "META",
+   "start": 2287,
+   "end": 2429,
+   "kind": "sent",
+   "words": 11,
+   "label": "NAV",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-031",
-   "start": 2544,
-   "end": 2644,
+   "start": 2430,
+   "end": 2579,
    "kind": "sent",
-   "words": 15,
-   "label": "WHAT",
+   "words": 27,
+   "label": "HOW",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-032",
-   "start": 2645,
-   "end": 2833,
+   "start": 2580,
+   "end": 2613,
    "kind": "sent",
-   "words": 30,
-   "label": "NAV",
+   "words": 7,
+   "label": "HOW",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-033",
-   "start": 2835,
-   "end": 2893,
-   "kind": "h2",
+   "start": 2614,
+   "end": 2692,
+   "kind": "sent",
    "words": 12,
-   "label": "META",
+   "label": "HOW",
    "verdict": "KEEP"
   },
   {
    "uid": "conven-034",
-   "start": 2895,
-   "end": 3254,
-   "kind": "sent",
-   "words": 58,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-035",
-   "start": 3256,
-   "end": 3432,
-   "kind": "sent",
-   "words": 15,
-   "label": "NAV",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-036",
-   "start": 3434,
-   "end": 3460,
-   "kind": "h2",
-   "words": 4,
-   "label": "META",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-037",
-   "start": 3462,
-   "end": 3558,
-   "kind": "sent",
-   "words": 17,
-   "label": "HOW",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-038",
-   "start": 3560,
-   "end": 3627,
-   "kind": "sent",
-   "words": 14,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-039",
-   "start": 3628,
-   "end": 3721,
-   "kind": "sent",
-   "words": 17,
-   "label": "HOW",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-040",
-   "start": 3722,
-   "end": 3748,
-   "kind": "sent",
-   "words": 5,
-   "label": "WHY",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-041",
-   "start": 3749,
-   "end": 3819,
-   "kind": "sent",
-   "words": 12,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-042",
-   "start": 3821,
-   "end": 3834,
-   "kind": "h2",
-   "words": 3,
-   "label": "META",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-043",
-   "start": 3836,
-   "end": 3926,
-   "kind": "sent",
-   "words": 15,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-044",
-   "start": 3927,
-   "end": 4014,
-   "kind": "sent",
-   "words": 16,
-   "label": "WHY",
-   "verdict": "REWRITE"
-  },
-  {
-   "uid": "conven-045",
-   "start": 4015,
-   "end": 4094,
-   "kind": "sent",
-   "words": 14,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-046",
-   "start": 4096,
-   "end": 4178,
-   "kind": "sent",
-   "words": 14,
-   "label": "NAV",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-047",
-   "start": 4179,
-   "end": 4396,
-   "kind": "sent",
-   "words": 26,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-048",
-   "start": 4398,
-   "end": 4436,
-   "kind": "h2",
-   "words": 6,
-   "label": "META",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-049",
-   "start": 4438,
-   "end": 4474,
-   "kind": "sent",
-   "words": 7,
-   "label": "WHAT",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-050",
-   "start": 4475,
-   "end": 4642,
-   "kind": "sent",
-   "words": 25,
-   "label": "WHY",
-   "verdict": "KEEP"
-  },
-  {
-   "uid": "conven-051",
-   "start": 4643,
-   "end": 4723,
+   "start": 2693,
+   "end": 2772,
    "kind": "sent",
    "words": 13,
-   "label": "WHAT",
+   "label": "NAV",
    "verdict": "KEEP"
   }
  ]

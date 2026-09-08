@@ -288,7 +288,11 @@ test('the budget tightens as more session scripts share the ceiling', () => {
     { WEB_TOOLS_OUTPUT_BUDGET: String(CEILING), WEB_TOOLS_SESSION_SIBLINGS: String(n) });
   assert.doesNotMatch(rung(0), /ALSO NOT INCLUDED|PARTIAL LOAD/,
     'a session with no siblings gets the widest rung');
-  assert.match(rung(400), /PARTIAL LOAD/,
+  // Derived, not pinned: enough siblings to eat the whole ceiling, whatever
+  // the documents weigh this week. A literal count (it was 400) went stale the
+  // day the docs shrank enough for that crowd to still fit a middle rung.
+  const CROWDED = Math.ceil((CEILING - BASE_RESERVE) / PER_SIBLING) + 1;
+  assert.match(rung(CROWDED), /PARTIAL LOAD/,
     'and a session crowded past every rung says so rather than overrunning in silence');
 });
 
@@ -304,7 +308,11 @@ test('the ceiling comes from the dispatcher, so the two cannot drift apart', () 
     'with the count of the others, which a script cannot discover for itself');
 
   // A lowered ceiling reaches the rung, which is the whole point of exporting it.
-  const out = run('inject-conventions.sh', { WEB_TOOLS_OUTPUT_BUDGET: '12000' });
+  // Derived from the bisected rung window (it was a literal 12000, stale as
+  // soon as the docs fit under it): a ceiling that leaves less than the
+  // partial rung's floor must select the partial rung.
+  const LOW_CEILING = String(RUNG2_LO + BASE_RESERVE - 1);
+  const out = run('inject-conventions.sh', { WEB_TOOLS_OUTPUT_BUDGET: LOW_CEILING });
   assert.match(out, /PARTIAL LOAD/);
 });
 
