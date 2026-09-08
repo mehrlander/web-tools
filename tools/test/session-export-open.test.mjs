@@ -43,8 +43,11 @@ const RECORD = {
   repos: [{ name: 'web-tools', branch: 'claude/x' }],
   opening_ask: 'First ask',
   exchanges: 2, prompts_stored: 2,
-  prompts: [{ at: '2026-09-01T10:00:00Z', text: 'First ask' },
-            { at: '2026-09-01T10:30:00Z', text: 'Second ask' }],
+  prompts: [{ at: '2026-09-01T10:00:00Z',
+              text: 'First ask, and a good deal more of it so the line has something '
+                  + 'to clamp and the chip has something to report on.' },
+            { at: '2026-09-01T10:30:00Z',
+              text: 'Second ask, likewise long enough that its own line overflows.' }],
   replies_total: 2, replies_stored: 2,
   replies: [{ at: '2026-09-01T10:05:00Z', text: LONG },
             { at: '2026-09-01T10:35:00Z', text: 'Short reply.' }],
@@ -76,9 +79,11 @@ const SE = window.sessionExport;
 // The estate's Claude colour, in the form jsdom normalizes the hex to.
 const CLAY = 'rgb(217, 119, 87)';   // #d97757
 
+let lastView = null;
 const build = (opts = {}) => {
   const view = SE.index(RECORD, opts);
   window.document.body.replaceChildren(view.el);
+  lastView = view;
   return view;
 };
 
@@ -102,6 +107,7 @@ const MD_RECORD = {
 const buildWith = (rec, opts = {}) => {
   const view = SE.index(rec, opts);
   window.document.body.replaceChildren(view.el);
+  lastView = view;
   return view;
 };
 
@@ -113,14 +119,65 @@ const mark = (n = 1) => rowOf(n)?.querySelector('.ph-sparkle');
 const lead = (n = 1) => rowOf(n)?.querySelector('i.ph');
 const askOf = (n = 1) => rowOf(n)?.querySelector(':scope > div');
 
+// ── Making the chips real in jsdom ─────────────────────────────────────────
+// The chip is the panel's trigger since 2026-09-08, and it appears only where
+// the CSS clamp actually hid something. jsdom lays nothing out, so scrollHeight
+// and clientHeight are both 0 and no line ever overflows: left alone, every row
+// here would have no trigger at all and every panel test would be asserting an
+// absence. So the geometry is stubbed to the shape a real overflow has, the
+// pass is driven by hand through the view's own `measure`, and what is under
+// test stays the wiring rather than the arithmetic.
+//
+// `hidden` is what gates the chip, so a stub that only reported overflow would
+// still leave the count at zero and the chip hidden. getClientRects answers the
+// binary search: a rect whose bottom sits ABOVE the line's own puts every
+// offset "still visible", which lands the search at the end and reports the
+// characters past it. Two nodes' worth is enough to make the number non-zero.
+const OVER = 40;                       // "hidden" line height, in fake pixels
+const layOut = (hide = 20, view = lastView) => {
+  for (const line of window.document.querySelectorAll('.line-clamp-1,.line-clamp-2')) {
+    Object.defineProperty(line, 'scrollHeight', { value: OVER, configurable: true });
+    Object.defineProperty(line, 'clientHeight', { value: 10, configurable: true });
+    line.getBoundingClientRect = () => ({ bottom: 10, top: 0, left: 0, right: 0, width: 0, height: 10 });
+    line.getClientRects = () => [{ bottom: 10 }];
+  }
+  // Every Range probe lands "visible" until `hide` characters from the end of
+  // THE LINE, so the binary search stops there and that is the cut the pass
+  // makes. Counted across the line's text nodes rather than within the one the
+  // offset landed in: a reply line carries bold runs from richLine, so a
+  // per-node reading answered a different question on every probe and the
+  // search converged somewhere arbitrary.
+  window.Range.prototype.getClientRects = function () {
+    const line = this.endContainer.parentElement?.closest('.line-clamp-1,.line-clamp-2');
+    if (!line) return [{ bottom: 5 }];
+    let before = 0, seen = false;
+    const walk = window.document.createTreeWalker(line, 4 /* SHOW_TEXT */);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (n === this.endContainer) { seen = true; break; }
+      before += n.length;
+    }
+    const at = before + this.endOffset;
+    const full = line.textContent.length;
+    return [{ bottom: seen && at > Math.max(0, full - hide) ? 99 : 5 }];
+  };
+  view.measure();
+};
+
 // The row's controls, read off the element the way a finger would find them.
-// Two destinations: the row itself opens the panel, and the glyph goes to the
-// deck. There is no third.
+// Two destinations: a chip opens the panel on its line, and the glyph goes to
+// the deck. There is no third.
 const decks = () => [...window.document.querySelectorAll('button[aria-label*="in the deck"]')];
-// The panel, and the trigger that opens it: the ROW, since one panel carries
-// the whole exchange rather than one per half.
+// The panel, and the triggers that open it: since 2026-09-08 the panel carries
+// ONE comment, so each of the row's two lines is its own trigger, in order.
 const peekOf = (n = 1) => boxOf(n)?.querySelector('.shadow-xl');
-const trig = (n = 1) => rowOf(n);
+// Non-hidden only, which is what a finger can find: a chip is wired as a
+// trigger when the row is built and revealed only where the clamp hid
+// something, so the DOM holds one per line either way.
+const trigs = (n = 1) =>
+  [...(rowOf(n)?.querySelectorAll('[role="button"]') || [])].filter(t => !t.hidden);
+const trig = (n = 1) => trigs(n)[0];          // the ask line's chip
+const trigReply = (n = 1) => trigs(n)[1];     // the reply line's chip
+const chipsOf = (n = 1) => [...(rowOf(n)?.querySelectorAll('.not-prose') || [])];
 
 test('a row offers the panel and the deck, and nothing else', () => {
   // With a host that takes onOpen, the deck glyph is the row's ONLY button. The
@@ -210,11 +267,15 @@ test('the panel is drawn by the deck\'s renderer, not by a second one here', asy
   // The whole point of the 2026-09-01 change: two drawings of one turn, met
   // within two taps of each other. If this file ever grows its own turn markup
   // again, the markdown stops being markdown and that is what fails first.
+  // The REPLY line, because the ask is deliberately not markdown: chat-render
+  // sends a prompt through rawPre, verbatim in a <pre>, since a prompt is typed
+  // text. The reply is the half that has to arrive as prose.
   build();
-  trig(1).click();
+  layOut();
+  trigReply(1).click();
   await drawn();
   const panel = peekOf(1);
-  assert.ok(panel, 'the panel is hung on the card that owns the half');
+  assert.ok(panel, 'the panel is hung on the card that owns the line');
   assert.ok(panel.querySelector('p'), 'prose arrives as rendered markdown, which a plain-text row never produced');
   assert.ok(panel.textContent.includes('The reply runs on'), 'and the reply is in it');
 });
@@ -252,22 +313,24 @@ test('there is one list, and no route from the deck to a second copy of it', () 
   assert.equal(typeof SE.index, 'function');
 });
 
-test('one control per destination: the text peeks, the glyph decks', () => {
+test('one control per destination: the chip peeks, the glyph decks', () => {
   // It was the other way round, with the title AND the glyph both entering the
   // deck and a pill doing the expanding: two doors to one place, and the third
   // hidden behind a chip. Two destinations, and each has exactly one.
   const opened = [];
   const v = SE.index(RECORD, { onOpen: (i) => opened.push(i) });
   window.document.body.replaceChildren(v.el);
+  layOut(20, v);
 
   trig(1).click();
-  assert.deepEqual(opened, [], 'tapping the row does not leave for the deck');
+  assert.deepEqual(opened, [], 'tapping the chip does not leave for the deck');
   decks()[1].click();
   assert.deepEqual(opened, [1], 'the glyph is the only way out to the deck');
 });
 
-test('the row carries the ask clamped, and the panel carries the exchange whole', async () => {
+test('the row carries the ask clamped, and the panel carries that line whole', async () => {
   build();
+  layOut();
   const title = rowOf(1).querySelector('.line-clamp-2');
   assert.ok(title, 'closed, the ask is clamped to two lines');
   // The trap that made the clamp inert for one commit: `block` and
@@ -282,22 +345,41 @@ test('the row carries the ask clamped, and the panel carries the exchange whole'
   trig(1).click();
   await drawn();
   assert.ok(rowOf(1).querySelector('.line-clamp-2'), 'the row is unchanged by a peek');
-  assert.match(peekOf(1).textContent, /First ask/, 'and the panel has it whole');
-  assert.match(peekOf(1).textContent, /The reply runs on/, 'with the reply under it');
+  assert.match(peekOf(1).textContent, /First ask/, 'and the panel has that line whole');
 });
 
-test('the panel carries the exchange, and not the machinery around it', async () => {
+test('the panel is the line under the pointer, not the exchange around it', async () => {
+  // It carried both halves until 2026-09-08, so hovering either line handed the
+  // reader a second copy of the other and a scroll. The exchange has a better
+  // home: the deck glyph on the same row reads the whole card.
   build();
+  layOut();
   trig(1).click();
   await drawn();
-  const body = peekOf(1).textContent;
-  assert.ok(body.includes('The reply runs on'), 'the prose that answers');
-  // The ask is above, unclamped, so it is not repeated; the tool run is already
-  // summarised on the row; and the record's capture note belongs to the deck's
-  // first card, not under every row here.
-  assert.ok(!body.includes('does not hold'), 'no capture note');
-  assert.ok(!body.includes('ls -la'), 'no tool turns, which the row already counts');
-  assert.equal((body.match(/First ask/g) || []).length, 1, 'and the ask appears once, at the top');
+  const onAsk = peekOf(1).textContent;
+  assert.match(onAsk, /First ask/, 'the ask line opens on the ask');
+  assert.ok(!onAsk.includes('The reply runs on'), 'and not on the reply beneath it');
+
+  trigReply(1).click();
+  await drawn();
+  const onReply = peekOf(1).textContent;
+  assert.ok(onReply.includes('The reply runs on'), 'the reply line opens on the reply');
+  assert.ok(!onReply.includes('First ask'), 'and not on the ask above it');
+  // Neither half carries the machinery: the tool run is summarised on the row
+  // already, and the record's capture note belongs to the deck's first card.
+  assert.ok(!onReply.includes('does not hold'), 'no capture note');
+  assert.ok(!onReply.includes('ls -la'), 'no tool turns, which the row already counts');
+});
+
+test('the panel is labelled with its own turn\'s clock, not the card\'s', () => {
+  // The card's clock is its FIRST turn, so it is wrong on the reply by however
+  // long the work took. RECORD asks at 10:00 and answers at 10:05.
+  build();
+  layOut();
+  trig(1).click();
+  assert.match(peekOf(1).textContent, /10:00:00/, 'the ask says when it was asked');
+  trigReply(1).click();
+  assert.match(peekOf(1).textContent, /10:05:00/, 'and the reply when it was answered');
 });
 
 // ── The reply on the surface ────────────────────────────────────────────────
@@ -410,7 +492,12 @@ test('the ask takes the blue, and nothing else on the row does', () => {
   // the page that is not a little blue. Reported twice on 2026-09-01. The
   // question it answered (which rows are in the excerpt) stopped being asked on
   // 2026-09-06, and this is what stops a fill returning to answer another one.
-  const painted = [...window.document.querySelectorAll('[class*="bg-"]')]
+  // Scoped to the ROWS, which is what the claim is about. It swept the whole
+  // document until the timeline rail landed above the list on 2026-09-08, and
+  // the rail's position marker is a bg-primary by design: a mark that says
+  // which card the reader is standing on is exactly the one accent the list
+  // itself must not spend.
+  const painted = [...window.document.querySelectorAll('.mb-0\\.5.py-1.pl-3 [class*="bg-"]')]
     .filter(el => /\bbg-(primary|base-(200|300))\b|\bbg-\w+\/\d/.test(el.className));
   assert.deepEqual(painted.map(el => el.className), [], 'no row carries a fill but the ask');
 });
@@ -441,6 +528,7 @@ test('a second tap on the owning row closes the panel, rather than reopening it'
   // one gesture reads as nothing happening. Measured 2026-09-07 with hasTouch:
   // tapping row 2 twice left it open on row 2 both times.
   buildWith(STATEFUL);
+  layOut();
   const down = (el) => el.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
 
   down(trig(1)); trig(1).click();
@@ -453,6 +541,7 @@ test('a tap on a DIFFERENT row moves the panel rather than stacking a second', (
   // The other half of the same listener, and the half that was already right:
   // excluding the owning trigger must not exclude any other one.
   buildWith(STATEFUL);
+  layOut();
   const down = (el) => el.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
 
   down(trig(1)); trig(1).click();
@@ -474,6 +563,7 @@ test('a tap INSIDE the panel does not dismiss it on a coarse pointer', async () 
   // here and this file tests the coarse-pointer path by default, which is why
   // the gate belongs on the panel rather than on the timer.
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   assert.ok(peekOf(1), 'the row opens its panel');
 
@@ -489,12 +579,19 @@ test('a tap INSIDE the panel does not dismiss it on a coarse pointer', async () 
   assert.equal(peekOf(1), null, 'a second tap on the row still closes it');
 });
 
-test('the panel is bounded, so a long exchange stays a panel in the list', () => {
+test('the panel is bounded, so a long comment stays a panel in the list', () => {
   // The row expanded in place until 2026-09-02 and opened to nine screens of
   // reply, so the row that was tapped scrolled off the top and the list under
   // it was unreachable without dragging past it all. The panel is capped, and
   // it overlays rather than pushing, so the list never moves at all.
+  //
+  // 26rem, and it went to 14rem for half a day in between. The reason to keep
+  // it short was that a panel could open on a hover anywhere along a line, so
+  // the height was a cost paid on every pass of the pointer; with a chip as the
+  // trigger the panel only opens on purpose, and its job is the rest of a
+  // comment.
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   const panel = peekOf(1);
   assert.ok(panel.className.includes('overflow-y-auto'));
@@ -562,6 +659,7 @@ test('the row is unchanged by a peek, because the panel overlays it', async () =
   // and no display to toggle: the collision `hidden` and `line-clamp-1` had
   // over `display`, shipped twice in this file, has no site left here.
   buildWith(MD_RECORD);
+  layOut();
   const before = rowOf(1).innerHTML;
   trig(1).click();
   await drawn();
@@ -597,6 +695,7 @@ test('without the kit the row still previews, and the emphasis still lands', () 
 
 test('the panel takes the card\'s measure, not the row\'s', async () => {
   buildWith(MD_RECORD);
+  layOut();
   trig(1).click();
   await drawn();
   // The open body used to be a cell of the head, pinned to the ask's column so
@@ -629,9 +728,12 @@ test('the panel takes the card\'s measure, not the row\'s', async () => {
 const STATEFUL = {
   ...RECORD,
   exchanges: 3, prompts_stored: 3,
-  prompts: [{ at: '2026-09-01T10:00:00Z', text: 'First ask' },
-            { at: '2026-09-01T10:30:00Z', text: 'Second ask' },
-            { at: '2026-09-01T11:00:00Z', text: 'Third ask' }],
+  prompts: [{ at: '2026-09-01T10:00:00Z',
+              text: 'First ask, and a good deal more of it so the line overflows.' },
+            { at: '2026-09-01T10:30:00Z',
+              text: 'Second ask, likewise long enough to clamp and carry a chip.' },
+            { at: '2026-09-01T11:00:00Z',
+              text: 'Third ask, also long enough that its own line overflows here.' }],
   replies_total: 4, replies_stored: 4,
   replies: [
     { at: '2026-09-01T10:05:00Z', text: 'Did it.\n\n🟢 **Ready to continue.** The first offer.' },
@@ -734,14 +836,43 @@ test('the disc opens nothing, because it is inside the row\'s own button', () =>
   assert.equal(mark.getAttribute('aria-hidden'), 'true', 'the line beside it says the same thing');
 });
 
-test('no line is its own trigger: the row is the one, and the card is the scope', () => {
-  // It was one trigger per half for a commit. Two panels asked the reader to
-  // know which half they were on before knowing what was in it, and left no
-  // honest answer to "what does this belong to" beyond proximity.
+test('the CHIP is the trigger, the line is not, and the card is still the scope', () => {
+  // Three shapes in three days. The row was the single trigger and carried the
+  // whole exchange; then each line was its own; now the chip on a line is, and
+  // the line is only a place to be hovered. What did not move is the scope: the
+  // panel hangs on the box and lights the card's rule, however it was opened.
   buildWith(STATEFUL);
-  const inner = [...rowOf(1).querySelectorAll('[role="button"]')];
-  assert.deepEqual(inner, [], 'nothing inside the row opens anything of its own');
-  assert.equal(rowOf(1).getAttribute('role'), 'button');
+  layOut();
+  assert.equal(rowOf(1).getAttribute('role'), null, 'the row opens nothing');
+  const lines = [...rowOf(1).querySelectorAll('.line-clamp-1,.line-clamp-2')];
+  assert.equal(lines.length, 3, 'the ask, the reply, and the closing state under it');
+  for (const l of lines) assert.equal(l.getAttribute('role'), null,
+    'and no line opens anything: crossing prose must not open a panel');
+  // THE STATE LINE IS CLAMPED AND GETS NO CHIP, deliberately. It is a closing
+  // block's own words, already the short form of the reply above it, so the
+  // rest of it is the reply's panel rather than a third one.
+  assert.equal(lines[2].querySelector('.not-prose'), null, 'no chip on the state line');
+  const inner = trigs(1);
+  assert.equal(inner.length, 2, 'one chip a line, and nothing else on the row');
+  for (const c of inner) assert.match(c.textContent, /^\+[\d,]+ chars$/, 'each is the chip');
+  assert.ok(lines[0].contains(inner[0]), 'the ask chip sits inside the ask line');
+  assert.ok(lines[1].contains(inner[1]), 'and the reply chip inside the reply');
+  // One panel element, moved between them, so two open lines cannot coexist.
+  inner[0].click();
+  const first = peekOf(1);
+  inner[1].click();
+  assert.equal(peekOf(1), first, 'the same panel, moved rather than a second one');
+});
+
+test('a line that fits gets no chip, so nothing offers to repeat a whole line', () => {
+  // The chip is gated on the clamp having hidden something. A panel repeating a
+  // line the reader can already see whole is the copy this row does not need,
+  // and with the line no longer a trigger there is nothing else to open one.
+  const view = SE.index(RECORD, {});
+  window.document.body.replaceChildren(view.el);
+  view.measure();          // no layout stub, so nothing overflows
+  assert.deepEqual(trigs(1), [], 'no trigger on the row at all');
+  for (const c of chipsOf(1)) assert.equal(c.hidden, true, 'and the chips stay hidden');
 });
 
 test('the capture note has no closing state, and draws no line', () => {
@@ -767,6 +898,7 @@ test('the capture note has no closing state, and draws no line', () => {
 
 test('one panel at a time, and opening another card moves it', async () => {
   buildWith(STATEFUL);
+  layOut();
   trig(1).click();
   await drawn();
   assert.ok(peekOf(1));
@@ -778,6 +910,7 @@ test('one panel at a time, and opening another card moves it', async () => {
 
 test('a second tap on the same row closes it, so the trigger is a toggle', () => {
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.click();
   assert.ok(peekOf(1));
@@ -787,17 +920,20 @@ test('a second tap on the same row closes it, so the trigger is a toggle', () =>
   assert.equal(t.getAttribute('aria-expanded'), 'false');
 });
 
-test('a trigger is not a button, because Safari sizes one from unclipped content', () => {
-  // The row's lines are clamped, and this branch already shipped a clipped
-  // child inside a button that left the button at its full height (snags:
-  // safari-button-sizes-from-unclipped-content). `role` and a tabindex buy the
-  // same reach without the box.
+test('the trigger reaches a keyboard, and is the chip inside the clamped line', () => {
+  // asTrigger emits role and tabindex rather than a real button because the
+  // trigger used to be a clamped line, and Safari sizes a button from its
+  // UNCLIPPED content: this branch shipped one at its full height (snags:
+  // safari-button-sizes-from-unclipped-content). The chip is not clamped, so
+  // that hazard no longer reaches it; the mechanism stayed because a chip needs
+  // exactly the same reach and nothing about a button would buy more.
   buildWith(STATEFUL);
-  for (const t of [trig(1)]) {
+  for (const t of trigs(1)) {
     assert.notEqual(t.tagName, 'BUTTON');
     assert.equal(t.getAttribute('tabindex'), '0');
-    assert.ok(t.className.includes('line-clamp-1') || t.className.includes('line-clamp-2')
-              || t.querySelector('.line-clamp-1'), 'every trigger is a clamped line: ' + t.className);
+    assert.equal(t.getAttribute('role'), 'button');
+    assert.match(t.textContent, /^\+[\d,]+ chars$/, 'and every trigger is a chip');
+    assert.ok(t.closest('.line-clamp-1,.line-clamp-2'), 'sitting inside the line it reports on');
   }
 });
 
@@ -805,6 +941,7 @@ test('the panel is dismissed from inside the component, not from the document', 
   // This index is mounted per swiper slide, so a document listener would
   // outlive every copy of it.
   buildWith(STATEFUL);
+  layOut();
   const src = readFileSync(path.join(repoRoot, 'lib/kits/session-export.js'), 'utf8');
   assert.doesNotMatch(src, /document\.addEventListener/, 'no listener outlives the mount');
   trig(1).click();
@@ -829,6 +966,7 @@ test('a fine pointer opens on hover after a dwell, and closes after leaving both
   // panel is `pointer-events:none` and this one is not.
   hoverable(true);
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   assert.equal(peekOf(1), null, 'not on arrival');
@@ -844,6 +982,7 @@ test('a fine pointer opens on hover after a dwell, and closes after leaving both
 test('entering the panel keeps it, which is why the grace exists', async () => {
   hoverable(true);
   buildWith(STATEFUL);
+  layOut();
   const t = trig(1);
   t.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   await wait(220);
@@ -859,6 +998,7 @@ test('a coarse pointer never hover-opens, because a tap synthesises one', async 
   // toggles itself shut.
   hoverable(false);
   buildWith(STATEFUL);
+  layOut();
   trig(1).dispatchEvent(new window.Event('pointerover', { bubbles: true }));
   await wait(220);
   assert.equal(peekOf(1), null);
@@ -875,9 +1015,12 @@ test('the ask reads at the panel\'s size, and its double spaces are squeezed', a
   // after a sentence, which the row directly above collapses.
   buildWith({
     ...STATEFUL,
-    prompts: [{ at: '2026-09-01T10:00:00Z', text: 'One.  Two.\n\n    indented line' },
+    prompts: [{ at: '2026-09-01T10:00:00Z',
+                text: 'One.  Two. And a good deal more of it so the line overflows '
+                    + 'and the ask has a chip of its own.\n\n    indented line' },
               ...STATEFUL.prompts.slice(1)],
   });
+  layOut();
   trig(1).click();
   await drawn();
   const pre = peekOf(1).querySelector('pre');
@@ -893,9 +1036,12 @@ test('each card is an item, and the hovered one is scoped without a fill', () =>
   // under each is the cheapest thing that reads as a list, and the objection
   // this file used to carry against one went with the rule it named.
   //
-  // The scope is a 2px strip at the card's own edge, NOT a tint behind the
-  // head: a band washes the blue ask sitting on it, since this theme's greys
-  // are cool, and it was reported twice and removed for it.
+  // The scope is a strip at the card's own edge, NOT a tint behind the head: a
+  // band washes the blue ask sitting on it, since this theme's greys are cool,
+  // and it was reported twice and removed for it. 3px at /40 since 2026-09-08,
+  // up from 2px at /20, which was quiet enough that a reader asked for a hover
+  // effect on the row while this one was already there. The strip is the part
+  // that must not change; its weight is not.
   buildWith(STATEFUL);
   const boxes = [...window.document.querySelectorAll('.mb-0\\.5.pl-3')];
   for (const b of boxes) assert.match(b.className, /border-b/, 'every card is bounded');
@@ -905,16 +1051,164 @@ test('each card is an item, and the hovered one is scoped without a fill', () =>
   // The step matters: 25 is not one Tailwind generates, so the class renders
   // fully transparent and reads as a colour that did not arrive. `dead-opacity`
   // is the gate for that and it named both the line and the nearest step.
-  assert.match(rule.className, /bg-base-content\/20/);
+  assert.match(rule.className, /bg-base-content\/40/);
   assert.equal(boxes[0].style.background, '', 'and nothing behind the head');
 });
 
 test('the scope stays lit while the panel is open, and is handed back after', () => {
   buildWith(STATEFUL);
+  layOut();
   const rule = boxOf(1).querySelector('.pointer-events-none');
   assert.equal(rule.style.opacity, '', 'hover governs it to begin with');
   trig(1).click();
   assert.equal(rule.style.opacity, '1', 'and the open panel holds it');
   trig(1).click();
   assert.equal(rule.style.opacity, '', 'handed back on close, so :hover governs again');
+});
+
+
+// ── The timeline rail ───────────────────────────────────────────────────────
+// Asked for on 2026-09-08: the estate's transcript card has one and this list,
+// which reads as its bigger sibling, did not. It is the same rail, over cards
+// rather than turns.
+//
+// jsdom has no layout, so getBoundingClientRect is all zeros: what is testable
+// here is the PLACEMENT (a tick per card, positioned by its lead's instant
+// across the record's span) and the two absences. Where the reader is standing
+// needs a browser and is shot rather than asserted.
+
+const railOf = () => window.document.querySelector('.sticky.top-\\[var\\(--chrome-h\\,0px\\)\\]');
+const tickPcts = () => [...railOf().querySelectorAll('.h-2')]
+  .map(t => +parseFloat(t.style.left).toFixed(2));
+
+test('one tick a card, placed by when it happened rather than evenly', () => {
+  // Two cards, at 10:00 and 10:30, in a session running 10:00 to 11:00. Placed
+  // by time they land at 0 and 50; spaced evenly they would land at 0 and 100,
+  // which is the whole difference the rail exists to draw.
+  build();
+  assert.deepEqual(tickPcts(), [0, 50]);
+});
+
+test('the labels are the record span, not the first card to the last', () => {
+  // The last card's lead is said before the session's final write, so a rail
+  // ending there would draw the tail as though nothing happened in it.
+  build();
+  const rail = railOf();
+  assert.equal(rail.firstElementChild.textContent, new Date(RECORD.started)
+    .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  assert.equal(rail.lastElementChild.textContent, new Date(RECORD.ended)
+    .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+});
+
+test('a session with one card draws no rail, since a rail of one says nothing', () => {
+  buildWith(MD_RECORD);
+  assert.ok(railOf().classList.contains('hidden'), 'built but not shown');
+  assert.equal(tickPcts().length, 0, 'and no ticks under it');
+});
+
+test('with no instants the ticks space evenly and the rail claims no times', () => {
+  // The schema-3 shape, and any record whose prompts carry no `at`. Even
+  // spacing claims nothing about time, which is honest; a clock label over it
+  // would not be.
+  const undated = {
+    ...RECORD, started: '', ended: '',
+    prompts: RECORD.prompts.map(p => ({ ...p, at: '' })),
+    replies: RECORD.replies.map(r => ({ ...r, at: '' })),
+    calls: [],
+  };
+  buildWith(undated);
+  assert.deepEqual(tickPcts(), [0, 100], 'evenly, end to end');
+  assert.equal(railOf().firstElementChild.textContent, '', 'and no start label');
+  assert.equal(railOf().lastElementChild.textContent, '', 'and no end label');
+});
+
+test('the cards clear the sticky chrome when the rail scrolls to one', () => {
+  // scrollIntoView puts a box at the top of its scroller, and the top of the
+  // scroller is under the rail and, in document flow, under the host's chrome
+  // too. Without the margin a tapped card arrives behind both.
+  build();
+  assert.match(boxOf(1).className, /scroll-mt-\[calc\(var\(--chrome-h,0px\)\+2rem\)\]/);
+});
+
+test('index hands back the one listener that does not die with its element', () => {
+  // The rail reads scroll off the window in capture, because a scroll event
+  // does not bubble and a listener on the element would see the inner scroller
+  // and never the page. Everything else this kit binds is hung on the tree.
+  const added = [], removed = [];
+  const addWas = window.addEventListener, remWas = window.removeEventListener;
+  window.addEventListener = function (t, f, c) { added.push(t); return addWas.call(this, t, f, c); };
+  window.removeEventListener = function (t, f, c) { removed.push(t); return remWas.call(this, t, f, c); };
+  try {
+    const view = build();
+    assert.ok(added.includes('scroll'), 'registered on build');
+    assert.equal(typeof view.destroy, 'function', 'and handed back for the host to release');
+    view.destroy();
+    assert.ok(removed.includes('scroll'), 'released on destroy');
+  } finally {
+    window.addEventListener = addWas; window.removeEventListener = remWas;
+  }
+});
+
+test('an undated card is placed by index, and that is safe only while it is last', () => {
+  // The mixed case is the NORM, not the schema-3 exception: every record in the
+  // store ends with the renderer's own summary card, which carries a sort
+  // sentinel rather than a time, so this fallback fires on all 345 of them
+  // (measured 2026-09-08). It is correct because the card is last, where an
+  // index of (n-1)/(n-1) puts it at 100%, the right end for a summary of the
+  // whole. The same fallback in the MIDDLE would land a card by its count while
+  // its neighbours were placed by time, so the position is what is held here.
+  const withSummary = { ...RECORD, tokens: { output: 1234, input: 99 } };
+  const line = window.sessionRender.outline(withSummary);
+  assert.equal(line.length, 3, 'the tokens give the summary card something to say');
+  // "Undated" is not "absent": the summary card carries a SORT SENTINEL in
+  // `at`, which is a truthy string and not a time. The rail asks Date.parse,
+  // so the test asks the same question rather than a weaker one.
+  // Array.from rather than line.map: session-render runs inside the jsdom
+  // realm, so the array it returns carries THAT realm's Array.prototype and
+  // deepStrictEqual compares prototypes before contents. The failure reads as
+  // two identical arrays being unequal.
+  const dated = Array.from(line, c => Number.isFinite(Date.parse(c.at || '')));
+  assert.deepEqual(dated, [true, true, false],
+    'and only the LAST card is undated: turns() appends it positionally, and '
+    + 'groups() folds a leading meta note into the first card rather than '
+    + 'leaving it one of its own');
+  buildWith(withSummary);
+  // 10:00 and 10:30 inside a 10:00-11:00 span, then the undated tail.
+  assert.deepEqual(tickPcts(), [0, 50, 100],
+    'the dated two are placed by time and the tail lands at the end');
+});
+
+test('hovering a row lights that row\'s tick, and reading its panel keeps it lit', () => {
+  // The join the two halves of this view were missing: the rail said where the
+  // reader was SCROLLED to and nothing said where the row under the pointer sat
+  // in the session, which on a bursty rail is the interesting question.
+  build();
+  const ticks = [...railOf().querySelectorAll('.h-2')];
+  assert.equal(ticks.length, 2, 'a tick a card');
+  assert.equal(ticks[1].style.background, '', 'unlit to begin with');
+
+  boxOf(2).dispatchEvent(new window.PointerEvent('pointerenter'));
+  assert.match(ticks[1].style.background, /--color-base-content/,
+    'the second row lights the second tick');
+  // INLINE STYLE, NOT A CLASS: the Tailwind browser build compiles what it
+  // finds in the document, so a utility first added by script may generate no
+  // rule at all. The width and height say the same thing the colour does.
+  assert.equal(ticks[1].style.width, '2px');
+  assert.equal(ticks[0].style.background, '', 'and only that one');
+
+  boxOf(2).dispatchEvent(new window.PointerEvent('pointerleave'));
+  assert.equal(ticks[1].style.background, '', 'and it goes out on leaving');
+});
+
+test('the lit tick is not the position marker, so the rail says two things once', () => {
+  // The marker answers "where am I", off the scroll, and is primary and
+  // rounded. The lit tick answers "where is that row". Two primaries would have
+  // made one rail say one thing twice.
+  build();
+  const here = railOf().querySelector('.bg-primary');
+  assert.ok(here, 'the position marker is its own element');
+  boxOf(1).dispatchEvent(new window.PointerEvent('pointerenter'));
+  const lit = [...railOf().querySelectorAll('.h-2')][0];
+  assert.notEqual(lit, here, 'and the lit tick is a different one');
+  assert.doesNotMatch(lit.className, /bg-primary/, 'drawn in the neutral, not the accent');
 });

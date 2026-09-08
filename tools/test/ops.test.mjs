@@ -202,11 +202,11 @@ test('session-menu: `menu` is three or four rows, and the fourth is what to do a
 });
 
 test('session-menu: every menu row opens a page except the verbs, which are shortcut names', () => {
-  // Choose-Claude runs a row it cannot find in `urls` as a shortcut name, which
-  // is a measured path. Opening a `shortcuts://` link from inside a running
-  // shortcut is not: it appears in none of the fifteen library dumps. So a row
-  // that needs another shortcut is spelled as that shortcut's name, and a row
-  // spelled in prose must be a page.
+  // Choose-Claude runs a row it cannot find in `urls` by name, and that arm is
+  // what this chain's dispatch exercises. A `shortcuts://` row would also work
+  // (12 of 613 corpus workflows open one), so this holds a preference rather
+  // than a prohibition: it keeps the two kinds of row distinguishable, which is
+  // what the chain's space test relies on to tell a missed lookup from a verb.
   const body = index({ branches: { 'claude/x-aa11bb': entry('aaaaaaaa', 30, 'Ask') } });
   const r = load('session-menu.js', { body }).fn({ input: 'claude/x-aa11bb', token: 't' });
   for (const row of r.menu) {

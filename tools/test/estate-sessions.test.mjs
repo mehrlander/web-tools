@@ -1092,6 +1092,25 @@ test('a row built by an older pass says so, rather than reading as current', () 
   assert.equal(transcriptCard(old).staleV, S.ROW_V - 2, 'and a stale one names the version it is on');
 });
 
+test('a version-behind LEAN row claims nothing, because its prose was made here', () => {
+  // The warning above is about the TEXT, and reading `row.v` alone made it a
+  // claim about the ROW. Since leanRow started stripping the prose (2026-09-02)
+  // every row in the store is lean and version-behind at once: the card reads
+  // the record and re-summarises it with the code running now, and only `v`
+  // stays back, because ensureProse copies PROSE_KEYS and nothing else. So the
+  // warning fired on all 345 rows on file and told each reader their turns were
+  // cut shorter than they are now, over turns cut by this build.
+  const S = window.RepoSessionsCache;
+  const row = S.summarize(rec({ schema: 4, replies: [{ at: 'z', text: 'the answer' }] }), 'x');
+  const lean = { ...S.leanRow(row), v: S.ROW_V - 2 };
+  assert.ok(data.needsProse(lean), 'the fixture has to be lean for this to mean anything');
+  assert.equal(data.staleProse(lean), 0, 'nothing to warn about: the prose has not been read yet');
+  // And after the read, when the keys are there but this build wrote them.
+  const filled = { ...lean, ...S.summarize(rec({ schema: 4,
+    replies: [{ at: 'z', text: 'the answer' }] }), 'x'), v: S.ROW_V - 2, _prose: 'ready' };
+  assert.equal(data.staleProse(filled), 0, 'still nothing: the turns on screen are current');
+});
+
 test('a row with no reply yet still opens, on the ask, and says why', () => {
   // How this first shipped: gated on `row.reply`, so a hover on an unhealed row
   // did NOTHING and a reader could not tell a missing feature from a missing
@@ -1104,18 +1123,24 @@ test('a row with no reply yet still opens, on the ask, and says why', () => {
   assert.equal(c.pending, true, 'and the body draws the why off this');
 });
 
-test('the truncated scroll back is reported on the card, not silently dropped', () => {
+test('a long session reaches the card whole, with nothing to report as dropped', () => {
+  // The card held the last 60 turns until 2026-09-08 and said so at its head.
+  // The cap was paid for by the committed cache, which stopped carrying turns
+  // on 2026-09-02; what is on screen is now built per card from a record the
+  // page has already read, so the whole conversation is affordable.
   const prompts = [], replies = [];
-  for (let i = 0; i < 40; i++) {
-    prompts.push({ at: '2026-08-05T13:00:' + String(i).padStart(2, '0') + 'Z', text: 'ask ' + i });
-    replies.push({ at: '2026-08-05T13:30:' + String(i).padStart(2, '0') + 'Z', text: 'answer ' + i });
+  for (let i = 0; i < 70; i++) {
+    prompts.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':00Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':30Z', text: 'answer ' + i });
   }
   const row = window.RepoSessionsCache.summarize(
     rec({ schema: 4, opening_ask: 'ask 0', prompts, replies }), 'x');
   const c = transcriptCard(row);
-  assert.equal(c.priorCut, true);
-  assert.equal(c.turns.length, window.RepoSessionsCache.TURNS_KEPT + 2,
-    'the cap, plus the two ends the row carries itself');
+  assert.ok(!c.priorCut, 'nothing was dropped, so the card must not say it was');
+  // 70 asks and 70 answers, less the opening ask and the closing reply that
+  // the scroll back leaves to the row, plus those two back as their own turns.
+  assert.equal(c.turns.length, 140, 'every turn, plus the two ends the row carries itself');
+  assert.equal(c.turns[1].md, 'answer 0', 'including the first answer, 138 turns from the end');
 });
 
 test('the card mounts through the deck\'s own renderer, once per card', async () => {
@@ -1396,26 +1421,26 @@ test('every turn carries the exchange it belongs to, counted from the end', () =
   assert.ok(c.turns.every(t => t.nTotal === 3), 'and every turn knows the total');
 });
 
-test('a cut front does not shift the numbering, because it counts backwards', () => {
-  // The case forward numbering gets wrong. The card holds the opening ask and
-  // the last TURNS_KEPT of the rest, so what went missing is the MIDDLE; run
-  // 1, 2, 3 down the list and every turn after the gap is short by whatever
-  // was dropped. Counted from the end the last user turn is the total by
-  // construction, which is the only version a reader can check.
+test('the numbering counts backwards, so a short row count lands on the ask', () => {
+  // The case forward numbering gets wrong. `exchanges` comes off the RECORD
+  // and the card's user turns are derived, so the two can disagree; here the
+  // row claims 42 and the card holds 40. Counted from the end the last user
+  // turn is the total by construction and the slack falls on the opening ask,
+  // which is pinned to 1. Forward it would fall on the CLOSING exchange, the
+  // one the card opens on and the one a reader checks.
   const S = window.RepoSessionsCache;
   const prompts = [], replies = [];
   for (let i = 0; i < 40; i++) {
     prompts.push({ at: '2026-08-05T13:00:' + String(i).padStart(2, '0') + 'Z', text: 'ask ' + i });
     replies.push({ at: '2026-08-05T13:30:' + String(i).padStart(2, '0') + 'Z', text: 'answer ' + i });
   }
-  const row = S.summarize(rec({ schema: 4, exchanges: 40, opening_ask: 'ask 0', prompts, replies }), 'x');
+  const row = S.summarize(rec({ schema: 4, exchanges: 42, opening_ask: 'ask 0', prompts, replies }), 'x');
   const c = transcriptCard(row);
-  assert.equal(c.priorCut, true, 'the fixture has to be cut for this to mean anything');
-  assert.equal(c.turns[0].n, 1, 'the ask is the first exchange whatever was dropped after it');
-  assert.equal(c.turns.at(-1).n, 40, 'and the last turn is the last exchange');
+  assert.equal(c.turns[0].n, 1, 'the ask is the first exchange whatever the row counted');
+  assert.equal(c.turns.at(-1).n, 42, 'and the last turn is the last exchange');
   const asks = c.turns.filter(t => t.role === 'user');
-  assert.equal(asks.at(-1).n, 40);
-  assert.equal(asks.at(-2).n, 39, 'consecutive back from the end, with no off-by-one at the gap');
+  assert.equal(asks.at(-1).n, 42);
+  assert.equal(asks.at(-2).n, 41, 'consecutive back from the end, with no off-by-one');
 });
 
 test('a row that never counted its asks numbers off what the card holds', () => {

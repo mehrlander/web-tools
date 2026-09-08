@@ -1303,8 +1303,9 @@ test('a carried row from an older file is thinned without a re-read', () => {
 // ── The scroll back, whole ─────────────────────────────────────────────────
 // A card that offers to open one turn has to be able to find that turn in the
 // record, and the only address it has is a position in its own list. So the
-// two lists are one function with a cap and a head on the end of it, and this
-// is what holds them in step.
+// two lists are one function with a head on the end of it, and this is what
+// holds them in step. There was a cap between them until 2026-09-08, which
+// made them the same length only from the tail; they are now the same list.
 
 test('fullTurns and priorTurns line up entry for entry', () => {
   const prompts = [], replies = [];
@@ -1325,7 +1326,10 @@ test('fullTurns and priorTurns line up entry for entry', () => {
   assert.ok(full[cut].md.startsWith('A sentence answering'));
 });
 
-test('the cap is applied to the same list, so the window is the last N of it', () => {
+test('a session past the old cap still lines up entry for entry', () => {
+  // 50 exchanges is 98 entries, well past the 60 the cap allowed, and the
+  // point of the fixture is that the two lists stay the same length anyway:
+  // a tap trades index i of the card for index i of the record.
   const prompts = [], replies = [];
   for (let i = 0; i < 50; i++) {
     prompts.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':00Z', text: 'ask ' + i });
@@ -1333,14 +1337,13 @@ test('the cap is applied to the same list, so the window is the last N of it', (
   }
   const r = record({ schema: 4, prompts, replies });
   const full = S.fullTurns(r), head = S.priorTurns(r);
-  assert.equal(head.length, S.TURNS_KEPT);
-  assert.ok(full.length > head.length, 'the fixture has to overflow the cap');
-  const window_ = full.slice(-S.TURNS_KEPT);
-  assert.deepEqual(window_.map(e => e.ts), head.map(e => e[2]),
-    'entry i of the card is entry i of the last TURNS_KEPT, which is what a tap trades on');
+  assert.equal(full.length, 98, 'the fixture has to overflow the old cap of 60');
+  assert.equal(head.length, full.length, 'and nothing is dropped');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]),
+    'entry i of the card is entry i of the record, which is what a tap trades on');
 });
 
-test('an empty turn is dropped before the cap, not after it', () => {
+test('an empty turn is dropped before the head, not after it', () => {
   // Dropped downstream it would shorten the card's list and leave every index
   // past it addressing the turn before.
   const r = record({ schema: 4,

@@ -598,12 +598,13 @@ test('the page tells the brief that no embedder draws its header', () => {
   assert.match(page, /x-show="!framed \|\| !target"/);
 });
 
-// ── Work on this scope ──────────────────────────────────────────────────────
-// The one act this page offers, and the second attempt at placing it. The first
-// put two icons on every row of the Sessions LIST, which came off the same day:
-// a control whose value is in specifying what will happen cannot live where
-// there is no room to say it. Here there is room, so what is under test is that
-// the row carries the scope truthfully and chooses nothing else.
+// ── Prepare a follow-up session ─────────────────────────────────────────────
+// The one act this page offers, and the third attempt at placing it. It was two
+// icons on every row of the Sessions LIST (off the same day: nothing there said
+// which session a mark would act on), then a full-width row of words here, now
+// one microphone riding the end of the facts strip beside the scope it carries.
+// What is under test is unchanged by any of that: the address is truthful and
+// chooses nothing else. The placement is held below.
 
 test('the scope link carries the checkouts, owned by the mounted store', () => {
   const u = new URL(lent().scopeUrl);
@@ -636,4 +637,42 @@ test('a session that names no checkout offers no row', () => {
     assert.deepEqual([...d.scopeRepos], []);
     assert.equal(d.scopeUrl, '', 'absent rather than a link that preselects nothing');
   } finally { d.record = was; }
+});
+
+
+test('the act is one mark on the facts strip, not a row of its own', () => {
+  // The row of words was overkill for a control worth one tap (reported
+  // 2026-09-08). It sits on the strip now because it operates on the strip's
+  // last fact: repos says where the session ran, and this starts new work in
+  // the same place.
+  //
+  // Read off the SOURCE for the same reason the shell width is: jsdom compiles
+  // no Tailwind, so a layout claim is only answerable in the template.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
+  assert.doesNotMatch(src, /Work on this scope/, 'the worded row is gone');
+  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/);
+  assert.ok(link, 'and what replaced it is an anchor, so it is still a link to somewhere');
+  assert.match(link[0], /<a :href="scopeUrl"/, 'a real link, not a button that scripts a navigation');
+  assert.match(link[0], /ph-microphone/, 'the microphone, which is what named the act');
+  assert.doesNotMatch(link[0], /<span/, 'and no words beside it');
+  // THE WORDS ARE NOT LOST, they are one hover or tap away. A note reaches a
+  // touch screen and a screenshot, which is the property that lets an icon
+  // carry an act here where a title attribute could not (kits/note.js).
+  assert.match(link[0], /data-note=/, 'the note says what will happen');
+  assert.match(link[0], /aria-label="Prepare a follow-up session"/,
+    'and the same act is named for a reader who gets no note at all');
+});
+
+test('the note names the checkouts and promises nothing runs unasked', () => {
+  const d = lent();
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
+  // Scoped to the anchor: the facts on the strip carry notes of their own, and
+  // a document-wide match reads whichever comes first.
+  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/)[0];
+  const note = link.match(/:data-note="([\s\S]*?)"\s*>/);
+  assert.ok(note, 'the note is bound rather than written down, so it carries the real scope');
+  assert.match(note[1], /scopeNames/, 'which is the same list the strip prints');
+  assert.match(note[1], /Nothing runs until you send it/,
+    'the one promise the far end has to keep: to=send paints the destination, never acts');
+  assert.equal(d.scopeNames, 'web-tools');
 });

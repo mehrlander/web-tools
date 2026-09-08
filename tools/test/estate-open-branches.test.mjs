@@ -719,9 +719,8 @@ test('the turns card is the transcript, and its head answers the tap', () => {
   // the ask is only the first of them, and the assistant half rides the head.
   //
   // THE HEAD STATES WHAT THE READER TAPPED. A prose card otherwise counts the
-  // turns it was handed, which here is both roles and only the last
-  // TURNS_KEPT, so deriving would answer a glyph reading 12 with some other
-  // number entirely.
+  // turns it was handed, which here is both roles, so deriving would answer a
+  // glyph reading 12 with some other number entirely.
   const row = SESSION_ROW();
   data.openSessionCard(row, 'turns', null);
   assert.equal(data.rowCard.kind, 'prose');
