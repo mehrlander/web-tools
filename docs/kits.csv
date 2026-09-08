@@ -52,7 +52,7 @@ lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,3,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",320,no,no,4,yes
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",242,no,yes,2,yes
-lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",982,no,no,6,yes
+lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",982,no,no,5,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1098,no,no,3,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,477,yes,yes,11,yes
@@ -61,7 +61,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",577,no,no,1,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,6,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1392,no,yes,17,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1274,no,yes,17,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",394,yes,no,3,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,154,no,no,2,yes
