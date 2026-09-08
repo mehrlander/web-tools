@@ -40,10 +40,20 @@ Usage:
     --blocks         list every comment block, largest first
     --tables         list every text table
     --inline         list reader-facing prose found in markup and templates
+    --dated          list comment blocks asserting a dated measurement
     --csv            emit rows as CSV instead of the summary table
     --min N          floor for the listings (default 40 words)
     --check N        exit 1 if any single comment block exceeds N words
     --weight         add the gzipped transfer cost of the commentary
+
+--dated answers a question the size bands cannot: which comments make a claim
+that was true when it was written and has nothing that re-runs it. A block
+carrying an ISO date is asserting a measurement at a point in time. Those
+carrying a FIGURE beside the date are the ones that go stale silently, because
+the figure counts something that keeps moving while the sentence does not, and
+they are marked. Advisory, and deliberately not a gate: a dated block is not a
+defect, it is a claim someone has to re-check, and the report only says which
+claims those are and how old each has become.
 
 Reads .js, .mjs, .html, and .py. Python is in scope because a build script is
 where a page's reader-facing strings go to hide: a `blurb` list in a builder
@@ -57,6 +67,11 @@ import subprocess
 import sys
 
 WORD = re.compile(r"[A-Za-z][A-Za-z'’\-]+")
+ISO_DATE = re.compile(r"\b(20\d{2})-(\d{2})-(\d{2})\b")
+# A figure the sentence is asserting, which is what goes stale. Dates are cut
+# out before this runs, and a lone 1 or 2 is usually prose ("two ways in"), so
+# the floor is 3: a count, a pixel width, a version, a byte size.
+FIGURE = re.compile(r"\b\d{3,}\b|\b[3-9]\d?\b|\b\d+(?:\.\d+)?(?:px|%|KB|MB|s|ms)\b")
 HTML_COMMENT = re.compile(r"<!--(.*?)-->", re.S)
 SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script>", re.S | re.I)
 STYLE = re.compile(r"<style\b[^>]*>.*?</style>", re.S | re.I)
@@ -628,7 +643,7 @@ def main(argv):
     if prefixes:
         files = [f for f in files if any(f.startswith(p.rstrip("/")) for p in prefixes)]
 
-    rows, all_blocks, all_tables, all_inline = [], [], [], []
+    rows, all_blocks, all_tables, all_inline, all_dated = [], [], [], [], []
     for rel in sorted(files):
         try:
             with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
@@ -660,6 +675,16 @@ def main(argv):
             "gz_saved": gz_saved,
         })
         all_blocks += [(rel, ln, n, re.sub(r"\s+", " ", b).strip()[:160]) for ln, b, n in blocks]
+        for ln, b, n in blocks:
+            dates = ISO_DATE.findall(b)
+            if not dates:
+                continue
+            flat = re.sub(r"\s+", " ", b).strip()
+            # The date is a figure too; cut every one out before asking whether
+            # the sentence around it is counting anything.
+            carries = bool(FIGURE.search(ISO_DATE.sub(" ", flat)))
+            newest = max("-".join(d) for d in dates)
+            all_dated.append((rel, ln, newest, len(dates), carries, n, flat[:160]))
         all_tables += [(rel, gen) + t for t in tables]
         all_inline += [(rel,) + i for i in inline]
 
@@ -682,6 +707,25 @@ def main(argv):
         for rel, gen, ln, nrows, nwords, keys in sorted(all_tables, key=lambda r: -r[4]):
             print("%6dw %3d rows  %s:%d%s\n         keys: %s" % (
                 nwords, nrows, rel, ln, "   [generated: carrier is its builder's input]" if gen else "", keys))
+        return 0
+    if "--dated" in opts:
+        import datetime
+        today = datetime.date.today()
+        print("Comment blocks asserting a dated measurement, oldest first.")
+        print("A block marked * carries a figure beside its date, so the claim")
+        print("counts something that can move while the sentence does not.\n")
+        withfig = 0
+        for rel, ln, date, ndates, carries, n, text in sorted(all_dated, key=lambda r: r[2]):
+            try:
+                age = (today - datetime.date(*map(int, date.split("-")))).days
+            except ValueError:
+                continue
+            withfig += carries
+            print("%s %s  %4dd  %5dw  %s:%d%s\n         %s" % (
+                "*" if carries else " ", date, age, n, rel, ln,
+                "  (+%d more dates)" % (ndates - 1) if ndates > 1 else "", text))
+        print("\n  %d dated blocks in %d files; %d carry a figure" % (
+            len(all_dated), len({d[0] for d in all_dated}), withfig))
         return 0
     if "--inline" in opts:
         print("Reader-facing prose hardcoded in markup or a template:\n")
