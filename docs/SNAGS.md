@@ -1097,6 +1097,23 @@ others. Only the one measured here is confirmed; the rest carry the reference's
 claim and no measurement. The gate is now earned three times over, and the
 abandoned attempt already named the tractable route: read daisyUI's own
 stylesheet for the families it ships rather than probe a rendered page.
+
+**Built the same day, by that route.** `npm run family-scan`
+([`../scripts/dead-family.py`](../scripts/dead-family.py)) derives the supported
+set from `node_modules/daisyui/daisyui.css`, so the answer tracks the installed
+version rather than a list here going stale. daisyUI 5.7.28 defines 207 classes
+on a semantic colour across 25 families, and only three of them are Tailwind
+colour utilities: `bg`, `border`, `text`. The other 22 are daisyUI's own
+components, and not flagging `btn-primary` is the half the obvious scan gets
+wrong, along with a stock palette colour, which compiles in every family.
+
+It is **advisory**, not yet a gate, and the reason is not squeamishness: the
+scan finds 37 live occurrences in 23 files, and each needs a design call rather
+than a substitution, since a ring takes no space and a border does. Swapping 37
+appearances blind, in pages nobody looked at, would be worse than the hairlines.
+`tools/test/dead-family.test.mjs` pins the classifier meanwhile, which is the
+part that was hard. dead-opacity.py went the same way: classifier, then a
+193-item sweep, then the gate.
 *(seen: 2026-07-28, 2026-08-22, 2026-09-08)*
 → [the mechanics reference](../skills/daisy-alpine/references/mechanics.md)
 
