@@ -9,14 +9,17 @@ assessment; the mechanics live in
 
 ## Why it exists
 
-The estate holds ten text instruments: five in the private estate's
+The estate holds a shelf of text instruments: the private estate's
 `local-models/instruments/concept-lab/` (here until 2026-08-25),
 [`vocab.py`](../.claude/skills/concept-index/vocab.py),
 `semsearch.py` (moved to the private estate with concept-lab), and the
 [entities](../pages/entities.html), [citations](../pages/citations.html) and
-[shorter](../pages/shorter.html) pages. Nine of the ten take a corpus or a
-paste. **None takes the document a reader currently has open.** This tab is the
-only thing that closes that gap, and it is the strongest claim available here.
+[shorter](../pages/shorter.html) pages. The private estate's
+`local-models/INSTRUMENTS.md` is the index of them, and the count is not
+carried here because this document cannot gate it. Almost all take a corpus or
+a paste. **None takes the document a reader currently has open.** This tab is
+the only thing that closes that gap, and it is the strongest claim available
+here.
 
 It reuses machinery rather than inventing any: the FAB already knows the page's
 repo, path and ref, survives into a toss, and through
@@ -61,20 +64,26 @@ result, on the rule that retired the merge guide.
 
 What does exist is **five registries keyed by path**, and a path is a token this
 prose really uses. So the lookup runs *from the registry*, searching the text
-for about 400 exact strings:
+for every path the five carry:
 
-| Registry | Covers | Says | Rows |
-| --- | --- | --- | --- |
-| [`docs.csv`](docs.csv) | `docs/`, `.md` and `.json` | subject, status | 52 |
-| [`tests.csv`](tests.csv) | `tools/test/` | protects, kind | 137 |
-| [`harness.csv`](harness.csv) | `tools/`, `scripts/` | role, layer | 124 |
-| [`portable.csv`](portable.csv) | the portable set | role, kind | 42 |
-| [`pages.csv`](../pages/pages.csv) | `pages/` | note, live address | 68 |
+| Registry | Covers | Says |
+| --- | --- | --- |
+| [`docs.csv`](docs.csv) | `docs/`, `.md` and `.json` | subject, status |
+| [`tests.csv`](tests.csv) | `tools/test/` | protects, kind |
+| [`harness.csv`](harness.csv) | `tools/`, `scripts/` | role, layer |
+| [`portable.csv`](portable.csv) | the portable set | role, kind |
+| [`pages.csv`](../pages/pages.csv) | `pages/` | note, live address |
+
+Row counts are deliberately not carried in this prose: the
+[Map view](https://mehrlander.github.io/web-tools/app/?view=map) renders each
+registry live. The five grew by about half between this page's build date and
+2026-09-08, which is why the figures that stood here are gone rather than
+restamped.
 
 The first build ran the other way: a regex for path-shaped strings, then a tree
 read to validate each guess, with the registry consulted last. Inverting it made
-root-level files reachable (`CLAUDE.md`, `README.md`, `package.json` are all
-registered and were all invisible, since the pattern needs a slash), stopped URL
+root-level files reachable at all (`CLAUDE.md`, `README.md` and `package.json`
+were invisible to it, since the pattern needs a slash), stopped URL
 tails being generated and then reported as misses, and made the tree read
 optional.
 
