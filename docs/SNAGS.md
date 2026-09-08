@@ -1107,13 +1107,23 @@ colour utilities: `bg`, `border`, `text`. The other 22 are daisyUI's own
 components, and not flagging `btn-primary` is the half the obvious scan gets
 wrong, along with a stock palette colour, which compiles in every family.
 
-It is **advisory**, not yet a gate, and the reason is not squeamishness: the
-scan finds 37 live occurrences in 23 files, and each needs a design call rather
-than a substitution, since a ring takes no space and a border does. Swapping 37
-appearances blind, in pages nobody looked at, would be worse than the hairlines.
-`tools/test/dead-family.test.mjs` pins the classifier meanwhile, which is the
-part that was hard. dead-opacity.py went the same way: classifier, then a
-193-item sweep, then the gate.
+**And it gates, because measuring the fix turned a judgment into a
+substitution.** The plan an hour earlier was to leave it advisory: the scan
+found 36 live occurrences in 22 files and the reference prescribed swapping to a
+palette colour or restructuring to `gap`, both of which change appearance, so
+36 blind edits looked worse than the hairlines. Measuring said otherwise. The
+arbitrary-value form of the SAME utility resolves:
+`ring-[var(--color-primary)]` sets `--tw-ring-color` where `ring-primary` set
+nothing, `divide-[var(--color-base-300)]/50` paints at `oklab(0.95 0 0 / 0.5)`,
+and an opacity step rides along unchanged. So the ring stays a ring and takes no
+layout space, and the colour still follows the theme. 35 of the 36 were rewritten
+mechanically; the one exception is `shadow-*`, whose arbitrary form leaves
+`--tw-shadow-color` unset, and that one shadow is now written out.
+
+The lesson is the same one the entry keeps teaching from the other side: the
+reference's advice had never been measured, only reasoned, and the reasoning
+picked the expensive fix. dead-opacity.py needed a 193-item sweep before its
+gate; this needed a browser and twenty minutes.
 *(seen: 2026-07-28, 2026-08-22, 2026-09-08)*
 → [the mechanics reference](../skills/daisy-alpine/references/mechanics.md)
 

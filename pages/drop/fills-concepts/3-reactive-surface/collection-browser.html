@@ -78,7 +78,7 @@ const matches = d => {
 
 const card = (a, selId) => `
   <div data-id="${a.id}" role="button" tabindex="0" class="group cursor-pointer focus:outline-none">
-    <figure class="relative overflow-hidden rounded-box bg-base-200 ${selId === a.id ? 'ring-2 ring-neutral ring-offset-2 ring-offset-base-100' : ''}">
+    <figure class="relative overflow-hidden rounded-box bg-base-200 ${selId === a.id ? 'ring-2 ring-[var(--color-neutral)] ring-offset-2 ring-offset-base-100' : ''}">
       <img loading="lazy" alt="" src="${iiif(a.image_id, 400)}"
            class="aspect-[4/5] w-full object-cover transition duration-700 ease-out group-hover:scale-105 group-focus:scale-105">
       ${a.date_display ? `<span class="badge badge-neutral badge-sm absolute left-2 top-2">${esc(a.date_display)}</span>` : ''}

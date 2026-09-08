@@ -79,7 +79,12 @@ DEFINED = re.compile(r'(?:^|[},;>+~\s])\.((?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*?)-(?:
 # trap (this file, the mechanics reference, SNAGS.md), and a class in a fenced
 # example is documentation rather than markup a browser will meet.
 EXTS = ('.html', '.js', '.mjs')
+# `tools/test` holds FIXTURES: a check for this trap has to write the dead class
+# down to prove it reports it, and dead-opacity.py's own test dodges the same
+# problem only because it writes its fixtures to a tmpdir. A probe string is not
+# markup a browser meets. The pages those tests drive are scanned as themselves.
 SKIP_DIRS = {'node_modules', '.git', 'dist', 'archive'}
+SKIP_PREFIX = ('tools/test/',)
 
 
 def supported(root):
@@ -97,7 +102,7 @@ def tracked(root):
     for rel in out.split('\0'):
         if not rel or not rel.endswith(EXTS):
             continue
-        if any(part in SKIP_DIRS for part in rel.split('/')):
+        if any(part in SKIP_DIRS for part in rel.split('/')) or rel.startswith(SKIP_PREFIX):
             continue
         yield rel
 
@@ -139,11 +144,23 @@ def scan(root, ship, paths=None):
 
 
 def suggest(util, colour):
-    if util == 'divide':
-        return 'gap, or border-t + border-' + colour + ' per row'
-    if util in ('ring', 'outline'):
-        return 'border-' + colour + ', or a Tailwind palette colour'
-    return 'bg/border/text-' + colour + ', or a Tailwind palette colour'
+    """The measured substitution: the arbitrary-value form of the same utility.
+
+    Measured 2026-09-08 in headless Chromium against this app's own stylesheet.
+    ring-[var(--color-primary)] sets --tw-ring-color to the theme colour, and
+    divide-[var(--color-base-200)] paints the divider at oklch(0.98 0 0) where
+    divide-base-200 painted it in the TEXT colour. An opacity step rides along
+    unchanged (/40 becomes color-mix(... 40%, transparent)), exactly as it does
+    on a palette colour. So the fix is mechanical rather than a design call: the
+    utility keeps its behaviour, a ring stays a ring and takes no layout space,
+    and the colour still follows the theme.
+
+    `shadow` is the one exception measured: the arbitrary form leaves
+    --tw-shadow-color unset, so a shadow tint has to be written another way.
+    """
+    if util == 'shadow':
+        return 'no arbitrary form sets --tw-shadow-color; drop the tint or write the shadow out'
+    return util + '-[var(--color-' + colour + ')]'
 
 
 def main():

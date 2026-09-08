@@ -1797,7 +1797,7 @@
       <!-- The rows, newest first, so a correction just added is the one you
            are looking at. Capped and scrolling: the list grows without bound
            and the sheet must not. -->
-      <div x-show="corrections.length" class="max-h-56 overflow-y-auto -mx-1 px-1 divide-y divide-base-200">
+      <div x-show="corrections.length" class="max-h-56 overflow-y-auto -mx-1 px-1 divide-y divide-[var(--color-base-200)]">
         <template x-for="c in [...corrections].reverse()" :key="c.from">
           <div class="flex items-center gap-2 py-2">
             <span class="min-w-0 truncate opacity-60" x-text="c.from"></span>

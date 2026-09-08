@@ -13,10 +13,13 @@
 // (divide-slate-300). A scan that flags any of those sends someone to break
 // working markup.
 //
-// The repo carries 37 real findings as of 2026-09-08 and this file does not
-// fail on them: each needs a design call rather than a substitution, since a
-// ring takes no space and a border does. dead-opacity.py went the same way,
-// classifier first and the 193-item sweep after, and gates cleanliness now.
+// It gates the repo's cleanliness too, which it could not until the fix was
+// measured. The reference had prescribed swapping to a palette colour or
+// restructuring to gap, both of which are design calls; the browser says the
+// arbitrary-value form of the SAME utility resolves, so a ring stays a ring and
+// takes no layout space, an opacity step rides along, and the colour still
+// follows the theme. That made a 36-occurrence sweep mechanical rather than a
+// judgment per site, which is what let this become a gate on the same day.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -53,7 +56,8 @@ test('the dead family is reported, with what to reach for instead', { skip: !ins
   withFile('<div class="divide-y divide-base-200"></div>', (f) => {
     const { out } = run([f]);
     assert.match(out, /divide-base-200 generates no rule/);
-    assert.match(out, /gap, or border-t \+ border-base-200 per row/);
+    assert.match(out, /divide-\[var\(--color-base-200\)\]/,
+      'the fix named is the arbitrary form of the same utility, which measures');
   });
 });
 
@@ -109,6 +113,13 @@ test('--check turns the advisory into a gate', { skip: !installed && 'daisyUI no
     assert.equal(run([f]).code, 0, 'advisory by default');
     assert.equal(run(['--check', f]).code, 1);
   });
+});
+
+// The gate. Everything above pins the classifier against a fixture; this is the
+// only assertion about the tree, and it is the one that keeps the sweep swept.
+test('the repo carries no dead colour utility', { skip: !installed && 'daisyUI not installed' }, () => {
+  const { code, out } = run(['--check']);
+  assert.equal(code, 0, out);
 });
 
 test('the supported set is DERIVED, so it tracks the installed daisyUI', { skip: !installed && 'daisyUI not installed' }, () => {
