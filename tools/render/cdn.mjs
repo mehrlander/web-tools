@@ -4,13 +4,19 @@
 //   1. Own code  — gh-api.js's loader fetches lib/* via the GitHub contents
 //      API (base64), after the page's first jsDelivr `/gh/` import of gh-api.js
 //      itself. Both must resolve to the on-disk working tree so a render shows
-//      branch edits, not whatever main serves.
+//      branch edits, not whatever main serves. Two more routes reach the same
+//      tree for the same reason: raw.githubusercontent (the ?use= pre-build
+//      boot) and <owner>.github.io (the <base> a toss render stamps).
 //   2. Own data: the GitHub API surface for REPO (contents listings/reads,
 //      /repos/<REPO> metadata, git/trees) is answered from the working tree
-//      too: no token, no network, and uncommitted edits render. Other repos'
-//      API calls pass through (and fail in the sandbox). Identity endpoints
-//      (/user, /user/repos) are NOT impersonated, since "who am I" has no
-//      local answer; pages must keep first paint off them (see testing.md).
+//      too: no token, no network, and uncommitted edits render. ANOTHER repo's
+//      contents are answered from its checkout beside this one where there is
+//      one, and otherwise miss rather than reaching the network (see the
+//      sibling branch). CONTENTS ONLY: another repo's metadata and git/trees
+//      match no branch here, so they still pass through and fail in the
+//      sandbox. Identity endpoints (/user, /user/repos) are NOT
+//      impersonated, since "who am I" has no local answer; pages must keep
+//      first paint off them (see testing.md).
 //   3. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
@@ -25,8 +31,9 @@
 //   { kind:'continue' }                    an allowed host (fonts, APIs): let it
 //                                          go to the network unchanged
 //
-// Used by tools/render/screenshot.mjs (Playwright route) and reusable by any future
-// pixel/preview tool. The logic-level twin lives inline in tools/render/preview.mjs.
+// Used by tools/render/screenshot.mjs (pixels) and tools/render/netlog.mjs
+// (request counts), both on the Playwright route, and reusable by any future
+// one. The logic-level twin lives inline in tools/render/preview.mjs.
 //
 // This is the web-tools-specific implementation (it also impersonates the GitHub
 // API for this repo). The portable, repo-agnostic write-up of the
@@ -82,8 +89,8 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
   // /combine/ route does NOT: it resolves through package.json main, so a bare
   // `npm/alpinejs` spec there yields dist/module.cjs.js and the page gets a
   // CommonJS file that defines no global. Applying the map to a combine request
-  // served a working Alpine no browser would ever receive, and pages/doc-growth
-  // shipped dead while passing every local render (SNAGS: combine-serves-cjs).
+  // serves a working Alpine no browser would ever receive, so the page renders
+  // here and ships dead (SNAGS: combine-serves-cjs).
   if (!combine && CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
   const pj = path.join(dir, 'package.json');
   if (existsSync(pj)) {
@@ -126,16 +133,13 @@ function parseNpm(spec) {
 // to the last version that has the file, which its own header confirms
 // (`x-jsd-version: 0.5.0`), so a real browser has been loading 0.5.0 all along
 // while `node_modules/@tailwindcss/typography` holds the current plugin. The
-// resolver saw a package with no such file and served an honest MISS, which is
-// why every headless screenshot of a prose surface was taken with no prose
-// styles at all: no 65ch measure, no paragraph rhythm, no list markers.
+// resolver saw a package with no such file and served an honest MISS, so every
+// headless screenshot of a prose surface was taken with no prose styles.
 //
 // So 0.5.0 is installed a second time under an alias (package.json,
 // `typography-dist`) and this table points the CDN path at it. Real bytes,
 // byte-identical to what the CDN serves, which is the vendoring rule in
-// docs/headless-vendoring.md rather than an exception to it. Found on
-// 2026-09-02 by a prose block that wrapped at 470px on a phone and at the full
-// 1171px in every screenshot taken of it.
+// docs/headless-vendoring.md rather than an exception to it.
 const PKG_ALIAS = { '@tailwindcss/typography': 'typography-dist' };
 
 function readSpec(spec, repoRoot, combine) {
@@ -165,12 +169,11 @@ function readSpec(spec, repoRoot, combine) {
         // Only when the entry is the same KIND of file that was asked for. A
         // package's declared entry is its Node entry, and for a plugin that is
         // JavaScript no matter what the URL wanted: @tailwindcss/typography
-        // ships no dist CSS, its basename matches its package name, so a
-        // request for dist/typography.min.css resolved to src/index.js and the
-        // page was served a Node module as its stylesheet. It reported a hit
-        // (combine 3/3) and rendered with no prose styles at all, which made a
-        // headless screenshot silently disagree with every real browser. A
-        // miss is the honest answer and shows up as MISS in the log.
+        // ships no dist CSS and its basename matches its package name, so
+        // without this test a request for dist/typography.min.css resolves to
+        // src/index.js and the page gets a Node module as its stylesheet,
+        // reported in the log as a hit. A miss is the honest answer and shows
+        // up as MISS.
         if (entry && path.extname(entry) === path.extname(fp).replace(/^\.min/, '')) {
           const cand = path.join(repoRoot, 'node_modules', pkg, entry);
           if (existsSync(cand)) fp = cand;
@@ -320,15 +323,14 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   //
   // The estate's newer panes are cross-repo: the Chats pane reads
   // mehrlander/chat-histories, the guides fold reads whichever repos hold a
-  // shelf. Without this they render the signed-out state headlessly, which is
-  // the one view nobody needs a screenshot of, so a cross-repo pane could be
-  // shot only by hand with a real token.
+  // shelf. Without this they render their signed-out state headlessly, so a
+  // cross-repo pane could be shot only by hand with a real token.
   //
   // Scoped deliberately: the repo NAME must match a directory beside this
   // checkout, and that directory must be a git repo. A multi-repo session
-  // already has the siblings on disk (this one holds four), and a request for
-  // a repo that is not checked out falls through to the miss below rather than
-  // reaching the network, so the render stays offline either way.
+  // already has its siblings on disk, and a request for a repo that is not
+  // checked out falls through to the miss below rather than reaching the
+  // network, so the render stays offline either way.
   const sibling = /^\/repos\/[^/]+\/([^/]+)\/contents\/(.*)$/.exec(u.pathname);
   if (host === 'api.github.com' && sibling) {
     const [, name, tail] = sibling;
