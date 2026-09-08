@@ -13,8 +13,8 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 17 are named by CLAUDE.md,
-9 by a skill, 28 by a page or component. The remaining 22 are
+2 arrive in every session's context, 18 are named by CLAUDE.md,
+9 by a skill, 28 by a page or component. The remaining 21 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -69,7 +69,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`surfacing-extended.md`](surfacing-extended.md) — the surfacing carriers most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
-- [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the carriers holding it are organized, and how much never reached one
+- [`text-content.md`](text-content.md) *(measured)* — the estate's authored text: whether the carriers holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.json`](themes.json) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial

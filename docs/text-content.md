@@ -537,3 +537,186 @@ Stated so the numbers are not read as more than they are.
   `note` for genuinely different things read as agreement here.
 - **Consistency is not correctness.** Neither instrument says whether any of
   this text is true or current.
+
+
+---
+
+# Is it true? A read of six files, 2026-09-08
+
+Every figure above measures how much prose there is and whether it has a
+carrier. The closing limit of this document said the honest thing about that:
+consistency is not correctness, and neither instrument says whether any of the
+text is true. This section is the first pass at the other question, and it
+changes what a gate should aim at.
+
+Six files were read in full by three agents, two files each, sampling comment
+blocks on a fixed stride and classifying every sampled block into one primary
+category: **contract** (what a function, option or return is), **criterion** (a
+condition or threshold that changes how the code must be edited), **history** (a
+dated measurement, or the story of how a bug was found), **rationale at length**
+(a legitimate why at several times the words its criterion needs),
+**restatement**, **stale**, and **debris**. Each reader also checked six claims
+per file against the code.
+
+| File | Comment words | Share of lines | Cut outright | Move to a record |
+| --- | --- | --- | --- | --- |
+| `lib/kits/swipe-deck.js` | 8,088 | 60% | 1,300 to 1,800 | 900 to 1,300 |
+| `lib/alpineComponents/stage.js` | 21,111 | 41% | 700 to 1,600 | 500 to 1,200 |
+| `pages/toss-render.html` | 7,019 | 44% | 1,300 to 2,100 | 1,100 to 1,600 |
+| `tools/render/cdn.mjs` | 1,376 | 34% | 100 to 180 | 220 to 320 |
+| home `views/spend.js` | 9,572 | 27% | 2,800 to 3,600 | 500 to 1,150 |
+| home `build-submittal.py` | 8,235 | 41% | 1,550 to 2,300 | 1,650 to 2,300 |
+
+`stage.js` counts the 56 HTML comment blocks inside its Alpine template, which
+the block definition used elsewhere in this document excludes. They are the same
+prose in a different delimiter.
+
+**The categories a cleanup would aim at are empty.** Restatement and debris
+together were 1 to 3 percent of sampled words in every file, and one reader
+found no commented-out line at all in 354 blocks. There is nothing here to tidy.
+What could go is history and long rationale, and all of it is true, which is why
+it is the harder kind to cut: the criterion is often the middle sentence rather
+than the first, so a fast pass takes the load-bearing clause with the story
+around it.
+
+**Two defects did show up, and neither is length.**
+
+*The file header is the least accurate prose in the file.* `swipe-deck.js`
+documents fourteen options where the code reads twenty, and omits three keys
+from the return it describes. `stage.js`'s header says a content-carrying `#gz=`
+form is "a contemplated follow-up, not built here" while `mint` emits one.
+`toss-render.html`'s header restates three arguments its own per-site comments
+own, near verbatim, and the header copy is the one that went stale. The
+40-to-249-word header essay is this codebase's convention and this document
+defends it; the convention protects a header's length without gating its truth.
+
+*A count inside a narrative goes stale with nothing to re-run it.*
+`build-submittal.py` says "0 of 20" and "0 of 22" for two CSVs that now hold 15
+and 32 rows, and derives a figure from them that is wrong by the same drift.
+Across 36 claims checked, 28 held; every failure was one of these two shapes.
+
+## What this adds to the gate
+
+The split proposed above still stands, and one line moves. "Whether a comment is
+too long in general" remains uncheckable and a ceiling would still misfire. But
+a **dated claim** is checkable in the only sense that matters, which is that it
+can be listed and re-read:
+
+    python3 scripts/embedded-prose.py . lib pages app --dated
+
+`--dated` lists every comment block asserting an ISO date, oldest first, marking
+those carrying a figure beside the date, since a figure counts something that
+moves while the sentence does not. web-tools' `lib`, `pages` and `app` hold 324
+such blocks in 69 files, 132 of them carrying a figure; home's budget-drs,
+local-models and tools hold 408 in 157 files, 213 with a figure. It is advisory
+and not a gate, because a dated block is not a defect. It is a claim someone has
+to re-check, and the report only says which and how old.
+
+**Its limit is the honest half of the result.** Of the two stale counts found by
+reading, `--dated` catches one. The other, at `build-submittal.py:1616`, says
+"three of these cites are a README.md" where there are now eight, and carries no
+date at all. An undated count is invisible to a dated report, and no instrument
+here reaches it. So the report narrows the class rather than closing it, and
+reading remains the only thing that found the header drift.
+
+
+---
+
+# The history the pilot moved out, 2026-09-08
+
+The rewrite of four files ([PR #625](https://github.com/mehrlander/web-tools/pull/625))
+removed 48 passages of history under the rule that a comment keeps its
+criterion and sends the date, the measurement and the incident here. This is
+where they went, filtered: a passage already held by a test or by another file
+is not repeated, because a second copy is the thing this whole pass is against.
+
+Dropped as already held, with what holds them: the 867px-track-in-a-430px-panel
+regression and the three-link width chain
+([`swipe-deck-width.test.mjs`](../tools/test/swipe-deck-width.test.mjs)); the
+44px phone floor and `size:'tight'`
+([`deck-entry-parity.test.mjs`](../tools/test/deck-entry-parity.test.mjs));
+`--deck-head` and `--deck-side` (`app/index.html` sets them); the charset and
+inline-deps findings (`toss-charset.mjs`, `toss-inline-deps.test.mjs`); the
+slide-retention DOM counts (`swipe-deck-stack.test.mjs` and
+[`branch-overlay.md`](branch-overlay.md)); the menu placement measurement, which
+is now restored to the code as a criterion rather than moved.
+
+**What a constant was measured against.** `DIM_SATURATE` and `DIM_ALPHA` in
+`toss-render.html` were picked against real icons on a light and a dark tab
+strip; alpha near 0.55 reads well on light and goes muddy on dark, and full
+grayscale is unmistakable but discards the colour that makes an icon
+recognizable. `INK_TIE` in the sibling budget-drs work came from the atlas's
+rounder 0.3, which put white on this palette's blue and red where black carries
+about 60 percent more contrast. `GZ_MAX` is 24k of base64 against Safari's
+roughly 80k URL ceiling, and a 7 KB HTML paste encodes to about 2 KB.
+
+**What was tried and rejected.** The deck's desktop panel was a centred card
+(`max-w-4xl my-4 rounded-3xl`, border and shadow) until 2026-08-18; over
+show-repo it floated across the sidebar, so chrome the reader still needed sat
+under a card they had to dismiss. Its overlay was measured the same day as
+computed `rgba(0,0,0,0)` with no background image, meaning every deck had been
+transparent since it was written. The header pill cost about 64px of a 390px
+row and truncated a filename to "flow-a...." beside a duplicate of the count
+the footer already showed. `stage.js`'s reader was a centred dialog over a
+scrim with hand-rolled touch and arrow keys until 2026-08-18, and sixty lines
+of pointer handling went with it.
+
+**Where a fix looked correct for a long time.** The deck's grid rows were
+auto-placed rather than named, which is invisible while a slide's content is
+taller than the panel and appeared only against the pdf module's continuous
+column on 2026-08-25: the track measured 111px inside an 843px panel while the
+footer took 667. Two branches each added a watcher named `paneWatch`; git
+merged them cleanly into two `const paneWatch` in one scope and the file did
+not parse, which is a clean textual merge producing a syntax error.
+
+**Where a default was wrong rather than missing.** `stage.js` read only tab as
+a delimiter until 2026-08-18, so a table pasted from Excel opened correctly and
+the same data as CSV arrived as a wall of text. Its `dataUri` read `IMAGE_MIME`
+until 2026-08-15, so a dropped PDF rendered as mojibake. Its offers bar listed
+only leftovers until 2026-08-28, which made it read as an ADD list rather than
+as what is available.
+
+**One thing that shipped and was withdrawn.** A links extractor lived in the
+stage for a day, first emitting `a[href]` as a two-column CSV and then as
+markdown, before being removed; its leftovers were a `-links.md` example in the
+peek path and a dead duplicate comment, both now gone.
+
+
+---
+
+# What the pilot taught about running the pass, 2026-09-08
+
+The trim is the smaller finding. The larger one is about the operation, and it
+is the reason the fan-out this pilot was meant to authorize should not run in
+the shape that was proposed.
+
+**A rewriter marking its own work is not evidence.** Each of the six agents
+reported that it kept every criterion and removed only history. A second agent
+per file, told only to find where the first was wrong, found eleven defects.
+**Seven were claims the rewrite ADDED**, not text it lost. `swipe-deck.js` came
+back stating a menu's flip condition backwards, in a file where no test
+exercises that placement. `spend.js` hardened a hedge into "never the
+all-biennia totals" against its own `budgetAll` branch fifteen lines below,
+which shows exactly those totals; that item had been reported as one of its
+fixes. `stage.js` declared a diff ceiling absent that its own code surfaces a
+warning for. A false comment is worse than a verbose one, so a pass that trades
+length for accuracy in this direction loses.
+
+**And the mechanical check proves the wrong thing.** Stripping comments and
+comparing the remainder shows the code is character-identical, which is true,
+necessary, and reads as verification. It is the easy half. A comment cannot fail
+it however false it becomes, so it certifies exactly the property that was never
+at risk. Two of the six files also needed the check taught that HTML comments in
+an Alpine template and CSS comments in a styles literal are string content to a
+JavaScript lexer; without that it reported a difference on the two files most
+likely to have been over-cut, which is the failure that looks like diligence.
+
+**The cost changes accordingly.** The honest unit is a writer plus an adversary,
+which is roughly double, and the adversary needs the same model as the writer,
+since what it is looking for is a plausible sentence that happens to be false.
+Against that, the four accuracy fixes to file headers and the five stale counts
+were most of what the pass actually bought. **An accuracy pass that touches
+nothing else, reading each header against its code and each figure against its
+file, is a much cheaper operation than the trim and captures the larger share of
+the value.** That is the version worth considering next, and
+`embedded-prose.py --dated` already lists half its worklist.

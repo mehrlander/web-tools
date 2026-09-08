@@ -70,6 +70,10 @@ A document that restates what an app derives, or what a check enforces, is carry
 
 The cut is only safe when something will notice it being undone, so leave a gate behind: a pointer the doc must keep, and a ceiling it must stay under.
 
+### The same rule, in a comment
+
+A code comment is prose with the same failure, and the criterion is what it keeps: the condition, the threshold, the named exception, whatever changes how the line must be read or edited. The date, the measurement and the story of the bug go to the dated record; git history holds the rest. Two shapes are the ones that actually rot, so treat them as the rule's edges. **A file header states a contract, so it is checked against the code whenever the contract changes**, and it points at the comment beside the code rather than restating it. **A figure in a comment is traceable to a file or it goes**, since a count is true when written and nothing re-runs it. Neither is a length rule: a header essay of 40 to 249 words is the house convention and is good, and the shouty lead-in this estate favors reliably marks a criterion rather than noise, so a trim keyed on tone or on length cuts the wrong half. Measured in [text-content.md](https://github.com/mehrlander/web-tools/blob/main/docs/text-content.md); `embedded-prose.py --dated` reports the second shape and nothing reports the first.
+
 ## Keep focus
 
 When asked to look for improvements, be wary of ideas that address a hypothetical problem. A simple, clear fix is worth making; the trap is speculative work that goes off course. The test applies to work the session conceives, not to a specific user request.
