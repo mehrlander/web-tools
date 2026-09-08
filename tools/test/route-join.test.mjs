@@ -1,13 +1,29 @@
-// alpineComponents/estate.js — the Activity view's Routes pane: the loader that
-// reads the manifest, dates each declared carrier from one last-commit call, and
-// joins the open PRs that touch them; and the getters the pane renders off.
+// The app-route join, across the three places it now lives.
 //
-// The fold itself (ranking, the wide-file rule, the shell exclusion) is covered
-// in app-routes.test.mjs against the kit. What is tested here is the wiring the
-// kit cannot see: that the loader asks for the paths the manifest declares and
-// nothing else, that it survives a carrier with no commits, that the
-// attempt-once guard holds after a failure, and that the pane's aggregates read
-// off the rows rather than off the manifest.
+//   lib/kits/route-join.js          fetches the manifest, the open pull
+//                                   requests' file lists, and one last-commit
+//                                   date per declared carrier
+//   lib/alpineComponents/map.js     the Map view's Views tab, which ranks the
+//                                   app's destinations off all three
+//   lib/alpineComponents/estate.js  the reciprocal, a chip on a branch row
+//                                   saying which destination it is working on
+//
+// It was all one component until 2026-09-08 (the Views pane was Activity's
+// fifth pill), which is why this file was called estate-routes. The pane moved
+// to the Map view and the fetching moved to a kit, so the file follows the
+// subject rather than the component.
+//
+// The FOLD itself (ranking, the wide-file rule, the shell exclusion) is covered
+// in app-routes.test.mjs against lib/kits/route-activity.js. What is tested
+// here is the wiring that fold cannot see: that the loader asks for the paths
+// the manifest declares and nothing else, that it survives a carrier with no
+// commits, that the attempt-once guard holds after a failure, and that the
+// pane's aggregates read off the rows rather than off the manifest.
+//
+// The shell's own half is a memo (which ref the join was read at, and whether
+// it has been tried), so the stub below implements it the way app/index.html
+// does. That page is not loadable here, which is the reason the fetching is in
+// a kit at all rather than beside the state.
 //
 // No network, no pixels: GH is stubbed and answers from a fixture.
 
@@ -112,16 +128,44 @@ class FakeGH {
 }
 
 const { window } = makeWindow({
-  html: `<!doctype html><html><body><div id="es" x-data="estate()"></div></body></html>`,
+  html: `<!doctype html><html><body>
+    <div id="es" x-data="estate()"></div>
+    <div id="mp" x-data="map()"></div>
+  </body></html>`,
 });
 window.TOKEN = 'tkn';
 window.GH = FakeGH;
 window.gh = { load: async () => {} };
+
+// The shell's half, implemented here the way app/index.html implements it: the
+// memo and the guard, with the fetching delegated to the kit. A page is not
+// loadable in this harness, which is why the fetching is in the kit and only
+// these dozen lines are restated.
 window.__shell = {
   REGISTRY_REPO: 'me/registry', DEFAULT_REPO: 'me/tools', quickLinks: [],
   hasToken: () => true, _authState: 'auth',
   routed: [],
   routeFromUrl(u){ this.routed.push(u); },
+  ROUTES_REPO: 'mehrlander/web-tools',
+  routeManifest: null,
+  routeJoinRef: '',
+  routeBranchFiles: [],
+  routeJoinTried: false,
+  get routesRef(){
+    try { return new URLSearchParams(window.location.search).get('use') || 'main'; }
+    catch { return 'main'; }
+  },
+  async loadRouteJoin(force){
+    if (!this.hasToken()) return null;
+    const ref = this.routesRef;
+    if (this.routeJoinTried && !force && this.routeJoinRef === ref) return null;
+    this.routeJoinTried = true;
+    this.routeJoinRef = ref;
+    const gh = new window.GH({ token: window.TOKEN, repo: this.ROUTES_REPO, ref });
+    this.routeManifest = await window.RouteJoin.manifest(gh);
+    this.routeBranchFiles = await window.RouteJoin.branchFiles(gh, this.ROUTES_REPO);
+    return gh;
+  },
 };
 
 const Alpine = await startAlpine(window, [
@@ -129,9 +173,12 @@ const Alpine = await startAlpine(window, [
   'lib/kits/csv.js',
   'lib/kits/surface.js',
   'lib/kits/route-activity.js',
+  'lib/kits/route-join.js',
   'lib/alpineComponents/estate.js',
+  'lib/alpineComponents/map.js',
 ]);
 const data = Alpine.$data(window.document.getElementById('es'));
+const view = Alpine.$data(window.document.getElementById('mp'));
 
 // Values cross the jsdom realm boundary, so deepEqual would fail on prototype
 // identity alone (every other estate suite does the same).
@@ -139,7 +186,7 @@ const plain_ = (v) => JSON.parse(JSON.stringify(v));
 
 test('the loader asks for exactly the declared carriers plus the shell', async () => {
   asked = [];
-  await data.loadRoutes(true);
+  await view.loadAppViews(true);
   // Sorted, so the shell leads: it moved from pages/show-repo/show-repo.html
   // to app/index.html on 2026-08-16 and now sorts ahead of every lib/ carrier.
   assert.deepEqual(plain_(asked).sort(), [
@@ -151,46 +198,46 @@ test('the loader asks for exactly the declared carriers plus the shell', async (
 });
 
 test('a carrier with no commits leaves its route undated rather than throwing', () => {
-  const sessions = data.routeRows.find(r => r.key === 'sessions');
+  const sessions = view.viewRows.find(r => r.key === 'sessions');
   // estate.js answered empty; repo-sessions-cache.js dated the row.
   assert.equal(sessions.lastTouch.sha, 'bbbbbbb2');
   assert.equal(sessions.files.find(f => f.path === 'lib/alpineComponents/estate.js').touch, null);
 });
 
 test('the shell dates its own row and no route', () => {
-  assert.ok(data.routeRows.every(r => r.lastTouch?.sha !== 'ccccccc3'));
-  assert.equal(data.routeShell.touch.sha, 'ccccccc3');
-  assert.equal(data.routeShell.routes, 3);
+  assert.ok(view.viewRows.every(r => r.lastTouch?.sha !== 'ccccccc3'));
+  assert.equal(view.viewShellRow.touch.sha, 'ccccccc3');
+  assert.equal(view.viewShellRow.routes, 3);
 });
 
 test('rows rank freshest first, undated last', () => {
-  assert.deepEqual(plain_(data.routeRows.map(r => r.key)), ['map', 'sessions', 'landing']);
+  assert.deepEqual(plain_(view.viewRows.map(r => r.key)), ['map', 'sessions', 'landing']);
 });
 
 test('open PRs join on the files they touch, and only those', () => {
-  const map = data.routeRows.find(r => r.key === 'map');
+  const map = view.viewRows.find(r => r.key === 'map');
   assert.equal(map.branches.length, 1);
   assert.equal(map.branches[0].pr, 7);
   assert.deepEqual(plain_(map.branches[0].hits), ['lib/alpineComponents/map.js']);
   assert.match(map.branches[0].url, /\/pull\/7$/);
   // PR 8 touches nothing any route declares, so it appears on no row.
-  assert.ok(data.routeRows.every(r => r.branches.every(b => b.pr !== 8)));
+  assert.ok(view.viewRows.every(r => r.branches.every(b => b.pr !== 8)));
 });
 
 test('the registry counts the routes with no code of their own', () => {
-  assert.equal(data.routeRows.length, 3);
-  assert.equal(data.routesWithoutCode, 1);
-  assert.equal(data.routesInFlight, 1);
+  assert.equal(view.viewRows.length, 3);
+  assert.equal(view.viewsWithoutCode, 1);
+  assert.equal(view.viewsInFlight, 1);
 });
 
 test('only a bare ?view= address is offered as a tap', () => {
-  const rows = data.routeRows;
-  assert.equal(data.routeIsOpenable(rows.find(r => r.key === 'map')), true);
-  assert.equal(data.routeIsOpenable(rows.find(r => r.key === 'landing')), false);
-  data.openRoute(rows.find(r => r.key === 'map'));
+  const rows = view.viewRows;
+  assert.equal(view.viewIsOpenable(rows.find(r => r.key === 'map')), true);
+  assert.equal(view.viewIsOpenable(rows.find(r => r.key === 'landing')), false);
+  view.openAppView(rows.find(r => r.key === 'map'));
   assert.deepEqual(plain_(window.__shell.routed), [{ view: 'map' }]);
   // A row that cannot be honoured does not navigate at all.
-  data.openRoute(rows.find(r => r.key === 'landing'));
+  view.openAppView(rows.find(r => r.key === 'landing'));
   assert.equal(window.__shell.routed.length, 1);
 });
 
@@ -201,27 +248,27 @@ test('only a bare ?view= address is offered as a tap', () => {
 // "which ref am I running"; a #gh= toss injects the addressed ref under that
 // same key through toss-render's params shim, so one read covers both.
 test('the pane reads at the running ref, so a preview is not pinned to main', async () => {
-  assert.equal(data.routesRef, 'main');           // the deployed default
+  assert.equal(view.viewsRef, 'main');           // the deployed default
   window.history.replaceState(null, '', '?use=claude/branch');
-  assert.equal(data.routesRef, 'claude/branch');
-  await data.loadRoutes(true);
+  assert.equal(view.viewsRef, 'claude/branch');
+  await view.loadAppViews(true);
   assert.equal(manifestRef, 'claude/branch');
   assert.equal(gotRef, 'claude/branch');
-  assert.equal(data.routesError, '');
+  assert.equal(view.viewsError, '');
   window.history.replaceState(null, '', '?');
-  assert.equal(data.routesRef, 'main');
+  assert.equal(view.viewsRef, 'main');
 });
 
 test('a failed load names the address it could not read', async () => {
   failNext = true;
-  await data.loadRoutes(true);
-  assert.match(data.routesError, /mehrlander\/web-tools@main:docs\/app-routes\.csv/);
-  assert.match(data.routesError, /404/);
-  assert.equal(data.routesBusy, false);
+  await view.loadAppViews(true);
+  assert.match(view.viewsError, /mehrlander\/web-tools@main:docs\/app-routes\.csv/);
+  assert.match(view.viewsError, /404/);
+  assert.equal(view.viewsBusy, false);
   // The x-effect fires again on the next render; the attempt-once guard is
   // what stops it pegging the main thread, so an unforced call is a no-op.
   asked = [];
-  await data.loadRoutes();
+  await view.loadAppViews();
   assert.deepEqual(plain_(asked), []);
   failNext = false;
 });
@@ -230,7 +277,7 @@ test('a failed load names the address it could not read', async () => {
 // pane loads, so visiting either warms the other; what it must not do is answer
 // for a repo whose routes nobody declared.
 test('a branch row reports the routes it touches, and only for the hub', async () => {
-  await data.loadRoutes(true);
+  await view.loadAppViews(true);
   const row = { repo: 'mehrlander/web-tools', name: 'claude/registries' };  // PR 7: map.js
   const r = data.branchRoutes(row);
   assert.deepEqual(plain_(r.on.map(x => x.key)), ['map']);
@@ -243,24 +290,53 @@ test('a branch row reports the routes it touches, and only for the hub', async (
 });
 
 test('the shared half loads without the dating, and only once', async () => {
-  data.routeJoinTried = false;
-  data.routeManifest = null;
+  const sh = window.__shell;
+  sh.routeJoinTried = false;
+  sh.routeManifest = null;
   asked = [];
-  await data.loadRouteJoin();
-  assert.ok(data.routeManifest, 'manifest loaded');
+  await sh.loadRouteJoin();
+  assert.ok(sh.routeManifest, 'manifest loaded');
   assert.deepEqual(plain_(asked), [], 'no per-carrier commit reads for the join alone');
-  assert.equal(data.routeBranchFiles.length, 2);
+  assert.equal(sh.routeBranchFiles.length, 2);
   // Guarded: the x-effect on the Branches pane fires on every render.
-  data.routeBranchFiles = [];
-  await data.loadRouteJoin();
-  assert.equal(data.routeBranchFiles.length, 0, 'an unforced second call is a no-op');
+  sh.routeBranchFiles = [];
+  await sh.loadRouteJoin();
+  assert.equal(sh.routeBranchFiles.length, 0, 'an unforced second call is a no-op');
+  await sh.loadRouteJoin(true);
+  assert.equal(sh.routeBranchFiles.length, 2, 'forcing re-reads it');
+});
+
+// The kit's own pieces, called directly: the pane and the chip both read what
+// these return, so a shape change here is a change to both at once.
+test('the kit pools its reads and drops a dead one without failing the batch', async () => {
+  const seen = [];
+  const out = await window.RouteJoin.pool([1, 2, 3, 4], async (n) => {
+    seen.push(n);
+    if (n === 3) throw new Error('nope');
+    return n * 2;
+  }, 2);
+  assert.deepEqual(plain_(out), [2, 4, null, 8]);
+  assert.equal(seen.length, 4);
+});
+
+test('the kit dates only the paths it is given, at the ref it is given', async () => {
+  const gh = new FakeGH({ repo: 'mehrlander/web-tools', ref: 'main' });
+  asked = [];
+  const touches = await window.RouteJoin.dates(gh, ['lib/alpineComponents/map.js',
+                                                    'lib/alpineComponents/estate.js'], 'main');
+  assert.deepEqual(plain_(asked).sort(),
+                   ['lib/alpineComponents/estate.js', 'lib/alpineComponents/map.js']);
+  assert.equal(touches['lib/alpineComponents/map.js'].sha, 'aaaaaaa1');
+  // A path with no commits is absent rather than present and empty, which is
+  // what leaves its route undated instead of dated wrong.
+  assert.ok(!('lib/alpineComponents/estate.js' in touches));
 });
 
 test('the group is a row label read off the manifest, not a section', async () => {
-  await data.loadRoutes(true);
-  assert.equal(data.routeGroupLabel('estate'), 'Estate');
+  await view.loadAppViews(true);
+  assert.equal(view.viewGroupLabel('estate'), 'Estate');
   // An unknown key labels itself rather than rendering blank.
-  assert.equal(data.routeGroupLabel('nope'), 'nope');
+  assert.equal(view.viewGroupLabel('nope'), 'nope');
 });
 
 // The ref on the chip, which is the whole reason the reverse join is drawn on a
@@ -268,7 +344,7 @@ test('the group is a row label read off the manifest, not a section', async () =
 // which walks the page you are already on to that view: main, at the one moment
 // the branch was the point.
 test('a branch row chip opens the view running THAT branch', async () => {
-  await data.loadRoutes(true);
+  await view.loadAppViews(true);
   const sha = 'a'.repeat(40);
   const r = data.branchRoutes({ repo: 'mehrlander/web-tools', name: 'claude/registries', sha });
   assert.equal(r.on[0].key, 'map');
@@ -281,7 +357,7 @@ test('a branch row chip opens the view running THAT branch', async () => {
 // a row the crawl has no tip for keeps the in-shell hop rather than minting an
 // address that may not resolve. The chip's title is what tells the reader.
 test('a row with no crawled tip keeps the old behavior instead of guessing', async () => {
-  await data.loadRoutes(true);
+  await view.loadAppViews(true);
   const r = data.branchRoutes({ repo: 'mehrlander/web-tools', name: 'claude/registries' });
   assert.equal(r.on[0].url, '', 'no tip, no address');
   assert.equal(r.on[0].key, 'map', 'the chip is still there');

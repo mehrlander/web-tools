@@ -141,9 +141,12 @@
   // Sessions-aggregate builders for the private cache (state/sessions.json).
   await gh.load('kits/closing-state.js');
   await gh.load('kits/repo-sessions-cache.js');
-  // The pure fold behind Activity's Routes pane: the app's own destinations
-  // ranked by when the code behind each last moved (window.routeActivity).
+  // The pure fold behind the Map view's Views tab: the app's own destinations
+  // ranked by when the code behind each last moved (window.routeActivity), and
+  // the fetching half that feeds it (window.RouteJoin), which the estate's
+  // branch chips read too.
   await gh.load('kits/route-activity.js');
+  await gh.load('kits/route-join.js');
   // The private request/response mailbox (mailbox/requests -> results).
   await gh.load('kits/repo-mailbox.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
@@ -1764,7 +1767,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // The Map view's tabs, in render order, first = default. Named HERE rather than
 // in map() because the shell validates the ?tab= param before the component
 // mounts; map() renders whichever of these is set.
-const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'growth', 'claims', 'tests', 'harness', 'kits', 'skills', 'registries', 'injection'];
+const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'growth', 'claims', 'tests', 'harness', 'kits', 'skills', 'views', 'registries', 'injection'];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -4012,6 +4015,62 @@ function app(){ return {
     };
   },
 
+  // ── The app-route join, held once for two panes ───────────────────────────
+  // The hub's route manifest and the files each open pull request touches. Map's
+  // Views tab ranks the app's destinations off it; the estate's Branches rows
+  // read the reciprocal, which destination a branch is working on. One read
+  // serves both, so the state is here and the fetching is in
+  // lib/kits/route-join.js (which the suite can load, and this page cannot be).
+  //
+  // It is a read of ONE repo, and that is not an accident of scope: the routes
+  // are show-repo's own, and show-repo is this page. Nothing here crawls the
+  // estate, which is why it sits outside the three crawl caches above rather
+  // than beside them.
+  ROUTES_REPO: 'mehrlander/web-tools',
+  routeManifest: null,
+  routeJoinRef: '',
+  routeBranchFiles: [],   // [{ repo, name, pr, session, files }] from open PRs
+  routeJoinTried: false,  // attempt-once, not success-once; see below
+
+  // WHICH REF THE JOIN READS, and why it is not simply main. The manifest and
+  // this page's VIEWS table are held to each other by a gate, at a ref: reading
+  // the code from one ref and the manifest from another breaks exactly the
+  // invariant that gate exists to protect. Pinning the manifest to main did
+  // that on the first preview of the branch that ADDED it, and the pane 404ed
+  // on a file that did not exist there yet.
+  //
+  // `?use=` is the app's standing answer to "which ref am I running" (the ref
+  // switch reads the same key), and a #gh= toss injects the addressed ref as
+  // `use` through toss-render's params shim, so one read covers the deployed
+  // page, a ?use= preview, and a tossed branch alike.
+  get routesRef(){
+    try { return new URLSearchParams(location.search).get('use') || 'main'; }
+    catch { return 'main'; }
+  },
+
+  // Attempt-once, not success-once: guarding on the RESULT would make one
+  // thrown error relaunch the load forever off the x-effect that calls this.
+  // Returns the client it built, so a caller that needs more from the same ref
+  // (the Views tab's commit dates) does not build a second one.
+  async loadRouteJoin(force){
+    if (!this.hasToken()) return null;
+    const ref = this.routesRef;
+    if (this.routeJoinTried && !force && this.routeJoinRef === ref) return null;
+    this.routeJoinTried = true;
+    if (!window.RouteJoin || !window.routeActivity) {
+      try {
+        await window.gh.load('kits/route-activity.js');
+        await window.gh.load('kits/route-join.js');
+      } catch { return null; }
+    }
+    this.routeJoinRef = ref;
+    const gh = new window.GH({ token: window.TOKEN, repo: this.ROUTES_REPO, ref });
+    this.routeManifest = await window.RouteJoin.manifest(gh);
+    this.routeBranchFiles = await window.RouteJoin.branchFiles(gh, this.ROUTES_REPO);
+    return gh;
+  },
+
+
   // ── Private mailbox: fulfill request files an agent session dropped in the
   // registry repo, using the viewer's token, and write results back. Read-only
   // kinds only (tree / branches / fetch), so this never spends write access on
@@ -5538,7 +5597,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'routes', 'state'].includes(this.view); },
+  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -5607,7 +5666,7 @@ function app(){ return {
       // ?view=activity still resolves to Branches, and the pill row still
       // leads with it, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'activity', 'chats', 'routes', 'state'],
+      { view: 'sessions', views: ['sessions', 'activity', 'chats', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       { view: 'todo', views: ['todo', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
@@ -5623,7 +5682,11 @@ function app(){ return {
       // `search`: an address is not a label, and every ?view=search link ever
       // shared still opens it.
       { view: 'search',   icon: 'ph-files', label: 'Files', go: () => this.goSearch() },
-      { view: 'map',      icon: 'ph-compass',      label: 'Map',      go: () => this.goMap() },
+      // `routes` rides here because the Views tab is where ?view=routes lands
+      // now. It keeps this stop lit for a saved link that predates the move,
+      // which is the whole reason the key survives at all.
+      { view: 'map', views: ['map', 'routes'],
+        icon: 'ph-compass',      label: 'Map',      go: () => this.goMap() },
       // State: what the estate keeps derived, and how old each piece is. A
       // standing entry rather than a conditional one (Proposals is the only
       // conditional): the answer to "is what I am looking at current" has to be
@@ -5912,12 +5975,13 @@ function app(){ return {
   // advances when an export lands in chat-histories. The pane states that
   // instead of offering a refresh that would do nothing.
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
-  // Activity's fifth pill: the app's own destinations, dated by the code behind
-  // them. It reads docs/app-routes.csv and one last-commit call per declared
-  // carrier against THIS repo, so it warms nothing shared: the other four panes
-  // are cross-repo and ride the estate's caches, while this one is a read of
-  // the hub's own history and is cheap enough to take live.
-  goRoutes(){ this.estateSeen = true; this.view = 'routes'; this.syncUrl(); },
+  // ?view=routes resolves to Map's Views tab, which is where the pane went on
+  // 2026-09-08. The key stays in VIEWS (the manifest gate holds the two to each
+  // other, and every saved ?view=routes link has to keep landing somewhere
+  // real); what it no longer is is a view of its own, so it forwards rather
+  // than stamping itself, and the next syncUrl writes the address the pane
+  // actually has now.
+  goRoutes(){ this.goMap('views'); },
   goLanding(){ this.view = 'landing'; this.syncUrl(); },
   goPages(){ this.view = 'pages'; this.syncUrl(); },
   goAtlas(){ this.atlasSeen = true; this.view = 'atlas'; this.syncUrl(); },
