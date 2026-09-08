@@ -617,3 +617,65 @@ reading, `--dated` catches one. The other, at `build-submittal.py:1616`, says
 date at all. An undated count is invisible to a dated report, and no instrument
 here reaches it. So the report narrows the class rather than closing it, and
 reading remains the only thing that found the header drift.
+
+
+---
+
+# The history the pilot moved out, 2026-09-08
+
+The rewrite of four files ([PR #625](https://github.com/mehrlander/web-tools/pull/625))
+removed 48 passages of history under the rule that a comment keeps its
+criterion and sends the date, the measurement and the incident here. This is
+where they went, filtered: a passage already held by a test or by another file
+is not repeated, because a second copy is the thing this whole pass is against.
+
+Dropped as already held, with what holds them: the 867px-track-in-a-430px-panel
+regression and the three-link width chain
+([`swipe-deck-width.test.mjs`](../tools/test/swipe-deck-width.test.mjs)); the
+44px phone floor and `size:'tight'`
+([`deck-entry-parity.test.mjs`](../tools/test/deck-entry-parity.test.mjs));
+`--deck-head` and `--deck-side` (`app/index.html` sets them); the charset and
+inline-deps findings (`toss-charset.mjs`, `toss-inline-deps.test.mjs`); the
+slide-retention DOM counts (`swipe-deck-stack.test.mjs` and
+[`branch-overlay.md`](branch-overlay.md)); the menu placement measurement, which
+is now restored to the code as a criterion rather than moved.
+
+**What a constant was measured against.** `DIM_SATURATE` and `DIM_ALPHA` in
+`toss-render.html` were picked against real icons on a light and a dark tab
+strip; alpha near 0.55 reads well on light and goes muddy on dark, and full
+grayscale is unmistakable but discards the colour that makes an icon
+recognizable. `INK_TIE` in the sibling budget-drs work came from the atlas's
+rounder 0.3, which put white on this palette's blue and red where black carries
+about 60 percent more contrast. `GZ_MAX` is 24k of base64 against Safari's
+roughly 80k URL ceiling, and a 7 KB HTML paste encodes to about 2 KB.
+
+**What was tried and rejected.** The deck's desktop panel was a centred card
+(`max-w-4xl my-4 rounded-3xl`, border and shadow) until 2026-08-18; over
+show-repo it floated across the sidebar, so chrome the reader still needed sat
+under a card they had to dismiss. Its overlay was measured the same day as
+computed `rgba(0,0,0,0)` with no background image, meaning every deck had been
+transparent since it was written. The header pill cost about 64px of a 390px
+row and truncated a filename to "flow-a...." beside a duplicate of the count
+the footer already showed. `stage.js`'s reader was a centred dialog over a
+scrim with hand-rolled touch and arrow keys until 2026-08-18, and sixty lines
+of pointer handling went with it.
+
+**Where a fix looked correct for a long time.** The deck's grid rows were
+auto-placed rather than named, which is invisible while a slide's content is
+taller than the panel and appeared only against the pdf module's continuous
+column on 2026-08-25: the track measured 111px inside an 843px panel while the
+footer took 667. Two branches each added a watcher named `paneWatch`; git
+merged them cleanly into two `const paneWatch` in one scope and the file did
+not parse, which is a clean textual merge producing a syntax error.
+
+**Where a default was wrong rather than missing.** `stage.js` read only tab as
+a delimiter until 2026-08-18, so a table pasted from Excel opened correctly and
+the same data as CSV arrived as a wall of text. Its `dataUri` read `IMAGE_MIME`
+until 2026-08-15, so a dropped PDF rendered as mojibake. Its offers bar listed
+only leftovers until 2026-08-28, which made it read as an ADD list rather than
+as what is available.
+
+**One thing that shipped and was withdrawn.** A links extractor lived in the
+stage for a day, first emitting `a[href]` as a two-column CSV and then as
+markdown, before being removed; its leftovers were a `-links.md` example in the
+peek path and a dead duplicate comment, both now gone.
