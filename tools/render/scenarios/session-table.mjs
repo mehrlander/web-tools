@@ -21,7 +21,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const privateRoot = path.resolve(here, '..', '..', '..', 'web-tools-private');
+// Four levels up, not three: this file sits at tools/render/scenarios, so
+// three lands on the repo root and the sibling checkout is one further out.
+const privateRoot = path.resolve(here, '..', '..', '..', '..', 'web-tools-private');
 
 const KEEP = ['id', 'day', 'started', 'ended', 'mins', 'ask', 'state', 'repos',
               'branches', 'exchanges', 'calls', 'failures', 'filesTotal', 'title', 'v'];
