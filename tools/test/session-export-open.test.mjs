@@ -410,7 +410,12 @@ test('the ask takes the blue, and nothing else on the row does', () => {
   // the page that is not a little blue. Reported twice on 2026-09-01. The
   // question it answered (which rows are in the excerpt) stopped being asked on
   // 2026-09-06, and this is what stops a fill returning to answer another one.
-  const painted = [...window.document.querySelectorAll('[class*="bg-"]')]
+  // Scoped to the ROWS, which is what the claim is about. It swept the whole
+  // document until the timeline rail landed above the list on 2026-09-08, and
+  // the rail's position marker is a bg-primary by design: a mark that says
+  // which card the reader is standing on is exactly the one accent the list
+  // itself must not spend.
+  const painted = [...window.document.querySelectorAll('.mb-0\\.5.py-1.pl-3 [class*="bg-"]')]
     .filter(el => /\bbg-(primary|base-(200|300))\b|\bbg-\w+\/\d/.test(el.className));
   assert.deepEqual(painted.map(el => el.className), [], 'no row carries a fill but the ask');
 });
@@ -917,4 +922,87 @@ test('the scope stays lit while the panel is open, and is handed back after', ()
   assert.equal(rule.style.opacity, '1', 'and the open panel holds it');
   trig(1).click();
   assert.equal(rule.style.opacity, '', 'handed back on close, so :hover governs again');
+});
+
+
+// ── The timeline rail ───────────────────────────────────────────────────────
+// Asked for on 2026-09-08: the estate's transcript card has one and this list,
+// which reads as its bigger sibling, did not. It is the same rail, over cards
+// rather than turns.
+//
+// jsdom has no layout, so getBoundingClientRect is all zeros: what is testable
+// here is the PLACEMENT (a tick per card, positioned by its lead's instant
+// across the record's span) and the two absences. Where the reader is standing
+// needs a browser and is shot rather than asserted.
+
+const railOf = () => window.document.querySelector('.sticky.top-\\[var\\(--chrome-h\\,0px\\)\\]');
+const tickPcts = () => [...railOf().querySelectorAll('.h-2')]
+  .map(t => +parseFloat(t.style.left).toFixed(2));
+
+test('one tick a card, placed by when it happened rather than evenly', () => {
+  // Two cards, at 10:00 and 10:30, in a session running 10:00 to 11:00. Placed
+  // by time they land at 0 and 50; spaced evenly they would land at 0 and 100,
+  // which is the whole difference the rail exists to draw.
+  build();
+  assert.deepEqual(tickPcts(), [0, 50]);
+});
+
+test('the labels are the record span, not the first card to the last', () => {
+  // The last card's lead is said before the session's final write, so a rail
+  // ending there would draw the tail as though nothing happened in it.
+  build();
+  const rail = railOf();
+  assert.equal(rail.firstElementChild.textContent, new Date(RECORD.started)
+    .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  assert.equal(rail.lastElementChild.textContent, new Date(RECORD.ended)
+    .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+});
+
+test('a session with one card draws no rail, since a rail of one says nothing', () => {
+  buildWith(MD_RECORD);
+  assert.ok(railOf().classList.contains('hidden'), 'built but not shown');
+  assert.equal(tickPcts().length, 0, 'and no ticks under it');
+});
+
+test('with no instants the ticks space evenly and the rail claims no times', () => {
+  // The schema-3 shape, and any record whose prompts carry no `at`. Even
+  // spacing claims nothing about time, which is honest; a clock label over it
+  // would not be.
+  const undated = {
+    ...RECORD, started: '', ended: '',
+    prompts: RECORD.prompts.map(p => ({ ...p, at: '' })),
+    replies: RECORD.replies.map(r => ({ ...r, at: '' })),
+    calls: [],
+  };
+  buildWith(undated);
+  assert.deepEqual(tickPcts(), [0, 100], 'evenly, end to end');
+  assert.equal(railOf().firstElementChild.textContent, '', 'and no start label');
+  assert.equal(railOf().lastElementChild.textContent, '', 'and no end label');
+});
+
+test('the cards clear the sticky chrome when the rail scrolls to one', () => {
+  // scrollIntoView puts a box at the top of its scroller, and the top of the
+  // scroller is under the rail and, in document flow, under the host's chrome
+  // too. Without the margin a tapped card arrives behind both.
+  build();
+  assert.match(boxOf(1).className, /scroll-mt-\[calc\(var\(--chrome-h,0px\)\+2rem\)\]/);
+});
+
+test('index hands back the one listener that does not die with its element', () => {
+  // The rail reads scroll off the window in capture, because a scroll event
+  // does not bubble and a listener on the element would see the inner scroller
+  // and never the page. Everything else this kit binds is hung on the tree.
+  const added = [], removed = [];
+  const addWas = window.addEventListener, remWas = window.removeEventListener;
+  window.addEventListener = function (t, f, c) { added.push(t); return addWas.call(this, t, f, c); };
+  window.removeEventListener = function (t, f, c) { removed.push(t); return remWas.call(this, t, f, c); };
+  try {
+    const view = build();
+    assert.ok(added.includes('scroll'), 'registered on build');
+    assert.equal(typeof view.destroy, 'function', 'and handed back for the host to release');
+    view.destroy();
+    assert.ok(removed.includes('scroll'), 'released on destroy');
+  } finally {
+    window.addEventListener = addWas; window.removeEventListener = remWas;
+  }
 });
