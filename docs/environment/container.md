@@ -77,15 +77,29 @@ material. It holds what the setup script installed, which is why a plugin can be
 days stale while the account's skills are current, and it is the subject of the
 section above.
 
-**What is still unmeasured:** the reclaim boundary itself. The
-[documentation](https://code.claude.com/docs/en/claude-code-on-the-web#environment-expired)
-says an expired environment is reclaimed and reopening "provisions a fresh
-environment and restores the conversation history," which reads as though the
-files would go. Nothing observed here contradicts it; the two probes simply did
-not sit idle long enough to cross whatever line it describes. So the honest
-statement is a floor, not a rule: **at least two days of idleness is survivable,
-and where the ceiling sits is not known.** Do not tell a reader their fan-out is
-unrecoverable without asking the session, which costs one wake and one `ls`.
+**The reclaim boundary, bracketed rather than pinned.** A third probe, on a
+session woken after **25 days**, came back with `vm uptime: 2 min` and a session
+directory holding only `ccr-tip.json` and `tool-results/`: no `subagents/` at
+all. That is the
+[documented](https://code.claude.com/docs/en/claude-code-on-the-web#environment-expired)
+behaviour, an expired environment reclaimed and a fresh one provisioned. A
+fourth, at 62 hours, still had every agent transcript. So the boundary sits
+**somewhere between three days and three weeks**, and narrowing it further is
+not worth the wakes: the operating rule does not change with the number. Do not
+tell a reader their fan-out is unrecoverable without asking the session, which
+costs one wake and one `ls`.
+
+**A woken session may return only part of its own transcript, and that is the
+sharper hazard.** The 25-day probe came back with 14.5 MB and 13 prompts against
+the 29.1 MB and 76 prompts its published record held, reporting a start two days
+later than the session's own. So a resume restores *some* conversation history,
+not necessarily all of it, and anything derived from the transcript is derived
+from whatever came back. In the session store that nearly overwrote a
+1,010-call record carrying 124 dispatches with a 189-call record carrying none;
+the guards are `record_path()` and `merge_captured()` in
+`web-tools-private sessions/tools/record.py`, and the measurement is in that
+store's README. Anything else that rebuilds state from a transcript inherits
+the same exposure.
 
 Two commands freshen a running container:
 
