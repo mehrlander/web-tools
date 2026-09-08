@@ -64,10 +64,17 @@ test('a page file resolves to the toss, since ?use= never swaps a page shell', (
   const d = run('pages/session.html');
   assert.equal(d.mechanism, 'toss-gh');
   const [l] = d.links;
-  // ?use= in the QUERY as well, so the renderer around the page matches the ref
-  // the page is fetched at; #gh= alone leaves main's shell holding it.
-  assert.match(l.url, /toss-render\.html\?use=/);
-  assert.match(l.url, /#gh=mehrlander\/web-tools@0{40}:pages\/session\.html$/);
+  // AND NO ?use= ON THE SHELL. It was there on the reasoning that the renderer
+  // should match the ref the page is fetched at, which the @ref in the fragment
+  // already achieves: toss-render injects use=<ref> into the framed page. What
+  // the shell pin added was the 4.5 MB dist/web-tools.js pre-build loaded into
+  // a document that is also hosting a frame, and on an iPhone that combination
+  // kills the web process every time. Measured by matrix on the device
+  // 2026-09-08: pinned shell plus frame dies whatever the frame holds, the same
+  // pin with no frame survives, and a frame under an unpinned shell survives
+  // with the subject still pinned to the branch.
+  assert.doesNotMatch(l.url, /toss-render\.html\?use=/);
+  assert.match(l.url, /toss-render\.html#gh=mehrlander\/web-tools@0{40}:pages\/session\.html$/);
 });
 
 test('the renderer previews by nesting rather than by rendering itself', () => {

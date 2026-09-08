@@ -352,7 +352,24 @@ def address(mech, page, sha, slug, view=None):
         q = f"?use={sha}" + (f"&view={view}" if view else "")
         return base + pretty + q
     if mech == "toss-gh":
-        return f"{base}pages/toss-render.html?use={sha}#gh={slug}@{sha}:{page}"
+        # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
+        # crashes Safari's web process on an iPhone, every time, which is what
+        # made every render link handed over on 2026-09-07/08 unusable.
+        #
+        # It is redundant to begin with. The `@{sha}` in the fragment already
+        # pins the SUBJECT: toss-render injects use=<ref> into the framed page,
+        # so the tossed page gets the branch's lib either way. The ?use= only
+        # pins the SHELL, and what that buys is the shell loading the 4.5 MB
+        # dist/web-tools.js pre-build instead of the handful of modules it
+        # actually needs, in a document that is also hosting an iframe with its
+        # own copy of the library.
+        #
+        # Measured on the device by matrix: shell pinned plus a frame dies
+        # whatever the frame contains, including a twenty-line page that loads
+        # nothing; the same pin with no frame survives; a frame with the shell
+        # unpinned survives even with the subject pinned to the branch. Only
+        # the intersection fails.
+        return f"{base}pages/toss-render.html#gh={slug}@{sha}:{page}"
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
