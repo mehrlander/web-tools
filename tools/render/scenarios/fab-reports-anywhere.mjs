@@ -25,9 +25,12 @@ export default async function (page) {
       if (window.PageReport) window.PageReport.send = async (extra) => { seen.push(extra); return { ok: true, path: 'stub.json' }; };
       return ok;
     };
-    // A tap that died mid-toggle, on a page that knows nothing about crumbs.
+    // A tap that died mid-toggle, stamped where it happened. The stamp is the
+    // point: a matrix is run link by link, so the page that FILES a trail is
+    // the next one opened, never the one that crashed.
     localStorage.setItem('fab:step', JSON.stringify({
       start: Date.now() - 900, at: Date.now(),
+      where: { case: 'THE-CELL-THAT-CRASHED', use: 'abc1234', url: 'https://x/y?case=THE-CELL-THAT-CRASHED' },
       steps: [{ stage: 'open', ms: 3 }, { stage: 'd:end', ms: 61 }],
     }));
     await d._reportUnfinished();
@@ -40,6 +43,10 @@ export default async function (page) {
   if (r.crumb.steps?.length !== 2) throw new Error('the steps did not ride');
   if (!('use' in r) || !('viaToss' in r) || !('case' in r))
     throw new Error('the delivery variables are not in the report, which is what the matrix reads');
+  if (r.case !== 'THE-CELL-THAT-CRASHED')
+    throw new Error(`the report wears the filing page's tag, not the crashing one's: ${r.case}`);
+  if (r.use !== 'abc1234')
+    throw new Error(`the ?use= came from the filing page, not the crashing one: ${r.use}`);
   if (sent.left) throw new Error('the crumb was reported and not cleared, so it will file forever');
 
   // A clean load files nothing at all.
