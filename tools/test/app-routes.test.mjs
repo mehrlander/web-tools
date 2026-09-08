@@ -123,13 +123,16 @@ test('the two sub-tab encodings, counted', () => {
   // its key is gone rather than re-encoded. 6 to 5 on 2026-08-27, when the
   // Stage's Saved pill went and `surfaces` became an alias rather than a key
   // of its own: an alias is not a sub-tab, since nothing addresses it.
-  // Still 5 after 2026-09-08, and the flatness of the number is the finding:
-  // Routes left Activity for a tab of the Map view and KEPT its key, so one
-  // flattened key moved from the Activity stop to the Map stop and the total
-  // did not move. This figure counts how many sub-tabs wear a top-level key,
-  // not where they hang, so a relocation is invisible to it by design. A
-  // promotion or a retirement is what moves it.
-  assert.equal(flattened, 5, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 5 to 6 on 2026-09-08, and only one of that day's two changes moved it.
+  // Activity gained Writes, which reads the commit stream for who wrote it
+  // rather than what changed: that is the +1. Routes left Activity for a tab
+  // of the Map view the same day and KEPT its key, so one flattened key moved
+  // from the Activity stop to the Map stop and the total did not notice. This
+  // figure counts how many sub-tabs wear a top-level key, not where they hang,
+  // so a relocation is invisible to it by design; a promotion or a retirement
+  // is what moves it.
+  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity.

@@ -2447,8 +2447,10 @@ tracker follow-up.
 
 The stage's contract lives in its own reference now, [stage.md](stage.md):
 the bench, intake (the paste offer bar, the Add panes, manifest seeds), the
-walkable preview and its diff, the Out surface, and the `#stage=` link grammar
-with `&prompts=` and `&mode=`. What stays here is the boundary: the stage is
+walkable preview and its diff, the Out surface, and the `#stage=` link grammar,
+whose four parts are refs, content (`&gz=`, which carries pasted text in the link
+itself and is what a token-less review handoff rides), commentary (`&prompts=`)
+and intent (`&mode=`, `&cmp=`, `&view=`, `&dest=`). What stays here is the boundary: the stage is
 `store.stage`, one list of `{repo, ref, path}` refs (plus local items) sitting
 above any repo, which is why it is a nav stop of the estate rather than
 anything a repo owns.
@@ -2615,16 +2617,97 @@ never executed; a 404 means no config.
 (lazy-loaded on first send). Mechanics:
 
 - Destination spec: `owner/repo`, `owner/repo:dir`, or `owner/repo@ref:dir`.
-- Each file lands as **its own commit** through the Contents API; the payload
-  stays **base64 end to end**, so binaries copy as faithfully as text.
+- The whole deposit lands as **one commit** through the Git Data API (a blob per
+  file, one tree over the branch's current one, one commit, then the ref moves).
+  The payload stays **base64 end to end**, so binaries copy as faithfully as
+  text, and refs and pasted files ride the same commit. `gh.copyTo` is still
+  there and still writes one commit per file through the Contents API; nothing
+  in the app calls it now.
+- The commit message names the deposit and lists its paths, capped at twenty:
+  that list is what the per-file messages used to carry, and once a deposit is
+  one commit it is the only record of what was in it.
+- A source file that cannot be read is **reported and left out**, and the rest
+  still commit; when nothing reads, no commit is made. The tolerance is the one
+  `copyTo` always had. The atomic part is the write.
+- A branch that takes another commit while the blobs upload makes the ref move
+  fail rather than clobber it, and the tree is rebuilt on the new tip. Three
+  attempts, then the error stands.
 - **Two-tap confirm**: the first tap arms for 3 seconds, the second sends. A
   cross-repo write with the viewer's token stays a deliberate gesture.
 - Writes land on the destination's **default branch** unless an `@ref`/branch is
   given.
 - The Contents API caps a file at ~1 MB; a larger file **errors** rather than
-  writing an empty file at the destination.
+  writing an empty file at the destination. The cap is on the READ, so batching
+  the write does not lift it. Nor is a file's mode carried: the Contents API
+  never returned one, so everything lands `100644`.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
+
+## Writes: the estate's commit stream, read for who wrote it
+
+`?view=writes`, the sixth pill under Activity. Branches, Sessions and Chats all
+ask **who was working**, and every answer they can give is development. This
+pane asks the question none of them can: how much of what lands in these repos
+is development at all.
+
+The classifier is [`lib/kits/write-kinds.js`](../lib/kits/write-kinds.js), seven
+kinds over one split:
+
+| | kinds | signal |
+| --- | --- | --- |
+| **development history** | session, merge, CI, authored | the author the platform sets, or a merge subject |
+| **application state** | crawl, tap, device | a subject this estate writes on purpose |
+
+**The accent marks the split and nothing else.** Seven colours would mean none
+of them did, so kinds are told apart by icon and label and the primary colour
+says one thing: the app or the phone using a repo as its store.
+
+**`device` is the only kind that is a guess**, a heuristic over the subject
+prefixes Log-Repo has been observed to write, and the pane marks it with a `?`.
+Every other kind reads a signal a writer emits deliberately. `authored` is the
+residual and claims nothing: session work pushed from a local CLI is authored by
+the account and is indistinguishable from a person's own commit, so it is not
+guessed at.
+
+**It renders from the activity cache**, the same read the Branches pane already
+pays for, so the default costs no request. That cache keeps the newest thirty
+commits per repo, which is a month in a quiet repo and about three hours in the
+registry, where the session recorder commits on every Stop. So the pane states
+the window its rows actually cover, and one control reads a hundred commits per
+repo when that window is too short, which it is wherever the app writes most.
+
+## What the app's own commits say, and why
+
+Every write the app makes is a real commit on a real branch, made with the
+viewer's token, so it lands in `git log` beside development history and is
+indistinguishable from it by author. **Three writers share the same GitHub
+identity in the registry repo**: this app, the phone (through `Log-Repo` in
+`mehrlander/shortcut-tools`, which is where `page report:`, `probe-unattended:`
+and `manifest:` come from), and a pull-request merge. Only a Claude session
+stands apart, authored as `Claude <noreply@anthropic.com>` and carrying its own
+trailers. So the subject line is the only thing that says who wrote a commit,
+and that makes its shape a contract rather than a courtesy.
+
+**`via Web Tools` marks a write a person made by tapping in this app.** It is
+on the twenty-one sites a person reaches: a jot, a to-do, a pin, a
+`.web-tools.json` save, an estate join or set-aside, a proposal applied or
+retired, a mailbox request fulfilled, a stage deposit.
+
+**The crawl's writes carry no trailer**, and the absence is the signal. The four
+cache refreshes (`state/configs.json`, `state/activity.json`,
+`state/sessions.json`, `state/calls.json`) run on a tab-arrival kick as well as
+on the Refresh button, so nobody deliberately made them. Their subjects already
+name a derived file, which is all a reader needs.
+
+That split was measured on 2026-09-08 and it is lopsided: of 584 stamped
+commits in the registry repo, 563 were the crawl and about twenty were a
+person. Claiming a person acted on all of them made the twenty unfindable,
+which is the whole cost of a trailer that means nothing.
+
+**A commit here is application state, not development history.** It has no
+branch, no pull request and no review, and it is not a step toward a release; it
+is the app using a repo as its store. Both halves are real GitHub commits, so
+nothing separates them but this convention.
 
 ## Boundary: show-repo vs toss-render vs artifacts
 
@@ -2641,25 +2724,11 @@ Three cross-repo live-view channels, one job each:
 - **review** (`pages/review.html`, marked 🔍) *reads* a changeset: one card per
   changed file with a CM6 diff against the base, patch text, and the caption's
   `[new]/[main]/[diff]` links. Address grammar `#gh=owner/repo[@ref][:path][&base=…]`
-  (the toss `#gh=` address plus a base); token-gated the same way. Folding its
-  per-file dossier (`lib/alpineComponents/file-review.js`) into this shell as a
-  view is on the roadmap below.
-
-## Roadmap (not built)
-
-- A content-carrying `#gz=`-style stage bundle for token-less contexts.
-- A review view: mount `fileReview` cards (pages/review.html's dossier) over
-  the stage's Compare result, so a ref-diff reads in place instead of only
-  listing files.
-- Batch-as-one-commit transfer (needs the Git Data API; Contents-API
-  per-file commits are the current scope).
-
-Private-repo landing presence used to sit on this list as *federation*: a
-curated `landing.json` in `mehrlander/home`, read through a single `HOME_REPO`
-hinge. It is off the list because it shipped in the per-repo form described
-above: a repo opts itself in through its own `.web-tools.json` (`estate`, plus `pages`
-and `appView` for what it publishes), the config cache aggregates the opt-ins, and
-the registry repo is the only private name this public page carries.
+  (the toss `#gh=` address plus a base); token-gated the same way. Its per-file
+  dossier (`lib/alpineComponents/file-review.js`) is already in this shell: the
+  branch view mounts `branchBrief`, which builds the same `fileReview` cards and
+  drills into them through `kits/file-deck.js`. So `review.html` is the
+  standalone ADDRESS for a changeset rather than a capability the app lacks.
 
 ## Using it from a Claude session
 

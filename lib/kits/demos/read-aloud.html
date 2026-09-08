@@ -150,7 +150,7 @@ p.load(items);
       </select>
       <span class="text-[13px] font-mono text-base-content/50"><span x-text="pieces.length">0</span> pieces</span>
     </div>
-    <ol class="border border-base-300 rounded divide-y divide-base-300">
+    <ol class="border border-base-300 rounded divide-y divide-[var(--color-base-300)]">
       <template x-for="(c, i) in pieces" :key="i">
         <li class="flex gap-3 px-3 py-1.5">
           <span class="font-mono text-[11px] text-base-content/40 w-6 shrink-0 pt-1" x-text="i + 1"></span>

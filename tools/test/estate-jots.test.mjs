@@ -100,7 +100,7 @@ test('addJot appends {id, text, created_at}, clears the draft, and saves with th
   assert.equal(SAVES.length, 1);
   assert.equal(SAVES[0].repo, REGISTRY);
   assert.equal(SAVES[0].path, 'lists/jots.json');             // authored content lives under lists/
-  assert.match(SAVES[0].message, /Jot "try the lightbulb icon" via show-repo/);
+  assert.match(SAVES[0].message, /Jot "try the lightbulb icon" via Web Tools/);
   assert.deepEqual(SAVES[0].value.items, data.jotItems);
 });
 
@@ -111,7 +111,7 @@ test('a long jot is clipped in the commit message, intact in the item', async ()
   await data.addJot();
   const saved = SAVES[0];
   assert.equal(saved.value.items.at(-1).text, long);          // full text stored
-  assert.match(saved.message, /^Jot "x{59}…" via show-repo$/); // subject clipped
+  assert.match(saved.message, /^Jot "x{59}…" via Web Tools$/); // subject clipped
 });
 
 test('jotPile orders newest first regardless of stored order', () => {
@@ -132,7 +132,7 @@ test('deleteJot removes the item and saves the remainder', async () => {
   await data.deleteJot(data.jotItems[1]);
   assert.deepEqual([...data.jotItems.map(i => i.id)], [a.id, b.id]);
   assert.equal(SAVES[0].path, 'lists/jots.json');
-  assert.match(SAVES[0].message, /^Delete jot "new" via show-repo$/);
+  assert.match(SAVES[0].message, /^Delete jot "new" via Web Tools$/);
 });
 
 test('the to-do list also lives under lists/ (moved out of state/)', async () => {
@@ -211,11 +211,11 @@ test('toggleUrgent sets the flag, and clearing it removes the key', async () => 
   await data.toggleUrgent(it);
   assert.equal(it.urgent, true);
   assert.equal(SAVES.at(-1).value.items[0].urgent, true);
-  assert.match(SAVES.at(-1).message, /^Flag "Internal allotment by August 15" urgent via show-repo$/);
+  assert.match(SAVES.at(-1).message, /^Flag "Internal allotment by August 15" urgent via Web Tools$/);
 
   await data.toggleUrgent(it);
   assert.equal('urgent' in it, false, 'cleared means absent, not false');
-  assert.match(SAVES.at(-1).message, /^Clear urgent on "Internal allotment by August 15" via show-repo$/);
+  assert.match(SAVES.at(-1).message, /^Clear urgent on "Internal allotment by August 15" via Web Tools$/);
 });
 
 test('urgent items sort above the rest, keeping file order within each band', () => {
@@ -283,7 +283,7 @@ test('setDue stores a plain date, and anything else clears it', async () => {
 
   await data.setDue(it, '2026-08-15');
   assert.equal(it.due, '2026-08-15');
-  assert.match(SAVES.at(-1).message, /^Set "Internal allotment" due 2026-08-15 via show-repo$/);
+  assert.match(SAVES.at(-1).message, /^Set "Internal allotment" due 2026-08-15 via Web Tools$/);
 
   const before = SAVES.length;
   await data.setDue(it, '2026-08-15');
@@ -291,7 +291,7 @@ test('setDue stores a plain date, and anything else clears it', async () => {
 
   await data.setDue(it, '');                       // the picker's own clear control
   assert.equal('due' in it, false, 'cleared means absent, not empty');
-  assert.match(SAVES.at(-1).message, /^Clear due date on "Internal allotment" via show-repo$/);
+  assert.match(SAVES.at(-1).message, /^Clear due date on "Internal allotment" via Web Tools$/);
 
   await data.setDue(it, '2026-8-1');               // half-typed: not a stored value
   assert.equal('due' in it, false);
@@ -310,7 +310,7 @@ test('a long to-do is clipped in the urgent commit message', async () => {
   SAVES = [];
   data.todoItems = [{ id: 't1', text: 'y'.repeat(100), done: false }];
   await data.toggleUrgent(data.todoItems[0]);
-  assert.match(SAVES.at(-1).message, /^Flag "y{59}…" urgent via show-repo$/);
+  assert.match(SAVES.at(-1).message, /^Flag "y{59}…" urgent via Web Tools$/);
 });
 
 // The pane must not be the only thing that can write this field: the file is

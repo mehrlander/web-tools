@@ -89,7 +89,6 @@ const SESSIONS = [
       ['u', 'Good. Please proceed with the Map view tab.', '15:20:03'],
       ['a', 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it.', '15:44:29', 891],
     ],
-    turnsCut: 'cut',
     askAt: '13:51:08',
     replyAt: '16:49:16',
     // The closing state, and it deliberately DISAGREES with the rail above it:
@@ -474,7 +473,7 @@ export default async function (page) {
     await page.evaluate(() => {
       const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
       st.sessionRows_ = st.sessionRows_.map((r, i) =>
-        (i ? r : { ...r, reply: '', replyCut: '', turns: [], turnsCut: '', replyAt: '' }));
+        (i ? r : { ...r, reply: '', replyCut: '', turns: [], replyAt: '' }));
     });
     await page.waitForTimeout(200);
   }
@@ -556,9 +555,14 @@ export default async function (page) {
     }, { card, sel, at: +(process.env.ROW || 0) });
     await page.waitForTimeout(400);
     // CARDTOP=1 scrolls the reply card back to its first entry. The card opens
-    // at the BOTTOM, on the closing reply, so the head of the scroll back and
-    // the truncation note are otherwise unshootable.
+    // at the BOTTOM, on the closing reply, so the head of the transcript and
+    // any note above it are otherwise unshootable. The extra wait is not
+    // padding: settlePin forces the bottom for six frames after every mount and
+    // LIVE=1 mounts twice, once on the ask and again when the record lands, so
+    // a scroll issued too early is put back before the shot. A programmatic
+    // write is not a gesture and so does not cancel the settle.
     if (process.env.CARDTOP) {
+      await page.waitForTimeout(400);
       await page.evaluate(() => {
         const el = [...document.querySelectorAll('div.fixed.overflow-y-auto')]
           .find(d => d.scrollHeight > d.clientHeight);
