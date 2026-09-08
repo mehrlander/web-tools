@@ -865,6 +865,59 @@ test('a second expand rebuilds the reader rather than standing a second one besi
   A.disable();
 });
 
+// ── Naming a target ─────────────────────────────────────────────────────────
+// The label was five branches written twice, once for the note list at 70
+// characters and once for the composer's caption at 60, and the two had already
+// drifted: only one guarded a note with no quote, and only one marked a page
+// note with its glyph. One function serves both surfaces now. These are the
+// gate on that: a later reader adding a sixth kind of target has one place to
+// add it, and this fails if the two surfaces are ever forked again.
+test('one function names a target, and both surfaces say the same words', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  const long = 'A passage long enough that the two lengths cut it in different places, which is the only way they differ.';
+  const t = { type: 'text', quote: { exact: long } };
+  assert.equal(A._describe(t, 70).length, 72, 'the quotes are outside the trim');
+  assert.equal(A._describe(t, 60).length, 62);
+  assert.ok(A._describe(t, 70).startsWith('“') && A._describe(t, 70).endsWith('”'));
+
+  // Every kind is named, and a page note is marked the same way wherever it is
+  // named: it was ▤ in the list and bare in the caption, one target reading two
+  // ways depending on which surface was speaking.
+  assert.equal(A._describe({ type: 'page' }), '▤ this page');
+  assert.equal(A._describe({ type: 'section', title: 'Mechanism' }), '§ Mechanism');
+  assert.equal(A._describe({ type: 'element', selector: 'main > p:nth-child(2)' }),
+    '⌖ main > p:nth-child(2)');
+  assert.equal(A._describe({ type: 'region', excerpt: 'the header row' }), '▭ the header row');
+  // A note with no quote is named rather than throwing, which only one of the
+  // two implementations used to manage.
+  assert.equal(A._describe({ type: 'text' }), '“”');
+  assert.equal(A._describe(null), '');
+
+  // The two surfaces, on one note: the list row and the composer's caption.
+  const it = A.add({ type: 'page' }, 'the words');
+  assert.match(S.listEl.firstChild.textContent, /▤ this page/);
+  A.editNote(it.id);
+  assert.equal(S.compCap.textContent, 'Editing: ▤ this page');
+  A.disable();
+});
+
+test('the markdown head is a different register, not a third length', () => {
+  // It is a heading in a document a model will read: straight quotes, no
+  // glyphs, the selector spelled out. Pinned so nobody folds it into describe
+  // on the reasonable-looking theory that it is the same string.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.add({ type: 'page' }, 'about the page');
+  A.add({ type: 'element', selector: 'main > p', excerpt: 'some words' }, 'about an element');
+  const md = A.toMarkdown();
+  assert.match(md, /## 1\. the page/, 'the page, not this page, and no glyph');
+  assert.match(md, /## 2\. element main > p/, 'the selector, where the UI shows an excerpt');
+  assert.ok(!/▤|⌖/.test(md), 'and no glyphs anywhere in it');
+  A.disable();
+});
+
 // ── Re-aiming ───────────────────────────────────────────────────────────────
 // A note's aim was fixed at the moment it was created: every way of aiming
 // cancelled the draft first, so tapping an aim while editing discarded the edit
