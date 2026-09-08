@@ -726,6 +726,38 @@ test('with no host to dock it, the kit frames the reader and gives the width bac
   A.disable();
 });
 
+test('a reader that covers the page puts the card away, and gives it back', async () => {
+  // Docked, the card keeps its corner: that is what docking is for. On a host
+  // that answers 'inset' or 'full' the reader has the content area, and a card
+  // floating above it sits on the far end's own words.
+  handoffKits();
+  widthAt(1280);
+  window.__deckPane = () => {};                      // a host owns the pane
+  doc.documentElement.dataset.deckPane = 'full';
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  A._state.dict.text = 'covered, not lost';
+  await A.goDictate(A._state.outBtn);
+  await settle();
+  assert.equal(A._state.panel.style.display, 'none', 'the card is out of the way');
+  A._closeDock();
+  await settle();
+  assert.equal(A._state.panel.style.display, 'flex', 'and back when the reader goes');
+  assert.equal(A.enabled, true, 'with the annotator still on, notes and all');
+
+  // Docked, it stays: the page, the card and the notes are all still there.
+  doc.documentElement.dataset.deckPane = 'dock';
+  await A._dockDictate();
+  await settle();
+  assert.equal(A._state.panel.style.display, 'flex');
+  A._closeDock();
+  await settle();
+  delete doc.documentElement.dataset.deckPane;
+  delete window.__deckPane;
+  A.disable();
+});
+
 test('where a launcher floats at the bottom, the reader stops short of it', async () => {
   // The fab paints above everything on purpose, so a reader reaching the
   // bottom edge wears it over its own controls: at 1280x800 it covered the far
