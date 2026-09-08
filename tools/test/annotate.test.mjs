@@ -587,6 +587,109 @@ test('noteSelection takes a range handed in when nothing is staged', () => {
   A.disable();
 });
 
+// ── The expand's two rooms ──────────────────────────────────────────────────
+// The expand used to do one thing, navigate, which on a wide screen threw away
+// the page being annotated to show a draft that fits in a card. Past DOCK_MIN
+// the far end opens beside the page instead. The decision is a width, so these
+// drive innerWidth directly: jsdom has no layout to read one from.
+const widthAt = (px) => Object.defineProperty(window, 'innerWidth',
+  { value: px, configurable: true, writable: true });
+// A kit's bare identifiers resolve in the Node realm (bootstrap.mjs), and Node
+// ships no localStorage there, so the handoff would report that it did not fit
+// on a store that simply is not present. jsdom has a real one; point the realm
+// at it, the way these tests already do for DOMParser.
+globalThis.localStorage ??= window.localStorage;
+const handoffKits = () => {
+  window.SpeechRecognition = FakeSR;
+  loadKit('dictate.js', { window });
+  loadKit('dictate-handoff.js', { window });
+};
+
+test('with room beside the page, the expand docks the far end instead of leaving', async () => {
+  handoffKits();
+  widthAt(1280);
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  S.dict.text = 'a thought worth a bigger room';
+
+  await A.goDictate(S.outBtn);
+  const panel = doc.querySelector('[data-annotate-dock]');
+  assert.ok(panel, 'a panel stands beside the page');
+  assert.equal(panel.style.position, 'fixed');
+  assert.equal(panel.style.right, '12px', 'inset from the right edge, like the card');
+  // The launcher owns the bottom-right corner and paints above everything, so
+  // a panel reaching the bottom edge would wear it over its own controls.
+  assert.equal(panel.style.bottom, '88px', 'and stopping clear of the fab launcher');
+  const frame = panel.querySelector('iframe');
+  assert.ok(frame, 'carrying the dictation page itself, not a second copy of it');
+  assert.match(frame.src, /pages\/dictate\.html/);
+  // A page whose job is hearing you fails silently in a frame without this.
+  assert.match(frame.getAttribute('allow'), /microphone/);
+  // And the words were handed over, which is the same carry the navigation makes.
+  const raw = window.localStorage.getItem(window.dictateHandoff.KEY);
+  assert.ok(raw && JSON.parse(raw).text.includes('a bigger room'));
+  A.disable();
+  assert.equal(doc.querySelector('[data-annotate-dock]'), null,
+    'and turning the annotator off takes the panel with it');
+});
+
+test('the card lets go of the draft once the far end has taken it, and not before', async () => {
+  handoffKits();
+  widthAt(1280);
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  S.dict.text = 'the words that are moving';
+  await A.goDictate(S.outBtn);
+
+  // Still here while the handoff is still sitting unread: a carry that never
+  // lands must not empty the room it left.
+  await new Promise(r => setTimeout(r, 400));
+  assert.ok(S.draft, 'the draft stands while the key is unread');
+  assert.equal(S.dict.text, 'the words that are moving');
+
+  // The far end boots and takes it, which is the only signal that means the
+  // words are safe to drop here.
+  window.dictateHandoff.take();
+  for (let i = 0; i < 30 && S.draft; i++) await new Promise(r => setTimeout(r, 60));
+  assert.equal(S.draft, null, 'and then this composer closes');
+  assert.equal(S.dict.text, '', 'so one room holds the words, not two');
+  A.disable();
+});
+
+test('a phone still leaves for the page, since a strip beside a panel is not a page', async () => {
+  handoffKits();
+  widthAt(390);
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  S.dict.text = 'spoken on a phone';
+  assert.equal(A._dockDictate(), false, 'no room, so no dock');
+  assert.equal(doc.querySelector('[data-annotate-dock]'), null);
+  A.disable();
+  widthAt(1024);
+});
+
+test('a second expand rebuilds the panel rather than standing a second one beside it', () => {
+  widthAt(1280);
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+  assert.equal(A._dockDictate(), true);
+  const first = S.dockFrame;
+  // The far end takes its handoff at boot and only at boot, so a panel already
+  // standing would never see a second draft. A fresh frame does.
+  assert.equal(A._dockDictate(), true);
+  assert.equal(doc.querySelectorAll('[data-annotate-dock]').length, 1, 'one panel, always');
+  assert.notEqual(S.dockFrame, first, 'and it is a new load, not the old one re-pointed');
+  A._closeDock();
+  assert.equal(doc.querySelector('[data-annotate-dock]'), null);
+  A.disable();
+});
+
 test('an icon key paints its glyph, which the swap alone could not', () => {
   // The pad's keys are plain buttons, so setIcon had no `_icon` to reach and
   // the one glyph face in the set, `¶`, rendered EMPTY. Found 2026-08-15 while
