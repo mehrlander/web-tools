@@ -440,7 +440,10 @@
   // strip where a corner badge is five pixels of mush; desaturating and fading
   // keeps the silhouette, which is the channel that survives. Most of the
   // signal is cheaper to buy in saturation than in alpha, hence the split
-  // between the two constants below.
+  // between the two constants below. Picked against real icons on BOTH a light
+  // and a dark tab strip: fading harder (alpha ~0.55) reads well on light and
+  // goes muddy on dark, and full grayscale (saturate 0) is unmistakable but
+  // throws away the colour that makes an icon recognizable at a glance.
   //
   // On caching: Chrome keys the favicon cache by ICON url, and a data URI is
   // its own content, so every subject gets its own entry and none can go
@@ -1244,6 +1247,9 @@ document.addEventListener('click',function(e){
   }
 
   // --- input panel wiring ---
+  //
+  // A BUTTON on the Clipboard API, not a paste target: it works from one tap on
+  // iOS, and the page never has to reveal the text to read it.
   //
   // read() before readText(), because readText() cannot see a screenshot: it
   // returns '' for an image-only clipboard, which read as "empty" and was the

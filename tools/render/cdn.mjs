@@ -12,7 +12,9 @@
 //      too: no token, no network, and uncommitted edits render. ANOTHER repo's
 //      contents are answered from its checkout beside this one where there is
 //      one, and otherwise miss rather than reaching the network (see the
-//      sibling branch). Identity endpoints (/user, /user/repos) are NOT
+//      sibling branch). CONTENTS ONLY: another repo's metadata and git/trees
+//      match no branch here, so they still pass through and fail in the
+//      sandbox. Identity endpoints (/user, /user/repos) are NOT
 //      impersonated, since "who am I" has no local answer; pages must keep
 //      first paint off them (see testing.md).
 //   3. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
