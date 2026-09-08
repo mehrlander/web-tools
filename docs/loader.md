@@ -8,18 +8,20 @@ in `lib/`, reload, and the next run uses it.
 
 The repo has two tiers of pages:
 
-- **Simple pages** (`pages/index.html`, `pages/stories/bookmarklets-story.html`,
-  `show-repo/repo-drag.html`, `transform.html`) — each is
-  self-contained: CDN Tailwind + Phosphor + Alpine (via `<script defer>`),
-  then an inline `<script>` with the page's Alpine components (or, as
-  `transform.html` does, one plain `<script src>` pulling a self-contained
-  component file from `lib/`). They don't use the loader at all.
-- **Loader-based pages** (`app/index.html`,
-  `show-repo/demo-viewer.html`, `scratch/demo-spacex.html`,
-  `lib/kits/demos/{persistence,messaging,io}.html`) —
-  use `gh-api.js` (whose bootstrap chains `gh-boot.js` and its auto-loads;
-  `gh-store.js` stays opt-in) + `alpine-bundle.js` to load reusable
-  components off the repo at runtime.
+- **Simple pages** are self-contained: CDN Tailwind, Phosphor and Alpine (via
+  `<script defer>`), then an inline `<script>` with the page's Alpine
+  components, or one plain `<script src>` pulling a self-contained component
+  file from `lib/`. They do not use the loader at all.
+  `pages/stories/bookmarklets-story.html` is one.
+- **Loader-based pages** use `gh-api.js` (whose bootstrap chains `gh-boot.js`
+  and its auto-loads; `gh-store.js` stays opt-in) plus `alpine-bundle.js` to
+  load reusable components off the repo at runtime.
+  `lib/kits/demos/{persistence,messaging,io}.html` are the small ones;
+  `pages/index.html` is loader-based too, and `app/index.html` is the large
+  one, though since 2026-09-02 it imports `dist/app.js` (its own pre-build)
+  rather than running the load chain. Which pages exist is
+  [`pages/pages.csv`](../pages/pages.csv)'s business, not this paragraph's:
+  the four named here before 2026-09-08 had two that no longer exist.
 
 This doc is about the second tier: the contract a file must honor to be
 loadable this way, the timing invariants the boot sequence depends on, and —
@@ -93,9 +95,9 @@ stays dormant and the page instantiates `GH` by hand.
 
 - `lib/gh-api.js` — ESM default export, `class GH`. Imported via
   `<script type="module">`, not `gh.load` (bootstrap: it *is* the loader).
-  Minimal cached root: provides `req / get / parseUrl / ago / load` and the
-  request/cache plumbing. Read methods (`ls / repos / history / …`) live in
-  `gh-fetch.js`; write methods live in `gh-store.js`; token resolution
+  Minimal cached root: provides `req / get / read / bytes / load` and the
+  request/cache plumbing. Read methods (`ls / repos / history / parseUrl / …`)
+  live in `gh-fetch.js`, which patches them onto `GH.prototype`; write methods live in `gh-store.js`; token resolution
   lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
   `GH.prototype` in place. **Auto-bootstrap:** when imported from a
   `cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/lib/gh-api.js` URL, the file parses
@@ -105,9 +107,14 @@ stays dormant and the page instantiates `GH` by hand.
   `?use=` from the page URL and embedding it in the bundle's import URL.
 - `gh-boot.js` — the startup list, kept out of `gh-api.js` so new entries
   don't require purging the loader from the jsDelivr cache. Loaded by the
-  auto-bootstrap; runs four auto-loads in order: `gh-auth.js`,
-  `gh-fetch.js`, `kits/console.js` (structured console retention; see
-  [kits/README.md](../lib/kits/README.md)), and `vanilla-bundle.js`. It
+  auto-bootstrap. Its `BOOT` manifest is the unconditional sequence, declared
+  as data so the cost of starting a page can be read without reading the boot
+  function; as of 2026-09-08 it runs eight, in this order: `vanilla-bundle.js`,
+  `gh-auth.js`, `gh-fetch.js`, `kits/repo-address.js`, `kits/source-peek.js`,
+  `kits/traffic.js`, `kits/claude-mark.js` and `kits/console.js` (structured
+  console retention; see [kits/README.md](../lib/kits/README.md)). Read `BOOT`
+  itself rather than this list, which is a copy. A separate `FAB_BOOT` carries
+  the conditional standing equipment. It
   also owns the boot's observability: it wraps `GH.prototype.load` so
   every load lands on `window.__loadedScripts` (path, timing, status,
   `by:` attribution; deduped by path; a still-pending row flips to a
@@ -174,7 +181,7 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `__traffic`, `__trafficTotals` (+ `traffic` event, coalesced to 250ms) | `gh-boot.js` | the request ledger: one row per `fetch`, with `method`, status, elapsed, and `wire` from `content-length` (`null` when the response declared none). `method` is what separates a write from a read, since `gh-store` PUTs to the same `contents/` endpoint `gh.load()` GETs from, and `via` is the repo path a `load()`/`read()` was fetching, which separates the loader pulling own code from a page reading a file over that same endpoint. The rows are capped at 400 and the totals are not, so a long crawl trims its history without deflating its count |
 | `__trafficRate`, `__trafficRateAt`, `__trafficRateReset` | `gh-boot.js` | newest `x-ratelimit-remaining` seen on any response, when it was seen, and when the window resets |
 | `__ghFiles` (+ `ghfiles` event) | `gh-boot.js` | per-path `{ bytes, inlined, sha }` from a `get()` wrapper. `inlined` is true when the pre-build served the file from its cache (sha `build:<ref>`), which is how the FAB's Scripts rows tell a load that cost nothing from one that cost a fetch |
-| `Traffic` | `traffic.js` | the pure read over the two above plus Resource Timing: classification, roll-ups, formatting, and the three-state size vocabulary (network / cached / undisclosed) |
+| `Traffic` | `kits/traffic.js` | the pure read over the two above plus Resource Timing: classification, roll-ups, formatting, and the three-state size vocabulary (network / cached / undisclosed) |
 | `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone` |
 | `console.history` / `.subscribe` / `.filter`, `consoleKit` | `kits/console.js` | structured console retention over the base wrapper |
 | `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
@@ -286,14 +293,16 @@ anything we add:
    `x-data` component. By that point `Alpine.store('browser')` is defined.
 4. **`x-init="init()"` on the body still races the module script.** That's
    why `app/index.html`'s `app.init()` opens with
-   `while(!window.GH) await new Promise(r => setTimeout(r, 50));`.
+   `const ready = await waitFor(() => window.GH);`, a bounded poll helper
+   defined in the same file (it replaced a bare `while` spin).
    Alpine can reach `init()` before the module script's final
    `gh.load(...)` resolves, because the two tasks (module script vs.
    Alpine boot) aren't coordinated.
 5. **Component-to-component handles rely on element back-pointers.**
-   `init() { this.$root.__viewer = this }` in `viewer.js`, and a caller does
-   `while(!el.__viewer) await new Promise(r => setTimeout(r, 50));` to wait for
-   it. This is the current idiom for "have I mounted yet?".
+   `init() { this.$root.__viewer = this }` in `viewer.js`, and a caller reaches
+   it as `el.__viewer?.show(...)`, after `$nextTick` where the element was just
+   rendered. The optional chain replaced the spin loop this section used to
+   show: a caller that arrives early now no-ops rather than blocking.
 6. **Token sentinel `🎟️GitHubToken`.** Both `gh-api.js` (in `headers`) and
    pages look for that exact string and replace it (or fall back to
    `localStorage.ghToken`). Anything we add that touches tokens must use
