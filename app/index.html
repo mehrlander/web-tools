@@ -135,6 +135,9 @@
   await gh.load('kits/branch-status.js');
   // Activity-aggregate builders for the private cache (state/activity.json).
   await gh.load('kits/repo-activity-cache.js');
+  // What wrote a commit, read off the commit (window.WriteKinds). Beside the
+  // activity cache because it classifies exactly what that cache stores.
+  await gh.load('kits/write-kinds.js');
   // Comma-separated parsing, shared. Loaded before the sessions cache, whose
   // title join reads the Dispatch export's CSV through it.
   await gh.load('kits/csv.js');
@@ -5137,6 +5140,7 @@ function app(){ return {
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
       } },
+    { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
     { key: 'routes',   open(){ this.goRoutes(); } },
     { key: 'map', alias: 'portable',
@@ -5498,7 +5502,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'routes', 'state'].includes(this.view); },
+  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'writes', 'chats', 'routes', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -5567,7 +5571,7 @@ function app(){ return {
       // ?view=activity still resolves to Branches, and the pill row still
       // leads with it, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'activity', 'chats', 'routes', 'state'],
+      { view: 'sessions', views: ['sessions', 'activity', 'writes', 'chats', 'routes', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       { view: 'todo', views: ['todo', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
@@ -5871,6 +5875,11 @@ function app(){ return {
   // What can be stale is the archive itself, which no crawl can fix: it
   // advances when an export lands in chat-histories. The pane states that
   // instead of offering a refresh that would do nothing.
+  // Writes: the estate's commit stream read for who wrote it. No refresh
+  // arm, unlike goActivity: the pane renders from the activity cache the
+  // Branches pane already keeps, and its own deeper read is a control on
+  // the pane rather than an arrival cost.
+  goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
   // Activity's fifth pill: the app's own destinations, dated by the code behind
   // them. It reads docs/app-routes.csv and one last-commit call per declared

@@ -2643,6 +2643,39 @@ never executed; a 404 means no config.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
 
+## Writes: the estate's commit stream, read for who wrote it
+
+`?view=writes`, the sixth pill under Activity. Branches, Sessions and Chats all
+ask **who was working**, and every answer they can give is development. This
+pane asks the question none of them can: how much of what lands in these repos
+is development at all.
+
+The classifier is [`lib/kits/write-kinds.js`](../lib/kits/write-kinds.js), seven
+kinds over one split:
+
+| | kinds | signal |
+| --- | --- | --- |
+| **development history** | session, merge, CI, authored | the author the platform sets, or a merge subject |
+| **application state** | crawl, tap, device | a subject this estate writes on purpose |
+
+**The accent marks the split and nothing else.** Seven colours would mean none
+of them did, so kinds are told apart by icon and label and the primary colour
+says one thing: the app or the phone using a repo as its store.
+
+**`device` is the only kind that is a guess**, a heuristic over the subject
+prefixes Log-Repo has been observed to write, and the pane marks it with a `?`.
+Every other kind reads a signal a writer emits deliberately. `authored` is the
+residual and claims nothing: session work pushed from a local CLI is authored by
+the account and is indistinguishable from a person's own commit, so it is not
+guessed at.
+
+**It renders from the activity cache**, the same read the Branches pane already
+pays for, so the default costs no request. That cache keeps the newest thirty
+commits per repo, which is a month in a quiet repo and about three hours in the
+registry, where the session recorder commits on every Stop. So the pane states
+the window its rows actually cover, and one control reads a hundred commits per
+repo when that window is too short, which it is wherever the app writes most.
+
 ## What the app's own commits say, and why
 
 Every write the app makes is a real commit on a real branch, made with the
