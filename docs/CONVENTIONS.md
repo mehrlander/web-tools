@@ -30,15 +30,7 @@ Qualify noun phrases to increase clarity, strengthen claims, highlight questions
 
 ## Status: frozen, stale, wrong
 
-Material preserved on purpose, or that has aged, says so where it is read. The
-vocabulary is **`Frozen`** (preserved on purpose), **`Stale`** (no longer
-accurate) and **`Wrong`** (flatly incorrect, not merely aged), carried two ways:
-a **marker** on a claim in prose, and a **declaration** (`.paths.json`) on a
-file path, which is the only one that reaches a non-markdown artifact.
-
-**Run `/markers` before marking anything, and before editing in a repo whose
-frozen areas you have not seen.** It owns the shapes, the cascade, and the
-check; this paragraph exists so you know the system is there.
+Preserved or aged material is marked where it is read, as **`Frozen`**, **`Stale`**, or **`Wrong`**. Run `/markers` before marking anything, and before editing in a repo whose frozen areas you have not seen; it owns the vocabulary, the shapes, the `.paths.json` declaration, and the check.
 
 ## Venues: this session is not the only place work can run
 
