@@ -1178,6 +1178,42 @@ test('a list card still anchors off its rows, because it is a list of rows', () 
   assert.equal(data.rowCardAt.width, data.ROW_CARD_W, 'and the narrower width');
 });
 
+test('the tools card accounts for the agents figure the top-six cut hid', () => {
+  // The agents figure opens THIS card, so a card that never names Agent is a
+  // dead tap, and that is 7 of the 30 records in the store that dispatch at
+  // all: every one of them a single dispatch, well under the busiest six.
+  // Above the cut the list already names it and a note would be the page prose
+  // rule 2 forbids, so the note is the hidden case only.
+  const S = window.RepoSessionsCache;
+  const busy = Object.fromEntries(
+    'abcdefgh'.split('').map((k, i) => ['tool' + k, 90 - i]));
+
+  data.closeRowCard();
+  data.openSessionCard(S.summarize(rec({ tools: { ...busy, Agent: 1 } }), 'x'), 'tools', null);
+  assert.ok(!data.rowCard.rows.some(r => r.label === 'Agent'),
+    'one dispatch loses to six busier tools, which is the case under test');
+  assert.match(data.rowCard.note, /1 of these calls dispatched an agent\./);
+
+  data.closeRowCard();
+  data.openSessionCard(S.summarize(rec({ tools: { Bash: 40, Agent: 9 } }), 'x'), 'tools', null);
+  assert.ok(data.rowCard.rows.some(r => r.label === 'Agent'), 'above the cut');
+  assert.doesNotMatch(data.rowCard.note, /dispatched an agent/,
+    'and the list naming it once is the whole account');
+
+  // The note counts CALLS, so it takes the tally even where the row's own
+  // figure prefers schema 8's count of what ran. Here 3 were attempted, 1 was
+  // refused at the concurrency cap and 2 ran: the card is describing the call
+  // list, and the call list has three entries.
+  data.closeRowCard();
+  const split = S.summarize(rec({
+    tools: { ...busy, Agent: 3 }, agents_total: 2, agents_refused: 1,
+  }), 'x');
+  assert.equal(split.agents, 2, 'the row figure');
+  data.openSessionCard(split, 'tools', null);
+  assert.match(data.rowCard.note, /3 of these calls dispatched an agent\./);
+  data.closeRowCard();
+});
+
 test('no renderer means an empty host, not a thrown card', async () => {
   delete window.chatRender;
   const row = window.RepoSessionsCache.summarize(
