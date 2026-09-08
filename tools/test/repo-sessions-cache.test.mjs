@@ -78,6 +78,24 @@ test('summarize keeps the scan fields and drops the bulk', () => {
   assert.ok(!('calls' in record() && row.callBodies), 'no call bodies in a row');
 });
 
+test('summarize counts agent dispatches, from the tally rather than schema 8', () => {
+  // Read off `tools`, which every schema from 4 carries, so the 27 fan-out
+  // records already in the store answer without being re-recorded.
+  assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 126 } }), 'x').agents, 126);
+  // Below the TOOLS_KEPT cut it must still count: the whole reason it is not
+  // read out of the row's own `tools`, which keeps only the busiest six.
+  const lone = S.summarize(record({
+    tools: { Bash: 9, Edit: 8, Read: 7, Grep: 6, Glob: 5, Write: 4, Agent: 1 },
+  }), 'x');
+  assert.equal(lone.agents, 1);
+  assert.equal(lone.tools.some(([n]) => n === 'Agent'), false);
+  // `Task` is the dispatch tool's earlier name; both eras are in the store.
+  assert.equal(S.summarize(record({ tools: { Task: 4 } }), 'x').agents, 4);
+  // No agents is 0, not undefined: the row hides the figure on falsy, and a
+  // missing key and a zero must reach that test the same way.
+  assert.equal(S.summarize(record({ tools: { Bash: 3 } }), 'x').agents, 0);
+});
+
 test('summarize ranks tools and files busiest-first, ties by name', () => {
   const row = S.summarize(record(), 'x');
   assert.deepEqual(row.tools[0], ['Bash', 132]);

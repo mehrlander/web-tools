@@ -1178,6 +1178,30 @@ test('a list card still anchors off its rows, because it is a list of rows', () 
   assert.equal(data.rowCardAt.width, data.ROW_CARD_W, 'and the narrower width');
 });
 
+test('the tools card accounts for the agents figure the top-six cut hid', () => {
+  // The agents figure opens THIS card, so a card that never names Agent is a
+  // dead tap, and that is 7 of the 30 records in the store that dispatch at
+  // all: every one of them a single dispatch, well under the busiest six.
+  // Above the cut the list already names it and a note would be the page prose
+  // rule 2 forbids, so the note is the hidden case only.
+  const S = window.RepoSessionsCache;
+  const busy = Object.fromEntries(
+    'abcdefgh'.split('').map((k, i) => ['tool' + k, 90 - i]));
+
+  data.closeRowCard();
+  data.openSessionCard(S.summarize(rec({ tools: { ...busy, Agent: 1 } }), 'x'), 'tools', null);
+  assert.ok(!data.rowCard.rows.some(r => r.label === 'Agent'),
+    'one dispatch loses to six busier tools, which is the case under test');
+  assert.match(data.rowCard.note, /1 of these calls dispatched an agent\./);
+
+  data.closeRowCard();
+  data.openSessionCard(S.summarize(rec({ tools: { Bash: 40, Agent: 9 } }), 'x'), 'tools', null);
+  assert.ok(data.rowCard.rows.some(r => r.label === 'Agent'), 'above the cut');
+  assert.doesNotMatch(data.rowCard.note, /dispatched an agent/,
+    'and the list naming it once is the whole account');
+  data.closeRowCard();
+});
+
 test('no renderer means an empty host, not a thrown card', async () => {
   delete window.chatRender;
   const row = window.RepoSessionsCache.summarize(

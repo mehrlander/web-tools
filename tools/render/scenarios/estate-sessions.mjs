@@ -16,6 +16,10 @@
 // CARD=reply opens the ask line's card, which renders the session as a
 // transcript through kits/chat-render.js and so needs the network the other
 // four do not.
+// ROW=<n> puts CARD on the nth row instead of the first, anchor included, for
+// a case only one fixture row carries: the tools card's agents note is the
+// single-dispatch row's, since a session whose Agent line is already in the
+// list gets no note.
 // CARDTOP=1 scrolls that card back to its first entry (it opens at the last).
 // STALE=1 puts the first row a summarizer version behind.
 //
@@ -41,8 +45,14 @@ const SESSIONS = [
     repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
             { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
     branches: ['claude/show-repo-docs-surfacing-3sr7ab'],
-    exchanges: 10, messages: 340, calls: 206, failures: 1,
-    tools: [['Bash', 132], ['Edit', 34], ['Read', 17]],
+    exchanges: 10, messages: 340, calls: 206, failures: 1, agents: 5,
+    // Agent is IN this list, which is the case where the tools card says
+    // nothing extra: the reader who taps the agents figure finds its line
+    // already there. Dispatches are a subset of the calls, so every fixture
+    // here keeps the tool counts inside `calls` and `agents` inside its own
+    // line; the card's note prints that number in a sentence, so a fixture
+    // that broke the subset would print a falsehood on screen.
+    tools: [['Bash', 132], ['Edit', 34], ['Read', 17], ['Agent', 5]],
     tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
     filesTotal: 14, files: [['web-tools/lib/alpineComponents/estate.js', 11], ['web-tools/docs/showing.md', 4]],
     // MARKDOWN, because a Claude reply is markdown and the store keeps it
@@ -134,8 +144,13 @@ const SESSIONS = [
     ask: 'What is in the budget-wa crosswalks directory and does the verify suite still pass?',
     repos: [{ name: 'budget-wa', branch: 'main', lines: 88 }],
     branches: [],
-    exchanges: 3, messages: 64, calls: 41, failures: 3,
-    tools: [['Bash', 33], ['Read', 6]],
+    exchanges: 3, messages: 210, calls: 289, failures: 3, agents: 126,
+    // The high end of the spectrum, and the shape a real one has: Agent leads
+    // the list and the parent's own file count stays at zero, because the
+    // reading happened in the subagents. Drawn from the store's own top rows,
+    // where the four largest run 83 to 160 dispatches against 269 to 1,010
+    // calls. Three digits, so it is also what holds the column's width honest.
+    tools: [['Agent', 126], ['Bash', 141], ['Read', 6]],
     tokens: { input: 210, output: 38000, cache_read: 12000000, cache_write: 900000 },
     filesTotal: 0, files: [],
     reply: 'Nine crosswalk CSVs, and the verify suite passes.',
@@ -155,8 +170,13 @@ const SESSIONS = [
     ask: 'The wsl-fetch cron has not landed its errand in three days. Work out whether it is the schedule or the runner.',
     repos: [{ name: 'web-tools', branch: 'claude/wsl-fetch-cron-8dk2mq', lines: 41 }],
     branches: ['claude/wsl-fetch-cron-8dk2mq'],
-    exchanges: 5, messages: 88, calls: 63, failures: 0,
-    tools: [['Bash', 44], ['Read', 11]],
+    exchanges: 5, messages: 88, calls: 63, failures: 0, agents: 1,
+    // The other end, and the case the card's note exists for: six tools busier
+    // than one dispatch, so Agent falls outside the cut and the list the tap
+    // opens would otherwise never mention it. 7 of the store's 30 fan-out
+    // records look like this, every one of them a single dispatch.
+    tools: [['Bash', 44], ['Read', 11], ['mcp__github__update_pull_request', 3],
+            ['ToolSearch', 2], ['Edit', 1], ['Write', 1]],
     tokens: { input: 300, output: 71000, cache_read: 19000000, cache_write: 1200000 },
     filesTotal: 3, files: [['web-tools/.github/workflows/wsl-fetch.yml', 5]],
     reply: 'The schedule is fine and the runner is asleep: the cron fires while the machine is off, and a hosted runner cannot reach the share. It needs the self-hosted runner, which is yours to start.',
@@ -508,23 +528,32 @@ export default async function (page) {
     // would put it rather than at an invented coordinate.
     const sel = { turns: 'ph-chats-circle', tools: 'ph-wrench',
                   files: 'ph-files', tokens: null, reply: null, state: null }[card];
-    await page.evaluate(({ card, sel }) => {
+    await page.evaluate(({ card, sel, at }) => {
       const host = document.querySelector('[x-data^="estate"]');
       const st = window.Alpine.$data(host);
-      const row = st.sessionRows[0];
+      const row = st.sessionRows[at] || st.sessionRows[0];
+      // The anchor is found by the FIGURE the trigger shows, not by position:
+      // the pane sorts its rows and `sessionRows` does not, so the nth button
+      // is not the nth row's and ROW=3 anchored a truthful panel a row too low.
+      // Matching the number ties the two ends of the same tap together.
       // The reply card opens off the ask LINE, which is a <p> and not a
       // button: that is the whole point of it staying prose.
       // The states card opens off the GLYPH, the row's first control, which
       // is the one button on the line carrying no text of its own.
+      const nth = (q) => document.querySelectorAll(q)[at] || document.querySelector(q);
+      const shows = { turns: row.exchanges, tools: row.calls, files: row.filesTotal }[card];
+      const byFigure = sel && [...document.querySelectorAll(`.ph.${sel}`)]
+        .map(i => i.closest('button'))
+        .find(b => b && b.textContent.trim() === String(shows));
       const btn = card === 'state'
-        ? document.querySelector('button.w-5')
+        ? nth('button.w-5')
         : card === 'reply'
-        ? document.querySelector('p.truncate.mt-0\\.5')
+        ? nth('p.truncate.mt-0\\.5')
         : sel
-        ? document.querySelector(`.ph.${sel}`)?.closest('button')
-        : [...document.querySelectorAll('button')].find(b => /^\s*\d+k?\s*$/.test(b.textContent));
+        ? byFigure || nth(`.ph.${sel}`)?.closest('button')
+        : [...document.querySelectorAll('button')].filter(b => /^\s*\d+k?\s*$/.test(b.textContent))[at];
       st.openSessionCard(row, card, btn || null);
-    }, { card, sel });
+    }, { card, sel, at: +(process.env.ROW || 0) });
     await page.waitForTimeout(400);
     // CARDTOP=1 scrolls the reply card back to its first entry. The card opens
     // at the BOTTOM, on the closing reply, so the head of the scroll back and
