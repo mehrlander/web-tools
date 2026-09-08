@@ -865,6 +865,113 @@ test('a second expand rebuilds the reader rather than standing a second one besi
   A.disable();
 });
 
+// ── Re-aiming ───────────────────────────────────────────────────────────────
+// A note's aim was fixed at the moment it was created: every way of aiming
+// cancelled the draft first, so tapping an aim while editing discarded the edit
+// and began a new note, and a note pointed at the wrong thing had to be deleted
+// and retaken. The aim is a property of the note, so it is editable like the
+// words are.
+test('an aim taken while editing re-aims that note rather than starting another', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  const p1 = doc.getElementById('p1').firstChild;
+  const r = doc.createRange();
+  r.setStart(p1, 4); r.setEnd(p1, 19);            // "quick brown fox"
+  A.noteSelection({ range: r });
+  S.dict.text = 'this phrase is the one';
+  A._state.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+  const it = A.items[0];
+  assert.equal(it.target.type, 'text');
+  assert.equal(it.target.quote.exact, 'quick brown fox');
+
+  // Reopen it, then aim at the page instead.
+  A.editNote(it.id);
+  assert.equal(S.draft.editId, it.id);
+  A.notePage({ listen: false });
+  assert.equal(S.draft.editId, it.id, 'still the same note, not a new one');
+  assert.equal(S.draft.target.type, 'page', 'aimed somewhere else');
+  assert.equal(S.dict.text, 'this phrase is the one', 'and the words came with it');
+  assert.match(S.compCap.textContent, /^Editing: /, 'the caption still says which state this is');
+
+  S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(A.items.length, 1, 'one note, re-aimed rather than duplicated');
+  assert.equal(A.items[0].id, it.id);
+  assert.equal(A.items[0].target.type, 'page', 'and the new aim survived the save');
+  assert.equal(A.items[0].note, 'this phrase is the one');
+  A.disable();
+});
+
+test('opening a different note while editing one is not a re-aim', () => {
+  // editNote is the single caller that opts out: it opens ANOTHER note, so
+  // carrying the edit in progress into it would put one note's words on
+  // another's.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  const a = A.add({ type: 'page' }, 'the first note');
+  const b = A.add({ type: 'page' }, 'the second note');
+  A.editNote(a.id);
+  S.dict.text = 'the first note, revised';
+  A.editNote(b.id);
+  assert.equal(S.draft.editId, b.id, 'the second note is what is open');
+  assert.equal(S.dict.text, 'the second note', 'with its own words, not the first note\'s');
+  S.compSave.dispatchEvent(new window.Event('click', { bubbles: true }));
+  assert.equal(A.items.find(i => i.id === a.id).note, 'the first note',
+    'and the abandoned edit changed nothing');
+  A.disable();
+});
+
+test('a draft that was never a note still opens fresh, with no aim to carry', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  A.notePage({ listen: false });
+  assert.equal(S.draft.editId, undefined, 'a new note has nothing to carry');
+  S.dict.text = 'a fresh one';
+  const p1 = doc.getElementById('p1').firstChild;
+  const r = doc.createRange();
+  r.setStart(p1, 4); r.setEnd(p1, 19);
+  A.noteSelection({ range: r });
+  assert.equal(S.draft.editId, undefined);
+  assert.equal(S.dict.text, '', 'and re-aiming a draft that is not a note starts it over');
+  A.disable();
+});
+
+// ── The expand, on the note it expands ──────────────────────────────────────
+test('the expand sits on each note and on the draft, not on the panel header', () => {
+  // It sat on the header row, where a control means "the panel", and it never
+  // carried the panel: goDictate assembles ONE note and refuses when there is
+  // none. Its behaviour was per-note and its position said per-card.
+  window.SpeechRecognition = FakeSR;
+  loadKit('dictate.js', { window });
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  const head = S.panel.firstChild;
+  assert.ok(![...head.querySelectorAll('button')].some(b => b._icon
+    && b._icon.className.includes('arrows-out')), 'the header carries no expand');
+
+  const a = A.add({ type: 'page' }, 'the first note');
+  A.add({ type: 'page' }, 'the second note');
+  const rowKeys = (i) => [...S.listEl.children[i].querySelectorAll('button')];
+  assert.equal(rowKeys(0)[1]._icon.className, 'ph ph-arrows-out', 'every row has its own');
+
+  // And it carries THAT note, not the draft and not the newest.
+  assert.equal(A.handoffText(a).split('\n').pop(), 'the first note');
+  assert.equal(A.handoffText(A.items[1]).split('\n').pop(), 'the second note');
+
+  // The draft keeps one too, on the caption, which is where the composer names
+  // what the words are about.
+  A.notePage({ listen: false });
+  S.dict.text = 'words being written now';
+  assert.ok(S.outBtn, 'the draft has an expand');
+  assert.equal(S.compCap.parentNode, S.outBtn.parentNode, 'on the caption row, beside what it is about');
+  assert.equal(A.handoffText().split('\n').pop(), 'words being written now',
+    'and with no note named it carries the draft, as it always did');
+  A.disable();
+});
+
 test('an icon key paints its glyph, which the swap alone could not', () => {
   // The pad's keys are plain buttons, so setIcon had no `_icon` to reach and
   // the one glyph face in the set, `¶`, rendered EMPTY. Found 2026-08-15 while
@@ -1895,11 +2002,12 @@ test('the card refuses the platform’s selection, and the textarea takes it bac
   A.disable();
 });
 
-test('a note row carries three keys over it, and Edit reopens it in the composer', async () => {
-  // The row carried a bare ×, then a ⋮ menu, and now the three verbs
-  // themselves: one tap each rather than one to open and one to choose. They
-  // float over the row, so the note keeps its full width and only the
-  // caption's first line gives ground.
+test('a note row carries four keys over it, and Edit reopens it in the composer', async () => {
+  // The row carried a bare ×, then a ⋮ menu, and now the verbs themselves: one
+  // tap each rather than one to open and one to choose. They float over the
+  // row, so the note keeps its full width and only the caption's first line
+  // gives ground. Expand joined them when it left the header, where its
+  // position said "the panel" and its behaviour had always been one note.
   window.SpeechRecognition = FakeSR;
   loadKit('dictate.js', { window });
   A.enable({ doc, subject: { title: 'x', url: '' } });
@@ -1910,17 +2018,17 @@ test('a note row carries three keys over it, and Edit reopens it in the composer
   const row = S.listEl.firstChild;
   const css = (el) => el.getAttribute('style') || '';
   const keys = [...row.querySelectorAll('button')];
-  assert.equal(keys.length, 3, 'edit, copy, remove');
+  assert.equal(keys.length, 4, 'edit, expand, copy, remove');
   assert.deepEqual(keys.map(b => b._icon.className),
-    ['ph ph-pencil-simple', 'ph ph-copy', 'ph ph-trash']);
-  assert.match(keys[2].style.color, /#dc2626|rgb\(220, 38, 38\)/,
+    ['ph ph-pencil-simple', 'ph ph-arrows-out', 'ph ph-copy', 'ph ph-trash']);
+  assert.match(keys[3].style.color, /#dc2626|rgb\(220, 38, 38\)/,
     'remove is a single tap now, so it is tinted for what it does');
   assert.equal(row.textContent.includes('×'), false, 'and no bare × beside it');
   const cluster = keys[0].parentNode;
   assert.match(css(cluster), /position:\s*absolute/,
     'the keys float rather than taking a column off every row');
   assert.match(css(row), /position:\s*relative/, 'and float against the row, not the list');
-  assert.match(css(row.firstChild.firstChild), /padding-right:\s*84px/,
+  assert.match(css(row.firstChild.firstChild), /padding-right:\s*112px/,
     'the caption alone reserves room, so the note and the address run full width');
 
   // Edit stages the SAME note: same target, its text loaded, nothing recording,
@@ -1949,12 +2057,12 @@ test('a note row carries three keys over it, and Edit reopens it in the composer
     configurable: true, value: { clipboard: { writeText: async (t) => { copied = t; } } },
   });
   const rowNow = S.listEl.firstChild;
-  [...rowNow.querySelectorAll('button')][1].dispatchEvent(new window.Event('click', { bubbles: true }));
+  [...rowNow.querySelectorAll('button')][2].dispatchEvent(new window.Event('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 0));
   assert.equal(copied, 'the ref bar wraps under 380px');
 
   // And remove is one tap, on the row rather than through a menu.
-  [...S.listEl.firstChild.querySelectorAll('button')][2]
+  [...S.listEl.firstChild.querySelectorAll('button')][3]
     .dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.equal(A.items.length, 0);
   A.disable();
@@ -2314,7 +2422,8 @@ test('a note row\'s copy key reports too, and on itself', async () => {
     configurable: true, value: { clipboard: { writeText: async (t) => { copied = t; } } },
   });
 
-  const keyOf = (row) => [...row.querySelectorAll('button')][1];
+  // Index 2: edit, expand, copy, remove.
+  const keyOf = (row) => [...row.querySelectorAll('button')][2];
   const first = keyOf(S.listEl.children[0]);
   assert.equal(first._icon.className, 'ph ph-copy');
   first.dispatchEvent(new window.Event('click', { bubbles: true }));
