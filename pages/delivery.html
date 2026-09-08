@@ -56,8 +56,8 @@
   #dia [data-node]:hover .nodebox { filter: brightness(0.97); }
 
   /* Tailwind does NOT generate fill-*/ /* or stroke-* utilities for daisyUI's
-     colours: a probe found `fill-base-100` computing to rgb(0,0,0) and
-     `stroke-base-300` to none, which drew every node as a solid black block.
+     colours: a probe found `fill-[var(--color-base-100)]` computing to rgb(0,0,0) and
+     `stroke-[var(--color-base-300)]` to none, which drew every node as a solid black block.
      daisyUI's custom properties are real, so the diagram paints through them
      in CSS rather than through classes, and the palette lives here in one
      place instead of being interpolated per element. */
@@ -429,7 +429,7 @@ function delivery() {
       return { current: 'badge-primary', planned: 'badge-outline', historical: 'badge-ghost' }[state] || 'badge-ghost';
     },
     dotClass(state) {
-      return { current: 'bg-primary', planned: 'bg-primary/30 ring-1 ring-primary', historical: 'bg-base-content/30' }[state]
+      return { current: 'bg-primary', planned: 'bg-primary/30 ring-1 ring-[var(--color-primary)]', historical: 'bg-base-content/30' }[state]
         || 'bg-base-content/30';
     },
   };

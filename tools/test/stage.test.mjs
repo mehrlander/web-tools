@@ -15,6 +15,12 @@ const calls = [];
 // A GH stand-in: srcGh builds `new base.constructor(...)`, so the methods must
 // live on the class. copyTo (refs), save/saveBytes (local bytes), get (reads).
 class FakeGH {
+  // The deposit reaches the encoder through the class, the way gh-store.js puts
+  // it on window.GH, so the fake carries it as a static too.
+  static toBase64(input) {
+    if (typeof input === 'string') return btoa(String.fromCharCode(...new TextEncoder().encode(input)));
+    return btoa(String.fromCharCode(...input));
+  }
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = 'main'; }
   async get(path) {
     // One repo that always 404s, so a failing read has a fixture: the reader
@@ -31,6 +37,17 @@ class FakeGH {
     return [];
   }
   async copyTo(dest, paths) { calls.push({ kind: 'copyTo', from: this.repo, dest, paths }); return paths.map(p => ({ path: p, status: 'ok' })); }
+  // The deposit reads every source, then writes once. getRaw hands back base64
+  // so the commit body can be decoded and checked byte for byte.
+  async getRaw(path) {
+    calls.push({ kind: 'getRaw', repo: this.repo, ref: this.ref, path });
+    if (this.repo === 'me/missing') throw Object.assign(new Error('404'), { status: 404 });
+    return { content: btoa('CONTENT ' + this.repo + ':' + path), sha: 'x' };
+  }
+  async commitFiles(files, opts = {}) {
+    calls.push({ kind: 'commitFiles', repo: this.repo, ref: this.ref, files, message: opts.message });
+    return { sha: 'c0ffee1234', branch: this.ref || 'main', tree: 't', files: files.length };
+  }
   async save(path, value, msg) { calls.push({ kind: 'save', repo: this.repo, ref: this.ref, path, value, msg }); return { content: { sha: 'x' } }; }
   async saveBytes(path, bytes, msg) { calls.push({ kind: 'saveBytes', repo: this.repo, ref: this.ref, path, bytes, msg }); return { content: { sha: 'x' } }; }
 }
@@ -1358,8 +1375,8 @@ test('a renamed local file deposits under its new name', async () => {
   data.destSpec = 'me/dest:pkg';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.path, 'pkg/docs/notes.md', 'a slash in the name is a subpath under the destination');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.files[0].path, 'pkg/docs/notes.md', 'a slash in the name is a subpath under the destination');
 });
 
 test('a name that cleans to nothing leaves the item alone, and so does Escape', () => {
@@ -1423,7 +1440,7 @@ test('groups covers only refs; local items render on their own', () => {
 
 // ---- one deposit: refs via copyTo, local bytes via saveBytes/save --------
 
-test('send deposits refs through copyTo and local files through save/saveBytes', async () => {
+test('a deposit is ONE commit, refs and pasted files together', async () => {
   reset();
   calls.length = 0;
   store.stage = [
@@ -1437,20 +1454,68 @@ test('send deposits refs through copyTo and local files through save/saveBytes',
   assert.equal(calls.length, 0, 'arming writes nothing');
   await data.send();               // second tap deposits
 
-  const copy = calls.find(c => c.kind === 'copyTo');
-  assert.equal(copy.from, 'me/a');
-  assert.equal(copy.dest.repo, 'me/dest');
-  assert.equal(copy.dest.dir, 'pkg');
-  assert.deepEqual(plain_(copy.paths), ['lib/x.js']);
+  const commits = calls.filter(c => c.kind === 'commitFiles');
+  assert.equal(commits.length, 1, 'three files, one commit');
+  assert.equal(commits[0].repo, 'me/dest');
+  assert.deepEqual(plain_(commits[0].files.map(f => f.path)),
+    ['pkg/lib/x.js', 'pkg/a.bin', 'pkg/note.txt'],
+    'refs keep their full path under the dir, locals their basename');
+  assert.equal(atob(commits[0].files[2].content), 'yo', 'text rides as base64');
+  assert.deepEqual([...atob(commits[0].files[1].content)].map(c => c.charCodeAt(0)), [9, 9],
+    'bytes ride byte-exact');
+  assert.ok(!calls.some(c => c.kind === 'save' || c.kind === 'saveBytes' || c.kind === 'copyTo'),
+    'the per-file write paths are not used, which is what made a deposit N commits');
+});
 
-  const bin = calls.find(c => c.kind === 'saveBytes');
-  assert.equal(bin.repo, 'me/dest');
-  assert.equal(bin.path, 'pkg/a.bin');
-  assert.equal(bin.bytes[0], 9);
+test('a source read that fails is reported and left out, and the rest still commit', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [
+    { repo: 'me/missing', ref: '', path: 'gone.js' },
+    { repo: 'me/a', ref: '', path: 'lib/x.js' },
+  ];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.deepEqual(plain_(commit.files.map(f => f.path)), ['pkg/lib/x.js'],
+    'the unreadable file is out of the tree, not committed empty');
+  assert.match(data.sendStatus, /^1\/2 copied/, 'the count is what landed, not what was staged');
+});
 
-  const txt = calls.find(c => c.kind === 'save' && c.path === 'pkg/note.txt');
-  assert.equal(txt.repo, 'me/dest');
-  assert.equal(txt.value, 'yo');
+test('nothing readable means no commit at all', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [{ repo: 'me/missing', ref: '', path: 'gone.js' }];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  assert.ok(!calls.some(c => c.kind === 'commitFiles'), 'an empty tree is not a commit');
+});
+
+test('the commit message names the deposit and lists what is in it', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [
+    { local: true, id: 97, name: 'one.txt', path: 'one.txt', size: 1, isText: true, text: 'a' },
+    { local: true, id: 98, name: 'two.txt', path: 'two.txt', size: 1, isText: true, text: 'b' },
+  ];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  const msg = calls.find(c => c.kind === 'commitFiles').message;
+  assert.equal(msg.split('\n')[0], 'Add 2 files to me/dest:pkg via Web Tools',
+    'the trailer marks a write a person made by tapping, not the crawl');
+  assert.match(msg, /- pkg\/one\.txt\n- pkg\/two\.txt/, 'the paths the per-file messages used to carry');
+});
+
+test('a long deposit caps the message body rather than writing a line per file', () => {
+  const files = Array.from({ length: 25 }, (_, i) => ({ path: 'p/f' + i + '.txt' }));
+  const msg = data.depositMessage(files, { repo: 'me/dest', dir: 'p' });
+  const lines = msg.trim().split('\n');
+  assert.equal(lines[0], 'Add 25 files to me/dest:p via Web Tools');
+  assert.equal(lines.filter(l => l.startsWith('- ')).length, 21, '20 paths plus the tail');
+  assert.equal(lines.at(-1), '- …and 5 more');
 });
 
 test('an empty dir deposits local files at the repo root', async () => {
@@ -1460,8 +1525,8 @@ test('an empty dir deposits local files at the repo root', async () => {
   data.destSpec = 'me/dest';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.path, 'top.txt', 'no dir prefix at root');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.files[0].path, 'top.txt', 'no dir prefix at root');
 });
 
 test('a local-only stage still mints: the text rides the fragment, gzipped', async () => {
@@ -2828,10 +2893,10 @@ test('a dest-carrying send lands local files ON the named branch', async () => {
   data.destSpec = 'me/dest@claude/some-branch:dump';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.repo, 'me/dest');
-  assert.equal(txt.ref, 'claude/some-branch', 'the writer is pointed at the branch, not the default');
-  assert.equal(txt.path, 'dump/drop.html');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.repo, 'me/dest');
+  assert.equal(commit.ref, 'claude/some-branch', 'the commit lands on the branch, not the default');
+  assert.equal(commit.files[0].path, 'dump/drop.html');
 });
 
 test('parseDest reads a slashed branch out of owner/repo@ref:dir', () => {
