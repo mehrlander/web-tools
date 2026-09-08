@@ -184,21 +184,19 @@ try {
   ok('no Save button survives',
     !(await page.evaluate(() =>
       [...document.querySelectorAll('button')].some(b => /^\s*Save\s*$/.test(b.textContent)))));
-  // FOUR ACROSS is the phone's case and never this browser's: Share is bound
-  // to navigator.share, which headless Chromium does not have, so the row
-  // above was measured three wide. The tightest column, 92px at 390, is the
-  // one that decides whether a name still fits beside its icon.
-  const four = await page.evaluate(() => {
-    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    c.canShare = true;
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => {
-      const b = [...document.querySelectorAll('button')]
-        .filter(x => /^(Copy|Share|Jot|Drop)$/.test(x.textContent.trim()))
-        .map(x => ({ name: x.textContent.trim(), ...x.getBoundingClientRect().toJSON() }));
-      c.canShare = !!navigator.share;
-      done(b);
-    })));
-  });
+  // FOUR ACROSS, and the fourth is Send rather than Share. Share was bound to
+  // navigator.share, which headless Chromium does not have, so this had to
+  // force `canShare` to measure a row the browser would not otherwise draw.
+  // Send is unconditional (it opens a sheet, it does not call a platform API),
+  // and Share is the second button at the foot of that sheet, so the row is
+  // four wide here and on a desktop alike. The tightest column, 92px at 390,
+  // is the one that decides whether a name still fits beside its icon.
+  const four = await page.evaluate(() => new Promise(done =>
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      done([...document.querySelectorAll('button')]
+        .filter(x => /^(Copy|Send|Jot|Drop)$/.test(x.textContent.trim()))
+        .map(x => ({ name: x.textContent.trim(), ...x.getBoundingClientRect().toJSON() })));
+    }))));
   ok('all four fit the row at phone width', four.length === 4
     && four.every(b => b.width >= 80 && b.height >= 44 && b.height < 60),
     JSON.stringify(four.map(b => [b.name, Math.round(b.width), Math.round(b.height)])));
@@ -988,13 +986,23 @@ try {
   // THE DELETE KEY IS A KEY: same row as the marks and the shift, not the
   // header and not the send row. It is tapped over and over mid-sentence,
   // which is what that row is tall for.
-  ok('backspace sits in the key row, beside the shift',
+  //
+  // NOT BESIDE THE SHIFT ANY MORE, and the gap between them is the point. The
+  // row divides into writing and repair past a hairline, so backspace is the
+  // repair group's last key and the shift is the writing group's, with the
+  // step-back and stitch keys between them. Same row, same parent, and this
+  // asserts the divider rather than pretending the two are still adjacent.
+  ok('backspace ends the key row, past the hairline that divides it',
     await page.evaluate(() => {
       const b = document.querySelector('button:has(i.ph-backspace)');
       if (!b) return false;
       const shift = [...document.querySelectorAll('button')].find(x => /^(·!¶|abc)$/.test(x.textContent.trim()));
-      return !!shift && b.parentElement === shift.parentElement
-        && b.previousElementSibling === shift;
+      if (!shift || b.parentElement !== shift.parentElement) return false;
+      const kids = [...b.parentElement.children];
+      const rule = kids.find(e => e.tagName === 'DIV' && e.className.includes('w-px'));
+      return !!rule && kids.indexOf(shift) < kids.indexOf(rule)
+        && kids.indexOf(rule) < kids.indexOf(b)
+        && b === kids[kids.length - 1];
     }));
 
   // ── 4b. The two modifier taps ────────────────────────────────────────

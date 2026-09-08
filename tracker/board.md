@@ -27,7 +27,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
 
 ## In progress
-- (none)
+- 🎫 [Trim code commentary to its criterion, rule first](tasks/comment-trim-rule-first-b0o3bu.md) · L (`claude/code-comments-assessment-sqzvrz`)
 
 ## Blocked
 - (none)
