@@ -1,9 +1,10 @@
 ---
 id: comment-trim-rule-first-b0o3bu
 title: Trim code commentary to its criterion, rule first
-status: backlog
+status: in-progress
 opened: 2026-09-08
 size: L
+session: claude/code-comments-assessment-sqzvrz
 ---
 # Trim code commentary to its criterion, rule first
 
@@ -64,3 +65,15 @@ that trims on tone or on position cuts the load-bearing half.
   here, 408 in 157 in home), which is one of the two defects the read found. The
   other, a file header drifting from the code, has no mechanical report and is
   logged as `header-essay-outlives-its-code` in SNAGS.
+- 2026-09-08: Steps 1 and 2 done on `claude/code-comments-assessment-sqzvrz`
+  (web-tools PR #625, home PR #605). The rule is in `docs/CONVENTIONS.md` under
+  "Prose that describes state is unimplemented"; the six pilot files are
+  rewritten and mechanically verified comment-only, by stripping comments and
+  comparing the remainder rather than by reading the diff. Comment words fell
+  about 8,400 of 57,000 across the six, each file landing where its read
+  predicted. An adversarial second read is running against every diff, which is
+  the gate that decides whether step 3 is worth starting.
+  Two findings worth carrying into the fan-out. The file header was the least
+  accurate prose in four of the six, so the accuracy fixes may be worth more
+  than the word count. And stale counts are commoner than the sample showed:
+  the readers found two, the rewriters found five.
