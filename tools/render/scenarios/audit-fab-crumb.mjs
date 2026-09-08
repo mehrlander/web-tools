@@ -18,6 +18,12 @@ export default async function (page) {
   await page.waitForSelector('[x-ref="doc"] span', { timeout: 20000 });
   await page.waitForTimeout(600);
 
+  // The per-node marks along the drawer's build are opt-in: they cost a dozen
+  // synchronous storage writes per open and only a session debugging the drawer
+  // wants them. `?crumb=1` arms them on a device; a driver uses the key, the
+  // shot harness having no query string to carry.
+  await page.evaluate(() => localStorage.setItem('fab:crumb', '1'));
+
   // 1. A tap that died inside ensureBrief.
   await page.evaluate(() => localStorage.setItem('fab:step', 'ensureBrief @' + Date.now()));
   await page.reload({ waitUntil: 'load' });
