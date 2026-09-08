@@ -78,23 +78,39 @@ test('summarize keeps the scan fields and drops the bulk', () => {
   assert.ok(!('calls' in record() && row.callBodies), 'no call bodies in a row');
 });
 
-test('summarize counts agent dispatches, from the tally rather than schema 8', () => {
-  // Read off `tools`, which every schema from 4 carries, so the 30 fan-out
-  // records already in the store answer without being re-recorded.
-  assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 126 } }), 'x').agents, 126);
-  // Below the TOOLS_KEPT cut it must still count: the whole reason it is not
-  // read out of the row's own `tools`, which keeps only the busiest six.
+test('the fan-out figure takes schema 8 where it exists and the tally otherwise', () => {
+  // The union, and each half is the other's blind spot. Schema 8 knows what
+  // RAN; the tally counts attempts but is present from schema 4, so it reaches
+  // 30 of the store's records against the accurate field's 1.
+  const both = S.summarize(record({
+    tools: { Bash: 291, Agent: 126 }, agents_total: 124, agents_refused: 2,
+  }), 'x');
+  assert.equal(both.agents, 124, 'what ran, not what was attempted');
+  assert.equal(both.agentCalls, 126, 'the attempts stay readable beside it');
+  assert.equal(both.agentsRefused, 2);
+
+  // No schema 8: the tally carries the row rather than leaving it blank.
+  assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 9 } }), 'x').agents, 9);
+
+  // Below the TOOLS_KEPT cut it must still count: the whole reason neither
+  // half is read out of the row's own `tools`, which keeps the busiest six.
   const lone = S.summarize(record({
     tools: { Bash: 9, Edit: 8, Read: 7, Grep: 6, Glob: 5, Write: 4, Agent: 1 },
   }), 'x');
   assert.equal(lone.agents, 1);
+  assert.equal(lone.agentCalls, 1);
   assert.equal(lone.tools.some(([n]) => n === 'Agent'), false);
+
   // `Task` is the dispatch tool's earlier name, and no record in the store
   // carries it: this pins the fallback, not an era anyone has seen.
   assert.equal(S.summarize(record({ tools: { Task: 4 } }), 'x').agents, 4);
+
   // No agents is 0, not undefined: the row hides the figure on falsy, and a
   // missing key and a zero must reach that test the same way.
-  assert.equal(S.summarize(record({ tools: { Bash: 3 } }), 'x').agents, 0);
+  const none = S.summarize(record({ tools: { Bash: 3 } }), 'x');
+  assert.equal(none.agents, 0);
+  assert.equal(none.agentCalls, 0);
+  assert.equal(none.agentsRefused, 0);
 });
 
 test('summarize carries `attached`, and an older record gets [] not a guess', () => {

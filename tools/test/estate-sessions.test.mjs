@@ -1199,6 +1199,18 @@ test('the tools card accounts for the agents figure the top-six cut hid', () => 
   assert.ok(data.rowCard.rows.some(r => r.label === 'Agent'), 'above the cut');
   assert.doesNotMatch(data.rowCard.note, /dispatched an agent/,
     'and the list naming it once is the whole account');
+
+  // The note counts CALLS, so it takes the tally even where the row's own
+  // figure prefers schema 8's count of what ran. Here 3 were attempted, 1 was
+  // refused at the concurrency cap and 2 ran: the card is describing the call
+  // list, and the call list has three entries.
+  data.closeRowCard();
+  const split = S.summarize(rec({
+    tools: { ...busy, Agent: 3 }, agents_total: 2, agents_refused: 1,
+  }), 'x');
+  assert.equal(split.agents, 2, 'the row figure');
+  data.openSessionCard(split, 'tools', null);
+  assert.match(data.rowCard.note, /3 of these calls dispatched an agent\./);
   data.closeRowCard();
 });
 
