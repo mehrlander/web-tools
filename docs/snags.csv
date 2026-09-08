@@ -74,6 +74,7 @@ an-unlayered-rule-beats-every-layer,`max-w-none` reads as the undo and is not on
 backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",0,,,
 boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
+browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
 gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,
 line-clamp-is-not-a-height,"the utility collided with a display four times in one branch, then failed only on the phone",0,,,
