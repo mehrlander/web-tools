@@ -79,7 +79,7 @@ test('summarize keeps the scan fields and drops the bulk', () => {
 });
 
 test('summarize counts agent dispatches, from the tally rather than schema 8', () => {
-  // Read off `tools`, which every schema from 4 carries, so the 27 fan-out
+  // Read off `tools`, which every schema from 4 carries, so the 30 fan-out
   // records already in the store answer without being re-recorded.
   assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 126 } }), 'x').agents, 126);
   // Below the TOOLS_KEPT cut it must still count: the whole reason it is not
@@ -89,11 +89,25 @@ test('summarize counts agent dispatches, from the tally rather than schema 8', (
   }), 'x');
   assert.equal(lone.agents, 1);
   assert.equal(lone.tools.some(([n]) => n === 'Agent'), false);
-  // `Task` is the dispatch tool's earlier name; both eras are in the store.
+  // `Task` is the dispatch tool's earlier name, and no record in the store
+  // carries it: this pins the fallback, not an era anyone has seen.
   assert.equal(S.summarize(record({ tools: { Task: 4 } }), 'x').agents, 4);
   // No agents is 0, not undefined: the row hides the figure on falsy, and a
   // missing key and a zero must reach that test the same way.
   assert.equal(S.summarize(record({ tools: { Bash: 3 } }), 'x').agents, 0);
+});
+
+test('summarize carries `attached`, and an older record gets [] not a guess', () => {
+  // Record schema 8. It is the container's repo list, so it is wider than
+  // `repos` (which is where the shell stood) and the two disagree by design.
+  const row = S.summarize(record({ attached: ['home', 'web-tools'] }), 'x');
+  assert.deepEqual(row.attached, ['home', 'web-tools']);
+
+  // Every record written before schema 8 stays empty permanently, since records
+  // are never revisited. Empty must read as "cannot say", so nothing here may
+  // fill it in from `repos`: a consumer that did would claim a scope the
+  // session never reported.
+  assert.deepEqual(S.summarize(record(), 'x').attached, []);
 });
 
 test('summarize ranks tools and files busiest-first, ties by name', () => {
