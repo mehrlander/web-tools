@@ -64,7 +64,7 @@ export default async (page) => {
       let t = base;
       return GAPS_H.slice(0, limit).map((g, i) => {
         t -= g * 3600e3;
-        return { sha: 'c' + i + '0f9ab3', msg: 'Update cache via show-repo',
+        return { sha: 'c' + i + '0f9ab3', msg: 'Update cache via Web Tools',
                  date: new Date(t).toISOString(), author: 'mehrlander' };
       });
     };

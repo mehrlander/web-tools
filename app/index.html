@@ -135,6 +135,9 @@
   await gh.load('kits/branch-status.js');
   // Activity-aggregate builders for the private cache (state/activity.json).
   await gh.load('kits/repo-activity-cache.js');
+  // What wrote a commit, read off the commit (window.WriteKinds). Beside the
+  // activity cache because it classifies exactly what that cache stores.
+  await gh.load('kits/write-kinds.js');
   // Comma-separated parsing, shared. Loaded before the sessions cache, whose
   // title join reads the Dispatch export's CSV through it.
   await gh.load('kits/csv.js');
@@ -2571,7 +2574,7 @@ function app(){ return {
       if (list.length) cfg.hidden = list; else delete cfg.hidden;
       if (typeof reg.save !== 'function' && window.gh?.load) await window.gh.load('gh-store.js');
       await reg.save('.web-tools.json', cfg,
-                     (hide ? 'Hide ' : 'Show ') + repo + ' on the estate via show-repo',
+                     (hide ? 'Hide ' : 'Show ') + repo + ' on the estate via Web Tools',
                      { sha });
       this._hiddenOverride = list;
       this.estateHidden = [...list];
@@ -2952,7 +2955,7 @@ function app(){ return {
           skipped: cskipped.length,
         }) ?? prev?.runs;
         await this.saveFold(reg, window.RepoConfigCache.CACHE_PATH, next,
-                            'Update config cache (state/configs.json) via show-repo', base);
+                            'Update config cache (state/configs.json)', base);
       }
       return { committed: moved.length > 0, changed: moved.length, checked: repos.length };
     } catch(e){
@@ -3346,7 +3349,7 @@ function app(){ return {
           pass: deep ? 'scan' : 'quick',
         }) ?? prev?.runs;
         await this.saveFold(reg, A.CACHE_PATH, next,
-                            'Update activity cache (state/activity.json) via show-repo', base);
+                            'Update activity cache (state/activity.json)', base);
       }
       // `doc` rides the summary so a view that re-reads this file on the refresh
       // event does not have to: it is 370 KB and the crawl is holding it
@@ -3534,7 +3537,7 @@ function app(){ return {
           checked: listing.length, read: Object.keys(fetched).length, deferred,
         }) ?? prev?.runs;
         await this.saveFold(reg, S.CACHE_PATH, next,
-                            'Update sessions cache (state/sessions.json) via show-repo', base);
+                            'Update sessions cache (state/sessions.json)', base);
         // THE PHONE'S COPY, written in the same pass and only when the cache
         // itself moved. It is a separate 46 KB file rather than a view of the
         // megabyte above, because its whole reason to exist is that the phone
@@ -3551,7 +3554,7 @@ function app(){ return {
           const mbase = await this.readForFold(reg, S.MENU_PATH);
           if (S.menuChanged(mbase?.doc || null, menu))
             await this.saveFold(reg, S.MENU_PATH, menu,
-                                'Update session menu index (state/session-menu.json) via show-repo', mbase);
+                                'Update session menu index (state/session-menu.json)', mbase);
         } catch(e){ console.warn('session menu index:', e?.message || e); }
       }
       // `doc` rides the summary for the reason the activity crawl's does, plus
@@ -3811,7 +3814,7 @@ function app(){ return {
     const next = { generatedAt: new Date().toISOString(),
                    runs: { ...(base?.doc?.runs || {}), [key]: run } };
     await this.saveFold(reg, this.CALLS_PATH, next,
-                        'Log ' + key + ' crawl calls (state/calls.json) via show-repo', base);
+                        'Log ' + key + ' crawl calls (state/calls.json)', base);
   },
 
   tickCrawl(key, patch){
@@ -4062,7 +4065,7 @@ function app(){ return {
         // anyone saw it. The stage lists these and a person closes them.
         if (M.isAsk && M.isAsk(req)) continue;
         const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
-        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via show-repo');
+        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
       }
     } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
@@ -5166,6 +5169,7 @@ function app(){ return {
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
       } },
+    { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
     { key: 'routes',   open(){ this.goRoutes(); } },
     { key: 'map', alias: 'portable',
@@ -5538,7 +5542,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'chats', 'routes', 'state'].includes(this.view); },
+  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'writes', 'chats', 'routes', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -5607,7 +5611,7 @@ function app(){ return {
       // ?view=activity still resolves to Branches, and the pill row still
       // leads with it, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'activity', 'chats', 'routes', 'state'],
+      { view: 'sessions', views: ['sessions', 'activity', 'writes', 'chats', 'routes', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       { view: 'todo', views: ['todo', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
@@ -5911,6 +5915,11 @@ function app(){ return {
   // What can be stale is the archive itself, which no crawl can fix: it
   // advances when an export lands in chat-histories. The pane states that
   // instead of offering a refresh that would do nothing.
+  // Writes: the estate's commit stream read for who wrote it. No refresh
+  // arm, unlike goActivity: the pane renders from the activity cache the
+  // Branches pane already keeps, and its own deeper read is a control on
+  // the pane rather than an arrival cost.
+  goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
   // Activity's fifth pill: the app's own destinations, dated by the code behind
   // them. It reads docs/app-routes.csv and one last-commit call per declared
