@@ -16,6 +16,7 @@ mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
 header-essay-outlives-its-code,the file-header contract drifted while every per-site comment stayed true,1,2026-09-08,2026-09-08,text-content.md
+rewriter-marks-its-own-work,a comment pass that changed no code still made the file wrong,1,2026-09-08,2026-09-08,text-content.md
 shot-of-a-prebuilt-page-ignores-lib,a break-check that proved nothing,1,2026-09-06,2026-09-06,../tools/README.md#the-pre-build
 id-called-the-filename-stem,a session id read off the store's own directory listing found no record,1,2026-09-05,2026-09-05,../lib/alpineComponents/session-brief.js;../tools/test/session-brief.test.mjs
 toss-carries-no-page-address,"a render link that resolved, rendered, and opened an empty form",1,2026-09-05,2026-09-05,showing.md;../scripts/showing.py

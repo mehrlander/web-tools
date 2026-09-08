@@ -679,3 +679,43 @@ as what is available.
 stage for a day, first emitting `a[href]` as a two-column CSV and then as
 markdown, before being removed; its leftovers were a `-links.md` example in the
 peek path and a dead duplicate comment, both now gone.
+
+
+---
+
+# What the pilot taught about running the pass, 2026-09-08
+
+The trim is the smaller finding. The larger one is about the operation, and it
+is the reason the fan-out this pilot was meant to authorize should not run in
+the shape that was proposed.
+
+**A rewriter marking its own work is not evidence.** Each of the six agents
+reported that it kept every criterion and removed only history. A second agent
+per file, told only to find where the first was wrong, found eleven defects.
+**Seven were claims the rewrite ADDED**, not text it lost. `swipe-deck.js` came
+back stating a menu's flip condition backwards, in a file where no test
+exercises that placement. `spend.js` hardened a hedge into "never the
+all-biennia totals" against its own `budgetAll` branch fifteen lines below,
+which shows exactly those totals; that item had been reported as one of its
+fixes. `stage.js` declared a diff ceiling absent that its own code surfaces a
+warning for. A false comment is worse than a verbose one, so a pass that trades
+length for accuracy in this direction loses.
+
+**And the mechanical check proves the wrong thing.** Stripping comments and
+comparing the remainder shows the code is character-identical, which is true,
+necessary, and reads as verification. It is the easy half. A comment cannot fail
+it however false it becomes, so it certifies exactly the property that was never
+at risk. Two of the six files also needed the check taught that HTML comments in
+an Alpine template and CSS comments in a styles literal are string content to a
+JavaScript lexer; without that it reported a difference on the two files most
+likely to have been over-cut, which is the failure that looks like diligence.
+
+**The cost changes accordingly.** The honest unit is a writer plus an adversary,
+which is roughly double, and the adversary needs the same model as the writer,
+since what it is looking for is a plausible sentence that happens to be false.
+Against that, the four accuracy fixes to file headers and the five stale counts
+were most of what the pass actually bought. **An accuracy pass that touches
+nothing else, reading each header against its code and each figure against its
+file, is a much cheaper operation than the trim and captures the larger share of
+the value.** That is the version worth considering next, and
+`embedded-prose.py --dated` already lists half its worklist.
