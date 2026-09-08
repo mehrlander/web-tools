@@ -98,8 +98,12 @@ test('each repo carries its branch and its share in the title', () => {
   assert.match(note, /253 transcript lines/);
 });
 
-test('checkout names resolve to owner/repo slugs', () => {
-  assert.deepEqual(plain(data.sessionRepoSlugs(MIXED)), [
+// The row carries a `slug` because a name alone cannot be handed to anything
+// that needs an owner. There is no resolver over the set any more: the one
+// caller was the withdrawn list-row button, and a helper nothing reaches, held
+// up by a test, is a gate protecting nothing.
+test('each checkout carries the owner/repo slug its name resolves to', () => {
+  assert.deepEqual(plain(data.sessionRepoRows(MIXED)).map((r) => r.slug), [
     'mehrlander/shortcut-tools', 'mehrlander/web-tools', 'mehrlander/web-tools-private',
   ]);
 });
@@ -112,7 +116,8 @@ test('an unresolvable checkout shows in the strip and resolves to no slug', () =
                 branches: [] };
   assert.deepEqual(plain(data.sessionRepoRows(odd)).map((r) => r.name),
     ['some-other-clone', 'web-tools']);
-  assert.deepEqual(plain(data.sessionRepoSlugs(odd)), ['mehrlander/web-tools']);
+  assert.deepEqual(plain(data.sessionRepoRows(odd)).map((r) => r.slug),
+    ['', 'mehrlander/web-tools']);
   assert.match(data.sessionRepoNote(plain(data.sessionRepoRows(odd))[0]),
     /no repository of that name/);
 });
@@ -120,7 +125,6 @@ test('an unresolvable checkout shows in the strip and resolves to no slug', () =
 test('a session that named no repo has no strip at all', () => {
   const bare = { repos: [], branches: [] };
   assert.deepEqual(plain(data.sessionRepoRows(bare)), []);
-  assert.deepEqual(plain(data.sessionRepoSlugs(bare)), []);
 });
 
 // ── `attached`: scope, beside where the shell stood ─────────────────────────
