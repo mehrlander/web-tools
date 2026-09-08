@@ -4,6 +4,7 @@ _Generated from tasks/. Do not hand-edit._
 
 ## On deck
 - 🎫 [Reach the take-away menu from show-repo's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
+- 🎫 [Trim code commentary to its criterion, rule first](tasks/comment-trim-rule-first-b0o3bu.md) · L
 - 🎫 [Enforce the house style, now that it is findable](tasks/enforce-house-style-ryz0z5.md) · M
 - 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md) · M
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
