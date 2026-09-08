@@ -273,7 +273,7 @@ def top_level_hits(text):
     return found
 
 
-def pick(paths, base, ref, use_git=True, diff=None, at=""):
+def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
     slug = repo_slug()
     hosted = hosted_ok()
     facts = ref_facts(ref) if use_git else {"sha": ref, "branch": "", "pushed": True}
@@ -290,7 +290,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at=""):
     # the reader to the deployed renderer to look at itself.
     if b["renderer"]:
         why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment.")
-        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at)
+        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query)
 
     # A page's own file. ?use= cannot reach it: Pages serves the page FILE from
     # the default branch, so the old shell would wrap the new lib, silently.
@@ -300,10 +300,10 @@ def pick(paths, base, ref, use_git=True, diff=None, at=""):
         if hits:
             why.append("a page shell changed AND the diff touches " + ", ".join(hits)
                        + ": a framed page runs correctly and shows nothing, because the tab belongs to the top-level document.")
-            return decision("none", [(p, None) for p in b["shell"]], sha, slug, hosted, why, warn, facts, at)
+            return decision("none", [(p, None) for p in b["shell"]], sha, slug, hosted, why, warn, facts, at, query)
         why.append("a page's own file changed, which ?use= never swaps: Pages serves the page file from the default branch.")
         subjects = [(p, None) for p in b["shell"]]
-        return decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at)
+        return decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
 
     # Lib, which is the case that gets called wrong.
     if b["lib"] or b["dist"]:
@@ -335,7 +335,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at=""):
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
-        d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at)
+        d = decision("use", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
         for l, s3 in zip(d["links"], subjects):
             l["via"] = s3[2]
         if carried:
@@ -350,9 +350,9 @@ def pick(paths, base, ref, use_git=True, diff=None, at=""):
                         + ", ".join(waiting[:4]) + ("…" if len(waiting) > 4 else "")
                         + "): this reads COMMITS, so commit and re-run, or pass --files.")
             why.append("no committed change to show yet.")
-            return decision("none-yet", [], sha, slug, hosted, why, warn, facts, at)
+            return decision("none-yet", [], sha, slug, hosted, why, warn, facts, at, query)
     why.append("nothing that renders changed.")
-    return decision("none-needed", [], sha, slug, hosted, why, warn, facts, at)
+    return decision("none-needed", [], sha, slug, hosted, why, warn, facts, at, query)
 
 
 # A page that routes on its own hash opens on its EMPTY FORM without an
@@ -365,12 +365,24 @@ def pick(paths, base, ref, use_git=True, diff=None, at=""):
 # on it and the reader opened an empty form twice. Which pages need one is not
 # knowable from the file list, so the script warns rather than guessing: see
 # routes_on_hash below.
-def address(mech, page, sha, slug, view=None, at=""):
+# `query` is the addressed page's own ?query, which is a different thing from
+# `at` above and is the reason a link still got hand-built on 2026-09-08 with
+# the script sitting right there. The app routes on ?view=, not on a fragment,
+# so --at could not express it: the script printed a link that opened the wrong
+# view, and rebuilding the address by hand to add one query re-typed the SHA
+# too. A flag for the part that was missing is cheaper than a rule asking for
+# more care, and it keeps the whole address coming from one command.
+def address(mech, page, sha, slug, view=None, at="", query=""):
     base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
+    q2 = "?" + query.lstrip("?&") if query else ""
     if mech == "use":
+        # One query on this mechanism already, so an extra rides as another
+        # pair rather than as a second '?'.
         q = f"?use={sha}" + (f"&view={view}" if view else "")
+        if query:
+            q += "&" + query.lstrip("?&")
         return base + pretty + q + frag
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
@@ -398,7 +410,7 @@ def address(mech, page, sha, slug, view=None, at=""):
         # nothing; the same pin with no frame survives; a frame with the shell
         # unpinned survives even with the subject pinned to the branch. Only
         # the intersection fails.
-        return f"{base}pages/toss-render.html#gh={slug}@{sha}:{page}{frag}"
+        return f"{base}pages/toss-render.html#gh={slug}@{sha}:{page}{q2}{frag}"
     if mech == "toss-nested":
         return (f"{base}pages/toss-render.html#gh={slug}@{sha}:pages/toss-render.html"
                 f"#gh={slug}@{sha}:pages/<the page to render>.html")
@@ -420,7 +432,7 @@ def routes_on_hash(page):
 GLYPH = {"use": "⭐", "toss-gh": "🥏", "toss-nested": "🥏"}
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at=""):
+def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query=""):
     if not hosted and mech in ("use",):
         warn.append("this repo serves no pages, so ?use= has nothing to pin: use the toss instead.")
         mech = "toss-gh"
@@ -431,8 +443,9 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at=""):
                         "whatever they default to, which for a form-first page is the empty form ("
                         + ", ".join(needs[:4]) + ("…" if len(needs) > 4 else "")
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
-                        "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at)} for p, v in subjects]
+                        "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
+                        "on a ?query instead takes --query 'view=sessions'.")
+    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query)} for p, v in subjects]
     return {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
             "repo": slug, "links": links, "why": why, "warnings": warn}
 
@@ -481,6 +494,10 @@ def main():
                     help="the page's own address, put on the link as a trailing #fragment "
                          "(e.g. --at 'gh=owner/repo&pr=12'). A page that routes on its own "
                          "hash opens on its empty form without one.")
+    ap.add_argument("--query", default="", metavar="Q",
+                    help="the addressed page's own ?query, for a page that routes on one rather "
+                         "than on a hash (e.g. --query 'view=sessions'). Without it a link to such "
+                         "a page opens whichever view it defaults to.")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
     diff = Path(a.diff).read_text() if a.diff else None
@@ -488,10 +505,10 @@ def main():
         # A stated file set pins the SHA too, so a test's expected output does
         # not move with the branch.
         paths = [p for p in a.files.split(",") if p]
-        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at)
+        d = pick(paths, a.base, "0" * 40, use_git=False, diff=diff, at=a.at, query=a.query)
     else:
         try:
-            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at)
+            d = pick(changed(a.base, a.ref), a.base, a.ref, diff=diff, at=a.at, query=a.query)
         except GitFailed as e:
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
