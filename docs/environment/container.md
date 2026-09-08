@@ -32,11 +32,15 @@ Packages installed during a session do not transfer to other sessions unless the
 
 The home directory is two layers with different lifetimes, and the modification
 times separate them cleanly. Written fresh at boot: `skills/` (the account's own
-skills, 39 of them), `projects/` (this session's transcript), `session-env/`, and
-the harness's hook scripts. Restored from the environment snapshot, carrying the
-timestamp of the day that snapshot was built: `settings.json`, `CLAUDE.md`, and
-`plugins/`, including `plugins/installed_plugins.json` and the plugin cache below
-it.
+skills, 39 of them), `session-env/`, and the harness's hook scripts. Restored
+from the environment snapshot, carrying the timestamp of the day that snapshot
+was built: `settings.json`, `CLAUDE.md`, and `plugins/`, including
+`plugins/installed_plugins.json` and the plugin cache below it.
+
+`projects/` was listed as written fresh at boot too, and it is not.
+**Stale 2026-07-30 → the section below.** A session's own material persists
+across a restart of its VM, mtimes intact, which matters far more now that the
+session record captures subagent transcripts from that directory.
 
 So **account skills sync every container and account plugins do not.** A plugin is
 pinned at the commit it held when the snapshot was built. Nothing surfaces that
@@ -46,6 +50,56 @@ shipped, so a fix that had merged was running nowhere. The same lifetime governs
 hook installed by hand into `~/.claude/settings.json`. It covers exactly the
 session that wrote it, because a session's filesystem changes never enter the
 snapshot.
+
+
+### A session's own files outlive its VM
+
+*(measured 2026-09-08)*
+
+Three lifetimes are in play here and collapsing them is what produced the
+paragraph corrected above.
+
+**A VM restart keeps the disk.** Measured from inside a session 50 hours old
+whose `/proc/uptime` read 26 minutes: `~/.claude/projects/<id>/subagents/` still
+held 248 files, 46 MB, dated two days earlier with their original mtimes, and
+`/tmp` still held that session's scratchpad from the same day. The machine
+restarts; the filesystem it restarts onto is the one the session had.
+
+**A session idle for days keeps them too.** Two sessions were woken on purpose
+to test it, one idle about 35 hours and one about 50. Both still had every
+per-agent transcript: 156 agents recovered in one and 112 in the other, with
+`agents_unaccounted: 0` on both, the shortfall against their dispatch counts
+being refusals at the concurrency cap rather than losses. Together that recovered
+268 agent runs that had been written off as gone.
+
+**The environment snapshot is a third thing entirely** and never carried session
+material. It holds what the setup script installed, which is why a plugin can be
+days stale while the account's skills are current, and it is the subject of the
+section above.
+
+**The reclaim boundary, bracketed rather than pinned.** A third probe, on a
+session woken after **25 days**, came back with `vm uptime: 2 min` and a session
+directory holding only `ccr-tip.json` and `tool-results/`: no `subagents/` at
+all. That is the
+[documented](https://code.claude.com/docs/en/claude-code-on-the-web#environment-expired)
+behaviour, an expired environment reclaimed and a fresh one provisioned. A
+fourth, at 62 hours, still had every agent transcript. So the boundary sits
+**somewhere between three days and three weeks**, and narrowing it further is
+not worth the wakes: the operating rule does not change with the number. Do not
+tell a reader their fan-out is unrecoverable without asking the session, which
+costs one wake and one `ls`.
+
+**A woken session may return only part of its own transcript, and that is the
+sharper hazard.** The 25-day probe came back with 14.5 MB and 13 prompts against
+the 29.1 MB and 76 prompts its published record held, reporting a start two days
+later than the session's own. So a resume restores *some* conversation history,
+not necessarily all of it, and anything derived from the transcript is derived
+from whatever came back. In the session store that nearly overwrote a
+1,010-call record carrying 124 dispatches with a 189-call record carrying none;
+the guards are `record_path()` and `merge_captured()` in
+`web-tools-private sessions/tools/record.py`, and the measurement is in that
+store's README. Anything else that rebuilds state from a transcript inherits
+the same exposure.
 
 Two commands freshen a running container:
 
