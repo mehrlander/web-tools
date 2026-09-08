@@ -191,6 +191,7 @@ tools/render/scenarios/search-limit.mjs,"what the Contents lane says when the co
 tools/render/scenarios/section-structure.mjs,"the section rules a markdown aim draws, at two widths",tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/session-contents.mjs,"enters the session deck from the outline the page opens on, then opens the deck's own contents list: the rows readable at 390px, the reader marked, and one pager gap per exchange",tools/render/scenarios,65,driver,no,no,no
 tools/render/scenarios/session-exchange-card.mjs,,tools/render/scenarios,58,driver,no,no,no
+tools/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not",tools/render/scenarios,119,driver,no,no,no
 tools/render/scenarios/showing-paste-rows.mjs,,tools/render/scenarios,27,driver,no,no,no
 tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no,yes,yes
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no
