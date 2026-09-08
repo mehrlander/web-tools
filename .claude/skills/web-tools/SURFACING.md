@@ -35,7 +35,7 @@ For uncommon carriers, follow [surfacing-extended.md](https://github.com/mehrlan
 
 * **Surfacing caption.** Use:
   `🌿 [<branch>](…/pages/branch.html#gh=<owner>/<repo>@<branch>) · <N> files · [this turn](…/commit/<sha>)`
-  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them. Use the fallbacks in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md) when the reader lacks a stored token or every URL in an MCP body must be under 150 characters.
+  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them. Use the fallbacks in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md) when the reader lacks a stored token or every URL in an MCP body must be under 150 characters. A slash-joined `[main](…)/[diff](…)` pair measures as one run against that cap, so join with `, ` instead; the thresholds are measured in [github/mcp.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/mcp.md).
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
@@ -44,6 +44,8 @@ For uncommon carriers, follow [surfacing-extended.md](https://github.com/mehrlan
 * **Task marker 🎫.** Where the repo runs a tracker, use `🎫 [title](<task blob url>)`. Do not show the filename ID.
 
 * **Session diff.** For substantial work, use `Session diff: [main...branch](url)`.
+
+* **Review the diff 🔍.** Where the changed files are worth reading, add `…/pages/review.html#gh=owner/repo@branch&base=main` (`:path` for one file): each file's diff against the merge base, its patch and its raw content. It supplements the caption rather than replacing it.
 
 ### Showing something
 

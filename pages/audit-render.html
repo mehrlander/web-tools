@@ -47,6 +47,12 @@
    fixed emission order, so whichever the sheet puts last always won and the
    override was inert. */
 [x-ref="pins"] [data-edge] { pointer-events: auto; }
+
+/* The health readout's tone, set as an attribute so painting it cannot rewrite
+   the class list (an earlier version stripped text-xs along with the colour). */
+#audit-faults[data-tone="wait"]  { color: color-mix(in oklch, currentColor 50%, transparent); }
+#audit-faults[data-tone="ok"]    { color: var(--color-success); }
+#audit-faults[data-tone="error"] { color: var(--color-error); }
 [x-ref="pins"][data-audit-drag] [data-edge] { pointer-events: none; }
 </style>
 <script>
@@ -860,6 +866,13 @@ window.__audit = {
   await gh.load('kits/guide-render.js');   // house markdown type, not prose-sm
   await gh.load('kits/standoff.js');       // the annotation's rules, shared with ops.py
   await gh.load('kits/dictate.js');        // Dictate.pins: the settled edge-pin treatment
+  await gh.load('kits/page-report.js');
+  // THE OPT-IN, and it is the page's, not the reader's. Reporting is on from
+  // here: a failure that needs a tap before it is recorded is a failure nobody
+  // records, and the person holding the phone is the last one who should have
+  // to decide whether this load was worth keeping. Quiet by having nothing to
+  // say, not by friction; see the kit's header for the four gates.
+  window.PageReport?.watch();
   // md-doc's html() returns '' with no window.marked, which is a silent empty
   // render rather than an error. Found by looking at the pixels.
   window.marked = (await import('https://cdn.jsdelivr.net/npm/marked@12/+esm')).marked;
@@ -896,11 +909,213 @@ window.__audit = {
   // `kind` is the segmenter's word, and the panel was printing it raw: a reader
   // asked what "sent" meant, which is a fair question about a field abbreviated
   // for a JSONL file and then shown to a person.
-  const KINDS = { sent: 'sentence', code: 'code block', table: 'table', mixed: 'mixed',
+  const KINDS = { sent: 'sentence', code: 'code block', table: 'table',
+                  // NOT A DEFECT AND NOT A FAILURE TO RENDER. A unit is a span
+                  // over the SOURCE, not a formatting scope: type comes from the
+                  // markdown render and stays where the markdown puts it. Pull a
+                  // heading's end down into the paragraph below and the heading
+                  // does not grow, because what the span now covers is a heading
+                  // AND prose. kindOf re-derives that as this, which is the
+                  // page saying the span no longer describes one thing.
+                  mixed: 'heading and prose together',
                   h1: 'heading 1', h2: 'heading 2', h3: 'heading 3',
                   h4: 'heading 4', h5: 'heading 5', h6: 'heading 6' };
 
   const WORD = /[\w'\u2019-]/;
+  // The fragment encoding pages/shorter.html reads: gzip, then base64url with
+  // the padding dropped. Its own gunzipB64url is the inverse, character for
+  // character; kits/compression.js is the wrong shelf for this, since its gzip
+  // emits a GZ64-prefixed payload for a different reader.
+  const gzipB64url = async (text) => {
+    const cs = new CompressionStream('gzip');
+    const buf = await new Response(new Blob([text]).stream().pipeThrough(cs)).arrayBuffer();
+    let bin = '';
+    for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+
+  // WHAT THE PAGE THROWS, WHERE THE READER CAN SEE IT. Until now an uncaught
+  // error left the document rendered and the controls dead, with nothing on
+  // screen to say so: the text comes from an inline payload and marked, so a
+  // page whose interaction is broken still LOOKS right. Six rounds of reports
+  // were spent on symptoms of that shape, each one diagnosed as if the page
+  // were otherwise well. It may be, and this is how a reader finds out either
+  // way, on the device rather than by handing observations back and forth.
+  //
+  // Registered before the load chain rather than inside the component, since
+  // the failure most worth catching is one that stops the component mounting.
+  // FOUR WAYS A PAGE GOES WRONG, and window.onerror sees one of them. It was
+  // the only one watched, so a page reporting itself healthy meant only that
+  // nothing had been thrown uncaught: a console.error, a script or stylesheet
+  // that 404ed, and a rejected promise all passed in silence. On a phone there
+  // is no console to open, so silence there is indistinguishable from health,
+  // which is exactly the gap that let six rounds of "it is broken" go
+  // unanswered.
+  window.__auditFaults = [];
+  const fault = (what) => {
+    let line;
+    try { line = String(what).replace(/\s+/g, ' ').slice(0, 160); } catch { line = 'a fault that will not print'; }
+    // Repeats are counted rather than stacked: one failing call in a loop
+    // would otherwise push everything else off a four-line readout.
+    const seen = window.__auditFaults.find(f => f.line === line);
+    if (seen) seen.n++;
+    else window.__auditFaults.push({ line, n: 1 });
+    try { paintFaults(); } catch {}
+  };
+
+  // IT SAYS SO EITHER WAY, because silence cannot tell "checked and clean" from
+  // "the check never ran". It opens as `checking…`, so a page that half-boots
+  // is left saying that forever, which is itself the report; it turns green
+  // naming the kits that arrived once the component has mounted and painted,
+  // and red the moment anything faults.
+  //
+  // THE FIRST FOUR, not the last: the earliest fault is usually the cause and
+  // the ones after it the consequences, so a readout that scrolls keeps the
+  // wrong end. What overflows is counted rather than dropped silently.
+  window.__auditReady = false;
+  const paintFaults = () => {
+    const box = document.getElementById('audit-faults');
+    if (!box) return;
+    // The tone is its own attribute rather than a rewrite of the class list:
+    // stripping /text-\S+/ took text-xs with it, so the readout also grew.
+    const tone = (t) => box.setAttribute('data-tone', t);
+    const all = window.__auditFaults;
+    if (all.length) {
+      const shown = all.slice(0, 4).map(f => f.line + (f.n > 1 ? ` ×${f.n}` : ''));
+      if (all.length > 4) shown.push(`+${all.length - 4} more`);
+      tone('error');
+      box.textContent = shown.join('\n');
+      return;
+    }
+    // The clean case is two words. Naming the four kits that DID load is
+    // reassurance for whoever built the check and noise above a document for
+    // everyone else; the names appear when one is missing, which is the only
+    // time they identify anything.
+    const kits = ['Standoff', 'mdDoc', 'Dictate', 'marked'];
+    const gone = kits.filter(k => !window[k]);
+    tone(window.__auditReady && !gone.length ? 'ok' : 'wait');
+    box.textContent = !window.__auditReady ? 'checking…'
+      : gone.length ? `not loaded: ${gone.join(', ')}`
+      : 'no faults';
+  };
+  window.__auditSettled = () => {
+    window.__auditReady = true;
+    paintFaults();
+    // A beat after settling, so a fault thrown by the first paint is in the
+    // list before the report is taken.
+    setTimeout(() => { window.__auditReport?.(); }, 1200);
+  };
+
+  // THE CRASH THE READOUT ABOVE CANNOT SEE. Safari's "A problem repeatedly
+  // occurred" is the WEB PROCESS dying, not a JS exception: no handler runs, so
+  // every watcher above stays silent and the page that would report it is gone.
+  // The one channel that outlives the process is storage, so the fab writes the
+  // stage it is entering (alpineComponents/fab.js, _crumb) and drops the trail
+  // when the tap completes. A key still there on the next load is a tap that
+  // never finished, and naming the stage is the whole diagnosis. Read once and
+  // cleared, so it reports the crash rather than every load after it.
+  window.__fabCrumbRead = true;
+  try {
+    const crumb = localStorage.getItem('fab:step');
+    if (crumb) {
+      // NOT cleared here any more. alpineComponents/fab.js owns the key now,
+      // reads it on boot and files the report from any page, which is what
+      // lets a control run somewhere other than this one. This reader is only
+      // the on-screen line; clearing it here would take the trail away before
+      // the fab could file it.
+      
+      // A trail now, one entry per stage with its elapsed reading and heap.
+      // The old single-string form is still read, because a device may be
+      // carrying one written before this change.
+      let trail = null, stage = crumb, at = null;
+      try { const t = JSON.parse(crumb); if (t && Array.isArray(t.steps)) {
+        trail = t; at = t.at; stage = t.steps.at(-1)?.stage || 'unknown'; } } catch {}
+      if (!trail) [stage, at] = crumb.split(' @');
+      const ago = Number(at) ? Math.round((Date.now() - Number(at)) / 1000) : null;
+      window.__auditCrumb = { stage, ago, steps: trail?.steps || null };
+      // On screen it stays one line, since that is all a phone has room for;
+      // the whole trail rides the filed report, which has no such limit.
+      fault(`previous fab tap never finished: ${stage}` + (ago === null ? '' : ` (${ago}s ago)`));
+    }
+  } catch {}
+
+  addEventListener('DOMContentLoaded', paintFaults);
+
+  // FILING THE REPORT, when it has been armed to. Everything above puts the
+  // page's own account of itself on screen, which is one line on a phone and
+  // has to be retyped or cropped into a screenshot to travel. kits/page-report
+  // commits the whole account to a private repo instead, so a failure arrives
+  // in full rather than in the shape a reader could relay. It is on from the
+  // moment the kit loads, and says so quietly on screen for as long as it is.
+  //
+  // On the settling frame rather than at DOMContentLoaded: the faults worth
+  // reporting are mostly boot faults, and half of them have not happened yet
+  // when the DOM is ready. `auto` sends nothing when there is nothing to
+  // report, so a clean load writes no commit.
+  //
+  // THE OUTCOME IS NOT A FAULT. A first version pushed `report filed: <path>`
+  // into the fault list, which is wrong twice: it puts the instrument's own
+  // chatter in the readout reserved for the page's failures, and it changes the
+  // signature the kit dedupes on, so the second sighting of one persistent
+  // fault looked like a new one and was filed again. It rides the report line
+  // instead, where nothing reads it as a defect.
+  window.__auditReport = async (reason) => {
+    try {
+      if (!window.PageReport) return { ok: false, why: 'kit not loaded' };
+      const d = (() => { try { return Alpine.$data(document.body); } catch { return null; } })();
+      const extra = {
+        reason: reason || null,
+        libRef: d?.libRef || null,
+        faults: window.__auditFaults.map(f => ({ ...f })),
+        crumb: window.__auditCrumb || null,
+        doc: d ? { units: d.units?.length, words: d.words, view: d.view, lens: d.lens } : null,
+        kits: ['Standoff', 'mdDoc', 'Dictate', 'marked'].filter(k => !window[k]),
+      };
+      const res = reason ? await window.PageReport.send(extra) : await window.PageReport.auto(extra);
+      if (res.ok) window.__auditReportNote = `filed ${res.path.split('/').pop()}`;
+      else if (res.why !== 'nothing to report' && res.why !== 'already filed'
+               && res.why !== 'not watching') window.__auditReportNote = `not filed: ${res.why}`;
+      try { Alpine.$data(document.body).syncReport(); } catch {}
+      return res;
+    } catch (e) { return { ok: false, why: String(e) }; }
+  };
+  // Capture phase, because a resource that fails to load fires its error on
+  // the element and never reaches window in the bubble phase. Those events
+  // carry no message, so the target's own address is the report.
+  addEventListener('error', (e) => {
+    const el = e.target;
+    if (el && el !== window && (el.src || el.href))
+      return fault('failed to load: ' + String(el.src || el.href).replace(/^https?:\/\//, ''));
+    fault(e.message || 'script error');
+  }, true);
+  addEventListener('unhandledrejection',
+    (e) => fault('unhandled: ' + (e.reason?.message || e.reason)));
+  // A DIAGNOSTIC MUST NOT BE ABLE TO BREAK THE PAGE, and this one did. The
+  // first version formatted a console argument with JSON.stringify, which
+  // throws on anything circular: a DOM node, an event, window itself. So the
+  // moment a library logged an object, the wrapper threw, the module script
+  // died before Alpine mounted, every x-cloak element stayed hidden and the
+  // page came up WHITE. The instrument built to reveal failures was the
+  // failure, and it shipped because the sandbox happens to log nothing early.
+  //
+  // Hence: every argument formatted behind its own try, the whole report behind
+  // another, and the real console called either way so nothing is lost even if
+  // the readout gives up entirely.
+  const asText = (x) => {
+    try {
+      if (x instanceof Error) return x.message;
+      if (typeof x !== 'object' || x === null) return String(x);
+      return JSON.stringify(x);
+    } catch { return Object.prototype.toString.call(x); }
+  };
+  for (const level of ['error', 'warn']) {
+    const was = console[level].bind(console);
+    console[level] = (...a) => {
+      try { fault(level + ': ' + a.map(asText).join(' ')); } catch {}
+      was(...a);
+    };
+  }
+
   const snapWord = (text, i) => {
     if (i <= 0 || i >= text.length) return i;
     if (!WORD.test(text[i - 1]) || !WORD.test(text[i])) return i;   // already between words
@@ -931,7 +1146,7 @@ window.__audit = {
       this.a.standoff = Standoff.adopt(this.a.standoff, this.a.text);
       this.sections = mdDoc.split(this.a.text);
       this.base = JSON.parse(JSON.stringify(this.a.standoff));
-      this.$nextTick(() => { this.bindDoc(); this.paint(); });
+      this.$nextTick(() => { this.bindDoc(); this.paint(); this.syncReport(); window.__auditSettled?.(); });
       // Clicking off every unit clears the selection. Until now the only way
       // out was the panel's own close button, which is the one control a
       // reader is not looking at once they have decided they are done. Capture
@@ -984,23 +1199,33 @@ window.__audit = {
     // may be the head or tail of the DOCUMENT, which has a unit on one side
     // only, so there is nothing to relocate it between. The second arrived with
     // insert, which needs one side where shift needs two, and it is the case
-    // where the drag button is absent from a boundary the reader can plainly
-    // see and can plainly put text at.
+    // where a boundary the reader can plainly see, and can plainly put text at,
+    // still cannot be moved.
+    // WHICH EDGE, AND WHAT THE OTHER ONE DOES. This said "the head of the
+    // document takes text and cannot be dragged" over a unit whose END pin
+    // drags perfectly well, and both pins are painted, so the reader read a
+    // flat refusal, moved the other pin, and watched it work. True about one
+    // edge, unreadable as written.
+    //
+    // x-text evaluates whether or not x-show is displaying it, so the empty
+    // case is a real branch and not a hypothetical one: without it this read
+    // "the undefined edge cannot be dragged" in the DOM of every unit whose
+    // boundaries are both fine.
     get noDrag() {
       const e = this.unpinned;
-      // x-text evaluates whether or not x-show is displaying it, so the empty
-      // case is a real branch and not a hypothetical one: without it this read
-      // "the undefined edge cannot be dragged" in the DOM of every unit whose
-      // boundaries are both fine.
-      const ends = this.edges.filter(x => !x.shiftable && !e.includes(x.edge))
-                             .map(x => x.edge === 'start' ? 'head' : 'tail');
-      if (ends.length)
-        return `the ${ends[0]} of the document takes text and cannot be dragged: `
-             + 'it has a unit on one side only';
+      const stuck = this.edges.filter(x => !x.shiftable && !e.includes(x.edge));
+      if (stuck.length) {
+        const free = this.edges.find(x => x.shiftable && !e.includes(x.edge));
+        const side = stuck[0].edge === 'start' ? 'starts' : 'ends';
+        const where = stuck[0].edge === 'start' ? 'start' : 'end';
+        return `this span ${side} the document, so its ${where} has nothing to `
+             + `move between; it still takes text.`
+             + (free ? ` Its ${free.edge} moves.` : '');
+      }
       if (!e.length) return '';
       return e.length === 2
-        ? 'neither edge can be dragged: both fall in markup the render does not show'
-        : `the ${e[0]} edge cannot be dragged: it falls in markup the render does not show`;
+        ? 'neither edge can be moved: both fall in markup the render does not show'
+        : `this span's ${e[0]} cannot be moved: it falls in markup the render does not show`;
     },
     // The panel's two pills, as data: one row per axis, each naming the
     // operation that edits it, the choices, and the value in force. Written
@@ -1043,7 +1268,92 @@ window.__audit = {
     get so() { return this.a.standoff; },
     get units() { return this.so.units; },
     get raw() { return JSON.stringify(this.so, null, 1); },
+    // WHICH PAGE IS ON SCREEN, said by the page rather than assumed from a link.
+    // Two rounds of "no change" were spent on a `?use=` address, which swaps the
+    // LIB at a ref and never the page file: Pages serves the page from the
+    // default branch, so a fix living in this file was absent with nothing on
+    // screen to say so (docs/SNAGS.md, use-swaps-the-lib-not-the-page).
+    //
+    // A stamp injected at build time would be the general answer and is not
+    // what this is. This is cheaper and cannot go stale: each token is a claim
+    // the live code makes about ITSELF, read off the object at render time, so
+    // a token can only appear when the behaviour it names is actually present.
+    // Add one whenever a change here is worth being able to see from a phone.
+    // THE LAST FEW THINGS THIS PAGE DID, in the order it did them, on screen.
+    // Added 2026-09-07 after two rounds of diagnosis from the outside settled
+    // nothing: a boundary moved that nobody armed, and every account of why was
+    // a guess. A pin gesture crosses three places (which pin resolved, which
+    // edge was armed, which boundary the op was asked for) and a reader can see
+    // none of them, so what gets reported is the outcome and the cause has to
+    // be inferred. It is recorded rather than inferred now.
+    trace: [],
+    // KEPT, AND NO LONGER ON SCREEN. Four lines of it sat in the header while
+    // three defects were found through it, which is what it was for; the reader
+    // never needed them, since the panel says what was refused and what was
+    // absorbed in its own words. A driver reads `trace` directly, so the
+    // evidence survives without the scaffolding.
+    say(s) { this.trace.push(s); if (this.trace.length > 8) this.trace.shift(); },
+    // THE KITS THIS PAGE CANNOT WORK WITHOUT, named rather than assumed. Each
+    // one loads over the network through gh.load, and inside a toss that chain
+    // is re-pointed through the shell's fetch shim, which is the arrangement
+    // this page is read in and the one that has never been testable from the
+    // sandbox. A kit that fails to arrive takes its controls with it and
+    // leaves the text rendering perfectly.
+    get missing() {
+      const want = { Standoff: 'boundaries', mdDoc: 'the document render',
+                     Dictate: 'the pins', marked: 'markdown' };
+      const gone = Object.keys(want).filter(k => !window[k]);
+      return gone.length ? `not loaded: ${gone.map(k => `${k} (${want[k]})`).join(', ')}` : '';
+    },
+    // ── THE REPORT LINE ──────────────────────────────────────────────────
+    // A projection of the kit's state, not a second copy of it: Alpine cannot
+    // see a localStorage write, so this is refreshed whenever the page does
+    // something that could change it. There is no control here any more. The
+    // page opts in at load and the reader taps nothing.
+    reportStatus: '',
+    syncReport() {
+      const base = window.PageReport?.status || '';
+      const note = window.__auditReportNote;
+      this.reportStatus = base && note ? `${base} · ${note}` : base;
+    },
+
+    // Not on screen. It was, all through the session that found the render-link
+    // crash, because nothing else could say which copy of the page and lib a
+    // device had loaded. That was a symptom of unusable render links rather than
+    // something a reader of a document wants above it, and the links work now.
+    // The ref still rides a filed crash report, where it is the first thing
+    // worth knowing.
+    get libRef() { return (this.ref || 'main').slice(0, 12); },
+
     get srcHref() { return 'data:application/json;charset=utf-8,' + encodeURIComponent(this.raw); },
+
+    // ── HANDING THE PROJECTION ON ────────────────────────────────────────
+    // This page decides what a span IS and whether it earns its place; it does
+    // not decide what the replacement should SAY. pages/shorter.html does that,
+    // segment by segment, and reads a shorter/1 envelope carrying both sides.
+    // So the projection travels as `original` (the document as annotated) and
+    // `proposal` (the same document with the DROPs cut and the insertions
+    // placed), gzipped into the fragment, which never reaches a server.
+    //
+    // MINTED ON THE PRESS, NOT ON EVERY RENDER. Gzip is async, so a bound
+    // href would have to be recomputed on every edit and would hand over a
+    // stale payload between the edit and the next tick. The anchor carries
+    // only the count of what would travel; pressing it projects and opens.
+    get shorterLabel() {
+      const n = this.units.filter(u => u.verdict === 'DROP').length
+              + (this.so.insertions || []).length;
+      return n ? `adjudicate (${n})` : 'adjudicate';
+    },
+    async toShorter(e) {
+      e.preventDefault();
+      const { out, report } = Standoff.materialize(this.so, this.a.text);
+      if (out === this.a.text) return alert('Nothing to project: no DROP and no insertion.');
+      const env = { kind: 'shorter/1',
+                    title: `${report.target} (projected from the audit)`,
+                    original: this.a.text, proposal: out };
+      const gz = await gzipB64url(JSON.stringify(env));
+      open('https://mehrlander.github.io/web-tools/pages/shorter.html#gz=' + gz, '_blank');
+    },
     slice(u) { return this.a.text.slice(u.start, u.end).trim(); },
     // The uid's prefix is the document, which every row on this page shares.
     // Only the ordinal distinguishes them, and the full uid wrapped to two
@@ -1086,15 +1396,72 @@ window.__audit = {
     },
     undo() { if (this.canUndo) this.replay(this.at - 1); },
     redo() { if (this.canRedo) this.replay(this.at + 1); },
-    push(op) {
+    // WHAT THE OPERATION WOULD HAVE NEEDED. ops.shift refuses an offset outside
+    // the pair it moves between, and "was refused" alone leaves the reader to
+    // work out which of three guards it hit. The window is the one that fires
+    // in practice: a tap past the span's end refuses as a start move and
+    // succeeds as an end move, which is two unrelated-looking symptoms from one
+    // gesture landing outside.
+    // TWO AUDIENCES, AND THEY WANT DIFFERENT SENTENCES. The trace is a
+    // diagnostic and keeps the offsets, which is what makes a near miss legible
+    // (asked 827, needs 615..826, so the tap was one character past the end).
+    // The panel is read by whoever just tapped, and "shift conven-008 was
+    // refused: asked 827, needs 615..826" tells them an operation name, a unit
+    // id and two character offsets, none of which is on screen. What they need
+    // is the rule and where to tap, so the panel names the two spans instead.
+    refusal(op) {
+      const us = [...this.units].sort((a, b) => a.start - b.start);
+      const i = us.findIndex(u => u.uid === (op.after ?? op.uid));
+      // Enough of each span to recognise it, from the end of the one before and
+      // the start of the one after, since those are the sides facing the
+      // boundary.
+      const q = (u, tail) => {
+        const t = this.a.text.slice(u.start, u.end).trim().replace(/\s+/g, ' ');
+        return t.length <= 30 ? t : tail ? '…' + t.slice(-29) : t.slice(0, 29) + '…';
+      };
+      if (op.op === 'shift') {
+        if (i < 0 || i + 1 >= us.length)
+          return 'nothing follows this boundary, so there is no pair to move it within';
+        return 'a boundary moves within the two spans it separates, and reaches '
+             + `past them only by absorbing what it crosses: tap inside `
+             + `“${q(us[i], true)}” or “${q(us[i + 1])}”`;
+      }
+      if (op.op === 'split') return 'a split needs text on both sides of the point';
+      if (op.op === 'merge') return 'nothing follows this span to merge it with';
+      if (op.op === 'insert') return 'this boundary cannot take text';
+      return `${op.op} was refused`;
+    },
+    whyRefused(op) {
+      if (op.op !== 'shift') return '';
+      const us = [...this.units].sort((a, b) => a.start - b.start);
+      const i = us.findIndex(u => u.uid === op.after);
+      if (i < 0 || i + 1 >= us.length) return `: ${op.after} has nothing after it`;
+      return `: asked ${op.to}, needs ${us[i].start}..${us[i + 1].end}`;
+    },
+    // `keep` NAMES THE READER'S SUBJECT, which is not always the unit the
+    // operation returns. ops.shift returns the LEFT unit of the pair it moved
+    // between, so moving an END boundary returns the unit being edited and
+    // moving a START boundary returns its neighbour. Re-selecting the return
+    // value therefore moved the highlight off the span the reader was working
+    // on and onto the one before it: a span at [240,291] became a selection at
+    // [120,267], which reads as the whole span jumping rather than one edge
+    // being placed. Reported four times before it was measured, on 2026-09-07,
+    // because every account of it was about the pins and the pins were fine.
+    push(op, keep) {
       // Applied to the live annotation so the view moves under your thumb, then
       // checked and rolled back if it broke something. Same rule ops.py runs on
       // a whole patch: valid against its base, or it does not stand.
       const before = JSON.parse(JSON.stringify(this.units));
       const uid = Standoff.ops[op.op]?.(this.so, this.a.text, op) ?? null;
-      const bad = uid === null ? [`${op.op} ${op.uid ?? op.after} was refused`]
+      const bad = uid === null ? [`${op.op} ${op.uid ?? op.after} was refused` + this.whyRefused(op)]
                               : Standoff.check(this.so, this.a.text);
-      if (bad.length) { this.so.units = before; this.opErr = bad[0]; return; }
+      if (bad.length) {
+        this.so.units = before;
+        this.opErr = uid === null ? this.refusal(op) : bad[0];
+        this.say(`refused: ${bad[0]}`);
+        return false;
+      }
+      this.say(`${op.op} ${op.after ?? op.uid} -> ${op.to ?? op.at ?? ''} ok`);
       this.opErr = '';
       this.patch.length = this.at;      // a new move drops the redo tail
       this.patch.push(op);
@@ -1104,9 +1471,63 @@ window.__audit = {
       // schedules placePins and the pins are drawn from the selected unit's
       // edges. Setting it after left the pins one operation behind: still armed,
       // still red, still on the boundary the edit had just moved.
-      const u = this.units.find(x => x.uid === uid);
+      const u = this.units.find(x => x.uid === keep) || this.units.find(x => x.uid === uid);
       this.sel = u ? { ...u, ref: this.srcRef(u) } : null;
       this.paint();
+      return true;
+    },
+
+    // REACHING PAST THE PAIR IS NOT A SHIFT, IT IS MERGES AND THEN A SHIFT, and
+    // that is the whole of why a tap out there used to be refused: the
+    // operation was keeping its own definition, not ruling the intent out. The
+    // intent is already sanctioned on this panel, since Merge next absorbs the
+    // following span with one tap.
+    //
+    // What it costs is the reason it is counted rather than silent. A merge's
+    // survivor keeps the LEFT unit's label and verdict, so every span absorbed
+    // loses its judgment, its verdict and its note, which on this page is the
+    // product. Three spans crossed is three judgments gone behind a gesture
+    // that looks like an edge moving. So the spans are named as they go and
+    // each merge is its own patch entry, which is what lets undo step back
+    // through them one at a time and lets ops.py replay the same sequence.
+    //
+    // BOTH DIRECTIONS, and the merge's `keep` is what makes the second one
+    // honest. Reaching right, the boundary's left unit absorbs what it crosses
+    // and the survivor is already the span the reader is working from. Reaching
+    // left it is the other way round, so the merge keeps the RIGHT side's
+    // identity: without that the gesture would join each pair into the earlier
+    // unit and destroy the subject rather than the ground being crossed, which
+    // is why this direction refused outright until 2026-09-07.
+    absorbTo(after, to) {
+      const lost = [];
+      for (let guard = 0; guard < 40; guard++) {
+        const us = [...this.units].sort((a, b) => a.start - b.start);
+        const i = us.findIndex(x => x.uid === after);
+        if (i < 0 || i + 1 >= us.length) return null;
+        const u = us[i], n = us[i + 1];
+        if (u.start < to && to < n.end) return { after, lost };  // the pair reaches it
+        if (to <= u.start) {
+          // LEFTWARD, absorbing INTO the span on the right, which is the one
+          // the reader is working from. keep:'right' is what makes that the
+          // survivor; the default would join the pair into the left unit and
+          // destroy the subject instead of the ground being crossed.
+          if (i < 1) return null;                      // nothing before it to cross
+          lost.push({ label: u.label || '', verdict: u.verdict || 'KEEP' });
+          // The survivor is THIS boundary's left unit, keeping its identity and
+          // reaching back over the one it absorbed, so `after` still names it.
+          // Re-pointing at the absorbed uid instead left the loop looking for a
+          // unit that no longer existed; it returned null, the caller's plain
+          // shift then succeeded on the widened pair, and the whole reach read
+          // as working while reporting nothing and failing on the second span.
+          if (!this.push({ op: 'merge', uid: us[i - 1].uid, keep: 'right' },
+                         this.sel?.uid)) return null;
+          continue;
+        }
+        if (i + 2 >= us.length) return null;           // nothing past it to keep
+        lost.push({ label: n.label || '', verdict: n.verdict || 'KEEP' });
+        if (!this.push({ op: 'merge', uid: u.uid }, this.sel?.uid)) return null;
+      }
+      return null;
     },
     nextOf(uid) { return this.units[this.units.findIndex(u => u.uid === uid) + 1]; },
 
@@ -1429,16 +1850,52 @@ window.__audit = {
     // A tap in the text is two different requests, and which one is a state the
     // reader set by tapping a pinhead. Armed: put this boundary here. Otherwise:
     // make that unit the active one.
+    // A CLICK IS NOT ALWAYS A TAP, and on a touch screen the difference is what
+    // broke this. Measured 2026-09-07 with a real finger: tapping a pin puts
+    //
+    //   click(touch), pointerdown(touch), touchstart, pointerup, touchend, click
+    //
+    // on the document. The FIRST click arrives before any pointerdown, because
+    // a tap on the pin synthesizes a click into the document underneath it, and
+    // hit() runs on click while lastTapOffset is recorded on pointerdown. So
+    // that phantom ran with no offset of its own: it consumed the arming and,
+    // where an earlier tap had left an offset standing, placed the boundary at
+    // a point the reader had tapped for some other reason entirely. A mouse
+    // orders pointerdown before click always, so none of it is visible there.
+    //
+    // The offset is therefore CONSUMED, once, by the click that follows its own
+    // pointerdown. A click carrying none is a phantom: it does nothing at all
+    // and leaves the pin armed, rather than spending the arming on a placement
+    // nobody asked for.
     hit(u) {
+      const off = this.lastTapOffset;
+      this.lastTapOffset = null;
       if (this.armed) {
-        const e = this.armedEdge, off = this.lastTapOffset;
+        const e = this.armedEdge;
+        this.say(`tap@${off} with ${this.armed} armed`
+               + `, after ${e ? e.after : 'no edge'}${e && !e.shiftable ? ' (not shiftable)' : ''}`);
+        if (off == null) { this.say('ignored: a click with no tap behind it'); return; }
         this.armed = null;
         // A tap relocates a boundary that HAS two sides. The head and the tail
         // have one, so there is nothing to relocate them between: the tap falls
         // through and selects, which is what it would have done unarmed, rather
         // than pushing a shift both implementations would refuse.
         if (e && e.shiftable) {
-          if (off != null) this.push({ op: 'shift', after: e.after, to: off });
+          const us = [...this.units].sort((a, b) => a.start - b.start);
+          const i = us.findIndex(x => x.uid === e.after);
+          const outside = i >= 0 && i + 1 < us.length
+                       && (off >= us[i + 1].end || off <= us[i].start);
+          if (outside) {
+            const r = this.absorbTo(e.after, off);
+            if (r && r.lost.length) {
+              this.push({ op: 'shift', after: r.after, to: off }, this.sel?.uid);
+              const what = r.lost.map(l => `${l.label} ${l.verdict}`).join(', ');
+              this.opErr = `absorbed ${r.lost.length} span${r.lost.length > 1 ? 's' : ''}: ${what}`;
+              this.say(`absorbed ${r.lost.length} (${what})`);
+              return;
+            }
+          }
+          this.push({ op: 'shift', after: e.after, to: off }, this.sel?.uid);
           return;
         }
       }
@@ -1454,19 +1911,6 @@ window.__audit = {
     offsetAt(x, y) {
       const i = Standoff.offsetAt(document, x, y);
       return i == null ? null : snapWord(this.a.text, i);
-    },
-    // The inverse, for placing a pinhead: a collapsed Range at the offset,
-    // measured against the doc container so the pins scroll with the text.
-    pointAt(at) {
-      const host = this.$refs.doc;
-      const hit = Standoff.nodeAt(host, at);
-      if (!hit) return null;
-      const r = document.createRange();
-      r.setStart(hit.node, hit.offset);
-      r.collapse(true);
-      const b = r.getBoundingClientRect(), h = host.getBoundingClientRect();
-      if (!b.height && !b.width) return null;
-      return { x: b.left - h.left, y: b.top - h.top, h: b.height || 20 };
     },
     // The client rect of the collapsed range at a document offset, which is
     // what the pin painter measures from.
@@ -1693,11 +2137,44 @@ window.__audit = {
       const past = travel > 0 ? Math.max(0, travel - buffer) : travel;
       return y0 + Math.round(past / lineH) * lineH;
     },
+    // WHICH PIN THE FINGER MEANT, which is not always the one the browser
+    // hands over. A pin's touch target is a 32px box padded above and below
+    // the line it marks, so two pins on adjacent lines overlap wherever their
+    // x values are close, and elementFromPoint then answers with whichever was
+    // appended last, which is always `end`. Grabbing the start pin and
+    // watching the end boundary move is what that looks like from the outside,
+    // and it is what this page did until 2026-09-07: measured at 430px on the
+    // stored CONVENTIONS.md run, the start box sat at (132,301,32x53) and the
+    // end box at (117,328,32x53), so the start pin's own centre was inside the
+    // end pin's box.
+    //
+    // Resolved by distance to the BAR, which is the thing a pin actually
+    // marks, rather than by stacking order. Only boxes containing the point
+    // are considered and the gate above is unchanged, so a point inside one
+    // box alone still answers with that box.
+    pinUnder(ev) {
+      const hit = [...(this.$refs.pins?.querySelectorAll('[data-edge]') || [])]
+        .filter(b => {
+          const r = b.getBoundingClientRect();
+          return ev.clientX >= r.left && ev.clientX <= r.right
+              && ev.clientY >= r.top && ev.clientY <= r.bottom;
+        });
+      if (!hit.length) return null;
+      const far = (b) => {
+        const r = (b.firstElementChild || b).getBoundingClientRect();
+        return Math.hypot(ev.clientX - (r.left + r.width / 2),
+                          ev.clientY - (r.top + r.height / 2));
+      };
+      return hit.reduce((a, b) => (far(b) < far(a) ? b : a)).getAttribute('data-edge');
+    },
     pinDown(ev) {
-      const box = ev.target?.closest?.('[data-edge]');
+      if (!ev.target?.closest?.('[data-edge]')) return;
+      const which = this.pinUnder(ev);
+      this.say(`down on ${ev.target.closest('[data-edge]').getAttribute('data-edge')}`
+             + `, resolved ${which}, was ${this.armed || 'none'}`);
+      const box = which && this.$refs.pins?.querySelector(`[data-edge="${which}"]`);
       if (!box) return;
       ev.preventDefault(); ev.stopPropagation();
-      const which = box.getAttribute('data-edge');
       const was = this.armed === which;
       // MEASURED BEFORE ANYTHING IS REPAINTED. The bar is the pin's first child
       // and it IS the text line; the painter restyles in place but a repaint
@@ -1737,8 +2214,8 @@ window.__audit = {
         ay = Math.min(b.bottom - EDGE, Math.max(b.top + EDGE, ay));
         const i = this.offsetAt(ax, ay);
         if (i == null) return;
-        // Moved live and recorded once, the same rule the pad follows: one drag
-        // is one judgment.
+        // Moved live and recorded once: one drag is one judgment, so the patch
+        // gets a single shift when the finger lifts.
         if (Standoff.ops.shift(this.so, this.a.text, { after, to: i }) === null) return;
         landed = i;
         this.paint();
@@ -1750,9 +2227,11 @@ window.__audit = {
         d.removeEventListener('pointercancel', up, true);
         d.body.style.userSelect = ''; d.body.style.touchAction = '';
         if (landed != null && landed !== e0.at) {
+          this.say(`drag ${which} from ${e0.at} to ${landed}, after ${after}`);
           Standoff.ops.shift(this.so, this.a.text, { after, to: e0.at });
+          const subject = this.sel?.uid;
           this.armed = null;
-          this.push({ op: 'shift', after, to: landed });
+          this.push({ op: 'shift', after, to: landed }, subject);
           return;
         }
         if (landed != null) Standoff.ops.shift(this.so, this.a.text, { after, to: e0.at });
@@ -1783,67 +2262,6 @@ window.__audit = {
       addEventListener('resize', () => this.placePins());
     },
 
-    // ── THE PAD ──────────────────────────────────────────────────────────────
-    // A relative pointer, not a scrubber. The drag moves a VIRTUAL POINT that
-    // starts at the armed pin, and each move asks the browser what offset sits
-    // under it, so wrapped lines and proportional type come out right without
-    // arithmetic over the buffer.
-    //
-    // The gain depends on how fast the finger moves: creep and the boundary
-    // creeps, well under 1:1, which is the precision the pad exists for; flick
-    // and it runs ahead. Overshoot on a flick, crawl back a character at a time,
-    // both without lifting. The four numbers are the whole feel of the control,
-    // and they are lib/kits/annotate.js's, which is where they were tuned.
-    padding_: false, padPt: null, padBase: null,
-    PAD: { slow: 0.45, fast: 2.4, v0: 0.12, v1: 1.5 },
-    padDown(ev) {
-      const e = this.edges.find(x => x.edge === this.armed);
-      if (!e) return;
-      const p = this.pointAt(e.at), h = this.$refs.doc.getBoundingClientRect();
-      if (!p) return;
-      ev.target.setPointerCapture?.(ev.pointerId);
-      this.padding_ = true;
-      this.padPt = { x: p.x + h.left, y: p.y + h.top + p.h / 2 };
-      this.padBase = { after: e.after, from: e.at, last: ev, t: performance.now() };
-      document.body.style.userSelect = 'none';
-    },
-    padMove(ev) {
-      if (!this.padding_) return;
-      ev.preventDefault();
-      const b = this.padBase, now = performance.now();
-      const dx = ev.clientX - b.last.clientX, dy = ev.clientY - b.last.clientY;
-      const dt = Math.max(1, now - b.t);
-      const v = Math.hypot(dx, dy) / dt, P = this.PAD;
-      const t = Math.min(1, Math.max(0, (v - P.v0) / (P.v1 - P.v0)));
-      const gain = P.slow + t * (P.fast - P.slow);
-      this.padPt = { x: this.padPt.x + dx * gain, y: this.padPt.y + dy * gain };
-      b.last = ev; b.t = now;
-      // Nothing under the point is not a failure: the point keeps moving and
-      // the boundary holds until text is under it again. Walking x back to the
-      // line end was tried and is the wrong reading, since past the end of a
-      // line the next character is on the NEXT line, and the point reaches it
-      // by moving down the way a finger would.
-      const off = this.offsetAt(this.padPt.x, this.padPt.y);
-      if (off != null) {
-        // Moved on the live annotation, not recorded: one drag is one judgment,
-        // so the patch gets a single `shift` when the finger lifts.
-        if (Standoff.ops.shift(this.so, this.a.text, { after: b.after, to: off }) !== null) {
-          this.paint();
-        }
-      }
-    },
-    padUp() {
-      if (!this.padding_) return;
-      this.padding_ = false;
-      document.body.style.userSelect = '';
-      const b = this.padBase, e = this.edges.find(x => x.edge === this.armed);
-      const to = e ? e.at : b.from;
-      // Put it back, then let push() make the one real operation, so the page
-      // and a patch replayed by ops.py end in the same place.
-      Standoff.ops.shift(this.so, this.a.text, { after: b.after, to: b.from });
-      if (to !== b.from) this.push({ op: 'shift', after: b.after, to });
-      else this.paint();
-    },
     // The deck is a CONTAINER, not a viewer: one section per slide, same units,
     // same paint(). Nothing about the audit changes to ride it.
     deck() {
@@ -1887,6 +2305,19 @@ window.__audit = {
               x-text="`${units.length} units · ${words.toLocaleString()} words · ` + (lens === 'verdict'
                         ? `${decided} decided` : `${pctOn('explanation')}% explanation`)"></span>
         <a class="text-xs link link-primary" :href="so.target.url" x-show="so.target.url">source</a>
+        <div id="audit-faults" class="text-xs font-mono w-full whitespace-pre-line leading-tight
+                    text-base-content/50"
+             @click="window.__auditFaults.length = 0; window.__auditSettled()">checking…</div>
+
+        <!-- Reporting is the normal state, so this is a fact about the page
+             rather than a warning, and there is nothing on it to act on. It
+             stays visible because a page that files reports must be answerable
+             to whoever is holding it; the address carries ?report=off for one
+             load, and the kit's disable() for good. -->
+        <div class="text-xs font-mono w-full opacity-30 leading-tight"
+             x-text="reportStatus" x-show="reportStatus"
+             title="this page files its own diagnostics when something goes wrong"></div>
+
         <div class="join ml-auto">
           <button class="join-item btn btn-xs" :class="view==='source' && 'btn-active'"
                   @click="view='source'; paint()">Source</button>
@@ -1947,10 +2378,10 @@ window.__audit = {
       <!-- The pin layer. It overlays the doc box exactly, takes no taps of its
            own, and hands each pin back its own: the painter writes the box's
            whole style attribute, so the exception is a rule here rather than
-           an inline property there. While the pad is driving, the pins stop
-           hit-testing entirely, since the virtual point starts on one. -->
+           an inline property there. While a pin is being dragged the pins stop
+           hit-testing, so the aim point reads the text and not the pin on it. -->
       <div x-ref="pins" class="absolute inset-0 pointer-events-none"
-           :data-audit-drag="(padding_ || pinDrag) ? '' : null"
+           :data-audit-drag="pinDrag ? '' : null"
            @pointerdown="pinDown($event)"></div>
     </div>
 
@@ -1964,6 +2395,8 @@ window.__audit = {
         <span x-text="so.target.bytes + ' bytes'"></span>
         <span class="opacity-60" x-text="'sha256 ' + so.target.sha256.slice(0,16)"></span>
         <a class="link" :href="srcHref" download="standoff.json">download</a>
+        <a class="link link-secondary" href="#" @click="toShorter($event)"
+           x-text="shorterLabel">adjudicate</a>
       </div>
       <div class="overflow-x-auto">
         <table class="table table-xs">
@@ -2062,11 +2495,6 @@ window.__audit = {
            hold text and not enough to relocate. -->
       <div class="mt-2" x-show="armed" x-cloak>
         <div class="flex items-center gap-2" x-show="armedEdge?.shiftable" x-cloak>
-          <button class="btn btn-sm btn-primary touch-none select-none"
-                  @pointerdown="padDown($event)" @pointermove="padMove($event)"
-                  @pointerup="padUp()" @pointercancel="padUp()">
-            <i class="ph ph-crosshair"></i> drag the edge
-          </button>
           <span class="opacity-60 font-mono" x-text="armedEdge?.at"></span>
         </div>
         <input class="input input-xs input-bordered w-full mt-2"
