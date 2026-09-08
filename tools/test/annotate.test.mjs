@@ -392,9 +392,17 @@ test('without the dictate kit the annotator still works, minus the microphone', 
   // A page may chain annotate.js alone. The composer must open, take a typed
   // note, and serialize; only the voice affordance is missing. Anything else
   // makes the kit pair a hard dependency, which it is deliberately not.
+  // A SECOND WINDOW RE-POINTS THE REALM'S GLOBALS, and every later test in this
+  // file pays for it unless they are put back. makeWindow assigns
+  // global.document / global.window so a kit's BARE identifiers resolve
+  // (bootstrap.mjs), and a kit that reaches for `document` rather than for the
+  // one it was handed then builds into this throwaway window: caught when the
+  // docked reader (kits/swipe-deck.js, which is document-bound by design)
+  // mounted somewhere no assertion could see it.
   const { window: bare } = makeWindow({
     html: `<!doctype html><html><body><p id="t">Some text to annotate here.</p></body></html>`,
   });
+  const restoreRealm = () => { global.window = window; global.document = doc; };
   bare.SpeechRecognition = FakeSR;      // a recognizer exists; the KIT does not
   loadKit('annotate.js', { window: bare });
   const B = bare.Annotate;
@@ -406,6 +414,7 @@ test('without the dictate kit the annotator still works, minus the microphone', 
   assert.equal(B.items.length, 1);
   assert.match(B.toMarkdown(), /typed/, 'the set still serializes');
   B.disable();
+  restoreRealm();
 });
 
 test('the keyboard opens on the phrase that was on screen, not the one before it', () => {
@@ -590,22 +599,37 @@ test('noteSelection takes a range handed in when nothing is staged', () => {
 // ── The expand's two rooms ──────────────────────────────────────────────────
 // The expand used to do one thing, navigate, which on a wide screen threw away
 // the page being annotated to show a draft that fits in a card. Past DOCK_MIN
-// the far end opens beside the page instead. The decision is a width, so these
-// drive innerWidth directly: jsdom has no layout to read one from.
+// the far end opens in the house reader beside the page instead. The decision
+// is a width, so these drive innerWidth directly: jsdom has no layout to read
+// one from.
 const widthAt = (px) => Object.defineProperty(window, 'innerWidth',
   { value: px, configurable: true, writable: true });
 // A kit's bare identifiers resolve in the Node realm (bootstrap.mjs), and Node
-// ships no localStorage there, so the handoff would report that it did not fit
-// on a store that simply is not present. jsdom has a real one; point the realm
-// at it, the way these tests already do for DOMParser.
+// ships no localStorage, history or matchMedia there. The handoff would report
+// that it did not fit on a store that is not present, and the deck would throw
+// reaching for a history it does not have. jsdom has all three; point the realm
+// at them, the way these tests already do for DOMParser.
 globalThis.localStorage ??= window.localStorage;
+globalThis.history ??= window.history;
+globalThis.location ??= window.location;
+globalThis.matchMedia ??= window.matchMedia;
+globalThis.addEventListener ??= window.addEventListener.bind(window);
+globalThis.removeEventListener ??= window.removeEventListener.bind(window);
 const handoffKits = () => {
   window.SpeechRecognition = FakeSR;
   loadKit('dictate.js', { window });
   loadKit('dictate-handoff.js', { window });
+  loadKit('swipe-deck.js', { window });
 };
+const reader = () => doc.querySelector('.sd-overlay');
+// Two things here take a turn of the loop rather than happening on the call.
+// The deck builds its slides in a requestAnimationFrame, so the frame is one
+// tick behind open(); and dismissing is a history navigation, so the overlay
+// leaves on the popstate rather than on close(). Both are the container's real
+// behaviour, so the test waits rather than reaching past them.
+const settle = () => new Promise(r => setTimeout(r, 40));
 
-test('with room beside the page, the expand docks the far end instead of leaving', async () => {
+test('with room beside the page, the expand opens the house reader instead of leaving', async () => {
   handoffKits();
   widthAt(1280);
   A.enable({ doc, subject: { title: 'x', url: '' } });
@@ -615,24 +639,100 @@ test('with room beside the page, the expand docks the far end instead of leaving
   S.dict.text = 'a thought worth a bigger room';
 
   await A.goDictate(S.outBtn);
-  const panel = doc.querySelector('[data-annotate-dock]');
-  assert.ok(panel, 'a panel stands beside the page');
-  assert.equal(panel.style.position, 'fixed');
-  assert.equal(panel.style.right, '12px', 'inset from the right edge, like the card');
-  // The launcher owns the bottom-right corner and paints above everything, so
-  // a panel reaching the bottom edge would wear it over its own controls.
-  assert.equal(panel.style.bottom, '88px', 'and stopping clear of the fab launcher');
-  const frame = panel.querySelector('iframe');
+  await settle();
+  // THE CONTAINER IS THE DECK, not a panel of the annotator's own: the same
+  // reader the app's docs view opens, framing one thing.
+  const ov = reader();
+  assert.ok(ov, 'the house reader is up');
+  const frame = ov.querySelector('iframe');
   assert.ok(frame, 'carrying the dictation page itself, not a second copy of it');
   assert.match(frame.src, /pages\/dictate\.html/);
   // A page whose job is hearing you fails silently in a frame without this.
   assert.match(frame.getAttribute('allow'), /microphone/);
+  // A deck of one has nothing to page, so it says nothing about siblings.
+  assert.ok(ov.querySelector('.row-start-4').classList.contains('hidden'),
+    'and the pager is hidden, this being a deck of one');
   // And the words were handed over, which is the same carry the navigation makes.
   const raw = window.localStorage.getItem(window.dictateHandoff.KEY);
   assert.ok(raw && JSON.parse(raw).text.includes('a bigger room'));
   A.disable();
-  assert.equal(doc.querySelector('[data-annotate-dock]'), null,
-    'and turning the annotator off takes the panel with it');
+  await settle();
+  assert.equal(reader(), null, 'and turning the annotator off takes the reader with it');
+});
+
+test('with no host to dock it, the kit frames the reader and gives the width back', async () => {
+  // A host that can dock installs __deckPane and owns the frame and the
+  // reflow (show-repo does). With none, the kit stands in for one: the reader
+  // takes a column, page scroll stays live, and the page reflows out from
+  // under it rather than running beneath the text being annotated.
+  handoffKits();
+  widthAt(1280);
+  const root = doc.documentElement;
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  S.dict.text = 'beside the page, not over it';
+  await A.goDictate(S.outBtn);
+
+  assert.equal(root.dataset.deckPane, 'dock', 'docked, so the deck leaves page scroll alone');
+  assert.equal(root.style.getPropertyValue('--wt-dock-col'), 'clamp(20rem, 32vw, 27rem)');
+  assert.equal(root.style.getPropertyValue('--deck-left'), 'calc(100vw - var(--wt-dock-col))',
+    'the reader starts where the column does');
+  assert.equal(doc.body.style.paddingRight, 'var(--wt-dock-col)',
+    'and the page gives back exactly that column, one number for both');
+  // Nothing floats at the bottom of this page, so nothing is reserved there.
+  assert.equal(root.style.getPropertyValue('--deck-bottom'), '0px');
+
+  A._closeDock();
+  await settle();
+  assert.equal(reader(), null);
+  assert.equal(root.dataset.deckPane, undefined, 'every value is put back');
+  assert.equal(root.style.getPropertyValue('--deck-left'), '');
+  assert.equal(root.style.getPropertyValue('--deck-bottom'), '');
+  assert.equal(doc.body.style.paddingRight, '');
+  A.disable();
+});
+
+test('where a launcher floats at the bottom, the reader stops short of it', async () => {
+  // The fab paints above everything on purpose, so a reader reaching the
+  // bottom edge wears it over its own controls: at 1280x800 it covered the far
+  // end's rightmost destination outright.
+  handoffKits();
+  widthAt(1280);
+  const mount = doc.createElement('div');
+  mount.setAttribute('x-data', 'fab()');
+  doc.body.appendChild(mount);
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  A._state.dict.text = 'under a launcher';
+  await A.goDictate(A._state.outBtn);
+  await settle();
+  assert.equal(doc.documentElement.style.getPropertyValue('--deck-bottom'), '88px',
+    'the reader leaves the launcher its corner');
+  A.disable();
+  await settle();
+  mount.remove();
+});
+
+test('a host that docks for itself is left alone', async () => {
+  handoffKits();
+  widthAt(1280);
+  window.__deckPane = () => {};
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  S.dict.text = 'the host owns its own pane';
+  await A.goDictate(S.outBtn);
+  await settle();
+  assert.ok(reader(), 'the reader still opens');
+  assert.equal(doc.body.style.paddingRight, '', 'but the frame and the reflow are the host\'s');
+  assert.equal(doc.documentElement.style.getPropertyValue('--deck-left'), '');
+  A.disable();
+  await settle();
+  delete window.__deckPane;
 });
 
 test('the card lets go of the draft once the far end has taken it, and not before', async () => {
@@ -644,6 +744,7 @@ test('the card lets go of the draft once the far end has taken it, and not befor
   const S = A._state;
   S.dict.text = 'the words that are moving';
   await A.goDictate(S.outBtn);
+  await settle();
 
   // Still here while the handoff is still sitting unread: a carry that never
   // lands must not empty the room it left.
@@ -660,7 +761,7 @@ test('the card lets go of the draft once the far end has taken it, and not befor
   A.disable();
 });
 
-test('a phone still leaves for the page, since a strip beside a panel is not a page', async () => {
+test('a phone still leaves for the page, since a strip beside a reader is not a page', async () => {
   handoffKits();
   widthAt(390);
   A.enable({ doc, subject: { title: 'x', url: '' } });
@@ -668,25 +769,30 @@ test('a phone still leaves for the page, since a strip beside a panel is not a p
   A.notePage({ listen: false });
   const S = A._state;
   S.dict.text = 'spoken on a phone';
-  assert.equal(A._dockDictate(), false, 'no room, so no dock');
-  assert.equal(doc.querySelector('[data-annotate-dock]'), null);
+  await settle();
+  assert.equal(await A._dockDictate(), false, 'no room, so no dock');
+  assert.equal(reader(), null);
   A.disable();
   widthAt(1024);
 });
 
-test('a second expand rebuilds the panel rather than standing a second one beside it', () => {
+test('a second expand rebuilds the reader rather than standing a second one beside it', async () => {
+  handoffKits();
   widthAt(1280);
   A.enable({ doc, subject: { title: 'x', url: '' } });
   const S = A._state;
-  assert.equal(A._dockDictate(), true);
+  assert.equal(await A._dockDictate(), true);
+  await settle();
   const first = S.dockFrame;
-  // The far end takes its handoff at boot and only at boot, so a panel already
-  // standing would never see a second draft. A fresh frame does.
-  assert.equal(A._dockDictate(), true);
-  assert.equal(doc.querySelectorAll('[data-annotate-dock]').length, 1, 'one panel, always');
+  // The far end takes its handoff at boot and only at boot, so a reader
+  // already standing would never see a second draft. A fresh frame does.
+  assert.equal(await A._dockDictate(), true);
+  await settle();
+  assert.equal(doc.querySelectorAll('.sd-overlay').length, 1, 'one reader, always');
   assert.notEqual(S.dockFrame, first, 'and it is a new load, not the old one re-pointed');
   A._closeDock();
-  assert.equal(doc.querySelector('[data-annotate-dock]'), null);
+  await settle();
+  assert.equal(reader(), null);
   A.disable();
 });
 
