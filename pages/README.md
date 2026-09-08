@@ -40,6 +40,7 @@ the link-dense text twin of the visual index above.
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
+| `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |
 | `word-select` | Word Select | [view](https://mehrlander.github.io/web-tools/pages/word-select.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html) |
@@ -110,12 +111,23 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
+| `annotate` | annotate — notes pinned to pieces of a page | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/annotate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/annotate.html) |
+| `card` | card — the way out of a card | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/card.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/card.html) |
+| `cm6` | cm6 — a CodeMirror 6 editor, framework free | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/cm6.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/cm6.html) |
 | `compression` | compression — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/compression.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/compression.html) |
+| `dictate` | dictate — voice input as a plain text buffer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/dictate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/dictate.html) |
+| `dock-split` | dock-split — the drag handle between two panes | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/dock-split.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/dock-split.html) |
 | `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
+| `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `note` | note — the small tooltip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/note.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html) |
+| `peek` | peek — the region under the pointer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html) |
 | `persistence` | persistence — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/persistence.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/persistence.html) |
+| `read-aloud` | read-aloud — markdown reduced to what is worth hearing | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/read-aloud.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/read-aloud.html) |
+| `row-menu` | row-menu — a tap on a row, and what you can do with it | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/row-menu.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/row-menu.html) |
+| `source-peek` | source-peek — the hover card behind an exact-file GitHub jump-over | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/source-peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/source-peek.html) |
+| `swipe-deck` | swipe-deck — the house swipe format | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/swipe-deck.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/swipe-deck.html) |
 | `xlsx` | xlsx — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/xlsx.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/xlsx.html) |
 
 ## pages/news/

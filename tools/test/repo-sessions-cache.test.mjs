@@ -78,6 +78,19 @@ test('summarize keeps the scan fields and drops the bulk', () => {
   assert.ok(!('calls' in record() && row.callBodies), 'no call bodies in a row');
 });
 
+test('summarize carries `attached`, and an older record gets [] not a guess', () => {
+  // Record schema 8. It is the container's repo list, so it is wider than
+  // `repos` (which is where the shell stood) and the two disagree by design.
+  const row = S.summarize(record({ attached: ['home', 'web-tools'] }), 'x');
+  assert.deepEqual(row.attached, ['home', 'web-tools']);
+
+  // Every record written before schema 8 stays empty permanently, since records
+  // are never revisited. Empty must read as "cannot say", so nothing here may
+  // fill it in from `repos`: a consumer that did would claim a scope the
+  // session never reported.
+  assert.deepEqual(S.summarize(record(), 'x').attached, []);
+});
+
 test('summarize ranks tools and files busiest-first, ties by name', () => {
   const row = S.summarize(record(), 'x');
   assert.deepEqual(row.tools[0], ['Bash', 132]);
@@ -1250,4 +1263,137 @@ test('a carried row from an older file is thinned without a re-read', () => {
   assert.ok(!('reply' in next.rows[0]) && !('turns' in next.rows[0]), 'and lean');
   assert.deepEqual(S.stalePaths(next, [{ path: p, sha: 'same' }]), [], 'sha and version still match');
   assert.equal(S.leanRow(null), null);
+});
+
+// ── The scroll back, whole ─────────────────────────────────────────────────
+// A card that offers to open one turn has to be able to find that turn in the
+// record, and the only address it has is a position in its own list. So the
+// two lists are one function with a cap and a head on the end of it, and this
+// is what holds them in step.
+
+test('fullTurns and priorTurns line up entry for entry', () => {
+  const prompts = [], replies = [];
+  for (let i = 0; i < 6; i++) {
+    prompts.push({ at: '2026-08-05T13:0' + i + ':00Z', text: 'ask number ' + i });
+    replies.push({ at: '2026-08-05T13:0' + i + ':30Z',
+                   text: 'A sentence answering ' + i + '. ' + 'And more of it. '.repeat(40) });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length, 'nothing is capped at this size');
+  assert.deepEqual(full.map(e => e.k), head.map(e => e[0]), 'same roles, same order');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]), 'same clocks');
+  const cut = head.findIndex(e => e[3]);
+  assert.ok(cut >= 0, 'the fixture has to cut something for this to mean anything');
+  assert.ok(full[cut].md.length > head[cut][1].length,
+    'and the whole turn at that index is longer than the head of it');
+  assert.ok(full[cut].md.startsWith('A sentence answering'));
+});
+
+test('the cap is applied to the same list, so the window is the last N of it', () => {
+  const prompts = [], replies = [];
+  for (let i = 0; i < 50; i++) {
+    prompts.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':00Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':30Z', text: 'answer ' + i });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(head.length, S.TURNS_KEPT);
+  assert.ok(full.length > head.length, 'the fixture has to overflow the cap');
+  const window_ = full.slice(-S.TURNS_KEPT);
+  assert.deepEqual(window_.map(e => e.ts), head.map(e => e[2]),
+    'entry i of the card is entry i of the last TURNS_KEPT, which is what a tap trades on');
+});
+
+test('an empty turn is dropped before the cap, not after it', () => {
+  // Dropped downstream it would shorten the card's list and leave every index
+  // past it addressing the turn before.
+  const r = record({ schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'open' },
+              { at: '2026-08-05T13:02:00Z', text: '   ' },
+              { at: '2026-08-05T13:04:00Z', text: 'the second ask' }],
+    replies: [{ at: '2026-08-05T13:01:00Z', text: 'the first answer' },
+              { at: '2026-08-05T13:05:00Z', text: 'the last answer' }] });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length);
+  assert.ok(!full.some(e => !e.img && !String(e.md).trim()), 'no blank entry survives');
+});
+
+// ── The phone's copy: state/session-menu.json ────────────────────────────────
+//
+// A second, purpose-built file rather than a view of the cache, because the
+// phone cannot afford the cache. The assertions that matter here are the two
+// that make it cheap: it carries three fields per session and no more, and it
+// is keyed by branch so a lookup is a lookup rather than a scan.
+
+const menuRow = (id, ended, ask, branches = []) => ({ id, ended, ask, branches });
+
+test('the menu index carries three fields a session, keyed by branch, newest first', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', ['claude/older-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd']),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.equal(m.generatedAt, cache.generatedAt, 'one stamp, so the two files cannot disagree about freshness');
+  assert.deepEqual(m.recent, [
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask'],
+  ]);
+  assert.deepEqual(m.branches['claude/older-aa11bb'], ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask']);
+  assert.deepEqual(Object.keys(m), ['generatedAt', 'recent', 'branches'],
+    'nothing else rides this file: every field added here is bytes over cellular');
+});
+
+test('the menu index is small enough to be worth having', () => {
+  // The whole reason it exists. A row of the cache carries a session's tool
+  // counts, token counts, file lists and closing reply; the phone needs an id,
+  // a timestamp and one line. Three fields against a row of about 1 KB.
+  const rows = Array.from({ length: 200 }, (_, i) => ({
+    id: String(i).padStart(8, '0'), ended: '2026-09-08T12:00:00Z',
+    ask: 'word '.repeat(60), branches: ['claude/b-' + i],
+    tools: [['Bash', 1600]], files: [['a/b.js', 12]], reply: 'x'.repeat(4000),
+  }));
+  const m = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  assert.ok(JSON.stringify(m).length < 200 * 200,
+    'a session costs well under 200 bytes here, was ' + Math.round(JSON.stringify(m).length / 200));
+  assert.equal(m.recent.length, S.MENU_RECENT, 'the recent list is bounded');
+  for (const e of Object.values(m.branches)) assert.ok(e[2].length <= S.MENU_ASK);
+});
+
+test('the menu index keeps the newest session for a branch and drops what could never be looked up', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T10:00:00Z', 'First', ['claude/shared-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:00:00Z', 'Second', ['claude/shared-aa11bb']),
+    // No slash, so the op's branchOf would never call it a branch and no
+    // lookup could ever reach it. Carrying it is bytes for nothing.
+    menuRow('cccccccc', '2026-09-08T11:00:00Z', 'Slashless', ['hotfix']),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.deepEqual(m.branches['claude/shared-aa11bb'][0], 'bbbbbbbb', 'the newest session wins the key');
+  assert.deepEqual(Object.keys(m.branches), ['claude/shared-aa11bb']);
+});
+
+test('the ask reaches the phone as one plain line', () => {
+  // The row is drawn by Shortcuts, which renders no markdown, so a fence or a
+  // link would arrive as its own punctuation. Done here so the op receives a
+  // string it can put straight on a row.
+  const long = '**Bold** and `code` and [label](https://x.y/z)\nsecond line ' + 'word '.repeat(40);
+  const m = S.buildMenuIndex({ generatedAt: '', rows: [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', long)] });
+  const ask = m.recent[0][2];
+  assert.doesNotMatch(ask, /[*`\[\]\n]/);
+  assert.ok(ask.length <= S.MENU_ASK);
+  assert.match(ask, /…$/);
+});
+
+test('the menu index commits only when the phone would see a difference', () => {
+  // The crawl stamps generatedAt on every pass whether or not anything moved,
+  // and the cache moves for things this file does not carry.
+  const rows = [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Ask', ['claude/x-aa11bb'])];
+  const a = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  const b = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z', rows });
+  assert.equal(S.menuChanged(a, b), false, 'a fresher stamp alone is not a change');
+  const c = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z',
+    rows: [...rows, menuRow('bbbbbbbb', '2026-09-08T13:00:00Z', 'New one', ['claude/y-cc22dd'])] });
+  assert.equal(S.menuChanged(a, c), true);
+  assert.equal(S.menuChanged(null, a), true, 'the file not existing yet is a change');
 });
