@@ -92,9 +92,18 @@ function fromPrivate() {
   return { rows, activity };
 }
 
+// LATE=1 REPRODUCES THE ORDER THE APP ACTUALLY BOOTS IN, which is the one
+// order this scenario could not previously reach. The lens and grain come off
+// the address and are set immediately; the caches are a fetch and land a beat
+// later. Seeding rows first, as the default path does, mounts a table that has
+// its data already and so cannot show the fault it was built to catch: the
+// pane read `0 of 23` on arrival and filled only when the grain was switched
+// and switched back. Keep both paths: the default is the one that draws a
+// representative table, and this is the one that proves late rows reach it.
 export default async (page) => {
   const grain = process.env.GRAIN || 'session';
   const cols = (process.env.COLS || '').split(',').filter(Boolean);
+  const late = process.env.LATE === '1';
   const seed = fromPrivate() || INVENTED;
 
   await page.evaluate(() => {
@@ -102,19 +111,30 @@ export default async (page) => {
     window.__shell.estateSeen = true;
   });
   await page.waitForTimeout(600);
-  await page.evaluate(({ seed, grain, cols }) => {
+  await page.evaluate(({ seed, grain, cols, late }) => {
     const el = document.querySelector('[x-data="estate()"]');
     const d = window.Alpine.$data(el);
     d.authed = true; d.loading = false;
-    d.sessionRows_ = seed.rows;
-    d.activity = seed.activity;
-    d._activityRev = (d._activityRev || 0) + 1;
+    if (!late) {
+      d.sessionRows_ = seed.rows;
+      d.activity = seed.activity;
+      d._activityRev = (d._activityRev || 0) + 1;
+    }
     d.sessionsLoading = false;
     d.tab = 'sessions';
     d.sessionLens = 'table';
     d.sessionScope = 'all';
     d.sessionGrain = grain;
     for (const c of cols) d.toggleCol(c);
-  }, { seed, grain, cols });
+  }, { seed, grain, cols, late });
   await page.waitForTimeout(900);
+  if (late) {
+    await page.evaluate(({ seed }) => {
+      const d = window.Alpine.$data(document.querySelector('[x-data="estate()"]'));
+      d.sessionRows_ = seed.rows;
+      d.activity = seed.activity;
+      d._activityRev = (d._activityRev || 0) + 1;
+    }, { seed });
+    await page.waitForTimeout(900);
+  }
 };

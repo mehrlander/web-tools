@@ -245,6 +245,52 @@ test('the lens and the grain are addressable, and their defaults stay out of the
   data.setGrain('session');
 });
 
+// ── The two ends of the late-rows fault ─────────────────────────────────────
+// The pane opened reading `0 of 40 sessions` under the empty-state line while
+// the scope chips beside it counted 40, and filled only when the reader
+// switched grain and switched back. The mount effect tracks the lens, the grain
+// and the scope; mountTable runs inside $nextTick, so nothing it reads is a
+// dependency and the rows are not one. In the app the address supplies the lens
+// at boot and the caches land a fetch later, so the first mount is regularly
+// against an empty list. Two things have to hold, and they fail independently.
+test('rows landing after the mount reach a built table, and not by rebuilding it', () => {
+  data.sessionGrain = 'session';
+  data.sessionScope = 'all';
+  const fed = [];
+  // Tabulator itself is out of reach here (no layout in jsdom), and the half
+  // under test is not Tabulator's: it is which call this repo makes. replaceData
+  // keeps the sort, the header filters and the scroll position; setData and a
+  // rebuild do not, so a crawl finishing mid-read would throw the reader back to
+  // the top of an unfiltered table.
+  data.tabulator = {
+    replaceData(rows){ fed.push(rows); return Promise.resolve(); },
+    setData(){ throw new Error('setData discards the reader\'s filters'); },
+    getDataCount(){ return fed.at(-1)?.length ?? 0; },
+  };
+  // Shut while a table builds, which a grain change makes it. Feeding the
+  // outgoing table the incoming grain's rows paints a frame of blank cells
+  // against columns those rows have no fields for.
+  data._tableGrain = '';
+  data.syncTableData();
+  assert.equal(fed.length, 0, 'a shut gate feeds nothing');
+  data._tableGrain = 'session';
+  data.syncTableData();
+  assert.equal(fed.length, 1, 'an open gate feeds');
+  assert.equal(fed[0].length, data.grainRows.length,
+    'the rows the component holds now, not the ones the table was built with');
+  data.tabulator = null;
+  data._tableGrain = '';
+});
+
+test('the table host carries the data effect, which is what lets the mount effect stay narrow', () => {
+  // The other end, and the one nothing else would notice. Deleting this
+  // attribute leaves every assertion above passing and the pane empty on
+  // arrival, because syncTableData would then have no caller.
+  const host = window.document.querySelector('[x-ref="tableHost"]');
+  assert.ok(host, 'the host is in the template');
+  assert.equal(host.getAttribute('x-effect'), 'syncTableData()');
+});
+
 test('the last column cannot be turned off', () => {
   data.tableCols_ = null;
   data.sessionGrain = 'session';
