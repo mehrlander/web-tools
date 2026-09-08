@@ -1006,3 +1006,32 @@ test('index hands back the one listener that does not die with its element', () 
     window.addEventListener = addWas; window.removeEventListener = remWas;
   }
 });
+
+test('an undated card is placed by index, and that is safe only while it is last', () => {
+  // The mixed case is the NORM, not the schema-3 exception: every record in the
+  // store ends with the renderer's own summary card, which carries a sort
+  // sentinel rather than a time, so this fallback fires on all 345 of them
+  // (measured 2026-09-08). It is correct because the card is last, where an
+  // index of (n-1)/(n-1) puts it at 100%, the right end for a summary of the
+  // whole. The same fallback in the MIDDLE would land a card by its count while
+  // its neighbours were placed by time, so the position is what is held here.
+  const withSummary = { ...RECORD, tokens: { output: 1234, input: 99 } };
+  const line = window.sessionRender.outline(withSummary);
+  assert.equal(line.length, 3, 'the tokens give the summary card something to say');
+  // "Undated" is not "absent": the summary card carries a SORT SENTINEL in
+  // `at`, which is a truthy string and not a time. The rail asks Date.parse,
+  // so the test asks the same question rather than a weaker one.
+  // Array.from rather than line.map: session-render runs inside the jsdom
+  // realm, so the array it returns carries THAT realm's Array.prototype and
+  // deepStrictEqual compares prototypes before contents. The failure reads as
+  // two identical arrays being unequal.
+  const dated = Array.from(line, c => Number.isFinite(Date.parse(c.at || '')));
+  assert.deepEqual(dated, [true, true, false],
+    'and only the LAST card is undated: turns() appends it positionally, and '
+    + 'groups() folds a leading meta note into the first card rather than '
+    + 'leaving it one of its own');
+  buildWith(withSummary);
+  // 10:00 and 10:30 inside a 10:00-11:00 span, then the undated tail.
+  assert.deepEqual(tickPcts(), [0, 50, 100],
+    'the dated two are placed by time and the tail lands at the end');
+});
