@@ -32,7 +32,12 @@ export default async function (page) {
   if (!/previous fab tap never finished: ensureBrief/.test(after.text))
     throw new Error(`the crumb was not reported: ${JSON.stringify(after)}`);
   if (after.tone !== 'error') throw new Error(`reported but not in red: ${after.tone}`);
-  if (after.left) throw new Error('the crumb was read but not cleared, so it will report forever');
+  // Cleared by the FAB, not by this page, and about a second after boot: the
+  // fab owns the key now so it can file the report from any page, and the
+  // on-screen line here is only the reading. Wait for that owner rather than
+  // asserting against the reader.
+  await page.waitForFunction(() => !localStorage.getItem('fab:step'), { timeout: 8000 })
+    .catch(() => { throw new Error('the fab never cleared the crumb, so it will report forever'); });
 
   // 2. The trail form: a sequence of stages with timings, which is what the
   //    filed report carries. The single-string form above is the older shape,
