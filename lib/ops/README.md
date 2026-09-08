@@ -66,10 +66,18 @@ It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
 itself, which carries every tool call of every session to answer a question that
 needs three fields.
 
-The public address of an op, for a caller off the app:
-`https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/ops/<name>.js`.
-jsDelivr caches a branch ref for up to twelve hours; after a change, purge the
-**ref path**, `https://purge.jsdelivr.net/gh/mehrlander/web-tools@main/lib/ops/<name>.js`.
-Purging the bare path reported finished and left the alias serving the old copy
-(2026-09-03). A caller's own HTTP cache is a second layer: the file is served
-with `max-age=604800`, so a caller appends a throwaway query, as Run-Op does.
+**A merge is the whole publish.** The address a caller off the app uses is
+GitHub's contents API, `https://api.github.com/repos/mehrlander/web-tools/contents/lib/ops/<name>.js?ref=main`,
+with `Accept: application/vnd.github.raw` so the response is the file rather
+than a JSON envelope around a base64 body. It is served `private, max-age=60`,
+so no shared cache exists to hold a replaced op and nothing has to be purged.
+A caller's own HTTP cache is the only layer left, and sixty seconds of it, which
+a throwaway query defeats, as `Run-Op` does.
+
+**Wrong until 2026-09-08 → the paragraph above:** this route was jsDelivr,
+`cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/ops/<name>.js`, whose
+`s-maxage=43200` held a replaced op at the edge for twelve hours, so every
+publish owed a purge of the **ref path** (purging the bare path reported
+finished and kept serving the old copy, 2026-09-03). The op's own data fetch had
+used the API all along and had never needed a purge, which is what settled it
+once anyone compared the two headers.
