@@ -474,11 +474,13 @@ test('the composer paints through the kit and swaps its pad for a selection', ()
   A.disable();
 });
 
-test('a caret in a sentence gap turns the full-stop key into the key that takes one back', () => {
-  // The pad already swaps its whole face for a selection. This swaps ONE cell,
-  // and it is the cell whose own mark is the thing being undone: a full stop
-  // cannot be wanted where one is already sitting, so nothing is lost while
-  // the stitch is showing, and `,` and `?` do not move under the thumb.
+test('the stitch is a key of its own, in two taps, and the full stop stays a full stop', () => {
+  // Until 2026-09-08 the top mark cell became the stitch when the caret sat in
+  // a sentence gap, and was a full stop everywhere else, including at the END,
+  // where the caret rests during dictation and where the repair is wanted.
+  // The stitch has its own key in the bottom row now, ported from
+  // pages/dictate.html: the first tap ARMS it, walking the caret back to the
+  // newest break and painting a marker in the seam; the second commits.
   window.SpeechRecognition = FakeSR;
   loadKit('dictate.js', { window });
   A.enable({ doc, subject: { title: 'x', url: '' } });
@@ -487,20 +489,101 @@ test('a caret in a sentence gap turns the full-stop key into the key that takes 
   const S = A._state;
   const face = () => [...S.compPunct.children]
     .map(b => b._icon ? b._icon.className.replace('ph ph-', '') : b.textContent);
+  const down = (b) => b.dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+  const mendSpan = () => S.compBody.querySelector('[data-d="mend"]');
 
   S.dict.text = 'I went to the store. And then I came back';
   A._paintDraft();
-  assert.deepEqual(face().slice(0, 3), ['.', ',', '?'], 'at rest it is the marks');
+  assert.deepEqual(face().slice(0, 3), ['.', ',', '?'], 'the marks column is the marks');
+  assert.equal(S.compStitch.disabled, false, 'the stitch is live with the caret at the end');
+  assert.equal(S.dict.stitchAim, 'back');
 
   S.dict.caretAt(20);                     // the gap
-  assert.deepEqual(face().slice(0, 3), ['arrows-in-line-horizontal', ',', '?']);
-  assert.match(S.compPunct.children[0].style.background, /254, 249, 195|#fef9c3/,
-    'and it tints, since it appeared under a thumb aimed at something else');
+  assert.deepEqual(face().slice(0, 3), ['.', ',', '?'], 'and stays the marks with a caret in the gap');
+  S.dict.caretAt(S.dict.text.length);
 
-  S.compPunct.children[0].dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
-  assert.equal(S.dict.text, 'I went to the store and then I came back',
-    'one tap: the mark goes and the capital comes down with it');
-  assert.deepEqual(face().slice(0, 3), ['.', ',', '?'], 'and the marks are back, the seam being closed');
+  // First tap: armed, nothing changed, the caret walked to the seam and the
+  // seam is wrapped for the marker to measure.
+  down(S.compStitch);
+  assert.equal(S.compMend, true);
+  assert.equal(S.dict.text, 'I went to the store. And then I came back', 'arming changes nothing');
+  assert.ok(mendSpan(), 'the seam is marked in the paint');
+  assert.equal(mendSpan().textContent, '. ');
+  assert.match(S.compStitch.style.background, /254, 249, 195|#fef9c3/, 'and the key wears the armed tint');
+
+  // Second tap: the mark goes and the capital comes down.
+  down(S.compStitch);
+  assert.equal(S.compMend, false);
+  assert.equal(S.dict.text, 'I went to the store and then I came back');
+  assert.ok(!mendSpan(), 'and the marker is swept');
+  assert.equal(S.dict.range, null, 'the borrowed caret went back to the end');
+  A.disable();
+});
+
+test('the armed stitch backs out on a touch of the words, and step back re-aims it', () => {
+  window.SpeechRecognition = FakeSR;
+  loadKit('dictate.js', { window });
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  A.notePage({ listen: false });
+  const S = A._state;
+  const down = (b) => b.dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+  const mendSpan = () => S.compBody.querySelector('[data-d="mend"]');
+
+  S.dict.text = 'One thing. Two things. Three things';
+  A._paintDraft();
+  down(S.compStitch);
+  assert.equal(mendSpan().textContent, '. ');
+  assert.equal(S.dict.range.start, 'One thing. Two things. '.length, 'armed on the newest break');
+
+  // Step back moves the caret to the break before, and the marker follows,
+  // since it is read off the caret rather than stored. The arm stands.
+  down(S.compJump);
+  assert.equal(S.compMend, true, 'a caret move is not a disarm');
+  assert.equal(S.dict.range.start, 'One thing. '.length);
+  down(S.compStitch);
+  assert.equal(S.dict.text, 'One thing two things. Three things', 'and the commit closed the older break');
+
+  // Armed again, then a touch on the words: the arm goes and nothing changes.
+  down(S.compStitch);
+  assert.equal(S.compMend, true);
+  const e = new window.Event('pointerdown', { bubbles: true });
+  e.clientX = 20; e.clientY = 20; e.pointerType = 'touch';
+  S.compView.dispatchEvent(e);
+  assert.equal(S.compMend, false, 'a touch on the words ends a pending stitch');
+  assert.equal(S.dict.text, 'One thing two things. Three things');
+  assert.ok(!mendSpan());
+
+  // And a change in the text puts it down too.
+  down(S.compStitch);
+  assert.equal(S.compMend, true);
+  S.dict.punct(',');
+  assert.equal(S.compMend, false, 'a change in the text ends it');
+  A.disable();
+});
+
+test('noteSelection takes a range handed in when nothing is staged', () => {
+  // The fab's selection offer turns the annotator on BECAUSE of a selection,
+  // so the kit has no stage when the call arrives; the passage travels as the
+  // Range the offer read, which is also what survives a platform that
+  // collapses the selection on the tap.
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  A.clear();
+  const S = A._state;
+  assert.equal(S.sel, null);
+  const p1 = doc.getElementById('p1').firstChild;
+  const r = doc.createRange();
+  r.setStart(p1, 4); r.setEnd(p1, 19);
+  assert.equal(A.noteSelection({ range: r }), true);
+  assert.ok(S.draft, 'a draft opened');
+  assert.equal(S.draft.target.type, 'text');
+  assert.equal(S.draft.target.quote.exact, 'quick brown fox');
+  assert.equal(S.compose.style.display, 'flex');
+  // A range inside the card's own UI is refused, as the live path refuses it.
+  const r2 = doc.createRange();
+  r2.selectNodeContents(S.compCap);
+  S.draft = null; S.sel = null;
+  assert.equal(A.noteSelection({ range: r2 }), false);
   A.disable();
 });
 
@@ -706,7 +789,7 @@ test('the card follows the input in use, not the device it thinks it is on', () 
     assert.equal(S.compPad.style.display, 'none', 'a click places a caret, so the pad goes');
     assert.equal(S.compPunct.style.display, 'none', 'and every mark is a keystroke away');
     assert.equal(seen[seen.length - 1].handles, false, 'and the pins go with them');
-    assert.equal(S.compSave.style.gridColumn, '5 / 7',
+    assert.equal(S.compSave.style.gridColumn, '7 / 9',
       'save takes the corner, or the empty cell shows as a grey stripe');
 
     // THE CASING KEYS ARE THE EXCEPTION, and the column already swaps to them
@@ -724,7 +807,7 @@ test('the card follows the input in use, not the device it thinks it is on', () 
     A._paintDraft();
     assert.equal(S.precise, false);
     assert.notEqual(S.compPad.style.display, 'none');
-    assert.equal(S.compSave.style.gridColumn, '5');
+    assert.equal(S.compSave.style.gridColumn, '7');
     A.disable();
   } finally { window.Dictate.paint = realPaint; }
 });
@@ -1086,11 +1169,15 @@ test('undo and redo stand where the pencil stood, and say whether they can', () 
   S.compRedo.dispatchEvent(new window.Event('click', { bubbles: true }));
   assert.equal(S.dict.text, 'a phrase');
 
-  // The row grew a column, and the read surface has to span all five or the
-  // marks fall into a flexible cell and the fixed one shows as a grey stripe.
-  assert.match(S.compFrame.getAttribute('style'), /repeat\(5,minmax\(0,1fr\)\)\s*46px/);
-  assert.equal(S.compView.style.gridColumn, '1 / 6');
-  assert.equal(S.compPad.style.gridColumn, '6');
+  // The row grew columns (five when undo and redo arrived, seven when the
+  // stitch and its step-back joined them on 2026-09-08), and the read surface
+  // has to span every flexible one or the marks fall into a flexible cell and
+  // the fixed one shows as a grey stripe.
+  assert.match(S.compFrame.getAttribute('style'), /repeat\(7,minmax\(0,1fr\)\)\s*46px/);
+  assert.equal(S.compView.style.gridColumn, '1 / 8');
+  assert.equal(S.compJump.style.gridColumn, '4');
+  assert.equal(S.compStitch.style.gridColumn, '5');
+  assert.equal(S.compPad.style.gridColumn, '8');
   A.disable();
 });
 
