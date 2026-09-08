@@ -37,7 +37,7 @@ export default async function (page) {
     enabled: !!window.PageReport.enabled,
     sent: window.__sent.length,
     status: Alpine.$data(document.body).reportStatus,
-    build: Alpine.$data(document.body).build,
+    libRef: Alpine.$data(document.body).libRef,
     onScreen: document.body.innerText.includes('reporting to mehrlander/web-tools-private'),
   }));
 
@@ -45,7 +45,7 @@ export default async function (page) {
   let s = await read();
   if (!s.enabled) throw new Error('the page loaded without reporting live');
   if (!s.onScreen) throw new Error('reporting is live and the page does not say so');
-  if (!/report1/.test(s.build)) throw new Error(`the kit is not in the build token: ${s.build}`);
+  if (!s.libRef) throw new Error('the page cannot say which lib ref it is running');
 
   // 2. Clean load, nothing filed. Reporting on is not a request to record
   //    every load, which is the whole reason it can be on by default.
@@ -63,7 +63,7 @@ export default async function (page) {
   });
   if (!first.ok) throw new Error(`a fault filed nothing: ${first.why}`);
   const doc = await page.evaluate(() => window.__sent.at(-1));
-  for (const k of ['at', 'url', 'page', 'environment', 'resources', 'build', 'faults', 'doc'])
+  for (const k of ['at', 'url', 'page', 'environment', 'resources', 'libRef', 'faults', 'doc'])
     if (!(k in doc)) throw new Error(`the report omits ${k}`);
   if (!doc.environment.ua) throw new Error('no user agent in the report');
   if (typeof doc.resources?.count !== 'number') throw new Error('no resource census in the report');
