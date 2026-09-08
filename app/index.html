@@ -5224,6 +5224,10 @@ function app(){ return {
         // because it is the record's filename stem and resolves against the
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
+        // The default of each is silent, so the shortest address that means
+        // "the Sessions pane as it opens" is still ?view=sessions alone.
+        if (this.sessionLens && this.sessionLens !== 'list') p.set('lens', this.sessionLens);
+        if (this.sessionGrain && this.sessionGrain !== 'session') p.set('grain', this.sessionGrain);
       } },
     { key: 'chats',    open(){ this.goChats(); } },
     { key: 'routes',   open(){ this.goRoutes(); } },
@@ -5453,6 +5457,21 @@ function app(){ return {
   // shared one, because the two decks hold different objects and a link that
   // said `detail=` for either would have to be disambiguated by the ?view= it
   // rides with, which is a rule nobody reading the address could apply.
+  // The Sessions pane's lens and, inside the table lens, its grain. Held here
+  // for the reason mapTab is: the URL is the shell's to own, and a view whose
+  // state it does not carry cannot be linked. That was not academic. The render
+  // link handed over for this pane opened it on the List lens twice while the
+  // thing under review was the table, so the reply had to end "now tap Table".
+  //
+  // Defaults stay OUT of the address (see the stamp below), so a plain
+  // ?view=sessions link keeps meaning what it has always meant.
+  sessionLens: new URLSearchParams(location.search).get('lens') || '',
+  sessionGrain: new URLSearchParams(location.search).get('grain') || '',
+  goSessionLens(lens, grain){
+    if (lens !== undefined) this.sessionLens = lens || '';
+    if (grain !== undefined) this.sessionGrain = grain || '';
+    this.syncUrl();
+  },
   sessionSpec: new URLSearchParams(location.search).get('session') || '',
   setSession(spec){
     if (this.sessionSpec === spec) return;

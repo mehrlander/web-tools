@@ -51,6 +51,14 @@ window.__shell = {
   _authState: 'auth',
   refreshConfigCache() {},
   refreshActivity() {},
+  // The address half, as app/index.html implements it: the shell holds the
+  // lens and the grain because the URL is the shell's to own.
+  sessionLens: '',
+  sessionGrain: '',
+  goSessionLens(lens, grain){
+    if (lens !== undefined) this.sessionLens = lens || '';
+    if (grain !== undefined) this.sessionGrain = grain || '';
+  },
 };
 
 const Alpine = await startAlpine(window, [
@@ -170,29 +178,33 @@ test('every column carries a filter, which is the reason this lens is a library'
 test('a width set beside the shared number preset survives it', () => {
   data.sessionGrain = 'session';
   // The preset carries its own width, so spreading it AFTER an explicit one
-  // silently replaced it: Ran asked for 168, rendered at 92, and clipped
-  // "63h13m" to "63h1".
-  assert.equal(data.tableColumns.find(c => c.field === 'mins').width, 168);
-  assert.equal(data.tableColumns.find(c => c.field === 'calls').width, 152);
-  data.sessionGrain = 'branch';
-  assert.equal(data.tableColumns.find(c => c.field === 'days').width, 156);
-  data.sessionGrain = 'session';
+  // silently replaced it and a column rendered at the preset's 92 instead. The
+  // widths are smaller now that the bars are gone, so what this holds is the
+  // ORDER: an explicit width must outlive the spread, whatever it is.
+  const mins = data.tableColumns.find(c => c.field === 'mins');
+  assert.equal(mins.width, 84);
+  assert.notEqual(mins.width, data.NUM_FILTER.width, 'the preset width did not win');
+  // A column that wants the preset's width simply omits its own.
+  assert.equal(data.tableColumns.find(c => c.field === 'calls').width, data.NUM_FILTER.width);
 });
 
-test('the duration bar is logarithmic, because the spans run four minutes to twenty-five days', () => {
-  // Linear would put the median under 1.5% of the width. The assertion is the
-  // shape rather than the numbers: the median span must read as a bar and not
-  // as a sliver, which is the whole reason for the scale.
-  const pct = (v, max) => {
-    const m = /width:(\d+)%/.exec(data.barCell(v, max, 'x'));
-    return m ? +m[1] : null;
-  };
-  assert.equal(pct(35826, 35826), 100);
-  assert.equal(pct(0, 35826), 0);
-  assert.ok(pct(527, 35826) > 55, 'the median session reads as a bar, not a sliver');
-  assert.ok(pct(527, 35826) < 85);
-  // A zero maximum cannot divide, and an empty grain must not throw.
-  assert.equal(pct(0, 0), 0);
+test('a duration reads at one unit, the way a file size does', () => {
+  // The unit carries the order of magnitude, which is what retired the bar: a
+  // logarithmic bar drew the median and the ninetieth percentile at nearly the
+  // same length, and "52m" against "25d" separates them at a glance.
+  assert.equal(data.durUnit(0), '0m');
+  assert.equal(data.durUnit(13), '13m');
+  assert.equal(data.durUnit(59), '59m');
+  assert.equal(data.durUnit(60), '1.0h');
+  // The real median across the store, 527 minutes.
+  assert.equal(data.durUnit(527), '8.8h');
+  // A decimal stops meaning anything once the number is big, so it goes.
+  assert.equal(data.durUnit(660), '11h');
+  assert.equal(data.durUnit(1439), '24h');
+  assert.equal(data.durUnit(1440), '1.0d');
+  assert.equal(data.durUnit(3744), '2.6d');
+  // The longest span on file, a session left open for twenty-five days.
+  assert.equal(data.durUnit(35826), '25d');
 });
 
 test('a count reads at a glance and still sorts on the number', () => {
@@ -210,6 +222,27 @@ test('a column set survives a trip through another grain', () => {
   data.sessionGrain = 'branch';
   data.sessionGrain = 'session';
   assert.ok(data.tableCols.includes('files'), 'remembered per grain, not reseeded');
+});
+
+test('the lens and the grain are addressable, and their defaults stay out of the address', () => {
+  // The render link for this pane opened it on the List lens twice while the
+  // table was the thing under review, so the reply had to end "now tap Table".
+  // Setting the lens must move the shell's copy, which is what the URL is
+  // stamped from; setting only the component's own leaves it unlinkable while
+  // looking, from inside the pane, as though it worked.
+  const shell = window.__shell;
+  data.setLens('table');
+  assert.equal(data.sessionLens, 'table');
+  assert.equal(shell.sessionLens, 'table');
+  data.setGrain('edge');
+  assert.equal(data.sessionGrain, 'edge');
+  assert.equal(shell.sessionGrain, 'edge');
+  // A grain change must not disturb the lens, and the reverse.
+  assert.equal(shell.sessionLens, 'table');
+  data.setLens('list');
+  assert.equal(shell.sessionGrain, 'edge');
+  data.setLens('table');
+  data.setGrain('session');
 });
 
 test('the last column cannot be turned off', () => {
