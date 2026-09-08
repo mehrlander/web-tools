@@ -629,6 +629,38 @@ const reader = () => doc.querySelector('.sd-overlay');
 // behaviour, so the test waits rather than reaching past them.
 const settle = () => new Promise(r => setTimeout(r, 40));
 
+test('opening a draft warms the far end, once, so the tap lands on a warm cache', async () => {
+  // The expand was fast on the second try and slow on the first, which is a
+  // cold cache rather than anything being wrong. The seconds spent dictating
+  // are free, so the document and its pre-build are fetched then.
+  // A FRESH KIT, because "once per page load" means the flag is spent by the
+  // first draft any earlier test opened. The isolated window is the same
+  // pattern the no-dictate test uses, and it restores the realm after.
+  const { window: fresh } = makeWindow({
+    html: `<!doctype html><html><body><p>Warm me.</p></body></html>`,
+  });
+  loadKit('annotate.js', { window: fresh });
+  const asked = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (u) => { asked.push(String(u)); return Promise.resolve({ ok: true }); };
+  try {
+    const W = fresh.Annotate;
+    W.enable({ doc: fresh.document });
+    W.notePage({ listen: false });
+    assert.ok(asked.some(u => /pages\/dictate\.html/.test(u)), 'the page itself');
+    assert.ok(asked.some(u => /dist\/dictate\.js/.test(u)),
+      'and the build it imports, which is the rest of the cold cost');
+    // Only those two: everything else the far end loads is already on this page.
+    assert.equal(asked.length, 2);
+    W.notePage({ listen: false });
+    assert.equal(asked.length, 2, 'and once per page load, not once per draft');
+    W.disable();
+  } finally {
+    globalThis.fetch = realFetch;
+    global.window = window; global.document = doc;
+  }
+});
+
 test('with room beside the page, the expand opens the house reader instead of leaving', async () => {
   handoffKits();
   widthAt(1280);

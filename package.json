@@ -8,6 +8,7 @@
     "build": "node tools/build/build.mjs",
     "build:lib": "node tools/build/build-lib.mjs",
     "build:app": "node tools/build/build-app.mjs",
+    "build:dictate": "node tools/build/build.mjs pages/dictate.html",
     "build:console": "node tools/build/console-suite.mjs",
     "bake": "node tools/build/bake.mjs",
     "verify-build": "node tools/build/verify-build.mjs",
