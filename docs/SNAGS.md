@@ -1517,11 +1517,19 @@ for a second or two, flashes twice, and lands on Safari's "A problem repeatedly
 occurred": the web process is killed, so no handler runs and nothing on the page
 can report it.
 
-**The ?use= on the shell was redundant and was the whole cost.** The `@<sha>` in
-the fragment already pins the subject, since toss-render injects `use=<ref>` into
-the framed page. What the shell pin added was `dist/web-tools.js`, **4.5 MB**,
-loaded and evaluated in a document that is also hosting an iframe with its own
-copy of the library.
+**The ?use= on the shell was redundant.** The `@<sha>` in the fragment already
+pins the subject, since toss-render injects `use=<ref>` into the framed page.
+What the shell pin changes is how the SHELL's own lib arrives: `gh-api.js`
+fetched from `raw.githubusercontent` and imported through a blob URL, then every
+module read from the contents API, instead of the same modules imported from
+jsDelivr. The module set is identical; only the delivery differs.
+
+**`Wrong` 2026-09-08:** this entry first said the shell pin loaded the 4.5 MB
+`dist/web-tools.js` pre-build. It does not. `toss-render.html` loads `gh-api.js`,
+`alpineComponents/fab.js` and `alpine-bundle.js` by name and never touches the
+pre-build; the figure came from a `showing.py` warning about the `use` mechanism
+on a deployed page, which is a different context. The mechanism is still open.
+The measurement below does not depend on it.
 
 Established by matrix on the device rather than by reasoning, after six rounds of
 wrong theories (the console panel, a backdrop-filter, a panel shadow, the frame

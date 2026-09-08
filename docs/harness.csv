@@ -15,7 +15,7 @@ scripts/mcp-link-safe.py,"report markdown links the GitHub MCP write path would 
 scripts/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",scripts,187,argv,no,yes,no
 scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",scripts,97,argv,no,yes,no
 scripts/pip-steps.py,,scripts,208,none found,no,no,no
-scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,452,npm:showing,no,yes,yes
+scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,460,npm:showing,no,yes,yes
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
 scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,yes,yes
 scripts/text-carriers.py,"inventory the CSV and JSON carriers that already hold authored prose, and registry their field names to show how much vocabulary the carriers share",scripts,539,argv,no,yes,yes
@@ -137,6 +137,7 @@ tools/render/scenarios/fab-export.mjs,the FAB's Export controls,tools/render/sce
 tools/render/scenarios/fab-guide.mjs,the fab's Render tab seeded token-free so the guide pane renders,tools/render/scenarios,144,driver,no,no,no
 tools/render/scenarios/fab-menu.mjs,"The launcher's long-press menu on the app: its three built-in rows, one line each, and the app answering as a stage host so its paste stays in place.",tools/render/scenarios,39,driver,no,no,no
 tools/render/scenarios/fab-paste-offapp.mjs,"The paste row's other ending, on a page that is not the app: no stage host, both small kits warmed by the press, and the 233K stage component not pulled.",tools/render/scenarios,36,driver,no,no,no
+tools/render/scenarios/fab-probe.mjs,,tools/render/scenarios,43,driver,no,no,no
 tools/render/scenarios/fab-reports-anywhere.mjs,,tools/render/scenarios,63,driver,no,no,no
 tools/render/scenarios/fab-text-match.mjs,"drive the Text tab for a shot: the read is real, the tree and registry reads are seeded, and STATE picks the un-run pane, the resolved match, or a selection-scoped read",tools/render/scenarios,89,driver,no,no,no
 tools/render/scenarios/fab-toss.mjs,toss-render address mode with the fab's toss integration and singleton guard,tools/render/scenarios,49,driver,no,no,no

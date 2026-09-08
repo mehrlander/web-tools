@@ -359,10 +359,18 @@ def address(mech, page, sha, slug, view=None):
         # It is redundant to begin with. The `@{sha}` in the fragment already
         # pins the SUBJECT: toss-render injects use=<ref> into the framed page,
         # so the tossed page gets the branch's lib either way. The ?use= only
-        # pins the SHELL, and what that buys is the shell loading the 4.5 MB
-        # dist/web-tools.js pre-build instead of the handful of modules it
-        # actually needs, in a document that is also hosting an iframe with its
-        # own copy of the library.
+        # pins the SHELL, and what it changes there is HOW that shell's lib
+        # arrives: gh-api.js fetched from raw.githubusercontent and imported
+        # through a blob URL, then every module read from the GitHub contents
+        # API, rather than the same modules imported from jsDelivr. The module
+        # SET is identical either way; only the delivery differs.
+        #
+        # Why that is fatal is not yet established, and an earlier version of
+        # this comment claimed it was the 4.5 MB dist/web-tools.js pre-build.
+        # That was wrong: toss-render loads gh-api.js, alpineComponents/fab.js
+        # and alpine-bundle.js by name and never touches the pre-build. The
+        # measurement below stands on its own and does not depend on knowing
+        # the mechanism.
         #
         # Measured on the device by matrix: shell pinned plus a frame dies
         # whatever the frame contains, including a twenty-line page that loads
