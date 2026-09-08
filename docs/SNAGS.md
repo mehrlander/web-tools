@@ -180,11 +180,11 @@ not this branch's", which was true and hid that they were not defects at all;
 the near miss was rewriting four good links to worse targets on a stale store's
 authority. Same shape as the shallow-clone trap already in `container.md`: a
 truncated answer with no marker saying it is truncated.
-**Before believing `dead`, check the store's age, not just its presence.**
-`git -C ../<store> log --oneline -1` against the real tip, or point the check at
-a current clone (`WEB_TOOLS=<path> python3 dead-links.py . --check`) and see
-whether the count moves. A verdict that changes when only the store changes was
-never about the link.
+**The check now prints the store's tip beside every dead verdict**, so the age
+is in front of you when you read it rather than something to remember. It still
+cannot say the store is wrong, only how old it is: what "current" means needs
+the network, and this runs offline by design. A verdict that changes when only
+the store changes was never about the link.
 *(seen: 2026-09-08)*
 → [environment/container.md](environment/container.md)
 
