@@ -451,20 +451,36 @@ test('Last reads m/dd, and typing what you see still filters', () => {
   assert.equal(f('', '2026-09-08T14:03:00Z'), true, 'an empty filter narrows nothing');
 });
 
-test('Repos is the second column in every grain that has one', () => {
-  // What a row IS gets read left to right, and which repos a session touched
-  // narrows it faster than its title: four glyphs against a sentence.
-  for (const grain of ['session', 'edge']) {
-    data.sessionGrain = grain;
-    const on = data.tableColumns.filter(c => c.dflt).map(c => c.field);
-    assert.equal(on[0], 'state', grain + ': state leads');
-    assert.equal(on[1], grain === 'session' ? 'repos' : 'repo', grain + ': repos second');
-    assert.ok(on.indexOf('title') > 1, grain + ': the name follows them');
+test('every grain opens on the date, then the state, then the repos', () => {
+  // WHEN, THEN WHAT, THEN WHICH, THEN WHO. The date leads because it is the
+  // axis the table sorts on, so the column a reader scans to find their place
+  // is the one their eye lands on first. Repos precedes the name because which
+  // repos a session touched narrows a row faster than its title does.
+  const open = (g) => { data.sessionGrain = g; return data.tableColumns.filter(c => c.dflt).map(c => c.field); };
+  for (const grain of ['session', 'edge', 'branch']) {
+    assert.equal(open(grain)[0], 'at', grain + ': the date leads');
   }
-  data.sessionGrain = 'branch';
-  assert.equal(data.tableColumns.filter(c => c.dflt)[0].field, 'repo',
-    'the branch grain has no state column, so repo leads it');
+  for (const [grain, repoField] of [['session', 'repos'], ['edge', 'repo']]) {
+    const on = open(grain);
+    assert.equal(on[1], 'state', grain + ': state second');
+    assert.equal(on[2], repoField, grain + ': repos third');
+    assert.ok(on.indexOf('title') > 2, grain + ': the name follows them');
+  }
+  // A branch has no closing state of its own, so nothing sits between.
+  assert.equal(open('branch')[1], 'repo');
   data.sessionGrain = 'session';
+});
+
+test('Ran leaves the opening set, and its bar survives in the column menu', () => {
+  // Elapsed time is the weakest of the three counts here: it counts the night a
+  // session was left open, where Calls counts what it did. Removing the column
+  // from the opening set is not removing the measurement, and the six bands
+  // still hold for a reader who turns it back on.
+  data.sessionGrain = 'session';
+  const ran = data.tableColumns.find(c => c.field === 'mins');
+  assert.ok(ran, 'still offered');
+  assert.equal(ran.dflt, false, 'but not opened on');
+  assert.match(ran.formatter({ getValue: () => 527 }), /width:50%/, 'and it still draws its band');
 });
 
 test('the last column cannot be turned off', () => {
