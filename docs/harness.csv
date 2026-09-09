@@ -8,6 +8,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,175,npm:reading-column,no,yes,yes
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
+.claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
 .githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,329,git:pre-commit,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,114,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
