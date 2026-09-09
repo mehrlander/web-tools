@@ -101,7 +101,8 @@ const SESSIONS = [
 // rather than drop: a record is evidence the work happened, and a crawl that
 // has not reached the branch is not evidence that it did not.
 data.sessionRows_ = SESSIONS;
-data.activity = {
+// Named so a test that swaps in its own can restore it afterwards.
+const ACTIVITY = {
   'me/web-tools': {
     defaultBranch: 'main', openPRs: [], branchPRs: [],
     scan: { branches: [
@@ -111,6 +112,9 @@ data.activity = {
     ] },
   },
 };
+data.activity = ACTIVITY;
+const ENTRIES = [];
+data.entries = ENTRIES;
 data._activityRev = 1;
 data.sessionScope = 'all';
 
@@ -328,8 +332,10 @@ test('a repo is a glyph it declares, and the tap that names it is not a navigati
   // Every glyph carries the name, because an icon column on a phone is only
   // honest if the name is one tap away: note.js opens on pointerdown, and
   // mountTable's rowClick skips a tap landing on [data-note] for this reason.
-  assert.match(cell, /data-note="web-tools"/);
-  assert.match(cell, /data-note="home"/);
+  // The note carries the state too, so this matches the identity half only:
+  // what must hold is that every glyph names its repo on tap.
+  assert.match(cell, /data-note="web-tools —/);
+  assert.match(cell, /data-note="home —/);
   assert.equal(data.repoIconCell(''), '<span class="text-base-content/30">–</span>');
 });
 
@@ -374,6 +380,55 @@ test('duration magnitude is quantized to five bands, and the bands are the distr
   assert.match(cell, /width:50%/, 'band 3 of 6');
   assert.match(data.durCell(35826), /width:100%/, 'the top band fills');
   assert.ok(!cell.includes('bg-primary'), 'neutral, since the accent means "control" everywhere else here');
+});
+
+test('a repo glyph takes its state from branchState, and absence is never a confident answer', () => {
+  data.sessionGrain = 'session';
+  data.entries = [{ repo: 'me/web-tools', icon: 'ph-toolbox' }];
+  // THE PR INDEX IS CAPPED OR IT IS NOT, and that is the whole distinction the
+  // colour rests on. prReach '' means every PR the repo has is in hand, so an
+  // unmatched head is a real "no pull request ever". A non-empty prReach is a
+  // horizon: newer than it, absence still answers; older, it cannot.
+  data.activity = { 'me/web-tools': { defaultBranch: 'main', prReach: '',
+    openPRs: [{ head: 'claude/live', draft: false }],
+    branchPRs: [{ head: 'claude/done', state: 'merged' },
+                { head: 'claude/gone', state: 'closed' }] } };
+  const st = (b, at) => data.repoEntryState('web-tools', b, at || '2026-09-01T00:00:00Z');
+  assert.equal(st('claude/done'), 'merged');
+  assert.equal(st('claude/gone'), 'closed');
+  assert.equal(st('claude/live'), 'ready');
+  assert.equal(st('claude/never'), 'nopr', 'uncapped index: absence is an answer');
+  // Work committed to the default branch has landed by definition and will
+  // never have a PR, which branchState alone would read as `nopr`.
+  assert.equal(st('main'), 'onmain');
+
+  data.activity['me/web-tools'].prReach = '2026-08-20T00:00:00Z';
+  assert.equal(st('claude/never', '2026-09-01T00:00:00Z'), 'nopr', 'newer than the horizon');
+  assert.equal(st('claude/never', '2026-08-01T00:00:00Z'), 'unknown', 'older than it, and it says so');
+  assert.equal(data.repoEntryState('not-crawled', 'claude/x', '2026-09-01T00:00:00Z'), 'unknown');
+  assert.equal(st(''), 'unknown', 'a repo entry with no branch claims nothing');
+  // Put the shared fixture back: the branch-grain tests below read data.activity
+  // and data.entries, and a test that leaves its own scratch behind fails the
+  // next one for a reason that has nothing to do with either.
+  data.entries = ENTRIES; data.activity = ACTIVITY; data._activityRev++;
+});
+
+test('every glyph state paints, and the two recessive ones stay apart', () => {
+  // /45 and /25 shipped here first and compiled to NOTHING: daisyUI's theme
+  // opacities run 10..90 by tens, so both fell back to full strength and the
+  // two states meant to recede came out the darkest in the column, identical
+  // to each other. A class list looks right when this is broken; only the
+  // ramp catches it.
+  const RAMP = new Set([10,20,30,40,50,60,70,80,90]);
+  for (const [state, cls] of Object.entries(data.REPO_STATE_CLASS)) {
+    const m = /\/(\d+)$/.exec(cls);
+    if (m) assert.ok(RAMP.has(+m[1]), state + ' uses ' + cls + ', which is off the shipped ramp');
+    assert.ok(data.REPO_STATE_NOTE[state], state + ' says what it means on tap');
+  }
+  assert.notEqual(data.REPO_STATE_CLASS.nopr, data.REPO_STATE_CLASS.unknown,
+    'the index looked and found nothing is not the same claim as it cannot see that far');
+  assert.equal(data.REPO_STATE_CLASS.merged, data.REPO_STATE_CLASS.onmain,
+    'both are landed work, and the column is about what landed');
 });
 
 test('the last column cannot be turned off', () => {

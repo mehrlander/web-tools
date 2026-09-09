@@ -91,9 +91,15 @@ function fromPrivate() {
   for (const [name, e] of Object.entries(repos).slice(0, 6)) {
     activity[name] = {
       defaultBranch: e.defaultBranch || 'main',
+      // NOT SLICED, and prReach is why. The Repos glyphs take their colour
+      // from branchState, which reads an unmatched head as `nopr` when the PR
+      // index was not capped and as `unknown` only when it was. Truncating the
+      // index here leaves prReach saying "complete" over a list that is not, so
+      // every dropped head would render as a confident "no pull request ever".
+      // A wrong state drawn confidently is worse than a missing screenshot.
+      openPRs: e.openPRs || [],
+      branchPRs: e.branchPRs || [],
       prReach: e.prReach || '',
-      openPRs: (e.openPRs || []).slice(0, 8),
-      branchPRs: (e.branchPRs || []).slice(0, 25),
       scan: { branches: ((e.scan || {}).branches || []).slice(0, 25) },
     };
   }
