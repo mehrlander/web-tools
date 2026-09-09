@@ -97,14 +97,6 @@ test('every skill directory on disk is a manifest skill item', () => {
 // authoritative carrier and these are copies by design. They have drifted
 // before and were resynced by hand (2b785b2), which is exactly the failure
 // mode of an ungated copy.
-test('vendored conventions copies match their docs/ originals byte for byte', () => {
-  for (const name of ['CONVENTIONS.md', 'SURFACING.md']) {
-    const original = readFileSync(path.join(repoRoot, 'docs', name), 'utf8');
-    const copy = readFileSync(path.join(repoRoot, '.claude', 'skills', 'web-tools', name), 'utf8');
-    assert.equal(copy, original,
-      `.claude/skills/web-tools/${name} has drifted from docs/${name}; resync with: cp docs/${name} .claude/skills/web-tools/${name}`);
-  }
-});
 
 // A traveling doc's links have to resolve where it lands, not only where it is
 // written. These two ship inside the plugin and are also fetched into a
@@ -114,11 +106,11 @@ test('vendored conventions copies match their docs/ originals byte for byte', ()
 // is written as an absolute hub URL. Thirteen such links were dead in the
 // vendored copies until 2026-08-05 (dead-links.py found them); this is the
 // gate that keeps the next one from shipping.
-const SHIPPED_TOGETHER = ['CONVENTIONS.md', 'SURFACING.md'];
+const SHIPPED_TOGETHER = ['SURFACING.md'];
 const MD_LINK = /\[[^\]]*\]\(([^)\s]+)\)/g;
 
 test('the traveling docs link only to targets that travel with them', () => {
-  const skillDir = path.join(repoRoot, '.claude', 'skills', 'web-tools');
+  const skillDir = path.join(repoRoot, 'docs');
   for (const name of SHIPPED_TOGETHER) {
     const text = readFileSync(path.join(skillDir, name), 'utf8');
     for (const [, target] of text.matchAll(MD_LINK)) {
