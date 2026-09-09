@@ -451,24 +451,42 @@ test('Last reads m/dd, and typing what you see still filters', () => {
   assert.equal(f('', '2026-09-08T14:03:00Z'), true, 'an empty filter narrows nothing');
 });
 
-test('every grain opens on the date, then the state, then the repos', () => {
-  // WHEN, THEN WHAT, THEN WHICH, THEN WHO. The date leads because it is the
-  // axis the table sorts on, so the column a reader scans to find their place
-  // is the one their eye lands on first. Repos precedes the name because which
-  // repos a session touched narrows a row faster than its title does.
+test('Repos is second, and the two dates are adjacent and in time order', () => {
   const open = (g) => { data.sessionGrain = g; return data.tableColumns.filter(c => c.dflt).map(c => c.field); };
-  for (const grain of ['session', 'edge', 'branch']) {
-    assert.equal(open(grain)[0], 'at', grain + ': the date leads');
-  }
+  // Repos precedes the name because which repos a session touched narrows a row
+  // faster than its title does: four glyphs against a sentence.
   for (const [grain, repoField] of [['session', 'repos'], ['edge', 'repo']]) {
     const on = open(grain);
-    assert.equal(on[1], 'state', grain + ': state second');
-    assert.equal(on[2], repoField, grain + ': repos third');
-    assert.ok(on.indexOf('title') > 2, grain + ': the name follows them');
+    assert.equal(on[0], 'state', grain + ': state leads');
+    assert.equal(on[1], repoField, grain + ': repos second');
+    assert.ok(on.indexOf('title') > 1, grain + ': the name follows them');
   }
-  // A branch has no closing state of its own, so nothing sits between.
-  assert.equal(open('branch')[1], 'repo');
+  // A branch has no closing state of its own, so its repo leads.
+  assert.equal(open('branch')[0], 'repo');
+  // FIRST THEN LAST, TOUCHING, in all three. The pair replaced a duration, and
+  // it only reads as a span if it runs the way time does with nothing wedged
+  // between; reversed or separated it is two unrelated dates.
+  for (const grain of ['session', 'edge', 'branch']) {
+    const on = open(grain);
+    const f = on.indexOf('first'), l = on.indexOf('at');
+    assert.ok(f > -1 && l > -1, grain + ': both dates are opened on');
+    assert.equal(l - f, 1, grain + ': First immediately precedes Last');
+  }
   data.sessionGrain = 'session';
+});
+
+test('First is the session\'s own start, and falls back the opposite way to Last', () => {
+  // A record missing one end still has the other, and showing that beats
+  // showing nothing, which is why the two fallbacks are mirrored rather than
+  // copied.
+  assert.equal(data.sessionFirstAt({ started: 'A', ended: 'B' }), 'A');
+  assert.equal(data.sessionFirstAt({ ended: 'B' }), 'B', 'no start: the end is still a date');
+  assert.equal(data.sessionFirstAt({}), '');
+  assert.equal(data.sessionFirstAt(null), '');
+  data.sessionGrain = 'session';
+  const row = data.grainRows.find(r => r.id === 'aaa11111');
+  assert.ok(row.first, 'the session grain carries it');
+  assert.ok(row.first <= row.at, 'and it never postdates the last event');
 });
 
 test('Ran leaves the opening set, and its bar survives in the column menu', () => {
