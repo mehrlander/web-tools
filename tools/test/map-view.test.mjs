@@ -157,8 +157,8 @@ test('the set groups into plugin / docs / scripts sections', () => {
 
 
 test('the hub doc link resolves to a GitHub blob', () => {
-  assert.equal(data.hubUrl('docs/PORTABLE.md'),
-    'https://github.com/mehrlander/web-tools/blob/main/docs/PORTABLE.md');
+  assert.equal(data.hubUrl('docs/MARKETPLACE.md'),
+    'https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md');
 });
 
 test('Showing loads on demand, not at mount', async () => {
