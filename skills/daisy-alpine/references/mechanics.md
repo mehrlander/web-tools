@@ -151,6 +151,18 @@ rule the toggle follows, covering the three ways a panel here is hidden: an
 Alpine `x-show`, the `hidden` class, the `hidden` attribute. A card hidden by
 opacity alone reads as shown and needs its own answer.
 
+**Closing an already-closed panel un-hides it, so a closer must refuse to
+write.** `this.obs = { ...this.obs, open: false }` replaces the object, and
+Alpine re-runs `x-show` on the identity change even though the value it reads
+is the same `false`; re-running the hide on an element already hidden by a
+completed leave transition clears the inline `display: none` and leaves it at
+`display: block`, with the state still saying closed. It never recovers: the
+guards then see a shown panel and close it again, each close re-stranding it.
+Assign the scalar (`this.obs.open = false`), which triggers nothing when
+unchanged, or gate the write on `if (!this.obs.open) return`. Found 2026-09-09
+on budget-drs's submittal page, where every state-only check passed while the
+card sat on screen.
+
 **What the caller still owns: opening.** Enable hover only when
 `(hover: hover) and (pointer: fine)` match: open after about 140 ms and close
 about 220 ms after leaving both the control and the card. Tapping the control

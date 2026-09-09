@@ -88,6 +88,7 @@ proxy-is-never-its-target,an identity test that reads right and is always false,
 python-offsets-read-as-utf16,an emoji shifts every standoff offset the browser reads,0,,,
 safari-button-sizes-from-unclipped-content,"the child clipped, the fade landed, and the button stayed tall",0,,,
 shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,0,,,
+state-only-check-agrees-with-a-broken-page,four reproductions passed while the panel sat on screen,0,,,../lib/kits/probe.js
 tick-count-guesses-a-chain,a passing test that starts failing on somebody else's change,0,,,
 tightest-band-becomes-the-default,"one page's spacing, spent on seven surfaces",0,,,
 touch-synthesises-a-hover,"the same gate, missed on the second of two elements",0,,,
