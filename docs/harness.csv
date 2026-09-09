@@ -5,7 +5,7 @@ scripts/build-tree.py,render a repository file tree as a linked markdown table f
 scripts/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,scripts,145,argv,no,yes,no
 scripts/code-shape.py,"per-file observable properties of lib/: what a file attaches to, boot, hub, DOM, Alpine; the instrument behind docs/code-layers.md and the code-layers gate",scripts,382,npm:code-shape,yes,yes,yes
 scripts/dead-family.py,"report a daisyUI theme colour used in a utility family daisyUI does not ship, which compiles to nothing and is dropped silently; Tailwind v4 then falls back to currentColor, so divide-y paints black hairlines. The supported set is DERIVED from node_modules/daisyui/daisyui.css rather than declared, so it tracks the installed version: of the 25 families it defines with a semantic colour, only bg, border and text are Tailwind utilities and the rest are daisyUI's own components. Advisory; --check gates",scripts,194,npm:family-scan,no,yes,yes
-scripts/dead-links.py,"report markdown links that no longer resolve, in three classes (internal, cross-repo, github)",scripts,253,argv,no,yes,yes
+scripts/dead-links.py,"report markdown links that no longer resolve, in three classes (internal, cross-repo, github)",scripts,272,argv,no,yes,yes
 scripts/dead-opacity.py,"report a daisyUI theme colour carrying an opacity step that generates no CSS rule. The ramp daisyUI ships is 10..90 by tens, so every other step, both ends, and the bracket form fall back: a background to transparent and TEXT to full strength, which is the wrong direction and errors nowhere. Stock palette colours take any step and are never reported, which is the half a looser scan gets wrong. --check gates it",scripts,152,npm:opacity-scan,no,yes,yes
 scripts/declared-paths.py,check every page a .web-tools.json declares still exists; runs in consumer repos' verify suites,scripts,137,argv,no,yes,no
 scripts/doc-growth.py,"weekly size-and-churn series for a repo's markdown, as one JSON payload: every file's length in words at each sample plus the commit churn around it, for pages/doc-growth.html. Samples trees rather than diffing, and reads blob contents through one cat-file batch fed from a thread",scripts,176,npm:doc-growth,yes,yes,no
@@ -16,7 +16,7 @@ scripts/mcp-link-safe.py,"report markdown links the GitHub MCP write path would 
 scripts/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",scripts,187,argv,no,yes,no
 scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",scripts,97,argv,no,yes,no
 scripts/pip-steps.py,,scripts,208,none found,no,no,no
-scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,629,npm:showing,no,yes,yes
+scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,653,npm:showing,no,yes,yes
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
 scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,yes,yes
 scripts/text-carriers.py,"inventory the CSV and JSON carriers that already hold authored prose, and registry their field names to show how much vocabulary the carriers share",scripts,539,argv,no,yes,yes
@@ -26,12 +26,12 @@ tools/build/audit-payload.py,"build a standoff annotation from a document plus i
 tools/build/bake.mjs,emit dist/<page>.html: the page's chain inlined into a standalone file,tools/build,53,npm:bake,yes,yes,no
 tools/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of lib/ app/index.html can reach, by the shared emitter; --check for the gate",tools/build,158,npm:build:app,yes,yes,yes
 tools/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",tools/build,108,npm:build:lib,yes,yes,yes
-tools/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",tools/build,77,npm:build,yes,yes,no
+tools/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",tools/build,102,npm:build,yes,yes,yes
 tools/build/cache-readers.mjs,"derive the cache-to-module half of the cache-to-view relation: for each thing the estate keeps derived, the app files that read it, with the shell and the declaring kit excluded as writers rather than consumers",tools/build,125,imported,no,yes,yes
 tools/build/console-suite.mjs,assemble console/suite.js from base.js plus the layered console modules,tools/build,51,npm:build:console,yes,yes,yes
 tools/build/docs-reach.mjs,restamp the derived reach and words fields of docs/docs.csv,tools/build,278,npm:docs-reach,yes,yes,yes
 tools/build/docs-readme.mjs,regenerate docs/README.md from docs/docs.csv,tools/build,98,npm:docs-readme,yes,yes,yes
-tools/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build.mjs its cache,tools/build,86,imported,no,yes,no
+tools/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build.mjs its cache,tools/build,117,imported,no,yes,yes
 tools/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,tools/build,230,npm:graphql-schema,yes,no,no
 tools/build/injection-measure.mjs,"measure what reaches a session at start and through which channel, into docs/injection.json",tools/build,168,argv,yes,no,no
 tools/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,tools/build,19,imported,no,yes,no
@@ -132,7 +132,7 @@ tools/render/scenarios/estate-jots.mjs,the estate's Jots view with a populated p
 tools/render/scenarios/estate-open.mjs,Activity's Open view seeded token-free so the list renders headlessly,tools/render/scenarios,205,driver,no,no,no
 tools/render/scenarios/estate-pins.mjs,the Lists pane with the Pin block populated above To-do and Jot,tools/render/scenarios,96,driver,no,no,no
 tools/render/scenarios/estate-rows.mjs,the grouped-grid Repos view with a nested companion card,tools/render/scenarios,88,driver,no,no,no
-tools/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",tools/render/scenarios,597,driver,no,no,yes
+tools/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",tools/render/scenarios,601,driver,no,no,yes
 tools/render/scenarios/estate-skills.mjs,,tools/render/scenarios,106,driver,no,no,no
 tools/render/scenarios/estate-surfaces-embed.mjs,"the Surfaces view rendering a kind:embed item, collapsed",tools/render/scenarios,81,driver,no,no,no
 tools/render/scenarios/estate-unfiled.mjs,,tools/render/scenarios,99,driver,no,no,no
@@ -201,6 +201,7 @@ tools/render/scenarios/search-limit.mjs,"what the Contents lane says when the co
 tools/render/scenarios/section-structure.mjs,"the section rules a markdown aim draws, at two widths",tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/session-contents.mjs,"enters the session deck from the outline the page opens on, then opens the deck's own contents list: the rows readable at 390px, the reader marked, and one pager gap per exchange",tools/render/scenarios,65,driver,no,no,no
 tools/render/scenarios/session-exchange-card.mjs,,tools/render/scenarios,58,driver,no,no,no
+tools/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",tools/render/scenarios,141,driver,no,no,no
 tools/render/scenarios/showing-paste-rows.mjs,,tools/render/scenarios,27,driver,no,no,no
 tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no,yes,yes
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no

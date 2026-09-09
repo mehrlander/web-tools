@@ -1,6 +1,6 @@
 slug,title,count,last_seen,seen,targets
+link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
 daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/daisy-alpine/references/mechanics.md
-link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",3,2026-09-07,2026-08-18;2026-09-01;2026-09-07,SURFACING.md
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/daisy-alpine/SKILL.md
@@ -17,6 +17,7 @@ ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
 header-essay-outlives-its-code,the file-header contract drifted while every per-site comment stayed true,1,2026-09-08,2026-09-08,text-content.md
 rewriter-marks-its-own-work,a comment pass that changed no code still made the file wrong,1,2026-09-08,2026-09-08,text-content.md
+stale-store-reads-as-dead-link,"a present checkout, two weeks behind, reported four good links dead",1,2026-09-08,2026-09-08,environment/container.md
 diagnostic-took-the-page-down,the readout added to find the failure was the failure,1,2026-09-07,2026-09-07,../pages/audit-render.html
 long-press-threshold-eats-the-tap,a control read as dead because an ordinary tap was a long press,1,2026-09-07,2026-09-07,../lib/alpineComponents/fab.js
 use-swaps-the-lib-not-the-page,"a page-file fix was handed over on a `?use=` link, twice",1,2026-09-07,2026-09-07,../CLAUDE.md;../scripts/showing.py

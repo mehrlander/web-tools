@@ -98,6 +98,20 @@ def sibling_root(root, name):
     return root.parent / name
 
 
+def store_stamp(root, name):
+    """The store's own tip, printed beside a dead verdict.
+
+    A checkout that is merely old answers as confidently as a current one, and
+    the verdict reads the same either way, so the age belongs next to it. This
+    stays local: what "current" is cannot be known without the network, and this
+    check runs offline by design.
+    """
+    base = root if name == root.name else sibling_root(root, name)
+    out = subprocess.run(["git", "-C", str(base), "log", "-1", "--format=%h %cs"],
+                         capture_output=True, text=True)
+    return out.stdout.strip() or None
+
+
 # The two URL forms that address a file in one of the owner's repos at main.
 # Both are checked the same way and reported in the same class, because the
 # failure is the same: a path that moved leaves the URL pointing at nothing.
@@ -233,6 +247,11 @@ def main(argv):
         rows = [x for x in dead if x[0] == cls]
         if rows:
             print(f"\n== {cls}: {len(rows)} dead")
+            for store in sorted({d.split(":")[0] for *_, d in rows if ":" in d}):
+                stamp = store_stamp(root, store)
+                if stamp:
+                    print(f"   store {store} at {stamp}; a verdict is only as "
+                          f"current as the store it was read against")
             for _, _, f, ln, label, detail in rows:
                 print(f"  {f}:{ln}  [{label}] -> {detail}")
     if unver:
