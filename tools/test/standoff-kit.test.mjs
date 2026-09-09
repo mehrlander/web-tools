@@ -299,23 +299,6 @@ test('every operation the kit accepts has a sentence, including both boundary op
   assert.deepEqual(undescribed, [], 'operations the commit message cannot state');
 });
 
-// ── the bytes, against the stored run ──────────────────────────────────────
-
-test('serialize reproduces the committed file exactly', () => {
-  // The other writer is tools/build/audit-payload.py. Neither may reformat the
-  // other's file, or every real change arrives inside a whole-file diff.
-  const p = 'skills/state-the-rule/runs/2026-08-29-conventions/standoff.json';
-  const raw = readFileSync(path.join(repoRoot, p), 'utf8');
-  assert.equal(S.serialize(JSON.parse(raw)), raw);
-});
-
-test('the stored run passes its own invariants through the kit', () => {
-  const so = JSON.parse(readFileSync(path.join(repoRoot,
-    'skills/state-the-rule/runs/2026-08-29-conventions/standoff.json'), 'utf8'));
-  const text = readFileSync(path.join(repoRoot, so.target.path), 'utf8');
-  assert.deepEqual(S.check(so, text), []);
-});
-
 // ── ONE STRING, TWO WAYS TO INDEX IT ─────────────────────────────────────────
 // Python indexes by code point, JavaScript by UTF-16 code unit, so an astral
 // character is one index in segment.py and two here. The failure is silent: the

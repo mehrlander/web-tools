@@ -7,7 +7,6 @@ the doc and script membership of the portable set,docs/PORTABLE.md Docs and Scri
 what each skill does,docs/portable.csv role; docs/PORTABLE.md table cells,paraphrase,"none; deliberately shorter per surface, honest while the owner is named"
 the surfacing primitives,docs/surfacing.csv,paraphrase,"membership two-way on the bullet lead-ins (surfacing-manifest.test.mjs); the summaries themselves unchecked, honest while the doc is named authoritative"
 the surfacing primitives,"other repos' CLAUDE.md restatements (home, chat-histories adaptations)",paraphrase,none; each declares itself an adaptation and names this doc as source
-the working conventions text,.claude/skills/web-tools/CONVENTIONS.md and SURFACING.md,copy,byte equality (portable-manifest.test.mjs)
 the working conventions text,the web-tools skill's runtime fetch,live read,none needed; reads main at use
 the adoption commands,"docs/PORTABLE.md, How to adopt",copy,none; two hand-kept copies of the same commands
 the toss routes (content type to renderer),pages/toss-render.html TOSS_ROUTES literal (inlined so the critical render path takes no fetch),copy,gate (routes-manifest.test.mjs)

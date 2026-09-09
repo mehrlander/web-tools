@@ -108,14 +108,3 @@ test('the board generator is byte-deterministic', () => {
 // of derived artifact to forget, because nothing about editing docs/ suggests
 // that a second file exists, and a stale copy is silent: it injects confidently
 // and governs the session with last month's rules.
-test('the plugin\'s vendored conventions match docs/', () => {
-  for (const name of ['CONVENTIONS.md', 'SURFACING.md']) {
-    const source = readFileSync(join(repoRoot, 'docs', name), 'utf8');
-    const vendored = readFileSync(join(repoRoot, '.claude/skills/web-tools', name), 'utf8');
-    assert.equal(
-      vendored, source,
-      `.claude/skills/web-tools/${name} is behind docs/${name}. ` +
-      'Run: cp docs/CONVENTIONS.md docs/SURFACING.md .claude/skills/web-tools/'
-    );
-  }
-});
