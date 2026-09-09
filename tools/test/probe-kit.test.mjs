@@ -194,12 +194,38 @@ test('card.js costs nothing and says nothing with no listener attached', () => {
   assert.equal(closed, 1, 'the dismissal contract is unchanged when nothing is watching');
 });
 
+test('filing fetches the reporter on the key press, and refuses in words', async () => {
+  const w = boot({ search: '?probe=pop' });
+  // No gh, no reporter: the refusal names which of the two is missing, since
+  // "it did not file" is the least useful thing a diagnostic can say.
+  let r = await w.Probe.file();
+  assert.equal(r.ok, false);
+  assert.equal(r.why, 'no gh on this page');
+
+  // With a loader present the kit fetches page-report.js rather than asking
+  // every adopting page to carry a writer most loads never reach.
+  const asked = [];
+  w.gh = { load: (p) => { asked.push(p); w.PageReport = { watch() {}, send: async (d) => ({ ok: true, path: 'logs/page/x.json', doc: d }) }; return Promise.resolve(); } };
+  r = await w.Probe.file('probe:test');
+  assert.deepEqual(asked, ['kits/page-report.js']);
+  assert.equal(r.ok, true);
+  assert.equal(r.doc.reason, 'probe:test');
+  assert.equal(r.doc.probeId, w.Probe.id, 'the filed capture carries the overlay id');
+  assert.match(w.document.getElementById('wt-probe').textContent, /filed/,
+    'and the overlay says so, so the screenshot proves the capture landed');
+});
+
 test('a filed capture carries what a screenshot cannot, joined by the load id', () => {
   const w = boot({ search: '?probe=pop' });
   w.Probe.watch('obs', () => 'open=true pinned=false');
   w.Probe.log('card:over:arm', 'note card ms=220');
   const s = w.Probe.state();
   assert.equal(s.probeId, w.Probe.id, 'the capture and the overlay carry one id');
+  // The capture is spread over PageReport's own document, so it must not
+  // carry a key the reporter owns. `at` is the reporter's ISO stamp and a
+  // number here broke the write inside it.
+  assert.equal('at' in s, false, 'the capture may not shadow the reporter\'s own keys');
+  assert.equal(typeof s.probeAt, 'number');
   assert.equal(s.live.obs, 'open=true pinned=false');
   assert.ok(Array.isArray(s.trace) && s.trace.length, 'the whole trace files, not the drawn tail');
   assert.equal(typeof s.environment.hover, 'boolean');
