@@ -16,7 +16,6 @@ skill,/portable:scour,.claude/skills/scour/SKILL.md,scour,"acquisition fan-out: 
 skill,/portable:gold-set,.claude/skills/gold-set/SKILL.md,gold-set,"measurement fan-out: build an independently labeled sample that scores a classifier or extractor for correctness, blind readers plus an adversarial skeptic plus a scoring script, and decide from the scorecard whether the program should change",plugin
 doc,,docs/SURFACING.md,Surfacing,the surfacing system: primitives (chat-handoff mechanics) plus the guide-PR course; the one always-loaded portable doc,live
 doc,,docs/venues.md,Venues,"the venue map: where work can run besides the session reading it, and the attended-versus-unattended split that decides where a job belongs",live
-doc,,docs/PORTABLE.md,The to-go bag,catalog of everything here that travels; the prose parent of this manifest,reference
 doc,,docs/TRACKER.md,Project tracker,opt-in cross-session tracker: one file per task plus a generated board,adopt
 doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of the what-goes-where doctrine: commit discipline, visibility forces repo boundaries, conventions pull from a public hub, the repo owns its own scope, documentation has four places. The theory behind show-repo's Map view",reference
 doc,,docs/show-repo.md,show-repo,"the hosted shell, the stage, and the .web-tools.json manifest",on-demand

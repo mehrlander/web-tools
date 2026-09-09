@@ -6,7 +6,7 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | everything under `.claude/skills/` (the `source` boundary below); the roster with one line per skill is [PORTABLE.md](PORTABLE.md)'s bag table, indexed in [`portable.csv`](portable.csv) | The to-go bag: the conventions loader, the surfacing caption, the tracker operator, and the rest of the set. This file deliberately does not enumerate it: the catalog is the one carrier, held to disk by `tools/test/portable-manifest.test.mjs` |
+| `portable` | everything under `.claude/skills/` (the `source` boundary below), indexed one row per piece in [`portable.csv`](portable.csv), which the Map view renders | The to-go bag: the conventions loader, the surfacing caption, the tracker operator, and the rest of the set. This file deliberately does not enumerate it: the catalog is the one carrier, held to disk by `tools/test/portable-manifest.test.mjs` |
 | `daisy-alpine` | `/daisy-alpine:daisy-alpine` | The house style for pages, model-invocable so it fires on matching artifact work; the DaisyUI 5 + Tailwind 4 + Alpine.js mechanics ride beside it in `references/mechanics.md` |
 
 Plugin skills are namespaced by plugin name, so `/tasks` installed by hand and `/portable:tasks` installed by plugin coexist without conflict.
@@ -48,3 +48,7 @@ Standing, for a repo (the committed form; cloud sessions install these at sessio
 ## Relationship to PORTABLE.md
 
 Same menu, second transport. [PORTABLE.md](PORTABLE.md) catalogs the portable set and its raw-fetch recipes; those remain the no-install path and the fallback where plugins are unavailable. Consumers migrating from a fetch hook can run both in parallel (the skills coexist under different names) and retire hook lines once the plugin path is verified.
+
+## Why the hooks ship here
+
+Five pieces of the `portable` plugin run on their own rather than being invoked: the session dispatcher (runs every checkout's `session-*.sh` from any project root), the session recorder, the PR-subscribe hint, the MCP failure hint, and the reading-column guard. They ship in the plugin because the per-container settings file they would otherwise live in is provisioned fresh each session, so a hand-installed copy works for exactly one session and then vanishes. Mechanics and measurements: [environment/extending.md](environment/extending.md).

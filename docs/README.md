@@ -13,8 +13,8 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-1 arrive in every session's context, 16 are named by CLAUDE.md,
-8 by a skill, 28 by a page or component. The remaining 24 are
+1 arrive in every session's context, 17 are named by CLAUDE.md,
+8 by a skill, 27 by a page or component. The remaining 23 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -22,8 +22,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
-- [`MARKETPLACE.md`](MARKETPLACE.md) *(orphan)* — the plugin marketplace: how the set is published and subscribed to
-- [`PORTABLE.md`](PORTABLE.md) — the portable set: what travels, and how to adopt it
+- [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
 - [`SURFACING.md`](SURFACING.md) — the surfacing system: primitives plus the guide-PR course
@@ -115,5 +114,5 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
 
-13 shared statements are registered in
+11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).
