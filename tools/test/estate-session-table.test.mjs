@@ -431,6 +431,42 @@ test('every glyph state paints, and the two recessive ones stay apart', () => {
     'both are landed work, and the column is about what landed');
 });
 
+test('Last reads m/dd, and typing what you see still filters', () => {
+  data.sessionGrain = 'session';
+  assert.equal(data.shortDate('2026-09-08T14:03:00Z'), '9/08');
+  assert.equal(data.shortDate('2026-12-01'), '12/01');
+  assert.equal(data.shortDate(''), '');
+  assert.equal(data.shortDate('not a date'), '');
+  // SLICED, NOT PARSED. new Date('2026-09-08') is UTC midnight, which formats
+  // as the 7th anywhere west of Greenwich, so a reader in Seattle would have
+  // seen every session end a day early.
+  assert.equal(data.shortDate('2026-01-01'), '1/01', 'no timezone in the path at all');
+
+  // The field holds the full ISO string and the screen shows only m/dd, so a
+  // plain substring filter would silently fail on the one form now visible.
+  const f = data.tableColumns.find(c => c.field === 'at').headerFilterFunc;
+  assert.equal(f('9/08', '2026-09-08T14:03:00Z'), true, 'what the reader sees');
+  assert.equal(f('2026-09', '2026-09-08T14:03:00Z'), true, 'and what the data holds');
+  assert.equal(f('9/07', '2026-09-08T14:03:00Z'), false);
+  assert.equal(f('', '2026-09-08T14:03:00Z'), true, 'an empty filter narrows nothing');
+});
+
+test('Repos is the second column in every grain that has one', () => {
+  // What a row IS gets read left to right, and which repos a session touched
+  // narrows it faster than its title: four glyphs against a sentence.
+  for (const grain of ['session', 'edge']) {
+    data.sessionGrain = grain;
+    const on = data.tableColumns.filter(c => c.dflt).map(c => c.field);
+    assert.equal(on[0], 'state', grain + ': state leads');
+    assert.equal(on[1], grain === 'session' ? 'repos' : 'repo', grain + ': repos second');
+    assert.ok(on.indexOf('title') > 1, grain + ': the name follows them');
+  }
+  data.sessionGrain = 'branch';
+  assert.equal(data.tableColumns.filter(c => c.dflt)[0].field, 'repo',
+    'the branch grain has no state column, so repo leads it');
+  data.sessionGrain = 'session';
+});
+
 test('the last column cannot be turned off', () => {
   data.tableCols_ = null;
   data.sessionGrain = 'session';
