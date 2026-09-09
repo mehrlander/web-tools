@@ -88,7 +88,7 @@ no fact, and never reaches a phone or a screenshot. daisyUI's `tooltip`,
 | --- | --- | --- | --- |
 | Holds | one line the page already implies; nothing tappable | anything, with a ↗ to where it came from; may scroll | the same |
 | Opens | hover, focus, tap | hover with grace, focus, tap | a deliberate click; on touch, every tap |
-| Closes | leave, its own tap, tap anywhere, Escape | leave both, ✕, tap outside, Escape | ✕, Escape, an action inside |
+| Closes | leave, its own tap, tap anywhere, Escape | the pointer elsewhere, a scroll, ✕, tap outside, Escape | ✕, Escape, a scroll, an action inside |
 | Own close target | its body: on touch, tapping the note closes it and swallows the tap | ✕, shown where the reader cannot hover | ✕, always |
 | Looks | `plain` (the browser's tooltip redrawn) or the styled default | one shell | the same shell, marked pinned |
 | Standard term | ARIA `role="tooltip"` | popover with light dismiss | popover with manual dismiss |
@@ -118,6 +118,28 @@ is `pointer-events: none` unless pinned draws a ✕ that cannot be pressed, whic
 looks correct in a screenshot and fails under a finger; `wire` measures the
 element on a coarse pointer and reports it. The shell owns that property:
 `@media (hover:none){ .<shell>.show{pointer-events:auto} }`.
+
+**A card closes on the world, not on a leave event.** A leave is not a promise:
+the pointer can stop being over the trigger without one ever firing. A scroll
+slides the content out from under a card positioned `fixed`, which stays exactly
+where it was and is then beside the wrong row. A re-render replaces the element
+the listener was attached to. The window loses focus mid-hover. None of those is
+a gesture anyone can report, so the symptom arrives as cards that refuse to go
+away rather than as a reproduction. `wire` therefore closes on two facts checked
+against the world: the pointer is demonstrably somewhere else (over something
+that is neither the card nor a selector in `except`, after the 220 ms grace that
+lets a reader cross the gap), or the geometry the card was placed against no
+longer holds (a page scroll, a resize, a window blur). A scroll *inside* the card
+is excluded, since that is a reader reaching the rest of a long one. `stale:
+false` opts out, and is only right for a card anchored to nothing that moves.
+
+Two consequences worth knowing. `except` now does double duty: a pointer resting
+on the control that raised the card has not left, which is also what lets a
+second trigger's own hover replace the card rather than flickering through empty.
+And the guards read the card's ACTUAL visibility rather than a flag, the same
+rule the toggle follows, covering the three ways a panel here is hidden: an
+Alpine `x-show`, the `hidden` class, the `hidden` attribute. A card hidden by
+opacity alone reads as shown and needs its own answer.
 
 **What the caller still owns: opening.** Enable hover only when
 `(hover: hover) and (pointer: fine)` match: open after about 140 ms and close
