@@ -89,6 +89,22 @@ Seeded from the SNAGS classes; extend it there first, here second.
 - Theme mismatch: colors from the wrong theme, illegible contrast.
 - Missing icons or fonts: tofu boxes, icon-font ligature text.
 
+## Fan-out over a surface family
+
+For a set of related surfaces (an app's tabs, a page catalog), shoot each and
+run one blind reader per shot, in parallel. Two rules from the first live run
+(14 Map tabs, 2026-09-09):
+
+- **Convergence is the signal.** A defect independent readers hit without
+  prompting outranks any single reader's list; seven of fourteen flagged the
+  same leaked element, which turned out to be three stray close tags spilling
+  one tab's markup onto all of them.
+- **Verify before reporting.** A reader's finding names a region; confirm it
+  with your own read and, where it implicates code, the source, before it
+  travels. Readers cannot tell a filter state from a load failure, and a
+  finding on a page served through a pre-build may be about stale bytes: for
+  a page importing `dist/`, rebuild before the shot proves anything.
+
 ## Key insights
 
 - **A fresh reader catches wrongness; only diff-awareness catches staleness.**

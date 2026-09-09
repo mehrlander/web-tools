@@ -31,6 +31,7 @@ Output-to-output pipelines: a document goes in, a committed artifact comes out, 
 |---|---|---|
 | outlining | method | Outlining distills a document to entries whose coverage can be checked. |
 | succinct-text | method | Brevity takes more work; the crosswalk proves nothing was lost. |
+| reduction-panel | method | The author defends prose; readers with no stake cut it. |
 | report-distiller | generator | A fixed distillation format beats a generic summary. |
 | source-anchored-writing | generator | Every claim carries its provenance or a flag. |
 | source-anchored-xlsx ⍰ | generator | A workbook where every number walks back to a visible snippet. |
