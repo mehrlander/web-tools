@@ -1,0 +1,11 @@
+source,glob
+docs,docs/**/*.md
+docs,*.md
+tracker,tracker/**/*.md
+skills,skills/**/*.md
+skills,.claude/skills/**/*.md
+lib,lib/**/*.js
+pages,pages/**/*.html
+tools,tools/**/*.md
+tools,tools/**/*.py
+tools,scripts/**/*.py

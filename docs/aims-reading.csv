@@ -1,0 +1,8 @@
+repo,path,private,gloss
+,docs/CONSTELLATION.md,,"What goes where across the repos, and why."
+mehrlander/home,created/2026-06-27-constellation-architecture.md,true,"The same doctrine worked out on these repos, including why home is the private one."
+,docs/CONVENTIONS.md,,"How a session works: prose style, standing decisions, status markers."
+,docs/SURFACING.md,,How a session's work reaches a reader when chat is the only channel.
+,docs/APP.md,,"What this app is for, and its own five durable goals."
+,docs/registries.md,,"How the estate classifies its own material, and who owns each claim."
+,docs/code-layers.md,,"Which layer a new code file belongs in, and the rule that decides."

@@ -65,7 +65,7 @@ Root-level `tracker/` scoped to repo-wide work (conventions, build tooling, docs
 
 ## Registries
 
-A committed JSON or CSV that inventories or classifies part of the tree is a
+A committed CSV that inventories or classifies part of the tree is a
 **registry**; adding one means adding a row to
 [`docs/registries.csv`](docs/registries.csv) in the same commit. The model,
 the rules, and what its audits found are in

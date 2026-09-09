@@ -104,7 +104,7 @@ routes-paste,declines_to,recorded,,value,column,yes,,"where everything it does n
 routes-paste,gate,recorded,,none,column,yes,,the check holding the behavior; absent where nothing does
 surfacing,lead,recorded,,value,column,yes,,"the bullet lead-in, held two-way against SURFACING.md's prose"
 surfacing,title,recorded,,value,column,yes,,the short name
-surfacing,glyph,recorded,,counted,column,yes,,"the caption marker; blank on the primitives that have no marker of their own"
+surfacing,glyph,recorded,,counted,column,yes,,the caption marker; blank on the primitives that have no marker of their own
 surfacing,use,recorded,,value,column,yes,,"what the primitive is for, in one line"
 surfacing,boundary,recorded,,none,column,yes,,where it stops working; carried wherever there is an edge to name
 surfacing,form,recorded,,none,column,yes,,"the concrete shape, where the primitive has one"
@@ -160,3 +160,19 @@ snags,seen,computed,tools/build/snags-index.mjs,none,list,no,,"every date the sn
 snags,count,computed,tools/build/snags-index.mjs,value,column,yes,,"how many times it bit, the field the recurrence rule turns on"
 snags,last_seen,computed,tools/build/snags-index.mjs,none,column,yes,,"the most recent sighting, the log's own sort key"
 snags,targets,computed,tools/build/snags-index.mjs,none,list,no,,"the docs the entry points at with →, which carry the fix"
+aims-goals,key,recorded,,none,column,yes,,"stable identifier, one word"
+aims-goals,name,recorded,,none,column,yes,,the goal as a title
+aims-goals,gloss,recorded,,none,column,yes,,the goal in one sentence
+aims-reading,repo,recorded,,none,column,yes,,owner/repo when the document lives outside the hub; blank means the hub
+aims-reading,path,recorded,,none,column,yes,,path within its repo
+aims-reading,private,recorded,,none,column,yes,true,set when the link resolves only for the owner
+aims-reading,gloss,recorded,,none,column,yes,,why this document is on the list
+themes,a,computed,scripts/duplicated-claims.py,none,column,yes,,"first file of the pair, sorted"
+themes,b,computed,scripts/duplicated-claims.py,none,column,yes,,second file of the pair
+themes,w,computed,scripts/duplicated-claims.py,none,column,yes,,"shared 10-word windows, the edge weight"
+themes,rule,computed,scripts/duplicated-claims.py,none,column,yes,true,whether the shared text states a rule
+themes,quoted,computed,scripts/duplicated-claims.py,none,list,yes,,"sample runs of the shared text, semicolon-joined"
+themes,shingle,computed,scripts/duplicated-claims.py,none,column,yes,,"words per window for this emission, identical on every row"
+themes,scanned,computed,scripts/duplicated-claims.py,none,column,yes,,"files scanned for this emission, identical on every row"
+sources,source,recorded,,none,column,yes,,the named set a glob belongs to
+sources,glob,recorded,,none,column,yes,,"one path pattern, anchored to a real directory"
