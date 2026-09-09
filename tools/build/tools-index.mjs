@@ -11,8 +11,7 @@
 //
 // Derived here, never authored:
 //
-//   invocation  the route execution arrives on, which is the axis that decides
-//               whether "nothing names it" matters. The pull routes (someone
+//   invocation  the route execution arrives on. The pull routes (someone
 //               asks):
 //                 npm:<script>  a package.json script invokes it
 //                 driver        lives in tools/render/scenarios/, the --script
@@ -25,9 +24,7 @@
 //                 session:SessionStart  a .claude/hooks/session-*.sh, run by
 //                               the plugin's dispatcher at session start
 //                 hook:<event>  a plugin hook script; the event comes from the
-//                               declaration in .claude/skills/hooks/hooks.json,
-//                               and a declared command whose file is missing is
-//                               the platform silently running nothing
+//                               declaration in .claude/skills/hooks/hooks.json
 //                 ci:<events>   a .github/workflows/ file; the events come from
 //                               its top-level `on:` block, '+'-joined
 //                 none found    no route the derivation can see
