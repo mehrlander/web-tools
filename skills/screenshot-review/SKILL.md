@@ -51,6 +51,26 @@ Steps 2 and 3 can be one subagent call with the two questions ordered
 blind-then-informed in a single prompt; ordering, not separation, is the
 requirement.
 
+## Optional readers
+
+Add either when the shot warrants it; each runs as its own subagent, since a
+reader given two jobs lets one prime the other.
+
+- **Style reader.** Assess the image against the house style. Give the reader
+  the style rules by file path (web-tools: `skills/daisy-alpine/SKILL.md`),
+  never from memory, and ask for rule-by-rule verdicts with the region each
+  rests on. Use for a new or restyled page. Run the checklist first: a style
+  verdict on a broken render grades the failure as a design choice (a
+  page-error shot returned "title in monospace" where the truth was that no
+  styling ran).
+- **Comprehension reader.** Two questions, answered in detail: how do you
+  interpret the premise of this page (what it is for, who acts on it), and
+  what does it convey informationally (what a reader learns from this state).
+  No checklist and no intent: the point is whether the page's purpose survives
+  contact with someone who was not told it. A premise the reader gets wrong is
+  a design finding, not a reader error. Use before a page ships to anyone but
+  its author.
+
 ## The checklist (self-read)
 
 Seeded from the SNAGS classes; extend it there first, here second.
