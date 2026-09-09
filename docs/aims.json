@@ -39,8 +39,8 @@
       "gloss": "The same doctrine worked out on these repos, including why home is the private one."
     },
     {
-      "path": "docs/CONVENTIONS.md",
-      "gloss": "How a session works: prose style, standing decisions, status markers."
+      "path": "docs/SURFACING.md",
+      "gloss": "How session work reaches the reader: the surfacing primitives and the guide-PR course."
     },
     {
       "path": "docs/SURFACING.md",
