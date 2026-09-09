@@ -44,7 +44,7 @@ const KINDS = domain('owners', 'kind');
 
 // A locator is prose that names files. Pull the path-shaped tokens out of it
 // rather than demanding a structured field: the prose says WHICH PART of the
-// file carries the statement ("docs/PORTABLE.md Docs table"), which is the part
+// file carries the statement ("docs/MARKETPLACE.md"), which is the part
 // worth reading, and a bare path column would lose it. Extensions are closed to
 // the ones the estate commits, so "e.g." and version strings do not match.
 // The lookbehind, rather than \b, is what lets a dotfile path match: \b would
@@ -52,7 +52,7 @@ const KINDS = domain('owners', 'kind');
 // into a path that resolves nowhere.
 const PATHISH = /(?<![\w.\-/])[.\w\-/]+?\.(?:md|json|html|mjs|js|py|sh|csv)\b/g;
 
-// Rows name files both ways: fully ("docs/PORTABLE.md Docs table") and by
+// Rows name files both ways: fully ("docs/MARKETPLACE.md") and by
 // basename once the folder is obvious from context ("routes-manifest.test.mjs").
 // Both are checked, against the tracked tree rather than the filesystem, so an
 // untracked scratch file cannot satisfy a locator.

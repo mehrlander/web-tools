@@ -172,3 +172,75 @@ The [`claude plugin inspect`](https://code.claude.com/docs/en/plugins-reference#
 | Hook       | Lifecycle-triggered action                           |
 | LSP server | Language diagnostics and navigation                  |
 | Plugin     | Installable component package                        |
+
+## The session dispatcher (as of 2026-09-09, moved from the retired PORTABLE.md)
+
+The harness has no glob for session-start scripts. `npm test` finds its whole
+suite from `tools/test/**/*.test.mjs`, and git finds its hooks from a folder
+once `core.hooksPath` is set, but a Claude Code hook has to be named
+individually in `.claude/settings.json`, and that file is read **only when the
+session's project root is that repo**. A session spanning several checkouts has
+its root above all of them, so none of their session hooks fire, and nothing
+reports it. Measured 2026-07-31: a session rooted at `/home/user` ran none of
+the four `SessionStart` hooks a checkout below it had registered.
+
+The dispatcher supplies the missing glob at the one layer that can. The plugin
+registers it once, at user scope, for every session; discovery is then by
+filename, the same contract the test suite already uses:
+
+```
+.claude/hooks/session-*.sh   ->  runs at session start
+anything else in that folder ->  ignored
+```
+
+So a repo adopts it by **naming a file**, with nothing declared anywhere, and
+opts a script out the same way, by calling it something else. web-tools' own
+`session-start.sh` is picked up and its `build-on-commit.sh` is not, exactly as
+`tools/test/bootstrap.mjs` stays out of `node --test`. The name is the whole
+declaration, which is why the executable bit is not also required: a lost mode
+bit should not quietly turn a script off.
+
+Each script runs with its own checkout as both cwd and `CLAUDE_PROJECT_DIR`, so
+a script already written for `.claude/settings.json` moves under the dispatcher
+unchanged. Scripts run in parallel under a per-script timeout, so the wall clock
+is the slowest one rather than the sum, and a script that hangs is stopped and
+named instead of holding the session open. The budget defaults to 120s
+(`WEB_TOOLS_SESSION_BUDGET` overrides it), matching the longest internal timeout
+the existing scripts already set for themselves, so adopting the dispatcher does
+not change what any repo was already willing to wait for.
+
+**Adopting it is a migration, not an addition.** The dispatcher replaces the
+declaration mechanism rather than sitting beside it, so a repo renames its
+scripts to `session-*.sh` **and drops the `SessionStart` block from its own
+`.claude/settings.json`**. Keeping both means each script runs twice whenever
+that repo is the project root; keep the `settings.json` entry only where a repo
+disables the plugin and so has no dispatcher at all. Parallel execution is the
+other thing a migration has to look at: entries that were an ordered list in
+`settings.json` no longer have an order, so a script depending on an earlier one
+has to do that work itself. home's `session-news-fetch.sh` sets `core.hooksPath`
+rather than assuming `session-git-config.sh` won the race.
+
+An inline command has no filename, so it cannot be discovered and needs a file
+of its own. That is not a technicality: home's `SessionStart` carried a bare
+`git config core.hooksPath .githooks`, and it was the entry whose silent absence
+actually cost something, leaving the repo's pre-commit lint and size guard off
+for any session rooted above it.
+
+Both mistakes are reported rather than left silent. When a checkout's
+`.claude/settings.json` still declares `SessionStart`, the dispatcher says so at
+session start, naming which case it is: no `session-*.sh` to discover (so
+nothing of that repo's ran) or scripts present alongside the declaration (so they
+double-run at that root). The check keys on the repo's own `SessionStart`
+declaration, not on an empty hooks folder, because a repo whose only hook is
+`PreToolUse` is correct rather than misconfigured.
+
+The dispatcher bounds what a script costs; it does not police it, any more than
+`node --test` polices a slow test. **Keeping session start cheap is the script's
+job**, and the convention is: gate on file reads, and do expensive work only
+when the gate says it is due. A repo whose script genuinely needs minutes should
+background it rather than hold the session open.
+
+Every dispatched script gets **`$WEB_TOOLS_HOOKS`**, the directory the plugin's
+own hooks live in, so a repo can call something the plugin ships without knowing
+where the cache put it or which commit it is pinned at. There is one such script
+today, and it is the reason the variable exists.

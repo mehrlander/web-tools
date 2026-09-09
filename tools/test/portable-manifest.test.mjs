@@ -1,9 +1,7 @@
-// docs/portable.csv — the machine-readable index of the portable set, whose
-// prose parent is docs/PORTABLE.md. This test is the consistency check that
-// lets the two coexist without drifting: every manifest path must exist in the
-// repo and be named somewhere in PORTABLE.md, and every path linked from
-// PORTABLE.md's "### Docs" and "### Scripts" tables must appear in the
-// manifest. Adding a piece to one place without the other fails here.
+// docs/portable.csv — the one index of the portable set (its prose parent,
+// docs/PORTABLE.md, was retired 2026-09-09; MARKETPLACE.md owns the channel).
+// This test types every row, holds each path to disk, and holds the skill
+// rows to the plugin's actual source boundary on disk.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,17 +11,7 @@ import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
 const manifest = { items: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8')) };
-const portableMd = readFileSync(path.join(repoRoot, 'docs', 'PORTABLE.md'), 'utf8');
 
-// First-cell code-span paths from the Docs and Scripts tables:  | [`path`](…) | … |
-function tablePaths(md, heading) {
-  const sec = md.split(heading)[1]?.split(/\n### /)[0] || '';
-  return [...sec.matchAll(/^\|\s*\[`([^`]+)`\]/gm)]
-    .map(m => m[1].replace(/\/$/, ''));
-}
-
-const tableSet = new Set([...tablePaths(portableMd, '### Docs'), ...tablePaths(portableMd, '### Scripts')]);
-const manifestPaths = new Set(manifest.items.map(i => i.path));
 // The harness registry owns the description of anything it carries.
 const harnessPaths = new Set(
   parseCsv(readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf8')).map(t => t.path));
@@ -60,19 +48,7 @@ test('every manifest path exists in the repo', () => {
   }
 });
 
-test('every manifest path is named in PORTABLE.md', () => {
-  for (const it of manifest.items) {
-    if (it.path === 'docs/PORTABLE.md') continue;   // the doc never names its own path
-    assert.ok(portableMd.includes(it.path), 'not in PORTABLE.md: ' + it.path);
-  }
-});
 
-test("every PORTABLE.md Docs/Scripts table row is in the manifest", () => {
-  assert.ok(tableSet.size > 10, 'table parse found rows');
-  for (const p of tableSet) {
-    assert.ok(manifestPaths.has(p), 'in PORTABLE.md tables but not the manifest: ' + p);
-  }
-});
 
 // The registry. The plugin's source boundary is ./.claude/skills (see
 // .claude-plugin/marketplace.json), so every skill directory on disk SHIPS,
