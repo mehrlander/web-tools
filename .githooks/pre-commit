@@ -67,6 +67,20 @@ if git status --porcelain -- lib/ | grep -q .; then
   fi
 fi
 
+# --- leg 1b: lib/ or pages/dictate.html -> dist/dictate.js --------------------
+# The dictation page adopts its own build (tools/build/build.mjs), so a change to
+# lib/ or to the page's reach re-emits it. It is the one PER-PAGE build that is
+# tracked, and it is tracked because the page imports it: the chain it replaces
+# was fourteen serial contents-API round trips, which is what made the page slow
+# to open on a phone (measured 2026-09-08).
+if git status --porcelain -- lib/ pages/dictate.html | grep -q .; then
+  if npm run build:dictate --silent >/dev/null 2>&1; then
+    stage dist/dictate.js
+  else
+    echo "build hook: 'npm run build:dictate' failed — committing without refreshing dist/dictate.js" >&2
+  fi
+fi
+
 # --- leg 1a: lib/ or app/index.html -> dist/app.js (the app's pre-build) ------
 # The app imports its own walked build (tools/build/build-app.mjs), so a change
 # to the page's reach re-emits it too.

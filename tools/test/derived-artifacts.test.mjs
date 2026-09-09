@@ -35,6 +35,11 @@ test('dist/app.js matches lib/ and the app page', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'build:app --check failed');
 });
 
+test('dist/dictate.js matches lib/ and the dictation page', () => {
+  const r = check(['tools/build/build.mjs', 'pages/dictate.html', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'build:dictate --check failed');
+});
+
 test('the page catalogs match pages/', () => {
   const r = check(['tools/build/pages-index.mjs', '--check']);
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'pages-index --check failed');

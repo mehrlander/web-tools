@@ -1078,6 +1078,44 @@ try {
     writes[0]?.text);
   ok('and the sheet stays open, since the list under it is the confirmation',
     await page.locator('input[placeholder="heard"]').isVisible());
+  // ── An arrival, and the draft it displaces ──────────────────────────────
+  // The expand carries a draft here through one localStorage key, and this
+  // page saves whatever it is shown. Joining the arrival onto the stored draft
+  // therefore compounded: the second expand opened on the first note stacked
+  // above it, the third on both. An arrival replaces now, and what it
+  // displaced is one tap away rather than gone.
+  console.log('\nan arrival replaces the stored draft:');
+  await page.evaluate(() => {
+    localStorage.setItem('dictate:draft', 'an older note nobody filed');
+    localStorage.setItem('wt:dictate-handoff', JSON.stringify({
+      text: 'the note being carried over', at: '/pages/annotate.html', sentAt: Date.now() }));
+    localStorage.removeItem('dictate:aside');
+  });
+  await open();
+  ok('the page opens on the carried words alone',
+    (await buffer()).trim() === 'the note being carried over', await buffer());
+  ok('and says where they came from',
+    (await page.locator('text=Carried over from').count()) === 1);
+  ok('the displaced draft is offered back, not discarded',
+    await page.locator('button:has-text("Bring back")').isVisible());
+
+  await page.locator('button:has-text("Bring back")').click();
+  await page.waitForTimeout(300);
+  ok('and one tap puts it above what is here',
+    (await buffer()).replace(/\s+/g, ' ').trim()
+      === 'an older note nobody filed the note being carried over', await buffer());
+  // x-show hides rather than removes, so this asks whether it is VISIBLE.
+  ok('the offer is spent, since those words are now in the buffer',
+    !(await page.locator('button:has-text("Bring back")').isVisible()));
+
+  // The pile-up this replaced: a second arrival must not stack on the first.
+  await page.evaluate(() => {
+    localStorage.setItem('wt:dictate-handoff', JSON.stringify({
+      text: 'a second note', at: '/pages/annotate.html', sentAt: Date.now() }));
+  });
+  await open();
+  ok('a second arrival opens on itself, not on the pile',
+    (await buffer()).trim() === 'a second note', await buffer());
 } finally {
   await browser.close();
   server.close();
