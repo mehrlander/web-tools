@@ -63,3 +63,4 @@ Governing meta-skills.
 | skill-prefs | method | Standing preferences for how a skill is written. |
 | source-anchoring | method | Output that does not ask to be believed. |
 | mobile ⍰ | flag | Session flagged mobile; read transcription charitably. |
+| screenshot-review | method | The session that produced a shot is its worst-placed reader. |
