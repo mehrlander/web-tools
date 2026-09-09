@@ -132,3 +132,98 @@ test('a ✕ that cannot be pressed is reported, since nothing else would notice'
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /cannot be pressed/);
 });
+
+// ── The staleness guards ───────────────────────────────────────────────────
+//
+// The half a leave event cannot promise. Each of these is a way the pointer
+// stops being over the trigger, or the placement stops meaning anything, with
+// no leave ever firing; before the guards, each left a card on screen anchored
+// to content that had moved out from under it.
+
+const over = (el) => el.dispatchEvent(
+  new window.Event('pointerover', { bubbles: true }));
+const scrollOn = (el) => el.dispatchEvent(
+  new window.Event('scroll', { bubbles: false }));
+const settle = (ms = 320) => new Promise((r) => setTimeout(r, ms));
+
+test('a pointer demonstrably elsewhere closes the card, with no leave fired', async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
+  over($('#under'));
+  await settle();
+  assert.equal(closed, 1, 'the pointer being over something else is the close');
+  w.detach();
+});
+
+test('the card and its trigger are not elsewhere, and cancel a pending close', async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, except: ['#toggle'] });
+  over($('#under'));      // start the grace
+  over($('#pop'));        // the reader crossed the gap into the card
+  await settle();
+  assert.equal(closed, 0, 'arriving on the card cancels the fade');
+  over($('#under'));
+  over($('#toggle'));     // and the trigger counts the same way
+  await settle();
+  assert.equal(closed, 0, 'a pointer on the trigger has not left');
+  w.detach();
+});
+
+test('a page scroll closes it, and a scroll inside it does not', async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; } });
+  scrollOn($('#pop'));
+  assert.equal(closed, 0, 'a reader reaching the rest of a long card is not a departure');
+  scrollOn(window.document);
+  assert.equal(closed, 1, 'the content moved and the card did not');
+  w.detach();
+});
+
+test('resize and window blur close it, since the placement stops meaning anything', () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; } });
+  window.dispatchEvent(new window.Event('resize'));
+  assert.equal(closed, 1);
+  window.dispatchEvent(new window.Event('blur'));
+  assert.equal(closed, 2);
+  w.detach();
+});
+
+test('a hidden card is not closed again by any of them', async () => {
+  let closed = 0;
+  const pop = $('#pop');
+  const w = Card.wire(pop, { onClose: () => { closed += 1; } });
+  for (const hide of [
+    () => { pop.classList.add('hidden'); },
+    () => { pop.classList.remove('hidden'); pop.style.display = 'none'; },
+    () => { pop.style.display = ''; pop.hidden = true; },
+  ]) {
+    hide();
+    over($('#under'));
+    scrollOn(window.document);
+    window.dispatchEvent(new window.Event('resize'));
+    await settle();
+    assert.equal(closed, 0, 'the guards read actual visibility, all three ways');
+  }
+  pop.hidden = false;
+  w.detach();
+});
+
+test('stale:false leaves a card that must survive a scroll alone', async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: false });
+  scrollOn(window.document);
+  over($('#under'));
+  await settle();
+  assert.equal(closed, 0, 'the opt-out is the whole opt-out');
+  w.detach();
+});
+
+test('detach releases the guards, so a rebuilt card does not close twice', async () => {
+  let closed = 0;
+  Card.wire($('#pop'), { onClose: () => { closed += 1; } }).detach();
+  scrollOn(window.document);
+  over($('#under'));
+  await settle();
+  assert.equal(closed, 0);
+});
