@@ -101,7 +101,8 @@ const SESSIONS = [
 // rather than drop: a record is evidence the work happened, and a crawl that
 // has not reached the branch is not evidence that it did not.
 data.sessionRows_ = SESSIONS;
-data.activity = {
+// Named so a test that swaps in its own can restore it afterwards.
+const ACTIVITY = {
   'me/web-tools': {
     defaultBranch: 'main', openPRs: [], branchPRs: [],
     scan: { branches: [
@@ -111,6 +112,9 @@ data.activity = {
     ] },
   },
 };
+data.activity = ACTIVITY;
+const ENTRIES = [];
+data.entries = ENTRIES;
 data._activityRev = 1;
 data.sessionScope = 'all';
 
@@ -181,8 +185,11 @@ test('a width set beside the shared number preset survives it', () => {
   // silently replaced it and a column rendered at the preset's 92 instead. The
   // widths are smaller now that the bars are gone, so what this holds is the
   // ORDER: an explicit width must outlive the spread, whatever it is.
+  // No literal: the figure moved twice already (92, then 84, then 72 as the
+  // columns tightened for a phone), and each move broke this line while the
+  // invariant it names held throughout.
   const mins = data.tableColumns.find(c => c.field === 'mins');
-  assert.equal(mins.width, 84);
+  assert.ok(mins.width, 'Ran sets its own width');
   assert.notEqual(mins.width, data.NUM_FILTER.width, 'the preset width did not win');
   // A column that wants the preset's width simply omits its own.
   assert.equal(data.tableColumns.find(c => c.field === 'calls').width, data.NUM_FILTER.width);
@@ -289,6 +296,209 @@ test('the table host carries the data effect, which is what lets the mount effec
   const host = window.document.querySelector('[x-ref="tableHost"]');
   assert.ok(host, 'the host is in the template');
   assert.equal(host.getAttribute('x-effect'), 'syncTableData()');
+});
+
+// ── The mobile pass: what a phone reads, and what it costs ─────────────────
+test('the session id leaves the opening set and the name column carries it', () => {
+  data.sessionGrain = 'session';
+  const id = data.tableColumns.find(c => c.field === 'id');
+  assert.equal(id.dflt, false, '118px to identify a row you identify by tapping it');
+  assert.ok(id, 'still in the menu, which is also the only way back to filtering by id');
+  // 9 of 344 records have neither a title nor a branch to derive one from, so
+  // labelOf returns empty and those rows would otherwise show nothing at all
+  // in either of the two columns that say which session this is.
+  const name = data.tableColumns.find(c => c.field === 'title');
+  const cell = (title, rowId) => name.formatter({
+    getValue: () => title, getRow: () => ({ getData: () => ({ id: rowId }) }) });
+  assert.match(cell('deck-swipe', 'aaa11111'), /deck-swipe/);
+  assert.ok(!cell('deck-swipe', 'aaa11111').includes('aaa11111'), 'a named row shows its name only');
+  assert.match(cell('', 'aaa11111'), /aaa11111/, 'a nameless row falls back to its id');
+  assert.match(cell('', 'aaa11111'), /font-mono/, 'drawn as an identifier, not as a name');
+});
+
+test('a repo is a glyph it declares, and the tap that names it is not a navigation', () => {
+  // Measured against the cache before this was built: 709 of 713 repo-mentions
+  // across 344 records resolve to a declared icon. The column is only compact
+  // because the mark is the repo's own.
+  data.entries = [{ repo: 'me/web-tools', icon: 'ph-toolbox' },
+                  { repo: 'me/home', icon: 'ph-house' }];
+  assert.equal(data.repoIcon('me/home'), 'ph-house', 'the full name the estate holds');
+  assert.equal(data.repoIcon('home'), 'ph-house', 'and the short name a table row holds');
+  assert.equal(data.repoIcon('nowhere'), 'ph-bookmark-simple', 'a repo declaring none');
+
+  const cell = data.repoIconCell('web-tools home');
+  assert.match(cell, /ph-toolbox/);
+  assert.match(cell, /ph-house/);
+  // Every glyph carries the name, because an icon column on a phone is only
+  // honest if the name is one tap away: note.js opens on pointerdown, and
+  // mountTable's rowClick skips a tap landing on [data-note] for this reason.
+  // The note carries the state too, so this matches the identity half only:
+  // what must hold is that every glyph names its repo on tap.
+  assert.match(cell, /data-note="web-tools —/);
+  assert.match(cell, /data-note="home —/);
+  assert.equal(data.repoIconCell(''), '<span class="text-base-content/30">–</span>');
+});
+
+test('past four repos the overflow is counted, not clipped', () => {
+  // The 95th percentile is 4 repos and the maximum is 7. Sizing for 7 spends
+  // 60px of every row on 3% of them; clipping silently would make the cell lie
+  // about what a session touched.
+  const cell = data.repoIconCell('a b c d e f');
+  assert.equal((cell.match(/<i /g) || []).length, 4, 'four glyphs drawn');
+  assert.match(cell, />\+2</, 'and the rest counted');
+  assert.match(cell, /data-note="e, f"/, 'the counter names who it stands for');
+  assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
+});
+
+test('duration magnitude is quantized to five bands, and the bands are the distribution\'s', () => {
+  // A continuous bar was removed from this column once already: 74% of 344
+  // records fall in the single decade from one hour to one day, so a linear
+  // bar drew that 74% as a hairline and a logarithmic one drew the median
+  // (527m) and the ninetieth percentile (2532m) at nearly the same length.
+  // SEPARATING THOSE TWO IS THE REASON THE BAR IS BACK, so it is the thing
+  // asserted rather than any particular edge: on durUnit's own boundaries they
+  // came out adjacent, and the 12h edge is what moved them apart.
+  assert.ok(data.durBand(2532) - data.durBand(527) >= 2,
+    'the median and the ninetieth percentile are at least two steps apart');
+  // Every edge lands in the band above it, and nothing falls off either end.
+  const top = data.DUR_BANDS.length + 1;
+  assert.equal(data.durBand(0), 1);
+  assert.equal(data.durBand(59), 1);
+  assert.equal(data.durBand(60), 2);
+  assert.equal(data.durBand(data.DUR_BANDS.at(-1)), top);
+  assert.equal(data.durBand(35826), top, 'the longest record in the cache still draws a full bar');
+  // The bands are durUnit's own boundaries, so the bar and the unit can never
+  // disagree about which end of the column a row belongs at: nothing reading
+  // minutes may outrank something reading days.
+  const mBand = Math.max(...[0, 30, 59].map(v => data.durBand(v)));
+  const dBand = Math.min(...[1440, 4320, 35826].map(v => data.durBand(v)));
+  assert.ok(mBand < dBand, 'a row in minutes never outranks a row in days');
+  // The fill is behind the number, not instead of it: the bar compares, the
+  // number states.
+  const cell = data.durCell(527);
+  assert.match(cell, /8\.8h/, 'the exact reading survives');
+  assert.match(cell, /width:50%/, 'band 3 of 6');
+  assert.match(data.durCell(35826), /width:100%/, 'the top band fills');
+  assert.ok(!cell.includes('bg-primary'), 'neutral, since the accent means "control" everywhere else here');
+});
+
+test('a repo glyph takes its state from branchState, and absence is never a confident answer', () => {
+  data.sessionGrain = 'session';
+  data.entries = [{ repo: 'me/web-tools', icon: 'ph-toolbox' }];
+  // THE PR INDEX IS CAPPED OR IT IS NOT, and that is the whole distinction the
+  // colour rests on. prReach '' means every PR the repo has is in hand, so an
+  // unmatched head is a real "no pull request ever". A non-empty prReach is a
+  // horizon: newer than it, absence still answers; older, it cannot.
+  data.activity = { 'me/web-tools': { defaultBranch: 'main', prReach: '',
+    openPRs: [{ head: 'claude/live', draft: false }],
+    branchPRs: [{ head: 'claude/done', state: 'merged' },
+                { head: 'claude/gone', state: 'closed' }] } };
+  const st = (b, at) => data.repoEntryState('web-tools', b, at || '2026-09-01T00:00:00Z');
+  assert.equal(st('claude/done'), 'merged');
+  assert.equal(st('claude/gone'), 'closed');
+  assert.equal(st('claude/live'), 'ready');
+  assert.equal(st('claude/never'), 'nopr', 'uncapped index: absence is an answer');
+  // Work committed to the default branch has landed by definition and will
+  // never have a PR, which branchState alone would read as `nopr`.
+  assert.equal(st('main'), 'onmain');
+
+  data.activity['me/web-tools'].prReach = '2026-08-20T00:00:00Z';
+  assert.equal(st('claude/never', '2026-09-01T00:00:00Z'), 'nopr', 'newer than the horizon');
+  assert.equal(st('claude/never', '2026-08-01T00:00:00Z'), 'unknown', 'older than it, and it says so');
+  assert.equal(data.repoEntryState('not-crawled', 'claude/x', '2026-09-01T00:00:00Z'), 'unknown');
+  assert.equal(st(''), 'unknown', 'a repo entry with no branch claims nothing');
+  // Put the shared fixture back: the branch-grain tests below read data.activity
+  // and data.entries, and a test that leaves its own scratch behind fails the
+  // next one for a reason that has nothing to do with either.
+  data.entries = ENTRIES; data.activity = ACTIVITY; data._activityRev++;
+});
+
+test('every glyph state paints, and the two recessive ones stay apart', () => {
+  // /45 and /25 shipped here first and compiled to NOTHING: daisyUI's theme
+  // opacities run 10..90 by tens, so both fell back to full strength and the
+  // two states meant to recede came out the darkest in the column, identical
+  // to each other. A class list looks right when this is broken; only the
+  // ramp catches it.
+  const RAMP = new Set([10,20,30,40,50,60,70,80,90]);
+  for (const [state, cls] of Object.entries(data.REPO_STATE_CLASS)) {
+    const m = /\/(\d+)$/.exec(cls);
+    if (m) assert.ok(RAMP.has(+m[1]), state + ' uses ' + cls + ', which is off the shipped ramp');
+    assert.ok(data.REPO_STATE_NOTE[state], state + ' says what it means on tap');
+  }
+  assert.notEqual(data.REPO_STATE_CLASS.nopr, data.REPO_STATE_CLASS.unknown,
+    'the index looked and found nothing is not the same claim as it cannot see that far');
+  assert.equal(data.REPO_STATE_CLASS.merged, data.REPO_STATE_CLASS.onmain,
+    'both are landed work, and the column is about what landed');
+});
+
+test('Last reads m/dd, and typing what you see still filters', () => {
+  data.sessionGrain = 'session';
+  assert.equal(data.shortDate('2026-09-08T14:03:00Z'), '9/08');
+  assert.equal(data.shortDate('2026-12-01'), '12/01');
+  assert.equal(data.shortDate(''), '');
+  assert.equal(data.shortDate('not a date'), '');
+  // SLICED, NOT PARSED. new Date('2026-09-08') is UTC midnight, which formats
+  // as the 7th anywhere west of Greenwich, so a reader in Seattle would have
+  // seen every session end a day early.
+  assert.equal(data.shortDate('2026-01-01'), '1/01', 'no timezone in the path at all');
+
+  // The field holds the full ISO string and the screen shows only m/dd, so a
+  // plain substring filter would silently fail on the one form now visible.
+  const f = data.tableColumns.find(c => c.field === 'at').headerFilterFunc;
+  assert.equal(f('9/08', '2026-09-08T14:03:00Z'), true, 'what the reader sees');
+  assert.equal(f('2026-09', '2026-09-08T14:03:00Z'), true, 'and what the data holds');
+  assert.equal(f('9/07', '2026-09-08T14:03:00Z'), false);
+  assert.equal(f('', '2026-09-08T14:03:00Z'), true, 'an empty filter narrows nothing');
+});
+
+test('Repos is second, and the two dates are adjacent and in time order', () => {
+  const open = (g) => { data.sessionGrain = g; return data.tableColumns.filter(c => c.dflt).map(c => c.field); };
+  // Repos precedes the name because which repos a session touched narrows a row
+  // faster than its title does: four glyphs against a sentence.
+  for (const [grain, repoField] of [['session', 'repos'], ['edge', 'repo']]) {
+    const on = open(grain);
+    assert.equal(on[0], 'state', grain + ': state leads');
+    assert.equal(on[1], repoField, grain + ': repos second');
+    assert.ok(on.indexOf('title') > 1, grain + ': the name follows them');
+  }
+  // A branch has no closing state of its own, so its repo leads.
+  assert.equal(open('branch')[0], 'repo');
+  // FIRST THEN LAST, TOUCHING, in all three. The pair replaced a duration, and
+  // it only reads as a span if it runs the way time does with nothing wedged
+  // between; reversed or separated it is two unrelated dates.
+  for (const grain of ['session', 'edge', 'branch']) {
+    const on = open(grain);
+    const f = on.indexOf('first'), l = on.indexOf('at');
+    assert.ok(f > -1 && l > -1, grain + ': both dates are opened on');
+    assert.equal(l - f, 1, grain + ': First immediately precedes Last');
+  }
+  data.sessionGrain = 'session';
+});
+
+test('First is the session\'s own start, and falls back the opposite way to Last', () => {
+  // A record missing one end still has the other, and showing that beats
+  // showing nothing, which is why the two fallbacks are mirrored rather than
+  // copied.
+  assert.equal(data.sessionFirstAt({ started: 'A', ended: 'B' }), 'A');
+  assert.equal(data.sessionFirstAt({ ended: 'B' }), 'B', 'no start: the end is still a date');
+  assert.equal(data.sessionFirstAt({}), '');
+  assert.equal(data.sessionFirstAt(null), '');
+  data.sessionGrain = 'session';
+  const row = data.grainRows.find(r => r.id === 'aaa11111');
+  assert.ok(row.first, 'the session grain carries it');
+  assert.ok(row.first <= row.at, 'and it never postdates the last event');
+});
+
+test('Ran leaves the opening set, and its bar survives in the column menu', () => {
+  // Elapsed time is the weakest of the three counts here: it counts the night a
+  // session was left open, where Calls counts what it did. Removing the column
+  // from the opening set is not removing the measurement, and the six bands
+  // still hold for a reader who turns it back on.
+  data.sessionGrain = 'session';
+  const ran = data.tableColumns.find(c => c.field === 'mins');
+  assert.ok(ran, 'still offered');
+  assert.equal(ran.dflt, false, 'but not opened on');
+  assert.match(ran.formatter({ getValue: () => 527 }), /width:50%/, 'and it still draws its band');
 });
 
 test('the last column cannot be turned off', () => {
