@@ -42,8 +42,10 @@ This skill is a reference for you in drafting any skill.
 
 - **Frontmatter.** Keep the YAML valid. A colon in the description can break parsing, since YAML reads it as a key; avoid colons there, or wrap the whole value in double quotes. Confirm it parses before handing over a .skill.
 
-## Bundled
-
-- `CATALOGUE.md`: the library map, family, type, and premise line per skill. Read when placing a new skill in a family or checking its neighbors.
+This skill bundles no companion files. The library's one classification is the
+`group` column of `skills/manifest.csv`, an authored (recorded) registry
+column; a further characteristic earns a column there only by naming a clear
+dimension, never a second list. (A CATALOGUE.md companion carried family and
+type placements until 2026-09-09; it covered 27 of 43 skills when retired.)
 
 This document has no Extending section, by its own rule: there is no growth path to document. The omission is the spec in practice.
