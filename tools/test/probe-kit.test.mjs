@@ -92,6 +92,37 @@ test('the overlay hops corners rather than being dragged', () => {
   assert.equal(/pointer-events:\s*(auto|all)/.test(css), false);
 });
 
+test('the window is light, and exactly one thing in it scrolls', () => {
+  // Both were reported from a real screenshot: a dark panel on a machine that
+  // uses no dark theme, and two scrollbars doing different things. Held against
+  // the sheet the kit ships, since jsdom computes no layout.
+  const css = src('lib/kits/probe.js').match(/const WIN_CSS = `([\s\S]*?)`;/)[1];
+
+  assert.match(css, /html\{color-scheme:light\}/,
+    'declared rather than inherited, or a machine set to dark renders this '
+    + "window's scrollbar and buttons dark against a white page");
+  assert.match(css, /html,body\{[^}]*background:#fff/, 'the window is light');
+  // No dark surface anywhere: every background in the sheet is white or a
+  // near-white rule, which is what "no dark theme" has to mean mechanically.
+  for (const [, colour] of css.matchAll(/background:(#[0-9a-f]{3,6})/g)) {
+    const hex = colour.length === 4
+      ? colour.slice(1).split('').map((c) => c + c).join('')
+      : colour.slice(1);
+    const lum = parseInt(hex.slice(0, 2), 16) + parseInt(hex.slice(2, 4), 16) + parseInt(hex.slice(4, 6), 16);
+    assert.ok(lum > 600, 'a dark surface (' + colour + ') got back into the window sheet');
+  }
+
+  // HOUSE RULE 4, and the whole of what "one scroll region" means here: the
+  // document itself does not scroll, the root is a fixed grid, and exactly one
+  // pane opts into overflow.
+  assert.match(css, /html,body\{[^}]*overflow:hidden/, 'the document must not scroll');
+  assert.match(css, /#wt-win\{[^}]*position:fixed[^}]*display:grid/,
+    'the root is a fixed grid, so the panes divide a viewport rather than a page');
+  const scrollers = [...css.matchAll(/^\.([\w-]+)\{[^}]*overflow:(auto|scroll)/gm)].map((m) => m[1]);
+  assert.deepEqual(scrollers, ['wt-trace'],
+    'exactly one pane may scroll; found: ' + scrollers.join(', '));
+});
+
 test('a live line is read at draw time, not at registration', () => {
   const w = boot({ search: '?probe=pop' });
   let n = 0;
