@@ -181,8 +181,11 @@ test('a width set beside the shared number preset survives it', () => {
   // silently replaced it and a column rendered at the preset's 92 instead. The
   // widths are smaller now that the bars are gone, so what this holds is the
   // ORDER: an explicit width must outlive the spread, whatever it is.
+  // No literal: the figure moved twice already (92, then 84, then 72 as the
+  // columns tightened for a phone), and each move broke this line while the
+  // invariant it names held throughout.
   const mins = data.tableColumns.find(c => c.field === 'mins');
-  assert.equal(mins.width, 84);
+  assert.ok(mins.width, 'Ran sets its own width');
   assert.notEqual(mins.width, data.NUM_FILTER.width, 'the preset width did not win');
   // A column that wants the preset's width simply omits its own.
   assert.equal(data.tableColumns.find(c => c.field === 'calls').width, data.NUM_FILTER.width);
@@ -289,6 +292,56 @@ test('the table host carries the data effect, which is what lets the mount effec
   const host = window.document.querySelector('[x-ref="tableHost"]');
   assert.ok(host, 'the host is in the template');
   assert.equal(host.getAttribute('x-effect'), 'syncTableData()');
+});
+
+// ── The mobile pass: what a phone reads, and what it costs ─────────────────
+test('the session id leaves the opening set and the name column carries it', () => {
+  data.sessionGrain = 'session';
+  const id = data.tableColumns.find(c => c.field === 'id');
+  assert.equal(id.dflt, false, '118px to identify a row you identify by tapping it');
+  assert.ok(id, 'still in the menu, which is also the only way back to filtering by id');
+  // 9 of 344 records have neither a title nor a branch to derive one from, so
+  // labelOf returns empty and those rows would otherwise show nothing at all
+  // in either of the two columns that say which session this is.
+  const name = data.tableColumns.find(c => c.field === 'title');
+  const cell = (title, rowId) => name.formatter({
+    getValue: () => title, getRow: () => ({ getData: () => ({ id: rowId }) }) });
+  assert.match(cell('deck-swipe', 'aaa11111'), /deck-swipe/);
+  assert.ok(!cell('deck-swipe', 'aaa11111').includes('aaa11111'), 'a named row shows its name only');
+  assert.match(cell('', 'aaa11111'), /aaa11111/, 'a nameless row falls back to its id');
+  assert.match(cell('', 'aaa11111'), /font-mono/, 'drawn as an identifier, not as a name');
+});
+
+test('a repo is a glyph it declares, and the tap that names it is not a navigation', () => {
+  // Measured against the cache before this was built: 709 of 713 repo-mentions
+  // across 344 records resolve to a declared icon. The column is only compact
+  // because the mark is the repo's own.
+  data.entries = [{ repo: 'me/web-tools', icon: 'ph-toolbox' },
+                  { repo: 'me/home', icon: 'ph-house' }];
+  assert.equal(data.repoIcon('me/home'), 'ph-house', 'the full name the estate holds');
+  assert.equal(data.repoIcon('home'), 'ph-house', 'and the short name a table row holds');
+  assert.equal(data.repoIcon('nowhere'), 'ph-bookmark-simple', 'a repo declaring none');
+
+  const cell = data.repoIconCell('web-tools home');
+  assert.match(cell, /ph-toolbox/);
+  assert.match(cell, /ph-house/);
+  // Every glyph carries the name, because an icon column on a phone is only
+  // honest if the name is one tap away: note.js opens on pointerdown, and
+  // mountTable's rowClick skips a tap landing on [data-note] for this reason.
+  assert.match(cell, /data-note="web-tools"/);
+  assert.match(cell, /data-note="home"/);
+  assert.equal(data.repoIconCell(''), '<span class="text-base-content/30">–</span>');
+});
+
+test('past four repos the overflow is counted, not clipped', () => {
+  // The 95th percentile is 4 repos and the maximum is 7. Sizing for 7 spends
+  // 60px of every row on 3% of them; clipping silently would make the cell lie
+  // about what a session touched.
+  const cell = data.repoIconCell('a b c d e f');
+  assert.equal((cell.match(/<i /g) || []).length, 4, 'four glyphs drawn');
+  assert.match(cell, />\+2</, 'and the rest counted');
+  assert.match(cell, /data-note="e, f"/, 'the counter names who it stands for');
+  assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
 });
 
 test('the last column cannot be turned off', () => {
