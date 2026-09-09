@@ -5227,6 +5227,12 @@ function app(){ return {
         // because it is the record's filename stem and resolves against the
         // store by suffix.
         if (this.sessionSpec) p.set('session', this.sessionSpec);
+        // The SET, which is the pane's scope rather than one open record, so it
+        // outlives the deck: closing a swiper drops `session=` and leaves the
+        // reader on the set they arrived with, not on whatever the default
+        // scope holds. estate.js's sessionSetIds owns the grammar (short ids,
+        // comma-separated, order kept).
+        if (this.sessionSetSpec) p.set('set', this.sessionSetSpec);
         // The default of each is silent, so the shortest address that means
         // "the Sessions pane as it opens" is still ?view=sessions alone.
         if (this.sessionLens && this.sessionLens !== 'list') p.set('lens', this.sessionLens);
@@ -5480,6 +5486,12 @@ function app(){ return {
   setSession(spec){
     if (this.sessionSpec === spec) return;
     this.sessionSpec = spec || '';
+    this.syncUrl();
+  },
+  sessionSetSpec: new URLSearchParams(location.search).get('set') || '',
+  setSessionSet(spec){
+    if (this.sessionSetSpec === spec) return;
+    this.sessionSetSpec = spec || '';
     this.syncUrl();
   },
 
