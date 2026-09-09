@@ -108,6 +108,7 @@ tools/render/scenarios/branch-guide.mjs,the branch page showing a branch with it
 tools/render/scenarios/branch-page-cold.mjs,"the branch view mounted as a PAGE, with no host lending it facts or a verdict",tools/render/scenarios,111,driver,no,no,no
 tools/render/scenarios/branch-page-subject.mjs,"the branch page announcing which of its documents is showing, and a real fab adopting it: the compare bar that gating hid",tools/render/scenarios,126,driver,no,no,no
 tools/render/scenarios/branch-panes.mjs,,tools/render/scenarios,103,driver,no,no,no
+tools/render/scenarios/branch-reach.mjs,"shoot the Branches pane's coverage line, patching the scan block after load since only a real crawl writes the fields it reads",tools/render/scenarios,30,driver,no,no,no
 tools/render/scenarios/branch-takeover.mjs,show-repo's branch-detail takeover with the embedded branch page fully rendered,tools/render/scenarios,86,driver,no,no,no
 tools/render/scenarios/branch-verdict.mjs,the content verdict as a filter strip in the branch view's Files pane,tools/render/scenarios,80,driver,no,no,no
 tools/render/scenarios/branches-window.mjs,the Branches window pill: the reader's time slice over the Recent scope,tools/render/scenarios,61,driver,no,no,no
