@@ -344,6 +344,38 @@ test('past four repos the overflow is counted, not clipped', () => {
   assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
 });
 
+test('duration magnitude is quantized to five bands, and the bands are the distribution\'s', () => {
+  // A continuous bar was removed from this column once already: 74% of 344
+  // records fall in the single decade from one hour to one day, so a linear
+  // bar drew that 74% as a hairline and a logarithmic one drew the median
+  // (527m) and the ninetieth percentile (2532m) at nearly the same length.
+  // SEPARATING THOSE TWO IS THE REASON THE BAR IS BACK, so it is the thing
+  // asserted rather than any particular edge: on durUnit's own boundaries they
+  // came out adjacent, and the 12h edge is what moved them apart.
+  assert.ok(data.durBand(2532) - data.durBand(527) >= 2,
+    'the median and the ninetieth percentile are at least two steps apart');
+  // Every edge lands in the band above it, and nothing falls off either end.
+  const top = data.DUR_BANDS.length + 1;
+  assert.equal(data.durBand(0), 1);
+  assert.equal(data.durBand(59), 1);
+  assert.equal(data.durBand(60), 2);
+  assert.equal(data.durBand(data.DUR_BANDS.at(-1)), top);
+  assert.equal(data.durBand(35826), top, 'the longest record in the cache still draws a full bar');
+  // The bands are durUnit's own boundaries, so the bar and the unit can never
+  // disagree about which end of the column a row belongs at: nothing reading
+  // minutes may outrank something reading days.
+  const mBand = Math.max(...[0, 30, 59].map(v => data.durBand(v)));
+  const dBand = Math.min(...[1440, 4320, 35826].map(v => data.durBand(v)));
+  assert.ok(mBand < dBand, 'a row in minutes never outranks a row in days');
+  // The fill is behind the number, not instead of it: the bar compares, the
+  // number states.
+  const cell = data.durCell(527);
+  assert.match(cell, /8\.8h/, 'the exact reading survives');
+  assert.match(cell, /width:50%/, 'band 3 of 6');
+  assert.match(data.durCell(35826), /width:100%/, 'the top band fills');
+  assert.ok(!cell.includes('bg-primary'), 'neutral, since the accent means "control" everywhere else here');
+});
+
 test('the last column cannot be turned off', () => {
   data.tableCols_ = null;
   data.sessionGrain = 'session';
