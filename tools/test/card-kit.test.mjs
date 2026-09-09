@@ -227,3 +227,46 @@ test('detach releases the guards, so a rebuilt card does not close twice', async
   await settle();
   assert.equal(closed, 0);
 });
+
+// ── stale:'geometry', the mode a NOTE takes ───────────────────────────────
+//
+// A panel that is `pointer-events: none` is never the pointer's target, so
+// `el.contains(target)` is false for every point on the panel itself and the
+// pointer guard would arm the moment the panel opened. These three say the
+// geometry guards still fire and that one does not, which is the whole
+// difference between the two modes and the reason the mode exists.
+test("stale:'geometry' still closes on a scroll, a resize and a blur", async () => {
+  for (const fire of [
+    () => scrollOn(window.document),
+    () => window.dispatchEvent(new window.Event('resize')),
+    () => window.dispatchEvent(new window.Event('blur')),
+  ]) {
+    let closed = 0;
+    const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+    fire();
+    await settle();
+    assert.equal(closed, 1, 'the geometry half is on');
+    w.detach();
+  }
+});
+
+test("stale:'geometry' ignores a pointer elsewhere, which is the point of it", async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+  over($('#under'));
+  await settle();
+  assert.equal(closed, 0,
+    'a note is left to its trigger own leave; the pointer guard would close it on open');
+  w.detach();
+});
+
+test("stale:'geometry' keeps Escape and the press outside", async () => {
+  let closed = 0;
+  const w = Card.wire($('#pop'), { onClose: () => { closed += 1; }, stale: 'geometry' });
+  window.document.dispatchEvent(
+    new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(closed, 1, 'Escape is not a staleness guard and is never gated');
+  press($('#under'));
+  assert.equal(closed, 2, 'nor is the press outside');
+  w.detach();
+});

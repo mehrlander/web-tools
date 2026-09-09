@@ -173,3 +173,29 @@ test('a look set on an ancestor is the default for the notes under it', () => {
   assert.equal(panel.hasAttribute('data-look'), false);
   Note.close();
 });
+
+// ── The geometry guards, which are the note's half of "a leave is not a
+// promise". A note is anchored beside its trigger, so anything that moves the
+// trigger leaves it pointing at the wrong thing. Scroll and resize were here
+// from the start; blur is the door that was open, and it is the one no gesture
+// reports, since the reader is looking at another window when it happens.
+test('a note closes on a scroll, a resize and a window blur', () => {
+  const open = () => {
+    Note.open('#a');
+    assert.ok(window.document.getElementById('wt-note').hasAttribute('data-open'));
+  };
+  const gone = (what) => assert.equal(
+    window.document.getElementById('wt-note').hasAttribute('data-open'), false, what);
+
+  open();
+  window.document.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+  gone('a scroll slides the trigger out from under it');
+
+  open();
+  window.dispatchEvent(new window.Event('resize'));
+  gone('a resize moves the trigger');
+
+  open();
+  window.dispatchEvent(new window.Event('blur'));
+  gone('a blur ends the hover with no pointerout behind it');
+});
