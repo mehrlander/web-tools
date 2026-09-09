@@ -140,49 +140,16 @@ own hooks live in, so a repo can call something the plugin ships without knowing
 where the cache put it or which commit it is pinned at. There is one such script
 today, and it is the reason the variable exists.
 
-### Injecting the conventions, with no fetch
+### Delivery of the conventions
 
-The plugin carries the hub's own `CONVENTIONS.md` and `SURFACING.md`, beside the
-loader skill that names them, and ships
-[`inject-conventions.sh`](../.claude/skills/hooks/inject-conventions.sh) to emit
-them into session context. A repo opts in with one line:
-
-```bash
-# .claude/hooks/session-conventions.sh
-exec bash "$WEB_TOOLS_HOOKS/inject-conventions.sh"
-```
-
-That is the whole adoption. Two file reads, no network, no `curl`, no `jq`, and
-no interpreter that can be missing, which retires the sharp edge the fetch-based
-variant below has to warn about. Freshness rides `claude plugin update`, the
-mechanism that already repeats every container; a fetch per session bought
-nothing an update does not, at the cost of a round trip at every start.
-
-It is **not** registered as a hook in its own right, and that is the point of
-routing it through the dispatcher. Injection puts the full conventions into
-every session unconditionally, which is right for a repo whose `CLAUDE.md`
-deliberately does not restate them and wrong for a repo that just wants the
-skills. Naming a file is the opt-in; deleting it is the opt-out.
-
-The vendored copies are a derived artifact, so they have the two owners this
-repo gives every derived artifact: `.claude/hooks/build-on-commit.sh` refreshes
-and stages them in the same commit that touches `docs/`, and
-[`tools/test/derived-artifacts.test.mjs`](../tools/test/derived-artifacts.test.mjs)
-fails if they fall behind, for the sessions where the hook never fires. A stale
-copy is the failure worth guarding: it injects confidently and governs the
-session with last month's rules.
-
-One script rides inside the plugin: the board
-generator (`build-board.py`) is bundled with the `tasks` skill, so `/tasks`
-regenerates a board with nothing to fetch. The reference docs and the other
-scripts below are not in the plugin: they are fetched by raw URL when a task
-needs them (the skills that use a script fetch it themselves). The `tasks` skill ships in the
-bag, but the tracker it operates (the `docs/TRACKER.md` schema, the task files,
-`board.md`) stays per-repo and is fetched or bootstrapped when a repo adopts it. Everything is
-reachable directly from
-`https://raw.githubusercontent.com/mehrlander/web-tools/main/<path>` (the repo is
-public and that host is on the Claude Code web allowlist), which is also the
-no-plugin fallback for the whole bag.
+The conventions need no injection. A session with `mehrlander/web-tools`
+checked out receives them through its `CLAUDE.md` (Qualified writing inline,
+`docs/SURFACING.md` by `@`-import); a session without the checkout gets them
+by invoking the `web-tools` skill, which fetches `SURFACING.md` from main.
+A `SessionStart` injection hook (`inject-conventions.sh`) carried them from
+2026-07-31 to 2026-09-09 and was retired by PR #634: the harness caps hook
+output well below the payload, so the channel truncated silently while the
+`@`-import channel did the real delivery.
 
 ## The repo's config file: `.web-tools.json`
 
@@ -210,7 +177,7 @@ The `portable` plugin auto-updates (it declares no `version`, so consumers track
 the tip; see [MARKETPLACE.md](MARKETPLACE.md)), so a plugin install needs nothing
 here. This section is for the raw-URL fetch fallback only.
 
-The skill fetches `CONVENTIONS.md` live on every run, so the *conventions* never
+The skill fetches `SURFACING.md` live on every run, so the *conventions* never
 go stale once the skill is **invoked**. The pieces that can drift are the loader
 **skill file** itself (its fetch URL, fallbacks, description) and any portable
 **scripts** a consumer runs. A consuming repo that wants these kept current can
@@ -223,7 +190,7 @@ session and never stale copies in the tree.
 > **Fetch is not invoke. This hook keeps the skill current; it does not run it.**
 > A `SessionStart` hook that writes a skill file to disk makes the skill
 > *available*, not *invoked*, and it emits nothing to context. On its own it
-> never loads `CONVENTIONS.md`: the loader is model-invocable, so the conventions
+> never loads `SURFACING.md`: the loader is model-invocable, so the conventions
 > govern a session only if the agent judges the skill relevant, the user types
 > `/web-tools`, or the repo's `CLAUDE.md` makes it always-on. **So
 > this hook is not self-sufficient: pair it with the always-on CLAUDE.md line**
@@ -303,73 +270,14 @@ session, not the next one. To add a new portable script, add one `fetch` line.
 This is a recipe for *consuming* repos; web-tools is the source and doesn't run
 it on itself.
 
-### Stronger variant: inject the conventions, don't just fetch them
+### Do not inject the conventions through a hook
 
-> [!NOTE]
-> **With the plugin, this is one line and no network.** The plugin vendors both
-> docs and ships the injector; a repo opts in by dropping
-> `exec bash "$WEB_TOOLS_HOOKS/inject-conventions.sh"` into
-> `.claude/hooks/session-conventions.sh`. See
-> [the session dispatcher](#injecting-the-conventions-with-no-fetch) above. What
-> follows is the **no-plugin fallback**, for a host where the marketplace is not
-> available.
-
-The hook above still leans on the always-on CLAUDE.md line to close the
-fetch→invoke gap. A `SessionStart` hook can instead **emit the conventions
-straight into context** via `additionalContext`, collapsing fetch and invoke into
-one step and removing the dependency on the agent obeying any CLAUDE.md line: the
-text is simply *there* at the start of every session, the same as if the skill
-had run. Use this when you want the conventions unconditionally governing every
-file-modifying session and don't mind paying their context cost up front.
-
-This hook fetches the conventions themselves (not the skill file) and prints the
-SessionStart `additionalContext` JSON the harness reads. The conventions are two
-files now, `CONVENTIONS.md` (the hub) and `SURFACING.md` (the surfacing system),
-so it fetches and concatenates both; fetching only the hub would inject a session
-with no surfacing rules:
-
-```bash
-#!/bin/bash
-set -uo pipefail
-BASE="https://raw.githubusercontent.com/mehrlander/web-tools/main/docs"
-BODY=""
-for f in CONVENTIONS SURFACING; do
-  PART="$(curl -fsSL --max-time 10 "$BASE/$f.md" 2>/dev/null)" || exit 0
-  [ -n "$PART" ] || exit 0
-  BODY="$BODY$PART"$'\n\n'
-done
-command -v jq >/dev/null 2>&1 || exit 0
-printf '%s' "$BODY" | jq -Rs \
-  '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
-```
-
-Register it under `SessionStart` exactly like the fetch hook (step 3 above). It's
-fail-soft on the same principle: a failed fetch, an empty body, or a missing `jq`
-each `exit 0` with no output, degrading to "no injected conventions this session"
-rather than a blocked start. (No `jq`? Swap the last line for
-`python3 -c 'import json,sys; print(json.dumps({"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":sys.stdin.read()}}))'`.)
-
-> [!WARNING]
-> That fail-soft posture has a sharp edge worth naming, because it's the same
-> bug this whole doc is about. If a host has **neither** `jq` nor `python3`, the
-> `command -v … || exit 0` guard makes the hook degrade *silently* to
-> no-injection: the very fetch-without-invoke no-op the variant exists to
-> prevent, now wearing a different hat. That's the right default for a
-> *convenience* (a missing interpreter shouldn't block your session), but the
-> wrong one if you adopt inject **as your guarantee** that the conventions are
-> loaded. In that case make the missing-interpreter case *loud*, not `exit 0`:
-> replace the guard with a branch that warns to stderr (and/or emits an
-> `additionalContext` note saying "conventions failed to load"), so a
-> misconfigured host fails noisily instead of quietly governing nothing.
-
-Trade-offs versus the skill-fetch hook: this injects the conventions into **every**
-session unconditionally (always-on context cost, no model judgement), it loads
-`CONVENTIONS.md` raw rather than through the skill's à-la-carte "apply" framing,
-and it doesn't keep the loader **skill** itself installed (so `/web-tools`
-and the model-invocation path won't exist unless you also run the installer). The
-two are complementary, not exclusive: a repo can run the skill-fetch hook *and*
-this injector, or pick whichever matches how reliably it needs the conventions
-present.
+The injection variant this section used to describe is retired (PR #634). The
+harness truncates hook output past a cap it does not announce, so an injecting
+hook fails silently while reporting success; the measured record is home's
+`chron/2026/08/2026-08-26-the-injection-delivers-five-percent.md`. Deliver
+through `CLAUDE.md` `@`-imports where the checkout exists and the `web-tools`
+skill where it does not.
 
 ## The set
 
@@ -381,13 +289,12 @@ machinery; most of `docs/` is portable. The tables below list what travels.
 | Doc | What it's for | How you use it |
 |---|---|---|
 | [`.claude/skills/web-tools/SKILL.md`](../.claude/skills/web-tools/SKILL.md) | the loader: pulls the conventions into any session, and links here for the rest | **install** (copy in, once) |
-| [`docs/CONVENTIONS.md`](CONVENTIONS.md) | the general-behavior **hub**: prose style, standing decisions, leave-it-nicer, keep-focus, and the session / repository / workstream scope vocabulary. Behavior that applies regardless of whether anything is being surfaced | fetched live by the skill |
-| [`docs/SURFACING.md`](SURFACING.md) | the **surfacing system**, split out of CONVENTIONS.md: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, reference-is-a-link, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR lifecycle, wrap-up, handoff), which stays idle until you open a PR. Loaded with CONVENTIONS.md as one set | fetched live by the skill |
-| [`docs/venues.md`](venues.md) | the **venue map**: where work can run besides the session reading it (local CLI, Cowork, Dispatch, hosted and self-hosted runners, a Remote environment), what each reaches, and the attended-versus-unattended split that decides where a job belongs. Named in one always-loaded paragraph of CONVENTIONS.md, because a session cannot see past its own sandbox and so does not know to ask | fetched live by the skill |
+| [`docs/SURFACING.md`](SURFACING.md) | the **surfacing system**: the universal **surfacing primitives** (the **surfacing caption**'s `[new]/[main]/[diff]` file links plus a 🥏 render line, reference-is-a-link, show-pixels, branch anchor, 🧭 guide pointer, session diff) plus the **surfacing course** (guide-PR lifecycle, wrap-up, handoff), which stays idle until you open a PR. The one always-loaded portable doc | fetched live by the skill |
+| [`docs/venues.md`](venues.md) | the **venue map**: where work can run besides the session reading it (local CLI, Cowork, Dispatch, hosted and self-hosted runners, a Remote environment), what each reaches, and the attended-versus-unattended split that decides where a job belongs. Named in one always-loaded line of the hub's CLAUDE.md, because a session cannot see past its own sandbox and so does not know to ask | fetched live by the skill |
 | [`.claude/skills/load-skill/SKILL.md`](../.claude/skills/load-skill/SKILL.md) | `/load-skill`: fetch a named skill from the library at [`skills/`](../skills/) (or another declared source) and apply it in the current session; discovery via `skills/manifest.csv`. Explicit signal only, never opportunistic | install or hook-fetch |
 | [`.claude/skills/show-repo/SKILL.md`](../.claude/skills/show-repo/SKILL.md) | `/show-repo`: use the hosted show-repo shell to browse any repo, mint a 🗂️ `#stage=` fileset link, run a cross-repo transfer, or author a repo's `.web-tools.json`; loads [`docs/show-repo.md`](show-repo.md) | install or hook-fetch |
 | [`.claude/skills/in-flight/SKILL.md`](../.claude/skills/in-flight/SKILL.md) | `/in-flight`: before starting work, report which branches carry commits the base branch lacks, which open PRs and [`docs/TRACKER.md`](TRACKER.md) claims sit on them, and which claims have gone stale; `--paths` turns it into a collision check on the files about to change. Runs [`.claude/skills/in-flight/in-flight.py`](../.claude/skills/in-flight/in-flight.py) | install or hook-fetch |
-| [`.claude/skills/markers/SKILL.md`](../.claude/skills/markers/SKILL.md) | `/markers`: the status system from [`docs/CONVENTIONS.md`](CONVENTIONS.md#status-frozen-stale-wrong). Mark a claim `Frozen`/`Stale`/`Wrong` in prose, declare a path frozen in a cascading `.paths.json`, inventory both across a repo, and check that arrow targets resolve and frozen files say so where they are read. Runs [`.claude/skills/markers/status.py`](../.claude/skills/markers/status.py) | install or hook-fetch |
+| [`.claude/skills/markers/SKILL.md`](../.claude/skills/markers/SKILL.md) | `/markers`: the status system. Mark a claim `Frozen`/`Stale`/`Wrong` in prose, declare a path frozen in a cascading `.paths.json`, inventory both across a repo, and check that arrow targets resolve and frozen files say so where they are read. Runs [`.claude/skills/markers/status.py`](../.claude/skills/markers/status.py) | install or hook-fetch |
 | [`.claude/skills/tasks/SKILL.md`](../.claude/skills/tasks/SKILL.md) | `/tasks`: operate the project tracker (propose and file, claim, update, close a task; assess the tracker as a whole; refine it back to scope truth; regenerate `board.md`) per the [`docs/TRACKER.md`](TRACKER.md) schema and the commit-to-`main` rule. Owns the **filing rules**: the bar, the propose-first gate, and the rule against fragmenting one outcome across several tasks | install or hook-fetch |
 | [`.claude/skills/repo-review/SKILL.md`](../.claude/skills/repo-review/SKILL.md) | `/repo-review`: read a repo's own state and report what stands out, at one of three depths (light everyday read, deep on-demand audit, parallel sweep fan-out). Probes before impressions; every depth ends in a written report rather than a pile of tracker tasks. Probes, layers, lenses, and destinations are declared per repo in its `CLAUDE.md` | install or hook-fetch |
 | [`.claude/skills/tree/SKILL.md`](../.claude/skills/tree/SKILL.md) | `/tree`: render a repo or subtree as a linked markdown table (code-span box art or braille indent, filetype icons, optional gloss); generated by [`scripts/build-tree.py`](../scripts/build-tree.py) | install or hook-fetch |

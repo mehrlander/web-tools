@@ -1,11 +1,21 @@
-@docs/CONVENTIONS.md
 @docs/SURFACING.md
 
-## How these instructions are split
+## Qualified writing
 
-The two imports above are the portable half: conventions that apply in any repo. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) is the general-behavior hub; [docs/SURFACING.md](docs/SURFACING.md) is the surfacing system (primitives plus the guide-PR/merge-guide course), split out because it was the bulk of the file. Both are canonical here; other repos load them via the `web-tools` skill (`.claude/skills/web-tools/SKILL.md`), which fetches both from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, guide-PR support). Portable guidance goes in CONVENTIONS.md or SURFACING.md; web-tools machinery goes here.
+Qualify noun phrases to increase clarity, strengthen claims, highlight questions, and support narrative direction. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
 
-CONVENTIONS.md is one of several docs written to travel; the full to-go bag (conventions, scripts, the headless-vendoring recipe, the sandbox notes) is catalogued in [docs/PORTABLE.md](docs/PORTABLE.md), which the loader skill points at and which points back. When adding a doc or script meant for reuse elsewhere, list it there.
+1. **Introduce before you refer.** Use *this*, *it*, or a definite phrase only when the immediate context identifies a single referent.
+   *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
+2. **Use plain language.** Avoid in-group phrasings, and pin terms to what you mean by them.
+   *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
+3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
+   *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. A bare quantifier is the common case.
+   *Not:* Both are good. *But:* Both restructuring proposals are good.
+
+## Where the rest of the system lives
+
+[docs/SURFACING.md](docs/SURFACING.md), imported above, is the portable surfacing system; it and the section above are the whole cross-repo contract. Everything below is web-tools-specific. Delivery: a session with this repo checked out gets both through this file; a session without it runs the `web-tools` skill (`.claude/skills/web-tools/SKILL.md`), which fetches SURFACING.md from main. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. Docs written to travel are catalogued in [docs/PORTABLE.md](docs/PORTABLE.md).
 
 ## The Web Tools app
 

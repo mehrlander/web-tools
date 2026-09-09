@@ -746,7 +746,7 @@ test('applying the projection retires its insertions, because the digest stops m
 // that separate the two orderings (a fence whose body holds blank lines, a
 // heading straight after a fence) are not ones a fixture author thinks to write.
 
-const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md', 'docs/CONVENTIONS.md',
+const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md',
                 'skills/state-the-rule/SKILL.md', 'CLAUDE.md', 'docs/registries.md',
                 'docs/showing.md', 'docs/stage.md', 'docs/loader.md'];
 
