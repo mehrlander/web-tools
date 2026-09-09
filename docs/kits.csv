@@ -3,7 +3,7 @@ lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",377,no,no,7,yes
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",583,no,no,5,yes
 lib/kits/brief.js,brief,"assemble a page into a review brief: one markdown document holding the page source plus the source of the modules the page itself loaded, sized for pasting…",238,no,no,3,yes
-lib/kits/card.js,Card,the CARD of the house popup rule: the ✕ and the ways out.,247,no,yes,2,yes
+lib/kits/card.js,Card,the CARD of the house popup rule: the ✕ and the ways out.,305,no,yes,2,yes
 lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, read one month at a time.",268,no,no,1,yes
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,7,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
@@ -38,6 +38,7 @@ lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",762,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,343,no,yes,6,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,68,no,no,2,yes
+lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",426,no,no,1,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",83,no,no,16,yes
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,3,yes
