@@ -160,3 +160,44 @@ test('the guide-body sync does not prescribe a file list in the body', () => {
   assert.ok(/mcp-link-safe\.py/.test(course),
     'the course should name the checker for anything written to a body');
 });
+
+// ── Bare URLs ───────────────────────────────────────────────────────────────
+// Added 2026-09-09 after this checker cleared a PR body that was already dead.
+// The body carried two 195- and 330-character render addresses written on their
+// own, with no brackets; the write path wrapped both and stored them as text.
+// Every rule above measured only what was inside `[...](...)`, so the gap was
+// exactly the shape of the mistake: a checker that passes the one construct it
+// cannot see is worse than no checker, because it certifies the failure.
+
+test('a bare URL over the threshold is caught, because GitHub autolinks it', () => {
+  const found = scan(`A body line, then the address:\n\n${url(LONG, 195)}\n`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'bare');
+  assert.equal(found[0].length, 195);
+});
+
+test('a bare URL under the threshold passes, at the same 150 boundary', () => {
+  assert.equal(wraps(`see ${url(LONG, 149)}\n`), false);
+  assert.equal(wraps(`see ${url(LONG, 150)}\n`), true);
+});
+
+test('a bracketed URL is not reported twice as its own bare twin', () => {
+  // BARE matches inside `[label](url)` too, so without the offset exclusion
+  // every real finding would double and every safe link would grow a phantom.
+  const found = scan(`[label](${url(LONG, 195)})\n`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'link');
+  assert.equal(wraps(`[label](${url(LONG, 149)})\n`), false);
+});
+
+test('a code-span URL keeps its own verdict rather than becoming bare', () => {
+  const found = scan('`' + url(LONG, 195) + '`\n');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'codespan');
+});
+
+test('trailing sentence punctuation is not part of the address', () => {
+  // 149 characters of URL followed by a full stop is a safe link in a sentence,
+  // and counting the stop would report it as the shortest possible failure.
+  assert.equal(wraps(`The address is ${url(LONG, 149)}.\n`), false);
+});
