@@ -88,7 +88,7 @@ no fact, and never reaches a phone or a screenshot. daisyUI's `tooltip`,
 | --- | --- | --- | --- |
 | Holds | one line the page already implies; nothing tappable | anything, with a ↗ to where it came from; may scroll | the same |
 | Opens | hover, focus, tap | hover with grace, focus, tap | a deliberate click; on touch, every tap |
-| Closes | leave, its own tap, tap anywhere, Escape | the pointer elsewhere, a scroll, ✕, tap outside, Escape | ✕, Escape, a scroll, an action inside |
+| Closes | leave, its own tap, tap anywhere, Escape, a scroll, a resize, a blur | the pointer elsewhere, a scroll, a resize, a blur, ✕, tap outside, Escape | ✕, Escape, a scroll, an action inside |
 | Own close target | its body: on touch, tapping the note closes it and swallows the tap | ✕, shown where the reader cannot hover | ✕, always |
 | Looks | `plain` (the browser's tooltip redrawn) or the styled default | one shell | the same shell, marked pinned |
 | Standard term | ARIA `role="tooltip"` | popover with light dismiss | popover with manual dismiss |
@@ -132,6 +132,16 @@ lets a reader cross the gap), or the geometry the card was placed against no
 longer holds (a page scroll, a resize, a window blur). A scroll *inside* the card
 is excluded, since that is a reader reaching the rest of a long one. `stale:
 false` opts out, and is only right for a card anchored to nothing that moves.
+
+**A hand-rolled note takes the geometry half of that, and only that.** Where a
+page raises its own panel rather than using `Note`, the panel is usually
+`pointer-events: none`, which makes it never the pointer's target: `contains`
+is false for every point on it, so the pointer guard would arm the instant it
+opened and close it 220 ms later. `Card.wire(el, { stale: 'geometry' })` is
+that case, bringing the scroll, resize and blur guards, Escape and the press
+outside, and leaving the ordinary departure to the trigger's own leave. Found
+on budget-drs's submittal page, which carried three panels where two had been
+counted: the third survived a blur or a resize with the pointer never moving.
 
 Two consequences worth knowing. `except` now does double duty: a pointer resting
 on the control that raised the card has not left, which is also what lets a

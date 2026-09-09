@@ -1,12 +1,10 @@
 # Surfacing
 
-Use these rules when chat is the only output channel. The canonical source is `mehrlander/web-tools` at `docs/SURFACING.md`, loaded with [CONVENTIONS.md](CONVENTIONS.md) by `@`-import or the `web-tools` skill. Local `CLAUDE.md` rules override these defaults. Apply repo- and branch-scoped rules per workstream, substituting the current repo in URL templates.
+Use these rules when chat is the only output channel. The canonical source is `mehrlander/web-tools` at `docs/SURFACING.md`, loaded by that repo's `CLAUDE.md` `@`-import or fetched by the `web-tools` skill. Local `CLAUDE.md` rules override these defaults. Apply repo- and branch-scoped rules per workstream, substituting the current repo in URL templates.
 
 ---
 
 ## Surfacing primitives
-
-For uncommon carriers, follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 ### Every reply
 
@@ -35,17 +33,13 @@ For uncommon carriers, follow [surfacing-extended.md](https://github.com/mehrlan
 
 * **Surfacing caption.** Use:
   `🌿 [<branch>](…/pages/branch.html#gh=<owner>/<repo>@<branch>) · <N> files · [this turn](…/commit/<sha>)`
-  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them. Use the fallbacks in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md) when the reader lacks a stored token or every URL in an MCP body must be under 150 characters. A slash-joined `[main](…)/[diff](…)` pair measures as one run against that cap, so join with `, ` instead; the thresholds are measured in [github/mcp.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/mcp.md).
+  Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. Mention files in prose only when something non-obvious must be said about them. Token-less readers and MCP URL caps take the fallbacks in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
 * **Guide pointer 🧭.** Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide region; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
-* **Task marker 🎫.** Where the repo runs a tracker, use `🎫 [title](<task blob url>)`. Do not show the filename ID.
-
-* **Session diff.** For substantial work, use `Session diff: [main...branch](url)`.
-
-* **Review the diff 🔍.** Where the changed files are worth reading, add `…/pages/review.html#gh=owner/repo@branch&base=main` (`:path` for one file): each file's diff against the merge base, its patch and its raw content. It supplements the caption rather than replacing it.
+The task marker 🎫, the session diff, and review the diff 🔍 follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 ### Showing something
 
@@ -57,15 +51,7 @@ For uncommon carriers, follow [surfacing-extended.md](https://github.com/mehrlan
 
 Run `npm run showing` before handing over a render link, and paste the line it prints. It reads the branch's changed files and either names the page and mechanism that reach them, or reports that no link does.
 
-For these carriers, follow the full rules in [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md):
-
-* **Lead with the live view.** A README for something renderable begins with its ⭐ link.
-
-* **Publish an artifact 📦.** Use for a self-contained page requiring a stable private `claude.ai` snapshot.
-
-* **Stage a fileset 🗂️.** Use for files moved across repos for viewing, downloading, copying, or diffing.
-
-* **Carry content in an envelope.** Use for files, chats, diffs, or search results that travel and render together.
+Uncommon carriers (lead with the live view, publish an artifact 📦, stage a fileset 🗂️, envelopes, data toss 📊, clipboard 📋/run 📲 links): follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 ### PR events
 

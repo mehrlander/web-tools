@@ -49,6 +49,14 @@ const INVENTED = {
       mins: 9, state: 'short', title: '', ask: 'what does the snagged scope mean',
       calls: 4, failures: 0, filesTotal: 0, exchanges: 2, repos: [], branches: [] },
   ],
+  // The Repos column draws each repo's DECLARED icon, so a seed without this
+  // renders every glyph as the neutral fallback and the column looks broken
+  // when it is not. Full owner/repo, as the shell holds it.
+  estateRepos: [
+    { repo: 'mehrlander/web-tools', icon: 'ph-toolbox' },
+    { repo: 'mehrlander/home', icon: 'ph-house' },
+    { repo: 'mehrlander/web-tools-private', icon: 'ph-shield-check' },
+  ],
   activity: {
     'mehrlander/web-tools': {
       defaultBranch: 'main', prReach: 'full',
@@ -83,13 +91,29 @@ function fromPrivate() {
   for (const [name, e] of Object.entries(repos).slice(0, 6)) {
     activity[name] = {
       defaultBranch: e.defaultBranch || 'main',
+      // NOT SLICED, and prReach is why. The Repos glyphs take their colour
+      // from branchState, which reads an unmatched head as `nopr` when the PR
+      // index was not capped and as `unknown` only when it was. Truncating the
+      // index here leaves prReach saying "complete" over a list that is not, so
+      // every dropped head would render as a confident "no pull request ever".
+      // A wrong state drawn confidently is worse than a missing screenshot.
+      openPRs: e.openPRs || [],
+      branchPRs: e.branchPRs || [],
       prReach: e.prReach || '',
-      openPRs: (e.openPRs || []).slice(0, 8),
-      branchPRs: (e.branchPRs || []).slice(0, 25),
       scan: { branches: ((e.scan || {}).branches || []).slice(0, 25) },
     };
   }
-  return { rows, activity };
+  // Icons only, and the same run-time read as everything else here: a Phosphor
+  // class name per repo, nothing written down.
+  const cPath = path.join(privateRoot, 'state', 'configs.json');
+  let estateRepos = [];
+  if (existsSync(cPath)) {
+    const cfg = JSON.parse(readFileSync(cPath, 'utf8')).repos || {};
+    estateRepos = Object.entries(cfg)
+      .map(([repo, e]) => ({ repo, icon: (e.config || {}).icon }))
+      .filter(r => r.icon);
+  }
+  return { rows, activity, estateRepos };
 }
 
 // LATE=1 REPRODUCES THE ORDER THE APP ACTUALLY BOOTS IN, which is the one
@@ -115,6 +139,7 @@ export default async (page) => {
     const el = document.querySelector('[x-data="estate()"]');
     const d = window.Alpine.$data(el);
     d.authed = true; d.loading = false;
+    window.__shell.estateRepos = seed.estateRepos || [];
     if (!late) {
       d.sessionRows_ = seed.rows;
       d.activity = seed.activity;

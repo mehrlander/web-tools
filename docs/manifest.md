@@ -47,7 +47,7 @@ configured repo already on the new name. Fields:
     { "path": "pages/news/news.html", "title": "News", "note": "The news dashboard.",
       "appView": true, "viewLabel": "News", "icon": "ph-newspaper", "slug": "news" }
   ],
-  "pins": ["pages", "lib/alpineComponents", "docs/CONVENTIONS.md"],
+  "pins": ["pages", "lib/alpineComponents", "docs/SURFACING.md"],
   "stage": {
     "files": ["lib/foo.js", "owner/repo@ref:path/to/bar.js"],
     "targets": ["owner/repo:dir"]

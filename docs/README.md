@@ -13,22 +13,22 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 17 are named by CLAUDE.md,
-9 by a skill, 31 by a page or component. The remaining 21 are
+1 arrive in every session's context, 17 are named by CLAUDE.md,
+8 by a skill, 28 by a page or component. The remaining 23 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
 
 - [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
-- [`CONVENTIONS.md`](CONVENTIONS.md) — the portable working conventions: the general-behavior hub
 - [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
-- [`MARKETPLACE.md`](MARKETPLACE.md) *(orphan)* — the plugin marketplace: how the set is published and subscribed to
-- [`PORTABLE.md`](PORTABLE.md) — the portable set: what travels, and how to adopt it
+- [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
 - [`SURFACING.md`](SURFACING.md) — the surfacing system: primitives plus the guide-PR course
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
+- [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
+- [`aims-reading.csv`](aims-reading.csv) — the guided reading list the Aims tab offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
@@ -39,9 +39,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
 - [`harness.csv`](harness.csv) — the harness registry: every tools/ and scripts/ file, its role, and how it is invoked
-- [`headless-vendoring.md`](headless-vendoring.md) — building with CDN libraries and rendering headless where the CDNs are blocked
+- [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
-- [`injection.json`](injection.json) *(measured)* — a dated reading of what reaches a session at start: the two channels, their caps, the injector rungs, and the documents that arrive down both
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
 - [`ios-sheet-drags.md`](ios-sheet-drags.md) — why a drag inside a sheet-presented in-app browser dismisses the sheet, and the two fixes, measured on device
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
@@ -69,15 +68,13 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`surfacing-extended.md`](surfacing-extended.md) — the surfacing carriers most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
-- [`text-content.md`](text-content.md) *(measured)* — the estate's authored text: whether the carriers holding it are organized, and how much never reached one
+- [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the carriers holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`venues.md`](venues.md) *(measured)* — the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
-- [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
-- [`aims-reading.csv`](aims-reading.csv) — the guided reading list the Aims tab offers a new reader
 
 ## docs/envelopes/
 
@@ -115,8 +112,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`github-surfacing.md`](github/github-surfacing.md) — GitHub-native surfaces for exposing work: branches, compares, drafts, permalinks
 - [`markdown.md`](github/markdown.md) *(orphan)* — what GitHub's static renderer turns markdown into
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
-- [`mcp.md`](github/mcp.md) *(measured)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
+- [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
 
-13 shared statements are registered in
+11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

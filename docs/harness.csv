@@ -1,15 +1,14 @@
 path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
-.claude/skills/hooks/inject-conventions.sh,"prints CONVENTIONS.md and SURFACING.md into session context; run by a repo's session script, not by an event",.claude/skills/hooks,331,imported,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
-.claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,96,hook:PostToolUse,no,yes,yes
+.claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,96,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
 .claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,175,npm:reading-column,no,yes,yes
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
-.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,329,git:pre-commit,no,yes,yes
+.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,309,git:pre-commit,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,114,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
 scripts/blank-icons.py,"report a Phosphor class naming an icon the installed font does not carry. The class resolves to a :before rule keyed by name, so a name with no rule renders a zero-width blank: no console error, no fallback glyph, nothing to debug but the state around it. Names the two mistakes apart, weight-as-a-suffix (ph-play-fill, mechanical, the fix is proven) from a name borrowed off another icon family (ph-git-compare, a guess at best). Reads the valid set off the installed stylesheet rather than a committed list, so it cannot be wrong about the font. --check gates it",scripts,174,npm:icon-scan,no,yes,yes
@@ -25,13 +24,14 @@ scripts/doc-growth.py,"weekly size-and-churn series for a repo's markdown, as on
 scripts/doc-placement.py,"per-repo counts of the four documentation slots CONSTELLATION.md names, plus the residual listed by directory with what else sits there; takes repo paths, so one run reads an estate",scripts,104,npm:doc-placement,no,yes,no
 scripts/duplicated-claims.py,"report file pairs sharing near-duplicated prose, the quiet failure where a claim is restated and the copies age apart (advisory; ported from home). The same pass builds a weighted graph of those pairs, which --emit writes to docs/themes.json for the Map view's Themes tab: a cluster of that graph is a theme, and which clusters exist depends on the weight threshold, so it emits every edge and the reader carries the dial. Each pair is also asked whether its shared text STATES A RULE, the duplication worth reviewing first: two files repeating a description can only go stale, while two files stating a rule can be obeyed differently and both are binding while they disagree",scripts,249,npm:claims-scan,no,no,yes
 scripts/embedded-prose.py,"count the prose inside .js, .mjs, .html and .py, split into commentary, text tables, and inline reader-facing text; --check gates a comment-length budget",scripts,803,imported,no,yes,no
-scripts/mcp-link-safe.py,"report markdown links the GitHub MCP write path would defang: a URL of 150 characters or more inside a markdown link is stored wrapped in backticks and renders dead, 149 or fewer survives, and the label never counts. Measures a slash-joined pair as one fused span, since )/[ does not end the URL token. --check gates; --unescape-entities is for a body read back through the MCP",scripts,209,argv,no,yes,yes
+scripts/mcp-link-safe.py,"report markdown links the GitHub MCP write path would defang: a URL of 150 characters or more inside a markdown link is stored wrapped in backticks and renders dead, 149 or fewer survives, and the label never counts. Measures a slash-joined pair as one fused span, since )/[ does not end the URL token. --check gates; --unescape-entities is for a body read back through the MCP",scripts,250,argv,no,yes,yes
 scripts/ocr-pdf.py,"OCR a scanned PDF into text, and say how much to trust the result",scripts,187,imported,no,yes,no
-scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",scripts,97,argv,no,yes,no
+scripts/page-strips.py,"render a PDF page as overlapping horizontal strips a vision model can read, since the binding constraint is the display cap rather than scan resolution",scripts,97,argv,no,no,no
 scripts/pip-steps.py,,scripts,208,none found,no,no,no
 scripts/showing.py,"decide which render link, if any, shows what a branch changed, and print it ready to paste. Executes rules already stated as data (routes.json showing.picker, showing-mechanisms.csv) rather than restating them: lib or dist to ?use=, a page file to a toss, the renderer to a nested toss, a shell change touching the top-level document to no link at all. Also checks the two failures that are silent: that the SHA it names is pushed, and that dist/ was rebuilt so ?use= carries the change. Advisory, never gates",scripts,653,npm:showing,no,yes,yes
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
-scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,yes,yes
+scripts/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",scripts,269,argv,no,no,yes
+scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,no,yes
 scripts/text-carriers.py,"inventory the CSV and JSON carriers that already hold authored prose, and registry their field names to show how much vocabulary the carriers share",scripts,539,argv,no,yes,yes
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
 scripts/userscript-stub.py,,scripts,158,argv,no,yes,yes
@@ -46,7 +46,6 @@ tools/build/docs-reach.mjs,restamp the derived reach and words fields of docs/do
 tools/build/docs-readme.mjs,regenerate docs/README.md from docs/docs.csv,tools/build,98,npm:docs-readme,yes,yes,yes
 tools/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build.mjs its cache,tools/build,117,imported,no,yes,yes
 tools/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,tools/build,230,npm:graphql-schema,yes,no,no
-tools/build/injection-measure.mjs,"measure what reaches a session at start and through which channel, into docs/injection.json",tools/build,168,argv,yes,no,no
 tools/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,tools/build,19,imported,no,yes,no
 tools/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",tools/build,162,npm:kits-index,yes,no,yes
 tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,tools/build,458,npm:pages-index,yes,yes,yes
@@ -121,6 +120,7 @@ tools/render/scenarios/branch-guide.mjs,the branch page showing a branch with it
 tools/render/scenarios/branch-page-cold.mjs,"the branch view mounted as a PAGE, with no host lending it facts or a verdict",tools/render/scenarios,111,driver,no,no,no
 tools/render/scenarios/branch-page-subject.mjs,"the branch page announcing which of its documents is showing, and a real fab adopting it: the compare bar that gating hid",tools/render/scenarios,126,driver,no,no,no
 tools/render/scenarios/branch-panes.mjs,,tools/render/scenarios,103,driver,no,no,no
+tools/render/scenarios/branch-reach.mjs,"shoot the Branches pane's coverage line, patching the scan block after load since only a real crawl writes the fields it reads",tools/render/scenarios,30,driver,no,no,no
 tools/render/scenarios/branch-takeover.mjs,show-repo's branch-detail takeover with the embedded branch page fully rendered,tools/render/scenarios,86,driver,no,no,no
 tools/render/scenarios/branch-verdict.mjs,the content verdict as a filter strip in the branch view's Files pane,tools/render/scenarios,80,driver,no,no,no
 tools/render/scenarios/branches-window.mjs,the Branches window pill: the reader's time slice over the Recent scope,tools/render/scenarios,61,driver,no,no,no
@@ -168,7 +168,6 @@ tools/render/scenarios/map-docs-reads.mjs,the Map's Docs tab with the readership
 tools/render/scenarios/map-docs.mjs,"the Map's Docs tab, the documentation registry rendered live",tools/render/scenarios,52,driver,no,no,no
 tools/render/scenarios/map-growth.mjs,"the Map's Growth tab with its corpus strip: a fixture config cache declaring two repos' growth payloads, so the federated selector renders and GROWTH_REPO switches the framed chart",tools/render/scenarios,75,driver,no,no,no
 tools/render/scenarios/map-harness.mjs,drive show-repo's Map view onto the Harness tab with the committed registry served through GH.get,tools/render/scenarios,52,driver,no,no,no
-tools/render/scenarios/map-injection.mjs,"shoot the Map view's Injection tab, serving the committed measurement and folding the real session store into the Observed block",tools/render/scenarios,106,driver,no,no,no
 tools/render/scenarios/map-registries.mjs,"drive the Map view's Registries tab for a screenshot, serving the real docs/registries.csv through a stubbed GH so a tokenless render still shows the three areas and the cards",tools/render/scenarios,69,driver,no,no,no
 tools/render/scenarios/map-set-adoption.mjs,"the Map's first two tabs, both halves populated",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/map-showing-peek.mjs,the Showing tab with a pointer held over an exact-file jump-over so the peek renders,tools/render/scenarios,50,driver,no,no,yes
@@ -214,7 +213,8 @@ tools/render/scenarios/search-limit.mjs,"what the Contents lane says when the co
 tools/render/scenarios/section-structure.mjs,"the section rules a markdown aim draws, at two widths",tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/session-contents.mjs,"enters the session deck from the outline the page opens on, then opens the deck's own contents list: the rows readable at 390px, the reader marked, and one pager gap per exchange",tools/render/scenarios,65,driver,no,no,no
 tools/render/scenarios/session-exchange-card.mjs,,tools/render/scenarios,58,driver,no,no,no
-tools/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",tools/render/scenarios,141,driver,no,no,no
+tools/render/scenarios/session-set.mjs,"seed a token and wait for the set's own line, so the token-gated Sessions pane renders a named set for a shot",tools/render/scenarios,27,driver,no,no,no
+tools/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",tools/render/scenarios,166,driver,no,no,no
 tools/render/scenarios/showing-paste-rows.mjs,,tools/render/scenarios,27,driver,no,no,no
 tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no,yes,yes
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no

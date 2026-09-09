@@ -1,9 +1,7 @@
-// docs/portable.csv — the machine-readable index of the portable set, whose
-// prose parent is docs/PORTABLE.md. This test is the consistency check that
-// lets the two coexist without drifting: every manifest path must exist in the
-// repo and be named somewhere in PORTABLE.md, and every path linked from
-// PORTABLE.md's "### Docs" and "### Scripts" tables must appear in the
-// manifest. Adding a piece to one place without the other fails here.
+// docs/portable.csv — the one index of the portable set (its prose parent,
+// docs/PORTABLE.md, was retired 2026-09-09; MARKETPLACE.md owns the channel).
+// This test types every row, holds each path to disk, and holds the skill
+// rows to the plugin's actual source boundary on disk.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,17 +11,7 @@ import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
 const manifest = { items: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'portable.csv'), 'utf8')) };
-const portableMd = readFileSync(path.join(repoRoot, 'docs', 'PORTABLE.md'), 'utf8');
 
-// First-cell code-span paths from the Docs and Scripts tables:  | [`path`](…) | … |
-function tablePaths(md, heading) {
-  const sec = md.split(heading)[1]?.split(/\n### /)[0] || '';
-  return [...sec.matchAll(/^\|\s*\[`([^`]+)`\]/gm)]
-    .map(m => m[1].replace(/\/$/, ''));
-}
-
-const tableSet = new Set([...tablePaths(portableMd, '### Docs'), ...tablePaths(portableMd, '### Scripts')]);
-const manifestPaths = new Set(manifest.items.map(i => i.path));
 // The harness registry owns the description of anything it carries.
 const harnessPaths = new Set(
   parseCsv(readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf8')).map(t => t.path));
@@ -60,19 +48,7 @@ test('every manifest path exists in the repo', () => {
   }
 });
 
-test('every manifest path is named in PORTABLE.md', () => {
-  for (const it of manifest.items) {
-    if (it.path === 'docs/PORTABLE.md') continue;   // the doc never names its own path
-    assert.ok(portableMd.includes(it.path), 'not in PORTABLE.md: ' + it.path);
-  }
-});
 
-test("every PORTABLE.md Docs/Scripts table row is in the manifest", () => {
-  assert.ok(tableSet.size > 10, 'table parse found rows');
-  for (const p of tableSet) {
-    assert.ok(manifestPaths.has(p), 'in PORTABLE.md tables but not the manifest: ' + p);
-  }
-});
 
 // The registry. The plugin's source boundary is ./.claude/skills (see
 // .claude-plugin/marketplace.json), so every skill directory on disk SHIPS,
@@ -97,14 +73,6 @@ test('every skill directory on disk is a manifest skill item', () => {
 // authoritative carrier and these are copies by design. They have drifted
 // before and were resynced by hand (2b785b2), which is exactly the failure
 // mode of an ungated copy.
-test('vendored conventions copies match their docs/ originals byte for byte', () => {
-  for (const name of ['CONVENTIONS.md', 'SURFACING.md']) {
-    const original = readFileSync(path.join(repoRoot, 'docs', name), 'utf8');
-    const copy = readFileSync(path.join(repoRoot, '.claude', 'skills', 'web-tools', name), 'utf8');
-    assert.equal(copy, original,
-      `.claude/skills/web-tools/${name} has drifted from docs/${name}; resync with: cp docs/${name} .claude/skills/web-tools/${name}`);
-  }
-});
 
 // A traveling doc's links have to resolve where it lands, not only where it is
 // written. These two ship inside the plugin and are also fetched into a
@@ -114,11 +82,11 @@ test('vendored conventions copies match their docs/ originals byte for byte', ()
 // is written as an absolute hub URL. Thirteen such links were dead in the
 // vendored copies until 2026-08-05 (dead-links.py found them); this is the
 // gate that keeps the next one from shipping.
-const SHIPPED_TOGETHER = ['CONVENTIONS.md', 'SURFACING.md'];
+const SHIPPED_TOGETHER = ['SURFACING.md'];
 const MD_LINK = /\[[^\]]*\]\(([^)\s]+)\)/g;
 
 test('the traveling docs link only to targets that travel with them', () => {
-  const skillDir = path.join(repoRoot, '.claude', 'skills', 'web-tools');
+  const skillDir = path.join(repoRoot, 'docs');
   for (const name of SHIPPED_TOGETHER) {
     const text = readFileSync(path.join(skillDir, name), 'utf8');
     for (const [, target] of text.matchAll(MD_LINK)) {

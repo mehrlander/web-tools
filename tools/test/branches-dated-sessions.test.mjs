@@ -83,3 +83,86 @@ test('a branch with no footer in reach simply has no session', async () => {
   assert.equal(sessions['b-old'], undefined, 'a human-authored branch has none, honestly');
   assert.equal(branches.find(b => b.name === 'b-old').name, 'b-old', 'and it keeps its row');
 });
+
+// ── The order, and what happens when the server will not take it ────────────
+//
+// GitHub's refs connection defaults to ALPHABETICAL. With a 500 cap and branch
+// names shaped `claude/<slug>-<hash>`, that made the walk an arbitrary sample
+// that every caller then sorted by date and read as a recency window. Measured
+// 2026-09-09: web-tools had 579 branches and home 644, so 79 and 144 were cut
+// by name.
+//
+// The order cannot be exercised against the real API from the Claude Code web
+// sandbox, whose proxy serves a pinned set of GraphQL operations. So what is
+// tested here is the degradation: an untested query must not be able to break a
+// crawl, and it must say which walk the caller actually got.
+
+const orderOf = (calls) => calls.map(c => c.vars.order);
+const reset = () => { delete GH._refOrder; };
+
+test('the walk asks for newest-first', async () => {
+  reset();
+  const { gh, calls } = makeGh();
+  const out = await gh.branchesDatedSessions();
+  assert.deepEqual(calls[0].vars.order, { field: 'TAG_COMMIT_DATE', direction: 'DESC' });
+  assert.match(calls[0].query, /orderBy:\$order/);
+  assert.equal(out.ordered, true);
+});
+
+test('a server that refuses the order still returns branches, unordered', async () => {
+  reset();
+  const gh = new GH({ repo: 'me/home' });
+  const calls = [];
+  gh.graphql = async (query, vars) => {
+    calls.push({ query, vars });
+    if (vars.order) throw new Error('Argument "orderBy" has invalid value');
+    return { repository: { refs: PAGES[calls.filter(c => !c.vars.order).length - 1] } };
+  };
+  const out = await gh.branchesDatedSessions();
+  assert.equal(out.ordered, false, 'and it says the window is not a recency window');
+  assert.deepEqual(out.branches.map(b => b.name), ['b-new', 'b-mid', 'b-old'],
+                   'the local sort still runs, so the SAMPLE is ordered even when the cut was not');
+  assert.equal(orderOf(calls)[0].field, 'TAG_COMMIT_DATE', 'it tried');
+  assert.equal(orderOf(calls)[1], null, 'then retried without');
+});
+
+test('the refusal is remembered, so the probe is paid once and not per page', async () => {
+  reset();
+  const gh = new GH({ repo: 'me/home' });
+  const calls = [];
+  gh.graphql = async (query, vars) => {
+    calls.push({ query, vars });
+    if (vars.order) throw new Error('nope');
+    return { repository: { refs: PAGES[calls.filter(c => !c.vars.order).length - 1] } };
+  };
+  await gh.branchesDatedSessions();
+  const first = calls.length;
+  calls.length = 0;
+  await gh.branchesDatedSessions();
+  assert.ok(!calls.some(c => c.vars.order), 'the second walk never probes again');
+  assert.ok(calls.length < first, 'and costs one call fewer than the first');
+  reset();
+});
+
+test('a failure AFTER the order worked is raised, not retried away', async () => {
+  // Once the schema is known to accept it, a refusal is an outage and swallowing
+  // it would hide one behind a silently worse walk.
+  reset();
+  const gh = new GH({ repo: 'me/home' });
+  let n = 0;
+  gh.graphql = async (query, vars) => {
+    if (++n === 1) return { repository: { refs: PAGES[1] } };   // one page, succeeds
+    throw new Error('502 upstream');
+  };
+  await gh.branchesDatedSessions();                              // primes the flag
+  await assert.rejects(() => gh.branchesDatedSessions(), /502 upstream/);
+  reset();
+});
+
+test('capped says whether the cap cut at all', async () => {
+  reset();
+  const { gh } = makeGh();
+  assert.equal((await gh.branchesDatedSessions()).capped, false, 'three branches, no cut');
+  const { gh: gh2 } = makeGh();
+  assert.equal((await gh2.branchesDatedSessions(100, 2)).capped, true);
+});
