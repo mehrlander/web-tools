@@ -327,7 +327,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
 
     fr = frame()
     if fr:
-        return pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git)
+        return pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at, query)
 
     # The renderer previews by nesting, and it has to be asked first: a change
     # to toss-render.html is also a shell change, and the shell rule would send
@@ -399,7 +399,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query=""):
     return decision("none-needed", [], sha, slug, hosted, why, warn, facts, at, query)
 
 
-def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git):
+def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=""):
     """The manifest-declared case: one app frames the repo's pages.
 
     Three rungs, in order. A path under a declared view's prefix is that view,
@@ -444,10 +444,13 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git):
                             + " file(s) are staged or modified (" + ", ".join(waiting[:4])
                             + ("…" if len(waiting) > 4 else "") + "): this reads COMMITS, so commit and re-run, or pass --files.")
                 why.append("no committed change to show yet.")
-                return decision("none-yet", [], sha, slug, hosted, why, warn, {"branch": "", "pushed": True})
+                return decision("none-yet", [], sha, slug, hosted, why, warn,
+                        {"branch": "", "pushed": True}, at, query)
         why.append("nothing that renders changed.")
-        return decision("none-needed", [], sha, slug, hosted, why, warn, {"branch": "", "pushed": True})
-    return decision("toss-app", subjects, sha, slug, hosted, why, warn, {"branch": "", "pushed": True})
+        return decision("none-needed", [], sha, slug, hosted, why, warn,
+                        {"branch": "", "pushed": True}, at, query)
+    return decision("toss-app", subjects, sha, slug, hosted, why, warn,
+                        {"branch": "", "pushed": True}, at, query)
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more

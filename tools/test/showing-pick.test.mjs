@@ -207,8 +207,9 @@ function framedRepo() {
   return dir;
 }
 
-function runIn(root, files) {
-  const out = execFileSync('python3', [SCRIPT, '--root', root, '--files', files, '--json'],
+function runIn(root, files, extra = []) {
+  const out = execFileSync('python3',
+    [SCRIPT, '--root', root, '--files', files, '--json', ...extra],
     { cwd: repoRoot, encoding: 'utf8' });
   return JSON.parse(out);
 }
@@ -250,4 +251,27 @@ test('an HTML file the manifest does not frame is tossed on its own and said to 
 test('a framed repo with only non-rendering changes says so in the same words as this one', () => {
   const d = runIn(framedRepo(), 'chron/2026/09/x.md,tools/x.py');
   assert.equal(d.mechanism, 'none-needed');
+});
+
+// THE FLAGS THAT REACHED EVERY MECHANISM EXCEPT THE ONE THEY WERE ADDED FOR.
+// `--query` exists because the app routes on ?view=, which `--at` cannot
+// express; the comment above address() says as much, and names the 2026-09-08
+// link that got hand-built for want of it. pick_framed took neither argument
+// and passed neither on, so on toss-app, the only mechanism a framed repo ever
+// reaches, both were silently dropped: the script printed a bare ?view= link
+// and said nothing, which is worse than refusing, since the address looks
+// right. Found 2026-09-09 while trying to put &track= on a render line.
+test('--query joins the view on a framed link rather than being dropped', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--query', 'tab=abs&track=submittal']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url, /\?view=submittal&tab=abs&track=submittal$/,
+    'the query joins with & because the framed page reads one query span');
+});
+
+test('--at puts a fragment on a framed link', () => {
+  const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
+                  ['--at', 'note=abc']);
+  assert.equal(d.mechanism, 'toss-app');
+  assert.match(d.links[0].url, /#note=abc$/);
 });
