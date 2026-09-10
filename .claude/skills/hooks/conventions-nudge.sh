@@ -115,11 +115,14 @@ for repo in cands:
 if delivered or not needing:
     sys.exit(0)
 
-print(
-    "Invoke /portable:default now. This session did not get the surfacing "
-    "conventions: no checkout here @-imports them (checked: "
-    + ", ".join(needing[:6]) + "). "
-    'To stop the asking, put "conventions": "optout" in a repo\'s .web-tools.json.'
-)
+# Two sentences, and the second earns its place: an instruction with no cause
+# competes badly against whatever the user actually asked for. Nothing else does.
+# The opt-out is aimed at a person deciding, and a person deciding is reading
+# docs/manifest-fields.csv or environment/extending.md, not a session's startup
+# output. The checked-repo list was showing the work; its one use is catching a
+# false positive, and the skill already covers that, since its first instruction
+# is to stop if the checkout is present.
+print("Invoke /portable:default now. "
+      "This session did not get the surfacing conventions.")
 PY
 exit 0

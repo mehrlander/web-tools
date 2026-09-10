@@ -62,7 +62,7 @@ test('a checkout that only names the command in prose gets the directive', () =>
   });
   const out = run(root);
   assert.match(out, /^Invoke \/portable:default now/, 'the directive leads, so it survives a truncated preview');
-  assert.match(out, /\bhome\b/, 'it names the checkout it checked');
+  assert.match(out, /did not get the surfacing conventions/, 'and gives the cause, so it outranks the ask in hand');
 });
 
 // The distinction the whole hook turns on, stated as a test because prose in
