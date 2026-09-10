@@ -19,11 +19,15 @@
 #
 # It also carries the surfacing course, which session start does not. That is a
 # delivery split, not a ranking: SURFACING.md's primitives govern every reply
-# and ride session start, while the course is the guide-PR lifecycle and is 11
-# KB the document itself calls "idle until you open a PR". Session start had no
-# room for both (inject-conventions.sh, and the 2026-08-26 record), and this
-# hook fires at the one instant the course becomes true. So it arrives here,
-# with the number that makes it concrete.
+# and ride session start, while the course is the guide-PR lifecycle and idles
+# until a PR exists. This hook fires at the one instant it becomes true.
+#
+# The course is its own file as of 2026-09-10, so this reads it whole rather
+# than partitioning SURFACING.md on a heading. Until then the two lived in one
+# document, every session paid 2,921 bytes for a course most never reached, and
+# a session that DID open a PR received it twice: once at startup inside the
+# @-import, once here. The comment above used to claim session start carried
+# only the primitives, which the byte counts disproved.
 #
 # The gap worth knowing: this matcher is the MCP tool, so a PR the PLATFORM
 # creates automatically does not fire it. Those sessions get the pointer in the
@@ -61,15 +65,10 @@ owner, repo, number = m.groups()
 # document the session can fetch.
 def course():
     try:
-        text = (Path(os.environ["HOOK_DIR"]) / ".." / "web-tools" / "SURFACING.md").read_text()
+        return (Path(os.environ["HOOK_DIR"]) / ".."
+                / "web-tools" / "surfacing-course.md").read_text().strip()
     except Exception:
         return ""
-    head, sep, tail = text.partition("## The surfacing course")
-    if not sep:
-        return ""
-    # The course runs to the end of the file (the post-merge handoff that
-    # followed it was cut on 2026-09-05; its rule lives in the course now).
-    return (sep + tail).strip()
 
 COURSE = course()
 
@@ -88,8 +87,8 @@ print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additi
     "Address a failing check when it bears on work you are responsible for."
 ) + ((
     "\n\n===== The surfacing course, delivered now because you just opened a PR =====\n"
-    "Session start injects SURFACING.md's primitives but not this section, which is the\n"
-    "guide-PR lifecycle and only becomes true at this moment. Canonical source:\n"
-    "mehrlander/web-tools docs/SURFACING.md.\n\n" + COURSE
+    "Session start injects SURFACING.md's primitives. This is the other half, the\n"
+    "guide-PR lifecycle, which only becomes true at this moment. Canonical source:\n"
+    "mehrlander/web-tools docs/surfacing-course.md.\n\n" + COURSE
 ) if COURSE else "")}}))
 PY
