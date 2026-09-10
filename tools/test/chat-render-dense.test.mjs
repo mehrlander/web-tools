@@ -126,7 +126,7 @@ test('a dense reply carries typography\'s paragraph rhythm halved, edges include
 });
 
 test('the role WORD goes for the two chat roles and stays for every other', () => {
-  // Four carriers already say user from assistant in an alternating transcript:
+  // Four cues already say user from assistant in an alternating transcript:
   // the icon, the rail, the indent, and mono against prose. A system or tool
   // turn has none of that going for it, so it keeps its word.
   for (const role of ['user', 'assistant']) {

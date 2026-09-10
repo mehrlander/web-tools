@@ -6,8 +6,8 @@ the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander
 
 **Populated here on 2026-09-10.** `docs/properties.csv` declares it on all 178
 rows, measured against each property's real column rather than read off its
-gloss: **value 86, label 63, locator 27, id 2.** Two carriers remain, both in
-budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
+gloss: **value 86, label 63, locator 27, id 2.** Two more property tables remain,
+both in budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
 (1,171).
 
 ## The four
@@ -146,7 +146,7 @@ Four collisions this property inherits rather than creates.
 
 ## What the first population measured
 
-Every one of the 177 properties resolved to a real column in a real carrier, so
+Every one of the 177 properties resolved to a real column in a real CSV, so
 all four tests could be run rather than argued.
 
 **The residual in `value` is 86 of 178, 48%.** That is the number this property
@@ -157,7 +157,7 @@ nothing and points nowhere.
 **`id` is nearly absent, and the reason is structural rather than a gap.** 28 of
 the 30 registries have no property row for their own key column: `registries.csv`
 declares the key in its `key` field, and `properties.csv` does not repeat it,
-which is the one-property-one-registry rule working correctly. So this carrier
+which is the one-property-one-registry rule working correctly. So `properties.csv`
 sees almost no ids by construction. The two that do appear, `aims-goals.key` and
 `aims-reading.path`, are the exceptions worth a second look.
 

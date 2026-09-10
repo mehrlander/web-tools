@@ -25,16 +25,17 @@ being the common case (budget-drs asserts properties of tables and rows; a
 content locator can refine below a file). A **property** is a named
 classification with a value domain, **closed** when its values are enumerated and
 **open** otherwise. A **scope** is the population a declaration covers. A
-**registry** is the committed carrier of assertions, one registry to one file. A
+**registry** is a committed CSV of assertions, one registry to one file. A
 **declaration** binds `scope × property → registry`; an **assertion** binds
 `target × property → value`, and a blank is not an assertion.
 
-The load-bearing choice is what an assertion does *not* carry: its registry. The
-carrier is resolved through the declaration, which is what makes "one target must
-not answer to two registries" a checkable configuration rule rather than a
-comment in a generator. The committed CSVs are denormalized joins of declarations
-with their assertions, convenient for the browser and the diff. The test suite is
-the integrity layer: gates are this system's foreign keys, because git has none.
+The load-bearing choice is what an assertion does *not* carry: its registry.
+Which registry holds it is resolved through the declaration, which is what makes
+"one target must not answer to two registries" a checkable configuration rule
+rather than a comment in a generator. The committed CSVs are denormalized joins
+of declarations with their assertions, convenient for the browser and the diff.
+The test suite is the integrity layer: gates are this system's foreign keys,
+because git has none.
 
 A **projection** is a generated view of registry data, never authoritative and
 never edited: `tracker/board.md`, `docs/README.md`.
@@ -108,23 +109,23 @@ with a synthetic pair, so the detector is held to detecting.
 ## The schema boundary
 
 The properties registry is not a schema registry. Its reach is exactly this: for
-a **governed** carrier, the registry names the carrier's key field (structural
+a **governed** registry, its row in the index names the key field (structural
 identity, exempt), and every other per-row field must be a declared property,
 because an undeclared field appearing in a computed set is the early symptom of
 an unaccounted classification, which is the drift this instrument exists to
-catch. Registry-level blocks are the carrier's own metadata and outside the rule.
+catch. Registry-level blocks are the CSV's own metadata and outside the rule.
 Files the registry does not govern are untouched by it.
 
 **What no registry reaches at all** is the prose living inside `.js` and `.html`.
 [`data/design/content.csv`](../data/design/content.csv) covers it by declaring it
 `exclude`, which is an honest accounting rather than a fix;
 [`text-content.md`](text-content.md) measures what that hides and proposes a
-carrier for it.
+data file for it.
 
-**The index governs the carriers, and now itself.** A registry row in the
+**The index governs the registries, and now itself.** A registry row in the
 registry index was an unaccounted classification of exactly the kind the field
 check catches everywhere else, and the check could not reach the file it reads
-the carriers from. The gate now applies the same rule to itself. The
+those registries from. The gate now applies the same rule to itself. The
 self-reference terminates the way `docs/README.md`'s does, being generated from
 the registry it is a row in: one more pass settles it, and the gate asserts
 convergence rather than assuming it.
@@ -181,7 +182,7 @@ GitHub-rendered projection is a legitimate answer.
 Its first run also caught a defect in the shared scanner: a `/*` inside a `//`
 line comment opened a phantom block that swallowed hundreds of code lines, which
 had been mis-filing `docs/app-routes.csv` as an orphan. An instrument built to
-find unread carriers found a bug in the instrument it was copied from, which is
+find unread registries found a bug in the instrument it was copied from, which is
 the pattern working. Its second lesson is duller and cost more: the corpus
 boundary is a literal list of directories, and when the app moved from `pages/`
 to `app/` nothing here moved with it, so the scanners read the app without
@@ -290,9 +291,9 @@ and nothing stores the composition.
 
 ### Two limits of the model, neither visible from inside it
 
-*A carrier can be distributed.* A registry names one path. But the authoritative
-statement of what a skill does is each skill's own `SKILL.md`, one carrier per
-target, which the declaration table cannot express. This is why the owners
+*Authority can be distributed across files.* A registry names one path. But the
+authoritative statement of what a skill does is each skill's own `SKILL.md`, one
+file per target, which the declaration table cannot express. This is why the owners
 table's family rule stays where it is rather than moving into the declarations.
 
 *A scope can overstate its own gate.* The docs registry declared "every file
@@ -307,7 +308,7 @@ gate.
 How finely responsibility is delegated is a configuration choice, not a model
 feature. A workspace that runs its own registries (budget-drs inside home)
 declares them in its own properties registry; the repo-level table covers the
-repo's own carriers and does not enumerate a project's internals. The integrity
+repo's own registries and does not enumerate a project's internals. The integrity
 rule spans levels unchanged: no pair, anywhere, has two owners.
 
 ### The level above: the estate
@@ -319,7 +320,7 @@ than the hub inspecting. Four of twenty-two currently span the estate.
 
 A third shape does not fit the table at all: a governed artifact each repo
 carries with no aggregate anywhere, which is why `.paths.json` is still
-unregistered after the audits kept naming it. The gate requires a carrier that
+unregistered after the audits kept naming it. The gate requires a file that
 exists here and is a CSV, and both facts about `.paths.json` are the opposite.
 That refusal is correct, and [estate-span.md](estate-span.md) is where it is
 recorded, along with the outbound/inbound asymmetry it belongs to and the
@@ -330,14 +331,14 @@ measurement behind the column.
 budget-drs's `properties.csv` and this repo's registry pair express the same
 model in different normal forms, and neither should convert to the other. This
 repo factors a **registries** object out of its declarations because several
-properties share one carrier, and without the factoring the path, scope and gate
-would be restated on every one of them. budget-drs declares twenty properties
-across twenty distinct carriers, so the same factoring would add an object layer
-with exactly one declaration hanging off each entry.
+properties share one registry file, and without the factoring the path, scope and
+gate would be restated on every one of them. budget-drs declares twenty
+properties across twenty distinct files, so the same factoring would add an
+object layer with exactly one declaration hanging off each entry.
 
-**Fan-out decides it.** One carrier to many properties wants the registry object;
+**Fan-out decides it.** One file to many properties wants the registry object;
 one-to-one does not. That is a property of the estate being described, not of the
-describer, so a repo adopting this model picks the form its own carriers imply
+describer, so a repo adopting this model picks the form its own files imply
 rather than the form the hub happens to use. Neither is the canonical shape.
 
 **The column grain is the same shape under two vocabularies.** This repo's
@@ -367,7 +368,8 @@ origin instrument carries a `definition_owner` field, naming per property the
 document that defines its value domain. Adopting it here was tried and should not
 be: budget-drs has a design-doc layer, so every one of its properties is defined
 by a separate document, while in the hub almost every domain is defined in its
-own carrier or in a glossary beside the rows. The field would have been populated
+registry itself or in a glossary beside the rows. The field would have been
+populated
 on a handful of rows and blank on the rest, and a field that is blank by
 construction teaches a reader nothing. Where a hub domain genuinely is defined
 elsewhere, the owners table already says so, and it is the better home because it

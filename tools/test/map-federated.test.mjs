@@ -174,7 +174,7 @@ test('the three sets are one axis, and the search runs across all of them', asyn
   assert.equal(data.skillManifestPath, 'skills/manifest.csv');
   data.skillSet = 'plugin';
   assert.equal(data.skillManifestPath, 'docs/portable.csv',
-    'the registry chip follows the one set backed by another carrier');
+    'the registry chip follows the one set backed by a different file');
   data.skillSet = '';
 });
 

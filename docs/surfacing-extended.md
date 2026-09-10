@@ -1,11 +1,12 @@
 # Surfacing, extended
 
-The surfacing carriers and details that most replies never reach. [SURFACING.md](SURFACING.md)
-holds the primitives themselves and is injected into every session; this file is not, and is
-fetched when one of the entries below applies. Each keeps its **Form** where there is a syntax
-and its **Boundary** where an edge changes the rule.
+The ways of handing something over, and the details, that most replies never reach.
+[SURFACING.md](SURFACING.md) holds the primitives themselves and is injected into every
+session; this file is not, and is fetched when one of the entries below applies. Each
+keeps its **Form** where there is a syntax and its **Boundary** where an edge changes
+the rule.
 
-## Carriers
+## Ways to hand something over
 
 * **Lead with the live view.** A README for something that renders opens with a prominent ⭐ link to the hosted version, above the prose.
 
@@ -17,8 +18,8 @@ and its **Boundary** where an edge changes the rule.
   **Pasted text needs no token.** A stage of text you hold rather than refs you point at mints as `#gz=<base64url(gzip([{name,text}]))>`, budgeted at 24 KB of payload, and opens for a reader with no token and no access to the repo. With `&mode=diff` that is the whole token-less review handoff: a before, an after, and the asks, in one link of a few hundred characters.
   **Boundary:** the ref half is token-gated with the same in-app-browser caveat as `#gh=`; for a tokenless reader either send the text under `#gz=` or download the bundle and hand it over. A stage is an inline handoff, not a caption row. See `docs/stage.md`, `docs/show-repo.md`, and `.web-tools.json`.
 
-* **Carry content in an envelope.** A curated, annotated set of files, chats, diffs, or search hits that should travel and render together goes in an envelope rather than an ad-hoc format. The carriers are stage, surface (`pages/app.html` estate view), chat-results (`pages/chat-results.html`) and data view (`pages/data-view.html`).
-  **Boundary:** they share the `owner/repo[@ref]:path` grammar, the `#gz=`/`?src=` delivery split, and live-code rendering. One contract per carrier in [`docs/envelopes/`](https://github.com/mehrlander/web-tools/tree/main/docs/envelopes).
+* **Carry content in an envelope.** A curated, annotated set of files, chats, diffs, or search hits that should travel and render together goes in an envelope rather than an ad-hoc format. The envelope formats are stage, surface (`pages/app.html` estate view), chat-results (`pages/chat-results.html`) and data view (`pages/data-view.html`).
+  **Boundary:** they share the `owner/repo[@ref]:path` grammar, the `#gz=`/`?src=` delivery split, and live-code rendering. One contract per format in [`docs/envelopes/`](https://github.com/mehrlander/web-tools/tree/main/docs/envelopes).
 
 * **Toss data 📊.** Address a CSV, JSON array, or log through the data route so it opens readable rather than raw: `toss-render.html#data=owner/repo[@ref]:path`. It picks a mode by content (table, tree, preview, code, raw) and leaves every other one a tap away. Bare bytes need no wrapper; an `items` envelope adds several files with a default view and notes for each, and a trailing `#item=<name|index>` opens on one.
   **A PDF has two routes.** `#data=` is the first look: the page drawn, a pager, the real page and byte counts. `#pdf=` is the workbench (`pages/pdf-inspect.html`), down to characters, vector rules and detected table cells. Pick by what the reader is meant to do.

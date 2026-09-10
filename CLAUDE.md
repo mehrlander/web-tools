@@ -15,7 +15,7 @@ Qualify noun phrases to increase clarity, strengthen claims, highlight questions
 
 ## Where the rest of the system lives
 
-[docs/SURFACING.md](docs/SURFACING.md), imported above, is the portable surfacing system; it and the section above are the whole cross-repo contract. Everything below is web-tools-specific. Delivery: a session with this repo checked out gets both through this file; a session without it runs the `web-tools` skill (`.claude/skills/web-tools/SKILL.md`), which fetches SURFACING.md from main. The guide-PR lifecycle is the second half of that system and rides a different channel: [docs/surfacing-course.md](docs/surfacing-course.md) is not imported, because it idles until a PR exists, and the `pr-subscribe-hint` hook delivers it at the moment one is opened. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
+[docs/SURFACING.md](docs/SURFACING.md), imported above, is the portable surfacing system; it and the section above are the whole cross-repo contract. Everything below is web-tools-specific. Delivery: a session with this repo checked out gets both through this file; a session without it runs the `default` skill (`.claude/skills/default/SKILL.md`), which fetches SURFACING.md from main. The guide-PR lifecycle is the second half of that system and rides a different channel: [docs/surfacing-course.md](docs/surfacing-course.md) is not imported, because it idles until a PR exists, and the `pr-subscribe-hint` hook delivers it at the moment one is opened. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
@@ -79,7 +79,7 @@ A committed CSV that inventories or classifies part of the tree is a
 **registry**; adding one means adding a row to
 [`docs/registries.csv`](docs/registries.csv) in the same commit. The model,
 the rules, and what its audits found are in
-[`docs/registries.md`](docs/registries.md); read it before inventing a carrier,
+[`docs/registries.md`](docs/registries.md); read it before inventing a registry,
 since the answer is usually a row in one that exists. The one trap: **one
 property about one target answers to one registry** (gated); resolve a
 collision by declaring that one registry **inherits** the other's descriptions,

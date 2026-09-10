@@ -319,7 +319,7 @@ test('a stub is dashed: an absence of knowledge, not an outcome', () => {
 });
 
 test('failures ride the fill, so a snagged session that shipped reads as both', () => {
-  // Two axes, two carriers. Collapsing them was the old behaviour and it meant
+  // Two axes, two channels. Collapsing them was the old behaviour and it meant
   // a session that hit one failing tool call could not also say its work landed.
   withPRs([branch('a')],
           [{ ...record('r', { repos: on('a') }), failures: 3 }],

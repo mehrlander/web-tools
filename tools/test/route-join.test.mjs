@@ -2,7 +2,7 @@
 //
 //   lib/kits/route-join.js          fetches the manifest, the open pull
 //                                   requests' file lists, and one last-commit
-//                                   date per declared carrier
+//                                   date per declared file
 //   lib/alpineComponents/map.js     the Map view's Views tab, which ranks the
 //                                   app's destinations off all three
 //   lib/alpineComponents/estate.js  the reciprocal, a chip on a branch row
@@ -16,7 +16,7 @@
 // The FOLD itself (ranking, the wide-file rule, the shell exclusion) is covered
 // in app-routes.test.mjs against lib/kits/route-activity.js. What is tested
 // here is the wiring that fold cannot see: that the loader asks for the paths
-// the manifest declares and nothing else, that it survives a carrier with no
+// the manifest declares and nothing else, that it survives a file with no
 // commits, that the attempt-once guard holds after a failure, and that the
 // pane's aggregates read off the rows rather than off the manifest.
 //
@@ -184,11 +184,11 @@ const view = Alpine.$data(window.document.getElementById('mp'));
 // identity alone (every other estate suite does the same).
 const plain_ = (v) => JSON.parse(JSON.stringify(v));
 
-test('the loader asks for exactly the declared carriers plus the shell', async () => {
+test('the loader asks for exactly the declared files plus the shell', async () => {
   asked = [];
   await view.loadAppViews(true);
   // Sorted, so the shell leads: it moved from pages/show-repo/show-repo.html
-  // to app/index.html on 2026-08-16 and now sorts ahead of every lib/ carrier.
+  // to app/index.html on 2026-08-16 and now sorts ahead of every lib/ file.
   assert.deepEqual(plain_(asked).sort(), [
     'app/index.html',
     'lib/alpineComponents/estate.js',
@@ -197,7 +197,7 @@ test('the loader asks for exactly the declared carriers plus the shell', async (
   ]);
 });
 
-test('a carrier with no commits leaves its route undated rather than throwing', () => {
+test('a file with no commits leaves its route undated rather than throwing', () => {
   const sessions = view.viewRows.find(r => r.key === 'sessions');
   // estate.js answered empty; repo-sessions-cache.js dated the row.
   assert.equal(sessions.lastTouch.sha, 'bbbbbbb2');
@@ -296,7 +296,7 @@ test('the shared half loads without the dating, and only once', async () => {
   asked = [];
   await sh.loadRouteJoin();
   assert.ok(sh.routeManifest, 'manifest loaded');
-  assert.deepEqual(plain_(asked), [], 'no per-carrier commit reads for the join alone');
+  assert.deepEqual(plain_(asked), [], 'no per-file commit reads for the join alone');
   assert.equal(sh.routeBranchFiles.length, 2);
   // Guarded: the x-effect on the Branches pane fires on every render.
   sh.routeBranchFiles = [];

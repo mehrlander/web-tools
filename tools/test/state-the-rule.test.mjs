@@ -825,7 +825,7 @@ test('a fence outranks the blank line inside it, and every other marker does not
 // fixture cannot stand in for this: the drift is proportional to how many emoji
 // precede a unit, so only a real document exercises the accumulation.
 //
-// TWO documents, because on 2026-09-07 the emoji-bearing carriers (📦 🗂️ 📊 📋
+// TWO documents, because on 2026-09-07 the emoji-bearing primitives (📦 🗂️ 📊 📋
 // 📲 🎫 🔍) moved to docs/surfacing-extended.md so the injected half would fit
 // the SessionStart channel. SURFACING.md alone fell from 53 astral characters to
 // 37, under the floor below, while the corpus as a whole did not thin. The floor

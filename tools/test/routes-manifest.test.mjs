@@ -5,7 +5,7 @@
 // render path takes no fetch, and adding a route to one without the other fails
 // here.
 //
-// Four carriers since 2026-08-18. The three tables (modes, routes, showing
+// Four files since 2026-08-18. The three tables (modes, routes, showing
 // mechanisms) are CSV registries of their own; docs/routes.json keeps what is
 // not a table: the grammar, the parameter precedence, and the showing frame.
 //
@@ -20,7 +20,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 // An independent CSV reader, not the loader under tools/build/: this file is a
-// gate on what the carriers hold, so borrowing the parser it checks against
+// gate on what those files hold, so borrowing the parser it checks against
 // would let a parser bug agree with itself.
 function parseCsv(raw) {
   const rows = [];
@@ -202,7 +202,7 @@ test('docs/showing.md delegates the mechanisms rather than restating them', () =
   const doc = readFileSync(path.join(repoRoot, 'docs', 'showing.md'), 'utf8');
 
   assert.match(doc, /showing-mechanisms\.csv/,
-    'showing.md no longer points at the carrier it delegates to');
+    'showing.md no longer points at the file it delegates to');
   assert.match(doc, /routes\.json/,
     'showing.md no longer points at the frame (the routes.json showing block)');
 
@@ -234,7 +234,7 @@ test('docs/showing.md does not repeat a paragraph within itself', () => {
 
 // ── Kinds: what is being shown, and what that buys once it is on screen ─────
 //
-// docs/routes-kinds.csv is the fourth carrier, added 2026-08-31. The three
+// docs/routes-kinds.csv is the fourth file, added 2026-08-31. The three
 // above answer how a subject reaches a viewer; this one answers what the
 // subject IS, which is the question three separate pieces of code were each
 // answering privately: ViewRegistry.READ_MODE (which mode a file opens in),
@@ -385,10 +385,10 @@ test('a kind names its aim completely, or carries no aim at all', () => {
   }
 });
 
-// The carrier is the one place the aim rule lives, and both conditions have to
-// be in it: a kind declaring an aim, and units for that aim to hit. Split
+// kits/src-doc.js is the one place the aim rule lives, and both conditions have
+// to be in it: a kind declaring an aim, and units for that aim to hit. Split
 // across the kits it would be re-derived by every kind that ever declares.
-test('the aim test is the carrier\'s, and tests both halves', () => {
+test('the aim test is src-doc\'s, and tests both halves', () => {
   const src = readFileSync(path.join(repoRoot, 'lib/kits/src-doc.js'), 'utf8');
   assert.match(src, /st\.kind && st\.kind\.aim && st\.units > 0/,
     'kits/src-doc.js no longer tests both the declared aim and the unit count');

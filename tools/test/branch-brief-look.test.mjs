@@ -97,7 +97,7 @@ test('the manifest is read at the BRANCH ref, so a branch that adds a route show
   assert.ok(data.routeManifest.routes.length > 15);
 });
 
-test('a narrow carrier puts the branch ON its route; a wide one only NEAR', () => {
+test('a narrow file puts the branch ON its route; a wide one only NEAR', () => {
   const chips = j(data.routeChips);
   assert.deepEqual(chips.on.map(c => c.key), ['stage']);
   // estate.js carries nine routes, so it dates none of them and opens none.

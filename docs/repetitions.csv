@@ -3,7 +3,7 @@ the skill roster,docs/portable.csv skill items,copy,"registry, both directions (
 the skill roster,docs/MARKETPLACE.md; .claude-plugin/marketplace.json description,pointer,
 the surfacing primitives,docs/surfacing.csv,paraphrase,"membership two-way on the bullet lead-ins (surfacing-manifest.test.mjs); the summaries themselves unchecked, honest while the doc is named authoritative"
 the surfacing primitives,"other repos' CLAUDE.md restatements (home, chat-histories adaptations)",paraphrase,none; each declares itself an adaptation and names this doc as source
-the working conventions text,the web-tools skill's runtime fetch,live read,none needed; reads main at use
+the working conventions text,the default skill's runtime fetch,live read,none needed; reads main at use
 the toss routes (content type to renderer),pages/toss-render.html TOSS_ROUTES literal (inlined so the critical render path takes no fetch),copy,gate (routes-manifest.test.mjs)
 "the showing mechanisms: which link reaches which change, and what each misses","CLAUDE.md, the one-trap quote",paraphrase,"word cap plus required pointer at showing.md (routes-manifest.test.mjs), guarding against the prose creeping home"
 the MCP readback strips HTML from PR bodies,"docs/SURFACING.md, region-markers rationale",paraphrase,none; cites the measurement
