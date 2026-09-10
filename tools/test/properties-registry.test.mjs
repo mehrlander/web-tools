@@ -70,7 +70,7 @@ function parseCsv(raw) {
   return body.map(r => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
 }
 
-function carrierRows(r) {
+function registryRows(r) {
   const rows = parseCsv(readFileSync(path.join(repoRoot, r.file), 'utf8'));
   assert.ok(rows.length > 0, `${r.file}: no rows`);
   for (const row of rows)
@@ -83,7 +83,7 @@ function carrierRows(r) {
 // The column set is the header row, which never carries quoting. Read from the
 // bytes rather than from the parsed rows, so a column that is blank on every
 // row is still declared rather than silently absent.
-function carrierFields(r) {
+function registryFields(r) {
   const raw = readFileSync(path.join(repoRoot, r.file), 'utf8');
   return new Set(raw.split('\n')[0].trim().split(','));
 }
@@ -152,7 +152,7 @@ test('every ungoverned registry says why, and the count is the one on the books'
 test('each governed registry holds exactly its key plus its declared properties', () => {
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
     const declared = new Set(decls.filter(d => d.registry === r.id).map(d => d.property));
-    const fields = carrierFields(r);
+    const fields = registryFields(r);
     for (const f of fields) {
       assert.ok(r.key.split('+').includes(f) || declared.has(f),
         `${r.file}: field "${f}" carries no declaration in docs/properties.csv; ` +
@@ -175,7 +175,7 @@ test('every value in a closed domain is in that domain', () => {
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
     const closed = decls.filter(d => d.registry === r.id && Array.isArray(d.values));
     if (!closed.length) continue;
-    const rows = carrierRows(r);
+    const rows = registryRows(r);
     for (const d of closed) {
       const allowed = new Set(d.values);
       for (const row of rows) {
@@ -207,7 +207,7 @@ test('every required:value property is present on every row', () => {
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
     const required = decls.filter(d => d.registry === r.id && d.required === 'value');
     if (!required.length) continue;
-    const rows = carrierRows(r);
+    const rows = registryRows(r);
     for (const d of required) {
       const blank = rows.filter(row => {
         const v = row[d.property];
@@ -237,7 +237,7 @@ test('every required:value property is present on every row', () => {
 test('a declared id is its registry key, and a declared label draws from a set or repeats', () => {
   const split = v => String(v).split(/[;,]/).map(x => x.trim()).filter(Boolean);
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
-    const rows = carrierRows(r);
+    const rows = registryRows(r);
     for (const d of decls.filter(d => d.registry === r.id)) {
       const prim = d.column_primitive;
       if (prim === 'id') {
@@ -368,7 +368,7 @@ function assertionOwners() {
   const seen = new Map();   // identity -> Map(property -> [registry id])
   for (const r of reg.registries.filter(r => r.identity && r.fields === 'governed')) {
     const declared = decls.filter(d => d.registry === r.id).map(d => d.property);
-    for (const row of carrierRows(r)) {
+    for (const row of registryRows(r)) {
       const id = identityOf(r, row);
       if (!id) continue;
       for (const prop of declared) {
@@ -428,8 +428,8 @@ test('the ownership gate does not fire across two identity spaces', () => {
 test('every tools row resolves to a page the gallery owns', () => {
   const tools = reg.registries.find(r => r.id === 'tools');
   const pages = reg.registries.find(r => r.id === 'pages');
-  const known = new Set(carrierRows(pages).map(row => 'pages/' + row[pages.key]));
-  for (const row of carrierRows(tools)) {
+  const known = new Set(registryRows(pages).map(row => 'pages/' + row[pages.key]));
+  for (const row of registryRows(tools)) {
     const p = row[tools.key];
     if (p.includes(':')) continue;   // a cross-repo ref is not this repo's to check
     assert.ok(known.has(p),

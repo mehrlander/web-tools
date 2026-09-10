@@ -40,15 +40,15 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus, stripComments, APP_DIRS, APP_EXT } from './docs-reach.mjs';
 
 /**
- * For each carrier path, the sorted app files that name it in code.
+ * For each registry path, the sorted app files that name it in code.
  * @param {string} repoRoot
- * @param {string[]} carriers repo-relative carrier paths
+ * @param {string[]} registryPaths repo-relative paths, one per registry
  * @returns {Map<string, string[]>}
  */
-export function deriveRendersIn(repoRoot, carriers) {
+export function deriveRendersIn(repoRoot, registryPaths) {
   const app = readCorpus(repoRoot, APP_DIRS, APP_EXT, true);
   const out = new Map();
-  for (const c of carriers) {
+  for (const c of registryPaths) {
     out.set(c, app.filter(([, text]) => text.includes(c)).map(([p]) => p).sort());
   }
   return out;

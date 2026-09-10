@@ -223,7 +223,7 @@ function delivery() {
       const rowY = r => PAD + r * (NH + VGAP);
       const laneX = k => PAD + k * (NW + LANEGAP);
       const originX = W / 2 - NW / 2, originY = rowY(0);
-      const carrierRow = deep + 1, sessionRow = deep + 2;
+      const channelRow = deep + 1, sessionRow = deep + 2;
 
       const svg = svgEl('svg', {
         viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img',
@@ -275,7 +275,7 @@ function delivery() {
       const grid = [];
       lanes.forEach((l, k) => l.nodes.forEach((n, j) => { (grid[j + 1] ||= [])[k] = n; }));
       lanes.forEach((l, k) => {
-        (grid[carrierRow] ||= [])[k] = { ...l.carrier, id: 'carrier:' + l.id,
+        (grid[channelRow] ||= [])[k] = { ...l.channel, id: 'channel:' + l.id,
           sub: l.id === 'inject' && cap && inj
             ? inj.bytes.toLocaleString() + ' / ' + cap.bytes.toLocaleString() : '' };
       });
@@ -301,20 +301,20 @@ function delivery() {
 
       lanes.forEach((l, k) => {
         let px = W / 2, py = originY + NH;
-        for (let r = 1; r <= carrierRow; r++) {
+        for (let r = 1; r <= channelRow; r++) {
           const cell = rect[r] && rect[r][k];
           if (!cell) continue;
           edge(px, py, cell.cx, cell.y);
           px = cell.cx; py = cell.y + NH;
         }
         edge(px, py, W / 2, rowY(sessionRow));
-        // Fallbacks hang under the carrier, dimmed, so a route that has one
+        // Fallbacks hang under the channel, dimmed, so a route that has one
         // shows it without implying it is always traversed.
-        const cc = rect[carrierRow] && rect[carrierRow][k];
+        const cc = rect[channelRow] && rect[channelRow][k];
         l.fallbackNodes.forEach((f, j) => {
           const g = svgEl('g', { 'data-node': f.id });
           g.appendChild(svgEl('text', { class: 'n-faint', x: cc ? cc.cx : laneX(k) + NW / 2,
-            y: (cc ? cc.y : rowY(carrierRow)) + NH + 24 + j * 22,
+            y: (cc ? cc.y : rowY(channelRow)) + NH + 24 + j * 22,
             'text-anchor': 'middle', 'font-size': 12 },
             (j === 0 ? 'else ' : 'then ') + f.label));
           gNodes.appendChild(g);
@@ -342,9 +342,9 @@ function delivery() {
     // fall out of step.
     nodeById(id) {
       if (id === 'session') return { ...(this.data?.session || {}), id: 'session' };
-      if (id.startsWith('carrier:')) {
-        const l = this.lanes.find(x => 'carrier:' + x.id === id);
-        return l ? { ...l.carrier, id } : null;
+      if (id.startsWith('channel:')) {
+        const l = this.lanes.find(x => 'channel:' + x.id === id);
+        return l ? { ...l.channel, id } : null;
       }
       return (this.snap?.stores || []).find(n => n.id === id) || null;
     },

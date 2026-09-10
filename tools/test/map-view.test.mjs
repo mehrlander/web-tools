@@ -529,8 +529,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   // path. The first cut counted rows and called them attached, and a trailing
   // comma in one row's join column made the count true and the claim false.
   const tot = d3.testExplainTotals;
-  const rowsInCarrier = window.Csv.rows(explainCsv).filter(r => r.script && r.kind).length;
-  assert.equal(tot.rows, rowsInCarrier, 'every row in the explanations file is folded');
+  const rowsInFile = window.Csv.rows(explainCsv).filter(r => r.script && r.kind).length;
+  assert.equal(tot.rows, rowsInFile, 'every row in the explanations file is folded');
   assert.equal(tot.attached, tot.rows, 'every row names a registry file: ' +
     [...d3.testExplain.keys()].filter(k => !d3.testsReg.tests.some(t => t.path === k)).join(', '));
   assert.equal(tot.files + tot.unexplained, d3.testsReg.tests.length, 'explained plus unexplained is the registry');
@@ -564,7 +564,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   assert.equal(JSON.stringify([...d3.changedSet(byPath, now)]), JSON.stringify(['b.mjs']));
   // Every committed row carries the hash it was read at.
   const stamped = window.Csv.rows(explainCsv).filter(r => r.script && /^[0-9a-f]{40}$/.test(r.script_sha)).length;
-  assert.equal(stamped, rowsInCarrier, 'every row is stamped with its script blob hash');
+  assert.equal(stamped, rowsInFile, 'every row is stamped with its script blob hash');
   window.__shell = undefined;
 });
 

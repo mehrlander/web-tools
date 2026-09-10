@@ -161,7 +161,7 @@ const FIXTURE = {
 };
 
 test('shared is derived from being named twice, never authored', () => {
-  const c = R.carriers(FIXTURE);
+  const c = R.routesByFile(FIXTURE);
   assert.deepEqual(c.get('one.js'), ['one']);
   assert.deepEqual(c.get('wide.js'), ['one', 'two', 'three']);
 });

@@ -65,7 +65,7 @@
             "origin",
             "checkout"
           ],
-          "carrier": {
+          "channel": {
             "label": "project_instructions",
             "gloss": "Text the harness places in context at session start because a CLAUDE.md @-imported it. No size ceiling, and nothing measures it."
           },
@@ -79,7 +79,7 @@
           "chain": [
             "origin"
           ],
-          "carrier": {
+          "channel": {
             "label": "session hook stdout",
             "gloss": "Everything the SessionStart hooks print, concatenated and placed in context. Past a ceiling the harness keeps about 2,000 bytes and discards the rest without saying so."
           },
@@ -127,7 +127,7 @@
             "origin",
             "checkout"
           ],
-          "carrier": {
+          "channel": {
             "label": "project_instructions",
             "gloss": "Text the harness places in context at session start because a CLAUDE.md @-imported it. No size ceiling, and nothing measures it."
           },
@@ -141,7 +141,7 @@
           "chain": [
             "origin"
           ],
-          "carrier": {
+          "channel": {
             "label": "session hook stdout",
             "gloss": "Everything the SessionStart hooks print, concatenated and placed in context. Past a ceiling the harness keeps about 2,000 bytes and discards the rest without saying so."
           },
@@ -219,7 +219,7 @@
             "origin",
             "checkout"
           ],
-          "carrier": {
+          "channel": {
             "label": "project_instructions",
             "gloss": "Text the harness places in context at session start because a CLAUDE.md @-imported it. No size ceiling, and nothing measures it."
           },
@@ -235,7 +235,7 @@
             "repo-vendored",
             "pin"
           ],
-          "carrier": {
+          "channel": {
             "label": "session hook stdout",
             "gloss": "Everything the SessionStart hooks print, concatenated and placed in context. Past a ceiling the harness keeps about 2,000 bytes and discards the rest without saying so."
           },
@@ -251,7 +251,7 @@
             "origin",
             "raw"
           ],
-          "carrier": {
+          "channel": {
             "label": "on demand",
             "gloss": "Text fetched when the skill is invoked, part-way through a session rather than at its start. It governs only from that point on."
           },
@@ -374,7 +374,7 @@
             "origin",
             "checkout"
           ],
-          "carrier": {
+          "channel": {
             "label": "project_instructions",
             "gloss": "Text the harness places in context at session start because a CLAUDE.md @-imported it. No size ceiling, and nothing measures it."
           },
@@ -390,7 +390,7 @@
             "repo-vendored",
             "pin"
           ],
-          "carrier": {
+          "channel": {
             "label": "session hook stdout",
             "gloss": "Everything the SessionStart hooks print, concatenated and placed in context. Past a ceiling the harness keeps about 2,000 bytes and discards the rest without saying so."
           },
@@ -406,7 +406,7 @@
             "origin",
             "raw"
           ],
-          "carrier": {
+          "channel": {
             "label": "on demand",
             "gloss": "Text fetched when the skill is invoked, part-way through a session rather than at its start. It governs only from that point on."
           },
@@ -500,7 +500,7 @@
             "origin",
             "checkout"
           ],
-          "carrier": {
+          "channel": {
             "label": "project_instructions",
             "gloss": "Text the harness places in context at session start because a CLAUDE.md @-imported it. No size ceiling, and nothing measures it."
           },
@@ -515,7 +515,7 @@
             "origin",
             "clone-docs"
           ],
-          "carrier": {
+          "channel": {
             "label": "session hook stdout",
             "gloss": "Everything the SessionStart hooks print, concatenated and placed in context. Past a ceiling the harness keeps about 2,000 bytes and discards the rest without saying so."
           },
@@ -534,7 +534,7 @@
             "origin",
             "clone-docs"
           ],
-          "carrier": {
+          "channel": {
             "label": "on demand",
             "gloss": "Text fetched when the skill is invoked, part-way through a session rather than at its start. It governs only from that point on."
           },
