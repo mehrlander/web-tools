@@ -408,9 +408,9 @@ export default async function (page) {
   //
   // The two branches cover the two cases. show-repo-docs-surfacing touches
   // lib/alpineComponents/estate.js, which nine routes declare, so it draws one
-  // solid chip for the narrow carrier beside it and a ghosted chip per shared
+  // solid chip for the narrow file beside it and a ghosted chip per shared
   // route: the widest a tile ever gets, and the one that wraps. Board
-  // determinism touches a single narrow carrier and draws one chip.
+  // determinism touches a single narrow file and draws one chip.
   await page.evaluate(async () => {
     const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
     try {

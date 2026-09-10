@@ -5,7 +5,7 @@
 // every one of their columns has a property definition, which is how `kind` finally
 // carries a value domain instead of a special rule.
 //
-// The model's integrity rules, as checks: every governed carrier exists and
+// The model's integrity rules, as checks: every governed registry exists and
 // parses; within one, row fields are exactly the declared key plus declared
 // properties (an undeclared field is an unaccounted classification, the drift
 // the registry exists to catch; a declared property absent everywhere is a
@@ -18,7 +18,7 @@
 // PROHIBITION rather than a ledger: the assertion below reads zero. The estate ran
 // thirteen registry-like mechanisms while six were declared, and five of the
 // seven found could not be field-governed for reasons that are facts about the
-// carrier rather than neglect: a bare array of groups, a deriver that ships in
+// file rather than neglect: a bare array of groups, a deriver that ships in
 // the plugin rather than this repo, four sibling blocks in one file, an index of
 // prose, a target that is a manifest key. Declaring them `ungoverned` with a
 // written `why` counts them instead of omitting them, which is the same
@@ -28,8 +28,8 @@
 // It moved four times in two days, always down, and ended at zero: all five
 // reasons were wrong on inspection, two being false statements about the repo
 // and three being statements about this gate mistaken for statements about a
-// carrier. So the ledger became a prohibition. `fields` survives only so that
-// adding an ungoverned carrier has to change this test, which is a deliberate
+// registry. So the ledger became a prohibition. `fields` survives only so that
+// adding an ungoverned registry has to change this test, which is a deliberate
 // act; the record says such a reason is more likely an unchecked assumption
 // than a fact. docs/registries.md carries the five and what each got wrong.
 
@@ -47,7 +47,7 @@ const decls = reg.properties;
 const byRegistry = new Map(reg.registries.map(r => [r.id, r]));
 
 // A second CSV reader, deliberately not the one under tools/build/. This gate
-// asserts what the carriers hold, so borrowing the loader's parser would let a
+// asserts what the registries hold, so borrowing the loader's parser would let a
 // parser bug agree with itself. Quoted fields may contain commas and doubled
 // quotes, which the prose notes do.
 function parseCsv(raw) {
@@ -101,7 +101,7 @@ test('the writer\'s column list matches the file it writes', () => {
     'run will silently drop or reorder a column. Update tools/build/registries-load.mjs.');
 });
 
-test('registries are well-formed: unique ids, carriers and gates exist', () => {
+test('registries are well-formed: unique ids, files and gates exist', () => {
   const ids = reg.registries.map(r => r.id);
   assert.equal(new Set(ids).size, ids.length, 'duplicate registry id');
   for (const r of reg.registries) {
@@ -123,7 +123,7 @@ test('registries are well-formed: unique ids, carriers and gates exist', () => {
 });
 
 // A ledger, not a ban. Ungoverned is an honest state with a stated cause; what
-// it must never become is a quiet default for a carrier nobody wanted to type.
+// it must never become is a quiet default for a registry nobody wanted to type.
 test('every ungoverned registry says why, and the count is the one on the books', () => {
   const ungoverned = reg.registries.filter(r => r.fields === 'ungoverned');
   for (const r of reg.registries) {
@@ -131,25 +131,25 @@ test('every ungoverned registry says why, and the count is the one on the books'
       `${r.id}: fields must be governed or ungoverned, got ${r.fields}`);
     if (r.fields === 'ungoverned') {
       assert.ok(r.why && r.why.length > 40,
-        `${r.id}: ungoverned needs a written reason naming what about the carrier prevents it`);
+        `${r.id}: ungoverned needs a written reason naming what about the file prevents it`);
     } else {
       assert.ok(!r.why, `${r.id}: why belongs to an ungoverned registry`);
       assert.ok(r.key, `${r.id}: a governed registry names its key field`);
       // Every registry is a CSV as of 2026-08-18, which is what makes "a
       // registry is a file" true by construction: a CSV cannot hold two tables,
-      // so no carrier needs a pointer saying which key holds the rows, and no
+      // so no registry needs a pointer saying which key holds the rows, and no
       // two registries can quietly share one file again.
-      assert.ok(r.file.endsWith('.csv'), `${r.id}: a registry carrier is a CSV`);
+      assert.ok(r.file.endsWith('.csv'), `${r.id}: a registry is a CSV`);
     }
   }
   assert.equal(ungoverned.length, 0,
-    'a carrier was declared ungoverned. Every one of the five that ever claimed this was wrong ' +
-    'on inspection, so check the carrier before believing the reason: is there a keyed row array ' +
+    'a registry was declared ungoverned. Every one of the five that ever claimed this was wrong ' +
+    'on inspection, so check the file before believing the reason: is there a keyed row array ' +
     'anywhere in it, possibly under a dotted or [] path, and may it be a second registry sharing ' +
-    'the carrier? If it truly cannot be governed, say why here and raise this number.');
+    'the file? If it truly cannot be governed, say why here and raise this number.');
 });
 
-test('each governed carrier holds exactly its key plus its declared properties', () => {
+test('each governed registry holds exactly its key plus its declared properties', () => {
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
     const declared = new Set(decls.filter(d => d.registry === r.id).map(d => d.property));
     const fields = carrierFields(r);
@@ -160,7 +160,7 @@ test('each governed carrier holds exactly its key plus its declared properties',
     }
     for (const p of declared) {
       assert.ok(fields.has(p),
-        `${r.file}: declared property "${p}" appears in no row; retire the declaration or fix the carrier`);
+        `${r.file}: declared property "${p}" appears in no row; retire the declaration or fix the file`);
     }
   }
 });
@@ -226,7 +226,7 @@ test('every required:value property is present on every row', () => {
 // thing a column holds. Its closed domain is already held by the test above,
 // since the property declares its values, so what is left unheld is the half
 // the doctrine calls countable: an `id` identifies its row, and a `label` is
-// drawn from a set and repeats. Both are measurable against the carrier, so
+// drawn from a set and repeats. Both are measurable against the file, so
 // neither has to be taken on the classifier's word.
 //
 // The repetition test runs on ATOMS, not cells, wherever the property declares
@@ -283,7 +283,7 @@ test('modes are coherent: computed names a real deriver, recorded names none', (
 
 // A registry row is itself an unaccounted classification unless something holds
 // its shape. The index used to be exempt: nothing declared its own columns, so
-// a hand-kept REGISTRY_FIELDS set stood in for the check the carriers get. Since
+// a hand-kept REGISTRY_FIELDS set stood in for the check the registries get. Since
 // 2026-08-16 both halves of the pair have a row in registries.csv and a property
 // definition per column, so the ordinary check above reaches them and the stand-in
 // is gone. What is left here is content rather than schema. `area` is the reader's grouping and its rule is one question,
@@ -308,11 +308,11 @@ test('every registry declares its area, and leads with a title and a gloss', () 
 });
 
 // `renders_in` is the registry row's one derived field: the app files that
-// name the carrier in code, stamped by registries-reach.mjs the way docs-reach
+// name the registry in code, stamped by registries-reach.mjs the way docs-reach
 // stamps the docs registry's `reach` and `words`. Held to a re-derivation here
 // for the same reason those are: a cached copy of a derivation is only worth
 // keeping while something proves it current. An EMPTY list is legal and is the
-// field's point: it is the Registries tab's warning state, a carrier no app
+// field's point: it is the Registries tab's warning state, a registry no app
 // surface reads.
 import { deriveRendersIn } from '../build/registries-reach.mjs';
 

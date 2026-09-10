@@ -768,9 +768,9 @@ cases, gated in `tools/test/session-export-open.test.mjs`.
 `npm test` passed twice, 2707/0, over a brand-new `docs/routes-paste.csv`
 carrying three column names the field vocabulary did not account for. CI caught
 it on the first push. Nothing was flaky and nothing differed about the runner:
-`scripts/text-carriers.py` enumerates carriers with `git ls-files`, which lists
-tracked files only, so an untracked new file is not absent from the check's
-answer, it is absent from its QUESTION. The suite was green by omission, and a
+`scripts/text-carriers.py` enumerates the files it scans with `git ls-files`,
+which lists tracked files only, so an untracked new file is not absent from the
+check's answer, it is absent from its QUESTION. The suite was green by omission, and a
 green suite is the one thing that reads as permission to push. Any check that
 walks the repo through git inherits this, so the corrected move is to `git add`
 a new file before trusting a local suite run over it, which costs nothing and
@@ -954,19 +954,19 @@ no-link answer. Run it after the commit. *(seen: 2026-08-22)*
 ### stub-in-the-carriers-old-format: eleven files changed format and every test agreed with the old one
 Converting the estate's registries from JSON to CSV broke four readers, and the
 suite stayed green through all of it: the FAB's Match lane JSON-parsed all five
-carriers it looks paths up in (so the registered set went silently empty), the
+registries it looks paths up in (so the registered set went silently empty), the
 page gallery and the Tools view did the same, and the harness registry emitted
 raw `true` while its one reader tested for `'yes'`, so a strip read "0 named, 0
-tested" over 147 files. Every one of those tests stubbed its carrier as an
+tested" over 147 files. Every one of those tests stubbed its registry file as an
 object or a `JSON.stringify` of one. The stub had been written to match the
 reader, so when the format changed under both, the stub kept agreeing with the
 bug. All four were found by rendering the page, not by running the suite. The
-corrected move: **stub a carrier with the bytes it really holds**, so the
+corrected move: **stub a data file with the bytes it really holds**, so the
 reader's own parse runs inside the test. Cousin of `stub-hides-the-wiring`
 below, and the same family: a stub that supplies exactly what the code under
 test exists to obtain can never detect that obtaining it has changed.
 *(seen: 2026-08-18)*
-→ the carrier-stub rule in [environment/testing.md](environment/testing.md)
+→ the file-stub rule in [environment/testing.md](environment/testing.md)
 
 ### link-sha-not-resolved: a commit SHA typed from memory, well-formed and pointing at nothing
 Two 🥏 tosses in a row opened on nothing. The address grammar was right and the

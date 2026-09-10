@@ -19,8 +19,8 @@ a property's declared mode must match which file its column lives in.
 
 | Layer | Where the mixing is | Fix |
 | --- | --- | --- |
-| 1 | 4 registries hold 17 authored columns beside 14 computed: `registries`, `tests`, `docs`, `harness` | split the carrier |
-| 2 | `NOTES` in `pages-index.mjs` (26 hand-written blurbs, `pages.note` declared `computed` while a human writes it, so the declaration is false); `INJECTED`/`PROJECT_FILES` in `docs-reach.mjs` | authored carrier |
+| 1 | 4 registries hold 17 authored columns beside 14 computed: `registries`, `tests`, `docs`, `harness` | split the file |
+| 2 | `NOTES` in `pages-index.mjs` (26 hand-written blurbs, `pages.note` declared `computed` while a human writes it, so the declaration is false); `INJECTED`/`PROJECT_FILES` in `docs-reach.mjs` | authored file |
 | 3 | 18 values in 5 glossaries in `map.js`, plus `ADOPT_VERDICT`/`DUE` in `estate.js` and `STATUS_TAG` in `file-review.js` | move to `docs/vocabularies.csv` |
 | 4 | presentation mappings (`KIND_TONE`, `MODE_ICON`, `TYPE_ICONS`) | stay, named as deliberate |
 
@@ -74,7 +74,7 @@ table inside 145 KB of machine output.
   [docs/column-primitives.md](../../docs/column-primitives.md) and a 58-row pilot
   beside it. The two are near neighbours and not the same question: this task
   asks *where a column came from* and whether its declared `mode` matches its
-  carrier file, that one asks *what a column contains*. They meet at
+  the file it sits in, that one asks *what a column contains*. They meet at
   `properties-registry.test.mjs`, which would gain assertions from both.
   Decide the order before either moves. The argument for this one first: its
   Layer 2 finding, that `pages.note` is declared `computed` while a human writes

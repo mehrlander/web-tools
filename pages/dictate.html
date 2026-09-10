@@ -283,7 +283,7 @@
   // only other consumer is app/index.html, and neither is on the chain every
   // page carries.
   await gh.load('kits/prompt-link.js');
-  // The composer-to-page carrier, read once at init. See kits/dictate-handoff.js.
+  // The composer-to-page handoff, read once at init. See kits/dictate-handoff.js.
   await gh.load('kits/dictate-handoff.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';

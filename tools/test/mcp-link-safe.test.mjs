@@ -146,7 +146,7 @@ test('--check exits non-zero only when something would be defanged', () => {
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
   // The rule moved out of the caption skill and into SURFACING.md's course when
-  // the skill was retired (2026-08-31): the course is the only carrier now, and
+  // the skill was retired (2026-08-31): the course is the only place it is stated now, and
   // it is delivered on PR creation, which is exactly when a sync is possible.
   const course = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8')
     .split('## The surfacing course')[1] || '';

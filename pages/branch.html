@@ -250,11 +250,11 @@
         const hash = new URLSearchParams((location.hash || '').replace(/^#/, ''));
         const gh = q.get('gh');
         const base = q.get('base');
-        // A PR number, from either carrier. It is read here rather than folded
+        // A PR number, from the query or the hash. It is read here rather than folded
         // into the address grammar because it is not part of an address: it
         // names a thing that RESOLVES to one, and the resolution is a call.
         const pr = q.get('pr') || hash.get('pr') || '';
-        // Which section, and which file. Both are read from either carrier for
+        // Which section, and which file. Both are read from either of those for
         // the reason `pr` is: they name what to SHOW of an address rather than
         // being part of one, so the grammar in reviewTarget never sees them.
         // `pane` no longer picks between two tabs (the branch view stacks its

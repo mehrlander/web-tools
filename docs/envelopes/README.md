@@ -6,7 +6,7 @@ The `schemas/` here are the validation source of truth; the `.md` files carry co
 
 ## The members
 
-Five carriers exist today, from the most general to the most specific.
+Five envelope formats exist today, from the most general to the most specific.
 
 | Member | Contract | Renders through | Carries |
 | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Five carriers exist today, from the most general to the most specific.
 
 **Chat-results** is the search-archive envelope: `results[]` with excerpts or inline transcripts, optional `facets[]` and a `narrative`. It doubles as the serialization that pulls specific chats' content into another repo.
 
-**Stage** is the transport carrier behind the 🗂️ `#stage=` link. It is no longer a schema of its own: a stage item is a surface item's `target.source` triple (`{repository, ref, path}`) with the annotations empty, so the stage and the surface share one item grammar.
+**Stage** is the transport behind the 🗂️ `#stage=` link. It is no longer a schema of its own: a stage item is a surface item's `target.source` triple (`{repository, ref, path}`) with the annotations empty, so the stage and the surface share one item grammar.
 
 **Data view** is the plain case, and the only member a caller can skip entirely: a `#data=` toss accepts bare bytes (a CSV, a JSON array, a log) as readily as an `items` envelope, and [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) tells them apart rather than asking. Its envelope carries no roles, context, or profile, only what bare bytes cannot express: several files at once, and a default view and note per item.
 
@@ -33,7 +33,7 @@ The stage converged onto the surface schema; the open question was whether chat-
 Three reasons, in order of weight:
 
 1. **The shapes differ structurally, not cosmetically.** A chat result carries message arrays (`excerpts[]`, `transcript[]`, each `{role, md, ts?}`), which the surface item has no slot for: `content` and `snippet` are strings. And chat-results facets are many-to-many (`members[]`, one result in several groupings) where the surface `facet` is a single section key per item. A profile can constrain the core; it cannot restructure it, so `chat-results/1` would push the entire payload into open `metadata` and buy one validator in name only.
-2. **The convergence that matters already happened.** A result's `source {repo, path, ref}` is the same ref triple as the surface's `target.source` and the stage item; that is what lets one carrier's items point where another's do. Nothing further is gained by unifying the wrapper around it.
+2. **The convergence that matters already happened.** A result's `source {repo, path, ref}` is the same ref triple as the surface's `target.source` and the stage item; that is what lets one envelope's items point where another's do. Nothing further is gained by unifying the wrapper around it.
 3. **No concrete need is asking.** The case for a profile was a mixed surface holding both files and chats under one item grammar. If that arrives, the existing posture covers it ("each reader reads every kind, authors the kinds it knows"): a surface can hold a `type: chat` item whose `target.source` addresses the chat file, or the estate view can render a chat-results envelope as generic cards, with no change to either schema. Remodeling `pages/chat-results.html` and the committed `results/*.json` envelopes in chat-histories for tidiness alone would be work nothing is asking for.
 
 The decision is reversible at the same price later, and the trigger for revisiting is named: a real mixed-envelope need that the `type: chat` posture cannot carry.

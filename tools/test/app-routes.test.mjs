@@ -173,7 +173,7 @@ test('a wide file does not date a row it cannot speak for', () => {
   };
   const rows = R.rank(FIXTURE, { touches });
   const one = rows.find(r => r.key === 'one');
-  // 'one' has a narrow carrier, so its date is that carrier's, older though it
+  // 'one' has a narrow file, so its date is that file's, older though it
   // is: the newer wide commit says nothing about this route in particular.
   assert.equal(one.lastTouch.subject, 'narrow');
   assert.equal(one.borrowed, false);
@@ -212,7 +212,7 @@ test('branches join on the files they touch, carrying the hits', () => {
 });
 
 // The tiers, and the reason they beat a flat sort by date. 'one' is dated by
-// its own narrow carrier and is the OLDER date; 'two' and 'three' borrow the
+// its own narrow file and is the OLDER date; 'two' and 'three' borrow the
 // newer wide one. A flat sort would put the borrowers on top, which is the
 // reading the pane exists not to make.
 test('a row dated by its own code outranks every borrowed one, however fresh', () => {
@@ -247,13 +247,13 @@ test('a branch hitting only a wide file is near a route, not open on it', () => 
   assert.deepEqual(two.nearBranches.map(b => b.pr), [2]);
 });
 
-test('pathsToRead is every carrier plus the shell, deduped', () => {
+test('pathsToRead is every declared file plus the shell, deduped', () => {
   assert.deepEqual(R.pathsToRead(FIXTURE).sort(), ['one.js', 'shell.html', 'wide.js']);
 });
 
 // Grouping by stop takes its order FROM the ranking rather than recomputing it,
 // which is what keeps "freshest first" true at both levels at once. 'two' and
-// 'three' share a stop; 'one' is dated by its own narrow carrier and so leads
+// 'three' share a stop; 'one' is dated by its own narrow file and so leads
 // the ranking, and its stop leads with it.
 const STOPPED = {
   ...FIXTURE,

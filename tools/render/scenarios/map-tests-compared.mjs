@@ -1,7 +1,7 @@
 // screenshot.mjs interaction scenario: the Map view's Tests tab with the
 // `compared` toggle on, the comparison-grain reading
 // (data/checks-reading/explanations.csv) under each file that has one, and
-// the estate section fed by home's own carrier, read from the sibling
+// the estate section fed by home's own file, read from the sibling
 // checkout and served through the GH stub as if the address had laid it
 // over (?checking=mehrlander/home@main:files,comparisons).
 //

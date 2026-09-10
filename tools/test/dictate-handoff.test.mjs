@@ -1,4 +1,4 @@
-// The composer-to-page carrier, and the text the annotator assembles for it.
+// The composer-to-page handoff, and the text the annotator assembles for it.
 //
 // Two things matter and neither is that a string moved. First, take() is
 // ONE-SHOT and expires: a draft abandoned mid-navigation must not seed the

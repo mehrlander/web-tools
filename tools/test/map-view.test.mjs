@@ -44,7 +44,7 @@ const manifest = {
 // tabs get the committed manifests (routes-manifest.test.mjs and
 // docs-registry.test.mjs are what hold those files to their own shapes).
 const routesJson = readFileSync(path.join(repoRoot, 'docs', 'routes.json'), 'utf8');
-// The Showing tab assembles one object from four carriers, so all four are
+// The Showing tab assembles one object from four files, so all four are
 // served; a stub that answered only routes.json would leave the tables empty
 // and every row assertion below would pass on nothing.
 const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.csv'), 'utf8');
@@ -172,7 +172,7 @@ test('Showing loads on demand, not at mount', async () => {
   assert.equal(data.routes, before, 'a second open reuses the loaded manifest');
 });
 
-// The kinds table is the fourth carrier the Showing tab assembles, and the one
+// The kinds table is the fourth file the Showing tab assembles, and the one
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
@@ -241,7 +241,7 @@ test('Docs loads on demand and carries the registry', async () => {
 // The two tabs shared a fetch while the owners table was a second block inside
 // docs.csv. Since 2026-08-09 each loads its own file, and the point of the
 // split is that opening Docs does not pull owners and the reverse.
-test('Owners loads its own carrier, separately from Docs', async () => {
+test('Owners loads its own file, separately from Docs', async () => {
   assert.equal(data.ownersReg, null, 'the registry is not fetched until the tab is opened');
   await data.loadOwnersReg();
   assert.equal(data.ownersErr, '');
@@ -521,7 +521,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
-  assert.ok(d3.testExplain, 'the explanations carrier loaded beside the registry');
+  assert.ok(d3.testExplain, 'the explanations file loaded beside the registry');
   assert.ok(d3.explainOf({ path: 'tools/test/tests-registry.test.mjs' }).length >= 2,
     'the registry test carries its two comparisons (membership, drift)');
   assert.equal(d3.explainOf({ path: 'tools/test/no-such.test.mjs' }).length, 0);
@@ -530,7 +530,7 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   // comma in one row's join column made the count true and the claim false.
   const tot = d3.testExplainTotals;
   const rowsInCarrier = window.Csv.rows(explainCsv).filter(r => r.script && r.kind).length;
-  assert.equal(tot.rows, rowsInCarrier, 'every carrier row is folded');
+  assert.equal(tot.rows, rowsInCarrier, 'every row in the explanations file is folded');
   assert.equal(tot.attached, tot.rows, 'every row names a registry file: ' +
     [...d3.testExplain.keys()].filter(k => !d3.testsReg.tests.some(t => t.path === k)).join(', '));
   assert.equal(tot.files + tot.unexplained, d3.testsReg.tests.length, 'explained plus unexplained is the registry');

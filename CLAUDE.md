@@ -79,7 +79,7 @@ A committed CSV that inventories or classifies part of the tree is a
 **registry**; adding one means adding a row to
 [`docs/registries.csv`](docs/registries.csv) in the same commit. The model,
 the rules, and what its audits found are in
-[`docs/registries.md`](docs/registries.md); read it before inventing a carrier,
+[`docs/registries.md`](docs/registries.md); read it before inventing a registry,
 since the answer is usually a row in one that exists. The one trap: **one
 property about one target answers to one registry** (gated); resolve a
 collision by declaring that one registry **inherits** the other's descriptions,

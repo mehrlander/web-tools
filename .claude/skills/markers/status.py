@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Status markers and path declarations: inventory, resolve, and check.
 
-Two carriers, split by subject (see docs/CONVENTIONS.md, "Status: frozen,
+A marker and a declaration, split by subject (see docs/CONVENTIONS.md, "Status: frozen,
 stale, wrong"):
 
   * A **marker** annotates a claim in prose. It lives inline in markdown or as

@@ -26,13 +26,14 @@ well-tested but belonging to no stated category, so new logic lands by
 gravity rather than by rule. The genuinely weak layer is tools/, where most
 files are named nowhere.
 
-Done means: (1) the taxonomy stated once, in one authoritative carrier (likely
+Done means: (1) the taxonomy stated once, in one authoritative file (likely
 a section beside lib/kits/README.md's per-kit table), naming each layer's
 admission rule, including the third category; (2) an advisory unclaimed-code
 survey in the data-provenance-survey.sh idiom that lists code files no doc
 names, so the tools/ gap and future drift are visible rather than remembered
 (heuristic, non-blocking); (3) the docs registry's claims table gains the
-taxonomy's carrier row if the statement ends up repeated anywhere.
+a row naming the taxonomy's authoritative file if the statement ends up repeated
+anywhere.
 
 Context that would otherwise need rebuilding: the measurement method and the
 finding live in PR #350's session (the documentation-registry work); the

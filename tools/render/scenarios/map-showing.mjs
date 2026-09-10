@@ -13,7 +13,7 @@
 // used-by chips, the delivery modes with a trust icon per row, and the toss
 // routes resolving each key to its renderer page.
 export default async function (page) {
-  // Four carriers, since the tab assembles one object from them; serving only
+  // Four files, since the tab assembles one object from them; serving only
   // routes.json would leave the three tables empty and the shot would prove
   // the frame rather than the rows.
   const FILES = ['docs/routes.json', 'docs/routes-modes.csv',

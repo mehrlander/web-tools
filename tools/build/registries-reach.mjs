@@ -14,16 +14,16 @@
 // same instrument pointed at the registries.
 //
 // What the scan claims, exactly: a file under lib/ or pages/ contains the
-// carrier's repo-relative path in CODE, comments stripped. That is docs-reach's
+// registry's repo-relative path in CODE, comments stripped. That is docs-reach's
 // `app` channel verbatim, and the scanners are imported from it rather than
 // re-implemented so the two fields cannot disagree about what "the app names
 // it" means. Naming is the strongest claim a textual scan can make: a named
-// carrier is fetched, rendered, or opened by that file in every case measured
+// registry is fetched, rendered, or opened by that file in every case measured
 // at introduction, but the field's honest reading stays "the app reaches it",
 // not "a reader saw it".
 //
 // An empty list is the warning state the field exists to surface, and it is a
-// fact, not an accusation: a carrier read only by its gate, or projected only
+// fact, not an accusation: a registry read only by its gate, or projected only
 // to GitHub-rendered markdown (tracker/board.csv's board.md), has no app
 // surface, and whether that is fine is a judgment for the reader of the
 // Registries tab. At introduction three registries were empty: manifest-fields
@@ -61,7 +61,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const { loadRegistries, writeCsv, REGISTRY_COLS } = await import('./registries-load.mjs');
   const file = path.join(repoRoot, 'docs', 'registries.csv');
   const { registries } = loadRegistries(repoRoot);
-  // Keyed on `file`, which is the carrier path: what is asked here is which app
+  // Keyed on `file`, which is the registry's path: what is asked here is which app
   // files name it in code.
   const derived = deriveRendersIn(repoRoot, registries.map(r => r.file));
   const checkOnly = process.argv.includes('--check');

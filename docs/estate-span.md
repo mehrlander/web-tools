@@ -50,10 +50,10 @@ never followed, across seven repos, and nothing anywhere reports it.
 
 The estate already runs all three. Naming them is most of the work.
 
-**Hub-scoped.** Population and carrier both here; the checkout is a complete
+**Hub-scoped.** Population and CSV both here; the checkout is a complete
 enumeration. Eighteen of twenty-two registries, and the right default.
 
-**Estate-scoped aggregate.** The population spans repos, the carrier stays here,
+**Estate-scoped aggregate.** The population spans repos, the CSV stays here,
 and the rows are collected rather than inspected.
 [manifest-fields.csv](manifest-fields.csv) is the working example: it governs
 every key in use across the estate's manifests, and it works because
@@ -62,8 +62,8 @@ crawl already fetches. Reach for this when the hub genuinely needs one table.
 
 **Per-repo declaration.** The governed artifact is a file the hub defines and
 each repo carries, with no aggregate at all. `.paths.json` is the case, and it
-is the one that cannot be a row in `registries.csv`: the table asserts that a
-carrier exists in this repo and is a CSV, this repo has no `.paths.json`, and
+is the one that cannot be a row in `registries.csv`: the table asserts that the
+registry file exists in this repo and is a CSV, this repo has no `.paths.json`, and
 the two live instances are JSON. That is a fact about the model rather than an
 oversight, and `registries.csv`'s own scope sentence has recorded the miss since
 2026-08-16. The gate is right to refuse it; what was missing was somewhere to

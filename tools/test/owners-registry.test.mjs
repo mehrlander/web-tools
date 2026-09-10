@@ -1,18 +1,18 @@
 // docs/owners.csv + docs/repetitions.csv — the owners registry: for a statement repeated across the
-// hub's coordination layer, which carrier is authoritative and how every other
+// hub's coordination layer, which file is authoritative and how every other
 // mention relates to it.
 //
 // This gate is the reconciliation's answer to the one real maintenance hole the
 // table had. Until 2026-08-09 the only check on it asserted `length > 3` ("the
 // seed claims are present") and the row shape. Nothing verified that a cited
-// carrier still existed, so the table could rot silently and the question "will
+// file still existed, so the table could rot silently and the question "will
 // anyone keep this current" was unanswerable rather than merely unanswered.
 // Measured at the time this landed: 29 path-shaped references, 0 unresolved.
 // The point of resolving them on every run is that the number stays honest.
 //
 // What is deliberately NOT checked: coverage. The registry is curated against a
 // written scope (the `scope` field), and whether some fourth document has begun
-// repeating a statement nobody has filed is not decidable from the carrier. The
+// repeating a statement nobody has filed is not decidable from the registry. The
 // detectors answer that question (home's tools/duplicated-claims.py,
 // local-models/instruments/concept-lab/termlab.py); a registry gate here would only assert that the
 // file agrees with itself.
@@ -88,10 +88,10 @@ test('rows are keyed by a unique subject and typed by kind', () => {
 
 // The distinction the old schema drew with two exclusive keys, and the reason
 // the table held two different objects: a family row is a DECLARATION in
-// registries.md's sense (scope x property -> the carrier that owns it), not an
+// registries.md's sense (scope x property -> the registry that owns it), not an
 // assertion about one statement. It stays here rather than moving to
 // the registry pair because its file is DISTRIBUTED (every skill's own
-// SKILL.md), and the declaration table's registries name a single carrier path.
+// SKILL.md), and the declaration table's registries name a single file path.
 // See docs/registries.md, "What reconciliation found".
 test('a family row scopes itself; a statement row does not pretend to', () => {
   for (const r of rows) {
@@ -103,9 +103,9 @@ test('a family row scopes itself; a statement row does not pretend to', () => {
   }
 });
 
-test('every row names one authoritative carrier and at least one repetition', () => {
+test('every row names one authoritative file and at least one repetition', () => {
   for (const r of rows) {
-    assert.ok(r.authoritative, `${r.subject}: no authoritative carrier`);
+    assert.ok(r.authoritative, `${r.subject}: no authoritative file`);
     assert.ok(Array.isArray(r.repetitions) && r.repetitions.length > 0,
       `${r.subject}: a row with no repetition is not a shared statement; retire it`);
     for (const rep of r.repetitions) {

@@ -23,11 +23,11 @@ properties,required,value,,"an assertion is present for every target: true of ev
 registries,area,files,Files,the target has a path in this tree
 registries,area,names,Names,"everything else: a name something declared, the registry being what declares it"
 registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification"
-registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five carriers were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test"
+registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test"
 registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against"
 registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one"
 registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration"
-registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the carrier still lives here, which is what keeps it gateable"
+registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable"
 tests,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method
 tests,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true"
 skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit"

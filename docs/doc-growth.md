@@ -122,7 +122,7 @@ at this size, since a collision is a fact about that corpus.
 ## In the Map view
 
 The Map view's Docs tab reads `docs/docs.csv`, whose `words` field is a
-snapshot. It now reads the growth payload as a second carrier and renders that
+snapshot. It now reads the growth payload alongside it and renders that
 same measure as a trend: a sparkline and a net delta per row, a delta per
 folder in the rail, and the movement behind the registry's word total.
 
