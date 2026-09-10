@@ -26,6 +26,8 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Session-start nudge for repos that never opted in](tasks/session-start-nudge-unconfigured-z0g4zn.md) · S
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
+- 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
+- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS
 
 ## In progress
 - (none)
