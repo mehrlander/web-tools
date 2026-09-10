@@ -81,6 +81,18 @@ A cloud [setup script](https://code.claude.com/docs/en/claude-code-on-the-web#en
 
 The hook applies only to sessions using a branch that contains its configuration.
 
+#### SessionStart: the conventions nudge
+
+*Added 2026-09-10.* [`.claude/skills/hooks/conventions-nudge.sh`](../../.claude/skills/hooks/conventions-nudge.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../.claude/skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
+
+**It asks whether they ARRIVED, not whether a repo intends them**, and the two answers differ. home's `CLAUDE.md` names `/web-tools` in prose and imports nothing, so a session on home alone starts without the primitives while looking configured. `lib/kits/portable-align.js`'s `conventionsWired()` answers the intent question for the app's adoption column and is deliberately not reused here; they are different claims, so no `owners.csv` repetition is owed.
+
+**Why a hook rather than a skill that fires on its own.** A skill enters context only when the user types `/name` or the model elects it from the description. No frontmatter field loads one at session start: `disable-model-invocation` and `user-invocable` govern who may invoke, never whether it fires unprompted (checked against the skills reference 2026-09-10). So the reliable form is an instruction delivered at the moment it applies.
+
+**Why its own entry rather than a line inside the dispatcher.** The output cap applies per hook entry, not across the event: measured 2026-08-30, the dispatcher's 28,670 characters were cut while a separate 298-character `SessionStart` hook in the same session arrived whole. Folded in, the nudge would be the first thing truncated on a heavy session, which is the failure that retired the injection channel. The directive also leads the message, so it survives a truncated preview.
+
+A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the field declared in [`docs/manifest-fields.csv`](../manifest-fields.csv) since PR #222. A checkout with no `CLAUDE.md` is never named: the import is the delivery channel, so a directory without one has no channel to be missing. Coverage is [`tools/test/conventions-nudge.test.mjs`](../../tools/test/conventions-nudge.test.mjs), which asserts both directions, since a nudge that never fires and a nudge that always fires look equally like success from outside.
+
 #### Stop: the session recorder
 
 *Added 2026-07-30; wiring corrected the same day.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks. The marketplace entry declares nothing.
