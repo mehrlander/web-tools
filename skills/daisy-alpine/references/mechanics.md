@@ -40,7 +40,12 @@ template put on a button. Enforced by `npm run bool-attr-scan`
 **A bound attribute holding a constant does not need binding.** `:title="'a
 kind\'s units'"` escapes the apostrophe for the template literal, so the
 attribute reaches Alpine as an unterminated string and the whole expression
-throws on every load. A constant is a plain `title=`.
+throws on every load. A constant is a plain `title=`. Where the expression is
+genuinely conditional and one branch needs an apostrophe, `&apos;` is not the
+way out either: entities are decoded before Alpine sees the attribute, so the
+string closes early and the browser reports `Unexpected identifier`, naming
+neither the attribute nor the file. Switch the surrounding quotes, or write the
+branch without one.
 
 **Put `min-w-0` on the scroll track.** Flex and grid items default to
 `min-width:auto`; a track of `min-w-full` slides can claim one viewport per slide
@@ -150,6 +155,18 @@ And the guards read the card's ACTUAL visibility rather than a flag, the same
 rule the toggle follows, covering the three ways a panel here is hidden: an
 Alpine `x-show`, the `hidden` class, the `hidden` attribute. A card hidden by
 opacity alone reads as shown and needs its own answer.
+
+**Closing an already-closed panel un-hides it, so a closer must refuse to
+write.** `this.obs = { ...this.obs, open: false }` replaces the object, and
+Alpine re-runs `x-show` on the identity change even though the value it reads
+is the same `false`; re-running the hide on an element already hidden by a
+completed leave transition clears the inline `display: none` and leaves it at
+`display: block`, with the state still saying closed. It never recovers: the
+guards then see a shown panel and close it again, each close re-stranding it.
+Assign the scalar (`this.obs.open = false`), which triggers nothing when
+unchanged, or gate the write on `if (!this.obs.open) return`. Found 2026-09-09
+on budget-drs's submittal page, where every state-only check passed while the
+card sat on screen.
 
 **What the caller still owns: opening.** Enable hover only when
 `(hover: hover) and (pointer: fine)` match: open after about 140 ms and close
