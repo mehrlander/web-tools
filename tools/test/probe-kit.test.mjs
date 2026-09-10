@@ -57,6 +57,72 @@ test('silent unless the address asks for it, and a no-op shape when silent', () 
   assert.equal(boot({ search: '?probe=off' }).Probe.on, false);
 });
 
+test('a caller can arm it with no address, and take it off again whole', () => {
+  // The fab's launcher menu is the caller this exists for: a reader already
+  // looking at the fault instruments it without retyping the URL on a phone.
+  const w = boot({ search: '' });
+  assert.equal(w.Probe.on, false);
+  assert.equal(typeof w.Probe.arm, 'function', 'the idle shape must offer the way in');
+
+  w.Probe.arm();
+  assert.equal(w.Probe.on, true);
+  assert.ok(w.document.getElementById('wt-probe'), 'armed, it draws');
+  assert.equal(typeof w.__cardProbe, 'function', 'armed, card.js has somewhere to report');
+  const api = w.Probe;
+  api.log('x', 'y');
+  assert.ok(api.trace().length > 0);
+
+  // OFF MEANS GONE. An instrument that can only be removed by reloading is one
+  // a reader stops reaching for, and a reload is the one thing that loses the
+  // trace it was turned on to collect.
+  assert.equal(w.Probe.stop(), true);
+  assert.equal(w.Probe.on, false);
+  assert.equal(w.document.getElementById('wt-probe'), null, 'the overlay goes');
+  assert.equal(w.document.getElementById('wt-probe-css'), null, 'and its stylesheet with it');
+  assert.equal(w.__cardProbe, undefined, 'and the card hook goes back to what it was');
+  // The page's own wrappers keep a reference to the old object; a call through
+  // it after stop() must record nothing, or the next arm opens onto a trace
+  // that has been filling invisibly.
+  api.log('after', 'stop');
+  assert.equal(api.trace().length, 0);
+
+  // And it comes back clean rather than resuming a trace with a hole in it.
+  w.Probe.arm();
+  assert.equal(w.Probe.on, true);
+  assert.ok(w.Probe.trace().every((r) => r.tag !== 'after'));
+});
+
+test('a page declares what it knows and the probe adopts it, whichever starts first', () => {
+  // DECLARED, NOT REGISTERED. A page that registers watchers itself inside an
+  // `if (Probe.on)` has nothing to give a probe armed later, which is the case
+  // the fab created: the declaration has already run and gone unheard, so the
+  // capture names card.js's verdicts with nothing saying which panel each
+  // belongs to.
+  const before = boot({ search: '' });
+  before.__probeWatch = { 'note card': () => 'open=no' };
+  before.Probe.arm();
+  assert.match(before.document.getElementById('wt-probe').textContent, /note card/,
+    'a declaration made before the probe started is taken up at arm time');
+
+  // The other order: the address arms at boot and the page declares at its own
+  // signal, minutes of DOM later. The check rides the draw, so neither side
+  // has to announce itself.
+  const after = boot({ search: '?probe=1' });
+  assert.doesNotMatch(after.document.getElementById('wt-probe').textContent, /tip panel/);
+  let handed = null;
+  after.__probeWatch = (probe) => { handed = probe; probe.watch('tip panel', () => 'open=yes'); };
+  after.Probe.log('nudge');   // any activity draws, and a draw adopts
+  assert.equal(handed, after.Probe, 'the function is called with the probe itself');
+  assert.match(after.document.getElementById('wt-probe').textContent, /tip panel/);
+
+  // Once, not once per draw: a declaration that wraps handlers must not stack.
+  let calls = 0;
+  const w = boot({ search: '?probe=1' });
+  w.__probeWatch = () => { calls++; };
+  w.Probe.log('a'); w.Probe.log('b'); w.Probe.log('c');
+  assert.equal(calls, 1);
+});
+
 test('it draws when asked, and the overlay is never the pointer target', () => {
   const w = boot({ search: '?probe=pop' });
   assert.equal(w.Probe.on, true);

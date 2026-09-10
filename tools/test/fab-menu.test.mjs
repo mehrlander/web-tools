@@ -553,3 +553,44 @@ test('a sealed frame falls back to the shell rather than throwing', async () => 
   delete window.__tossFrame;
 });
 
+test('the probe is standing equipment: the menu arms it, and the same row takes it off', async () => {
+  // WHY THE FAB OWNS THIS AT ALL. kits/probe.js was reachable only through
+  // `?probe=` on the address, so a reader already looking at the fault had to
+  // retype the URL to instrument it, on the phone where that class of fault
+  // lives. The precedent is the fab's own crash trail, which left
+  // pages/audit-render.html for the same reason: a diagnostic that lives on
+  // one page can be run on one page.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  let asked = null;
+  window.gh = {
+    load: async (p) => {
+      asked = p;
+      if (p === 'kits/probe.js') new window.Function(kit)();
+    },
+  };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  assert.equal(d.probeOn, false);
+  await d.openProbe();
+  assert.equal(asked, 'kits/probe.js');
+  assert.equal(d.probeOn, true, 'the row has to actually arm it, not only ask for the file');
+  assert.ok(doc.getElementById('wt-probe'), 'and the overlay is what says so on screen');
+
+  // One control with two meanings, because a menu read in the half-second
+  // before a finger lifts has no room for a pair of rows.
+  await d.openProbe();
+  assert.equal(d.probeOn, false);
+  assert.equal(doc.getElementById('wt-probe'), null);
+});
+
+test('the launcher menu carries the probe row, wired to the method that arms it', () => {
+  // The row and the method are two files apart in review and one tap apart in
+  // use: a renamed method leaves a row that looks right and does nothing.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+  assert.match(src, /fabMenu = false; openProbe\(\)/,
+    'the menu row must call openProbe');
+  assert.match(src, /probeOn \? 'Probe off' : 'Probe'/,
+    'and its label carries the state rather than a second row');
+});
