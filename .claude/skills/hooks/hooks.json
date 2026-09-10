@@ -31,6 +31,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-subscribe-hint.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/warn-governing-docs.sh\""
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [

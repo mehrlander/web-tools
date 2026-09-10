@@ -68,8 +68,8 @@ test('the kits registry matches lib/kits/', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'kits-index --check failed');
 });
 
-test('docs/themes.json matches the corpus the theme graph is read from', () => {
-  const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.json', '--check'],
+test('docs/themes.csv matches the corpus the theme graph is read from', () => {
+  const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.csv', '--check'],
                       { cwd: repoRoot, encoding: 'utf8' });
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
