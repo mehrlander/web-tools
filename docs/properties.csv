@@ -1,178 +1,179 @@
-registry,property,mode,deriver,required,form,exclusive,values,gloss
-docs,subject,recorded,,none,column,yes,,"what the document is about, one line"
-docs,status,recorded,,none,column,yes,living;record;measured,"whether the document is kept true, preserved as written, or derived from measurement"
-docs,reach,computed,tools/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
-docs,words,computed,tools/build/docs-reach.mjs,value,column,yes,,"the document's size, and its share of the folder"
-docs,maintenance,recorded,,counted,column,yes,,who keeps the document true; a bare row is counted by the registry rather than hidden
-docs,formerly,recorded,,none,column,yes,,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
-tests,kind,recorded,,value,column,yes,behavior;gate,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
-tests,protects,recorded,,counted,column,yes,,the one thing that breaks if the test is deleted; blanks are counted
-tests,assertions,computed,tools/build/tests-index.mjs,counted,column,yes,,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
-tests,assertion_names,computed,tools/build/tests-index.mjs,counted,column,no,,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
-tests,method,computed,tools/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,"how the check reaches its subject, strongest present wins"
-tests,runner,computed,tools/build/tests-index.mjs,value,column,yes,,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
-tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,"which assertions only check a component mounts, as indices into assertion_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
-harness,role,recorded,,counted,column,yes,,what the file is for; blanks are counted rather than hidden
-harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;.claude/skills/hooks;.github/workflows,"which folder the file sits in. The domain is closed and owned by the carrier's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
-harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,file length
-harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
-harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,writes a file: a generator rather than a reader
-harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,its path or basename appears in tracked prose
-harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,a file under tools/test/ exercises it
-kits,namespace,computed,tools/build/kits-index.mjs,value,column,yes,,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
-kits,gloss,computed,tools/build/kits-index.mjs,counted,column,yes,,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
-kits,lines,computed,tools/build/kits-index.mjs,value,column,yes,,file length
-kits,boot,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,gh-boot.js loads it on every chain-boot page: a fact about what a page pays to start
-kits,demo,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,lib/kits/demos/<name>.html exists
-kits,users,computed,tools/build/kits-index.mjs,value,column,yes,,"how many other files under lib/, pages/ and app/ name the kit by its load path; zero is the warning state"
-kits,tested,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,a file under tools/test/ names it
-content,creation_mode,recorded,,none,column,yes,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,what the artifact IS epistemically; the portable content skill owns the convention
-content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; docs/owners.csv records the copy"
-content,description,recorded,,none,column,yes,,one line on the artifact
-portable,kind,recorded,,value,column,yes,skill;doc;script;dir,what species of thing travels
-portable,command,recorded,,none,column,yes,,the invocation name; present on kind:skill rows only
-portable,title,recorded,,none,column,yes,,display name
-portable,role,recorded,,counted,column,yes,,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time. Kept on the skills, whose skills row carries a model-facing trigger description rather than a reader's one-liner"
-portable,use,recorded,,none,column,yes,plugin;live;reference;adopt;on-demand,"how a consumer takes the item: installed by the plugin, read live, referenced, adopted once, or fetched on demand"
-tools,icon,recorded,,none,column,yes,,phosphor icon name
-owners,kind,recorded,,value,column,yes,statement;family,"whether the row owns one repeated statement or declares a rule over a scope; a family row is a DECLARATION in this model, carried here because its carrier is distributed"
-owners,applies_to,recorded,,none,column,yes,,the population a family rule covers; absent on a statement row
-owners,authoritative,recorded,,value,column,yes,,the one carrier that owns the statement; every other mention is a repetition
-skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,"what the skill is FOR, the axis a reader browses on; authored, since nothing on disk carries a subject"
-skills,description,recorded,,value,column,yes,,"the skill's trigger description. A COPY: the authoritative carrier is the skill's own SKILL.md, per the family rule in docs/owners.csv"
-pages,top,computed,tools/build/pages-index.mjs,value,column,yes,,"the top-level segment under pages/ the page sits in, which drives the gallery's location chips; every page below drop/ scopes to one drop chip. A root page reads main"
-pages,group,computed,tools/build/pages-index.mjs,counted,column,yes,,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
-pages,label,computed,tools/build/pages-index.mjs,value,column,yes,,the short name the catalog card and the picker show
-pages,title,computed,tools/build/pages-index.mjs,value,column,yes,,"the page's own <title>, read from the file"
-pages,note,computed,tools/build/pages-index.mjs,counted,column,yes,,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
-pages,thumb,computed,tools/build/pages-index.mjs,value,column,yes,,"the committed screenshot path; refreshed once per session, never by the commit hook"
-pages,code,computed,tools/build/pages-index.mjs,value,column,yes,,the GitHub blob URL for the page source
-tracker-tasks,title,computed,.claude/skills/tasks/build-board.py,value,column,yes,,"the task's short imperative, read from its frontmatter"
-tracker-tasks,status,computed,.claude/skills/tasks/build-board.py,value,column,yes,backlog;in-progress;blocked;done;dormant,where the task sits. Domain owned by docs/TRACKER.md
-tracker-tasks,opened,computed,.claude/skills/tasks/build-board.py,value,column,yes,,the date the task was filed
-tracker-tasks,closed,computed,.claude/skills/tasks/build-board.py,none,column,yes,,"the date it was completed; absent while open, which is not a blank to count"
-tracker-tasks,file,computed,.claude/skills/tasks/build-board.py,value,column,yes,,the task file this row is derived from
-tracker-tasks,href,computed,.claude/skills/tasks/build-board.py,value,column,yes,,the blob URL the board and the caption link to
-tracker-tasks,lastActivity,computed,.claude/skills/tasks/build-board.py,counted,column,yes,,"the date of the newest progress-log line. Blank on a task filed without one, which the board generator allows and the tasks template does not produce; the blank is the honest reading of 'filed, nothing logged yet' and is worth counting"
-tracker-tasks,logEntries,computed,.claude/skills/tasks/build-board.py,value,column,yes,,how many progress-log lines the task carries
-tracker-tasks,session,computed,.claude/skills/tasks/build-board.py,none,column,yes,,"the branch that owns the task while it is in progress, or completed it"
-tracker-tasks,project,computed,.claude/skills/tasks/build-board.py,none,column,yes,,"the workspace a task belongs to, where the repo scopes them"
-tracker-tasks,size,computed,.claude/skills/tasks/build-board.py,none,column,yes,XS;S;M;L;XL;?,"effort calibrated to the session. Domain owned by docs/TRACKER.md; optional by design, and carried on a minority of tasks"
-tracker-tasks,depends-on,computed,.claude/skills/tasks/build-board.py,none,column,yes,,"the task ids this one waits on, comma separated; absent means none. Replaced `track` on 2026-08-23"
-tracker-tasks,awaiting,computed,.claude/skills/tasks/build-board.py,none,column,yes,,free text naming what is holding the task; cleared by hand
-tracker-tasks,blockedBy,computed,.claude/skills/tasks/build-board.py,none,column,yes,,the task or condition a blocked row names
-routes-modes,form,recorded,,value,column,yes,,"the address shape, e.g. #gz=<base64url of gzipped HTML>"
-routes-modes,carries,recorded,,value,column,yes,inline;reference,whether the payload rides in the URL or is fetched
-routes-modes,trust,recorded,,value,column,yes,trusted;untrusted;n/a,"how the renderer treats what arrives. n/a is the data route, which hands bytes to a viewer rather than executing a page, so the question does not arise"
-routes-modes,sandbox,recorded,,value,column,yes,,the sandbox the mode renders under
-routes-modes,reach,recorded,,value,column,yes,any reader;viewer holding the token,"who can open it: any reader, or a token holder"
-routes-modes,note,recorded,,value,column,yes,,what the mode buys and what it costs
-routes-routes,repo,recorded,,value,column,yes,,the repo holding the renderer page
-routes-routes,ref,recorded,,value,column,yes,,the ref the renderer is read at
-routes-routes,path,recorded,,value,column,yes,,the renderer page
-routes-routes,renders,recorded,,value,column,yes,,the content type this route is for
-routes-routes,doc,recorded,,value,column,yes,,the envelope contract the route honors
-routes-routes,example,recorded,,value,column,yes,,a worked address
-routes-kinds,label,recorded,,value,column,yes,,the kind's display name
-routes-kinds,subject,recorded,,value,column,yes,,which value of the showing frame's subject axis a link to this kind takes
-routes-kinds,detect,recorded,,value,column,yes,,"the rule that recognizes this kind, as ViewRegistry.KIND applies it"
-routes-kinds,exclusive,recorded,,none,column,yes,yes,"set where the viewer module is the only one that can display the file, so it outranks any default mode a host sets"
-routes-kinds,view,recorded,,none,column,yes,,the viewer module id this kind opens in; blank where the kind has its own page rather than a mode
-routes-kinds,route,recorded,,none,column,no,,the toss route that addresses this kind; blank where none does
-routes-kinds,shown_by,recorded,,value,column,yes,,"the showing mechanisms that reach this kind, semicolon-separated"
-routes-kinds,kit,recorded,,none,column,no,,"the kit that DECLARES this kind, carrying its row and resolving a position to its units; blank where nothing declares it yet, which a kit merely knowing the format does not"
-routes-kinds,unit,recorded,,none,column,yes,,what one aimable piece of this kind is
-routes-kinds,address,recorded,,none,column,yes,,what a position inside this kind reads as in the source's terms
-routes-kinds,aim,recorded,,none,column,yes,,the annotate aim this kind adds beyond the universal three; blank means only those three
-routes-kinds,aim_label,recorded,,none,column,yes,,"what that aim is called in the annotator, carried here so the kit holds no strings of its own"
-routes-kinds,aim_hint,recorded,,none,column,yes,,the one line under that aim in the menu
-routes-kinds,aim_icon,recorded,,none,column,yes,,"the phosphor glyph that marks that aim, carried here for the same reason the label is: both surfaces that draw the aim hardcoded one, so a kind got its own name and markdown's icon"
-showing-mechanisms,glyph,recorded,,value,column,yes,,the marker the caption uses
-showing-mechanisms,label,recorded,,value,column,yes,,the mechanism name a reader sees
-showing-mechanisms,form,recorded,,none,column,yes,,the address shape; absent where the mechanism is not a URL
-showing-mechanisms,subject,recorded,,value,column,yes,,what kind of thing it can show
-showing-mechanisms,version,recorded,,value,column,yes,,which version of the subject it reaches
-showing-mechanisms,viewer,recorded,,value,column,yes,,who can open it
-showing-mechanisms,reaches,recorded,,none,column,yes,,what it does show
-showing-mechanisms,misses,recorded,,value,column,yes,,"what it does NOT show, which is the field the picker turns on"
-showing-mechanisms,trap,recorded,,none,column,yes,,"the failure mode, where one has bitten; carried on 1 of 7"
-showing-mechanisms,use,recorded,,value,column,yes,,when to pick it
-routes-paste,path,recorded,,none,column,yes,,"the file that implements the behavior; absent on the form-field row, which names a browser behavior rather than one of ours"
-routes-paste,recognizes,recorded,,value,column,yes,,what the surface reads out of the clipboard and acts on
-routes-paste,becomes,recorded,,value,column,yes,,what a recognized paste turns into there
-routes-paste,declines_to,recorded,,value,column,yes,,"where everything it does not recognize goes. The load-bearing field: a surface that routes some pastes has to say what happens to the rest, or the routing is a silent swallow"
-routes-paste,gate,recorded,,none,column,yes,,the check holding the behavior; absent where nothing does
-surfacing,lead,recorded,,value,column,yes,,"the bullet lead-in, held two-way against SURFACING.md's prose"
-surfacing,title,recorded,,value,column,yes,,the short name
-surfacing,glyph,recorded,,counted,column,yes,,the caption marker; blank on the primitives that have no marker of their own
-surfacing,use,recorded,,value,column,yes,,"what the primitive is for, in one line"
-surfacing,boundary,recorded,,none,column,yes,,where it stops working; carried wherever there is an edge to name
-surfacing,form,recorded,,none,column,yes,,"the concrete shape, where the primitive has one"
-manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,the JSON type the key takes
-manifest-fields,consumer,recorded,,value,column,yes,show-repo;portable;session-hook,"which tool reads the key: show-repo (the shell presents the repo), portable (the conventions read it and show-repo ignores it), session-hook (a plugin hook reads it outside any page)"
-manifest-fields,summary,recorded,,value,column,yes,,what the key does and who owns its value
-manifest-fields,status,recorded,,none,column,yes,deprecated,set only where a key is superseded but still parsed
-text-fields,audience,recorded,,value,column,yes,reader;editor,who the text under this field name is addressed to; the split that decides whether it belongs in a carrier or in source
-text-fields,gloss,recorded,,value,column,yes,,"what this field name means, in a sentence"
-text-fields,use_when,recorded,,value,column,yes,,"the rule for picking this name over its neighbours, which is the part a definition alone never settles"
-text-fields,instead_of,recorded,,none,column,yes,,"the names already in use that this one accounts for; the scan resolves them rather than reporting them as violations, so an existing carrier conforms by declaration rather than by rename"
-app-routes,address,recorded,,counted,column,yes,,"the URL shape that opens it, e.g. ?view=map; blank on the shell row, which draws every route and is addressable as none of them"
-app-routes,label,recorded,,value,column,yes,,its name in the nav and on the row
-app-routes,group,recorded,,value,column,yes,repo;estate;shell,which context it is reached from
-app-routes,what,recorded,,value,column,yes,,"what the destination is for, one line"
-app-routes,files,recorded,,counted,column,no,,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
-app-routes,note,recorded,,none,column,yes,,"why a row has no files, or what qualifies the row"
-app-routes,alias,recorded,,none,column,yes,,a retired key that still resolves
-app-routes,tabs,recorded,,none,column,no,,the sub-tabs addressable within it
-app-routes,stop,recorded,,counted,column,yes,,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"
-app-routes,reads,recorded,,counted,column,no,,"the derived state sources this view consumes, semicolon-separated. The value domain is state-view.js's own source list rather than an enumeration here, so the two cannot part; the gate holds every entry to it and to a file on this row that actually reads it. Blank on 16 of 21, which is the reading the field exists to make: most destinations draw nothing the estate keeps derived"
-registries,path,recorded,,value,column,yes,,"the file the registry lives in; one table per file, so a path is a plain file path with nothing after it"
-registries,key,recorded,,value,column,yes,,"the column that identifies a row, exempt from having a property definition of its own; several columns join with +"
-registries,identity,recorded,,none,column,yes,,"the name space the key resolves into, so two registries' keys can be compared: path for a repo-relative path, path:<prefix> for one relative to a prefix, blank for an opaque name that never collides"
-registries,membership,recorded,,value,column,yes,computed;curated,"whether the set of rows can be recomputed from the tree or the code, or is decided by curation. Only a computed set can be held to a coverage gate, because only it has something independent to be checked against"
-registries,inherits,recorded,,none,column,yes,,"another registry this one borrows descriptions from, by id, so a curated selection need not restate what a computed set already says. Blank is the normal state. Named the crosswalk kind until 2026-08-18, which said that a registry borrowed without saying from whom"
-registries,target,recorded,,value,column,yes,,the thing a row asserts about; not always a file
-registries,scope,recorded,,value,column,yes,,the population the registry covers
-registries,span,recorded,,value,column,yes,hub;estate,"whether this checkout bounds the population, or a complete enumeration needs another repo; the typed sibling of scope, which says the same thing in prose and so cannot be grouped or counted"
-registries,fields,recorded,,value,column,yes,governed;ungoverned,whether every non-key column of this carrier must be a declared property
-registries,gate,recorded,,value,column,yes,,the test that fails when the registry and the repo disagree; none when nothing holds it
-registries,area,recorded,,value,column,yes,files;names,the reader grouping in the Registries tab
-registries,title,recorded,,value,column,yes,,display name
-registries,gloss,recorded,,value,column,yes,,one line on what the registry is for
-registries,renders_in,computed,tools/build/registries-reach.mjs,counted,column,no,,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
-properties,mode,recorded,,value,column,yes,recorded;computed,whether the value is authored or derived
-properties,deriver,recorded,,counted,column,yes,,"the script that computes the value, required when mode is computed"
-properties,required,recorded,,value,column,yes,value;counted;none,"what the gate enforces: every row filled, blanks counted, or nothing"
-properties,form,recorded,,value,column,yes,column;list,column reserves a slot on every row; list records only where the assertion holds
-properties,exclusive,recorded,,value,column,yes,yes;no,whether one row may hold more than one value from the domain
-properties,values,recorded,,none,column,yes,,"the value domain, semicolon separated, where it is closed; blank means open"
-properties,gloss,recorded,,value,column,yes,,one line on what the property means
-manifest-fields,required,recorded,,none,column,yes,yes;no,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
-repetitions,where,recorded,,value,column,yes,,"the file, or the surface, carrying the repetition"
-repetitions,relation,recorded,,value,column,yes,copy;paraphrase;pointer;live read,how the repetition stands to the authoritative version
-repetitions,check,recorded,,counted,column,yes,,"the test holding this repetition to its owner; blank where nothing does, which is the honest state the table exists to show"
-vocabularies,gloss,recorded,,value,column,yes,,"what this one value means, in the terms a reader picking among them needs"
-vocabularies,label,recorded,,counted,column,yes,,"the display name for this value, where it differs from the value itself"
-tracker-tags,tag,computed,.claude/skills/tasks/build-board.py,value,column,yes,,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
-tracker-tags,value,computed,.claude/skills/tasks/build-board.py,value,column,yes,,the scalar the task file gave that key
-snags,title,computed,tools/build/snags-index.mjs,value,column,yes,,"the snag's one-line symptom, read off its heading"
-snags,seen,computed,tools/build/snags-index.mjs,none,list,no,,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
-snags,count,computed,tools/build/snags-index.mjs,value,column,yes,,"how many times it bit, the field the recurrence rule turns on"
-snags,last_seen,computed,tools/build/snags-index.mjs,none,column,yes,,"the most recent sighting, the log's own sort key"
-snags,targets,computed,tools/build/snags-index.mjs,none,list,no,,"the docs the entry points at with →, which carry the fix"
-aims-goals,key,recorded,,none,column,yes,,"stable identifier, one word"
-aims-goals,name,recorded,,none,column,yes,,the goal as a title
-aims-goals,gloss,recorded,,none,column,yes,,the goal in one sentence
-aims-reading,repo,recorded,,none,column,yes,,owner/repo when the document lives outside the hub; blank means the hub
-aims-reading,path,recorded,,none,column,yes,,path within its repo
-aims-reading,private,recorded,,none,column,yes,true,set when the link resolves only for the owner
-aims-reading,gloss,recorded,,none,column,yes,,why this document is on the list
-themes,a,computed,scripts/duplicated-claims.py,none,column,yes,,"first file of the pair, sorted"
-themes,b,computed,scripts/duplicated-claims.py,none,column,yes,,second file of the pair
-themes,w,computed,scripts/duplicated-claims.py,none,column,yes,,"shared 10-word windows, the edge weight"
-themes,rule,computed,scripts/duplicated-claims.py,none,column,yes,true,whether the shared text states a rule
-themes,quoted,computed,scripts/duplicated-claims.py,none,list,yes,,"sample runs of the shared text, semicolon-joined"
-themes,shingle,computed,scripts/duplicated-claims.py,none,column,yes,,"words per window for this emission, identical on every row"
-themes,scanned,computed,scripts/duplicated-claims.py,none,column,yes,,"files scanned for this emission, identical on every row"
-sources,source,recorded,,none,column,yes,,the named set a glob belongs to
-sources,glob,recorded,,none,column,yes,,"one path pattern, anchored to a real directory"
+registry,property,mode,deriver,required,form,exclusive,values,column_primitive,gloss
+docs,subject,recorded,,none,column,yes,,value,"what the document is about, one line"
+docs,status,recorded,,none,column,yes,living;record;measured,label,"whether the document is kept true, preserved as written, or derived from measurement"
+docs,reach,computed,tools/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
+docs,words,computed,tools/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
+docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
+docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename never shows as an unresolved read"
+tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
+tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
+tests,assertions,computed,tools/build/tests-index.mjs,counted,column,yes,,value,"how many assertions the file makes. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
+tests,assertion_names,computed,tools/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
+tests,method,computed,tools/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
+tests,runner,computed,tools/build/tests-index.mjs,value,column,yes,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
+tests,boot_smoke,computed,tools/build/tests-index.mjs,counted,column,no,,label,"which assertions only check a component mounts, as indices into assertion_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
+harness,role,recorded,,counted,column,yes,,value,what the file is for; blanks are counted rather than hidden
+harness,layer,computed,tools/build/tools-index.mjs,value,column,yes,scripts;tools;tools/build;tools/render;tools/render/scenarios;.githooks;.claude/hooks;.claude/skills/hooks;.github/workflows,label,"which folder the file sits in. The domain is closed and owned by the carrier's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
+harness,lines,computed,tools/build/tools-index.mjs,value,column,yes,,value,file length
+harness,invocation,computed,tools/build/tools-index.mjs,value,column,yes,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
+harness,emits,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,writes a file: a generator rather than a reader
+harness,named,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,its path or basename appears in tracked prose
+harness,tested,computed,tools/build/tools-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ exercises it
+kits,namespace,computed,tools/build/kits-index.mjs,value,column,yes,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
+kits,gloss,computed,tools/build/kits-index.mjs,counted,column,yes,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
+kits,lines,computed,tools/build/kits-index.mjs,value,column,yes,,value,file length
+kits,boot,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,gh-boot.js loads it on every chain-boot page: a fact about what a page pays to start
+kits,demo,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,lib/kits/demos/<name>.html exists
+kits,users,computed,tools/build/kits-index.mjs,value,column,yes,,value,"how many other files under lib/, pages/ and app/ name the kit by its load path; zero is the warning state"
+kits,tested,computed,tools/build/kits-index.mjs,value,column,yes,yes;no,label,a file under tools/test/ names it
+content,creation_mode,recorded,,none,column,yes,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,label,what the artifact IS epistemically; the portable content skill owns the convention
+content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,label,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; docs/owners.csv records the copy"
+content,description,recorded,,none,column,yes,,value,one line on the artifact
+portable,kind,recorded,,value,column,yes,skill;doc;script;dir,label,what species of thing travels
+portable,command,recorded,,none,column,yes,,value,the invocation name; present on kind:skill rows only
+portable,title,recorded,,none,column,yes,,value,display name
+portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time. Kept on the skills, whose skills row carries a model-facing trigger description rather than a reader's one-liner"
+portable,use,recorded,,none,column,yes,plugin;live;reference;adopt;on-demand,label,"how a consumer takes the item: installed by the plugin, read live, referenced, adopted once, or fetched on demand"
+tools,icon,recorded,,none,column,yes,,value,phosphor icon name
+owners,kind,recorded,,value,column,yes,statement;family,label,"whether the row owns one repeated statement or declares a rule over a scope; a family row is a DECLARATION in this model, carried here because its carrier is distributed"
+owners,applies_to,recorded,,none,column,yes,,value,the population a family rule covers; absent on a statement row
+owners,authoritative,recorded,,value,column,yes,,value,the one carrier that owns the statement; every other mention is a repetition
+skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,label,"what the skill is FOR, the axis a reader browses on; authored, since nothing on disk carries a subject"
+skills,description,recorded,,value,column,yes,,value,"the skill's trigger description. A COPY: the authoritative carrier is the skill's own SKILL.md, per the family rule in docs/owners.csv"
+pages,top,computed,tools/build/pages-index.mjs,value,column,yes,,label,"the top-level segment under pages/ the page sits in, which drives the gallery's location chips; every page below drop/ scopes to one drop chip. A root page reads main"
+pages,group,computed,tools/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
+pages,label,computed,tools/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
+pages,title,computed,tools/build/pages-index.mjs,value,column,yes,,value,"the page's own <title>, read from the file"
+pages,note,computed,tools/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
+pages,thumb,computed,tools/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
+pages,code,computed,tools/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
+tracker-tasks,title,computed,.claude/skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"
+tracker-tasks,status,computed,.claude/skills/tasks/build-board.py,value,column,yes,backlog;in-progress;blocked;done;dormant,label,where the task sits. Domain owned by docs/TRACKER.md
+tracker-tasks,opened,computed,.claude/skills/tasks/build-board.py,value,column,yes,,value,the date the task was filed
+tracker-tasks,closed,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the date it was completed; absent while open, which is not a blank to count"
+tracker-tasks,file,computed,.claude/skills/tasks/build-board.py,value,column,yes,,locator,the task file this row is derived from
+tracker-tasks,href,computed,.claude/skills/tasks/build-board.py,value,column,yes,,locator,the blob URL the board and the caption link to
+tracker-tasks,lastActivity,computed,.claude/skills/tasks/build-board.py,counted,column,yes,,value,"the date of the newest progress-log line. Blank on a task filed without one, which the board generator allows and the tasks template does not produce; the blank is the honest reading of 'filed, nothing logged yet' and is worth counting"
+tracker-tasks,logEntries,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,how many progress-log lines the task carries
+tracker-tasks,session,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the branch that owns the task while it is in progress, or completed it"
+tracker-tasks,project,computed,.claude/skills/tasks/build-board.py,none,column,yes,,label,"the workspace a task belongs to, where the repo scopes them"
+tracker-tasks,size,computed,.claude/skills/tasks/build-board.py,none,column,yes,XS;S;M;L;XL;?,label,"effort calibrated to the session. Domain owned by docs/TRACKER.md; optional by design, and carried on a minority of tasks"
+tracker-tasks,depends-on,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,"the task ids this one waits on, comma separated; absent means none. Replaced `track` on 2026-08-23"
+tracker-tasks,awaiting,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,free text naming what is holding the task; cleared by hand
+tracker-tasks,blockedBy,computed,.claude/skills/tasks/build-board.py,none,column,yes,,value,the task or condition a blocked row names
+routes-modes,form,recorded,,value,column,yes,,value,"the address shape, e.g. #gz=<base64url of gzipped HTML>"
+routes-modes,carries,recorded,,value,column,yes,inline;reference,label,whether the payload rides in the URL or is fetched
+routes-modes,trust,recorded,,value,column,yes,trusted;untrusted;n/a,label,"how the renderer treats what arrives. n/a is the data route, which hands bytes to a viewer rather than executing a page, so the question does not arise"
+routes-modes,sandbox,recorded,,value,column,yes,,label,the sandbox the mode renders under
+routes-modes,reach,recorded,,value,column,yes,any reader;viewer holding the token,label,"who can open it: any reader, or a token holder"
+routes-modes,note,recorded,,value,column,yes,,value,what the mode buys and what it costs
+routes-routes,repo,recorded,,value,column,yes,,label,the repo holding the renderer page
+routes-routes,ref,recorded,,value,column,yes,,label,the ref the renderer is read at
+routes-routes,path,recorded,,value,column,yes,,locator,the renderer page
+routes-routes,renders,recorded,,value,column,yes,,value,the content type this route is for
+routes-routes,doc,recorded,,value,column,yes,,locator,the envelope contract the route honors
+routes-routes,example,recorded,,value,column,yes,,locator,a worked address
+routes-kinds,label,recorded,,value,column,yes,,value,the kind's display name
+routes-kinds,subject,recorded,,value,column,yes,,label,which value of the showing frame's subject axis a link to this kind takes
+routes-kinds,detect,recorded,,value,column,yes,,value,"the rule that recognizes this kind, as ViewRegistry.KIND applies it"
+routes-kinds,exclusive,recorded,,none,column,yes,yes,label,"set where the viewer module is the only one that can display the file, so it outranks any default mode a host sets"
+routes-kinds,view,recorded,,none,column,yes,,label,the viewer module id this kind opens in; blank where the kind has its own page rather than a mode
+routes-kinds,route,recorded,,none,column,no,,locator,the toss route that addresses this kind; blank where none does
+routes-kinds,shown_by,recorded,,value,column,yes,,locator,"the showing mechanisms that reach this kind, semicolon-separated"
+routes-kinds,kit,recorded,,none,column,no,,locator,"the kit that DECLARES this kind, carrying its row and resolving a position to its units; blank where nothing declares it yet, which a kit merely knowing the format does not"
+routes-kinds,unit,recorded,,none,column,yes,,label,what one aimable piece of this kind is
+routes-kinds,address,recorded,,none,column,yes,,value,what a position inside this kind reads as in the source's terms
+routes-kinds,aim,recorded,,none,column,yes,,value,the annotate aim this kind adds beyond the universal three; blank means only those three
+routes-kinds,aim_label,recorded,,none,column,yes,,value,"what that aim is called in the annotator, carried here so the kit holds no strings of its own"
+routes-kinds,aim_hint,recorded,,none,column,yes,,value,the one line under that aim in the menu
+routes-kinds,aim_icon,recorded,,none,column,yes,,value,"the phosphor glyph that marks that aim, carried here for the same reason the label is: both surfaces that draw the aim hardcoded one, so a kind got its own name and markdown's icon"
+showing-mechanisms,glyph,recorded,,value,column,yes,,label,the marker the caption uses
+showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
+showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
+showing-mechanisms,subject,recorded,,value,column,yes,,value,what kind of thing it can show
+showing-mechanisms,version,recorded,,value,column,yes,,label,which version of the subject it reaches
+showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
+showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
+showing-mechanisms,misses,recorded,,value,column,yes,,value,"what it does NOT show, which is the field the picker turns on"
+showing-mechanisms,trap,recorded,,none,column,yes,,value,"the failure mode, where one has bitten; carried on 1 of 7"
+showing-mechanisms,use,recorded,,value,column,yes,,value,when to pick it
+routes-paste,path,recorded,,none,column,yes,,locator,"the file that implements the behavior; absent on the form-field row, which names a browser behavior rather than one of ours"
+routes-paste,recognizes,recorded,,value,column,yes,,value,what the surface reads out of the clipboard and acts on
+routes-paste,becomes,recorded,,value,column,yes,,value,what a recognized paste turns into there
+routes-paste,declines_to,recorded,,value,column,yes,,value,"where everything it does not recognize goes. The load-bearing field: a surface that routes some pastes has to say what happens to the rest, or the routing is a silent swallow"
+routes-paste,gate,recorded,,none,column,yes,,locator,the check holding the behavior; absent where nothing does
+surfacing,lead,recorded,,value,column,yes,,value,"the bullet lead-in, held two-way against SURFACING.md's prose"
+surfacing,title,recorded,,value,column,yes,,value,the short name
+surfacing,glyph,recorded,,counted,column,yes,,value,the caption marker; blank on the primitives that have no marker of their own
+surfacing,use,recorded,,value,column,yes,,value,"what the primitive is for, in one line"
+surfacing,boundary,recorded,,none,column,yes,,value,where it stops working; carried wherever there is an edge to name
+surfacing,form,recorded,,none,column,yes,,value,"the concrete shape, where the primitive has one"
+manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,label,the JSON type the key takes
+manifest-fields,consumer,recorded,,value,column,yes,show-repo;portable;session-hook,label,"which tool reads the key: show-repo (the shell presents the repo), portable (the conventions read it and show-repo ignores it), session-hook (a plugin hook reads it outside any page)"
+manifest-fields,summary,recorded,,value,column,yes,,value,what the key does and who owns its value
+manifest-fields,status,recorded,,none,column,yes,deprecated,label,set only where a key is superseded but still parsed
+text-fields,audience,recorded,,value,column,yes,reader;editor,label,who the text under this field name is addressed to; the split that decides whether it belongs in a carrier or in source
+text-fields,gloss,recorded,,value,column,yes,,value,"what this field name means, in a sentence"
+text-fields,use_when,recorded,,value,column,yes,,value,"the rule for picking this name over its neighbours, which is the part a definition alone never settles"
+text-fields,instead_of,recorded,,none,column,yes,,value,"the names already in use that this one accounts for; the scan resolves them rather than reporting them as violations, so an existing carrier conforms by declaration rather than by rename"
+app-routes,address,recorded,,counted,column,yes,,value,"the URL shape that opens it, e.g. ?view=map; blank on the shell row, which draws every route and is addressable as none of them"
+app-routes,label,recorded,,value,column,yes,,value,its name in the nav and on the row
+app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,which context it is reached from
+app-routes,what,recorded,,value,column,yes,,value,"what the destination is for, one line"
+app-routes,files,recorded,,counted,column,no,,locator,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
+app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or what qualifies the row"
+app-routes,alias,recorded,,none,column,yes,,locator,a retired key that still resolves
+app-routes,tabs,recorded,,none,column,no,,label,the sub-tabs addressable within it
+app-routes,stop,recorded,,counted,column,yes,,value,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"
+app-routes,reads,recorded,,counted,column,no,,value,"the derived state sources this view consumes, semicolon-separated. The value domain is state-view.js's own source list rather than an enumeration here, so the two cannot part; the gate holds every entry to it and to a file on this row that actually reads it. Blank on 16 of 21, which is the reading the field exists to make: most destinations draw nothing the estate keeps derived"
+registries,path,recorded,,value,column,yes,,locator,"the file the registry lives in; one table per file, so a path is a plain file path with nothing after it"
+registries,key,recorded,,value,column,yes,,value,"the column that identifies a row, exempt from having a property definition of its own; several columns join with +"
+registries,identity,recorded,,none,column,yes,,label,"the name space the key resolves into, so two registries' keys can be compared: path for a repo-relative path, path:<prefix> for one relative to a prefix, blank for an opaque name that never collides"
+registries,membership,recorded,,value,column,yes,computed;curated,label,"whether the set of rows can be recomputed from the tree or the code, or is decided by curation. Only a computed set can be held to a coverage gate, because only it has something independent to be checked against"
+registries,inherits,recorded,,none,column,yes,,locator,"another registry this one borrows descriptions from, by id, so a curated selection need not restate what a computed set already says. Blank is the normal state. Named the crosswalk kind until 2026-08-18, which said that a registry borrowed without saying from whom"
+registries,target,recorded,,value,column,yes,,value,the thing a row asserts about; not always a file
+registries,scope,recorded,,value,column,yes,,value,the population the registry covers
+registries,span,recorded,,value,column,yes,hub;estate,label,"whether this checkout bounds the population, or a complete enumeration needs another repo; the typed sibling of scope, which says the same thing in prose and so cannot be grouped or counted"
+registries,fields,recorded,,value,column,yes,governed;ungoverned,label,whether every non-key column of this carrier must be a declared property
+registries,gate,recorded,,value,column,yes,,locator,the test that fails when the registry and the repo disagree; none when nothing holds it
+registries,area,recorded,,value,column,yes,files;names,label,the reader grouping in the Registries tab
+registries,title,recorded,,value,column,yes,,value,display name
+registries,gloss,recorded,,value,column,yes,,value,one line on what the registry is for
+registries,renders_in,computed,tools/build/registries-reach.mjs,counted,column,no,,label,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
+properties,mode,recorded,,value,column,yes,recorded;computed,label,whether the value is authored or derived
+properties,deriver,recorded,,counted,column,yes,,locator,"the script that computes the value, required when mode is computed"
+properties,required,recorded,,value,column,yes,value;counted;none,label,"what the gate enforces: every row filled, blanks counted, or nothing"
+properties,form,recorded,,value,column,yes,column;list,label,column reserves a slot on every row; list records only where the assertion holds
+properties,exclusive,recorded,,value,column,yes,yes;no,label,whether one row may hold more than one value from the domain
+properties,values,recorded,,none,column,yes,,value,"the value domain, semicolon separated, where it is closed; blank means open"
+properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"what kind of thing the column holds: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
+properties,gloss,recorded,,value,column,yes,,value,one line on what the property means
+manifest-fields,required,recorded,,none,column,yes,yes;no,label,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
+repetitions,where,recorded,,value,column,yes,,locator,"the file, or the surface, carrying the repetition"
+repetitions,relation,recorded,,value,column,yes,copy;paraphrase;pointer;live read,label,how the repetition stands to the authoritative version
+repetitions,check,recorded,,counted,column,yes,,value,"the test holding this repetition to its owner; blank where nothing does, which is the honest state the table exists to show"
+vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"
+vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
+tracker-tags,tag,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
+tracker-tags,value,computed,.claude/skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
+snags,title,computed,tools/build/snags-index.mjs,value,column,yes,,value,"the snag's one-line symptom, read off its heading"
+snags,seen,computed,tools/build/snags-index.mjs,none,list,no,,value,"every date the snag was hit, oldest first; an undated entry is empty, not absent"
+snags,count,computed,tools/build/snags-index.mjs,value,column,yes,,label,"how many times it bit, the field the recurrence rule turns on"
+snags,last_seen,computed,tools/build/snags-index.mjs,none,column,yes,,value,"the most recent sighting, the log's own sort key"
+snags,targets,computed,tools/build/snags-index.mjs,none,list,no,,locator,"the docs the entry points at with →, which carry the fix"
+aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
+aims-goals,name,recorded,,none,column,yes,,value,the goal as a title
+aims-goals,gloss,recorded,,none,column,yes,,value,the goal in one sentence
+aims-reading,repo,recorded,,none,column,yes,,value,owner/repo when the document lives outside the hub; blank means the hub
+aims-reading,path,recorded,,none,column,yes,,id,path within its repo
+aims-reading,private,recorded,,none,column,yes,true,label,set when the link resolves only for the owner
+aims-reading,gloss,recorded,,none,column,yes,,value,why this document is on the list
+themes,a,computed,scripts/duplicated-claims.py,none,column,yes,,locator,"first file of the pair, sorted"
+themes,b,computed,scripts/duplicated-claims.py,none,column,yes,,locator,second file of the pair
+themes,w,computed,scripts/duplicated-claims.py,none,column,yes,,value,"shared 10-word windows, the edge weight"
+themes,rule,computed,scripts/duplicated-claims.py,none,column,yes,true,label,whether the shared text states a rule
+themes,quoted,computed,scripts/duplicated-claims.py,none,list,yes,,value,"sample runs of the shared text, semicolon-joined"
+themes,shingle,computed,scripts/duplicated-claims.py,none,column,yes,,label,"words per window for this emission, identical on every row"
+themes,scanned,computed,scripts/duplicated-claims.py,none,column,yes,,label,"files scanned for this emission, identical on every row"
+sources,source,recorded,,none,column,yes,,locator,the named set a glob belongs to
+sources,glob,recorded,,none,column,yes,,locator,"one path pattern, anchored to a real directory"

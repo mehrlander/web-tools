@@ -2,9 +2,13 @@
 
 One property, `column_primitive`, saying what kind of thing a column holds. It is
 the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
-`column_domain`, and nothing in either repo currently asks it: across
-`docs/properties.csv` (161 rows), budget-drs's `properties.csv` (49) and
-`lineage/columns.csv` (1,171), no column says what it contains.
+`column_domain`.
+
+**Populated here on 2026-09-10.** `docs/properties.csv` declares it on all 178
+rows, measured against each property's real column rather than read off its
+gloss: **value 86, label 63, locator 27, id 2.** Two carriers remain, both in
+budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
+(1,171).
 
 ## The four
 
@@ -119,3 +123,55 @@ Four collisions this property inherits rather than creates.
   this one is qualified at every use, never bare.
 - **`row_grain`** in budget-drs answers tidy data's *observation*. Whether to
   rename it is a separate decision, and `GRAINS.md` is its definition owner.
+
+
+## What the first population measured
+
+Every one of the 177 properties resolved to a real column in a real carrier, so
+all four tests could be run rather than argued.
+
+**The residual in `value` is 86 of 178, 48%.** That is the number this property
+has to justify itself against, and it is the honest reading of a role axis: half
+of what a registry records is content that identifies nothing, classifies
+nothing and points nowhere.
+
+**`id` is nearly absent, and the reason is structural rather than a gap.** 28 of
+the 30 registries have no property row for their own key column: `registries.csv`
+declares the key in its `key` field, and `properties.csv` does not repeat it,
+which is the one-property-one-registry rule working correctly. So this carrier
+sees almost no ids by construction. The two that do appear, `aims-goals.key` and
+`aims-reading.path`, are the exceptions worth a second look.
+
+**Uniqueness alone does not earn `id`.** `registries.path` is distinct on all 30
+rows and resolves on all 30, and it is a `locator`, because `registries.id`
+already holds the addressing role. What makes an id is that other rows and files
+address the row by it, not that no two rows share a value. The pilot's
+`projects[].path` took both primitives precisely because nothing else addressed
+a project.
+
+**A cross-registry membership test finds locators nothing else does.**
+`routes-kinds.route` and `routes-kinds.shown_by` hold no paths and no URLs, so
+they read as prose to a resolve test; every atom is a key of another registry.
+Checking membership against each registry's key universe is the third form a
+locator takes, beside a path and a URL.
+
+**Where a column declares `exclusive: no`, repetition is measured on the atoms.**
+`app-routes.tabs` has two rows, two distinct cells and no repetition at all until
+they are split on the semicolon, at which point `docs` appears in both lists.
+Measuring a list column at cell grain asks the wrong question.
+
+### What holds it
+
+Two gates, both mutation-tested in each direction.
+
+The closed domain came free: because the property declares its `values`, the
+registry's existing domain test holds every row to `id`, `label`, `locator` or
+`value`, and its four values carry a gloss each in `docs/vocabularies.csv`,
+which a separate gate requires.
+
+The countable half needed a test, in
+[`tools/test/properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs):
+a declared `id` must be its registry's key, and a declared `label` must either
+declare a closed set or actually repeat. Nothing holds `locator` or `value`,
+and that asymmetry is the doctrine's own, since only two of the four tests are
+countable.

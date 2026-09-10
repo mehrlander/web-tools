@@ -43,8 +43,11 @@ never edited: `tracker/board.md`, `docs/README.md`.
 does not answer it.** [column-primitives.md](column-primitives.md) does: one
 property, `column_primitive`, classifying every column as an `id`, a `label`, a
 `locator` or a `value`, crossed with the claim-versus-support position budget-drs
-already carries. It is the coarse question above `column_domain`, and no registry
-here asks it yet.
+already carries. It is the coarse question above `column_domain`. `docs/properties.csv`
+declares it on all 178 rows as of 2026-09-10, measured against each
+property's real column: value 86, label 63, locator 27, id 2. `id` is nearly
+absent by construction, since 28 of the 30 registries declare their key in
+`registries.csv` and do not repeat it as a property row.
 
 **A registry is a registry.** There are no species of them, and the words that
 implied there were are retired. `census`, `catalog` and `crosswalk` were values
