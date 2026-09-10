@@ -213,10 +213,9 @@ than rows touched has restamped the file.
 
 A committed CSV that inventories part of the tree is a registry, and the rule
 above ("adding one means adding a row here") reads as an instruction to create
-one. It is a rule about *declaring* a carrier, not about *needing* one, and the
-distinction has teeth: a registry beside data that already exists is the
-duplication the integrity rule exists to prevent, and it will be the copy that
-ages.
+one. It is a rule about *declaring* a registry, not about *needing* one. Where
+the same assertions already sit somewhere else, a new CSV stores them twice,
+which is the case the integrity rule is about.
 
 **The worked case, 2026-09-06.** `lib/kits/prompt-link.js` holds the outbound
 prompt targets (a new Claude Code session, a chat, and one that cannot be
@@ -232,10 +231,10 @@ its reason by hours.)
 
 **The test is where the assertions already live, not where they would be
 convenient to read.** Where a kit or a generator holds them, the registry is the
-kit, and what is missing is a renderer, which is a smaller and more honest thing
-to want. Where the prose holds them and the CSV indexes it (`surfacing.csv`), a
-two-way gate makes the pair safe. What has no defence is a CSV transcribing an
-array in the same repository.
+kit, and what is missing is a renderer, which is a smaller thing to want. Where
+the prose holds them and the CSV indexes it (`surfacing.csv`), a two-way gate
+makes the pair safe. A CSV transcribing an array in the same repository has
+neither arrangement behind it.
 
 ## What the audits keep teaching
 
