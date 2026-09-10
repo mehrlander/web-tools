@@ -84,6 +84,19 @@ def is_repo(path):
     return git(path, 'rev-parse', '--git-dir').strip() != ''
 
 
+def is_shallow(repo):
+    """Whether the checkout omits history rather than carrying all of it.
+
+    This decides whether a failed `merge-base` may be read as evidence. In a
+    shallow clone the common ancestor is simply absent from the object store,
+    so an old branch and today's base report no merge-base while sharing a
+    perfectly ordinary history. Measured here on 2026-09-10: a web-session
+    clone reached back only to 2026-08-18, and five open pull requests read as
+    orphaned; `git fetch --unshallow` gave every one of them a merge-base in 24
+    seconds. Classifying on the unguarded answer nearly closed them."""
+    return git(repo, 'rev-parse', '--is-shallow-repository').strip() == 'true'
+
+
 def default_base(repo):
     """origin's own idea of its default branch, else main, else master."""
     head = git(repo, 'symbolic-ref', 'refs/remotes/origin/HEAD').strip()
@@ -129,13 +142,21 @@ def fetch_age(repo):
 
 # ── branch classification ───────────────────────────────────────────────────
 
-def classify_branches(repo, base):
-    """Every remote branch, sorted into landed / unrelated / live.
+def classify_branches(repo, base, shallow=False):
+    """Every remote branch, sorted into landed / unrelated / unknown / live.
 
     landed     no commits outside base: cannot be in flight
-    unrelated  no merge-base with base: a rewritten or foreign history line,
-               structurally unable to be current work on today's base
+    unrelated  no merge-base with base, on a COMPLETE clone: a rewritten or
+               foreign history line, structurally unable to be current work
+    unknown    no merge-base with base, on a SHALLOW clone: undecidable here,
+               because the ancestor may simply be one of the omitted commits
     live       carries commits not reachable from base: the candidate set
+
+    The unrelated/unknown split is the whole reason `shallow` is a parameter.
+    A missing merge-base has two causes that look identical, and only one of
+    them is a fact about the branch; see is_shallow() for the measurement that
+    forced the distinction. Reporting the ambiguous case as `unrelated` states
+    a conclusion the object store cannot support.
 
     Ordered so the expensive per-branch calls run over the smallest set that
     still needs them. `--merged` settles the landed group in one invocation;
@@ -156,7 +177,7 @@ def classify_branches(repo, base):
               for r in git(repo, 'for-each-ref', 'refs/remotes/origin', '--merged',
                            base, '--format', '%(refname:short)').split('\n') if r}
     now = time.time()
-    landed, unrelated, live = [], [], []
+    landed, unrelated, unknown, live = [], [], [], []
     rest = []
 
     for line in out.splitlines():
@@ -184,7 +205,11 @@ def classify_branches(repo, base):
         related = list(pool.map(
             lambda r: git_ok(repo, 'merge-base', base, 'origin/' + r['branch']), rest))
         maybe = [r for r, ok in zip(rest, related) if ok]
-        unrelated = [r for r, ok in zip(rest, related) if not ok]
+        no_base = [r for r, ok in zip(rest, related) if not ok]
+        if shallow:
+            unknown = no_base
+        else:
+            unrelated = no_base
         counts = list(pool.map(
             lambda r: git(repo, 'rev-list', '--count',
                           'origin/' + r['branch'], '--not', base).strip(), maybe))
@@ -194,7 +219,8 @@ def classify_branches(repo, base):
         (landed if rec['ahead'] == 0 else live).append(rec)
 
     live.sort(key=lambda r: (r['days'] is None, r['days']))
-    return {'live': live, 'landed': landed, 'unrelated': unrelated}
+    return {'live': live, 'landed': landed, 'unrelated': unrelated,
+            'unknown': unknown}
 
 
 def content_signal(repo, base, branch):
@@ -386,6 +412,12 @@ def reconcile(claims, index, quiet_days):
         elif rec['state'] == 'unrelated':
             c['verdict'] = 'stale'
             c['why'] = 'branch shares no history with the base branch'
+        elif rec['state'] == 'unknown':
+            # Not stale: undecidable. A shallow clone cannot tell a genuinely
+            # unrelated branch from one whose ancestor was simply not fetched,
+            # and a claim must not be retired on an answer the clone cannot give.
+            c['verdict'] = 'unverifiable'
+            c['why'] = 'no merge-base, but the clone is shallow; run `git fetch --unshallow`'
         elif rec.get('unlanded') == 0:
             c['verdict'] = 'stale'
             c['why'] = f"ahead {rec['ahead']} but no path differs from base; content landed"
@@ -401,8 +433,9 @@ def reconcile(claims, index, quiet_days):
 def scan(repo, args, all_prs):
     base = args.base or default_base(repo)
     slug = repo_slug(repo)
+    shallow = is_shallow(repo)
     prs_by_head = prs_for(all_prs, slug)
-    groups = classify_branches(repo, base)
+    groups = classify_branches(repo, base, shallow)
 
     for rec in groups['live']:
         sig = content_signal(repo, base, rec['branch'])
@@ -414,7 +447,7 @@ def scan(repo, args, all_prs):
             rec['hits'] = touches(sig['touched'], args.paths)
 
     index = {}
-    for state in ('live', 'landed', 'unrelated'):
+    for state in ('live', 'landed', 'unrelated', 'unknown'):
         for rec in groups[state]:
             index[rec['branch']] = {**rec, 'state': state}
 
@@ -435,9 +468,16 @@ def scan(repo, args, all_prs):
 
     # An open PR whose branch is not live has nothing left to deliver: it was
     # merged by another route, or its branch was rewritten out from under it.
+    # The `unknown` case is the exception and is stated as a question rather
+    # than a finding: on a shallow clone the branch may be ordinary work whose
+    # merge-base was never fetched, which is exactly the reading that would
+    # retire a live pull request.
+    why = {'unknown': 'undecidable: clone is shallow, run `git fetch --unshallow`'}
     orphan_prs = [
         {**pr, 'why': ('branch gone' if pr['head'] not in index
-                       else 'branch ' + index[pr['head']]['state'])}
+                       else why.get(index[pr['head']]['state'],
+                                    'branch ' + index[pr['head']]['state'])),
+         'undecided': index.get(pr['head'], {}).get('state') == 'unknown'}
         for head, pr in prs_by_head.items()
         if index.get(head, {}).get('state') != 'live'
     ]
@@ -446,6 +486,7 @@ def scan(repo, args, all_prs):
         'repo': os.path.abspath(repo),
         'slug': slug,
         'base': base,
+        'shallow': shallow,
         'fetch_age': fetch_age(repo),
         'counts': {k: len(v) for k, v in groups.items()},
         'total_branches': sum(len(v) for v in groups.values()),
@@ -508,10 +549,23 @@ def render(results, args):
         c = r['counts']
         out.append(f'## {name}')
         out.append('')
+        tail = (f"{c['unrelated']} on an unrelated history line"
+                if not r.get('shallow')
+                else f"{c.get('unknown', 0)} undecidable")
         out.append(f"{r['total_branches']} branches: **{c['live']} live**, "
-                   f"{c['landed']} fully merged, {c['unrelated']} on an unrelated "
-                   f"history line. Base `{r['base']}`, fetched {humanize(r['fetch_age'])}.")
+                   f"{c['landed']} fully merged, {tail}. "
+                   f"Base `{r['base']}`, fetched {humanize(r['fetch_age'])}.")
         out.append('')
+        if r.get('shallow'):
+            n = c.get('unknown', 0)
+            out.append(f"⚠ **This clone is shallow, so {n} "
+                       f"branch{'' if n == 1 else 'es'} could not be classified.** "
+                       'A missing merge-base here means the '
+                       'common ancestor was not fetched, not that the branch is on a '
+                       'foreign history line. Do not retire a branch, a claim, or an '
+                       'open pull request on that reading. Run `git fetch --unshallow` '
+                       'and scan again for an answer that distinguishes the two.')
+            out.append('')
 
         # Claims first: the declared answer, and the one that decays.
         live_claims = [x for x in r['claims'] if x['verdict'] in ('live', 'quiet')]
@@ -578,12 +632,19 @@ def render(results, args):
                 out.append('')
         else:
             out.append('**Live branches:** none. Every branch is merged or on an '
-                       'unrelated history line.')
+                       'unrelated history line.' if not r.get('shallow') else
+                       '**Live branches:** none among the branches this clone can '
+                       'classify. The undecidable group above is not evidence of '
+                       'absence.')
             out.append('')
 
         if r['orphan_prs']:
+            undecided = [p for p in r['orphan_prs'] if p.get('undecided')]
             out.append(f"**Open PRs with nothing live ({len(r['orphan_prs'])}).** "
-                       'Delivered or abandoned; the PR is still open.')
+                       'Delivered or abandoned; the PR is still open.'
+                       + (f" {len(undecided)} of these are undecidable on a shallow "
+                          'clone and are listed for completeness only.'
+                          if undecided else ''))
             out.append('')
             for pr in r['orphan_prs']:
                 out.append(f"- {plink(r['slug'], pr)} {pr['title']} ({pr['why']})")
@@ -614,6 +675,10 @@ def render(results, args):
         out.append('Live work is listed above. Only those branches can conflict with '
                    'new work; everything else in the estate is merged or orphaned.')
     out.append('')
+    if any(r.get('shallow') for r in results):
+        out.append('One or more clones are shallow, so the reading above is partial. '
+                   'Re-run after `git fetch --unshallow` before acting on an absence.')
+        out.append('')
     if any_stale:
         out.append('Stale claims are listed per repo. Each is a tracker task asserting '
                    'work is underway when its branch has landed or vanished. Fixing them '
