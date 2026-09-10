@@ -3,12 +3,11 @@
 // gated by properties-registry.test.mjs, the way docs-reach.mjs and the docs
 // registry hold `reach` and `words`.
 //
-// The question it answers is the registry model's own audit rule turned on the
-// registries themselves. The audits recorded in docs/registries.md kept finding
-// one shape of rot: an authored claim nothing reads goes wrong (`why` ran
-// nought for five, `required` fifty-one for fifty-four). A registry no surface
-// renders is the same exposure one level up: its carrier is committed, gated,
-// and read by nobody, so its claims can rot without anyone meeting them. The
+// The question it answers is the docs registry's `reach` question one level up.
+// The audits recorded in docs/registries.md found errors in two authored fields
+// that nothing checked (`why` ran nought for five, `required` fifty-one for
+// fifty-four). A registry no surface renders is committed, gated, and read by
+// nobody, so nothing meets its claims either. The
 // Docs tab's `reach` column proved that making such a gap visible gets it
 // closed (the derivation moved twice from being looked at); this field is the
 // same instrument pointed at the registries.
