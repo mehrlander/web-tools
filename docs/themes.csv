@@ -45,3 +45,4 @@ docs/code-layers.md,tools/README.md,3,true,still overlap on their default path o
 docs/artifacts.md,docs/show-repo.md,3,,the claude app's in app browser keeps its own storage so the,10,127
 docs/SNAGS.md,skills/phosphor-icons/SKILL.md,3,,measure the element's width before suspecting the state that controls it;reads as a logic bug and gets debugged as one,10,127
 docs/SNAGS.md,docs/environment/testing.md,3,,the point is what the page does on load at that fragment,10,127
+docs/HTML-STYLE.md,docs/SNAGS.md,3,,skills daisy alpine references mechanics md skills daisy alpine references mechanics md,10,127

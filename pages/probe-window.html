@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Probe window</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<!--
+  The probe's readout, as a page rather than as a document written into a blank
+  window. `kits/probe.js` opens this and keeps the model; this file is only the
+  view, and it reads the opener across the window boundary on a timer.
+
+  WHY A PAGE. The first version wrote its own document into `window.open('')`
+  and carried a private stylesheet, on the reasoning that a debug surface should
+  not depend on a CDN. Both halves were wrong. The page being watched loads
+  these same two jsDelivr URLs in its own head, so an outage leaves the SUBJECT
+  unstyled first. And measured 2026-09-10: in a document written into a blank
+  window, no external subresource ever loads, whether written into the head or
+  appended after `close()`; the parser stays blocked and no request is issued.
+  A popup NAVIGATED to a real URL loads everything normally. So the window is a
+  real page, on the house stack, like every other page here.
+
+  It never has to be deployed to be reachable: probe.js fetches this file
+  through `gh` at whatever ref it was itself loaded from and opens it as a blob,
+  which inherits the opener's origin. That is why `opener` is readable below.
+
+  HOUSE RULES. Rule 4 shape, `fixed inset-0 grid-rows-[auto_auto_1fr_auto]`, so
+  the document never scrolls and the trace is the only pane that does. No
+  explanatory prose (rule 2): where a capture goes is said by the path, and what
+  it carries by two label-led rows. One accent (rule 10): a `no` is marked only
+  where it means something is wrong.
+-->
+<body class="m-0 overflow-hidden bg-base-100 text-base-content font-mono text-[13px]">
+
+<div x-data="probeWindow()" x-init="start()" class="fixed inset-0 grid grid-rows-[auto_auto_1fr_auto]">
+
+  <!-- No opener, or an opener that has gone: this window is a view of another
+       window and has nothing to say without one. -->
+  <template x-if="!live">
+    <div class="row-span-4 grid place-items-center p-8 text-center">
+      <p class="text-sm opacity-70" x-text="why"></p>
+    </div>
+  </template>
+
+  <template x-if="live">
+    <div class="contents">
+
+      <div class="flex items-baseline gap-x-3 gap-y-1 flex-wrap px-4 py-2.5
+                  border-b border-base-300 bg-base-200">
+        <b class="text-sm" x-text="'Probe ' + s.id"></b>
+        <span class="text-[11px] opacity-55" x-text="s.title"></span>
+        <span class="text-[11px] opacity-55" x-text="s.at.toFixed(1) + 's'"></span>
+        <template x-for="c in conditions" :key="c.k">
+          <span class="text-[11px]" :class="c.bad ? 'text-error' : 'opacity-55'"
+                x-text="c.k + ' ' + c.v"></span>
+        </template>
+        <div class="ml-auto flex gap-2">
+          <button type="button" class="btn btn-xs" @click="hold()"
+                  x-text="s.held ? 'Resume' : 'Hold'"></button>
+          <button type="button" class="btn btn-xs" @click="clear()">Clear</button>
+        </div>
+      </div>
+
+      <div class="px-4 py-2.5 border-b border-base-300 grid grid-cols-[8.5rem_1fr] gap-x-3">
+        <template x-for="[k, v] in Object.entries(s.live)" :key="k">
+          <div class="contents">
+            <span class="truncate opacity-55" x-text="k"></span>
+            <span class="truncate" x-text="v"></span>
+          </div>
+        </template>
+        <span class="truncate opacity-55">under pointer</span>
+        <span class="truncate" x-text="s.under"></span>
+      </div>
+
+      <!-- `whitespace-pre` sits on the ROW, not the pane, and the spans are on
+           one source line: with it on the pane the template's own newlines and
+           indentation between the spans render as literal whitespace and every
+           row stacks into four lines. The padded columns need `pre`, so the
+           answer is to scope it, not to drop it. -->
+      <div id="trace" class="overflow-y-auto px-4 py-2 text-xs">
+        <template x-for="r in rows" :key="r.i">
+          <div class="whitespace-pre"><span class="opacity-55" x-text="r.stamp"></span><span :class="r.mark ? 'text-warning' : ''" x-text="r.tag"></span><span class="opacity-55" x-text="r.detail"></span><span class="text-warning" x-show="r.n > 1" x-text="' ×' + r.n"></span></div>
+        </template>
+        <div class="opacity-55" x-show="!rows.length">no events yet</div>
+      </div>
+
+      <div class="border-t border-base-300 bg-base-200 px-4 py-3
+                  grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 items-start">
+        <!-- `!!`, because an undefined here SETS the attribute rather than
+             clearing it, which would leave the button permanently disabled if a
+             reading ever arrived without the field (bound-boolean-attrs). -->
+        <button type="button" class="btn btn-sm" :disabled="!!s.filing"
+                @click="file()" x-text="s.filing ? 'Filing…' : 'File the capture'"></button>
+        <span class="text-[11px] truncate self-center" x-text="s.dest"></span>
+        <span class="text-[11px] opacity-55">holds</span>
+        <span class="text-[11px] truncate" x-text="s.holds"></span>
+        <span class="text-[11px] opacity-55">omits</span>
+        <span class="text-[11px] truncate" x-text="s.omits"></span>
+        <div class="col-span-2 flex gap-4 items-baseline whitespace-nowrap text-[11px] opacity-55">
+          <span>alt+shift+&nbsp; P file &middot; H hold &middot; C clear &middot; W close &middot; X probe off</span>
+          <span class="text-warning" x-show="s.note" x-text="s.note"></span>
+        </div>
+      </div>
+
+    </div>
+  </template>
+</div>
+
+<script>
+function probeWindow() {
+  return {
+    live: false,
+    why: 'This window is opened by kits/probe.js and shows that page’s conditions. '
+       + 'Open it from the page with alt+shift+W.',
+    s: { id: '', title: '', at: 0, live: {}, under: '', held: false, filing: false,
+         dest: '', holds: '', omits: '', note: '' },
+    conditions: [],
+    rows: [],
+    _len: -1,
+    _stick: true,
+
+    // THE OPENER IS THE MODEL. This window owns no state: it reads the probe
+    // across the window boundary, which is legible because a blob document
+    // inherits its opener's origin. Polled rather than pushed, so the opener's
+    // own draw loop never has to know a second surface exists.
+    probe() {
+      try { return (window.opener && window.opener.Probe) || null; } catch (e) { return null; }
+    },
+
+    start() {
+      // The keys mean the same thing here as on the page, so whichever window
+      // has focus, the reader presses the same thing.
+      addEventListener('keydown', (ev) => {
+        if (!ev.altKey || !ev.shiftKey || ev.ctrlKey || ev.metaKey) return;
+        const p = this.probe();
+        if (!p) return;
+        if (ev.code === 'KeyP') { ev.preventDefault(); this.file(); }
+        else if (ev.code === 'KeyC') { ev.preventDefault(); this.clear(); }
+        else if (ev.code === 'KeyH') { ev.preventDefault(); this.hold(); }
+        else if (ev.code === 'KeyW') { ev.preventDefault(); close(); }
+        // Off, meaning the whole instrument rather than this window. The kit's
+        // stop() closes this window on its way out, so the two are one press.
+        else if (ev.code === 'KeyX') { ev.preventDefault(); if (p.stop) p.stop(); }
+      }, true);
+
+      const pane = () => document.getElementById('trace');
+      // A pane pinned to the bottom follows the newest line; one the reader has
+      // scrolled up stays where they put it.
+      addEventListener('scroll', (ev) => {
+        const el = pane();
+        if (el && ev.target === el) {
+          this._stick = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+        }
+      }, true);
+
+      const tick = () => {
+        const p = this.probe();
+        if (!p) {
+          this.live = false;
+          this.why = 'The page that opened this window has gone. Close this and press '
+                   + 'alt+shift+W there again.';
+          return;
+        }
+        this.live = true;
+        const v = p.view();
+        this.s = v;
+        this.conditions = v.conditions;
+        if (v.traceLen !== this._len) {
+          this._len = v.traceLen;
+          this.rows = p.trace().map((r, i) => ({
+            i, n: r.n || 1,
+            stamp: r.t.toFixed(2).padStart(7) + ' +' + r.d.toFixed(2) + '  ',
+            tag: String(r.tag).padEnd(18),
+            detail: r.detail,
+            mark: /close|arm|esc/.test(r.tag),
+          }));
+          this.$nextTick(() => {
+            const el = pane();
+            if (el && this._stick) el.scrollTop = el.scrollHeight;
+          });
+        }
+      };
+      tick();
+      setInterval(tick, 150);
+    },
+
+    hold() { const p = this.probe(); if (p) p.hold(); },
+    clear() { const p = this.probe(); if (p) { p.clear(); this._len = -1; } },
+    file() { const p = this.probe(); if (p) p.file('probe:window button'); },
+  };
+}
+</script>
+</body>
+</html>
