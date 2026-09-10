@@ -44,3 +44,4 @@ script,,scripts/text-carriers.py,text-carriers.py,,on-demand
 script,,scripts/build-tree.py,build-tree.py,,on-demand
 script,,scripts/ocr-pdf.py,ocr-pdf.py,,on-demand
 script,,scripts/page-strips.py,page-strips.py,,on-demand
+doc,,docs/column-primitives.md,Column primitives,"what kind of thing a column holds: id, label, locator, value. The role axis, its crossing with the claim-versus-support position, and the dependency that a value domain is only askable under label or locator",reference

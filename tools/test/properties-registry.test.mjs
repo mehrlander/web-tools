@@ -222,6 +222,44 @@ test('every required:value property is present on every row', () => {
   }
 });
 
+// `column_primitive` (2026-09-10, docs/column-primitives.md) says what kind of
+// thing a column holds. Its closed domain is already held by the test above,
+// since the property declares its values, so what is left unheld is the half
+// the doctrine calls countable: an `id` identifies its row, and a `label` is
+// drawn from a set and repeats. Both are measurable against the carrier, so
+// neither has to be taken on the classifier's word.
+//
+// The repetition test runs on ATOMS, not cells, wherever the property declares
+// `exclusive: no`. app-routes.tabs is the case that forces it: two rows, two
+// distinct cells, and no repetition at all until you split them, at which point
+// `docs` appears in both lists. Measuring a list column at cell grain asks the
+// wrong question and would have failed a correct row.
+test('a declared id is its registry key, and a declared label draws from a set or repeats', () => {
+  const split = v => String(v).split(/[;,]/).map(x => x.trim()).filter(Boolean);
+  for (const r of reg.registries.filter(r => r.fields === 'governed')) {
+    const rows = carrierRows(r);
+    for (const d of decls.filter(d => d.registry === r.id)) {
+      const prim = d.column_primitive;
+      if (prim === 'id') {
+        assert.equal(d.property, r.key,
+          `${r.file}: ${d.property} is declared column_primitive:id but the registry's ` +
+          `key is "${r.key}". An id addresses its row; uniqueness alone is not enough.`);
+      }
+      if (prim === 'label' && !Array.isArray(d.values)) {
+        const filled = rows.map(row => row[d.property])
+          .filter(v => v !== undefined && v !== null && v !== '')
+          .map(String);
+        if (!filled.length) continue;
+        const units = d.exclusive === 'no' ? filled.flatMap(split) : filled;
+        assert.ok(new Set(units).size < units.length,
+          `${r.file}: ${d.property} is declared column_primitive:label but every one of its ` +
+          `${units.length} values is distinct and it declares no closed set. A label is drawn ` +
+          `from a set and shared; declare the set, or classify it as a value.`);
+      }
+    }
+  }
+});
+
 test('modes are coherent: computed names a real deriver, recorded names none', () => {
   for (const d of decls) {
     if (d.mode === 'computed') {

@@ -7,6 +7,10 @@ harness,layer,tools,,repo-root harness files that fit no folder below
 harness,layer,tools/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
 harness,layer,tools/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
 harness,layer,tools/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken
+properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry"
+properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class"
+properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry"
+properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check"
 properties,exclusive,no,,one row may hold several values from the domain
 properties,exclusive,yes,,one row holds at most one value from the domain
 properties,form,column,,reserves a slot on every row

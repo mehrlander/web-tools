@@ -39,6 +39,16 @@ the integrity layer: gates are this system's foreign keys, because git has none.
 A **projection** is a generated view of registry data, never authoritative and
 never edited: `tracker/board.md`, `docs/README.md`.
 
+**What a registry's own columns hold is a separate question, and this document
+does not answer it.** [column-primitives.md](column-primitives.md) does: one
+property, `column_primitive`, classifying every column as an `id`, a `label`, a
+`locator` or a `value`, crossed with the claim-versus-support position budget-drs
+already carries. It is the coarse question above `column_domain`. `docs/properties.csv`
+declares it on all 178 rows as of 2026-09-10, measured against each
+property's real column: value 86, label 63, locator 27, id 2. `id` is nearly
+absent by construction, since 28 of the 30 registries declare their key in
+`registries.csv` and do not repeat it as a property row.
+
 **A registry is a registry.** There are no species of them, and the words that
 implied there were are retired. `census`, `catalog` and `crosswalk` were values
 of a single `kind` column from 2026-08-09 to 2026-08-18, and that column answered
