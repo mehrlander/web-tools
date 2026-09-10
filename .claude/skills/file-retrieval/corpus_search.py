@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """corpus_search.py — the "find" verb for the file-retrieval skill.
 
-Scans the corpus named in sources.toml and prints one block per matching
+Scans the corpus named in sources.csv and prints one block per matching
 document, with match snippets in a fixed schema. Behavior (ranking, snippet
 window, stop condition, output shape) is fixed here so a run is one auditable,
 rerunnable command instead of an improvised grep.
 
-Python 3.11+ (tomllib), stdlib only, zero dependencies.
+Python 3.9+, stdlib only, zero dependencies.
 
 Usage:
     corpus_search.py <pattern> [options]
@@ -17,9 +17,9 @@ Options:
     --max N          Stop after N matched documents (default 100). A capped run
                      prints an explicit note so it never reads as exhaustive.
     --meta-only      One line per hit, no snippets.
-    --source NAME    Restrict to one named source from sources.toml (repeatable).
+    --source NAME    Restrict to one named source from sources.csv (repeatable).
     --root DIR       Corpus root the globs resolve against (default: git root, else cwd).
-    --config FILE    Path to sources.toml (default: alongside this script).
+    --config FILE    Path to sources.csv (default: alongside this script).
     --since YYYY-MM-DD / --until YYYY-MM-DD
                      Filter by a document's date, for extractors that carry one.
                      The file-per-document default carries none, so these are
@@ -29,7 +29,7 @@ import argparse
 import pathlib
 import re
 import sys
-import tomllib
+import csv
 
 SNIPPET_PAD = 90          # chars of context on each side of a match
 MAX_SNIPPETS = 3          # snippets shown per document before "... N more"
@@ -50,16 +50,20 @@ def find_root(start: pathlib.Path) -> pathlib.Path:
 
 
 def load_sources(config: pathlib.Path):
-    """Return [{name, globs:[...]}]. sources.toml is a list of [[source]] tables."""
+    """Return [{name, globs:[...]}]. sources.csv is one row per (source, glob);
+    anchor every glob to a real directory (a bare **/*.md would recurse
+    node_modules/), and remember a non-recursive *.md catches only root files."""
     if not config.exists():
-        sys.exit(f"no config at {config}; copy sources.toml and list your globs")
-    data = tomllib.loads(config.read_text())
-    srcs = data.get("source", [])
-    if not srcs:
-        sys.exit(f"{config} defines no [[source]] tables")
+        sys.exit(f"no config at {config}; copy sources.csv and list your globs")
+    by = {}
+    with config.open(newline="") as fh:
+        for r in csv.DictReader(fh):
+            by.setdefault(r["source"], []).append(r["glob"])
+    if not by:
+        sys.exit(f"{config} defines no source rows")
     out = []
-    for s in srcs:
-        out.append({"name": s.get("name", "?"), "globs": s.get("globs", [])})
+    for name, globs in by.items():
+        out.append({"name": name, "globs": globs})
     return out
 
 
@@ -144,7 +148,7 @@ def main():
     args = ap.parse_args()
 
     here = pathlib.Path(__file__).resolve().parent
-    config = pathlib.Path(args.config) if args.config else here / "sources.toml"
+    config = pathlib.Path(args.config) if args.config else here / "sources.csv"
     root = pathlib.Path(args.root).resolve() if args.root else find_root(here)
 
     sources = load_sources(config)

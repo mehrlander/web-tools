@@ -467,3 +467,100 @@ test('an errored row is carried, and healed a few at a time', async () => {
   const quiet = await B.scanOlder(gh, { older, prior, mainSha: 'm1', priorMainSha: 'm1', now: Date.now() });
   assert.equal(quiet.scanned, 0);
 });
+
+// A GH stub that answers the whole scan path: the default tree, then a compare
+// per branch. Defined here beside the tests that use it rather than at the top,
+// since the cases above each build the narrower stub they need.
+const fakeGH = () => ({
+  req: async () => ({ tree: [] }),
+  compare: async () => ({ files: [], ahead_by: 1, behind_by: 0, commits: [] }),
+  ago: () => 'a while ago',
+});
+
+// ── The horizon and the budget ──────────────────────────────────────────────
+// `cap` was one number doing two jobs, and the second was an accident:
+// `older.slice(0, cap)` truncated the QUEUE, so a branch past it got no row at
+// all and a branch that fell out of the top `cap` lost a verdict an earlier
+// crawl had already paid for. Measured 2026-09-09: web-tools stored 30 rows
+// against 401 older branches, home 30 against 425, and the estate's stranded
+// reading described its freshest fifth while reading as though it described
+// everything.
+//
+// Splitting them is only worth anything if coverage GROWS, and that turns
+// entirely on which rows the budget buys. `mainMoved` marks every carried row
+// as needing a rescan, so a budget spent in list order re-derives the same
+// freshest rows forever. Hence scanPriority, and hence these tests.
+
+test('keep is the horizon: every branch gets a row, budget or not', async () => {
+  const older = Array.from({ length: 10 }, (_, i) =>
+    ({ name: 'b' + i, sha: 's' + i, date: '2026-0' + (9 - Math.floor(i / 5)) + '-01T00:00:00Z' }));
+  const gh = fakeGH();
+  const out = await B.scanOlder(gh, { older, cap: 3, now: Date.now() });
+  assert.equal(out.rows.length, 10, 'a row per branch, not a row per scan');
+  assert.equal(out.scanned, 3, 'the budget is what bounds the calls');
+  assert.equal(out.pending, 7, 'and it says how many it could not reach');
+});
+
+test('a branch nobody has scanned says so, rather than reading as a finished row', () => {
+  // The bug widening the horizon introduced. `{...undefined, ...b, state:'done'}`
+  // is a row claiming a verdict it does not have: `group` is absent, so every
+  // scope test excludes it, and a branch nobody looked at becomes
+  // indistinguishable from one that was looked at and matched nothing.
+  const older = Array.from({ length: 4 }, (_, i) => ({ name: 'b' + i, sha: 's' + i, date: '2026-08-01T00:00:00Z' }));
+  return B.scanOlder(fakeGH(), { older, cap: 1, now: Date.now() }).then(out => {
+    const unscanned = out.rows.filter(r => r.state === 'unscanned');
+    assert.equal(unscanned.length, 3);
+    for (const r of unscanned) {
+      assert.equal(r.group, undefined, 'no verdict is stated');
+      assert.ok(r.name && r.sha, 'the branch facts are still there');
+    }
+  });
+});
+
+test('the budget buys NEVER-SCANNED rows first, so coverage grows', async () => {
+  // Two already carry a verdict and main has moved, so all four "need" a scan.
+  // Spending the budget in list order would re-derive the two the crawl already
+  // knows and leave the two it does not, on every pass, forever.
+  const older = [
+    { name: 'known-new', sha: 'k1', date: '2026-09-01T00:00:00Z' },
+    { name: 'known-old', sha: 'k2', date: '2026-08-20T00:00:00Z' },
+    { name: 'fresh-a', sha: 'f1', date: '2026-08-10T00:00:00Z' },
+    { name: 'fresh-b', sha: 'f2', date: '2026-08-05T00:00:00Z' },
+  ];
+  const prior = new Map([
+    ['known-new', { name: 'known-new', sha: 'k1', group: 'landed', state: 'done' }],
+    ['known-old', { name: 'known-old', sha: 'k2', group: 'landed', state: 'done' }],
+  ]);
+  const gh = fakeGH();
+  const out = await B.scanOlder(gh, { older, prior, cap: 2, mainSha: 'm2', priorMainSha: 'm1',
+                                      now: Date.now() });
+  const scanned = out.rows.filter(r => !r.carried && r.state === 'done').map(r => r.name).sort();
+  assert.deepEqual(scanned, ['fresh-a', 'fresh-b']);
+  // And the two it skipped keep the verdict they already had.
+  assert.equal(out.rows.find(r => r.name === 'known-new').group, 'landed');
+});
+
+test('a branch whose own tip moved outranks a main-moved rescan', async () => {
+  // Within what is already known, a moved branch is the one whose verdict can
+  // actually be wrong; a main-moved rescan only ever nudges a row toward
+  // `landed`, which is the benign direction.
+  const older = [
+    { name: 'still', sha: 's1', date: '2026-09-01T00:00:00Z' },
+    { name: 'moved', sha: 's2-new', date: '2026-08-01T00:00:00Z' },
+  ];
+  const prior = new Map([
+    ['still', { name: 'still', sha: 's1', group: 'landed', state: 'done' }],
+    ['moved', { name: 'moved', sha: 's2-old', group: 'landed', state: 'done' }],
+  ]);
+  const out = await B.scanOlder(fakeGH(), { older, prior, cap: 1, mainSha: 'm2', priorMainSha: 'm1',
+                                            now: Date.now() });
+  assert.equal(out.rows.find(r => r.name === 'moved').carried, undefined, 'the moved branch was scanned');
+  assert.equal(out.rows.find(r => r.name === 'still').carried, true);
+});
+
+test('beyondHorizon counts what keep itself cut, so the cap can never be silent', async () => {
+  const older = Array.from({ length: 8 }, (_, i) => ({ name: 'b' + i, sha: 's' + i, date: '2026-08-01T00:00:00Z' }));
+  const out = await B.scanOlder(fakeGH(), { older, keep: 5, cap: 2, now: Date.now() });
+  assert.equal(out.rows.length, 5);
+  assert.equal(out.beyondHorizon, 3);
+});
