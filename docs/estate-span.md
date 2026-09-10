@@ -36,7 +36,7 @@ the crawl.
 | `.paths.json` declarations | 2 | both | hub carries none |
 
 The skills: home 10, chat-histories 4, wa-bills 1. The fork is wa-bills'
-`web-tools-conventions`, a 110-line copy of the hub's `web-tools` skill whose
+`web-tools-conventions`, a 110-line copy of the hub's `default` skill whose
 description still names the merge-guide lifecycle retired on 2026-08-05, and
 which loads `CONVENTIONS.md` alone, missing the `SURFACING.md` split. The plugin
 has shipped the current version to that repo the whole time; the committed copy

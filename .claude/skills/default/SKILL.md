@@ -1,15 +1,17 @@
 ---
-name: web-tools
+name: default
 description: >-
-  Load the portable surfacing conventions from mehrlander/web-tools
-  (docs/SURFACING.md) into a session that does not have that repo checked
-  out. Use in any repo when the user mentions "my conventions", "house
-  rules", surfacing/per-file link format, show-pixels/screenshot-it,
-  "hand over the artifact"/SendUserFile, branch anchor, wrap-up, or PR
-  body shape, or when invoked explicitly as /web-tools.
+  The context every session runs on: the portable surfacing conventions
+  from mehrlander/web-tools (docs/SURFACING.md), fetched into a session
+  that does not have that repo checked out. Load this at the start of any
+  session that did not receive them, and in any repo when the user
+  mentions "my conventions", "house rules", surfacing/per-file link
+  format, show-pixels/screenshot-it, "hand over the artifact"/SendUserFile,
+  branch anchor, wrap-up, or PR body shape, or when invoked explicitly as
+  /portable:default.
 ---
 
-# web-tools conventions loader
+# The default session context
 
 A session with `mehrlander/web-tools` checked out already has the conventions:
 its `CLAUDE.md` carries Qualified writing and `@`-imports `docs/SURFACING.md`.

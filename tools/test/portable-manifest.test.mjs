@@ -69,7 +69,7 @@ test('every skill directory on disk is a manifest skill item', () => {
 });
 
 // The vendored copies. The plugin ships CONVENTIONS.md and SURFACING.md inside
-// the web-tools skill so loading them costs no fetch; docs/ is the
+// the default skill so loading them costs no fetch; docs/ is the
 // authoritative and these are copies by design. They have drifted
 // before and were resynced by hand (2b785b2), which is exactly the failure
 // mode of an ungated copy.

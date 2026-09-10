@@ -11,7 +11,7 @@ description: >-
   workspace that pins historical material, and when a session opens on a repo
   whose frozen areas it has not seen. Owns the Frozen/Stale/Wrong vocabulary,
   the .paths.json declaration, and status.py; the tasks skill owns tracker
-  tasks and the web-tools skill owns PR bodies and surfacing links.
+  tasks and the default skill owns PR bodies and surfacing links.
 ---
 
 # markers

@@ -116,9 +116,9 @@ if delivered or not needing:
     sys.exit(0)
 
 print(
-    "Invoke /portable:web-tools now, before any reply that hands work over.\n"
-    "The portable surfacing conventions are not in this session's context: no "
-    "checkout here @-imports them (checked: " + ", ".join(needing[:6]) + "). "
+    "Invoke /portable:default now: the context every session runs on, which this "
+    "one did not receive. No checkout here @-imports the surfacing conventions "
+    "(checked: " + ", ".join(needing[:6]) + "). "
     'Opt a repo out with "conventions": "optout" in its .web-tools.json.'
 )
 PY

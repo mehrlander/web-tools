@@ -1,5 +1,5 @@
 // docs/SURFACING.md is @-imported by CLAUDE.md into every session with this
-// repo checked out, and fetched whole by the web-tools skill everywhere else.
+// repo checked out, and fetched whole by the default skill everywhere else.
 // A word in it is a cost paid at every session start, which is the argument
 // PR #509 made when it cut the injected documents to their declarations, and
 // PR #634 extended when it retired the injection hook and CONVENTIONS.md:

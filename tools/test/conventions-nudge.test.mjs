@@ -61,7 +61,7 @@ test('a checkout that only names the command in prose gets the directive', () =>
     home: { 'CLAUDE.md': 'Working style: run `/web-tools` to load the conventions.\n' },
   });
   const out = run(root);
-  assert.match(out, /^Invoke \/portable:web-tools now/, 'the directive leads, so it survives a truncated preview');
+  assert.match(out, /^Invoke \/portable:default now/, 'the directive leads, so it survives a truncated preview');
   assert.match(out, /\bhome\b/, 'it names the checkout it checked');
 });
 
