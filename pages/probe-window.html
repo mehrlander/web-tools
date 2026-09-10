@@ -89,7 +89,10 @@
 
       <div class="border-t border-base-300 bg-base-200 px-4 py-3
                   grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 items-start">
-        <button type="button" class="btn btn-sm" :disabled="s.filing"
+        <!-- `!!`, because an undefined here SETS the attribute rather than
+             clearing it, which would leave the button permanently disabled if a
+             reading ever arrived without the field (bound-boolean-attrs). -->
+        <button type="button" class="btn btn-sm" :disabled="!!s.filing"
                 @click="file()" x-text="s.filing ? 'Filing…' : 'File the capture'"></button>
         <span class="text-[11px] truncate self-center" x-text="s.dest"></span>
         <span class="text-[11px] opacity-55">holds</span>
