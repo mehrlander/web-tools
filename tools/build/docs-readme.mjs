@@ -48,7 +48,7 @@ function render(reg, owners) {
   lines.push('from [`docs.csv`](docs.csv), the documentation registry, which also renders');
   lines.push('live in [the Web Tools app\'s Map view, Docs tab](https://mehrlander.github.io/web-tools/app/?view=map)');
   lines.push('alongside the shared-claims table (statements that live in more than one');
-  lines.push('place, each with its one authoritative carrier and the check that holds each');
+  lines.push('place, each with its one authoritative file and the check that holds each');
   lines.push('copy, or the honest absence of one). A **record** preserves a moment and is');
   lines.push('corrected by markers, never rewritten; a **measured** doc carries dated');
   lines.push('observations and is corrected by re-probing; everything else is living and');

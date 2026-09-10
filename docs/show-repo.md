@@ -238,13 +238,13 @@ show-repo contributed exactly one row through it, the app-wide paste, and on
 2026-08-22 that row was promoted into the fab beside "Take a note" and "Web
 Tools home". The promotion is the argument: a paste is worth most exactly where
 there is no other way in, and a contributed row could only ever appear on the
-page that already had a Stage on screen. What being everywhere costs is a
-carrier, since the stage is `Alpine.store('browser').stage`, a store array held
-for one page load, and the navigation that reaches a Stage is what would
-otherwise discard the paste. So the fab defers to `pasteAnywhere` on a document
-that renders the Stage, and parks the clipboard's flavors through
+page that already had a Stage on screen. What being everywhere costs is
+somewhere to hold the paste, since the stage is `Alpine.store('browser').stage`,
+a store array held for one page load, and the navigation that reaches a Stage is
+what would otherwise discard the paste. So the fab defers to `pasteAnywhere` on
+a document that renders the Stage, and parks the clipboard's flavors through
 [`kits/stage-handoff.js`](../lib/kits/stage-handoff.js) everywhere else, for
-this app to drain at boot. The carrier moves **flavors, not staged items**: what
+this app to drain at boot. The handoff moves **flavors, not staged items**: what
 a pasted thing becomes is this file's intake decision, and making the sending
 page decide would mean pulling the 233K stage component on a long press for a
 paste that may never happen.
@@ -763,7 +763,7 @@ worth stating once: these are **app routes**, addresses in this page;
 [`docs/routes-routes.csv`](routes-routes.csv)'s rows are **toss routes**, a content type
 mapped to a renderer page. Different targets, so neither describes the other.
 
-The pane reads the manifest and one `commits?path=` call per declared carrier
+The pane reads the manifest and one `commits?path=` call per declared file
 against the hub, ranks the rows freshest first, and joins each to the open pull
 requests whose files it touches. Nothing is cached and nothing is crawled: these
 routes belong to one page in one repo, so the read is about two dozen requests
@@ -830,7 +830,7 @@ it; a **Branches** row carries a chip strip of the routes it is working on, off
 the same manifest, the same PR file lists, and the same narrow/wide rule, so the
 two readings cannot disagree. That shared half (the manifest plus one
 `pulls/N/files` per open PR, about six calls) loads on either pane, so visiting
-one warms the other, and the Branches pane skips the per-carrier dating it has
+one warms the other, and the Branches pane skips the per-file dating it has
 no use for. A chip taps through to its route. Rows from every other repo carry
 nothing rather than an empty strip: routes are one page in one repo, and a row
 that cannot be answered should not look like a row with no answer.
@@ -1734,7 +1734,7 @@ verdict and no chips: absent means not read, never not aligned.
 *Surfacing* indexes the primitives from [`docs/surfacing.csv`](surfacing.csv),
 one card each (glyph, use, form, boundary). The ownership runs opposite to
 every other tab, and the header says so: [`SURFACING.md`](SURFACING.md) is the
-authoritative carrier, since it is what sessions load and follow, and the
+authoritative document, since it is what sessions load and follow, and the
 manifest is its gated index (membership held two-way to the doc's bullet
 lead-ins by `tools/test/surfacing-manifest.test.mjs`; the card summaries are
 paraphrases and stay unchecked, which the Docs registry's claims table states).
@@ -1780,7 +1780,7 @@ the lead-in is `li > p > strong:first-child`. The tight `li > strong` matched
 none of the twenty-two. [`tools/test/surfacing-lead-anchor.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/surfacing-lead-anchor.test.mjs)
 renders the real doc and holds both facts.
 
-The header's deck door opens that carrier and its index as two slides of the
+The header's deck door opens `SURFACING.md` and its index as two slides of the
 house swipe deck rather than routing to the Files view (2026-09-04): docked, the
 prose sits beside the cards it is authoritative for, where the route change put
 them off screen. It wears `swipeDeck.entry`'s glyph and wording like every other
@@ -1854,7 +1854,7 @@ registry that describes markdown was otherwise rendering its own
 `[caption](url)` as a link. The peek keeps the raw excerpt, which is what a
 glance at the head of a file wants. The file list runs two
 columns above `xl` so a wide screen is used rather than left as a gutter. And the **shared claims**: statements that live in
-more than one place, each with its one authoritative carrier and its typed
+more than one place, each with the one file that owns it and its typed
 repetitions (copy, paraphrase, pointer, live read; a copy says who keeps it, by
 hand or by a named builder), where an absent check renders in the warning tone
 rather than being omitted, because an unchecked copy should look unchecked every

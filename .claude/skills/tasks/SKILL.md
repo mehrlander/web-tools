@@ -14,7 +14,7 @@ description: >-
   "assess the tracker", "refine the tracker", "groom the tracker", "clean up
   the backlog", "audit the tasks", or "prune stale tasks", or when a follow-up
   needs to survive across sessions. Owns the tracker's operations and filing
-  rules; the web-tools skill owns PR bodies, surfacing links, and the merge
+  rules; the default skill owns PR bodies, surfacing links, and the merge
   guide, so route those there.
 ---
 
@@ -242,6 +242,6 @@ remember it.
 
 ## Boundary with web-tools
 
-This skill owns the tracker. The `web-tools` skill owns PR bodies, `[new]`,
+This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
 `[main]` and `[diff]` links, the 🎫 marker's display form, the merge guide,
 and wrap-up.

@@ -280,8 +280,8 @@ test('markPageFields: the sentinel keeps the first result run and its formatting
   const doc = parse(FOOTER);
   docxKit.markPageFields(doc);
   const runs = [...doc.getElementsByTagNameNS(W, 'r')];
-  const carrier = runs.find(r => r.textContent === docxKit.PAGE_FIELD);
-  assert.ok(carrier.getElementsByTagNameNS(W, 'b').length, 'the bold on the result run survives');
+  const resultRun = runs.find(r => r.textContent === docxKit.PAGE_FIELD);
+  assert.ok(resultRun.getElementsByTagNameNS(W, 'b').length, 'the bold on the result run survives');
 });
 
 test('expandSimpleFields: a simple field becomes the complex run form, its result runs kept in place', () => {

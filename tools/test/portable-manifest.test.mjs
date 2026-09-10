@@ -55,7 +55,7 @@ test('every manifest path exists in the repo', () => {
 // catalogued or not. Four shipped uncatalogued for a while (measured
 // 2026-08-04: disk 15, manifest 9, MARKETPLACE.md 5), because the tests above
 // gate the Docs/Scripts tables and never counted skills. Disk is the
-// authoritative carrier of membership; the manifest is the gated copy.
+// authoritative for membership; the manifest is the gated copy.
 test('every skill directory on disk is a manifest skill item', () => {
   const skillsDir = path.join(repoRoot, '.claude', 'skills');
   const onDisk = readdirSync(skillsDir, { withFileTypes: true })
@@ -69,8 +69,8 @@ test('every skill directory on disk is a manifest skill item', () => {
 });
 
 // The vendored copies. The plugin ships CONVENTIONS.md and SURFACING.md inside
-// the web-tools skill so loading them costs no fetch; docs/ is the
-// authoritative carrier and these are copies by design. They have drifted
+// the default skill so loading them costs no fetch; docs/ is the
+// authoritative and these are copies by design. They have drifted
 // before and were resynced by hand (2b785b2), which is exactly the failure
 // mode of an ungated copy.
 

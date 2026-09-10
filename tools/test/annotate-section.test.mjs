@@ -149,11 +149,11 @@ test('the aim button shows the glyph of the aim in force, and names it in full',
 // ── Several renders in one document ─────────────────────────────────────────
 //
 // The deck mounts four at once and a doc beside a preview is two, so "the
-// markdown on this page" is routinely plural. The carrier answers both
+// markdown on this page" is routinely plural. src-doc answers both
 // questions now: declaredIn is what a CONTROL asks (does anything here declare
 // an aim), declaredAll is what a MARK asks (where is it).
 
-test('the carrier answers with every declared render, not just the first', () => {
+test('src-doc answers with every declared render, not just the first', () => {
   const a = render(), b = render();
   const all = window.srcDoc.declaredAll(doc);
   assert.equal(all.length, 2, 'both renders qualify');

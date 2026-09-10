@@ -9,8 +9,8 @@
 //
 // `path` replaces all three, and it is now a plain file path. It briefly also
 // took a `#fragment` naming the key that held the rows, which every JSON
-// carrier needed and thirteen of twenty-one carried; that was `rows`' old job
-// under a new name. It went when the last JSON carrier became a CSV on
+// registry needed and thirteen of twenty-one carried; that was `rows`' old job
+// under a new name. It went when the last JSON registry became a CSV on
 // 2026-08-18, because a CSV's file IS its table. `file` survives as an alias of
 // `path` so consumers written against the split still read.
 import { readFileSync } from 'node:fs';

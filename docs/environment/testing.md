@@ -229,7 +229,7 @@ Component-test lessons that generalize:
   render (`npm run shot`) caught the blank panel. Pair `x-collapse` with an
   `x-show`, or, when you only need presence toggling and not the height
   animation, mount with a plain `x-if` and no `x-collapse`.
-- **Stub a carrier with its bytes, never with an object.** A test that hands a
+- **Stub a data file with its bytes, never with an object.** A test that hands a
   reader `JSON.stringify(fixture)` supplies the shape the reader already
   expects, so it cannot notice when the real file stops having that shape. Four
   readers broke this way in one session (2026-08-18) when eleven registries

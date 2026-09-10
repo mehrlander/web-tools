@@ -1,6 +1,6 @@
 # Surfacing
 
-Use these rules when chat is the only output channel. The canonical source is `mehrlander/web-tools` at `docs/SURFACING.md`, loaded by that repo's `CLAUDE.md` `@`-import or fetched by the `web-tools` skill. Local `CLAUDE.md` rules override these defaults. Apply repo- and branch-scoped rules per workstream, substituting the current repo in URL templates.
+Use these rules when chat is the only output channel. The canonical source is `mehrlander/web-tools` at `docs/SURFACING.md`, loaded by that repo's `CLAUDE.md` `@`-import or fetched by the `default` skill. Local `CLAUDE.md` rules override these defaults. Apply repo- and branch-scoped rules per workstream, substituting the current repo in URL templates.
 
 ---
 
@@ -51,7 +51,7 @@ The task marker 🎫, the session diff, and review the diff 🔍 follow [surfaci
 
 Run `npm run showing` before handing over a render link, and paste the line it prints. It reads the branch's changed files and either names the page and mechanism that reach them, or reports that no link does.
 
-Uncommon carriers (lead with the live view, publish an artifact 📦, stage a fileset 🗂️, envelopes, data toss 📊, clipboard 📋/run 📲 links): follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
+Uncommon ways to hand something over (lead with the live view, publish an artifact 📦, stage a fileset 🗂️, envelopes, data toss 📊, clipboard 📋/run 📲 links): follow [surfacing-extended.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-extended.md).
 
 ### PR events
 

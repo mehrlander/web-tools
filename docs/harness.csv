@@ -1,6 +1,7 @@
 path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
+.claude/skills/hooks/conventions-nudge.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,135,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
@@ -32,7 +33,7 @@ scripts/showing.py,"decide which render link, if any, shows what a branch change
 scripts/stranded-titles.py,,scripts,326,npm:stranded-titles,no,yes,yes
 scripts/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",scripts,269,argv,no,no,yes
 scripts/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,scripts,111,npm:sunset,no,no,yes
-scripts/text-carriers.py,"inventory the CSV and JSON carriers that already hold authored prose, and registry their field names to show how much vocabulary the carriers share",scripts,539,argv,no,yes,yes
+scripts/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",scripts,539,argv,no,yes,yes
 scripts/unclaimed-code.py,"per-layer counts of files, files prose names, and files a test exercises; the code-scan behind code-layers.md",scripts,187,npm:code-scan,no,yes,no
 scripts/userscript-stub.py,,scripts,158,argv,no,yes,yes
 tools/build/audit-payload.py,"build a standoff annotation from a document plus its segmentation and labels, and the audit/1 delivery payload that carries it into a page",tools/build,174,argv,no,yes,yes
@@ -176,7 +177,7 @@ tools/render/scenarios/map-showing.mjs,"the Map's Showing tab: how content moves
 tools/render/scenarios/map-skill-uses.mjs,"the Map's Skills tab with the invocation column: which skills actually fire, and which have never fired at all",tools/render/scenarios,80,driver,no,no,no
 tools/render/scenarios/map-skills.mjs,"the Map's Skills tab with all three sets live: the committed library and plugin manifests served through a stubbed GH, plus a fixture config cache for the estate; SKILLS_SET and SKILLS_Q drive the control and the search",tools/render/scenarios,95,driver,no,no,no
 tools/render/scenarios/map-surfacing-read.mjs,"the Surfacing tab's two header doors: the Read deck (filled, docked, and on its index slide) and the peek card over the doc's own mark",tools/render/scenarios,97,driver,no,no,no
-tools/render/scenarios/map-tests-compared.mjs,"the Map view's Tests tab with the compared toggle on: the comparison-grain reading under each explained file, and the estate section fed by home's own carrier",tools/render/scenarios,97,driver,no,no,no
+tools/render/scenarios/map-tests-compared.mjs,"the Map view's Tests tab with the compared toggle on: the comparison-grain reading under each explained file, and the estate section fed by home's own file",tools/render/scenarios,97,driver,no,no,no
 tools/render/scenarios/map-tests.mjs,the Map view's Tests tab: the test registry rendered live with assertion names expanded,tools/render/scenarios,63,driver,no,no,no
 tools/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,tools/render/scenarios,20,driver,no,no,no
@@ -205,7 +206,7 @@ tools/render/scenarios/ref-switch.mjs,the header ref switch seeded token-free,to
 tools/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo declaring a `landing`: the Landing row beside Overview, which no real repo produces",tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",tools/render/scenarios,12,driver,no,no,no
 tools/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",tools/render/scenarios,54,driver,no,no,no
-tools/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each carrier's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",tools/render/scenarios,78,driver,no,no,no
+tools/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",tools/render/scenarios,78,driver,no,no,no
 tools/render/scenarios/search-chats.mjs,the Files view's Chats lane: the fourth mode pill and a chat hit's shape,tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/search-cold.mjs,the Files view's cold open: a bare arrival scopes to the browsed repo and walks it,tools/render/scenarios,50,driver,no,no,no
 tools/render/scenarios/search-controls.mjs,"the Files view's scope controls, with the ref picker open",tools/render/scenarios,72,driver,no,no,no

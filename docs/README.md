@@ -6,7 +6,7 @@ Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
 live in [the Web Tools app's Map view, Docs tab](https://mehrlander.github.io/web-tools/app/?view=map)
 alongside the shared-claims table (statements that live in more than one
-place, each with its one authoritative carrier and the check that holds each
+place, each with its one authoritative file and the check that holds each
 copy, or the honest absence of one). A **record** preserves a moment and is
 corrected by markers, never rewritten; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
@@ -49,7 +49,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
 - [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, mailbox, proposals, editing from the shell)
 - [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
-- [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative carrier
+- [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
@@ -67,10 +67,10 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
 - [`surfacing-course.md`](surfacing-course.md) — the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases
-- [`surfacing-extended.md`](surfacing-extended.md) — the surfacing carriers most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
+- [`surfacing-extended.md`](surfacing-extended.md) — the ways of handing something over that most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
-- [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the carriers holding it are organized, and how much never reached one
+- [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial

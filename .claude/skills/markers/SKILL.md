@@ -11,13 +11,13 @@ description: >-
   workspace that pins historical material, and when a session opens on a repo
   whose frozen areas it has not seen. Owns the Frozen/Stale/Wrong vocabulary,
   the .paths.json declaration, and status.py; the tasks skill owns tracker
-  tasks and the web-tools skill owns PR bodies and surfacing links.
+  tasks and the default skill owns PR bodies and surfacing links.
 ---
 
 # markers
 
-Two carriers, split by subject. Getting the split right is the whole point, so
-lead with it.
+A marker and a declaration, split by subject. Getting the split right is the
+whole point, so lead with it.
 
 | | Subject | Says | Covers |
 |---|---|---|---|
@@ -166,7 +166,7 @@ the installed copies means a normal run never silently exercises unmerged code.
 3. a declared path that does not exist;
 4. **a markdown file declared frozen that carries no `Frozen` banner.**
 
-Only (4) crosses between the carriers, and only in that direction. A frozen
+Only (4) crosses from a declaration to a marker, and only in that direction. A frozen
 markdown file should say so where it is read, since the JSON is invisible to
 someone opening the file. The reverse does not hold: a `Frozen` marker inside a
 living document annotates one claim and implies nothing about the file, so

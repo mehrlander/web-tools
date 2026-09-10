@@ -39,7 +39,7 @@ rest sits at its code, as in #403.
 - 2026-09-04: The measurement command in this task no longer exists.
   `scripts/text-census.py` was deleted and has no successor:
   `scripts/text-carriers.py`, which `docs/text-content.md` was rewritten around,
-  answers a different question (prose fields inside data carriers, not comment
+  answers a different question (prose fields inside data files, not comment
   mass inside code). So the first move is a count, by whatever means, and the
   figures above are one taken during this refinement pass with a line-based
   scan. Nothing else about the task changes: the ranking holds, and the point

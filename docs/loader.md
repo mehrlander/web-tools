@@ -82,13 +82,13 @@ from `raw.githubusercontent` (no branch-tip cache) and blob-imports it, and
 fresh on a just-pushed branch. jsDelivr serves only the no-`?use` `@main`
 default, which is cache-stable and shared.
 
-The `gh-api.js` auto-bootstrap triggers on either carrier: an import URL with an
+The `gh-api.js` auto-bootstrap triggers on either signal: an import URL with an
 `@<ref>` segment pointing at `lib/gh-api.js` (the jsDelivr path), or
 `window.__ghBlobBoot = { repo, ref }` set before a blob-import (the `?use=`
 path, where `import.meta.url` is an opaque `blob:` URL). Either way it sets the
 loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
 under `lib/`. Older pages that hard-code the bundle URL without `@<ref>` and set
-no `__ghBlobBoot` are unaffected: neither carrier matches, so the bootstrap
+no `__ghBlobBoot` are unaffected: neither signal matches, so the bootstrap
 stays dormant and the page instantiates `GH` by hand.
 
 ### What each piece contributes

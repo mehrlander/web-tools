@@ -17,7 +17,7 @@ This is the part worth understanding rather than looking up, because it explains
 
 So a change that is *both* in a page's own inline shell *and* aimed at the top-level document is reachable by neither, and the escape is not a better link but **moving the code**: in a lib module, `?use=` reaches it, since that is the only mechanism swapping code without swapping which document is on top.
 
-The `?use=` half of that table is a consequence of the loader, not a fact about showing. [`loader.md`](loader.md) owns it: what the parameter swaps, why a branch name is cache-safe, the raw-versus-jsDelivr split, and the `window.__ghBlobBoot` carrier. Read it there rather than here.
+The `?use=` half of that table is a consequence of the loader, not a fact about showing. [`loader.md`](loader.md) owns it: what the parameter swaps, why a branch name is cache-safe, the raw-versus-jsDelivr split, and the `window.__ghBlobBoot` global. Read it there rather than here.
 
 ## What nesting reaches, and what it cannot
 

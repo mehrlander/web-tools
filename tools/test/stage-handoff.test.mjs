@@ -1,4 +1,4 @@
-// stage-handoff.test.mjs — the carrier that lets a paste taken on one page
+// stage-handoff.test.mjs — the handoff that lets a paste taken on one page
 // arrive on the Stage in another.
 //
 // The kit is small and its whole job is a boundary, so what is worth holding is
