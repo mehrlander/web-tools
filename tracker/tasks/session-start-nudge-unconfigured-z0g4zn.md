@@ -1,9 +1,11 @@
 ---
 id: session-start-nudge-unconfigured-z0g4zn
 title: Session-start nudge for repos that never opted in
-status: backlog
+status: done
 project: conventions
 opened: 2026-07-15
+closed: 2026-09-10
+session: claude/zealous-fermat-s12v9r
 size: S
 ---
 # Session-start nudge for repos that never opted in
@@ -53,3 +55,22 @@ own. Check 3 nudges it anyway.
   up", and `liveScanConfigs` is the detector that would say so, which leaves the
   check nothing to add. The remaining work is unchanged: a global `SessionStart`
   hook running checks 1 to 3, plus its install in the account setup script.
+- 2026-09-10: built and merged in PR #648. Four departures from the design above,
+  each deliberate. It ships **in the `portable` plugin**, not in
+  `~/.claude/settings.json`: the plugin already registers `SessionStart` at user
+  scope and the platform installs it every session, so the account setup-script
+  install this task named as a second deliverable is not needed and was not
+  built. It is **its own hook entry** rather than a line in
+  `session-dispatch.sh`, because the harness output cap applies per entry and a
+  folded-in nudge would be the first thing truncated on a heavy session. Check 1
+  reads a **resolved `@`-import carrying the `## Surfacing primitives` heading**
+  rather than an import of `CONVENTIONS.md`, which was retired; the plugin half
+  of check 1 is dropped, since a repo enabling the plugin is how the hook runs at
+  all. And check 3's outcome is narrower than the wording above: it prints
+  *Invoke /portable:default now for plugin context intended for all sessions*,
+  which loads the conventions into the session in hand. It does **not** offer to
+  install the plugin or write an opt-out, so the repo-configuration half of check
+  3 is unbuilt. Whether that offer is still wanted is a separate question, not
+  filed here. Coverage is `tools/test/conventions-nudge.test.mjs`, asserting both
+  silence and speech, since a nudge that never fires and one that always fires
+  look the same from outside.
