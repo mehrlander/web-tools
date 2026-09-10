@@ -116,10 +116,10 @@ if delivered or not needing:
     sys.exit(0)
 
 print(
-    "Invoke /portable:default now: the context every session runs on, which this "
-    "one did not receive. No checkout here @-imports the surfacing conventions "
-    "(checked: " + ", ".join(needing[:6]) + "). "
-    'Opt a repo out with "conventions": "optout" in its .web-tools.json.'
+    "Invoke /portable:default now. This session did not get the surfacing "
+    "conventions: no checkout here @-imports them (checked: "
+    + ", ".join(needing[:6]) + "). "
+    'To stop the asking, put "conventions": "optout" in a repo\'s .web-tools.json.'
 )
 PY
 exit 0
