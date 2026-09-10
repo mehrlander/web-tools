@@ -176,6 +176,28 @@ test('the verbs the keys reach are on the api too, since a phone has no keys', (
   assert.equal(w.Probe.held, false);
 });
 
+test('a page error lands in the trace, where a capture will carry it', () => {
+  // A reader saw a browser banner over `ResizeObserver loop completed with
+  // undelivered notifications`, which is a notice rather than an exception:
+  // no stack, nothing stopped. What the capture could not say was whether a
+  // resize storm ran with it, and a console is not a surface a phone has open.
+  const w = boot({ search: '?probe=1' });
+  w.dispatchEvent(new w.ErrorEvent('error', { message: 'ResizeObserver loop completed with undelivered notifications' }));
+  const hit = w.Probe.trace().find((r) => r.tag === 'page:error');
+  assert.ok(hit, 'the trace is where a capture reads it');
+  assert.match(hit.detail, /ResizeObserver loop/);
+  assert.match(w.document.getElementById('wt-probe').textContent, /page:error/);
+
+  // A page erroring every frame must not spend the sixteen lines the overlay
+  // draws, which is what the run-length collapse is for.
+  for (let i = 0; i < 30; i++) {
+    w.dispatchEvent(new w.ErrorEvent('error', { message: 'ResizeObserver loop completed with undelivered notifications' }));
+  }
+  const lines = w.Probe.trace().filter((r) => r.tag === 'page:error');
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].n, 31);
+});
+
 test('the overlay hops corners rather than being dragged', () => {
   const w = boot({ search: '?probe=pop' });
   const box = w.document.getElementById('wt-probe');
