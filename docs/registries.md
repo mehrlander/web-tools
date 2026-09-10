@@ -173,11 +173,10 @@ that are tangled.
 **`renders_in` is derived**, the files under `lib/`, `pages/` and `app/` that
 name a registry's path in code, stamped by
 [`registries-reach.mjs`](../tools/build/registries-reach.mjs) over the same
-comment-stripped corpus as the docs registry's `reach`. It exists because the
-audits below converge on one law: an authored claim nothing reads goes wrong. A
-registry no surface renders is that exposure at the registry grain, committed and
-gated and met by nobody. The badge asks the question; it does not settle it,
-since a GitHub-rendered projection is a legitimate answer.
+comment-stripped corpus as the docs registry's `reach`. A registry no surface
+renders is committed and gated and met by nobody, which is worth being able to
+see. The badge asks the question; it does not settle it, since a
+GitHub-rendered projection is a legitimate answer.
 
 Its first run also caught a defect in the shared scanner: a `/*` inside a `//`
 line comment opened a phantom block that swallowed hundreds of code lines, which
@@ -214,10 +213,9 @@ than rows touched has restamped the file.
 
 A committed CSV that inventories part of the tree is a registry, and the rule
 above ("adding one means adding a row here") reads as an instruction to create
-one. It is a rule about *declaring* a carrier, not about *needing* one, and the
-distinction has teeth: a registry beside data that already exists is the
-duplication the integrity rule exists to prevent, and it will be the copy that
-ages.
+one. It is a rule about *declaring* a registry, not about *needing* one. Where
+the same assertions already sit somewhere else, a new CSV stores them twice,
+which is the case the integrity rule is about.
 
 **The worked case, 2026-09-06.** `lib/kits/prompt-link.js` holds the outbound
 prompt targets (a new Claude Code session, a chat, and one that cannot be
@@ -233,27 +231,25 @@ its reason by hours.)
 
 **The test is where the assertions already live, not where they would be
 convenient to read.** Where a kit or a generator holds them, the registry is the
-kit, and what is missing is a renderer, which is a smaller and more honest thing
-to want. Where the prose holds them and the CSV indexes it (`surfacing.csv`), a
-two-way gate makes the pair safe. What has no defence is a CSV transcribing an
-array in the same repository.
+kit, and what is missing is a renderer, which is a smaller thing to want. Where
+the prose holds them and the CSV indexes it (`surfacing.csv`), a two-way gate
+makes the pair safe. A CSV transcribing an array in the same repository has
+neither arrangement behind it.
 
 ## What the audits keep teaching
 
-Three passes over this table, each on a different authored field, produced one
-finding and two boundaries on it.
+Three passes over this table, each on a different authored field.
 
-**An authored field that no gate reads will be wrong, and the error rate is not
-small.** `why` ran nought for five: five carriers were marked `fields:
-ungoverned` with a written reason, and every reason was either a false statement
-about the repo or a true statement about the gate mistaken for one about the
-carrier. None survived being checked, and the checking took minutes in each case.
-`required` then ran fifty-one for fifty-four: fifty-four declarations graded a
-property `value` and nothing checked any of them, and three were false. Both
-fields were written carefully by someone who believed them. The fix is never to
-write more carefully; it is to make the claim readable by a check, or to stop
-making it. `fields: ungoverned` now asserts zero and remains only so that adding
-one is a deliberate act that has to change a test.
+**Two authored fields were audited against the tree, and both held errors.**
+`why` ran nought for five: five registry rows were marked `fields: ungoverned`
+with a written reason, and every reason was either a false statement about the
+repo or a true statement about the gate mistaken for one about the file it
+described. None survived being checked, and the checking took minutes in each
+case. `required` then ran fifty-one for fifty-four: fifty-four declarations
+graded a property `value` and nothing checked any of them, and three were false.
+Both fields were written carefully by someone who believed them, so care alone
+did not prevent either error. `fields: ungoverned` now asserts zero and remains
+only so that adding one is a deliberate act that has to change a test.
 
 **The repair is a judgment the gate cannot make.** Of the three false `required`
 grades, two moved the claim to fit the world (`tests.assertions` and `boot_smoke`
