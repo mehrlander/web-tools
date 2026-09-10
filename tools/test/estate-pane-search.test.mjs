@@ -195,6 +195,21 @@ test('an attached file is on the row as a count and a name, not as a path', () =
   assert.equal(data.queriedSessions.length, 0);
 });
 
+test('the count says what the query left and what it searched', () => {
+  seedSessions();
+  // Blank with no query: a count against no filter is furniture.
+  assert.equal(data.sessionQueryCount, '');
+  data.sessionQuery = 'session search';
+  // The denominator is the WHOLE store, not the open scope, which is the half
+  // of the question the chip row alone did not answer.
+  data.sessionScope = 'day';
+  assert.equal(data.sessionQueryCount, '2 of 3');
+  data.sessionScope = 'all';
+  assert.equal(data.sessionQueryCount, '2 of 3');
+  data.sessionQuery = '   ';
+  assert.equal(data.sessionQueryCount, '');
+});
+
 test('the exhaustive pass is a named hop, carrying the query as typed', () => {
   seedSessions();
   SEARCHES.length = 0;
