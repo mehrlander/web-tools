@@ -81,6 +81,7 @@ backtick-in-an-html-comment-ends-the-template,"a component that will not parse, 
 boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
 browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
+cross-realm-read-renders-once,the control worked and its label lied,0,,,../lib/alpineComponents/fab.js
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
 entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,0,,,../skills/daisy-alpine/references/mechanics.md
 gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,

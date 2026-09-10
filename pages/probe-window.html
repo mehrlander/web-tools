@@ -100,7 +100,7 @@
         <span class="text-[11px] opacity-55">omits</span>
         <span class="text-[11px] truncate" x-text="s.omits"></span>
         <div class="col-span-2 flex gap-4 items-baseline whitespace-nowrap text-[11px] opacity-55">
-          <span>alt+shift+&nbsp; P file &middot; H hold &middot; C clear &middot; W close</span>
+          <span>alt+shift+&nbsp; P file &middot; H hold &middot; C clear &middot; W close &middot; X probe off</span>
           <span class="text-warning" x-show="s.note" x-text="s.note"></span>
         </div>
       </div>
@@ -141,6 +141,9 @@ function probeWindow() {
         else if (ev.code === 'KeyC') { ev.preventDefault(); this.clear(); }
         else if (ev.code === 'KeyH') { ev.preventDefault(); this.hold(); }
         else if (ev.code === 'KeyW') { ev.preventDefault(); close(); }
+        // Off, meaning the whole instrument rather than this window. The kit's
+        // stop() closes this window on its way out, so the two are one press.
+        else if (ev.code === 'KeyX') { ev.preventDefault(); if (p.stop) p.stop(); }
       }, true);
 
       const pane = () => document.getElementById('trace');

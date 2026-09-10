@@ -578,11 +578,23 @@ test('the probe is standing equipment: the menu arms it, and the same row takes 
   assert.equal(d.probeOn, true, 'the row has to actually arm it, not only ask for the file');
   assert.ok(doc.getElementById('wt-probe'), 'and the overlay is what says so on screen');
 
+  // THE ROW HAS TO SAY IT WILL. `probeOn` reads across into another realm's
+  // window.Probe, which Alpine cannot track, so a label bound to it renders
+  // once and then lies: measured in a browser, the row still closed the probe
+  // and still read "Probe". A reader with no keyboard has only this row, and no
+  // reason to press it. The mirror is refreshed where annOn is, at menu-open.
+  d.openFabMenu();
+  assert.equal(d.probeArmed, true, 'the label reads the mirror, not the live cross-realm value');
+  d.fabMenu = false;
+
   // One control with two meanings, because a menu read in the half-second
   // before a finger lifts has no room for a pair of rows.
   await d.openProbe();
   assert.equal(d.probeOn, false);
   assert.equal(doc.getElementById('wt-probe'), null);
+  d.openFabMenu();
+  assert.equal(d.probeArmed, false);
+  d.fabMenu = false;
 });
 
 test('the launcher menu carries the probe row, wired to the method that arms it', () => {
@@ -591,6 +603,8 @@ test('the launcher menu carries the probe row, wired to the method that arms it'
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
   assert.match(src, /fabMenu = false; openProbe\(\)/,
     'the menu row must call openProbe');
-  assert.match(src, /probeOn \? 'Probe off' : 'Probe'/,
+  assert.match(src, /probeArmed \? 'Probe off' : 'Probe'/,
     'and its label carries the state rather than a second row');
+  assert.doesNotMatch(src, /x-text="probeOn/,
+    'bound to the live cross-realm read, the label renders once and then lies');
 });

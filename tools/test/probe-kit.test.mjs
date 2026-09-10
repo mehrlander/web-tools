@@ -92,6 +92,21 @@ test('a caller can arm it with no address, and take it off again whole', () => {
   assert.ok(w.Probe.trace().every((r) => r.tag !== 'after'));
 });
 
+test('the keyboard has a way off, and the overlay says which key it is', () => {
+  // The overlay may never be tapped, so it cannot carry a close control; the
+  // fab's launcher menu is the way off on a phone and this is the desktop's.
+  // Both matter, because an instrument that can only be removed by reloading
+  // loses the trace it was turned on to collect.
+  const w = boot({ search: '?probe=1' });
+  assert.ok(w.document.getElementById('wt-probe'));
+  assert.match(w.document.getElementById('wt-probe').textContent, /X off/,
+    'a key nobody can find is not a way out');
+  const ev = new w.KeyboardEvent('keydown', { code: 'KeyX', altKey: true, shiftKey: true, bubbles: true });
+  w.dispatchEvent(ev);
+  assert.equal(w.Probe.on, false);
+  assert.equal(w.document.getElementById('wt-probe'), null);
+});
+
 test('a page declares what it knows and the probe adopts it, whichever starts first', () => {
   // DECLARED, NOT REGISTERED. A page that registers watchers itself inside an
   // `if (Probe.on)` has nothing to give a probe armed later, which is the case
