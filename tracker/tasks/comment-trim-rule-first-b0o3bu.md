@@ -1,10 +1,9 @@
 ---
 id: comment-trim-rule-first-b0o3bu
 title: Trim code commentary to its criterion, rule first
-status: in-progress
+status: backlog
 opened: 2026-09-08
 size: L
-session: claude/code-comments-assessment-sqzvrz
 ---
 # Trim code commentary to its criterion, rule first
 
@@ -98,3 +97,12 @@ that trims on tone or on position cuts the load-bearing half.
   filtered against what a test or data file already holds.
   Step 3 is not started and should not start without the pairing above, or
   without first weighing the accuracy-only pass against it.
+- 2026-09-10: Returned to the backlog. Steps 1 and 2 are on `main` (PR #625 here,
+  home PR #605) and the owning branch `claude/code-comments-assessment-sqzvrz`
+  merged on 2026-09-08, so the `in-progress` claim and its `session:` field
+  outlived the work by two days and were the only stale claim on this board.
+  Nothing about the task changed: step 3 is still unstarted, and the "Done when"
+  clause it answers, whether the fan-out ran or the pilot showed it was not worth
+  running, is still open. A session picking this up decides one thing first,
+  weighing the accuracy-only pass (header contracts and stale figures, which the
+  pilot found were most of the value) against the paired fan-out.
