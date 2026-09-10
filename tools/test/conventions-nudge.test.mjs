@@ -62,7 +62,8 @@ test('a checkout that only names the command in prose gets the directive', () =>
   });
   const out = run(root);
   assert.match(out, /^Invoke \/portable:default now/, 'the directive leads, so it survives a truncated preview');
-  assert.match(out, /did not get the surfacing conventions/, 'and gives the cause, so it outranks the ask in hand');
+  assert.match(out, /for plugin context intended for all sessions/,
+    'and says what invoking gets, not what is missing, which a session that never had it cannot resolve');
 });
 
 // The distinction the whole hook turns on, stated as a test because prose in

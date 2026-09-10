@@ -1,7 +1,7 @@
 path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
-.claude/skills/hooks/conventions-nudge.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,129,hook:SessionStart,no,yes,yes
+.claude/skills/hooks/conventions-nudge.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,135,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes

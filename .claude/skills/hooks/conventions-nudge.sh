@@ -115,14 +115,20 @@ for repo in cands:
 if delivered or not needing:
     sys.exit(0)
 
-# Two sentences, and the second earns its place: an instruction with no cause
-# competes badly against whatever the user actually asked for. Nothing else does.
-# The opt-out is aimed at a person deciding, and a person deciding is reading
-# docs/manifest-fields.csv or environment/extending.md, not a session's startup
-# output. The checked-repo list was showing the work; its one use is catching a
-# false positive, and the skill already covers that, since its first instruction
-# is to stop if the checkout is present.
-print("Invoke /portable:default now. "
-      "This session did not get the surfacing conventions.")
+# One sentence: the instruction, and what invoking it gets. It deliberately does
+# NOT say the conventions failed to arrive, though that is the condition it fires
+# on. Naming what is missing is no use to the reader who is missing it: a session
+# told it "did not get the surfacing conventions" has been handed a term it
+# cannot resolve, which is the whole reason it is being nudged. A purpose clause
+# resolves on its own.
+#
+# Two other things were here until 2026-09-10 and went for the same reason, that
+# they addressed somebody else. The opt-out sentence is aimed at a person
+# deciding, and that person is reading docs/manifest-fields.csv or
+# environment/extending.md, not a session's startup output. The list of checked
+# repos was showing the work; its one use is catching a false positive, and the
+# skill already covers that, since its first instruction is to stop if the
+# checkout is present.
+print("Invoke /portable:default now for plugin context intended for all sessions.")
 PY
 exit 0
