@@ -67,3 +67,16 @@ table inside 145 KB of machine output.
   one kind of registry: `pages` is curated and has it too. Table names updated.
 - 2026-09-04: Property count restamped 126 to 152; body cut from 1,038 words to 534. The survey tables keep their 2026-08-18 measurements, which carry
   the shape of the finding rather than a total. Still first: decision 1.
+- 2026-09-10: **Scoped against a second task that lands on the same 161 rows and
+  the same gate.** budget-drs's `column-primitive-across-registries-r8qiea` adds
+  one property, `column_primitive`, saying what kind of thing each column holds
+  (`id`, `label`, `locator`, `value`), with the doctrine in
+  [docs/column-primitives.md](../../docs/column-primitives.md) and a 58-row pilot
+  beside it. The two are near neighbours and not the same question: this task
+  asks *where a column came from* and whether its declared `mode` matches its
+  carrier file, that one asks *what a column contains*. They meet at
+  `properties-registry.test.mjs`, which would gain assertions from both.
+  Decide the order before either moves. The argument for this one first: its
+  Layer 2 finding, that `pages.note` is declared `computed` while a human writes
+  the 26 blurbs, means the `mode` column is currently false on some rows, and a
+  second property added beside a false one inherits the falsehood.
