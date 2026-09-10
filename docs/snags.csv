@@ -1,5 +1,6 @@
 slug,title,count,last_seen,seen,targets
 link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
+template-literal-ends-early,a character the inner language tolerates closed the JS string,3,2026-09-10,2026-09-10;2026-09-10;2026-09-10,../skills/daisy-alpine/references/mechanics.md
 daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/daisy-alpine/references/mechanics.md
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
@@ -15,6 +16,8 @@ cached-read-feeds-a-write,a fresh-looking read hands back the sha it just replac
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
+cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
+keyboard-only-verb-is-no-verb-on-a-phone,an instrument you could arm and not use,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
 header-essay-outlives-its-code,the file-header contract drifted while every per-site comment stayed true,1,2026-09-08,2026-09-08,text-content.md
 rewriter-marks-its-own-work,a comment pass that changed no code still made the file wrong,1,2026-09-08,2026-09-08,text-content.md
 stale-store-reads-as-dead-link,"a present checkout, two weeks behind, reported four good links dead",1,2026-09-08,2026-09-08,environment/container.md
@@ -81,9 +84,7 @@ backtick-in-an-html-comment-ends-the-template,"a component that will not parse, 
 boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
 browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
-cross-realm-read-renders-once,the control worked and its label lied,0,,,../lib/alpineComponents/fab.js
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
-entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,0,,,../skills/daisy-alpine/references/mechanics.md
 gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,
 line-clamp-is-not-a-height,"the utility collided with a display four times in one branch, then failed only on the phone",0,,,
 proxy-is-never-its-target,an identity test that reads right and is always false,0,,,

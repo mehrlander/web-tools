@@ -154,6 +154,28 @@ test('it draws when asked, and the overlay is never the pointer target', () => {
     'nothing in the overlay may take the pointer back');
 });
 
+test('the verbs the keys reach are on the api too, since a phone has no keys', () => {
+  // move() and `held` are named on the object rather than living inside the
+  // key handler, because the fab's launcher row is the only way to either one
+  // on a phone, and a second implementation of a corner hop is a second thing
+  // to keep in step.
+  const w = boot({ search: '?probe=1' });
+  const corner = () => w.document.getElementById('wt-probe').getAttribute('data-corner');
+  const first = corner();
+  assert.equal(typeof w.Probe.move, 'function');
+  const next = w.Probe.move();
+  assert.notEqual(corner(), first);
+  assert.equal(corner(), next, 'it reports the corner it moved to, for a caller with no DOM');
+
+  assert.equal(w.Probe.held, false);
+  w.Probe.hold();
+  assert.equal(w.Probe.held, true, 'a control that shows the state has to be able to read it');
+  w.Probe.log('while held', 'x');
+  assert.ok(w.Probe.trace().every((r) => r.tag !== 'while held'));
+  w.Probe.hold();
+  assert.equal(w.Probe.held, false);
+});
+
 test('the overlay hops corners rather than being dragged', () => {
   const w = boot({ search: '?probe=pop' });
   const box = w.document.getElementById('wt-probe');

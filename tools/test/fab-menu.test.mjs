@@ -608,3 +608,85 @@ test('the launcher menu carries the probe row, wired to the method that arms it'
   assert.doesNotMatch(src, /x-text="probeOn/,
     'bound to the live cross-realm read, the label renders once and then lies');
 });
+
+test('the probe row carries the verbs a phone cannot press, and only while one is on', async () => {
+  // Every one of the probe's verbs was a keyboard chord, which is no verb at
+  // all on the device this instrument is aimed at: a reader who armed a probe
+  // on a phone, watched the fault happen and wanted to send it had nothing to
+  // press. Reported 2026-09-10, from a phone.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+  const verbs = () => [...doc.querySelectorAll('button[aria-label]')]
+    .map((b) => b.getAttribute('aria-label'))
+    .filter((l) => /capture|trace|overlay/.test(l));
+
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), [], 'off, there is nothing to send and nothing to hold');
+
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(),
+    ['Send the capture', 'Hold the trace', 'Move the overlay to the next corner']);
+
+  // Hold, whose glyph is the state: a mirror again, since the kit's flag is a
+  // cross-realm read Alpine cannot track.
+  await d.probeVerb('hold');
+  assert.equal(window.Probe.held, true);
+  assert.equal(d.probeHeld, true, 'the pause glyph has to flip or it lies the way the label did');
+  await d.probeVerb('hold');
+  assert.equal(d.probeHeld, false);
+
+  // Move, because on a phone the overlay covers whatever it is parked over.
+  const corner = () => doc.getElementById('wt-probe').getAttribute('data-corner');
+  const first = corner();
+  await d.probeVerb('move');
+  assert.notEqual(corner(), first);
+
+  await d.openProbe();   // off, and the verbs go with it
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), []);
+});
+
+test('send files where there is a token and hands over the capture where there is not', async () => {
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  // THE ROUTE IS DECIDED BEFORE THE AWAIT, which is the whole reason
+  // `probeCanFile` exists as a mirror rather than as a fallback after a failed
+  // write: iOS spends the gesture on the first await, so a share offered after
+  // a refused file arrives with no transient activation and is refused too.
+  let sent = null;
+  window.PageReport = { watch() {}, send: async (doc) => { sent = doc; return { ok: true, path: 'logs/page/2026-09-10/x-1234.json' }; } };
+  window.localStorage.setItem('ghToken', 'a-token');
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, true);
+  await d.probeVerb('send');
+  assert.ok(sent && sent.probeId, 'the capture itself is what goes, not a summary of it');
+  assert.match(d.outMsg, /^Filed x-1234\.json/);
+
+  // No token, no write: the honest answer on a phone is the share sheet, and
+  // the clipboard behind it for a browser with neither.
+  window.localStorage.removeItem('ghToken');
+  let copied = null;
+  window.navigator.clipboard = { writeText: async (t) => { copied = t; } };
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, false);
+  await d.probeVerb('send');
+  assert.ok(copied && JSON.parse(copied).probeId, 'and it is the same capture, whole');
+  assert.match(d.outMsg, /clipboard/);
+
+  await d.openProbe();
+  window.PageReport = undefined;
+});
