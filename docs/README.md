@@ -13,7 +13,7 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-1 arrive in every session's context, 17 are named by CLAUDE.md,
+1 arrive in every session's context, 18 are named by CLAUDE.md,
 8 by a skill, 28 by a page or component. The remaining 24 are
 marked *(orphan)* below: nothing points at them except this index.
 
@@ -25,7 +25,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
-- [`SURFACING.md`](SURFACING.md) — the surfacing system: primitives plus the guide-PR course
+- [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
 - [`aims-reading.csv`](aims-reading.csv) — the guided reading list the Aims tab offers a new reader
@@ -66,6 +66,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
+- [`surfacing-course.md`](surfacing-course.md) — the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases
 - [`surfacing-extended.md`](surfacing-extended.md) — the ways of handing something over that most replies never reach: the artifact, stage, envelope, data, clipboard and shortcut routes, the task marker, the review link, the session diff, and the caption's fallbacks
 - [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted

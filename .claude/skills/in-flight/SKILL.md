@@ -57,7 +57,9 @@ The report then ends in a collision verdict rather than a list. Only live branch
 
 - **The ahead-count is the load-bearing measurement.** `git rev-list --count <branch> --not <base>` returning zero is proof, not an estimate. In a merge-commit repo it retires most of the estate in one pass; measured on a 405-branch repo it left two candidates, and both were the two open PRs.
 
-- **A branch with no merge-base is not live, however recent it looks.** A history rewrite orphans every branch cut before it. Those branches keep their dates and their names and can look like current work by every signal except the one that counts. Report them as unrelated, never as live.
+- **A branch with no merge-base is not live, however recent it looks, on a complete clone.** A history rewrite orphans every branch cut before it. Those branches keep their dates and their names and can look like current work by every signal except the one that counts. Report them as unrelated, never as live.
+
+- **On a shallow clone that reading is worthless, and it is the dangerous half.** A missing ancestor and a rewritten one are indistinguishable. Measured 2026-09-10: a clone reaching back 21 days called 450 of 581 branches unrelated and five open pull requests orphaned; `git fetch --unshallow` took 24 seconds and gave every one an ordinary merge-base. The script tests `git rev-parse --is-shallow-repository` first and reports that group undecidable, because this report's own next step is to retire what it calls unrelated.
 
 - **The ahead-count alone overstates a squash-merge repo.** After a squash the branch stays ahead forever. The correction is the content signal: of the paths the branch touched, how many still differ from the base branch. Zero means the work landed by another route. Report both numbers and let them disagree in the open rather than blending them into a verdict.
 
