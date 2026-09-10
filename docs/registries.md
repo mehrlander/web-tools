@@ -173,11 +173,10 @@ that are tangled.
 **`renders_in` is derived**, the files under `lib/`, `pages/` and `app/` that
 name a registry's path in code, stamped by
 [`registries-reach.mjs`](../tools/build/registries-reach.mjs) over the same
-comment-stripped corpus as the docs registry's `reach`. It exists because the
-audits below converge on one law: an authored claim nothing reads goes wrong. A
-registry no surface renders is that exposure at the registry grain, committed and
-gated and met by nobody. The badge asks the question; it does not settle it,
-since a GitHub-rendered projection is a legitimate answer.
+comment-stripped corpus as the docs registry's `reach`. A registry no surface
+renders is committed and gated and met by nobody, which is worth being able to
+see. The badge asks the question; it does not settle it, since a
+GitHub-rendered projection is a legitimate answer.
 
 Its first run also caught a defect in the shared scanner: a `/*` inside a `//`
 line comment opened a phantom block that swallowed hundreds of code lines, which
@@ -230,20 +229,18 @@ array in the same repository.
 
 ## What the audits keep teaching
 
-Three passes over this table, each on a different authored field, produced one
-finding and two boundaries on it.
+Three passes over this table, each on a different authored field.
 
-**An authored field that no gate reads will be wrong, and the error rate is not
-small.** `why` ran nought for five: five carriers were marked `fields:
-ungoverned` with a written reason, and every reason was either a false statement
-about the repo or a true statement about the gate mistaken for one about the
-carrier. None survived being checked, and the checking took minutes in each case.
-`required` then ran fifty-one for fifty-four: fifty-four declarations graded a
-property `value` and nothing checked any of them, and three were false. Both
-fields were written carefully by someone who believed them. The fix is never to
-write more carefully; it is to make the claim readable by a check, or to stop
-making it. `fields: ungoverned` now asserts zero and remains only so that adding
-one is a deliberate act that has to change a test.
+**Two authored fields were audited against the tree, and both held errors.**
+`why` ran nought for five: five registry rows were marked `fields: ungoverned`
+with a written reason, and every reason was either a false statement about the
+repo or a true statement about the gate mistaken for one about the file it
+described. None survived being checked, and the checking took minutes in each
+case. `required` then ran fifty-one for fifty-four: fifty-four declarations
+graded a property `value` and nothing checked any of them, and three were false.
+Both fields were written carefully by someone who believed them, so care alone
+did not prevent either error. `fields: ungoverned` now asserts zero and remains
+only so that adding one is a deliberate act that has to change a test.
 
 **The repair is a judgment the gate cannot make.** Of the three false `required`
 grades, two moved the claim to fit the world (`tests.assertions` and `boot_smoke`
