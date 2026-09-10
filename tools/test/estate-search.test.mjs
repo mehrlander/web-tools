@@ -10,8 +10,14 @@ import assert from 'node:assert/strict';
 import { makeWindow, startAlpine } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
+// The chat archive is a SECOND store this kit reads, through kits/chat-archive.js
+// rather than directly: that kit owns the shard memo, so the lane here adds no
+// cache and the test can prove the memo by counting reads.
+const ARCHIVE = 'me/chats';
 
 let FILES = {};    // registry "<path>" -> parsed JSON
+let CHAT_FILES = {};   // archive "<path>" -> parsed JSON; absent -> 404
+let CHAT_READS = [];   // every archive path actually fetched
 // "<repo>@<ref>" -> blob entries, each a path or a { path, size }; absent ->
 // the fetch throws. The two forms exist because the trees API reports a blob's
 // size on the entry and most of these tests do not care what it is.
@@ -30,6 +36,10 @@ class FakeGH {
   get headers() { return { Accept: 'application/vnd.github.v3+json' }; }
   async get(name) {
     if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
+    if (this.repo === ARCHIVE) {
+      CHAT_READS.push(name);
+      if (CHAT_FILES[name]) return { text: JSON.stringify(CHAT_FILES[name]) };
+    }
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
@@ -65,6 +75,7 @@ await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
+  'lib/kits/chat-archive.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -361,4 +372,109 @@ test('code: the three rejection outcomes are told apart by their wording', async
   // And none of them may be the browser's own words, which say nothing.
   for (const m of msgs) assert.doesNotMatch(m, /^Network error on GET/);
   SEARCH_REJECT = null;
+});
+
+// ── The chats lane ──────────────────────────────────────────────────────────
+// The sessions lane's opposite number: it matches what a SUMMARY says about a
+// chat rather than what a record quotes, so it reads about 10 MB of monthly
+// catalog shards instead of the whole record store. What is worth holding is
+// the economy (the frontier is the spine, shards are read once, a month with no
+// shard is reported rather than thrown) and the labelling that lets a hit say
+// which field answered.
+
+const A_FRONTIER = {
+  archived_through: '2026-07-06',
+  providers: {
+    Claude:  { frontier: '2026-07-06', chats: 3, months: ['2026-06', '2026-07'], snapshots: ['2026-06-01'] },
+    ChatGPT: { frontier: '2026-05-30', chats: 1, months: ['2026-05'], snapshots: ['2026-07-06'] },
+  },
+};
+const CLAUDE_URL = 'https://claude.ai/chat/aaaaaaaa-0000-0000-0000-000000000001';
+const GEMINI_URL = 'gemini-session/341';
+
+function seedArchive() {
+  CHAT_FILES = {
+    'annotations/catalog/frontier.json': A_FRONTIER,
+    // July has only the hand layer, June only the machine layer: most months
+    // carry exactly one, which is why a 404 on either is normal.
+    'annotations/catalog/by-month/2026-07.json': [
+      { url: CLAUDE_URL, date: '2026-07-02', title: 'Packing a bookmarklet with gzip',
+        summary: 'A base64url envelope so the payload rides in the fragment.',
+        tags: ['bookmarklets', 'compression'] },
+    ],
+    'annotations/summaries/by-month/2026-06.json': [
+      { url: GEMINI_URL, date: '2026-06-11', title: 'Allotment schedule walkthrough',
+        summary: 'Worked through the allotment packet by fund.', tags: ['wa-budget'] },
+    ],
+    // 2026-05 is named by the frontier and has NEITHER layer: a hole in the
+    // archive, which the lane reports beside the hits.
+  };
+  CHAT_READS = [];
+}
+
+test('chats: the frontier is the spine, and every month it names is read', async () => {
+  seedArchive();
+  const res = await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.months, 3, 'three months on the spine, deduped across providers');
+  // Spread into this realm's Array: startAlpine evaluates the kit in a vm
+  // context, so its arrays are structurally equal and not reference-equal.
+  assert.deepEqual([...res.missing], ['2026-05']);
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Packing a bookmarklet with gzip');
+  assert.equal(res.hits[0].provider, 'claude');
+  assert.equal(res.hits[0].open, CLAUDE_URL);
+  // The frontier plus two shards per month; the missing month costs two 404s.
+  assert.ok(CHAT_READS.includes('annotations/catalog/frontier.json'));
+});
+
+test('chats: a shard is read once, so a second query costs nothing', async () => {
+  const before = CHAT_READS.length;
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Allotment schedule walkthrough');
+  // chat-archive memoizes the merged month, so nothing new was fetched. Only
+  // the month with no shard at all is re-attempted, since a failed read is
+  // never memoized as an empty month.
+  const fresh = CHAT_READS.slice(before);
+  assert.ok(fresh.every(p => p.includes('2026-05')), `unexpected refetch: ${fresh.join(', ')}`);
+});
+
+test('chats: a Gemini row is a hit with no address, not a dead link', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.hits[0].url, GEMINI_URL);
+  assert.equal(res.hits[0].open, '', 'Takeout keeps no per-conversation URL');
+});
+
+test('chats: the quoted fragment says which field answered', async () => {
+  const byTag = await ES.chats({ q: 'wa-budget', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTag.hits[0].frag, /^tags:/);
+  const byTitle = await ES.chats({ q: 'bookmarklet', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  const bySummary = await ES.chats({ q: 'base64url', repo: ARCHIVE, token: 'tkn' });
+  assert.match(bySummary.hits[0].frag, /^summary:/);
+});
+
+test('chats: progress counts shards, so a long read can say how far along it is', async () => {
+  seedArchive();
+  window.chatArchive.forget();
+  const seen = [];
+  await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn', onProgress: (p) => seen.push(p) });
+  assert.equal(seen.length, 3);
+  assert.deepEqual([...seen.map(p => p.done)], [1, 2, 3]);
+  assert.ok(seen.every(p => p.total === 3));
+});
+
+test('chats: months caps the walk from the newest end', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn', months: 1 });
+  assert.equal(res.months, 1);
+  assert.equal(res.total, 0, 'June holds the hit and only July was read');
+});
+
+test('chats: without the archive kit the lane says so rather than answering empty', async () => {
+  const kit = window.chatArchive;
+  delete window.chatArchive;
+  try {
+    await assert.rejects(() => ES.chats({ q: 'x', repo: ARCHIVE, token: 'tkn' }),
+      /chat archive kit has not loaded/);
+  } finally { window.chatArchive = kit; }
 });

@@ -1253,3 +1253,69 @@ test('the menu index commits only when the phone would see a difference', () => 
   assert.equal(S.menuChanged(a, c), true);
   assert.equal(S.menuChanged(null, a), true, 'the file not existing yet is a change');
 });
+
+// ── What the Sessions pane's text box can reach ──────────────────────────────
+// The prose left the row on 2026-09-02 (PROSE_KEYS), so a filter over these
+// rows reaches the opening ask, the two names, and the work's vocabulary, and
+// nothing said after the opening. Both directions are held: a miss on a phrase
+// spoken mid-session is correct behaviour here, not a bug to fix by widening
+// the haystack, and the pane routes such a query to the exhaustive pass.
+
+const SEARCH_ROW = {
+  id: '4835da35',
+  day: '2026-09-10',
+  title: 'CI subscription docs',
+  ask: 'Do we have documentation around CI?',
+  branches: ['claude/amazing-edison-k9dk2n'],
+  repos: [{ name: 'home', branch: 'claude/amazing-edison-k9dk2n', lines: 1 }],
+  attached: ['home', 'web-tools', 'web-tools-private'],
+  files: [['web-tools/lib/kits/estate-search.js', 4]],
+  docFiles: [['web-tools/docs/inbound.md', 1]],
+  guides: [],
+  skillCalls: [['markers', 2]],
+  tools: [['Bash', 33]],
+};
+
+test('the search segments are the row, labelled by which field they came from', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  assert.ok(segs.includes('title: CI subscription docs'));
+  assert.ok(segs.includes('ask: Do we have documentation around CI?'));
+  assert.ok(segs.includes('repo: home'));
+  assert.ok(segs.includes('attached: web-tools-private'));
+  assert.ok(segs.includes('file: web-tools/lib/kits/estate-search.js'));
+  assert.ok(segs.includes('doc: web-tools/docs/inbound.md'));
+  assert.ok(segs.includes('skill: markers'));
+  assert.ok(segs.includes('tool: Bash'));
+});
+
+test('the derived name rides in both spellings, so either one finds it', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  // The branch as stored, and the title as a person remembers saying it.
+  assert.ok(segs.includes('name: amazing-edison'));
+  assert.ok(segs.includes('name: amazing edison'));
+  assert.equal(C.matches(SEARCH_ROW, 'amazing edison'), true);
+});
+
+test('terms are ANDed across the row and ORed across its fields', () => {
+  const C = load();
+  assert.equal(C.matches(SEARCH_ROW, 'documentation'), true);
+  // One term from the ask, one from a file path: a session that opened that
+  // file while being asked that question is a real answer to both.
+  assert.equal(C.matches(SEARCH_ROW, 'documentation estate-search'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'documentation pensions'), false);
+  assert.equal(C.matches(SEARCH_ROW, ''), true);
+});
+
+test('a row carries no prose, so no filter over rows can find what was said', () => {
+  const C = load();
+  // The ask is on the row at ASK_CHARS and answers. A reply is not on the row
+  // at all, and this miss is what sends the reader to EstateSearch.sessions.
+  assert.equal(C.matches(SEARCH_ROW, 'CI'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'subscribe_pr_activity'), false);
+  // Stated structurally as well as by example: leanRow is what removed it.
+  assert.ok(C.PROSE_KEYS.includes('turns'));
+  assert.ok(C.PROSE_KEYS.includes('reply'));
+  assert.equal('turns' in C.leanRow({ turns: [['u', 'hi', '00:00:01']] }), false);
+});
