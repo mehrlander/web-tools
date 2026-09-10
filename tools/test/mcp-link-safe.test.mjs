@@ -145,12 +145,13 @@ test('--check exits non-zero only when something would be defanged', () => {
 // into a PR body. It did until 2026-08-25, contradicting SURFACING.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule moved out of the caption skill and into SURFACING.md's course when
-  // the skill was retired (2026-08-31): the course is the only carrier now, and
-  // it is delivered on PR creation, which is exactly when a sync is possible.
-  const course = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8')
-    .split('## The surfacing course')[1] || '';
-  assert.ok(course.length > 0, 'the course section still exists');
+  // The rule moved out of the caption skill and into the course when the skill
+  // was retired (2026-08-31): the course is the only carrier now, and it is
+  // delivered on PR creation, which is exactly when a sync is possible. The
+  // course became its own file on 2026-09-10, so this reads the file rather
+  // than a section of SURFACING.md.
+  const course = readFileSync(path.join(repoRoot, 'docs', 'surfacing-course.md'), 'utf8');
+  assert.ok(course.length > 0, 'the course document still exists');
   // Reworded 2026-09-07 ("Do not list files, diff statistics, or CI results
   // there"), so the pattern matches the rule rather than one phrasing of it.
   assert.ok(/not (?:list|enumerate) files/i.test(course),

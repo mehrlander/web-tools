@@ -2,7 +2,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
-.claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,96,hook:PostToolUse,no,yes,no
+.claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
 .claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,175,npm:reading-column,no,yes,yes
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes

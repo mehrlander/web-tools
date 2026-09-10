@@ -199,6 +199,16 @@ being the standing examples. Model-bridged output is stored when it is expensive
 and irreproducible, regenerated when it is scripted; chat-histories' two catalog
 layers are the worked precedent.
 
+**A registry's byte shape is part of the artifact, line endings included.**
+The files here are not uniform: some are stored LF and some CRLF, per file
+rather than per directory, and a diff is only reviewable when a one-row edit
+touches one row. Rewriting a registry through a CSV writer silently restamps
+every line to whatever that writer's default terminator is, so an added row
+arrives as a whole-file rewrite and the real change is unreadable inside it.
+Read the terminator off the committed copy and match it, and check the diff's
+line count before staging: an additive edit that reports more changed lines
+than rows touched has restamped the file.
+
 ## When a registry is the wrong answer
 
 A committed CSV that inventories part of the tree is a registry, and the rule
