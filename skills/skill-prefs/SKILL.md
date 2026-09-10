@@ -42,8 +42,4 @@ This skill is a reference for you in drafting any skill.
 
 - **Frontmatter.** Keep the YAML valid. A colon in the description can break parsing, since YAML reads it as a key; avoid colons there, or wrap the whole value in double quotes. Confirm it parses before handing over a .skill.
 
-## Bundled
-
-- `CATALOGUE.md`: the library map, family, type, and premise line per skill. Read when placing a new skill in a family or checking its neighbors.
-
-This document has no Extending section, by its own rule: there is no growth path to document. The omission is the spec in practice.
+This document has no Bundled or Extending section, by its own rule: nothing travels with it and there is no growth path to document. The omission is the spec in practice.

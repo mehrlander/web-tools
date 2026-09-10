@@ -19,7 +19,7 @@
     "docs-reach": "node tools/build/docs-reach.mjs",
     "registries-reach": "node tools/build/registries-reach.mjs",
     "claims-scan": "python3 scripts/duplicated-claims.py",
-    "themes-graph": "python3 scripts/duplicated-claims.py --emit docs/themes.json",
+    "themes-graph": "python3 scripts/duplicated-claims.py --emit docs/themes.csv",
     "opacity-scan": "python3 scripts/dead-opacity.py",
     "family-scan": "python3 scripts/dead-family.py",
     "reading-column": "python3 .claude/skills/hooks/reading-column.py",

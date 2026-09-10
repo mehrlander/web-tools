@@ -11,14 +11,22 @@
 //
 // Derived here, never authored:
 //
-//   invocation  how the file gets run, which is the axis that decides whether
-//               "nothing names it" matters:
+//   invocation  the route execution arrives on. The pull routes (someone
+//               asks):
 //                 npm:<script>  a package.json script invokes it
 //                 driver        lives in tools/render/scenarios/, the --script
 //                               argument to `npm run shot`; drivers are passed
 //                               by path, so no other route will ever name one
-//                 imported      another node file imports it (a helper)
+//                 imported      another harness file imports or invokes it
 //                 argv          carries a shebang; run by hand
+//               The push routes (an event asks), added 2026-09-10:
+//                 git:<name>    lives in .githooks/; the filename is the event
+//                 session:SessionStart  a .claude/hooks/session-*.sh, run by
+//                               the plugin's dispatcher at session start
+//                 hook:<event>  a plugin hook script; the event comes from the
+//                               declaration in .claude/skills/hooks/hooks.json
+//                 ci:<events>   a .github/workflows/ file; the events come from
+//                               its top-level `on:` block, '+'-joined
 //                 none found    no route the derivation can see
 //   emits       writes a file (a generator rather than a reader)
 //   named       its path or basename appears in any tracked .md file
@@ -26,7 +34,12 @@
 //   layer, lines
 //
 // tools/test/ is deliberately absent: docs/tests.csv is that folder's registry,
-// and one file must not answer to two registries.
+// and one file must not answer to two registries. Skill-bundle scripts under
+// .claude/skills/ (corpus_search.py and kin) are absent for a different
+// reason: they are the internals of skills that travel to other repos, not
+// this repo's machinery, and no warning state applies to them. The plugin's
+// hook bundle at .claude/skills/hooks/ is the one exception: it runs HERE,
+// on platform events, in every session.
 //
 // Run `npm run tools-index` to restamp; `--check` compares instead of writing.
 
@@ -80,6 +93,44 @@ function importedSet(repoRoot, files) {
   return imported;
 }
 
+/** basename -> event, from the plugin's hook declaration. A script in the
+ *  bundle that hooks.json never names falls through to the later rules and
+ *  usually lands on `imported` (the dispatcher or another hook invokes it). */
+function pluginHookEvents(repoRoot) {
+  const out = new Map();
+  let decl;
+  try { decl = JSON.parse(read(repoRoot, '.claude/skills/hooks/hooks.json')).hooks || {}; }
+  catch { return out; }
+  for (const [event, entries] of Object.entries(decl)) {
+    for (const e of entries) {
+      for (const h of e.hooks || []) {
+        const m = (h.command || '').match(/([\w.-]+\.(?:sh|py|mjs|js))/);
+        if (m) out.set(m[1], event);
+      }
+    }
+  }
+  return out;
+}
+
+/** The top-level `on:` events of a workflow, '+'-joined. Reads the two YAML
+ *  shapes the platform accepts (a nested block, or `on: [a, b]`) with a line
+ *  scan rather than a YAML library, which the suite deliberately does not
+ *  carry. */
+function workflowEvents(src) {
+  const lines = src.split('\n');
+  const i = lines.findIndex(l => /^(['"]?)on\1:/.test(l));
+  if (i < 0) return 'unknown';
+  const inline = lines[i].match(/^\S+:\s*\[([^\]]+)\]/);
+  if (inline) return inline[1].split(',').map(s => s.trim()).join('+');
+  const events = [];
+  for (let j = i + 1; j < lines.length; j++) {
+    const m = lines[j].match(/^  (\w+):/);
+    if (lines[j].trim() && !lines[j].startsWith('  ') && !lines[j].startsWith('#')) break;
+    if (m) events.push(m[1]);
+  }
+  return events.join('+') || 'unknown';
+}
+
 /**
  * Derive the machine-visible fields for every harness file on disk.
  * @param {string} repoRoot
@@ -88,22 +139,44 @@ function importedSet(repoRoot, files) {
 export function deriveTools(repoRoot) {
   const files = tracked(repoRoot);
   const subjects = files.filter(f =>
-    (f.startsWith('tools/') || f.startsWith('scripts/')) &&
-    !f.startsWith('tools/test/') &&
-    CODE_EXT.some(e => f.endsWith(e)));
+    ((f.startsWith('tools/') || f.startsWith('scripts/') ||
+      f.startsWith('.claude/hooks/') || f.startsWith('.claude/skills/hooks/')) &&
+     !f.startsWith('tools/test/') &&
+     CODE_EXT.some(e => f.endsWith(e))) ||
+    // Git hooks are extensionless by contract; the folder is the filter.
+    (f.startsWith('.githooks/') && !path.posix.basename(f).includes('.')) ||
+    (f.startsWith('.github/workflows/') && /\.ya?ml$/.test(f)));
+  const hookEvents = pluginHookEvents(repoRoot);
   const npm = npmScriptMap(repoRoot);
   const imported = importedSet(repoRoot, [...subjects, ...files.filter(f => f.startsWith('tools/test/'))]);
   const prose = files.filter(f => f.endsWith('.md')).map(f => read(repoRoot, f)).join('\n');
   const tests = files.filter(f => f.startsWith('tools/test/')).map(f => read(repoRoot, f)).join('\n');
 
+  // A subject another subject invokes by name (a shell hook calling its
+  // python half, the dispatcher running the injector) has a route the node
+  // import scan cannot see.
+  const srcs = new Map(subjects.map(rel => [rel, read(repoRoot, rel)]));
+  const invoked = new Set();
+  for (const rel of subjects) {
+    const base = path.posix.basename(rel);
+    for (const [other, osrc] of srcs) {
+      if (other !== rel && osrc.includes(base)) { invoked.add(base); break; }
+    }
+  }
+
   const out = new Map();
   for (const rel of subjects.sort()) {
-    const src = read(repoRoot, rel);
+    const src = srcs.get(rel);
     const base = path.posix.basename(rel);
     let invocation;
     if (rel.startsWith('tools/render/scenarios/')) invocation = 'driver';
+    else if (rel.startsWith('.githooks/')) invocation = 'git:' + base;
+    else if (rel.startsWith('.claude/hooks/session-')) invocation = 'session:SessionStart';
+    else if (hookEvents.has(base)) invocation = 'hook:' + hookEvents.get(base);
+    else if (rel.startsWith('.github/workflows/')) invocation = 'ci:' + workflowEvents(src);
     else if (npm.has(rel) || npm.has(base)) invocation = 'npm:' + (npm.get(rel) || npm.get(base));
     else if (imported.has(rel)) invocation = 'imported';
+    else if (invoked.has(base)) invocation = 'imported';
     else if (src.startsWith('#!')) invocation = 'argv';
     else invocation = 'none found';
     out.set(rel, {
