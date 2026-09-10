@@ -92,35 +92,46 @@ test('the overlay hops corners rather than being dragged', () => {
   assert.equal(/pointer-events:\s*(auto|all)/.test(css), false);
 });
 
-test('the window is light, and exactly one thing in it scrolls', () => {
-  // Both were reported from a real screenshot: a dark panel on a machine that
-  // uses no dark theme, and two scrollbars doing different things. Held against
-  // the sheet the kit ships, since jsdom computes no layout.
-  const css = src('lib/kits/probe.js').match(/const WIN_CSS = `([\s\S]*?)`;/)[1];
+test('the window is a page on the house stack, light, with one scroll region', () => {
+  // Three defects reported from a real screenshot, now answered by the stack
+  // the rest of the estate uses rather than by a private stylesheet.
+  const page = src('pages/probe-window.html');
 
-  assert.match(css, /html\{color-scheme:light\}/,
-    'declared rather than inherited, or a machine set to dark renders this '
-    + "window's scrollbar and buttons dark against a white page");
-  assert.match(css, /html,body\{[^}]*background:#fff/, 'the window is light');
-  // No dark surface anywhere: every background in the sheet is white or a
-  // near-white rule, which is what "no dark theme" has to mean mechanically.
-  for (const [, colour] of css.matchAll(/background:(#[0-9a-f]{3,6})/g)) {
-    const hex = colour.length === 4
-      ? colour.slice(1).split('').map((c) => c + c).join('')
-      : colour.slice(1);
-    const lum = parseInt(hex.slice(0, 2), 16) + parseInt(hex.slice(2, 4), 16) + parseInt(hex.slice(4, 6), 16);
-    assert.ok(lum > 600, 'a dark surface (' + colour + ') got back into the window sheet');
-  }
+  // SAME LIBRARIES, SAME URL as every page here.
+  assert.match(page, /@tailwindcss\/browser@4/, 'Tailwind, from the house combine URL');
+  assert.match(page, /daisyui@5/, 'daisyUI, from the house combine URL');
+  assert.match(page, /cdn\.jsdelivr\.net\/combine\//, 'one combine request, not several');
 
-  // HOUSE RULE 4, and the whole of what "one scroll region" means here: the
-  // document itself does not scroll, the root is a fixed grid, and exactly one
-  // pane opts into overflow.
-  assert.match(css, /html,body\{[^}]*overflow:hidden/, 'the document must not scroll');
-  assert.match(css, /#wt-win\{[^}]*position:fixed[^}]*display:grid/,
-    'the root is a fixed grid, so the panes divide a viewport rather than a page');
-  const scrollers = [...css.matchAll(/^\.([\w-]+)\{[^}]*overflow:(auto|scroll)/gm)].map((m) => m[1]);
-  assert.deepEqual(scrollers, ['wt-trace'],
-    'exactly one pane may scroll; found: ' + scrollers.join(', '));
+  // LIGHT, pinned rather than following the machine: daisyUI otherwise reads
+  // prefers-color-scheme and the reader uses no dark theme.
+  assert.match(page, /<html[^>]*data-theme="light"/, 'the theme is pinned on the root');
+
+  // HOUSE RULE 4: the panes divide a viewport, and exactly one opts into
+  // overflow, which is the whole of what "one scroll region" means.
+  assert.match(page, /fixed inset-0 grid grid-rows-\[auto_auto_1fr_auto\]/,
+    'the root is the rule-4 shape');
+  assert.match(page, /<body[^>]*\boverflow-hidden\b/, 'the document itself must not scroll');
+  const scrollers = page.match(/overflow-y-auto/g) || [];
+  assert.equal(scrollers.length, 1, 'exactly one pane may scroll; found ' + scrollers.length);
+});
+
+test('the kit stays the model: no second stylesheet, no second DOM', () => {
+  // The window is a page and owns its view. This is what stops the kit growing
+  // a private copy of a stylesheet and a renderer, which is where the dark
+  // theme and the double scrollbar came from.
+  const kit = src('lib/kits/probe.js');
+  assert.equal(/const WIN_CSS/.test(kit), false,
+    'the kit carries no stylesheet of its own');
+  assert.equal(/function renderWindow/.test(kit), false,
+    'the kit builds no second DOM');
+  // It opens the page by NAVIGATION, never by writing a document: measured
+  // 2026-09-10, a document written into a blank window loads no external
+  // subresource at all, so a written window can never be on the house stack.
+  assert.equal(/w\.document\.write/.test(kit), false,
+    'the window is navigated to, not written into');
+  assert.match(kit, /window\.open\(winSrc/, 'it opens the page source as a blob');
+  assert.match(kit, /gh\.get\('pages\/probe-window\.html'\)/,
+    'fetched at whatever ref the kit itself was loaded from, so it needs no deploy');
 });
 
 test('a live line is read at draw time, not at registration', () => {
