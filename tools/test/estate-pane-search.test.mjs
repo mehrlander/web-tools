@@ -163,6 +163,38 @@ test('a stub session stays findable by the branch name, which is all it has', ()
   assert.equal(data.sessionNodes.some(n => n.kind === 'stub'), false);
 });
 
+test('an attached file is on the row as a count and a name, not as a path', () => {
+  seedSessions();
+  const UP = '/root/.claude/uploads/dddd4444-1111-2222-3333-444455556666/';
+  const C = window.RepoSessionsCache;
+  const row = C.summarize({
+    short: 'dddd4444', day: '2026-09-10',
+    opening_ask: `@"${UP}22288270-COREPAM_Decision_Package.docx" `
+               + `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" `
+               + 'Please review the attached documents with the submittal view.',
+  }, 'sha');
+  data.sessionRows_ = [{ ...ROWS[0], ...row, started: iso(0), ended: iso(0) }];
+
+  // The label is what the tooltip carries, since the names are the whole of
+  // what is worth knowing and the row has no card for them.
+  assert.equal(data.attachLabel(data.sessionRows_[0]),
+    '2 files were attached to the opening ask: '
+    + 'COREPAM_Decision_Package.docx, IT_Fiscal_Workbook__CORE_PAM.xlsx');
+  assert.equal(data.attachLabel({}), '', 'no attachments, no tooltip');
+  assert.match(data.attachLabel({ attachments: ['one.docx'] }), /^One file was/);
+
+  // And the ask the row draws is the question, which is the point of the lift.
+  assert.match(data.sessionAsk(data.sessionRows_[0]), /^Please review the attached documents/);
+
+  // The box finds it by filename and by the question; the UUID is gone.
+  data.sessionQuery = 'COREPAM_Decision_Package';
+  assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['dddd4444']);
+  data.sessionQuery = 'submittal view';
+  assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['dddd4444']);
+  data.sessionQuery = '444455556666';
+  assert.equal(data.queriedSessions.length, 0);
+});
+
 test('the exhaustive pass is a named hop, carrying the query as typed', () => {
   seedSessions();
   SEARCHES.length = 0;
