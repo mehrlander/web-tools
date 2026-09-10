@@ -35,3 +35,8 @@ restored, with the named behavior.
 The panel replaces the grind, not the author's read of the result: the one
 defect all three models missed in the measured run was found by a human
 reading a single heading.
+
+For a document that instructs an agent, gate the reduction on a naive executor
+run against a real task, not on the judge's opinion: behavior, not review,
+decides what was lost. Measured 2026-09-09 on a four-rung ablation of a skill:
+review approved a cut whose executor lost verdict discipline two rungs later.
