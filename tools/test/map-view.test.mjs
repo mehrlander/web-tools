@@ -8,7 +8,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
 
@@ -213,22 +213,27 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
   assert.equal(data.SURF_DOC, 'docs/SURFACING.md');
 });
 
-// The cards index one region of the doc, and the tab says so with a door to
-// each of the others. The doors are read off the doc's h2 headings, so this
-// holds two things: the list IS the doc's headings minus the primitives, and
-// every gloss the tab keeps about WHEN a region arrives names a heading that
-// exists. A renamed heading fails here rather than leaving a gloss orphaned.
-test('Surfacing derives its region doors from the doc, and every gloss names a real heading', async () => {
+// The cards index one document, the primitives, and the tab says so with a
+// door to each sibling. The doors were read off SURFACING.md's h2 headings
+// until 2026-09-10, which stopped being possible when the course became its
+// own file: a heading cannot name a sibling. So the list is declared, and what
+// this holds is that every declared path is a file that exists and says when
+// it reaches a session. A sibling renamed or deleted fails here rather than
+// leaving a dead door.
+//
+// The derivation it replaces was not merely unable to see the new shape; it
+// was already wrong. surfacing-extended.md had been a sibling since 2026-09-07
+// and no door reached it, because it was never a heading in the first place.
+test('Surfacing declares a door per sibling document, and each one exists', async () => {
   await data.loadSurf();
-  const headings = [...surfDoc.matchAll(/^## (.+?)\s*$/gm)].map(m => m[1]);
-  // Serialized, since the component's arrays come back through Alpine's proxy
-  // and deepEqual reads the prototype before it reads the strings.
-  assert.equal(JSON.stringify(Array.from(data.surf.regions, r => r.heading)),
-    JSON.stringify(headings.filter(h => h !== 'Surfacing primitives')),
-    'one door per region of the doc, the primitives excepted');
-  for (const h of Object.keys(data.SURF_REGION_GLOSS))
-    assert.ok(headings.includes(h), 'gloss for a heading the doc does not carry: ' + h);
-  assert.ok(data.surf.regions.some(r => r.gloss), 'at least one door says when its region arrives');
+  const doors = Array.from(data.surf.regions, r => ({ path: r.path, gloss: r.gloss }));
+  assert.ok(doors.length >= 2, 'the course and the extended carriers both get a door');
+  for (const d of doors) {
+    assert.ok(existsSync(path.join(repoRoot, d.path)), 'door to a file that is gone: ' + d.path);
+    assert.ok(d.gloss, 'a door must say when its document reaches a session: ' + d.path);
+  }
+  // The primitives are the cards, never a door to themselves.
+  assert.ok(!doors.some(d => d.path === data.SURF_DOC), 'the primitives are the cards, not a door');
 });
 
 test('Docs loads on demand and carries the registry', async () => {

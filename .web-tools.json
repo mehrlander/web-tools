@@ -16,7 +16,8 @@
     "pages",
     "console",
     "lib/alpineComponents",
-    "docs/SURFACING.md"
+    "docs/SURFACING.md",
+    "docs/surfacing-course.md"
   ],
   "pages": [
     {

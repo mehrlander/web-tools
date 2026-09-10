@@ -15,14 +15,18 @@ A session with `mehrlander/web-tools` checked out already has the conventions:
 its `CLAUDE.md` carries Qualified writing and `@`-imports `docs/SURFACING.md`.
 If the checkout is present, say so and stop; there is nothing to load.
 
-Otherwise, fetch the surfacing system:
+Otherwise, fetch the primitives, which govern every reply:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/SURFACING.md"
 ```
 
+Fetch `docs/surfacing-course.md` beside it only when this session will open or
+drive a pull request. It is the guide-PR lifecycle and idles until one exists,
+which is why it is a second file rather than a longer first one.
+
 If `curl` is denied, use `mcp__github__get_file_contents` (owner `mehrlander`,
-repo `web-tools`, path `docs/SURFACING.md`), or WebFetch on the same raw URL.
+repo `web-tools`), or WebFetch on the same raw URLs.
 
 Apply it with the current repo substituted into the URL templates; where the
 current repo's own CLAUDE.md conflicts on a point, the current repo wins. Then
