@@ -686,7 +686,33 @@ test('send files where there is a token and hands over the capture where there i
   await d.probeVerb('send');
   assert.ok(copied && JSON.parse(copied).probeId, 'and it is the same capture, whole');
   assert.match(d.outMsg, /clipboard/);
+  // AND IT SAYS SO WHERE THE READER IS LOOKING. `outMsg` is a line inside the
+  // drawer's take area, which a row tapped from the launcher menu never opens,
+  // so a send that reported only there reported to nobody. Filing has the kit's
+  // own note on the overlay; this path builds the JSON itself and would have
+  // had nothing, so it writes a trace line instead.
+  assert.ok(window.Probe.trace().some((r) => r.tag === 'probe:send' && /clipboard/.test(r.detail)),
+    'the outcome has to reach the overlay, not a panel that is shut');
 
   await d.openProbe();
   window.PageReport = undefined;
+});
+
+test('a probe that cannot load opens the drawer, since that is where the reason is', async () => {
+  // The failure path is the one that must be readable: the reader taps Probe,
+  // nothing appears, and without this the sentence saying why sits behind a
+  // drawer they have no reason to open. Success leaves it shut, because the
+  // overlay appearing is the answer.
+  clearPages();
+  const d = await mountFab();
+  // An earlier case in this file left the kit's closure alive in this window,
+  // so the idle object it installs still carries a working arm(): clear it, or
+  // this is a test of a probe that loads perfectly.
+  window.Probe = undefined;
+  window.gh = { load: async () => {} };          // resolves, registers nothing
+  d.open = false;
+  await d.openProbe();
+  assert.equal(d.probeArmed, false);
+  assert.equal(d.open, true, 'a failure has to put its own explanation on screen');
+  assert.match(d.outMsg, /\?probe=/);
 });
