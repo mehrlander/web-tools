@@ -1,6 +1,6 @@
-// Open the FAB's one-button Take browser and leave its first output card on
-// screen. The mobile artifact proves that the former tooltip-only description
-// and the explicit output verb are readable before anything runs.
+// Open the FAB's one-button Take browser, then move to Capture. The mobile
+// artifact proves that the header follows the active output and that an output
+// already held by the page appears as content rather than as a placeholder.
 
 export default async function (page) {
   const ok = await page.evaluate(() => {
@@ -19,9 +19,21 @@ export default async function (page) {
   await door.click();
   await page.locator('.sd-overlay').waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Copy HTML' }).waitFor({ state: 'visible' });
-  const text = await page.locator('.sd-overlay').innerText();
-  if (!/Take outputs/.test(text) || !/Copies to the clipboard/.test(text)) {
-    throw new Error('Take browser did not expose the output explanation');
+  const initial = await page.locator('.sd-overlay').innerText();
+  if (!/HTML/.test(initial) || !/Made when chosen/.test(initial)) {
+    throw new Error('Take browser did not expose the deferred HTML output');
   }
-  await page.waitForTimeout(200);
+  await page.evaluate(() => window.swipeDeck.top().deck.go(2));
+  await page.waitForFunction(() => window.swipeDeck.top()?.title === 'Capture');
+  await page.getByText('Available now', { exact: true }).waitFor({ state: 'visible' });
+  const capture = await page.locator('.sd-overlay').innerText();
+  if (!/Capture/.test(capture) || !/"capture": "fab\/1"/.test(capture)) {
+    throw new Error('Capture did not update the header and expose its live JSON');
+  }
+  const width = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  if (width.scroll > width.client) throw new Error('Take browser overflows the phone viewport');
+  await page.waitForTimeout(300);
 }

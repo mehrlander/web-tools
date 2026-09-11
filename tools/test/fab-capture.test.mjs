@@ -96,6 +96,7 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
 
 test('one Take browser presents every output as a swipe-deck card', async () => {
   const opened = [];
+  const header = { title: '', subtitle: '', icon: '' };
   const h = (tag, attrs = {}, ...kids) => {
     const el = window.document.createElement(tag);
     for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
@@ -107,12 +108,25 @@ test('one Take browser presents every output as a swipe-deck card', async () => 
     open(o) {
       const el = window.document.createElement('div');
       const slide = window.document.createElement('div');
-      const handle = { el, slide, options: o, close() {} };
+      const handle = {
+        el, slide, options: o, close() {},
+        setTitle(value) { header.title = value; },
+        setSubtitle(value) { header.subtitle = value; },
+        setIcon(value) { header.icon = value; },
+      };
       o.render(0, slide);
       opened.push(handle);
       return handle;
     },
   };
+  const priorBrief = window.brief;
+  const priorBriefReady = fab.briefReady;
+  window.brief = { plan: () => ({
+    path: 'pages/example.html', repo: 'mehrlander/web-tools', ref: 'test-ref',
+    own: [{ path: 'kits/example.js' }], floor: [], reads: ['data/example.json'],
+    vendor: [], bytes: 1000, tokens: 250, cap: 100000, wholeLib: false,
+  }) };
+  fab.briefReady = true;
   fab.open = true;
   const handle = await fab.openTakeDeck();
   assert.equal(handle.options.count, fab.takeDeckItems.length);
@@ -121,9 +135,33 @@ test('one Take browser presents every output as a swipe-deck card', async () => 
     fab.takeDeckItems.some(a => a.group === group)), [true, true, true, true]);
   assert.match(handle.slide.textContent, /HTML/);
   assert.match(handle.slide.textContent, /Copies to the clipboard/);
+  assert.match(handle.slide.textContent, /Made when chosen/);
   assert.match(handle.slide.textContent, /Copy HTML/);
+  assert.equal(header.title, 'HTML', 'the header starts on the active output');
+  assert.match(header.subtitle, /^Copy \u00b7 /);
+  assert.equal(header.icon, 'ph-code');
   assert.equal(handle.el.hasAttribute('data-dom-shot-ignore'), true);
   assert.equal(fab.open, false, 'the drawer gives the screen to the takeover');
+
+  const captureAt = fab.takeDeckItems.findIndex(a => a.key === 'capture');
+  handle.options.onSlide(captureAt);
+  assert.equal(header.title, 'Capture', 'the header follows a swipe');
+  assert.match(header.subtitle, /^Copy \u00b7 /);
+  assert.equal(header.icon, 'ph-stethoscope');
+  const captureSlide = window.document.createElement('div');
+  handle.options.render(captureAt, captureSlide);
+  assert.match(captureSlide.textContent, /Available now/);
+  assert.match(captureSlide.textContent, /"capture": "fab\/1"/,
+    'Capture shows its concrete JSON before the action runs');
+
+  const stageAt = fab.takeDeckItems.findIndex(a => a.key === 'stage');
+  const stageSlide = window.document.createElement('div');
+  handle.options.render(stageAt, stageSlide);
+  assert.match(stageSlide.textContent, /Available now/);
+  assert.match(stageSlide.textContent, /pages\/example\.html/);
+  assert.match(stageSlide.textContent, /lib\/kits\/example\.js/);
+  assert.match(stageSlide.textContent, /data\/example\.json/,
+    'Stage shows the concrete file and runtime-data manifest');
 
   const imageAt = fab.takeDeckItems.findIndex(a => a.key === 'shot-view');
   const imageSlide = window.document.createElement('div');
@@ -136,7 +174,12 @@ test('one Take browser presents every output as a swipe-deck card', async () => 
     await tick(2);
     assert.equal(previews[0][0], 'viewport');
     assert.equal(previews[0][2], handle, 'the image preview drills from the catalog and can return to it');
-  } finally { fab.previewDomShot = originalPreview; }
+  } finally {
+    fab.previewDomShot = originalPreview;
+    if (priorBrief === undefined) delete window.brief;
+    else window.brief = priorBrief;
+    fab.briefReady = priorBriefReady;
+  }
 });
 
 test('the take grid previews view, page, and picked-region DOM screenshots in the house deck', async () => {
