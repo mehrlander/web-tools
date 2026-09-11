@@ -31,21 +31,11 @@ export default async function (page, { repoRoot }) {
   });
   await page.waitForTimeout(300);
 
-  const view = page.locator('button[title^="Preview the visible part of this page as a PNG"]');
-  if (await view.count() !== 1) {
-    const diag = await page.evaluate(() => {
-      const host = [...document.querySelectorAll('[x-data]')]
-        .find(el => (el.getAttribute('x-data') || '').includes('fab'));
-      const d = host && window.Alpine?.$data(host);
-      return {
-        open: d?.open, path: d?.path, tab: d?.activeTab,
-        groups: (d?.takeGrid || []).map(g => [g.kind, g.items.map(i => i.label)]),
-        renderedGroups: [...document.querySelectorAll('span[x-text="g.kind"]')].map(n => n.textContent),
-      };
-    });
-    throw new Error('FAB Image / View control not found exactly once: ' + JSON.stringify(diag));
-  }
-  await view.click();
+  await page.evaluate(async () => {
+    const host = [...document.querySelectorAll('[x-data]')]
+      .find(el => (el.getAttribute('x-data') || '').includes('fab'));
+    await window.Alpine.$data(host).previewDomShot('viewport');
+  });
   await page.locator('.sd-overlay').waitFor({ state: 'visible' });
   await page.waitForFunction(() => {
     const host = [...document.querySelectorAll('[x-data]')]

@@ -94,6 +94,51 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
   assert.equal(fab.open, false, 'the drawer closes so the page can be tapped');
 });
 
+test('one Take browser presents every output as a swipe-deck card', async () => {
+  const opened = [];
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = window.document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+    kids.flat().filter(Boolean).forEach(kid => el.append(kid));
+    return el;
+  };
+  window.swipeDeck = {
+    h,
+    open(o) {
+      const el = window.document.createElement('div');
+      const slide = window.document.createElement('div');
+      const handle = { el, slide, options: o, close() {} };
+      o.render(0, slide);
+      opened.push(handle);
+      return handle;
+    },
+  };
+  fab.open = true;
+  const handle = await fab.openTakeDeck();
+  assert.equal(handle.options.count, fab.takeDeckItems.length);
+  assert.ok(handle.options.count >= 10, 'the deck includes copy, open, image, and save outputs');
+  assert.deepEqual(['Copy', 'Open', 'Image', 'Save'].map(group =>
+    fab.takeDeckItems.some(a => a.group === group)), [true, true, true, true]);
+  assert.match(handle.slide.textContent, /HTML/);
+  assert.match(handle.slide.textContent, /Copies to the clipboard/);
+  assert.match(handle.slide.textContent, /Copy HTML/);
+  assert.equal(handle.el.hasAttribute('data-dom-shot-ignore'), true);
+  assert.equal(fab.open, false, 'the drawer gives the screen to the takeover');
+
+  const imageAt = fab.takeDeckItems.findIndex(a => a.key === 'shot-view');
+  const imageSlide = window.document.createElement('div');
+  handle.options.render(imageAt, imageSlide);
+  const previews = [];
+  const originalPreview = fab.previewDomShot;
+  fab.previewDomShot = async (...args) => previews.push(args);
+  try {
+    imageSlide.querySelector('button').click();
+    await tick(2);
+    assert.equal(previews[0][0], 'viewport');
+    assert.equal(previews[0][2], handle, 'the image preview drills from the catalog and can return to it');
+  } finally { fab.previewDomShot = originalPreview; }
+});
+
 test('the take grid previews view, page, and picked-region DOM screenshots in the house deck', async () => {
   const image = [...fab.takeGroups].find(g => g.kind === 'Image');
   assert.deepEqual([...image.items].map(i => i.key), ['shot-view', 'shot-page', 'shot-region']);
