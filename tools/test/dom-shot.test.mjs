@@ -81,3 +81,13 @@ test('element capture lets the renderer measure the picked node', async () => {
   assert.equal(r.mode, 'element');
   assert.match(window.DomShot.filename(node, 'element'), /^shot-test-element-.*\.png$/);
 });
+
+test('a rendered blob can be downloaded later, after a preview', () => {
+  const { window } = boot();
+  const clicks = [];
+  window.URL.createObjectURL = () => 'blob:shot';
+  window.URL.revokeObjectURL = () => {};
+  window.HTMLAnchorElement.prototype.click = function() { clicks.push([this.href, this.download]); };
+  window.DomShot.download(new window.Blob(['png']), 'later.png', window.document);
+  assert.deepEqual(clicks, [['blob:shot', 'later.png']]);
+});

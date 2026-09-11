@@ -1,5 +1,6 @@
-// screenshot.mjs interaction scenario: take a real DOM-rendered viewport PNG
-// from the FAB and leave the drawer showing the renderer's result line.
+// screenshot.mjs interaction scenario: preview each real DOM-rendered PNG in
+// the house swipe-deck, explicitly download it there, and leave the selected
+// region's preview open for the visual artifact.
 //
 //   node tools/render/screenshot.mjs pages/demos/sheet-modal-demo.html \
 //     --script tools/render/scenarios/fab-dom-shot.mjs \
@@ -30,7 +31,7 @@ export default async function (page, { repoRoot }) {
   });
   await page.waitForTimeout(300);
 
-  const view = page.locator('button[title^="The visible part of this page as a PNG"]');
+  const view = page.locator('button[title^="Preview the visible part of this page as a PNG"]');
   if (await view.count() !== 1) {
     const diag = await page.evaluate(() => {
       const host = [...document.querySelectorAll('[x-data]')]
@@ -44,8 +45,8 @@ export default async function (page, { repoRoot }) {
     });
     throw new Error('FAB Image / View control not found exactly once: ' + JSON.stringify(diag));
   }
-  const downloadReady = page.waitForEvent('download', { timeout: 30000 }).catch(error => ({ error }));
   await view.click();
+  await page.locator('.sd-overlay').waitFor({ state: 'visible' });
   await page.waitForFunction(() => {
     const host = [...document.querySelectorAll('[x-data]')]
       .find(el => (el.getAttribute('x-data') || '').includes('fab'));
@@ -59,14 +60,22 @@ export default async function (page, { repoRoot }) {
     return { msg: d?.outMsg || '', error: d?.outError || '' };
   });
   if (state.error) throw new Error('FAB DOM shot failed: ' + state.error);
+  const downloadReady = page.waitForEvent('download', { timeout: 30000 });
+  await page.getByRole('button', { name: 'Download PNG' }).click();
   const download = await downloadReady;
-  if (download.error) throw download.error;
   await download.saveAs(path.join(repoRoot, 'tools', '.preview', 'fab-dom-shot-output.png'));
   if (!/DOM render/.test(state.msg)) throw new Error('FAB did not name the DOM render: ' + state.msg);
+  await page.locator('.sd-overlay button[aria-label="Close"]').click();
+  await page.locator('.sd-overlay').waitFor({ state: 'detached' });
 
-  const pageTake = page.locator('button[title^="The full scrolling page as a PNG"]');
+  await page.evaluate(async () => {
+    const host = [...document.querySelectorAll('[x-data]')]
+      .find(el => (el.getAttribute('x-data') || '').includes('fab'));
+    await window.Alpine.$data(host).previewDomShot('page');
+  });
+  await page.locator('.sd-overlay').waitFor({ state: 'visible' });
   const pageReady = page.waitForEvent('download', { timeout: 30000 });
-  await pageTake.click();
+  await page.getByRole('button', { name: 'Download PNG' }).click();
   const pageDownload = await pageReady;
   await pageDownload.saveAs(path.join(repoRoot, 'tools', '.preview', 'fab-dom-shot-page-output.png'));
   await page.waitForFunction(() => {
@@ -74,6 +83,8 @@ export default async function (page, { repoRoot }) {
       .find(el => (el.getAttribute('x-data') || '').includes('fab'));
     return /-page-/.test(window.Alpine?.$data(host)?.outMsg || '');
   });
+  await page.locator('.sd-overlay button[aria-label="Close"]').click();
+  await page.locator('.sd-overlay').waitFor({ state: 'detached' });
 
   await page.evaluate(async () => {
     const host = [...document.querySelectorAll('[x-data]')]
@@ -81,17 +92,11 @@ export default async function (page, { repoRoot }) {
     await window.Alpine.$data(host).openShotPicker();
     window.Peek.select(document.querySelector('h1'));
   });
-  const regionReady = page.waitForEvent('download', { timeout: 30000 });
   await page.locator('[data-peek-act="take"]').click();
+  await page.locator('.sd-overlay').waitFor({ state: 'visible' });
+  const regionReady = page.waitForEvent('download', { timeout: 30000 });
+  await page.getByRole('button', { name: 'Download PNG' }).click();
   const regionDownload = await regionReady;
   await regionDownload.saveAs(path.join(repoRoot, 'tools', '.preview', 'fab-dom-shot-region-output.png'));
-  await page.evaluate(() => {
-    window.Peek.disable();
-    const host = [...document.querySelectorAll('[x-data]')]
-      .find(el => (el.getAttribute('x-data') || '').includes('fab'));
-    const d = window.Alpine.$data(host);
-    d.open = true;
-    d.activeTab = 'render';
-  });
   await page.waitForTimeout(200);
 }

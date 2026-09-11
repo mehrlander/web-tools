@@ -94,31 +94,66 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
   assert.equal(fab.open, false, 'the drawer closes so the page can be tapped');
 });
 
-test('the take grid carries view, page, and picked-region DOM screenshots', async () => {
+test('the take grid previews view, page, and picked-region DOM screenshots in the house deck', async () => {
   const image = [...fab.takeGroups].find(g => g.kind === 'Image');
   assert.deepEqual([...image.items].map(i => i.key), ['shot-view', 'shot-page', 'shot-region']);
   assert.ok(image.items.every(i => /DOM|renderer|reconstructed/.test(i.desc)),
     'every image scope says this is a renderer output');
 
-  const saves = [];
+  const captures = [];
+  const previews = [];
+  const downloads = [];
+  const revoked = [];
+  window.URL.createObjectURL = () => 'blob:preview';
+  window.URL.revokeObjectURL = u => revoked.push(u);
   window.DomShot = {
-    save: async (node, o) => {
-      saves.push({ node, o });
-      return { filename: o.mode + '.png', width: 390, height: 844, warnings: [] };
+    capture: async (node, o) => {
+      captures.push({ node, o });
+      return { blob: new window.Blob(['png']), mode: o.mode, renderer: 'test renderer',
+               width: 390, height: 844, warnings: [] };
+    },
+    filename: (_node, mode) => mode + '.png',
+    download: (blob, filename, doc) => downloads.push({ blob, filename, doc }),
+  };
+  window.swipeDeck = {
+    open: o => {
+      const el = window.document.createElement('div');
+      const slide = window.document.createElement('div');
+      o.render(0, slide);
+      const handle = { el, deck: {}, options: o, slide };
+      previews.push(handle);
+      return handle;
     },
   };
   await fab.runTake('shot-view');
   await fab.runTake('shot-page');
-  assert.deepEqual(saves.map(s => s.o.mode), ['viewport', 'page']);
-  assert.ok(saves.every(s => s.node === window.document.documentElement));
+  assert.deepEqual(captures.map(s => s.o.mode), ['viewport', 'page']);
+  assert.ok(captures.every(s => s.node === window.document.documentElement));
+  assert.deepEqual(previews.map(p => p.options.title), ['Visible view', 'Full page']);
+  assert.ok(previews.every(p => p.options.count === 1), 'a single image uses the deck as a takeover, not as a false set');
+  assert.ok(previews.every(p => p.el.hasAttribute('data-dom-shot-ignore')),
+    'a second capture does not photograph the first preview');
+  assert.match(previews[0].slide.textContent, /Reconstructed from the DOM by test renderer/);
+  assert.equal(previews[0].slide.querySelector('img').src, 'blob:preview');
   assert.match(fab.outMsg, /DOM render/, 'the shared result line names the fidelity');
+  previews[0].options.actions[0].onClick();
+  assert.equal(downloads[0].filename, 'viewport.png', 'download is an explicit action in the preview');
+  previews[0].options.onClose();
+  assert.deepEqual(revoked, ['blob:preview'], 'the preview releases its object URL when closed');
 
   const calls = [];
-  window.Peek = { enabled: false, enable: o => calls.push(o), disable: () => {} };
+  let peekDisabled = false;
+  window.Peek = {
+    enabled: false,
+    enable(o) { calls.push(o); this.enabled = true; },
+    disable() { peekDisabled = true; this.enabled = false; },
+  };
   await fab.runTake('shot-region');
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].takeLabel, 'Save PNG');
+  assert.equal(calls[0].takeLabel, 'Preview PNG');
   assert.equal(typeof calls[0].onTake, 'function');
   await calls[0].onTake(window.document.body);
-  assert.equal(saves.at(-1).o.mode, 'element', 'the picker saves the chosen element');
+  assert.equal(captures.at(-1).o.mode, 'element', 'the picker captures the chosen element');
+  assert.equal(previews.at(-1).options.title, 'Selected region');
+  assert.equal(peekDisabled, true, 'the picker gets out of the way before the takeover is shown');
 });
