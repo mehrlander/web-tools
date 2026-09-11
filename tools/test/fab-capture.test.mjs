@@ -93,3 +93,32 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
   assert.match(fab.outMsg, /^Region:/, 'reported on the shared output line');
   assert.equal(fab.open, false, 'the drawer closes so the page can be tapped');
 });
+
+test('the take grid carries view, page, and picked-region DOM screenshots', async () => {
+  const image = [...fab.takeGroups].find(g => g.kind === 'Image');
+  assert.deepEqual([...image.items].map(i => i.key), ['shot-view', 'shot-page', 'shot-region']);
+  assert.ok(image.items.every(i => /DOM|renderer|reconstructed/.test(i.desc)),
+    'every image scope says this is a renderer output');
+
+  const saves = [];
+  window.DomShot = {
+    save: async (node, o) => {
+      saves.push({ node, o });
+      return { filename: o.mode + '.png', width: 390, height: 844, warnings: [] };
+    },
+  };
+  await fab.runTake('shot-view');
+  await fab.runTake('shot-page');
+  assert.deepEqual(saves.map(s => s.o.mode), ['viewport', 'page']);
+  assert.ok(saves.every(s => s.node === window.document.documentElement));
+  assert.match(fab.outMsg, /DOM render/, 'the shared result line names the fidelity');
+
+  const calls = [];
+  window.Peek = { enabled: false, enable: o => calls.push(o), disable: () => {} };
+  await fab.runTake('shot-region');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].takeLabel, 'Save PNG');
+  assert.equal(typeof calls[0].onTake, 'function');
+  await calls[0].onTake(window.document.body);
+  assert.equal(saves.at(-1).o.mode, 'element', 'the picker saves the chosen element');
+});

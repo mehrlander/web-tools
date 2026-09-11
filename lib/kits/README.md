@@ -1296,6 +1296,7 @@ examples.
 | `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |
 | `../build.js` | `tools/build/` + the FAB export | one emitter, two consumers; `lib/` root since 2026-08-08 (extends `GH.prototype`) |
 | `export.js` | the FAB's export control | page + `read()` data as a zip |
+| `dom-shot.js` | the FAB's Image takes | visible view, full page, or a Peek-picked element rendered to PNG with explicit fidelity warnings; lazy modern-screenshot |
 | `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |
 | `wsl.js` | `pages/wsl-sync/` | browser wrapper; lazy XML libs |
 | `xlsx.js` | `kits/demos/xlsx.html` | OOXML structural walk; pure/testable, lazy JSZip |
