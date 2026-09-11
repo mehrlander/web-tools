@@ -120,3 +120,91 @@ test('a null response is empty too, not a crash', async () => {
   assert.equal(w.updatedAt, '');
   assert.equal(w.number, 0);
 });
+
+// ── The deep-scan return boundary, run for real ───────────────────────────
+// A successful scan carries BranchStatus.scanOlder's rows and coverage out of
+// crawlRepoActivity. Execute the inline shell method itself so a block-scope
+// regression fails exactly as it does in the browser crawl.
+
+const crawlStart = shellSrc.indexOf('  async crawlRepoActivity(');
+const crawlEnd = shellSrc.indexOf('  // ── The app-route join', crawlStart);
+assert.ok(crawlStart >= 0 && crawlEnd > crawlStart, 'crawlRepoActivity source is present');
+const crawlMethodSrc = shellSrc.slice(crawlStart, crawlEnd).trim();
+const { crawlRepoActivity } = new Function(`return ({${crawlMethodSrc}})`)();
+
+class ActivityGH {
+  async commits(){ return [{ sha: 'main-sha', date: '2026-09-11T17:00:00Z' }]; }
+  async pulls(){ return []; }
+  async branchPulls(){ return { rows: [], reach: '' }; }
+  async branchesDatedSessions(){
+    return {
+      branches: [
+        { name: 'main', date: '2026-09-11T17:00:00Z', sha: 'main-sha', subject: 'main' },
+        { name: 'codex/fresh-work', date: '2026-09-11T16:00:00Z', sha: 'topic-sha', subject: 'work' },
+      ],
+      sessions: {}, ordered: true, capped: false,
+    };
+  }
+}
+
+const activityShell = () => ({
+  crawlRepoActivity,
+  ACTIVITY_RECENT_COMMITS: 40,
+  ACTIVITY_PR_REACH: 100,
+  ACTIVITY_SCAN_CAP: 30,
+  ACTIVITY_SCAN_KEEP: 200,
+  ACTIVITY_ERROR_RETRY: 7,
+});
+
+const crawl = async (B) => activityShell().crawlRepoActivity(
+  'mehrlander/web-tools',
+  { default_branch: 'main', pushed_at: '2026-09-11T17:32:58Z' },
+  Date.parse('2026-09-11T18:00:00Z'), {}, B, null, true, null,
+);
+
+test('a successful deep activity scan returns its rows and coverage', async () => {
+  const oldWindow = globalThis.window;
+  globalThis.window = { GH: ActivityGH, RepoChecks: null };
+  try {
+    const out = await crawl({
+      RECENT_DAYS: 14,
+      daysAgo: () => 30,
+      async scanOlder(){
+        return {
+          truncated: true, pending: 3, beyondHorizon: 4,
+          rows: [{ name: 'codex/fresh-work', date: '2026-09-11T16:00:00Z', sha: 'topic-sha', group: 'stranded' }],
+        };
+      },
+    });
+
+    assert.equal(out.partial, undefined, 'the completed scan is not reported partial');
+    assert.equal(out.scan.pending, 3);
+    assert.equal(out.scan.beyondHorizon, 4);
+    assert.equal(out.scan.truncated, true);
+    assert.equal(out.scan.listOrdered, true);
+    assert.equal(out.scan.listCapped, false);
+    assert.deepEqual(out.scan.branches.map(b => b.name), ['codex/fresh-work']);
+  } finally {
+    globalThis.window = oldWindow;
+  }
+});
+
+test('a rejected deep scan stays partial instead of publishing an empty scan', async () => {
+  const oldWindow = globalThis.window;
+  const oldWarn = console.warn;
+  globalThis.window = { GH: ActivityGH, RepoChecks: null };
+  console.warn = () => {};
+  try {
+    const out = await crawl({
+      RECENT_DAYS: 14,
+      daysAgo: () => 30,
+      async scanOlder(){ throw new Error('compare unavailable'); },
+    });
+
+    assert.equal(out.partial, true);
+    assert.equal(out.scan, undefined, 'mergeRepo will retain the prior scan');
+  } finally {
+    console.warn = oldWarn;
+    globalThis.window = oldWindow;
+  }
+});

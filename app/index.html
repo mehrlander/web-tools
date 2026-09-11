@@ -3990,6 +3990,11 @@ function app(){ return {
     // active; older = scanned, capped), through the shared orchestrator.
     let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, scanned: 0, older: 0, openPRs: openPRs.length };
     let truncated = false;
+    // Held outside the guarded block because the successful scan's coverage
+    // travels in the returned cache entry below. Keeping this block-local made
+    // every real deep scan throw while assembling its result, after all of its
+    // GitHub reads had already succeeded.
+    let scanned = null;
     // Whether this pass actually READ the branch list. Everything below is
     // derived from it, so a failure here means the numbers are absent rather
     // than zero, and the difference is the whole of the guard at the bottom.
@@ -4010,7 +4015,7 @@ function app(){ return {
       // from the commits read above, and it is the scan's other input: while
       // both hold, a verdict cannot have changed. See BranchStatus.needsScan.
       const prior = new Map((prev?.repos?.[repo]?.scan?.branches || []).map(r => [r.name, r]));
-      const scanned = deep
+      scanned = deep
         ? await B.scanOlder(g, { defaultRef: def, older, cap: this.ACTIVITY_SCAN_CAP,
                                    keep: this.ACTIVITY_SCAN_KEEP, pool: 3, now,
                                    prior, mainSha, priorMainSha: prev?.repos?.[repo]?.scan?.mainSha || '',
@@ -4058,7 +4063,7 @@ function app(){ return {
       // repo, so it must never reach the stored entry or the hash. A pass whose
       // branch list would not read is partial in exactly the same sense as a
       // quick pass: it knows less than the stored entry does.
-      ...(deep && listOk ? {} : { partial: true }),
+      ...(deep && listOk && scanned ? {} : { partial: true }),
       // Counts describe the branch list, so a pass that never read one has no
       // counts to give. Omitting them entirely is what makes mergeRepo carry
       // the stored ones; sending zeros would report an empty repo.
@@ -4082,7 +4087,7 @@ function app(){ return {
       // over quiet crawls; `beyondHorizon` is what `keep` itself cut and does
       // not; `listOrdered` is whether the branch WALK cut by date or by name,
       // which decides whether any of the three is a recency statement at all.
-      ...(deep && listOk ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
+      ...(deep && listOk && scanned ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
                              keep: this.ACTIVITY_SCAN_KEEP,
                              mainSha: recentCommits[0]?.sha || '',
                              scanned: counts.scanned, older: counts.older, truncated,
