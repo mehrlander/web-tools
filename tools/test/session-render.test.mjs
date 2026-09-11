@@ -562,3 +562,47 @@ test('the density is the record\'s, so a card does not switch register mid-scrol
   const fan = foldsOf(rec).find(b => b.tools?.[0]?.agent).tools;
   assert.ok(fan.every(t => !/xxxxx/.test(t.md)), 'every agent in the run reads the same way');
 });
+
+// ── The header's title, when the prompt arrived with attachments ─────────────
+// Same defect the row's ask had, one surface over: a prompt opening with three
+// attached files opens with about 300 characters of upload path, so the brief's
+// header read as a UUID. The rule is repo-sessions-cache's (askParts), reached
+// through the global, so this also has to hold what happens when that kit is
+// absent, which is the case on every page that never loads it.
+
+const UP = '/root/.claude/uploads/aaaa1111-bbbb-cccc-dddd-eeee00001111/';
+const ATTACHED =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  'Please review the attached documents.';
+
+function withCacheKit() {
+  const w = { ...window };
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/closing-state.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-sessions-cache.js'), 'utf8'))(w);
+  return w.RepoSessionsCache;
+}
+
+test('the title is the question, not the upload paths', () => {
+  const kit = withCacheKit();
+  window.RepoSessionsCache = kit;
+  try {
+    assert.match(describe({ short: 'aaaa1111', opening_ask: ATTACHED }).title,
+                 /^Please review the attached documents/);
+    // A prompt that was ONLY attachments has no prose to title with, so the
+    // names stand in rather than leaving the header on the bare short id.
+    const namesOnly = describe({ short: 'aaaa1111', opening_ask: `@"${UP}22288270-Only_File.docx"` });
+    assert.match(namesOnly.title, /Only_File\.docx/);
+  } finally { delete window.RepoSessionsCache; }
+});
+
+test('without the cache kit the title is what it always was, not empty', () => {
+  // This kit renders on pages that never load repo-sessions-cache. Failing open
+  // means the paths come back, which is the behaviour before the lift; failing
+  // closed would blank a header.
+  assert.equal('RepoSessionsCache' in window, false);
+  const d = describe({ short: 'aaaa1111', opening_ask: ATTACHED });
+  assert.match(d.title, /uploads/);
+  assert.equal(describe({ short: 'aaaa1111' }).title, 'aaaa1111');
+});

@@ -187,9 +187,17 @@ test('the id the router names is the id the finder carries', () => {
 // something that OVERLAYS a view breaks that: the fab drawer's debug console
 // carries a filter, and marking it would put two boxes on screen with DOM order
 // picking between them. So a new declaration has to be argued here first.
+//
+// THE ESTATE DECLARES TWO, and the argument is the tab strip rather than the
+// view. Its Sessions and Chats panes are siblings under one `tab` variable and
+// each renders with `hidden` when it is not the open tab, so a hidden pane's
+// box has no client rects and the router's "first visible" never sees both.
+// That is the same property the one-view-at-a-time rule rests on, one level
+// down; it is NOT the overlay case, where both boxes are laid out at once.
 const DECLARED = [
   ['app/index.html', 'the Pages filter and the project Docs path filter', 2],
   ['lib/alpineComponents/search-view.js', 'the Files view query', 1],
+  ['lib/alpineComponents/estate.js', "the Sessions pane's filter and the Chats pane's filter", 2],
   ['lib/alpineComponents/map.js', "the Map's Skills search", 1],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],

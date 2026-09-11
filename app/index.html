@@ -3580,6 +3580,55 @@ function app(){ return {
                                 'Update session menu index (state/session-menu.json)', mbase);
         } catch(e){ console.warn('session menu index:', e?.message || e); }
       }
+
+      // ── The search index, one shard per month ─────────────────────────────
+      // Its own gate and its own try, outside the cache's `changed` check,
+      // because the two move for different reasons: a record's sha can be
+      // unchanged while the ROW_V bump rewrites its row, and a month can need
+      // its shard built on a pass where nothing about the cache moved at all.
+      //
+      // It rides THIS crawl rather than a second one because the records are
+      // already in hand. `fetched` holds the parsed record of everything whose
+      // blob sha moved, so tokenizing costs no network and the shard for a
+      // month nothing changed in is never read, let alone rewritten.
+      //
+      // ONE SHARD PER TOUCHED MONTH, merged rather than rebuilt: the crawl
+      // reads only the changed records, so every other entry in that month
+      // exists nowhere but the shard. kits/session-index.js carries the
+      // merge and the reason.
+      try {
+        if (!window.SessionIndex) await window.gh.load('kits/session-index.js');
+        const X = window.SessionIndex;
+        // Which months the listing puts a record in, so a record that left the
+        // store leaves the index. Read off the path rather than the record, so
+        // a month the cap deferred still gets an accurate keep-set.
+        const idsByMonth = {};
+        for (const e of listing){
+          const m = (e.path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
+          const id = (e.path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
+          if (m && id) (idsByMonth[m] ||= new Set()).add(id);
+        }
+        // Only the months this pass actually read into.
+        const changedByMonth = {};
+        for (const [path, hit] of Object.entries(fetched)){
+          const m = (path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
+          const id = (path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
+          if (!m || !id || !hit?.record) continue;
+          (changedByMonth[m] ||= {})[id] = X.tokens(X.docText(hit.record));
+        }
+        for (const [month, changedDocs] of Object.entries(changedByMonth)){
+          const path = X.shardPath(month);
+          const sbase = await this.readForFold(reg, path);
+          // The keep-set is applied only on a COMPLETE pass. A capped pass has
+          // not read every record, and dropping the entries it did not reach
+          // would empty the index one month at a time while reporting success.
+          const keep = complete ? idsByMonth[month] : null;
+          const shard = X.mergeShard(sbase?.doc || null, changedDocs, keep);
+          if (X.shardChanged(sbase?.doc || null, shard))
+            await this.saveFold(reg, path, shard,
+                                'Update session search index (' + path + ')', sbase);
+        }
+      } catch(e){ console.warn('session search index:', e?.message || e); }
       // `doc` rides the summary for the reason the activity crawl's does, plus
       // one this crawl has and that one does not. The shared reason is cost:
       // state/sessions.json is a megabyte and the crawl is holding it, so a

@@ -128,6 +128,7 @@ tools/render/scenarios/branches-window.mjs,the Branches window pill: the reader'
 tools/render/scenarios/chats-paging.mjs,"the Chats pane's paging control: one earlier month loaded on demand, shot at the footer",tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/chats-pane.mjs,the estate's Chats pane with the sibling-repo archive actually loaded,tools/render/scenarios,23,driver,no,no,no
 tools/render/scenarios/chats-probe.mjs,"diagnostic: whether the Chats pane's failure state is a pending request or a pegged main thread, counted in animation frames",tools/render/scenarios,22,driver,no,no,no
+tools/render/scenarios/chats-query.mjs,the Chats pane's text box over fixture rows,tools/render/scenarios,74,driver,no,no,no
 tools/render/scenarios/code-layers-guide-lower.mjs,scroll the code-layers guide to its lower tabs for the pixel check,tools/render/scenarios,14,driver,no,no,no
 tools/render/scenarios/data-view-item-tossed.mjs,"the #item= addressing end to end through a toss, proving the two halves meet",tools/render/scenarios,61,driver,no,yes,no
 tools/render/scenarios/data-view-item.mjs,"data-view's #item= addressing, read and written",tools/render/scenarios,89,driver,no,yes,yes
@@ -146,7 +147,7 @@ tools/render/scenarios/estate-jots.mjs,the estate's Jots view with a populated p
 tools/render/scenarios/estate-open.mjs,Activity's Open view seeded token-free so the list renders headlessly,tools/render/scenarios,205,driver,no,no,no
 tools/render/scenarios/estate-pins.mjs,the Lists pane with the Pin block populated above To-do and Jot,tools/render/scenarios,96,driver,no,no,no
 tools/render/scenarios/estate-rows.mjs,the grouped-grid Repos view with a nested companion card,tools/render/scenarios,88,driver,no,no,no
-tools/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",tools/render/scenarios,601,driver,no,no,yes
+tools/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",tools/render/scenarios,621,driver,no,no,yes
 tools/render/scenarios/estate-skills.mjs,,tools/render/scenarios,106,driver,no,no,no
 tools/render/scenarios/estate-surfaces-embed.mjs,"the Surfaces view rendering a kind:embed item, collapsed",tools/render/scenarios,81,driver,no,no,no
 tools/render/scenarios/estate-unfiled.mjs,,tools/render/scenarios,99,driver,no,no,no
@@ -206,6 +207,7 @@ tools/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo dec
 tools/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",tools/render/scenarios,12,driver,no,no,no
 tools/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",tools/render/scenarios,78,driver,no,no,no
+tools/render/scenarios/search-chats.mjs,the Files view's Chats lane: the fourth mode pill and a chat hit's shape,tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/search-cold.mjs,the Files view's cold open: a bare arrival scopes to the browsed repo and walks it,tools/render/scenarios,50,driver,no,no,no
 tools/render/scenarios/search-controls.mjs,"the Files view's scope controls, with the ref picker open",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/search-deck.mjs,"the Files view's hits read in the swipe deck: the header naming the file, and the contents list under sheet=1",tools/render/scenarios,71,driver,no,no,no

@@ -1253,3 +1253,177 @@ test('the menu index commits only when the phone would see a difference', () => 
   assert.equal(S.menuChanged(a, c), true);
   assert.equal(S.menuChanged(null, a), true, 'the file not existing yet is a change');
 });
+
+// ── What the Sessions pane's text box can reach ──────────────────────────────
+// The prose left the row on 2026-09-02 (PROSE_KEYS), so a filter over these
+// rows reaches the opening ask, the two names, and the work's vocabulary, and
+// nothing said after the opening. Both directions are held: a miss on a phrase
+// spoken mid-session is correct behaviour here, not a bug to fix by widening
+// the haystack, and the pane routes such a query to the exhaustive pass.
+
+const SEARCH_ROW = {
+  id: '4835da35',
+  day: '2026-09-10',
+  title: 'CI subscription docs',
+  ask: 'Do we have documentation around CI?',
+  branches: ['claude/amazing-edison-k9dk2n'],
+  repos: [{ name: 'home', branch: 'claude/amazing-edison-k9dk2n', lines: 1 }],
+  attached: ['home', 'web-tools', 'web-tools-private'],
+  files: [['web-tools/lib/kits/estate-search.js', 4]],
+  docFiles: [['web-tools/docs/inbound.md', 1]],
+  guides: [],
+  skillCalls: [['markers', 2]],
+  tools: [['Bash', 33]],
+};
+
+test('the search segments are the row, labelled by which field they came from', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  assert.ok(segs.includes('title: CI subscription docs'));
+  assert.ok(segs.includes('ask: Do we have documentation around CI?'));
+  assert.ok(segs.includes('repo: home'));
+  assert.ok(segs.includes('attached: web-tools-private'));
+  assert.ok(segs.includes('file: web-tools/lib/kits/estate-search.js'));
+  assert.ok(segs.includes('doc: web-tools/docs/inbound.md'));
+  assert.ok(segs.includes('skill: markers'));
+  assert.ok(segs.includes('tool: Bash'));
+});
+
+test('the derived name rides in both spellings, so either one finds it', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  // The branch as stored, and the title as a person remembers saying it.
+  assert.ok(segs.includes('name: amazing-edison'));
+  assert.ok(segs.includes('name: amazing edison'));
+  assert.equal(C.matches(SEARCH_ROW, 'amazing edison'), true);
+});
+
+test('terms are ANDed across the row and ORed across its fields', () => {
+  const C = load();
+  assert.equal(C.matches(SEARCH_ROW, 'documentation'), true);
+  // One term from the ask, one from a file path: a session that opened that
+  // file while being asked that question is a real answer to both.
+  assert.equal(C.matches(SEARCH_ROW, 'documentation estate-search'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'documentation pensions'), false);
+  assert.equal(C.matches(SEARCH_ROW, ''), true);
+});
+
+test('a row carries no prose, so no filter over rows can find what was said', () => {
+  const C = load();
+  // The ask is on the row at ASK_CHARS and answers. A reply is not on the row
+  // at all, and this miss is what sends the reader to EstateSearch.sessions.
+  assert.equal(C.matches(SEARCH_ROW, 'CI'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'subscribe_pr_activity'), false);
+  // Stated structurally as well as by example: leanRow is what removed it.
+  assert.ok(C.PROSE_KEYS.includes('turns'));
+  assert.ok(C.PROSE_KEYS.includes('reply'));
+  assert.equal('turns' in C.leanRow({ turns: [['u', 'hi', '00:00:01']] }), false);
+});
+
+// ── Attachments come off the ask before the cap ──────────────────────────────
+// Claude Code writes one @"<upload path>" per attached file at the head of the
+// prompt, and ASK_CHARS was being spent on them: measured 2026-09-10, 7 of the
+// 372 rows on file opened with an upload mention and 3 held nothing but paths,
+// so the question never reached the cache. These hold the lift, the two fail-
+// open shapes, and the one thing that must NOT be touched, a typed @ reference.
+
+const UP = '/root/.claude/uploads/d657f526-3a5d-5fc8-9c67-9a9025374174/';
+const REAL_ASK =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  `@"${UP}39298db0-CORE_PAM_IT_Addendum.docx" ` +
+  "Please review the attached documents with the drs budget app submittal view.";
+
+test('the ask keeps the question and the attachments become names', () => {
+  const C = load();
+  const { ask, files } = C.askParts(REAL_ASK);
+  assert.equal(ask, 'Please review the attached documents with the drs budget app submittal view.');
+  assert.deepEqual([...files], [
+    'COREPAM_Decision_Package.docx',
+    'IT_Fiscal_Workbook__CORE_PAM.xlsx',
+    'CORE_PAM_IT_Addendum.docx',
+  ]);
+  // The record's own 444 characters would have been cut at 240, inside the
+  // third path, which is what this exists to stop.
+  assert.ok(REAL_ASK.length > C.ASK_CHARS);
+  assert.ok(ask.length < C.ASK_CHARS);
+});
+
+test('the eight-hex prefix goes and a real name keeps its digits', () => {
+  const C = load();
+  // The harness prefix disambiguates two uploads of one name; the name under
+  // it starts with digits of its own and must survive.
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0e001840-02.02DecisionPackageReduction.docx'),
+               '02.02DecisionPackageReduction.docx');
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0181b50d-SKILL.md'), 'SKILL.md');
+});
+
+test('a typed @ reference is not an attachment and stays in the ask', () => {
+  const C = load();
+  // The rule anchors on the uploads DIRECTORY, never on the @ sigil. A repo
+  // path somebody typed is content, and stripping it would also drop it out of
+  // the search corpus.
+  const { ask, files } = C.askParts('Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(ask, 'Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(files.length, 0);
+});
+
+test('an upload shape it does not know is left alone, not guessed at', () => {
+  const C = load();
+  // Both fail-open cases: nothing under the uploads directory, and one segment
+  // where the layout has two. Taking "the last segment" would have called the
+  // first of these an attachment named `uploads` and deleted the mention.
+  for (const bad of ['@"/root/.claude/uploads/" hi', '@"/root/.claude/uploads/abc" hi']) {
+    const { ask, files } = C.askParts(bad);
+    assert.equal(ask, bad, `should be untouched: ${bad}`);
+    assert.equal(files.length, 0);
+  }
+  assert.equal(C.attachName('/root/.claude/uploads/'), '');
+  assert.equal(C.attachName('/nowhere/near/uploads/a/b.txt'), '');
+});
+
+test('what was typed is not otherwise rewritten', () => {
+  const C = load();
+  // Interior spacing and line structure survive: sessionAsk reads the lines to
+  // rebuild list boundaries, and double spaces are how somebody types.
+  assert.equal(C.askParts('plain  ask\nsecond line').ask, 'plain  ask\nsecond line');
+  assert.equal(C.askParts('').ask, '');
+  assert.equal(C.askParts(null).ask, '');
+});
+
+test('summarize lifts them onto the row, and only where there were some', () => {
+  const C = load();
+  const withFiles = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.equal(withFiles.attachments.length, 3);
+  assert.match(withFiles.ask, /^Please review/);
+  // 365 of 372 rows have none, and an absent key is how `title` says the same
+  // thing: no empty array on every row saying nothing.
+  const without = C.summarize({ short: 'bbbb2222', opening_ask: 'just a question' }, 'sha');
+  assert.equal('attachments' in without, false);
+  assert.equal(without.ask, 'just a question');
+});
+
+test('the names are searchable, apart from the ask', () => {
+  const C = load();
+  const row = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.ok(C.searchSegs(row).includes('attachment: COREPAM_Decision_Package.docx'));
+  assert.equal(C.matches(row, 'COREPAM_Decision_Package'), true);
+  // And the question is now findable, which it was not while the cap was spent
+  // on paths.
+  assert.equal(C.matches(row, 'submittal view'), true);
+  // The UUID directory is gone from the corpus, which is the other half.
+  assert.equal(C.matches(row, '9a9025374174'), false);
+});
+
+test('the row version moved, so a crawl re-summarizes every row already cached', () => {
+  const C = load();
+  // Without the bump the three rows whose ask is nothing but paths would keep
+  // it forever: their blob sha never moves again.
+  const row = (v) => ({ id: 'a', day: '2026-09-10', sha: 's1', v });
+  const listing = [{ path: C.pathOf(row(C.ROW_V)), sha: 's1' }];
+  // Both directions, so this cannot pass because the fixture path missed.
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V)] }, listing).length, 0,
+    'a row at the current version and the same sha is not re-read');
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V - 1)] }, listing).length, 1,
+    'a row a version behind is re-read even at the same sha');
+});
