@@ -68,6 +68,23 @@ try {
   const seam = await page.$('.dk-split');
   ok('a docked deck grows a seam', !!seam);
   if (seam) {
+    const placement = await page.evaluate(() => {
+      const seam = document.querySelector('.dk-split');
+      const grip = getComputedStyle(seam, '::before');
+      const readout = seam.querySelector('.dk-readout');
+      return {
+        parent: seam.parentElement?.tagName,
+        gripWidth: parseFloat(grip.width),
+        seamWidth: seam.getBoundingClientRect().width,
+        readoutCentre: readout.getBoundingClientRect().left + readout.getBoundingClientRect().width / 2,
+        seamCentre: seam.getBoundingClientRect().left + seam.getBoundingClientRect().width / 2,
+      };
+    });
+    ok('the seam sits outside the clipping overlay', placement.parent === 'BODY',
+       `parent ${placement.parent}`);
+    ok('the whole grip can straddle the seam', placement.gripWidth > placement.seamWidth,
+       `grip ${placement.gripWidth}px vs seam ${placement.seamWidth}px`);
+
     // Start from the middle. The default dock is already near the 80% ceiling
     // at this viewport, so a 200px drag from there measures the clamp rather
     // than the drag: the first run of this check read 128px of movement for a
@@ -89,6 +106,13 @@ try {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x - 200, box.y + box.height / 2, { steps: 12 });
+    const readout = await page.evaluate(() => {
+      const seam = document.querySelector('.dk-split').getBoundingClientRect();
+      const badge = document.querySelector('.dk-readout').getBoundingClientRect();
+      return { seam: seam.left + seam.width / 2, badge: badge.left + badge.width / 2 };
+    });
+    ok('the percentage readout is centred on the divider', Math.abs(readout.seam - readout.badge) < 2,
+       `seam ${readout.seam} vs badge ${readout.badge}`);
     await page.mouse.up();
     await page.waitForTimeout(250);
 
