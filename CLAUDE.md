@@ -1,21 +1,9 @@
 @docs/SURFACING.md
-
-## Qualified writing
-
-Qualify noun phrases to increase clarity, strengthen claims, highlight questions, and support narrative direction. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
-
-1. **Introduce before you refer.** Use *this*, *it*, or a definite phrase only when the immediate context identifies a single referent.
-   *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
-2. **Use plain language.** Avoid in-group phrasings, and pin terms to what you mean by them.
-   *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
-3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
-   *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. A bare quantifier is the common case.
-   *Not:* Both are good. *But:* Both restructuring proposals are good.
+@docs/QUALIFIED-WRITING.md
 
 ## Where the rest of the system lives
 
-[docs/SURFACING.md](docs/SURFACING.md), imported above, is the portable surfacing system; it and the section above are the whole cross-repo contract. Everything below is web-tools-specific. Delivery: a session with this repo checked out gets both through this file; a session without it runs the `default` skill (`.claude/skills/default/SKILL.md`), which fetches SURFACING.md from main. The guide-PR lifecycle is the second half of that system and rides a different channel: [docs/surfacing-course.md](docs/surfacing-course.md) is not imported, because it idles until a PR exists, and the `pr-subscribe-hint` hook delivers it at the moment one is opened. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
+[docs/SURFACING.md](docs/SURFACING.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md), both imported above, are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific. Delivery: a session with this repo checked out gets both through this file; a session without it runs the `default` skill (`.claude/skills/default/SKILL.md`), which fetches both documents from main. Qualified writing was a section of this file until 2026-09-11, which gave the two halves of one contract unequal reach: the surfacing half had four channels and the prose half had the checkout alone. The guide-PR lifecycle is the second half of that system and rides a different channel: [docs/surfacing-course.md](docs/surfacing-course.md) is not imported, because it idles until a PR exists, and the `pr-subscribe-hint` hook delivers it at the moment one is opened. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
