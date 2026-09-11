@@ -9,7 +9,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
-.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,309,git:pre-commit,no,yes,yes
+.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,322,git:pre-commit,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,114,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
 scripts/blank-icons.py,"report a Phosphor class naming an icon the installed font does not carry. The class resolves to a :before rule keyed by name, so a name with no rule renders a zero-width blank: no console error, no fallback glyph, nothing to debug but the state around it. Names the two mistakes apart, weight-as-a-suffix (ph-play-fill, mechanical, the fix is proven) from a name borrowed off another icon family (ph-git-compare, a guess at best). Reads the valid set off the installed stylesheet rather than a committed list, so it cannot be wrong about the font. --check gates it",scripts,174,npm:icon-scan,no,yes,yes
@@ -43,7 +43,7 @@ tools/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/
 tools/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",tools/build,102,npm:build,yes,yes,yes
 tools/build/cache-readers.mjs,"derive the cache-to-module half of the cache-to-view relation: for each thing the estate keeps derived, the app files that read it, with the shell and the declaring kit excluded as writers rather than consumers",tools/build,125,imported,no,yes,yes
 tools/build/console-suite.mjs,assemble console/suite.js from base.js plus the layered console modules,tools/build,51,npm:build:console,yes,yes,yes
-tools/build/docs-reach.mjs,restamp the derived reach and words fields of docs/docs.csv,tools/build,278,npm:docs-reach,yes,yes,yes
+tools/build/docs-reach.mjs,restamp the derived reach and words fields of docs/docs.csv,tools/build,281,npm:docs-reach,yes,yes,yes
 tools/build/docs-readme.mjs,regenerate docs/README.md from docs/docs.csv,tools/build,98,npm:docs-readme,yes,yes,yes
 tools/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build.mjs its cache,tools/build,117,imported,no,yes,yes
 tools/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,tools/build,230,npm:graphql-schema,yes,no,no
@@ -57,6 +57,7 @@ tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another
 tools/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,tools/build,252,npm:snags-index,yes,yes,yes
 tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",tools/build,243,npm:tests-index,yes,no,yes
 tools/build/tools-index.mjs,restamp the derived half of this registry,tools/build,261,npm:tools-index,yes,yes,yes
+tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,399,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no

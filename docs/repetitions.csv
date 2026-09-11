@@ -15,3 +15,4 @@ the content registry classification vocabulary,"docs/properties.csv, the values 
 the house style for pages,docs/HTML-STYLE.md,pointer,"none needed since 2026-08-31: the doc held a second statement of the rules until then, 76 shared ten-word windows and the largest duplication in the repo, and was reduced to the names it is asked for plus a link"
 the house style for pages,skills/daisy-alpine/references/mechanics.md,pointer,"none needed; it holds the other half, how to build rather than what to build, and names the skill as the binding one"
 what each skill does,docs/portable.csv role,paraphrase,"none; deliberately shorter per surface, honest while the owner is named"
+the working conventions text,.claude/skills/default/ (the plugin ships a copy of each traveling doc so an installed session reads it off disk),copy,"gate (derived-artifacts.test.mjs, byte-for-byte against docs/)"

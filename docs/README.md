@@ -13,7 +13,7 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-1 arrive in every session's context, 18 are named by CLAUDE.md,
+2 arrive in every session's context, 18 are named by CLAUDE.md,
 8 by a skill, 28 by a page or component. The remaining 24 are
 marked *(orphan)* below: nothing points at them except this index.
 
@@ -23,6 +23,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
+- [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`SNAGS.md`](SNAGS.md) — the friction log: one line per snag, symptom then corrected move
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
