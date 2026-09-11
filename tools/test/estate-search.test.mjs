@@ -76,6 +76,7 @@ await startAlpine(window, [
   'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
   'lib/kits/chat-archive.js',
+  'lib/kits/session-index.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -253,87 +254,91 @@ test('code: a GitHub answer speaks for itself and costs no second call', async (
   SEARCH_REJECT = null;
 });
 
-test('sessions: greps what a record quotes, caches the corpus, newest first', async () => {
+test('sessions: what was SAID is answered from the index, newest first', async () => {
+  // The store is not read at all any more. The shards are, one per month, and
+  // they are built by the same kit the crawl builds them with, so this drives
+  // the real encoder rather than a transcription of it.
+  const X = window.SessionIndex;
   FILES = {
     'state/sessions.json': { rows: [
       { id: 'aaaa1111', day: '2026-08-02' },
       { id: 'bbbb2222', day: '2026-08-05' },
     ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the wayback urls', prompts: [], last_message: 'done' },
-    'sessions/2026/08/2026-08-05-bbbb2222.json':
-      { day: '2026-08-05', opening_ask: 'other', prompts: [{ at: 't', text: 'wayback again please' }], last_message: '' },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('about the wayback urls'),
+      bbbb2222: X.tokens('other · wayback again please'),
+    }),
   };
   const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...res.hits.map(h => h.id)], ['bbbb2222', 'aaaa1111']);
-  // The corpus is cached: a changed store answers the same until reset.
-  FILES['sessions/2026/08/2026-08-02-aaaa1111.json'].opening_ask = 'edited away';
-  const again = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
-  assert.equal(again.hits.length, 2);
+  assert.equal(res.indexed, 1, 'one shard answered');
+  // Nothing to quote when the conversation is what matched: the index holds
+  // terms, not text.
+  assert.equal(res.hits[0].frag, 'said in the conversation');
+  // The shard is cached: a changed registry answers the same until reset.
+  FILES['state/sessions-index/2026-08.json'] = X.buildShard({ aaaa1111: X.tokens('edited away') });
+  assert.equal((await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.length, 2);
   ES.reset();
-  const fresh = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...fresh.hits.map(h => h.id)], ['bbbb2222']);
+  assert.deepEqual([...(await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)], []);
 });
 
-test('sessions: the derived name is searchable, and says so in the hit', async () => {
-  ES.reset();   // the corpus cache is module-level and survives the test above
+test('sessions: a substring reaches inside a term, which whole words cannot', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
   FILES = {
-    'state/sessions.json': { rows: [
-      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'] },
-    ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+    'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('touched lib/kits/estate-search.js today'),
+    }),
   };
-  // The title as remembered, spaced, finds the slug as stored.
-  const spaced = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...spaced.hits.map(h => h.id)], ['aaaa1111']);
-  // And the note line says the name matched, not the conversation, which is the
-  // whole reason a name rides the same corpus as what was said.
-  assert.match(spaced.hits[0].frag, /session name:/);
-  ES.reset();
-  const slug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
+  // `search.js` is not a whole term here; it lives inside the path. The lane
+  // scans the dictionary for it, which is the rule the index is exact under.
+  for (const q of ['search.js', 'estate-search', 'lib/kits', 'ESTATE']) {
+    ES.reset();
+    assert.deepEqual([...(await ES.sessions({ q, registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)],
+                     ['aaaa1111'], `should find: ${q}`);
+  }
 });
 
-test('sessions: the exported title is searchable beside the derived name', async () => {
+test('sessions: a month with no shard is reported, not counted as searched', async () => {
   ES.reset();
+  FILES = { 'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] } };
+  const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.indexed, 0, 'no shard answered, and the caller has to be able to see that');
+  assert.equal(res.months, 1);
+  assert.equal(res.hits.length, 0);
+});
+
+test('sessions: the row is searched beside the index, and the hit says which answered', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
   FILES = {
     'state/sessions.json': { titlesAt: '2026-08-04', rows: [
       { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'],
         title: 'FAB naming convention' },
     ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+    'state/sessions-index/2026-08.json': X.buildShard({ aaaa1111: X.tokens('about the app button') }),
   };
-  // The title as it was actually read in the sidebar, which the slug cannot
-  // reach: "convention" is the word the branch name truncated away.
+  // The title as it was read in the sidebar, which the slug cannot reach:
+  // "convention" is the word the branch name truncated away.
   const byTitle = await ES.sessions({ q: 'naming convention', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...byTitle.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(byTitle.hits[0].frag, /session title:/);
-  // Both forms are carried, so the slug still finds the same session. That is
-  // the point of the pair: a titled row must not become unreachable by the name
-  // it was findable by yesterday.
-  ES.reset();
-  const bySlug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...bySlug.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(bySlug.hits[0].frag, /session name:/);
-});
-
-test('sessions: an untitled row still answers to its derived name', async () => {
-  // The per-row fallback, from the search side. Most of the store is in this
-  // state: the join keys on the record's session URL and nothing written before
-  // 2026-08-06 has one.
-  ES.reset();
-  FILES = {
-    'state/sessions.json': { titlesAt: '2026-08-04', rows: [
-      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'] },
-    ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
-  };
-  const res = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...res.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(res.hits[0].frag, /session name:/);
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  // Both spellings of the name still answer, which is the promise the retired
+  // nameSegs carried and RepoSessionsCache.searchSegs carries now. Which
+  // segment gets QUOTED follows searchSegs' own order, title before name, so
+  // the spaced query quotes the title that holds both words and the slug
+  // quotes the name, which is the only segment that holds a hyphen.
+  const spaced = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...spaced.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(spaced.hits[0].frag, /^title:/);
+  const slug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(slug.hits[0].frag, /^name:/);
+  // And the conversation still answers on its own, through the index.
+  const said = await ES.sessions({ q: 'app button', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...said.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(said.hits[0].frag, 'said in the conversation');
 });
 
 test('sessions: a match on what was said beats the name to the note line', async () => {

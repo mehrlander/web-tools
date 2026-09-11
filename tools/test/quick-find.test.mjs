@@ -78,6 +78,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/repo-address.js',
   'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
+  'lib/kits/session-index.js',
   'lib/kits/estate-search.js',
   'lib/alpineComponents/quick-find.js',
 ]);
@@ -281,24 +282,26 @@ test('the contents gate routes to the Search view with the query carried over', 
   assert.equal(data.q, '');
 });
 
-test('searchSessions greps the captured records and hits open via web-tools:open-session', async () => {
+test('searchSessions answers from the index and hits open via web-tools:open-session', async () => {
+  // The lane reads monthly index shards now, not the records. The fixture is
+  // built with the shipping kit so this drives the real encoder.
+  const X = window.SessionIndex;
   FILES['state/sessions.json'] = { rows: [
     { id: 'aaaa1111', day: '2026-08-02', ask: 'wayback urls' },
     { id: 'bbbb2222', day: '2026-08-05', ask: 'other work' },
   ] };
-  FILES['sessions/2026/08/2026-08-02-aaaa1111.json'] = {
-    day: '2026-08-02', opening_ask: 'Can you use this api for the wayback urls?',
-    prompts: [{ at: 't', text: 'the archive prefix query' }], last_message: 'done',
-  };
-  FILES['sessions/2026/08/2026-08-05-bbbb2222.json'] = {
-    day: '2026-08-05', opening_ask: 'other work', prompts: [], last_message: 'nothing here',
-  };
+  FILES['state/sessions-index/2026-08.json'] = X.buildShard({
+    aaaa1111: X.tokens('Can you use this api for the wayback urls? the archive prefix query'),
+    bbbb2222: X.tokens('other work · nothing here'),
+  });
   data.q = 'archive prefix';
   await data.searchSessions('archive prefix');
   const hits = data.rows.filter(r => r.kind === 'session');
   assert.equal(hits.length, 1);
   assert.equal(hits[0].id, 'aaaa1111');
-  assert.match(hits[0].note, /archive prefix/);
+  // The index holds terms, not text, so a match on the conversation has no
+  // fragment to quote and the note says which side answered instead.
+  assert.equal(hits[0].note, 'said in the conversation');
   // The clear row heads the results and dismisses them without touching q,
   // so retyping the query cannot resurrect stale hits unasked.
   const head = data.rows.find(r => r.kind === 'clear');

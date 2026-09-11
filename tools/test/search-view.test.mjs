@@ -28,7 +28,14 @@ window.EstateSearch = {
   async names(a) { CALLS.push(['names', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   async level(a) { CALLS.push(['level', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return LEVEL; },
   async code(a)  { CALLS.push(['code', a]);  if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
-  async sessions(a) { CALLS.push(['sessions', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
+  // `indexed` rides every sessions answer, because the view reads it to say
+  // whether the deep half ran at all; a stub omitting it would exercise the
+  // warning path on every case by accident.
+  async sessions(a) {
+    CALLS.push(['sessions', a]);
+    if (ANSWER.throw) throw new Error(ANSWER.throw);
+    return { indexed: 1, months: 1, ...ANSWER };
+  },
   async chats(a) {
     CALLS.push(['chats', a]);
     if (ANSWER.throw) throw new Error(ANSWER.throw);
@@ -41,7 +48,11 @@ window.EstateSearch = {
 // The chats lane loads its kit on first use rather than at boot, so the loader
 // has to be here and has to be observable.
 let LOADED = [];
-window.gh = { load: async (p) => { LOADED.push(p); window.chatArchive = {}; } };
+window.gh = { load: async (p) => {
+  LOADED.push(p);
+  if (p.includes('chat-archive')) window.chatArchive = {};
+  if (p.includes('session-index')) window.SessionIndex = {};
+} };
 
 // The contents fetch behind the reader. Records what it was pointed at, since
 // the ref rule ('' means the repo's default branch) is the thing most easily
@@ -338,6 +349,21 @@ test('a session hit dispatches web-tools:open-session', async () => {
 // The sessions lane's opposite number, and the two differ in what a hit IS: a
 // session hit opens a reader inside this app, a chat hit leaves for the
 // provider's own site, and a Gemini row has nowhere to go at all.
+
+test('sessions mode loads the index kit, and says so when no shard answered', async () => {
+  CALLS = []; LOADED = []; delete window.SessionIndex;
+  ANSWER = { hits: [], total: 0 };
+  data.mode = 'sessions'; data.q = 'wayback';
+  await data.run();
+  assert.deepEqual(j(LOADED), ['kits/session-index.js']);
+  assert.equal(data.error, '', 'a shard answered, so nothing to warn about');
+  // A registry the crawl has not indexed yet can only answer on rows. Reporting
+  // that as a complete result would claim a search that did not happen.
+  ANSWER = { hits: [], total: 0, indexed: 0, months: 3 };
+  await data.run();
+  assert.match(data.error, /No search index/);
+  assert.match(data.error, /session rows only/);
+});
 
 test('chats mode loads its kit once, searches the archive, and reports progress', async () => {
   CALLS = []; LOADED = []; delete window.chatArchive;
