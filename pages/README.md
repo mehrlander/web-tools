@@ -39,6 +39,7 @@ the link-dense text twin of the visual index above.
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
+| `session-context` | Session Context | [view](https://mehrlander.github.io/web-tools/pages/session-context.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session-context.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
