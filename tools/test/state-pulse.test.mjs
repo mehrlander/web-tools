@@ -344,3 +344,26 @@ test('a rail with no events cannot open a card', () => {
   assert.equal(data.peek, null);
 });
 
+test('a completed crawl document wins over a cached repeat read', async () => {
+  // The crawl has already paid for and built this document. Reading the moving
+  // main URL again immediately can return the browser's pre-write response, so
+  // the event copy must feed the Branches strip while the other stream keeps
+  // its ordinary committed-file fallback.
+  const freshAt = iso(0.05);
+  const fresh = {
+    repos: { 'me/a': { recentCommits: [{ sha: 'fresh', date: freshAt }] } },
+  };
+  const before = gets;
+  await data.loadPulse({ activity: fresh });
+  assert.equal(gets - before, 1, 'only the unseeded Sessions stream is fetched');
+  assert.equal(data.widest('activity').newest, freshAt,
+    'last change comes from the document the crawl just produced');
+
+  const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'state-view.js'), 'utf8');
+  const done = src.slice(src.indexOf('this._done ='), src.indexOf("for (const ev of ['configs-refreshed'"));
+  assert.match(done, /e\?\.detail\?\.cache/,
+    'the refresh listener accepts the document carried by the event');
+  assert.match(done, /this\.load\(seed\)/,
+    'and threads that document into the State load');
+});
+
