@@ -18,6 +18,17 @@ test('the current startup repair joins the nudge to the default skill', () => {
   assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/conventions-nudge.sh'));
 });
 
+test('the provenance graph distinguishes durable evidence from causal gaps', () => {
+  const routes = JSON.parse(vm.runInContext('JSON.stringify(contextRoutes)', model));
+  const outputs = JSON.parse(vm.runInContext('JSON.stringify(provenanceOutputs)', model));
+  assert.equal(routes.find(r => r.id === 'instructions').trace,'reconstructed');
+  assert.equal(routes.find(r => r.id === 'tools').trace,'observed');
+  assert.equal(routes.find(r => r.id === 'continuity').trace,'partial');
+  assert.deepEqual(outputs.map(o => o.id),['decision','file','commit','guide']);
+  assert.match(html,/data-provenance-graph/);
+  assert.match(html,/causal join missing/);
+});
+
 test('reconstruction and supplied receipts never claim document delivery', () => {
   const rows = evidence({startup_context:[
     {path:'repo/CLAUDE.md',basis:'reconstructed',via:'project_instructions',bytes:9000},

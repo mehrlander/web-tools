@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="How instructions, skills, tool results, hooks, messages and continuity enter a session, with an inspector for recorded evidence.">
+<meta name="description" content="How instructions, skills, tools, hooks, messages and continuity enter a session, and what durable evidence connects that context to decisions, files, commits and pull request guides.">
 <title>Session Context</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>↳</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -34,8 +34,8 @@
   <section x-show="pane === 'routes'" aria-label="Content delivery routes">
     <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
       <div>
-        <div class="text-xs uppercase tracking-widest text-base-content/70 mb-1">Claude Code · Web Tools</div>
-        <h2 class="text-3xl font-semibold tracking-tight text-balance">What reaches a session?</h2>
+        <div class="text-xs uppercase tracking-widest text-base-content/70 mb-1">Six routes · three evidence levels · one missing join</div>
+        <h2 class="text-3xl font-semibold tracking-tight text-balance">From context to consequence</h2>
       </div>
       <label class="flex items-center gap-2 text-sm text-base-content/70">When
         <select class="select select-sm w-full min-w-32 text-base-content" aria-label="Filter routes by timing" x-model="phase" @change="if (!visibleRoutes.some(r => r.id === selected)) choose(visibleRoutes[0].id)">
@@ -44,43 +44,78 @@
       </label>
     </div>
 
-    <div class="grid lg:grid-cols-[minmax(0,1fr)_19rem] gap-5 items-start">
-      <div class="min-w-0 scroll-mt-32" x-ref="routeList">
-        <div class="lg:hidden text-sm text-base-content/70 mb-3">Content → entry point → session context<br><span class="text-xs">● observed · ◇ reconstructed · ○ unknown</span></div>
-        <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)_2rem] px-4 pb-2 text-xs uppercase tracking-widest text-base-content/70">
-          <span>Content</span><span></span><span>Entry point</span><span></span>
-        </div>
-        <div class="border-y border-base-300" role="group" aria-label="Choose a content route">
-          <template x-for="(r, i) in visibleRoutes" :key="r.id">
-            <button class="w-full text-left px-4 py-4 grid grid-cols-[minmax(0,1fr)_1.5rem] sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)_2rem] items-center gap-y-2 transition-colors hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-              :class="{'border-t border-base-300': i > 0, 'bg-primary/10': selected === r.id}"
-              :aria-pressed="selected === r.id" @click="choose(r.id, true)" aria-controls="route-detail">
-              <span class="flex items-start gap-3 min-w-0">
-                <span class="text-xs font-mono text-base-content/60 pt-1" x-text="r.number"></span>
-                <span class="min-w-0"><span class="block text-base font-semibold" :class="selected === r.id ? 'text-primary' : ''" x-text="r.name"></span><span class="block text-base text-base-content/70" x-text="r.content"></span></span>
-              </span>
-              <span class="text-base-content/60 text-xl hidden sm:block" aria-hidden="true">→</span>
-              <span class="text-base sm:pl-0 pl-7 col-start-1 sm:col-start-3" x-text="r.entry"></span>
-              <span class="text-primary text-xl col-start-2 row-start-1 sm:col-start-4 sm:row-auto justify-self-end" aria-hidden="true" x-text="selected === r.id ? '↓' : '→'"></span>
-            </button>
-          </template>
-        </div>
+    <div class="lg:hidden min-w-0 scroll-mt-32" x-ref="routeList">
+      <div class="text-sm text-base-content/70 mb-3">Content → entry point → session context<br><span class="text-xs">● observed · ◇ reconstructed · ◌ partial</span></div>
+      <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)_2rem] px-4 pb-2 text-xs uppercase tracking-widest text-base-content/70">
+        <span>Content</span><span></span><span>Entry point</span><span></span>
+      </div>
+      <div class="border-y border-base-300" role="group" aria-label="Choose a content route">
+        <template x-for="(r, i) in visibleRoutes" :key="r.id">
+          <button class="w-full text-left px-4 py-4 grid grid-cols-[minmax(0,1fr)_1.5rem] sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)_2rem] items-center gap-y-2 transition-colors hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+            :class="{'border-t border-base-300': i > 0, 'bg-primary/10': selected === r.id}"
+            :aria-pressed="selected === r.id" @click="choose(r.id, true)" aria-controls="route-detail">
+            <span class="flex items-start gap-3 min-w-0">
+              <span class="text-xs font-mono text-base-content/60 pt-1" x-text="r.number"></span>
+              <span class="min-w-0"><span class="block text-base font-semibold" :class="selected === r.id ? 'text-primary' : ''" x-text="r.name"></span><span class="block text-base text-base-content/70" x-text="r.content"></span></span>
+            </span>
+            <span class="text-base-content/60 text-xl hidden sm:block" aria-hidden="true">→</span>
+            <span class="text-base sm:pl-0 pl-7 col-start-1 sm:col-start-3" x-text="r.entry"></span>
+            <span class="text-primary text-xl col-start-2 row-start-1 sm:col-start-4 sm:row-auto justify-self-end" aria-hidden="true" x-text="selected === r.id ? '↓' : '→'"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <div class="hidden lg:block relative h-[34rem] border-y border-base-300 overflow-hidden" data-provenance-graph>
+      <div class="absolute inset-x-0 top-0 h-12 bg-base-200/40 border-b border-base-300" aria-hidden="true"></div>
+      <div class="absolute left-4 top-4 text-xs uppercase tracking-widest text-base-content/70">Context sources</div>
+      <div class="absolute left-[54%] top-4 -translate-x-1/2 text-xs uppercase tracking-widest text-base-content/70">Assembled context</div>
+      <div class="absolute right-4 top-4 text-xs uppercase tracking-widest text-base-content/70">Durable trace</div>
+
+      <svg class="absolute inset-0 w-full h-full text-base-content/25" viewBox="0 0 1000 544" preserveAspectRatio="none" role="img" aria-label="Six content routes converge on session context, which leads through decisions and file changes to commits and pull request guides">
+        <defs><marker id="context-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"></path></marker></defs>
+        <path x-show="visibleRoutes[0]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(0)" :style="visibleRoutes[0] ? graphPathStyle(visibleRoutes[0]) : ''"></path>
+        <path x-show="visibleRoutes[1]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(1)" :style="visibleRoutes[1] ? graphPathStyle(visibleRoutes[1]) : ''"></path>
+        <path x-show="visibleRoutes[2]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(2)" :style="visibleRoutes[2] ? graphPathStyle(visibleRoutes[2]) : ''"></path>
+        <path x-show="visibleRoutes[3]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(3)" :style="visibleRoutes[3] ? graphPathStyle(visibleRoutes[3]) : ''"></path>
+        <path x-show="visibleRoutes[4]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(4)" :style="visibleRoutes[4] ? graphPathStyle(visibleRoutes[4]) : ''"></path>
+        <path x-show="visibleRoutes[5]" fill="none" vector-effect="non-scaling-stroke" marker-end="url(#context-arrow)" :d="graphPath(5)" :style="visibleRoutes[5] ? graphPathStyle(visibleRoutes[5]) : ''"></path>
+        <path d="M625 272 C700 272 710 128 760 128" fill="none" vector-effect="non-scaling-stroke" stroke="currentColor" stroke-width="2" stroke-dasharray="10 7" marker-end="url(#context-arrow)"></path>
+        <path d="M625 272 C700 272 710 244 760 244" fill="none" vector-effect="non-scaling-stroke" stroke="currentColor" stroke-width="2" marker-end="url(#context-arrow)"></path>
+        <path d="M840 166 L840 206" fill="none" vector-effect="non-scaling-stroke" stroke="currentColor" stroke-width="2" stroke-dasharray="2 7"></path>
+        <path d="M840 282 L840 322" fill="none" vector-effect="non-scaling-stroke" stroke="currentColor" stroke-width="2" marker-end="url(#context-arrow)"></path>
+        <path d="M840 398 L840 438" fill="none" vector-effect="non-scaling-stroke" stroke="currentColor" stroke-width="2" marker-end="url(#context-arrow)"></path>
+      </svg>
+
+      <div class="absolute inset-0" role="group" aria-label="Choose a content route">
+        <template x-for="(r, i) in visibleRoutes" :key="r.id">
+          <button class="absolute left-4 w-[31%] -translate-y-1/2 text-left border-l-2 px-4 py-2 transition-all bg-base-100 hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+            :style="graphRouteStyle(i)" :class="selected === r.id ? 'border-primary bg-primary/10' : 'border-base-300'"
+            :aria-pressed="selected === r.id" @click="choose(r.id)" aria-controls="route-detail">
+            <span class="flex items-baseline gap-3"><span class="text-xs font-mono text-base-content/60" x-text="r.number"></span><span class="text-base font-semibold" :class="selected === r.id ? 'text-primary' : ''" x-text="r.name"></span><span class="ml-auto font-mono text-xs text-base-content/60" x-text="r.glyph + ' ' + r.trace"></span></span>
+            <span class="block text-base text-base-content/70 pl-8" x-text="r.entry"></span>
+          </button>
+        </template>
       </div>
 
-      <aside class="hidden lg:block border border-base-300 rounded-lg bg-base-200/50 p-5 lg:mt-6" aria-label="Destination and evidence">
-        <div class="text-xs uppercase tracking-widest text-base-content/70">Destination</div>
-        <h3 class="text-xl font-semibold mt-2 mb-4">Session context</h3>
-        <div class="flex flex-wrap gap-2 text-sm"><span class="badge badge-outline">Instructions</span><span class="badge badge-outline">Conversation</span><span class="badge badge-outline">Working material</span></div>
-        <div class="border-t border-base-300 mt-5 pt-4">
-          <div class="text-xs uppercase tracking-widest text-base-content/70 mb-3">What the record can show</div>
-          <div class="flex flex-col gap-3 text-base">
-            <div class="flex gap-2"><span aria-hidden="true">●</span><span>Observed events &amp; output</span></div>
-            <div class="flex gap-2"><span aria-hidden="true">◇</span><span>Reconstructed startup files</span></div>
-            <div class="flex gap-2"><span aria-hidden="true">○</span><span>Unrecorded or omitted content</span></div>
-          </div>
-          <div class="text-sm text-base-content/70 border-t border-base-300 mt-4 pt-3">Delivery ≠ use ≠ compliance</div>
+      <div class="absolute left-[54%] top-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full border-2 border-primary bg-primary text-primary-content flex flex-col items-center justify-center text-center px-5 shadow-lg shadow-primary/20">
+        <span class="text-xs uppercase tracking-widest">Session</span>
+        <strong class="text-xl font-semibold mt-1">Context</strong>
+        <span class="text-sm mt-2">Instructions<br>Conversation<br>Working material</span>
+      </div>
+      <div class="absolute left-[54%] top-[70%] -translate-x-1/2 text-sm text-base-content/70 text-center">Delivery ≠ use ≠ compliance</div>
+
+      <template x-for="(o, i) in provenanceOutputs" :key="o.id">
+        <div class="absolute right-[5%] w-[18%] -translate-y-1/2 border border-base-300 bg-base-100 px-4 py-3" :style="graphOutputStyle(i)">
+          <div class="flex items-baseline gap-2"><span class="font-mono text-xs text-base-content/60" x-text="o.glyph"></span><strong class="text-base font-semibold" x-text="o.name"></strong></div>
+          <div class="text-sm text-base-content/70 mt-1" x-text="o.evidence"></div>
         </div>
-      </aside>
+      </template>
+      <div class="absolute right-[14%] top-[34%] translate-x-1/2 -translate-y-1/2 bg-base-100 px-2 text-xs font-mono text-base-content/70">causal join missing</div>
+
+      <div class="absolute left-4 bottom-3 flex items-center gap-5 text-sm text-base-content/70">
+        <span>● observed event</span><span>◇ reconstructed state</span><span>◌ partial record</span><span class="font-mono">··· missing join</span>
+      </div>
     </div>
 
     <section id="route-detail" x-ref="routeDetail" class="mt-7 border-t-2 border-primary pt-5 scroll-mt-32" aria-label="Selected route details" aria-live="polite">
@@ -167,30 +202,37 @@ const CONTEXT_REVIEW = '000727888a1f6e1003ffe55679d0b2a1faa1a085';
 const CAPTURE_REVIEW = '2c65a520668c74ba70aea266accd4f2689abda1f';
 const captureSource = {label:'Session recorder',repo:'mehrlander/web-tools-private',path:'sessions/tools/record.py'};
 const contextRoutes = [
-  {id:'instructions',number:'01',name:'Instructions',content:'CLAUDE.md · imported documents',entry:'Project instruction loader',phases:['start','resume'],when:'Startup · resume',
+  {id:'instructions',number:'01',name:'Instructions',content:'CLAUDE.md · imported documents',entry:'Project instruction loader',trace:'reconstructed',glyph:'◇',phases:['start','resume'],when:'Startup · resume',
     steps:['User and project CLAUDE.md files','Referenced @-imports from the checkout','Project instructions in session context'],
     evidence:'◇ Startup file reconstruction',limit:'Paths, hashes and sizes describe files found by a filesystem walk. They do not directly observe the instruction block received by the model.',
     sources:[{label:'Project contract & imports',path:'CLAUDE.md'},captureSource]},
-  {id:'skills',number:'02',name:'Skills',content:'Skill body · linked references',entry:'Skill invocation, then reference reads',phases:['start','work','resume'],when:'Startup repair · during work',
+  {id:'skills',number:'02',name:'Skills',content:'Skill body · linked references',entry:'Skill invocation, then reference reads',trace:'observed',glyph:'●',phases:['start','work','resume'],when:'Startup repair · during work',
     steps:['A request, task or startup nudge triggers skill selection','The Skill tool expands the selected body','Linked references enter only when subsequently read'],
     evidence:'● Skill calls & expansion markers',limit:'An invocation records selection. Expansion markers retain a heading and character count, not the whole body. Reference reads are separate tool activity.',
     sources:[{label:'Default context skill',path:'.claude/skills/default/SKILL.md'},{label:'Skill invocation counts',path:'lib/kits/repo-sessions-cache.js'},captureSource]},
-  {id:'tools',number:'03',name:'Tool results',content:'Files · commands · search · connectors',entry:'Tool call → returned output',phases:['work'],when:'During work',
+  {id:'tools',number:'03',name:'Tool results',content:'Files · commands · search · connectors',entry:'Tool call → returned output',trace:'observed',glyph:'●',phases:['work'],when:'During work',
     steps:['The agent requests a file, command, search or service','The tool returns output to the session','The recorder retains selected results and call metadata'],
     evidence:'● Calls, result status & retained text',limit:'Results may be clipped, omitted or dropped by policy. A successful file read establishes access; it does not establish that an instruction was followed.',
     sources:[{label:'File access & shell attribution',path:'lib/kits/repo-sessions-cache.js'},captureSource]},
-  {id:'hooks',number:'04',name:'Hooks',content:'Startup repair · timely guidance',entry:'Registered event → hook output',phases:['start','work','resume'],when:'Startup · work · resume',
+  {id:'hooks',number:'04',name:'Hooks',content:'Startup repair · timely guidance',entry:'Registered event → hook output',trace:'partial',glyph:'◌',phases:['start','work','resume'],when:'Startup · work · resume',
     steps:['A registered lifecycle or tool event fires','The matching hook emits guidance or additional context','At startup, a missing import can prompt the default skill','The harness delivers output, subject to truncation'],
     evidence:'● Startup output sizes & selected feedback',limit:'Startup delivery compares hook output with captured context. Other hook attachments are not fully retained. A configured hook is not proof that it fired.',
     sources:[{label:'Registered hook events',path:'.claude/skills/hooks/hooks.json'},{label:'Missing-context nudge',path:'.claude/skills/hooks/conventions-nudge.sh'},{label:'PR-time guidance',path:'.claude/skills/hooks/pr-subscribe-hint.sh'},captureSource]},
-  {id:'messages',number:'05',name:'Messages',content:'User requests · incoming work',entry:'Chat or a subscribed channel',phases:['start','work','resume'],when:'Startup · work · resume',
+  {id:'messages',number:'05',name:'Messages',content:'User requests · incoming work',entry:'Chat or a subscribed channel',trace:'observed',glyph:'●',phases:['start','work','resume'],when:'Startup · work · resume',
     steps:['A person or external event supplies new work','Chat, subscription or session messaging delivers it','The new message joins the conversation'],
     evidence:'● Captured prompts',limit:'The record keeps prompt text, but does not reliably identify every incoming channel. A PR comment is incoming context; its presence alone does not grant write authority.',
     sources:[{label:'Inbound channels & measured behavior',path:'docs/inbound.md'},{label:'PR event rules',path:'docs/SURFACING.md'},captureSource]},
-  {id:'continuity',number:'06',name:'Continuity',content:'Earlier conversation · summaries',entry:'Resume, restart or compaction',phases:['resume'],when:'Resume · compaction',
+  {id:'continuity',number:'06',name:'Continuity',content:'Earlier conversation · summaries',entry:'Resume, restart or compaction',trace:'partial',glyph:'◌',phases:['resume'],when:'Resume · compaction',
     steps:['An existing conversation resumes or is condensed','Retained messages or a summary carry earlier work forward','The next turn proceeds from the retained context'],
     evidence:'● Selected resume & restart markers',limit:'The recorder identifies some continuation events, but discards synthetic continuation summaries. It does not reconstruct the full context retained by the model.',
     sources:[captureSource,{label:'Captured-session reader',path:'lib/kits/session-render.js'}]}
+];
+
+const provenanceOutputs = [
+  {id:'decision',name:'Decision / claim',glyph:'◌',evidence:'causality inferred'},
+  {id:'file',name:'File change',glyph:'●',evidence:'mutation observed'},
+  {id:'commit',name:'Commit',glyph:'●',evidence:'bytes bound to time'},
+  {id:'guide',name:'PR guide',glyph:'●',evidence:'intent and risk recorded'}
 ];
 
 // Evidence rows describe only fields present in a record. Never substitute
@@ -234,11 +276,21 @@ function contextEvidence(rec) {
 
 function sessionContext() {
   return {
-    routes:contextRoutes, selected:'instructions', phase:'all', pane:'routes', record:null,
+    routes:contextRoutes, provenanceOutputs, selected:'instructions', phase:'all', pane:'routes', record:null,
     address:'', loadedAddress:'', filename:'', showOpen:false, busy:false, error:'', evidence:contextEvidence({}),
     async init() { this.restore(); const pane = this.pane; if (this.address) { await this.openAddress(false); this.pane = pane; } },
     get route() { return this.routes.find(r => r.id === this.selected); },
     get visibleRoutes() { return this.routes.filter(r => this.phase === 'all' || r.phases.includes(this.phase)); },
+    graphY(i) { const n = this.visibleRoutes.length; return n < 2 ? 50 : 14 + (72 * i / (n - 1)); },
+    graphRouteStyle(i) { return 'top:' + this.graphY(i) + '%'; },
+    graphPath(i) { const y = this.graphY(i) * 5.44; return `M 330 ${y} C 400 ${y}, 410 272, 460 272`; },
+    graphPathStyle(r) {
+      const stroke = this.selected === r.id ? 'var(--color-primary)' : 'color-mix(in oklab, var(--color-base-content) 25%, transparent)';
+      const width = this.selected === r.id ? 3 : 2;
+      const pattern = r.trace === 'reconstructed' ? '2 7' : r.trace === 'partial' ? '10 7' : 'none';
+      return `stroke:${stroke};stroke-width:${width};stroke-dasharray:${pattern}`;
+    },
+    graphOutputStyle(i) { return 'top:' + (24 + i * 21.3) + '%'; },
     get recordLimit() {
       const field = {instructions:'startup_context',hooks:'startup_delivery',skills:'calls',tools:'calls',messages:'prompts',continuity:'injected'}[this.selected];
       const absent = !Object.hasOwn(this.record || {},field) ? 'This record does not include ' + field + '. ' : '';
