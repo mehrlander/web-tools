@@ -160,7 +160,8 @@ export function readCorpus(repoRoot, dirs, exts, strip = false) {
       else if (exts.has(path.extname(entry.name))) {
         try {
           const raw = readFileSync(child, 'utf8');
-          texts.push([path.relative(repoRoot, child), strip ? stripComments(raw) : raw]);
+          const rel = path.relative(repoRoot, child).split(path.sep).join('/');
+          texts.push([rel, strip ? stripComments(raw) : raw]);
         }
         catch { /* unreadable file is simply not a reference */ }
       }

@@ -25,6 +25,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadKit } from './kit-shim.mjs';
 
+// Git stores source text with LF, but a Windows checkout may present CRLF.
+// Normalize embedded source so the committed bundle is byte-identical on
+// every platform that runs the generator.
+const sourceText = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+
 const REPO = 'mehrlander/web-tools';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const libDir = path.join(repoRoot, 'lib');
@@ -46,11 +51,11 @@ const allJs = walk(libDir)
   .sort();
 
 const { buildKit } = loadKit(repoRoot, 'lib/build.js');
-const ghApiSrc = readFileSync(path.join(libDir, 'gh-api.js'), 'utf8');
+const ghApiSrc = sourceText(path.join(libDir, 'gh-api.js'));
 
 // cache: { 'lib/<path>': source } — what GH.prototype.get receives.
 const cache = {};
-for (const rel of allJs) cache['lib/' + rel] = readFileSync(path.join(libDir, rel), 'utf8');
+for (const rel of allJs) cache['lib/' + rel] = sourceText(path.join(libDir, rel));
 
 // Register all components, then boot Alpine (alpine-bundle.js last — it fires
 // alpine:init, which runs every component's registration handler).
