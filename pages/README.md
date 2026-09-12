@@ -50,63 +50,63 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
-| `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/alpine-bundle-demo.html) |
-| `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/demos/console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/console-kit-demo.html) |
-| `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/demos/cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/cross-repo-read-demo.html) |
-| `mention-demo` | @-mention picker — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/mention-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/mention-demo.html) |
-| `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos/prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/prebuild-demo.html) |
-| `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos/sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/sheet-modal-demo.html) |
-| `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos/vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/vanilla-bundle-demo.html) |
-| `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/demos/wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-dom.html) |
-| `wring-text` | Wring | General-Text Induction — Tokenize → Grammar → Group | [view](https://mehrlander.github.io/web-tools/pages/demos/wring-text.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos/wring-text.html) |
+| `alpine-bundle-demo` | alpine-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos\alpine-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\alpine-bundle-demo.html) |
+| `console-kit-demo` | Console kit + debugConsole demo | [view](https://mehrlander.github.io/web-tools/pages/demos\console-kit-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\console-kit-demo.html) |
+| `cross-repo-read-demo` | cross-repo read() — data transfer demo | [view](https://mehrlander.github.io/web-tools/pages/demos\cross-repo-read-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\cross-repo-read-demo.html) |
+| `mention-demo` | @-mention picker — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos\mention-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\mention-demo.html) |
+| `prebuild-demo` | Pre-build demo — one import, whole library | [view](https://mehrlander.github.io/web-tools/pages/demos\prebuild-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\prebuild-demo.html) |
+| `sheet-modal-demo` | sheet-modal demo | [view](https://mehrlander.github.io/web-tools/pages/demos\sheet-modal-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\sheet-modal-demo.html) |
+| `vanilla-bundle-demo` | vanilla-bundle — living demo | [view](https://mehrlander.github.io/web-tools/pages/demos\vanilla-bundle-demo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\vanilla-bundle-demo.html) |
+| `wring-dom` | Wring | Bookend Merge — DOM Signature Grouping | [view](https://mehrlander.github.io/web-tools/pages/demos\wring-dom.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\wring-dom.html) |
+| `wring-text` | Wring | General-Text Induction — Tokenize → Grammar → Group | [view](https://mehrlander.github.io/web-tools/pages/demos\wring-text.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/demos\wring-text.html) |
 
 ## pages/drop/
 
 | Page | Title | Links |
 |---|---|---|
-| `at-file-nav` | Path-following mention picker | [view](https://mehrlander.github.io/web-tools/pages/drop/at-file-nav.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/at-file-nav.html) |
-| `cm6-editor` | Literate Solo Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/cm6-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/cm6-editor.html) |
-| `diff-tool` | Legislative Diff Tool | [view](https://mehrlander.github.io/web-tools/pages/drop/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/diff-tool.html) |
-| `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/gist-editor.html) |
-| `live-docs` | Living Documentation — daisyUI | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs.html) |
-| `live-docs-concept` | Living Documentation — a concept | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs-concept.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs-concept.html) |
-| `word-frequencies` | Word Frequency & POS APIs | [view](https://mehrlander.github.io/web-tools/pages/drop/word-frequencies.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/word-frequencies.html) |
+| `at-file-nav` | Path-following mention picker | [view](https://mehrlander.github.io/web-tools/pages/drop\at-file-nav.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\at-file-nav.html) |
+| `cm6-editor` | Literate Solo Editor | [view](https://mehrlander.github.io/web-tools/pages/drop\cm6-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\cm6-editor.html) |
+| `diff-tool` | Legislative Diff Tool | [view](https://mehrlander.github.io/web-tools/pages/drop\diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\diff-tool.html) |
+| `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/drop\gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\gist-editor.html) |
+| `live-docs` | Living Documentation — daisyUI | [view](https://mehrlander.github.io/web-tools/pages/drop\live-docs.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\live-docs.html) |
+| `live-docs-concept` | Living Documentation — a concept | [view](https://mehrlander.github.io/web-tools/pages/drop\live-docs-concept.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\live-docs-concept.html) |
+| `word-frequencies` | Word Frequency & POS APIs | [view](https://mehrlander.github.io/web-tools/pages/drop\word-frequencies.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\word-frequencies.html) |
 
-## pages/drop/components/
-
-| Page | Title | Links |
-|---|---|---|
-| `console` | Console Web Component | [view](https://mehrlander.github.io/web-tools/pages/drop/components/console.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/components/console.html) |
-| `Sheet` | iOS Sheet | [view](https://mehrlander.github.io/web-tools/pages/drop/components/Sheet.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/components/Sheet.html) |
-
-## pages/drop/fills-concepts/1-chain-constructor/
+## pages/drop\components/
 
 | Page | Title | Links |
 |---|---|---|
-| `aic` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/1-chain-constructor/aic.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/1-chain-constructor/aic.html) |
-| `aic-browser` | fill · Art Institute of Chicago | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/1-chain-constructor/aic-browser.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/1-chain-constructor/aic-browser.html) |
-| `aic-kimi-1` | Art Institute Browser — fill() | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/1-chain-constructor/aic-kimi-1.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/1-chain-constructor/aic-kimi-1.html) |
+| `console` | Console Web Component | [view](https://mehrlander.github.io/web-tools/pages/drop\components\console.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\components\console.html) |
+| `Sheet` | iOS Sheet | [view](https://mehrlander.github.io/web-tools/pages/drop\components\Sheet.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\components\Sheet.html) |
 
-## pages/drop/fills-concepts/2-tagged-factory/
-
-| Page | Title | Links |
-|---|---|---|
-| `aic-1` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/2-tagged-factory/aic-1.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/2-tagged-factory/aic-1.html) |
-| `aic-browse` | AIC Collection Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/2-tagged-factory/aic-browse.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/2-tagged-factory/aic-browse.html) |
-
-## pages/drop/fills-concepts/3-reactive-surface/
+## pages/drop\fills-concepts\1-chain-constructor/
 
 | Page | Title | Links |
 |---|---|---|
-| `aic-2` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/3-reactive-surface/aic-2.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/aic-2.html) |
-| `aic-kimi` | Art Institute Collection — fill | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/3-reactive-surface/aic-kimi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/aic-kimi.html) |
-| `collection-browser` | The Art Institute of Chicago · Collection Browser | [view](https://mehrlander.github.io/web-tools/pages/drop/fills-concepts/3-reactive-surface/collection-browser.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/fills-concepts/3-reactive-surface/collection-browser.html) |
+| `aic` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\1-chain-constructor\aic.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\1-chain-constructor\aic.html) |
+| `aic-browser` | fill · Art Institute of Chicago | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\1-chain-constructor\aic-browser.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\1-chain-constructor\aic-browser.html) |
+| `aic-kimi-1` | Art Institute Browser — fill() | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\1-chain-constructor\aic-kimi-1.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\1-chain-constructor\aic-kimi-1.html) |
+
+## pages/drop\fills-concepts\2-tagged-factory/
+
+| Page | Title | Links |
+|---|---|---|
+| `aic-1` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\2-tagged-factory\aic-1.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\2-tagged-factory\aic-1.html) |
+| `aic-browse` | AIC Collection Browser | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\2-tagged-factory\aic-browse.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\2-tagged-factory\aic-browse.html) |
+
+## pages/drop\fills-concepts\3-reactive-surface/
+
+| Page | Title | Links |
+|---|---|---|
+| `aic-2` | fill · Art Institute Browser | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\3-reactive-surface\aic-2.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\3-reactive-surface\aic-2.html) |
+| `aic-kimi` | Art Institute Collection — fill | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\3-reactive-surface\aic-kimi.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\3-reactive-surface\aic-kimi.html) |
+| `collection-browser` | The Art Institute of Chicago · Collection Browser | [view](https://mehrlander.github.io/web-tools/pages/drop\fills-concepts\3-reactive-surface\collection-browser.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop\fills-concepts\3-reactive-surface\collection-browser.html) |
 
 ## pages/guides/
 
 | Page | Title | Links |
 |---|---|---|
-| `code-layers` | Code layers: current state and migration plan | [view](https://mehrlander.github.io/web-tools/pages/guides/code-layers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides/code-layers.html) |
+| `code-layers` | Code layers: current state and migration plan | [view](https://mehrlander.github.io/web-tools/pages/guides\code-layers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/guides\code-layers.html) |
 
 ## lib/kits/demos/
 
@@ -135,37 +135,38 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
-| `news` | news · the outer log | [view](https://mehrlander.github.io/web-tools/pages/news/news.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html) |
+| `news` | news · the outer log | [view](https://mehrlander.github.io/web-tools/pages/news\news.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/news\news.html) |
 
 ## pages/scratch/
 
 | Page | Title | Links |
 |---|---|---|
-| `base64-render-engine` | Base64 Render Engine | [view](https://mehrlander.github.io/web-tools/pages/scratch/base64-render-engine.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/base64-render-engine.html) |
-| `define-test` | x-define — isolated test | [view](https://mehrlander.github.io/web-tools/pages/scratch/define-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/define-test.html) |
-| `demo-spacex` | SpaceX Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/scratch/demo-spacex.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/demo-spacex.html) |
-| `fab-sidebar-test` | FAB sidebar test | [view](https://mehrlander.github.io/web-tools/pages/scratch/fab-sidebar-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/fab-sidebar-test.html) |
-| `haptics-probe` | Haptics probe | [view](https://mehrlander.github.io/web-tools/pages/scratch/haptics-probe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/haptics-probe.html) |
-| `review-proto` | Review · styling prototype | [view](https://mehrlander.github.io/web-tools/pages/scratch/review-proto.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/review-proto.html) |
-| `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch/sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/sidebar-drawer-mwe.html) |
+| `base64-render-engine` | Base64 Render Engine | [view](https://mehrlander.github.io/web-tools/pages/scratch\base64-render-engine.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\base64-render-engine.html) |
+| `define-test` | x-define — isolated test | [view](https://mehrlander.github.io/web-tools/pages/scratch\define-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\define-test.html) |
+| `demo-spacex` | SpaceX Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/scratch\demo-spacex.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\demo-spacex.html) |
+| `fab-sidebar-test` | FAB sidebar test | [view](https://mehrlander.github.io/web-tools/pages/scratch\fab-sidebar-test.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\fab-sidebar-test.html) |
+| `haptics-probe` | Haptics probe | [view](https://mehrlander.github.io/web-tools/pages/scratch\haptics-probe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\haptics-probe.html) |
+| `review-proto` | Review · styling prototype | [view](https://mehrlander.github.io/web-tools/pages/scratch\review-proto.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\review-proto.html) |
+| `sidebar-drawer-mwe` | Sidebar Drawer MWE | [view](https://mehrlander.github.io/web-tools/pages/scratch\sidebar-drawer-mwe.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/scratch\sidebar-drawer-mwe.html) |
 
 ## pages/show-repo/
 
 | Page | Title | Links |
 |---|---|---|
-| `demo-viewer` | Assembled Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/show-repo/demo-viewer.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/demo-viewer.html) |
-| `repo-drag` | Repo drag explorer | [view](https://mehrlander.github.io/web-tools/pages/show-repo/repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo/repo-drag.html) |
+| `demo-viewer` | Assembled Viewer Demo | [view](https://mehrlander.github.io/web-tools/pages/show-repo\demo-viewer.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo\demo-viewer.html) |
+| `repo-drag` | Repo drag explorer | [view](https://mehrlander.github.io/web-tools/pages/show-repo\repo-drag.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo\repo-drag.html) |
+| `show-repo` | Web Tools moved to /app/ | [view](https://mehrlander.github.io/web-tools/pages/show-repo\show-repo.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/show-repo\show-repo.html) |
 
 ## pages/stories/
 
 | Page | Title | Links |
 |---|---|---|
-| `bookmarklets-story` | Field Notes: Bookmarklets | [view](https://mehrlander.github.io/web-tools/pages/stories/bookmarklets-story.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/stories/bookmarklets-story.html) |
+| `bookmarklets-story` | Field Notes: Bookmarklets | [view](https://mehrlander.github.io/web-tools/pages/stories\bookmarklets-story.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/stories\bookmarklets-story.html) |
 
 ## pages/wsl-sync/
 
 | Page | Title | Links |
 |---|---|---|
-| `pension-dash` | Pension Dashboard | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-dash.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-dash.html) |
-| `pension-map` | RCW Pension Crosswalk | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/pension-map.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/pension-map.html) |
-| `wsl-sync` | WSL Sync | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync/wsl-sync.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync/wsl-sync.html) |
+| `pension-dash` | Pension Dashboard | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync\pension-dash.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync\pension-dash.html) |
+| `pension-map` | RCW Pension Crosswalk | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync\pension-map.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync\pension-map.html) |
+| `wsl-sync` | WSL Sync | [view](https://mehrlander.github.io/web-tools/pages/wsl-sync\wsl-sync.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/wsl-sync\wsl-sync.html) |
