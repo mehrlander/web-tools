@@ -94,7 +94,7 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
   assert.equal(fab.open, false, 'the drawer closes so the page can be tapped');
 });
 
-test('one Take browser presents raw outputs and loads costly ones in place', async () => {
+test('one Take browser shows small HTML immediately and loads costly outputs in place', async () => {
   const opened = [];
   const header = { title: '', subtitle: '', icon: '', actions: [] };
   const h = (tag, attrs = {}, ...kids) => {
@@ -163,27 +163,27 @@ test('one Take browser presents raw outputs and loads costly ones in place', asy
   fab.open = true;
   try {
     const handle = await fab.openTakeDeck();
+    await tick(2);
     assert.equal(handle.options.count, fab.takeDeckItems.length);
-    assert.ok(handle.options.count >= 10, 'the deck includes copy, open, image, and save outputs');
+    assert.ok(handle.options.count >= 8, 'the deck includes copy, open, image, and save outputs');
     assert.deepEqual(['Copy', 'Open', 'Image', 'Save'].map(group =>
       fab.takeDeckItems.some(a => a.group === group)), [true, true, true, true]);
+    assert.equal(fab.takeDeckItems.some(a => a.key === 'region' || a.key === 'shot-region'), false,
+      'pickers stay in the Take grid instead of masquerading as readable slides');
+    assert.equal(fab.takeDeckItems.some(a => a.kind === 'page'), false,
+      'page actions run on the page and do not become deck slides');
     assert.equal(handle.options.slideScroll, false, 'the raw content owns its vertical scroll');
-    assert.match(handle.slide.textContent, /Load HTML/);
+    assert.match(handle.slide.querySelector('pre').textContent, /<!doctype html>/,
+      'a small HTML closure loads as the first slide without another tap');
+    assert.doesNotMatch(handle.slide.textContent, /Load HTML/);
     assert.doesNotMatch(handle.slide.textContent, /Made when chosen|Copies to the clipboard/,
       'the slide is no longer an explanatory card');
-    assert.equal(header.actions.length, 0, 'copy is not offered before the content can be seen');
     assert.equal(header.title, 'HTML', 'the header starts on the active output');
-    assert.match(header.subtitle, /^Copy \u00b7 /);
+    assert.match(header.subtitle, /^1K HTML \u00b7 /);
     assert.equal(header.icon, 'ph-code');
     assert.equal(handle.el.hasAttribute('data-dom-shot-ignore'), true);
     assert.equal(fab.open, false, 'the drawer gives the screen to the takeover');
-
-    handle.slide.querySelector('button').click();
-    await tick(2);
-    assert.match(handle.slide.querySelector('pre').textContent, /<!doctype html>/,
-      'Load is replaced by the literal output');
-    assert.doesNotMatch(handle.slide.textContent, /Load HTML/);
-    assert.equal(header.actions[0].title, 'Copy HTML', 'copy moves to the header after loading');
+    assert.equal(header.actions[0].title, 'Copy HTML', 'the loaded HTML is immediately copyable');
     await header.actions[0].onClick(null, null);
     assert.deepEqual(copied, ['<!doctype html>\n<title>Raw output</title>']);
 
@@ -249,6 +249,12 @@ test('one Take browser presents raw outputs and loads costly ones in place', asy
     assert.equal(downloaded[0].filename, 'viewport.png');
     handle.close();
     assert.deepEqual(revoked, ['blob:take-image'], 'deck cleanup releases loaded image URLs');
+
+    plan.bytes = 2 * 1024 * 1024;
+    const deferred = await fab.openTakeDeck();
+    assert.match(deferred.slide.textContent, /Load HTML/,
+      'a large HTML closure keeps the explicit load boundary');
+    deferred.close();
   } finally {
     if (priorBrief === undefined) delete window.brief;
     else window.brief = priorBrief;
