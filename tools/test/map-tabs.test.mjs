@@ -30,8 +30,8 @@ import { repoRoot } from './bootstrap.mjs';
 const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
 
 // The literals live in a component that needs a browser to evaluate, so read
-// just their source blocks. Scoping matters now that Growth and Tests are
-// addressable subviews rather than entries in the top-level strip.
+// just their source blocks. Scoping matters now that Purpose, Growth, and Tests
+// are addressable subviews rather than entries in the top-level strip.
 const tabsBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
 const subviewsBlock = src.match(/SUBVIEWS:\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*SUBVIEW_PARENT:/)?.[1] || '';
 const ledePattern = /\{ k: '([a-z]+)', n: '([A-Za-z]+)', i: '(ph-[a-z-]+)',\s*\n\s*g: '((?:[^'\\]|\\.)*)' \}/g;
@@ -54,14 +54,20 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // repo's own registry about one repo's own destinations, which is what every
   // other tab in this strip already does.
   // 13 to 11 on 2026-09-11: Growth moved inside Docs and Tests inside Harness.
-  assert.equal(TABS.length, 11, 'eleven top-level tabs, or this test is reading the wrong literal');
-  assert.equal(SUBVIEWS.length, 4, 'Docs and Harness each carry two generated subview choices');
+  // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
+  assert.equal(TABS.length, 10, 'ten top-level tabs, or this test is reading the wrong literal');
+  assert.equal(SUBVIEWS.length, 5, 'Docs carries three choices and Harness two');
+  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness' });
+  assert.deepEqual(SUBVIEWS.filter(s => SUBVIEW_PARENT[s.k] === 'docs').map(s => s.n),
+    ['Purpose', 'Growth'], 'Aims has a short Docs label; Inventory uses the parent key');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab
   // ship without a sentence, and what let the Injection tab ship without an icon.
   const buttons = src.match(/role="tab" @click="setTab\(/g) || [];
   assert.equal(buttons.length, 2, 'the top-level strip and subview strip each generate one button shape');
   assert.match(src, /<template x-for="t in TABS"/, 'the strip loops over the array');
   assert.match(src, /<template x-for="s in subviews"/, 'the nested strip loops over the current parent subviews');
+  assert.match(src, /@click="setTab\(t\.k === 'docs' \? 'aims' : t\.k\)"/,
+    'the top-level Docs stop opens on Purpose without changing old Inventory links');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
   assert.match(src, /x-text="tabGloss"/, 'the lede is rendered from the selected tab');
 });
