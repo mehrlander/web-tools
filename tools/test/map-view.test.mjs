@@ -504,6 +504,9 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   d2.setTab('docs');
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
+  assert.equal(d2.displayTab, 'docs');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth']),
+    'Docs exposes Inventory and Growth as its two local readings');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -523,6 +526,9 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   await tick(3);
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
+  assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
+    'Harness exposes Automation and Tests as its two local readings');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -614,23 +620,38 @@ test('the shell reads the tab back off a deep link, on both boot paths', () => {
   // That the two paths cannot disagree is shell-routing.test.mjs's beat.
   shell.routeFor('map').open.call(shell, url);
   assert.equal(shell.mapTab, 'docs', 'the map row does not route the tab off the URL');
+
+  shell.goMap('growth');
+  assert.equal(shell.mapTab, 'growth', 'the former Growth tab remains a valid deep link');
+  shell.goMap('tests');
+  assert.equal(shell.mapTab, 'tests', 'the former Tests tab remains a valid deep link');
 });
 
 test('the shell and the component agree on the tab set', () => {
-  const m = page.match(/const MAP_TABS = \[([^\]]+)\]/);
-  assert.ok(m, 'MAP_TABS is not where the shell can validate against it');
-  const tabs = m[1].split(',').map(s => s.trim().replace(/'/g, ''));
+  const topMatch = page.match(/const MAP_TABS = \[([^\]]+)\]/);
+  const subMatch = page.match(/const MAP_SUBVIEWS = \[([^\]]+)\]/);
+  assert.ok(topMatch, 'MAP_TABS is not where the shell can validate against it');
+  assert.ok(subMatch, 'MAP_SUBVIEWS is not where the shell can validate against it');
+  const parseKeys = match => match[1].split(',').map(s => s.trim().replace(/'/g, ''));
+  const tabs = parseKeys(topMatch);
+  const subviews = parseKeys(subMatch);
+  const routes = [...tabs, ...subviews];
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
   // The strip became one x-for over TABS on 2026-08-31, so the component's tab
-  // set is that array rather than twelve setTab literals. map-tabs.test.mjs
-  // holds the array against the sections; this holds it against the shell.
-  for (const t of tabs) {
-    assert.ok(src.includes(`{ k: '${t}',`), `no TABS entry declares ${t}`);
+  // set is that array rather than hand-written setTab literals. Growth and Tests
+  // stay in the route set as local subviews, so old URLs remain valid.
+  for (const t of routes) {
+    assert.ok(src.includes(`{ k: '${t}',`), `no tab or subview entry declares ${t}`);
     assert.ok(src.includes(`mapTab==='${t}'`), `no section renders ${t}`);
   }
-  const buttons = [...src.matchAll(/\{ k: '(\w+)', n: '[^']+', i: '[^']+',\s*\n\s*g: '/g)].map(x => x[1]);
-  assert.deepEqual([...new Set(buttons)].sort(), [...tabs].sort(),
-    'a tab the shell will not validate is a tab the URL cannot carry');
+  const topBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
+  const componentTabs = [...topBlock.matchAll(/\{ k: '(\w+)',/g)].map(x => x[1]);
+  assert.deepEqual(componentTabs.sort(), [...tabs].sort(),
+    'the shell and component top-level strips carry the same keys');
+  for (const t of subviews)
+    assert.match(src, new RegExp(`SUBVIEW_PARENT:[\\s\\S]*${t}:`), `${t} has no declared parent`);
+  assert.match(page, /const MAP_ROUTES = \[\.\.\.MAP_TABS, \.\.\.MAP_SUBVIEWS\]/,
+    'the shell validates both top-level tabs and retained subview routes');
 });
 
 // The Registries tab renders the table the other seven hang off, so its shape

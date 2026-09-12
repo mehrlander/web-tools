@@ -16,7 +16,7 @@ export const page = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 // The one plain <script> block (the module boot loads lib and is not wanted
 // here). Anchored on the token seed so a reshuffle fails loudly.
 export function shellScript(src = page) {
-  const m = src.match(/<script>\n(window\.TOKEN[\s\S]*?)<\/script>/);
+  const m = src.match(/<script>\r?\n(window\.TOKEN[\s\S]*?)<\/script>/);
   assert.ok(m, 'the inline shell script block was not found');
   return m[1];
 }
