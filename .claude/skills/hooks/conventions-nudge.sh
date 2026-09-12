@@ -68,11 +68,22 @@ for base in (root, os.path.dirname(root)):
     except OSError:
         pass
 
-# A resolved `@`-import whose target carries the primitives. The marker is a
-# heading rather than a filename, so renaming the document does not silently
-# turn delivery off; the heading is what surfacing-manifest.test.mjs already
-# parses the primitives out of.
-MARKER = "## Surfacing primitives"
+# Resolved `@`-imports whose targets carry the contract. The markers are
+# headings rather than filenames, so renaming a document does not silently turn
+# delivery off; the surfacing one is what surfacing-manifest.test.mjs already
+# parses the primitives out of, and the writing one is that document's title.
+#
+# BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
+# tested one of them, so a repo importing the surfacing half alone read as fully
+# delivered and was never prodded for the prose half. Half a contract silently
+# counted as all of it is the same shape as the injection channel delivering 5%
+# and reporting nothing, one document down instead of one channel down.
+#
+# It also means this no longer special-cases the hub. web-tools dropped both
+# imports on 2026-09-12 and takes delivery through the plugin like every
+# consumer, so it is prodded here on the same rule as anywhere else rather than
+# by an exception written into the detector.
+MARKERS = ("## Surfacing primitives", "# Qualified writing")
 IMPORT = re.compile(r"^@(\S+)", re.M)
 
 def reads(path, cap=200_000):
@@ -86,11 +97,17 @@ delivered, needing = None, []
 for repo in cands:
     claude_md = os.path.join(repo, "CLAUDE.md")
     if os.path.isfile(claude_md):
+        # The union across every import, not one file: the two halves may arrive
+        # from two documents, and a repo is delivered only when both are in it.
+        seen = set()
         for target in IMPORT.findall(reads(claude_md)):
             resolved = os.path.join(repo, target) if not os.path.isabs(target) else target
-            if os.path.isfile(resolved) and MARKER in reads(resolved):
-                delivered = os.path.basename(repo)
-                break
+            if not os.path.isfile(resolved):
+                continue
+            text = reads(resolved)
+            seen.update(m for m in MARKERS if m in text)
+        if seen.issuperset(MARKERS):
+            delivered = os.path.basename(repo)
     if delivered:
         break
     # Opting out is per repo and deliberate; the field is declared in

@@ -93,3 +93,237 @@ test('the take grid carries Region, which arms Peek on its Render reading', asyn
   assert.match(fab.outMsg, /^Region:/, 'reported on the shared output line');
   assert.equal(fab.open, false, 'the drawer closes so the page can be tapped');
 });
+
+test('one Take browser presents raw outputs and loads costly ones in place', async () => {
+  const opened = [];
+  const header = { title: '', subtitle: '', icon: '', actions: [] };
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = window.document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+    kids.flat().filter(Boolean).forEach(kid => el.append(kid));
+    return el;
+  };
+  window.swipeDeck = {
+    h,
+    open(o) {
+      const el = window.document.createElement('div');
+      const slide = window.document.createElement('div');
+      let active = 0;
+      el.append(slide);
+      window.document.body.append(el);
+      const handle = {
+        el, slide, options: o, deck: { active: () => active },
+        close() { o.onClose?.(); el.remove(); },
+        setTitle(value) { header.title = value; },
+        setSubtitle(value) { header.subtitle = value; },
+        setIcon(value) { header.icon = value; },
+        setActions(value) { header.actions = value; },
+        setActive(value) { active = value; o.onSlide?.(value); },
+      };
+      o.render(0, slide);
+      opened.push(handle);
+      return handle;
+    },
+  };
+  const priorBrief = window.brief;
+  const priorBriefReady = fab.briefReady;
+  const priorExporter = window.exporter;
+  const priorIo = window.io;
+  const priorDomShot = window.DomShot;
+  const priorCreate = window.URL.createObjectURL;
+  const priorRevoke = window.URL.revokeObjectURL;
+  const plan = {
+    path: 'pages/example.html', repo: 'mehrlander/web-tools', ref: 'test-ref',
+    own: [{ path: 'kits/example.js' }], floor: [], reads: ['data/example.json'],
+    vendor: [], bytes: 1000, tokens: 250, cap: 100000, wholeLib: false,
+  };
+  const copied = [];
+  const downloaded = [];
+  const revoked = [];
+  window.brief = {
+    plan: () => plan,
+    assemble: async () => ({ text: '# raw LLM brief', tokens: 42, plan }),
+  };
+  window.exporter = {
+    renderCopy: async () => ({ html: '<!doctype html>\n<title>Raw output</title>', bytes: 42 }),
+    build: async () => ({ filename: 'example-export.zip', files: [
+      { path: 'pages/example.html', data: '<main>Example</main>' },
+    ] }),
+  };
+  window.io = { copy: async text => copied.push(text), saveZip: async () => {} };
+  window.URL.createObjectURL = () => 'blob:take-image';
+  window.URL.revokeObjectURL = url => revoked.push(url);
+  window.DomShot = {
+    capture: async (_node, o) => ({ blob: new window.Blob(['png']), mode: o.mode,
+      width: 390, height: 844, warnings: [] }),
+    filename: (_node, mode) => mode + '.png',
+    download: (blob, filename, doc) => downloaded.push({ blob, filename, doc }),
+  };
+  fab.briefReady = true;
+  fab.open = true;
+  try {
+    const handle = await fab.openTakeDeck();
+    assert.equal(handle.options.count, fab.takeDeckItems.length);
+    assert.ok(handle.options.count >= 10, 'the deck includes copy, open, image, and save outputs');
+    assert.deepEqual(['Copy', 'Open', 'Image', 'Save'].map(group =>
+      fab.takeDeckItems.some(a => a.group === group)), [true, true, true, true]);
+    assert.equal(handle.options.slideScroll, false, 'the raw content owns its vertical scroll');
+    assert.match(handle.slide.textContent, /Load HTML/);
+    assert.doesNotMatch(handle.slide.textContent, /Made when chosen|Copies to the clipboard/,
+      'the slide is no longer an explanatory card');
+    assert.equal(header.actions.length, 0, 'copy is not offered before the content can be seen');
+    assert.equal(header.title, 'HTML', 'the header starts on the active output');
+    assert.match(header.subtitle, /^Copy \u00b7 /);
+    assert.equal(header.icon, 'ph-code');
+    assert.equal(handle.el.hasAttribute('data-dom-shot-ignore'), true);
+    assert.equal(fab.open, false, 'the drawer gives the screen to the takeover');
+
+    handle.slide.querySelector('button').click();
+    await tick(2);
+    assert.match(handle.slide.querySelector('pre').textContent, /<!doctype html>/,
+      'Load is replaced by the literal output');
+    assert.doesNotMatch(handle.slide.textContent, /Load HTML/);
+    assert.equal(header.actions[0].title, 'Copy HTML', 'copy moves to the header after loading');
+    await header.actions[0].onClick(null, null);
+    assert.deepEqual(copied, ['<!doctype html>\n<title>Raw output</title>']);
+
+    const captureAt = fab.takeDeckItems.findIndex(a => a.key === 'capture');
+    handle.setActive(captureAt);
+    assert.equal(header.title, 'Capture', 'the header follows a swipe');
+    assert.match(header.subtitle, /^\d+K JSON \u00b7 /);
+    assert.equal(header.icon, 'ph-stethoscope');
+    assert.equal(header.actions[0].title, 'Copy capture');
+    const captureSlide = window.document.createElement('div');
+    handle.el.append(captureSlide);
+    handle.options.render(captureAt, captureSlide);
+    assert.match(captureSlide.querySelector('pre').textContent, /"capture": "fab\/1"/,
+      'Capture is its concrete JSON with no presentation wrapper');
+    assert.doesNotMatch(captureSlide.textContent, /Available now/);
+
+    const stageAt = fab.takeDeckItems.findIndex(a => a.key === 'stage');
+    handle.setActive(stageAt);
+    const stageSlide = window.document.createElement('div');
+    handle.el.append(stageSlide);
+    handle.options.render(stageAt, stageSlide);
+    assert.match(stageSlide.querySelector('pre').textContent, /pages\/example\.html/);
+    assert.match(stageSlide.textContent, /lib\/kits\/example\.js/);
+    assert.match(stageSlide.textContent, /data\/example\.json/,
+      'Stage is a raw manifest and remains actionable from the header');
+    assert.equal(header.actions[0].title, 'Open Stage');
+
+    const briefAt = fab.takeDeckItems.findIndex(a => a.key === 'brief');
+    handle.setActive(briefAt);
+    const briefSlide = window.document.createElement('div');
+    handle.el.append(briefSlide);
+    handle.options.render(briefAt, briefSlide);
+    assert.match(briefSlide.textContent, /Load LLM brief/);
+    briefSlide.querySelector('button').click();
+    await tick(2);
+    assert.equal(briefSlide.querySelector('pre').textContent, '# raw LLM brief');
+    assert.equal(header.actions[0].title, 'Copy LLM brief');
+
+    const archiveAt = fab.takeDeckItems.findIndex(a => a.key === 'export');
+    handle.setActive(archiveAt);
+    const archiveSlide = window.document.createElement('div');
+    handle.el.append(archiveSlide);
+    handle.options.render(archiveAt, archiveSlide);
+    assert.match(archiveSlide.textContent, /Load Zip contents/);
+    archiveSlide.querySelector('button').click();
+    await tick(2);
+    assert.match(archiveSlide.querySelector('pre').textContent, /example-export\.zip/);
+    assert.match(archiveSlide.textContent, /pages\/example\.html/);
+    assert.match(header.actions[0].title, /^Download example-export\.zip$/);
+
+    const imageAt = fab.takeDeckItems.findIndex(a => a.key === 'shot-view');
+    handle.setActive(imageAt);
+    const imageSlide = window.document.createElement('div');
+    handle.el.append(imageSlide);
+    handle.options.render(imageAt, imageSlide);
+    assert.match(imageSlide.textContent, /Render visible view/);
+    imageSlide.querySelector('button').click();
+    await tick(2);
+    assert.equal(imageSlide.querySelector('img').src, 'blob:take-image',
+      'the rendered image replaces its Load button in this slide');
+    assert.equal(header.actions[0].title, 'Download PNG');
+    await header.actions[0].onClick(null, null);
+    assert.equal(downloaded[0].filename, 'viewport.png');
+    handle.close();
+    assert.deepEqual(revoked, ['blob:take-image'], 'deck cleanup releases loaded image URLs');
+  } finally {
+    if (priorBrief === undefined) delete window.brief;
+    else window.brief = priorBrief;
+    if (priorExporter === undefined) delete window.exporter;
+    else window.exporter = priorExporter;
+    if (priorIo === undefined) delete window.io;
+    else window.io = priorIo;
+    if (priorDomShot === undefined) delete window.DomShot;
+    else window.DomShot = priorDomShot;
+    window.URL.createObjectURL = priorCreate;
+    window.URL.revokeObjectURL = priorRevoke;
+    fab.briefReady = priorBriefReady;
+  }
+});
+
+test('the take grid previews view, page, and picked-region DOM screenshots in the house deck', async () => {
+  const image = [...fab.takeGroups].find(g => g.kind === 'Image');
+  assert.deepEqual([...image.items].map(i => i.key), ['shot-view', 'shot-page', 'shot-region']);
+  assert.ok(image.items.every(i => /DOM|renderer|reconstructed/.test(i.desc)),
+    'every image scope says this is a renderer output');
+
+  const captures = [];
+  const previews = [];
+  const downloads = [];
+  const revoked = [];
+  window.URL.createObjectURL = () => 'blob:preview';
+  window.URL.revokeObjectURL = u => revoked.push(u);
+  window.DomShot = {
+    capture: async (node, o) => {
+      captures.push({ node, o });
+      return { blob: new window.Blob(['png']), mode: o.mode, renderer: 'test renderer',
+               width: 390, height: 844, warnings: [] };
+    },
+    filename: (_node, mode) => mode + '.png',
+    download: (blob, filename, doc) => downloads.push({ blob, filename, doc }),
+  };
+  window.swipeDeck = {
+    open: o => {
+      const el = window.document.createElement('div');
+      const slide = window.document.createElement('div');
+      o.render(0, slide);
+      const handle = { el, deck: {}, options: o, slide };
+      previews.push(handle);
+      return handle;
+    },
+  };
+  await fab.runTake('shot-view');
+  await fab.runTake('shot-page');
+  assert.deepEqual(captures.map(s => s.o.mode), ['viewport', 'page']);
+  assert.ok(captures.every(s => s.node === window.document.documentElement));
+  assert.deepEqual(previews.map(p => p.options.title), ['Visible view', 'Full page']);
+  assert.ok(previews.every(p => p.options.count === 1), 'a single image uses the deck as a takeover, not as a false set');
+  assert.ok(previews.every(p => p.el.hasAttribute('data-dom-shot-ignore')),
+    'a second capture does not photograph the first preview');
+  assert.match(previews[0].slide.textContent, /Reconstructed from the DOM by test renderer/);
+  assert.equal(previews[0].slide.querySelector('img').src, 'blob:preview');
+  assert.match(fab.outMsg, /DOM render/, 'the shared result line names the fidelity');
+  previews[0].options.actions[0].onClick();
+  assert.equal(downloads[0].filename, 'viewport.png', 'download is an explicit action in the preview');
+  previews[0].options.onClose();
+  assert.deepEqual(revoked, ['blob:preview'], 'the preview releases its object URL when closed');
+
+  const calls = [];
+  let peekDisabled = false;
+  window.Peek = {
+    enabled: false,
+    enable(o) { calls.push(o); this.enabled = true; },
+    disable() { peekDisabled = true; this.enabled = false; },
+  };
+  await fab.runTake('shot-region');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].takeLabel, 'Preview PNG');
+  assert.equal(typeof calls[0].onTake, 'function');
+  await calls[0].onTake(window.document.body);
+  assert.equal(captures.at(-1).o.mode, 'element', 'the picker captures the chosen element');
+  assert.equal(previews.at(-1).options.title, 'Selected region');
+  assert.equal(peekDisabled, true, 'the picker gets out of the way before the takeover is shown');
+});
