@@ -1,6 +1,6 @@
-// The FAB Take browser after loading raw HTML and swiping to raw Capture JSON.
-// The mobile artifact proves that the header follows the active output, costly
-// content has one Load affordance, and ready content fills the slide without a card.
+// The FAB Take browser with small raw HTML loaded on arrival, then swiped to
+// raw Capture JSON. The mobile artifact proves that the header follows the
+// active output and ready content fills the slide without a card.
 
 export default async function (page) {
   const ok = await page.evaluate(() => {
@@ -18,17 +18,21 @@ export default async function (page) {
   if (await door.count() !== 1) throw new Error('Take browser door not found exactly once');
   await door.click();
   await page.locator('.sd-overlay').waitFor({ state: 'visible' });
-  const loadHtml = page.getByRole('button', { name: 'Load HTML' });
-  await loadHtml.waitFor({ state: 'visible' });
-  const initial = await page.locator('.sd-overlay').innerText();
-  if (!/HTML/.test(initial) || /Made when chosen|Copies to the clipboard/.test(initial)) {
-    throw new Error('Take browser did not reduce deferred HTML to one Load action');
+  const estimate = await page.evaluate(() => {
+    const host = [...document.querySelectorAll('[x-data]')]
+      .find(el => (el.getAttribute('x-data') || '').includes('fab'));
+    return window.Alpine.$data(host)._takeHtmlEstimate();
+  });
+  if (estimate > 1024 * 1024) {
+    throw new Error(`Take browser fixture is not a small HTML closure (${estimate} bytes)`);
   }
-  await loadHtml.click();
   await page.locator('.sd-overlay pre').waitFor({ state: 'visible' });
   await page.locator('.sd-overlay [title="Copy HTML"]').waitFor({ state: 'visible' });
-  if (await loadHtml.isVisible().catch(() => false)) {
-    throw new Error('The HTML Load action was not replaced by its output');
+  const loadHtml = page.getByRole('button', { name: 'Load HTML' });
+  const initial = await page.locator('.sd-overlay').innerText();
+  if (!/HTML/.test(initial) || /Made when chosen|Copies to the clipboard/.test(initial)
+      || await loadHtml.isVisible().catch(() => false)) {
+    throw new Error('Take browser did not load small HTML as its first output');
   }
   await page.evaluate(() => window.swipeDeck.top().deck.go(2));
   await page.waitForFunction(() => window.swipeDeck.top()?.title === 'Capture');
