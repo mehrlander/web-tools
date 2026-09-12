@@ -28,8 +28,31 @@ window.EstateSearch = {
   async names(a) { CALLS.push(['names', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   async level(a) { CALLS.push(['level', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return LEVEL; },
   async code(a)  { CALLS.push(['code', a]);  if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
-  async sessions(a) { CALLS.push(['sessions', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
+  // `indexed` rides every sessions answer, because the view reads it to say
+  // whether the deep half ran at all; a stub omitting it would exercise the
+  // warning path on every case by accident.
+  async sessions(a) {
+    CALLS.push(['sessions', a]);
+    if (ANSWER.throw) throw new Error(ANSWER.throw);
+    return { indexed: 1, months: 1, ...ANSWER };
+  },
+  async chats(a) {
+    CALLS.push(['chats', a]);
+    if (ANSWER.throw) throw new Error(ANSWER.throw);
+    // The lane reports its own progress; the view is what turns that into a
+    // line, so the stub fires it the way the real one does.
+    a.onProgress?.({ done: 1, total: 2 });
+    return { missing: [], ...ANSWER };
+  },
 };
+// The chats lane loads its kit on first use rather than at boot, so the loader
+// has to be here and has to be observable.
+let LOADED = [];
+window.gh = { load: async (p) => {
+  LOADED.push(p);
+  if (p.includes('chat-archive')) window.chatArchive = {};
+  if (p.includes('session-index')) window.SessionIndex = {};
+} };
 
 // The contents fetch behind the reader. Records what it was pointed at, since
 // the ref rule ('' means the repo's default branch) is the thing most easily
@@ -47,6 +70,7 @@ window.GH = class {
 
 const shell = {
   REGISTRY_REPO: 'me/registry',
+  CHATS_REPO: 'me/chats',
   hasToken: () => true,
   estateRepos: [{ repo: 'me/tools' }, { repo: 'me/home' }],
   searchSeed: { q: 'seeded', mode: 'contents' },   // consumed by init, below
@@ -319,6 +343,81 @@ test('a session hit dispatches web-tools:open-session', async () => {
   window.document.addEventListener('web-tools:open-session', e => seen.push(e.detail));
   data.openHit(data.hits[0]);
   assert.deepEqual(j(seen), [{ id: 'aaaa1111', day: '2026-08-02' }]);
+});
+
+// ── The chats lane ──────────────────────────────────────────────────────────
+// The sessions lane's opposite number, and the two differ in what a hit IS: a
+// session hit opens a reader inside this app, a chat hit leaves for the
+// provider's own site, and a Gemini row has nowhere to go at all.
+
+test('sessions mode loads the index kit, and says so when no shard answered', async () => {
+  CALLS = []; LOADED = []; delete window.SessionIndex;
+  ANSWER = { hits: [], total: 0 };
+  data.mode = 'sessions'; data.q = 'wayback';
+  await data.run();
+  assert.deepEqual(j(LOADED), ['kits/session-index.js']);
+  assert.equal(data.error, '', 'a shard answered, so nothing to warn about');
+  // A registry the crawl has not indexed yet can only answer on rows. Reporting
+  // that as a complete result would claim a search that did not happen.
+  ANSWER = { hits: [], total: 0, indexed: 0, months: 3 };
+  await data.run();
+  assert.match(data.error, /No search index/);
+  assert.match(data.error, /session rows only/);
+});
+
+test('chats mode loads its kit once, searches the archive, and reports progress', async () => {
+  CALLS = []; LOADED = []; delete window.chatArchive;
+  ANSWER = { hits: [], total: 0 };
+  data.mode = 'chats'; data.q = 'gzip';
+  const run = data.run();
+  await run;
+  assert.deepEqual(j(LOADED), ['kits/chat-archive.js']);
+  const [, args] = CALLS.find(c => c[0] === 'chats');
+  assert.equal(args.repo, 'me/chats');
+  assert.equal(args.q, 'gzip');
+  // The line is cleared once the run ends, so it never sits under a finished
+  // answer claiming the read is still going.
+  assert.equal(data.progress, null);
+  assert.equal(data.progressLine, '');
+  // A second run does not reload the kit.
+  await data.run();
+  assert.deepEqual(j(LOADED), ['kits/chat-archive.js']);
+});
+
+test('a month with no shard in either layer is reported, not thrown over the hits', async () => {
+  ANSWER = { hits: [{ url: 'https://claude.ai/chat/1', title: 'One', date: '2026-07-02',
+                      provider: 'claude', open: 'https://claude.ai/chat/1', frag: 'title: One' }],
+             total: 1, missing: ['2026-05', '2026-04'] };
+  data.mode = 'chats'; data.q = 'one';
+  await data.run();
+  assert.equal(data.hits.length, 1, 'the hits still render');
+  assert.match(data.error, /2026-05/);
+  assert.match(data.error, /not searched/);
+});
+
+test('a chat hit opens the provider; a Gemini row says why it cannot', async () => {
+  const opened = [];
+  window.open = (url) => opened.push(url);
+  ANSWER = { hits: [
+    { url: 'https://claude.ai/chat/1', title: 'One', date: '2026-07-02', provider: 'claude',
+      open: 'https://claude.ai/chat/1', frag: 'title: One' },
+    { url: 'gemini-session/341', title: 'Two', date: '2026-07-01', provider: 'gemini',
+      open: '', frag: 'title: Two' },
+  ], total: 2, missing: [] };
+  data.mode = 'chats'; data.q = 'o';
+  await data.run();
+  data.openHit(data.hits[0]);
+  assert.deepEqual(j(opened), ['https://claude.ai/chat/1']);
+  data.openHit(data.hits[1]);
+  assert.equal(opened.length, 1, 'nothing is opened for a row with no address');
+  assert.match(data.error, /no per-chat address/);
+});
+
+test('the corpus lanes take no repo, ref or folder', () => {
+  data.mode = 'names';    assert.equal(data.overCorpus, false);
+  data.mode = 'contents'; assert.equal(data.overCorpus, false);
+  data.mode = 'sessions'; assert.equal(data.overCorpus, true);
+  data.mode = 'chats';    assert.equal(data.overCorpus, true);
 });
 
 test('the cap raises on demand, and only offers to where more can come from', async () => {

@@ -3580,6 +3580,55 @@ function app(){ return {
                                 'Update session menu index (state/session-menu.json)', mbase);
         } catch(e){ console.warn('session menu index:', e?.message || e); }
       }
+
+      // ── The search index, one shard per month ─────────────────────────────
+      // Its own gate and its own try, outside the cache's `changed` check,
+      // because the two move for different reasons: a record's sha can be
+      // unchanged while the ROW_V bump rewrites its row, and a month can need
+      // its shard built on a pass where nothing about the cache moved at all.
+      //
+      // It rides THIS crawl rather than a second one because the records are
+      // already in hand. `fetched` holds the parsed record of everything whose
+      // blob sha moved, so tokenizing costs no network and the shard for a
+      // month nothing changed in is never read, let alone rewritten.
+      //
+      // ONE SHARD PER TOUCHED MONTH, merged rather than rebuilt: the crawl
+      // reads only the changed records, so every other entry in that month
+      // exists nowhere but the shard. kits/session-index.js carries the
+      // merge and the reason.
+      try {
+        if (!window.SessionIndex) await window.gh.load('kits/session-index.js');
+        const X = window.SessionIndex;
+        // Which months the listing puts a record in, so a record that left the
+        // store leaves the index. Read off the path rather than the record, so
+        // a month the cap deferred still gets an accurate keep-set.
+        const idsByMonth = {};
+        for (const e of listing){
+          const m = (e.path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
+          const id = (e.path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
+          if (m && id) (idsByMonth[m] ||= new Set()).add(id);
+        }
+        // Only the months this pass actually read into.
+        const changedByMonth = {};
+        for (const [path, hit] of Object.entries(fetched)){
+          const m = (path.match(/sessions\/(\d{4})\/(\d{2})\//) || []).slice(1).join('-');
+          const id = (path.match(/-([0-9a-f]{8})\.json$/) || [])[1];
+          if (!m || !id || !hit?.record) continue;
+          (changedByMonth[m] ||= {})[id] = X.tokens(X.docText(hit.record));
+        }
+        for (const [month, changedDocs] of Object.entries(changedByMonth)){
+          const path = X.shardPath(month);
+          const sbase = await this.readForFold(reg, path);
+          // The keep-set is applied only on a COMPLETE pass. A capped pass has
+          // not read every record, and dropping the entries it did not reach
+          // would empty the index one month at a time while reporting success.
+          const keep = complete ? idsByMonth[month] : null;
+          const shard = X.mergeShard(sbase?.doc || null, changedDocs, keep);
+          if (X.shardChanged(sbase?.doc || null, shard))
+            await this.saveFold(reg, path, shard,
+                                'Update session search index (' + path + ')', sbase);
+        }
+      } catch(e){ console.warn('session search index:', e?.message || e); }
       // `doc` rides the summary for the reason the activity crawl's does, plus
       // one this crawl has and that one does not. The shared reason is cost:
       // state/sessions.json is a megabyte and the crawl is holding it, so a
@@ -3941,6 +3990,11 @@ function app(){ return {
     // active; older = scanned, capped), through the shared orchestrator.
     let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, scanned: 0, older: 0, openPRs: openPRs.length };
     let truncated = false;
+    // Held outside the guarded block because the successful scan's coverage
+    // travels in the returned cache entry below. Keeping this block-local made
+    // every real deep scan throw while assembling its result, after all of its
+    // GitHub reads had already succeeded.
+    let scanned = null;
     // Whether this pass actually READ the branch list. Everything below is
     // derived from it, so a failure here means the numbers are absent rather
     // than zero, and the difference is the whole of the guard at the bottom.
@@ -3961,7 +4015,7 @@ function app(){ return {
       // from the commits read above, and it is the scan's other input: while
       // both hold, a verdict cannot have changed. See BranchStatus.needsScan.
       const prior = new Map((prev?.repos?.[repo]?.scan?.branches || []).map(r => [r.name, r]));
-      const scanned = deep
+      scanned = deep
         ? await B.scanOlder(g, { defaultRef: def, older, cap: this.ACTIVITY_SCAN_CAP,
                                    keep: this.ACTIVITY_SCAN_KEEP, pool: 3, now,
                                    prior, mainSha, priorMainSha: prev?.repos?.[repo]?.scan?.mainSha || '',
@@ -4009,7 +4063,7 @@ function app(){ return {
       // repo, so it must never reach the stored entry or the hash. A pass whose
       // branch list would not read is partial in exactly the same sense as a
       // quick pass: it knows less than the stored entry does.
-      ...(deep && listOk ? {} : { partial: true }),
+      ...(deep && listOk && scanned ? {} : { partial: true }),
       // Counts describe the branch list, so a pass that never read one has no
       // counts to give. Omitting them entirely is what makes mergeRepo carry
       // the stored ones; sending zeros would report an empty repo.
@@ -4033,7 +4087,7 @@ function app(){ return {
       // over quiet crawls; `beyondHorizon` is what `keep` itself cut and does
       // not; `listOrdered` is whether the branch WALK cut by date or by name,
       // which decides whether any of the three is a recency statement at all.
-      ...(deep && listOk ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
+      ...(deep && listOk && scanned ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
                              keep: this.ACTIVITY_SCAN_KEEP,
                              mainSha: recentCommits[0]?.sha || '',
                              scanned: counts.scanned, older: counts.older, truncated,
