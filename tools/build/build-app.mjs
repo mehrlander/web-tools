@@ -35,6 +35,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadKit } from './kit-shim.mjs';
 
+// Keep both graph discovery and emitted source independent of checkout EOLs.
+const sourceText = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+
 const REPO = 'mehrlander/web-tools';
 const PAGE = 'app/index.html';
 const OUT = 'dist/app.js';
@@ -56,7 +59,7 @@ const libSet = new Set(allJs);
 // Alpine.data('name') -> 'alpineComponents/<file>.js'
 const componentByName = new Map();
 for (const rel of allJs.filter(p => p.startsWith('alpineComponents/'))) {
-  const src = readFileSync(path.join(libDir, rel), 'utf8');
+  const src = sourceText(path.join(libDir, rel));
   for (const m of src.matchAll(/Alpine\.data\(\s*['"]([A-Za-z_$][\w$]*)['"]/g)) componentByName.set(m[1], rel);
 }
 
@@ -77,7 +80,7 @@ function edges(src) {
 // Seeds: the loader's own boot (gh-boot.js reads its BOOT manifest and the FAB
 // block), the three kits the whole-library boot puts ahead of the components
 // because a component reads them at init, and the page itself.
-const pageSrc = readFileSync(path.join(repoRoot, PAGE), 'utf8');
+const pageSrc = sourceText(path.join(repoRoot, PAGE));
 const seeds = ['gh-boot.js', 'alpine-bundle.js', 'kits/url-params.js', 'kits/repo-address.js', 'kits/csv.js'];
 const reached = new Set();
 const unknownNames = new Set();
@@ -95,7 +98,7 @@ while (queue.length) {
   const rel = queue.shift();
   if (reached.has(rel) || rel === 'gh-api.js') continue;
   reached.add(rel);
-  take(readFileSync(path.join(libDir, rel), 'utf8'));
+  take(sourceText(path.join(libDir, rel)));
 }
 
 // LAZY: reached by a literal, so the walk finds them, but loaded only by an
@@ -112,9 +115,9 @@ const components = files.filter(p => p.startsWith('alpineComponents/'));
 const skipped = allJs.filter(p => p !== 'gh-api.js' && !reached.has(p));
 
 const { buildKit } = loadKit(repoRoot, 'lib/build.js');
-const ghApiSrc = readFileSync(path.join(libDir, 'gh-api.js'), 'utf8');
+const ghApiSrc = sourceText(path.join(libDir, 'gh-api.js'));
 const cache = {};
-for (const rel of files) cache['lib/' + rel] = readFileSync(path.join(libDir, rel), 'utf8');
+for (const rel of files) cache['lib/' + rel] = sourceText(path.join(libDir, rel));
 
 // Same boot order as the whole-library pre-build, over the reached set.
 const extraBoot = ['kits/url-params.js', 'kits/repo-address.js', 'kits/csv.js', ...components, 'alpine-bundle.js']

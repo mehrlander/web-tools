@@ -100,7 +100,9 @@ async function walk(baseDir, dir = baseDir) {
     if (ent.name === 'thumbs') continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) out.push(...await walk(baseDir, abs));
-    else if (ent.name.endsWith('.html')) out.push(path.relative(baseDir, abs));
+    else if (ent.name.endsWith('.html')) {
+      out.push(path.relative(baseDir, abs).split(path.sep).join('/'));
+    }
   }
   return out;
 }
