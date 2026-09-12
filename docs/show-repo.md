@@ -531,7 +531,7 @@ the header nav the way a repo shows landing/atlas/files/…:
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
 - **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
-- **Map** (`?view=map`, `&tab=` deep-links a tab) — the portable set, Surfacing, Showing, the Docs registry, and Tests (below). Per-repo scope and adoption live on the Repos cards.
+- **Map** (`?view=map`, `&tab=` deep-links a tab or subview) — the portable set, Surfacing, Showing, Docs with its Growth reading, and Harness with its Tests reading (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
   (below). The one conditional entry: shown only while something is pending.
 
@@ -1668,21 +1668,24 @@ link, and a file listing lives in Public browse.
 the coordination layer itself into a first-class object, and is the operational
 face of the constellation doctrine ([`docs/CONSTELLATION.md`](CONSTELLATION.md)
 is the portable kernel, opened from the set header; the full worked instance is
-in the private `home` repo). Five tabs, `lib/alpineComponents/map.js`, each
-answering one question about the layer: what travels (the set), what to hand
-over in chat (Surfacing), how content moves and shows (Showing), what the
-documentation holds and what holds it (Docs), and what the suite checks
-(Tests). Who carries the set is a fact about a repo and lives on the Repos
-cards.
+in the private `home` repo). Eleven top-level tabs in
+`lib/alpineComponents/map.js` answer distinct questions about the layer. Two of
+those stops carry a smaller second level where the material is one subject with
+two readings: **Docs** holds **Inventory** and **Growth**, while **Harness**
+holds **Automation** and **Tests**. Who carries the set is a fact about a repo
+and lives on the Repos cards.
 
-**The open tab is addressable:** `?view=map&tab=surfacing|showing|docs|claims|tests`,
+**The open tab or subview is addressable:**
+`?view=map&tab=aims|set|surfacing|showing|docs|growth|claims|harness|tests|kits|skills|views|registries`,
 on the same `tab` key the project view's pills use, with the default (`set`)
 left out of the URL so a plain `?view=map` link is unchanged. The tab is held
 by the shell rather than by `map()`, because the URL is the shell's to own and
 the component mounts lazily; the component renders whichever tab is set, watches
 the shell for a back-button change, and fetches that tab's manifest on arrival
-by whatever route. That last part is the failure this replaced: the four
-non-default tabs used to fetch from the click handler alone, so a tab nobody
+by whatever route. Existing `?tab=growth` and `?tab=tests` links retain their
+exact destinations even though Growth and Tests no longer occupy the main
+strip. That last part is the failure this replaced: non-default tabs once
+fetched from the click handler alone, so a tab nobody
 tapped had nothing to render.
 
 *Portable* (labelled The set until 2026-08-07; the `?tab=set` URL key is
@@ -1842,12 +1845,13 @@ carries the source peek for the desktop glance, one details toggle on the
 reach strip shows every row's maintenance at once, and the files view stays
 the route for working on a file rather than reading it. The folder heading
 carries the deck's own door beside its GitHub mark (2026-09-04), since the row
-tap was a gesture nobody was told about. The **Tests** and **Harness** tabs
-answer the same tap the same way from that date: a row title opens the deck
-rather than routing to the Files view, and each carries the door. Tests pages
-the suite as its strip has cut it, counted in checks rather than files, since
-what a check protects is prose at the top of its own file; Harness pages the
-selected folder, the Docs tab's shape exactly. A `.csv` row opens as a TABLE rather
+tap was a gesture nobody was told about. The **Tests** and **Automation**
+subviews under Harness answer the same tap the same way from that date: a row
+title opens the deck rather than routing to the Files view, and each carries the
+door. Tests pages the suite as its strip has cut it, counted in checks rather
+than files, since what a check protects is prose at the top of its own file;
+Automation pages the selected folder, the Docs Inventory shape exactly. A
+`.csv` row opens as a TABLE rather
 than as raw text: the deck converts it to a markdown table so md-doc's wide-table
 scroller and prose styling apply, with each cell's markdown escaped, since a
 registry that describes markdown was otherwise rendering its own
@@ -1865,7 +1869,15 @@ read as an appendix, first open, then folded behind a count; a tab keeps the
 documents on one viewport and gives the claims their own. The two registries differ in
 how membership is decided, which is the whole reason they cannot share a pane: the claims are
 curated and authoritative only for what they cover, while the documents are computed from the
-folder and therefore complete. The documents half is public, like the other two tabs.
+folder and therefore complete. The documents half is public, like the other hub-owned readings.
+
+The **Growth** subview keeps the same documentation subject but changes the
+scale of the reading. It frames `pages/doc-growth.html` over the declared
+`data/doc-growth/*.json` payload, showing every Markdown file as a bubble moving
+through repository history. Inventory answers how one document has changed;
+Growth answers what the corpus is doing as a whole. A repository selector only
+appears when more than one estate repo declares a growth payload. The retained
+`?tab=growth` address opens this subview directly.
 
 Three numbers sit on a row, and they answer three different questions. **Reach**
 (derived by `tools/build/docs-reach.mjs`, gated against the registry) says who
@@ -1887,14 +1899,19 @@ That last case is the reason the caveats are on screen instead of in this file:
 estate and are precisely the two no file tool can see, so a bare count would rank
 them last.
 
-*Tests* is the same shape one axis over, from [`docs/tests.csv`](tests.csv):
+*Harness* has two local readings. *Tests*, from
+[`docs/tests.csv`](tests.csv), is the Docs Inventory shape one axis over:
 every file in the suite with its kind (gate or behavior)
 and what breaks if it is deleted, its assertions, method,
 runner and boot-smoke count all derived from the files and gated against the
 registry. The strip cuts the total by kind rather than reporting it, since a
 pass count cannot tell a boot check from an adversarial gate, and a browser
 check reports **no** assertion count rather than zero, because `test()` is not
-its unit. Public.
+its unit. *Automation*, from [`docs/harness.csv`](harness.csv), holds every
+executable the repository runs on itself, including scripts, git hooks,
+session and plugin hooks, and CI workflows. It is grouped by the route on which
+execution arrives and keeps test files in the Tests registry rather than
+duplicating them. Both readings are public.
 
 **Tools** (`?view=tools`) is a curated gallery of the utility pages the owner
 reaches for (the text-diff tool, the transform/compress round-trip, and so on),

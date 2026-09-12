@@ -1767,10 +1767,14 @@ function resolveCatalogPath(rawPath, declRepo, declRef){
 // rather than offering a button that cannot be followed.
 const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph-folder-simple' };
 
-// The Map view's tabs, in render order, first = default. Named HERE rather than
-// in map() because the shell validates the ?tab= param before the component
-// mounts; map() renders whichever of these is set.
-const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'growth', 'claims', 'tests', 'harness', 'kits', 'skills', 'views', 'registries'];
+// The Map view's top-level tabs, in render order, plus two addressable
+// subviews. Named HERE rather than in map() because the shell validates the
+// ?tab= param before the component mounts. Growth remains ?tab=growth under
+// Docs, and Tests remains ?tab=tests under Harness, so old links still land on
+// the exact reading they named even though neither needs a top-level stop.
+const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'views', 'registries'];
+const MAP_SUBVIEWS = ['growth', 'tests'];
+const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2502,7 +2506,7 @@ function app(){ return {
       // as "Doc Growth", correctly (two payloads are two views), and the estate
       // nav said the same two words twice for two days.
       //
-      // The federated Growth tab fixed that instance and manifest-registry's
+      // The federated Growth view fixed that instance and manifest-registry's
       // slug gate stops one namespace collision, but neither reaches this:
       // viewLabel is free text, two repos may legitimately choose the same
       // words, and no gate should stop them. So the fix belongs where the
@@ -5873,20 +5877,20 @@ function app(){ return {
   // per-repo scope + adoption). Renamed from "Portable"; goPortable stays as a
   // thin alias so any caller or old ?view=portable link still resolves.
   //
-  // The tab is addressable (?view=map&tab=docs), on the same `tab` key the
+  // The tab or subview is addressable (?view=map&tab=docs), on the same `tab` key the
   // project view uses. Two callers, two meanings, which is why the argument is
   // optional rather than defaulted: the nav button calls goMap() with nothing
   // and KEEPS the open tab, while a route call passes url.tab and the URL is
   // authoritative, so an absent one means the default. Anything unrecognized
-  // falls back rather than rendering five hidden sections.
+  // falls back rather than leaving every section hidden.
   goMap(tab){
-    if (tab !== undefined) this.mapTab = MAP_TABS.includes(tab) ? tab : 'set';
+    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : 'set';
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
   },
   // A tab tap from inside map(): stamp the URL so back and forward walk the
   // tabs. The component holds its own copy for rendering and watches this one.
   goMapTab(tab){
-    if (!MAP_TABS.includes(tab) || tab === this.mapTab) return;
+    if (!MAP_ROUTES.includes(tab) || tab === this.mapTab) return;
     this.mapTab = tab; this.syncUrl();
   },
   goPortable(){ this.goMap(); },
