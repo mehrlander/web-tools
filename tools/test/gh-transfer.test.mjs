@@ -20,7 +20,7 @@ const src = readFileSync(path.join(repoRoot, 'lib/gh-transfer.js'), 'utf8');
 // `refFails` makes the first N ref PATCHes reject as non-fast-forward, which is
 // the branch taking a commit while the blobs upload. `tip` advances each time,
 // so a rebuild that reused the stale parent would be visible.
-function makeGH({ refFails = 0, contents = {}, defaultBranch = 'main' } = {}) {
+function makeGH({ refFails = 0, contents = {}, blobs = {}, defaultBranch = 'main' } = {}) {
   const reqs = [];
   let failed = 0, tipN = 0;
   function GH(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = ''; }
@@ -37,6 +37,13 @@ function makeGH({ refFails = 0, contents = {}, defaultBranch = 'main' } = {}) {
     }
     if (p.startsWith('git/ref/heads/')) return { object: { sha: 'tip' + tipN } };
     if (p === 'git/blobs') return { sha: 'blob-' + reqs.filter(r => r.path === 'git/blobs').length };
+    // The READ side of the same endpoint: what getRaw falls back to when the
+    // Contents API withholds the bytes of a file over its ~1 MB cap.
+    if (p.startsWith('git/blobs/')) {
+      const sha = p.slice('git/blobs/'.length);
+      if (!(sha in blobs)) throw Object.assign(new Error('404'), { status: 404 });
+      return blobs[sha];
+    }
     if (p.startsWith('git/commits/')) return { tree: { sha: 'tree-of-' + p.split('/').pop() } };
     if (p === 'git/trees') return { sha: 'newtree' + tipN };
     if (p === 'git/commits') return { sha: 'newcommit' + tipN };
@@ -162,9 +169,58 @@ test('copyTo reports a file it could not read and keeps going', async () => {
   assert.equal(res[1].status, 'ok', 'one failure does not abort the batch');
 });
 
-test('getRaw refuses a file the Contents API truncated instead of writing it empty', async () => {
-  const { gh } = makeGH({ contents: { 'big.bin': { content: '', sha: 's', size: 2_000_000 } } });
-  await assert.rejects(() => gh.getRaw('big.bin'), /too large/i);
+// ── getRaw over the Contents API's cap ──────────────────────────────────────
+// A file past ~1 MB comes back from the Contents API as metadata with an EMPTY
+// content string, which is the one answer that must never be passed on: an
+// empty string is valid base64 for zero bytes, so a write takes it and lands an
+// empty file while reporting success. The write side of this file has always
+// used the Git Data API, whose blob ceiling is about 100 MB, so the cap was an
+// asymmetry rather than a limit of the transfer.
+
+test('getRaw reads a file over the Contents cap through its blob instead of failing', async () => {
+  const { gh, reqs } = makeGH({
+    contents: { 'big.bin': { content: '', sha: 'bigsha', size: 3_000_000 } },
+    blobs: { bigsha: { content: 'QUJD\nREVG\n', encoding: 'base64', size: 3_000_000 } },
+  });
+  const out = await gh.getRaw('big.bin');
+  assert.equal(out.content, 'QUJDREVG', 'the blob API wraps its base64; the whitespace comes out');
+  assert.equal(out.sha, 'bigsha');
+  assert.equal(out.size, 3_000_000);
+  assert.deepEqual(seq(reqs), ['GET contents/big.bin', 'GET git/blobs/bigsha'],
+    'one extra request, and only on a file that would otherwise have failed');
+});
+
+test('a file under the cap still costs one request', async () => {
+  const { gh, reqs } = makeGH({ contents: { 'a.txt': { content: 'YQ==', sha: 's1', size: 1 } } });
+  assert.equal((await gh.getRaw('a.txt')).content, 'YQ==');
+  assert.deepEqual(seq(reqs), ['GET contents/a.txt'], 'the fallback never fires on the common path');
+});
+
+test('an empty file is empty, not truncated: no blob read, no error', async () => {
+  const { gh, reqs } = makeGH({ contents: { 'empty.txt': { content: '', sha: 's0', size: 0 } } });
+  assert.equal((await gh.getRaw('empty.txt')).content, '');
+  assert.deepEqual(seq(reqs), ['GET contents/empty.txt'], 'size 0 is the answer, not a withheld one');
+});
+
+test('a blob the API will not hand over either is an error naming the size', async () => {
+  const { gh } = makeGH({
+    contents: { 'huge.bin': { content: '', sha: 'hugesha', size: 200_000_000 } },
+    blobs: { hugesha: { content: '', encoding: 'none', size: 200_000_000 } },
+  });
+  await assert.rejects(() => gh.getRaw('huge.bin'), /too large to read through the API \(190\.7 MB\)/);
+});
+
+test('a truncated file with no sha to read it by says so rather than reading nothing', async () => {
+  const { gh } = makeGH({ contents: { 'odd.bin': { content: '', size: 2_000_000 } } });
+  await assert.rejects(() => gh.getRaw('odd.bin'), /no blob sha/i);
+});
+
+test('a blob that is not base64 is refused rather than written as if it were', async () => {
+  const { gh } = makeGH({
+    contents: { 'utf.bin': { content: '', sha: 'utfsha', size: 2_000_000 } },
+    blobs: { utfsha: { content: 'plain text', encoding: 'utf-8', size: 2_000_000 } },
+  });
+  await assert.rejects(() => gh.getRaw('utf.bin'), /not base64/i);
 });
 
 test('createRef reports an existing branch rather than failing on it', async () => {

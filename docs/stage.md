@@ -510,6 +510,72 @@ instead of letting either side disappear.
 - **Persistent link**: mint the `#stage=` URL that reopens this exact stage
   anywhere (ref items only; local files cannot ride a link).
 
+## Standoff notes: a comment that is content
+
+**A comment about a staged file is a file.** The speech bubble on any row, ref
+or local, opens one editor panel; committing it puts a new local item on the
+stage named `<subject>.note.md`, and from there nothing about it is special.
+The deposit writes it, the bundle carries it, the reader opens it, a `#gz=`
+link takes it along. Nothing was added to the transport, because a comment
+that is content needs no transport of its own.
+
+```
+---
+about: rates.json
+added: 2026-09-13
+source: me/data@trunk:pulls/rates.json
+---
+
+The OFM rate pull. The last two columns are unlabelled.
+```
+
+**Standoff rather than inline, because inline is not one mechanism.** Markdown
+takes front matter, a CSV takes a leading `#`, and JSON takes no comment at
+all, which is the case that asked for this. The other inline shape, wrapping
+the content in an outer object with a slot for the comment, answers only the
+JSON case and changes what the file IS: a CSV inside it is a quoted string with
+escaped newlines, an image has to be base64'd, and anything downstream
+expecting the original gets the wrapper instead.
+
+**And not the commit message**, which was the first answer here and the wrong
+one. A commit message is a fact git records ABOUT a write, so the comment would
+exist everywhere except in the tree the reader is looking at, and the deposit's
+generated subject is what a folder listing shows in any case.
+
+Three details carry the convention. The name keeps the subject's **whole
+deposit-relative path**, so the pair lands adjacent whatever the destination
+does with folders, and stripping the suffix is all the pairing anyone needs.
+`about:` names the subject by **basename**, because that is where the note
+sits once deposited and a full path would not resolve from the folder the note
+is actually in. `source:` appears only on a note about a **ref**, and carries
+the one fact the deposit otherwise destroys: a copied file lands under its own
+name with no record of the repo and ref it came from.
+
+Two bindings keep the pair from coming apart, both held by tests. A **rename**
+of the subject renames its note and rewrites the `about:` line, since the pair
+is recognized at the destination by name and by nothing else. And **removing a
+subject removes its note**, because an orphan note deposited alone is a file
+whose whole content points at something not there. Removing the note is the
+other direction and takes nothing with it.
+
+The editor is a **panel above the staged set**, not a field inside a row, and
+that is the one place it differs from the rename beside it: a filename is one
+line and belongs where the name is, while a note is prose and wants the width.
+Enter inserts a newline; the commit is the button or Cmd/Ctrl-Enter. An emptied
+note removes the file rather than depositing an empty one.
+
+**What the receiving repo does with it is the receiver's business**, which is
+the point of the note being content. In `mehrlander/home` the `/drain` skill
+reads a note before asking what a dump file is, never routes one on its own
+merits, and treats a note whose subject has gone as an orphan to fold in and
+delete.
+
+One limit worth stating: a note **survives a `#gz=` link as a file but not as a
+binding**. `encodeLocals` carries `{name, text}`, so both halves reopen and both
+still deposit correctly, but `noteFor` is not in the payload and local ids are
+re-minted on decode, so the reopened note is an ordinary staged file and a later
+rename of its subject will not carry it. The name still says what it is about.
+
 ## The `#stage=` link grammar
 
 ```

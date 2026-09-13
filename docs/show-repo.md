@@ -2662,10 +2662,16 @@ never executed; a 404 means no config.
   cross-repo write with the viewer's token stays a deliberate gesture.
 - Writes land on the destination's **default branch** unless an `@ref`/branch is
   given.
-- The Contents API caps a file at ~1 MB; a larger file **errors** rather than
-  writing an empty file at the destination. The cap is on the READ, so batching
-  the write does not lift it. Nor is a file's mode carried: the Contents API
-  never returned one, so everything lands `100644`.
+- A file over the Contents API's ~1 MB cap comes back as metadata with an
+  **empty content string**, which is the one answer a deposit must never pass
+  on: an empty string is valid base64 for zero bytes, so a write takes it and
+  lands an empty file while reporting success. `getRaw` reads such a file
+  through `git/blobs/<sha>` instead, the same fallback `gh.bytes` has always
+  had, so read and write now meet at roughly 100 MB rather than 1 MB apart. The
+  extra request fires only on a file that would otherwise have failed; past
+  about 100 MB the blob endpoint withholds the bytes too and the error names
+  the size. A file's mode is still not carried: the Contents API never returned
+  one, so everything lands `100644`.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
 
