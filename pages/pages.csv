@@ -8,7 +8,7 @@ main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
 main,,console-playground,Console Suite Guide,console-playground.html,thumbs/console-playground.png,https://github.com/mehrlander/web-tools/blob/main/pages/console-playground.html,
 main,,data-view,Data View,data-view.html,thumbs/data-view.png,https://github.com/mehrlander/web-tools/blob/main/pages/data-view.html,
-main,,delivery,Conventions Delivery,delivery.html,thumbs/delivery.png,https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html,
+main,,delivery,Conventions Delivery History,delivery.html,thumbs/delivery.png,https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html,
 main,,dictate,Dictate,dictate.html,thumbs/dictate.png,https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html,"The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Share, Jot or Drop at the end of it."
 main,,diff-tool,Diff,diff-tool.html,thumbs/diff-tool.png,https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html,Side-by-side text diff tool.
 main,,doc-growth,Doc Growth,doc-growth.html,thumbs/doc-growth.png,https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html,
@@ -24,6 +24,7 @@ main,,probe-window,Probe window,probe-window.html,thumbs/probe-window.png,https:
 main,,repo-atlas,Repo Atlas,repo-atlas.html,thumbs/repo-atlas.png,https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html,"Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count."
 main,,review,Review,review.html,thumbs/review.png,https://github.com/mehrlander/web-tools/blob/main/pages/review.html,"A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target."
 main,,session,Session,session.html,thumbs/session.png,https://github.com/mehrlander/web-tools/blob/main/pages/session.html,
+main,,session-context,Session Context,session-context.html,thumbs/session-context.png,https://github.com/mehrlander/web-tools/blob/main/pages/session-context.html,
 main,,shortcut-log,Shortcut Log,shortcut-log.html,thumbs/shortcut-log.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html,
 main,,shorter,Shorter,shorter.html,thumbs/shorter.png,https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html,"Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM."
 main,,text-lab,Text Lab,text-lab.html,thumbs/text-lab.png,https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html,
