@@ -4,10 +4,8 @@
 
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
-live in [the Web Tools app's Map view, Docs tab](https://mehrlander.github.io/web-tools/app/?view=map)
-alongside the shared-claims table (statements that live in more than one
-place, each with its one authoritative file and the check that holds each
-copy, or the honest absence of one). A **record** preserves a moment and is
+live in [the Web Tools app's Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).
+A **record** preserves a moment and is
 corrected by markers, never rewritten; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
@@ -28,7 +26,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
-- [`aims-reading.csv`](aims-reading.csv) — the guided reading list the Aims tab offers a new reader
+- [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
