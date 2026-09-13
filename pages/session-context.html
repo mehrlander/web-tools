@@ -17,8 +17,8 @@
      #gh=owner/repo@ref:path opens a record through the existing GH auth layer.
      Record classification is intentionally separate from the authored map. -->
 <header class="sticky top-0 z-20 border-b border-base-300 bg-base-100 px-4 sm:px-7 py-3">
-  <div class="flex items-center justify-between gap-3 flex-wrap">
-    <div class="flex items-center gap-3">
+  <div class="flex items-center justify-between gap-3 flex-wrap" :class="embedded ? 'justify-end' : ''">
+    <div class="flex items-center gap-3" x-show="!embedded">
       <a href="../app/?view=map&tab=docs" class="text-xs uppercase tracking-widest text-base-content/70 hover:text-primary">Web Tools</a>
       <span class="text-base-content/30" aria-hidden="true">/</span>
       <h1 class="text-lg font-semibold">Session context</h1>
@@ -30,7 +30,7 @@
   </div>
 </header>
 
-<main class="px-4 sm:px-7 pt-6 pb-8">
+<main :class="embedded ? 'px-4 sm:px-5 pt-5 pb-6' : 'px-4 sm:px-7 pt-6 pb-8'">
   <section x-show="pane === 'routes'" aria-label="Content delivery routes">
     <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
       <div>
@@ -191,9 +191,9 @@
   </section>
 </main>
 
-<footer class="border-t border-base-300 px-4 sm:px-7 py-3 text-xs text-base-content/70 flex gap-x-5 gap-y-2 flex-wrap">
+<footer x-show="!embedded" class="border-t border-base-300 px-4 sm:px-7 py-3 text-xs text-base-content/70 flex gap-x-5 gap-y-2 flex-wrap">
   <span>Delivery ≠ use ≠ compliance · Bounded capture</span>
-  <a href="delivery.html" class="hover:text-primary">Earlier delivery diagrams ↗</a>
+  <a href="delivery.html" class="hover:text-primary">Delivery history ↗</a>
   <a :href="sourceUrl({path:'pages/session-context.html', current:true})" class="hover:text-primary ml-auto" target="_blank" rel="noopener">Page source ↗</a>
 </footer>
 
@@ -276,7 +276,7 @@ function contextEvidence(rec) {
 
 function sessionContext() {
   return {
-    routes:contextRoutes, provenanceOutputs, selected:'instructions', phase:'all', pane:'routes', record:null,
+    routes:contextRoutes, provenanceOutputs, embedded:new URLSearchParams(location.search).has('embed'), selected:'instructions', phase:'all', pane:'routes', record:null,
     address:'', loadedAddress:'', filename:'', showOpen:false, busy:false, error:'', evidence:contextEvidence({}),
     async init() { this.restore(); const pane = this.pane; if (this.address) { await this.openAddress(false); this.pane = pane; } },
     get route() { return this.routes.find(r => r.id === this.selected); },

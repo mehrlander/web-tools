@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const html = readFileSync(new URL('../../pages/session-context.html', import.meta.url), 'utf8');
+const historyHtml = readFileSync(new URL('../../pages/delivery.html', import.meta.url), 'utf8');
+const history = JSON.parse(readFileSync(new URL('../../docs/delivery.json', import.meta.url), 'utf8'));
 const code = html.match(/<script id="context-model">([\s\S]*?)<\/script>/)[1];
 const model = vm.createContext({ URLSearchParams });
 vm.runInContext(code, model);
@@ -27,6 +29,21 @@ test('the provenance graph distinguishes durable evidence from causal gaps', () 
   assert.deepEqual(outputs.map(o => o.id),['decision','file','commit','guide']);
   assert.match(html,/data-provenance-graph/);
   assert.match(html,/causal join missing/);
+});
+
+test('Map embedding shares the graph and inspector without duplicate page chrome', () => {
+  assert.match(html, /embedded:new URLSearchParams\(location\.search\)\.has\('embed'\)/);
+  assert.match(html, /x-show="!embedded"/);
+  assert.match(html, /pane === 'record'/);
+});
+
+test('the older injection diagram is historical, not a competing current route', () => {
+  assert.ok(history.snapshots.length >= 2);
+  assert.ok(history.snapshots.every(s => s.state !== 'current'));
+  assert.equal(history.snapshots.at(-1).state, 'planned');
+  assert.match(history.snapshots.at(-1).provenance, /superseded/);
+  assert.match(historyHtml, /lastIndexOf\('historical'\)/);
+  assert.match(historyHtml, /Current context map/);
 });
 
 test('reconstruction and supplied receipts never claim document delivery', () => {
