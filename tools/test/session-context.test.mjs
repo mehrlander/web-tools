@@ -16,8 +16,10 @@ test('the current startup repair joins the nudge to the default skill', () => {
   const skill = routes.find(r => r.id === 'skills');
   const hook = routes.find(r => r.id === 'hooks');
   assert.ok(skill.phases.includes('start'));
-  assert.ok(skill.sources.some(s => s.path === '.claude/skills/default/SKILL.md'));
-  assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/conventions-nudge.sh'));
+  assert.ok(skill.sources.some(s => s.path === '.claude/skills/default/SKILL.md' && s.current));
+  assert.ok(skill.sources.some(s => s.path === 'docs/QUALIFIED-WRITING.md' && s.current));
+  assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/conventions-nudge.sh' && s.current));
+  assert.match(hook.limit, /prompt, not that the skill ran/);
 });
 
 test('the provenance graph distinguishes durable evidence from causal gaps', () => {

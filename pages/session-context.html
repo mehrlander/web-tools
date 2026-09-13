@@ -131,7 +131,7 @@
         <div><h4 class="text-xs uppercase tracking-widest text-base-content/70 mb-3">Recorded evidence</h4>
           <div class="font-medium mb-2" x-text="route.evidence"></div><div class="text-base-content/70 text-pretty" x-text="route.limit"></div>
         </div>
-        <div><h4 class="text-xs uppercase tracking-widest text-base-content/70 mb-3">Sources · reviewed 11 Sep 2026</h4>
+        <div><h4 class="text-xs uppercase tracking-widest text-base-content/70 mb-3">Sources · current or pinned</h4>
           <div class="flex flex-col gap-3"><template x-for="s in route.sources" :key="s.path"><a class="link link-hover text-primary break-words" :href="sourceUrl(s)" target="_blank" rel="noopener" x-text="s.label + ' ↗'"></a></template></div>
         </div>
       </div>
@@ -202,22 +202,22 @@ const CONTEXT_REVIEW = '000727888a1f6e1003ffe55679d0b2a1faa1a085';
 const CAPTURE_REVIEW = '2c65a520668c74ba70aea266accd4f2689abda1f';
 const captureSource = {label:'Session recorder',repo:'mehrlander/web-tools-private',path:'sessions/tools/record.py'};
 const contextRoutes = [
-  {id:'instructions',number:'01',name:'Instructions',content:'CLAUDE.md · imported documents',entry:'Project instruction loader',trace:'reconstructed',glyph:'◇',phases:['start','resume'],when:'Startup · resume',
-    steps:['User and project CLAUDE.md files','Referenced @-imports from the checkout','Project instructions in session context'],
+  {id:'instructions',number:'01',name:'Instructions',content:'CLAUDE.md · optional @-imports',entry:'Project instruction loader',trace:'reconstructed',glyph:'◇',phases:['start','resume'],when:'Startup · resume',
+    steps:['User and project CLAUDE.md files','Any @-imports the checkout declares','Project instructions in session context'],
     evidence:'◇ Startup file reconstruction',limit:'Paths, hashes and sizes describe files found by a filesystem walk. They do not directly observe the instruction block received by the model.',
-    sources:[{label:'Project contract & imports',path:'CLAUDE.md'},captureSource]},
-  {id:'skills',number:'02',name:'Skills',content:'Skill body · linked references',entry:'Skill invocation, then reference reads',trace:'observed',glyph:'●',phases:['start','work','resume'],when:'Startup repair · during work',
-    steps:['A request, task or startup nudge triggers skill selection','The Skill tool expands the selected body','Linked references enter only when subsequently read'],
+    sources:[{label:'Project contract and current delivery',path:'CLAUDE.md',current:true},captureSource]},
+  {id:'skills',number:'02',name:'Skills',content:'Plugin conventions · skill body · references',entry:'Skill invocation, then document reads',trace:'observed',glyph:'●',phases:['start','work','resume'],when:'Startup repair · during work',
+    steps:['A request, task or startup nudge triggers skill selection','The portable default skill supplies Surfacing and Qualified writing','Other linked references enter only when subsequently read'],
     evidence:'● Skill calls & expansion markers',limit:'An invocation records selection. Expansion markers retain a heading and character count, not the whole body. Reference reads are separate tool activity.',
-    sources:[{label:'Default context skill',path:'.claude/skills/default/SKILL.md'},{label:'Skill invocation counts',path:'lib/kits/repo-sessions-cache.js'},captureSource]},
+    sources:[{label:'Portable default skill',path:'.claude/skills/default/SKILL.md',current:true},{label:'Surfacing contract',path:'docs/SURFACING.md',current:true},{label:'Qualified writing contract',path:'docs/QUALIFIED-WRITING.md',current:true},{label:'Skill invocation counts',path:'lib/kits/repo-sessions-cache.js'},captureSource]},
   {id:'tools',number:'03',name:'Tool results',content:'Files · commands · search · connectors',entry:'Tool call → returned output',trace:'observed',glyph:'●',phases:['work'],when:'During work',
     steps:['The agent requests a file, command, search or service','The tool returns output to the session','The recorder retains selected results and call metadata'],
     evidence:'● Calls, result status & retained text',limit:'Results may be clipped, omitted or dropped by policy. A successful file read establishes access; it does not establish that an instruction was followed.',
     sources:[{label:'File access & shell attribution',path:'lib/kits/repo-sessions-cache.js'},captureSource]},
   {id:'hooks',number:'04',name:'Hooks',content:'Startup repair · timely guidance',entry:'Registered event → hook output',trace:'partial',glyph:'◌',phases:['start','work','resume'],when:'Startup · work · resume',
-    steps:['A registered lifecycle or tool event fires','The matching hook emits guidance or additional context','At startup, a missing import can prompt the default skill','The harness delivers output, subject to truncation'],
-    evidence:'● Startup output sizes & selected feedback',limit:'Startup delivery compares hook output with captured context. Other hook attachments are not fully retained. A configured hook is not proof that it fired.',
-    sources:[{label:'Registered hook events',path:'.claude/skills/hooks/hooks.json'},{label:'Missing-context nudge',path:'.claude/skills/hooks/conventions-nudge.sh'},{label:'PR-time guidance',path:'.claude/skills/hooks/pr-subscribe-hint.sh'},captureSource]},
+    steps:['A registered lifecycle or tool event fires','The matching hook emits guidance or additional context','If either contract document is absent from imports, the startup nudge prompts /portable:default','The skill, not the hook, supplies the two documents'],
+    evidence:'● Startup output sizes & selected feedback',limit:'Recorded hook output can establish a prompt, not that the skill ran or the contract entered context. Other hook attachments are not fully retained. A configured hook is not proof that it fired.',
+    sources:[{label:'Registered hook events',path:'.claude/skills/hooks/hooks.json'},{label:'Missing-context nudge',path:'.claude/skills/hooks/conventions-nudge.sh',current:true},{label:'PR-time guidance',path:'.claude/skills/hooks/pr-subscribe-hint.sh'},captureSource]},
   {id:'messages',number:'05',name:'Messages',content:'User requests · incoming work',entry:'Chat or a subscribed channel',trace:'observed',glyph:'●',phases:['start','work','resume'],when:'Startup · work · resume',
     steps:['A person or external event supplies new work','Chat, subscription or session messaging delivers it','The new message joins the conversation'],
     evidence:'● Captured prompts',limit:'The record keeps prompt text, but does not reliably identify every incoming channel. A PR comment is incoming context; its presence alone does not grant write authority.',
