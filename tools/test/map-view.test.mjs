@@ -52,6 +52,9 @@ const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
+const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
+const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
+const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
 const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
 const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
 const ownersCsv = readFileSync(path.join(repoRoot, 'docs', 'owners.csv'), 'utf8');
@@ -87,6 +90,9 @@ window.GH = class {
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
     if (p === 'docs/docs.csv') return { text: docsCsv };
+    if (p === 'docs/aims.json') return { text: aimsJson };
+    if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
+    if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
     if (p === 'docs/surfacing.csv') return { text: surfCsv };
     if (p === 'docs/SURFACING.md') return { text: surfDoc };
     if (p === 'docs/owners.csv') return { text: ownersCsv };
@@ -129,17 +135,23 @@ test('mounts and loads the public set with no startup warnings; adoption stays g
 // The Markdown copy is a second rendering of docs/aims.json, so it is built
 // from the manifest rather than scraped off the page. Asserted whole: a
 // per-line check would pass on a rendering that lost the goal numbering.
-test('the Aims tab renders its manifest as Markdown', () => {
+test('Docs/Purpose renders its existing Aims data and ordered reading as Markdown', () => {
   data.aims = { mission: 'M.', goals: [
     { key: 'a', name: 'One', gloss: 'First.' },
     { key: 'b', name: 'Two', gloss: 'Second.' },
   ], reading: [
+    { path: 'README.md', gloss: 'Repository front door.' },
+    { path: 'CLAUDE.md', gloss: 'Agent contract.' },
+    { path: 'docs/README.md', gloss: 'Documentation index.' },
     { path: 'docs/X.md', gloss: 'Hub doc.' },
     { repo: 'mehrlander/home', path: 'created/Y.md', private: true, gloss: 'Elsewhere.' },
   ] };
   assert.equal(data.aimsMd(),
-    '# Aims\n\n## Mission\n\nM.\n\n## Goals\n\n1. **One.** First.\n2. **Two.** Second.\n'
+    '# Purpose\n\n## Mission\n\nM.\n\n## Goals\n\n1. **One.** First.\n2. **Two.** Second.\n'
     + '\n## Reading\n\n'
+    + '- [README.md](' + data.hubUrl('README.md') + ') Repository front door.\n'
+    + '- [CLAUDE.md](' + data.hubUrl('CLAUDE.md') + ') Agent contract.\n'
+    + '- [docs/README.md](' + data.hubUrl('docs/README.md') + ') Documentation index.\n'
     + '- [docs/X.md](' + data.hubUrl('docs/X.md') + ') Hub doc.\n'
     + '- [mehrlander/home created/Y.md](https://github.com/mehrlander/home/blob/main/created/Y.md)'
     + ' (private) Elsewhere.\n');
@@ -504,11 +516,50 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   d2.setTab('docs');
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
+  assert.equal(d2.displayTab, 'docs');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['aims', 'docs', 'growth']),
+    'Docs exposes Purpose, Inventory, and Growth');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
   d2.setTab('docs');
   assert.deepEqual([...taps], ['docs'], 're-tapping the open tab is not a navigation');
+  window.__shell = undefined;
+});
+
+test('the Docs top-level tap opens Purpose while the docs route still means Inventory', async () => {
+  const taps = [];
+  window.__shell = { mapTab: 'set', goMapTab: t => taps.push(t) };
+  const el2b = window.document.createElement('div');
+  el2b.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(el2b);
+  Alpine.initTree(el2b);
+  await tick(2);
+  const topStrip = el2b.querySelector('[role="tablist"]');
+  const docsButton = [...topStrip.querySelectorAll('button[role="tab"]')]
+    .find(b => b.textContent.trim() === 'Docs');
+  assert.ok(docsButton, 'Docs is still a top-level stop');
+  docsButton.click();
+  await tick(3);
+  const d2b = Alpine.$data(el2b);
+  assert.equal(d2b.mapTab, 'aims');
+  assert.equal(d2b.displayTab, 'docs');
+  assert.ok(d2b.aims?.goals.length, 'Purpose loads its existing data');
+  assert.deepEqual(taps, ['aims']);
+  const purpose = el2b.querySelector('section[x-show="mapTab===\'aims\'"]');
+  const reading = [...purpose.querySelectorAll('a')]
+    .filter(a => ['README.md', 'CLAUDE.md', 'docs/README.md'].includes(a.textContent.trim()));
+  assert.deepEqual(reading.map(a => [a.textContent.trim(), a.getAttribute('href')]), [
+    ['README.md', d2b.hubUrl('README.md')],
+    ['CLAUDE.md', d2b.hubUrl('CLAUDE.md')],
+    ['docs/README.md', d2b.hubUrl('docs/README.md')],
+  ], 'the three entry documents lead the reading list');
+  assert.equal(purpose.querySelectorAll('a[href*="/blob/"]').length,
+    d2b.aims.reading.length, 'every declared reading path renders, including those after the first five');
+  assert.equal(new Set(d2b.aims.reading.map(r => (r.repo || '') + ':' + r.path)).size,
+    d2b.aims.reading.length, 'the keyed reading list has no duplicate document');
+  d2b.setTab('docs');
+  assert.equal(d2b.mapTab, 'docs', 'the legacy docs route stays on Inventory');
   window.__shell = undefined;
 });
 
@@ -523,6 +574,9 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   await tick(3);
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
+  assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
+    'Harness exposes Automation and Tests as its two local readings');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -573,6 +627,24 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   window.__shell = undefined;
 });
 
+test('an Aims deep link opens Docs/Purpose and loads its existing sources', async () => {
+  window.__shell = { mapTab: 'aims', goMapTab: () => {} };
+  const el4 = window.document.createElement('div');
+  el4.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(el4);
+  Alpine.initTree(el4);
+  await tick(3);
+  const d4 = Alpine.$data(el4);
+  assert.equal(d4.mapTab, 'aims', 'the route key remains valid');
+  assert.equal(d4.displayTab, 'docs', 'Docs stays selected while Purpose is open');
+  assert.equal(d4.subviews.find(s => s.k === 'aims')?.n, 'Purpose');
+  assert.equal(d4.aims?.mission, JSON.parse(aimsJson).mission);
+  assert.equal(d4.aims?.goals.length, window.Csv.rows(aimsGoalsCsv).length);
+  assert.deepEqual([...d4.aims.reading.slice(0, 3).map(d => d.path)],
+    ['README.md', 'CLAUDE.md', 'docs/README.md']);
+  window.__shell = undefined;
+});
+
 test('the shell stamps ?tab= for every tab but the default', () => {
   const { shell, history } = makeShell();
   const stamped = [];
@@ -614,23 +686,40 @@ test('the shell reads the tab back off a deep link, on both boot paths', () => {
   // That the two paths cannot disagree is shell-routing.test.mjs's beat.
   shell.routeFor('map').open.call(shell, url);
   assert.equal(shell.mapTab, 'docs', 'the map row does not route the tab off the URL');
+
+  shell.goMap('growth');
+  assert.equal(shell.mapTab, 'growth', 'the former Growth tab remains a valid deep link');
+  shell.goMap('aims');
+  assert.equal(shell.mapTab, 'aims', 'the former Aims tab remains a valid deep link');
+  shell.goMap('tests');
+  assert.equal(shell.mapTab, 'tests', 'the former Tests tab remains a valid deep link');
 });
 
 test('the shell and the component agree on the tab set', () => {
-  const m = page.match(/const MAP_TABS = \[([^\]]+)\]/);
-  assert.ok(m, 'MAP_TABS is not where the shell can validate against it');
-  const tabs = m[1].split(',').map(s => s.trim().replace(/'/g, ''));
+  const topMatch = page.match(/const MAP_TABS = \[([^\]]+)\]/);
+  const subMatch = page.match(/const MAP_SUBVIEWS = \[([^\]]+)\]/);
+  assert.ok(topMatch, 'MAP_TABS is not where the shell can validate against it');
+  assert.ok(subMatch, 'MAP_SUBVIEWS is not where the shell can validate against it');
+  const parseKeys = match => match[1].split(',').map(s => s.trim().replace(/'/g, ''));
+  const tabs = parseKeys(topMatch);
+  const subviews = parseKeys(subMatch);
+  const routes = [...tabs, ...subviews];
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/map.js'), 'utf8');
   // The strip became one x-for over TABS on 2026-08-31, so the component's tab
-  // set is that array rather than twelve setTab literals. map-tabs.test.mjs
-  // holds the array against the sections; this holds it against the shell.
-  for (const t of tabs) {
-    assert.ok(src.includes(`{ k: '${t}',`), `no TABS entry declares ${t}`);
+  // set is that array rather than hand-written setTab literals. Growth and Tests
+  // stay in the route set as local subviews, so old URLs remain valid.
+  for (const t of routes) {
+    assert.ok(src.includes(`{ k: '${t}',`), `no tab or subview entry declares ${t}`);
     assert.ok(src.includes(`mapTab==='${t}'`), `no section renders ${t}`);
   }
-  const buttons = [...src.matchAll(/\{ k: '(\w+)', n: '[^']+', i: '[^']+',\s*\n\s*g: '/g)].map(x => x[1]);
-  assert.deepEqual([...new Set(buttons)].sort(), [...tabs].sort(),
-    'a tab the shell will not validate is a tab the URL cannot carry');
+  const topBlock = src.match(/TABS:\s*\[([\s\S]*?)\r?\n\s*\],\r?\n\s*SUBVIEWS:/)?.[1] || '';
+  const componentTabs = [...topBlock.matchAll(/\{ k: '(\w+)',/g)].map(x => x[1]);
+  assert.deepEqual(componentTabs.sort(), [...tabs].sort(),
+    'the shell and component top-level strips carry the same keys');
+  for (const t of subviews)
+    assert.match(src, new RegExp(`SUBVIEW_PARENT:[\\s\\S]*${t}:`), `${t} has no declared parent`);
+  assert.match(page, /const MAP_ROUTES = \[\.\.\.MAP_TABS, \.\.\.MAP_SUBVIEWS\]/,
+    'the shell validates both top-level tabs and retained subview routes');
 });
 
 // The Registries tab renders the table the other seven hang off, so its shape

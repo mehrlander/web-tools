@@ -51,7 +51,11 @@ const read = (repoRoot, rel) => readFileSync(path.join(repoRoot, rel), 'utf8');
 /** The leading `//` comment block of a source file, as one paragraph. */
 function leadingComment(src) {
   const out = [];
-  for (const line of src.split('\n')) {
+  // Strip the platform newline before matching. With CRLF, splitting on only
+  // `\n` leaves `\r` at the end of every line, and `.` cannot consume that
+  // line terminator. The result was a blank gloss for every existing kit when
+  // this generator ran on Windows.
+  for (const line of src.split(/\r?\n/)) {
     const m = line.match(/^\s*\/\/ ?(.*)$/);
     if (!m) break;
     out.push(m[1]);

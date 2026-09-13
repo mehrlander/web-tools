@@ -48,10 +48,11 @@ try {
 }
 
 const { buildKit } = loadKit(repoRoot, 'lib/build.js');
-const ghApiSrc = await readFile(path.join(repoRoot, 'lib/gh-api.js'), 'utf8');
+const normalizeSource = src => src.replace(/\r\n/g, '\n');
+const ghApiSrc = normalizeSource(await readFile(path.join(repoRoot, 'lib/gh-api.js'), 'utf8'));
 
 // graph.files -> the { 'lib/<path>': source } cache buildKit.emit expects.
-const cache = Object.fromEntries(graph.files.map(f => [f.key, f.src]));
+const cache = Object.fromEntries(graph.files.map(f => [f.key, normalizeSource(f.src)]));
 
 const baseName = path.basename(arg, path.extname(arg));
 // NO DATE IN THE HEADER, and that is the difference between an artifact that

@@ -1767,10 +1767,15 @@ function resolveCatalogPath(rawPath, declRepo, declRef){
 // rather than offering a button that cannot be followed.
 const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph-folder-simple' };
 
-// The Map view's tabs, in render order, first = default. Named HERE rather than
-// in map() because the shell validates the ?tab= param before the component
-// mounts; map() renders whichever of these is set.
-const MAP_TABS = ['aims', 'set', 'surfacing', 'showing', 'docs', 'growth', 'claims', 'tests', 'harness', 'kits', 'skills', 'views', 'registries'];
+// The Map view's top-level tabs, in render order, plus two addressable
+// subviews. Named HERE rather than in map() because the shell validates the
+// ?tab= param before the component mounts. Aims remains ?tab=aims under Docs
+// as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
+// ?tab=tests under Harness, so old links still land on the exact reading they
+// named even though none needs a top-level stop.
+const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'views', 'registries'];
+const MAP_SUBVIEWS = ['aims', 'growth', 'tests'];
+const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2502,7 +2507,7 @@ function app(){ return {
       // as "Doc Growth", correctly (two payloads are two views), and the estate
       // nav said the same two words twice for two days.
       //
-      // The federated Growth tab fixed that instance and manifest-registry's
+      // The federated Growth view fixed that instance and manifest-registry's
       // slug gate stops one namespace collision, but neither reaches this:
       // viewLabel is free text, two repos may legitimately choose the same
       // words, and no gate should stop them. So the fix belongs where the
@@ -3990,6 +3995,11 @@ function app(){ return {
     // active; older = scanned, capped), through the shared orchestrator.
     let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, scanned: 0, older: 0, openPRs: openPRs.length };
     let truncated = false;
+    // Held outside the guarded block because the successful scan's coverage
+    // travels in the returned cache entry below. Keeping this block-local made
+    // every real deep scan throw while assembling its result, after all of its
+    // GitHub reads had already succeeded.
+    let scanned = null;
     // Whether this pass actually READ the branch list. Everything below is
     // derived from it, so a failure here means the numbers are absent rather
     // than zero, and the difference is the whole of the guard at the bottom.
@@ -4010,7 +4020,7 @@ function app(){ return {
       // from the commits read above, and it is the scan's other input: while
       // both hold, a verdict cannot have changed. See BranchStatus.needsScan.
       const prior = new Map((prev?.repos?.[repo]?.scan?.branches || []).map(r => [r.name, r]));
-      const scanned = deep
+      scanned = deep
         ? await B.scanOlder(g, { defaultRef: def, older, cap: this.ACTIVITY_SCAN_CAP,
                                    keep: this.ACTIVITY_SCAN_KEEP, pool: 3, now,
                                    prior, mainSha, priorMainSha: prev?.repos?.[repo]?.scan?.mainSha || '',
@@ -4058,7 +4068,7 @@ function app(){ return {
       // repo, so it must never reach the stored entry or the hash. A pass whose
       // branch list would not read is partial in exactly the same sense as a
       // quick pass: it knows less than the stored entry does.
-      ...(deep && listOk ? {} : { partial: true }),
+      ...(deep && listOk && scanned ? {} : { partial: true }),
       // Counts describe the branch list, so a pass that never read one has no
       // counts to give. Omitting them entirely is what makes mergeRepo carry
       // the stored ones; sending zeros would report an empty repo.
@@ -4082,7 +4092,7 @@ function app(){ return {
       // over quiet crawls; `beyondHorizon` is what `keep` itself cut and does
       // not; `listOrdered` is whether the branch WALK cut by date or by name,
       // which decides whether any of the three is a recency statement at all.
-      ...(deep && listOk ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
+      ...(deep && listOk && scanned ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
                              keep: this.ACTIVITY_SCAN_KEEP,
                              mainSha: recentCommits[0]?.sha || '',
                              scanned: counts.scanned, older: counts.older, truncated,
@@ -5868,20 +5878,20 @@ function app(){ return {
   // per-repo scope + adoption). Renamed from "Portable"; goPortable stays as a
   // thin alias so any caller or old ?view=portable link still resolves.
   //
-  // The tab is addressable (?view=map&tab=docs), on the same `tab` key the
+  // The tab or subview is addressable (?view=map&tab=docs), on the same `tab` key the
   // project view uses. Two callers, two meanings, which is why the argument is
   // optional rather than defaulted: the nav button calls goMap() with nothing
   // and KEEPS the open tab, while a route call passes url.tab and the URL is
   // authoritative, so an absent one means the default. Anything unrecognized
-  // falls back rather than rendering five hidden sections.
+  // falls back rather than leaving every section hidden.
   goMap(tab){
-    if (tab !== undefined) this.mapTab = MAP_TABS.includes(tab) ? tab : 'set';
+    if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : 'set';
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
   },
   // A tab tap from inside map(): stamp the URL so back and forward walk the
   // tabs. The component holds its own copy for rendering and watches this one.
   goMapTab(tab){
-    if (!MAP_TABS.includes(tab) || tab === this.mapTab) return;
+    if (!MAP_ROUTES.includes(tab) || tab === this.mapTab) return;
     this.mapTab = tab; this.syncUrl();
   },
   goPortable(){ this.goMap(); },

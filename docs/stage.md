@@ -481,6 +481,17 @@ Stage-view actions:
   to test for: what establishes that a surface can re-address is the handle, not
   what its route is called;
 
+**The bench has one responsive split, between Out and the staged set.** Below a
+42rem container it is one column, Out first and Staged/Add after it. Above that
+width the two sit side by side with the house drag splitter
+([`kits/dock-split.js`](../lib/kits/dock-split.js)) on their boundary. The
+breakpoint belongs to the Stage container rather than the window because a
+docked reader narrows the former without changing the latter. Both panes keep
+an 18rem floor; the initial staged-set width follows the old fluid 22/26/30rem
+rail, and a moved allocation is remembered in `localStorage`. The splitter is
+also keyboard-operable, and a container resize re-clamps the remembered value
+instead of letting either side disappear.
+
 - **Out**: the deposit surface, and the only lens on this side now. It covers
   everything leaving the stage: the concatenated bundle (each file under a
   `// === owner/repo[@ref]:path ===` header; icon actions to refresh, copy,

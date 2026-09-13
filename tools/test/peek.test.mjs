@@ -330,3 +330,25 @@ test('panel: one declared height, no shadow, and the readings share the frame', 
   assert.doesNotMatch(frame.getAttribute('style'), /height:\s*\d+vh/, 'and carries no height of its own');
   w.Peek.disable();
 });
+
+test('panel: a caller can add one action for the selected ancestor', async () => {
+  const w = boot();
+  const taken = [];
+  // boot() armed the default picker; re-arm it with the optional action.
+  w.Peek.enable({ takeLabel: 'Save PNG', onTake: async (el, facts) => {
+    taken.push({ el, facts });
+    return 'Saved 120\u00d780';
+  } });
+  const row = w.document.querySelectorAll('tbody tr')[1];
+  w.Peek.select(row);
+  const button = w.document.querySelector('[data-peek-act="take"]');
+  assert.ok(button, 'the caller action is rendered only when supplied');
+  assert.equal(button.textContent, 'Save PNG');
+  button.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(taken.length, 1);
+  assert.equal(taken[0].el, row);
+  assert.equal(taken[0].facts.selector, 'tr:nth-child(2)');
+  assert.equal(button.textContent, 'Saved 120\u00d780');
+  w.Peek.disable();
+});
