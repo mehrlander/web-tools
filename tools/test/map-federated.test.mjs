@@ -36,18 +36,21 @@ window.Alpine = Alpine;
 const configs = {
   repos: {
     'mehrlander/web-tools': {
-      config: { estate: true, growth: 'data/doc-growth/web-tools.json' },
+      config: { estate: true, growth: 'data/doc-growth/web-tools.json', data: { census: 'data/csv-census.csv' } },
     },
     'mehrlander/home': {
       config: {
         estate: true,
         growth: 'data/doc-growth.json',
+        data: { census: 'data/home-census.csv' },
         skills: ['blog', { name: 'tasks', origin: 'forked' }, 'drain'],
       },
     },
     // Declares neither. The ordinary case: it contributes no row to either
     // aggregate rather than an empty one.
     'mehrlander/quiet': { config: { estate: true } },
+    'mehrlander/empty': { config: { estate: true, data: { census: 'data/empty.csv' } } },
+    'mehrlander/unavailable': { config: { estate: true, data: { census: 'data/missing.csv' } } },
     // Visited and found to have no manifest. `config: null` is how a repo
     // leaves the cache, and nothing downstream may throw on it.
     'mehrlander/gone': { config: null },
@@ -60,6 +63,12 @@ const harnessCsv = readFileSync(path.join(repoRoot, 'docs', 'harness.csv'), 'utf
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
 const propsDeclCsv = readFileSync(path.join(repoRoot, 'docs', 'properties.csv'), 'utf8');
 const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8');
+const hubCensusCsv = readFileSync(path.join(repoRoot, 'data', 'csv-census.csv'), 'utf8');
+const homeCensusCsv = 'path,rows,columns,bytes,headers\n' +
+  'data/home-census.csv,2,5,140,"[""path"",""rows"",""columns"",""bytes"",""headers""]"\n' +
+  'data/raw.csv,1,2,12,"[""name"",""value""]"\n';
+const emptyCensusCsv = 'path,rows,columns,bytes,headers\n' +
+  'data/empty.csv,1,5,100,"[""path"",""rows"",""columns"",""bytes"",""headers""]"\n';
 
 const asked = [];
 window.TOKEN = 'test-token';
@@ -68,6 +77,11 @@ window.GH = class {
   constructor(opts) { this.opts = opts; }
   async get(p) {
     asked.push({ repo: this.opts.repo, path: p });
+    if (p === '.web-tools.json' && this.opts.repo === 'mehrlander/web-tools')
+      return { text: JSON.stringify(configs.repos['mehrlander/web-tools'].config) };
+    if (p === 'data/csv-census.csv' && this.opts.repo === 'mehrlander/web-tools') return { text: hubCensusCsv };
+    if (p === 'data/home-census.csv' && this.opts.repo === 'mehrlander/home') return { text: homeCensusCsv };
+    if (p === 'data/empty.csv' && this.opts.repo === 'mehrlander/empty') return { text: emptyCensusCsv };
     if (p === 'state/configs.json') return { text: JSON.stringify(configs) };
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
     if (p === 'docs/portable.csv') return { text: portableCsv };
@@ -220,5 +234,57 @@ test('the hub promotes no page whose subject is a query', () => {
 test('only the private registry is asked for the cache', () => {
   for (const a of asked.filter(a => a.path === 'state/configs.json')) {
     assert.equal(a.repo, 'mehrlander/web-tools-private');
+  }
+});
+
+test('Data reads one declared census per repo and keeps absence states separate', async () => {
+  const before = asked.length;
+  await data.loadDataCensus();
+  const states = Object.fromEntries(data.dataCensus.map(s => [s.repo, s.state]));
+  assert.equal(states['mehrlander/web-tools'], 'declared');
+  assert.equal(states['mehrlander/home'], 'declared');
+  assert.equal(states['mehrlander/quiet'], 'undeclared');
+  assert.equal(states['mehrlander/empty'], 'empty');
+  assert.equal(states['mehrlander/unavailable'], 'unavailable');
+  assert.ok(!('mehrlander/gone' in states), 'a repo with no estate declaration is outside the estate');
+  const reads = asked.slice(before);
+  assert.equal(reads.filter(x => x.path === 'state/configs.json').length, 1);
+  assert.equal(reads.filter(x => x.path.endsWith('.csv')).length, 4,
+    'one inventory request per declaration; no source CSV request');
+  assert.ok(!reads.some(x => x.path === 'data/raw.csv'));
+});
+
+test('Data scope, path and header search use only loaded census rows', () => {
+  data.dataScope = 'mehrlander/home';
+  assert.deepEqual([...data.dataMatches.map(f => f.path)], ['data/home-census.csv', 'data/raw.csv']);
+  data.dataQ = 'value';
+  assert.deepEqual([...data.dataMatches.map(f => f.path)], ['data/raw.csv']);
+  data.dataQ = 'not-a-header';
+  assert.equal(data.dataMatches.length, 0);
+  data.dataQ = '';
+  data.dataScope = '';
+});
+
+test('a CSV opens in the shared Files viewer at its repository and path', () => {
+  const calls = [];
+  window.__shell.goSearch = opts => calls.push(opts);
+  const file = data.dataCensus.find(s => s.repo === 'mehrlander/home').files.find(f => f.path === 'data/raw.csv');
+  data.openDataFile(file);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), { mode: 'names', repo: 'mehrlander/home', ref: '',
+    path: 'data', file: 'mehrlander/home:data/raw.csv' });
+});
+
+test('without a token, the public hub census remains browseable', async () => {
+  const hasToken = window.__shell.hasToken;
+  const saved = data.dataCensus;
+  try {
+    window.__shell.hasToken = () => false;
+    data.dataCensus = null;
+    await data.loadDataCensus();
+    assert.deepEqual([...data.dataCensus.map(s => s.repo)], ['mehrlander/web-tools']);
+    assert.equal(data.dataCensus[0].state, 'declared');
+  } finally {
+    window.__shell.hasToken = hasToken;
+    data.dataCensus = saved;
   }
 });

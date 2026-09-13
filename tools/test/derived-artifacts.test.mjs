@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 const check = (args) => spawnSync(process.execPath, args, { cwd: repoRoot, encoding: 'utf8' });
+const python = process.platform === 'win32' ? 'python' : 'python3';
 
 test('dist/web-tools.js matches lib/', () => {
   const r = check(['tools/build/build-lib.mjs', '--check']);
@@ -69,8 +70,8 @@ test('the kits registry matches lib/kits/', () => {
 });
 
 test('docs/themes.csv matches the corpus the theme graph is read from', () => {
-  const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.csv', '--check'],
-                      { cwd: repoRoot, encoding: 'utf8' });
+  const r = spawnSync(python, ['scripts/duplicated-claims.py', '--emit', 'docs/themes.csv', '--check'],
+                      { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONUTF8: '1' } });
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
 
@@ -80,9 +81,9 @@ test('the snags index and registry match docs/SNAGS.md', () => {
 });
 
 test('the tracker board matches tracker/tasks/', () => {
-  const r = spawnSync('python3',
+  const r = spawnSync(python,
     ['.claude/skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md', '--check'],
-    { cwd: repoRoot, encoding: 'utf8' });
+    { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONUTF8: '1' } });
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'build-board --check failed');
 });
 
@@ -91,9 +92,9 @@ test('the tracker board matches tracker/tasks/', () => {
 // must produce identical bytes. A nondeterministic generator makes this gate
 // test flaky rather than false, which is the harder failure to diagnose.
 test('the board generator is byte-deterministic', () => {
-  const run = () => spawnSync('python3',
+  const run = () => spawnSync(python,
     ['.claude/skills/tasks/build-board.py', 'tracker/tasks', 'tracker/board.md'],
-    { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONHASHSEED: 'random' } });
+    { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONHASHSEED: 'random', PYTHONUTF8: '1' } });
   // Both CSV projections, since the fixed column order and the tag sort are
   // separate guarantees and either could drift alone.
   const read = () => ['tracker/board.csv', 'tracker/board-tags.csv']

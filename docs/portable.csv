@@ -33,6 +33,7 @@ script,,.claude/skills/in-flight/in-flight.py,in-flight.py,classify a branch est
 script,,scripts/sunset-scan.py,sunset-scan.py,,on-demand
 script,,scripts/unclaimed-code.py,unclaimed-code.py,,on-demand
 script,,scripts/doc-placement.py,doc-placement.py,,on-demand
+script,,scripts/csv-census.py,csv-census.py,,on-demand
 script,,scripts/declared-paths.py,declared-paths.py,,on-demand
 script,,scripts/dead-links.py,dead-links.py,,on-demand
 script,,scripts/embedded-prose.py,embedded-prose.py,,on-demand

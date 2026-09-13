@@ -36,7 +36,7 @@ function docsFiles(dir, out = []) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) docsFiles(p, out);
-    else if (/\.(md|json|csv)$/.test(e.name)) out.push(path.relative(repoRoot, p));
+    else if (/\.(md|json|csv)$/.test(e.name)) out.push(path.relative(repoRoot, p).replace(/\\/g, '/'));
   }
   return out;
 }

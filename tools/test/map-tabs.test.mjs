@@ -54,7 +54,7 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // repo's own registry about one repo's own destinations, which is what every
   // other tab in this strip already does.
   // 13 to 11 on 2026-09-11: Growth moved inside Docs and Tests inside Harness.
-  assert.equal(TABS.length, 11, 'eleven top-level tabs, or this test is reading the wrong literal');
+  assert.equal(TABS.length, 12, 'twelve top-level tabs, or this test is reading the wrong literal');
   assert.equal(SUBVIEWS.length, 4, 'Docs and Harness each carry two generated subview choices');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab
   // ship without a sentence, and what let the Injection tab ship without an icon.

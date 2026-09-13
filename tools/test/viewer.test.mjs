@@ -128,6 +128,15 @@ test('blank and duplicate headers get positional names, so no column is lost', (
   );
 });
 
+test('the CSV grid keeps source header titles, including blanks and duplicates', () => {
+  const table = plain(VR.tableDelimited({ ext: 'csv', content: 'a,,a\n1,2,3\n' }));
+  assert.deepEqual(table.columns.map(c => c.title), ['a', '', 'a']);
+  assert.deepEqual(table.rows, [{ a: '1', col2: '2', col3: '3' }]);
+  const headerOnly = plain(VR.tableDelimited({ ext: 'csv', content: 'one,two\n' }));
+  assert.deepEqual(headerOnly.columns.map(c => c.title), ['one', 'two']);
+  assert.deepEqual(headerOnly.rows, []);
+});
+
 test('a short row pads rather than dropping the record', () => {
   assert.deepEqual(
     plain(VR.tableRows({ ext: 'csv', content: 'a,b,c\n1,2' })),

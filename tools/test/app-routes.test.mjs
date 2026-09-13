@@ -136,7 +136,8 @@ test('the two sub-tab encodings, counted', () => {
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity.
-  assert.equal(params, 16, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 16 to 17: Data is an ordinary Map tab; it has no separate ?view= key.
+  assert.equal(params, 17, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

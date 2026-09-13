@@ -14,7 +14,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 1 arrive in every session's context, 18 are named by CLAUDE.md,
-8 by a skill, 28 by a page or component. The remaining 24 are
+8 by a skill, 29 by a page or component. The remaining 24 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -35,6 +35,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`branch-overlay.md`](branch-overlay.md) *(orphan)* — the branch overlay: the takeover, file substitution, the sidebar's second ref, and drop-on-a-branch
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
+- [`csv-census.md`](csv-census.md) — the per-repository CSV census contract: tracked population, physical measurements, and the boundary to authored data
 - [`delivery.json`](delivery.json) *(measured)* — a dated reading of the delivery topology one axis over from injection.json: which copy each route is holding, how stale it can be, over five snapshots including a planned one
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
