@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Conventions Delivery</title>
+<title>Conventions Delivery History</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🚚</text></svg>">
 <meta name="shot-query" content="src=self">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
@@ -11,22 +11,19 @@
 <script defer src="https://unpkg.com/alpinejs"></script>
 
 <!--
-  delivery.html — the topology behind the Map view's Injection tab.
+  delivery.html — historical snapshots of the retired injection topology.
 
-  WHAT THE TAB CANNOT SHOW. docs/injection.json measures BYTES: what reaches a
-  session at start, against which cap, at which rung. It answers "did it fit".
-  It cannot answer "which copy was that", and on 2026-09-01 that turned out to
-  be the question: the injected SURFACING.md was five days behind the one the
-  @-import delivered in the same session, and the 1,210-byte gap between them
-  was larger than the 26-byte overrun that truncated the payload.
+  The old injection measurement answered "did it fit", but not "which copy
+  was that". On 2026-09-01 the injected SURFACING.md was five days behind the
+  one the @-import delivered in the same session. The injector was retired on
+  2026-09-08; none of these snapshots describes current content delivery.
 
   So this draws the ROUTES. One origin at the top, three paths down through
   however many copies each passes, converging on the session. Path LENGTH is
   the argument: the long lane is the one that lags.
 
-  DATED SNAPSHOTS. docs/delivery.json holds one entry per state the system has
-  been in plus one marked `planned`. Stepping is the point; the shape of the fix
-  is only legible against the shape of what it replaces.
+  DATED SNAPSHOTS. docs/delivery.json holds four observed past states and one
+  superseded proposal marked `planned`. Stepping shows the topology's history.
 
   TWO MECHANICS THIS PAGE IS BUILT AROUND.
   1. An x-for inside <svg> draws nothing: Alpine clones a <template> into the
@@ -79,7 +76,7 @@
 
   <header class="bg-base-100 border-b border-base-300 px-4 sm:px-6 py-3">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h1 class="text-xl font-semibold">Conventions Delivery</h1>
+      <h1 class="text-xl font-semibold">Conventions Delivery History</h1>
       <template x-if="snap">
         <span class="flex items-baseline gap-2 flex-wrap">
           <span class="badge badge-sm" :class="stateClass(snap.state)" x-text="snap.state"></span>
@@ -89,6 +86,7 @@
       </template>
     </div>
     <p class="text-base text-base-content/70 text-balance mt-1" x-show="snap" x-text="snap?.title"></p>
+    <a :href="contextMapUrl" class="text-sm text-primary hover:underline">Current context map ↗</a>
   </header>
 
   <main id="pane" class="overflow-auto relative">
@@ -171,6 +169,11 @@ const svgEl = (tag, attrs = {}, text = null) => {
 function delivery() {
   return {
     data: null, snaps: [], i: 0, err: '', tip: null, tipX: 0, tipY: 0, openT: 0, closeT: 0, pinnedId: '',
+
+    get contextMapUrl() {
+      const ref = new URLSearchParams(location.search).get('use');
+      return '../app/?view=map&tab=context' + (ref && ref !== 'main' ? '&use=' + encodeURIComponent(ref) : '');
+    },
 
     get snap() { return this.snaps[this.i] || null; },
 
@@ -402,10 +405,10 @@ function delivery() {
       try { this.data = await load(new URLSearchParams(location.search)); }
       catch (e) { this.err = 'Could not load data: ' + e.message; return; }
       this.snaps = this.data.snapshots || [];
-      // Open on `current`, not on the newest entry: a `planned` snapshot shares
-      // its date with the state it replaces, so "last" is the design.
-      const cur = this.snaps.findIndex(s => s.state === 'current');
-      this.i = cur < 0 ? this.snaps.length - 1 : cur;
+      // No snapshot is current after the injector was retired. Open on the
+      // latest observation, not on the unshipped proposal that follows it.
+      const latest = this.snaps.map(s => s.state).lastIndexOf('historical');
+      this.i = latest < 0 ? 0 : latest;
       addEventListener('keydown', e => {
         if (e.key === 'Escape') { this.tip = null; this.pinnedId = ''; }
         if (e.key === 'ArrowLeft') this.step(-1);

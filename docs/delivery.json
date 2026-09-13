@@ -1,6 +1,6 @@
 {
-  "subject": "How the portable conventions reach a session",
-  "note": "A dated reading of the delivery topology, not a registry and not a derived artifact. Every snapshot is what one container held on its date: the pinned-install count varies by machine and the session checkout's branch varies by session, so no commit hook can restamp this and no test can hold it. Same standing as docs/injection.json, which measures the bytes this measures the routes for. A snapshot with state 'planned' is a design, not a measurement.",
+  "subject": "How portable conventions reached sessions before injector retirement",
+  "note": "A dated reading of the former injector topology, not a registry, derived artifact, or current delivery map. The injector was retired on 2026-09-08. Each historical snapshot records what one container held on its date; the pinned-install count varied by machine and the checkout branch by session. The final planned snapshot is an unshipped proposal, not a measurement. For current content routes, use Map / Harness / Context.",
   "freshness": [
     {
       "id": "tip",
@@ -281,7 +281,7 @@
     },
     {
       "date": "2026-09-01",
-      "state": "current",
+      "state": "historical",
       "title": "Three routes, six copies, and they disagree",
       "provenance": "measured on one container, 2026-09-01: find / -name CONVENTIONS.md, the clone's reflog, and the injection receipts in mehrlander/web-tools-private sessions/",
       "stores": [
@@ -440,8 +440,8 @@
     {
       "date": "2026-09-01",
       "state": "planned",
-      "title": "One copy per machine that anything reads",
-      "provenance": "design, not measurement. Tracker task one-copy-of-the-conventions-i9i931, revised into three commits after the 2026-09-01 assessment.",
+      "title": "An unshipped one-copy proposal",
+      "provenance": "Design, not measurement. Tracker task one-copy-of-the-conventions-i9i931 was revised after the 2026-09-01 assessment; injector retirement on 2026-09-08 superseded this proposal.",
       "stores": [
         {
           "id": "origin",

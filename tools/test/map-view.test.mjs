@@ -575,8 +575,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests']),
-    'Harness exposes Automation and Tests as its two local readings');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'tests', 'context']),
+    'Harness exposes Automation, Tests, and Context');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -624,6 +624,24 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   // Every committed row carries the hash it was read at.
   const stamped = window.Csv.rows(explainCsv).filter(r => r.script && /^[0-9a-f]{40}$/.test(r.script_sha)).length;
   assert.equal(stamped, rowsInFile, 'every row is stamped with its script blob hash');
+  window.__shell = undefined;
+});
+
+test('a Context deep link opens under Harness with the shared graph in Map', async () => {
+  window.__shell = { mapTab: 'context', goMapTab: () => {} };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'map()');
+  window.document.body.appendChild(el);
+  Alpine.initTree(el);
+  await tick(2);
+  const state = Alpine.$data(el);
+  assert.equal(state.displayTab, 'harness');
+  assert.equal(state.contextSeen, true);
+  assert.match(state.contextEmbedUrl, /session-context\.html\?embed=1/);
+  const section = el.querySelector('section[x-show="mapTab===\'context\'"]');
+  assert.ok(section.querySelector('iframe[title="Session context routes and record inspector"]'));
+  assert.ok([...section.querySelectorAll('button')].some(b => b.textContent.trim() === 'Automation'));
+  assert.ok([...section.querySelectorAll('a')].some(a => a.textContent.includes('Delivery history')));
   window.__shell = undefined;
 });
 
@@ -693,6 +711,8 @@ test('the shell reads the tab back off a deep link, on both boot paths', () => {
   assert.equal(shell.mapTab, 'aims', 'the former Aims tab remains a valid deep link');
   shell.goMap('tests');
   assert.equal(shell.mapTab, 'tests', 'the former Tests tab remains a valid deep link');
+  shell.goMap('context');
+  assert.equal(shell.mapTab, 'context', 'Context has a direct Map address');
 });
 
 test('the shell and the component agree on the tab set', () => {
