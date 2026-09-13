@@ -1,9 +1,9 @@
 ---
-name: tighten
-description: "Rewrite a span of text, or a set of authored values such as a spreadsheet column of descriptions, so it says the same thing in fewer words. Use when the user hands over writing and asks to tighten, compress, shorten or cut the filler from it, and when a column of descriptions, summaries or labels was authored a row at a time and now reads as inconsistent down the column. Content is fixed here and only the wording moves, which is what separates it from succinct-text, where what the document contains and how it is organized are both in scope."
+name: caveman
+description: "Rewrite a span of text, or a set of authored values such as a spreadsheet column of descriptions, so it says the same thing in fewer words. Use when the user hands over writing and asks for it caveman, or asks to tighten, compress, shorten or cut the filler from it, and when a column of descriptions, summaries or labels was authored a row at a time and now reads as inconsistent down the column. Content is fixed here and only the wording moves, which is what separates it from succinct-text, where what the document contains and how it is organized are both in scope. Output is terse professional prose, not the broken-grammar register the upstream skill of this name produces."
 ---
 
-# Tighten
+# Caveman
 
 ## Premise
 
@@ -21,11 +21,17 @@ Neither ask wants the document restructured. Content is fixed, so the pass stays
 narrow: only wording moves, and a rewrite that says something different is wrong
 rather than terse. That narrowness is what makes the result checkable.
 
-The compression discipline is adapted from `caveman`
-(github.com/JuliusBrussee/caveman, MIT), whose payload is two separable things:
+The name and the compression discipline both come from the caveman skill at
+github.com/JuliusBrussee/caveman (MIT), whose payload is two separable things:
 a discipline about which words carry nothing, and a broken-grammar register.
-The discipline transfers. The register does not, since these values land in
-committed data and are read by someone next week.
+
+**The discipline transfers. The register does not.** What comes out of this
+skill is plain professional prose with the slack taken out, because these values
+land in committed data and are read by someone next week. The name is inherited
+on purpose, to say where the rules came from, and this paragraph is where a
+session expecting caveman-speak learns it is not getting any. Nothing else was
+taken: not the session-wide mode, not the six-level intensity ladder, not the
+input-side proxy.
 
 Family: writing support, and text processing where the input is a set, since
 there the decisions are an artifact the rewrite is written against.
@@ -157,6 +163,10 @@ present. `amount` was already at its floor and comes back untouched.
   Reach here when only the phrasing is.
 - Not `state-the-rule`, which separates binding declarations from explanation in
   a document an agent loads and executes.
+- Not `reduction-panel`, which fans readers out over a document's sections,
+  collects competing shorter versions and a cut list, and puts a judge over the
+  whole. That is a committee convened on a document. This is one narrow pass
+  over a span or a set, and it proposes nothing it does not also apply.
 - Not for a record. In a dated entry, a quoted source, or a chat log, the
   wording is the evidence.
 - Rewriting a column another person authored changes what they said. The table
