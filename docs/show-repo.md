@@ -531,7 +531,7 @@ the header nav the way a repo shows landing/atlas/files/…:
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
 - **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
-- **Map** (`?view=map`, `&tab=` deep-links a tab or subview) — the portable set, Surfacing, Showing, Docs with its Growth reading, and Harness with its Tests reading (below). Per-repo scope and adoption live on the Repos cards.
+- **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
   (below). The one conditional entry: shown only while something is pending.
 
@@ -1668,11 +1668,11 @@ link, and a file listing lives in Public browse.
 the coordination layer itself into a first-class object, and is the operational
 face of the constellation doctrine ([`docs/CONSTELLATION.md`](CONSTELLATION.md)
 is the portable kernel, opened from the set header; the full worked instance is
-in the private `home` repo). Eleven top-level tabs in
+in the private `home` repo). Ten top-level tabs in
 `lib/alpineComponents/map.js` answer distinct questions about the layer. Two of
-those stops carry a smaller second level where the material is one subject with
-two readings: **Docs** holds **Inventory** and **Growth**, while **Harness**
-holds **Automation** and **Tests**. Who carries the set is a fact about a repo
+those stops carry a smaller second level: **Docs** holds **Purpose**, **Inventory**,
+and **Growth**, while **Harness** holds **Automation** and **Tests**. Who
+carries the set is a fact about a repo
 and lives on the Repos cards.
 
 **The open tab or subview is addressable:**
@@ -1682,9 +1682,11 @@ left out of the URL so a plain `?view=map` link is unchanged. The tab is held
 by the shell rather than by `map()`, because the URL is the shell's to own and
 the component mounts lazily; the component renders whichever tab is set, watches
 the shell for a back-button change, and fetches that tab's manifest on arrival
-by whatever route. Existing `?tab=growth` and `?tab=tests` links retain their
-exact destinations even though Growth and Tests no longer occupy the main
-strip. That last part is the failure this replaced: non-default tabs once
+by whatever route. Existing `?tab=aims`, `?tab=growth`, and `?tab=tests` links
+retain their exact destinations even though their views now sit below Docs or
+Harness rather than on the main strip. A tap on the Docs top-level stop opens
+Purpose; `?tab=docs` still opens Inventory, preserving saved links. That last
+part is the failure this replaced: non-default tabs once
 fetched from the click handler alone, so a tab nobody
 tapped had nothing to render.
 
@@ -1823,9 +1825,16 @@ fetch, with `tools/test/routes-manifest.test.mjs` failing if the two drift: the
 same builder-plus-drift-check shape as the set's manifest test. Public, like the
 set, and loaded on first open of the tab rather than at mount.
 
-*Docs* renders the documentation registry,
+*Docs/Purpose* renders the existing estate mission, five goals, and reading
+paths from `docs/aims.json`, `docs/aims-goals.csv`, and `docs/aims-reading.csv`.
+The reading list begins with the root `README.md` (the repository's public
+front door), `CLAUDE.md` (its agent contract), and `docs/README.md` (the
+generated documentation index). None is copied into a new Aims Markdown file.
+The route remains `?tab=aims` so saved links reach Purpose directly.
+
+*Docs/Inventory* renders the documentation registry,
 [`docs/docs.csv`](docs.csv), in the same lazy shape. Two tables. The
-**documents table**: every `.md`/`.json` under `docs/`, each with its subject,
+**documents table**: every `.md`/`.json`/`.csv` under `docs/`, each with its subject,
 its status (**living** claims current truth and is wrong when stale; **record**
 preserves a moment and is wrong when rewritten; **measured** carries dated
 observations and is corrected by re-probing), its **reach** and **words** (both
