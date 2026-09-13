@@ -21,7 +21,7 @@ to stop. No repo imports them now. Read on whatever the checkout looks like, and
 stop only if both documents are demonstrably in context already.
 
 The failure that rule would cause is a closed loop rather than a missing file:
-the nudge fires because nothing delivered the conventions, the session invokes
+the directive fires because nothing delivered the conventions, the session invokes
 this skill, the skill sees a checkout and says there is nothing to load, and the
 session proceeds without them having done everything right. Measured live on
 2026-09-13, the first session to run the plugin-only path.

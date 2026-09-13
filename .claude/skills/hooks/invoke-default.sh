@@ -25,7 +25,7 @@
 # harness output cap applies PER HOOK ENTRY, not across the SessionStart event:
 # measured 2026-08-30, the dispatcher's 28,670-character payload was cut while a
 # separate 298-character SessionStart hook in the same session arrived whole
-# (see session-dispatch.sh's OUTPUT_BUDGET note). A nudge folded into the
+# (see session-dispatch.sh's OUTPUT_BUDGET note). A directive folded into the
 # dispatcher would be the first thing truncated on a heavy session, which is the
 # failure that retired the injection channel. Standing alone, it cannot be.
 #
@@ -121,7 +121,7 @@ for repo in cands:
             optout = False
     # A CLAUDE.md is REQUIRED to be named, and a manifest is not enough. The
     # import is the delivery channel, so a checkout without a CLAUDE.md has no
-    # channel to be missing and nothing to be nudged about. Found by running
+    # channel to be missing and nothing to prod it about. Found by running
     # this against a project root whose siblings were 42 scratch clones left by
     # scripts/showing.py, each carrying a .web-tools.json and no CLAUDE.md: the
     # first cut named six of them and read as though the session had 42 repos
@@ -136,7 +136,7 @@ if delivered or not needing:
 # NOT say the conventions failed to arrive, though that is the condition it fires
 # on. Naming what is missing is no use to the reader who is missing it: a session
 # told it "did not get the surfacing conventions" has been handed a term it
-# cannot resolve, which is the whole reason it is being nudged. A purpose clause
+# cannot resolve, which is the whole reason this hook fired. A purpose clause
 # resolves on its own.
 #
 # Two other things were here until 2026-09-10 and went for the same reason, that

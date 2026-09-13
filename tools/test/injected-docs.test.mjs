@@ -1,5 +1,5 @@
 // The two documents the portable plugin loads into every session: the
-// conventions-nudge hook prods and /portable:default reads them. A word in
+// invoke-default hook prods and /portable:default reads them. A word in
 // either is a cost paid at every session start, which is the argument PR #509
 // made when it cut the injected documents to their declarations, and PR #634
 // extended when it retired the injection hook and CONVENTIONS.md. What remains
