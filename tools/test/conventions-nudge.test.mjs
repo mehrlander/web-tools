@@ -7,8 +7,10 @@
 // ran at 5% for nineteen days. A nudge that fires when the conventions ARE in
 // context spends the reader's attention on nothing and trains them to skip it,
 // which is worse than not having one. So both silence and speech are asserted,
-// against the two real shapes: web-tools, which @-imports the primitives, and
-// home, which names /web-tools in prose and imports nothing.
+// against the two real shapes: a repo that @-imports both halves, and one that
+// names the command in prose and imports nothing. web-tools was the first shape
+// until 2026-09-12 and is the second now, which is the point of the change
+// rather than an accident of it.
 //
 // Driven as a subprocess with a built tree rather than by importing anything:
 // the hook is a bash script the harness runs, and its contract is exactly
