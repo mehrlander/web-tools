@@ -1767,14 +1767,14 @@ function resolveCatalogPath(rawPath, declRepo, declRef){
 // rather than offering a button that cannot be followed.
 const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph-folder-simple' };
 
-// The Map view's top-level tabs, in render order, plus two addressable
+// The Map view's top-level tabs, in render order, plus addressable
 // subviews. Named HERE rather than in map() because the shell validates the
 // ?tab= param before the component mounts. Aims remains ?tab=aims under Docs
 // as Purpose, Growth remains ?tab=growth under Docs, and Tests remains
 // ?tab=tests under Harness, so old links still land on the exact reading they
-// named even though none needs a top-level stop.
+// named even though none needs a top-level stop. Context joins Harness here.
 const MAP_TABS = ['set', 'surfacing', 'showing', 'docs', 'claims', 'harness', 'kits', 'skills', 'views', 'registries'];
-const MAP_SUBVIEWS = ['aims', 'growth', 'tests'];
+const MAP_SUBVIEWS = ['aims', 'growth', 'tests', 'context'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js

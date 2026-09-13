@@ -22,7 +22,7 @@ the link-dense text twin of the visual index above.
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |
 | `console-playground` | Console Suite Guide | [view](https://mehrlander.github.io/web-tools/pages/console-playground.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/console-playground.html) |
 | `data-view` | Data View | [view](https://mehrlander.github.io/web-tools/pages/data-view.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/data-view.html) |
-| `delivery` | Conventions Delivery | [view](https://mehrlander.github.io/web-tools/pages/delivery.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html) |
+| `delivery` | Conventions Delivery History | [view](https://mehrlander.github.io/web-tools/pages/delivery.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/delivery.html) |
 | `dictate` | Dictate | [view](https://mehrlander.github.io/web-tools/pages/dictate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html) |
 | `diff-tool` | Diff | [view](https://mehrlander.github.io/web-tools/pages/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html) |
 | `doc-growth` | Doc Growth | [view](https://mehrlander.github.io/web-tools/pages/doc-growth.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html) |
@@ -39,6 +39,7 @@ the link-dense text twin of the visual index above.
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
+| `session-context` | Session Context | [view](https://mehrlander.github.io/web-tools/pages/session-context.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session-context.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |

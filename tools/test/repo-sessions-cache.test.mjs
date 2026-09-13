@@ -1427,3 +1427,55 @@ test('the row version moved, so a crawl re-summarizes every row already cached',
   assert.equal(C.stalePaths({ rows: [row(C.ROW_V - 1)] }, listing).length, 1,
     'a row a version behind is re-read even at the same sha');
 });
+
+// ── The rail's source: when the session spoke ─────────────────────────────
+// `beats` is the one field on the LEAN row that describes a session's internal
+// shape, so the two things worth holding are its units and its survival of the
+// prose cut. Everything else about the Activity list's rail is arithmetic on
+// these numbers, and arithmetic on the wrong unit is silent.
+
+test('a beat is minutes off the row own start, one per user turn, in order', () => {
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [
+      { at: '2026-08-05T13:51:08Z', text: 'first' },
+      { at: '2026-08-05T14:21:08Z', text: 'half an hour later' },
+      { at: '2026-08-05T13:56:08Z', text: 'out of order in the record' },
+    ],
+  }), 'x');
+  assert.deepEqual(row.beats, [0, 5, 30],
+    'minutes from started, sorted, whatever order the record holds them in');
+});
+
+test('a prompt before the recorded start stays negative rather than being clamped', () => {
+  // `started` and the first prompt agree on 194 of 225 records, so a handful of
+  // sessions really do open before their own recorded start. Clamping to zero
+  // would draw a burst at the origin that never happened; the renderer drops
+  // what falls outside its window instead.
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [{ at: '2026-08-05T13:41:08Z', text: 'ten minutes early' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [-10]);
+});
+
+test('a record with no readable start has no beats, rather than beats from zero', () => {
+  const row = S.summarize(record({
+    started: '', prompts: [{ at: '2026-08-05T13:51:08Z', text: 'x' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [], 'no anchor, so no offsets to be wrong about');
+});
+
+test('beats survive the prose cut, because the list draws them on every row', () => {
+  // The prose left the row in 2026-09 so the file would stop being mostly
+  // transcript; what reads prose is one card at a time and it fetches the
+  // record. The rail is the opposite case: drawn on every visible row, so
+  // fetching it per row is 298 record reads to paint one pane.
+  const row = S.summarize(record({
+    prompts: [{ at: '2026-08-05T14:51:08Z', text: 'x' }],
+  }), 'x');
+  const lean = S.leanRow(row);
+  assert.deepEqual(lean.beats, [60], 'beats stay');
+  assert.ok(!('turns' in lean), 'the prose does not');
+  assert.ok(!S.PROSE_KEYS.includes('beats'));
+});

@@ -7,8 +7,10 @@
 // ran at 5% for nineteen days. A nudge that fires when the conventions ARE in
 // context spends the reader's attention on nothing and trains them to skip it,
 // which is worse than not having one. So both silence and speech are asserted,
-// against the two real shapes: web-tools, which @-imports the primitives, and
-// home, which names /web-tools in prose and imports nothing.
+// against the two real shapes: a repo that @-imports both halves, and one that
+// names the command in prose and imports nothing. web-tools was the first shape
+// until 2026-09-12 and is the second now, which is the point of the change
+// rather than an accident of it.
 //
 // Driven as a subprocess with a built tree rather than by importing anything:
 // the hook is a bash script the harness runs, and its contract is exactly
@@ -24,6 +26,10 @@ import { repoRoot } from './bootstrap.mjs';
 
 const HOOK = path.join(repoRoot, '.claude/skills/hooks/conventions-nudge.sh');
 const SURFACING = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
+const WRITING = readFileSync(path.join(repoRoot, 'docs/QUALIFIED-WRITING.md'), 'utf8');
+// The contract is two documents, so a fixture that delivers must carry both.
+const BOTH = { 'CLAUDE.md': '@docs/SURFACING.md\n@docs/QUALIFIED-WRITING.md\n',
+               'docs/SURFACING.md': SURFACING, 'docs/QUALIFIED-WRITING.md': WRITING };
 
 // One temp root per run, and the fixtures go INSIDE it rather than beside it.
 // The hook scans the project root's siblings on purpose, so a fixture placed
@@ -49,11 +55,26 @@ const run = (root) => execFileSync('bash', [HOOK], {
   encoding: 'utf8', input: '',
 }).trim();
 
-test('a checkout that @-imports the primitives silences it', () => {
-  const root = build('imported', {
-    'web-tools': { 'CLAUDE.md': '@docs/SURFACING.md\n', 'docs/SURFACING.md': SURFACING },
+test('a checkout that @-imports BOTH halves silences it', () => {
+  const root = build('imported', { 'web-tools': BOTH });
+  assert.equal(run(root), '', 'the whole contract is in context; the nudge must not speak');
+});
+
+// The 2026-09-12 change, and the reason it is not cosmetic: this fixture was
+// the silencing case until then, so a repo carrying half the contract was never
+// asked for the other half. web-tools itself now imports neither and takes
+// delivery through the plugin, so it lands in the prodded column by the same
+// rule rather than by an exception.
+test('half the contract is not the contract', () => {
+  const root = build('half', {
+    r: { 'CLAUDE.md': '@docs/SURFACING.md\n', 'docs/SURFACING.md': SURFACING },
   });
-  assert.equal(run(root), '', 'the conventions are in context; the nudge must not speak');
+  assert.notEqual(run(root), '', 'the surfacing half alone does not read as delivered');
+
+  const other = build('half-other', {
+    r: { 'CLAUDE.md': '@docs/QUALIFIED-WRITING.md\n', 'docs/QUALIFIED-WRITING.md': WRITING },
+  });
+  assert.notEqual(run(other), '', 'and neither does the writing half alone');
 });
 
 test('a checkout that only names the command in prose gets the directive', () => {
@@ -71,9 +92,7 @@ test('a checkout that only names the command in prose gets the directive', () =>
 // is delivery, and only delivery puts the text in context.
 test('intent is not delivery: the same file wired both ways differs', () => {
   const intent = build('intent', { r: { 'CLAUDE.md': 'run /web-tools; see portable@web-tools\n' } });
-  const delivery = build('delivery', {
-    r: { 'CLAUDE.md': '@docs/SURFACING.md\n', 'docs/SURFACING.md': SURFACING },
-  });
+  const delivery = build('delivery', { r: BOTH });
   assert.notEqual(run(intent), '', 'prose naming the plugin is not delivery');
   assert.equal(run(delivery), '', 'a resolved import is');
 });

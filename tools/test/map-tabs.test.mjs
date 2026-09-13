@@ -56,8 +56,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 13 to 11 on 2026-09-11: Growth moved inside Docs and Tests inside Harness.
   // 11 to 10: Aims became Docs/Purpose, still addressable as ?tab=aims.
   assert.equal(TABS.length, 10, 'ten top-level tabs, or this test is reading the wrong literal');
-  assert.equal(SUBVIEWS.length, 5, 'Docs carries three choices and Harness two');
-  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness' });
+  assert.equal(SUBVIEWS.length, 6, 'Docs and Harness each carry three choices');
+  assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness', context: 'harness' });
   assert.deepEqual(SUBVIEWS.filter(s => SUBVIEW_PARENT[s.k] === 'docs').map(s => s.n),
     ['Purpose', 'Growth'], 'Aims has a short Docs label; Inventory uses the parent key');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab

@@ -45,6 +45,11 @@ test('the page catalogs match pages/', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'pages-index --check failed');
 });
 
+test('the default skill\'s vendored docs match docs/', () => {
+  const r = check(['tools/build/vendor-docs.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'vendor-docs --check failed');
+});
+
 test('docs/README.md matches the documentation registry', () => {
   const r = check(['tools/build/docs-readme.mjs', '--check']);
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'docs-readme --check failed');

@@ -287,7 +287,7 @@ changes touch:
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | `docs/SNAGS.md` | `npm run snags-index` | the index block at the top of `docs/SNAGS.md` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| `docs/CONVENTIONS.md`, `docs/SURFACING.md` | `cp` | the plugin's copies under `.claude/skills/default/` |
+| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `.claude/skills/default/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`,
