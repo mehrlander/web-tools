@@ -14,23 +14,30 @@ description: >-
 
 # The default session context
 
-A session with `mehrlander/web-tools` checked out already has the conventions:
-its `CLAUDE.md` `@`-imports both halves of the contract. If the checkout is
-present, say so and stop; there is nothing to load.
+**A checkout is not delivery, and this instruction used to say it was.** Until
+2026-09-12 web-tools' `CLAUDE.md` `@`-imported both halves, so the presence of
+that checkout meant the conventions were already in context and this skill said
+to stop. No repo imports them now. Read on whatever the checkout looks like, and
+stop only if both documents are demonstrably in context already.
 
-Otherwise, fetch both. `SURFACING.md` governs how a reply reaches the reader;
+The failure that rule would cause is a closed loop rather than a missing file:
+the nudge fires because nothing delivered the conventions, the session invokes
+this skill, the skill sees a checkout and says there is nothing to load, and the
+session proceeds without them having done everything right. Measured live on
+2026-09-13, the first session to run the plugin-only path.
+
+Load both. `SURFACING.md` governs how a reply reaches the reader;
 `QUALIFIED-WRITING.md` governs the prose of every document, commit message, PR
 body, and reply the session writes. Neither is optional, and the writing half
-is the one a session is most likely to violate without noticing:
+is the one a session is most likely to violate without noticing. Prefer the
+copies beside this `SKILL.md`, which ship in the plugin and cost no fetch;
+otherwise:
 
 ```bash
 base=https://raw.githubusercontent.com/mehrlander/web-tools/main/docs
 curl -fsSL "$base/SURFACING.md"
 curl -fsSL "$base/QUALIFIED-WRITING.md"
 ```
-
-Both also ship beside this SKILL.md in the plugin, so read the sibling copy
-instead where the plugin is installed and the fetch costs nothing.
 
 Fetch `docs/surfacing-course.md` beside it only when this session will open or
 drive a pull request. It is the guide-PR lifecycle and idles until one exists,
