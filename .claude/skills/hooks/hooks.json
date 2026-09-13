@@ -29,6 +29,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/reading-column-guard.sh\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*__send_later",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/send-later-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
