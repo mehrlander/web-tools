@@ -180,6 +180,15 @@
   // feature were perfectly consistent. deck-dock-reflow.mjs now asserts the
   // seam is there on the app's OWN boot, which is the claim that was untested.
   await gh.load('kits/dock-split.js');
+  // The one routing table (window.GuideRender): which address a repo file opens
+  // at, and for a change set, whether a page is addressable on its own or is
+  // framed by the app its repo declares. The branch rows in the Activity view
+  // read it for their render chips, and a row is on the first screen, so this
+  // is a boot load rather than a lazy one: a getter that loaded the kit on
+  // first call would draw an empty strip and never redraw, since the component
+  // has no reactive dependency on a global arriving later. pages/branch.html
+  // loads the same kit for the same reason one step later.
+  await gh.load('kits/guide-render.js');
 </script>
 <style>[x-cloak]{display:none!important}
 .no-scrollbar::-webkit-scrollbar{display:none}
