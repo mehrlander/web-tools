@@ -158,6 +158,9 @@
   await gh.load('kits/repo-address.js');
   await gh.load('kits/persistence.js');
   await gh.load('kits/file-correspondence.js');
+  // The installation ledger's derivation and its one write, behind the
+  // project view's Installation pill.
+  await gh.load('kits/installation.js');
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
@@ -1400,7 +1403,10 @@ html.dk-dragging main{transition:none !important}
                  furniture. Docs is always offered, since every workspace is
                  presumed to hold markdown; its count fills in after the first
                  visit rather than costing a tree fetch up front. -->
-            <div class="inline-flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
+            <!-- max-w-full + overflow-x-auto: five pills outrun a phone's width
+                 since Installation joined the row, and a clipped pill is an
+                 unreachable tab. -->
+            <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
               <button role="tab" @click="goProjectTab('overview')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
                       :class="projectTab==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
@@ -1419,6 +1425,13 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-files text-lg"></i>Docs
                 <span x-show="projectDocsCount" class="font-mono text-sm opacity-60" x-text="projectDocsCount"></span></button>
+              <!-- Installation appears only where the manifest names an
+                   installation.json: the pill writes to the ledger beside it,
+                   so it is declared rather than guessed (repoProjects). -->
+              <button role="tab" x-show="project.installation" @click="goProjectTab('installation')"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                      :class="projectTab==='installation' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-desktop text-lg"></i><span class="whitespace-nowrap">Installation</span></button>
             </div>
             </div>
 
@@ -1606,6 +1619,18 @@ html.dk-dragging main{transition:none !important}
                 <p x-show="!projectDocsLoading && !projectDocs" class="text-base-content/40 italic text-base py-8">
                   Could not list this workspace's files on this ref.
                 </p>
+              </div>
+
+              <!-- Installation: the workspace's PowerShell material against a
+                   work installation with no Git checkout (lib/alpineComponents/
+                   installation-view.js). Mounted per project through a keyed
+                   one-row x-for, so switching workspaces or leaving the pill
+                   remounts it with the right manifest rather than repainting a
+                   component that read the previous one at init. -->
+              <div x-show="projectTab==='installation'">
+                <template x-for="p in (projectTab==='installation' && project.installation ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
+                  <div x-data="installationView(p)"></div>
+                </template>
               </div>
 
             </div>
@@ -4397,7 +4422,15 @@ function app(){ return {
       // worth saying out loud.
       const inbox = (typeof o.inbox === 'string' && o.inbox && window.RepoAddress)
         ? window.RepoAddress.parseBox(o.inbox, repo) : null;
-      out.push({ path, label: o.label || path.split('/').pop(), board, landing, inbox });
+      // `installation` is the repo field one level down that opens the project
+      // view's Installation pill: a repo-root-relative installation.json
+      // (correspondence rules and locally known areas) beside an observations
+      // ledger the pill appends to. Declared, never derived, for the inbox's
+      // reason: the pill WRITES to the ledger the manifest names, and a
+      // guessed path would be a write target nothing reads.
+      const installation = (typeof o.installation === 'string' && o.installation)
+        ? o.installation.replace(/^\/+/, '').replace(/\/+$/, '') : '';
+      out.push({ path, label: o.label || path.split('/').pop(), board, landing, inbox, installation });
     }
     return out;
   },
@@ -4428,7 +4461,8 @@ function app(){ return {
   // these properties directly instead, which is what makes picking a row in the
   // sidebar repaint the pane.
   projectPath: '',
-  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' — the pill row
+  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'installation' — the pill row
+  installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
   projectHtml: '',
   projectLoading: false,
   _projectKey: '',
@@ -4456,14 +4490,17 @@ function app(){ return {
     // safe guess at all. One shape either way, so a consumer need not test for
     // the key's presence.
     return found || { path: this.projectPath, label: this.projectPath.split('/').pop(),
-                      board: this.projectPath + '/tracker/board.md', landing: '', inbox: null };
+                      board: this.projectPath + '/tracker/board.md', landing: '', inbox: null, installation: '' };
   },
-  goProject(path, tab){
+  goProject(path, tab, item){
     const p = String(path || '').replace(/\/+$/, '');
     if (!p) return;
-    if (p !== this.projectPath) this.projectDocsQ = '';
+    if (p !== this.projectPath) { this.projectDocsQ = ''; this.installationItem = ''; }
     this.projectPath = p;
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs') ? tab : 'overview';
+    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'installation') ? tab : 'overview';
+    // A deep link into the Installation pill may name the file it is about;
+    // the pill's component reads it at mount and stamps it back as it moves.
+    if (this.projectTab === 'installation' && typeof item === 'string' && item) this.installationItem = item;
     this.view = 'project';
     this.syncUrl();
     this.refreshProjectPane();
@@ -5316,11 +5353,12 @@ function app(){ return {
     // ?repo= already stamped; a non-default pill rides as &tab= so "open
     // budget-wa's docs" is one link.
     { key: 'project', when: u => !!u.project,
-      open(u){ this.goProject(u.project, u.tab); },
+      open(u){ this.goProject(u.project, u.tab, u.item); },
       ready(){ return !!this.projectPath; },
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
+        if (this.projectTab === 'installation' && this.installationItem) p.set('item', this.installationItem);
       } },
     { key: 'estate',   open(){ this.goEstate(); } },
     // `surfaces` is the retired Saved pane, which listed the registry's
@@ -6191,6 +6229,15 @@ function app(){ return {
   correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
+    // The Installation pill's selected file takes a page-wide paste or drop
+    // the way an open Files result does: the pill names the file, so a work
+    // copy dropped anywhere on the page compares against it.
+    if (this.view === 'project' && this.projectTab === 'installation') {
+      if (!this.installationItem) return null;
+      const store = Alpine.store('browser');
+      const file = { repo: store.repo, path: this.installationItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };
+      return window.FileCorrespondence?.applies?.(file) ? file : null;
+    }
     if (this.view !== 'search') return null;
     if (this.searchOpenFile === false) return null;
     const file = this.searchOpenFile || window.RepoAddress?.parse?.(this.searchSeed?.file || '');
@@ -6231,6 +6278,7 @@ function app(){ return {
   async openCorrespondence(target, text, name, source){
     try {
       const result = await window.FileCorrespondence.open({ target, text, name, source });
+      this.announceCheck(result);
       this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
@@ -6245,9 +6293,15 @@ function app(){ return {
       : '';
     Alpine.store('toast')('warning', 'Compare: ' + detail + (e?.message || e), 'alert-error', 8000);
   },
+  // A check landed in this browser: the Installation pill listens, since it
+  // shows the checks beside the durable ledger and offers to promote one.
+  announceCheck(result){
+    try { window.dispatchEvent(new CustomEvent('correspondence-check', { detail: result?.record || null })); } catch {}
+  },
   async retryCorrespondence(submission, target = null){
     try {
       const result = await window.FileCorrespondence.retry(submission, target);
+      this.announceCheck(result);
       this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
