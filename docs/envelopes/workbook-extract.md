@@ -205,8 +205,10 @@ viewer's Structure mode carries every sheet a reception names,
 omitted, with the readings it has any of), the Extract tab opens with that
 pick ticked and the reception's cap, and a band names the reception, its repo,
 and the destination. **Stage for `<repo>`** puts the envelope on the stage as a
-text file under the reception's name, aims the stage at `repo:dest`, and
-switches to it; Send is still the reader's own tap. Declarations are collected
+text file under the reception's name, takes the dropped workbook off the stage
+(a Send carries every staged item, and the bytes are what the reception exists
+to keep back), aims the stage at `repo:dest`, and switches to it; Send is still
+the reader's own tap. Declarations are collected
 across the estate the way `pages[].appView` is, so the workbook can be dropped
 while browsing any repo. Nothing about any one workbook lives in this kit, the
 viewer, or the stage.
@@ -215,8 +217,10 @@ Three facts about the shape. Matching is by sheet set rather than file name,
 because a workbook is renamed more often than its tabs are, and a reception
 naming no sheet matches nothing. The pick is the opening state, not a lock:
 every tick still works and what is ticked at Stage is what travels. And the
-workbook's bytes are never staged; only the extract is, which is what lets a
-workbook holding sheets that stay private be dropped at all. The omitted
+workbook's bytes never leave the browser: the drop stages them in memory, the
+Stage action removes that item as it adds the extract, so what a Send carries
+is the extract alone, which is what lets a workbook holding sheets that stay
+private be dropped at all. The omitted
 sheets' cached values still ride along wherever a taken sheet's formula reads
 them, and `left.sheets` says which sheets were declared away.
 
