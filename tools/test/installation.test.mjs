@@ -29,9 +29,10 @@ const MANIFEST = JSON.stringify({
     { repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
     { repo: 'app/Scripts/', area: 'Scripts', installs: null },
   ],
+  doc: 'projects/wps/docs/INSTALLATION.md',
   local_areas: [
-    { name: 'Leg', status: 'unresolved', policy: 'Preserve.' },
-    { name: 'ISELog', status: 'local-only', policy: 'Keep.' },
+    { name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
+    { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' },
     { name: 'Odd', status: 'something-else' },
   ],
 });
@@ -64,6 +65,24 @@ test('the manifest normalizes destinations: a string, the root, or none', () => 
   assert.deepEqual(m.localAreas.map(a => a.status), ['unresolved', 'local-only', 'unresolved'],
     'an unknown status reads as unresolved rather than as settled');
   assert.equal(m.root, 'Documents\\WindowsPowerShell');
+});
+
+// The manifest owns mappings and statuses; the document it names owns the
+// reasoning. Reading a prose field here would be the first step back toward
+// the same policy written down twice, so the normalizer carries none.
+test('the manifest carries the document pointer and no explanatory prose', () => {
+  assert.equal(m.doc, 'projects/wps/docs/INSTALLATION.md');
+  for (const c of m.correspondence) assert.deepEqual(Object.keys(c).sort(), ['area', 'installs', 'repo']);
+  for (const a of m.localAreas) assert.deepEqual(Object.keys(a).sort(), ['name', 'shape', 'status']);
+  assert.equal(m.localAreas[0].shape, 'reportedly bill collections', 'shape is a structural line, not policy');
+  const withProse = K.manifest(JSON.stringify({
+    correspondence: [{ repo: 'app/x.ps1', area: 'X', installs: '', note: 'why it goes there' }],
+    local_areas: [{ name: 'Y', status: 'unresolved', policy: 'preserve it' }],
+  }));
+  assert.equal('note' in withProse.correspondence[0], false, 'a stray note is dropped, not rendered');
+  assert.equal('policy' in withProse.localAreas[0], false, 'a stray policy is dropped, not rendered');
+  const g = K.groups(items, m);
+  for (const area of g) assert.equal('note' in area, false, 'a group carries no prose either');
 });
 
 test('the inventory places only app/ material, by the manifest, and pairs a form\'s two files', () => {

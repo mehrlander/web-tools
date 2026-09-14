@@ -9,6 +9,8 @@
 //   WPS_OBSERVATIONS=<file>  serve that file as projects/wps/data/observations.csv
 //   WPS_ITEM=<repo path>     open the tab on that file (rides as &item=)
 //   WPS_TAB=<tab>            the project tab to open (default: installation)
+//   WPS_DEBUG=1              print the pane's loaded state, since a shot that
+//                            catches it mid-boot looks like a broken pane
 // The blob sha is git's own (sha1 over "blob <size>\0" + bytes) so the derived
 // states agree with what the live API would say about the same bytes.
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -75,5 +77,14 @@ export default async (page, { repoRoot }) => {
   if (process.env.WPS_ITEM) url.searchParams.set('item', process.env.WPS_ITEM);
   await page.evaluate(() => { window.TOKEN = 'FAKE'; try { localStorage.setItem('ghToken', 'FAKE'); } catch {} });
   await page.goto(url.toString(), { waitUntil: 'load' });
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(5000);
+  if (process.env.WPS_DEBUG) {
+    const state = await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="installationView"]');
+      if (!el) return { mounted: false };
+      const d = window.Alpine.$data(el);
+      return { mounted: true, loading: d.loading, err: d.err, items: d.items?.length, tab: window.__shell?.projectTab };
+    });
+    console.log('[wps-debug] ' + JSON.stringify(state));
+  }
 };

@@ -35,7 +35,9 @@ const files = {
       { repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
       { repo: 'app/Scripts/', area: 'Scripts', installs: null },
     ],
-    local_areas: [{ name: 'Leg', status: 'unresolved', policy: 'Preserve it.' }, { name: 'ISELog', status: 'local-only', policy: 'Keep it.' }],
+    doc: `${P}/docs/INSTALLATION.md`,
+    local_areas: [{ name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
+                  { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' }],
   }),
   [`${P}/data/observations.csv`]: 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n',
   [`${P}/app/Profile.ps1`]: 'profile\n',
@@ -96,6 +98,10 @@ window.__shell = {
     window.dispatchEvent(new window.CustomEvent('correspondence-check', { detail: rec }));
   },
 };
+// The pane links the explanation document and the ledger through the shared
+// link builder, so the harness carries the real one rather than a guess at
+// the URL shape it produces.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/github-links.js'), 'utf8'))();
 const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
@@ -125,6 +131,13 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   assert.equal(q('[data-installation] section button.text-left').length, 5, 'one row per file');
   const text = el.textContent;
   assert.match(text, /Local areas/); assert.match(text, /Leg/); assert.match(text, /local only/); assert.match(text, /unresolved/);
+  assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
+  // The explanation is linked, not copied onto the pane, and nothing on it
+  // parks a fact in a title where a phone and a screenshot cannot reach it.
+  assert.match(data.docUrl, /INSTALLATION\.md$/);
+  const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
+  assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
+    'a title is the label of an icon-only control, never a sentence of explanation');
   assert.match(data.headline, /^aaaaaaa · 5 files · 4 local state unknown · 1 repository only$/);
   assert.equal(puts.length, 0);
 });
@@ -194,7 +207,7 @@ test('recording a placement takes the confirm: the row is shown first, then one 
   assert.equal(data.pending, null);
   assert.equal(data.stateOf(FORMS).state, 'reported');
   assert.match(el.textContent, /reported installed/);
-  assert.match(el.textContent, /which is what GitHub holds now/);
+  assert.match(el.textContent, /this file has not changed since/);
 });
 
 test('a browser check can be promoted to a verified row, and then reads as recorded', async () => {
@@ -224,7 +237,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.stateOf(FORMS).state, 'changed');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.textContent, /GitHub has changed since/);
+  assert.match(el.textContent, /this file has changed on GitHub since/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
