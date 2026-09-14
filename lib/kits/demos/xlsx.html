@@ -65,7 +65,12 @@ zone.addEventListener('drop-file', async (e) => {
   window.__xlsx = result;
   const s = xlsxKit.summary(result);
   console.log(e.detail.name + ': ' + s.total + ' XML paths, ' + s.connected + ' connected');
-  out.innerHTML = draw('Sheets', xlsxKit.views.connections(result))
+  // String Ids is every shared-string index a sheet touches, which reads fine
+  // in a console and sets the row height for a whole table. The Strings count
+  // beside it is the fact.
+  const sheets = xlsxKit.views.connections(result)
+    .map(({ 'String Ids': ids, ...rest }) => rest);
+  out.innerHTML = draw('Sheets', sheets)
     + draw('Sources', xlsxKit.views.sources(result))
     + draw('Pivots', xlsxKit.views.pivots(result));
 });
