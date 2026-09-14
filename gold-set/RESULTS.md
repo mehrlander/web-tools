@@ -6,6 +6,53 @@ branch rather than in a chat scrollback the next session cannot read.
 
 ---
 
+## Open: what has been ruled out, and the next experiment
+
+`11.01` has now failed twice. Ruled out, so nobody re-runs them:
+
+- **The connections graft.** Removing `xl/connections.xml` does not resolve the
+  prompt. It was a suspicious correlate (`11.01` is the only gold-set file
+  carrying one) and it is not the cause.
+- **The grafts in general.** Removing every grafted part does not resolve it.
+- **The table XML itself.** Both `xl/tables/table*.xml` are now byte-identical
+  to the source, with `xl/tables/_rels/` and both `xl/queryTables/` parts
+  restored and content-typed. Still refused.
+- **Style and index references.** The rebuilt `styles.xml` keeps the
+  `TableStyleMedium2` default the tables name, and every `dxfId` a conditional
+  format references is within the rebuilt `dxfs` count (highest 3, of 4).
+- **`docProps/app.xml` counts**, which agree with the workbook's sheet count.
+
+**The contradiction worth attacking.** ExcelJS's own tables with
+`headerRowCount="1"` patched in **open**. The source's tables, which omit
+`headerRowCount` entirely (default 1) and add `tableType="queryTable"` plus the
+query-table parts, **do not**. Both should satisfy the header-row condition, so
+something the restored version brings is independently fatal, or the header row
+was never the whole story.
+
+**The experiment that would settle it**, for whoever has Excel: start from the
+configuration that opens (ExcelJS's tables, `headerRowCount="1"`) and add back
+one restored element at a time, testing after each.
+
+1. add `tableType="queryTable"` to both tables, nothing else
+2. then the two `xl/queryTables/queryTable*.xml` parts and
+   `xl/tables/_rels/table*.xml.rels`
+3. then swap in the source table XML whole
+
+The first step that reintroduces the prompt names the culprit. A bisect from the
+failing side has already been done twice and has stopped discriminating; this
+runs it from the passing side.
+
+**Also worth trying once:** accept Excel's recovery offer instead of declining
+it. The repair log names the part Excel objects to, which is worth more than a
+third refusal.
+
+**Not yet chased, and the largest unexplained number in the manifest:** the
+source declares 30 defined names and the rebuild emits 16. If a data validation
+or formula still references one of the 14 that went, that is a dangling
+reference of exactly the kind Excel repairs. Nothing has checked it.
+
+---
+
 ## 2026-09-14 · commit `ed9bd0c` · Microsoft Excel for Windows
 
 **The regenerated `11.01` still failed the open check.** A local test copy named
