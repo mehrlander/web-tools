@@ -125,9 +125,16 @@ and `--check` holds the file to it, the way `dist/` is held to `lib/`. It exists
 because `pages/data-view.html` opens on an empty intake, so a link handed over
 for review shows a form until the reader supplies an `.xlsx` of their own.
 
-`npm run sample-workbook -- --link` prints the address that opens it, which is
-`pages/data-view.html#data=mehrlander/web-tools@<ref>:docs/examples/allotment-ledger.xlsx`.
-Open it, switch to **Structure**, and the **Extract** tab is the last in the strip.
+`npm run sample-workbook -- --link --at <sha> --use <sha>` prints the address
+that opens it. Open it, switch to **Structure**, and the **Extract** tab is the
+last in the strip. Pass a commit SHA rather than a branch name: the command
+abbreviates it to seven characters and refuses to print a link over 149, which
+is where the GitHub MCP write path defangs a markdown link into an inert code
+span ([`scripts/mcp-link-safe.py`](../../scripts/mcp-link-safe.py) holds that
+limit). The page plus a branch name plus a full SHA runs to 207 and was
+defanged in this format's own pull request before the command learned to say
+so. Both routes take an abbreviated ref: the contents API behind `#data=`, and
+jsDelivr behind `?use=`.
 
 It is sized to show rather than to assert: 800 ledger rows, so the picker's
 smallest cap visibly bites and a cell reads `500 of 802`; all twelve kinds

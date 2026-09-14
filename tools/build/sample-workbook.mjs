@@ -386,11 +386,32 @@ if (flag('--check') !== null) {
 // which is the whole point of the file. `?use=` picks which copy of lib/ the
 // page loads and must sit BEFORE the fragment; `#data=` is the toss shorthand
 // data-view resolves onto its own ?src=.
+//
+// SHORT SHAs, BOTH TIMES, and the reason is a hard limit rather than taste.
+// The GitHub MCP write path defangs a markdown link past 149 characters into
+// an inert code span (scripts/mcp-link-safe.py holds the rule), and this page
+// plus a branch name plus a full SHA runs to 207. A 7-character SHA is enough
+// for the two routes that resolve it, both confirmed 2026-09-14: the contents
+// API behind `#data=` takes an abbreviated ref, and so does jsDelivr behind
+// `?use=`. It is also the better ref, since a SHA pins these bytes where a
+// branch name follows the tip.
 if (flag('--link') !== null) {
-  const ref = flag('--ref', 'main');
-  const use = flag('--use');
+  const short = (r) => (/^[0-9a-f]{7,40}$/i.test(String(r)) ? String(r).slice(0, 7) : r);
+  const at = short(flag('--at', flag('--ref', 'main')));
+  const use = flag('--use') ? short(flag('--use')) : null;
   const base = 'https://mehrlander.github.io/web-tools/pages/data-view.html';
-  console.log(`${base}${use ? `?use=${use}` : ''}#data=mehrlander/web-tools@${ref}:${AT}`);
+  const url = `${base}${use ? `?use=${use}` : ''}#data=mehrlander/web-tools@${at}:${AT}`;
+  console.log(url);
+  // Say so rather than emit a link that will be quietly defanged wherever it
+  // is pasted. 149 is mcp-link-safe.py's limit; keep the two in step.
+  if (url.length > 149) {
+    console.error(`sample-workbook: that link is ${url.length} characters, ${url.length - 149} over `
+      + `the 149 the GitHub MCP write path accepts before it defangs a markdown link. `
+      + `Pass --at <sha> (and --use <sha>) rather than a branch name.`);
+    process.exit(1);
+  }
+  // --link never writes: dropping this is how the first version printed the
+  // link and then rewrote the workbook underneath it.
   process.exit(0);
 }
 
