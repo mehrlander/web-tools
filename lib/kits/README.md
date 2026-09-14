@@ -1231,12 +1231,16 @@ flagged only when something else goes.
 
 `pages/xlsx-picker.html` is the interface over it, through
 `alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
-a directory of real workbooks. **`npm run gold-set`** is that sweep aimed at the
-OFM budget forms in the sibling `home` checkout, writing rebuilt workbooks and
-their manifests to a gitignored `gold-set/` for someone to open in Excel. The
-output is regenerated rather than committed because it is byte-reproducible
-(held by the suite) off inputs that are themselves committed, which is the
-estate's condition for keeping a derived artifact out of the tree.
+a directory of real workbooks. **`npm run gold-set`** builds the committed
+[`gold-set/`](../../gold-set/): three chosen workbooks, rebuilt with a sheet
+dropped, for someone to open in Excel. The selection is declared in
+`scripts/gold-set.mjs` with a reason per file, and the script refuses any
+selection whose kept sheets still read a dropped one, following the defined-name
+hop that these forms actually point through. The folder is committed rather than
+regenerated on demand because the sources are in a private repo, so a session
+with only this one cannot rebuild them and a gitignored copy reaches nobody.
+What makes storing it safe is that the rebuild is byte-reproducible, held by the
+suite, so `--check` diffs exactly when the kit changes what it writes.
 
 ### docx.js
 
