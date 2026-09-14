@@ -536,6 +536,49 @@ try {
   await page.screenshot({ path: shotPath('extract-phone'), fullPage: true });
   await page.setViewportSize({ width: 1100, height: 800 });
 
+  // THE ADDRESS THE SAMPLE IS HANDED OVER AT, which broke twice before it was
+  // checked. data-view reads `#gz=` or `?src=` and nothing else; `#data=` is
+  // toss-render's key, and on this page it matches no source and falls through
+  // to the built-in demo envelope. That is the failure this asserts against:
+  // a working page showing the wrong file, with no error to notice.
+  console.log('the committed sample, at the address --link prints:');
+  await page.goto(
+    `${origin}/pages/data-view.html?src=${encodeURIComponent('mehrlander/web-tools@main:docs/examples/allotment-ledger.xlsx')}`,
+    { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(6000);
+  const s2 = await state();
+  ok('?src= opens the committed workbook rather than the built-in demo',
+     /allotment-ledger\.xlsx$/.test(s2.mode ? (await page.evaluate(() =>
+       Alpine.$data(document.getElementById('dv-viewer')).file)) : ''),
+     await page.evaluate(() => Alpine.$data(document.getElementById('dv-viewer'))?.file));
+  ok('and it opens as a workbook, so the Structure mode is there to reach',
+     (s2.modes || []).includes('xlsx-structure'), JSON.stringify(s2.modes));
+
+  await page.evaluate(() => Alpine.$data(document.getElementById('dv-viewer')).switchMode('xlsx-structure'));
+  await page.waitForTimeout(3000);
+  await openTab('Extract');
+  const real = await extract();
+  ok('the Extract matrix draws over the real workbook, with its three sheets',
+     real.sheets.map(x => x.name).join() === 'Summary,Ledger,Archive',
+     JSON.stringify(real.sheets.map(x => x.name)));
+  // The cut, on a file large enough to have one. The toy fixture cannot show
+  // this at all: every count in it is one digit, and the default cap of 2000
+  // is above every count on this workbook too, so the cap has to come DOWN for
+  // the assertion to mean anything. Written the lazy way first, against the
+  // default cap, it passed while testing nothing.
+  await tapKind('values');
+  const ledgerValues = (r) => r.cells.find(c => c.sheet === 'Ledger' && c.kind === 'values')?.label;
+  const uncut = await extract();
+  ok('under the cap a cell states the whole size', ledgerValues(uncut) === 'Values 802', ledgerValues(uncut));
+
+  await page.selectOption('[data-xs="ex-cap"]', '500');
+  await page.waitForTimeout(1200);
+  const cut = await extract();
+  ok('past the cap it reports the cut rather than applying it silently',
+     ledgerValues(cut) === 'Values 500 of 802', ledgerValues(cut));
+  ok('and no kind name is clipped even carrying a cut figure', !cut.clipped.length,
+     JSON.stringify(cut.clipped));
+
   console.log('a text file is untouched by any of this:');
   await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent('mehrlander/web-tools@main:docs/tools.csv')}`,
                   { waitUntil: 'domcontentloaded' });
