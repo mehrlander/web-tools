@@ -1,15 +1,59 @@
 # Workbook extract: the payload contract
 
 Part of an `.xlsx` workbook, picked and carried as **data**. Nothing is written
-back to the workbook and nothing is reconstructed from the extract: it is a
-reading, selected along two axes, in a shape something else can open.
+back to the workbook and nothing is reconstructed from the extract. The current
+Structure → Extract picker is sheet-centered: selecting a sheet includes its
+available readings, then each reading can be unticked independently. Pivot
+tables, cached pivot records, connections, and Power Query sections are
+individual choices.
 
 Written by [`lib/kits/xlsx-extract.js`](../../lib/kits/xlsx-extract.js), read by
 [`pages/data-view.html`](../../pages/data-view.html) with no change to that page,
-and validated by
-[`schemas/workbook-extract-v1.schema.json`](schemas/workbook-extract-v1.schema.json).
+and described by
+[`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json).
+The original cross-product API and its
+[`v1 schema`](schemas/workbook-extract-v1.schema.json) remain available.
 
-## The two axes
+## Sheet-centered selection (v2)
+
+`XlsxExtract.catalog(result)` returns sheets in workbook order, with counts
+for their eight supported readings, and separately lists each modeled object.
+The UI shows a pivot table under the sheet where it sits and a pivot cache
+under its source sheet when that sheet is in the workbook. This is an
+association for navigation, not an inclusion rule: selecting a sheet does not
+select any related object. A cache may contain rows from a different sheet.
+
+`XlsxExtract.extractSelected(result, pick, opts)` accepts:
+
+```js
+{
+  sheets: [
+    { name: 'Budget', kinds: ['values', 'formulas', 'columns'] },
+    { name: 'Notes', kinds: ['values'] }
+  ],
+  objects: ['pivot:xl/pivotTables/pivotTable1.xml'],
+  headerRow: 1
+}
+```
+
+The returned `workbook-extract/2` envelope keeps the data-view `items` shape.
+`picked.sheets` records the kinds chosen for each sheet; `picked.objects`
+records the selected object's ID, kind, label, and associated sheet.
+`left.sheets`, `left.sheetKinds`, and `left.objects` state what was omitted.
+An object's item has an `object` ID, and its `sheet` names the associated sheet
+where known. Table content is JSON rows; query content is M source text. The
+picker previews the exact JSON it saves or compresses into a share link, and
+lets the reader inspect one included item's content at a time.
+
+This is a selective reading, not a redaction of references. An included pivot
+can still name an omitted source sheet. Charts and VBA are not modeled by the
+extract kit, so neither appears as a selectable object. Pivot cache records are
+parsed as rows, not carried as binary; the underlying workbook reader retains
+at most 20,000 cache rows and reports `truncated` when the cache held more.
+
+## Legacy cross-product selection (v1)
+
+### The two axes
 
 **Which sheets**, and **which kinds of reading**. They cross and they do not
 nest, which is the whole character of the format: "values and comments from two
@@ -56,7 +100,7 @@ There is no `layout` kind. `xlsxKit.sheetLayout` returns a sheet as geometry,
 which is an input to a renderer rather than a table, and it already has a
 renderer in the viewer's sheet mode. The appearance that is tabular is `styles`.
 
-## Two things the envelope says that data-view cannot
+## Shared envelope facts
 
 **Where it came from.** `source` is the workbook's address (`repo`, `ref`,
 `path`, `name`, `bytes`) and `taken` is when the extract was made. `source` is
@@ -65,9 +109,11 @@ a name and nothing else, and saying so beats minting a repo path it never had.
 A `ref` that is a commit SHA is the only form that still resolves to these bytes
 later.
 
-**What was left behind.** `picked` and `left` are complements over the
-workbook's sheets and this format's kinds. Without `left`, a reader cannot tell
-four kinds out of twelve from the whole file.
+**What was left behind.** In v1, `picked` and `left` are complements over the
+workbook's sheets and the twelve kinds. In v2, they record each selected
+sheet's readings, the omitted readings on that sheet, and individually chosen
+or omitted objects. Without `left`, a reader cannot tell a partial selection
+from the whole file.
 
 Per item, `rows` against `total` plus `truncated` say whether that item is short
 of what the workbook holds. The habit is `pivotRecords`': report the cut rather
@@ -75,6 +121,8 @@ than apply it silently, so a reader sees the edge instead of discovering it. The
 same fact is written into the item's `note`, derived from the record in the same
 function, so today's data-view reader shows it without knowing this format
 exists.
+
+This is a v1 example; the v2 selection shape is above.
 
 ```jsonc
 {

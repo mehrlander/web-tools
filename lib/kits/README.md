@@ -1185,14 +1185,20 @@ part and returns plain objects; this kit is the selection over that reading, and
 nothing more. It writes no file back, reconstructs no workbook, and renders
 nothing. It reads `window.xlsxKit` at call time, so load that first.
 
-Two axes that cross and do not nest: **which sheets**, and **which kinds of
-reading**. Twelve kinds, eight read per sheet and four per workbook, so "values
-and comments from two sheets" and "every pivot in the file" are the same gesture
-at different points of one matrix. The full table of kinds, and what each one is
-NOT, is in
+The current picker is **sheet-centered**. Each sheet has its own selected
+readings, and each pivot, cache, connection, or Power Query section is a
+separate choice. The original cross-product API remains available for callers
+that use it. The full table of kinds and their limits is in
 [`docs/envelopes/workbook-extract.md`](../../docs/envelopes/workbook-extract.md).
 
 ```js
+XlsxExtract.catalog(result)         // sheets with per-kind counts; individually
+                                    //   addressable modeled objects, grouped
+                                    //   by associated sheet where known
+XlsxExtract.extractSelected(result, pick, opts)
+                                    // pick: { sheets: [{ name, kinds: [id…] }],
+                                    //   objects: [id…], headerRow }
+                                    // -> a `workbook-extract/2` envelope
 XlsxExtract.survey(result)          // the picker's whole input: per sheet, a
                                     //   count for each of the eight sheet
                                     //   kinds, plus the four workbook counts
@@ -1200,6 +1206,7 @@ XlsxExtract.survey(result)          // the picker's whole input: per sheet, a
                                     //   a cell that disappears when empty
                                     //   cannot say "no pivots here"
 XlsxExtract.extract(result, pick, opts)
+                                    // legacy cross-product selector (v1)
                                     // pick: { sheets: [name…], kinds: [id…],
                                     //   headerRow }. No sheets means every
                                     //   sheet; no kinds means nothing, since
