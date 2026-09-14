@@ -77,6 +77,6 @@ lib/kits/wring.js,wring,"single-document template induction: give it one documen
 lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",102,no,no,2,yes
 lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",351,no,no,4,yes
 lib/kits/wsl.js,wsl,browser-facing WSL kit.,299,no,no,3,yes
-lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,696,no,no,1,yes
+lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,708,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1098,no,no,2,yes
 lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2317,no,yes,8,yes

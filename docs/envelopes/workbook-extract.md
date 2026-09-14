@@ -192,6 +192,7 @@ readings to take, and where the extract lands.
   "id": "source-workbook",
   "label": "Budget DRS source workbook",
   "omit": ["hidden"],
+  "never": ["CC", "Cash"],
   "readings": ["cells"],
   "dest": "projects/budget-drs/data/source/{date}-{slug}",
   "file": "{slug}-{date}.json"
@@ -211,9 +212,40 @@ what is left behind.
 the workbook hides, which makes hiding a sheet in Excel the whole gesture for
 keeping it out of the repo: no name to keep in step with the manifest, and a
 rename does not undo it. The two union, so a sheet named in `omit` or hidden is
-kept back either way. The mirror-image failure is real: unhide a private sheet
-to work on it, forget, and drop the workbook, and that sheet is taken. The
-unticked list on the band is where to look before pressing Stage. **Stage for `<repo>`** puts the envelope on the stage as a
+kept back either way.
+
+`never` is the backstop for the mirror-image failure, which is real: unhide a
+private sheet to work on it, forget, and drop the workbook, and `omit` alone
+takes it. A sheet named there is **reported rather than dropped**. It stays in
+the pick, the roster and its row draw it in the error colour, and the Stage
+button goes dark and names it instead of handing anything over. Dropping it
+quietly would be the worse fix, since the reader would see a clean pick and
+learn nothing in exactly the case the usual signal lapsed. `omit` decides what
+is taken; `never` decides what may not be, and both have to lapse for a private
+sheet to reach a repo.
+
+## Seeing what you are taking
+
+Three surfaces answer it, in widening detail, and none is prose.
+
+**The roster**, two lines under the band: `in` and `out`, every sheet by name,
+in workbook order, with `(hidden)` and `(never)` where they apply. It is the
+glance, and it exists because the checklist below it spreads the same fact over
+one section per sheet, which on an eleven-sheet workbook is a scroll rather than
+an answer.
+
+**The checklist**, one section per sheet. The row's box means the sheet is in
+the extract; the readings beneath say which readings of it. Until 2026-09-14
+the box compared selected readings against available ones, so a reception
+picking one reading drew a half-filled box on every sheet it took: eleven rows
+reading "partly" and none reading "in".
+
+**The serialized JSON**, in the preview pane, defaulting to the whole envelope:
+`source`, `taken`, `picked.sheets` naming each sheet and its readings, `left`
+naming what was not taken, and the items themselves through the selector. It is
+the same string Save writes, the link carries, and Stage puts on the stage, so
+what is read is what travels. After Stage the staged file opens in the reader,
+which is the same bytes a second time before Send. **Stage for `<repo>`** puts the envelope on the stage as a
 text file under the reception's name, takes the dropped workbook off the stage
 (a Send carries every staged item, and the bytes are what the reception exists
 to keep back), aims the stage at `repo:dest`, and switches to it; Send is still

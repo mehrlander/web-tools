@@ -565,3 +565,22 @@ test('a reception with no sheet set applies to every workbook, and `hidden` leav
   assert.deepEqual(XlsxExtract.receptionTarget(general, { name: 'Cash Projection.xlsx' }, '2026-09-14T12:00:00Z'),
     { dest: 'data/source/2026-09-14-cash-projection', file: 'cash-projection-2026-09-14.json' }, '{slug} is the stem lowercased');
 });
+
+test('`never` names sheets that must not land, and is reported rather than applied', () => {
+  const cat = XlsxExtract.catalog(read());
+  // Ledger is visible, so `omit: ['hidden']` takes it. Naming it `never` does
+  // NOT drop it from the pick: the quiet fix would hide the very case this
+  // exists for, a sheet that should have been hidden and was not.
+  const got = XlsxExtract.receptions(cat, [{ id: 'g', omit: ['hidden'], never: ['Ledger'] }])[0];
+  assert.deepEqual(got.pick.sheets.map(s => s.name), ['Ledger'], 'still picked, so the caller can see and refuse it');
+  assert.deepEqual(got.never, ['Ledger'], 'and the rule is handed back for the caller to test live');
+  // A name the workbook does not carry is dropped, so the caller never reports
+  // a breach against a sheet that is not there.
+  assert.deepEqual(XlsxExtract.receptions(cat, [{ id: 'g', never: ['Nowhere'] }])[0].never, []);
+  // Hidden and never are independent: hiding it takes it out of the pick, and
+  // then there is nothing to breach.
+  const hidden = XlsxExtract.receptions(cat, [{ id: 'g', omit: ['hidden'], never: ['Notes'] }])[0];
+  assert.equal(hidden.pick.sheets.some(s => s.name === 'Notes'), false);
+  assert.deepEqual(hidden.never, ['Notes'], 'still declared, and not in breach because it is not picked');
+  assert.deepEqual(XlsxExtract.receptions(cat, [{ id: 'g' }])[0].never, [], 'no declaration, no rule');
+});
