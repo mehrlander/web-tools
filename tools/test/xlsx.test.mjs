@@ -1163,11 +1163,36 @@ const CONNECTIONS = `<?xml version="1.0"?>
   </connection>
 </connections>`;
 
+// Region carries shared items AND a fieldGroup of the same element names. The
+// group is the trap: folding its items into the shared list would shift every
+// <x> index in the records by however many groups the author made, so a record
+// naming East would come back West.
 const PIVOT_CACHE = `<?xml version="1.0"?>
-<pivotCacheDefinition xmlns="pc" recordCount="3">
+<pivotCacheDefinition xmlns="pc" xmlns:r="rel" recordCount="4">
   <cacheSource type="worksheet"><worksheetSource ref="A1:B4" sheet="Data"/></cacheSource>
-  <cacheFields count="2"><cacheField name="Region"/><cacheField name="Amount"/></cacheFields>
+  <cacheFields count="2">
+    <cacheField name="Region">
+      <sharedItems count="2"><s v="East"/><s v="West"/></sharedItems>
+      <fieldGroup><groupItems count="1"><s v="DECOY"/></groupItems></fieldGroup>
+    </cacheField>
+    <cacheField name="Amount"/>
+  </cacheFields>
 </pivotCacheDefinition>`;
+
+const PIVOT_CACHE_RELS = `<?xml version="1.0"?>
+<Relationships xmlns="rel">
+  <Relationship Id="rId1" Type=".../pivotCacheRecords" Target="pivotCacheRecords1.xml"/>
+</Relationships>`;
+
+// Four records: a resolved index, a second one, a missing value, and an index
+// past the end of the shared list.
+const PIVOT_RECORDS = `<?xml version="1.0"?>
+<pivotCacheRecords xmlns="pc" count="4">
+  <r><x v="0"/><n v="10"/></r>
+  <r><x v="1"/><n v="20"/></r>
+  <r><x v="0"/><m/></r>
+  <r><x v="5"/><n v="30"/></r>
+</pivotCacheRecords>`;
 
 const PIVOT_TABLE = `<?xml version="1.0"?>
 <pivotTableDefinition xmlns="pt" name="ByRegion" cacheId="3">
@@ -1193,6 +1218,8 @@ function buildWired() {
     ['xl/styles.xml', STYLES],
     ['xl/connections.xml', CONNECTIONS],
     ['xl/pivotCache/pivotCacheDefinition1.xml', PIVOT_CACHE],
+    ['xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels', PIVOT_CACHE_RELS],
+    ['xl/pivotCache/pivotCacheRecords1.xml', PIVOT_RECORDS],
     ['xl/pivotTables/pivotTable1.xml', PIVOT_TABLE],
   ];
 }
@@ -1246,7 +1273,7 @@ test('a pivot table joins to its sheet through the sheet rels and to its cache t
   assert.equal(row.Rows, 1);
   assert.equal(row.Measures, 'Sum of Amount');
   assert.equal(row.Source, 'Data!A1:B4');
-  assert.equal(row.Records, 3);
+  assert.equal(row.Records, 4);
   assert.equal(row['Cache Fields'], 2);
 });
 
@@ -1392,4 +1419,66 @@ test('profileColumns: the ladder is ordered, so a fully distinct number column i
   const r = rolesOf({ categorical: 2 });
   assert.equal(r.A, 'Plain', 'below the threshold the categorical branch no longer applies');
   assert.equal(r.D, 'Key', 'and the key branch is unaffected by that threshold');
+});
+
+// ── the rows behind a pivot ─────────────────────────────────────────────────
+
+const CACHE_PART = 'xl/pivotCache/pivotCacheDefinition1.xml';
+
+test('pivot records resolve their shared-item indices into values', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  const got = xlsxKit.pivotRecords(xl, CACHE_PART);
+  assert.deepEqual(got.fields, ['Region', 'Amount']);
+  assert.deepEqual(got.rows, [
+    { Region: 'East', Amount: 10 },
+    { Region: 'West', Amount: 20 },
+    // A missing cell is null, not '': a text field can hold an empty string and
+    // a blank is not the same fact.
+    { Region: 'East', Amount: null },
+    // An index the shared list does not reach resolves to null rather than to
+    // some neighbouring field's value.
+    { Region: null, Amount: 30 },
+  ]);
+});
+
+test('a fieldGroup of the same element names does not shift the shared-item indices', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  assert.deepEqual(xl.pivotCaches[CACHE_PART].sharedItems, [['East', 'West'], []],
+    'DECOY is a group item and belongs to neither list');
+});
+
+test('the records part is found through the cache definition\'s own rels', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  assert.equal(xl.pivotCaches[CACHE_PART].recordsPart, 'xl/pivotCache/pivotCacheRecords1.xml');
+});
+
+test('records resolve whichever part order the zip is walked in', () => {
+  const forward = xlsxKit.pivotRecords(xlsxKit.analyze(buildWired()).xl, CACHE_PART);
+  const back = xlsxKit.pivotRecords(xlsxKit.analyze(buildWired().reverse()).xl, CACHE_PART);
+  assert.deepEqual(back.rows, forward.rows,
+    'the records part may be walked before the definition that explains it');
+});
+
+test('what the part held and what the definition claims are both reported', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  const got = xlsxKit.pivotRecords(xl, CACHE_PART);
+  assert.equal(got.total, 4, 'the records actually in the part');
+  assert.equal(got.declared, 4, 'and the count the definition states');
+  assert.equal(got.truncated, false);
+
+  const capped = xlsxKit.pivotRecords(xl, CACHE_PART, { limit: 2 });
+  assert.equal(capped.rows.length, 2);
+  assert.equal(capped.total, 4, 'the total is what the file holds, not what was returned');
+  assert.equal(capped.truncated, true, 'and a cut says so');
+});
+
+test('a cache with no records part reads as null rather than as an empty table', () => {
+  // A workbook saved to refresh on open has a definition and nothing behind it,
+  // which is a different answer from "the pivot has no rows".
+  const parts = buildWired().filter(([k]) => !k.includes('pivotCacheRecords') && !k.includes('_rels/pivotCacheDefinition'));
+  const { xl } = xlsxKit.analyze(parts);
+  assert.equal(xl.pivotCaches[CACHE_PART].recordsPart, null);
+  assert.equal(xlsxKit.pivotRecords(xl, CACHE_PART), null);
+  assert.equal(xlsxKit.pivotRecords(xl, 'xl/pivotCache/nothing.xml'), null,
+    'and a part that is not a cache at all is the same answer');
 });

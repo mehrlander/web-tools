@@ -21,9 +21,11 @@
 //
 //   5. it is in the strip beside the grid, and opening it draws its own tabs
 //   6. an empty tab stays in the strip, disabled, showing a zero, because a
-//      tab that hides itself cannot answer "are there pivots here"
+//      tab that hides itself cannot answer "are there queries here"
 //   7. a hidden sheet reports its visibility, which no value grid can show
 //   8. the columns tab profiles the sheet the picker names
+//   9. a pivot names the range its cache was built from, and the records tab
+//      draws the rows behind it with their shared-item indices resolved
 //
 // The fixture is built here with jszip rather than committed, so no binary
 // enters the tree and the workbook's internals are exactly what the assertions
@@ -76,12 +78,50 @@ const WORKBOOK = `<?xml version="1.0"?>
     <sheet name="Budget" sheetId="4" r:id="rId1"/>
     <sheet name="Notes" sheetId="9" r:id="rId2" state="hidden"/>
   </sheets>
+  <pivotCaches><pivotCache cacheId="7" r:id="rId3"/></pivotCaches>
 </workbook>`;
 
 const WORKBOOK_RELS = `<?xml version="1.0"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet2.xml"/>
   <Relationship Id="rId2" Type=".../worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId3" Type=".../pivotCacheDefinition" Target="pivotCache/pivotCacheDefinition1.xml"/>
+</Relationships>`;
+
+// A pivot drawn on Budget over a cache built from Notes, so neither join can
+// be made by guessing that a pivot sits on the sheet its data came from.
+const PIVOT_TABLE = `<?xml version="1.0"?>
+<pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                      name="ByFund" cacheId="7">
+  <location ref="D1:E4"/>
+  <rowFields count="1"><field x="0"/></rowFields>
+  <dataFields count="1"><dataField name="Sum of Spend" fld="1"/></dataFields>
+</pivotTableDefinition>`;
+
+const PIVOT_CACHE = `<?xml version="1.0"?>
+<pivotCacheDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                      recordCount="2">
+  <cacheSource type="worksheet"><worksheetSource ref="A1:B3" sheet="Notes"/></cacheSource>
+  <cacheFields count="2">
+    <cacheField name="Fund"><sharedItems count="2"><s v="600"/><s v="722"/></sharedItems></cacheField>
+    <cacheField name="Spend"/>
+  </cacheFields>
+</pivotCacheDefinition>`;
+
+const PIVOT_CACHE_RELS = `<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type=".../pivotCacheRecords" Target="pivotCacheRecords1.xml"/>
+</Relationships>`;
+
+const PIVOT_RECORDS = `<?xml version="1.0"?>
+<pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="2">
+  <r><x v="1"/><n v="41"/></r>
+  <r><x v="0"/><n v="17"/></r>
+</pivotCacheRecords>`;
+
+const SHEET2_RELS = `<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type=".../pivotTable" Target="../pivotTables/pivotTable1.xml"/>
 </Relationships>`;
 
 // cellXfs index 1 is numFmtId 164, the custom yyyy-mm-dd.
@@ -125,6 +165,11 @@ async function buildWorkbook() {
   zip.file('xl/styles.xml', STYLES);
   zip.file('xl/sharedStrings.xml', SHARED);
   zip.file('xl/connections.xml', CONNECTIONS);
+  zip.file('xl/worksheets/_rels/sheet2.xml.rels', SHEET2_RELS);
+  zip.file('xl/pivotTables/pivotTable1.xml', PIVOT_TABLE);
+  zip.file('xl/pivotCache/pivotCacheDefinition1.xml', PIVOT_CACHE);
+  zip.file('xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels', PIVOT_CACHE_RELS);
+  zip.file('xl/pivotCache/pivotCacheRecords1.xml', PIVOT_RECORDS);
   zip.file('xl/worksheets/sheet1.xml', SHEET1);
   zip.file('xl/worksheets/sheet2.xml', SHEET2);
   return zip.generateAsync({ type: 'base64' });
@@ -273,8 +318,8 @@ try {
      x.tabs.some(l => l.startsWith('Sheets')) && x.tabs.some(l => l.startsWith('Parts')),
      JSON.stringify(x.tabs));
   // Claim 6, both halves: the empty one is present AND it is disabled.
-  ok('a tab with nothing in it still says so', x.tabs.some(l => l === 'Pivots 0'), JSON.stringify(x.tabs));
-  ok('and it cannot be opened', x.disabled.includes('Pivots 0'), JSON.stringify(x.disabled));
+  ok('a tab with nothing in it still says so', x.tabs.some(l => l === 'Queries 0'), JSON.stringify(x.tabs));
+  ok('and it cannot be opened', x.disabled.includes('Queries 0'), JSON.stringify(x.disabled));
   ok('a tab with something in it carries the count', x.tabs.includes('Sources 1'), JSON.stringify(x.tabs));
 
   // Claim 7. The grid drew Notes like any other sheet; only this says it is hidden.
@@ -301,6 +346,22 @@ try {
   ok('and profiles the one it names',
      cols.head.includes('Role') && cols.rows.some(r => r.includes('Fund')),
      JSON.stringify({ head: cols.head, rows: cols.rows }));
+
+  // Claim 9. The pivot is on Budget, its cache was built from Notes, and the
+  // records resolve their <x> indices against that cache's shared items.
+  await openTab('Pivots');
+  const piv = await structure();
+  ok('the pivot names its sheet and the range its cache came from',
+     piv.rows.some(r => r.includes('ByFund') && r.includes('Budget') && r.includes('Notes!A1:B3')),
+     JSON.stringify(piv.rows));
+
+  await openTab('Records');
+  const rec = await structure();
+  ok('the records tab is keyed by the cache\'s field names',
+     JSON.stringify(rec.head) === JSON.stringify(['Fund', 'Spend']), JSON.stringify(rec.head));
+  ok('and the shared-item indices came back as values, in record order',
+     JSON.stringify(rec.rows) === JSON.stringify([['722', '41'], ['600', '17']]),
+     JSON.stringify(rec.rows));
 
   console.log('a text file is untouched by any of this:');
   await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent('mehrlander/web-tools@main:docs/tools.csv')}`,
