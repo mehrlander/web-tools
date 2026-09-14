@@ -383,9 +383,21 @@ if (flag('--check') !== null) {
 }
 
 // --link: the address that opens the committed workbook in the data-view page,
-// which is the whole point of the file. `?use=` picks which copy of lib/ the
-// page loads and must sit BEFORE the fragment; `#data=` is the toss shorthand
-// data-view resolves onto its own ?src=.
+// which is the whole point of the file.
+//
+// `?src=`, NOT `#data=`. The two are not alternatives and getting them the
+// wrong way round is silent: `#data=` is TOSS-RENDER's key, which that shell
+// resolves onto this page's `?src=` and hands over. data-view itself reads
+// `#gz=` or `?src=` and nothing else, so `data-view.html#data=…` matches no
+// source and the page falls through to its built-in demo envelope, which is a
+// working page showing the wrong file. That link was handed over on
+// 2026-09-14 and the reader got the demo. The page's own header says this
+// ("the route is shorthand, not a separate path") and so does
+// docs/envelopes/data-view.md; reading it was not enough, so the command
+// holds it now.
+//
+// `?use=` picks which copy of lib/ the page loads. Both are query parameters,
+// so they ride together before any fragment.
 //
 // SHORT SHAs, BOTH TIMES, and the reason is a hard limit rather than taste.
 // The GitHub MCP write path defangs a markdown link past 149 characters into
@@ -400,7 +412,8 @@ if (flag('--link') !== null) {
   const at = short(flag('--at', flag('--ref', 'main')));
   const use = flag('--use') ? short(flag('--use')) : null;
   const base = 'https://mehrlander.github.io/web-tools/pages/data-view.html';
-  const url = `${base}${use ? `?use=${use}` : ''}#data=mehrlander/web-tools@${at}:${AT}`;
+  const q = [use ? `use=${use}` : '', `src=mehrlander/web-tools@${at}:${AT}`].filter(Boolean).join('&');
+  const url = `${base}?${q}`;
   console.log(url);
   // Say so rather than emit a link that will be quietly defanged wherever it
   // is pasted. 149 is mcp-link-safe.py's limit; keep the two in step.

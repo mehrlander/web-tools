@@ -126,15 +126,31 @@ because `pages/data-view.html` opens on an empty intake, so a link handed over
 for review shows a form until the reader supplies an `.xlsx` of their own.
 
 `npm run sample-workbook -- --link --at <sha> --use <sha>` prints the address
-that opens it. Open it, switch to **Structure**, and the **Extract** tab is the
-last in the strip. Pass a commit SHA rather than a branch name: the command
-abbreviates it to seven characters and refuses to print a link over 149, which
-is where the GitHub MCP write path defangs a markdown link into an inert code
-span ([`scripts/mcp-link-safe.py`](../../scripts/mcp-link-safe.py) holds that
-limit). The page plus a branch name plus a full SHA runs to 207 and was
-defanged in this format's own pull request before the command learned to say
-so. Both routes take an abbreviated ref: the contents API behind `#data=`, and
-jsDelivr behind `?use=`.
+that opens it. The workbook opens in the sheet render; the **mode menu** is the
+icon at the right of the file line, which wears the current mode's own icon and
+drops down a list. Pick **Structure** there, and **Extract** is the last tab in
+its strip.
+
+The command exists because the address has two traps and both fail quietly.
+
+**It is `?src=`, not `#data=`.** They are not alternatives. `#data=` is
+[toss-render](../../pages/toss-render.html)'s key, which that shell resolves
+onto this page's `?src=` and hands over; data-view itself reads `#gz=` or
+`?src=` and nothing else. So `data-view.html#data=…` matches no source and the
+page falls through to its built-in demo envelope: a working page showing the
+wrong file, with no error anywhere.
+
+**And the link has a length limit.** Pass a commit SHA rather than a branch
+name. The command abbreviates it to seven characters on both parameters and
+refuses to print a link over 149, which is where the GitHub MCP write path
+defangs a markdown link into an inert code span
+([`scripts/mcp-link-safe.py`](../../scripts/mcp-link-safe.py) holds that
+limit); the page plus a branch name plus a full SHA runs to 207. Both routes
+take an abbreviated ref, confirmed rather than assumed: the contents API behind
+`?src=`, and jsDelivr behind `?use=`.
+
+Each trap cost a handover in this format's own pull request, which is why the
+rule is in the command rather than in this paragraph.
 
 It is sized to show rather than to assert: 800 ledger rows, so the picker's
 smallest cap visibly bites and a cell reads `500 of 802`; all twelve kinds
