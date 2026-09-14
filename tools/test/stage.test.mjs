@@ -472,6 +472,27 @@ test('focus names an item and the stage opens its reader, then forgets it', asyn
   assert.equal(data.reader.name, it.name);
 });
 
+test('a comparison arriving while Stage is hidden waits until Stage is shown', async () => {
+  reset();
+  const ref = { repo: 'me/a', ref: 'revision', path: 'Forms.psm1', correspondenceText: 'one\n' };
+  const local = window.StageIntake.textItem('Forms.psm1', 'one\r\n');
+  local.correspondenceFor = data.itemKey(ref);
+  window.__shell = Alpine.reactive({ view: 'search' });
+  store.stage = [ref, local];
+  store.stageCompare = { a: data.itemKey(ref), b: data.itemKey(local) };
+  await tick(5);
+  assert.deepEqual(plain_(store.stageCompare), { a: data.itemKey(ref), b: data.itemKey(local) });
+  assert.equal(data.reader, null, 'a hidden Stage does not open a reader behind Files');
+  window.__shell.view = 'stage';
+  data.focusFromStore(); // the shell-view watcher does this on the real app mount
+  await shown();
+  assert.equal(store.stageCompare, null, 'the visible Stage consumes the request');
+  assert.ok(data._cmpDeck, 'the comparison is open');
+  assert.equal(data.diffStat, 'identical');
+  delete window.__shell;
+  reset();
+});
+
 test('a drop on the view itself opens one file, and stays out of the way for a batch', async () => {
   reset();
   await data.onPageDrop({ dataTransfer: dropOf({ types: ['Files'], files: [textFile('one.md', '# One\n')] }) });
@@ -1769,6 +1790,37 @@ test('runDiff resolves a local text item against a ref item', async () => {
   assert.ok(data.diffRows, 'diff produced');
   assert.deepEqual(plain_(data.diffRows.filter(r => r.t !== 'ctx')), [{ t: 'add', line: 'extra' }]);
   assert.equal(data.diffStat, '+1 \u22120');
+});
+
+test('correspondence diff folds line endings for PowerShell and XAML display but keeps both raw texts', async () => {
+  for (const [path, repository, submitted] of [
+    ['Modules/Forms/Forms.psm1', 'function F {\n  1\n}\n', 'function F {\r\n  1\r\n}\r\n'],
+    ['Forms/Bookmarks/Bookmarks.xaml', '<Window>\r\n  <TextBlock />\r\n</Window>\r\n', '<Window>\r  <TextBlock />\r</Window>\r'],
+  ]) {
+    reset();
+    clipWrites.length = 0;
+    const ref = { repo: 'me/a', ref: 'revision', path, correspondenceText: repository };
+    const local = { local: true, id: 601, name: path.split('/').pop(), isText: true,
+      text: submitted, correspondenceFor: data.itemKey(ref) };
+    store.stage = [ref, local];
+    data.diffA = 0; data.diffB = 1;
+    await data.runDiff();
+    assert.equal(data.diffStat, 'identical', path);
+    assert.ok(data.diffRows.every(row => row.t === 'ctx'), path);
+    assert.equal(data._diffTextA, repository, path);
+    assert.equal(data._diffTextB, submitted, path);
+    assert.equal(local.text, submitted, path);
+    await data.copyPrompt('Check content.', 0);
+    assert.ok(clipWrites[0].includes(submitted), 'review prompt retains raw ' + path);
+    assert.equal(data.diffRows.map(row => row.line).join('\n'), repository.replace(/\r\n?/g, '\n'), path);
+    assert.ok(!data.diffDump.includes('\r'), 'copyable displayed diff is normalized for ' + path);
+  }
+  reset();
+  const ref = { repo: 'me/a', ref: 'revision', path: 'unrelated.ps1', correspondenceText: 'a\nb\n' };
+  store.stage = [ref, { local: true, id: 602, name: 'other.ps1', isText: true, text: 'a\r\nb\r\n' }];
+  data.diffA = 0; data.diffB = 1;
+  await data.runDiff();
+  assert.notEqual(data.diffStat, 'identical', 'ordinary Stage pairs still show raw line-ending differences');
 });
 
 test('diffHandoff builds the Diff page address from the staged pair', () => {

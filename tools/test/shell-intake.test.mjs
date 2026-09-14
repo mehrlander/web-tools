@@ -37,7 +37,7 @@ function wired({ view = 'estate', added = [{ name: 'one.md' }] } = {}) {
 
 // A ClipboardEvent stand-in: jsdom's carries no clipboardData, and what is under
 // test is the routing, not the platform's construction of the event.
-const evt = (target = { tagName: 'DIV' }, cd = { types: ['text/plain'] }) => {
+const evt = (target = { tagName: 'DIV' }, cd = { types: ['text/plain'], getData: () => '' }) => {
   const e = { clipboardData: cd, target, defaultPrevented: false };
   e.preventDefault = () => { e.defaultPrevented = true; };
   return e;
@@ -116,7 +116,7 @@ test('a paste with no clipboardData is declined rather than thrown on', async ()
 // ---- the drop, which shipped in PR #443 with no shell test of its own ----
 
 const dragEvt = (types = ['Files'], target = { tagName: 'DIV' }) => {
-  const e = { dataTransfer: { types, items: [], files: [] }, target, relatedTarget: null, defaultPrevented: false };
+  const e = { dataTransfer: { types, items: [], files: [], getData: () => '' }, target, relatedTarget: null, defaultPrevented: false };
   e.preventDefault = () => { e.defaultPrevented = true; };
   return e;
 };
@@ -182,11 +182,12 @@ test('a drop anywhere else stages, routes, and opens the one file', async () => 
 function withClipboard(result, { view = 'map' } = {}) {
   const { shell, toasts, win } = makeShell({ browserStore: { repo: '' }, win: { addEventListener: () => {} } });
   const focused = [];
+  win.io = { pasteItems: async () => {
+    if (result instanceof Error) throw result;
+    return result.length ? [{ kind: 'text', type: 'text/plain', text: 'ordinary text' }] : [];
+  } };
   win.StageIntake = {
-    takeClipboard: async () => {
-      if (result instanceof Error) throw result;
-      return { added: result, offers: [] };
-    },
+    takeFlavors: async () => ({ added: result, offers: [] }),
     focus: (it) => focused.push(it),
   };
   shell.view = view;

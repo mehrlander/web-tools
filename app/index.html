@@ -156,6 +156,8 @@
   await gh.load('kits/repo-proposals.js');
   // The owner/repo[@ref]:path grammar, and the inbox/outbox boxes built on it.
   await gh.load('kits/repo-address.js');
+  await gh.load('kits/persistence.js');
+  await gh.load('kits/file-correspondence.js');
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
@@ -302,10 +304,27 @@ html.dk-dragging main{transition:none !important}
                 text-primary text-lg font-medium">
       <i class="ph ph-tray-arrow-down text-3xl"></i>
       <div class="text-left leading-tight">
-        Drop to stage
+        <span x-text="selectedCorrespondence ? 'Drop to compare' : 'Drop to stage'"></span>
         <div class="text-sm font-normal text-base-content/60" x-text="_dragNote"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<div x-show="correspondencePending" x-cloak @keydown.escape.window="correspondencePending = null"
+     class="fixed inset-0 z-[80] bg-black/40 flex items-center justify-center p-4" role="dialog"
+     aria-modal="true" aria-label="Choose repository file for comparison">
+  <div class="bg-base-100 rounded-xl shadow-xl w-full max-w-xl p-5 flex flex-col gap-3">
+    <h2 class="text-lg font-semibold">Which repository file?</h2>
+    <button @click="chooseCorrespondence('selected')" class="btn btn-outline justify-start min-w-0 h-auto py-2 text-left">
+      <span class="min-w-0 break-all font-mono text-xs" x-text="correspondencePending?.selected ? correspondencePending.selected.repo + '@' + (correspondencePending.selected.ref || 'default') + ':' + correspondencePending.selected.path : ''"></span>
+      <span class="text-base-content/50">open file</span>
+    </button>
+    <button @click="chooseCorrespondence('declared')" class="btn btn-outline justify-start min-w-0 h-auto py-2 text-left">
+      <span class="min-w-0 break-all font-mono text-xs" x-text="correspondencePending?.declared ? correspondencePending.declared.repo + '@' + (correspondencePending.declared.ref || 'default') + ':' + correspondencePending.declared.path : ''"></span>
+      <span class="text-base-content/50"># @file</span>
+    </button>
+    <button @click="correspondencePending = null" class="btn btn-ghost self-end">Cancel</button>
   </div>
 </div>
 
@@ -5929,6 +5948,7 @@ function app(){ return {
   // path }) and a ?spath= deep link both have to seed as fully as a query does.
   goSearch(opts){
     if (opts && Object.values(opts).some(v => v != null && v !== '')) {
+      this.searchOpenFile = null;
       this.searchSeed = { q: opts.q || '', mode: opts.mode || '', repo: opts.repo || '',
                           ref: opts.ref || '', path: opts.path || '', file: opts.file || '' };
       if (this.searchSeen) document.dispatchEvent(new CustomEvent('web-tools:search-seed', { detail: this.searchSeed }));
@@ -6167,6 +6187,86 @@ function app(){ return {
   //
   // Nothing is awaited before takeClipboard: see the preload in init() for why.
   pasteBusy: false,
+  correspondencePending: null,
+  correspondenceFileError: '',
+  searchOpenFile: null,
+  get selectedCorrespondence(){
+    if (this.view !== 'search') return null;
+    if (this.searchOpenFile === false) return null;
+    const file = this.searchOpenFile || window.RepoAddress?.parse?.(this.searchSeed?.file || '');
+    if (!window.FileCorrespondence?.applies?.(file)) return null;
+    const store = Alpine.store('browser');
+    return { ...file, ref: file.ref || (store.repo === file.repo ? store.defaultRef || '' : '') };
+  },
+  correspondenceContext(){
+    const selected = this.selectedCorrespondence;
+    if (selected) return { repo: selected.repo, ref: selected.ref || '' };
+    const seed = this.view === 'search' ? this.searchSeed : null;
+    const store = Alpine.store('browser');
+    const repo = seed?.repo || store.repo;
+    return { repo, ref: seed?.ref || (store.repo === repo ? store.ref || '' : '') };
+  },
+  async takeCorrespondence(text, { name = '', source = 'paste' } = {}){
+    const K = window.FileCorrespondence;
+    if (!K || typeof text !== 'string' || !text.length) return false;
+    let path;
+    try { path = K.declaration(text); }
+    catch (e) { Alpine.store('toast')('warning', e.message, 'alert-error', 5000); return true; }
+    const selected = this.selectedCorrespondence;
+    if (!path && !selected) return false;
+    const declared = path ? { ...this.correspondenceContext(), path } : null;
+    if (declared && !K.applies(declared)) return false;
+    if (declared && selected && !K.same(declared, selected)) {
+      this.correspondencePending = { text, name, source, selected, declared };
+      return true;
+    }
+    await this.openCorrespondence(declared || selected, text, name, source);
+    return true;
+  },
+  async chooseCorrespondence(which){
+    const pending = this.correspondencePending;
+    this.correspondencePending = null;
+    if (pending) await this.openCorrespondence(pending[which], pending.text, pending.name, pending.source);
+  },
+  async openCorrespondence(target, text, name, source){
+    try {
+      const result = await window.FileCorrespondence.open({ target, text, name, source });
+      this.goStage();
+      Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
+                            result.saved ? 'alert-info' : 'alert-warning', 5000);
+    } catch (e) { this.correspondenceFailure(e); }
+  },
+  correspondenceFailure(e){
+    if (e?.retained) this.goStage();
+    const detail = e?.retained
+      ? e.pendingSaved
+        ? 'Submitted text is in Stage and browser-local unfinished submissions. Reopen Compare copy to retry or choose another file. '
+        : 'Submitted text is in Stage, but browser-local pending storage failed. '
+      : '';
+    Alpine.store('toast')('warning', 'Compare: ' + detail + (e?.message || e), 'alert-error', 8000);
+  },
+  async retryCorrespondence(submission, target = null){
+    try {
+      const result = await window.FileCorrespondence.retry(submission, target);
+      this.goStage();
+      Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
+                            result.saved ? 'alert-info' : 'alert-warning', 5000);
+      return true;
+    } catch (e) { this.correspondenceFailure(e); return false; }
+  },
+  async takeCorrespondenceFile(file, source = 'drop', encoding = 'auto'){
+    if (!file || (!this.selectedCorrespondence && !/\.(?:ps1|psm1|psd1|ps1xml|xaml|txt)$/i.test(file.name))) return false;
+    this.correspondenceFileError = '';
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const text = window.FileCorrespondence.decodeBytes(bytes, encoding);
+      return this.takeCorrespondence(text, { name: file.name, source });
+    } catch (e) {
+      this.correspondenceFileError = 'Could not read comparison file: ' + (e?.message || e);
+      Alpine.store('toast')('warning', this.correspondenceFileError, 'alert-error', 8000);
+      return true;
+    }
+  },
   // Fold in whatever the fab parked on another page, and open the Stage on it.
   // Quiet when nothing is parked, which is every ordinary boot; a stale or
   // unreadable payload is dropped by the kit rather than reported, since the
@@ -6197,7 +6297,12 @@ function app(){ return {
     const toast = Alpine.store('toast');
     this.pasteBusy = true;
     try {
-      const { added } = await window.StageIntake.takeClipboard();
+      if (!window.io?.pasteItems) throw new Error('the clipboard kit is not loaded yet');
+      const flavors = await window.io.pasteItems();
+      const plain = flavors.find(f => f.kind === 'text' && f.type === 'text/plain');
+      if (!flavors.some(f => f.kind === 'blob' || f.kind === 'file')
+          && plain && await this.takeCorrespondence(plain.text, { source: 'clipboard' })) return;
+      const { added } = await window.StageIntake.takeFlavors(flavors);
       if (!added.length) {
         // Reported as information, not as an error: see the note on the bench's
         // pasteIn(), which this is the other trigger for. Tapping Paste with an
@@ -6213,8 +6318,7 @@ function app(){ return {
       }
     } catch (e) {
       toast('warning', 'Paste: ' + (e?.message || e), 'alert-error', 5000);
-    }
-    this.pasteBusy = false;
+    } finally { this.pasteBusy = false; }
   },
 
   // LEAVING THE VIEW LEAVES THE TAKEOVER OVER IT. Newly reachable, and newly a
@@ -6389,6 +6493,9 @@ function app(){ return {
       this._dragNote = '';
       if (e.defaultPrevented || !mine(e)) return;
       e.preventDefault();
+      const files = Array.from(e.dataTransfer.files || []);
+      if (files.length === 1 && await this.takeCorrespondenceFile(files[0])) return;
+      if (!files.length && await this.takeCorrespondence(e.dataTransfer.getData('text') || '', { source: 'drop' })) return;
       const added = await window.StageIntake.takeDrop(e.dataTransfer);
       if (!added.length) return;
       this.goStage();
@@ -6465,6 +6572,9 @@ function app(){ return {
       // getData on a DataTransfer consumes nothing, and this path ends in a
       // navigation with no bar to populate.
       if (await this.pasteRoute(cd)) return;
+      const files = Array.from(cd.files || []);
+      if (files.length === 1 && await this.takeCorrespondenceFile(files[0], 'paste')) return;
+      if (!files.length && await this.takeCorrespondence(cd.getData('text/plain') || '')) return;
       const { added } = await window.StageIntake.takePaste(cd);
       if (!added.length || onStage) return;
       // Off the Stage the paste is also a navigation, the way a drop is: it
