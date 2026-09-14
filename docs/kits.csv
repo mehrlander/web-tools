@@ -35,7 +35,7 @@ lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",2
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,2,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,717,no,no,11,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
-lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,12,yes
+lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
