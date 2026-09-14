@@ -21,6 +21,13 @@
      is the whole of it; without it those buttons are icons with nothing to
      say. The budget-drs app loads the same kit through its gh.load chain. -->
 <script src="../lib/kits/note.js"></script>
+<!-- The Layout view draws the Pivot's partition as a printed report. Its kit
+     reads window.esc, which vanilla-bundle carries and which a gh-boot page gets
+     first in the chain; this shell loads its scripts directly, so both are named
+     here. Without them the view says what it is missing rather than breaking,
+     and the other three views are unaffected. -->
+<script src="../lib/vanilla-bundle.js"></script>
+<script src="../lib/kits/report-layout.js"></script>
 </head>
 <body class="bg-base-100 min-h-screen p-4">
 

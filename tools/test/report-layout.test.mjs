@@ -124,3 +124,83 @@ test('the TSV export carries raw numbers, so a paste lands as numbers', () => {
   const grand = lines.find(l => l.startsWith('Grand Total'));
   assert.ok(grand.includes('\t67438000\t'), 'no thousands separator survives into the export');
 });
+
+// ---- fromPartition: the workbench's pivot tree, drawn as a report ----------
+//
+// The shapes below are transform-workbench.js's pvTree() output as its own code
+// documents it: a node carries {label, value, n, cells, children}, `cells` holds
+// only the column keys that node actually saw, and `partition` is true only for
+// sum and count. These are hand-built rather than driven through the component,
+// because what is under test is the adapter's reading of that contract.
+const node = (label, value, cells, children) =>
+  ({ label, value, n: 1, cells: cells || {}, children: children || [] });
+
+const PIVOT = {
+  partition: true,
+  colKeys: ['GOV · 2026', 'GOV · 2027', 'SEN · 2026', 'SEN · 2027'],
+  tree: node('Total', 300, { 'GOV · 2026': 100, 'GOV · 2027': 50, 'SEN · 2026': 100, 'SEN · 2027': 50 }, [
+    node('Comp', 200, { 'GOV · 2026': 100, 'SEN · 2026': 100 }, [
+      node('PEBB', 200, { 'GOV · 2026': 100, 'SEN · 2026': 100 }),
+    ]),
+    node('Other', 100, { 'GOV · 2027': 50, 'SEN · 2027': 50 }, [
+      node('LEOFF', 100, { 'GOV · 2027': 50, 'SEN · 2027': 50 }),
+    ]),
+  ]),
+};
+
+test('two column dimensions become a band over a period', () => {
+  const m = window.ReportLayout.fromPartition(PIVOT, { levels: ['group', 'item'], band: true });
+  assert.deepEqual(m.columns.map(c => [c.band, c.within, !!c.gapBefore]), [
+    ['GOV', '2026', false], ['GOV', '2027', false],
+    ['SEN', '2026', true], ['SEN', '2027', false],
+  ]);
+});
+
+test('one column dimension stays a flat header with no band', () => {
+  const flat = { ...PIVOT, colKeys: ['2026', '2027'] };
+  const m = window.ReportLayout.fromPartition(flat, { levels: ['group', 'item'], band: false });
+  assert.deepEqual(m.columns.map(c => c.band), ['', '']);
+  assert.ok(!window.ReportLayout.render(m, {}).includes('bg-neutral'),
+    'no band means no band header row is drawn at all');
+});
+
+test('a subtotal follows its block, and the root is the total', () => {
+  const m = window.ReportLayout.fromPartition(PIVOT, { levels: ['group', 'item'], band: true });
+  assert.deepEqual(m.rows.map(r => [r.kind, r.labels[r.labels.length - 1]]), [
+    ['item', 'PEBB'], ['subtotal', 'Comp Total'],
+    ['item', 'LEOFF'], ['subtotal', 'Other Total'],
+    ['total', 'Total'],
+  ]);
+  const k = keyIn(m, 'SEN', '2027');
+  assert.equal(m.rows.find(r => r.kind === 'total').values[k], 50);
+});
+
+test('a cell the node never saw stays absent, exactly as the pivot leaves it', () => {
+  const m = window.ReportLayout.fromPartition(PIVOT, { levels: ['group', 'item'], band: true });
+  const comp = m.rows.find(r => r.labels[0] === 'Comp Total');
+  assert.equal(comp.values[keyIn(m, 'GOV', '2026')], 100);
+  assert.equal(comp.values[keyIn(m, 'GOV', '2027')], undefined,
+    'the pivot recorded no cell there, so the report prints a blank and not a zero');
+});
+
+test('an aggregate that does not partition gets no subtotal rows', () => {
+  const avg = { ...PIVOT, partition: false };
+  const m = window.ReportLayout.fromPartition(avg, { levels: ['group', 'item'], band: true });
+  assert.equal(m.rows.filter(r => r.kind === 'subtotal').length, 0,
+    'under avg, min or max a parent is not the sum of its children');
+  assert.equal(m.partition, false, 'and the model says so, so a caller can report it');
+  assert.ok(m.rows.some(r => r.kind === 'item'), 'the items still print');
+});
+
+test('one row level means no subtotals, since each block would be its own leaf', () => {
+  const m = window.ReportLayout.fromPartition(PIVOT, { levels: ['group'], band: true });
+  assert.equal(m.rows.filter(r => r.kind === 'subtotal').length, 0);
+  assert.deepEqual(m.rows.filter(r => r.kind === 'item').map(r => r.labels[0]), ['Comp', 'Other']);
+});
+
+test('no column axis gives one column named for the aggregate', () => {
+  const none = { partition: true, colKeys: [], tree: PIVOT.tree };
+  const m = window.ReportLayout.fromPartition(none, { levels: ['group', 'item'], measureLabel: 'sum(amount)' });
+  assert.deepEqual(m.columns.map(c => c.within), ['sum(amount)']);
+  assert.equal(m.rows.find(r => r.kind === 'total').values[''], 300, 'the node value is the single cell');
+});

@@ -253,6 +253,7 @@ tools/render/scenarios/stage-transform-chip.mjs,"stages three transform-shaped i
 tools/render/scenarios/state-view.mjs,"Populate the State view for a screenshot: stub the registry reads with a current cache, a stale one, an unchecked one, and the buttonless entity index",tools/render/scenarios,280,driver,no,no,no
 tools/render/scenarios/subject-action-probe.mjs,"probe: can the shell invoke a toss subject's action closure, or only reach it",tools/render/scenarios,124,driver,no,no,no
 tools/render/scenarios/toss-fragment.mjs,prove toss-render hands a trailing #frag to the rendered page in both trust postures,tools/render/scenarios,96,driver,no,no,no
+tools/render/scenarios/transform-layout-view.mjs,"Drives the Transform page to the Layout view on a small budget extract, through the component's own ingest, run and view switch rather than by planting a model.",tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/xlsx-picker-load.mjs,"drive pages/xlsx-picker.html with a real workbook named by XLSX_FIXTURE, since the page's whole surface is downstream of one being open and a shot of the empty drop target proves nothing",tools/render/scenarios,47,driver,no,no,no
 tools/render/scenarios/xlsx-picker-overflow.mjs,horizontal-overflow probe for pages/xlsx-picker.html: the manifest table must scroll inside its own container rather than push the page sideways,tools/render/scenarios,16,driver,no,no,no
 tools/render/screenshot.mjs,the Chromium pixel render behind npm run shot; --script drives a scenario first,tools/render,259,npm:shot,yes,yes,yes
