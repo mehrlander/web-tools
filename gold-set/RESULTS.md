@@ -24,7 +24,26 @@ and neither opened workbook was saved.
 package check and both readers parsed it. Only Excel refused it, which is the
 entire argument for a check no sandbox can run.
 
-### Root cause, and what changed
+### Root cause, bisected in Excel
+
+A second run narrowed it in the application rather than by inference, which is
+why this section states an attribute rather than a theory:
+
+- The untouched source workbook opens without a prompt, so the rebuild
+  introduced it.
+- The cause is the two rebuilt table parts. Removing both tables resolves the
+  prompt; removing the connection part, or every grafted part, does not.
+- The operative attribute is `headerRowCount`. The source tables omit it, whose
+  OOXML default is `1`; the rebuilt tables both set `"0"`. Setting it back to
+  `"1"` in **both** tables makes the rebuilt `.xlsm` open cleanly, with its VBA
+  and connection parts still present. Changing either table alone, or changing
+  only `totalsRowShown`, still produced the prompt.
+
+That rules out the connections graft, which this session had flagged early as a
+suspicious correlate (`11.01` was the only file carrying it) and had not
+eliminated.
+
+### What changed
 
 The writer re-emitted both of that workbook's tables with `headerRowCount="0"`
 while keeping an `<autoFilter>` spanning the whole table range. Those cannot
@@ -44,13 +63,24 @@ as a plain range still carrying the connection's name.
   [`tools/test/xlsx-write.test.mjs`](../tools/test/xlsx-write.test.mjs) asserts
   it in both directions.
 
+  **The rule may be narrower than the fault.** It fires on `headerRowCount="0"`
+  *paired with an autoFilter*, because an autofilter's dropdowns need the header
+  row the table says it lacks, and both tables here carry one. Whether Excel
+  also refuses a headerless table with no autoFilter was not tested, and a
+  headerless table is otherwise legal, so the rule is deliberately not "any
+  `headerRowCount="0"` is wrong". If a case turns up that this misses, widen it
+  on that evidence.
+
 ### What is still unverified
 
-The contradiction is gone and the query wiring is restored, but nothing in the
-sandbox can open Excel, so **whether `11.01` now opens is untested**. It is also
-possible the repair prompt had a second cause this did not reach, since
-declining recovery leaves no repair log to read. If it is refused again, taking
-the recovery offer once and keeping the repair log would say which part Excel
-objects to, which is worth more than a second refusal.
+The graft restores the source's table parts whole, so `headerRowCount` is absent
+again and defaults to `1`, which is the state the bisect proved opens. It also
+restores `tableType="queryTable"` and the two `xl/queryTables/` parts, a
+separate fidelity loss the minimal one-attribute fix would have left in place.
+
+**Nothing in the sandbox can open Excel, so the rebuilt `11.01` is untested.**
+The bisect makes it very likely to open, since the operative attribute is
+corrected by construction. Data **refresh** through the restored query tables is
+a further question nobody has asked yet.
 
 Re-run and add a stanza above.
