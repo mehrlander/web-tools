@@ -82,6 +82,20 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
+// A checkout of another repo in this estate, beside this one. Returns the file
+// path when the sibling exists, is a git checkout, and holds the file; null
+// otherwise, so every caller falls through to its own rule. It never leaves the
+// parent directory: `rel` is resolved and then required to stay inside.
+function siblingFile(repoRoot, owner, name, rel) {
+  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name)) return null;
+  const root = path.resolve(repoRoot, '..', name);
+  if (root === path.resolve(repoRoot)) return null;
+  if (!existsSync(path.join(root, '.git'))) return null;
+  const fp = path.resolve(root, decodeURIComponent(rel));
+  if (fp !== root && !fp.startsWith(root + path.sep)) return null;
+  return existsSync(fp) && statSync(fp).isFile() ? fp : null;
+}
+
 function nodeFile(repoRoot, pkg, sub, esm, combine) {
   const dir = path.join(repoRoot, 'node_modules', pkg);
   if (sub) return path.join(dir, sub);
@@ -225,6 +239,36 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `gh ${rel}` };
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `MISS gh ${rel}` };
   }
+  // --- A SIBLING REPO in the same estate, served from its checkout. ---
+  // pages/shortcuts.html is the first page here whose data belongs to another
+  // repo: it reads shortcut-tools' catalog.json. Without this route a headless
+  // render of such a page shows chrome and an empty table, because the branch
+  // holding the data is not on any CDN yet and the two rules below would answer
+  // empty (jsDelivr) or let the request reach the real network (raw), which the
+  // sandbox refuses. The same reasoning as the two rules above: a --ref render
+  // must see the working tree, and a sibling checkout IS the working tree for
+  // the repo that owns the file.
+  {
+    const m = /^\/gh\/([^/@]+)\/([^/@]+)(?:@[^/]+)?\/(.+)$/.exec(u.pathname);
+    const sib = host === 'cdn.jsdelivr.net' && m ? siblingFile(repoRoot, m[1], m[2], m[3]) : null;
+    if (sib) return { kind: 'fulfill', body: readFileSync(sib), contentType: typeFor(sib),
+                      tag: `sibling ${m[2]}/${decodeURIComponent(m[3])}` };
+  }
+  {
+    const m = /^\/([^/]+)\/([^/]+)\/(.+)$/.exec(u.pathname);
+    if (host === 'raw.githubusercontent.com' && m) {
+      // <owner>/<repo>/<ref>/<path>, and a branch name carries slashes, so the
+      // ref cannot be found by counting segments. Try each split and take the
+      // first that names a file in the sibling.
+      const rest = m[3];
+      for (let i = rest.indexOf('/'); i >= 0; i = rest.indexOf('/', i + 1)) {
+        const sib = siblingFile(repoRoot, m[1], m[2], rest.slice(i + 1));
+        if (sib) return { kind: 'fulfill', body: readFileSync(sib), contentType: typeFor(sib),
+                          tag: `sibling ${m[2]}/${rest.slice(i + 1)}` };
+      }
+    }
+  }
+
   // Other /gh/ refs are third-party data (word lists, etc.) — not vendored.
   if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/gh/')) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
