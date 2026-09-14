@@ -501,6 +501,34 @@ test('two rebuilds of one workbook are byte-identical', async () => {
     'the rebuild is not reproducible, so its output cannot be regenerated in place of being stored');
 });
 
+// The invariant the gold set bought. Every other rule in verify() checks the
+// wiring BETWEEN parts; this is the first that looks inside one, because the
+// writer produced a table declaring no header row while still carrying an
+// autoFilter, every wiring rule passed, both readers parsed it, and Excel
+// refused the file. Asserted in both directions like the rest.
+test('verify catches a table that contradicts itself', async () => {
+  const { bytes: good } = await W.rebuild(bytes, ['Source Data', 'Report']);
+  const z = await JSZip.loadAsync(good);
+
+  const table = (extra) => '<?xml version="1.0"?>'
+    + `<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="1" name="T" displayName="T" ref="A1:B4"${extra}>`
+    + '<autoFilter ref="A1:B4"/><tableColumns count="2">'
+    + '<tableColumn id="1" name="a"/><tableColumn id="2" name="b"/></tableColumns></table>';
+
+  // A header row and an autoFilter agree, so this one passes.
+  z.file('xl/tables/table1.xml', table(' headerRowCount="1"'));
+  const ok = await W.verify(await z.generateAsync({ type: 'uint8array' }));
+  assert.ok(!ok.problems.some(p => p.kind === 'self-contradiction'),
+    'a table with a header row and an autoFilter is not a contradiction: ' + JSON.stringify(ok.problems));
+
+  // No header row and an autoFilter cannot both be true.
+  z.file('xl/tables/table1.xml', table(' headerRowCount="0"'));
+  const bad = await W.verify(await z.generateAsync({ type: 'uint8array' }));
+  assert.equal(bad.ok, false);
+  assert.ok(bad.problems.some(p => p.kind === 'self-contradiction' && /autoFilter/.test(p.message)),
+    JSON.stringify(bad.problems));
+});
+
 test('rebuild refuses to write a workbook with no sheets', async () => {
   await assert.rejects(() => W.rebuild(bytes, []), /keep at least one sheet/);
 });
