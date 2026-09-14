@@ -487,6 +487,20 @@ test('verify catches a package it should reject', async () => {
     JSON.stringify(orphanPart.problems));
 });
 
+// Determinism is what lets the gold set be REGENERATED rather than committed:
+// a derived artifact is only safe to rebuild on demand when its builder is
+// deterministic, and an .xlsx that drifts every run forces the binary into a
+// repository instead. Asserted directly rather than inferred from one run,
+// because the failure it guards is silent. Before the fix, two rebuilds a
+// second apart differed in 31 of 34 zip entries with the content of all 34
+// identical: JSZip stamps `new Date()` on every entry it is handed.
+test('two rebuilds of one workbook are byte-identical', async () => {
+  const a = await W.rebuild(bytes, ['Source Data', 'Report']);
+  const b = await W.rebuild(bytes, ['Source Data', 'Report']);
+  assert.equal(Buffer.compare(Buffer.from(a.bytes), Buffer.from(b.bytes)), 0,
+    'the rebuild is not reproducible, so its output cannot be regenerated in place of being stored');
+});
+
 test('rebuild refuses to write a workbook with no sheets', async () => {
   await assert.rejects(() => W.rebuild(bytes, []), /keep at least one sheet/);
 });

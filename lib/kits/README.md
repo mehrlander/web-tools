@@ -1231,7 +1231,12 @@ flagged only when something else goes.
 
 `pages/xlsx-picker.html` is the interface over it, through
 `alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
-a directory of real workbooks.
+a directory of real workbooks. **`npm run gold-set`** is that sweep aimed at the
+OFM budget forms in the sibling `home` checkout, writing rebuilt workbooks and
+their manifests to a gitignored `gold-set/` for someone to open in Excel. The
+output is regenerated rather than committed because it is byte-reproducible
+(held by the suite) off inputs that are themselves committed, which is the
+estate's condition for keeping a derived artifact out of the tree.
 
 ### docx.js
 
