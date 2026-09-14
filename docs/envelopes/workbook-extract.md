@@ -204,7 +204,8 @@ viewer's Structure mode carries every sheet a reception names,
 `XlsxExtract.receptions(catalog, declared)` returns the pick (every sheet not
 omitted, with the readings it has any of), the Extract tab opens with that
 pick ticked and the reception's cap, and a band names the reception, its repo,
-and the destination. **Stage for `<repo>`** puts the envelope on the stage as a
+and the destination, with no sentence beside them: the unticked sheets say
+what is left behind. **Stage for `<repo>`** puts the envelope on the stage as a
 text file under the reception's name, takes the dropped workbook off the stage
 (a Send carries every staged item, and the bytes are what the reception exists
 to keep back), aims the stage at `repo:dest`, and switches to it; Send is still

@@ -68,4 +68,3 @@ receptions[].readings,array,show-repo,,no,"Which per-sheet readings to take, by 
 receptions[].cap,number,show-repo,,no,"Row cap per item. Omit it for no cut, the default: a landed extract is a file rather than a link."
 receptions[].dest,string,show-repo,,no,"Repo-root-relative folder the stage is aimed at. May carry {date} (the UTC day) and {stem} (the workbook's name without its extension, filename characters only)."
 receptions[].file,string,show-repo,,no,"The staged file's name, same placeholders. Defaults to {stem}.extract.json."
-receptions[].note,string,show-repo,,no,One line shown on the reception band.
