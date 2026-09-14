@@ -106,6 +106,21 @@ test('the longest declared prefix wins, so a nested view resolves to itself', ()
   assert.equal(out[0].view, 'inner');
 });
 
+// The mark rides the TARGET, so the three strips that draw these chips read one
+// value instead of each typing the character. It is the chat convention's own
+// glyph (SURFACING.md writes a render link as 🥏), which is the whole reason
+// for carrying it rather than leaving every template on ph-disc.
+test('every target carries the frisbee, framed or not', () => {
+  const out = G.pageTargets(REPO, BRANCH, [
+    'projects/budget-drs/submittal/submittal.html',
+    'projects/budget-drs/app/view/app.html',
+    'pages/loose.html',
+  ], SHOWING);
+  assert.equal(out.length, 3);
+  assert.deepEqual([...new Set(out.map(t => t.mark))], [G.MARK]);
+  assert.equal(G.MARK, '\u{1F94F}');
+});
+
 // The ref is a BRANCH and branches here always contain a slash, which is the
 // thing that makes the choice safe to make: git forbids ':' in a ref name, so
 // the toss grammar splits the address on the colon and carries the ref whole.
