@@ -5,24 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shortcut run test</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.45; }
-    a.run { display: block; padding: 0.9rem 1rem; margin: 0.6rem 0; background: #0a84ff; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600; }
-    a.run:active { opacity: 0.85; }
-    code { font-size: 0.85em; word-break: break-all; }
+    body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    p { margin: 0.75rem 0; }
     .note { color: #555; font-size: 0.95rem; }
+    code { font-size: 0.85em; word-break: break-all; }
   </style>
 </head>
 <body>
   <h1>Shortcut run test</h1>
-  <p class="note">Open in <strong>Safari</strong> (or another browser that hands off custom schemes). Tap a blue button. Needs the named shortcut already installed.</p>
+  <p class="note">Best opened <strong>top-level in Safari</strong> (GitHub Pages URL), not inside toss-render’s iframe — a sandboxed frame often blocks <code>shortcuts://</code> handoff. Plain links only; no button styling.</p>
 
-  <p><a class="run" href="shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi">📲 Speak-Text (“hi”)</a></p>
-  <p><a class="run" href="shortcuts://run-shortcut?name=Speak-Text">📲 Speak-Text (no input)</a></p>
-  <p><a class="run" href="shortcuts://run-shortcut?name=Describe-Input&amp;input=text&amp;text=ping">📲 Describe-Input (“ping”)</a></p>
+  <p>📲 <a href="shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi" target="_blank" rel="noopener">Speak-Text (“hi”)</a></p>
+  <p>📲 <a href="shortcuts://run-shortcut?name=Speak-Text" target="_blank" rel="noopener">Speak-Text (no input)</a></p>
+  <p>📲 <a href="shortcuts://run-shortcut?name=Describe-Input&amp;input=text&amp;text=ping" target="_blank" rel="noopener">Describe-Input (“ping”)</a></p>
 
-  <h2>Raw URLs</h2>
+  <p class="note">Same links without <code>target=_blank</code>:</p>
+  <p><a href="shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi">Speak-Text (“hi”) same-frame</a></p>
+
+  <h2>Raw</h2>
   <p><code>shortcuts://run-shortcut?name=Speak-Text&amp;input=text&amp;text=hi</code></p>
-  <p><code>shortcuts://run-shortcut?name=Speak-Text</code></p>
-  <p><code>shortcuts://run-shortcut?name=Describe-Input&amp;input=text&amp;text=ping</code></p>
 </body>
 </html>
