@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { webcrypto } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import { repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
 
@@ -25,13 +25,14 @@ function harness(storage = new Map()) {
   win.crypto = webcrypto;
   win.Alpine = { store: name => name === 'browser' ? browserStore : (...args) => toasts.push(args) };
   let failLookup = false;
+  let repositoryText = 'same\n';
   win.GH = class {
     constructor(opts) { this.repo = opts.repo; calls.push(['repo', opts.repo]); }
     async req(p) { calls.push(['commits', p]); return [{ sha: 'a'.repeat(40) }]; }
     async get(p) {
       calls.push(['get', p, this.ref]);
       if (failLookup) throw new Error('Repository file lookup failed');
-      return { text: 'same\n', sha: 'b'.repeat(40) };
+      return { text: repositoryText, sha: 'b'.repeat(40) };
     }
   };
   win.persistence = { collection: name => ({
@@ -60,7 +61,8 @@ function harness(storage = new Map()) {
   new Function('window', source)(win);
   shell.syncUrl = () => {};
   return { shell, win, saved, unfinished, calls, browserStore, toasts,
-    setLookupFailure: value => { failLookup = value; }, storage };
+    setLookupFailure: value => { failLookup = value; },
+    setRepositoryText: value => { repositoryText = value; }, storage };
 }
 
 test('declaration accepts repository-relative PowerShell paths and rejects local paths', () => {
@@ -86,17 +88,53 @@ test('a check pins the revision, holds exact incoming text, and persists an hone
   assert.equal(saved[0].blobSha, 'b'.repeat(40));
   assert.equal(saved[0].content, 'same\n');
   assert.equal(saved[0].exact, true);
+  assert.equal(saved[0].lineEndingsOnly, false);
+  assert.equal(saved[0].observation, 'Submitted text matched this repository revision exactly.');
   assert.match(saved[0].installation, /not inspected/);
   assert.match(saved[0].checkedAt, /^\d{4}-\d\d-\d\dT/);
   assert.equal(saved[0].incomingSha256.length, 64);
   assert.deepEqual(calls.at(-1), ['get', target.path, 'a'.repeat(40)]);
   assert.equal(browserStore.stage[0].text, 'same\n');
   assert.equal(browserStore.stage[1].correspondenceText, 'same\n');
+  assert.equal(browserStore.stageFocus, '', 'successful intake goes straight to the comparison');
   assert.deepEqual(browserStore.stageCompare, { a: 'mehrlander/home@' + 'a'.repeat(40) + ':' + target.path, b: 'local:1' });
   const before = saved.length;
   await win.FileCorrespondence.reopen(saved[0]);
   assert.equal(saved.length, before, 'reopening a saved check does not create a new dated check');
   assert.equal(browserStore.stage.filter(it => !it.local).length, 1, 'reopening reuses the repository item');
+});
+
+test('PowerShell check distinguishes CRLF-only changes without altering submitted text or its hash', async () => {
+  const { win, saved, browserStore, setRepositoryText } = harness();
+  const repository = 'function Get-Thing {\n  "é"\n}\n';
+  const submitted = repository.replace(/\n/g, '\r\n');
+  setRepositoryText(repository);
+  await win.FileCorrespondence.open({ target, text: submitted, name: 'Forms.psm1' });
+  assert.equal(saved[0].exact, false);
+  assert.equal(saved[0].lineEndingsOnly, true);
+  assert.equal(saved[0].observation, 'Submitted text differed only in line endings from this repository revision.');
+  assert.equal(saved[0].content, submitted);
+  assert.equal(saved[0].incomingSha256, createHash('sha256').update(submitted, 'utf8').digest('hex'));
+  assert.notEqual(saved[0].incomingSha256, createHash('sha256').update(repository, 'utf8').digest('hex'));
+  assert.equal(browserStore.stage.find(it => it.local).text, submitted);
+  assert.equal(browserStore.stage.find(it => !it.local).correspondenceText, repository);
+  assert.equal((await win.FileCorrespondence.history(target))[0].lineEndingsOnly, true);
+});
+
+test('XAML check recognizes CR-only line endings, while changed markup still differs', async () => {
+  const { win, saved, setRepositoryText } = harness();
+  const repository = '<Window>\r\n  <TextBlock />\r\n</Window>\r\n';
+  const submitted = repository.replace(/\r\n/g, '\r');
+  setRepositoryText(repository);
+  await win.FileCorrespondence.open({ target: form, text: submitted, name: 'Bookmarks.xaml' });
+  assert.equal(saved[0].exact, false);
+  assert.equal(saved[0].lineEndingsOnly, true);
+  assert.equal(saved[0].content, submitted);
+  assert.equal(saved[0].incomingSha256, createHash('sha256').update(submitted, 'utf8').digest('hex'));
+  await win.FileCorrespondence.open({ target: form, text: submitted.replace('TextBlock', 'Button'), name: 'changed.xaml' });
+  assert.equal(saved[1].exact, false);
+  assert.equal(saved[1].lineEndingsOnly, false);
+  assert.equal(saved[1].observation, 'Submitted text differed from this repository revision.');
 });
 
 test('repeated checks reuse one staged repository key and keep distinct submitted copies and dates', async () => {
@@ -159,6 +197,7 @@ test('lookup failure retains an app-wide submission across reload for retry or r
   assert.equal(first.unfinished[0].path, target.path);
   assert.match(first.unfinished[0].lastError, /lookup failed/);
   assert.equal(first.browserStore.stage[0].text, submitted);
+  assert.equal(first.browserStore.stageFocus, 'local:1', 'failed lookup opens the retained copy');
   assert.equal(first.shell.view, 'stage');
   assert.ok(first.toasts.some(t => /unfinished submissions/.test(t.msg || t[1] || '')));
   const second = harness(first.storage);

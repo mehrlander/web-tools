@@ -545,6 +545,9 @@ An undecodable file produces an error rather than disappearing.
 The incoming text is held intact and compared in the existing Stage reader
 against a pinned repository revision. Repeating a check reuses that Stage
 repository item while keeping each submitted copy and dated check separate.
+For a correspondence pair, Stage normalizes CRLF and CR to LF in its displayed
+diff. A check labels a difference caused only by line endings; its exact-match
+observation remains strict, and the submitted text and hash stay unchanged.
 The check stores the submitted text, path, repository, branch, revision and
 hashes in browser IndexedDB; the Files panel can reopen it or export its JSON.
 If repository lookup fails, the submission remains in Stage and in a
