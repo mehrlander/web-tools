@@ -29,7 +29,7 @@ lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",478,no,no,10,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",380,no,no,10,yes
-lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",216,no,yes,19,yes
+lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",216,no,yes,20,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,5,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,2,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,717,no,no,11,yes
@@ -76,4 +76,5 @@ lib/kits/wring.js,wring,"single-document template induction: give it one documen
 lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",102,no,no,2,yes
 lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",351,no,no,4,yes
 lib/kits/wsl.js,wsl,browser-facing WSL kit.,299,no,no,3,yes
-lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2282,no,yes,4,yes
+lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,476,no,no,1,yes
+lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2295,no,yes,5,yes
