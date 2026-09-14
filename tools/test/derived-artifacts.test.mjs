@@ -73,6 +73,17 @@ test('the kits registry matches lib/kits/', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'kits-index --check failed');
 });
 
+test('docs/examples/allotment-ledger.xlsx matches its generator', () => {
+  // A .xlsx is a ZIP and a diff cannot show what changed inside one, so the
+  // check is the only thing standing between the committed sample and a
+  // generator that has moved on. It only works because every zip entry is
+  // written with a pinned date; JSZip stamps `new Date()` by default.
+  const r = check(['tools/build/sample-workbook.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'sample-workbook --check failed');
+});
+
+
+
 test('docs/themes.csv matches the corpus the theme graph is read from', () => {
   const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.csv', '--check'],
                       { cwd: repoRoot, encoding: 'utf8' });

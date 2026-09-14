@@ -29,7 +29,7 @@ test('repoProjects: absent, non-array, or empty config yields no rows', () => {
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [], 'a bare string field is not a list');
 });
 
-test('repoProjects: string and object entries normalize to {path, label, board, inbox}', () => {
+test('repoProjects: string and object entries normalize to {path, label, board, inbox, installation}', () => {
   const { shell } = makeShell();
   shell.estateConfigs = {
     'mehrlander/home': {
@@ -43,11 +43,11 @@ test('repoProjects: string and object entries normalize to {path, label, board, 
     },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'), [
-    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', inbox: null },
+    { path: 'news', label: 'news', board: 'news/tracker/board.md', landing: '', inbox: null, installation: '' },
     { path: 'projects/budget-drs', label: 'budget-drs',
-      board: 'projects/budget-drs/tracker/board.md', landing: '', inbox: null },
+      board: 'projects/budget-drs/tracker/board.md', landing: '', inbox: null, installation: '' },
     { path: 'projects/budget-wa', label: 'WA budget',
-      board: 'projects/budget-wa/tracker/board.md', landing: '', inbox: null },
+      board: 'projects/budget-wa/tracker/board.md', landing: '', inbox: null, installation: '' },
   ]);
 });
 
@@ -97,7 +97,7 @@ test('repoProjects: junk entries drop instead of throwing', () => {
     'mehrlander/home': { projects: [null, 42, {}, { path: '' }, { label: 'no path' }, 'ok'] },
   };
   assert.deepEqual(shell.repoProjects('mehrlander/home'),
-    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', inbox: null }]);
+    [{ path: 'ok', label: 'ok', board: 'ok/tracker/board.md', landing: '', inbox: null, installation: '' }]);
 });
 
 // The workspace's own tray, and the reason it is DECLARED where `board` above
@@ -175,12 +175,12 @@ test('the open project resolves to its declared entry, or a derived one', () => 
   shell.loadProjectReadme = async () => {};
   shell.goProject('projects/a');
   assert.deepEqual(shell.project, { path: 'projects/a', label: 'Alpha',
-                                    board: 'projects/a/tracker/board.md', landing: '', inbox: null });
+                                    board: 'projects/a/tracker/board.md', landing: '', inbox: null, installation: '' });
   // A deep link may name a workspace the manifest has not caught up with; the
   // view still opens, on the conventions the path itself implies.
   shell.goProject('projects/unlisted');
   assert.deepEqual(shell.project, { path: 'projects/unlisted', label: 'unlisted',
-                                    board: 'projects/unlisted/tracker/board.md', landing: '', inbox: null });
+                                    board: 'projects/unlisted/tracker/board.md', landing: '', inbox: null, installation: '' });
 });
 
 test('repoProjects prefers the OPEN repo\'s live manifest over the estate cache', () => {
@@ -613,4 +613,60 @@ test('the two sidebar project lists are sized the same', () => {
   // The negative margin is gone with the size difference that needed it: at
   // equal row heights there is no slack to close and the pull would crowd.
   assert.doesNotMatch(page, /-mt-1 ml-4 pl-2/, 'the project block pulls up again');
+});
+
+// ── The Installation pill ────────────────────────────────────────────────────
+// A workspace whose manifest entry names an installation.json gets a fifth
+// pill; its selected file rides the address as &item= and takes a page-wide
+// paste or drop the way an open Files result does. Declared, never derived:
+// the pill writes to the ledger that file names.
+
+test('repoProjects: `installation` is carried root-relative, and only when declared', () => {
+  const { shell } = makeShell();
+  shell.estateConfigs = { 'mehrlander/home': { projects: [
+    { path: 'projects/wps', installation: '/projects/wps/data/installation.json/' },
+    { path: 'projects/a', installation: 7 },
+    { path: 'projects/b' },
+  ] } };
+  assert.deepEqual(shell.repoProjects('mehrlander/home').map(p => p.installation),
+    ['projects/wps/data/installation.json', '', '']);
+});
+
+test('goProject accepts the installation pill and its item, and stamps both', () => {
+  const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', installation: 'projects/wps/data/installation.json' }] } };
+  shell.refreshProjectPane = () => {};
+  shell.goProject('projects/wps', 'installation', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  assert.equal(shell.projectTab, 'installation');
+  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
+  const p = shell.deepLinkParams(new URLSearchParams());
+  assert.equal(p.get('view'), 'project');
+  assert.equal(p.get('tab'), 'installation');
+  assert.equal(p.get('item'), 'projects/wps/app/Modules/Forms/Forms.psm1');
+  // The pill's file is the page-wide correspondence target, at the browsed ref
+  // when it is not the default, and only for a file the comparison can take.
+  shell.view = 'project';
+  win.FileCorrespondence = { applies: t => /\.(ps1|psm1|xaml)$/.test(t.path) };
+  assert.deepEqual(shell.selectedCorrespondence, { repo: 'mehrlander/home', path: 'projects/wps/app/Modules/Forms/Forms.psm1', ref: '' });
+  browserStore.ref = 'feat/x';
+  assert.equal(shell.selectedCorrespondence.ref, 'feat/x');
+  shell.installationItem = 'projects/wps/app/Modules/ISE/Tools/Buttons.xml';
+  assert.equal(shell.selectedCorrespondence, null, 'an XML tool file is not a comparison target');
+  shell.installationItem = 'projects/wps/app/Modules/Forms/Forms.psm1';
+  // Leaving for another workspace clears the item; a bare tab stamps none.
+  shell.goProject('projects/other', 'docs');
+  assert.equal(shell.installationItem, '');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+  // Switching pills within the workspace keeps the tab out of the stamp when
+  // it is not installation, so a Docs link does not carry an item.
+  shell.goProject('projects/wps', 'installation', 'x.ps1');
+  shell.goProjectTab('docs');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+});
+
+test('the pill and its body are wired into the pane, keyed per workspace and ref', () => {
+  assert.match(page, /x-show="project\.installation" @click="goProjectTab\('installation'\)"/);
+  assert.match(page, /x-for="p in \(projectTab==='installation' && project\.installation \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
+  assert.match(page, /x-data="installationView\(p\)"/);
+  assert.match(page, /gh\.load\('kits\/installation\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
 });

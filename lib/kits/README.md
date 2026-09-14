@@ -1157,6 +1157,16 @@ document: it is what the viewer's `sheet` mode draws, and what makes an OFM
 budget form arrive as a form rather than as a list of strings. Neither touches
 the DOM; a caller turns a style record into whatever it draws with.
 
+**A formula arrives as its stored text since 2026-09-14**, not as a boolean. A
+row's `formulas` map holds the formula as the file writes it (no leading `=`,
+which is Excel's UI rather than the stored string) for every computed cell that
+has one, and `true` where the file stored none: that is a SHARED formula's
+followers, which carry `<f t="shared" si="0"/>` and nothing else. Recovering
+those means rewriting relative references per cell, so the honest answer is
+"computed, text not stored here". Both are truthy, which is the contract
+`profileColumns` already read when counting a computed cell apart from an
+entered one.
+
 `analyze(parts)` — the pure entry point — takes `[[path, xmlString], ...]` or
 `{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
 testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
@@ -1167,6 +1177,163 @@ writers. The sheet-order limitation this paragraph used to carry alongside it
 is gone: named ranges and calc-chain entries resolve through `workbook.xml`'s
 `<sheets>` and its rels, so they survive a reorder or a rename. See
 `kits/demos/xlsx.html` for live examples.
+
+### xlsx-extract.js
+
+**Pick part of a workbook and carry the answer away.** `xlsx.js` reads every
+part and returns plain objects; this kit is the selection over that reading, and
+nothing more. It writes no file back, reconstructs no workbook, and renders
+nothing. It reads `window.xlsxKit` at call time, so load that first.
+
+The current picker is **sheet-centered**. Each sheet has its own selected
+readings, and each pivot, cache, connection, or Power Query section is a
+separate choice. The original cross-product API remains available for callers
+that use it. The full table of kinds and their limits is in
+[`docs/envelopes/workbook-extract.md`](../../docs/envelopes/workbook-extract.md).
+
+```js
+XlsxExtract.catalog(result)         // sheets with per-kind counts; individually
+                                    //   addressable modeled objects, grouped
+                                    //   by associated sheet where known
+XlsxExtract.extractSelected(result, pick, opts)
+                                    // pick: { sheets: [{ name, kinds: [id…] }],
+                                    //   objects: [id…], headerRow }
+                                    // -> a `workbook-extract/2` envelope
+XlsxExtract.survey(result)          // the picker's whole input: per sheet, a
+                                    //   count for each of the eight sheet
+                                    //   kinds, plus the four workbook counts
+                                    //   once. A zero is REPORTED, not omitted:
+                                    //   a cell that disappears when empty
+                                    //   cannot say "no pivots here"
+XlsxExtract.extract(result, pick, opts)
+                                    // legacy cross-product selector (v1)
+                                    // pick: { sheets: [name…], kinds: [id…],
+                                    //   headerRow }. No sheets means every
+                                    //   sheet; no kinds means nothing, since
+                                    //   guessing "all" on an empty selection
+                                    //   hands over a workbook nobody asked for
+                                    // opts: { source, maxRows, title, note, now }
+                                    // -> a `workbook-extract/1` envelope
+XlsxExtract.profileRows(sheet, xl, headerRow)
+                                    // the ONE tabular rendering of
+                                    //   profileColumns. The viewer's Structure
+                                    //   mode reads it too, so a column cannot
+                                    //   be `Role` in one table and `role` in
+                                    //   the other
+XlsxExtract.receptions(catalog, declared)
+                                    // a receiving repo's standing pick, from
+                                    //   its .web-tools.json `receptions`:
+                                    //   [{ reception, pick, omitted, cap }]
+                                    //   for each declaration whose match.sheets
+                                    //   are all present. Nothing about any one
+                                    //   workbook lives here; the receiver says
+XlsxExtract.receptionTarget(reception, source, now)
+                                    // -> { dest, file } with {date} and {stem}
+                                    //   filled in
+XlsxExtract.KINDS                   // the catalogue: { id, label, scope, view,
+                                    //   gloss, count, parts }
+```
+
+One kind is not a table: `cells` is the serialized-workbook shape, one object
+per sheet with every cell as `{Address, Formula, Value}`, which is what home's
+PowerShell exporter writes and its fund view's reader consumes. It writes a
+shared-formula follower as `=[fill N] <master text>`, which is why `xlsx.js`
+now keeps each cell's shared index and each sheet's master texts. Never cut.
+
+**The answer is a data-view envelope**, so it renders in
+[`pages/data-view.html`](../../pages/data-view.html) with no new page and no
+change to [`data-payload.js`](data-payload.js): that reader's discriminator is
+structural rather than a `kind` check, so a superset kind is already admitted.
+What the profile adds is the one thing data-view has no slot for, the provenance
+of the pick: which workbook, at which ref, what was taken (`picked`) and what
+was left (`left`). Per item, `rows` against `total` plus `truncated` say whether
+that item is short of what the file holds, which is `pivotRecords`' habit and
+the reason this kit keeps it; the same fact is derived into the item's `note`,
+so today's data-view reader shows the cut without knowing this format.
+
+**Where a survey count and an extract's rows would disagree, the count is
+wrong,** and `tools/test/xlsx-extract.test.mjs` holds them equal per kind: a
+picker showing 400 beside an item holding 12 is a lie about the file rather than
+about the cut.
+
+### xlsx-write.js
+
+The write half of `xlsx.js`, which reads a workbook and never writes one. It is
+also the sibling of `xlsx-extract.js` above, and the pair divides cleanly: both
+are a selection over one reading, but extract carries the answer away as data
+and reconstructs no workbook, while this one rebuilds the package and hands back
+a file Excel opens.
+`rebuild(bytes, keepNames)` returns a new package holding only the sheets
+named, plus a manifest saying what survived. `plan(read, partNames, keep)` is
+the pure, synchronous half: it answers what keeping a given set implies before
+anything is written, which is what lets a picker show the consequences of a tick
+rather than the consequences of a rebuild.
+
+```js
+await gh.load('kits/xlsx.js');          // the reader; this kit refuses without it
+await gh.load('kits/xlsx-write.js');
+const { bytes, manifest, suffix, mime } =
+  await window.xlsxWriteKit.rebuild(file, ['Summary', 'Detail']);
+window.xlsxWriteKit.manifestText(manifest)     // the same manifest as markdown
+await window.xlsxWriteKit.verify(bytes)        // { ok, problems, parts, sheets }
+```
+
+**Reproduction, not subtraction, and the difference is the point.** The faithful
+way to drop a sheet is to edit the package in place: delete the parts that sheet
+owns and patch `workbook.xml`, `[Content_Types].xml` and the rels around the
+hole, leaving everything untouched byte-intact. This kit does the other thing.
+It loads the source into ExcelJS, drops the sheets, and lets the writer re-emit
+every part, so what survives is what the writer models. That was chosen to find
+out what reproduction costs on real files, and the manifest is where the cost is
+declared rather than discovered.
+
+**ExcelJS rather than SheetJS, measured.** Round-tripping three OFM budget forms
+and re-reading each output with `xlsx.js`: ExcelJS keeps 17144/17148, 1640/1642
+and 458/502 cells where SheetJS keeps 13872, 327 and 52, and 49/56 cell format
+records where SheetJS keeps 3. SheetJS's community build writes no cell styles
+and drops the empty-but-formatted cells a blank form is mostly made of; its
+output was also 2.0 MB from a 56 KB source, since it emits 32,768 column
+definitions. SheetJS earns its place in the check suite instead, as the
+independent reader over the output.
+
+**The graft is what makes a checkbox list honest.** A writer models no VBA, no
+pivot cache, no `customXml` and no workbook connections, so offering those as
+options with only a writer behind them would be offering inert controls. After
+the base package is written, the source's own bytes for those parts are copied
+in with JSZip, along with the source's own content-type and relationship
+*entries*, taken verbatim rather than rebuilt from a hardcoded table of type
+URIs. A graft that does not take is reported and skipped, and the workbook still
+opens.
+
+**What it will not carry, in full.** Per-sheet `printerSettings`; hyperlinks
+where two share an anchor cell or one carries only a location fragment (the
+writer models a link as a property of a cell); the *scope* of a sheet-local
+defined name, since every name is emitted workbook-global; and `calcChain.xml`,
+which goes deliberately because it is a recalculation cache whose every index
+moves when a sheet goes. `fullCalcOnLoad` is set in its place. `workbookView`'s
+`activeTab` is clamped rather than dropped, which is the one index trap that
+does not fix itself.
+
+**And what it carries that a count says it lost.** Across thirteen real forms
+every cell the writer did not re-emit was one of two things: an empty cell whose
+style record is the package default in every field, or text inside a merged
+range but not at its top-left, which Excel does not display and a formula can
+still read. `manifest.cellLoss` separates those from real loss, so the count is
+flagged only when something else goes.
+
+`pages/xlsx-picker.html` is the interface over it, through
+`alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
+a directory of real workbooks. **`npm run gold-set`** builds the committed
+[`gold-set/`](../../gold-set/): three chosen workbooks, rebuilt with a sheet
+dropped, for someone to open in Excel. The selection is declared in
+`scripts/gold-set.mjs` with a reason per file, and the script refuses any
+selection whose kept sheets still read a dropped one, following the defined-name
+hop that these forms actually point through. The folder is committed rather than
+regenerated on demand because the sources are in a private repo, so a session
+with only this one cannot rebuild them and a gitignored copy reaches nobody.
+What makes storing it safe is that the rebuild is byte-reproducible, held by the
+suite, so `--check` diffs exactly when the kit changes what it writes.
+
 
 ### docx.js
 

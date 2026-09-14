@@ -530,6 +530,52 @@ the header nav the way a repo shows landing/atlas/files/…:
 - **Lists** — the two personal piles, To-do over Jot, in one pane rather than
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
 - **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
+
+For a PowerShell or XAML file open in Files, **Compare copy** accepts pasted
+text, a dropped file, or a chosen file (including on a phone). App-wide paste
+and drop use the open file as context. A
+`# @file projects/wps/app/Modules/Forms/Forms.psm1` line instead names a
+repository-relative PowerShell file; the app supplies the current repository
+and branch. XAML uses the selected file. When a declaration conflicts with the
+open file, the user chooses which association to use. Paste inside an editing
+field remains native. Auto file decoding accepts UTF-8 and BOM-marked UTF-16;
+the file chooser also offers explicit UTF-16 and Windows-1252 for older files.
+An undecodable file produces an error rather than disappearing.
+
+The incoming text is held intact and compared in the existing Stage reader
+against a pinned repository revision. Repeating a check reuses that Stage
+repository item while keeping each submitted copy and dated check separate.
+For a correspondence pair, Stage normalizes CRLF and CR to LF in its displayed
+diff. A check labels a difference caused only by line endings; its exact-match
+observation remains strict, and the submitted text and hash stay unchanged.
+The check stores the submitted text, path, repository, branch, revision and
+hashes in browser IndexedDB; the Files panel can reopen it or export its JSON.
+If repository lookup fails, the submission remains in Stage and in a
+browser-local unfinished list in **Compare copy**. From there, retry its
+address or associate it with the currently open file. A match describes only
+the submitted text at that revision, not the saved file on another computer.
+Clearing browser site data removes checks and unfinished submissions, so
+export checks for a backup. Any transfer to or from a separate installation
+remains manual.
+
+A workspace whose manifest entry carries `installation` (a repo-root-relative
+`installation.json`; see [manifest-fields.csv](manifest-fields.csv)) gets an
+**Installation** pill on its project view (`?view=project&project=<path>&tab=installation`,
+with the selected file as `&item=`). The pill lists the workspace's PowerShell
+material by the areas the manifest declares (Profile, Modules, Forms, Scripts),
+a form's controller beside its XAML, each file with its intended location under
+the installation root and a state read from the workspace's observations ledger
+(`lib/kits/installation.js`): `local state unknown`, `reported installed`,
+`verified from supplied copy`, `GitHub changed since`, `local copy differs`, or
+`repository only`. Areas the manifest names as local-only or unresolved are
+listed without repository files. For the selected file: Compare copy (the flow
+above, with the page-wide paste and drop aimed at that file), Copy GitHub text,
+Download, Files, Stage, and **Record installed**, which opens a confirm showing
+the exact ledger row and commits it on the branch being browsed only when the
+reader taps "I placed this on the work computer". A browser-local check can be
+promoted to a `verified` or `differs` row the same way. A comparison, copy, or
+download never writes a row; the ledger is appended, never rewritten, and a
+later session reads the same states from the repository.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
 - **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm

@@ -48,6 +48,11 @@ export const KIT_IMPORTS = {
   // so no wrapper is needed. Vendored so kits/xlsx.js's readZip and readMashup
   // can be tested here rather than browser-side only.
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm': () => import('jszip'),
+  // ExcelJS is the WRITER behind kits/xlsx-write.js, and the npm package's
+  // main entry is the same bundle jsDelivr serves as `+esm`. Under Node's CJS
+  // interop the constructor namespace lands on `.default`, which is the shape
+  // the kit's `m.default ?? m` already expects from the CDN build.
+  'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm': () => import('exceljs'),
 };
 
 // Run lib/kits/<name>.js against `window` (a plain object is fine for kits —

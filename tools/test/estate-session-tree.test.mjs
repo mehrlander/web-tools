@@ -356,3 +356,53 @@ test('the session deck swipes the records the list is showing, stubs excluded', 
   assert.equal(data.sessionDeckRows.map(r => r.id).sort().join(','), 'r1,r2');
   assert.ok(data.sessionTree.nodes.some(n => n.kind === 'stub'), 'the fixture does hold a stub');
 });
+
+
+// ── The unattributed block ──────────────────────────────────────────────────
+// The pane scopes its cards by time and scoped this block by repo alone, so a
+// Day view showing eight sessions listed 145 branches from April to June. The
+// fix is one rule shared (withinSessionWindow) rather than a second copy of
+// what Week means.
+
+const ago = (days) => new Date(Date.now() - days * 864e5).toISOString();
+
+test('an orphan outside the window is counted, not listed', () => {
+  set([branch('old', { date: ago(60) }), branch('fresh', { date: ago(0.2) })], []);
+  data.sessionScope = 'day';
+  assert.deepEqual([...data.sessionOrphans.map(b => b.name)], ['fresh']);
+  assert.equal(data.sessionOrphansOutOfWindow, 1);
+  data.sessionScope = 'all';
+  assert.equal(data.sessionOrphans.length, 2);
+  assert.equal(data.sessionOrphansOutOfWindow, 0);
+});
+
+test('the week window takes what the day window leaves', () => {
+  set([branch('a', { date: ago(3) }), branch('b', { date: ago(20) })], []);
+  data.sessionScope = 'day';
+  assert.equal(data.sessionOrphans.length, 0);
+  data.sessionScope = 'week';
+  assert.deepEqual([...data.sessionOrphans.map(b => b.name)], ['a']);
+  data.sessionScope = 'month';
+  assert.equal(data.sessionOrphans.length, 2);
+});
+
+test('a set or a failure scope empties it, since an orphan has no record', () => {
+  // Both name a property of a RECORD. An orphan is a branch no record claims,
+  // so it cannot answer either question, and empty beats unfiltered.
+  set([branch('a', { date: ago(0.1) })], [record('r1')]);
+  data.sessionScope = 'failed';
+  assert.equal(data.sessionOrphans.length, 0, 'failed');
+  // `set` needs a set to be ACTIVE, or activeSessionScope falls back to the
+  // first scope and the block answers a time question instead. The ids are
+  // derived from the address (window.__shell.sessionSetSpec), so the fixture
+  // names one there rather than assigning a getter.
+  window.__shell.sessionSetSpec = 'r1';
+  data.sessionScope = 'set';
+  assert.equal(data.activeSessionScope, 'set', 'the fixture really is on the set scope');
+  assert.equal(data.sessionOrphans.length, 0, 'set');
+  window.__shell.sessionSetSpec = '';
+});
+
+test('the list is shut until it is opened', () => {
+  assert.equal(data.orphansOpen, false);
+});

@@ -268,6 +268,10 @@ while ($listener.IsListening) {
   Those are read; interspersed comments are not, and they become a second copy of
   the reasoning that nothing checks. Set 2026-08-24, replacing "explain *why*, not
   *what*", which licensed the habit by saying nothing about how often.
+  A single machine-readable `# @file <repository-relative PowerShell path>`
+  declaration is permitted when code needs to identify its repository file for
+  intake and comparison. It is an address, not explanatory commentary; do not
+  include an account name or installation path.
 
 ## WPF Forms Module
 

@@ -6,7 +6,7 @@ The `schemas/` here are the validation source of truth; the `.md` files carry co
 
 ## The members
 
-Five envelope formats exist today, from the most general to the most specific.
+Six envelope formats exist today, from the most general to the most specific.
 
 | Member | Contract | Renders through | Carries |
 | --- | --- | --- | --- |
@@ -15,6 +15,7 @@ Five envelope formats exist today, from the most general to the most specific.
 | **Stage** | [`docs/show-repo.md`](../show-repo.md), `StageLink` | show-repo | a fileset in transit, plus authored review prompts and a mode |
 | **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | data itself: a CSV, a JSON array, a log, or several of them with a view each |
 | **Shorter** | [`shorter.md`](shorter.md) | [`pages/shorter.html`](../../pages/shorter.html) | a document and, optionally, a shortening of it to adjudicate against it |
+| **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | selected sheet readings and individual workbook objects, with provenance |
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 
@@ -24,7 +25,19 @@ Five envelope formats exist today, from the most general to the most specific.
 
 **Data view** is the plain case, and the only member a caller can skip entirely: a `#data=` toss accepts bare bytes (a CSV, a JSON array, a log) as readily as an `items` envelope, and [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) tells them apart rather than asking. Its envelope carries no roles, context, or profile, only what bare bytes cannot express: several files at once, and a default view and note per item.
 
-**Shorter** is the newest and the narrowest: two strings rather than a set of items, so it is the one member that is not a collection. It earns its place by following the same rules, which is the point of listing it here: the `owner/repo[@ref]:path` address, the `#gz=`/`?src=` split, and a narrow bare-or-envelope discriminator in [`lib/kits/shorter-payload.js`](../../lib/kits/shorter-payload.js) modeled directly on data-view's. Bare text is the common case and needs no wrapper; the envelope exists only to carry a shortening someone already produced, so a link can open straight into the adjudication view.
+**Shorter** is the narrowest: two strings rather than a set of items, so it is the one member that is not a collection. It earns its place by following the same rules, which is the point of listing it here: the `owner/repo[@ref]:path` address, the `#gz=`/`?src=` split, and a narrow bare-or-envelope discriminator in [`lib/kits/shorter-payload.js`](../../lib/kits/shorter-payload.js) modeled directly on data-view's. Bare text is the common case and needs no wrapper; the envelope exists only to carry a shortening someone already produced, so a link can open straight into the adjudication view.
+
+**Workbook extract** is the family's first **profile over data-view**, and the
+one member that adds a schema to a parent that has none. Its items are data-view
+items, so it renders in `pages/data-view.html` unchanged; what it adds is
+provenance, the one thing data-view deliberately does not carry. The reasoning,
+run through the same three tests as the chat-results decision below and reaching
+the opposite answer, is in
+[`workbook-extract.md`](workbook-extract.md#why-this-is-a-profile-over-data-view-rather-than-a-sibling).
+It also recorded something about the parent worth knowing here: data-view's
+discriminator is structural rather than a `kind` check, so a superset kind is
+already admitted, which is what made a profile possible with no change to
+[`lib/kits/data-payload.js`](../../lib/kits/data-payload.js).
 
 ## The decision: chat-results stays a sibling
 
