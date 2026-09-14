@@ -52,8 +52,10 @@
      components with no SourcePeek behind them and every :data-peek bound to
      null. It is what makes the fourth meaning self-evident: an icon that can
      show you the file is pointing at a file, and one that cannot is pointing at
-     something broader. So repo, branch and menu icons deliberately have none,
-     and neither does a folder. WHERE IT IS DELIBERATELY ABSENT, beyond the broad
+     something broader. So repo, branch and menu icons deliberately have none.
+     A project's folder icon peeks its README (2026-09-14): GitHub draws a
+     directory as its listing with the README beneath, so the card previews
+     where the tap goes. WHERE IT IS DELIBERATELY ABSENT, beyond the broad
      destinations: the viewer's GitHub action and the config view's, since both
      sit above the file's full contents already on screen. A peek that repeats
      what the page is showing is noise. POINTER AND KEYBOARD, NOT TOUCH: the card
@@ -850,7 +852,8 @@ html.dk-dragging main{transition:none !important}
                             class="flex items-center min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors text-base-content/80">
                       <span class="truncate" x-text="p.label"></span>
                     </button>
-                    <a :href="projectGithubUrl(r.repo, p)" target="_blank" rel="noopener" @click.stop
+                    <a :href="projectGithubUrl(r.repo, p)" :data-peek="projectReadmePeek(r.repo, p)"
+                       target="_blank" rel="noopener" @click.stop
                        :title="p.path + ' on GitHub'"
                        class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
                       <i class="ph ph-github-logo text-base leading-none"></i></a>
@@ -1032,7 +1035,8 @@ html.dk-dragging main{transition:none !important}
                     :class="view==='project' && projectPath===p.path ? 'text-primary font-semibold' : 'text-base-content/80'">
               <span class="truncate" x-text="p.label"></span>
             </button>
-            <a :href="projectGithubUrl($store.browser.repo, p)" target="_blank" rel="noopener" @click.stop
+            <a :href="projectGithubUrl($store.browser.repo, p)" :data-peek="projectReadmePeek($store.browser.repo, p)"
+               target="_blank" rel="noopener" @click.stop
                :title="p.path + ' on GitHub'"
                class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
               <i class="ph ph-github-logo text-base leading-none"></i></a>
@@ -1391,7 +1395,8 @@ html.dk-dragging main{transition:none !important}
                         class="btn btn-outline gap-1.5">
                   <i class="ph ph-list-checks"></i> Board
                 </button>
-                <a :href="projectGithubUrl($store.browser.repo, project)" target="_blank" rel="noopener"
+                <a :href="projectGithubUrl($store.browser.repo, project)"
+                   :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
                    :title="project.path + ' on GitHub'" class="btn btn-outline gap-1.5">
                   <i class="ph ph-github-logo"></i> GitHub
                 </a>
@@ -1403,9 +1408,10 @@ html.dk-dragging main{transition:none !important}
                  furniture. Docs is always offered, since every workspace is
                  presumed to hold markdown; its count fills in after the first
                  visit rather than costing a tree fetch up front. -->
-            <!-- max-w-full + overflow-x-auto: five pills outrun a phone's width
-                 since Installation joined the row, and a clipped pill is an
-                 unreachable tab. -->
+            <!-- max-w-full + overflow-x-auto: a clipped pill is an unreachable
+                 tab. Installation left the row on 2026-09-14 and became the
+                 Overview for a workspace that declares one (see below), so the
+                 row is back to four. -->
             <div class="inline-flex max-w-full overflow-x-auto items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
               <button role="tab" @click="goProjectTab('overview')"
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
@@ -1425,13 +1431,6 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-files text-lg"></i>Docs
                 <span x-show="projectDocsCount" class="font-mono text-sm opacity-60" x-text="projectDocsCount"></span></button>
-              <!-- Installation appears only where the manifest names an
-                   installation.json: the pill writes to the ledger beside it,
-                   so it is declared rather than guessed (repoProjects). -->
-              <button role="tab" x-show="project.installation" @click="goProjectTab('installation')"
-                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
-                      :class="projectTab==='installation' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-desktop text-lg"></i><span class="whitespace-nowrap">Installation</span></button>
             </div>
             </div>
 
@@ -1446,9 +1445,17 @@ html.dk-dragging main{transition:none !important}
             <div x-show="!(projectTab==='overview' && project.landing)"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
-              <!-- Overview without a landing: the README, the same promise a
-                   repo's default landing makes one level up. -->
-              <div x-show="projectTab==='overview'">
+              <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
+                   three cases: a `landing` page (the iframe above), else an
+                   `installation` manifest (the block at the bottom of this
+                   pane), else the README, the same promise a repo's default
+                   landing makes one level up. The installation view had its own
+                   pill named Installation until 2026-09-14; the name described
+                   the manifest it reads rather than what the workspace is for,
+                   and a workspace whose front page is that view should open on
+                   it rather than on a README a reader must leave to find. The
+                   README is not lost: the header's GitHub icon peeks it. -->
+              <div x-show="projectTab==='overview' && !project.installation">
                 <div x-show="projectLoading" class="flex justify-center py-16">
                   <span class="loading loading-dots loading-md opacity-30"></span>
                 </div>
@@ -1621,14 +1628,15 @@ html.dk-dragging main{transition:none !important}
                 </p>
               </div>
 
-              <!-- Installation: the workspace's PowerShell material against a
-                   work installation with no Git checkout (lib/alpineComponents/
-                   installation-view.js). Mounted per project through a keyed
-                   one-row x-for, so switching workspaces or leaving the pill
-                   remounts it with the right manifest rather than repainting a
-                   component that read the previous one at init. -->
-              <div x-show="projectTab==='installation'">
-                <template x-for="p in (projectTab==='installation' && project.installation ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
+              <!-- The Overview of a workspace that declares an installation
+                   manifest: its PowerShell material against a work installation
+                   with no Git checkout (lib/alpineComponents/installation-view.js).
+                   Mounted per project through a keyed one-row x-for, so switching
+                   workspaces or leaving the tab remounts it with the right
+                   manifest rather than repainting a component that read the
+                   previous one at init. -->
+              <div x-show="projectTab==='overview' && project.installation">
+                <template x-for="p in (projectTab==='overview' && project.installation ? [project] : [])" :key="p.path + '@' + $store.browser.ref">
                   <div x-data="installationView(p)"></div>
                 </template>
               </div>
@@ -4461,7 +4469,7 @@ function app(){ return {
   // these properties directly instead, which is what makes picking a row in the
   // sidebar repaint the pane.
   projectPath: '',
-  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'installation' — the pill row
+  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' — the pill row
   installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
   projectHtml: '',
   projectLoading: false,
@@ -4497,10 +4505,15 @@ function app(){ return {
     if (!p) return;
     if (p !== this.projectPath) { this.projectDocsQ = ''; this.installationItem = ''; }
     this.projectPath = p;
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'installation') ? tab : 'overview';
-    // A deep link into the Installation pill may name the file it is about;
-    // the pill's component reads it at mount and stamps it back as it moves.
-    if (this.projectTab === 'installation' && typeof item === 'string' && item) this.installationItem = item;
+    // `installation` was a pill of its own until 2026-09-14, when the view
+    // became the Overview of a workspace that declares one. The spelling is
+    // deliberately still accepted and falls through to 'overview', so a link
+    // minted before the change lands where it always did rather than on a tab
+    // that no longer exists.
+    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs') ? tab : 'overview';
+    // A deep link into that view may name the file it is about; the component
+    // reads it at mount and stamps it back as it moves.
+    if (typeof item === 'string' && item) this.installationItem = item;
     this.view = 'project';
     this.syncUrl();
     this.refreshProjectPane();
@@ -4518,7 +4531,12 @@ function app(){ return {
   refreshProjectPane(){
     if (this.projectTab === 'docs') this.loadProjectDocs();
     else if (this.projectTab === 'board') this.loadProjectBoard();
-    else if (this.projectTab === 'overview' && !this.project?.landing) this.loadProjectReadme();
+    // The README is the Overview only for a workspace declaring neither a
+    // landing nor an installation manifest, and it is fetched only then: an
+    // Overview must not read a README it will not render. The GitHub icon's
+    // peek wants the README on every project, but it is lazy by design and
+    // fetches on the first hover, so nothing here has to front-load it.
+    else if (this.projectTab === 'overview' && !this.project?.landing && !this.project?.installation) this.loadProjectReadme();
   },
   // The landing rendered live through toss-render #gh=, the same private-safe
   // path a repo's custom landing takes, but following the browsed ref the way
@@ -4797,10 +4815,26 @@ function app(){ return {
     // the current one.
     if (key !== this._projectKey) return;
     if (res){
+      // Hand the bytes to the hover card, so the GitHub icon's peek opens
+      // without a second read. Seeded under the address the icon advertises,
+      // which is always README.md: the loop above accepts other spellings for
+      // the pane, and a workspace using one would peek to a miss rather than a
+      // wrong file. No project in use spells it any other way.
+      const addr = this.projectReadmePeek(s.repo, this.project);
+      if (addr) window.SourcePeek?.seed?.(addr, res.text);
       try { await loadMarked(); this.projectHtml = mdHtml(res.text); }
       catch { this.projectHtml = '<pre>' + res.text.replace(/</g, '&lt;') + '</pre>'; }
     }
     this.projectLoading = false;
+  },
+  // The peek behind a project's GitHub icon: the tap opens the workspace
+  // folder, the card shows its README, which is what GitHub draws beneath a
+  // directory listing anyway. The convention is in kits/source-peek.js.
+  projectReadmePeek(repo, p){
+    if (!repo || !p || !p.path || !window.SourcePeek) return null;
+    const s = Alpine.store('browser');
+    const ref = repo === s.repo ? (s.ref || '') : '';
+    return window.SourcePeek.addr(repo, ref, p.path + '/README.md') || null;
   },
   // The three routes out of the view, all one tap: the workspace as files, its
   // board here, its folder on GitHub (the last two are the sidebar row's own
@@ -5358,7 +5392,7 @@ function app(){ return {
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (this.projectTab === 'installation' && this.installationItem) p.set('item', this.installationItem);
+        if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
       } },
     { key: 'estate',   open(){ this.goEstate(); } },
     // `surfaces` is the retired Saved pane, which listed the registry's
@@ -6229,10 +6263,12 @@ function app(){ return {
   correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
-    // The Installation pill's selected file takes a page-wide paste or drop
-    // the way an open Files result does: the pill names the file, so a work
-    // copy dropped anywhere on the page compares against it.
-    if (this.view === 'project' && this.projectTab === 'installation') {
+    // The installation view's selected file takes a page-wide paste or drop
+    // the way an open Files result does: the view names the file, so a work
+    // copy dropped anywhere on the page compares against it. That view is the
+    // Overview of a workspace declaring a manifest, which is why this reads the
+    // declaration rather than a tab named for it.
+    if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
       if (!this.installationItem) return null;
       const store = Alpine.store('browser');
       const file = { repo: store.repo, path: this.installationItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };

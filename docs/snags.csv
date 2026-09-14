@@ -1,7 +1,7 @@
 slug,title,count,last_seen,seen,targets
 backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",7,2026-09-10,2026-09-01;2026-09-01;2026-09-01;2026-09-01;2026-09-08;2026-09-10;2026-09-10,loader.md
+ci-run-silently-not-started,a commit sat in an open PR with no checks,4,2026-09-14,2026-08-06;2026-09-10;2026-09-10;2026-09-14,../.github/workflows/test.yml
 link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
-ci-run-silently-not-started,a commit sat in an open PR with no checks,3,2026-09-10,2026-08-06;2026-09-10;2026-09-10,../.github/workflows/test.yml
 daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/daisy-alpine/references/mechanics.md
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
@@ -19,6 +19,7 @@ cached-read-feeds-a-write,a fresh-looking read hands back the sha it just replac
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
+cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,
 nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../.claude/skills/hooks/invoke-default.sh
 cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
 entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,1,2026-09-10,2026-09-10,../skills/daisy-alpine/references/mechanics.md

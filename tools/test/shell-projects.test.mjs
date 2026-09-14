@@ -615,11 +615,14 @@ test('the two sidebar project lists are sized the same', () => {
   assert.doesNotMatch(page, /-mt-1 ml-4 pl-2/, 'the project block pulls up again');
 });
 
-// ── The Installation pill ────────────────────────────────────────────────────
-// A workspace whose manifest entry names an installation.json gets a fifth
-// pill; its selected file rides the address as &item= and takes a page-wide
-// paste or drop the way an open Files result does. Declared, never derived:
-// the pill writes to the ledger that file names.
+// ── The installation view, which IS the Overview where one is declared ──────
+// A workspace whose manifest entry names an installation.json opens on that
+// view. It had a fifth pill named Installation until 2026-09-14, when it became
+// the workspace's Overview instead: the name described the manifest it reads
+// rather than what the workspace is for. Declared, never derived, since the
+// view writes to the ledger that file names. Its selected file rides the
+// address as &item= and takes a page-wide paste or drop the way an open Files
+// result does.
 
 test('repoProjects: `installation` is carried root-relative, and only when declared', () => {
   const { shell } = makeShell();
@@ -632,17 +635,23 @@ test('repoProjects: `installation` is carried root-relative, and only when decla
     ['projects/wps/data/installation.json', '', '']);
 });
 
-test('goProject accepts the installation pill and its item, and stamps both', () => {
+test('goProject: the retired `installation` spelling lands on the Overview, and the item stamps', () => {
   const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
   shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', installation: 'projects/wps/data/installation.json' }] } };
   shell.refreshProjectPane = () => {};
   shell.goProject('projects/wps', 'installation', 'projects/wps/app/Modules/Forms/Forms.psm1');
-  assert.equal(shell.projectTab, 'installation');
+  assert.equal(shell.projectTab, 'overview', 'the retired pill name falls through to the Overview it became');
   assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
   const p = shell.deepLinkParams(new URLSearchParams());
   assert.equal(p.get('view'), 'project');
-  assert.equal(p.get('tab'), 'installation');
+  assert.equal(p.get('tab'), null, 'the Overview is the default tab, so it stamps none');
   assert.equal(p.get('item'), 'projects/wps/app/Modules/Forms/Forms.psm1');
+  // The link a pre-2026-09-14 session handed out still round-trips: ?tab=
+  // gone from the stamp, ?item= alone is enough to restore the selection.
+  shell.installationItem = '';
+  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  assert.equal(shell.projectTab, 'overview');
+  assert.equal(shell.installationItem, 'projects/wps/app/Modules/Forms/Forms.psm1');
   // The pill's file is the page-wide correspondence target, at the browsed ref
   // when it is not the default, and only for a file the comparison can take.
   shell.view = 'project';
@@ -657,16 +666,90 @@ test('goProject accepts the installation pill and its item, and stamps both', ()
   shell.goProject('projects/other', 'docs');
   assert.equal(shell.installationItem, '');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
-  // Switching pills within the workspace keeps the tab out of the stamp when
-  // it is not installation, so a Docs link does not carry an item.
+  // Switching pills within the workspace keeps the item out of the stamp, so
+  // a Docs link does not carry one.
   shell.goProject('projects/wps', 'installation', 'x.ps1');
   shell.goProjectTab('docs');
   assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
+  // And a workspace that declares no manifest never stamps an item, however
+  // the selection got set: the gate is the declaration, not the tab name.
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/plain' }] } };
+  shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
+  assert.equal(shell.deepLinkParams(new URLSearchParams()).get('item'), null);
 });
 
-test('the pill and its body are wired into the pane, keyed per workspace and ref', () => {
-  assert.match(page, /x-show="project\.installation" @click="goProjectTab\('installation'\)"/);
-  assert.match(page, /x-for="p in \(projectTab==='installation' && project\.installation \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
+test('an installation Overview does not fetch the README either', () => {
+  const { shell, browserStore } = makeShell({
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' },
+  });
+  browserStore.config = { projects: [
+    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/plain' },
+  ] };
+  shell.syncUrl = () => {};
+  const reads = [];
+  shell.loadProjectReadme = async () => reads.push('readme');
+  shell.goProject('projects/wps');
+  assert.deepEqual(reads, [], 'the same rule a landing Overview follows: do not read what you will not render');
+  // A workspace declaring neither still opens on its README, so it still reads it.
+  shell.goProject('projects/plain');
+  assert.deepEqual(reads, ['readme']);
+});
+
+test('the drop target follows the view to the Overview', () => {
+  const { shell, browserStore, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.estateConfigs = { 'mehrlander/home': { projects: [
+    { path: 'projects/wps', installation: 'projects/wps/data/installation.json' },
+    { path: 'projects/plain' },
+  ] } };
+  shell.refreshProjectPane = () => {};
+  win.FileCorrespondence = { applies: () => true };
+  shell.view = 'project';
+  shell.goProject('projects/wps', '', 'projects/wps/app/Modules/Forms/Forms.psm1');
+  assert.equal(shell.selectedCorrespondence?.path, 'projects/wps/app/Modules/Forms/Forms.psm1',
+    'the Overview of a declaring workspace still takes a page-wide drop');
+  // A workspace with no manifest has no installation selection to compare
+  // against, even with an item set, or a plain README Overview would silently
+  // claim every drop on the page.
+  shell.goProject('projects/plain', '', 'projects/plain/x.ps1');
+  assert.equal(shell.selectedCorrespondence, null);
+});
+
+test('the view is the Overview in the pane, keyed per workspace and ref', () => {
+  assert.doesNotMatch(page, /goProjectTab\('installation'\)/, 'the pill is gone, not merely relabelled');
+  assert.match(page, /x-show="projectTab==='overview' && project\.installation"/);
+  assert.match(page, /x-show="projectTab==='overview' && !project\.installation"/,
+    'and the README Overview stands aside for it rather than stacking');
+  assert.match(page, /x-for="p in \(projectTab==='overview' && project\.installation \? \[project\] : \[\]\)" :key="p\.path \+ '@' \+ \$store\.browser\.ref"/);
   assert.match(page, /x-data="installationView\(p\)"/);
   assert.match(page, /gh\.load\('kits\/installation\.js'\)/, 'the kit rides the boot chain so the pre-build reaches it');
+});
+
+// ── The README peek on a project's GitHub icon ───────────────────────────────
+// The README stopped being a tab when the Overview became the workspace's own
+// front page, so it hangs off the GitHub icon instead: the tap opens the
+// folder, the hover shows the README. See kits/source-peek.js for why a folder
+// icon carries a card at all.
+
+test('projectReadmePeek addresses the workspace README, at the browsed ref only for the open repo', () => {
+  const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: 'feat/x', defaultRef: 'main' } });
+  win.SourcePeek = { addr: (repo, ref, path) => repo + (ref ? '@' + ref : '') + ':' + path };
+  assert.equal(shell.projectReadmePeek('mehrlander/home', { path: 'projects/wps' }),
+    'mehrlander/home@feat/x:projects/wps/README.md');
+  // Another repo's row is not being browsed, so its peek takes that repo's
+  // default branch rather than this one's branch name, which need not exist.
+  assert.equal(shell.projectReadmePeek('mehrlander/other', { path: 'projects/a' }),
+    'mehrlander/other:projects/a/README.md');
+  assert.equal(shell.projectReadmePeek('', { path: 'projects/wps' }), null);
+  assert.equal(shell.projectReadmePeek('mehrlander/home', null), null);
+  // No kit, no attribute: the call site binds null rather than a broken card.
+  win.SourcePeek = undefined;
+  assert.equal(shell.projectReadmePeek('mehrlander/home', { path: 'projects/wps' }), null);
+});
+
+test('every project GitHub icon carries the README peek', () => {
+  const icons = page.match(/:href="projectGithubUrl\([^"]*\)"/g) || [];
+  assert.equal(icons.length, 3, 'the header button and the two project rows');
+  assert.equal((page.match(/:data-peek="projectReadmePeek\([^"]*\)"/g) || []).length, icons.length,
+    'each one peeks, or the README is reachable from some project lists and not others');
 });
