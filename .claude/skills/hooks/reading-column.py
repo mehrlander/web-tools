@@ -15,13 +15,28 @@ any project root, so its engine has to travel with it. One file serves both the
 hook and `npm run reading-column`; a second copy under scripts/ would be the
 duplicate the registries doctrine warns about.
 
-Two findings, both mechanical:
+Three findings, all mechanical:
 
   reading column   max-w-prose | max-w-2xl | max-w-3xl | max-w-4xl,
                    or `container mx-auto`
   uncapped prose   a `prose` class run with no `!max-w-none`, which is the same
                    cap at 65ch wearing a different name and invisible to a
                    max-w-* grep
+  arbitrary cap    max-w-[64ch] or max-w-[920px], the same cap written as a
+                   value instead of a name, and invisible to a size list
+
+THE ARBITRARY FORM IS THE ONE THAT GOT PAST THIS, and it is the third disguise
+rather than a new rule. Six kit demos ran in `mx-auto max-w-[920px]` with their
+prose at `max-w-[64ch]`, 38 occurrences, and the scan called the tree clean
+because neither spelling is a name it knew. Found by eye on 2026-09-13, which is
+the failure mode a gate exists to prevent.
+
+A `ch` cap is flagged whatever the number: the unit measures characters, so the
+class is a text measure by construction. An absolute cap is flagged only inside
+the band the named sizes already cover, 2xl (42rem) up to but not including 5xl
+(64rem). That boundary is the one this file already draws below: under it is a
+component, at or above it is a page shell. 920px sat in the gap between 4xl and
+5xl, which is why it read as neither.
 
 Two suppressions. `modal-box` in the same class run is daisyUI component sizing,
 not a reading measure. A `reading-column-ok` comment on the line is the explicit
@@ -59,6 +74,13 @@ CONTAINER = re.compile(r'\bcontainer\s+mx-auto\b|\bmx-auto\s+container\b')
 PROSE = re.compile(r'(?:^|\s)prose(?:\s|$|-)')
 OPT_OUT = 'reading-column-ok'
 
+# The same cap written as a value. Only absolute units: a percentage or a
+# viewport unit scales with the page and is not a fixed measure, and calc()/
+# min() are a layout doing arithmetic rather than a cap on text.
+ARBITRARY = re.compile(r'\bmax-w-\[(\d+(?:\.\d+)?)(px|rem|em|ch)\]')
+PX_PER = {'px': 1.0, 'rem': 16.0, 'em': 16.0, 'ch': 8.0}
+BAND_MIN, BAND_MAX = 672.0, 1024.0      # 2xl and 5xl, in px at a 16px root
+
 # Only a class attribute counts, never a bare quoted string and never the line.
 # Both classes of finding name themselves in ordinary prose: `max-w-3xl` appears
 # in code comments explaining why a cap was removed, and `prose` is an English
@@ -80,6 +102,20 @@ MESSAGE = (
     '(daisy-alpine rule 3): the page\'s own layout sets the width. Note that a '
     'reading column is a common tell for explanatory prose (rule 2), and the '
     'fix is often to improve structural clarity so that the text can be removed.'
+)
+
+ARBITRARY_MESSAGE = (
+    '{cls} is a reading column written as a value rather than a name '
+    '(daisy-alpine rule 3), and a size list cannot see it: {why}. The page\'s '
+    'own layout sets the width, so take the measure from a grid track or a '
+    'flex basis instead of capping the element.'
+)
+
+ARBITRARY_CH = 'a `ch` cap measures characters, so it is a text measure whatever the number'
+ARBITRARY_BAND = (
+    'at {px:.0f}px it falls in the band the named sizes cover, 2xl (672px) up to '
+    '5xl (1024px), where a cap is a reading column rather than a component or a '
+    'page shell'
 )
 
 PROSE_MESSAGE = (
@@ -120,6 +156,17 @@ def scan_text(text, path):
                     out.append((path, i, cls, MESSAGE.format(cls=cls)))
             if PROSE.search(run) and '!max-w-none' not in run:
                 out.append((path, i, 'prose', PROSE_MESSAGE))
+            for m in ARBITRARY.finditer(run):
+                value, unit = float(m.group(1)), m.group(2)
+                if unit == 'ch':
+                    why = ARBITRARY_CH
+                else:
+                    px = value * PX_PER[unit]
+                    if not (BAND_MIN <= px < BAND_MAX):
+                        continue
+                    why = ARBITRARY_BAND.format(px=px)
+                out.append((path, i, m.group(0),
+                            ARBITRARY_MESSAGE.format(cls=m.group(0), why=why)))
     return out
 
 

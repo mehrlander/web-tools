@@ -1126,3 +1126,359 @@ test('a hyperlink resolves through the sheet rels and lands on the cells it cove
   assert.equal(cell(1, 2).link.location, "'Data'!A1");
   assert.equal(cell(1, 1)?.link, undefined, 'a cell no link covers carries none');
 });
+
+// ── what the workbook reaches outside itself ────────────────────────────────
+//
+// Sheet2.xml is workbook index 0 (Calc) and carries the pivot table; the cache
+// behind it is built from Data, which is the OTHER sheet and is hidden. That
+// arrangement is deliberate: a join that used part numbers, or that assumed the
+// pivot sits on the sheet its data came from, passes on a simpler fixture.
+
+const WORKBOOK_WIRED = `<?xml version="1.0"?>
+<workbook xmlns="wb" xmlns:r="rel">
+  <sheets>
+    <sheet name="Calc" sheetId="9" r:id="rId1"/>
+    <sheet name="Data" sheetId="7" r:id="rId2" state="hidden"/>
+  </sheets>
+  <pivotCaches><pivotCache cacheId="3" r:id="rId8"/></pivotCaches>
+</workbook>`;
+
+const WORKBOOK_RELS_WIRED = `<?xml version="1.0"?>
+<Relationships xmlns="rel">
+  <Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet2.xml"/>
+  <Relationship Id="rId2" Type=".../worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId8" Type=".../pivotCacheDefinition" Target="pivotCache/pivotCacheDefinition1.xml"/>
+</Relationships>`;
+
+const CONNECTIONS = `<?xml version="1.0"?>
+<connections xmlns="cn">
+  <connection id="1" name="WebQuery" type="4" description="the OFM budget page">
+    <webPr url="https://ofm.wa.gov/budget"/>
+  </connection>
+  <connection id="2" name="Query - fees" type="5">
+    <dbPr connection="Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$" command="SELECT * FROM [fees]"/>
+  </connection>
+  <connection id="3" name="Import" type="6">
+    <textPr sourceFile="//fileserver/budget/fees.csv"/>
+  </connection>
+</connections>`;
+
+// Region carries shared items AND a fieldGroup of the same element names. The
+// group is the trap: folding its items into the shared list would shift every
+// <x> index in the records by however many groups the author made, so a record
+// naming East would come back West.
+const PIVOT_CACHE = `<?xml version="1.0"?>
+<pivotCacheDefinition xmlns="pc" xmlns:r="rel" recordCount="4">
+  <cacheSource type="worksheet"><worksheetSource ref="A1:B4" sheet="Data"/></cacheSource>
+  <cacheFields count="2">
+    <cacheField name="Region">
+      <sharedItems count="2"><s v="East"/><s v="West"/></sharedItems>
+      <fieldGroup><groupItems count="1"><s v="DECOY"/></groupItems></fieldGroup>
+    </cacheField>
+    <cacheField name="Amount"/>
+  </cacheFields>
+</pivotCacheDefinition>`;
+
+const PIVOT_CACHE_RELS = `<?xml version="1.0"?>
+<Relationships xmlns="rel">
+  <Relationship Id="rId1" Type=".../pivotCacheRecords" Target="pivotCacheRecords1.xml"/>
+</Relationships>`;
+
+// Four records: a resolved index, a second one, a missing value, and an index
+// past the end of the shared list.
+const PIVOT_RECORDS = `<?xml version="1.0"?>
+<pivotCacheRecords xmlns="pc" count="4">
+  <r><x v="0"/><n v="10"/></r>
+  <r><x v="1"/><n v="20"/></r>
+  <r><x v="0"/><m/></r>
+  <r><x v="5"/><n v="30"/></r>
+</pivotCacheRecords>`;
+
+const PIVOT_TABLE = `<?xml version="1.0"?>
+<pivotTableDefinition xmlns="pt" name="ByRegion" cacheId="3">
+  <location ref="A3:B6" firstHeaderRow="1"/>
+  <rowFields count="1"><field x="0"/></rowFields>
+  <dataFields count="1"><dataField name="Sum of Amount" fld="1"/></dataFields>
+</pivotTableDefinition>`;
+
+const SHEET2_PIVOT_RELS = `<?xml version="1.0"?>
+<Relationships xmlns="rel">
+  <Relationship Id="rId1" Type=".../pivotTable" Target="../pivotTables/pivotTable1.xml"/>
+</Relationships>`;
+
+function buildWired() {
+  return [
+    ['[Content_Types].xml', CONTENT_TYPES],
+    ['xl/workbook.xml', WORKBOOK_WIRED],
+    ['xl/_rels/workbook.xml.rels', WORKBOOK_RELS_WIRED],
+    ['xl/worksheets/sheet1.xml', SHEET1],
+    ['xl/worksheets/sheet2.xml', SHEET2],
+    ['xl/worksheets/_rels/sheet2.xml.rels', SHEET2_PIVOT_RELS],
+    ['xl/sharedStrings.xml', SHARED_STRINGS],
+    ['xl/styles.xml', STYLES],
+    ['xl/connections.xml', CONNECTIONS],
+    ['xl/pivotCache/pivotCacheDefinition1.xml', PIVOT_CACHE],
+    ['xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels', PIVOT_CACHE_RELS],
+    ['xl/pivotCache/pivotCacheRecords1.xml', PIVOT_RECORDS],
+    ['xl/pivotTables/pivotTable1.xml', PIVOT_TABLE],
+  ];
+}
+
+test('sheet visibility comes from workbook.xml and keeps veryHidden distinct', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  assert.equal(xl.sheets.sheet1.visibility, 'hidden', 'Data is the hidden one');
+  assert.equal(xl.sheets.sheet2.visibility, 'visible', 'an omitted state means visible');
+  const veryHidden = buildWired().map(([k, v]) =>
+    [k, k === 'xl/workbook.xml' ? v.replace('state="hidden"', 'state="veryHidden"') : v]);
+  assert.equal(xlsxKit.analyze(veryHidden).xl.sheets.sheet1.visibility, 'veryHidden',
+    'veryHidden is not folded into hidden: only one of the two can be unhidden from the menu');
+});
+
+test('a sheet the workbook never claims has a null visibility rather than a guessed one', () => {
+  const { xl } = xlsxKit.analyze(buildParts().concat([['xl/worksheets/sheet9.xml', SHEET1]]));
+  assert.equal(xl.sheets.sheet9.visibility, null);
+});
+
+test('views.sources: one row per external connection, classified by code', () => {
+  const result = xlsxKit.analyze(buildWired());
+  const rows = xlsxKit.views.sources(result);
+  assert.equal(rows.length, 3);
+  const web = rows.find(r => r.Name === 'WebQuery');
+  assert.equal(web.Kind, 'Web');
+  assert.equal(web.Detail, 'https://ofm.wa.gov/budget');
+  assert.equal(web.Description, 'the OFM budget page');
+  const text = rows.find(r => r.Name === 'Import');
+  assert.equal(text.Kind, 'Text');
+  assert.equal(text.Detail, '//fileserver/budget/fees.csv');
+  const pq = rows.find(r => r.Name === 'Query - fees');
+  assert.equal(pq.Kind, 'OLE DB', 'a Power Query connection is an OLE DB connection');
+  assert.equal(pq['Power Query'], 'yes', 'and the Mashup provider is what says so');
+  assert.equal(pq.Detail, 'SELECT * FROM [fees]');
+  assert.equal(web['Power Query'], '');
+});
+
+test('a pivot table joins to its sheet through the sheet rels and to its cache through cacheId', () => {
+  const result = xlsxKit.analyze(buildWired());
+  const { xl } = result;
+  const part = 'xl/pivotTables/pivotTable1.xml';
+  assert.equal(xl.pivotTables[part].sheet, 'sheet2', 'the pivot is drawn on Calc');
+  assert.equal(xl.pivotTables[part].cachePart, 'xl/pivotCache/pivotCacheDefinition1.xml');
+  assert.deepEqual(xl.sheets.sheet2.pivotTables, [part]);
+  assert.deepEqual(xl.sheets.sheet1.pivotTables, [], 'the sheet the DATA came from carries no pivot');
+
+  const [row] = xlsxKit.views.pivots(result);
+  assert.equal(row.Pivot, 'ByRegion');
+  assert.equal(row.Sheet, 'Calc', 'named as a reader would, not as sheet2');
+  assert.equal(row.Range, 'A3:B6');
+  assert.equal(row.Rows, 1);
+  assert.equal(row.Measures, 'Sum of Amount');
+  assert.equal(row.Source, 'Data!A1:B4');
+  assert.equal(row.Records, 4);
+  assert.equal(row['Cache Fields'], 2);
+});
+
+test('a pivot part is connected to its own sheet, not to every sheet', () => {
+  const { conns } = xlsxKit.analyze(buildWired());
+  assert.deepEqual([...conns['xl/pivotTables/pivotTable1.xml'].sheets], ['sheet2']);
+  assert.ok(conns['xl/connections.xml'].sheets.has('sheet1'),
+    'a connection is workbook-wide and stays so');
+});
+
+// ── hidden rows and columns, and column profiling ───────────────────────────
+
+// A <col> range may legally run to 16384, so the count has to be read against
+// the columns the sheet actually writes to. Cells reach C; the hidden range
+// opens at B.
+const SHEET_HIDDEN = `<?xml version="1.0"?>
+<worksheet xmlns="ws">
+  <cols><col min="2" max="16384" hidden="1"/></cols>
+  <sheetData>
+    <row r="1"><c r="A1"><v>1</v></c><c r="B1"><v>2</v></c><c r="C1"><v>3</v></c></row>
+    <row r="2" hidden="1"><c r="A2"><v>4</v></c></row>
+  </sheetData>
+</worksheet>`;
+
+test('hidden rows and columns are counted against the sheet\'s used width', () => {
+  const parts = buildParts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? SHEET_HIDDEN : v]);
+  const result = xlsxKit.analyze(parts);
+  const row = xlsxKit.views.connections(result).find(r => r.Sheet === 'sheet1');
+  assert.equal(row['Hidden Rows'], 1);
+  assert.equal(row['Hidden Cols'], 2,
+    'B and C, not the 16383 columns the range nominally covers');
+});
+
+const SHEET_TABLE = `<?xml version="1.0"?>
+<worksheet xmlns="ws">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="inlineStr"><is><t>Region</t></is></c>
+      <c r="B1" t="inlineStr"><is><t>Amount</t></is></c>
+      <c r="C1" t="inlineStr"><is><t>Rate</t></is></c>
+      <c r="D1" t="inlineStr"><is><t>Note</t></is></c>
+    </row>
+    <row r="2">
+      <c r="A2" t="inlineStr"><is><t>East</t></is></c><c r="B2"><v>10</v></c>
+      <c r="C2"><v>1</v></c><c r="D2" t="inlineStr"><is><t>a</t></is></c>
+    </row>
+    <row r="3">
+      <c r="A3" t="inlineStr"><is><t>West</t></is></c><c r="B3"><v>20</v></c>
+      <c r="C3"><v>2</v></c><c r="D3" t="inlineStr"><is><t>b</t></is></c>
+    </row>
+    <row r="4">
+      <c r="A4" t="inlineStr"><is><t>East</t></is></c><c r="B4"><v>30</v></c>
+      <c r="C4"><v>3</v></c><c r="D4"><v>1</v></c>
+    </row>
+    <row r="5">
+      <c r="A5" t="inlineStr"><is><t>Total</t></is></c><c r="B5"><f>SUM(B2:B4)</f><v>60</v></c>
+      <c r="C5" t="inlineStr"><is><t>n/a</t></is></c><c r="D5"><v>2</v></c>
+    </row>
+  </sheetData>
+</worksheet>`;
+
+function profileOf() {
+  const parts = buildParts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? SHEET_TABLE : v]);
+  const { xl } = xlsxKit.analyze(parts);
+  const cols = xlsxKit.profileColumns(xl.sheets.sheet1, xl);
+  return Object.fromEntries(cols.map(c => [c.letter, c]));
+}
+
+test('profileColumns: header, fill, and distinct values per column', () => {
+  const p = profileOf();
+  assert.deepEqual(Object.keys(p), ['A', 'B', 'C', 'D']);
+  assert.equal(p.A.header, 'Region');
+  assert.equal(p.A.rows, 4, 'the header row is not one of the rows profiled');
+  assert.equal(p.A.filled, 4);
+  assert.equal(p.A.blank, 0);
+  assert.equal(p.A.distinct, 3);
+  assert.deepEqual(p.A.top[0], { value: 'East', count: 2 }, 'most common first');
+});
+
+test('profileColumns: kind is the majority, so one label does not retype a number column', () => {
+  const p = profileOf();
+  assert.equal(p.B.kind, 'number');
+  assert.equal(p.B.min, 10);
+  assert.equal(p.B.max, 60);
+  assert.equal(p.C.kind, 'number', 'three numbers and one "n/a" is still a number column');
+  assert.equal(p.C.kinds.text, 1, 'and the text cell is reported rather than hidden');
+  assert.equal(p.D.kind, 'mixed', 'two and two is no majority, and mixed says so');
+});
+
+test('profileColumns: a computed cell is counted apart from an entered one', () => {
+  const p = profileOf();
+  assert.equal(p.B.computed, 1, 'the Total row is a formula');
+  assert.equal(p.A.computed, 0);
+});
+
+test('profileColumns: headerRow null profiles every row and names no header', () => {
+  const parts = buildParts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? SHEET_TABLE : v]);
+  const { xl } = xlsxKit.analyze(parts);
+  const [a] = xlsxKit.profileColumns(xl.sheets.sheet1, xl, { headerRow: null });
+  assert.equal(a.header, '');
+  assert.equal(a.rows, 5);
+  assert.equal(a.distinct, 4, 'the heading is now one of the values');
+});
+
+// One column per role in Get-ColumnRole's ladder, in its order. E carries a
+// heading and no values, which is the case a scan driven by the body rows
+// alone would not see at all.
+const t = (v) => `t="inlineStr"><is><t>${v}</t></is>`;
+const SHEET_ROLES = `<?xml version="1.0"?>
+<worksheet xmlns="ws">
+  <sheetData>
+    <row r="1">
+      <c r="A1" ${t('Region')}</c><c r="B1" ${t('Amount')}</c><c r="C1" ${t('Fund')}</c>
+      <c r="D1" ${t('Id')}</c><c r="E1" ${t('Spare')}</c>
+    </row>
+    <row r="2"><c r="A2" ${t('East')}</c><c r="B2"><v>10</v></c><c r="C2"><v>1</v></c><c r="D2" ${t('a1')}</c></row>
+    <row r="3"><c r="A3" ${t('West')}</c><c r="B3"><v>20</v></c><c r="C3"><v>1</v></c><c r="D3" ${t('a2')}</c></row>
+    <row r="4"><c r="A4" ${t('East')}</c><c r="B4"><v>10</v></c><c r="C4"><v>1</v></c><c r="D4" ${t('a3')}</c></row>
+    <row r="5"><c r="A5" ${t('North')}</c><c r="B5"><v>30</v></c><c r="C5"><v>1</v></c><c r="D5" ${t('a4')}</c></row>
+  </sheetData>
+</worksheet>`;
+
+function rolesOf(opts) {
+  const parts = buildParts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? SHEET_ROLES : v]);
+  const { xl } = xlsxKit.analyze(parts);
+  return Object.fromEntries(
+    xlsxKit.profileColumns(xl.sheets.sheet1, xl, opts).map(c => [c.letter, c.role]));
+}
+
+test('profileColumns: role uses Get-ColumnRole\'s ladder, so both routes name a column alike', () => {
+  const r = rolesOf();
+  assert.equal(r.A, 'Categorical', 'repeated labels, fewer distinct than the threshold');
+  assert.equal(r.B, 'Measure', 'numbers, and not one per row');
+  assert.equal(r.C, 'Constant', 'one value the whole way down');
+  assert.equal(r.D, 'Key', 'distinct in every row, and no row blank');
+  assert.equal(r.E, 'Empty', 'a heading with nothing under it is still a column');
+});
+
+test('profileColumns: the ladder is ordered, so a fully distinct number column is a Key first', () => {
+  // Get-ColumnRole tests Key before Measure, and matching that ordering is the
+  // point of sharing the vocabulary at all: the same sheet must not be read as
+  // a measure here and a key there.
+  const r = rolesOf({ categorical: 2 });
+  assert.equal(r.A, 'Plain', 'below the threshold the categorical branch no longer applies');
+  assert.equal(r.D, 'Key', 'and the key branch is unaffected by that threshold');
+});
+
+// ── the rows behind a pivot ─────────────────────────────────────────────────
+
+const CACHE_PART = 'xl/pivotCache/pivotCacheDefinition1.xml';
+
+test('pivot records resolve their shared-item indices into values', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  const got = xlsxKit.pivotRecords(xl, CACHE_PART);
+  assert.deepEqual(got.fields, ['Region', 'Amount']);
+  assert.deepEqual(got.rows, [
+    { Region: 'East', Amount: 10 },
+    { Region: 'West', Amount: 20 },
+    // A missing cell is null, not '': a text field can hold an empty string and
+    // a blank is not the same fact.
+    { Region: 'East', Amount: null },
+    // An index the shared list does not reach resolves to null rather than to
+    // some neighbouring field's value.
+    { Region: null, Amount: 30 },
+  ]);
+});
+
+test('a fieldGroup of the same element names does not shift the shared-item indices', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  assert.deepEqual(xl.pivotCaches[CACHE_PART].sharedItems, [['East', 'West'], []],
+    'DECOY is a group item and belongs to neither list');
+});
+
+test('the records part is found through the cache definition\'s own rels', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  assert.equal(xl.pivotCaches[CACHE_PART].recordsPart, 'xl/pivotCache/pivotCacheRecords1.xml');
+});
+
+test('records resolve whichever part order the zip is walked in', () => {
+  const forward = xlsxKit.pivotRecords(xlsxKit.analyze(buildWired()).xl, CACHE_PART);
+  const back = xlsxKit.pivotRecords(xlsxKit.analyze(buildWired().reverse()).xl, CACHE_PART);
+  assert.deepEqual(back.rows, forward.rows,
+    'the records part may be walked before the definition that explains it');
+});
+
+test('what the part held and what the definition claims are both reported', () => {
+  const { xl } = xlsxKit.analyze(buildWired());
+  const got = xlsxKit.pivotRecords(xl, CACHE_PART);
+  assert.equal(got.total, 4, 'the records actually in the part');
+  assert.equal(got.declared, 4, 'and the count the definition states');
+  assert.equal(got.truncated, false);
+
+  const capped = xlsxKit.pivotRecords(xl, CACHE_PART, { limit: 2 });
+  assert.equal(capped.rows.length, 2);
+  assert.equal(capped.total, 4, 'the total is what the file holds, not what was returned');
+  assert.equal(capped.truncated, true, 'and a cut says so');
+});
+
+test('a cache with no records part reads as null rather than as an empty table', () => {
+  // A workbook saved to refresh on open has a definition and nothing behind it,
+  // which is a different answer from "the pivot has no rows".
+  const parts = buildWired().filter(([k]) => !k.includes('pivotCacheRecords') && !k.includes('_rels/pivotCacheDefinition'));
+  const { xl } = xlsxKit.analyze(parts);
+  assert.equal(xl.pivotCaches[CACHE_PART].recordsPart, null);
+  assert.equal(xlsxKit.pivotRecords(xl, CACHE_PART), null);
+  assert.equal(xlsxKit.pivotRecords(xl, 'xl/pivotCache/nothing.xml'), null,
+    'and a part that is not a cache at all is the same answer');
+});

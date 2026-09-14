@@ -6,7 +6,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
-.claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,175,npm:reading-column,no,yes,yes
+.claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,222,npm:reading-column,no,yes,yes
 .claude/skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,.claude/skills/hooks,60,hook:PreToolUse,no,no,yes
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
@@ -62,7 +62,7 @@ tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the tes
 tools/build/tools-index.mjs,restamp the derived half of this registry,tools/build,261,npm:tools-index,yes,yes,yes
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
-tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,399,imported,no,yes,yes
+tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,426,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes

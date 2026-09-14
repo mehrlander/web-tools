@@ -142,8 +142,35 @@ function parseNpm(spec) {
 // docs/headless-vendoring.md rather than an exception to it.
 const PKG_ALIAS = { '@tailwindcss/typography': 'typography-dist' };
 
+// A package with no ESM build at all, which nodeFile's comment says is the
+// case this shim cannot serve: jsDelivr bundles the CJS graph server-side and
+// we have no bundler here. Where the package ALSO ships a UMD that assigns a
+// browser global, that UMD plus a re-export of the global is the same module by
+// a shorter road, and it is real published bytes rather than a rewrite.
+//
+// One entry per package naming the file and the global, because neither is
+// derivable: jszip's `browser` map keys on an extensionless path Node resolves
+// and `existsSync` does not, which is why a /+esm request for it answered MISS.
+// Three kits import it this way (xlsx, docx, export), so every headless shot of
+// a page that opens a zip drew nothing and said only that a module failed to
+// load. Only for a UMD that assigns to `window`: one that relies on `this` at
+// top level gets `undefined` in a module and throws.
+const UMD_ESM = {
+  jszip: { file: 'dist/jszip.min.js', global: 'JSZip' },
+};
+
 function readSpec(spec, repoRoot, combine) {
   const { pkg: cdnPkg, sub, esm } = parseNpm(spec);
+  if (esm && !sub && UMD_ESM[cdnPkg]) {
+    const { file, global } = UMD_ESM[cdnPkg];
+    const umd = path.join(repoRoot, 'node_modules', cdnPkg, file);
+    if (existsSync(umd)) {
+      const body = readFileSync(umd, 'utf8')
+        + `\n;const __umd = globalThis[${JSON.stringify(global)}];\n`
+        + `export default __umd;\nexport { __umd as ${global} };\n`;
+      return { body, contentType: 'application/javascript; charset=utf-8' };
+    }
+  }
   const pkg = (PKG_ALIAS[cdnPkg] && existsSync(path.join(repoRoot, 'node_modules', PKG_ALIAS[cdnPkg], sub)))
     ? PKG_ALIAS[cdnPkg] : cdnPkg;
   let fp = nodeFile(repoRoot, pkg, sub, esm, combine);

@@ -175,3 +175,63 @@ test('the skill names exactly the sizes the scanner enforces', () => {
   const sizes = readFileSync(script, 'utf8').match(/COLUMN_SIZES = \[(.+?)\]/)[1];
   assert.equal(sizes, "'prose', '2xl', '3xl', '4xl'", 'scanner sizes moved; rule 3 has to move with them');
 });
+
+// ── the arbitrary form ──────────────────────────────────────────────────────
+//
+// The third disguise, and the one that got past the gate: a size list cannot
+// see a value. A `ch` cap is always the rule, because the unit is a measure of
+// characters; an absolute cap is the rule only inside the band the named sizes
+// cover, so a 9rem menu below it and a 92rem page shell above it stay clean.
+
+test('a ch cap is a reading column whatever the number', () => {
+  for (const cls of ['max-w-[64ch]', 'max-w-[68ch]', 'max-w-[30ch]', 'max-w-[120ch]']) {
+    withFile(`<p class="leading-relaxed ${cls}">copy</p>`, f => {
+      const { out } = run([f]);
+      assert.match(out, /max-w-\[\d+ch\]/, cls);
+    });
+  }
+});
+
+test('an absolute cap is the rule only inside the band the named sizes cover', () => {
+  // 920px is the one that started this: above max-w-4xl (896) and below the
+  // 5xl the docstring calls a page shell, so neither list reached it.
+  for (const cls of ['max-w-[920px]', 'max-w-[860px]', 'max-w-[42rem]', 'max-w-[60rem]']) {
+    withFile(`<div class="mx-auto ${cls}">shell</div>`, f => {
+      assert.equal(run([f]).code, 0, 'advisory mode still exits 0');
+      assert.match(run([f]).out, /max-w-\[/, cls);
+    });
+  }
+  // A component below the band and a page shell above it are both fine.
+  for (const cls of ['max-w-[9rem]', 'max-w-[110px]', 'max-w-[34rem]', 'max-w-[64rem]', 'max-w-[92rem]']) {
+    withFile(`<div class="mx-auto ${cls}">not text</div>`, f => {
+      assert.match(run([f]).out, /reading-column: none/, cls);
+    });
+  }
+});
+
+test('a relative or computed cap is not a fixed measure and is left alone', () => {
+  for (const cls of ['max-w-[92vw]', 'max-w-[45%]', 'max-w-[calc(100vw-2rem)]', 'max-w-[min(20rem,calc(100vw-7rem))]']) {
+    withFile(`<div class="${cls}">scales with the page</div>`, f => {
+      assert.match(run([f]).out, /reading-column: none/, cls);
+    });
+  }
+});
+
+test('the arbitrary form takes the same opt-out as the named one', () => {
+  withFile('<p class="max-w-[64ch]">copy</p> <!-- reading-column-ok -->', f => {
+    assert.match(run([f]).out, /reading-column: none/);
+  });
+});
+
+test('rule 3 names the arbitrary form, since the gate now refuses it', () => {
+  const skill = readFileSync(path.join(repoRoot, 'skills', 'daisy-alpine', 'SKILL.md'), 'utf8');
+  const rule = skill.split('**3. Don\'t narrow text to a reading column.**')[1].split('**4.')[0];
+  for (const cls of ['max-w-[64ch]', 'max-w-[920px]']) {
+    assert.ok(rule.includes(cls), `rule 3 does not name ${cls}`);
+  }
+  const band = readFileSync(script, 'utf8').match(/BAND_MIN, BAND_MAX = ([\d.]+), ([\d.]+)/);
+  assert.deepEqual([band[1], band[2]], ['672.0', '1024.0'],
+    'the band moved; rule 3 states it in rem and has to move with it');
+  assert.ok(rule.includes('42rem') && rule.includes('64rem'),
+    'rule 3 has to state the band the scanner enforces');
+});

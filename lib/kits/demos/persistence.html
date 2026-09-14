@@ -24,7 +24,7 @@
       examples: [
         {
           title: 'parsePath: the string-path grammar',
-          prose: `Two segments default <code class="${c()}">store="default"</code>; three or more make the middle the store and the rest the key. Pure function — no storage touched.`,
+          prose: `Two segments default <code class="${c()}">store="default"</code>; three or more make the middle the store and the rest the key. Pure function: no storage touched.`,
           lang: 'js', kind: 'parent',
           code:
 `for (const p of ['page.foo', 'page.bucket.foo', 'page.bucket.foo.bar'])
@@ -32,7 +32,7 @@
         },
         {
           title: 'save and load preserve types',
-          prose: `Values go through IndexedDB's structured clone, so <code class="${c()}">Uint8Array</code>, <code class="${c()}">Date</code>, and <code class="${c()}">Map</code> come back as themselves — not strings.`,
+          prose: `Values go through IndexedDB's structured clone, so <code class="${c()}">Uint8Array</code>, <code class="${c()}">Date</code>, and <code class="${c()}">Map</code> come back as themselves, not as strings.`,
           lang: 'js', kind: 'parent',
           code:
 `const sample = {
@@ -53,7 +53,7 @@ console.log('tags    is a', v.tags.constructor.name, '→ a =', v.tags.get('a'))
     },
     {
       title: 'Stores and listing',
-      intro: 'The key segment is ignored for store-level operations — only db + store matter for list, entries, and clearStore.',
+      intro: 'The key segment is ignored for store-level operations: only db and store matter for list, entries, and clearStore.',
       examples: [
         {
           title: 'seed, list, dump, wipe',
@@ -73,7 +73,7 @@ console.log('after clearStore:', (await persistence.list('demo-persistence.bag.x
         },
         {
           title: 'Collections: a record bag with ids',
-          prose: `<code class="${c()}">collection('&lt;db&gt;.&lt;store&gt;')</code> layers a record API on the same store — <code class="${c()}">put</code> auto-assigns an id, <code class="${c()}">all/find/count</code> query in JS.`,
+          prose: `<code class="${c()}">collection('&lt;db&gt;.&lt;store&gt;')</code> layers a record API on the same store, where <code class="${c()}">put</code> auto-assigns an id, <code class="${c()}">all/find/count</code> query in JS.`,
           lang: 'js', kind: 'parent',
           code:
 `const items = persistence.collection('demo-persistence.items');
@@ -100,7 +100,7 @@ console.log('tagged x  :', (await items.find(r => r.tags.includes('x'))).length,
           code:
 `try {
   await persistence.save('oops', 1);
-  console.log('no error — unexpected');
+  console.log('no error, which is unexpected');
 } catch (e) {
   console.error('Caught:', e.message);
 }`
@@ -119,31 +119,36 @@ console.log('tagged x  :', (await items.find(r => r.tags.includes('x'))).length,
 </script>
 </head>
 
-<body class="min-h-screen bg-base-200 text-base-content antialiased">
+<body class="min-h-dvh bg-base-200 text-base-content antialiased">
 
-  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
-    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
-      <div id="display-ctrl" class="pointer-events-auto"></div>
+  <!-- Sticky chrome over document scrolling, not a fixed bar: this page is a
+       tenant, embeddable through a toss render, and on iOS a fixed child
+       measures against the OUTER viewport and loses its right-hand edge inside
+       a narrower frame (house style rule 5). -->
+  <div class="sticky top-0 z-50 border-b border-base-300 bg-base-200/80 backdrop-blur">
+    <div class="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">
+      <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> demos
+      </a>
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/persistence.js</p>
+      <div id="display-ctrl" class="ml-auto"></div>
     </div>
   </div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <!-- No centred column cap. The width is the window's, and the prose takes
+       its measure from the rail track below, the same one every example uses,
+       so a standfirst lines up with the commentary under it. -->
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-    <header class="mb-10">
-      <div class="flex items-baseline justify-between mb-3">
-        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/persistence.js</p>
-        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
-          <i class="ph ph-arrow-left"></i> demos
-        </a>
-      </div>
-      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+    <header class="mb-8">
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-balance">
         Store it. <span class="opacity-50">Then load it back, intact.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.persistence</code>
         is a string-path key/value store over idb-keyval, with collections and
         introspection on top. Because it writes to real IndexedDB, these snippets
-        run with the <span class="font-mono text-[0.8em]">Console · host</span> kind —
+        run with the <span class="font-mono text-[0.8em]">Console · host</span> kind,
         executed in this page, not a frame.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
@@ -151,10 +156,12 @@ console.log('tagged x  :', (await items.find(r => r.tags.includes('x'))).length,
 
     <main id="sections"></main>
 
-    <footer class="mt-4 pt-6 border-t border-base-300">
+    <footer class="mt-4 pt-6 border-t border-base-300 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6">
+      <div class="min-w-0">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2 text-pretty">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">parent</code> kind runs each snippet in this page so it can reach IndexedDB; everything writes under the <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo-persistence</code> namespace.</p>
+      </div>
       </div>
     </footer>
 
