@@ -279,8 +279,10 @@ const structure = () => page.evaluate(() => {
 // The Extract tab, read the same way: what is drawn, not what is behind it.
 const extract = () => page.evaluate(() => {
   const box = document.querySelector('[data-xs="ex"]');
-  const on = (el) => el.classList.contains('btn-primary') ||
-                     el.classList.contains('bg-primary/10') || el.className.includes('bg-primary');
+  // "In the extract" is the accent on the TEXT, which is the one class every
+  // marked control here carries: a cell and a chip add a tint and a border on
+  // top of it, a picked sheet row carries it alone.
+  const on = (el) => el.classList.contains('text-primary');
   const cells = [...(box?.querySelectorAll('[data-ex-cell]') || [])].map(b => ({
     kind: b.dataset.exCell,
     sheet: b.dataset.exSheet || null,
@@ -297,6 +299,13 @@ const extract = () => page.evaluate(() => {
     cells,
     actions: ['ex-save', 'ex-copy', 'ex-open']
       .map(k => ({ k, disabled: !!box?.querySelector(`[data-xs="${k}"]`)?.disabled })),
+    // Any cell whose kind name does not fit its cell. A clipped label is what
+    // the real sample workbook exposed and the toy fixture could not: the
+    // counts here are one digit, so a one-line cell looked right at every
+    // width while "2000 of 2409" clipped `Styles` to `Sty…` on a real file.
+    clipped: [...(box?.querySelectorAll('[data-ex-cell] span:first-child') || [])]
+      .filter(el => el.scrollWidth > el.clientWidth + 1)
+      .map(el => el.textContent.trim()),
   };
 });
 
@@ -470,6 +479,7 @@ try {
   ok('a second kind adds its own cells rather than replacing the first',
      e2.cells.filter(c => c.lit).length === 3,
      JSON.stringify(e2.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
+  ok('no kind name is clipped at pane width', !e2.clipped.length, JSON.stringify(e2.clipped));
 
   // Claim 11: a cell is shorthand for its two axes, never a third state.
   await page.evaluate(() => document.querySelector('[data-ex-cell="pivots"]')?.click());
@@ -521,6 +531,8 @@ try {
   }));
   ok('the matrix reflows at phone width without scrolling the page sideways',
      !narrow.overflow, JSON.stringify(narrow));
+  const en = await extract();
+  ok('and no kind name is clipped at phone width', !en.clipped.length, JSON.stringify(en.clipped));
   await page.screenshot({ path: shotPath('extract-phone'), fullPage: true });
   await page.setViewportSize({ width: 1100, height: 800 });
 

@@ -115,6 +115,29 @@ parameter (`maxRows`, 2000 by default) and why the picker states the payload's
 size before the link is handed over. A cut extract is honest; a link that was
 silently trimmed to fit is not.
 
+## Seeing it
+
+[`docs/examples/allotment-ledger.xlsx`](../examples/allotment-ledger.xlsx) is a
+sample workbook built by
+[`tools/build/sample-workbook.mjs`](../../tools/build/sample-workbook.mjs)
+(`npm run sample-workbook`), committed but derived: the generator is the source
+and `--check` holds the file to it, the way `dist/` is held to `lib/`. It exists
+because `pages/data-view.html` opens on an empty intake, so a link handed over
+for review shows a form until the reader supplies an `.xlsx` of their own.
+
+`npm run sample-workbook -- --link` prints the address that opens it, which is
+`pages/data-view.html#data=mehrlander/web-tools@<ref>:docs/examples/allotment-ledger.xlsx`.
+Open it, switch to **Structure**, and the **Extract** tab is the last in the strip.
+
+It is sized to show rather than to assert: 800 ledger rows, so the picker's
+smallest cap visibly bites and a cell reads `500 of 802`; all twelve kinds
+present on at least one sheet; a form-shaped `Summary` whose values are almost
+nothing while its merges and styles are not; and a hidden `Archive`, so the
+matrix carries real zeros. The minimal fixture in
+[`tools/test/viewer-xlsx.mjs`](../../tools/test/viewer-xlsx.mjs) stays separate
+and stays minimal, since its assertions should not read against a workbook whose
+size was chosen for a screenshot.
+
 ## Why this is a profile over data-view rather than a sibling
 
 The [README](README.md#the-decision-chat-results-stays-a-sibling) works this

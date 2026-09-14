@@ -57,6 +57,7 @@ tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per p
 tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,no,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
 tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,167,argv,no,yes,no
+tools/build/sample-workbook.mjs,"builds docs/examples/allotment-ledger.xlsx, the sample workbook a data-view link opens so a reader meets the Extract tab on real data rather than an empty intake; --check holds the committed file to this generator, --link prints the address",tools/build,403,npm:sample-workbook,yes,yes,yes
 tools/build/snags-index.mjs,generates the index at the top of docs/SNAGS.md and warns about likely repeats,tools/build,252,npm:snags-index,yes,yes,yes
 tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",tools/build,243,npm:tests-index,yes,no,yes
 tools/build/tools-index.mjs,restamp the derived half of this registry,tools/build,261,npm:tools-index,yes,yes,yes
