@@ -161,6 +161,48 @@ container's `node_modules/` was dated 2026-07-28, and `npm test` failed one test
 When a suite fails locally on a missing package, check the dates before believing
 the failure.
 
+### What the account's setup script writes, and why none of it moves
+
+*(read 2026-09-14)*
+
+Five things, in this order: `~/.claude/CLAUDE.md`, the marketplace registration
+for `mehrlander/web-tools`, a user-scope install of `portable` and
+`daisy-alpine`, `~/.claude/hooks/refresh-portable.sh`, and a Python block that
+adds `AskUserQuestion` to `permissions.deny` and registers the refresher on
+`startup|resume`. It touches no repository, so nothing it writes is version
+controlled or reviewable.
+
+**Each piece looks movable into a repository and none of it is**, which is worth
+recording because the attempt is the obvious next thought.
+
+- *The deny cannot become project settings.* A multi-repo session's project root
+  sits above the checkouts, so project scope is not read at all; the measurement
+  and its proof are in [extending.md](extending.md).
+- *The install cannot be left to the refresher.* `claude plugin install -s user`
+  is what writes `enabledPlugins`, and plugins load at session start alongside
+  hooks, so a build that skipped it would leave the first session after a rebuild
+  with no plugins rather than stale ones.
+- *The refresher cannot move into the plugin.* It exists to recover a plugin that
+  is stale or failing to load, and a plugin that installs but does not load is an
+  observed failure in this estate, visible only to `claude plugin list`. A
+  recovery mechanism that lives inside the thing it recovers is not one.
+
+**The script leaves no trace of itself in the container.** Searched 2026-09-14:
+no copy on disk, no build log carrying it, and nothing outside the checkouts
+containing the string `plugin marketplace add`. Exactly three of its outputs
+reach a session: the text of `~/.claude/CLAUDE.md`, which arrives as User-scope
+instructions; the refresher's standard output, which is the one line naming a
+moved pin; and the effects of `settings.json`, never its contents. Comments
+inside any of those files reach nothing, so the script cannot be made legible to
+a session by explaining itself.
+
+**What closes that gap is a record rather than an explanation.** The script's
+last lines write `~/.claude/env-manifest.txt`, naming the build time, the files
+it wrote, what it put into `settings.json`, and which plugins it installed at
+which scope. It cannot drift, because the run that applies the changes is the run
+that describes them. A session that does not find the file is running on a
+snapshot built before 2026-09-14, when those lines were added.
+
 ## The session transcript
 
 *(measured 2026-07-29)*

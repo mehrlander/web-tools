@@ -19,7 +19,7 @@ cached-read-feeds-a-write,a fresh-looking read hands back the sha it just replac
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
-nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../.claude/skills/hooks/conventions-nudge.sh
+nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../.claude/skills/hooks/invoke-default.sh
 cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
 entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,1,2026-09-10,2026-09-10,../skills/daisy-alpine/references/mechanics.md
 keyboard-only-verb-is-no-verb-on-a-phone,an instrument you could arm and not use,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js

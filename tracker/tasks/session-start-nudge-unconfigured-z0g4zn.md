@@ -71,6 +71,6 @@ own. Check 3 nudges it anyway.
   which loads the conventions into the session in hand. It does **not** offer to
   install the plugin or write an opt-out, so the repo-configuration half of check
   3 is unbuilt. Whether that offer is still wanted is a separate question, not
-  filed here. Coverage is `tools/test/conventions-nudge.test.mjs`, asserting both
+  filed here. Coverage is `tools/test/invoke-default.test.mjs`, asserting both
   silence and speech, since a nudge that never fires and one that always fires
   look the same from outside.
