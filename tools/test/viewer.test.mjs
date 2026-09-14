@@ -311,8 +311,8 @@ test('a workbook opens in the sheet mode, whatever the host asked for', () => {
   const modes = R.getModes(f);
   // Spread into a node-realm literal: getModes builds its array inside jsdom,
   // and assert/strict compares prototypes, so a cross-realm Array never matches.
-  assert.deepEqual([...modes.map(m => m.id)], ['raw', 'sheet', 'xlsx'],
-    'the sheet render, the grid, and raw one tap away');
+  assert.deepEqual([...modes.map(m => m.id)], ['raw', 'sheet', 'xlsx', 'xlsx-structure'],
+    'the sheet render, the grid, the structure views, and raw one tap away');
 
   const v = window.Alpine.$data(window.document.getElementById('v'));
   assert.equal(v.resolveDefaultMode(f, modes).id, 'sheet');

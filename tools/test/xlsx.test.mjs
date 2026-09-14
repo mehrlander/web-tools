@@ -1350,3 +1350,46 @@ test('profileColumns: headerRow null profiles every row and names no header', ()
   assert.equal(a.rows, 5);
   assert.equal(a.distinct, 4, 'the heading is now one of the values');
 });
+
+// One column per role in Get-ColumnRole's ladder, in its order. E carries a
+// heading and no values, which is the case a scan driven by the body rows
+// alone would not see at all.
+const t = (v) => `t="inlineStr"><is><t>${v}</t></is>`;
+const SHEET_ROLES = `<?xml version="1.0"?>
+<worksheet xmlns="ws">
+  <sheetData>
+    <row r="1">
+      <c r="A1" ${t('Region')}</c><c r="B1" ${t('Amount')}</c><c r="C1" ${t('Fund')}</c>
+      <c r="D1" ${t('Id')}</c><c r="E1" ${t('Spare')}</c>
+    </row>
+    <row r="2"><c r="A2" ${t('East')}</c><c r="B2"><v>10</v></c><c r="C2"><v>1</v></c><c r="D2" ${t('a1')}</c></row>
+    <row r="3"><c r="A3" ${t('West')}</c><c r="B3"><v>20</v></c><c r="C3"><v>1</v></c><c r="D3" ${t('a2')}</c></row>
+    <row r="4"><c r="A4" ${t('East')}</c><c r="B4"><v>10</v></c><c r="C4"><v>1</v></c><c r="D4" ${t('a3')}</c></row>
+    <row r="5"><c r="A5" ${t('North')}</c><c r="B5"><v>30</v></c><c r="C5"><v>1</v></c><c r="D5" ${t('a4')}</c></row>
+  </sheetData>
+</worksheet>`;
+
+function rolesOf(opts) {
+  const parts = buildParts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? SHEET_ROLES : v]);
+  const { xl } = xlsxKit.analyze(parts);
+  return Object.fromEntries(
+    xlsxKit.profileColumns(xl.sheets.sheet1, xl, opts).map(c => [c.letter, c.role]));
+}
+
+test('profileColumns: role uses Get-ColumnRole\'s ladder, so both routes name a column alike', () => {
+  const r = rolesOf();
+  assert.equal(r.A, 'Categorical', 'repeated labels, fewer distinct than the threshold');
+  assert.equal(r.B, 'Measure', 'numbers, and not one per row');
+  assert.equal(r.C, 'Constant', 'one value the whole way down');
+  assert.equal(r.D, 'Key', 'distinct in every row, and no row blank');
+  assert.equal(r.E, 'Empty', 'a heading with nothing under it is still a column');
+});
+
+test('profileColumns: the ladder is ordered, so a fully distinct number column is a Key first', () => {
+  // Get-ColumnRole tests Key before Measure, and matching that ordering is the
+  // point of sharing the vocabulary at all: the same sheet must not be read as
+  // a measure here and a key there.
+  const r = rolesOf({ categorical: 2 });
+  assert.equal(r.A, 'Plain', 'below the threshold the categorical branch no longer applies');
+  assert.equal(r.D, 'Key', 'and the key branch is unaffected by that threshold');
+});
