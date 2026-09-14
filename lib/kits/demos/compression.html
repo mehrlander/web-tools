@@ -42,7 +42,7 @@ console.log('round-trip', back === text ? 'identical ✓' : 'MISMATCH ✗');`
         },
         {
           title: 'Gzip, with a label',
-          prose: `Gzip runs on the native <code class="${c()}">CompressionStream</code> — no WASM. Pass a label and it rides inside the prefix as <code class="${c()}">GZ64("…"):</code>, which <code class="${c()}">detect</code> reads back out.`,
+          prose: `Gzip runs on the native <code class="${c()}">CompressionStream</code>, with no WASM. Pass a label and it rides inside the prefix as <code class="${c()}">GZ64("…"):</code>, which <code class="${c()}">detect</code> reads back out.`,
           lang: 'js', kind: 'console', inject,
           code:
 `const text = 'allotment '.repeat(40);
@@ -54,7 +54,7 @@ console.log('back   ', (await compression.gzip.decompress(gz)).slice(0, 24) + '�
         },
         {
           title: 'How small, each way',
-          prose: `Repetitive structured text is where these earn their keep. The percentages are output size over raw — for tiny inputs the prefix and base64 expansion can make "compressed" larger, which is the honest result.`,
+          prose: `Repetitive structured text is where these earn their keep. The percentages are output size over raw. For a tiny input the prefix and the base64 expansion can make "compressed" larger, which is the honest result.`,
           lang: 'js', kind: 'console', inject,
           code:
 `const sample = JSON.stringify(
@@ -91,7 +91,7 @@ console.log('prefix', det.prefixLen, 'chars');`
         },
         {
           title: 'Find chunks embedded in text',
-          prose: `<code class="${c()}">text.findCompressedChunks</code> scans a blob of mixed prose and returns every BR64/GZ64 run it finds, in order, with positions — the basis for the helper page's selection chips.`,
+          prose: `<code class="${c()}">text.findCompressedChunks</code> scans a blob of mixed prose and returns every BR64/GZ64 run it finds, in order, with positions. That is the basis for the helper page's selection chips.`,
           lang: 'js', kind: 'console', inject,
           code:
 `const a = await compression.brotli('first', 'a');
@@ -103,7 +103,7 @@ for (const ch of compression.text.findCompressedChunks(doc))
         },
         {
           title: 'Is it JavaScript?',
-          prose: `<code class="${c()}">acorn.isJS</code> parses the string and reports whether it's valid JS — used to pick the right packing template (eval vs document.write).`,
+          prose: `<code class="${c()}">acorn.isJS</code> parses the string and reports whether it is valid JS, which is how the right packing template gets picked (eval or document.write).`,
           lang: 'js', kind: 'console', inject,
           code:
 `console.log('valid JS   ', await compression.acorn.isJS('const x = [1,2,3].map(n => n*2)'));
@@ -158,42 +158,49 @@ console.log(r.output.slice(0, 58) + '…');`
 </script>
 </head>
 
-<body class="min-h-screen bg-base-200 text-base-content antialiased">
+<body class="min-h-dvh bg-base-200 text-base-content antialiased">
 
-  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
-    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
-      <div id="display-ctrl" class="pointer-events-auto"></div>
+  <!-- Sticky chrome over document scrolling, not a fixed bar: this page is a
+       tenant, embeddable through a toss render, and on iOS a fixed child
+       measures against the OUTER viewport and loses its right-hand edge inside
+       a narrower frame (house style rule 5). -->
+  <div class="sticky top-0 z-50 border-b border-base-300 bg-base-200/80 backdrop-blur">
+    <div class="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">
+      <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> demos
+      </a>
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/compression.js</p>
+      <div id="display-ctrl" class="ml-auto"></div>
     </div>
   </div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <!-- No centred column cap. The width is the window's, and the prose takes
+       its measure from the rail track below, the same one every example uses,
+       so a standfirst lines up with the commentary under it. -->
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-    <header class="mb-10">
-      <div class="flex items-baseline justify-between mb-3">
-        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/compression.js</p>
-        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
-          <i class="ph ph-arrow-left"></i> demos
-        </a>
-      </div>
-      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+    <header class="mb-8">
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-balance">
         Compress it. <span class="opacity-50">Then prove it round-trips.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.compression</code>
         wraps Brotli (WASM), Gzip (<code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">CompressionStream</code>),
         acorn JS detection, and a bookmarklet/data-URL packer. Each snippet runs in
-        an isolated frame with the kit injected — edit it, press Run, read the console.
+        an isolated frame with the kit injected. Edit it, press Run, read the console.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
     </header>
 
     <main id="sections"></main>
 
-    <footer class="mt-4 pt-6 border-t border-base-300">
+    <footer class="mt-4 pt-6 border-t border-base-300 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6">
+      <div class="min-w-0">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2 text-pretty">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code> with the editor from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">kits/cm6.js</code>. Each block declares <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">inject: ['kits/compression.js']</code>; the proof frame loads it as a plain script before the snippet runs.</p>
         <p>The full UI that composes these calls is <a href="../../pages/compression-helper.html" class="link link-hover">compression-helper.html</a>.</p>
+      </div>
       </div>
     </footer>
 

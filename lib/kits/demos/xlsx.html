@@ -14,14 +14,69 @@
   await gh.load('kits/proof.js');
   await gh.load('kits/vanilla-demo.js');
   await gh.load('kits/io.js');     // io.pick() supplies the real file/gesture
-  await gh.load('kits/xlsx.js');   // parent-kind snippets call window.xlsxKit
+  await gh.load('kits/xlsx.js');   // host-kind snippets call window.xlsxKit
+
+  // The drop target is the repo's own component, and an Alpine component has
+  // to register its alpine:init listener BEFORE Alpine starts. gh.load resolves
+  // after a deferred <script> tag would already have run, so Alpine is appended
+  // here instead: the ordering lib/alpine-bundle.js gives the app, without the
+  // app's store.
+  await gh.load('alpineComponents/drop-zone.js');
+  await new Promise((ok, no) => {
+    const tag = document.createElement('script');
+    tag.src = 'https://unpkg.com/alpinejs';
+    tag.onload = ok;
+    tag.onerror = () => no(new Error('Alpine did not load'));
+    document.head.append(tag);
+  });
 
   const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
 
   const SECTIONS = [
     {
+      title: 'Drop a workbook in',
+      intro: 'Everything below needs a real file. Drop one here and the kit reads it: the same intake the Web Tools app uses for a file dragged onto any view, and the same views its Structure mode draws.',
+      examples: [
+        {
+          title: 'Drop, browse or paste, then read the structure',
+          prose: `<code class="${c()}">dropZone</code> is the house drop target from <code class="${c()}">alpineComponents/drop-zone.js</code>. It takes a file three ways, reads it to an <code class="${c()}">ArrayBuffer</code>, and emits <code class="${c()}">drop-file</code> without deciding what happens next. What happens next here is <code class="${c()}">readZip</code>, and three of the kit's views drawn as tables. The workbook stays on <code class="${c()}">window.__xlsx</code> for every snippet below.`,
+          lang: 'js', kind: 'stage',
+          code:
+`const zone = document.createElement('div');
+zone.setAttribute('x-data', "dropZone({ accept: '.xlsx,.xlsm', idle: 'Drop a workbook', hint: 'or click to browse, or paste' })");
+const out = document.createElement('div');
+out.className = 'mt-3 space-y-4';
+stage.append(zone, out);
+
+// Each view is an array of plain objects, so one table function draws them all.
+const draw = (title, rows) => {
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  return '<div><p class="font-mono text-xs uppercase tracking-widest opacity-40 mb-1">' + title + '</p>'
+    + '<div class="overflow-x-auto"><table class="table table-xs"><thead><tr>'
+    + cols.map(c => '<th>' + c + '</th>').join('')
+    + '</tr></thead><tbody>'
+    + rows.map(r => '<tr>' + cols.map(c => '<td>' + (r[c] ?? '') + '</td>').join('') + '</tr>').join('')
+    + '</tbody></table></div></div>';
+};
+
+zone.addEventListener('drop-file', async (e) => {
+  const result = await xlsxKit.readZip(e.detail.buf);
+  window.__xlsx = result;
+  const s = xlsxKit.summary(result);
+  console.log(e.detail.name + ': ' + s.total + ' XML paths, ' + s.connected + ' connected');
+  out.innerHTML = draw('Sheets', xlsxKit.views.connections(result))
+    + draw('Sources', xlsxKit.views.sources(result))
+    + draw('Pivots', xlsxKit.views.pivots(result));
+});
+
+Alpine.initTree(zone);`
+        },
+      ],
+    },
+    {
       title: 'Read a real .xlsx',
-      intro: 'xlsxKit.readZip needs a real file, so this uses the host kind: pressing Run opens a file dialog via io.pick(). Choose any .xlsx.',
+      intro: 'The other way in, for a page with no drop target: press Run and io.pick() opens a file dialog. It lands on the same window.__xlsx, so either section arms the ones below.',
       examples: [
         {
           title: 'readZip + summary',
@@ -39,18 +94,18 @@ console.log('sheets:', Object.keys(result.xl.sheets).join(', '));`
       ],
     },
     {
-      title: 'The four views',
-      intro: 'Each view is a pure function over the result from readZip/analyze — no DOM, just arrays of plain objects a table (Tabulator, a &lt;table&gt;, whatever) can render directly. Run the section above first.',
+      title: 'The views',
+      intro: 'Each view is a pure function over the result from readZip or analyze. No DOM: just arrays of plain objects a table (Tabulator, a &lt;table&gt;, whatever) renders directly. Open a workbook above first.',
       examples: [
         {
-          title: 'views.connections — per-sheet resource usage',
-          prose: `Cells, referenced shared-string ids, referenced styles, formulas, merged cells, comments, named ranges, and calc-chain entries, one row per sheet.`,
+          title: 'views.connections: per-sheet resource usage',
+          prose: `Cells, referenced shared-string ids, referenced styles, formulas, merged cells, comments, named ranges and calc-chain entries, one row per sheet. The last four columns are what is present but not on screen: the sheet's own visibility, its hidden rows and columns, and how many pivot tables are drawn on it.`,
           lang: 'js', kind: 'parent',
           code:
 `console.table(xlsxKit.views.connections(window.__xlsx));`
         },
         {
-          title: 'views.files — one row per XML part',
+          title: 'views.files: one row per XML part',
           prose: `Which OOXML part each path belongs to, its category (Sheet Data, Shared Strings, Relationships, …), and which sheets it touches.`,
           lang: 'js', kind: 'parent',
           code:
@@ -58,11 +113,40 @@ console.log('sheets:', Object.keys(result.xl.sheets).join(', '));`
         },
         {
           title: 'views.paths and views.unconnected',
-          prose: `<code class="${c()}">paths</code> is one row per distinct XML element path across every part; <code class="${c()}">unconnected</code> is the subset the kit found no recognized structure for — usually drawing/theme extension blocks and other decoration.`,
+          prose: `<code class="${c()}">paths</code> is one row per distinct XML element path across every part; <code class="${c()}">unconnected</code> is the subset the kit found no recognized structure for, usually drawing and theme extension blocks and other decoration.`,
           lang: 'js', kind: 'parent',
           code:
 `console.log(xlsxKit.views.paths(window.__xlsx).length, 'total paths');
 console.table(xlsxKit.views.unconnected(window.__xlsx).slice(0, 10));`
+        },
+        {
+          title: 'views.sources and views.pivots: what the workbook reaches',
+          prose: `<code class="${c()}">sources</code> is <code class="${c()}">xl/connections.xml</code>, one row per external source, classified by its <code class="${c()}">type</code> code rather than by reading the provider string. A Power Query connection is flagged there, but the M it runs is not in the connection string: it is in the <code class="${c()}">DataMashup</code> blob, which <code class="${c()}">readZip</code> has already opened onto <code class="${c()}">xl.powerQuery</code>. <code class="${c()}">pivots</code> joins each pivot table to the sheet it is drawn on and to the cache it reads.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const xl = window.__xlsx.xl;
+console.table(xlsxKit.views.sources(window.__xlsx));
+console.table(xlsxKit.views.pivots(window.__xlsx));
+console.log('power query sections:', (xl.powerQuery?.sections || []).map(q => q.path).join(', ') || 'none');`
+        },
+      ],
+    },
+    {
+      title: 'What a column holds',
+      intro: 'The structure views say what the file is made of. profileColumns says what the data is, which is the first question anyone asks of a table and the one a value grid answers only by being read.',
+      examples: [
+        {
+          title: 'profileColumns on the first sheet',
+          prose: `One row per column: its heading, how much of it is filled, how many distinct values it carries, and its <code class="${c()}">kind</code>. Kind is decided by MAJORITY of the non-empty cells, so a numeric column with a "Total" label in its last row is still a number column; <code class="${c()}">mixed</code> is reported only when no kind holds a majority. <code class="${c()}">computed</code> counts the cells whose value came from a formula, which is how a derived column tells itself apart from an entered one. <code class="${c()}">role</code> is the other question, what the column is FOR rather than what its cells are, and its ladder and names are <code class="${c()}">Get-ColumnRole</code>'s from wps so the two routes describe a column alike.`,
+          lang: 'js', kind: 'parent',
+          code:
+`const xl = window.__xlsx.xl;
+const [firstSheet] = Object.values(xl.sheets);
+console.table(xlsxKit.profileColumns(firstSheet, xl).map(col => ({
+  Column: col.letter, Header: col.header, Role: col.role, Kind: col.kind,
+  Filled: col.filled, Blank: col.blank, Computed: col.computed, Distinct: col.distinct,
+  Common: col.top.slice(0, 3).map(t => t.value + ' (' + t.count + ')').join(', '),
+})));`
         },
       ],
     },
@@ -72,7 +156,7 @@ console.table(xlsxKit.views.unconnected(window.__xlsx).slice(0, 10));`
       examples: [
         {
           title: 'sheetRows on the first sheet',
-          prose: `Shared-string cells already carry their resolved text, not a string-table index — <code class="${c()}">analyze()</code> defers that resolution to a finalize pass, so it’s correct no matter which part of the zip got walked first.`,
+          prose: `Shared-string cells already carry their resolved text, not a string-table index. <code class="${c()}">analyze()</code> defers that resolution to a finalize pass, so it is correct no matter which part of the zip got walked first.`,
           lang: 'js', kind: 'parent',
           code:
 `const [firstSheet] = Object.values(window.__xlsx.xl.sheets);
@@ -130,44 +214,50 @@ console.table([...used].map(s => ({ s, ...xlsxKit.cellStyle(xl, s) })));`
 </script>
 </head>
 
-<body class="min-h-screen bg-base-200 text-base-content antialiased">
+<body class="min-h-dvh bg-base-200 text-base-content antialiased">
 
-  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
-    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
-      <div id="display-ctrl" class="pointer-events-auto"></div>
+  <!-- Sticky chrome over document scrolling, not a fixed bar: this page is a
+       tenant, embeddable through a toss render, and on iOS a fixed child
+       measures against the OUTER viewport and loses its right-hand edge inside
+       a narrower frame (house style rule 5). -->
+  <div class="sticky top-0 z-50 border-b border-base-300 bg-base-200/80 backdrop-blur">
+    <div class="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">
+      <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> demos
+      </a>
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/xlsx.js</p>
+      <div id="display-ctrl" class="ml-auto"></div>
     </div>
   </div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <!-- No centred column cap. The width is the window's, and the prose takes
+       its measure from the rail track below, the same one every example uses,
+       so a standfirst lines up with the commentary under it. -->
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-    <header class="mb-10">
-      <div class="flex items-baseline justify-between mb-3">
-        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/xlsx.js</p>
-        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
-          <i class="ph ph-arrow-left"></i> demos
-        </a>
-      </div>
-      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+    <header class="mb-8">
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-balance">
         Unzip it. <span class="opacity-50">See how Excel wires it together.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.xlsxKit</code>
-        unzips an .xlsx, walks every XML/rels part, and returns the internal
-        cross-references (shared strings, styles, sheet rels, comments, calc
-        chain, defined names) plus reconstructed sheet data — no DOM, no
-        Tabulator, just plain objects. Needs a real file, so this uses the
-        <span class="font-mono text-[0.8em]">Console · host</span> kind — the
-        Run click is the gesture behind the file dialog.
+        unzips an .xlsx, walks every XML/rels part, and returns what the file
+        says about itself: shared strings, styles, sheet rels, comments, calc
+        chain, defined names, external connections, pivot caches, and the
+        sheet data rebuilt. No DOM and no Tabulator, just plain objects.
+        Drop a workbook on the first section to arm every snippet below.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
     </header>
 
     <main id="sections"></main>
 
-    <footer class="mt-4 pt-6 border-t border-base-300">
+    <footer class="mt-4 pt-6 border-t border-base-300 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6">
+      <div class="min-w-0">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
-        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Pulled from three dropped prototypes into one pure kit — see the <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/xlsx.js" class="link link-hover">source</a> for the extraction notes.</p>
+      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2 text-pretty">
+        <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Pulled from three dropped prototypes into one pure kit; the <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/xlsx.js" class="link link-hover">source</a> carries the extraction notes.</p>
+      </div>
       </div>
     </footer>
 
