@@ -1,4 +1,5 @@
 path,role,layer,lines,invocation,emits,named,tested
+.claude/hooks/session-check-manifest.sh,"one-shot gated note: silent until a snapshot postdates the 2026-09-14 setup-script revision, then reports whether ~/.claude/env-manifest.txt landed and asks to be deleted",.claude/hooks,28,session:SessionStart,no,yes,no
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
