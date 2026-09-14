@@ -15,7 +15,7 @@ Six envelope formats exist today, from the most general to the most specific.
 | **Stage** | [`docs/show-repo.md`](../show-repo.md), `StageLink` | show-repo | a fileset in transit, plus authored review prompts and a mode |
 | **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | data itself: a CSV, a JSON array, a log, or several of them with a view each |
 | **Shorter** | [`shorter.md`](shorter.md) | [`pages/shorter.html`](../../pages/shorter.html) | a document and, optionally, a shortening of it to adjudicate against it |
-| **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v1.schema.json`](schemas/workbook-extract-v1.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | part of an `.xlsx`, picked along two axes, with the provenance of the pick |
+| **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | selected sheet readings and individual workbook objects, with provenance |
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 

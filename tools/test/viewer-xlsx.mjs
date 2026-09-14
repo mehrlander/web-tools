@@ -27,16 +27,12 @@
 //   9. a pivot names the range its cache was built from, and the records tab
 //      draws the rows behind it with their shared-item indices resolved
 //
-// And four for the Extract tab, which reads ACROSS the eight views beside it:
+// And four for the Extract tab, which selects the readings to share:
 //
-//  10. the picker is the preview: ticking a kind lights that column of the
-//      matrix with its row counts, and nothing else has to say what it did
-//  11. the two axes stay a cross product, so tapping a cell turns on the kind
-//      and the sheet it sits at rather than being a third kind of state
-//  12. the figure line is one compact line, and the link actions go dark until
-//      there is a link to hand over
-//  13. what leaves is a data-view envelope the page beside it opens, with the
-//      provenance of the pick on it
+//  10. a sheet selects its available readings, and each can be unticked
+//  11. related pivots and caches are independent choices, not side effects
+//  12. the figure line stays compact and the actions reflect a usable export
+//  13. the preview, saved file, and link carry the same v2 envelope
 //
 // The fixture is built here with jszip rather than committed, so no binary
 // enters the tree and the workbook's internals are exactly what the assertions
@@ -284,9 +280,6 @@ const structure = () => page.evaluate(() => {
 // The Extract tab, read the same way: what is drawn, not what is behind it.
 const extract = () => page.evaluate(() => {
   const box = document.querySelector('[data-xs="ex"]');
-  // "In the extract" is the accent on the TEXT, which is the one class every
-  // marked control here carries: a cell and a chip add a tint and a border on
-  // top of it, a picked sheet row carries it alone.
   const on = (el) => el.classList.contains('text-primary');
   const cells = [...(box?.querySelectorAll('[data-ex-cell]') || [])].map(b => ({
     kind: b.dataset.exCell,
@@ -297,11 +290,14 @@ const extract = () => page.evaluate(() => {
   }));
   return {
     figure: box?.querySelector('[data-xs="ex-fig"]')?.textContent.trim() || '',
-    kinds: [...(box?.querySelectorAll('[data-ex-kind]') || [])]
-      .map(b => ({ id: b.dataset.exKind, lit: on(b), disabled: b.disabled })),
     sheets: [...(box?.querySelectorAll('[data-ex-sheetrow]') || [])]
       .map(b => ({ name: b.dataset.exSheetrow, lit: on(b) })),
+    objects: [...(box?.querySelectorAll('[data-ex-object]') || [])]
+      .map(b => ({ id: b.dataset.exObject, label: b.textContent.replace(/\s+/g, ' ').trim(), lit: on(b) })),
     cells,
+    preview: box?.querySelector('[data-xs="ex-preview-json"]')?.textContent || '',
+    previewOptions: [...(box?.querySelectorAll('[data-xs="ex-preview-pick"] option') || [])]
+      .map(o => ({ value: o.value, text: o.textContent })),
     actions: ['ex-save', 'ex-copy', 'ex-open']
       .map(k => ({ k, disabled: !!box?.querySelector(`[data-xs="${k}"]`)?.disabled })),
     // Any cell whose kind name does not fit its cell. A clipped label is what
@@ -314,8 +310,9 @@ const extract = () => page.evaluate(() => {
   };
 });
 
-const tapKind = async (id) => {
-  await page.evaluate((k) => document.querySelector(`[data-ex-kind="${k}"]`)?.click(), id);
+const tapSheet = async (name) => {
+  await page.evaluate((n) => [...document.querySelectorAll('[data-ex-sheetrow]')]
+    .find(b => b.dataset.exSheetrow === n)?.click(), name);
   await page.waitForTimeout(600);
 };
 
@@ -445,75 +442,93 @@ try {
      JSON.stringify(rec.rows) === JSON.stringify([['722', '41'], ['600', '17']]),
      JSON.stringify(rec.rows));
 
-  console.log('the Extract tab, which reads across the eight beside it:');
+  console.log('the sheet-centered Extract tab:');
   await openTab('Extract');
   const e0 = await extract();
   // Claim 10, first half: nothing is picked, so nothing is lit and no figure
   // claims otherwise.
-  ok('it opens with nothing picked', !e0.cells.some(c => c.lit) && !e0.kinds.some(k => k.lit),
-     JSON.stringify({ cells: e0.cells.filter(c => c.lit), kinds: e0.kinds.filter(k => k.lit) }));
+  ok('it opens with nothing picked', !e0.cells.some(c => c.lit) && !e0.objects.some(o => o.lit),
+     JSON.stringify({ cells: e0.cells.filter(c => c.lit), objects: e0.objects.filter(o => o.lit) }));
   ok('the figure line is empty until there is something to figure', e0.figure === '', e0.figure);
   // Claim 12, second half: the two link actions and the save are dark.
   ok('every action is dark until there is something to hand over',
      e0.actions.every(a => a.disabled), JSON.stringify(e0.actions));
-  // A kind the workbook has none of is offered and cannot be tapped, the same
-  // rule the tab strip follows: a control that vanishes when empty cannot say
-  // no. `validations` rather than `queries`: the strip carries the eight
-  // SHEET kinds only, since a workbook-scoped kind toggles the single cell
-  // sitting in the Whole workbook block and needed no second control.
-  ok('the strip is the sheet axis, so it carries eight kinds and not twelve',
-     e0.kinds.length === 8 && !e0.kinds.some(k => k.id === 'queries'),
-     JSON.stringify(e0.kinds.map(k => k.id)));
   ok('a kind this workbook has none of is present and disabled',
-     e0.kinds.find(k => k.id === 'validations')?.disabled === true, JSON.stringify(e0.kinds));
-  ok('and a workbook kind it has none of is still offered as a cell',
-     e0.cells.find(c => c.sheet === null && c.kind === 'queries')?.disabled === true,
-     JSON.stringify(e0.cells.filter(c => c.sheet === null)));
-  ok('the matrix draws every sheet against every per-sheet kind',
+     e0.cells.find(c => c.sheet === 'Budget' && c.kind === 'validations')?.disabled === true,
+     JSON.stringify(e0.cells.filter(c => c.disabled)));
+  ok('the checklist draws every sheet with its own eight readings',
      e0.cells.filter(c => c.sheet === 'Budget').length === 8 &&
-     e0.cells.filter(c => c.sheet === null).length === 4,
+     e0.cells.filter(c => c.sheet === 'Notes').length === 8,
      JSON.stringify(e0.cells.map(c => [c.sheet, c.kind])));
-  ok('and a cell the workbook has nothing in cannot be tapped',
-     e0.cells.find(c => c.sheet === 'Notes' && c.kind === 'merges')?.disabled === true,
-     JSON.stringify(e0.cells.filter(c => c.disabled).map(c => [c.sheet, c.kind])));
+  ok('the three modeled objects are individual choices',
+     e0.objects.length === 3 &&
+     e0.objects.some(o => o.id.startsWith('pivot:')) &&
+     e0.objects.some(o => o.id.startsWith('records:')) &&
+     e0.objects.some(o => o.id.startsWith('source:')),
+     JSON.stringify(e0.objects));
 
-  // Claim 10, second half.
-  await tapKind('values');
+  await tapSheet('Budget');
   const e1 = await extract();
-  ok('ticking a kind lights that column across every sheet that has it',
-     e1.cells.filter(c => c.lit).length === 2 &&
-     e1.cells.filter(c => c.lit).every(c => c.kind === 'values'),
+  ok('choosing Budget selects its available readings, not Notes',
+     e1.cells.filter(c => c.lit).length === e0.cells.filter(c => c.sheet === 'Budget' && !c.disabled).length &&
+     e1.cells.filter(c => c.lit).every(c => c.sheet === 'Budget'),
      JSON.stringify(e1.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
-  ok('and the cells carry their counts, so the pick is legible as rows',
+  ok('and the readings carry their counts',
      e1.cells.find(c => c.sheet === 'Budget' && c.kind === 'values')?.label === 'Values 2',
      JSON.stringify(e1.cells.filter(c => c.lit).map(c => c.label)));
-  // Claim 12, first half: one compact line, not a row of tiles.
   ok('the figures are one compact line',
      new RegExp(`^\\d+ items${SEP}\\d+ rows${SEP}[\\d.]+ (B|KB)(${SEP}link [\\d.]+ (B|KB))?$`).test(e1.figure),
      e1.figure);
   ok('and the actions come alive with it', e1.actions.every(a => !a.disabled), JSON.stringify(e1.actions));
+  ok('related pivot and cached rows stay off', !e1.objects.some(o => o.lit),
+     JSON.stringify(e1.objects));
 
-  await tapKind('comments');
+  await page.evaluate(() => document.querySelector('[data-ex-sheet="Budget"][data-ex-cell="comments"]')?.click());
+  await page.waitForTimeout(600);
   const e2 = await extract();
-  ok('a second kind adds its own cells rather than replacing the first',
-     e2.cells.filter(c => c.lit).length === 3,
+  ok('unticking Budget comments leaves the other Budget readings on',
+     !e2.cells.find(c => c.sheet === 'Budget' && c.kind === 'comments')?.lit &&
+     e2.cells.find(c => c.sheet === 'Budget' && c.kind === 'values')?.lit,
      JSON.stringify(e2.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
   ok('no kind name is clipped at pane width', !e2.clipped.length, JSON.stringify(e2.clipped));
 
-  // Claim 11: a cell is shorthand for its two axes, never a third state, so
-  // tapping one lights the kind's own control in the strip above.
-  await page.evaluate(() => document.querySelector('[data-ex-cell="merges"]')?.click());
+  await page.evaluate(() => document.querySelector('[data-ex-sheet="Notes"][data-ex-cell="values"]')?.click());
   await page.waitForTimeout(600);
   const e3 = await extract();
-  ok('tapping a cell turns its KIND on, which is what the envelope can express',
-     e3.kinds.find(k => k.id === 'merges')?.lit === true, JSON.stringify(e3.kinds));
-  // And a workbook cell, which has no chip, still enters the pick.
-  await page.evaluate(() => document.querySelector('[data-ex-cell="pivots"]')?.click());
+  ok('Notes values can be included without its other readings',
+     e3.cells.filter(c => c.sheet === 'Notes' && c.lit).map(c => c.kind).join() === 'values',
+     JSON.stringify(e3.cells.filter(c => c.sheet === 'Notes' && c.lit)));
+  await page.evaluate(() => document.querySelector('[data-ex-object^="pivot:"]')?.click());
   await page.waitForTimeout(600);
   const e4 = await extract();
-  ok('and a workbook cell enters the pick without a control of its own',
-     e4.cells.find(c => c.sheet === null && c.kind === 'pivots')?.lit === true,
-     JSON.stringify(e4.cells.filter(c => c.sheet === null)));
+  ok('an individual pivot can be selected without its cached rows',
+     e4.objects.find(o => o.id.startsWith('pivot:'))?.lit === true &&
+     e4.objects.find(o => o.id.startsWith('records:'))?.lit === false,
+     JSON.stringify(e4.objects));
+
+  const preview = JSON.parse(e4.preview);
+  ok('the full preview spells out per-sheet choices and selected objects',
+     preview.kind === 'workbook-extract/2' &&
+     preview.picked.sheets.find(s => s.name === 'Notes')?.kinds.join() === 'values' &&
+     preview.picked.sheets.find(s => s.name === 'Budget')?.kinds.includes('comments') === false &&
+     preview.picked.objects.length === 1 &&
+     preview.items.every(i => i.kind !== 'records' && i.kind !== 'comments'),
+     JSON.stringify(preview.picked));
+  ok('each exported item has its own preview choice',
+     e4.previewOptions.length === preview.items.length + 1,
+     JSON.stringify(e4.previewOptions));
+  await page.selectOption('[data-xs="ex-preview-pick"]', preview.items[0].name);
+  const itemPreview = await page.locator('[data-xs="ex-preview-json"]').textContent();
+  ok('an item preview is its exact serialized content', itemPreview === preview.items[0].content,
+     itemPreview?.slice(0, 100));
+  await page.selectOption('[data-xs="ex-preview-pick"]', '');
+
+  const downloadReady = page.waitForEvent('download');
+  await page.locator('[data-xs="ex-save"]').click();
+  const download = await downloadReady;
+  const saved = await readFile(await download.path(), 'utf8');
+  ok('Save writes the exact JSON shown in the full preview', saved === e4.preview,
+     JSON.stringify({ filename: download.suggestedFilename(), bytes: saved.length }));
 
   // Claim 13: what leaves is an envelope the page beside it opens.
   const url = await page.evaluate(async () => {
@@ -533,10 +548,8 @@ try {
       const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
       return JSON.parse(await new Response(stream).text());
     }, url);
-    ok('the link carries a workbook-extract envelope', decoded.kind === 'workbook-extract/1', decoded.kind);
-    ok('with what was picked and what was left on it',
-       decoded.picked.kinds.join() === 'values,merges,comments,pivots' && decoded.left.sheets.length === 0,
-       JSON.stringify({ picked: decoded.picked, left: decoded.left.kinds.length }));
+    ok('the link carries the exact previewed envelope',
+       JSON.stringify(decoded) === JSON.stringify(preview), decoded.kind);
     ok('and the workbook it came from, by name and size',
        decoded.source?.name === 'ledger.xlsx' && decoded.source.bytes > 0,
        JSON.stringify(decoded.source));
@@ -594,7 +607,7 @@ try {
   // is above every count on this workbook too, so the cap has to come DOWN for
   // the assertion to mean anything. Written the lazy way first, against the
   // default cap, it passed while testing nothing.
-  await tapKind('values');
+  await tapSheet('Ledger');
   const ledgerValues = (r) => r.cells.find(c => c.sheet === 'Ledger' && c.kind === 'values')?.label;
   const uncut = await extract();
   ok('under the cap a cell states the whole size', ledgerValues(uncut) === 'Values 802', ledgerValues(uncut));

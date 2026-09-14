@@ -172,8 +172,9 @@ const rowsOf = (item) => JSON.parse(item.content);
 
 test('kit surface', () => {
   assert.deepEqual(Object.keys(XlsxExtract).sort(),
-    ['KIND', 'KINDS', 'extract', 'profileRows', 'survey']);
+    ['KIND', 'KINDS', 'SELECTED_KIND', 'catalog', 'extract', 'extractSelected', 'profileRows', 'survey']);
   assert.equal(XlsxExtract.KIND, 'workbook-extract/1');
+  assert.equal(XlsxExtract.SELECTED_KIND, 'workbook-extract/2');
 });
 
 test('the kinds are two flat lists, not a tree: eight per sheet and four per workbook', () => {
@@ -205,6 +206,72 @@ test('a kind a sheet has none of reports zero rather than disappearing', () => {
 test('the workbook-scoped counts are reported once, beside the sheets', () => {
   const s = XlsxExtract.survey(read());
   assert.deepEqual(s.workbook, { pivots: 1, records: 3, sources: 1, queries: 0 });
+});
+
+test('the sheet-centered catalogue places related objects without including them', () => {
+  const cat = XlsxExtract.catalog(read());
+  assert.deepEqual(cat.objects.map(o => [o.kind, o.label, o.sheet, o.count]), [
+    ['pivots', 'ByFund', 'Ledger', 1],
+    ['records', 'Ledger!A1:B4', 'Ledger', 3],
+    ['sources', 'OFM page', null, 1],
+  ]);
+});
+
+test('v2 selects kinds independently per sheet and never adds related objects implicitly', () => {
+  const env = XlsxExtract.extractSelected(read(), {
+    sheets: [
+      { name: 'Ledger', kinds: ['comments'] },
+      { name: 'Notes', kinds: ['values'] },
+    ], objects: [],
+  }, { now: NOW });
+  assert.equal(env.kind, 'workbook-extract/2');
+  assert.deepEqual(env.items.map(i => [i.sheet, i.kind]), [
+    ['Ledger', 'comments'], ['Notes', 'values'],
+  ]);
+  assert.deepEqual(env.picked.sheets, [
+    { name: 'Ledger', kinds: ['comments'] }, { name: 'Notes', kinds: ['values'] },
+  ]);
+  assert.ok(env.left.objects.some(id => id.startsWith('records:')));
+  assert.ok(env.left.sheetKinds.find(s => s.name === 'Ledger').kinds.includes('values'));
+  assert.ok(DataPayload.isEnvelope(env));
+});
+
+test('v2 can include one pivot, cached rows, or a connection without selecting any sheet', () => {
+  const cat = XlsxExtract.catalog(read());
+  for (const object of cat.objects) {
+    const env = XlsxExtract.extractSelected(read(), { objects: [object.id] },
+      { now: NOW, maxRows: 2 });
+    assert.equal(env.items.length, 1, object.kind);
+    assert.equal(env.items[0].object, object.id);
+    assert.equal(env.items[0].kind, object.kind);
+    assert.equal(env.items[0].sheet, object.sheet);
+    assert.deepEqual(env.picked.objects.map(o => o.id), [object.id]);
+    if (object.kind === 'records') {
+      assert.equal(env.items[0].total, 3);
+      assert.equal(env.items[0].rows, 2);
+      assert.equal(env.items[0].truncated, true);
+    }
+  }
+});
+
+test('v2 selects individual objects within a kind, including Power Query source', () => {
+  const result = read();
+  result.xl.connections.push({ ...result.xl.connections[0], id: '2', name: 'Second source' });
+  const [pivotPart, pivot] = Object.entries(result.xl.pivotTables)[0];
+  result.xl.pivotTables[pivotPart.replace('1.xml', '2.xml')] = { ...pivot, name: 'Second pivot' };
+  result.xl.powerQuery = { sections: [
+    { path: 'xl/queries/First.m', m: 'let First = 1 in First' },
+    { path: 'xl/queries/Second.m', m: 'let Second = 2 in Second' },
+  ] };
+  const cat = XlsxExtract.catalog(result);
+  const choices = cat.objects.filter(o => o.label.startsWith('Second'));
+  assert.deepEqual(choices.map(o => o.kind), ['pivots', 'sources', 'queries']);
+  const env = XlsxExtract.extractSelected(result, { objects: choices.map(o => o.id) }, { now: NOW });
+  assert.deepEqual(env.items.map(i => i.kind), ['pivots', 'sources', 'queries']);
+  assert.equal(rowsOf(env.items[0])[0].Pivot, 'Second pivot');
+  assert.equal(rowsOf(env.items[1])[0].Name, 'Second source');
+  assert.equal(env.items[2].content, 'let Second = 2 in Second');
+  assert.equal(env.items.every(i => !i.content.includes('First')), true);
 });
 
 // Claim 1: the picker's number and the extract's rows are the same number.
@@ -283,6 +350,14 @@ test('a row cut past the cap is reported on the item and written into its note',
   // The same fact in the one field today's data-view reader already shows,
   // derived from the record rather than written beside it.
   assert.equal(it.note, '2 of 4 rows');
+});
+
+test('an explicit null row cap keeps all parsed rows', () => {
+  const env = XlsxExtract.extractSelected(read(), {
+    sheets: [{ name: 'Ledger', kinds: ['values'] }],
+  }, { now: NOW, maxRows: null });
+  assert.equal(env.items[0].rows, 4);
+  assert.equal(env.items[0].truncated, false);
 });
 
 test("a pivot cache's own cut rides through rather than being re-reported", () => {
