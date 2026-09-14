@@ -48,6 +48,8 @@ MCP tool definitions consume context. Claude Code can defer loading them through
 
 `.claude/hooks/session-start.sh` runs at session start. Nothing registers it: the `portable` plugin's dispatcher discovers it by its `session-*.sh` filename, from whatever project root the session has. This repo's `.claude/settings.json` declared it as a `SessionStart` hook until 2026-07-31 and no longer does, because the two together ran it twice whenever web-tools was the root. `session-githooks.sh` rides the same discovery, and since 2026-08-06 they are the only two, so `settings.json` declares no hooks at all.
 
+**A gated note is what that discovery is most useful for, and it is how you leave a check for a future session rather than holding it in mind.** The script runs every session and prints only while its condition is unmet, so a satisfied check is invisible and an unmet one reaches whichever session comes next. home carries three of them (the submittal deadline note, the news fetch, the memory manifest) and the plugin's own `invoke-default` is the same shape. A one-shot check clears itself by also speaking on success: it reports that it is finished and names itself for deletion, which is a one-line commit for the session that sees it. [`session-check-manifest.sh`](../../.claude/hooks/session-check-manifest.sh) is the worked example, and it stays silent on a snapshot older than the thing it verifies so it never nags about a condition that cannot yet be true. *(2026-09-14)*
+
 The script:
 
 1. Exits unless `CLAUDE_CODE_REMOTE=true`.
@@ -163,6 +165,8 @@ Plugin skills are namespaced and do not conflict with project or user skills. Or
 This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
+
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the user-scope deny is the one in force and the project row is dormant, which is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
 - `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.

@@ -1,4 +1,5 @@
 path,role,layer,lines,invocation,emits,named,tested
+.claude/hooks/session-check-manifest.sh,"one-shot gated note: silent until a snapshot postdates the 2026-09-14 setup-script revision, then reports whether ~/.claude/env-manifest.txt landed and asks to be deleted",.claude/hooks,28,session:SessionStart,no,yes,no
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,21,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
@@ -6,6 +7,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
 .claude/skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,.claude/skills/hooks,175,npm:reading-column,no,yes,yes
+.claude/skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,.claude/skills/hooks,60,hook:PreToolUse,no,no,yes
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
