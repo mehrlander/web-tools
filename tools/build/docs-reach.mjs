@@ -19,7 +19,7 @@
 // Five channels, strongest first. A doc gets the strongest that reaches it:
 //
 //   injected  the portable plugin PUSHES these at a session that lacks them:
-//             the conventions-nudge SessionStart hook prints a directive and
+//             the invoke-default SessionStart hook prints a directive and
 //             the session loads them by invoking /portable:default. Still the
 //             strongest channel, because a hook fires it rather than an agent
 //             electing it from a description, which is what separates it from
@@ -113,7 +113,7 @@ export const CHANNELS = ['injected', 'project', 'skill', 'app', 'orphan'];
 // docs/CONVENTIONS.md sat here until 2026-09-11, months after the file was
 // retired, so the list named one document that does not exist and missed one
 // that does. Both of these are what the default skill delivers and what the
-// conventions nudge prods a session to load; neither is @-imported any more.
+// invoke-default directive prods a session to load; neither is @-imported any more.
 export const INJECTED = ['docs/SURFACING.md', 'docs/QUALIFIED-WRITING.md'];
 
 // Documents that are already in a session's context, and so are sources of the

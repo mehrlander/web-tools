@@ -3,7 +3,7 @@
 
 web-tools stopped `@`-importing docs/SURFACING.md and docs/QUALIFIED-WRITING.md
 on 2026-09-12, so every session now loads them the way a marketplace consumer
-does: the portable plugin's conventions-nudge hook prints a directive at session
+does: the portable plugin's invoke-default hook prints a directive at session
 start and the session invokes /portable:default. That is a request to a model
 rather than a mechanism, so it can be declined, and nothing errors when it is.
 This is the instrument that says how often it is taken.

@@ -11,14 +11,14 @@ const model = vm.createContext({ URLSearchParams });
 vm.runInContext(code, model);
 const evidence = record => JSON.parse(JSON.stringify(model.contextEvidence(record)));
 
-test('the current startup repair joins the nudge to the default skill', () => {
+test('the current startup repair joins the directive to the default skill', () => {
   const routes = JSON.parse(vm.runInContext('JSON.stringify(contextRoutes)', model));
   const skill = routes.find(r => r.id === 'skills');
   const hook = routes.find(r => r.id === 'hooks');
   assert.ok(skill.phases.includes('start'));
   assert.ok(skill.sources.some(s => s.path === '.claude/skills/default/SKILL.md' && s.current));
   assert.ok(skill.sources.some(s => s.path === 'docs/QUALIFIED-WRITING.md' && s.current));
-  assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/conventions-nudge.sh' && s.current));
+  assert.ok(hook.sources.some(s => s.path === '.claude/skills/hooks/invoke-default.sh' && s.current));
   assert.match(hook.limit, /prompt, not that the skill ran/);
 });
 
