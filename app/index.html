@@ -3963,13 +3963,20 @@ function app(){ return {
           const p = openPRs[pi++];
           if (!p.head) continue;
           const was = priorPR.get(p.number);
-          if (mainHeld && was && was.updatedAt === p.updatedAt && was.aheadBy != null) {
+          // `was.pages` in the gate, not just a carried field: a cache written
+          // before the field existed would otherwise keep answering "no pages"
+          // for every PR whose head has not moved since, which on a long-lived
+          // draft is forever. One re-compare per open PR, once, and then the
+          // gate holds again. The same trap firstDate hit, caught here rather
+          // than after a week of empty strips.
+          if (mainHeld && was && was.updatedAt === p.updatedAt && was.aheadBy != null && was.pages) {
             p.aheadBy = was.aheadBy; p.behindBy = was.behindBy;
             p.firstDate = was.firstDate || '';
             // Carried with the pair it was read beside. A cache written before
             // 2026-08-18 has no breakdown, and the row shows its files glyph
             // without one until the next real compare rather than showing a 0.
             p.stats = was.stats ?? null;
+            p.pages = was.pages || [];
             if (was.sessions) { p.sessions = was.sessions; p.sessionsExact = !!was.sessionsExact; }
             continue;
           }
@@ -3982,11 +3989,16 @@ function app(){ return {
             // A floor rather than a total on a sweeping branch, since GitHub
             // caps a compare's file list at 300 and reports no total.
             p.stats = B.fileStats(d.files);
+            // The renderable paths out of the same response. This is the one
+            // compare a FRESH branch gets: recent branches are listed date-only
+            // and never scanned (see `recent` below), so without this the rows
+            // a session is actually working would be the rows with no pages.
+            p.pages = B.renderablePages(d.files);
             // One compare, every field it can answer, through the one reader
             // that knows what each field does past GitHub's commit cap.
             Object.assign(p, B.compareFields(d));
           }
-          catch { p.aheadBy = null; p.behindBy = null; p.firstDate = ''; p.stats = null; }
+          catch { p.aheadBy = null; p.behindBy = null; p.firstDate = ''; p.stats = null; p.pages = []; }
         }
       };
       await Promise.all(Array.from({ length: Math.min(4, openPRs.length) }, prAheadBehind));
@@ -4039,6 +4051,7 @@ function app(){ return {
                            group: b.group, noBase: !!b.noBase, nUnique: b.nUnique || 0, nLanded: b.nLanded || 0,
                            nMissing: b.nMissing || 0, nDiffers: b.nDiffers || 0,
                            missingPaths: b.missingPaths || [], stats: b.stats || null,
+                           pages: b.pages || [],
                            ...sessionsFor(b),
                            aheadBy: b.aheadBy ?? null, behindBy: b.behindBy ?? null });
       branches = [...recent.map(b => trim({ ...b, group: 'active' })), ...scanned.rows.map(trim)];

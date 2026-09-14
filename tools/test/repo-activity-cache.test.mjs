@@ -143,6 +143,25 @@ test('a newly-learned firstDate is material, on both scan rows and PRs', () => {
   assert.equal(A.hashEntry(scanned), A.hashEntry({ ...scanned, generatedAt: 'LATER' }));
 });
 
+// The same gate, for the renderable pages a branch row carries. A row's pages
+// change only when its tip does, so the scan side would survive without this;
+// the PR side would not, since a draft PR can sit at one head for days while
+// the first crawl after the field ships learns it. Both ride, because the rule
+// this file already states is that every compare-derived field does.
+test('newly-learned pages are material, on scan rows and on PRs', () => {
+  const base = { pushedAt: 'p', defaultBranch: 'main', counts: {},
+                 recentCommits: [], openPRs: [{ number: 1, updatedAt: 'u' }],
+                 scan: { branches: [{ name: 'x', sha: 'S', group: 'active' }] } };
+  const scanned = { ...base, scan: { branches: [{ ...base.scan.branches[0], pages: ['pages/a.html'] }] } };
+  assert.notEqual(A.hashEntry(base), A.hashEntry(scanned));
+  const pr = { ...base, openPRs: [{ ...base.openPRs[0], pages: ['pages/a.html'] }] };
+  assert.notEqual(A.hashEntry(base), A.hashEntry(pr));
+  // And a second page is a different answer from one, so a branch that adds a
+  // page to a head that already had one still commits.
+  const two = { ...base, scan: { branches: [{ ...base.scan.branches[0], pages: ['pages/a.html', 'pages/b.html'] }] } };
+  assert.notEqual(A.hashEntry(scanned), A.hashEntry(two));
+});
+
 // ── Declared checks in the cache ───────────────────────────────────────────
 // The cache stores each check's FACT, never its verdict. These pin the reason:
 // a verdict is time-derived, so hashing one would restamp and recommit every
