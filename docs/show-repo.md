@@ -530,6 +530,20 @@ the header nav the way a repo shows landing/atlas/files/…:
 - **Lists** — the two personal piles, To-do over Jot, in one pane rather than
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
 - **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
+
+For a PowerShell file open in Files, **Compare copy** accepts pasted text, a dropped
+file, or a chosen file (including on a phone). App-wide paste and drop use the
+open file as context. A `# @file projects/wps/app/Modules/Forms/Forms.psm1`
+line instead names a repository-relative file; the app supplies the current
+repository and branch. When the line conflicts with the open file, the user
+chooses which association to use. Paste inside an editing field remains native.
+The incoming text is held intact and compared in the existing Stage reader
+against a pinned repository revision. The dated check stores the submitted
+text, file path, repository, branch, revision and hashes in browser IndexedDB;
+the Files panel can reopen a check or export its JSON. A match describes only
+the submitted text at that revision, not the saved file on another computer.
+Clearing browser site data removes the checks, so export JSON for a backup.
+Any transfer to or from a separate installation remains manual.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
 - **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
