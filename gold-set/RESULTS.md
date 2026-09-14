@@ -6,6 +6,26 @@ branch rather than in a chat scrollback the next session cannot read.
 
 ---
 
+## 2026-09-14 · commit `ed9bd0c` · Microsoft Excel for Windows
+
+**The regenerated `11.01` still failed the open check.** A local test copy named
+`11.01-after-table-graft-ed9bd0c4.xlsm` had the same SHA-256 hash as the
+committed gold-set file (`1F612434AD09333F4E00E334A24D87CCCBE1FB4E8BD73917C7A72E03127D99D4`)
+and the same Git blob ID (`825b8efeb1bd035a786c31b661707091fec7cc63`).
+Excel displayed the same "We found a problem with some content" prompt and
+offered to recover the copy. Recovery was declined; the workbook did not open,
+and Excel remained running. No macros, refresh, dropdowns, or sheets were
+tested in this run. The other two gold-set files were not reopened.
+
+A read-only package check found that both `xl/tables/table*.xml` parts match
+the untouched source byte-for-byte, `headerRowCount` is again absent, both
+`xl/queryTables/queryTable*.xml` parts and their table relationships are
+present, and the ZIP CRC check passes. The source-table graft landed, but it
+did not make this rebuilt file acceptable to Excel. This run does not isolate
+the remaining fault.
+
+---
+
 ## 2026-09-13 · commit `28b0b4c` · Microsoft Excel for Windows
 
 Two of three opened. One was refused. The tested copies were confirmed against
@@ -71,16 +91,15 @@ as a plain range still carrying the connection's name.
   `headerRowCount="0"` is wrong". If a case turns up that this misses, widen it
   on that evidence.
 
-### What is still unverified
+### What was still unverified when the graft was committed
 
 The graft restores the source's table parts whole, so `headerRowCount` is absent
 again and defaults to `1`, which is the state the bisect proved opens. It also
 restores `tableType="queryTable"` and the two `xl/queryTables/` parts, a
 separate fidelity loss the minimal one-attribute fix would have left in place.
 
-**Nothing in the sandbox can open Excel, so the rebuilt `11.01` is untested.**
-The bisect makes it very likely to open, since the operative attribute is
-corrected by construction. Data **refresh** through the restored query tables is
-a further question nobody has asked yet.
-
-Re-run and add a stanza above.
+**At this point, the rebuilt `11.01` had not been opened in Excel.** The bisect
+suggested it would open, since the operative attribute was corrected by
+construction. The subsequent Excel run is recorded above and found that the
+new output still triggers repair. Data **refresh** through the restored query
+tables remains untested.
