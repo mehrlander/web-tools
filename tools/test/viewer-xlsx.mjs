@@ -534,6 +534,7 @@ try {
   const en = await extract();
   ok('and no kind name is clipped at phone width', !en.clipped.length, JSON.stringify(en.clipped));
   await page.screenshot({ path: shotPath('extract-phone'), fullPage: true });
+
   await page.setViewportSize({ width: 1100, height: 800 });
 
   // THE ADDRESS THE SAMPLE IS HANDED OVER AT, which broke twice before it was
@@ -578,6 +579,50 @@ try {
      ledgerValues(cut) === 'Values 500 of 802', ledgerValues(cut));
   ok('and no kind name is clipped even carrying a cut figure', !cut.clipped.length,
      JSON.stringify(cut.clipped));
+
+  // THE TWO THINGS A 400px DESKTOP WINDOW DID NOT SHOW, and they belong HERE
+  // rather than beside the fixture's phone shots above: both need a header
+  // line and a table that the fixture is too small to produce. Placed beside
+  // the fixture first, they passed while testing nothing, which is the second
+  // time this file has had that fault in one session.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(900);
+
+  // The figure line does not wrap, inside a block that used to size to its
+  // content, so four figures ran underneath the icon buttons rather than
+  // giving way. Measured before the fix: stats at x 8-382, buttons at x 258-382.
+  const chrome = await page.evaluate(() => {
+    const row = document.querySelector('[data-sd-chrome]');
+    const stats = row?.firstElementChild?.lastElementChild;
+    const btns = row?.lastElementChild;
+    if (!stats || !btns) return null;
+    const a = stats.getBoundingClientRect(), b = btns.getBoundingClientRect();
+    return { stats: stats.textContent.trim(),
+             overlaps: a.right > b.left && a.bottom > b.top && a.top < b.bottom };
+  });
+  ok('the header carries all four of this workbook\'s figures, so the next claim has teeth',
+     /sheets.+hidden.+pivot.+KB/.test(chrome?.stats || ''), JSON.stringify(chrome?.stats));
+  ok('and none of them runs under the icon buttons', chrome && !chrome.overlaps,
+     JSON.stringify(chrome));
+
+  // A structure table is WIDE rather than long: Sheets is 3 rows across 15
+  // columns and 1219px in a 372px pane. Its scroll has to be its own, or the
+  // pane takes the tab strip and the filter sideways with it.
+  const panes = [];
+  for (const label of ['Sheets', 'Parts', 'Pivots']) {
+    await openTab(label);
+    panes.push(await page.evaluate((w) => {
+      const stage = document.querySelector('[data-xs="stage"]');
+      const t = stage.querySelector('table');
+      return { tab: w, slides: stage.scrollWidth > stage.clientWidth + 1,
+               wider: t ? Math.round(t.getBoundingClientRect().width) > stage.clientWidth : false };
+    }, label));
+  }
+  ok('these tables really are wider than the pane, so the claim below has teeth',
+     panes.every(p => p.wider), JSON.stringify(panes));
+  ok('and none of them drags the pane sideways', panes.every(p => !p.slides),
+     JSON.stringify(panes));
+  await page.setViewportSize({ width: 1100, height: 800 });
 
   console.log('a text file is untouched by any of this:');
   await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent('mehrlander/web-tools@main:docs/tools.csv')}`,
