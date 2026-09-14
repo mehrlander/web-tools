@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { webcrypto } from 'node:crypto';
 import { repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
@@ -9,35 +10,57 @@ import { makeShell } from './shell.mjs';
 const source = readFileSync(path.join(repoRoot, 'lib/kits/file-correspondence.js'), 'utf8');
 const target = { repo: 'mehrlander/home', ref: 'main', path: 'projects/wps/app/Modules/Forms/Forms.psm1' };
 const other = 'projects/wps/app/Modules/ISE/ISE.psm1';
+const form = { ...target, path: 'projects/wps/app/Forms/Bookmarks/Bookmarks.xaml' };
 
-function harness() {
-  const saved = [];
+function harness(storage = new Map()) {
+  for (const name of ['checks', 'pending']) {
+    const key = 'wpsCorrespondence.' + name;
+    if (!storage.has(key)) storage.set(key, []);
+  }
+  const saved = storage.get('wpsCorrespondence.checks');
+  const unfinished = storage.get('wpsCorrespondence.pending');
   const calls = [];
   const browserStore = { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', stage: [] };
   const { shell, win, toasts } = makeShell({ browserStore });
   win.crypto = webcrypto;
   win.Alpine = { store: name => name === 'browser' ? browserStore : (...args) => toasts.push(args) };
+  let failLookup = false;
   win.GH = class {
     constructor(opts) { this.repo = opts.repo; calls.push(['repo', opts.repo]); }
     async req(p) { calls.push(['commits', p]); return [{ sha: 'a'.repeat(40) }]; }
-    async get(p) { calls.push(['get', p, this.ref]); return { text: 'same\n', sha: 'b'.repeat(40) }; }
+    async get(p) {
+      calls.push(['get', p, this.ref]);
+      if (failLookup) throw new Error('Repository file lookup failed');
+      return { text: 'same\n', sha: 'b'.repeat(40) };
+    }
   };
-  win.persistence = { collection: () => ({
-    put: async r => { const v = { ...r, id: String(saved.length + 1) }; saved.push(v); return v; },
-    find: async pred => saved.filter(pred),
+  win.persistence = { collection: name => ({
+    put: async r => {
+      const rows = storage.get(name);
+      const v = { ...r, id: r.id || String(rows.length + 1) };
+      const i = rows.findIndex(row => row.id === v.id);
+      if (i < 0) rows.push(v); else rows[i] = v;
+      return v;
+    },
+    find: async pred => storage.get(name).filter(pred),
+    delete: async id => {
+      const rows = storage.get(name);
+      const i = rows.findIndex(row => row.id === id);
+      if (i >= 0) rows.splice(i, 1);
+    },
   }) };
   let localId = 0;
   win.StageIntake = {
     textItem: (name, text) => ({ local: true, id: ++localId, name, text, isText: true }),
     keyOf: it => it.local ? 'local:' + it.id : it.repo + '@' + it.ref + ':' + it.path,
-    textFromBytes: (_name, bytes) => new TextDecoder('utf-8', { fatal: true }).decode(bytes),
     takePaste: async () => ({ added: [] }),
     takeDrop: async () => [],
     takeFlavors: async () => ({ added: [] }),
   };
   new Function('window', source)(win);
   shell.syncUrl = () => {};
-  return { shell, win, saved, calls, browserStore, toasts };
+  return { shell, win, saved, unfinished, calls, browserStore, toasts,
+    setLookupFailure: value => { failLookup = value; }, storage };
 }
 
 test('declaration accepts repository-relative PowerShell paths and rejects local paths', () => {
@@ -45,6 +68,8 @@ test('declaration accepts repository-relative PowerShell paths and rejects local
   const K = win.FileCorrespondence;
   assert.equal(K.declaration('function F {}\n# @file ' + target.path + '\n'), target.path);
   assert.equal(K.declaration('function F {}'), '');
+  assert.equal(K.applies(form), true, 'a selected XAML form can be compared');
+  assert.equal(K.declaration('<Window></Window>'), '', 'XAML needs selected-file context');
   for (const path of ['C:\\Users\\me\\Forms.psm1', '/Users/me/F.ps1', '../F.ps1',
                       'mehrlander/home:Forms.psm1', 'projects/wps/app/readme.md']) {
     assert.throws(() => K.declaration('# @file ' + path), /repository root/);
@@ -65,12 +90,100 @@ test('a check pins the revision, holds exact incoming text, and persists an hone
   assert.match(saved[0].checkedAt, /^\d{4}-\d\d-\d\dT/);
   assert.equal(saved[0].incomingSha256.length, 64);
   assert.deepEqual(calls.at(-1), ['get', target.path, 'a'.repeat(40)]);
-  assert.equal(browserStore.stage[0].correspondenceText, 'same\n');
-  assert.equal(browserStore.stage[1].text, 'same\n');
+  assert.equal(browserStore.stage[0].text, 'same\n');
+  assert.equal(browserStore.stage[1].correspondenceText, 'same\n');
   assert.deepEqual(browserStore.stageCompare, { a: 'mehrlander/home@' + 'a'.repeat(40) + ':' + target.path, b: 'local:1' });
   const before = saved.length;
   await win.FileCorrespondence.reopen(saved[0]);
   assert.equal(saved.length, before, 'reopening a saved check does not create a new dated check');
+  assert.equal(browserStore.stage.filter(it => !it.local).length, 1, 'reopening reuses the repository item');
+});
+
+test('repeated checks reuse one staged repository key and keep distinct submitted copies and dates', async () => {
+  const { win, saved, browserStore } = harness();
+  await win.FileCorrespondence.open({ target, text: 'same\n', name: 'first.psm1' });
+  await win.FileCorrespondence.open({ target, text: 'changed\n', name: 'second.psm1' });
+  assert.equal(saved.length, 2);
+  assert.equal(saved[0].exact, true);
+  assert.equal(saved[1].exact, false);
+  assert.match(saved[0].checkedAt, /^\d{4}-/);
+  assert.match(saved[1].checkedAt, /^\d{4}-/);
+  assert.equal(browserStore.stage.filter(it => !it.local).length, 1);
+  assert.deepEqual(browserStore.stage.filter(it => it.local).map(it => it.text), ['same\n', 'changed\n']);
+  assert.equal(browserStore.stageCompare.b, 'local:2');
+  assert.equal((await win.FileCorrespondence.history(target)).length, 2);
+  await win.FileCorrespondence.reopen(saved[0]);
+  assert.equal(saved.length, 2);
+  assert.equal(browserStore.stage.filter(it => !it.local).length, 1);
+  assert.equal(browserStore.stageCompare.b, 'local:3');
+});
+
+test('UTF-16LE BOM saved-file bytes compare through the file picker; alternate encodings are explicit', async () => {
+  const { shell, win, saved, toasts } = harness();
+  shell.view = 'search'; shell.searchOpenFile = target;
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'wps-intake-'));
+  try {
+    const filePath = path.join(dir, 'Forms.psm1');
+    const text = 'function Test { "é" }\r\n';
+    writeFileSync(filePath, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+    const bytes = readFileSync(filePath);
+    const file = { name: 'Forms.psm1', arrayBuffer: async () =>
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+    assert.equal(await shell.takeCorrespondenceFile(file, 'file picker'), true);
+    assert.equal(saved[0].content, text);
+    assert.equal(saved[0].source, 'file picker');
+    assert.equal(shell.view, 'stage');
+    const ansi = Uint8Array.from([0x66, 0x6f, 0x6f, 0xe9]);
+    assert.throws(() => win.FileCorrespondence.decodeBytes(ansi), /Choose its encoding/);
+    assert.equal(win.FileCorrespondence.decodeBytes(ansi, 'windows-1252'), 'fooé');
+    assert.equal(win.FileCorrespondence.decodeBytes(Uint8Array.from([0xfe, 0xff, 0x00, 0x41])), 'A');
+    assert.throws(() => win.FileCorrespondence.decodeBytes(new Uint8Array()), /empty/);
+    shell.view = 'search';
+    const bad = { name: 'Forms.psm1', arrayBuffer: async () => ansi.buffer };
+    assert.equal(await shell.takeCorrespondenceFile(bad, 'file picker'), true);
+    assert.equal(saved.length, 1, 'undecodable bytes do not silently produce a check');
+    assert.match(shell.correspondenceFileError, /Choose its encoding/);
+    assert.ok(toasts.some(t => /Could not read comparison file/.test(t.msg || t[1] || '')));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('lookup failure retains an app-wide submission across reload for retry or reassociation', async () => {
+  const first = harness();
+  first.setLookupFailure(true);
+  first.shell.view = 'stage';
+  const submitted = '# @file ' + target.path + '\nwork content\n';
+  assert.equal(await first.shell.takeCorrespondence(submitted), true);
+  assert.equal(first.saved.length, 0);
+  assert.equal(first.unfinished.length, 1);
+  assert.equal(first.unfinished[0].content, submitted);
+  assert.equal(first.unfinished[0].path, target.path);
+  assert.match(first.unfinished[0].lastError, /lookup failed/);
+  assert.equal(first.browserStore.stage[0].text, submitted);
+  assert.equal(first.shell.view, 'stage');
+  assert.ok(first.toasts.some(t => /unfinished submissions/.test(t.msg || t[1] || '')));
+  const second = harness(first.storage);
+  const retained = (await second.win.FileCorrespondence.pending(target.repo))[0];
+  const result = await second.win.FileCorrespondence.retry(retained, form);
+  assert.equal(result.saved, true);
+  assert.equal(second.saved.length, 1);
+  assert.equal(second.saved[0].path, form.path);
+  assert.equal(second.saved[0].content, submitted);
+  assert.equal(second.unfinished.length, 0);
+  assert.equal(second.browserStore.stage.filter(it => it.local).length, 1);
+});
+
+test('retrying the original address reuses its staged submission and clears pending on a saved check', async () => {
+  const { win, saved, unfinished, browserStore, setLookupFailure } = harness();
+  setLookupFailure(true);
+  await assert.rejects(win.FileCorrespondence.open({ target, text: 'copy\n' }), /lookup failed/);
+  assert.equal(browserStore.stage.length, 1);
+  setLookupFailure(false);
+  await win.FileCorrespondence.retry((await win.FileCorrespondence.pending(target.repo))[0]);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].path, target.path);
+  assert.equal(unfinished.length, 0);
+  assert.equal(browserStore.stage.filter(it => it.local).length, 1);
+  assert.equal(browserStore.stage.filter(it => !it.local).length, 1);
 });
 
 test('a selected Files result supplies context for paste and drop; a conflicting declaration asks', async () => {

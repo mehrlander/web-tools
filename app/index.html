@@ -6166,6 +6166,7 @@ function app(){ return {
   // Nothing is awaited before takeClipboard: see the preload in init() for why.
   pasteBusy: false,
   correspondencePending: null,
+  correspondenceFileError: '',
   searchOpenFile: null,
   get selectedCorrespondence(){
     if (this.view !== 'search') return null;
@@ -6211,16 +6212,36 @@ function app(){ return {
       this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
-    } catch (e) { Alpine.store('toast')('warning', 'Compare: ' + (e?.message || e), 'alert-error', 6000); }
+    } catch (e) { this.correspondenceFailure(e); }
   },
-  async takeCorrespondenceFile(file, source = 'drop'){
-    if (!file || (!this.selectedCorrespondence && !/\.(?:ps1|psm1|psd1|ps1xml|txt)$/i.test(file.name))) return false;
+  correspondenceFailure(e){
+    if (e?.retained) this.goStage();
+    const detail = e?.retained
+      ? e.pendingSaved
+        ? 'Submitted text is in Stage and browser-local unfinished submissions. Reopen Compare copy to retry or choose another file. '
+        : 'Submitted text is in Stage, but browser-local pending storage failed. '
+      : '';
+    Alpine.store('toast')('warning', 'Compare: ' + detail + (e?.message || e), 'alert-error', 8000);
+  },
+  async retryCorrespondence(submission, target = null){
+    try {
+      const result = await window.FileCorrespondence.retry(submission, target);
+      this.goStage();
+      Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
+                            result.saved ? 'alert-info' : 'alert-warning', 5000);
+      return true;
+    } catch (e) { this.correspondenceFailure(e); return false; }
+  },
+  async takeCorrespondenceFile(file, source = 'drop', encoding = 'auto'){
+    if (!file || (!this.selectedCorrespondence && !/\.(?:ps1|psm1|psd1|ps1xml|xaml|txt)$/i.test(file.name))) return false;
+    this.correspondenceFileError = '';
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const text = window.StageIntake.textFromBytes(file.name, bytes);
-      return text === null ? false : this.takeCorrespondence(text, { name: file.name, source });
+      const text = window.FileCorrespondence.decodeBytes(bytes, encoding);
+      return this.takeCorrespondence(text, { name: file.name, source });
     } catch (e) {
-      Alpine.store('toast')('warning', 'Could not read comparison file: ' + (e?.message || e), 'alert-error', 5000);
+      this.correspondenceFileError = 'Could not read comparison file: ' + (e?.message || e);
+      Alpine.store('toast')('warning', this.correspondenceFileError, 'alert-error', 8000);
       return true;
     }
   },
