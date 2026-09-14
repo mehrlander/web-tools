@@ -15,7 +15,7 @@ lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet pac
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,115,yes,no,7,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,4,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",54,no,no,8,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",54,no,no,9,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,62,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
@@ -53,7 +53,7 @@ lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + align
 lib/kits/repo-mailbox.js,RepoMailbox,"Private mailbox: an async, git-backed request/response channel between an agent session (limited repo scope) and show-repo in the browser (the user's…",133,no,no,2,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the read-only mailbox (lib/kits/repo-mailbox.js).,658,no,no,2,yes
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1737,no,no,5,yes
-lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",220,no,yes,0,yes
+lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",220,no,yes,1,yes
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,3,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",320,no,no,5,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes

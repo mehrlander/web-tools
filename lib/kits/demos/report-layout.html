@@ -6,10 +6,6 @@
 <title>report-layout: the layout is data</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-<script src="../../vanilla-bundle.js"></script>
-<script src="../csv.js"></script>
-<script src="../report-layout.js"></script>
-<script defer src="https://unpkg.com/alpinejs"></script>
 </head>
 <body class="min-h-dvh bg-base-200 text-base-content antialiased">
 
@@ -55,7 +51,19 @@
 </div>
 
 <script>
-  const BASE = '../../../data/report-layout/';
+  // Everything this page reads comes from ONE ref, resolved in this order: the
+  // ref a toss render stamped, then ?use=, then main. Relative paths would not
+  // do, because a toss stamps a <base> at the owner's github.io: on a branch
+  // link `../report-layout.js` would quietly load whatever main has, which for
+  // a kit added on the branch is nothing at all.
+  const REF = window.__ref || new URLSearchParams(location.search).get('use') || 'main';
+  const BASE = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${REF}/`;
+
+  const script = src => new Promise((ok, no) => {
+    const tag = document.createElement('script');
+    tag.src = src; tag.onload = ok; tag.onerror = () => no(new Error(src));
+    document.head.append(tag);
+  });
 
   window.reportDemo = () => ({
     templates: [
@@ -67,11 +75,12 @@
     rows: [], rowsText: '', specText: '', html: '', model: null, bad: false, copied: false,
 
     async load() {
+      const data = f => fetch(BASE + 'data/report-layout/' + f).then(r => r.text());
       if (!this.rowsText) {
-        this.rowsText = await fetch(BASE + 'three-way-compare.csv').then(r => r.text());
+        this.rowsText = await data('three-way-compare.csv');
         this.rows = Csv.rows(this.rowsText);
       }
-      this.specText = await fetch(BASE + this.pick).then(r => r.text());
+      this.specText = await data(this.pick);
       this.draw();
     },
 
@@ -91,6 +100,15 @@
       setTimeout(() => (this.copied = false), 1200);
     },
   });
+</script>
+
+<script type="module">
+  // Alpine goes last, after the kits its first x-init will reach: an inline
+  // x-data needs only its factory defined, but draw() calls ReportLayout on the
+  // same tick.
+  for (const f of ['lib/vanilla-bundle.js', 'lib/kits/csv.js', 'lib/kits/report-layout.js'])
+    await script(BASE + f);
+  await script('https://unpkg.com/alpinejs');
 </script>
 </body>
 </html>
