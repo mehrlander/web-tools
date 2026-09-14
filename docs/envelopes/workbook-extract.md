@@ -189,23 +189,31 @@ readings to take, and where the extract lands.
 
 ```jsonc
 "receptions": [{
-  "id": "fund600-projection-workbook",
-  "label": "Fund 600 projection workbook (budget submittal backup)",
-  "match": { "sheets": ["Projection", "Requests", "OSA", "Voya", "Fee"] },
-  "omit": ["CC", "Cash"],
+  "id": "source-workbook",
+  "label": "Budget DRS source workbook",
+  "omit": ["hidden"],
   "readings": ["cells"],
-  "dest": "projects/budget-drs/data/source/{date}-fund600-projection-workbook",
-  "file": "projection-workbook-{date}.json"
+  "dest": "projects/budget-drs/data/source/{date}-{slug}",
+  "file": "{slug}-{date}.json"
 }]
 ```
 
-The receiver declares it and the picker runs it. When a workbook opened in the
-viewer's Structure mode carries every sheet a reception names,
+The receiver declares it and the picker runs it. A reception with no
+`match.sheets` applies to every workbook opened in the viewer's Structure
+mode; one that names sheets applies only where all of them are present.
 `XlsxExtract.receptions(catalog, declared)` returns the pick (every sheet not
 omitted, with the readings it has any of), the Extract tab opens with that
 pick ticked and the reception's cap, and a band names the reception, its repo,
 and the destination, with no sentence beside them: the unticked sheets say
-what is left behind. **Stage for `<repo>`** puts the envelope on the stage as a
+what is left behind.
+
+`omit` takes names and the token `hidden`. The token leaves behind every sheet
+the workbook hides, which makes hiding a sheet in Excel the whole gesture for
+keeping it out of the repo: no name to keep in step with the manifest, and a
+rename does not undo it. The two union, so a sheet named in `omit` or hidden is
+kept back either way. The mirror-image failure is real: unhide a private sheet
+to work on it, forget, and drop the workbook, and that sheet is taken. The
+unticked list on the band is where to look before pressing Stage. **Stage for `<repo>`** puts the envelope on the stage as a
 text file under the reception's name, takes the dropped workbook off the stage
 (a Send carries every staged item, and the bytes are what the reception exists
 to keep back), aims the stage at `repo:dest`, and switches to it; Send is still
@@ -214,9 +222,10 @@ across the estate the way `pages[].appView` is, so the workbook can be dropped
 while browsing any repo. Nothing about any one workbook lives in this kit, the
 viewer, or the stage.
 
-Three facts about the shape. Matching is by sheet set rather than file name,
-because a workbook is renamed more often than its tabs are, and a reception
-naming no sheet matches nothing. The pick is the opening state, not a lock:
+Three facts about the shape. Matching, where a reception matches at all, is by
+sheet set rather than file name, because a workbook is renamed more often than
+its tabs are; declarations are tried in order, so a specific one listed before
+a general one wins. The pick is the opening state, not a lock:
 every tick still works and what is ticked at Stage is what travels. And the
 workbook's bytes never leave the browser: the drop stages them in memory, the
 Stage action removes that item as it adds the extract, so what a Send carries
@@ -226,7 +235,8 @@ sheets' cached values still ride along wherever a taken sheet's formula reads
 them, and `left.sheets` says which sheets were declared away.
 
 `{date}` in `dest` or `file` is the UTC day; `{stem}` is the workbook's name
-without its extension, reduced to filename characters. `file` defaults to
+without its extension, reduced to filename characters; `{slug}` is that stem
+lowercased, for a folder convention that wants it. `file` defaults to
 `{stem}.extract.json`. `cap` defaults to null, since a landed extract is a file
 rather than a link.
 

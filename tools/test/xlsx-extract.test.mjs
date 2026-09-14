@@ -545,6 +545,23 @@ test('a reception matches by sheet set, takes every sheet not omitted, and state
   const env = XlsxExtract.extractSelected(read(), got[0].pick, { catalog: cat, maxRows: got[0].cap, now: NOW });
   assert.deepEqual(env.items.map(i => i.name), ['Ledger.cells.json']);
   assert.deepEqual(env.left.sheets, ['Notes']);
-  assert.deepEqual(XlsxExtract.receptions(cat, [{ id: 'x', match: { sheets: [] } }]), [],
-    'a reception naming no sheet matches nothing rather than everything');
+});
+
+test('a reception with no sheet set applies to every workbook, and `hidden` leaves the hidden sheets behind', () => {
+  const cat = XlsxExtract.catalog(read());
+  // Notes is the hidden sheet of the fixture; nothing names it here.
+  const general = { id: 'any', omit: ['hidden'], dest: 'data/source/{date}-{slug}', file: '{slug}-{date}.json' };
+  const got = XlsxExtract.receptions(cat, [general]);
+  assert.equal(got.length, 1, 'no match.sheets means any workbook');
+  assert.deepEqual(got[0].pick.sheets.map(s => s.name), ['Ledger']);
+  assert.deepEqual(got[0].omitted, ['Notes'], 'left behind because it is hidden, not because it was named');
+  // A name and the token union: either signal keeps a sheet back.
+  const both = XlsxExtract.receptions(cat, [{ id: 'b', omit: ['Ledger', 'hidden'] }])[0];
+  assert.deepEqual(both.pick.sheets, [], 'Ledger by name, Notes by visibility');
+  assert.deepEqual(both.omitted, ['Ledger', 'Notes']);
+  // Order decides between a specific and a general declaration.
+  const ordered = XlsxExtract.receptions(cat, [{ id: 's', match: { sheets: ['Ledger'] } }, general]);
+  assert.deepEqual(ordered.map(g => g.reception.id), ['s', 'any'], 'both apply; the first listed is the one taken');
+  assert.deepEqual(XlsxExtract.receptionTarget(general, { name: 'Cash Projection.xlsx' }, '2026-09-14T12:00:00Z'),
+    { dest: 'data/source/2026-09-14-cash-projection', file: 'cash-projection-2026-09-14.json' }, '{slug} is the stem lowercased');
 });
