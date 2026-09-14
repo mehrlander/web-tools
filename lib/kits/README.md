@@ -1220,9 +1220,25 @@ XlsxExtract.profileRows(sheet, xl, headerRow)
                                     //   mode reads it too, so a column cannot
                                     //   be `Role` in one table and `role` in
                                     //   the other
+XlsxExtract.receptions(catalog, declared)
+                                    // a receiving repo's standing pick, from
+                                    //   its .web-tools.json `receptions`:
+                                    //   [{ reception, pick, omitted, cap }]
+                                    //   for each declaration whose match.sheets
+                                    //   are all present. Nothing about any one
+                                    //   workbook lives here; the receiver says
+XlsxExtract.receptionTarget(reception, source, now)
+                                    // -> { dest, file } with {date} and {stem}
+                                    //   filled in
 XlsxExtract.KINDS                   // the catalogue: { id, label, scope, view,
                                     //   gloss, count, parts }
 ```
+
+One kind is not a table: `cells` is the serialized-workbook shape, one object
+per sheet with every cell as `{Address, Formula, Value}`, which is what home's
+PowerShell exporter writes and its fund view's reader consumes. It writes a
+shared-formula follower as `=[fill N] <master text>`, which is why `xlsx.js`
+now keeps each cell's shared index and each sheet's master texts. Never cut.
 
 **The answer is a data-view envelope**, so it renders in
 [`pages/data-view.html`](../../pages/data-view.html) with no new page and no

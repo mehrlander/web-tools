@@ -49,7 +49,7 @@
   },
   "$defs": {
     "sheetKind": {
-      "enum": ["values", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns"]
+      "enum": ["values", "cells", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns"]
     },
     "objectKind": { "enum": ["pivots", "records", "sources", "queries"] },
     "sheetChoice": {
@@ -80,7 +80,7 @@
         "view": { "type": "string" },
         "note": { "type": "string" },
         "content": { "type": "string" },
-        "kind": { "enum": ["values", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns", "pivots", "records", "sources", "queries"] },
+        "kind": { "enum": ["values", "cells", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns", "pivots", "records", "sources", "queries"] },
         "sheet": { "type": ["string", "null"] },
         "object": { "type": "string", "description": "Present only for an individually selected object." },
         "rows": { "type": ["integer", "null"], "minimum": 0 },
