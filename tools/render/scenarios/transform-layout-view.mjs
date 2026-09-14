@@ -48,6 +48,22 @@ export default async (page) => {
   });
   await page.waitForTimeout(400);
 
+  // Both readings of the same partition, so the shot pair shows what the
+  // toggle actually changes. `order=value` in the query asks for the second.
+  if (new URL(page.url()).searchParams.get('order') === 'value') {
+    await page.evaluate(() => {
+      const c = document.querySelector('[x-data^="transformWorkbench"]')._x_dataStack[0];
+      c.rpOrder = 'value';
+      c.rpSync();
+    });
+    await page.waitForTimeout(300);
+  }
+
+  console.log('BLOCKS ' + JSON.stringify(await page.evaluate(() => {
+    const c = document.querySelector('[x-data^="transformWorkbench"]')._x_dataStack[0];
+    return { order: c.rpOrder, blocks: c.rpModel.rows.filter(r => r.kind === 'subtotal').map(r => r.labels[0]) };
+  })));
+
   console.log('LAYOUT ' + JSON.stringify(await page.evaluate(() => {
     const c = document.querySelector('[x-data^="transformWorkbench"]')._x_dataStack[0];
     return { view: c.curV, ready: c.rpReady(), rows: c.rpModel?.rows.length, cols: c.rpModel?.columns.length };

@@ -204,3 +204,53 @@ test('no column axis gives one column named for the aggregate', () => {
   assert.deepEqual(m.columns.map(c => c.within), ['sum(amount)']);
   assert.equal(m.rows.find(r => r.kind === 'total').values[''], 300, 'the node value is the single cell');
 });
+
+// ---- order: whose reading of the same partition ---------------------------
+//
+// pvTree sorts children by value, so the tree arrives in magnitude order and
+// carries `seq`, each node's position among its siblings before that sort. The
+// two readings below are the same partition and the same figures; only the
+// sequence of blocks differs, which is what makes order a reader's choice
+// rather than a property of the data.
+const SEQD = {
+  partition: true,
+  colKeys: ['2026'],
+  // As pvTree emits it: sorted by value, seq remembering the source order
+  // (Comp first, Ctrl Svc second, Other third).
+  tree: {
+    label: 'Total', value: 600, n: 3, cells: { 2026: 600 }, seq: 0,
+    children: [
+      { label: 'Ctrl Svc', value: 500, n: 1, cells: { 2026: 500 }, seq: 1, children: [] },
+      { label: 'Other', value: 90, n: 1, cells: { 2026: 90 }, seq: 2, children: [] },
+      { label: 'Comp', value: 10, n: 1, cells: { 2026: 10 }, seq: 0, children: [] },
+    ],
+  },
+};
+
+test('order source prints the blocks as the rows introduced them', () => {
+  const m = window.ReportLayout.fromPartition(SEQD, { levels: ['group'], order: 'source' });
+  assert.deepEqual(m.rows.filter(r => r.kind === 'item').map(r => r.labels[0]),
+    ['Comp', 'Ctrl Svc', 'Other']);
+});
+
+test('order value leaves the tree as the Pivot view sorted it', () => {
+  const m = window.ReportLayout.fromPartition(SEQD, { levels: ['group'], order: 'value' });
+  assert.deepEqual(m.rows.filter(r => r.kind === 'item').map(r => r.labels[0]),
+    ['Ctrl Svc', 'Other', 'Comp']);
+});
+
+test('the two readings differ in sequence and in nothing else', () => {
+  const opts = { levels: ['group'] };
+  const a = window.ReportLayout.fromPartition(SEQD, { ...opts, order: 'source' });
+  const b = window.ReportLayout.fromPartition(SEQD, { ...opts, order: 'value' });
+  const byLabel = m => Object.fromEntries(m.rows.map(r => [r.labels[0], r.values]));
+  assert.deepEqual(byLabel(a), byLabel(b), 'every figure is identical under both');
+  assert.deepEqual(a.columns, b.columns);
+});
+
+test('a tree with no seq falls back to its own order rather than an undefined sort', () => {
+  const bare = { ...SEQD, tree: { ...SEQD.tree, children: SEQD.tree.children.map(({ seq, ...c }) => c) } };
+  const m = window.ReportLayout.fromPartition(bare, { levels: ['group'], order: 'source' });
+  assert.deepEqual(m.rows.filter(r => r.kind === 'item').map(r => r.labels[0]),
+    ['Ctrl Svc', 'Other', 'Comp'], 'the tree as given, not a scrambled one');
+});
