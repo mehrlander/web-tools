@@ -113,7 +113,7 @@ folded **Hidden** section is the way back.
 
 It sits beside `conventions: 'optout'` without overlapping it, and the pair is
 worth keeping straight because the two questions sound alike: optout is the
-repo saying it is not part of this estate, so the session-start nudge stops
+repo saying it is not part of this estate, so the session-start directive stops
 asking; `hidden` is the dashboard being told what to draw. A repo can be a full
 member and hidden, which is exactly the case that has no other answer: setting
 `estate: false` would drop its group, note, icon and order on the way out and

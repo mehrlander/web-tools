@@ -1,10 +1,10 @@
-// .claude/skills/hooks/conventions-nudge.sh — the SessionStart directive that
+// .claude/skills/hooks/invoke-default.sh — the SessionStart directive that
 // fires when the surfacing conventions did not arrive on their own.
 //
 // The failure this guards is silence in the wrong direction, and it has both
-// halves. A nudge that never fires leaves a session working without the
+// halves. A directive that never fires leaves a session working without the
 // conventions and saying nothing, which is how the retired injection channel
-// ran at 5% for nineteen days. A nudge that fires when the conventions ARE in
+// ran at 5% for nineteen days. A directive that fires when the conventions ARE in
 // context spends the reader's attention on nothing and trains them to skip it,
 // which is worse than not having one. So both silence and speech are asserted,
 // against the two real shapes: a repo that @-imports both halves, and one that
@@ -24,7 +24,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { repoRoot } from './bootstrap.mjs';
 
-const HOOK = path.join(repoRoot, '.claude/skills/hooks/conventions-nudge.sh');
+const HOOK = path.join(repoRoot, '.claude/skills/hooks/invoke-default.sh');
 const SURFACING = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
 const WRITING = readFileSync(path.join(repoRoot, 'docs/QUALIFIED-WRITING.md'), 'utf8');
 // The contract is two documents, so a fixture that delivers must carry both.
@@ -37,7 +37,7 @@ const BOTH = { 'CLAUDE.md': '@docs/SURFACING.md\n@docs/QUALIFIED-WRITING.md\n',
 // candidate. Found the first time this was exercised by hand: 42 scratch
 // clones left by scripts/showing.py, each carrying a .web-tools.json, turned
 // up in the output.
-const tmp = mkdtempSync(path.join(os.tmpdir(), 'nudge-'));
+const tmp = mkdtempSync(path.join(os.tmpdir(), 'invoke-default-'));
 const build = (name, repos) => {
   const root = path.join(tmp, name);
   for (const [repo, files] of Object.entries(repos)) {
@@ -57,7 +57,7 @@ const run = (root) => execFileSync('bash', [HOOK], {
 
 test('a checkout that @-imports BOTH halves silences it', () => {
   const root = build('imported', { 'web-tools': BOTH });
-  assert.equal(run(root), '', 'the whole contract is in context; the nudge must not speak');
+  assert.equal(run(root), '', 'the whole contract is in context; the directive must not speak');
 });
 
 // The 2026-09-12 change, and the reason it is not cosmetic: this fixture was
@@ -139,9 +139,9 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
   const hooks = JSON.parse(readFileSync(path.join(repoRoot, '.claude/skills/hooks/hooks.json'), 'utf8'));
   const entries = hooks.hooks.SessionStart;
   const commands = entries.map(e => e.hooks.map(h => h.command).join(' '));
-  const mine = commands.filter(c => c.includes('conventions-nudge.sh'));
+  const mine = commands.filter(c => c.includes('invoke-default.sh'));
   assert.equal(mine.length, 1, 'registered exactly once');
-  assert.equal(commands.filter(c => c.includes('session-dispatch.sh') && c.includes('conventions-nudge.sh')).length,
+  assert.equal(commands.filter(c => c.includes('session-dispatch.sh') && c.includes('invoke-default.sh')).length,
     0, 'it does not share an entry with the dispatcher, so it does not share a budget');
   assert.match(mine[0], /\$\{CLAUDE_PLUGIN_ROOT\}/, 'addressed through the plugin root, like its siblings');
   for (const e of entries) assert.equal(e.matcher, 'startup|resume', 'both entries fire on the same two events');
@@ -152,9 +152,9 @@ test('the directive fits the preview a truncated hook payload leaves', () => {
   // 2,000 bytes is what the harness passes along when it decides an output is
   // too large (session-dispatch.sh's OUTPUT_BUDGET note). This should not be
   // anywhere near it, and if it grows past a quarter of it somebody is writing
-  // a document into a nudge.
+  // a document into a directive.
   assert.ok(Buffer.byteLength(run(root)) < 500,
-    'a nudge is one instruction and its reason, not a summary of the conventions');
+    'a directive is one instruction and its reason, not a summary of the conventions');
 });
 
 process.on('exit', () => rmSync(tmp, { recursive: true, force: true }));
