@@ -69,11 +69,14 @@ const SELECTION = [
   },
   {
     file: '09.02-Decision-Package-Addendum.xlsx',
-    keep: ['DP Addendum'],
-    why: 'The drawing and geometry case: 129 merged ranges and an embedded image. It is '
-       + 'also the file that demonstrates the two known losses, a hyperlink sharing an '
-       + 'anchor cell and a VML drawing, so the manifest here should read short and the '
-       + 'file should still open. Neither sheet reads the other.',
+    keep: ['DP Addendum', 'Reference Tables'],
+    why: 'The control, and the only file here that drops nothing. It is the drawing and '
+       + 'geometry case (129 merged ranges, an embedded image) and the one that '
+       + "demonstrates the two known losses, a hyperlink sharing an anchor cell and a VML "
+       + 'drawing, so its manifest reads short on purpose. Its two sheets are coupled, so '
+       + 'no clean drop exists: DP Addendum!D62:D64 multiply cells on Reference Tables. '
+       + 'Keeping both makes this a lossless round trip, which is worth testing on its own '
+       + 'and gives the set a passing control beside a failing case.',
   },
 ];
 

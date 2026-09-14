@@ -1,7 +1,8 @@
 # The sheet picker's gold set
 
-Three real workbooks, each rebuilt by [`kits/xlsx-write.js`](../lib/kits/xlsx-write.js)
-with a sheet dropped, for a person to open in Excel. Beside each one is the
+Three real workbooks rebuilt by [`kits/xlsx-write.js`](../lib/kits/xlsx-write.js),
+two with a sheet dropped and one as a lossless control, for a person to open in
+Excel. Beside each one is the
 manifest the rebuild emitted, and why that file is here.
 
 **This is the third of the three checks named for that kit, and the only one no
@@ -18,7 +19,7 @@ all three files here. Neither is evidence that Excel accepts them.
 | --- | --- | --- | --- |
 | `15.02-TECM-Template.xlsm` | HeadCounts&CostPerCredit, HeadCountCheck | GrossNetOperatingFee | The only file that fires **all three grafts**: a VBA project with three signature parts, three customXml items, and five pivot parts. |
 | `11.01-Central-Service-Fund-Split-Form.xlsm` | FundSplits, ActiveFunds | Instructions | 2,795 formulas, 16 data validations, 4 conditional formats, 16 defined names, a workbook connection, VBA, and a hidden sheet that must come back hidden. |
-| `09.02-Decision-Package-Addendum.xlsx` | DP Addendum | Reference Tables | 129 merged ranges and an embedded image. Also the file that demonstrates two known losses, so its manifest reads short on purpose. |
+| `09.02-Decision-Package-Addendum.xlsx` | both | nothing | The **control**: a lossless round trip. 129 merged ranges and an embedded image, and the file that demonstrates two known losses, so its manifest reads short on purpose. |
 
 ## Has Excel opened these?
 
@@ -66,8 +67,16 @@ because these forms point across sheets through named ranges rather than by
 literal sheet name. A check reading formulas alone finds nothing and calls a
 dirty drop clean.
 
+`09.02` keeps both its sheets because no clean drop exists there:
+`DP Addendum!D62:D64` multiply cells on `Reference Tables`. An earlier selection
+dropped it anyway, and the file passed Excel carrying three cells that would
+have become `#REF!`, which nobody inspecting the sheet would have noticed. The
+refusal only fired once `kits/xlsx.js` improved enough to surface those
+formulas, which is worth knowing about the rule: it is only as good as the
+reading under it.
+
 An earlier version of this folder held thirteen files at 839 KB, swept from a
-directory with the rule "keep every sheet but the last". These 252 KB test more.
+directory with the rule "keep every sheet but the last". These test more.
 Five of those thirteen were single-sheet, so nothing was dropped and the drop
 path went unexercised; the rule broke `11.01` by discarding the lookups its
 dropdowns read; and it threw away the sheet the TECM pivot sits on, so the

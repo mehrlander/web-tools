@@ -87,7 +87,12 @@
 
 <!-- Input panel (empty state). -->
 <div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
-  <i class="ph ph-disc text-5xl opacity-50"></i>
+  <!-- THE FRISBEE, not ph-disc, and it is the chat convention's own mark:
+       SURFACING.md writes a render link as 🥏, so the page a reader lands on
+       from one now opens with the same glyph rather than with a disc that only
+       resembles it. No opacity: a Phosphor glyph mutes by losing contrast and
+       an emoji mutes by looking faded, so the size carries it here. -->
+  <div class="text-5xl leading-none" aria-hidden="true">🥏</div>
 
   <button id="paste-btn" class="btn btn-primary gap-2"><i class="ph ph-clipboard-text"></i>Paste &amp; render</button>
   <div class="text-xs text-base-content/40 max-w-xs">See what is on the clipboard: a page, a link, an image, a CSV, JSON, markdown, a log. It renders straight away, in whichever way suits it.</div>

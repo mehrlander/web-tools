@@ -1157,6 +1157,16 @@ document: it is what the viewer's `sheet` mode draws, and what makes an OFM
 budget form arrive as a form rather than as a list of strings. Neither touches
 the DOM; a caller turns a style record into whatever it draws with.
 
+**A formula arrives as its stored text since 2026-09-14**, not as a boolean. A
+row's `formulas` map holds the formula as the file writes it (no leading `=`,
+which is Excel's UI rather than the stored string) for every computed cell that
+has one, and `true` where the file stored none: that is a SHARED formula's
+followers, which carry `<f t="shared" si="0"/>` and nothing else. Recovering
+those means rewriting relative references per cell, so the honest answer is
+"computed, text not stored here". Both are truthy, which is the contract
+`profileColumns` already read when counting a computed cell apart from an
+entered one.
+
 `analyze(parts)` — the pure entry point — takes `[[path, xmlString], ...]` or
 `{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
 testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
@@ -1168,9 +1178,68 @@ is gone: named ranges and calc-chain entries resolve through `workbook.xml`'s
 `<sheets>` and its rels, so they survive a reorder or a rename. See
 `kits/demos/xlsx.html` for live examples.
 
+### xlsx-extract.js
+
+**Pick part of a workbook and carry the answer away.** `xlsx.js` reads every
+part and returns plain objects; this kit is the selection over that reading, and
+nothing more. It writes no file back, reconstructs no workbook, and renders
+nothing. It reads `window.xlsxKit` at call time, so load that first.
+
+Two axes that cross and do not nest: **which sheets**, and **which kinds of
+reading**. Twelve kinds, eight read per sheet and four per workbook, so "values
+and comments from two sheets" and "every pivot in the file" are the same gesture
+at different points of one matrix. The full table of kinds, and what each one is
+NOT, is in
+[`docs/envelopes/workbook-extract.md`](../../docs/envelopes/workbook-extract.md).
+
+```js
+XlsxExtract.survey(result)          // the picker's whole input: per sheet, a
+                                    //   count for each of the eight sheet
+                                    //   kinds, plus the four workbook counts
+                                    //   once. A zero is REPORTED, not omitted:
+                                    //   a cell that disappears when empty
+                                    //   cannot say "no pivots here"
+XlsxExtract.extract(result, pick, opts)
+                                    // pick: { sheets: [name…], kinds: [id…],
+                                    //   headerRow }. No sheets means every
+                                    //   sheet; no kinds means nothing, since
+                                    //   guessing "all" on an empty selection
+                                    //   hands over a workbook nobody asked for
+                                    // opts: { source, maxRows, title, note, now }
+                                    // -> a `workbook-extract/1` envelope
+XlsxExtract.profileRows(sheet, xl, headerRow)
+                                    // the ONE tabular rendering of
+                                    //   profileColumns. The viewer's Structure
+                                    //   mode reads it too, so a column cannot
+                                    //   be `Role` in one table and `role` in
+                                    //   the other
+XlsxExtract.KINDS                   // the catalogue: { id, label, scope, view,
+                                    //   gloss, count, parts }
+```
+
+**The answer is a data-view envelope**, so it renders in
+[`pages/data-view.html`](../../pages/data-view.html) with no new page and no
+change to [`data-payload.js`](data-payload.js): that reader's discriminator is
+structural rather than a `kind` check, so a superset kind is already admitted.
+What the profile adds is the one thing data-view has no slot for, the provenance
+of the pick: which workbook, at which ref, what was taken (`picked`) and what
+was left (`left`). Per item, `rows` against `total` plus `truncated` say whether
+that item is short of what the file holds, which is `pivotRecords`' habit and
+the reason this kit keeps it; the same fact is derived into the item's `note`,
+so today's data-view reader shows the cut without knowing this format.
+
+**Where a survey count and an extract's rows would disagree, the count is
+wrong,** and `tools/test/xlsx-extract.test.mjs` holds them equal per kind: a
+picker showing 400 beside an item holding 12 is a lie about the file rather than
+about the cut.
+
 ### xlsx-write.js
 
-The write half of `xlsx.js`, which reads a workbook and never writes one.
+The write half of `xlsx.js`, which reads a workbook and never writes one. It is
+also the sibling of `xlsx-extract.js` above, and the pair divides cleanly: both
+are a selection over one reading, but extract carries the answer away as data
+and reconstructs no workbook, while this one rebuilds the package and hands back
+a file Excel opens.
 `rebuild(bytes, keepNames)` returns a new package holding only the sheets
 named, plus a manifest saying what survived. `plan(read, partNames, keep)` is
 the pure, synchronous half: it answers what keeping a given set implies before
@@ -1241,6 +1310,7 @@ regenerated on demand because the sources are in a private repo, so a session
 with only this one cannot rebuild them and a gitignored copy reaches nobody.
 What makes storing it safe is that the rebuild is byte-reproducible, held by the
 suite, so `--check` diffs exactly when the kit changes what it writes.
+
 
 ### docx.js
 

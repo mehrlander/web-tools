@@ -82,7 +82,8 @@
     "test:bench-page": "node tools/test/bench-page.mjs",
     "test:playground": "node tools/test/playground-pass.mjs",
     "tools-index": "node tools/build/tools-index.mjs",
-    "doc-growth": "python3 scripts/doc-growth.py"
+    "doc-growth": "python3 scripts/doc-growth.py",
+    "sample-workbook": "node tools/build/sample-workbook.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",
