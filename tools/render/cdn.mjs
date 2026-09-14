@@ -97,8 +97,19 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
     try {
       const j = JSON.parse(readFileSync(pj, 'utf8'));
       const dot = j.exports && j.exports['.'];
+      // For a /+esm request, `browser` outranks `main`. jsDelivr's +esm route
+      // bundles the package's BROWSER graph and ships the result as a module,
+      // so a CJS-only package with a browser field resolves to a file that
+      // runs in a page. Reading main instead hands the page the Node entry,
+      // which reaches for `fs`, `stream` and a bare `process`, and the failure
+      // arrives as a runtime error deep inside the library rather than as a
+      // MISS. exceljs is the case that found this: no exports map and no
+      // module field, so the chain fell straight through to ./excel.js and the
+      // page died with "process is not defined" the first time it wrote a
+      // workbook. Written as a rule so the next such package resolves itself.
       const def = esm
-        ? (dot && (dot.import || dot.module || dot.default)) || j.module || j.main || 'index.js'
+        ? (dot && (dot.import || dot.module || dot.default)) || j.module
+          || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
         : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}

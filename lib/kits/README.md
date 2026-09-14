@@ -1168,6 +1168,71 @@ is gone: named ranges and calc-chain entries resolve through `workbook.xml`'s
 `<sheets>` and its rels, so they survive a reorder or a rename. See
 `kits/demos/xlsx.html` for live examples.
 
+### xlsx-write.js
+
+The write half of `xlsx.js`, which reads a workbook and never writes one.
+`rebuild(bytes, keepNames)` returns a new package holding only the sheets
+named, plus a manifest saying what survived. `plan(read, partNames, keep)` is
+the pure, synchronous half: it answers what keeping a given set implies before
+anything is written, which is what lets a picker show the consequences of a tick
+rather than the consequences of a rebuild.
+
+```js
+await gh.load('kits/xlsx.js');          // the reader; this kit refuses without it
+await gh.load('kits/xlsx-write.js');
+const { bytes, manifest, suffix, mime } =
+  await window.xlsxWriteKit.rebuild(file, ['Summary', 'Detail']);
+window.xlsxWriteKit.manifestText(manifest)     // the same manifest as markdown
+await window.xlsxWriteKit.verify(bytes)        // { ok, problems, parts, sheets }
+```
+
+**Reproduction, not subtraction, and the difference is the point.** The faithful
+way to drop a sheet is to edit the package in place: delete the parts that sheet
+owns and patch `workbook.xml`, `[Content_Types].xml` and the rels around the
+hole, leaving everything untouched byte-intact. This kit does the other thing.
+It loads the source into ExcelJS, drops the sheets, and lets the writer re-emit
+every part, so what survives is what the writer models. That was chosen to find
+out what reproduction costs on real files, and the manifest is where the cost is
+declared rather than discovered.
+
+**ExcelJS rather than SheetJS, measured.** Round-tripping three OFM budget forms
+and re-reading each output with `xlsx.js`: ExcelJS keeps 17144/17148, 1640/1642
+and 458/502 cells where SheetJS keeps 13872, 327 and 52, and 49/56 cell format
+records where SheetJS keeps 3. SheetJS's community build writes no cell styles
+and drops the empty-but-formatted cells a blank form is mostly made of; its
+output was also 2.0 MB from a 56 KB source, since it emits 32,768 column
+definitions. SheetJS earns its place in the check suite instead, as the
+independent reader over the output.
+
+**The graft is what makes a checkbox list honest.** A writer models no VBA, no
+pivot cache, no `customXml` and no workbook connections, so offering those as
+options with only a writer behind them would be offering inert controls. After
+the base package is written, the source's own bytes for those parts are copied
+in with JSZip, along with the source's own content-type and relationship
+*entries*, taken verbatim rather than rebuilt from a hardcoded table of type
+URIs. A graft that does not take is reported and skipped, and the workbook still
+opens.
+
+**What it will not carry, in full.** Per-sheet `printerSettings`; hyperlinks
+where two share an anchor cell or one carries only a location fragment (the
+writer models a link as a property of a cell); the *scope* of a sheet-local
+defined name, since every name is emitted workbook-global; and `calcChain.xml`,
+which goes deliberately because it is a recalculation cache whose every index
+moves when a sheet goes. `fullCalcOnLoad` is set in its place. `workbookView`'s
+`activeTab` is clamped rather than dropped, which is the one index trap that
+does not fix itself.
+
+**And what it carries that a count says it lost.** Across thirteen real forms
+every cell the writer did not re-emit was one of two things: an empty cell whose
+style record is the package default in every field, or text inside a merged
+range but not at its top-left, which Excel does not display and a formula can
+still read. `manifest.cellLoss` separates those from real loss, so the count is
+flagged only when something else goes.
+
+`pages/xlsx-picker.html` is the interface over it, through
+`alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
+a directory of real workbooks.
+
 ### docx.js
 
 WordprocessingML (`.docx`) preparation: what a Word file has to have done to

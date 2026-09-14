@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sheet Picker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📗</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  xlsx-picker.html — open a workbook, choose which sheets to keep, get a new one.
+
+  A PAGE RATHER THAN A VIEWER MODE, decided once the engine's size was known.
+  The Structure mode in alpineComponents/viewer.js already inventories a
+  workbook and is the obvious neighbour, and this nearly went there. Three
+  things moved it out. The viewer reads and this writes a file to the reader's
+  disk, which is a different kind of surface to mix into one component. The
+  entry point is a workbook on a phone or a laptop rather than one in a repo,
+  so the viewer's file list is not the way in. And a page can be handed over
+  with a render link and shot headless, which is how the work here is reviewed;
+  driving the app to a workbook to see a mode cannot be.
+
+  The engine is kits/xlsx-write.js and every judgment about what a rebuild
+  costs lives there. This page renders a selection and the manifest that comes
+  back, and holds no opinion of its own about fidelity.
+
+  WHAT THE MANIFEST TABLE IS FOR, since the house style forbids a paragraph
+  saying so on the page and the columns have to carry it: `in source` counts
+  the whole workbook, `kept sheets` is that count restricted to the sheets
+  still ticked, and `in output` is the same reader run over the file that came
+  back. The middle column is what a lossless rebuild would produce, so a gap
+  between it and the right-hand one is the writer losing something, and a gap
+  between it and the left is the reader's own choice.
+-->
+</head>
+<body class="bg-base-200">
+<div class="fixed inset-0 grid grid-rows-[auto_1fr_auto]" x-data="xlsxPicker" x-cloak>
+
+  <!-- header: identity, the one compact figure, the action -->
+  <header class="flex items-center gap-3 flex-wrap px-3 py-2 border-b border-base-300 bg-base-100">
+    <h1 class="font-bold flex items-center gap-2"><i class="ph ph-microsoft-excel-logo text-success"></i> Sheet Picker</h1>
+    <span x-show="file" class="font-mono text-xs opacity-70 truncate max-w-[18rem]" x-text="file?.name"></span>
+    <span class="text-xs opacity-70" x-text="summary"></span>
+
+    <div class="ml-auto flex items-center gap-2">
+      <label class="btn btn-sm btn-ghost">
+        <i class="ph ph-folder-open"></i> Open
+        <input type="file" accept=".xlsx,.xlsm" class="hidden" @change="pick($event)">
+      </label>
+      <button class="btn btn-sm btn-primary" :disabled="!canBuild" @click="build()">
+        <span x-show="busy === 'rebuilding'" class="loading loading-spinner loading-xs"></span>
+        <i class="ph ph-arrow-clockwise" x-show="busy !== 'rebuilding'"></i>
+        <span x-text="busy === 'rebuilding' ? 'Rebuilding' : 'Rebuild'"></span>
+      </button>
+      <button class="btn btn-sm btn-success" x-show="result" @click="save()">
+        <i class="ph ph-download-simple"></i> <span x-text="'.' + suffix"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- content -->
+  <main class="min-h-0 overflow-auto p-3">
+
+    <!-- nothing open yet: the drop target IS the instruction -->
+    <label x-show="!file && !busy"
+           class="h-full min-h-[18rem] grid place-items-center rounded-box border-2 border-dashed transition-colors cursor-pointer"
+           :class="dragging ? 'border-primary bg-primary/10' : 'border-base-300'"
+           @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="drop($event)">
+      <div class="flex flex-col items-center gap-2 opacity-60">
+        <i class="ph ph-file-xls text-5xl"></i>
+        <span class="text-balance">Drop an .xlsx or .xlsm here</span>
+      </div>
+      <input type="file" accept=".xlsx,.xlsm" class="hidden" @change="pick($event)">
+    </label>
+
+    <div x-show="busy === 'reading'" class="h-full grid place-items-center">
+      <span class="loading loading-spinner loading-lg opacity-40"></span>
+    </div>
+
+    <div x-show="error" class="alert alert-error">
+      <i class="ph ph-warning-circle"></i><span x-text="error" class="text-pretty"></span>
+    </div>
+
+    <div x-show="plan" class="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start">
+
+      <!-- left: the choice -->
+      <section class="flex flex-col gap-3 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">Keep</span>
+          <button class="btn btn-xs btn-ghost" @click="all()">All</button>
+          <span class="text-xs opacity-60 ml-auto" x-text="`${keep.length}/${sheets.length}`"></span>
+        </div>
+
+        <ul class="menu bg-base-100 rounded-box p-1 gap-0.5">
+          <template x-for="s in sheets" :key="s.key">
+            <li>
+              <label class="flex items-start gap-3 py-2" :class="!s.kept && 'opacity-45'">
+                <input type="checkbox" class="checkbox checkbox-sm mt-0.5"
+                       :checked="!!s.kept" @change="toggle(s.name)">
+                <span class="flex-1 min-w-0">
+                  <span class="flex items-center gap-2 flex-wrap">
+                    <span class="font-medium break-all" x-text="s.name"></span>
+                    <span x-show="s.visibility !== 'visible'" class="badge badge-xs badge-ghost"
+                          x-text="s.visibility"></span>
+                  </span>
+                  <span class="flex items-center gap-2 flex-wrap text-xs opacity-60">
+                    <span class="font-mono"
+                          x-text="[s.cells + ' cells', s.formulas ? s.formulas + ' formulas' : null,
+                                   s.parts.length ? s.parts.length + ' own parts' : null].filter(Boolean).join(' · ')"></span>
+                    <button class="link link-hover" @click.prevent.stop="only(s.name)">only</button>
+                  </span>
+                </span>
+              </label>
+            </li>
+          </template>
+        </ul>
+
+        <!-- what a writer cannot model, offered as real options because the
+             kit grafts the source's own bytes back in -->
+        <div x-show="available.length || refused.length" class="flex flex-col gap-2">
+          <span class="font-semibold">Carry over<i class="ph ph-info ml-1 opacity-50"
+            data-note="A writer models none of these, so the kit copies the original's own parts into the rebuilt package."></i></span>
+          <ul class="menu bg-base-100 rounded-box p-1 gap-0.5">
+            <template x-for="g in available" :key="g.id">
+              <li>
+                <label class="flex items-start gap-3 py-2">
+                  <input type="checkbox" class="checkbox checkbox-sm mt-0.5"
+                         :checked="grafts.includes(g.id)" @change="toggleGraft(g.id)">
+                  <span class="flex-1 min-w-0">
+                    <span class="block font-medium" x-text="g.label"></span>
+                    <span class="block text-xs opacity-60" x-text="g.detail"></span>
+                  </span>
+                </label>
+              </li>
+            </template>
+          </ul>
+          <template x-for="why in refused" :key="why">
+            <p class="text-xs text-warning flex items-start gap-1.5 px-1">
+              <i class="ph ph-prohibit-inset mt-0.5 shrink-0"></i><span x-text="why" class="text-pretty"></span>
+            </p>
+          </template>
+        </div>
+
+        <!-- parts that leave with the unticked sheets -->
+        <details x-show="partsLeaving.length" class="collapse collapse-arrow bg-base-100 rounded-box">
+          <summary class="collapse-title min-h-0 py-2 px-3 font-medium">
+            <span x-text="`${partsLeaving.length} part${partsLeaving.length === 1 ? '' : 's'} leave${partsLeaving.length === 1 ? 's' : ''}`"></span>
+          </summary>
+          <div class="collapse-content">
+            <ul class="font-mono text-xs opacity-70 break-all">
+              <template x-for="p in partsLeaving" :key="p"><li x-text="p"></li></template>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <!-- right: what came back -->
+      <section class="min-w-0 flex flex-col gap-3">
+
+        <div x-show="!result" class="rounded-box border border-dashed border-base-300 p-6 grid place-items-center opacity-50">
+          <span class="text-balance" x-text="canBuild ? 'Rebuild to see what survived' : 'Keep at least one sheet'"></span>
+        </div>
+
+        <template x-if="result">
+          <div class="flex flex-col gap-3">
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="badge gap-1" :class="passed ? 'badge-success' : 'badge-error'">
+                <i class="ph" :class="passed ? 'ph-check' : 'ph-x'"></i>
+                <span x-text="passed ? 'package checks out' : `${problems.length} problems`"></span>
+              </span>
+              <span class="text-xs opacity-60 font-mono" x-text="`${elapsed} ms`"></span>
+              <button class="btn btn-xs btn-ghost ml-auto" @click="saveManifest()">
+                <i class="ph ph-file-md"></i> manifest.md
+              </button>
+            </div>
+
+            <ul x-show="!passed" class="flex flex-col gap-1">
+              <template x-for="p in problems" :key="p.message">
+                <li class="text-error text-xs flex gap-1.5">
+                  <span class="font-mono opacity-70 shrink-0" x-text="p.kind"></span>
+                  <span x-text="p.message" class="text-pretty"></span>
+                </li>
+              </template>
+            </ul>
+
+            <div class="overflow-x-auto rounded-box bg-base-100">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>What</th><th>Carried by</th>
+                    <th class="text-right">In source</th>
+                    <th class="text-right">Kept sheets</th>
+                    <th class="text-right">In output</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="r in rows" :key="r.id">
+                    <tr :class="r.short && 'bg-warning/10'">
+                      <td>
+                        <span x-text="r.label"></span>
+                        <i x-show="r.note" class="ph ph-info ml-1 opacity-40" :data-note="r.note"></i>
+                      </td>
+                      <td><span class="badge badge-xs"
+                            :class="{ 'badge-ghost': r.by === 'writer', 'badge-info': r.by === 'graft', 'badge-neutral': r.by === 'dropped' }"
+                            x-text="r.by"></span></td>
+                      <td class="text-right font-mono" x-text="r.found"></td>
+                      <td class="text-right font-mono opacity-50" x-text="r.expect ?? '·'"></td>
+                      <td class="text-right font-mono" :class="r.short && 'text-warning font-bold'" x-text="r.out"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <template x-if="cellLoss?.missing">
+              <div class="rounded-box bg-base-100 p-3 flex flex-col gap-1">
+                <span class="font-medium" x-text="`${cellLoss.missing} cells not re-emitted`"></span>
+                <ul class="text-xs opacity-70 flex flex-col gap-0.5">
+                  <li x-show="cellLoss.stubs" class="text-pretty"
+                      x-text="`${cellLoss.stubs} empty with a style that is the package default in every field`"></li>
+                  <li x-show="cellLoss.mergeSlaves" class="text-pretty"
+                      x-text="`${cellLoss.mergeSlaves} holding text inside a merged range but not at its top-left, which Excel does not display`"></li>
+                  <li x-show="cellLoss.valued" class="text-warning text-pretty"
+                      x-text="`${cellLoss.valued} that held a value or a formula`"></li>
+                  <li x-show="cellLoss.styled" class="text-warning text-pretty"
+                      x-text="`${cellLoss.styled} that carried a format`"></li>
+                </ul>
+                <ul class="font-mono text-xs opacity-60 flex flex-col gap-0.5">
+                  <template x-for="s in cellLoss.samples" :key="s"><li x-text="s"></li></template>
+                </ul>
+              </div>
+            </template>
+
+            <details class="collapse collapse-arrow bg-base-100 rounded-box">
+              <summary class="collapse-title min-h-0 py-2 px-3 font-medium">Graft log</summary>
+              <div class="collapse-content">
+                <ul class="flex flex-col gap-1 text-xs">
+                  <template x-for="e in log" :key="e.stage + e.msg">
+                    <li class="flex gap-1.5">
+                      <i class="ph shrink-0" :class="e.ok ? 'ph-check text-success' : 'ph-minus text-base-content/40'"></i>
+                      <span class="font-mono opacity-70 shrink-0" x-text="e.stage"></span>
+                      <span x-text="e.msg" class="text-pretty"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </template>
+      </section>
+    </div>
+  </main>
+
+  <footer class="px-3 py-1.5 border-t border-base-300 bg-base-100 text-xs opacity-60 flex items-center gap-2">
+    <span x-show="!plan">Nothing open</span>
+    <span x-show="plan && !result" x-text="droppedLine"></span>
+    <span x-show="result" x-text="outLine" class="truncate"></span>
+  </footer>
+</div>
+
+<style>[x-cloak]{display:none!important}</style>
+
+<script type="module">
+  // The repo's standard boot. ?use=<ref> pins the chain to a branch so an
+  // edit can be previewed before it is on main, exactly as the other
+  // loader-based pages do.
+  const useRef = new URLSearchParams(location.search).get('use');
+  if (useRef) {
+    window.__ghBlobBoot = { repo: 'mehrlander/web-tools', ref: useRef };
+    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${useRef}/lib/gh-api.js`,
+                          { cache: 'no-store' });
+    if (!r.ok) throw new Error(`?use=${useRef}: could not fetch gh-api.js (HTTP ${r.status})`);
+    const u = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await import(u); } finally { URL.revokeObjectURL(u); }
+  } else {
+    await import('https://cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/gh-api.js');
+  }
+
+  // The reader first: kits/xlsx-write.js reads window.xlsxKit and refuses to
+  // run without it, which is the dependency stated rather than assumed.
+  await gh.load('kits/xlsx.js');
+  await gh.load('kits/xlsx-write.js');
+  await gh.load('kits/note.js');
+  await gh.load('alpineComponents/xlsx-picker.js');
+  await gh.load('alpine-bundle.js');
+</script>
+</body>
+</html>
