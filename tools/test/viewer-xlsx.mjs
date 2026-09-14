@@ -74,6 +74,11 @@ const JSZIP_UMD = await readFile(path.join(root, 'node_modules/jszip/dist/jszip.
 // scenario run leaves no untracked PNG behind.
 const shotPath = (name) => path.join(root, 'tools', '.preview', `viewer-xlsx-${name}.png`);
 
+// The separator every figure line is joined with. A NO-BREAK SPACE before the
+// middle dot keeps the dot with the word on its left, so a line that wraps
+// never starts with one.
+const SEP = '\u00a0\u00b7 ';
+
 const failures = [];
 const ok = (name, cond, detail = '') => {
   if (cond) console.log(`  ok    ${name}`);
@@ -372,7 +377,11 @@ try {
      s.cells.includes('2023-03-15') && !s.cells.includes('45000'), JSON.stringify(s.cells));
   ok('nothing rendered as replacement characters', !s.cells.some(c => c.includes('�')),
      JSON.stringify(s.cells.filter(c => c.includes('�'))));
-  ok('the header states sheets and bytes', /^2 sheets · \d+\.\d KB$/.test(s.stats), s.stats);
+  // SEP is the separator these figure lines are joined with: a no-break space
+  // then a middle dot then a space, so a wrapped line never opens with a bare
+  // dot. Written once here rather than pasted into each regex, because the two
+  // that did paste it both broke silently when the space became no-break.
+  ok('the header states sheets and bytes', new RegExp(`^2 sheets${SEP}\\d+\\.\\d KB$`).test(s.stats), s.stats);
 
   console.log('switching to the second sheet:');
   await page.evaluate(() => document.querySelectorAll('[data-xlsx="tabs"] button')[1]?.click());
@@ -448,9 +457,18 @@ try {
   ok('every action is dark until there is something to hand over',
      e0.actions.every(a => a.disabled), JSON.stringify(e0.actions));
   // A kind the workbook has none of is offered and cannot be tapped, the same
-  // rule the tab strip follows: a control that vanishes when empty cannot say no.
+  // rule the tab strip follows: a control that vanishes when empty cannot say
+  // no. `validations` rather than `queries`: the strip carries the eight
+  // SHEET kinds only, since a workbook-scoped kind toggles the single cell
+  // sitting in the Whole workbook block and needed no second control.
+  ok('the strip is the sheet axis, so it carries eight kinds and not twelve',
+     e0.kinds.length === 8 && !e0.kinds.some(k => k.id === 'queries'),
+     JSON.stringify(e0.kinds.map(k => k.id)));
   ok('a kind this workbook has none of is present and disabled',
-     e0.kinds.find(k => k.id === 'queries')?.disabled === true, JSON.stringify(e0.kinds));
+     e0.kinds.find(k => k.id === 'validations')?.disabled === true, JSON.stringify(e0.kinds));
+  ok('and a workbook kind it has none of is still offered as a cell',
+     e0.cells.find(c => c.sheet === null && c.kind === 'queries')?.disabled === true,
+     JSON.stringify(e0.cells.filter(c => c.sheet === null)));
   ok('the matrix draws every sheet against every per-sheet kind',
      e0.cells.filter(c => c.sheet === 'Budget').length === 8 &&
      e0.cells.filter(c => c.sheet === null).length === 4,
@@ -470,7 +488,8 @@ try {
      e1.cells.find(c => c.sheet === 'Budget' && c.kind === 'values')?.label === 'Values 2',
      JSON.stringify(e1.cells.filter(c => c.lit).map(c => c.label)));
   // Claim 12, first half: one compact line, not a row of tiles.
-  ok('the figures are one compact line', /^\d+ items · \d+ rows · [\d.]+ (B|KB)( · link [\d.]+ (B|KB))?$/.test(e1.figure),
+  ok('the figures are one compact line',
+     new RegExp(`^\\d+ items${SEP}\\d+ rows${SEP}[\\d.]+ (B|KB)(${SEP}link [\\d.]+ (B|KB))?$`).test(e1.figure),
      e1.figure);
   ok('and the actions come alive with it', e1.actions.every(a => !a.disabled), JSON.stringify(e1.actions));
 
@@ -481,12 +500,20 @@ try {
      JSON.stringify(e2.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
   ok('no kind name is clipped at pane width', !e2.clipped.length, JSON.stringify(e2.clipped));
 
-  // Claim 11: a cell is shorthand for its two axes, never a third state.
-  await page.evaluate(() => document.querySelector('[data-ex-cell="pivots"]')?.click());
+  // Claim 11: a cell is shorthand for its two axes, never a third state, so
+  // tapping one lights the kind's own control in the strip above.
+  await page.evaluate(() => document.querySelector('[data-ex-cell="merges"]')?.click());
   await page.waitForTimeout(600);
   const e3 = await extract();
   ok('tapping a cell turns its KIND on, which is what the envelope can express',
-     e3.kinds.find(k => k.id === 'pivots')?.lit === true, JSON.stringify(e3.kinds));
+     e3.kinds.find(k => k.id === 'merges')?.lit === true, JSON.stringify(e3.kinds));
+  // And a workbook cell, which has no chip, still enters the pick.
+  await page.evaluate(() => document.querySelector('[data-ex-cell="pivots"]')?.click());
+  await page.waitForTimeout(600);
+  const e4 = await extract();
+  ok('and a workbook cell enters the pick without a control of its own',
+     e4.cells.find(c => c.sheet === null && c.kind === 'pivots')?.lit === true,
+     JSON.stringify(e4.cells.filter(c => c.sheet === null)));
 
   // Claim 13: what leaves is an envelope the page beside it opens.
   const url = await page.evaluate(async () => {
@@ -508,7 +535,7 @@ try {
     }, url);
     ok('the link carries a workbook-extract envelope', decoded.kind === 'workbook-extract/1', decoded.kind);
     ok('with what was picked and what was left on it',
-       decoded.picked.kinds.join() === 'values,comments,pivots' && decoded.left.sheets.length === 0,
+       decoded.picked.kinds.join() === 'values,merges,comments,pivots' && decoded.left.sheets.length === 0,
        JSON.stringify({ picked: decoded.picked, left: decoded.left.kinds.length }));
     ok('and the workbook it came from, by name and size',
        decoded.source?.name === 'ledger.xlsx' && decoded.source.bytes > 0,
