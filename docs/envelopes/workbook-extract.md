@@ -17,7 +17,7 @@ The original cross-product API and its
 ## Sheet-centered selection (v2)
 
 `XlsxExtract.catalog(result)` returns sheets in workbook order, with counts
-for their eight supported readings, and separately lists each modeled object.
+for their nine supported readings, and separately lists each modeled object.
 The UI shows a pivot table under the sheet where it sits and a pivot cache
 under its source sheet when that sheet is in the workbook. This is an
 association for navigation, not an inclusion rule: selecting a sheet does not
@@ -61,13 +61,14 @@ sheets" and "every pivot in the file" are the same gesture at different points
 of one matrix, so both axes are flat lists rather than a tree of sheets each
 carrying kinds.
 
-Twelve kinds. The first eight are read per sheet and appear once per picked
+Thirteen kinds. The first nine are read per sheet and appear once per picked
 sheet that has any; the last four are read once per workbook, appear once
 however many sheets are picked, and carry a null `sheet`.
 
 | id | scope | one row per | reads |
 | --- | --- | --- | --- |
 | `values` | sheet | sheet row | `sheetRows`, so a date is a date rather than a serial |
+| `cells` | sheet | one object per sheet | every cell as `{Address, Formula, Value}`, plus `Dimension` and `MergedCells`: the serialized-workbook shape, below |
 | `formulas` | sheet | computed cell | the stored formula text, and the value beside it |
 | `styles` | sheet | styled cell | `cellStyle`, flattened to what the cell draws |
 | `merges` | sheet | merged range | the span, and the value its anchor draws |
@@ -95,6 +96,21 @@ references per cell, which is a formula engine.
 `conditional` reports the rules as the file states them. Which cells Excel would
 actually paint is a second question, answered by `xlsxKit.cfApplies` and only for
 the rule types decidable from a cell alone.
+
+`cells` is the one kind that is not a table and is never cut. It is the shape
+home's PowerShell exporter (`Get-WsDetail`) writes and the fund view's reader
+(`app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
+`{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula,
+Value }, …] }`. `Value` is the cached value as a string, raw rather than
+formatted, because a reader parses `35624913.378` and cannot parse
+`35,624,913`. `Formula` is `''` for an entered cell and `=<text>` where the file
+stored text. A shared formula's follower stores none, and here the reading does
+what `formulas` above declines to: it writes `=[fill N] <master text>`, the
+master's own text under the shared index, which is exactly what Get-WsDetail
+emits and what `workbook-fill.js` resolves by shifting the master's relative
+references. Still no formula engine on this side; the marker hands the
+follower to the reader that has one. A partial sheet in this shape would read
+as a whole one, which is why the cap does not apply to it.
 
 There is no `layout` kind. `xlsxKit.sheetLayout` returns a sheet as geometry,
 which is an input to a renderer rather than a table, and it already has a
@@ -162,6 +178,99 @@ a large extract makes a link nothing will carry. That is why the cap is a
 parameter (`maxRows`, 2000 by default) and why the picker states the payload's
 size before the link is handed over. A cut extract is honest; a link that was
 silently trimmed to fit is not.
+
+## Receptions: a receiving repo's standing pick
+
+A repo can say in advance what it wants from a workbook it expects to receive.
+`receptions` in its `.web-tools.json` (fields in
+[`manifest-fields.csv`](../manifest-fields.csv)) declares, per expected
+workbook: the sheets that identify it, the sheets to leave behind, the
+readings to take, and where the extract lands.
+
+```jsonc
+"receptions": [{
+  "id": "source-workbook",
+  "label": "Budget DRS source workbook",
+  "omit": ["hidden"],
+  "never": ["CC", "Cash"],
+  "readings": ["cells"],
+  "dest": "projects/budget-drs/data/source/{date}-{slug}",
+  "file": "{slug}-{date}.json"
+}]
+```
+
+The receiver declares it and the picker runs it. A reception with no
+`match.sheets` applies to every workbook opened in the viewer's Structure
+mode; one that names sheets applies only where all of them are present.
+`XlsxExtract.receptions(catalog, declared)` returns the pick (every sheet not
+omitted, with the readings it has any of), the Extract tab opens with that
+pick ticked and the reception's cap, and a band names the reception, its repo,
+and the destination, with no sentence beside them: the unticked sheets say
+what is left behind.
+
+`omit` takes names and the token `hidden`. The token leaves behind every sheet
+the workbook hides, which makes hiding a sheet in Excel the whole gesture for
+keeping it out of the repo: no name to keep in step with the manifest, and a
+rename does not undo it. The two union, so a sheet named in `omit` or hidden is
+kept back either way.
+
+`never` is the backstop for the mirror-image failure, which is real: unhide a
+private sheet to work on it, forget, and drop the workbook, and `omit` alone
+takes it. A sheet named there is **reported rather than dropped**. It stays in
+the pick, the roster and its row draw it in the error colour, and the Stage
+button goes dark and names it instead of handing anything over. Dropping it
+quietly would be the worse fix, since the reader would see a clean pick and
+learn nothing in exactly the case the usual signal lapsed. `omit` decides what
+is taken; `never` decides what may not be, and both have to lapse for a private
+sheet to reach a repo.
+
+## Seeing what you are taking
+
+Three surfaces answer it, in widening detail, and none is prose.
+
+**The roster**, two lines under the band: `in` and `out`, every sheet by name,
+in workbook order, with `(hidden)` and `(never)` where they apply. It is the
+glance, and it exists because the checklist below it spreads the same fact over
+one section per sheet, which on an eleven-sheet workbook is a scroll rather than
+an answer.
+
+**The checklist**, one section per sheet. The row's box means the sheet is in
+the extract; the readings beneath say which readings of it. Until 2026-09-14
+the box compared selected readings against available ones, so a reception
+picking one reading drew a half-filled box on every sheet it took: eleven rows
+reading "partly" and none reading "in".
+
+**The serialized JSON**, in the preview pane, defaulting to the whole envelope:
+`source`, `taken`, `picked.sheets` naming each sheet and its readings, `left`
+naming what was not taken, and the items themselves through the selector. It is
+the same string Save writes, the link carries, and Stage puts on the stage, so
+what is read is what travels. After Stage the staged file opens in the reader,
+which is the same bytes a second time before Send. **Stage for `<repo>`** puts the envelope on the stage as a
+text file under the reception's name, takes the dropped workbook off the stage
+(a Send carries every staged item, and the bytes are what the reception exists
+to keep back), aims the stage at `repo:dest`, and switches to it; Send is still
+the reader's own tap. Declarations are collected
+across the estate the way `pages[].appView` is, so the workbook can be dropped
+while browsing any repo. Nothing about any one workbook lives in this kit, the
+viewer, or the stage.
+
+Three facts about the shape. Matching, where a reception matches at all, is by
+sheet set rather than file name, because a workbook is renamed more often than
+its tabs are; declarations are tried in order, so a specific one listed before
+a general one wins. The pick is the opening state, not a lock:
+every tick still works and what is ticked at Stage is what travels. And the
+workbook's bytes never leave the browser: the drop stages them in memory, the
+Stage action removes that item as it adds the extract, so what a Send carries
+is the extract alone, which is what lets a workbook holding sheets that stay
+private be dropped at all. The omitted
+sheets' cached values still ride along wherever a taken sheet's formula reads
+them, and `left.sheets` says which sheets were declared away.
+
+`{date}` in `dest` or `file` is the UTC day; `{stem}` is the workbook's name
+without its extension, reduced to filename characters; `{slug}` is that stem
+lowercased, for a folder convention that wants it. `file` defaults to
+`{stem}.extract.json`. `cap` defaults to null, since a landed extract is a file
+rather than a link.
 
 ## Seeing it
 
