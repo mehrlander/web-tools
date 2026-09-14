@@ -163,6 +163,8 @@ Plugin skills are namespaced and do not conflict with project or user skills. Or
 This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
+
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the user-scope deny is the one in force and the project row is dormant, which is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
 - `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`. *(verified 2026-07-20)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.

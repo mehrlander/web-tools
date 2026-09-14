@@ -1,7 +1,7 @@
 // .claude/skills/hooks/send-later-guard.sh — the PreToolUse refusal that stops a
 // session scheduling its own PR check-in.
 //
-// The failure has both halves, the way the conventions nudge does. A guard that
+// The failure has both halves, the way the invoke-default directive does. A guard that
 // never fires leaves the check-in loop running, and that loop is measured rather
 // than suspected: 268 send_later calls across 65 session records on 2026-09-13,
 // every retained one a PR or CI check-in, one pull request drawing fourteen. A
