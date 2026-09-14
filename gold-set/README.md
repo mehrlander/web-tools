@@ -20,21 +20,13 @@ all three files here. Neither is evidence that Excel accepts them.
 | `11.01-Central-Service-Fund-Split-Form.xlsm` | FundSplits, ActiveFunds | Instructions | 2,795 formulas, 16 data validations, 4 conditional formats, 16 defined names, a workbook connection, VBA, and a hidden sheet that must come back hidden. |
 | `09.02-Decision-Package-Addendum.xlsx` | DP Addendum | Reference Tables | 129 merged ranges and an embedded image. Also the file that demonstrates two known losses, so its manifest reads short on purpose. |
 
-## Excel desktop check
+## Has Excel opened these?
 
-Microsoft Excel for Windows attempted to open the three committed workbooks at
-`28b0b4c6` on 2026-09-13. The local test copies matched the committed Git blob
-hashes after the check.
-
-| File | Excel result | What appeared |
-| --- | --- | --- |
-| `15.02-TECM-Template.xlsm` | Opened without a repair prompt | Both kept sheets appeared. Excel recognized `PivotTable1` on `HeadCountCheck`. |
-| `11.01-Central-Service-Fund-Split-Form.xlsm` | **Failed the open check** | Excel said, "We found a problem with some content in '11.01-Central-Service-Fund-Split-Form.xlsm'. Do you want us to try to recover as much as we can? If you trust the source of this workbook, click Yes." Recovery was declined, so the workbook did not open. |
-| `09.02-Decision-Package-Addendum.xlsx` | Opened without a repair prompt | `DP Addendum` and its embedded OFM image appeared. Excel warned that automatic link updates were disabled. |
-
-This check did not run macros, refresh the pivot, exercise dropdowns, or save
-either opened workbook. The `11.01` repair prompt is a defect that the package
-check and independent reader did not catch.
+Yes, once, and it refused one of the three. The record, the exact dialog, the
+root cause and what changed because of it are in
+[`RESULTS.md`](RESULTS.md) beside this file, which is where a session with
+Excel adds its stanza. It lives there rather than here so there is one place to
+read the verdict and one place to write it.
 
 ## What to report
 

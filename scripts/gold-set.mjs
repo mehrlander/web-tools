@@ -126,7 +126,15 @@ if (!existsSync(from)) {
 }
 
 mkdirSync(outDir, { recursive: true });
-const written = new Set(['README.md']);
+// Authored files the selection does not produce and the sweep below must not
+// eat. RESULTS.md is the one that matters: it is where a session with Excel
+// records its verdict, so a regeneration deleting it would throw away the only
+// output of the check this folder exists for. The mirror rule ("the folder is
+// the selection, which means deleting too") is right about generated files and
+// wrong about this, which the --check caught one commit after RESULTS.md
+// appeared.
+const AUTHORED = ['README.md', 'RESULTS.md'];
+const written = new Set(AUTHORED);
 let stale = 0, refused = 0;
 
 for (const entry of SELECTION) {
@@ -169,6 +177,10 @@ for (const entry of SELECTION) {
 // been withdrawn.
 for (const name of readdirSync(outDir)) {
   if (written.has(name)) continue;
+  // Only ever delete something shaped like this script's own output. An
+  // unexpected file is reported and left alone: refusing to delete what we did
+  // not write costs a line of noise, and the alternative costs somebody's file.
+  if (!/\.(xlsx|xlsm|md)$/i.test(name)) { console.log(`left ${name} alone, which this script did not write`); continue; }
   stale++;
   if (!flag('check')) rmSync(path.join(outDir, name), { recursive: true });
   console.log(`removed ${name}, which no selection claims`);
