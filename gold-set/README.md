@@ -28,6 +28,25 @@ root cause and what changed because of it are in
 Excel adds its stanza. It lives there rather than here so there is one place to
 read the verdict and one place to write it.
 
+### Follow-up on the `11.01` repair prompt (2026-09-14)
+
+The untouched source workbook opened in Excel without a repair prompt, so the
+prompt was introduced by the rebuild. Local diagnostic copies narrowed it to
+the two rebuilt table parts, `xl/tables/table1.xml` and `table2.xml`. The source
+tables omit `headerRowCount`, whose OOXML default is `1`; the rebuilt tables
+both set `headerRowCount="0"`. Changing only that attribute to `"1"` in **both**
+table parts made the rebuilt `.xlsm` open without repair, with its VBA and
+connection parts still present. Changing either table alone, or changing only
+`totalsRowShown`, still produced the prompt. Removing the connection part or
+all grafted parts did not resolve it; removing both tables did.
+
+The rebuild also omitted the source's two `xl/queryTables/queryTable*.xml`
+parts and the relationships from the tables to those parts, although it kept
+`xl/connections.xml`. The source tables were `queryTable` tables; the rebuilt
+tables no longer identify themselves that way. This is a separate fidelity
+loss, and data refresh remains untested. The diagnostic copies were local
+experiments; the committed gold-set workbook remains the failing output.
+
 ## What to report
 
 In rough order of how much it would cost to learn later:
