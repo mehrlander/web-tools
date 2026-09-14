@@ -135,8 +135,10 @@ test('the two sub-tab encodings, counted', () => {
   assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
-  // tab, which is the Routes pane arriving from Activity.
-  assert.equal(params, 16, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // tab, which is the Routes pane arriving from Activity. 16 to 17 on
+  // 2026-09-14: the project view gained an Installation pill, shown only for a
+  // workspace whose manifest entry declares an installation manifest.
+  assert.equal(params, 17, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {

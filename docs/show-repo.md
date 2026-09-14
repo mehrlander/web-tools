@@ -557,6 +557,25 @@ the submitted text at that revision, not the saved file on another computer.
 Clearing browser site data removes checks and unfinished submissions, so
 export checks for a backup. Any transfer to or from a separate installation
 remains manual.
+
+A workspace whose manifest entry carries `installation` (a repo-root-relative
+`installation.json`; see [manifest-fields.csv](manifest-fields.csv)) gets an
+**Installation** pill on its project view (`?view=project&project=<path>&tab=installation`,
+with the selected file as `&item=`). The pill lists the workspace's PowerShell
+material by the areas the manifest declares (Profile, Modules, Forms, Scripts),
+a form's controller beside its XAML, each file with its intended location under
+the installation root and a state read from the workspace's observations ledger
+(`lib/kits/installation.js`): `local state unknown`, `reported installed`,
+`verified from supplied copy`, `GitHub changed since`, `local copy differs`, or
+`repository only`. Areas the manifest names as local-only or unresolved are
+listed without repository files. For the selected file: Compare copy (the flow
+above, with the page-wide paste and drop aimed at that file), Copy GitHub text,
+Download, Files, Stage, and **Record installed**, which opens a confirm showing
+the exact ledger row and commits it on the branch being browsed only when the
+reader taps "I placed this on the work computer". A browser-local check can be
+promoted to a `verified` or `differs` row the same way. A comparison, copy, or
+download never writes a row; the ledger is appended, never rewritten, and a
+later session reads the same states from the repository.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
 - **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
