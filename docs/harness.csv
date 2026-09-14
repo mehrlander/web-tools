@@ -54,7 +54,7 @@ tools/build/graph.mjs,the static resolver for a page's gh.load chain; feeds buil
 tools/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,tools/build,230,npm:graphql-schema,yes,no,no
 tools/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,tools/build,19,imported,no,yes,no
 tools/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",tools/build,166,npm:kits-index,yes,no,yes
-tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,tools/build,460,npm:pages-index,yes,yes,yes
+tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,tools/build,461,npm:pages-index,yes,yes,yes
 tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,no
 tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,no,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
@@ -214,6 +214,7 @@ tools/render/scenarios/record-deck-wide.mjs,,tools/render/scenarios,68,driver,no
 tools/render/scenarios/record-deck.mjs,,tools/render/scenarios,37,driver,no,no,no
 tools/render/scenarios/ref-switch.mjs,the header ref switch seeded token-free,tools/render/scenarios,57,driver,no,no,no
 tools/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo declaring a `landing`: the Landing row beside Overview, which no real repo produces",tools/render/scenarios,56,driver,no,no,no
+tools/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo on its second committed layout, the half a default shot cannot reach: the same rows banded on fiscal year instead of on budget version.",tools/render/scenarios,13,driver,no,no,no
 tools/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",tools/render/scenarios,12,driver,no,no,no
 tools/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",tools/render/scenarios,78,driver,no,no,no

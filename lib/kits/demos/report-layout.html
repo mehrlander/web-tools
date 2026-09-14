@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>report-layout: the layout is data</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../../vanilla-bundle.js"></script>
+<script src="../csv.js"></script>
+<script src="../report-layout.js"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="min-h-dvh bg-base-200 text-base-content antialiased">
+
+<div x-data="reportDemo()" x-init="load()" class="min-h-dvh">
+
+  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-base-300 bg-base-100 px-4 py-2">
+    <h1 class="font-semibold">report-layout</h1>
+    <select class="select select-sm select-bordered" x-model="pick" @change="load()">
+      <template x-for="t in templates" :key="t.file">
+        <option :value="t.file" x-text="t.name"></option>
+      </template>
+    </select>
+    <span class="text-xs text-base-content/50" x-text="rows.length + ' rows · ' + (model ? model.columns.length : 0) + ' columns'"></span>
+    <button class="btn btn-sm btn-ghost ml-auto" @click="copyTsv()">
+      <i class="ph-bold" :class="copied ? 'ph-check' : 'ph-clipboard-text'"></i>
+      <span x-text="copied ? 'Copied' : 'Copy TSV'"></span>
+    </button>
+  </header>
+
+  <main class="grid gap-4 p-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+
+    <section class="order-2 min-w-0 space-y-2 lg:order-1">
+      <div role="tablist" class="tabs tabs-box tabs-sm">
+        <a role="tab" class="tab" :class="{ 'tab-active': pane === 'layout' }" @click="pane = 'layout'">Layout</a>
+        <a role="tab" class="tab" :class="{ 'tab-active': pane === 'rows' }" @click="pane = 'rows'">Rows</a>
+      </div>
+
+      <textarea x-show="pane === 'layout'" x-model="specText" @input.debounce.300ms="draw()"
+        spellcheck="false" rows="26"
+        class="textarea textarea-bordered w-full resize-y font-mono text-[13px] leading-5"
+        :class="{ 'textarea-error': bad }"></textarea>
+
+      <pre x-show="pane === 'rows'"
+        class="max-h-[34rem] overflow-auto rounded border border-base-300 bg-base-100 p-2 font-mono text-[13px] leading-5"
+        x-text="rowsText"></pre>
+    </section>
+
+    <section class="order-1 min-w-0 space-y-2 lg:order-2">
+      <div class="rounded border border-base-300 bg-base-100 p-3" x-html="html"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const BASE = '../../../data/report-layout/';
+
+  window.reportDemo = () => ({
+    templates: [
+      { file: 'three-way-compare.json', name: 'Three-way compare' },
+      { file: 'compare-by-year.json',   name: 'Banded on fiscal year' },
+    ],
+    pick: 'three-way-compare.json',
+    pane: 'layout',
+    rows: [], rowsText: '', specText: '', html: '', model: null, bad: false, copied: false,
+
+    async load() {
+      if (!this.rowsText) {
+        this.rowsText = await fetch(BASE + 'three-way-compare.csv').then(r => r.text());
+        this.rows = Csv.rows(this.rowsText);
+      }
+      this.specText = await fetch(BASE + this.pick).then(r => r.text());
+      this.draw();
+    },
+
+    // The whole demonstration: the table is a function of the layout text and
+    // nothing else, so editing the JSON redraws it and no figure moves.
+    draw() {
+      let spec;
+      try { spec = JSON.parse(this.specText); } catch { this.bad = true; return; }
+      this.bad = false;
+      this.model = ReportLayout.build(spec, this.rows);
+      this.html = ReportLayout.render(this.model, spec);
+    },
+
+    async copyTsv() {
+      await navigator.clipboard.writeText(ReportLayout.tsv(this.model));
+      this.copied = true;
+      setTimeout(() => (this.copied = false), 1200);
+    },
+  });
+</script>
+</body>
+</html>

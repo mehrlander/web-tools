@@ -1,0 +1,16 @@
+{
+  "title": "Three-way compare by item, banded on fiscal year",
+  "measure": "value",
+  "columns": {
+    "band": "year",
+    "within": "version",
+    "bands": ["2026", "2027"],
+    "withins": ["GOVJANUP", "OHCHAIR", "OSCHAIR"],
+    "gap": true
+  },
+  "rows": { "levels": ["group", "subgroup", "item"] },
+  "opening": { "where": { "group": "Top Line" }, "label": "Top Line (incoming)" },
+  "subtotal": { "at": "group", "label": "{group} Total Change" },
+  "total": { "label": "Grand Total" },
+  "format": { "style": "thousands" }
+}
