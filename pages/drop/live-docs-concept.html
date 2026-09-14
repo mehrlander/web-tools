@@ -10,19 +10,19 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/codemirror@5/lib/codemirror.min.js,npm/codemirror@5/mode/xml/xml.min.js,npm/codemirror@5/mode/javascript/javascript.min.js,npm/codemirror@5/mode/css/css.min.js,npm/codemirror@5/mode/htmlmixed/htmlmixed.min.js"></script>
 </head>
 
-<body class="min-h-screen font-sans text-zinc-800 antialiased selection:bg-zinc-200 selection:text-zinc-900">
+<body class="min-h-dvh font-sans text-zinc-800 antialiased selection:bg-zinc-200 selection:text-zinc-900">
 <div class="min-h-screen bg-zinc-50">
 
   <div id="display-ctrl"></div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
     <header id="masthead" class="mb-10">
       <p class="font-mono text-[10px] tracking-widest uppercase text-zinc-400 mb-3">A concept &nbsp;·&nbsp; Living documentation</p>
       <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-zinc-900">
         Show the code. <span class="text-zinc-500">Then prove it.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed text-zinc-600 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed text-zinc-600 text-pretty">
         A page is a stack of sections; each section gathers a few examples. Every example pairs prose with a snippet you can edit and a proof that follows in the same card: the markup rendering, the same markup in its habitat, or the console answering back.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
@@ -32,7 +32,7 @@
 
     <footer class="mt-4 pt-6 border-t border-zinc-200">
       <p class="font-mono text-[10px] tracking-widest uppercase text-zinc-400 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed text-zinc-500 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed text-zinc-500 text-pretty space-y-2">
         <p>Two builders, nested: a <code class="font-mono text-[0.85em] text-zinc-700 bg-zinc-100 border border-zinc-200 rounded-sm px-1 py-0.5">section({ title, intro, examples })</code> holds many an <code class="font-mono text-[0.85em] text-zinc-700 bg-zinc-100 border border-zinc-200 rounded-sm px-1 py-0.5">example({ kicker, title, prose, lang, code, kind })</code>. Only the section carries a large heading; examples stay compact, indexed by section.</p>
         <p>The proof is an isolated iframe, so a snippet cannot reach the page around it. Display preferences, pinned top-right, apply to every editor at once.</p>
       </div>
@@ -192,13 +192,19 @@
     const live = cfg.kind !== 'console';
     const seq = exSeq++;
 
-    const sec = el('div', { class: 'mb-6' });
+    // Two tracks on a wide screen, stacked on a narrow one: commentary in a
+    // rail, the editor and its proof in the rest. The prose takes its measure
+    // from the track rather than from a cap on the text (house style rule 3).
+    // Kept in step with kits/vanilla-demo.js, which was distilled from this
+    // page and carries the same layout.
+    const sec = el('div', { class: 'mb-8 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6 lg:items-start' });
+    const rail = el('div', { class: 'min-w-0' });
 
     const kicker = el('p', { class: "font-mono text-[9px] tracking-widest mb-1 text-zinc-400" }, `${si + 1}.${ei + 1}`);
     const title = el('h3', { class: "text-[1.05rem] leading-tight font-semibold text-zinc-800" }, cfg.title);
-    const prose = el('div', { class: 'mt-1 text-[0.9rem] leading-relaxed text-zinc-600 max-w-[66ch]', html: cfg.prose });
+    const prose = el('div', { class: 'mt-1 text-[0.9rem] leading-relaxed text-zinc-600 text-pretty', html: cfg.prose });
 
-    const card = el('div', { class: 'mt-2.5 rounded-sm overflow-hidden bg-white border border-zinc-200 shadow-sm' });
+    const card = el('div', { class: 'mt-2.5 lg:mt-0 min-w-0 rounded-sm overflow-hidden bg-white border border-zinc-200 shadow-sm' });
 
     const topBar = el('div', { class: 'flex items-center justify-between bg-zinc-50/50 pl-2.5 pr-1 py-1 border-b border-zinc-200' });
     const langTag = el('div', { class: "flex items-center gap-1.5 font-mono text-[9.5px] text-zinc-500" },
@@ -301,7 +307,8 @@
     }));
 
     card.append(topBar, editorHost, proofZone);
-    sec.append(kicker, title, prose, card);
+    rail.append(kicker, title, prose);
+    sec.append(rail, card);
     sec.animate(
       [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }],
       { duration: 400, delay: 60 + seq * 50, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'backwards' }
@@ -315,7 +322,7 @@
     head.append(
       el('p', { class: "font-mono text-[10px] tracking-widest text-zinc-400 mb-1" }, String(si + 1).padStart(2, '0')),
       el('h2', { class: "text-[1.4rem] leading-tight font-bold tracking-tight text-zinc-900" }, cfg.title));
-    if (cfg.intro) head.append(el('p', { class: 'mt-1.5 text-[0.95rem] leading-relaxed text-zinc-600 max-w-[64ch]' }, cfg.intro));
+    if (cfg.intro) head.append(el('p', { class: 'mt-1.5 text-[0.95rem] leading-relaxed text-zinc-600 text-pretty' }, cfg.intro));
     wrap.append(head);
     cfg.examples.forEach((ex, ei) => wrap.append(example(ex, si, ei)));
     return wrap;
@@ -324,7 +331,7 @@
   const SECTIONS = [
     {
       title: 'Rendering markup',
-      intro: 'When the output is visual, the proof is the pixels. Show the markup, then let it render — on its own, or set into the page it belongs to.',
+      intro: 'When the output is visual, the proof is the pixels. Show the markup, then let it render, on its own or set into the page it belongs to.',
       examples: [
         {
           title: 'A status pill',

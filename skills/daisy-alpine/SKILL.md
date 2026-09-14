@@ -46,6 +46,20 @@ is required: typography ships unlayered CSS and Tailwind's utilities are
 layered, so the plain `max-w-none` loses whatever the source order. `mx-auto`
 is not part of the test: half these caps carry no centering. The page's own
 layout sets the width. A reading column is also a common tell for rule 2.
+
+**An arbitrary value is the same cap.** `max-w-[64ch]` is that 65ch measure
+written out, and `max-w-[920px]` is `max-w-4xl` with a different number on it.
+Any `ch` cap counts, whatever the number, since the unit measures characters; an
+absolute cap counts between 42rem and 64rem, the band from `max-w-2xl` up to the
+page-shell sizes. This is the form that got past the gate: six kit demos ran in
+`mx-auto max-w-[920px]` with their prose at `max-w-[64ch]`, 38 occurrences, and
+the scan called the tree clean because neither spelling is a name it knew.
+
+Where the measure has to come from somewhere, take it from the layout rather
+than from the element: a grid track (`lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]`,
+with `min-w-0` on the wide track) gives running copy a column and lets it fill
+the page when the tracks stack.
+
 Refused at edit time by the `reading-column` hook and listed by `npm run
 reading-column`; `modal-box` sizing is exempt, and a genuine exception takes a
 `reading-column-ok` comment on the line or the line above.
