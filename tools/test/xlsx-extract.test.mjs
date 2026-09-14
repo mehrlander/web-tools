@@ -80,7 +80,7 @@ const SHEET2 = `<?xml version="1.0"?>
   <sheetData>
     <row r="1"><c r="A1" t="s" s="1"><v>0</v></c><c r="B1" t="s" s="1"><v>1</v></c></row>
     <row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2"><v>17</v></c></row>
-    <row r="3"><c r="A3" t="s"><v>3</v></c><c r="B3"><f>SUM(B2:B2)</f><v>17</v></c></row>
+    <row r="3"><c r="A3" t="s"><v>3</v></c><c r="B3"><f t="shared" ref="B3:B4" si="0">SUM(B2:B2)</f><v>17</v></c></row>
     <row r="4"><c r="A4" t="s"><v>2</v></c><c r="B4"><f t="shared" si="0"/><v>34</v></c></row>
   </sheetData>
   <conditionalFormatting sqref="B2:B4">
@@ -108,9 +108,11 @@ const COMMENTS = `<?xml version="1.0"?>
 
 // Notes: one inline string and nothing else, so it is a sheet with values and
 // zero of everything else, which is the case the survey has to report as zeros
-// rather than by omitting the row.
+// rather than by omitting the row. Its declared dimension is wider than its
+// one cell, which is how the cells reading shows it reports the file's claim
+// rather than recomputing it.
 const SHEET1 = `<?xml version="1.0"?>
-<worksheet xmlns="ws"><sheetData>
+<worksheet xmlns="ws"><dimension ref="A1:C3"/><sheetData>
   <row r="1"><c r="A1" t="inlineStr"><is><t>carried inline</t></is></c></row>
 </sheetData></worksheet>`;
 
@@ -172,16 +174,17 @@ const rowsOf = (item) => JSON.parse(item.content);
 
 test('kit surface', () => {
   assert.deepEqual(Object.keys(XlsxExtract).sort(),
-    ['KIND', 'KINDS', 'SELECTED_KIND', 'catalog', 'extract', 'extractSelected', 'profileRows', 'survey']);
+    ['KIND', 'KINDS', 'SELECTED_KIND', 'catalog', 'extract', 'extractSelected', 'profileRows',
+     'receptionTarget', 'receptions', 'survey']);
   assert.equal(XlsxExtract.KIND, 'workbook-extract/1');
   assert.equal(XlsxExtract.SELECTED_KIND, 'workbook-extract/2');
 });
 
-test('the kinds are two flat lists, not a tree: eight per sheet and four per workbook', () => {
+test('the kinds are two flat lists, not a tree: nine per sheet and four per workbook', () => {
   const scopes = XlsxExtract.KINDS.reduce((m, k) => ({ ...m, [k.scope]: (m[k.scope] || 0) + 1 }), {});
-  assert.deepEqual(scopes, { sheet: 8, workbook: 4 });
+  assert.deepEqual(scopes, { sheet: 9, workbook: 4 });
   assert.deepEqual(XlsxExtract.KINDS.map(k => k.id), [
-    'values', 'formulas', 'styles', 'merges', 'comments', 'validations',
+    'values', 'cells', 'formulas', 'styles', 'merges', 'comments', 'validations',
     'conditional', 'columns', 'pivots', 'records', 'sources', 'queries',
   ]);
 });
@@ -284,6 +287,9 @@ test("every kind's survey count matches the rows it actually produces", () => {
     for (const [kindId, n] of Object.entries(sheet.counts)) {
       const item = env.items.find(i => i.sheet === sheet.name && i.kind === kindId);
       if (!n) { assert.equal(item, undefined, `${sheet.name}/${kindId}: zero produces no item`); continue; }
+      // The cells reading is one object rather than a table of rows, so its
+      // count is the sheet's cell list, and it is never cut.
+      if (kindId === 'cells') { assert.equal(rowsOf(item).Cells.length, n, `${sheet.name}/cells: survey said ${n}`); continue; }
       assert.equal(item.total, n, `${sheet.name}/${kindId}: survey said ${n}`);
       assert.equal(rowsOf(item).length, n, `${sheet.name}/${kindId}: and the rows agree`);
     }
@@ -330,7 +336,7 @@ test('what was left behind is stated, not only what was taken', () => {
   const env = take({ sheets: ['Ledger'], kinds: ['values'] });
   assert.deepEqual(env.picked, { sheets: ['Ledger'], kinds: ['values'] });
   assert.deepEqual(env.left.sheets, ['Notes']);
-  assert.equal(env.left.kinds.length, 11);
+  assert.equal(env.left.kinds.length, 12);
   assert.ok(env.left.kinds.includes('queries'));
 });
 
@@ -494,4 +500,51 @@ test('with no source the extract still says so, rather than inventing one', () =
   const env = take({ sheets: ['Ledger'], kinds: ['values'] });
   assert.equal(env.source, null);
   assert.equal(env.title, 'workbook: values');
+});
+
+// ---- the cells reading, and receptions ----------------------------------
+
+test('the cells reading is the serialized-workbook shape: address, formula, cached value, per sheet', () => {
+  const it = byName(take({ sheets: ['Ledger'], kinds: ['cells'] }), 'Ledger.cells.json');
+  assert.equal(it.view, 'code', 'one object, not a table');
+  const sheet = rowsOf(it);
+  assert.equal(sheet.SheetName, 'Ledger');
+  assert.deepEqual(sheet.MergedCells, ['A1:B1']);
+  assert.equal(sheet.Dimension, 'A1:B4', 'computed from the cells when the file declares none');
+  const at = Object.fromEntries(sheet.Cells.map(c => [c.Address, c]));
+  assert.deepEqual(at.A2, { Address: 'A2', Formula: '', Value: '600' }, 'a shared string resolved, raw, no formula');
+  assert.deepEqual(at.B3, { Address: 'B3', Formula: '=SUM(B2:B2)', Value: '17' }, 'the master, with the = the exporter writes');
+  assert.deepEqual(at.B4, { Address: 'B4', Formula: '=[fill 0] SUM(B2:B2)', Value: '34' },
+    "a follower carries its master's text under the fill marker, as Get-WsDetail writes it");
+  assert.equal(it.note, "1 filled formula carry the master's text under a [fill N] marker".replace('formula carry', 'formula carry'));
+  const notes = rowsOf(byName(take({ sheets: ['Notes'], kinds: ['cells'] }), 'Notes.cells.json'));
+  assert.equal(notes.Dimension, 'A1:C3', "the file's own declaration wins over the computed extent");
+  assert.deepEqual(notes.Cells, [{ Address: 'A1', Formula: '', Value: 'carried inline' }]);
+});
+
+test('a reception matches by sheet set, takes every sheet not omitted, and states what it left', () => {
+  const cat = XlsxExtract.catalog(read());
+  const declared = [
+    { id: 'other', match: { sheets: ['Projection'] }, dest: 'x', repo: 'mehrlander/home' },
+    { id: 'ledger', label: 'Ledger drop', match: { sheets: ['Ledger'] }, omit: ['Notes'],
+      dest: 'data/source/{date}-ledger', file: '{stem}-{date}.json', repo: 'mehrlander/home' },
+  ];
+  const got = XlsxExtract.receptions(cat, declared);
+  assert.equal(got.length, 1, 'only the reception whose sheets are all present');
+  assert.equal(got[0].reception.id, 'ledger');
+  assert.deepEqual(got[0].pick, { sheets: [{ name: 'Ledger', kinds: ['cells'] }], objects: [] },
+    'readings default to cells, and the omitted sheet is not in the pick');
+  assert.deepEqual(got[0].omitted, ['Notes']);
+  assert.equal(got[0].cap, null, 'a landed extract is a file, so no row cut by default');
+  assert.deepEqual(XlsxExtract.receptionTarget(declared[1], { name: 'Cash projection.xlsx' }, '2026-09-14T12:00:00Z'),
+    { dest: 'data/source/2026-09-14-ledger', file: 'Cash-projection-2026-09-14.json' });
+  assert.deepEqual(XlsxExtract.receptionTarget({ dest: 'd' }, null, '2026-09-14T12:00:00Z'),
+    { dest: 'd', file: 'workbook.extract.json' }, 'a file name is never missing');
+  // The pick it hands over is one extractSelected accepts as it is, and the
+  // envelope states the declared omission as what was left.
+  const env = XlsxExtract.extractSelected(read(), got[0].pick, { catalog: cat, maxRows: got[0].cap, now: NOW });
+  assert.deepEqual(env.items.map(i => i.name), ['Ledger.cells.json']);
+  assert.deepEqual(env.left.sheets, ['Notes']);
+  assert.deepEqual(XlsxExtract.receptions(cat, [{ id: 'x', match: { sheets: [] } }]), [],
+    'a reception naming no sheet matches nothing rather than everything');
 });
