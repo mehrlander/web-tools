@@ -53,10 +53,9 @@
      null. It is what makes the fourth meaning self-evident: an icon that can
      show you the file is pointing at a file, and one that cannot is pointing at
      something broader. So repo, branch and menu icons deliberately have none.
-     A FOLDER TOOK ONE on 2026-09-14, and only one kind: a project's GitHub
-     icon peeks the workspace README, because GitHub draws a directory as its
-     listing with the README beneath, so the card previews where the tap goes.
-     It came in when the project pane stopped spending a tab on the README. WHERE IT IS DELIBERATELY ABSENT, beyond the broad
+     A project's folder icon peeks its README (2026-09-14): GitHub draws a
+     directory as its listing with the README beneath, so the card previews
+     where the tap goes. WHERE IT IS DELIBERATELY ABSENT, beyond the broad
      destinations: the viewer's GitHub action and the config view's, since both
      sit above the file's full contents already on screen. A peek that repeats
      what the page is showing is noise. POINTER AND KEYBOARD, NOT TOUCH: the card
@@ -4828,13 +4827,9 @@ function app(){ return {
     }
     this.projectLoading = false;
   },
-  // The peek behind a project's GitHub icon. The icon opens the workspace
-  // FOLDER, not a file, which the narrow convention in kits/source-peek.js
-  // would leave without a card. It carries one anyway, and the card shows the
-  // folder's README, because GitHub's own rendering of a directory is its
-  // listing with the README beneath: the peek still previews the destination
-  // rather than mislabelling a folder as a file. Widened deliberately on
-  // 2026-09-14, when the README stopped being a tab of its own.
+  // The peek behind a project's GitHub icon: the tap opens the workspace
+  // folder, the card shows its README, which is what GitHub draws beneath a
+  // directory listing anyway. The convention is in kits/source-peek.js.
   projectReadmePeek(repo, p){
     if (!repo || !p || !p.path || !window.SourcePeek) return null;
     const s = Alpine.store('browser');
