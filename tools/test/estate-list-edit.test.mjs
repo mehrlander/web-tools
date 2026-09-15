@@ -316,8 +316,11 @@ const doc = window.document;
 // the item off; see estate-todo-checkoff.test.mjs for why that changed.
 const todoRows = () => [...doc.querySelectorAll('div')].filter(
   el => el.querySelector(':scope > label > input[type="checkbox"].checkbox'));
+// The edit controls sit in a wrapper inside the row (it is what @click.outside
+// attaches to), so this reaches one level in. input.input cannot collide with
+// the row's checkbox, which is input.checkbox.
 const openFields = () => todoRows()
-  .map(r => r.querySelector(':scope > input.input')).filter(Boolean);
+  .map(r => r.querySelector('input.input')).filter(Boolean);
 const shown = (el) => !!el && !el.hasAttribute('hidden') && el.style.display !== 'none';
 
 // AWAIT A FRAME, NOT ONLY A TICK. x-show is asymmetric: hiding sets
@@ -337,19 +340,18 @@ test('the pencil swaps the row text for a field, and swaps it back on cancel', a
 
   const row = todoRows().find(el => el.textContent.includes('a typo to fix'));
   assert.ok(row, 'the to-do row rendered');
-  assert.equal(row.querySelector('input[type="text"], input:not([type])'), null,
-    'no field before the pencil is tapped');
+  assert.equal(row.querySelector('input.input'), null, 'no field before the pencil is tapped');
 
   data.startTodoEdit(data.todoItems[0]);
   await settle();
 
-  const field = row.querySelector(':scope > input.input');
+  const field = row.querySelector('input.input');
   assert.ok(field, 'the field mounted into the row');
   assert.equal(field.value, 'a typo to fix', 'seeded with the current text');
 
   data.cancelEdit();
   await settle();
-  assert.equal(row.querySelector(':scope > input.input'), null, 'and unmounted again on cancel');
+  assert.equal(row.querySelector('input.input'), null, 'and unmounted again on cancel');
 });
 
 test('the row stands its other controls down while the field is open', async () => {
@@ -395,4 +397,153 @@ test('only one row is ever open, across the whole view', async () => {
 
   data.cancelEdit();
   await settle();
+});
+
+// ── Undo, and the implicit save that makes it necessary ──────────────────────
+// An edit commits on a click anywhere else now, so a save can happen because
+// the reader looked away. These cover the way back: that it is offered, that
+// it restores the prior value, that it is spent once, and that the writes
+// which already had a visible reversal do not offer a second one.
+
+const toasts = () => Alpine.store('toasts') || [];
+const lastToast = () => toasts().at(-1);
+
+test('an edit offers an undo that puts the old text back', async () => {
+  await seedTodos([{ id: 't1', text: 'the original', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  const it = data.todoItems[0];
+
+  data.startTodoEdit(it);
+  data.editDraft = 'the replacement';
+  await data.commitTodoEdit(it);
+  assert.equal(data.todoItems[0].text, 'the replacement');
+
+  const t = lastToast();
+  assert.ok(t?.action, 'the toast carries an action');
+  assert.equal(t.action.label, 'Undo');
+  assert.match(t.msg, /the original/, 'and names what it would put back');
+
+  await data.takeUndo();
+  assert.equal(data.todoItems[0].text, 'the original');
+  assert.match(SAVES.at(-1).message, /Undo/, 'the reversal is its own commit, not a silent rewrite');
+});
+
+test('a delete offers an undo that gives back the same item, not a copy', async () => {
+  await seedTodos([
+    { id: 't1', text: 'keep', done: false, created_at: '2026-09-01T10:00:00Z' },
+    { id: 't2', text: 'remove me', done: false, urgent: true, due: '2026-09-20', created_at: '2026-09-02T10:00:00Z' },
+  ]);
+  const doomed = data.todoItems[1];
+
+  await data.deleteTodo(doomed);
+  assert.equal(data.todoItems.length, 1);
+
+  await data.takeUndo();
+  assert.equal(data.todoItems.length, 2);
+  const back = data.todoItems.find(x => x.id === 't2');
+  assert.equal(back.text, 'remove me');
+  assert.equal(back.urgent, true, 'every field came back, not just the text');
+  assert.equal(back.due, '2026-09-20');
+});
+
+test('the offer is spent once, so a second undo cannot walk further back', async () => {
+  await seedTodos([{ id: 't1', text: 'one', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  await data.deleteTodo(data.todoItems[0]);
+  await data.takeUndo();
+  const writes = SAVES.length;
+
+  await data.takeUndo();
+  assert.equal(SAVES.length, writes, 'the second call wrote nothing');
+  assert.equal(data.undoOffer, null);
+});
+
+test('the newest write owns the offer, and undoing it does not resurrect the older one', async () => {
+  await seedTodos([
+    { id: 't1', text: 'first', done: false, created_at: '2026-09-01T10:00:00Z' },
+    { id: 't2', text: 'second', done: false, created_at: '2026-09-02T10:00:00Z' },
+  ]);
+  await data.deleteTodo(data.todoItems.find(x => x.id === 't1'));
+  await data.deleteTodo(data.todoItems.find(x => x.id === 't2'));
+  assert.equal(data.todoItems.length, 0);
+
+  await data.takeUndo();
+  assert.deepEqual(Array.from(data.todoItems, x => x.id), ['t2'],
+    'the snapshot was taken after the first delete, so only the second comes back');
+});
+
+test('an unchanged edit offers nothing, since nothing happened to undo', async () => {
+  await seedTodos([{ id: 't1', text: 'untouched', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  data.undoOffer = null;
+  data.startTodoEdit(data.todoItems[0]);
+  await data.commitTodoEdit(data.todoItems[0]);
+  assert.equal(data.undoOffer, null);
+});
+
+test('checking off offers no undo, because the done pile already is one', async () => {
+  await seedTodos([{ id: 't1', text: 'a task', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  data.undoOffer = null;
+  await data.toggleTodo(data.todoItems[0]);
+  assert.equal(data.undoOffer, null,
+    'the reversal is the same checkbox, now visible in the pile toggleTodo opened');
+  assert.equal(data.todoShowDone, true);
+});
+
+test('a jot edit and a jot delete each offer a way back', async () => {
+  await seedJots([{ id: 'j1', text: 'an idea', kind: 'snag', created_at: '2026-09-01T10:00:00Z' }]);
+
+  data.startJotEdit(data.jotItems[0]);
+  data.editDraft = 'a better idea';
+  await data.commitJotEdit(data.jotItems[0]);
+  assert.equal(data.jotItems[0].text, 'a better idea');
+  await data.takeUndo();
+  assert.equal(data.jotItems[0].text, 'an idea');
+  assert.equal(data.jotItems[0].kind, 'snag', 'the kind came back with it');
+
+  await data.deleteJot(data.jotItems[0]);
+  assert.equal(data.jotItems.length, 0);
+  await data.takeUndo();
+  assert.equal(data.jotItems.length, 1);
+});
+
+test('a pin edit undo restores every field, including one that was cleared', async () => {
+  await seedPins([{ id: 'p1', target: 'me/tools:docs/a.md', title: 'A', note: 'the note',
+                    group: 'docs', created_at: '2026-09-01T10:00:00Z' }]);
+  const it = data.pinItems[0];
+
+  data.startPinEdit(it);
+  data.editDraft = 'B';
+  data.editNote = '';
+  data.editGroup = '';
+  await data.commitPinEdit(it);
+  assert.equal('note' in data.pinItems[0], false);
+
+  await data.takeUndo();
+  assert.equal(data.pinItems[0].title, 'A');
+  assert.equal(data.pinItems[0].note, 'the note', 'a cleared field is not lost by the clearing');
+  assert.equal(data.pinItems[0].group, 'docs');
+});
+
+test('opening a second row commits the first rather than dropping its typing', async () => {
+  await seedTodos([
+    { id: 't1', text: 'first', done: false, created_at: '2026-09-01T10:00:00Z' },
+    { id: 't2', text: 'second', done: false, created_at: '2026-09-02T10:00:00Z' },
+  ]);
+  const a = data.todoItems[0], b = data.todoItems[1];
+
+  data.startTodoEdit(a);
+  data.editDraft = 'first, edited';
+  data.startTodoEdit(b);              // the reader moves on without saving
+
+  assert.equal(data.editId, 't2', 'the slot moved');
+  assert.equal(data.editDraft, 'second', 'and the draft is the new row, not a leftover');
+  assert.equal(a.text, 'first, edited', "the first row's typing was committed, not discarded");
+  assert.match(SAVES.at(-1).message, /first, edited/);
+});
+
+test('the outside-click commit is disarmed until the opening click is over', async () => {
+  await seedTodos([{ id: 't1', text: 'a row', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  data.startTodoEdit(data.todoItems[0]);
+  assert.equal(data.outsideArmed, false,
+    'a click still propagating must not reach the handler it just mounted');
+  await new Promise(r => setTimeout(r, 5));
+  assert.equal(data.outsideArmed, true, 'and it arms on the next task');
 });
