@@ -20,6 +20,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
+import { parseCsv, writeCsv } from '../build/registries-load.mjs';
 
 const DRIVER = path.join(repoRoot, 'scripts/derived-csv-merge.mjs');
 const HEAD = 'path,subject,status,reach,words,maintenance,formerly';
@@ -139,5 +140,21 @@ test('every attributed path is a registry the driver can actually resolve', () =
   for (const p of attrs) {
     assert.ok(reg[p], `${p} carries the attribute but is not in docs/registries.csv`);
     assert.ok(reg[p].trim(), `${p} is a registry with no declared key, so the driver would refuse it`);
+  }
+});
+
+test('the driver writes each attributed file exactly as its deriver does', () => {
+  // The driver rewrites the whole file when it resolves one, so its writer has
+  // to agree with the generators' byte for byte. If it did not, every resolved
+  // merge would land a whole-file reformat in the diff and then fight the next
+  // restamp. Both sides already use writeCsv from registries-load, and this is
+  // what holds them there.
+  const attrs = readFileSync(path.join(repoRoot, '.gitattributes'), 'utf8')
+    .split('\n').filter(l => l.includes('merge=derived-csv')).map(l => l.split(/\s+/)[0]);
+
+  for (const f of attrs) {
+    const orig = readFileSync(path.join(repoRoot, f), 'utf8');
+    const cols = orig.split('\n')[0].split(',').map(c => c.replace(/^"|"$/g, ''));
+    assert.equal(writeCsv(parseCsv(orig), cols), orig, `${f} would be reformatted by a resolved merge`);
   }
 });
