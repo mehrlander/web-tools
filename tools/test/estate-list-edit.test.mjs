@@ -317,10 +317,10 @@ const doc = window.document;
 const todoRows = () => [...doc.querySelectorAll('div')].filter(
   el => el.querySelector(':scope > label > input[type="checkbox"].checkbox'));
 // The edit controls sit in a wrapper inside the row (it is what @click.outside
-// attaches to), so this reaches one level in. input.input cannot collide with
-// the row's checkbox, which is input.checkbox.
-const openFields = () => todoRows()
-  .map(r => r.querySelector('input.input')).filter(Boolean);
+// attaches to), so this reaches one level in. The field is a textarea, not an
+// input: a to-do is one sentence that has to WRAP rather than scroll sideways.
+const FIELD = 'textarea.textarea';
+const openFields = () => todoRows().map(r => r.querySelector(FIELD)).filter(Boolean);
 const shown = (el) => !!el && !el.hasAttribute('hidden') && el.style.display !== 'none';
 
 // AWAIT A FRAME, NOT ONLY A TICK. x-show is asymmetric: hiding sets
@@ -340,18 +340,18 @@ test('the pencil swaps the row text for a field, and swaps it back on cancel', a
 
   const row = todoRows().find(el => el.textContent.includes('a typo to fix'));
   assert.ok(row, 'the to-do row rendered');
-  assert.equal(row.querySelector('input.input'), null, 'no field before the pencil is tapped');
+  assert.equal(row.querySelector(FIELD), null, 'no field before the pencil is tapped');
 
   data.startTodoEdit(data.todoItems[0]);
   await settle();
 
-  const field = row.querySelector('input.input');
+  const field = row.querySelector(FIELD);
   assert.ok(field, 'the field mounted into the row');
   assert.equal(field.value, 'a typo to fix', 'seeded with the current text');
 
   data.cancelEdit();
   await settle();
-  assert.equal(row.querySelector('input.input'), null, 'and unmounted again on cancel');
+  assert.equal(row.querySelector(FIELD), null, 'and unmounted again on cancel');
 });
 
 test('the row stands its other controls down while the field is open', async () => {
@@ -546,4 +546,45 @@ test('the outside-click commit is disarmed until the opening click is over', asy
     'a click still propagating must not reach the handler it just mounted');
   await new Promise(r => setTimeout(r, 5));
   assert.equal(data.outsideArmed, true, 'and it arms on the next task');
+});
+
+test('the editor is a textarea, so a long item wraps instead of scrolling sideways', async () => {
+  await seedTodos([{ id: 't1', done: false, created_at: '2026-09-01T10:00:00Z',
+    text: 'Check the CEM survey, which came on August 19 last year and wants an answer before the allotment closes' }]);
+  window.__shell.view = 'todo';
+  data.editId = null;          // a prior test may have left a row open
+  await settle();
+
+  // Grab the row BEFORE the edit: once it is open the text lives in a field's
+  // value rather than its textContent, so it cannot be found by its words.
+  const row = todoRows().find(el => el.textContent.includes('CEM survey'));
+  assert.ok(row, 'the row rendered');
+
+  data.startTodoEdit(data.todoItems[0]);
+  await settle();
+
+  assert.ok(row.querySelector('textarea.textarea'), 'a textarea, not a single-line input');
+  assert.equal(row.querySelector('input.input'), null, 'and no input left behind');
+  data.cancelEdit();
+  await settle();
+});
+
+test('the display text mounts and unmounts rather than being hidden', async () => {
+  await seedTodos([{ id: 't1', text: 'here and gone', done: false, created_at: '2026-09-01T10:00:00Z' }]);
+  window.__shell.view = 'todo';
+  data.editId = null;
+  await settle();
+
+  const textOf = () => [...doc.querySelectorAll('span')].find(el => el.textContent === 'here and gone');
+  assert.ok(textOf(), 'present at rest');
+
+  data.startTodoEdit(data.todoItems[0]);
+  await settle();
+  assert.equal(textOf(), undefined,
+    'gone from the DOM while editing, not merely display:none, which is what keeps the ' +
+    'commit from leaving the row blank for two frames on the way back');
+
+  data.cancelEdit();
+  await settle();
+  assert.ok(textOf(), 'back again');
 });
