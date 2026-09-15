@@ -28,7 +28,11 @@ import jsdomPkg from 'jsdom';
 
 const { JSDOM } = jsdomPkg;
 const require = createRequire(import.meta.url);
-export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// Re-exported, not defined: it moved to tools/repo-root.mjs so a consumer
+// outside the suite (a git merge driver, run by git in a clone with no
+// node_modules) can have it without this file's jsdom import.
+import { repoRoot } from '../repo-root.mjs';
+export { repoRoot };
 
 // CDN url → vendored loader. Each must return what the kit's `await import()`
 // would have resolved to (a module-namespace-like object).
