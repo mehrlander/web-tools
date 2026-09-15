@@ -311,8 +311,13 @@ test('a pin edit that changes nothing writes nothing', async () => {
 // and that only ONE row opens at a time.
 
 const doc = window.document;
-const todoRows = () => [...doc.querySelectorAll('label')].filter(
-  el => el.querySelector('input[type="checkbox"].checkbox'));
+// A to-do row is a DIV holding a label that holds the checkbox. It was a label
+// wrapping the whole row until 2026-09-15, when a click anywhere on it checked
+// the item off; see estate-todo-checkoff.test.mjs for why that changed.
+const todoRows = () => [...doc.querySelectorAll('div')].filter(
+  el => el.querySelector(':scope > label > input[type="checkbox"].checkbox'));
+const openFields = () => todoRows()
+  .map(r => r.querySelector(':scope > input.input')).filter(Boolean);
 const shown = (el) => !!el && !el.hasAttribute('hidden') && el.style.display !== 'none';
 
 // AWAIT A FRAME, NOT ONLY A TICK. x-show is asymmetric: hiding sets
@@ -338,13 +343,13 @@ test('the pencil swaps the row text for a field, and swaps it back on cancel', a
   data.startTodoEdit(data.todoItems[0]);
   await settle();
 
-  const field = row.querySelector('input.input');
+  const field = row.querySelector(':scope > input.input');
   assert.ok(field, 'the field mounted into the row');
   assert.equal(field.value, 'a typo to fix', 'seeded with the current text');
 
   data.cancelEdit();
   await settle();
-  assert.equal(row.querySelector('input.input'), null, 'and unmounted again on cancel');
+  assert.equal(row.querySelector(':scope > input.input'), null, 'and unmounted again on cancel');
 });
 
 test('the row stands its other controls down while the field is open', async () => {
@@ -380,11 +385,11 @@ test('only one row is ever open, across the whole view', async () => {
 
   data.startTodoEdit(data.todoItems[0]);
   await settle();
-  assert.equal(doc.querySelectorAll('label input.input').length, 1);
+  assert.equal(openFields().length, 1);
 
   data.startTodoEdit(data.todoItems[1]);
   await settle();
-  const open = [...doc.querySelectorAll('label input.input')];
+  const open = openFields();
   assert.equal(open.length, 1, 'opening the second row closed the first');
   assert.equal(open[0].value, 'second to-do');
 
