@@ -7,6 +7,13 @@
 // partition (every parent equals the sum of its children), a measure that will
 // not parse is skipped rather than counted as a zero, and a sum of money that
 // arrived with two decimals comes back with two.
+//
+// The last block covers the LAYOUT view, which is a second reading of the same
+// partition rather than a second computation of it. What it holds is the wiring
+// (that the view builds off pvOut.res and redraws when a chip moves) and the one
+// rule the two views do not share: subtotals are withheld where the aggregate
+// does not partition. The adapter's own arithmetic is held next door in
+// report-layout.test.mjs.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +24,7 @@ import { repoRoot } from './bootstrap.mjs';
 // Capture the component factory: the file registers on alpine:init, so a fake
 // document hands the listener straight back and a fake Alpine records the
 // factory it registers.
-function loadFactory() {
+function loadFactory(kits = []) {
   let init = null;
   const factories = {};
   const win = {
@@ -27,6 +34,10 @@ function loadFactory() {
     matchMedia: () => ({ matches: false, addEventListener() {} }),
   };
   win.window = win;
+  // Kits the component reads off `window`, loaded into this same fake one: the
+  // component's `window` is `win`, so a kit on the real global is invisible to it.
+  for (const k of kits)
+    new Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(win);
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/transform-workbench.js'), 'utf8');
   new Function('window', 'document', 'Alpine', 'localStorage', 'matchMedia',
     'with (window) { ' + src + ' }')(win, win.document, win.Alpine, win.localStorage, win.matchMedia);
@@ -38,8 +49,8 @@ function loadFactory() {
 
 // A component instance far enough along to pivot: the factory's own defaults,
 // one tab of rows, and Alpine.raw as identity.
-function bench(rows) {
-  const wb = loadFactory()({});
+function bench(rows, kits) {
+  const wb = loadFactory(kits)({});
   wb.tabs = [{ name: 't', rows }];
   wb.active = 0;
   wb.sendToViewer = () => {};
@@ -139,4 +150,64 @@ test('the flat rows fill the dimension columns down to their own depth', () => {
   assert.equal(flat.filter(r => r.level === 1).length, 3);
   // one total + three funds + every fund/object pair that has rows
   assert.equal(flat.length, 1 + 3 + flat.filter(r => r.level === 2).length);
+});
+
+// ---- the Layout view -------------------------------------------------------
+
+// What the Layout view needs on the page: the kit, and the ambient bundle that
+// carries the window.esc it interpolates through.
+const KITS = ['lib/vanilla-bundle.js', 'lib/kits/report-layout.js'];
+
+test('the Layout view draws off the partition the Pivot view already built', () => {
+  const wb = bench(ROWS, KITS);
+  wb.pvDims = ['fund', 'object'];
+  wb.pvMeasure = 'amount';
+  wb.pvAgg = 'sum';
+  wb.curV = 'layout';
+  wb.pvDraw();
+
+  assert.ok(wb.rpModel, 'a model was built');
+  assert.ok(wb.rpHtml.includes('<table'), 'and drawn');
+  // Three funds, so three subtotal rows and one total, over the leaves.
+  assert.equal(wb.rpModel.rows.filter(r => r.kind === 'subtotal').length, 3);
+  const total = wb.rpModel.rows.find(r => r.kind === 'total');
+  assert.equal(total.values[''], 2960, 'the total is the root the pivot computed');
+});
+
+test('a chip moving redraws the Layout view, since pvDraw is the one entry', () => {
+  const wb = bench(ROWS, KITS);
+  wb.pvDims = ['fund', 'object'];
+  wb.pvMeasure = 'amount';
+  wb.curV = 'layout';
+  wb.pvDraw();
+  const before = wb.rpHtml;
+
+  wb.pvDims = ['object'];
+  wb.pvDraw();
+  assert.notEqual(wb.rpHtml, before, 'dropping a level changes what is drawn');
+  assert.equal(wb.rpModel.rows.filter(r => r.kind === 'subtotal').length, 0,
+    'one level leaves nothing to subtotal');
+});
+
+test('the Layout view withholds subtotals where the aggregate does not partition', () => {
+  const wb = bench(ROWS, KITS);
+  wb.pvDims = ['fund', 'object'];
+  wb.pvMeasure = 'amount';
+  wb.pvAgg = 'avg';
+  wb.curV = 'layout';
+  wb.pvDraw();
+
+  assert.equal(wb.rpModel.partition, false, 'so the pane can say why');
+  assert.equal(wb.rpModel.rows.filter(r => r.kind === 'subtotal').length, 0);
+  assert.ok(wb.rpModel.rows.some(r => r.kind === 'item'), 'the items still print');
+});
+
+test('the Layout view is inert on a page that did not load the kit', () => {
+  const wb = bench(ROWS);   // no KITS: the shape of a host that has not wired it
+  wb.pvDims = ['fund'];
+  wb.pvMeasure = 'amount';
+  wb.curV = 'layout';
+  wb.pvDraw();
+  assert.equal(wb.rpReady(), false);
+  assert.equal(wb.rpHtml, '', 'no markup, and no throw: the pane says what is missing');
 });

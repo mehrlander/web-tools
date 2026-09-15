@@ -62,6 +62,7 @@ const NOTES = {
   'kit-demos/io.html':           'IO kit — read/write helpers, shown live.',
   'kit-demos/messaging.html':    'Messaging kit — cross-context postMessage helpers.',
   'kit-demos/persistence.html':  'Persistence kit — local storage / state retention.',
+  'kit-demos/report-layout.html': 'Report layout kit: one rows file, two committed layouts, the table redrawn from whichever JSON you edit.',
 };
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');

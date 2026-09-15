@@ -1,0 +1,36 @@
+group,subgroup,item,version,year,value
+Top Line,,,GOVJANUP,2026,67382000
+Top Line,,,GOVJANUP,2027,76367000
+Top Line,,,OHCHAIR,2026,67382000
+Top Line,,,OHCHAIR,2027,76367000
+Top Line,,,OSCHAIR,2026,67382000
+Top Line,,,OSCHAIR,2027,76367000
+Comp,ML Comp,Updated PEBB Rate,GOVJANUP,2026,0
+Comp,ML Comp,Updated PEBB Rate,GOVJANUP,2027,-53000
+Comp,ML Comp,Updated PEBB Rate,OHCHAIR,2026,0
+Comp,ML Comp,Updated PEBB Rate,OHCHAIR,2027,-66000
+Comp,ML Comp,Updated PEBB Rate,OSCHAIR,2026,0
+Comp,ML Comp,Updated PEBB Rate,OSCHAIR,2027,-66000
+Comp,PL Comp,Retiree Healthcare Subsidy (PEB),OSCHAIR,2026,0
+Comp,PL Comp,Retiree Healthcare Subsidy (PEB),OSCHAIR,2027,-16000
+Ctrl Svc,ML Ctrl Svc,,GOVJANUP,2026,23000
+Ctrl Svc,ML Ctrl Svc,,GOVJANUP,2027,20000
+Ctrl Svc,ML Ctrl Svc,,OHCHAIR,2026,11000
+Ctrl Svc,ML Ctrl Svc,,OHCHAIR,2027,8000
+Ctrl Svc,ML Ctrl Svc,,OSCHAIR,2026,11000
+Ctrl Svc,ML Ctrl Svc,,OSCHAIR,2027,8000
+Ctrl Svc,PL Ctrl Svc,,GOVJANUP,2026,33000
+Ctrl Svc,PL Ctrl Svc,,GOVJANUP,2027,585000
+Other,PL Other,Lump Sum Retirement Payments,OHCHAIR,2027,11000
+Other,PL Other,Lump Sum Retirement Payments,OSCHAIR,2026,1000
+Other,PL Other,Lump Sum Retirement Payments,OSCHAIR,2027,10000
+Other,PL Other,Port Workers PERS Membership,OHCHAIR,2027,10000
+Other,PL Other,Port Workers PERS Membership,OSCHAIR,2027,18000
+Other,PL Other,LEOFF Survivor Insurance,OHCHAIR,2027,149000
+Other,PL Other,LEOFF Survivor Insurance,OSCHAIR,2027,149000
+Other,PL Other,LEOFF Restatement,OHCHAIR,2026,0
+Other,PL Other,LEOFF Restatement,OHCHAIR,2027,120000
+Other,PL Other,LEOFF Restatement,OSCHAIR,2026,0
+Other,PL Other,LEOFF Restatement,OSCHAIR,2027,208000
+Other,PL Other,TRS & PERS Plan 1 COLA,OSCHAIR,2026,7000
+Other,PL Other,TRS & PERS Plan 1 COLA,OSCHAIR,2027,3000
