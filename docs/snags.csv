@@ -64,7 +64,7 @@ fetched-ref-behind-remote,a merge preflight certifies a merge GitHub refuses,1,2
 silent-fallback-old-build,"the pixels do not change, and nothing says the file failed to load",1,2026-08-14,2026-08-14,loader.md
 stub-hides-the-wiring,a test that stubs a lazy dependency cannot see it go missing,1,2026-08-13,2026-08-13,loader.md
 page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md
-derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md
+derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 runner-tag-documented-unused,"a convention in the contract, used once, re-derived from memory",1,2026-08-09,2026-08-09,TRACKER.md
 status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,../.claude/skills/markers/status.py
 venues-invisible-from-inside,a session inventories only the venues it can see from its own sandbox,1,2026-08-09,2026-08-09,venues.md

@@ -1407,6 +1407,15 @@ collide on a line neither wrote, and the collision spends its cost here. Reading
 `get_check_runs` first both times cost the round trip the fourth-trip note
 already warned about, which is the third session to pay it: an empty check list
 is not a state worth polling. *(seen: 2026-09-14 ×2)*
+
+**One CAUSE was removed on 2026-09-15 (#682), and this entry stays open
+anyway.** The merge driver at `derived-field-conflicts-per-branch` below ends
+the derived-count collisions that produced four of these six sightings. It does
+nothing for the rest: pushing a branch and its base inside the same minute
+still leaves no merge ref, and so does any conflict a person actually has to
+resolve. The corrected move is unchanged and is the durable part. **When no run
+appears, read `mergeable_state` before anything else**, because an empty check
+list is not a state worth polling.
 → [.github/workflows/test.yml](../.github/workflows/test.yml), whose header
 carries the measured cause.
 
@@ -1921,6 +1930,21 @@ what the merge driver below does and a schema change does not. *(seen:
 → the derived-field rule in [CLAUDE.md](../CLAUDE.md); a `.gitattributes` union
 or ours-merge driver for the derived keys would end it, and it has now
 recurred, so the condition that sentence set is met.
+
+**Fixed 2026-09-15 (#682), and the fix is narrower than "no more conflicts".**
+[`scripts/derived-csv-merge.mjs`](../scripts/derived-csv-merge.mjs) is a git
+merge driver over the ten registries in
+[`.gitattributes`](../.gitattributes) that have a computed column. It reads
+`docs/properties.csv` for which cells a deriver owns and which a person wrote,
+so a computed cell resolves and an authored one two people changed is still
+refused. What it does NOT do is restamp: a resolved merge leaves the computed
+cells stale, on purpose, and `derived-artifacts.test.mjs` goes red naming the
+command. That is the trade, and it is the point: a stale number is a red check,
+a conflict was no check at all. Registration is per clone, from
+`.claude/hooks/session-githooks.sh`, so a clone that never ran the hook still
+gets the old conflict.
+→ [`scripts/derived-csv-merge.mjs`](../scripts/derived-csv-merge.mjs) and the
+attribute list beside it; the derived-field rule in [CLAUDE.md](../CLAUDE.md).
 
 ### hand-rolled-use-block-boots-nothing: a copied boot block was rewritten instead, and shipped blank
 `pages/audit-render.html` set `window.__ghBlobBoot = { ref, base }` where
