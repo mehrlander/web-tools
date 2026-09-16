@@ -53,7 +53,7 @@ Attack-first and other verbose live docs received the densest rewrite coverage. 
 - `docs/text-content.md`: 50 drafts (of 58 high/medium prose candidates)
 - `docs/TRACKER.md`: 29 drafts (of 37 high/medium prose candidates)
 
-## Top unrewritten live prose (by words)
+## Top unre written live prose (by words)
 
 | Words | Priority | ID |
 |------:|----------|----|
@@ -86,7 +86,7 @@ Attack-first and other verbose live docs received the densest rewrite coverage. 
 ## How to review
 
 1. Skim `by-file/*.md` for human-readable original vs proposed pairs.
-2. Filter `inventory.jsonl` where `draft != null` and `priority == "high"`.
+2. Filter `inventory.jsonl` / `drafts.jsonl` where drafts exist and `priority == "high"`.
 3. Accept by editing the live doc in a follow-up PR; this PR only lands proposals.
 
 ## Method notes
