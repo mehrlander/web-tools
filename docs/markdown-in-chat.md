@@ -130,6 +130,36 @@ second form. The URL still has to be emitted by its generator and pasted
 unedited into the parentheses; the markdown wrapper is the only thing being
 added.
 
+## Seven more, from building a handover card
+
+Measured the same way, screenshot by screenshot, on 2026-09-15, while settling
+the card the [`shortcut-links`](../skills/shortcut-links/SKILL.md) skill now
+carries. The first two are the ones that changed the design.
+
+| Finding | Consequence |
+| --- | --- |
+| `<br>` **survives a table cell** | a multi-line listing stays inside one cell, so a card is one table |
+| a fenced block does **not**, and cannot | a fence is block context; a cell is inline |
+| a fenced block arrives wrapped in a **Code bar** with copy and expand buttons | dead space between a card and its listing, and the reason not to reach for one |
+| an inline code span gets **no background tint** here | monospace alone is a quiet signal; most renderers give code a grey pill and this one does not |
+| this client **italicises a code span** | split the italic around an identifier, or it comes out slanted monospace |
+| **bold nests with a code span** | `**`+span+`**` renders bold monospace, available but rarely needed |
+| superscript digits keep their shape **outside** a code span | an index can be small and raised; inside a span it flattens to monospace |
+
+**Superscript has a hazard worth knowing even though it did not bite here.**
+`¹ ² ³` come from Latin-1 Supplement and `⁰ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹` from the Superscripts
+block, so a font can draw them at different weights, and it would show at exactly
+the indices that occur most. Subscripts are one block throughout. On the client
+measured, the superscripts were consistent and sat better in the row than
+subscripts, which hang below the baseline and read as falling out of it.
+
+**And the negative result.** Mathematical Italic code points (𝑆𝑎𝑦𝑠) do render,
+and they leave a code span upright where real italic does not, which is
+momentarily appealing. They are not styling: search will not match them, copying
+gives another app gibberish, a screen reader reads them letter by letter, and
+`ℎ` comes from a different block again so the spacing drifts. Splitting real
+italic around the code span gets the same look with none of that.
+
 ## Rules of thumb
 
 - Structure that would be a nested bullet list → a markdown table.
