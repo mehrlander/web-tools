@@ -195,10 +195,17 @@ browser had never painted. The tell, cheap and decisive, is
 Chromium: unchanged means no rule, not a weak one. Reason about the value only
 after that comes back different.
 
-This is the sibling of `dead-opacity`'s step rule and the existing scanner does
-not see it, matching `bg-primary/10` and never looking left at the variant, so
-`npm run opacity-scan` reports clean over 103 live instances in 16 files.
-→ [scripts/dead-opacity.py](../scripts/dead-opacity.py) *(seen: 2026-09-15)*
+The corrected move is not a sweep. `lib/gh-boot.js` now registers daisyUI's
+twenty theme colours with Tailwind (`@theme inline`, self-referencing `var()`,
+so daisyUI keeps ownership of the values), which is what a compiled build gets
+from `@plugin "daisyui"` and a CDN page never had. One boot step, no class
+changes, and all 103 start doing what their authors wrote. Every one of them
+sits under a variant, so no resting pixel moves: verified by hashing the
+rendered page with and without the block on both `app/index.html` and
+`pages/index.html`, identical either way. It also lifts the step rule entirely,
+since Tailwind composes the opacity itself once it knows the name: `/25`, `/5`
+and `/[33%]` all paint now.
+→ [lib/gh-boot.js](../lib/gh-boot.js) *(seen: 2026-09-15, fixed: 2026-09-16)*
 
 ### cross-repo-data-invisible-to-the-render: a headless shot shows chrome over an empty table
 

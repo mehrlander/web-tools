@@ -7,6 +7,23 @@ transparent, so the tint never draws, and text falls back to full strength, so
 the thing meant to recede advances. Nothing errors, nothing warns, and on the
 machine where the UI was built it simply looks like a taste decision.
 
+THE CONSTRAINT BELOW WAS LIFTED ON 2026-09-16, AND THIS SCAN IS NOW A GUARD
+RATHER THAN A LIVE RULE. lib/gh-boot.js registers daisyUI's twenty theme
+colours with Tailwind (`@theme inline`, self-referencing var()), which is what a
+compiled build gets from `@plugin "daisyui"` and a CDN page never had. With the
+names registered, Tailwind composes the opacity itself and EVERY step generates:
+re-measured the same way, bg-primary/25, /5 and even /[33%] all paint, as do
+hover: and group-hover: forms that generated nothing before.
+
+So the ramp below is no longer the boundary, and the rule this file encodes is
+now conservative rather than correct: it flags classes that work. It is kept,
+unchanged, because it is cheap and because it fails safe. What it cannot see is
+the failure that actually bit, a theme colour with an opacity modifier UNDER A
+VARIANT, which is dead without the registration whatever the step; the pattern
+matches the colour and the step and never looks left. tools/test/theme-
+registration.test.mjs holds the registration to this file's colour list, so the
+two cannot drift.
+
 MEASURED, not assumed (2026-08-19, headless Chromium against this app's own
 stylesheet, reading getComputedStyle on injected elements):
 
