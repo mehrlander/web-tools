@@ -275,7 +275,7 @@ test('the strip is bounded by its own resolution, not by the store', () => {
   listRows('month', Array.from({ length: 6 },
     (_, i) => ({ ...liveRow(24 * (i + 1), 1, beats), id: 's' + i })));
   const strip = plain(data.sessionRailAll);
-  assert.ok(strip.length <= 240, `at most one mark a column: ${strip.length}`);
+  assert.ok(strip.length <= 1000, `at most one mark a column: ${strip.length}`);
   assert.equal(strip.reduce((a, m) => a + m.n, 0), 1200, 'and every turn is still counted');
   // Every column is distinct and in order, which is what lets x-for key on it.
   assert.deepEqual([...new Set(strip.map((m) => m.k))].length, strip.length, 'no column twice');
@@ -286,8 +286,13 @@ test('the strip is bounded by its own resolution, not by the store', () => {
 test('a mark names the session it is mostly made of, and points the tap there', () => {
   // One column, three turns from A and one from B: the loud one is the tap's
   // destination, and it is the one named first in the note.
+  //
+  // All four in the SAME MINUTE, which the fixture has to say now that a column
+  // is a thousandth of the span: at 240 columns a Day column was six minutes
+  // and [0, 1, 2] was one column, at 1,000 it is 86 seconds and those are two.
+  // The fixture asserting a shared column has to build one.
   listRows('day', [
-    { ...liveRow(12, 2, [0, 1, 2]), id: 'loud' },
+    { ...liveRow(12, 2, [0, 0, 0]), id: 'loud' },
     { ...liveRow(12, 2, [0]), id: 'quiet' },
   ]);
   const mid = plain(data.sessionRailAll).find((m) => Math.abs(m.p - 50) < 0.5);
@@ -335,12 +340,19 @@ test('a column is one function, so neither lane can round differently', () => {
   scope('week');
   // The ends, where an off-by-one in either direction would show first.
   assert.equal(data.railBin(0), 0, 'the left edge is the first column');
-  assert.equal(data.railBin(100), 239, 'and now is the last, not one past it');
+  assert.equal(data.railBin(100), 999, 'and now is the last, not one past it');
   assert.equal(data.railBin(-1), 0, 'a percent below the span clamps in');
-  assert.equal(data.railBin(101), 239, 'and one above it clamps in too');
-  // Two turns inside one column resolve alike, which is what makes them one mark.
-  assert.equal(data.railBin(50), data.railBin(50.4), 'a column is 1/240 wide');
-  assert.notEqual(data.railBin(50), data.railBin(50.5), 'and no wider than that');
+  assert.equal(data.railBin(101), 999, 'and one above it clamps in too');
+  // Two turns inside one column resolve alike, which is what makes them one
+  // mark. A COLUMN IS A THOUSANDTH of the lane, which is about 1.2px on a
+  // desktop: that number is the whole reason the highlight is not confusing.
+  // At 240 columns a column was five pixels, so two turns 42 minutes apart on
+  // Week drew as two plainly separate marks and then lit together, which reads
+  // as a glitch rather than as a fact about the fold.
+  assert.equal(data.railBin(50), data.railBin(50.09), 'a column is 1/1000 wide');
+  assert.notEqual(data.railBin(50), data.railBin(50.1), 'and no wider than that');
+  assert.notEqual(data.railBin(50), data.railBin(50.4),
+    'two turns five pixels apart are two columns, which 240 could not say');
 });
 
 test('hovering a row rail lights the column, without opening the strip note', () => {
@@ -370,4 +382,58 @@ test('a row with no turn times has no tick to hover, and nothing is invented', (
   data.railHover = null;
   data.rowRailTrack(over, liveRow(20, 4));
   assert.equal(data.railHover, null, 'no ticks, no column, no hover');
+});
+
+// ── THE TWO THINGS THAT MADE THE HOVER FEEL BROKEN ────────────────────────
+//
+// Both were measured on this pane with 9,200 ticks in the DOM, and both are
+// here because the fix is invisible in the markup and a later reader would
+// undo it reasonably.
+
+test('the strip is memoised, since a getter recomputes on every read', () => {
+  listRows('month', Array.from({ length: 40 },
+    (_, i) => ({ ...liveRow(i * 6 + 1, i * 6, [0, 20, 40, 60]), id: 'm' + i })));
+  const a = data.sessionRailAll;
+  const b = data.sessionRailAll;
+  // Alpine getters are not cached, so an unmemoised fold ran per read: 44ms on
+  // a 300-session Month, and the pointer handlers read it on every pointermove.
+  assert.equal(a, b, 'a second read is the same array, not a second fold');
+  // And the cache is keyed, not permanent: a narrowing has to be seen.
+  data.sessionQuery = 'nothing matches this';
+  assert.notEqual(data.sessionRailAll, a, 'a filter change refolds');
+  data.sessionQuery = '';
+});
+
+test('the hot column is an attribute on the few marks, not a stylesheet edit', () => {
+  listRows('day', [liveRow(12, 2, [0, 360])]);
+  const marks = plain(data.sessionRailAll);
+  const doc = window.document;
+  // Stand in for what both lanes render: an element per column, stamped the
+  // way the markup stamps it.
+  const host = doc.createElement('div');
+  host.innerHTML = marks.map((m) => `<i data-tick="${m.k}"></i>`).join('');
+  doc.body.appendChild(host);
+  // Scoped to the host, because the component renders its OWN marks into this
+  // same document and railHot quite correctly marks those too; an unscoped read
+  // would be counting both copies and calling the duplicate a bug.
+  const hot = () => [...host.querySelectorAll('[data-tick][data-hot]')].map((e) => +e.dataset.tick);
+
+  data.railAt(marks[0], false);
+  assert.deepEqual(hot(), [marks[0].k], 'only the hovered column is marked');
+  data.railAt(marks[1], false);
+  assert.deepEqual(hot(), [marks[1].k], 'moving on unmarks the one before it');
+  data.railTrack(null);
+  assert.deepEqual(hot(), [], 'and leaving the lane clears it');
+
+  // The rule is written once and never rewritten, which is the point: editing a
+  // stylesheet invalidates style across the document and the browser re-matches
+  // the new selector against every candidate. Measured at 1,608ms a hover with
+  // 9,200 ticks on the page, against 2.53ms for the attribute.
+  const sheet = doc.getElementById('wt-rail-hot');
+  assert.ok(sheet, 'one style element');
+  const before = sheet.textContent;
+  data.railAt(marks[0], false);
+  assert.equal(sheet.textContent, before, 'and its text does not move with the pointer');
+  assert.match(before, /\[data-tick\]\[data-hot\]/, 'two selectors, so it outranks the utility class');
+  host.remove();
 });
