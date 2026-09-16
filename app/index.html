@@ -4289,12 +4289,15 @@ function app(){ return {
         let req;
         try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
         catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
-        // An ask addresses the USER, so this loop must not touch it. The skip
-        // has to happen before fulfill, not inside it: fulfill returns a result
-        // for an unsupported kind, saving a result is what marks a request
-        // answered, and an ask closed by its own rejection would be gone before
-        // anyone saw it. The stage lists these and a person closes them.
-        if (M.isAsk && M.isAsk(req)) continue;
+        // Answer only what this loop recognises, and leave everything else
+        // alone. The guard is an allowlist rather than a skip for `ask`:
+        // saving a result is what marks a request answered and fulfill()
+        // returns one for every kind it does not know, so an unrecognised
+        // record reaching it is closed by its own rejection before anyone
+        // sees it. Whatever the loop passes over is served elsewhere, an ask
+        // by a person from the stage. A kit too old to carry servable skips
+        // everything, which is the safe direction to fail.
+        if (!M.servable || !M.servable(req)) continue;
         const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
         await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
       }
