@@ -31,10 +31,14 @@
     #gz=<base64url gzip>           carry it inline, for a token-less reader
   Both also read from ?query, for a context that strips fragments.
 
-  A FRAMED APPROVAL IS A BROKEN APPROVAL, for inquiry.html's reason: the return
-  leg needs this page's own origin and the viewer's token, and a sandboxed frame
-  has neither. The frame is detected and the direct address offered, rather than
-  letting the failure arrive at the moment of decision.
+  WHAT THE RETURN LEG NEEDS IS THE TOKEN, NOT THE TOP WINDOW, and the first
+  draft of this page tested the wrong one. It refused whenever it was framed,
+  which condemned the app, whose view iframe carries allow-same-origin and can
+  therefore read this origin's localStorage perfectly well. toss-render is the
+  frame that cannot: it sandboxes payloads WITHOUT allow-same-origin on purpose,
+  since anyone can craft a toss link and this origin holds a gh token. So the
+  page asks the question the return leg actually depends on, which answers both
+  cases, and offers its direct address where the answer is no.
 
   Diff cards are alpineComponents/file-review.js, the same component
   pages/review.html mounts per changed file, so a reviewer here sees exactly
@@ -63,62 +67,73 @@
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
-<body class="fixed inset-0 grid grid-rows-[auto_1fr_auto] bg-base-200 text-base-content" x-data="approveApp()" x-cloak>
+<body class="min-h-dvh bg-base-200 text-base-content" x-data="approveApp()" x-cloak>
 
-<header class="navbar bg-base-100 border-b border-base-300 min-h-0 py-1 px-3 gap-2 flex-nowrap">
-  <i class="ph ph-seal-check text-primary text-lg shrink-0"></i>
-  <span class="font-semibold text-sm truncate" x-text="env?.manifest?.name || 'Approve'"></span>
+<!-- Normal flow with sticky chrome, not `fixed inset-0`: this page is meant to
+     be framed as an app view, and rule 5 of the house style is that a fixed
+     child measures against the OUTER viewport, so its right-hand column is cut
+     off inside a narrower iframe and headless Chromium will not reveal it. -->
+<header class="sticky top-0 z-30 bg-base-100 border-b border-base-300 flex items-center gap-2 px-3 py-2">
+  <i class="ph ph-seal-check text-primary shrink-0"></i>
+  <span class="font-semibold truncate" x-text="env?.manifest?.name || 'Approve'"></span>
   <div class="grow"></div>
-  <span class="badge badge-sm badge-ghost" x-show="ctx.kind" x-text="ctx.kind"></span>
-  <span class="badge badge-sm badge-ghost" x-show="ctx.occasion" x-text="ctx.occasion"></span>
-  <span class="badge badge-sm" x-show="items.length" x-text="items.length"></span>
-  <button class="btn btn-ghost btn-xs" @click="toggleNotes()" x-show="env"
-          :class="noting && 'text-primary'">
+  <span class="text-xs opacity-60 font-mono hidden sm:inline" x-text="ctx.kind"></span>
+  <span class="text-xs opacity-60 font-mono" x-show="ctx.occasion" x-text="ctx.occasion"></span>
+  <button class="btn btn-ghost btn-sm" @click="toggleNotes()" x-show="env" :class="noting && 'text-primary'">
     <i class="ph ph-note-pencil"></i><span x-text="notes.length || ''"></span>
   </button>
 </header>
 
-<main class="overflow-y-auto px-3 py-3 grid gap-3 content-start">
+<main class="px-3 py-3 grid gap-3 content-start">
 
-  <div x-show="loading" class="flex items-center gap-2 text-sm opacity-70">
+  <div x-show="loading" class="flex items-center gap-2 opacity-70">
     <span class="loading loading-spinner loading-sm"></span> Loading
   </div>
-
-  <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
+  <div x-show="error" class="alert alert-error py-2 px-3">
     <i class="ph ph-warning-circle"></i><span x-text="error"></span>
   </div>
 
-  <div x-show="framed" class="alert alert-warning py-2 px-3 text-sm">
-    <i class="ph ph-frame-corners"></i>
-    <span class="text-balance">A framed page cannot reach your token, so the verdict cannot be posted from here.</span>
+  <!-- The test is whether the TOKEN is reachable, not whether this is framed.
+       The app frames its views with allow-same-origin, so this origin's
+       localStorage is readable there and the return leg works. toss-render
+       sandboxes WITHOUT it, deliberately, because anyone can craft a toss link
+       and this origin holds a gh token. Asking the question the return leg
+       actually depends on answers both cases correctly; asking about the frame
+       answered neither. -->
+  <div x-show="!canPost" class="alert alert-warning py-2 px-3">
+    <i class="ph ph-key"></i>
+    <span class="text-balance">No token reachable here, so a verdict cannot be posted. A toss sandbox withholds it by design.</span>
     <a :href="direct" target="_blank" class="btn btn-sm">Open directly</a>
   </div>
 
-  <!-- The author's reason, first and unabbreviated. It is what the reader is
-       deciding about; the diffs are the evidence for it. -->
-  <section x-show="ctx.rationale" class="card bg-base-100 border border-base-300">
-    <div class="card-body p-3 gap-2">
-      <div class="flex items-center gap-2 text-xs opacity-60 font-mono">
-        <span x-text="ctx.id"></span>
-        <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
-           target="_blank" class="link" x-text="ctx.branch"></a>
-        <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link">session</a>
-      </div>
-      <p class="text-pretty" x-text="ctx.rationale"></p>
+  <!-- The author's reason, first. It is what the decision is about; the diffs
+       below are the evidence for it. Labelled rather than boxed, so the page
+       reads as one document instead of a stack of cards. -->
+  <section x-show="ctx.rationale">
+    <div class="flex items-center gap-3 flex-wrap font-mono text-xs opacity-60 mb-1">
+      <span x-text="ctx.id"></span>
+      <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
+         target="_blank" class="link link-hover" x-text="ctx.branch"></a>
+      <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link link-hover">session</a>
     </div>
+    <p class="text-pretty" x-text="ctx.rationale"></p>
   </section>
 
-  <!-- One card per proposed item. A documentation item mounts the same diff
-       card review.html mounts; a task item has no diff and answers a different
-       question, so the two render from one loop and diverge only where they
-       genuinely differ. -->
-  <template x-for="it in items" :key="it.id">
-    <section class="card bg-base-100 border border-base-300">
-      <div class="card-body p-3 gap-2">
+  <!-- ONE frame around the whole set, with a hairline between items, which is
+       what pages/review.html does with its file cards. A box per item made the
+       page read as unrelated tiles and buried the thing they have in common. -->
+  <!-- divide-[var(--color-base-300)], not divide-base-300: daisyUI ships no
+       divide- utility in its colour families, so the plain name compiles to
+       nothing and the hairlines would silently be browser-default grey. Caught
+       by the dead-colour-utility test, which names the substitution. -->
+  <div x-show="items.length" class="border border-base-300 rounded-lg overflow-hidden bg-base-100
+              divide-y divide-[var(--color-base-300)]">
+    <template x-for="it in items" :key="it.id">
+      <section class="p-3 grid gap-2">
 
         <div class="flex items-baseline gap-2 flex-wrap">
-          <span class="font-medium" x-text="it.title"></span>
-          <span class="badge badge-xs badge-ghost" x-show="it.change?.status" x-text="it.change?.status"></span>
+          <span class="font-medium font-mono" x-text="it.title"></span>
+          <span class="text-xs opacity-60" x-show="it.change?.status" x-text="it.change?.status"></span>
         </div>
 
         <p class="text-pretty" x-text="it.commentary"></p>
@@ -128,10 +143,10 @@
           <p class="text-pretty" x-text="it.metadata?.deferred_because"></p>
         </div>
 
-        <div x-show="(it.related || []).length" class="flex items-center gap-2 flex-wrap text-sm">
+        <div x-show="(it.related || []).length" class="flex items-baseline gap-2 flex-wrap">
           <span class="text-xs opacity-60">Answers to</span>
           <template x-for="r in (it.related || [])" :key="r.item">
-            <a class="link link-hover" target="_blank"
+            <a class="link link-hover font-mono" target="_blank"
                :href="'https://github.com/' + repoOf() + '/blob/' + (ctx.branch || 'HEAD') + '/' + r.item"
                x-text="r.item"></a>
           </template>
@@ -143,15 +158,15 @@
                path: pathOf(it), prevPath: it.change?.previous_path,
                status: it.change?.status, patch: it.change?.patch, open: true, bare: true })"></div>
 
-      </div>
-    </section>
-  </template>
+      </section>
+    </template>
+  </div>
 
 </main>
 
-<footer class="bg-base-100 border-t border-base-300 px-3 py-2 grid gap-2">
+<footer class="sticky bottom-0 z-30 bg-base-100 border-t border-base-300 px-3 py-2 grid gap-2">
 
-  <div x-show="sent" class="alert alert-success py-2 px-3 text-sm">
+  <div x-show="sent" class="alert alert-success py-2 px-3">
     <i class="ph ph-check-circle"></i>
     <span>Recorded as <span class="font-mono" x-text="decision"></span>.
       <a :href="sent" target="_blank" class="link" x-text="sentPath"></a></span>
@@ -161,13 +176,13 @@
        decision surface whose "no" is harder to reach than its "yes" collects
        agreement rather than decisions. -->
   <div class="flex gap-2 items-center" x-show="env && !sent">
-    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending">
+    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending || !canPost">
       <i class="ph ph-arrow-u-up-left"></i> Return
     </button>
-    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !notes.length">
+    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !canPost || !notes.length">
       <i class="ph ph-pencil-simple"></i> With edits
     </button>
-    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending">
+    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending || !canPost">
       <i class="ph ph-check"></i> Approve
     </button>
   </div>
@@ -181,7 +196,11 @@ document.addEventListener('alpine:init', () => {
     env: null, items: [], notes: [],
     loading: true, error: '', sending: false, sent: '', sentPath: '', decision: '',
     noting: false,
-    framed: window.top !== window.self,
+    // Probed once at init rather than derived from the frame: a sandbox without
+    // allow-same-origin THROWS on the localStorage accessor, so the try/catch is
+    // the test. window.TOKEN is what gh-auth resolved, and an empty one is the
+    // same no as an unreachable store.
+    canPost: true,
 
     get ctx() { return this.env?.context || {}; },
     get direct() {
@@ -210,6 +229,10 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       await window.__depsReady;
+      try {
+        localStorage.getItem('ghToken');      // throws under an opaque origin
+        this.canPost = !!window.TOKEN;
+      } catch (e) { this.canPost = false; }
       try {
         const gz = this.param('gz');
         const src = this.param('src');
