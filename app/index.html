@@ -338,6 +338,12 @@ html.dk-dragging main{transition:none !important}
   <div class="alert text-base gap-2" :class="t.cls">
     <i class="ph" :class="'ph-'+t.icon"></i>
     <span x-text="t.msg"></span>
+    <!-- At most one action, and it takes the toast away with it. The Lists
+         view's undo is the only caller so far; see the toast store for why a
+         reversal lives here rather than on the row it undoes. -->
+    <button x-show="t.action" @click="t.action.run()"
+            class="btn btn-ghost btn-xs gap-1 shrink-0">
+      <i class="ph ph-arrow-counter-clockwise"></i><span x-text="t.action?.label"></span></button>
   </div>
   </template>
 </div>
@@ -2277,11 +2283,17 @@ function app(){ return {
     if (url && url.window) this.branchWindow = url.window;
     await this.ensureBrowser(url?.repo, url?.ref);
     try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
-    const staged = window.StageLink ? window.StageLink.read(location).items : [];
-    if (staged.length) {
-      Alpine.store('browser').stage = staged;
-      this.goStage();
-    }
+    const link = window.StageLink ? window.StageLink.read(location) : null;
+    const staged = link ? link.items : [];
+    if (staged.length) Alpine.store('browser').stage = staged;
+    // A `gz` payload is local text carried in the fragment, and gzip decoding is
+    // asynchronous, so `read` hands back the raw payload and the stage component
+    // resolves it once it mounts. The route cannot wait for that, so the mere
+    // PRESENCE of a payload is what says this link is bound for the stage.
+    // Without this line a link that is nothing but a paste opened on the estate
+    // while its file appeared, correctly, in a view the reader was not looking
+    // at. Found by the courier, which mints exactly that link.
+    if (staged.length || (link && link.gz)) this.goStage();
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
     else if (!url) this.goDashboard();
@@ -4283,12 +4295,15 @@ function app(){ return {
         let req;
         try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
         catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
-        // An ask addresses the USER, so this loop must not touch it. The skip
-        // has to happen before fulfill, not inside it: fulfill returns a result
-        // for an unsupported kind, saving a result is what marks a request
-        // answered, and an ask closed by its own rejection would be gone before
-        // anyone saw it. The stage lists these and a person closes them.
-        if (M.isAsk && M.isAsk(req)) continue;
+        // Answer only what this loop recognises, and leave everything else
+        // alone. The guard is an allowlist rather than a skip for `ask`:
+        // saving a result is what marks a request answered and fulfill()
+        // returns one for every kind it does not know, so an unrecognised
+        // record reaching it is closed by its own rejection before anyone
+        // sees it. Whatever the loop passes over is served elsewhere, an ask
+        // by a person from the stage. A kit too old to carry servable skips
+        // everything, which is the safe direction to fail.
+        if (!M.servable || !M.servable(req)) continue;
         const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
         await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
       }
