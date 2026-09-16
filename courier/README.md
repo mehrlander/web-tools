@@ -8,6 +8,10 @@ confirm. `ask` is a deferred read from you. The courier is the fourth: a read
 from a **web page a session cannot reach**, answered when you visit that page
 and tap one bookmark.
 
+What decides a channel in code is whether a browser can answer it unattended:
+`RepoMailbox.servable` is the allowlist, and anything outside it waits for a
+person. The courier is the mechanism; an errand is one job it runs.
+
 ## Why it works where a background fetch does not
 
 CORS is the **server's** decision. A page on `mehrlander.github.io` cannot read
