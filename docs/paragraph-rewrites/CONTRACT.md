@@ -10,7 +10,7 @@ Pour spare compute into finding more succinct representations of prose that alre
 
 Succinctness is always welcome. Another attempt can always succeed where prior ones did not. Short paragraphs may still get proposals (even a shorter synonym for a one-word line is allowed and may be amusing); the only hard stop is empty text.
 
-## Two layers
+## Two layers (active model — keep this simple)
 
 ### 1. Observed paragraph (index entry)
 
@@ -71,7 +71,7 @@ Apply/search against files uses `original` (exact), not the normalized form.
 
 ## What enters the index
 
-**In:** paragraphs observed in repo markdown (blank-line-separated blocks; skip fenced code and YAML frontmatter).
+**In (today):** paragraphs observed in repo markdown (blank-line-separated blocks; skip fenced code and YAML frontmatter).
 
 **Out (for now):** drafts do **not** become new index entries. Only text that appears in a live (or inventoried) file is an observed paragraph. Nesting “reduce the reductions” is deferred.
 
@@ -133,3 +133,50 @@ Prefer split `proposals.jsonl` so runners only append.
 ## Instruction to a future assistant
 
 > Read `docs/paragraph-rewrites/CONTRACT.md`. Scan the configured markdown corpus. Upsert observed paragraphs into the revision index (content-addressed). Append signed rewrite proposals for missing target ratios — do not overwrite prior proposals; do not edit live docs. Report counts of new sightings and new proposals.
+
+---
+
+## Future shapes (not active — do not implement unless Mark asks)
+
+Two related expansions are on the table. They share one rule and diverge in storage theater.
+
+### Shared rule: full replacement of the same trunk
+
+Whatever unit sits in the index — paragraph today, arbitrary chunk later — every proposal is a **total drop-and-replace** of that same original text. Later agents improve by offering a better whole substitute for the identical trunk, not a patch, not a nested sub-chunk of a prior draft. The trunk stays fixed until someone accepts a proposal into a live file (at which point a new trunk may be observed).
+
+### Expansion A — Discretionary chunks (still a list)
+
+Agents may **nominate** any contiguous text they want to revise, not only blank-line paragraphs from an automatic scan:
+
+- Agent discretion: “here is a chunk I care about” → upsert into the index (same content-addressed id) → append a signed proposal.
+- Other agents may later append better proposals for that same id.
+- Automatic paragraph scan remains a feeder; discretionary add is another feeder.
+- Schema stays close to today’s: `original` + `proposals[]` (or `proposals.jsonl`), maybe rename `paragraphId` → `chunkId` and add `source: scan | nominated`.
+
+This keeps the simplicity of the first idea. Prefer this if the goal is more coverage with less ceremony.
+
+### Expansion B — Trunk files (git as the revision surface)
+
+Treat each indexed chunk as its **own file**, whose content *is* the original trunk text (or a tiny wrapper: original + metadata). Then version-control habits become the workflow:
+
+| Concept | Mapping |
+|---------|---------|
+| Trunk | File whose body is the original chunk (path keyed by content hash). |
+| Proposal | A branch (or commit) that replaces the whole file body with a rewrite. |
+| Parallel attempts | Separate branches — no overwrite fights. |
+| History / notes | Ordinary commits, commit messages, optional sidecar. |
+| Review | Diff trunk vs branch; accept = merge (or copy draft back into the live doc via a normal docs PR). |
+
+**Magic:** agents already know git; “better job” = new branch with a full-file replacement; history and commentary come for free; you can document method in the branch without touching other agents’ work.
+
+**Cost:** many small files, branch hygiene, and a clearer split between (1) the revision vault and (2) the live docs repo. Competing proposals are branches, not rows — nicer for humans diffing, heavier for a spare-cycle JSONL runner.
+
+### How to choose later
+
+| Prefer A (list) when… | Prefer B (trunk files) when… |
+|------------------------|------------------------------|
+| Background runners and bulk stats matter most | Human/agent review via `git diff` matters most |
+| You want minimal ceremony | You want per-proposal isolation and commit narratives |
+| Index lives beside docs as data | You want a dedicated “revision vault” repo or tree |
+
+Until Mark says otherwise: **run the active simple model** (paragraph scan + append-only proposals). Treat A and B as documented options, not work to start.
