@@ -16,8 +16,17 @@
 //     that began before the window runs off the left edge instead of pretending
 //     it started there.
 //
+// The second half of the file is the STRIP above the list: the same turns from
+// every listed row folded onto one lane, which is what makes the top of the
+// pane readable without scrolling it. It keeps the rows' span and the rows'
+// drop rule, so a mark sits directly above the row marks it is made of, and it
+// bins, so its node count is bounded by the strip's own resolution rather than
+// by the store. A mark also knows whose turns it is, which is the fact the tap
+// that jumps to a session is built on.
+//
 // No network and no pixels: the geometry is numbers, and `railNow` is pinned so
-// "now" is a fixture rather than the clock.
+// "now" is a fixture rather than the clock. The strip's tests pin it to the
+// live clock instead, for the reason stated where they start.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -181,4 +190,124 @@ test('the note counts the turns it drew, not the counter beside it', () => {
   scope('day');
   const r = { ...row(6, 1, [0, 10, 20]), exchanges: 99 };
   assert.match(data.sessionRailNote(r), /^3 user turns/);
+});
+
+// ── THE LANE'S SUMMED STRIP ───────────────────────────────────────────────
+//
+// The rails above are per row. The strip above the list is every listed row's
+// turns folded onto one lane, and three things about that fold are worth
+// holding: it takes the ROWS' span and the rows' drop rule, so a mark sits
+// directly above the row marks it is made of; it BINS, so the node count is
+// bounded by the strip's resolution rather than by the store; and a mark knows
+// whose turns it is, which is what makes the tap that jumps to them possible.
+
+// The strip reads `sessionNodes`, and the scope filter behind that reads the
+// REAL clock (withinSessionWindow), not `railNow`. The fixture above is pinned
+// to a fixed instant, so by the time the suite runs every one of its rows is
+// days old and falls out of Day before the strip ever sees it. So the strip's
+// tests take their anchor from the clock ONCE and pin `railNow` to the same
+// value: the filter and the span then agree, and the arithmetic stays exact
+// because both sides read the constant rather than the clock twice.
+const LIVE = Date.now();
+const liveAt = (hoursAgo) => new Date(LIVE - hoursAgo * HOUR).toISOString();
+const liveRow = (startedHoursAgo, endedHoursAgo, beats) => ({
+  id: 'r' + startedHoursAgo,
+  started: liveAt(startedHoursAgo),
+  ended: liveAt(endedHoursAgo),
+  ...(beats ? { beats } : {}),
+});
+
+// The pane reads rows off `sessionRows_`, the same field the render scenario
+// seeds. A row with no branch under it still becomes a node, which is all the
+// strip needs. Every narrowing is cleared, so what the strip sums is the whole
+// fixture and a failure is never a filter.
+function listRows(key, rows) {
+  data.sessionScope = key;
+  data.railNow = LIVE;
+  data.sessionRows_ = rows;
+  data.sessionQuery = '';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+}
+
+test('the strip sums every listed row, at the rows own placement', () => {
+  // Two sessions, each opening 12 hours ago: their first turns are both the
+  // halfway mark on a 24-hour span, so they must land in ONE bin.
+  listRows('day', [liveRow(12, 2, [0, 360]), { ...liveRow(12, 2, [0]), id: 'other' }]);
+  const strip = plain(data.sessionRailAll);
+  const mid = strip.find((m) => Math.abs(m.p - 50) < 0.5);
+  assert.ok(mid, 'the two openings share a column at the middle of the span');
+  assert.equal(mid.n, 2, 'and that column counts both of them, once each');
+  assert.equal(strip.length, 2, 'two columns: the shared opening and the later turn');
+  assert.equal(strip.reduce((a, m) => a + m.n, 0), 3, 'and all three turns are in them');
+  // The second mark is the 6-hour-later turn, at the same x its row rail puts it.
+  const late = strip.find((m) => m.p > 60);
+  near(late.p, data.sessionRailTicks(liveRow(12, 2, [0, 360]))[1],
+    'the strip and the row agree on x', 0.5);
+});
+
+test('a turn the rows drop is dropped here too, so the two lanes agree', () => {
+  // The same 40-hour row the per-row test uses: two of its four turns fall
+  // before the window. A strip that clamped them would draw a burst at the
+  // left edge that no rail below it shows.
+  listRows('day', [liveRow(40, 1, [0, 60, 1020, 1080])]);
+  const strip = plain(data.sessionRailAll);
+  assert.equal(strip.reduce((a, m) => a + m.n, 0), 2, 'only what the rails drew');
+  assert.ok(strip.every((m) => m.p > 0), 'and nothing piled on the origin');
+});
+
+test('a row with no turn times contributes nothing, and the note says so', () => {
+  listRows('week', [liveRow(20, 4), liveRow(10, 2, [0, 30])]);
+  assert.equal(plain(data.sessionRailAll).reduce((a, m) => a + m.n, 0), 2,
+    'the version-22 row adds no marks');
+  assert.match(data.sessionRailAllNote, /1 row predates turn times/);
+  // And the note stays inside the note kit's six-line box. At 34ch a line that
+  // is about 200 characters; the first draft ran to 260 and the kit clipped it
+  // and said so in the console, which is the failure this guards.
+  assert.ok(data.sessionRailAllNote.length < 200,
+    `the strip note fits a note rather than a card: ${data.sessionRailAllNote.length} chars`);
+});
+
+test('the strip is bounded by its own resolution, not by the store', () => {
+  // Six sessions of 200 turns each, every turn a distinct minute: 1,200 turns
+  // that a mark-per-turn strip would draw as 1,200 nodes.
+  const beats = Array.from({ length: 200 }, (_, i) => i * 3);
+  listRows('month', Array.from({ length: 6 },
+    (_, i) => ({ ...liveRow(24 * (i + 1), 1, beats), id: 's' + i })));
+  const strip = plain(data.sessionRailAll);
+  assert.ok(strip.length <= 240, `at most one mark a column: ${strip.length}`);
+  assert.equal(strip.reduce((a, m) => a + m.n, 0), 1200, 'and every turn is still counted');
+  // Every column is distinct and in order, which is what lets x-for key on it.
+  assert.deepEqual([...new Set(strip.map((m) => m.k))].length, strip.length, 'no column twice');
+  assert.deepEqual(strip.map((m) => m.k), [...strip.map((m) => m.k)].sort((a, b) => a - b),
+    'and they run left to right');
+});
+
+test('a mark names the session it is mostly made of, and points the tap there', () => {
+  // One column, three turns from A and one from B: the loud one is the tap's
+  // destination, and it is the one named first in the note.
+  listRows('day', [
+    { ...liveRow(12, 2, [0, 1, 2]), id: 'loud' },
+    { ...liveRow(12, 2, [0]), id: 'quiet' },
+  ]);
+  const mid = plain(data.sessionRailAll).find((m) => Math.abs(m.p - 50) < 0.5);
+  assert.equal(mid.key, 'r:loud', 'the tap goes where most of the mark came from');
+  assert.match(mid.note, /loud/, 'and the note names it');
+  assert.match(mid.note, /quiet/, 'without hiding the other session in the column');
+  assert.match(mid.note, /4 user turns/, 'the count is the column, not one row');
+});
+
+test('the keyboard walks the same marks the pointer resolves to', () => {
+  listRows('day', [liveRow(12, 2, [0, 180, 360])]);
+  const strip = plain(data.sessionRailAll);
+  assert.equal(strip.length, 3, 'three turns far enough apart to be three columns');
+  data.railHover = null;
+  data.railStep(1);
+  assert.equal(data.railHover.k, strip[0].k, 'the first step lands on the leftmost mark');
+  data.railStep(1);
+  assert.equal(data.railHover.k, strip[1].k, 'and the next steps one column right');
+  data.railStep(-1);
+  assert.equal(data.railHover.k, strip[0].k, 'and back');
+  data.railStep(-1);
+  assert.equal(data.railHover.k, strip[0].k, 'the ends hold rather than wrapping');
 });

@@ -33,6 +33,16 @@
 //   TAP=<n>      taps the nth turn (1-based), which opens the session deck on
 //                that exchange; the card stays open underneath it
 //   SCROLL=<px>  scrolls the card down that far, for the header's position
+//
+// LANE=day|week|month re-dates every fixture row so the newest ends two hours
+// ago, then opens that scope. The rows are pinned to 2026-08-05, so under any
+// window narrower than the months since, all six land in one column and neither
+// the strip above the list nor the rails under it show anything about placement.
+//   MARK=<n>   hovers the nth mark on the strip (1-based, negative counts back
+//              from the newest) and leaves its note open, which is the only way
+//              to shoot the note: it is opened by a pointer, not by a class.
+//   MARKTAP=1  taps that mark instead, so the shot is where the tap landed:
+//              the strip's session scrolled under the lane and ringed.
 
 const SESSIONS = [
   {
@@ -366,7 +376,7 @@ const TURNS_RECORD = {
 };
 
 export default async function (page) {
-  await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS }) => {
+  await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane }) => {
     // The estate component's own root carries its Alpine scope.
     const host = document.querySelector('[x-data^="estate"]');
     const st = window.Alpine.$data(host);
@@ -377,9 +387,53 @@ export default async function (page) {
     // behindV, so the pane's backfill line and the Counts histogram's
     // "not read yet" bar have exactly one row to speak for.
     const V = window.RepoSessionsCache.ROW_V;
+    // TURN TIMES, derived here rather than authored on each row. Two things
+    // read `beats`: the row's own rail, and the strip above the list that sums
+    // every listed row's turns onto one lane. A fixture without them shoots
+    // both as empty, which says nothing about either and is the state this
+    // scenario was in until the lane existed.
+    //
+    // Deterministic, seeded from the row's own id, so the same fixture always
+    // draws the same strip and two shots a week apart are comparable. Clustered
+    // rather than evenly spaced, because an even rail is the one shape real
+    // turn times never have and the marks must not invent it.
+    const beatsOf = (r) => {
+      let s = 7;
+      for (const c of r.id) s = (s * 31 + c.charCodeAt(0)) >>> 0;
+      const n = Math.max(1, r.exchanges || 1), mins = r.mins || 1, out = [];
+      for (let i = 0; i < n; i++){
+        s = (s * 1103515245 + 12345) >>> 0;
+        out.push(Math.round(mins * ((i + (s % 1000) / 1000) / n)));
+      }
+      return out.sort((a, b) => a - b);
+    };
+    // LANE=<scope> re-dates the whole fixture so its newest session ended two
+    // hours ago, then opens that scope. The rows are pinned to 2026-08-05, so
+    // under any window narrower than the months since, every one of them lands
+    // in the same column; the strip above the list and the rails under it are
+    // both about WHERE turns fall, and a fixture whose turns all fall in one
+    // place shoots neither. One offset for every row, so the spacing between
+    // sessions stays the fixture's own.
+    const shift = (() => {
+      if (!lane) return 0;
+      const newest = Math.max(...SESSIONS.map(r => Date.parse(r.ended || r.started || 0)));
+      return Number.isFinite(newest) ? Date.now() - 2 * 3600e3 - newest : 0;
+    })();
+    const slide = (iso) => {
+      const t = Date.parse(iso || '');
+      return Number.isFinite(t) ? new Date(t + shift).toISOString() : iso;
+    };
     st.sessionRows_ = SESSIONS.map(r => {
       const { behindV, ...row } = r;
-      return { ...row, v: behindV ? V - 1 : V };
+      if (shift){
+        row.started = slide(row.started);
+        row.ended = slide(row.ended);
+        row.day = (row.started || '').slice(0, 10);
+      }
+      // The behind row keeps NO beats, deliberately: it is the fixture for a
+      // row summarised before turn times were carried, so its rail must still
+      // shoot as the dashed segment and the lane must still leave it out.
+      return { ...row, v: behindV ? V - 1 : V, ...(behindV ? {} : { beats: beatsOf(r) }) };
     });
     st.sessionAttention = ATTENTION;
     st.activity = ACTIVITY;
@@ -389,7 +443,8 @@ export default async function (page) {
     st.entries = [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/home' }];
     st.activityGeneratedAt = new Date(Date.now() - 42 * 60000).toISOString();
     st.sessionsGeneratedAt = new Date(Date.now() - 42 * 60000).toISOString();
-    st.sessionScope = 'all';
+    st.sessionScope = lane || 'all';
+    st.railNow = Date.now();
     st.showAttention = true;
     st.todoLoading = false;
     st.todoItems = TODOS;
@@ -397,7 +452,7 @@ export default async function (page) {
     st.jotItems = JOTS;
     // The shell gates the header nav and the pane chrome on a token too.
     window.__shell.hasToken = () => true;
-  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS });
+  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane: process.env.LANE || '' });
   await page.waitForTimeout(600);
 
   // The ROUTE CHIPS on the nested branch tiles, seeded the way activity-fake
@@ -615,6 +670,35 @@ export default async function (page) {
         [...host.querySelectorAll('.cursor-pointer')][i - 1]?.click();
       }, +process.env.TAP);
       await page.waitForTimeout(2500);
+    }
+  }
+
+  // MARK / MARKTAP drive the summed strip above the list. Both go through a
+  // REAL POINTER at real coordinates rather than a call into the component,
+  // because the thing under test is the resolution from a pointer position to
+  // the nearest mark, and a call that hands the component a mark has already
+  // done the only part that can be wrong.
+  if (process.env.MARK || process.env.MARKTAP) {
+    const strip = await page.$('[data-session-lane] [role="group"]');
+    const box = strip && await strip.boundingBox();
+    if (box) {
+      const at = +(process.env.MARK || -1);
+      const pct = await page.evaluate((i) => {
+        const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+        const marks = st.sessionRailAll;
+        return marks.length ? marks[i < 0 ? marks.length + i : i - 1]?.p ?? null : null;
+      }, at);
+      if (pct !== null) {
+        const x = box.x + (box.width * pct) / 100, y = box.y + box.height / 2;
+        await page.mouse.move(x, y);
+        await page.waitForTimeout(400);
+        if (process.env.MARKTAP) {
+          await page.mouse.click(x, y);
+          // Long enough for the smooth scroll to settle and short enough that
+          // the flash on the row it landed on is still up (it clears at 1.8s).
+          await page.waitForTimeout(900);
+        }
+      }
     }
   }
 }
