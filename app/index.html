@@ -2096,6 +2096,7 @@ function app(){ return {
   overlayBranch: '',   // the branch named by ?overlay=; '' = no overlay
   overlayRefs: {},     // repo -> branch, for the repos where it exists
   _overlayResolved: null, // memoized resolution (the branch never changes mid-session)
+  stageTab: '',     // the Stage's sub-address; 'errands' opens the errand panel
   proposalCount: 0, // pending cross-repo edit proposals; gates the nav entry
   proposalsSeen: false,
   stateSeen: false, // mount the State view lazily, on first visit
@@ -5413,7 +5414,12 @@ function app(){ return {
     // `surfaces` is the retired Saved pane, which listed the registry's
     // .surface files and could load one onto the bench. It went on 2026-08-27,
     // and the key aliases onto the Stage so an old link lands on the bench.
-    { key: 'stage', alias: 'surfaces', open(){ this.goStage(); } },
+    // The Stage's one tab value is not a tab: `&tab=errands` opens the errand
+    // panel, which the courier navigates to from our own origin when it has
+    // nothing to run on the page you are reading. Same key as Project and Map
+    // use for a sub-address, so it parses, clears and restamps with them.
+    { key: 'stage', alias: 'surfaces', open(u){ this.goStage(u.tab); },
+      stamp(p){ if (this.stageTab) p.set('tab', this.stageTab); } },
     { key: 'public',   open(){ this.goPublicBrowse(); } },
     { key: 'todo',     open(){ this.goTodo(); } },
     { key: 'jots',     open(){ this.goJots(); } },
@@ -6257,7 +6263,7 @@ function app(){ return {
   // The Stage's bench sub-view: the working surface. Every caller already
   // routed here (the explorer's "+", a #stage= link, a saved surface's Load),
   // and all of them mean "show me what is staged", which is this pill.
-  goStage(){ this.estateSeen = true; this.view = 'stage'; this.syncUrl(); },
+  goStage(tab){ this.estateSeen = true; this.view = 'stage'; this.stageTab = tab || ''; this.syncUrl(); },
 
   // THE TAP-DRIVEN PASTE, which is the phone's whole intake: iOS Safari raises
   // no paste event without a focused editable, so the window listener above is

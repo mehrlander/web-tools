@@ -16,8 +16,8 @@
 //
 // ON OUR OWN PAGES THERE IS NO WINDOW AND NO PANEL. The pointer passes `home`
 // true on mehrlander.github.io and opens nothing, so a tap there navigates the
-// tab to the open errand. Reading about the errand was never the point; being
-// on its page is. This is also why `home` is a separate argument rather than
+// tab to the Stage's errand panel, which is the app's own list. This is also
+// why `home` is a separate argument rather than
 // `w === null`: a blocked popup on somebody else's page arrives the same way,
 // and stealing the tab you were reading is the one thing a bookmarklet must
 // not do. Blocked, the plain fallback panel below runs instead.
@@ -311,9 +311,15 @@
   const elsewhere = (list.errands || []).filter(e => e.status === 'open' && e.url);
 
   if (!mine.length) {
-    // One open errand and we are on our own page: go there. More than one and
-    // there is nothing single to go to, so the picker is the answer after all.
-    if (home && elsewhere.length === 1) { location.href = elsewhere[0].url; return; }
+    // On our own origin, hand over to the app: the Stage's errand panel is the
+    // list, and a second picker drawn over it would be a worse copy. Until
+    // 2026-09-16 this navigated straight to the one open errand's page, on the
+    // reasoning that being on the page was the point. That reasoning was
+    // written before the panel existed, and with a single errand open the
+    // condition fired on every tap, taking the tab somewhere nobody asked for.
+    // The count is gone with it: which errand you want is a choice, not an
+    // inference from there being only one.
+    if (home) { location.href = STAGE + '?view=stage&tab=errands'; return; }
     if (!elsewhere.length) return stop('No errand is open on any host.');
     let pick = form(elsewhere, 'go', (e) => { pick = e; });
     $('.cx-body').remove();
