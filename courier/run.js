@@ -44,15 +44,21 @@
 // to this repo; that is a smaller guarantee than the first cut had, stated
 // rather than quietly lost.
 //
-// REPO AND REF ARE CONSTANTS, NOT SETTINGS. A courier you could aim at another
+// THE REPO IS A CONSTANT, NOT A SETTING. A courier you could aim at another
 // repo is a courier somebody else can aim, and the whole trust story here is
 // that the code and the errand list come from one public place you can read.
 // The header names that place so it is checkable rather than assumed.
+//
+// THERE IS NO REF ANYWHERE. Every read here, and the pointer's read of this
+// file, omits it and takes the repository's default branch. One rule rather
+// than two: a constant `main` in this file plus an implicit default in the
+// pointer would agree only while main IS the default, and would disagree
+// silently otherwise, with the header printing a branch it had not checked.
+// GitHub resolves `HEAD` in its own URLs, so the links name no branch either.
 
 (async (popup, home) => {
   const HOST = location.hostname;
   const REPO = 'mehrlander/web-tools';
-  const REF = 'main';
   const FORM_CAP = 7500;
 
   // Through the GitHub API, not the raw CDN. raw.githubusercontent caches five
@@ -69,7 +75,7 @@
   // proxy and so cannot see what a browser would.
   let budget = null;
   const api = async (path) => {
-    const url = `https://api.github.com/repos/${REPO}/contents/${path}?ref=${REF}`;
+    const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
     const r = await fetch(url, { headers: { Accept: 'application/vnd.github.raw' }, cache: 'no-store' });
     const left = r.headers.get('x-ratelimit-remaining');
     if (left !== null && left !== '') budget = Number(left);
@@ -177,8 +183,8 @@
 
     $('.cx-here').textContent = HOST;
     const src = $('.cx-src');
-    src.textContent = REPO + '@' + REF;
-    src.href = 'https://github.com/' + REPO + '/tree/' + REF + '/courier';
+    src.textContent = REPO;
+    src.href = 'https://github.com/' + REPO + '/tree/HEAD/courier';
   };
 
   const $ = (sel) => root.querySelector(sel);
@@ -228,7 +234,7 @@
   const FIELDS = [
     ['Page', 1, e => e.url ? link(e.url, e.url) : ''],
     ['Script', 1, e => !e.script ? '' :
-      link(`https://github.com/${REPO}/blob/${REF}/${e.script}`, e.script)
+      link(`https://github.com/${REPO}/blob/HEAD/${e.script}`, e.script)
       + (shown ? ` <span class="cx-dim">· ${shown.split('\n').length} lines</span>` : '')],
     ['Result', 1, e => !e.result ? '' :
       link('https://github.com/' + e.result.repo, e.result.repo) + ' · ' + esc(e.result.path)],
