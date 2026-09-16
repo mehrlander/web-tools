@@ -152,11 +152,20 @@
           </template>
         </div>
 
+        <!-- read: true, which is the card's READING mode. Its own design note
+             says the four source tabs are four readings of one fixed pair,
+             right for scanning thirty rows in a list and wrong for reading one
+             file, where the question is not which rendering but against what.
+             A reading host hands that question up and the strip collapses to
+             the document plus one Compare pane. Mounted without it, an
+             approval showed five tabs and opened on Patch, which is the rawest
+             view of a change someone is being asked to judge. -->
         <div x-show="ctx.kind === 'documentation' && pathOf(it)"
              x-data="fileReview({
                repo: repoOf(), ref: ctx.branch, base: baseOf(), baseName: baseOf(),
                path: pathOf(it), prevPath: it.change?.previous_path,
-               status: it.change?.status, patch: it.change?.patch, open: true, bare: true })"></div>
+               status: it.change?.status, patch: it.change?.patch,
+               open: true, bare: true, read: true })"></div>
 
       </section>
     </template>
@@ -248,6 +257,16 @@ document.addEventListener('alpine:init', () => {
           this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
         this.items = this.env?.items || [];
+        // A reading card asks its host what to compare against. The request
+        // already names the pair, so publish it before the cards mount rather
+        // than leaving each one to pick, which is the choice the card says it
+        // has no business making.
+        if (this.ctx.branch) {
+          window.__compareRef = {
+            repo: this.repoOf(), ref: this.ctx.branch,
+            base: this.baseOf(), baseName: this.baseOf(),
+          };
+        }
       } catch (e) {
         this.error = e.message;
       }
