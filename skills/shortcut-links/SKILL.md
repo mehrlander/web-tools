@@ -84,7 +84,7 @@ names are the whole content of the tap and the header is just the receiver.
 
 | 📲 [Run-Steps](shortcuts://run-shortcut?name=Run-Steps&input=text&text=…) |
 | --- |
-| `▸ `[Check-🎟️GitHubToken](https://mehrlander.github.io/web-tools/pages/shortcuts.html?name=Check-%F0%9F%8E%9F%EF%B8%8FGitHubToken)<br>`↳ `[Log-Repo](https://mehrlander.github.io/web-tools/pages/shortcuts.html?name=Log-Repo) |
+| `▸ Check-🎟️GitHubToken`<br>`↳ Log-Repo` |
 
 `▸` is what runs first and `↳` is each step after, which is exactly what
 `Run-Steps` does: it pipes each result into the next. No sentence and no gloss;
@@ -139,13 +139,18 @@ a payload that omits part of the payload is the failure this format exists to
 prevent, and the day it matters is the day a probe has no `Log-Repo` and nothing
 says so.
 
-**The chain page rides the name.** Where a link names one chain the repo holds,
-`pages/shortcuts.html?name=<Name>` shows its actions, what it calls, what calls
-it, and whether the phone is carrying this build. In a sequence card every step
-name is that link, so no extra row. In an install card the one name is up in the
-header doing another job, so the page gets a row of its own, above the listing.
-A receiver held nowhere here, `Open-URL` and `Fav-Settings` among them, has no
-page; say nothing rather than link something else.
+**The chain page appears on the install card and nowhere else.**
+`pages/shortcuts.html?name=<Name>` shows a chain's actions, what it calls, what
+calls it, and whether the phone is carrying this build. That is what you want
+before taking something on permanently, and it is not what you want while
+running a shortcut you already have: a step in a sequence is on the phone
+already, and turning its name into a link invites reading where the card was
+meant to remove reading. So the page gets a row of its own on the install card,
+above the listing, and a step in a sequence card is a plain name. A chain this
+repo does not hold has no page at all, `Open-URL` and `Fav-Settings` among them,
+which is a second reason not to make step names links: half of them could not be
+one, and a list where some names are tappable and some are not reads as an
+error.
 
 **The argument goes in the header when it is short** and drops to a gutter row
 when it is not, which carries both a one-word input and a 52-name payload without
