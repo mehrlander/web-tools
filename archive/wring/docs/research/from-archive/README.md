@@ -52,10 +52,9 @@ titled …` records between 20:54 and 21:29 UTC. This script reads them through
 the snapshot's conversation render,
 `2026-06-01-gemini-export/conversations/2025-12/0376-2025-12-20-discuss-how-we-could-use-an-arrow-function-and-template-lite.md`,
 which is byte-identical to the activity field for all five (24,835, 25,743,
-23,303, 28,385 and 32,999 characters). That snapshot's canvas catalog is
-title-only and says the content is not exported at all, which is wrong and is
-marked `Wrong` there as of 2026-09-16, with the measurements in its
-`canvas/content-2026-09-16.md`.
+23,303, 28,385 and 32,999 characters). That snapshot's canvas layer is title-only
+and said the content was not exported at all, which was wrong and was corrected
+there on 2026-09-16; the measurements are in its `canvas/content-2026-09-16.md`.
 
 | Report | Canvas title, and time (UTC) | ChatGPT counterpart, same day |
 | --- | --- | --- |
@@ -87,8 +86,9 @@ run 2026-09-16:
 Marker numbering is consistent with the source list, spot-checked on the first
 marker of each report: the MDL claim points at the MDL entry, the Drain claim at
 the Drain entry, the suffix-array memory claim at the suffix-array entries. That
-is consistency, not proof, and the original canvas document is not in the export
-to check against.
+is consistency, not proof, and no copy of a report carries both halves, so there
+is nothing to check it against. The export's canvas source has the markers and
+no list; the paste has the list and no markers.
 
 **One gap that does not close.** `02-repeat-primitives` cites 31 sources and its
 list holds 29, ending on a complete entry, so `[30]` and `[31]` resolve to
