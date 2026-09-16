@@ -45,6 +45,6 @@ export default async (page) => {
   const btn = page.locator('button[title^="Errands:"]');
   await btn.waitFor({ state: 'visible', timeout: 15000 });
   await btn.click();
-  await page.locator('.ph-bicycle').first().waitFor({ timeout: 5000 });
+  await page.locator('.ph-moped').first().waitFor({ timeout: 5000 });
   await page.waitForTimeout(900);
 };
