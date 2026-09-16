@@ -238,8 +238,8 @@ def boot_loaded(root):
     equipment (the FAB set) counts as boot: the question this axis answers is
     "does the chain name it", not "does every page pay it"."""
     boot = set()
-    for carrier in ("lib/gh-boot.js", "lib/gh-api.js"):
-        src = read(root, carrier)
+    for boot_file in ("lib/gh-boot.js", "lib/gh-api.js"):
+        src = read(root, boot_file)
         for m in re.finditer(r"gh\.load\(\s*['\"]([^'\"]+)['\"]", src):
             boot.add("lib/" + m.group(1))
         for m in re.finditer(r"path:\s*['\"]([^'\"]+\.js)['\"]", src):
@@ -248,7 +248,7 @@ def boot_loaded(root):
         if fab:
             for m in re.finditer(r"['\"]([^'\"]+\.js)['\"]", fab.group(1)):
                 boot.add("lib/" + m.group(1))
-    # The loader itself and the boot carriers are boot by definition.
+    # The loader itself and the two files above are boot by definition.
     boot |= {"lib/gh-api.js", "lib/gh-boot.js"}
     return boot
 

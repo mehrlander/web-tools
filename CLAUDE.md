@@ -1,11 +1,8 @@
-@docs/CONVENTIONS.md
-@docs/SURFACING.md
+## Where the rest of the system lives
 
-## How these instructions are split
+[docs/SURFACING.md](docs/SURFACING.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific.
 
-The two imports above are the portable half: conventions that apply in any repo. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) is the general-behavior hub; [docs/SURFACING.md](docs/SURFACING.md) is the surfacing system (primitives plus the guide-PR/merge-guide course), split out because it was the bulk of the file. Both are canonical here; other repos load them via the `web-tools` skill (`.claude/skills/web-tools/SKILL.md`), which fetches both from main. Everything below is web-tools-specific, layered on top, including the repo's answers to the conventions' three extension points (preview mechanism, per-session refreshes, guide-PR support). Portable guidance goes in CONVENTIONS.md or SURFACING.md; web-tools machinery goes here.
-
-CONVENTIONS.md is one of several docs written to travel; the full to-go bag (conventions, scripts, the headless-vendoring recipe, the sandbox notes) is catalogued in [docs/PORTABLE.md](docs/PORTABLE.md), which the loader skill points at and which points back. When adding a doc or script meant for reuse elsewhere, list it there.
+**Delivery is the plugin, here as everywhere.** This file `@`-imported both documents until 2026-09-12 and no longer imports either. Every session, including one with this repo checked out, is prodded at session start by the `portable` plugin's `invoke-default` hook and loads them by invoking `/portable:default`. The import was not part of the plugin, so it reached this repo and no consumer of the marketplace, which made the hub the one place that never ran the delivery path everyone else depends on and therefore the one place that could not notice the prod failing. Two channels for one contract was also a second source for a statement that has an owner. If the conventions are missing from a session here, the prod is broken and that is worth knowing rather than papering over. The guide-PR lifecycle is the second half of that system and rides a different channel: [docs/surfacing-course.md](docs/surfacing-course.md) is not imported, because it idles until a PR exists, and the `pr-subscribe-hint` hook delivers it at the moment one is opened. Four one-line defaults ride with the contract: run `/markers` before marking or editing near frozen areas; this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
@@ -44,29 +41,9 @@ Any turn that modifies `lib/gh-api.js` must end with the jsDelivr purge link so 
 
 The `gh.load` chain it replaces is the repo's default, not a legacy path: 36 page files use it, and [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in at all is the prior question, answered once in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`. It is also the argument that load and build are two readings of one set of rules, which is why the pre-build works at all.
 
-Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch:
+Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`tools/README.md`](tools/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
 
-- `lib/` changed → `npm run build:lib` → `dist/web-tools.js`; `lib/` or `app/index.html` → `npm run build:app` → `dist/app.js`
-- `pages/**/*.html` changed → `npm run pages-index` → `pages/README.md` + `pages/index.html`
-- skills, `lib/`, `pages/`, or `docs/` changed → `npm run docs-reach` → the `reach` and `words` fields in `docs/docs.csv`
-- `docs/docs.csv` changed → `npm run docs-readme` → `docs/README.md`, then `npm run docs-reach` again (leg 3c)
-- `docs/SNAGS.md` changed → `npm run snags-index` → the index block at its top
-- `tracker/tasks/` changed → `npm run tracker-board` → `tracker/board.md` + `tracker/board.csv`
-
-`reach` and `words` are the odd ones: derived fields in an otherwise authored
-file, so `docs/docs.csv` is hand-edited everywhere except those two keys.
-`reach` says who can get to a doc and moves when a skill or page names a file,
-an edit nowhere near the registry; `words` says how much of the folder it is.
-The two disagree, which is why the Docs tab shows both: the orphans are the
-larger count and the smaller mass. `tools/test/docs-registry.test.mjs` holds
-both to the derivation and names the restamp command when they part.
-
-Leg 3c exists because 3a and 3b are a cycle: `docs/README.md` is generated *from*
-the registry and is also a row *in* it. One more stamp settles it. The stamp
-itself runs to a fixpoint for the same reason one level down, and asserts
-convergence rather than assuming it.
-
-Don't hand-edit any of those five files; edit the source and let the hook refresh them. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the deliberate exception: not byte-deterministic, so the hook only *warns* when a page changes without its thumb; the actual refresh happens once per session at wrap-up (see "Per-session refresh" above).
 
 **It is a git hook, not a Claude Code hook, deliberately:** a `PreToolUse` hook is read only when the session's project root IS this repo, so a multi-repo session ran it never and said nothing. [`.claude/hooks/session-githooks.sh`](.claude/hooks/session-githooks.sh) sets `core.hooksPath`; `--no-verify` bypasses. Why, and what it does not generalize to: [extending.md](docs/environment/extending.md).
 
@@ -85,11 +62,11 @@ Root-level `tracker/` scoped to repo-wide work (conventions, build tooling, docs
 
 ## Registries
 
-A committed JSON or CSV that inventories or classifies part of the tree is a
+A committed CSV that inventories or classifies part of the tree is a
 **registry**; adding one means adding a row to
 [`docs/registries.csv`](docs/registries.csv) in the same commit. The model,
 the rules, and what its audits found are in
-[`docs/registries.md`](docs/registries.md); read it before inventing a carrier,
+[`docs/registries.md`](docs/registries.md); read it before inventing a registry,
 since the answer is usually a row in one that exists. The one trap: **one
 property about one target answers to one registry** (gated); resolve a
 collision by declaring that one registry **inherits** the other's descriptions,

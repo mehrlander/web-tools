@@ -7,6 +7,10 @@ harness,layer,tools,,repo-root harness files that fit no folder below
 harness,layer,tools/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
 harness,layer,tools/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
 harness,layer,tools/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken
+properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry"
+properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class"
+properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry"
+properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check"
 properties,exclusive,no,,one row may hold several values from the domain
 properties,exclusive,yes,,one row holds at most one value from the domain
 properties,form,column,,reserves a slot on every row
@@ -19,11 +23,11 @@ properties,required,value,,"an assertion is present for every target: true of ev
 registries,area,files,Files,the target has a path in this tree
 registries,area,names,Names,"everything else: a name something declared, the registry being what declares it"
 registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification"
-registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five carriers were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test"
+registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test"
 registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against"
 registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one"
 registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration"
-registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the carrier still lives here, which is what keeps it gateable"
+registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable"
 tests,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method
 tests,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true"
 skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit"

@@ -16,7 +16,7 @@ Tokenize  ──>  Sequitur  ──>  Bookend Merge  ──>  Selection  ──>
 ```
 
 Five stages. Each consumes the output of the previous. Stage 2 names Sequitur for
-the family; the implemented carrier is Re-Pair (see §2 for why).
+the family; the algorithm implemented is Re-Pair (see §2 for why).
 
 ---
 

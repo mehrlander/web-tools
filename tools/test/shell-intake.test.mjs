@@ -37,7 +37,7 @@ function wired({ view = 'estate', added = [{ name: 'one.md' }] } = {}) {
 
 // A ClipboardEvent stand-in: jsdom's carries no clipboardData, and what is under
 // test is the routing, not the platform's construction of the event.
-const evt = (target = { tagName: 'DIV' }, cd = { types: ['text/plain'] }) => {
+const evt = (target = { tagName: 'DIV' }, cd = { types: ['text/plain'], getData: () => '' }) => {
   const e = { clipboardData: cd, target, defaultPrevented: false };
   e.preventDefault = () => { e.defaultPrevented = true; };
   return e;
@@ -116,7 +116,7 @@ test('a paste with no clipboardData is declined rather than thrown on', async ()
 // ---- the drop, which shipped in PR #443 with no shell test of its own ----
 
 const dragEvt = (types = ['Files'], target = { tagName: 'DIV' }) => {
-  const e = { dataTransfer: { types, items: [], files: [] }, target, relatedTarget: null, defaultPrevented: false };
+  const e = { dataTransfer: { types, items: [], files: [], getData: () => '' }, target, relatedTarget: null, defaultPrevented: false };
   e.preventDefault = () => { e.defaultPrevented = true; };
   return e;
 };
@@ -182,11 +182,12 @@ test('a drop anywhere else stages, routes, and opens the one file', async () => 
 function withClipboard(result, { view = 'map' } = {}) {
   const { shell, toasts, win } = makeShell({ browserStore: { repo: '' }, win: { addEventListener: () => {} } });
   const focused = [];
+  win.io = { pasteItems: async () => {
+    if (result instanceof Error) throw result;
+    return result.length ? [{ kind: 'text', type: 'text/plain', text: 'ordinary text' }] : [];
+  } };
   win.StageIntake = {
-    takeClipboard: async () => {
-      if (result instanceof Error) throw result;
-      return { added: result, offers: [] };
-    },
+    takeFlavors: async () => ({ added: result, offers: [] }),
     focus: (it) => focused.push(it),
   };
   shell.view = view;
@@ -253,18 +254,26 @@ test('a second tap while the first is still reading is dropped', async () => {
 //   THE FAR END OF THE HANDOFF IS HERE. A paste taken anywhere else arrives as
 //   parked flavors, and nothing else on this page reads them.
 
-test('the app no longer contributes a menu row, and never a copy of the paste', () => {
-  // The contract carried a header row from 2026-08-28 to 2026-09-03, retired
-  // once the launcher's drawer (the Render tab's Header toggle) was the same
-  // control one tab-switch away. What still matters here: whatever the app
-  // contributes must never include the paste, since a contributed copy would
-  // show twice on any page already rendering a Stage, which is what promoting
-  // it into the fab was for.
+test('the app contributes the header row and never a copy of the paste', () => {
+  // The header row ran from 2026-08-28 to 2026-09-03 and was retired on the
+  // reasoning that the drawer's Render tab held the same control "one
+  // tab-switch away". That reasoning was tested in the field on 2026-09-08 and
+  // failed: a reader who KNEW the toggle existed still could not find it on a
+  // phone, because an app view opens at shellMode 'none', so it arrives with no
+  // header and no clue one exists, and the toggle is one word at the end of the
+  // width-preset row inside the fourth tab. One tab-switch away is only cheap
+  // once you know which tab. So the row is back, and this comment is the
+  // evidence rather than a second opinion.
+  //
+  // The paste half is the invariant and never moved: whatever the app
+  // contributes must never include it, since a contributed copy would show
+  // twice on any page already rendering a Stage, which is what promoting it
+  // into the fab was for.
   const { shell } = makeShell({ browserStore: { repo: '' } });
   const labels = (shell.menu || []).map(m => m.label.toLowerCase());
   assert.equal(labels.some(l => l.includes('paste')), false,
     'the paste is built into the fab; a contributed copy would show twice');
-  assert.deepEqual(labels, []);
+  assert.deepEqual(labels, ['hide the header']);
 });
 
 test('pasteAnywhere survives as the fab handle, since it is what the scan looks for', async () => {

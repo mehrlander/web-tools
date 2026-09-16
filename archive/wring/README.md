@@ -145,7 +145,7 @@ The `phase-*/` directories under [`docs/history/`](docs/history/README.md) conta
 | [`phase-1-discovery/`](docs/history/phase-1-discovery/README.md) | Partially superseded (interfaces and failure modes valid; algorithm replaced by Sequitur) |
 | [`phase-2-topology/`](docs/history/phase-2-topology/README.md) | Superseded (replaced by Bookend Merge) |
 | [`phase-3-refinement/`](docs/history/phase-3-refinement/README.md) | Partially superseded (alignment and consolidation concepts valid; input interface changed) |
-| [`phase-4-selection/`](docs/history/phase-4-selection/README.md) | Current in content (algorithms are path-independent), archived in form (written in the prior-architecture idiom; the live carriers are ARCHITECTURE.md §4 and `selection/mdl-select.js`) |
+| [`phase-4-selection/`](docs/history/phase-4-selection/README.md) | Current in content (algorithms are path-independent), archived in form (written in the prior-architecture idiom; the live account is ARCHITECTURE.md §4 and `selection/mdl-select.js`) |
 
 ---
 

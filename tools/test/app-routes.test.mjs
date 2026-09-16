@@ -123,9 +123,22 @@ test('the two sub-tab encodings, counted', () => {
   // its key is gone rather than re-encoded. 6 to 5 on 2026-08-27, when the
   // Stage's Saved pill went and `surfaces` became an alias rather than a key
   // of its own: an alias is not a sub-tab, since nothing addresses it.
-  assert.equal(flattened, 5, 'sub-tabs addressed as their own ?view= key');
-  // 13 to 14 on 2026-08-29: the Map view gained an Aims tab.
-  assert.equal(params, 14, 'sub-tabs addressed as ?view=<parent>&tab=');
+  //
+  // 5 to 6 on 2026-09-08, and only one of that day's two changes moved it.
+  // Activity gained Writes, which reads the commit stream for who wrote it
+  // rather than what changed: that is the +1. Routes left Activity for a tab
+  // of the Map view the same day and KEPT its key, so one flattened key moved
+  // from the Activity stop to the Map stop and the total did not notice. This
+  // figure counts how many sub-tabs wear a top-level key, not where they hang,
+  // so a relocation is invisible to it by design; a promotion or a retirement
+  // is what moves it.
+  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
+  // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
+  // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
+  // tab, which is the Routes pane arriving from Activity. 16 to 17 on
+  // 2026-09-14: the project view gained an Installation pill, shown only for a
+  // workspace whose manifest entry declares an installation manifest.
+  assert.equal(params, 17, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
@@ -150,7 +163,7 @@ const FIXTURE = {
 };
 
 test('shared is derived from being named twice, never authored', () => {
-  const c = R.carriers(FIXTURE);
+  const c = R.routesByFile(FIXTURE);
   assert.deepEqual(c.get('one.js'), ['one']);
   assert.deepEqual(c.get('wide.js'), ['one', 'two', 'three']);
 });
@@ -162,7 +175,7 @@ test('a wide file does not date a row it cannot speak for', () => {
   };
   const rows = R.rank(FIXTURE, { touches });
   const one = rows.find(r => r.key === 'one');
-  // 'one' has a narrow carrier, so its date is that carrier's, older though it
+  // 'one' has a narrow file, so its date is that file's, older though it
   // is: the newer wide commit says nothing about this route in particular.
   assert.equal(one.lastTouch.subject, 'narrow');
   assert.equal(one.borrowed, false);
@@ -201,7 +214,7 @@ test('branches join on the files they touch, carrying the hits', () => {
 });
 
 // The tiers, and the reason they beat a flat sort by date. 'one' is dated by
-// its own narrow carrier and is the OLDER date; 'two' and 'three' borrow the
+// its own narrow file and is the OLDER date; 'two' and 'three' borrow the
 // newer wide one. A flat sort would put the borrowers on top, which is the
 // reading the pane exists not to make.
 test('a row dated by its own code outranks every borrowed one, however fresh', () => {
@@ -236,13 +249,13 @@ test('a branch hitting only a wide file is near a route, not open on it', () => 
   assert.deepEqual(two.nearBranches.map(b => b.pr), [2]);
 });
 
-test('pathsToRead is every carrier plus the shell, deduped', () => {
+test('pathsToRead is every declared file plus the shell, deduped', () => {
   assert.deepEqual(R.pathsToRead(FIXTURE).sort(), ['one.js', 'shell.html', 'wide.js']);
 });
 
 // Grouping by stop takes its order FROM the ranking rather than recomputing it,
 // which is what keeps "freshest first" true at both levels at once. 'two' and
-// 'three' share a stop; 'one' is dated by its own narrow carrier and so leads
+// 'three' share a stop; 'one' is dated by its own narrow file and so leads
 // the ranking, and its stop leads with it.
 const STOPPED = {
   ...FIXTURE,
@@ -274,6 +287,22 @@ test('routesTouched applies the same narrow/wide rule as the forward join', () =
   // A wide-only hit is near every route that file carries and on none.
   assert.deepEqual(wide.on.map(x => x.key), []);
   assert.deepEqual(wide.near.map(x => x.key), ['one', 'two', 'three']);
+});
+
+// The near set gets one slot in both views, so the sentence behind that slot is
+// folded here rather than written twice. It was written twice: branch-brief
+// collapsed the set and the estate's branch rows rendered a ghosted LINK per
+// route, which is the disagreement routesTouched exists to prevent, and the
+// links offered exactly the addresses the near rule says to withhold.
+test('nearNote names the routes, the shared files, and why they do not count', () => {
+  const { near } = R.routesTouched(FIXTURE, ['wide.js']);
+  const note = R.nearNote(near);
+  assert.match(note, /^One, Two, Three: touched only through wide\.js, /);
+  assert.match(note, /cannot be said to change them$/);
+  // Each shared file once, however many routes carry it.
+  assert.equal(note.split('wide.js').length - 1, 1);
+  assert.equal(R.nearNote([]), '', 'no near set, no note to show');
+  assert.equal(R.nearNote(undefined), '');
 });
 
 test('routesTouched never counts the shell, and reports the hits it used', () => {

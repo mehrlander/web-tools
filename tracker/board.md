@@ -4,6 +4,7 @@ _Generated from tasks/. Do not hand-edit._
 
 ## On deck
 - 🎫 [Reach the take-away menu from show-repo's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
+- 🎫 [Trim code commentary to its criterion, rule first](tasks/comment-trim-rule-first-b0o3bu.md) · L
 - 🎫 [Enforce the house style, now that it is findable](tasks/enforce-house-style-ryz0z5.md) · M
 - 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md) · M
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
@@ -14,7 +15,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Stop storing the conventions twice](tasks/one-copy-of-the-conventions-i9i931.md) · S (awaiting: a decision on whether to depend on the marketplace clone's path (stage 2 only; stage 1 is startable now))
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
-- 🎫 [pdf.flow's `start` does not survive the column's own layout](tasks/pdf-flow-start-does-not-hold-461ldz.md) · S
 - 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
 - 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) · M
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
@@ -23,9 +23,10 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L
 - 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md) · S
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
-- 🎫 [Session-start nudge for repos that never opted in](tasks/session-start-nudge-unconfigured-z0g4zn.md) · S
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
+- 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
+- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS
 
 ## In progress
 - (none)
@@ -73,12 +74,14 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Guard every lib-booting page against the Alpine load race](tasks/lib-load-race-on-slow-connections-9kx2mv.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [One logic shelf: move every window-namespace module into lib/kits/](tasks/lib-root-kit-migration-dind5t.md) (`claude/lib-kits-migration-review-ouipa1`)
 - 🎫 [One parser for the owner/repo\[@ref\]:path address](tasks/one-repo-address-parser-5gtv92.md) (`claude/web-tools-tracker-review-bw48ga`)
+- 🎫 [pdf.flow's `start` does not survive the column's own layout](tasks/pdf-flow-start-does-not-hold-461ldz.md) (`claude/budget-drs-kits-analysis-krcugt`)
 - 🎫 [Private-repo landing federation via the home registry](tasks/private-repo-landing-federation-u50nns.md)
 - 🎫 [Two gaps the proposal channel showed on first use](tasks/proposals-diff-and-removal-w1y9lk.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Render files over 1 MB in toss-render and the shell viewers](tasks/render-large-files-toss-render-xm9ex7.md)
 - 🎫 [Repo-designated inbox and outbox in .web-tools.json](tasks/repo-inbox-outbox-manifest-0g6c8s.md) (`claude/tracker-status-cjogjn`)
 - 🎫 [Repo-level GitHub links in show-repo's shield dialog](tasks/repo-level-github-links-shield-9aufgx.md)
 - 🎫 [Resolve a branch's session from the commit trailer, not the open PR body](tasks/session-link-from-commit-trailer-7a407c.md) (`claude/active-work-branches-sd289p`)
+- 🎫 [Session-start nudge for repos that never opted in](tasks/session-start-nudge-unconfigured-z0g4zn.md) (`claude/zealous-fermat-s12v9r`)
 - 🎫 [Carry real session titles from the Dispatch export, without depending on it](tasks/session-titles-from-export-4vgu4x.md) (`claude/session-titles-join-7wq3vz`)
 - 🎫 [Retire .show-repo.json, delete the legacy file on migrate, drop the read fallback](tasks/show-repo-edit-web-tools-json-ygramz.md) (`claude/centralize-file-viewer-search-en30ye`)
 - 🎫 [show-repo - first-class projects, defined by tracker presence](tasks/show-repo-first-class-projects-7stibm.md) (`claude/project-pages-docs-udzi51`)

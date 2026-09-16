@@ -18,7 +18,7 @@
 
   const c = cls => `font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1 ${cls || ''}`;
 
-  // This page has no FAB, so there's no [data-path] to infer from — the snippets
+  // This page has no FAB, so there is no [data-path] to infer from; the snippets
   // pass opts.path explicitly. On a normal page the FAB stamps data-path and you
   // can omit it.
   const SELF = 'lib/kits/demos/export.html';
@@ -26,7 +26,7 @@
   const SECTIONS = [
     {
       title: 'Freeze one value',
-      intro: 'localForm turns a read() value into the local deposit file: a <script> that sets document.currentScript.value, which read()’s local probe lifts off the node. Pure string in, pure string out — no download.',
+      intro: 'localForm turns a read() value into the local deposit file: a <script> that sets document.currentScript.value, which read()’s local probe lifts off the node. Pure string in, pure string out, and no download.',
       examples: [
         {
           title: 'exporter.localForm',
@@ -43,10 +43,10 @@ console.log(text);`
     },
     {
       title: 'Export the page',
-      intro: 'page() emits one zip: the page source (fetched via gh.get, not the live DOM) at the zip root, and each read value frozen beside it at its read path. Unzip, open the HTML, and read() resolves local with no placement. Press Run — the gesture backs the download. Pass { offline: true } to also bake the code in (no network at all).',
+      intro: 'page() emits one zip: the page source (fetched via gh.get, not the live DOM) at the zip root, and each read value frozen beside it at its read path. Unzip, open the HTML, and read() resolves local with no placement. Press Run: the gesture backs the download. Pass { offline: true } to also bake the code in (no network at all).',
       examples: [
         {
-          title: 'exporter.page — explicit data',
+          title: 'exporter.page: explicit data',
           prose: `Pass <code class="${c()}">reads: [{ path, value }]</code> to export data you already hold. The HTML lands at the zip root as <code class="${c()}">export.html</code>; <code class="${c()}">data/sample.js</code> beside it.`,
           lang: 'js', kind: 'parent',
           code:
@@ -56,11 +56,11 @@ console.log(text);`
     { path: 'data/sample.js', value: { title: 'hello from the export demo', items: [1, 2, 3] } }
   ]
 });
-console.log('downloaded', manifest.filename, '— contains', manifest.reads);`
+console.log('downloaded', manifest.filename, 'containing', manifest.reads);`
         },
         {
-          title: 'exporter.build — inspect, don’t download',
-          prose: `<code class="${c()}">build()</code> returns the same manifest plus <code class="${c()}">files: [{ path, data }]</code> without downloading — useful for a preview or a custom writer.`,
+          title: 'exporter.build: inspect, do not download',
+          prose: `<code class="${c()}">build()</code> returns the same manifest plus <code class="${c()}">files: [{ path, data }]</code> without downloading, which is what a preview or a custom writer wants.`,
           lang: 'js', kind: 'parent',
           code:
 `const b = await exporter.build({
@@ -84,30 +84,35 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
 </script>
 </head>
 
-<body class="min-h-screen bg-base-200 text-base-content antialiased">
+<body class="min-h-dvh bg-base-200 text-base-content antialiased">
 
-  <div class="fixed inset-x-0 top-3 sm:top-4 z-50 pointer-events-none">
-    <div class="mx-auto max-w-[920px] px-4 sm:px-6 flex justify-end">
-      <div id="display-ctrl" class="pointer-events-auto"></div>
+  <!-- Sticky chrome over document scrolling, not a fixed bar: this page is a
+       tenant, embeddable through a toss render, and on iOS a fixed child
+       measures against the OUTER viewport and loses its right-hand edge inside
+       a narrower frame (house style rule 5). -->
+  <div class="sticky top-0 z-50 border-b border-base-300 bg-base-200/80 backdrop-blur">
+    <div class="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">
+      <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
+        <i class="ph ph-arrow-left"></i> demos
+      </a>
+      <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/export.js</p>
+      <div id="display-ctrl" class="ml-auto"></div>
     </div>
   </div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <!-- No centred column cap. The width is the window's, and the prose takes
+       its measure from the rail track below, the same one every example uses,
+       so a standfirst lines up with the commentary under it. -->
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-    <header class="mb-10">
-      <div class="flex items-baseline justify-between mb-3">
-        <p class="font-mono text-[10px] tracking-widest uppercase opacity-40">Living demo · kits/export.js</p>
-        <a href="./" class="font-mono text-[10px] tracking-widest uppercase opacity-40 hover:opacity-80 flex items-center gap-1">
-          <i class="ph ph-arrow-left"></i> demos
-        </a>
-      </div>
-      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
+    <header class="mb-8">
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-balance">
         Page plus its data. <span class="opacity-50">One zip, right layout.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.exporter</code>
-        emits a page and the data it <code class="font-mono text-[0.8em]">read()</code>s as one archive —
-        HTML at the root, each read value frozen to its local form beside it — so unzip-and-open
+        emits a page and the data it <code class="font-mono text-[0.8em]">read()</code>s as one archive:
+        HTML at the root, each read value frozen to its local form beside it, so unzip-and-open
         resolves local with no manual placement. By default it's local-<i>data</i> (the saved page
         still boots its code from the CDN); <code class="font-mono text-[0.8em]">{ offline: true }</code>
         bakes the code in too, for a page that opens with no network at all.
@@ -117,10 +122,12 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
 
     <main id="sections"></main>
 
-    <footer class="mt-4 pt-6 border-t border-base-300">
+    <footer class="mt-4 pt-6 border-t border-base-300 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6">
+      <div class="min-w-0">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2 text-pretty">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">parent</code> kind runs from the Run click so the download gets a genuine user gesture. The page-and-data integration this kit was built for lives in <a href="../../../pages/demos/cross-repo-read-demo.html" class="link link-hover">cross-repo-read-demo.html</a>.</p>
+      </div>
       </div>
     </footer>
 

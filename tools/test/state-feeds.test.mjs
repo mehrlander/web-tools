@@ -22,7 +22,7 @@
 //          makes; or a reading file belongs to exactly one route, so there is
 //          no other route the read could belong to.
 //
-// The sole-carrier rule is STRICTER than route-activity.js's WIDE = 3, and
+// The one-route rule is STRICTER than route-activity.js's WIDE = 3, and
 // deliberately: that threshold decides whether a commit may date a row, where
 // an approximation is defensible. Attributing a data dependency to a route on
 // the strength of a file two routes share would be a guess wearing a check.
@@ -61,7 +61,7 @@ const routes = parseCsv(readFileSync(path.join(repoRoot, 'docs/app-routes.csv'),
                reads: splitList(r.reads).filter(Boolean) }));
 
 // How many routes each file backs. A file backing exactly one is that route's
-// sole carrier, so a read it makes belongs to that route and nowhere else.
+// alone, so a read it makes belongs to that route and nowhere else.
 const carried = new Map();
 for (const r of routes) for (const f of r.files) carried.set(f, (carried.get(f) || 0) + 1);
 
@@ -72,8 +72,8 @@ test('the parses hold, so a pass is not an empty read', () => {
   assert.ok(routes.length > 15, `docs/app-routes.csv parsed suspiciously short: ${routes.length}`);
   assert.ok(routes.some(r => r.reads.length), 'no route declares a read; the column has gone blank');
   for (const s of sources) {
-    // A pathless source is legal and says how it arrives instead; one that is
-    // neither addressable nor attributed to a carrier cannot be checked at all.
+    // A pathless source is legal and says how it arrives instead; one with
+    // neither a path nor a `via` cannot be checked at all.
     assert.ok(s.path || s.via, `${s.key}: no file under state/ and no via saying how it arrives`);
     if (s.path) assert.ok(readers.get(s.key).length,
       `${s.key}: ${s.path} is read by no app file; the scan has stopped matching, or nothing uses it`);

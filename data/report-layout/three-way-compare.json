@@ -1,0 +1,16 @@
+{
+  "title": "Three-way compare by item (Governor's Budget w/ House and Senate Chairs)",
+  "measure": "value",
+  "columns": {
+    "band": "version",
+    "within": "year",
+    "bands": ["GOVJANUP", "OHCHAIR", "OSCHAIR"],
+    "withins": ["2026", "2027"],
+    "gap": true
+  },
+  "rows": { "levels": ["group", "subgroup", "item"] },
+  "opening": { "where": { "group": "Top Line" }, "label": "Top Line (incoming)" },
+  "subtotal": { "at": "group", "label": "{group} Total Change" },
+  "total": { "label": "Grand Total" },
+  "format": { "style": "thousands" }
+}

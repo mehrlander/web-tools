@@ -6,7 +6,8 @@ at commit `23114dc` (main; the repo was never tagged) on 2026-06-10.
 This directory is a complete snapshot of the wring repository: the source
 modules, the six-harness test suite, the CLI drivers, the original browser
 demos, and the research record (`docs/research/`, `docs/history/`,
-`docs/concepts/`). Files are byte-for-byte copies of the upstream sources.
+`docs/concepts/`). Files are byte-for-byte copies of the upstream
+sources, with one added directory noted below.
 
 To recreate the snapshot:
 
@@ -15,11 +16,23 @@ curl -sSL https://codeload.github.com/mehrlander/wring/tar.gz/23114dca52677fdff9
 mv Wring-*/ archive/wring/   # then drop this IMPORT.md in
 ```
 
+## What was added to the snapshot (not from upstream)
+
+One directory is **not** an upstream file and is the single exception to the
+byte-for-byte claim above: [`docs/research/from-archive/`](docs/research/from-archive/README.md),
+added 2026-09-16. It holds complete copies of the five Gemini research reports,
+assembled from this snapshot's own copies plus the canvas renders preserved in
+the private `mehrlander/chat-histories` archive, because neither copy carries
+both the citation markers and the source list. A sixth report that was never
+committed here is recovered alongside them. Nothing under `docs/research/0N-*/`
+was touched, so the recreate recipe above still reproduces every upstream file
+exactly; it simply does not produce that one folder.
+
 ## What was ported out of the snapshot (the live copies)
 
 | Live file in web-tools | Built from |
 |---|---|
-| `lib/kits/wring.js` | the six engine modules + `general/bridge.js`, concatenated by `export/build-kit.mjs` (run it from this directory to regenerate) |
+| `lib/kits/wring.js` | originally the six engine modules + `general/bridge.js`, concatenated by `export/build-kit.mjs`. **No longer regenerated:** on 2026-09-06 the kit was normalised into stage sections and the generation claim in its header dropped, so `build-kit.mjs` describes the import and not the current file |
 | `pages/demos/wring-text.html` | `general/demo.html`, re-plumbed to load the kit via `gh.load` |
 | `pages/demos/wring-dom.html` | `dom/demo.html`, same re-plumbing |
 | `tools/test/wring.test.mjs` | `export/tools/test-wring.mjs`, recast onto `node:test` so it runs under `npm test` |

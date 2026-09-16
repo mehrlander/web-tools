@@ -19,8 +19,8 @@ a property's declared mode must match which file its column lives in.
 
 | Layer | Where the mixing is | Fix |
 | --- | --- | --- |
-| 1 | 4 registries hold 17 authored columns beside 14 computed: `registries`, `tests`, `docs`, `harness` | split the carrier |
-| 2 | `NOTES` in `pages-index.mjs` (26 hand-written blurbs, `pages.note` declared `computed` while a human writes it, so the declaration is false); `INJECTED`/`PROJECT_FILES` in `docs-reach.mjs` | authored carrier |
+| 1 | 4 registries hold 17 authored columns beside 14 computed: `registries`, `tests`, `docs`, `harness` | split the file |
+| 2 | `NOTES` in `pages-index.mjs` (26 hand-written blurbs, `pages.note` declared `computed` while a human writes it, so the declaration is false); `INJECTED`/`PROJECT_FILES` in `docs-reach.mjs` | authored file |
 | 3 | 18 values in 5 glossaries in `map.js`, plus `ADOPT_VERDICT`/`DUE` in `estate.js` and `STATUS_TAG` in `file-review.js` | move to `docs/vocabularies.csv` |
 | 4 | presentation mappings (`KIND_TONE`, `MODE_ICON`, `TYPE_ICONS`) | stay, named as deliberate |
 
@@ -67,3 +67,16 @@ table inside 145 KB of machine output.
   one kind of registry: `pages` is curated and has it too. Table names updated.
 - 2026-09-04: Property count restamped 126 to 152; body cut from 1,038 words to 534. The survey tables keep their 2026-08-18 measurements, which carry
   the shape of the finding rather than a total. Still first: decision 1.
+- 2026-09-10: **Scoped against a second task that lands on the same 161 rows and
+  the same gate.** budget-drs's `column-primitive-across-registries-r8qiea` adds
+  one property, `column_primitive`, saying what kind of thing each column holds
+  (`id`, `label`, `locator`, `value`), with the doctrine in
+  [docs/column-primitives.md](../../docs/column-primitives.md) and a 58-row pilot
+  beside it. The two are near neighbours and not the same question: this task
+  asks *where a column came from* and whether its declared `mode` matches its
+  the file it sits in, that one asks *what a column contains*. They meet at
+  `properties-registry.test.mjs`, which would gain assertions from both.
+  Decide the order before either moves. The argument for this one first: its
+  Layer 2 finding, that `pages.note` is declared `computed` while a human writes
+  the 26 blurbs, means the `mode` column is currently false on some rows, and a
+  second property added beside a false one inherits the falsehood.

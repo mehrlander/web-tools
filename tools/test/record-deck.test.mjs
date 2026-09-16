@@ -187,6 +187,24 @@ test('the entry affordance is one glyph and one wording, estate-wide', () => {
     'a caller that has not fetched yet still gets the promise, without a number');
   const b = swipeDeck.entry({ count: 3, noun: 'file', onOpen: () => {} });
   assert.match(b.className, /btn-square/);
-  assert.match(b.className, /max-sm:h-11/, 'the phone hit target, since btn-sm is under 44px');
+  // 44px ON A PHONE BY DEFAULT, and a surface that wants less says so.
+  //
+  // WRONG 2026-09-07 → this paragraph: it read "ONE SIZE, 32px", on the
+  // argument that the target is "the kit's to make once rather than each
+  // host's to make differently". The branch page's heading row did want 32,
+  // and the reader picked it from four renderings; what did not follow is that
+  // the other seven doors wanted it. Taking the floor out of the shared class
+  // dropped six of them from 44 to 32 on a phone, and left the session brief's
+  // 12px short of the three siblings on its own row. Making it once is right;
+  // making it once from the surface with the tightest band is not.
+  assert.match(b.className, /\bbtn-sm\b/, 'the size the door takes');
+  assert.match(b.className, /max-sm:h-11 max-sm:w-11/, 'and the phone floor with it');
+  assert.doesNotMatch(swipeDeck.entry.cls('primary', 'tight'), /max-sm:h-/,
+    'which one surface declines by name rather than by editing the class');
+  // NO FILL. Primary colours the glyph rather than a ground behind it, which is
+  // what the tone was for: the host saying this deck is what most readers came
+  // to do. Ghost still earns its colour on hover instead of at rest.
+  assert.match(b.className, /btn-ghost text-primary/, 'primary tone wears no fill');
+  assert.doesNotMatch(b.className, /btn-soft/);
   assert.match(b.querySelector('i').className, /ph-cards-three/);
 });

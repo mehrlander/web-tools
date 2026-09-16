@@ -33,7 +33,7 @@ go stale, while two files stating a rule can be obeyed differently and both
 are binding while they disagree.
 
 The same pass builds a weighted graph and, until 2026-08-31, printed the top
-20 edges and dropped it. `--emit` writes the whole thing to docs/themes.json,
+20 edges and dropped it. `--emit` writes the whole thing to docs/themes.csv,
 which the Map view's Themes tab reads: clusters of that graph are themes, and
 which clusters exist is a function of the weight threshold, so the payload
 carries every edge and the reader carries the dial.
@@ -48,6 +48,7 @@ Usage:
 
 import argparse
 import csv
+import io
 import json
 import re
 import subprocess
@@ -170,7 +171,7 @@ def payload(files, hits):
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("scope", nargs="?", default=".", help="path to scan (default: the repo)")
-    ap.add_argument("--emit", metavar="PATH", help="write the weighted graph as JSON")
+    ap.add_argument("--emit", metavar="PATH", help="write the weighted graph as CSV")
     ap.add_argument("--check", action="store_true",
                     help="with --emit, compare bytes and exit 1 when stale")
     args = ap.parse_args(argv[1:])
@@ -207,10 +208,19 @@ def main(argv):
                   reverse=True)
 
     if args.emit:
-        # Sorted keys and a fixed separator: the artifact has to be byte-stable
+        # A fixed column order and row order: the artifact has to be byte-stable
         # or the commit hook writes churn and derived-artifacts.test.mjs cannot
-        # hold it to its source.
-        text = json.dumps(payload(files, hits), separators=(",", ":"), sort_keys=True) + "\n"
+        # hold it to its source. The quoted cell is a list, joined with ";" and
+        # escaped the way lib/kits/csv.js Csv.join/Csv.list expect.
+        p = payload(files, hits)
+        esc = lambda xs: ";".join(x.replace("\\", "\\\\").replace(";", "\\;") for x in xs)
+        buf = io.StringIO()
+        w = csv.writer(buf, lineterminator="\n")
+        w.writerow(["a", "b", "w", "rule", "quoted", "shingle", "scanned"])
+        for e in p["edges"]:
+            w.writerow([e["a"], e["b"], e["w"], "true" if e["rule"] else "",
+                        esc(e["quoted"]), p["shingle"], p["scanned"]])
+        text = buf.getvalue()
         out = Path(args.emit)
         if args.check:
             if not out.exists() or out.read_text(encoding="utf-8") != text:

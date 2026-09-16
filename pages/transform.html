@@ -16,6 +16,18 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/papaparse,npm/clipboard,npm/tabulator-tables"></script>
 <script defer src="https://unpkg.com/alpinejs/dist/cdn.min.js"></script>
 <script src="../lib/alpineComponents/transform-workbench.js"></script>
+<!-- The workbench's icon-only controls carry their labels as data-note, the
+     house popup. The kit is framework-free and self-starting, so a plain tag
+     is the whole of it; without it those buttons are icons with nothing to
+     say. The budget-drs app loads the same kit through its gh.load chain. -->
+<script src="../lib/kits/note.js"></script>
+<!-- The Layout view draws the Pivot's partition as a printed report. Its kit
+     reads window.esc, which vanilla-bundle carries and which a gh-boot page gets
+     first in the chain; this shell loads its scripts directly, so both are named
+     here. Without them the view says what it is missing rather than breaking,
+     and the other three views are unaffected. -->
+<script src="../lib/vanilla-bundle.js"></script>
+<script src="../lib/kits/report-layout.js"></script>
 </head>
 <body class="bg-base-100 min-h-screen p-4">
 

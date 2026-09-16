@@ -32,7 +32,7 @@ const manifest = [
 ].join('\n') + '\n';
 // The pages catalog the identities are joined from, keyed by href. CSV text
 // rather than objects, so the component's own parse runs: it JSON-parsed both
-// carriers until 2026-08-18, and a stub that handed it objects agreed with the
+// files until 2026-08-18, and a stub that handed it objects agreed with the
 // bug instead of catching it.
 const pages = [
   'href,title,note',
@@ -50,7 +50,7 @@ window.GH = class {
   }
 };
 
-// kits/csv.js first: the view parses both carriers through it, the same way
+// kits/csv.js first: the view parses both files through it, the same way
 // the pre-build's boot list supplies it on a real page.
 new window.Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(window);
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/tools.js'), 'utf8'))();

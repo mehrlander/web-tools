@@ -78,6 +78,54 @@ test('summarize keeps the scan fields and drops the bulk', () => {
   assert.ok(!('calls' in record() && row.callBodies), 'no call bodies in a row');
 });
 
+test('the fan-out figure takes schema 8 where it exists and the tally otherwise', () => {
+  // The union, and each half is the other's blind spot. Schema 8 knows what
+  // RAN; the tally counts attempts but is present from schema 4, so it reaches
+  // 30 of the store's records against the accurate field's 1.
+  const both = S.summarize(record({
+    tools: { Bash: 291, Agent: 126 }, agents_total: 124, agents_refused: 2,
+  }), 'x');
+  assert.equal(both.agents, 124, 'what ran, not what was attempted');
+  assert.equal(both.agentCalls, 126, 'the attempts stay readable beside it');
+  assert.equal(both.agentsRefused, 2);
+
+  // No schema 8: the tally carries the row rather than leaving it blank.
+  assert.equal(S.summarize(record({ tools: { Bash: 3, Agent: 9 } }), 'x').agents, 9);
+
+  // Below the TOOLS_KEPT cut it must still count: the whole reason neither
+  // half is read out of the row's own `tools`, which keeps the busiest six.
+  const lone = S.summarize(record({
+    tools: { Bash: 9, Edit: 8, Read: 7, Grep: 6, Glob: 5, Write: 4, Agent: 1 },
+  }), 'x');
+  assert.equal(lone.agents, 1);
+  assert.equal(lone.agentCalls, 1);
+  assert.equal(lone.tools.some(([n]) => n === 'Agent'), false);
+
+  // `Task` is the dispatch tool's earlier name, and no record in the store
+  // carries it: this pins the fallback, not an era anyone has seen.
+  assert.equal(S.summarize(record({ tools: { Task: 4 } }), 'x').agents, 4);
+
+  // No agents is 0, not undefined: the row hides the figure on falsy, and a
+  // missing key and a zero must reach that test the same way.
+  const none = S.summarize(record({ tools: { Bash: 3 } }), 'x');
+  assert.equal(none.agents, 0);
+  assert.equal(none.agentCalls, 0);
+  assert.equal(none.agentsRefused, 0);
+});
+
+test('summarize carries `attached`, and an older record gets [] not a guess', () => {
+  // Record schema 8. It is the container's repo list, so it is wider than
+  // `repos` (which is where the shell stood) and the two disagree by design.
+  const row = S.summarize(record({ attached: ['home', 'web-tools'] }), 'x');
+  assert.deepEqual(row.attached, ['home', 'web-tools']);
+
+  // Every record written before schema 8 stays empty permanently, since records
+  // are never revisited. Empty must read as "cannot say", so nothing here may
+  // fill it in from `repos`: a consumer that did would claim a scope the
+  // session never reported.
+  assert.deepEqual(S.summarize(record(), 'x').attached, []);
+});
+
 test('summarize ranks tools and files busiest-first, ties by name', () => {
   const row = S.summarize(record(), 'x');
   assert.deepEqual(row.tools[0], ['Bash', 132]);
@@ -1019,119 +1067,6 @@ test('a record predating schema 6 contributes nothing rather than a zero', () =>
 });
 
 // ── The channel, which the container cannot see ────────────────────────────
-// `startupAttention` above counts presence per document; `injectionAcross`
-// counts the CARRIER, and the two facts it is built for exist nowhere else. A
-// measurement of the checkout sees every one of these files perfectly present
-// on disk, so it can never report that the injector went quiet or that a
-// document arrived twice. Only a receipt can say either.
-
-test('injectionAcross separates the two carriers for one document', () => {
-  const got = S.injectionAcross([withStartup([
-    { path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' },
-    { path: CONV, via: 'project_instructions', basis: 'reconstructed' },
-  ])]);
-  assert.equal(got.sessions, 1);
-  assert.deepEqual(got.documents.map(d => d.via), ['project_instructions', 'session_hook']);
-  assert.deepEqual(got.documents.find(d => d.via === 'session_hook').delivered, { full: 1 });
-  assert.deepEqual(got.documents.find(d => d.via === 'project_instructions').delivered, { 'n/a': 1 });
-});
-
-test('both_channels counts the session, not the document', () => {
-  // Two documents arriving down both carriers in one session is one session
-  // with the duplication, not two: the number sits beside a session count.
-  const got = S.injectionAcross([withStartup([
-    { path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' },
-    { path: CONV, via: 'project_instructions', basis: 'reconstructed' },
-    { path: SURF, via: 'session_hook', basis: 'receipt', delivered: 'primitives_only' },
-    { path: SURF, via: 'project_instructions', basis: 'reconstructed' },
-  ])]);
-  assert.equal(got.both_channels, 1);
-});
-
-test('hook_silent is a session whose startup context holds no receipt at all', () => {
-  const got = S.injectionAcross([
-    withStartup([{ path: CONV, via: 'project_instructions', basis: 'reconstructed' }]),
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }]),
-  ]);
-  assert.equal(got.sessions, 2);
-  assert.equal(got.hook_silent, 1);
-  assert.equal(got.both_channels, 0, 'one carrier each, so neither session is doubled');
-});
-
-test('a row from an older summarizer is counted as unhealed, never as a silent hook', () => {
-  // The distinction is the whole point. A row built before ROW_V 13 carries no
-  // `via`, and reading that as "the hook delivered nothing" would turn a
-  // half-finished crawl into an alarming and false finding.
-  const got = S.injectionAcross([
-    { startup: [[CONV, 'reconstructed']], day: '2026-08-01' },
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }],
-                { day: '2026-08-27' }),
-  ]);
-  assert.equal(got.sessions, 2);
-  assert.equal(got.unhealed, 1);
-  assert.equal(got.hook_silent, 0);
-  assert.equal(got.documents.length, 1, 'the unhealed row contributes no document');
-});
-
-test('injectionAcross spans the days it saw and ignores rows with no startup context', () => {
-  const got = S.injectionAcross([
-    { ...S.summarize(record(), 'x'), day: '2026-01-01' },
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }],
-                { day: '2026-08-27' }),
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }],
-                { day: '2026-08-28' }),
-  ]);
-  assert.equal(got.sessions, 2, 'the record with no startup context is not a session here');
-  assert.equal(got.from, '2026-08-27');
-  assert.equal(got.to, '2026-08-28');
-  assert.equal(got.documents[0].sessions, 2);
-});
-
-test('sent is carried, and an absent one never becomes the file size', () => {
-  // The conflation the field exists to end: a receipt that reports only the
-  // document's size claims the whole thing arrived at every rung, so the one
-  // number that could contradict `delivered` agrees with it instead.
-  const got = S.injectionAcross([
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt',
-                   delivered: 'full', sent: 8483, bytes: 8483 }]),
-    withStartup([{ path: CONV, via: 'project_instructions', basis: 'reconstructed',
-                   bytes: 8483 }]),
-  ]);
-  const hook = got.documents.find(d => d.via === 'session_hook');
-  assert.equal(hook.sentMax, 8483);
-  const walk = got.documents.find(d => d.via === 'project_instructions');
-  assert.equal(walk.sentMax, undefined, 'a reconstructed entry knows the file, not the delivery');
-});
-
-test('sent reports the range across rungs, not an average nobody received', () => {
-  const got = S.injectionAcross([
-    withStartup([{ path: SURF, via: 'session_hook', basis: 'receipt',
-                   delivered: 'without_course', sent: 16982 }]),
-    withStartup([{ path: SURF, via: 'session_hook', basis: 'receipt',
-                   delivered: 'primitives_only', sent: 15949 }]),
-    withStartup([{ path: SURF, via: 'session_hook', basis: 'receipt',
-                   delivered: 'omitted', sent: 0 }]),
-  ]);
-  const [d] = got.documents;
-  assert.equal(d.sentMin, 0);
-  assert.equal(d.sentMax, 16982);
-  assert.deepEqual(d.delivered, { without_course: 1, primitives_only: 1, omitted: 1 });
-});
-
-test('sized counts the sessions that reported bytes, apart from those that spoke at all', () => {
-  // Two different silences. `hook_silent` is a session with no receipt; `sized`
-  // is a session with receipts that predate the sent field. Reading the second
-  // as the first would report a working injector as a broken one.
-  const got = S.injectionAcross([
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }]),
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt',
-                   delivered: 'full', sent: 8483 }]),
-  ]);
-  assert.equal(got.sessions, 2);
-  assert.equal(got.hook_silent, 0, 'both sessions have a receipt');
-  assert.equal(got.sized, 1, 'only one of them reported what it sent');
-});
-
 // ── Delivery, which every field above is blind to ──────────────────────────
 // A receipt is the injector's claim about what it supplied. Past a size
 // threshold the harness saves the hook's stdout to a file and passes the
@@ -1150,78 +1085,6 @@ test('startupCutOf reads the harness wrapper, and says nothing when it cannot', 
   // a startup that did not.
   assert.equal(of([{ truncated: true }, { produced: 10, delivered: 10 }]), true);
 });
-
-test('the cut rate is reported over the sessions that can answer, never over all', () => {
-  // A rate diluted by silence is the failure this whole reading exists to stop.
-  // Unmeasured sessions are excluded from both halves and counted separately.
-  const row = cut => ({
-    startup: S.startupOf({ startup_context: [
-      { path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }] }),
-    startupCut: cut, day: '2026-08-30',
-  });
-  const got = S.injectionAcross([row(true), row(false), row(null)]);
-  assert.equal(got.sessions, 3, 'every session with a startup context is still counted');
-  assert.equal(got.cut, 1);
-  assert.equal(got.measuredCut, 2, 'the third could not say, so it is in neither half');
-});
-
-test('a cut session still contributes its receipts, which is the trap', () => {
-  // The record is complete and the delivery did not happen. Both facts have to
-  // survive the fold, or the panel reports a document as delivered to a session
-  // that received a 2 KB preview of it.
-  const got = S.injectionAcross([{
-    startup: S.startupOf({ startup_context: [
-      { path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }] }),
-    startupCut: true, day: '2026-08-30',
-  }]);
-  assert.equal(got.cut, 1);
-  assert.equal(got.hook_silent, 0, 'the hook spoke; the session simply did not hear it');
-  assert.equal(got.documents[0].delivered.full, 1,
-    'and the receipt still says full, which is why the cut count sits above it');
-});
-
-test('a document counted once per session, even when the record holds it twice', () => {
-  // Not hypothetical, and it shipped wrong: a startup_context entry keys on its
-  // sha as well as its path, so a file edited mid-session is two true entries
-  // about one presence. Counting entries reported 35 sessions out of 33.
-  const got = S.injectionAcross([withStartup([
-    { path: 'home/CLAUDE.md', via: 'project_instructions', basis: 'reconstructed' },
-    { path: 'home/CLAUDE.md', via: 'project_instructions', basis: 'reconstructed' },
-  ])]);
-  assert.equal(got.sessions, 1);
-  assert.equal(got.documents.length, 1, 'one row, since it is one document on one channel');
-  assert.equal(got.documents[0].sessions, 1, 'and it cannot outrun the sessions it is counted over');
-});
-
-test('no document can be counted in more sessions than were scanned', () => {
-  // The invariant the bug above broke, stated so it cannot break silently again.
-  const rows = [
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' },
-                 { path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' },
-                 { path: SURF, via: 'project_instructions', basis: 'reconstructed' }]),
-    withStartup([{ path: CONV, via: 'session_hook', basis: 'receipt', delivered: 'full' }]),
-  ];
-  const got = S.injectionAcross(rows);
-  for (const d of got.documents) {
-    assert.ok(d.sessions <= got.sessions,
-      `${d.path} claims ${d.sessions} of ${got.sessions}`);
-  }
-});
-
-test('a verdict is counted once per session, so the counts never undershoot', () => {
-  // Two rungs in one session is one session on each verdict, and the verdict
-  // counts must still account for every session on the row.
-  const got = S.injectionAcross([withStartup([
-    { path: SURF, via: 'session_hook', basis: 'receipt', delivered: 'without_course' },
-    { path: SURF, via: 'session_hook', basis: 'receipt', delivered: 'primitives_only' },
-  ])]);
-  const [d] = got.documents;
-  assert.equal(d.sessions, 1);
-  assert.deepEqual(d.delivered, { without_course: 1, primitives_only: 1 });
-  const total = Object.values(d.delivered).reduce((a, b) => a + b, 0);
-  assert.ok(total >= d.sessions, 'every session on the row is represented by a verdict');
-});
-
 // ── The prose leaves the row (2026-09-02) ──────────────────────────────────
 // summarize() still derives the scroll back, the states and the reply, since
 // a card opened on one row runs it on the record in the browser; the FILE
@@ -1250,4 +1113,369 @@ test('a carried row from an older file is thinned without a re-read', () => {
   assert.ok(!('reply' in next.rows[0]) && !('turns' in next.rows[0]), 'and lean');
   assert.deepEqual(S.stalePaths(next, [{ path: p, sha: 'same' }]), [], 'sha and version still match');
   assert.equal(S.leanRow(null), null);
+});
+
+// ── The scroll back, whole ─────────────────────────────────────────────────
+// A card that offers to open one turn has to be able to find that turn in the
+// record, and the only address it has is a position in its own list. So the
+// two lists are one function with a head on the end of it, and this is what
+// holds them in step. There was a cap between them until 2026-09-08, which
+// made them the same length only from the tail; they are now the same list.
+
+test('fullTurns and priorTurns line up entry for entry', () => {
+  const prompts = [], replies = [];
+  for (let i = 0; i < 6; i++) {
+    prompts.push({ at: '2026-08-05T13:0' + i + ':00Z', text: 'ask number ' + i });
+    replies.push({ at: '2026-08-05T13:0' + i + ':30Z',
+                   text: 'A sentence answering ' + i + '. ' + 'And more of it. '.repeat(40) });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length, 'nothing is capped at this size');
+  assert.deepEqual(full.map(e => e.k), head.map(e => e[0]), 'same roles, same order');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]), 'same clocks');
+  const cut = head.findIndex(e => e[3]);
+  assert.ok(cut >= 0, 'the fixture has to cut something for this to mean anything');
+  assert.ok(full[cut].md.length > head[cut][1].length,
+    'and the whole turn at that index is longer than the head of it');
+  assert.ok(full[cut].md.startsWith('A sentence answering'));
+});
+
+test('a session past the old cap still lines up entry for entry', () => {
+  // 50 exchanges is 98 entries, well past the 60 the cap allowed, and the
+  // point of the fixture is that the two lists stay the same length anyway:
+  // a tap trades index i of the card for index i of the record.
+  const prompts = [], replies = [];
+  for (let i = 0; i < 50; i++) {
+    prompts.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':00Z', text: 'ask ' + i });
+    replies.push({ at: '2026-08-05T13:' + String(i).padStart(2, '0') + ':30Z', text: 'answer ' + i });
+  }
+  const r = record({ schema: 4, prompts, replies });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, 98, 'the fixture has to overflow the old cap of 60');
+  assert.equal(head.length, full.length, 'and nothing is dropped');
+  assert.deepEqual(full.map(e => e.ts), head.map(e => e[2]),
+    'entry i of the card is entry i of the record, which is what a tap trades on');
+});
+
+test('an empty turn is dropped before the head, not after it', () => {
+  // Dropped downstream it would shorten the card's list and leave every index
+  // past it addressing the turn before.
+  const r = record({ schema: 4,
+    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'open' },
+              { at: '2026-08-05T13:02:00Z', text: '   ' },
+              { at: '2026-08-05T13:04:00Z', text: 'the second ask' }],
+    replies: [{ at: '2026-08-05T13:01:00Z', text: 'the first answer' },
+              { at: '2026-08-05T13:05:00Z', text: 'the last answer' }] });
+  const full = S.fullTurns(r), head = S.priorTurns(r);
+  assert.equal(full.length, head.length);
+  assert.ok(!full.some(e => !e.img && !String(e.md).trim()), 'no blank entry survives');
+});
+
+// ── The phone's copy: state/session-menu.json ────────────────────────────────
+//
+// A second, purpose-built file rather than a view of the cache, because the
+// phone cannot afford the cache. The assertions that matter here are the two
+// that make it cheap: it carries three fields per session and no more, and it
+// is keyed by branch so a lookup is a lookup rather than a scan.
+
+const menuRow = (id, ended, ask, branches = []) => ({ id, ended, ask, branches });
+
+test('the menu index carries what a phone row needs and no more, keyed by branch, newest first', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', ['claude/older-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd']),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.equal(m.generatedAt, cache.generatedAt, 'one stamp, so the two files cannot disagree about freshness');
+  // A recent entry carries its branch as a fourth field and a `branches` entry
+  // does not, because there the key already is one. The row's label leads with
+  // the slug, so without the fourth field every recent row falls back to prose.
+  assert.deepEqual(m.recent, [
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'claude/newer-cc22dd'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', 'claude/older-aa11bb'],
+  ]);
+  assert.deepEqual(m.branches['claude/older-aa11bb'], ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask']);
+  assert.deepEqual(Object.keys(m), ['generatedAt', 'recent', 'branches'],
+    'nothing else rides this file: every field added here is bytes over cellular');
+});
+
+test('the menu index is small enough to be worth having', () => {
+  // The whole reason it exists. A row of the cache carries a session's tool
+  // counts, token counts, file lists and closing reply; the phone needs an id,
+  // a timestamp and one line. Three fields against a row of about 1 KB.
+  const rows = Array.from({ length: 200 }, (_, i) => ({
+    id: String(i).padStart(8, '0'), ended: '2026-09-08T12:00:00Z',
+    ask: 'word '.repeat(60), branches: ['claude/b-' + i],
+    tools: [['Bash', 1600]], files: [['a/b.js', 12]], reply: 'x'.repeat(4000),
+  }));
+  const m = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  assert.ok(JSON.stringify(m).length < 200 * 200,
+    'a session costs well under 200 bytes here, was ' + Math.round(JSON.stringify(m).length / 200));
+  assert.equal(m.recent.length, S.MENU_RECENT, 'the recent list is bounded');
+  for (const e of Object.values(m.branches)) assert.ok(e[2].length <= S.MENU_ASK);
+});
+
+test('the menu index keeps the newest session for a branch and drops what could never be looked up', () => {
+  const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
+    menuRow('aaaaaaaa', '2026-09-08T10:00:00Z', 'First', ['claude/shared-aa11bb']),
+    menuRow('bbbbbbbb', '2026-09-08T12:00:00Z', 'Second', ['claude/shared-aa11bb']),
+    // No slash, so the op's branchOf would never call it a branch and no
+    // lookup could ever reach it. Carrying it is bytes for nothing.
+    menuRow('cccccccc', '2026-09-08T11:00:00Z', 'Slashless', ['hotfix']),
+  ] };
+  const m = S.buildMenuIndex(cache);
+  assert.deepEqual(m.branches['claude/shared-aa11bb'][0], 'bbbbbbbb', 'the newest session wins the key');
+  assert.deepEqual(Object.keys(m.branches), ['claude/shared-aa11bb']);
+});
+
+test('the ask reaches the phone as one plain line', () => {
+  // The row is drawn by Shortcuts, which renders no markdown, so a fence or a
+  // link would arrive as its own punctuation. Done here so the op receives a
+  // string it can put straight on a row.
+  const long = '**Bold** and `code` and [label](https://x.y/z)\nsecond line ' + 'word '.repeat(40);
+  const m = S.buildMenuIndex({ generatedAt: '', rows: [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', long)] });
+  const ask = m.recent[0][2];
+  assert.doesNotMatch(ask, /[*`\[\]\n]/);
+  assert.ok(ask.length <= S.MENU_ASK);
+  assert.match(ask, /…$/);
+});
+
+test('the menu index commits only when the phone would see a difference', () => {
+  // The crawl stamps generatedAt on every pass whether or not anything moved,
+  // and the cache moves for things this file does not carry.
+  const rows = [menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Ask', ['claude/x-aa11bb'])];
+  const a = S.buildMenuIndex({ generatedAt: '2026-09-08T13:00:00Z', rows });
+  const b = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z', rows });
+  assert.equal(S.menuChanged(a, b), false, 'a fresher stamp alone is not a change');
+  const c = S.buildMenuIndex({ generatedAt: '2026-09-08T14:00:00Z',
+    rows: [...rows, menuRow('bbbbbbbb', '2026-09-08T13:00:00Z', 'New one', ['claude/y-cc22dd'])] });
+  assert.equal(S.menuChanged(a, c), true);
+  assert.equal(S.menuChanged(null, a), true, 'the file not existing yet is a change');
+});
+
+// ── What the Sessions pane's text box can reach ──────────────────────────────
+// The prose left the row on 2026-09-02 (PROSE_KEYS), so a filter over these
+// rows reaches the opening ask, the two names, and the work's vocabulary, and
+// nothing said after the opening. Both directions are held: a miss on a phrase
+// spoken mid-session is correct behaviour here, not a bug to fix by widening
+// the haystack, and the pane routes such a query to the exhaustive pass.
+
+const SEARCH_ROW = {
+  id: '4835da35',
+  day: '2026-09-10',
+  title: 'CI subscription docs',
+  ask: 'Do we have documentation around CI?',
+  branches: ['claude/amazing-edison-k9dk2n'],
+  repos: [{ name: 'home', branch: 'claude/amazing-edison-k9dk2n', lines: 1 }],
+  attached: ['home', 'web-tools', 'web-tools-private'],
+  files: [['web-tools/lib/kits/estate-search.js', 4]],
+  docFiles: [['web-tools/docs/inbound.md', 1]],
+  guides: [],
+  skillCalls: [['markers', 2]],
+  tools: [['Bash', 33]],
+};
+
+test('the search segments are the row, labelled by which field they came from', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  assert.ok(segs.includes('title: CI subscription docs'));
+  assert.ok(segs.includes('ask: Do we have documentation around CI?'));
+  assert.ok(segs.includes('repo: home'));
+  assert.ok(segs.includes('attached: web-tools-private'));
+  assert.ok(segs.includes('file: web-tools/lib/kits/estate-search.js'));
+  assert.ok(segs.includes('doc: web-tools/docs/inbound.md'));
+  assert.ok(segs.includes('skill: markers'));
+  assert.ok(segs.includes('tool: Bash'));
+});
+
+test('the derived name rides in both spellings, so either one finds it', () => {
+  const C = load();
+  const segs = C.searchSegs(SEARCH_ROW);
+  // The branch as stored, and the title as a person remembers saying it.
+  assert.ok(segs.includes('name: amazing-edison'));
+  assert.ok(segs.includes('name: amazing edison'));
+  assert.equal(C.matches(SEARCH_ROW, 'amazing edison'), true);
+});
+
+test('terms are ANDed across the row and ORed across its fields', () => {
+  const C = load();
+  assert.equal(C.matches(SEARCH_ROW, 'documentation'), true);
+  // One term from the ask, one from a file path: a session that opened that
+  // file while being asked that question is a real answer to both.
+  assert.equal(C.matches(SEARCH_ROW, 'documentation estate-search'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'documentation pensions'), false);
+  assert.equal(C.matches(SEARCH_ROW, ''), true);
+});
+
+test('a row carries no prose, so no filter over rows can find what was said', () => {
+  const C = load();
+  // The ask is on the row at ASK_CHARS and answers. A reply is not on the row
+  // at all, and this miss is what sends the reader to EstateSearch.sessions.
+  assert.equal(C.matches(SEARCH_ROW, 'CI'), true);
+  assert.equal(C.matches(SEARCH_ROW, 'subscribe_pr_activity'), false);
+  // Stated structurally as well as by example: leanRow is what removed it.
+  assert.ok(C.PROSE_KEYS.includes('turns'));
+  assert.ok(C.PROSE_KEYS.includes('reply'));
+  assert.equal('turns' in C.leanRow({ turns: [['u', 'hi', '00:00:01']] }), false);
+});
+
+// ── Attachments come off the ask before the cap ──────────────────────────────
+// Claude Code writes one @"<upload path>" per attached file at the head of the
+// prompt, and ASK_CHARS was being spent on them: measured 2026-09-10, 7 of the
+// 372 rows on file opened with an upload mention and 3 held nothing but paths,
+// so the question never reached the cache. These hold the lift, the two fail-
+// open shapes, and the one thing that must NOT be touched, a typed @ reference.
+
+const UP = '/root/.claude/uploads/d657f526-3a5d-5fc8-9c67-9a9025374174/';
+const REAL_ASK =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  `@"${UP}39298db0-CORE_PAM_IT_Addendum.docx" ` +
+  "Please review the attached documents with the drs budget app submittal view.";
+
+test('the ask keeps the question and the attachments become names', () => {
+  const C = load();
+  const { ask, files } = C.askParts(REAL_ASK);
+  assert.equal(ask, 'Please review the attached documents with the drs budget app submittal view.');
+  assert.deepEqual([...files], [
+    'COREPAM_Decision_Package.docx',
+    'IT_Fiscal_Workbook__CORE_PAM.xlsx',
+    'CORE_PAM_IT_Addendum.docx',
+  ]);
+  // The record's own 444 characters would have been cut at 240, inside the
+  // third path, which is what this exists to stop.
+  assert.ok(REAL_ASK.length > C.ASK_CHARS);
+  assert.ok(ask.length < C.ASK_CHARS);
+});
+
+test('the eight-hex prefix goes and a real name keeps its digits', () => {
+  const C = load();
+  // The harness prefix disambiguates two uploads of one name; the name under
+  // it starts with digits of its own and must survive.
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0e001840-02.02DecisionPackageReduction.docx'),
+               '02.02DecisionPackageReduction.docx');
+  assert.equal(C.attachName('/root/.claude/uploads/s1/0181b50d-SKILL.md'), 'SKILL.md');
+});
+
+test('a typed @ reference is not an attachment and stays in the ask', () => {
+  const C = load();
+  // The rule anchors on the uploads DIRECTORY, never on the @ sigil. A repo
+  // path somebody typed is content, and stripping it would also drop it out of
+  // the search corpus.
+  const { ask, files } = C.askParts('Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(ask, 'Read @docs/SURFACING.md then @lib/gh-api.js');
+  assert.equal(files.length, 0);
+});
+
+test('an upload shape it does not know is left alone, not guessed at', () => {
+  const C = load();
+  // Both fail-open cases: nothing under the uploads directory, and one segment
+  // where the layout has two. Taking "the last segment" would have called the
+  // first of these an attachment named `uploads` and deleted the mention.
+  for (const bad of ['@"/root/.claude/uploads/" hi', '@"/root/.claude/uploads/abc" hi']) {
+    const { ask, files } = C.askParts(bad);
+    assert.equal(ask, bad, `should be untouched: ${bad}`);
+    assert.equal(files.length, 0);
+  }
+  assert.equal(C.attachName('/root/.claude/uploads/'), '');
+  assert.equal(C.attachName('/nowhere/near/uploads/a/b.txt'), '');
+});
+
+test('what was typed is not otherwise rewritten', () => {
+  const C = load();
+  // Interior spacing and line structure survive: sessionAsk reads the lines to
+  // rebuild list boundaries, and double spaces are how somebody types.
+  assert.equal(C.askParts('plain  ask\nsecond line').ask, 'plain  ask\nsecond line');
+  assert.equal(C.askParts('').ask, '');
+  assert.equal(C.askParts(null).ask, '');
+});
+
+test('summarize lifts them onto the row, and only where there were some', () => {
+  const C = load();
+  const withFiles = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.equal(withFiles.attachments.length, 3);
+  assert.match(withFiles.ask, /^Please review/);
+  // 365 of 372 rows have none, and an absent key is how `title` says the same
+  // thing: no empty array on every row saying nothing.
+  const without = C.summarize({ short: 'bbbb2222', opening_ask: 'just a question' }, 'sha');
+  assert.equal('attachments' in without, false);
+  assert.equal(without.ask, 'just a question');
+});
+
+test('the names are searchable, apart from the ask', () => {
+  const C = load();
+  const row = C.summarize({ short: 'aaaa1111', opening_ask: REAL_ASK }, 'sha');
+  assert.ok(C.searchSegs(row).includes('attachment: COREPAM_Decision_Package.docx'));
+  assert.equal(C.matches(row, 'COREPAM_Decision_Package'), true);
+  // And the question is now findable, which it was not while the cap was spent
+  // on paths.
+  assert.equal(C.matches(row, 'submittal view'), true);
+  // The UUID directory is gone from the corpus, which is the other half.
+  assert.equal(C.matches(row, '9a9025374174'), false);
+});
+
+test('the row version moved, so a crawl re-summarizes every row already cached', () => {
+  const C = load();
+  // Without the bump the three rows whose ask is nothing but paths would keep
+  // it forever: their blob sha never moves again.
+  const row = (v) => ({ id: 'a', day: '2026-09-10', sha: 's1', v });
+  const listing = [{ path: C.pathOf(row(C.ROW_V)), sha: 's1' }];
+  // Both directions, so this cannot pass because the fixture path missed.
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V)] }, listing).length, 0,
+    'a row at the current version and the same sha is not re-read');
+  assert.equal(C.stalePaths({ rows: [row(C.ROW_V - 1)] }, listing).length, 1,
+    'a row a version behind is re-read even at the same sha');
+});
+
+// ── The rail's source: when the session spoke ─────────────────────────────
+// `beats` is the one field on the LEAN row that describes a session's internal
+// shape, so the two things worth holding are its units and its survival of the
+// prose cut. Everything else about the Activity list's rail is arithmetic on
+// these numbers, and arithmetic on the wrong unit is silent.
+
+test('a beat is minutes off the row own start, one per user turn, in order', () => {
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [
+      { at: '2026-08-05T13:51:08Z', text: 'first' },
+      { at: '2026-08-05T14:21:08Z', text: 'half an hour later' },
+      { at: '2026-08-05T13:56:08Z', text: 'out of order in the record' },
+    ],
+  }), 'x');
+  assert.deepEqual(row.beats, [0, 5, 30],
+    'minutes from started, sorted, whatever order the record holds them in');
+});
+
+test('a prompt before the recorded start stays negative rather than being clamped', () => {
+  // `started` and the first prompt agree on 194 of 225 records, so a handful of
+  // sessions really do open before their own recorded start. Clamping to zero
+  // would draw a burst at the origin that never happened; the renderer drops
+  // what falls outside its window instead.
+  const row = S.summarize(record({
+    started: '2026-08-05T13:51:08Z',
+    prompts: [{ at: '2026-08-05T13:41:08Z', text: 'ten minutes early' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [-10]);
+});
+
+test('a record with no readable start has no beats, rather than beats from zero', () => {
+  const row = S.summarize(record({
+    started: '', prompts: [{ at: '2026-08-05T13:51:08Z', text: 'x' }],
+  }), 'x');
+  assert.deepEqual(row.beats, [], 'no anchor, so no offsets to be wrong about');
+});
+
+test('beats survive the prose cut, because the list draws them on every row', () => {
+  // The prose left the row in 2026-09 so the file would stop being mostly
+  // transcript; what reads prose is one card at a time and it fetches the
+  // record. The rail is the opposite case: drawn on every visible row, so
+  // fetching it per row is 298 record reads to paint one pane.
+  const row = S.summarize(record({
+    prompts: [{ at: '2026-08-05T14:51:08Z', text: 'x' }],
+  }), 'x');
+  const lean = S.leanRow(row);
+  assert.deepEqual(lean.beats, [60], 'beats stay');
+  assert.ok(!('turns' in lean), 'the prose does not');
+  assert.ok(!S.PROSE_KEYS.includes('beats'));
 });

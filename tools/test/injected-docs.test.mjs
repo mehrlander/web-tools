@@ -1,21 +1,20 @@
-// docs/CONVENTIONS.md and docs/SURFACING.md: the two documents loaded into
-// every session in every repo, and the only two the docs registry marks
-// `reach: injected`. A word in them is a runtime cost paid on every turn, which
-// is the argument PR #509 made when it cut both to their declarations.
+// The two documents the portable plugin loads into every session: the
+// invoke-default hook prods and /portable:default reads them. A word in
+// either is a cost paid at every session start, which is the argument PR #509
+// made when it cut the injected documents to their declarations, and PR #634
+// extended when it retired the injection hook and CONVENTIONS.md. What remains
+// always-loaded is CLAUDE.md (ceilinged in claude-md.test.mjs) and these two.
 //
-// CLAUDE.md has had a ceiling since 2026-08-03 (claude-md.test.mjs) and has
-// moved +0.1% since. These two had none and moved +25% and +27% over the same
-// window, then needed a hand cut. Same gate, same remedy, two more files.
+// The mechanism changed on 2026-09-12 and the cost did not. web-tools
+// @-imported both until then; nothing imports them now and the plugin delivers
+// them instead, so the per-session price is the same and so is the ceiling.
+// QUALIFIED-WRITING.md gained one here the same day: it had been a section of
+// CLAUDE.md, covered by that file's ceiling, and splitting it out had quietly
+// moved always-loaded words out from under any limit at all.
 //
-// The remedy when any of these fires is EXTRACTION, never shaving. Move the
-// material into a doc that is not injected, or into data the app renders, the
-// way the showing section went to docs/showing-mechanisms.csv. Trimming
-// adjectives buys a few words, teaches the next session that the number is the
-// goal, and leaves the file just as long.
-//
-// Raising a number is a real option, and it is a decision about how much every
-// session in the estate reads before it starts. Make it deliberately, in its
-// own commit, not in the one that tripped the check.
+// If the ceiling fails, look to trim redundant state details, enforced rules,
+// or duplicated content, or move material to surfacing-extended.md, which
+// loads only on demand. Raising the limit requires user approval.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,77 +25,27 @@ import { repoRoot } from './bootstrap.mjs';
 const read = (p) => readFileSync(path.join(repoRoot, p), 'utf8');
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
 
-// Set 2026-08-27, each a little above the size the file reached after the
-// docs-editing sessions' compression pass, so the next stretch of growth trips
-// it rather than the one after that. CONVENTIONS.md shares CLAUDE.md's number
-// because it plays the same part.
-const LIMITS = {
-  'docs/CONVENTIONS.md': 1600,   // 1,339w when set
-  'docs/SURFACING.md': 4400,     // 3,918w when set
-};
+// 1,461 words when set (2026-09-09, after the primitives leaned on
+// surfacing-extended.md); the ceiling sits a stretch of growth above that.
+const LIMIT = 1800;
 
-// Neither number is the binding constraint, and the gap between them and the
-// one that is misleads in the expensive direction. These are per-file word
-// ceilings; the channel is a shared BYTE budget over both documents at once,
-// held by conventions-delivery.test.mjs. Measured 2026-08-30 after PR #545's
-// state-the-rule pass: about 100 bytes of headroom before the payload drops
-// SURFACING.md's front matter, and about 1,000 before it drops every primitive,
-// while CONVENTIONS.md reads 261 words under its ceiling. A session that spends
-// the words it appears to have here fails there: a 192-word section added that
-// day cost 1,159 bytes and took the payload two rungs down. The rung boundaries
-// move whenever either document changes size, so re-measure rather than trusting
-// these figures; check the delivery test before adding to either file.
+// 216 words when set (2026-09-12), four rules and a scope line; the ceiling
+// leaves room to explain a rule without room to grow a second document.
+const WRITING_LIMIT = 600;
 
-for (const [file, limit] of Object.entries(LIMITS)) {
-  test(`${file} stays under its ceiling`, () => {
-    const n = words(read(file));
-    assert.ok(n < limit,
-      `${file} is ${n} words, over its ${limit}-word ceiling. It is injected ` +
-      'into every session in every repo, so the fix is extraction: move the ' +
-      'material to a doc that is not injected, or to data the app renders. ' +
-      'Raising the ceiling is a deliberate decision, taken on its own.');
-  });
-}
-
-// The primitives section on its own, which the file ceiling above cannot do.
-//
-// Between 2026-08-11 and 2026-08-25 this section gained 950 words while stating
-// exactly the same twenty rules: the rule set was frozen and the prose was not.
-// A whole-file ceiling misses that whenever another section shrinks by as much,
-// which is not hypothetical: on 2026-08-27 the file fell 207 words while this
-// section rose 254.
-//
-// This was a words-PER-RULE budget for one day, and the distribution says that
-// was the wrong statistic. Two of the twenty entries hold 45% of the section
-// (the surfacing caption at 717 words, closing state at 344; the median is 72).
-// So a mean tracks those two and almost nothing else, and one rewrite of the
-// caption moved it 12% in a day. A section total catches the same failure, has
-// no statistic to misreport, and does not turn one entry's edit into a gate.
-const SECTION_LIMIT = 2600;      // 2,342w when set, over 20 rules
-
-test('the primitives section stays under its own budget', () => {
-  const surfacing = read('docs/SURFACING.md');
-  const section = surfacing
-    .split('## Surfacing primitives')[1]?.split('## The surfacing course')[0];
-  assert.ok(section, 'the primitives section is where the parser expects it');
-
-  const rules = (section.match(/^\* \*\*/gm) || []).length;
-  assert.ok(rules > 10, 'the section parses into primitives');
-
-  const n = words(section);
-  assert.ok(n < SECTION_LIMIT,
-    `the primitives section is ${n} words across ${rules} rules, over its ` +
-    `${SECTION_LIMIT}-word budget. Adding a rule is the section doing its job ` +
-    'and costs about a median entry (72 words); explaining one is the failure ' +
-    'this catches. Each entry states the rule, then Form where there is a ' +
-    'syntax, then Boundary where deleting the clause would change how the rule ' +
-    'applies at an edge. Provenance goes to the PR body, which already carries it.');
+test('docs/QUALIFIED-WRITING.md stays under its ceiling', () => {
+  const n = words(read('docs/QUALIFIED-WRITING.md'));
+  assert.ok(n < WRITING_LIMIT,
+    `docs/QUALIFIED-WRITING.md is ${n} words, over its ${WRITING_LIMIT}-word ` +
+    'ceiling. It loads at every session start beside SURFACING.md. Trim, or ' +
+    'move material to a document the plugin does not push. Raising the limit ' +
+    'requires user approval.');
 });
 
-// The parse point the injector depends on. inject-conventions.sh splits here to
-// fit the session-start channel, so a rename empties half the payload; it fails
-// open to the whole file, which is over the limit and therefore truncated.
-test('the course heading the injector splits on is still there', () => {
-  assert.match(read('docs/SURFACING.md'), /^## The surfacing course$/m,
-    'inject-conventions.sh splits the injected payload on this heading');
+test('docs/SURFACING.md stays under its ceiling', () => {
+  const n = words(read('docs/SURFACING.md'));
+  assert.ok(n < LIMIT,
+    `docs/SURFACING.md is ${n} words, over its ${LIMIT}-word ceiling. It loads ` +
+    'at every session start. Trim or move material to surfacing-extended.md. ' +
+    'Raising the limit requires user approval.');
 });

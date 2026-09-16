@@ -6,7 +6,7 @@
 // The shared-ownership table used to ride along here as a second `claims`
 // block, checked by a shape test at the bottom of this file. It moved to
 // docs/owners.json on 2026-08-09, with tools/test/owners-registry.test.mjs as
-// its own gate: a registry does not live inside another registry's carrier, and
+// its own gate: a registry does not live inside another registry's file, and
 // a registry and a curated catalog do not want the same checks.
 
 import test from 'node:test';

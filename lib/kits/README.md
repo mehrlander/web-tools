@@ -55,40 +55,14 @@ See [`docs/loader.md`](../../docs/loader.md) for the full loader contract.
 
 ## Current kits
 
-The long-form sections below predate the 2026-08-08 migration and cover the
-original shelf. The 22 kits that moved in from `lib/` root that day are listed
-here with their namespace and role; each carries its full story in its own
-header comment, which is the authoritative doc for this group. **(boot)** marks
-membership in gh-boot.js's declared BOOT manifest, a fact about cost that the
-folder deliberately no longer encodes.
+Open the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits)
+for the full list. Each row gives the namespace, the first line of the header
+comment, how many files load the kit, whether it loads on every page, and
+whether it has a demo. The data is in [`docs/kits.csv`](../../docs/kits.csv).
+A script rebuilds that file from the kits.
 
-| Kit | Namespace | Role |
-|---|---|---|
-| `branch-status.js` | `BranchStatus` | branch-estate scan math: the content-level landed/stranded signal |
-| `chat-render.js` | `chatRender` | chat transcript renderer; fenced code promoted to live artifacts |
-| `claude-mark.js` | `claudeMark` | the Claude logomark, as markup or a node, from one path |
-| `content-registry.js` | `ContentRegistry` | the epistemic content registry (`data/design/content.csv`), read in the browser |
-| `data-payload.js` | `DataPayload` | reading a data toss: one rule for what a payload is |
-| `estate-search.js` | `EstateSearch` | the estate's search calls (tree, names, code, sessions), one cache |
-| `github-links.js` | `GithubLinks` | the GitHub destinations for one repo, as menu rows |
-| `portable-align.js` | `PortableAlign` | pure assessment of a repo's alignment with the portable set |
-| `repo-activity-cache.js` | `RepoActivityCache` | per-repo activity snapshots folded into one cache |
-| `repo-address.js` | `RepoAddress` | the `owner/repo[@ref]:path` address grammar **(boot)** |
-| `repo-checks.js` | `RepoChecks` | declared staleness checks for a repo, evaluated on sight |
-| `repo-config-cache.js` | `RepoConfigCache` | `.web-tools.json` aggregate, history, and alignment grade |
-| `repo-mailbox.js` | `RepoMailbox` | the private git-backed request/response channel |
-| `repo-proposals.js` | `RepoProposals` | cross-repo edit proposals, the mailbox's write side |
-| `repo-sessions-cache.js` | `RepoSessionsCache` | session-record aggregate over the private registry |
-| `row-menu.js` | `rowMenu` | the row tap on a Tabulator grid: read from here, and the two copies |
-| `session-render.js` | `sessionRender` | a session record as a readable, paged conversation |
-| `shorter-payload.js` | `ShorterPayload` | reading a shorter toss |
-| `source-peek.js` | `SourcePeek` | the hover card behind an exact-file GitHub jump-over **(boot;** the manifest calls `install()`, the kit no longer self-installs**)** |
-| `subject-channel.js` | `subjectChannel` | telling the FAB sidebar which file a surface is showing, and giving the page its own back |
-| `surface.js` | `Surface` | the surface envelope, in one place **(boot)** |
-| `swipe-deck.js` | `swipeDeck` | the house swipe format and its fullscreen takeover |
-| `traffic.js` | `Traffic` | the pure read over the traffic ledger gh-boot collects **(boot)** |
-| `url-params.js` | `UrlParams` | a page's own input params, fragment first, query fallback |
-| `vanilla-demo.js` | `demo` | the living-documentation demo format |
+The sections below cover only some kits. They were written before the
+2026-08-08 migration. Each kit is documented in its own header comment.
 
 ### compression.js
 
@@ -340,13 +314,29 @@ Single-document template induction: give it one document with repeated
 structure (a log, raw HTML, structured records) and it returns the recurring
 **templates** (fixed boilerplate with variable **slots**) plus the values that
 fill each slot. Lossless: templates + slot values reconstruct the original
-exactly. Ported from [`mehrlander/wring`](https://github.com/mehrlander/wring)
-— the full source modules, test suite, and research record live at
-`archive/wring/`; the design doc is `archive/wring/ARCHITECTURE.md` (a
-five-stage pipeline: Tokenize → Grammar → Bookend Merge → Selection →
-Extraction). The kit is generated from those modules by
-`archive/wring/export/build-kit.mjs` — regenerate there rather than editing
-by hand.
+exactly.
+
+**Edit the kit directly.** It began life as a concatenation of the modules in
+[`mehrlander/wring`](https://github.com/mehrlander/wring), emitted by
+`archive/wring/export/build-kit.mjs`, and it read as one: seven banner blocks
+naming their source files, and a module preamble on each. That upstream repo is
+archived read-only and the kit has been the live copy since the import
+(`archive/wring/IMPORT.md`), so on 2026-09-06 the generation claim was dropped
+and the file normalised into stage sections. `archive/wring/` stays as the
+reference snapshot: the full source modules, the test suite, the research
+record, and the design doc `archive/wring/ARCHITECTURE.md`, which states the
+five-stage pipeline (Tokenize → Grammar → Bookend Merge → Selection →
+Extraction) the sections are named for.
+
+Two design choices the file no longer explains at length. **Stage 2 is
+Re-Pair** (Larsson & Moffat, 2000) where ARCHITECTURE.md names Sequitur: both
+build a hierarchical grammar of exact repeats, Re-Pair is offline and greedily
+replaces the most frequent digram, and the `{ start, rules, ruleUses }`
+interface takes either. **Stage 3 has two groupers** because Bookend Merge
+groups on the longest shared literal, which on a log line is an incidental
+field: records sharing a client IP group together while the real template
+fractures. `groupByAlignment` groups on positional agreement instead, the Drain
+and LogMine idea, and is what `induce(text, { group: 'align' })` selects.
 
 After loading:
 
@@ -1086,8 +1076,9 @@ same pattern as `io.js`).
 
 ```js
 const result = await window.xlsxKit.readZip(fileOrArrayBuffer);
-// result: { el, connectedPaths, conns, xl: { sheets, strings, styles,
-//           comments, relationships, definedNames, calcChain } }
+// result: { el, connectedPaths, conns, xl: { sheets, strings, styles, theme,
+//           fonts, fills, borders, xfs, comments, relationships,
+//           definedNames, calcChain } }
 
 xlsxKit.summary(result)             // { total, connected, unconnected, connectedPct }
 xlsxKit.views.paths(result)         // one row per distinct XML element path
@@ -1097,24 +1088,356 @@ xlsxKit.views.connections(result)   // one row per sheet: cells/strings/styles/
 xlsxKit.views.unconnected(result)   // paths with no recognized structure
 xlsxKit.views.files(result)         // one row per XML part: category, paths,
                                     //   connected count, sheets touched
-xlsxKit.sheetRows(result.xl.sheets.sheet1)
+xlsxKit.sheetRows(result.xl.sheets.sheet1, result.xl)
                                     // -> [{ Row, A, B, C, ... }], sparse rows/
-                                    //   columns left as gaps, not compacted
+                                    //   columns left as gaps, not compacted.
+                                    //   Pass `xl` to read values through their
+                                    //   number format; omit it for raw strings
+xlsxKit.sheetLayout(sheet, xl, opts) // the same sheet AS A PAGE: cells in place,
+                                    //   merges as spans, column widths and row
+                                    //   heights in px, spill runs, a style
+                                    //   index per cell, anchored `images`, and
+                                    //   `truncated` where opts.maxRows/maxCells
+                                    //   cut it short. Each cell may carry `cf`
+                                    //   (the dxf a conditional rule applies)
+                                    //   and `note` (a comment somebody left,
+                                    //   the form's input message, the choices
+                                    //   a list allows; `note.kind` is the
+                                    //   strongest of the three, for a caller
+                                    //   drawing one mark per cell) and `link`
+                                    //   ({ href, location, tooltip }: the
+                                    //   hyperlink on the cell, external by
+                                    //   URL or into the workbook by place)
+xlsxKit.workbookNotes(xl)           // every annotation in the workbook as one
+                                    //   list: { sheet, cell, span, kind,
+                                    //   author, title, text, options }. One row
+                                    //   per comment, one per validation RULE,
+                                    //   read off the sheets so it costs nothing
+                                    //   to ask and does not stop at a draw cap
+xlsxKit.cellStyle(xl, styleIndex)   // { bold, size, color, fill, border, align,
+                                    //   valign, wrap, indent, format }
+xlsxKit.dxfStyle(xl, dxfId)         // the same record for a conditional format,
+                                    //   with every field optional
+xlsxKit.cfApplies(rule, cell)       // true / false / null, where null is "not
+                                    //   decidable here"
 xlsxKit.colLetter(26)               // 'AA'
 ```
+
+**Addressing a place inside a workbook** is the viewer's, not the kit's:
+`ViewRegistry.parsePlace` reads `Sheet!H11`, `H11`, `A1:C3` or a bare name, and
+a mounted sheet publishes `locate({ sheet, cell, text })` on its root's
+`__sheets`, which switches sheets, resolves a covered cell to the merge that
+draws it, scrolls and marks. What makes it possible here is that `sheetLayout`
+gives every cell its A1 address, so the render can carry one.
+
+**Three boundaries worth knowing, each a case where the kit declines rather
+than guesses.** A conditional rule of type `expression` is a formula, and
+evaluating one means a formula engine; those are skipped and counted in
+`sheetLayout`'s `cfSkipped`, so a caller can say how much of Excel's painting
+it is not showing. A picture is read from DrawingML anchors; the legacy VML
+drawings Excel uses for comments and form controls are not, so a comment's TEXT
+is read while the box Excel would draw it in is not. And a list validation
+resolves an inline `"a,b,c"` or a cell range on any sheet, but a defined name
+returns null and the cell then carries only its prompt.
+
+**Comments are the legacy kind, and the part is found by walking the rels.**
+Nothing in the sheet XML names it: `<legacyDrawing>` points at the VML, and the
+comments part rides a relationship with no referring element, so `comments3.xml`
+can belong to `sheet1` and does in OFM's OneWA template. Excel writes the
+author's name as the comment's first run, followed by a colon; it is the same
+string the author field carries, so the kit strips it once rather than leaving
+every consumer to. A threaded comment (`xl/threadedComments/`) is skipped, since
+Excel writes the same text into a legacy part beside it and reading both lists
+each comment twice.
+
+**Two readings, and the second is why the style records exist.** `sheetRows`
+answers "what values are in this sheet" and feeds a data grid. `sheetLayout`
+answers "what does this sheet look like" and feeds a render that reproduces the
+document: it is what the viewer's `sheet` mode draws, and what makes an OFM
+budget form arrive as a form rather than as a list of strings. Neither touches
+the DOM; a caller turns a style record into whatever it draws with.
+
+**A formula arrives as its stored text since 2026-09-14**, not as a boolean. A
+row's `formulas` map holds the formula as the file writes it (no leading `=`,
+which is Excel's UI rather than the stored string) for every computed cell that
+has one, and `true` where the file stored none: that is a SHARED formula's
+followers, which carry `<f t="shared" si="0"/>` and nothing else. Recovering
+those means rewriting relative references per cell, so the honest answer is
+"computed, text not stored here". Both are truthy, which is the contract
+`profileColumns` already read when counting a computed cell apart from an
+entered one.
 
 `analyze(parts)` — the pure entry point — takes `[[path, xmlString], ...]` or
 `{path: xmlString}` for already-extracted `.xml`/`.rels` parts, so it's
 testable with plain fixture strings (`tools/test/xlsx.test.mjs`) and needs no
-real `.xlsx` file or JSZip. Two known limitations inherited from the source
-prototypes (not fixed, since a real fix needs cross-referencing
-`workbook.xml`'s `<sheets>` order, a nontrivial addition): named-range and
-calc-chain sheet association assumes `sheetN.xml`'s file number matches
-workbook sheet order, which can drift after a sheet reorder or rename; and
-cell-to-column mapping trusts each `<c>`'s `r` attribute (falling back to
-positional order only when `r` is absent), which is standard but not
-universal among third-party writers. See `kits/demos/xlsx.html` for live
-examples.
+real `.xlsx` file or JSZip. One known limitation remains: cell-to-column
+mapping trusts each `<c>`'s `r` attribute, falling back to positional order
+only when `r` is absent, which is standard but not universal among third-party
+writers. The sheet-order limitation this paragraph used to carry alongside it
+is gone: named ranges and calc-chain entries resolve through `workbook.xml`'s
+`<sheets>` and its rels, so they survive a reorder or a rename. See
+`kits/demos/xlsx.html` for live examples.
+
+### xlsx-extract.js
+
+**Pick part of a workbook and carry the answer away.** `xlsx.js` reads every
+part and returns plain objects; this kit is the selection over that reading, and
+nothing more. It writes no file back, reconstructs no workbook, and renders
+nothing. It reads `window.xlsxKit` at call time, so load that first.
+
+The current picker is **sheet-centered**. Each sheet has its own selected
+readings, and each pivot, cache, connection, or Power Query section is a
+separate choice. The original cross-product API remains available for callers
+that use it. The full table of kinds and their limits is in
+[`docs/envelopes/workbook-extract.md`](../../docs/envelopes/workbook-extract.md).
+
+```js
+XlsxExtract.catalog(result)         // sheets with per-kind counts; individually
+                                    //   addressable modeled objects, grouped
+                                    //   by associated sheet where known
+XlsxExtract.extractSelected(result, pick, opts)
+                                    // pick: { sheets: [{ name, kinds: [id…] }],
+                                    //   objects: [id…], headerRow }
+                                    // -> a `workbook-extract/2` envelope
+XlsxExtract.survey(result)          // the picker's whole input: per sheet, a
+                                    //   count for each of the eight sheet
+                                    //   kinds, plus the four workbook counts
+                                    //   once. A zero is REPORTED, not omitted:
+                                    //   a cell that disappears when empty
+                                    //   cannot say "no pivots here"
+XlsxExtract.extract(result, pick, opts)
+                                    // legacy cross-product selector (v1)
+                                    // pick: { sheets: [name…], kinds: [id…],
+                                    //   headerRow }. No sheets means every
+                                    //   sheet; no kinds means nothing, since
+                                    //   guessing "all" on an empty selection
+                                    //   hands over a workbook nobody asked for
+                                    // opts: { source, maxRows, title, note, now }
+                                    // -> a `workbook-extract/1` envelope
+XlsxExtract.profileRows(sheet, xl, headerRow)
+                                    // the ONE tabular rendering of
+                                    //   profileColumns. The viewer's Structure
+                                    //   mode reads it too, so a column cannot
+                                    //   be `Role` in one table and `role` in
+                                    //   the other
+XlsxExtract.receptions(catalog, declared)
+                                    // a receiving repo's standing pick, from
+                                    //   its .web-tools.json `receptions`:
+                                    //   [{ reception, pick, omitted, cap }]
+                                    //   for each declaration whose match.sheets
+                                    //   are all present. Nothing about any one
+                                    //   workbook lives here; the receiver says
+XlsxExtract.receptionTarget(reception, source, now)
+                                    // -> { dest, file } with {date} and {stem}
+                                    //   filled in
+XlsxExtract.KINDS                   // the catalogue: { id, label, scope, view,
+                                    //   gloss, count, parts }
+```
+
+One kind is not a table: `cells` is the serialized-workbook shape, one object
+per sheet with every cell as `{Address, Formula, Value}`, which is what home's
+PowerShell exporter writes and its fund view's reader consumes. It writes a
+shared-formula follower as `=[fill N] <master text>`, which is why `xlsx.js`
+now keeps each cell's shared index and each sheet's master texts. Never cut.
+
+**The answer is a data-view envelope**, so it renders in
+[`pages/data-view.html`](../../pages/data-view.html) with no new page and no
+change to [`data-payload.js`](data-payload.js): that reader's discriminator is
+structural rather than a `kind` check, so a superset kind is already admitted.
+What the profile adds is the one thing data-view has no slot for, the provenance
+of the pick: which workbook, at which ref, what was taken (`picked`) and what
+was left (`left`). Per item, `rows` against `total` plus `truncated` say whether
+that item is short of what the file holds, which is `pivotRecords`' habit and
+the reason this kit keeps it; the same fact is derived into the item's `note`,
+so today's data-view reader shows the cut without knowing this format.
+
+**Where a survey count and an extract's rows would disagree, the count is
+wrong,** and `tools/test/xlsx-extract.test.mjs` holds them equal per kind: a
+picker showing 400 beside an item holding 12 is a lie about the file rather than
+about the cut.
+
+### xlsx-write.js
+
+The write half of `xlsx.js`, which reads a workbook and never writes one. It is
+also the sibling of `xlsx-extract.js` above, and the pair divides cleanly: both
+are a selection over one reading, but extract carries the answer away as data
+and reconstructs no workbook, while this one rebuilds the package and hands back
+a file Excel opens.
+`rebuild(bytes, keepNames)` returns a new package holding only the sheets
+named, plus a manifest saying what survived. `plan(read, partNames, keep)` is
+the pure, synchronous half: it answers what keeping a given set implies before
+anything is written, which is what lets a picker show the consequences of a tick
+rather than the consequences of a rebuild.
+
+```js
+await gh.load('kits/xlsx.js');          // the reader; this kit refuses without it
+await gh.load('kits/xlsx-write.js');
+const { bytes, manifest, suffix, mime } =
+  await window.xlsxWriteKit.rebuild(file, ['Summary', 'Detail']);
+window.xlsxWriteKit.manifestText(manifest)     // the same manifest as markdown
+await window.xlsxWriteKit.verify(bytes)        // { ok, problems, parts, sheets }
+```
+
+**Reproduction, not subtraction, and the difference is the point.** The faithful
+way to drop a sheet is to edit the package in place: delete the parts that sheet
+owns and patch `workbook.xml`, `[Content_Types].xml` and the rels around the
+hole, leaving everything untouched byte-intact. This kit does the other thing.
+It loads the source into ExcelJS, drops the sheets, and lets the writer re-emit
+every part, so what survives is what the writer models. That was chosen to find
+out what reproduction costs on real files, and the manifest is where the cost is
+declared rather than discovered.
+
+**ExcelJS rather than SheetJS, measured.** Round-tripping three OFM budget forms
+and re-reading each output with `xlsx.js`: ExcelJS keeps 17144/17148, 1640/1642
+and 458/502 cells where SheetJS keeps 13872, 327 and 52, and 49/56 cell format
+records where SheetJS keeps 3. SheetJS's community build writes no cell styles
+and drops the empty-but-formatted cells a blank form is mostly made of; its
+output was also 2.0 MB from a 56 KB source, since it emits 32,768 column
+definitions. SheetJS earns its place in the check suite instead, as the
+independent reader over the output.
+
+**The graft is what makes a checkbox list honest.** A writer models no VBA, no
+pivot cache, no `customXml` and no workbook connections, so offering those as
+options with only a writer behind them would be offering inert controls. After
+the base package is written, the source's own bytes for those parts are copied
+in with JSZip, along with the source's own content-type and relationship
+*entries*, taken verbatim rather than rebuilt from a hardcoded table of type
+URIs. A graft that does not take is reported and skipped, and the workbook still
+opens.
+
+**What it will not carry, in full.** Per-sheet `printerSettings`; hyperlinks
+where two share an anchor cell or one carries only a location fragment (the
+writer models a link as a property of a cell); the *scope* of a sheet-local
+defined name, since every name is emitted workbook-global; and `calcChain.xml`,
+which goes deliberately because it is a recalculation cache whose every index
+moves when a sheet goes. `fullCalcOnLoad` is set in its place. `workbookView`'s
+`activeTab` is clamped rather than dropped, which is the one index trap that
+does not fix itself.
+
+**And what it carries that a count says it lost.** Across thirteen real forms
+every cell the writer did not re-emit was one of two things: an empty cell whose
+style record is the package default in every field, or text inside a merged
+range but not at its top-left, which Excel does not display and a formula can
+still read. `manifest.cellLoss` separates those from real loss, so the count is
+flagged only when something else goes.
+
+`pages/xlsx-picker.html` is the interface over it, through
+`alpineComponents/xlsx-picker.js`; `scripts/xlsx-picker-sweep.mjs` runs it over
+a directory of real workbooks. **`npm run gold-set`** builds the committed
+[`gold-set/`](../../gold-set/): three chosen workbooks, rebuilt with a sheet
+dropped, for someone to open in Excel. The selection is declared in
+`scripts/gold-set.mjs` with a reason per file, and the script refuses any
+selection whose kept sheets still read a dropped one, following the defined-name
+hop that these forms actually point through. The folder is committed rather than
+regenerated on demand because the sources are in a private repo, so a session
+with only this one cannot rebuild them and a gitignored copy reaches nobody.
+What makes storing it safe is that the rebuild is byte-reproducible, held by the
+suite, so `--check` diffs exactly when the kit changes what it writes.
+
+
+### docx.js
+
+WordprocessingML (`.docx`) preparation: what a Word file has to have done to
+it before a browser renderer draws it faithfully, and what it knows about
+itself that a render cannot show. The viewer's `page` mode paints a `.docx`
+with [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) (Apache-2.0,
+pinned at 0.4.0, one dependency: JSZip), which reads page geometry, headers and
+footers, shading, fonts, tab stops and list numbering off the file. Measured on
+the 30 committed `.docx` in `mehrlander/home` (2026-09-04) it had six gaps, and
+this kit closes them **before the bytes reach the painter**, so the estate
+depends on a pinned upstream build and nothing patched inside it.
+
+```js
+const { bytes, report } = await window.docxKit.prepare(fileBytes);
+// bytes:  the same package, rewritten where normalize() changed a part
+// report: { controls, bullets, breaks, headerRefs, simpleFields, fields, byPart, skipped, survey }
+
+docxKit.normalize(parts)            // the pure entry point: [[path, xml], ...]
+                                    //   or { path: xml } for the body parts and
+                                    //   word/numbering.xml -> { parts: changed
+                                    //   only, report }. Idempotent.
+docxKit.unwrapControls(xmlDoc)      // every w:sdt replaced by its content,
+                                    //   deepest first; returns the count
+docxKit.mapBullets(numberingDoc)    // a Symbol/Wingdings byte in a bullet
+                                    //   level -> its Unicode glyph, font hint
+                                    //   dropped; returns the count
+docxKit.survey(documentDoc)         // { paragraphs, tables, headings: [{ id,
+                                    //   style, text }], controls: [{ kind,
+                                    //   level, parent, alias, tag,
+                                    //   placeholder, checked, text }] }
+docxKit.listControls(xmlDoc)        // the controls half of survey, any part
+docxKit.markPageBreaks(documentDoc) // a paragraph's pageBreakBefore ->
+                                    //   w:br type="page" (the painter reads
+                                    //   only the style-level one)
+docxKit.fixHeaderRefs(documentDoc, settingsXml)
+                                    // inherit missing header/footer refs;
+                                    //   drop even-page refs unless enabled
+docxKit.expandSimpleFields(xmlDoc)  // w:fldSimple -> the complex run form
+docxKit.markPageFields(xmlDoc)      // PAGE / NUMPAGES results -> sentinels
+docxKit.BULLET_GLYPHS               // the glyph table, by font and byte
+```
+
+**Six gaps, each a fact about docx-preview 0.4.0, each closed in the file
+before it is painted.** A content control (`w:sdt`) inside a table row or cell
+is dropped: its row and cell parsers have no case for one, while its body and
+paragraph parsers do. That was 45 controls across the corpus, including every
+section label in OFM's Decision Package Template fiscal table, which rendered
+as empty grey bands. A bullet set in Symbol or Wingdings is a private-use
+character in that font (U+F0B7 for the Symbol dot); where the font is absent it
+draws as nothing. The glyph table is mammoth's `dingbat-to-unicode`, cut to
+the codes Word's bullet library uses; the corpus pairs `F0B7` with Symbol and
+`F0A7` with Wingdings, and a Courier New `o` is a letter and is left alone.
+A paragraph's own `pageBreakBefore` is ignored (the property is read off the
+style only), so it is written as the explicit page break the painter does
+honour. A section naming no header or footer does not inherit the previous
+section's as the spec says, and an even-page reference is applied to every
+second page whether or not `settings.xml` enabled even and odd headers (no file
+in the corpus does), so the references are copied forward and the even ones
+dropped. And a PAGE or NUMPAGES field is drawn as its cached result, so the
+result is replaced with a sentinel (`PAGE_FIELD`, `NUMPAGES_FIELD`) the page
+mode swaps for the real numbers once the pages exist. And a field in its simple
+form (`w:fldSimple`) is parsed with no children, so its result is not drawn at
+all; each is rewritten as the complex form (begin, instruction, separate,
+result, end) the painter does draw. The corpus writes every field in the
+complex form, so the gap showed only on a fixture.
+
+**The survey is taken before the unwrap**, because a control's kind, its
+checkbox state and whether it still shows its placeholder are facts the
+rendered page no longer carries. Headings come with their `w14:paraId`, on
+2,713 of the corpus's 3,713 paragraphs: the Word analogue of a cell address,
+and the unit an aim would be built on. `KIND` is the kit's copy of its
+`docs/routes-kinds.csv` row, held to the registry by
+`tools/test/routes-manifest.test.mjs`.
+
+**Boundaries, each a case where the kit declines rather than guesses.** A
+`w:sym` run (a symbol typed into the text rather than a list level) is not
+mapped; none occur in the corpus. A bullet byte the table lacks stays as
+written. A part that does not parse is skipped and named in `report.skipped`,
+so one malformed header cannot stop the document. Tracked changes, footnotes
+and comments are the painter's to draw and are not prepared here; the corpus
+has none of the first two and one of the third. `SECTIONPAGES` and every other
+field keep their cached result. Word's saved page-break markers
+(`lastRenderedPageBreak`) are not honoured and not repaired: measured across the
+corpus they reproduce Word's own page count in 14 files of 30, missing where a
+break fell inside a table and stale where the file was edited after its last
+full save. The painter draws each section as one tall box and the page mode
+cuts it into pages of the section's page height, at block boundaries and at
+table rows (`ViewRegistry.paginate`), so the count NUMPAGES reports is the
+viewer's, which for the two OFM forms matches Word's (6 and 5) and elsewhere
+can differ by a line's worth of font metrics. Header geometry is the painter's: header at the file's header
+margin, body at its top margin, a floating logo where its anchor puts it, so a
+logo that overlaps body text in the render most likely overlaps in Word.
+
+**Held two ways.** `tools/test/docx.test.mjs` exercises `normalize()` on
+fixture XML with a control at every level and a bullet in each font.
+`npm run test:viewer-docx` drives the real viewer in a browser: the fixture
+document opens on the page render, a cell-level label is drawn, the bullet is a
+list marker, a `javascript:` link has lost its `href`, the fixture's 40 filler
+paragraphs and 40-row table cut into pages of page height with every word still
+there once and the footer counting them, `__doc.locate` lands on
+a phrase, and a pinch or a ctrl-wheel zooms the page about the fingers with the
+pdf column's pill as the way back to fit width. `--docx <file> --shot out.png` renders a real file and writes the
+pane, which is how the two OFM forms in the PR were pictured.
 
 ## Salvage status
 
@@ -1136,11 +1459,13 @@ examples.
 | `text-diff.js` | `pages/diff-tool.html` / the stage's Diff lens | patience line diff + word diff; pure, no renderer. `cm6-merge.js` is the other diff shelf: this one computes, that one displays |
 | `review-target.js` | `pages/review.html` | parse/mint the review address grammar (`gh=owner/repo[@ref][:path][&base=]`) |
 | `brief.js` | the FAB's "Take this page" menu | page + its own modules as one pasteable markdown brief |
-| `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; generated from `archive/wring/` |
+| `wring.js` | `pages/demos/wring-text.html` / `pages/demos/wring-dom.html` | template induction; live here, reference snapshot at `archive/wring/` |
 | `treemap.js` | `pages/repo-atlas.html` | squarified treemap kernels + file taxonomy |
 | `../build.js` | `tools/build/` + the FAB export | one emitter, two consumers; `lib/` root since 2026-08-08 (extends `GH.prototype`) |
 | `export.js` | the FAB's export control | page + `read()` data as a zip |
+| `dom-shot.js` | the FAB's Image takes | visible view, full page, or a Peek-picked element rendered to PNG with explicit fidelity warnings; lazy modern-screenshot |
 | `wsl-core.js` | `pages/wsl-sync/` + Node fetch | dependency-free; libs injected |
 | `wsl.js` | `pages/wsl-sync/` | browser wrapper; lazy XML libs |
 | `xlsx.js` | `kits/demos/xlsx.html` | OOXML structural walk; pure/testable, lazy JSZip |
+| `docx.js` | `npm run test:viewer-docx` | WordprocessingML preparation for the page render; pure/testable, lazy JSZip |
 | `pdf.js` | `pages/pdf-inspect.html` + `npm run test:pdf` | pure geom/stream/lattice/view; lazy pdf.js + pdf-lib |

@@ -117,7 +117,7 @@ test('addPin stores {id, target, title, created_at}, defaults the title from the
   assert.equal(SAVES.length, 1);
   assert.equal(SAVES[0].repo, REGISTRY);
   assert.equal(SAVES[0].path, 'lists/pins.json');          // authored content lives under lists/
-  assert.match(SAVES[0].message, /^Pin "2026-08-07-merge-methods\.md" via show-repo$/);
+  assert.match(SAVES[0].message, /^Pin "2026-08-07-merge-methods\.md" via Web Tools$/);
   assert.deepEqual(SAVES[0].value.items, data.pinItems);
 });
 
@@ -128,7 +128,7 @@ test('a typed title wins over the path default', async () => {
   await data.addPin();
   const it = data.pinItems.at(-1);
   assert.equal(it.title, 'Notes');
-  assert.match(SAVES[0].message, /^Pin "Notes" via show-repo$/);
+  assert.match(SAVES[0].message, /^Pin "Notes" via Web Tools$/);
 });
 
 test('pinGroups keeps authored order, groups by group with the repo short name as fallback', () => {
@@ -182,5 +182,5 @@ test('deletePin removes the item and saves with an Unpin message', async () => {
   await data.deletePin(data.pinItems[0]);
   assert.deepEqual(data.pinItems.map(i => i.id), ['b']);
   assert.equal(SAVES[0].path, 'lists/pins.json');
-  assert.match(SAVES[0].message, /^Unpin "One" via show-repo$/);
+  assert.match(SAVES[0].message, /^Unpin "One" via Web Tools$/);
 });

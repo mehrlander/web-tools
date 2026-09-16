@@ -385,13 +385,12 @@ test('a run broken by words is two runs, not one', () => {
     ['[image]', 'and here is a question', '[2 images]']);
 });
 
-test('the cut note counts a run as the one entry it becomes', () => {
-  // Counting attachments singly would report a cut the list does not make.
+test('a run of forty attachments is one entry, however long the run', () => {
   const prompts = [{ at: at(0), text: 'opener' }];
   for (let i = 1; i <= 40; i++) prompts.push({ at: at(i), text: IMG('1.5') });
   const rec = { schema: 4, prompts, replies: [{ at: at(50), text: 'closing' }], calls: [] };
   assert.equal(S.priorTurns(rec).length, 1, 'forty attachments, one entry');
-  assert.equal(S.turnsPartial(rec), '', 'so nothing was cut, and the card must not say it was');
+  assert.equal(S.priorTurns(rec)[0][1], '[40 images]', 'and it says how many');
 });
 
 test('a prompt with words is untouched by any of this', () => {
@@ -404,26 +403,36 @@ test('a prompt with words is untouched by any of this', () => {
   assert.equal(S.priorTurns(rec).at(-1)[1], 'a real question about images');
 });
 
-test('the newest survive the cap, because a reader scrolls backwards', () => {
+test('a long session keeps every turn, not the newest sixty', () => {
+  // The cap was TURNS_KEPT = 60, and it was measured against a cost that no
+  // longer exists: `turns` rode in the committed cache until leanRow started
+  // stripping it (2026-09-02), and is now rebuilt per card from a record the
+  // page has already read. So the card holds the whole conversation and has
+  // nothing to report as dropped.
   const prompts = [], replies = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 90; i++) {
     prompts.push({ at: at(i) + i, text: 'ask ' + i });
     replies.push({ at: at(i) + 'z' + i, text: 'answer ' + i });
   }
   const rec = { schema: 4, prompts, replies, calls: [] };
   const got = S.priorTurns(rec);
-  assert.equal(got.length, S.TURNS_KEPT, 'bounded');
-  assert.equal(got[got.length - 1][1], 'ask 39',
-    'the tail is kept: the last thing before the closing reply');
-  assert.ok(!got.some(([k, t]) => k === 'u' && t === 'ask 0'), 'and the opener is gone either way');
-  assert.equal(S.turnsPartial(rec), 'cut', 'and the drop is REPORTED, never silent');
+  // 90 asks and 90 answers, less the opener and the closing reply, which the
+  // row carries in `ask` and `reply` of its own.
+  assert.equal(got.length, 178, 'every turn, however long the session ran');
+  assert.equal(got[0][1], 'answer 0', 'the head is the first turn after the opening ask');
+  assert.equal(got[got.length - 1][1], 'ask 89',
+    'the tail is the last thing before the closing reply');
+  assert.ok(got.some(([k, t]) => k === 'u' && t === 'ask 1'),
+    'and the front is there: sixty back from the end would have dropped it');
 });
 
-test('a session that fits says so, rather than saying nothing', () => {
-  // The two states have to be distinguishable at the top of a scroll: this is
-  // the beginning of the session, or this is the beginning of what fits.
-  assert.equal(S.turnsPartial(TYPICAL), '');
-  assert.equal(S.turnsPartial({ schema: 4, prompts: [], replies: [], calls: [] }), '');
+test('no field reports a cut, because nothing is cut', () => {
+  // turnsPartial went with the cap. A field that is structurally always empty
+  // is a claim a reader has to learn to ignore, and `statesCut` (a real cap,
+  // STATES_KEPT) is the one that still means something.
+  assert.equal(S.turnsPartial, undefined);
+  assert.equal(S.TURNS_KEPT, undefined);
+  assert.equal(typeof S.statesPartial, 'function', 'the states cap still reports');
 });
 
 test('a schema-3 record has no turns to carry, and does not invent any', () => {
@@ -431,15 +440,14 @@ test('a schema-3 record has no turns to carry, and does not invent any', () => {
   // of the final turn, which `reply` already carries and marks as a tail.
   const rec = { schema: 3, last_message: 'the tail', opening_ask: 'ask' };
   assert.deepEqual(S.priorTurns(rec), []);
-  assert.equal(S.turnsPartial(rec), '');
 });
 
-test('the row carries both fields, and the version moved for them', () => {
+test('the row carries the turns, and the version moved for them', () => {
   const row = S.summarize({
     ...TYPICAL, session_id: 'abc12345-x', short: 'abc12345', day: '2026-08-05',
     started: at(0), ended: at(5), opening_ask: 'do the thing', repos: [],
   }, 'sha');
   assert.deepEqual(row.turns, [], 'one exchange: the ask and the reply, both already on the row');
-  assert.equal(row.turnsCut, '');
+  assert.ok(!('turnsCut' in row), 'and no cut field beside it: there is no cap left to report');
   assert.ok(row.v >= 6, 'a row built before `turns` existed must be refetched, and v is the only signal');
 });

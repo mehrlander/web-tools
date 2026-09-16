@@ -4,13 +4,19 @@
 //   1. Own code  — gh-api.js's loader fetches lib/* via the GitHub contents
 //      API (base64), after the page's first jsDelivr `/gh/` import of gh-api.js
 //      itself. Both must resolve to the on-disk working tree so a render shows
-//      branch edits, not whatever main serves.
+//      branch edits, not whatever main serves. Two more routes reach the same
+//      tree for the same reason: raw.githubusercontent (the ?use= pre-build
+//      boot) and <owner>.github.io (the <base> a toss render stamps).
 //   2. Own data: the GitHub API surface for REPO (contents listings/reads,
 //      /repos/<REPO> metadata, git/trees) is answered from the working tree
-//      too: no token, no network, and uncommitted edits render. Other repos'
-//      API calls pass through (and fail in the sandbox). Identity endpoints
-//      (/user, /user/repos) are NOT impersonated, since "who am I" has no
-//      local answer; pages must keep first paint off them (see testing.md).
+//      too: no token, no network, and uncommitted edits render. ANOTHER repo's
+//      contents are answered from its checkout beside this one where there is
+//      one, and otherwise miss rather than reaching the network (see the
+//      sibling branch). CONTENTS ONLY: another repo's metadata and git/trees
+//      match no branch here, so they still pass through and fail in the
+//      sandbox. Identity endpoints (/user, /user/repos) are NOT
+//      impersonated, since "who am I" has no local answer; pages must keep
+//      first paint off them (see testing.md).
 //   3. Third-party libs — Tailwind/daisyUI/Phosphor/Alpine/etc. from jsDelivr +
 //      unpkg, both blocked in this sandbox. Each maps to an npm-installed copy
 //      under node_modules.
@@ -25,8 +31,9 @@
 //   { kind:'continue' }                    an allowed host (fonts, APIs): let it
 //                                          go to the network unchanged
 //
-// Used by tools/render/screenshot.mjs (Playwright route) and reusable by any future
-// pixel/preview tool. The logic-level twin lives inline in tools/render/preview.mjs.
+// Used by tools/render/screenshot.mjs (pixels) and tools/render/netlog.mjs
+// (request counts), both on the Playwright route, and reusable by any future
+// one. The logic-level twin lives inline in tools/render/preview.mjs.
 //
 // This is the web-tools-specific implementation (it also impersonates the GitHub
 // API for this repo). The portable, repo-agnostic write-up of the
@@ -75,6 +82,20 @@ const CDN_DEFAULT = {
 // fields point at has no named exports for an `import { x }` to bind to.
 // (jsDelivr also bundles a CJS graph into ESM server-side; that we can't do,
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
+// A checkout of another repo in this estate, beside this one. Returns the file
+// path when the sibling exists, is a git checkout, and holds the file; null
+// otherwise, so every caller falls through to its own rule. It never leaves the
+// parent directory: `rel` is resolved and then required to stay inside.
+function siblingFile(repoRoot, owner, name, rel) {
+  if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name)) return null;
+  const root = path.resolve(repoRoot, '..', name);
+  if (root === path.resolve(repoRoot)) return null;
+  if (!existsSync(path.join(root, '.git'))) return null;
+  const fp = path.resolve(root, decodeURIComponent(rel));
+  if (fp !== root && !fp.startsWith(root + path.sep)) return null;
+  return existsSync(fp) && statSync(fp).isFile() ? fp : null;
+}
+
 function nodeFile(repoRoot, pkg, sub, esm, combine) {
   const dir = path.join(repoRoot, 'node_modules', pkg);
   if (sub) return path.join(dir, sub);
@@ -82,16 +103,27 @@ function nodeFile(repoRoot, pkg, sub, esm, combine) {
   // /combine/ route does NOT: it resolves through package.json main, so a bare
   // `npm/alpinejs` spec there yields dist/module.cjs.js and the page gets a
   // CommonJS file that defines no global. Applying the map to a combine request
-  // served a working Alpine no browser would ever receive, and pages/doc-growth
-  // shipped dead while passing every local render (SNAGS: combine-serves-cjs).
+  // serves a working Alpine no browser would ever receive, so the page renders
+  // here and ships dead (SNAGS: combine-serves-cjs).
   if (!combine && CDN_DEFAULT[pkg]) return path.join(dir, CDN_DEFAULT[pkg]);
   const pj = path.join(dir, 'package.json');
   if (existsSync(pj)) {
     try {
       const j = JSON.parse(readFileSync(pj, 'utf8'));
       const dot = j.exports && j.exports['.'];
+      // For a /+esm request, `browser` outranks `main`. jsDelivr's +esm route
+      // bundles the package's BROWSER graph and ships the result as a module,
+      // so a CJS-only package with a browser field resolves to a file that
+      // runs in a page. Reading main instead hands the page the Node entry,
+      // which reaches for `fs`, `stream` and a bare `process`, and the failure
+      // arrives as a runtime error deep inside the library rather than as a
+      // MISS. exceljs is the case that found this: no exports map and no
+      // module field, so the chain fell straight through to ./excel.js and the
+      // page died with "process is not defined" the first time it wrote a
+      // workbook. Written as a rule so the next such package resolves itself.
       const def = esm
-        ? (dot && (dot.import || dot.module || dot.default)) || j.module || j.main || 'index.js'
+        ? (dot && (dot.import || dot.module || dot.default)) || j.module
+          || (typeof j.browser === 'string' ? j.browser : null) || j.main || 'index.js'
         : j.jsdelivr || j.unpkg || j.browser || j.module || j.main || 'index.js';
       if (typeof def === 'string') return path.join(dir, def);
     } catch {}
@@ -126,20 +158,44 @@ function parseNpm(spec) {
 // to the last version that has the file, which its own header confirms
 // (`x-jsd-version: 0.5.0`), so a real browser has been loading 0.5.0 all along
 // while `node_modules/@tailwindcss/typography` holds the current plugin. The
-// resolver saw a package with no such file and served an honest MISS, which is
-// why every headless screenshot of a prose surface was taken with no prose
-// styles at all: no 65ch measure, no paragraph rhythm, no list markers.
+// resolver saw a package with no such file and served an honest MISS, so every
+// headless screenshot of a prose surface was taken with no prose styles.
 //
 // So 0.5.0 is installed a second time under an alias (package.json,
 // `typography-dist`) and this table points the CDN path at it. Real bytes,
 // byte-identical to what the CDN serves, which is the vendoring rule in
-// docs/headless-vendoring.md rather than an exception to it. Found on
-// 2026-09-02 by a prose block that wrapped at 470px on a phone and at the full
-// 1171px in every screenshot taken of it.
+// docs/headless-vendoring.md rather than an exception to it.
 const PKG_ALIAS = { '@tailwindcss/typography': 'typography-dist' };
+
+// A package with no ESM build at all, which nodeFile's comment says is the
+// case this shim cannot serve: jsDelivr bundles the CJS graph server-side and
+// we have no bundler here. Where the package ALSO ships a UMD that assigns a
+// browser global, that UMD plus a re-export of the global is the same module by
+// a shorter road, and it is real published bytes rather than a rewrite.
+//
+// One entry per package naming the file and the global, because neither is
+// derivable: jszip's `browser` map keys on an extensionless path Node resolves
+// and `existsSync` does not, which is why a /+esm request for it answered MISS.
+// Three kits import it this way (xlsx, docx, export), so every headless shot of
+// a page that opens a zip drew nothing and said only that a module failed to
+// load. Only for a UMD that assigns to `window`: one that relies on `this` at
+// top level gets `undefined` in a module and throws.
+const UMD_ESM = {
+  jszip: { file: 'dist/jszip.min.js', global: 'JSZip' },
+};
 
 function readSpec(spec, repoRoot, combine) {
   const { pkg: cdnPkg, sub, esm } = parseNpm(spec);
+  if (esm && !sub && UMD_ESM[cdnPkg]) {
+    const { file, global } = UMD_ESM[cdnPkg];
+    const umd = path.join(repoRoot, 'node_modules', cdnPkg, file);
+    if (existsSync(umd)) {
+      const body = readFileSync(umd, 'utf8')
+        + `\n;const __umd = globalThis[${JSON.stringify(global)}];\n`
+        + `export default __umd;\nexport { __umd as ${global} };\n`;
+      return { body, contentType: 'application/javascript; charset=utf-8' };
+    }
+  }
   const pkg = (PKG_ALIAS[cdnPkg] && existsSync(path.join(repoRoot, 'node_modules', PKG_ALIAS[cdnPkg], sub)))
     ? PKG_ALIAS[cdnPkg] : cdnPkg;
   let fp = nodeFile(repoRoot, pkg, sub, esm, combine);
@@ -165,12 +221,11 @@ function readSpec(spec, repoRoot, combine) {
         // Only when the entry is the same KIND of file that was asked for. A
         // package's declared entry is its Node entry, and for a plugin that is
         // JavaScript no matter what the URL wanted: @tailwindcss/typography
-        // ships no dist CSS, its basename matches its package name, so a
-        // request for dist/typography.min.css resolved to src/index.js and the
-        // page was served a Node module as its stylesheet. It reported a hit
-        // (combine 3/3) and rendered with no prose styles at all, which made a
-        // headless screenshot silently disagree with every real browser. A
-        // miss is the honest answer and shows up as MISS in the log.
+        // ships no dist CSS and its basename matches its package name, so
+        // without this test a request for dist/typography.min.css resolves to
+        // src/index.js and the page gets a Node module as its stylesheet,
+        // reported in the log as a hit. A miss is the honest answer and shows
+        // up as MISS.
         if (entry && path.extname(entry) === path.extname(fp).replace(/^\.min/, '')) {
           const cand = path.join(repoRoot, 'node_modules', pkg, entry);
           if (existsSync(cand)) fp = cand;
@@ -195,6 +250,36 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     if (existsSync(fp)) return { kind: 'fulfill', body: readFileSync(fp), contentType: typeFor(fp), tag: `gh ${rel}` };
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `MISS gh ${rel}` };
   }
+  // --- A SIBLING REPO in the same estate, served from its checkout. ---
+  // pages/shortcuts.html is the first page here whose data belongs to another
+  // repo: it reads shortcut-tools' catalog.json. Without this route a headless
+  // render of such a page shows chrome and an empty table, because the branch
+  // holding the data is not on any CDN yet and the two rules below would answer
+  // empty (jsDelivr) or let the request reach the real network (raw), which the
+  // sandbox refuses. The same reasoning as the two rules above: a --ref render
+  // must see the working tree, and a sibling checkout IS the working tree for
+  // the repo that owns the file.
+  {
+    const m = /^\/gh\/([^/@]+)\/([^/@]+)(?:@[^/]+)?\/(.+)$/.exec(u.pathname);
+    const sib = host === 'cdn.jsdelivr.net' && m ? siblingFile(repoRoot, m[1], m[2], m[3]) : null;
+    if (sib) return { kind: 'fulfill', body: readFileSync(sib), contentType: typeFor(sib),
+                      tag: `sibling ${m[2]}/${decodeURIComponent(m[3])}` };
+  }
+  {
+    const m = /^\/([^/]+)\/([^/]+)\/(.+)$/.exec(u.pathname);
+    if (host === 'raw.githubusercontent.com' && m) {
+      // <owner>/<repo>/<ref>/<path>, and a branch name carries slashes, so the
+      // ref cannot be found by counting segments. Try each split and take the
+      // first that names a file in the sibling.
+      const rest = m[3];
+      for (let i = rest.indexOf('/'); i >= 0; i = rest.indexOf('/', i + 1)) {
+        const sib = siblingFile(repoRoot, m[1], m[2], rest.slice(i + 1));
+        if (sib) return { kind: 'fulfill', body: readFileSync(sib), contentType: typeFor(sib),
+                          tag: `sibling ${m[2]}/${rest.slice(i + 1)}` };
+      }
+    }
+  }
+
   // Other /gh/ refs are third-party data (word lists, etc.) — not vendored.
   if (host === 'cdn.jsdelivr.net' && u.pathname.startsWith('/gh/')) {
     return { kind: 'empty', contentType: 'application/octet-stream', tag: `skip ${u.pathname}` };
@@ -320,15 +405,14 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   //
   // The estate's newer panes are cross-repo: the Chats pane reads
   // mehrlander/chat-histories, the guides fold reads whichever repos hold a
-  // shelf. Without this they render the signed-out state headlessly, which is
-  // the one view nobody needs a screenshot of, so a cross-repo pane could be
-  // shot only by hand with a real token.
+  // shelf. Without this they render their signed-out state headlessly, so a
+  // cross-repo pane could be shot only by hand with a real token.
   //
   // Scoped deliberately: the repo NAME must match a directory beside this
   // checkout, and that directory must be a git repo. A multi-repo session
-  // already has the siblings on disk (this one holds four), and a request for
-  // a repo that is not checked out falls through to the miss below rather than
-  // reaching the network, so the render stays offline either way.
+  // already has its siblings on disk, and a request for a repo that is not
+  // checked out falls through to the miss below rather than reaching the
+  // network, so the render stays offline either way.
   const sibling = /^\/repos\/[^/]+\/([^/]+)\/contents\/(.*)$/.exec(u.pathname);
   if (host === 'api.github.com' && sibling) {
     const [, name, tail] = sibling;

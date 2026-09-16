@@ -2,7 +2,7 @@
 // vocabulary of prose field names, to the properties it claims for itself.
 //
 // The vocabulary exists because 65 distinct field names were carrying what is
-// broadly a dozen concepts, 80% of them in exactly one carrier, so nothing
+// broadly a dozen concepts, 80% of them in exactly one file, so nothing
 // could ask the estate for its authored rationale and get an answer
 // (docs/text-content.md). Two things then have to stay true, and neither is
 // obvious from reading the file:
@@ -12,14 +12,14 @@
 //   off-vocabulary name through `instead_of`, and a name listed under two
 //   fields would resolve to whichever row it read last.
 //
-//   An alias may not also be a sanctioned name, or a carrier using it is
+//   An alias may not also be a sanctioned name, or a file using it is
 //   simultaneously conformant and deprecated. `load_vocab` already skips such
 //   an alias, so the collision would be silent rather than wrong: the failure
 //   this catches is a vocabulary that quietly means less than it says.
 //
 // The row count is asserted for the same reason properties-registry.test.mjs
-// asserts its ungoverned count. A vocabulary that grows a name whenever a
-// carrier wants one is not a vocabulary, so the number moves deliberately or
+// asserts its ungoverned count. A vocabulary that admits a new name whenever a
+// file uses one is not a vocabulary, so the number moves deliberately or
 // not at all.
 
 import { test } from 'node:test';
@@ -102,7 +102,7 @@ test('no alias is also a sanctioned name', () => {
   for (const r of rows) {
     for (const a of aliasesOf(r)) {
       assert.ok(!FIELDS.has(a),
-        `"${a}" is both a sanctioned name and an alias of ${r.field}; a carrier using it ` +
+        `"${a}" is both a sanctioned name and an alias of ${r.field}; a file using it ` +
         'would be conformant and deprecated at once');
     }
   }

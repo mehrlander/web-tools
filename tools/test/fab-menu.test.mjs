@@ -23,7 +23,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 const doc = window.document;
@@ -56,6 +61,13 @@ async function mountPage(html) {
   await tick(2);
   return host;
 }
+
+// Wait for an x-show binding to settle, bounded. Alpine applies effects on its
+// own schedule and a test that counts flushes is measuring the scheduler.
+const shown = async (get) => {
+  for (let i = 0; i < 20 && (!get() || get().style.display === 'none'); i++) await tick(1);
+  return get();
+};
 
 const clearPages = () => {
   [...doc.body.children].forEach(el => {
@@ -373,7 +385,97 @@ test('a declared render puts its own name on the row', async () => {
   // aim_label and kits/md-doc.js carries it onto the declaration.
   assert.equal(d.annKind.aimLabel, 'Markdown section');
   assert.ok(rowLabels(d.$root).includes('Note a markdown section'));
+
+  // AND ITS OWN GLYPH, for the same reason and from the same row. This file
+  // wrote out ph-text-align-left until 2026-09-06, so the next kind to declare
+  // would have arrived wearing markdown's icon under its own name.
+  assert.equal(d.annKind.aimIcon, 'ph-file-md');
+  const btn = [...d.$root.querySelectorAll('button')]
+    .find(b => (b.getAttribute('aria-label') || '') === 'Note a markdown section');
+  assert.ok(btn, 'the declared aim has a button');
+  assert.match(btn.querySelector('i').className, /\bph-file-md\b/,
+    'the row draws the glyph the kind declared');
+  assert.doesNotMatch(btn.querySelector('i').className, /text-align-left/);
   box.remove();
+});
+
+// ── The row raises the card, and it is the only thing that puts it down ─────
+//
+// The card had a collapsed state that read as putting it away and was not: it
+// stayed, smaller, still over the page. Nothing anywhere called disable(), so a
+// card raised by a long press could not be put down by one. With the collapsed
+// state gone (2026-09-06) this row owns both halves.
+
+test('the hide row appears only where there is a card, and puts it away', async () => {
+  clearPages();
+  const calls = [];
+  let live = false;
+  window.Annotate = {
+    get enabled() { return live; },
+    enable() { live = true; calls.push('enable'); },
+    disable() { live = false; calls.push('disable'); },
+    notePage() { calls.push('page'); },
+  };
+  const d = await mountFab();
+
+  d.openFabMenu();
+  await tick(2);
+  assert.equal(d.annOn, false, 'nothing running, so nothing to put away');
+  const off = () => [...d.$root.querySelectorAll('button')]
+    .find(b => (b.getAttribute('aria-label') || '') === 'Hide the note card');
+  assert.equal(off().style.display, 'none', 'and the row is not offered');
+
+  // ITS OWN ROW, not a fifth glyph on the aims. A fifth key overflowed the
+  // w-56 menu and was clipped away entirely, and an X at the end of four aims
+  // reads as a fifth aim.
+  const aims = d.$root.querySelector('[aria-label="Note the page"]').parentElement;
+  assert.ok(!aims.contains(off()), 'it does not ride the aims group');
+  assert.match(off().textContent, /Hide notes/, 'it is a labelled row like every other verb here');
+
+  await d.annAim('page');
+  assert.deepEqual(calls, ['enable', 'page']);
+
+  d.openFabMenu();
+  assert.equal(d.annOn, true, 'a card is up, read at open time');
+  // x-show applies on Alpine's own schedule, so this waits for the condition
+  // rather than for a fixed number of flushes: asserting after tick(2) passed
+  // and then did not, which is a gate that reports the scheduler rather than
+  // the behaviour.
+  await shown(off);
+  assert.notEqual(off().style.display, 'none');
+  off().click();
+  await tick(2);
+  assert.deepEqual(calls, ['enable', 'page', 'disable'], 'and the tap unmounts the card');
+  assert.equal(d.annOn, false);
+  delete window.Annotate;
+});
+
+// The three that are not declared are this component's own, and they have to
+// keep matching kits/annotate.js's AIM_ICON glyph for glyph: one aim, one mark,
+// whichever control starts it.
+test('the built-in aims wear the same glyphs the card does', async () => {
+  clearPages();
+  const d = await mountFab();
+  d.openFabMenu();
+  await tick(2);
+  const glyph = (label) => {
+    const b = [...d.$root.querySelectorAll('button')]
+      .find(x => (x.getAttribute('aria-label') || '') === label);
+    assert.ok(b, 'no row: ' + label);
+    return b.querySelector('i').className;
+  };
+  assert.match(glyph('Note the page'), /\bph-file\b/);
+  assert.match(glyph('Note an element'), /\bph-crosshair-simple\b/);
+  assert.match(glyph('Note a region'), /\bph-frame-corners\b/);
+
+  const card = readFileSync(path.join(repoRoot, 'lib/kits/annotate.js'), 'utf8');
+  const lit = card.match(/const AIM_ICON = \{([\s\S]*?)\};/);
+  assert.ok(lit, 'kits/annotate.js no longer carries AIM_ICON');
+  for (const [key, g] of [['page', 'ph-file'], ['pick', 'ph-crosshair-simple'],
+                          ['region', 'ph-frame-corners']]) {
+    assert.match(lit[1], new RegExp(key + ":\\s*'" + g + "'"),
+      'the card and the launcher disagree about the ' + key + ' aim');
+  }
 });
 
 test('a declaration with no sections offers no row', async () => {
@@ -451,3 +553,166 @@ test('a sealed frame falls back to the shell rather than throwing', async () => 
   delete window.__tossFrame;
 });
 
+test('the probe is standing equipment: the menu arms it, and the same row takes it off', async () => {
+  // WHY THE FAB OWNS THIS AT ALL. kits/probe.js was reachable only through
+  // `?probe=` on the address, so a reader already looking at the fault had to
+  // retype the URL to instrument it, on the phone where that class of fault
+  // lives. The precedent is the fab's own crash trail, which left
+  // pages/audit-render.html for the same reason: a diagnostic that lives on
+  // one page can be run on one page.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  let asked = null;
+  window.gh = {
+    load: async (p) => {
+      asked = p;
+      if (p === 'kits/probe.js') new window.Function(kit)();
+    },
+  };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  assert.equal(d.probeOn, false);
+  await d.openProbe();
+  assert.equal(asked, 'kits/probe.js');
+  assert.equal(d.probeOn, true, 'the row has to actually arm it, not only ask for the file');
+  assert.ok(doc.getElementById('wt-probe'), 'and the overlay is what says so on screen');
+
+  // THE ROW HAS TO SAY IT WILL. `probeOn` reads across into another realm's
+  // window.Probe, which Alpine cannot track, so a label bound to it renders
+  // once and then lies: measured in a browser, the row still closed the probe
+  // and still read "Probe". A reader with no keyboard has only this row, and no
+  // reason to press it. The mirror is refreshed where annOn is, at menu-open.
+  d.openFabMenu();
+  assert.equal(d.probeArmed, true, 'the label reads the mirror, not the live cross-realm value');
+  d.fabMenu = false;
+
+  // One control with two meanings, because a menu read in the half-second
+  // before a finger lifts has no room for a pair of rows.
+  await d.openProbe();
+  assert.equal(d.probeOn, false);
+  assert.equal(doc.getElementById('wt-probe'), null);
+  d.openFabMenu();
+  assert.equal(d.probeArmed, false);
+  d.fabMenu = false;
+});
+
+test('the launcher menu carries the probe row, wired to the method that arms it', () => {
+  // The row and the method are two files apart in review and one tap apart in
+  // use: a renamed method leaves a row that looks right and does nothing.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+  assert.match(src, /fabMenu = false; openProbe\(\)/,
+    'the menu row must call openProbe');
+  assert.match(src, /probeArmed \? 'Probe off' : 'Probe'/,
+    'and its label carries the state rather than a second row');
+  assert.doesNotMatch(src, /x-text="probeOn/,
+    'bound to the live cross-realm read, the label renders once and then lies');
+});
+
+test('the probe row carries the verbs a phone cannot press, and only while one is on', async () => {
+  // Every one of the probe's verbs was a keyboard chord, which is no verb at
+  // all on the device this instrument is aimed at: a reader who armed a probe
+  // on a phone, watched the fault happen and wanted to send it had nothing to
+  // press. Reported 2026-09-10, from a phone.
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+  const verbs = () => [...doc.querySelectorAll('button[aria-label]')]
+    .map((b) => b.getAttribute('aria-label'))
+    .filter((l) => /capture|trace|overlay/.test(l));
+
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), [], 'off, there is nothing to send and nothing to hold');
+
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(),
+    ['Send the capture', 'Hold the trace', 'Move the overlay to the next corner']);
+
+  // Hold, whose glyph is the state: a mirror again, since the kit's flag is a
+  // cross-realm read Alpine cannot track.
+  await d.probeVerb('hold');
+  assert.equal(window.Probe.held, true);
+  assert.equal(d.probeHeld, true, 'the pause glyph has to flip or it lies the way the label did');
+  await d.probeVerb('hold');
+  assert.equal(d.probeHeld, false);
+
+  // Move, because on a phone the overlay covers whatever it is parked over.
+  const corner = () => doc.getElementById('wt-probe').getAttribute('data-corner');
+  const first = corner();
+  await d.probeVerb('move');
+  assert.notEqual(corner(), first);
+
+  await d.openProbe();   // off, and the verbs go with it
+  d.openFabMenu();
+  await tick(2);
+  assert.deepEqual(verbs(), []);
+});
+
+test('send files where there is a token and hands over the capture where there is not', async () => {
+  clearPages();
+  const d = await mountFab();
+  const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
+  window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
+  window.requestAnimationFrame = (fn) => { fn(); return 0; };
+
+  // THE ROUTE IS DECIDED BEFORE THE AWAIT, which is the whole reason
+  // `probeCanFile` exists as a mirror rather than as a fallback after a failed
+  // write: iOS spends the gesture on the first await, so a share offered after
+  // a refused file arrives with no transient activation and is refused too.
+  let sent = null;
+  window.PageReport = { watch() {}, send: async (doc) => { sent = doc; return { ok: true, path: 'logs/page/2026-09-10/x-1234.json' }; } };
+  window.localStorage.setItem('ghToken', 'a-token');
+  await d.openProbe();
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, true);
+  await d.probeVerb('send');
+  assert.ok(sent && sent.probeId, 'the capture itself is what goes, not a summary of it');
+  assert.match(d.outMsg, /^Filed x-1234\.json/);
+
+  // No token, no write: the honest answer on a phone is the share sheet, and
+  // the clipboard behind it for a browser with neither.
+  window.localStorage.removeItem('ghToken');
+  let copied = null;
+  window.navigator.clipboard = { writeText: async (t) => { copied = t; } };
+  d.openFabMenu();
+  await tick(1);
+  assert.equal(d.probeCanFile, false);
+  await d.probeVerb('send');
+  assert.ok(copied && JSON.parse(copied).probeId, 'and it is the same capture, whole');
+  assert.match(d.outMsg, /clipboard/);
+  // AND IT SAYS SO WHERE THE READER IS LOOKING. `outMsg` is a line inside the
+  // drawer's take area, which a row tapped from the launcher menu never opens,
+  // so a send that reported only there reported to nobody. Filing has the kit's
+  // own note on the overlay; this path builds the JSON itself and would have
+  // had nothing, so it writes a trace line instead.
+  assert.ok(window.Probe.trace().some((r) => r.tag === 'probe:send' && /clipboard/.test(r.detail)),
+    'the outcome has to reach the overlay, not a panel that is shut');
+
+  await d.openProbe();
+  window.PageReport = undefined;
+});
+
+test('a probe that cannot load opens the drawer, since that is where the reason is', async () => {
+  // The failure path is the one that must be readable: the reader taps Probe,
+  // nothing appears, and without this the sentence saying why sits behind a
+  // drawer they have no reason to open. Success leaves it shut, because the
+  // overlay appearing is the answer.
+  clearPages();
+  const d = await mountFab();
+  // An earlier case in this file left the kit's closure alive in this window,
+  // so the idle object it installs still carries a working arm(): clear it, or
+  // this is a test of a probe that loads perfectly.
+  window.Probe = undefined;
+  window.gh = { load: async () => {} };          // resolves, registers nothing
+  d.open = false;
+  await d.openProbe();
+  assert.equal(d.probeArmed, false);
+  assert.equal(d.open, true, 'a failure has to put its own explanation on screen');
+  assert.match(d.outMsg, /\?probe=/);
+});

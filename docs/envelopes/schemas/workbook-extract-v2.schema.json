@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/workbook-extract-v2.schema.json",
+  "title": "Workbook extract (v2)",
+  "description": "A sheet-centered selection of modeled workbook data. Items remain data-view items. Related objects require explicit selection even when a sheet is selected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "title", "note", "source", "taken", "picked", "left", "items"],
+  "properties": {
+    "kind": { "const": "workbook-extract/2" },
+    "title": { "type": "string" },
+    "note": { "type": "string" },
+    "source": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string" },
+            "ref": { "type": "string" },
+            "path": { "type": "string" },
+            "name": { "type": "string" },
+            "bytes": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "taken": { "type": "string", "format": "date-time" },
+    "picked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheets", "objects"],
+      "properties": {
+        "sheets": { "type": "array", "items": { "$ref": "#/$defs/sheetChoice" } },
+        "objects": { "type": "array", "items": { "$ref": "#/$defs/objectChoice" } }
+      }
+    },
+    "left": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheets", "sheetKinds", "objects"],
+      "properties": {
+        "sheets": { "type": "array", "items": { "type": "string" } },
+        "sheetKinds": { "type": "array", "items": { "$ref": "#/$defs/sheetChoice" } },
+        "objects": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+  },
+  "$defs": {
+    "sheetKind": {
+      "enum": ["values", "cells", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns"]
+    },
+    "objectKind": { "enum": ["pivots", "records", "sources", "queries"] },
+    "sheetChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kinds"],
+      "properties": {
+        "name": { "type": "string" },
+        "kinds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/sheetKind" } }
+      }
+    },
+    "objectChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "label", "sheet"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "$ref": "#/$defs/objectKind" },
+        "label": { "type": "string" },
+        "sheet": { "type": ["string", "null"] }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["name", "view", "note", "content", "kind", "sheet", "rows", "total", "truncated"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "view": { "type": "string" },
+        "note": { "type": "string" },
+        "content": { "type": "string" },
+        "kind": { "enum": ["values", "cells", "formulas", "styles", "merges", "comments", "validations", "conditional", "columns", "pivots", "records", "sources", "queries"] },
+        "sheet": { "type": ["string", "null"] },
+        "object": { "type": "string", "description": "Present only for an individually selected object." },
+        "rows": { "type": ["integer", "null"], "minimum": 0 },
+        "total": { "type": ["integer", "null"], "minimum": 0 },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  }
+}

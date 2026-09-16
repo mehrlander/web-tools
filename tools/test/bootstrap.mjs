@@ -28,7 +28,11 @@ import jsdomPkg from 'jsdom';
 
 const { JSDOM } = jsdomPkg;
 const require = createRequire(import.meta.url);
-export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// Re-exported, not defined: it moved to tools/repo-root.mjs so a consumer
+// outside the suite (a git merge driver, run by git in a clone with no
+// node_modules) can have it without this file's jsdom import.
+import { repoRoot } from '../repo-root.mjs';
+export { repoRoot };
 
 // CDN url → vendored loader. Each must return what the kit's `await import()`
 // would have resolved to (a module-namespace-like object).
@@ -48,6 +52,11 @@ export const KIT_IMPORTS = {
   // so no wrapper is needed. Vendored so kits/xlsx.js's readZip and readMashup
   // can be tested here rather than browser-side only.
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm': () => import('jszip'),
+  // ExcelJS is the WRITER behind kits/xlsx-write.js, and the npm package's
+  // main entry is the same bundle jsDelivr serves as `+esm`. Under Node's CJS
+  // interop the constructor namespace lands on `.default`, which is the shape
+  // the kit's `m.default ?? m` already expects from the CDN build.
+  'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm': () => import('exceljs'),
 };
 
 // Run lib/kits/<name>.js against `window` (a plain object is fine for kits —

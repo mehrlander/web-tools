@@ -242,7 +242,7 @@ function body(raw) {
 function card(stem, raw, fresh) {
   const { verb, name, fields, rest } = shape(raw);
   const c = node('div', 'card bg-base-100 shadow-sm'
-    + (fresh || ago(stem) ? ' ring-2 ring-primary' : ''));
+    + (fresh || ago(stem) ? ' ring-2 ring-[var(--color-primary)]' : ''));
   const b = node('div', 'card-body gap-2 p-3');
   const head = node('div', 'flex items-center gap-2 flex-wrap');
   head.append(node('span', 'badge badge-sm ' + (TONE[verb] || 'badge-ghost'), verb));

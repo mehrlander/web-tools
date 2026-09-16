@@ -35,9 +35,19 @@ test('dist/app.js matches lib/ and the app page', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'build:app --check failed');
 });
 
+test('dist/dictate.js matches lib/ and the dictation page', () => {
+  const r = check(['tools/build/build.mjs', 'pages/dictate.html', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'build:dictate --check failed');
+});
+
 test('the page catalogs match pages/', () => {
   const r = check(['tools/build/pages-index.mjs', '--check']);
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'pages-index --check failed');
+});
+
+test('the default skill\'s vendored docs match docs/', () => {
+  const r = check(['tools/build/vendor-docs.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'vendor-docs --check failed');
 });
 
 test('docs/README.md matches the documentation registry', () => {
@@ -58,8 +68,24 @@ test('the harness registry matches tools/ and scripts/', () => {
 // the generator's own closing comment claims. It went unnoticed because the
 // projection is read by machines and diffed by nobody, and because the estate
 // had only one board carrying it. It now has ten.
-test('docs/themes.json matches the corpus the theme graph is read from', () => {
-  const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.json', '--check'],
+test('the kits registry matches lib/kits/', () => {
+  const r = check(['tools/build/kits-index.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'kits-index --check failed');
+});
+
+test('docs/examples/allotment-ledger.xlsx matches its generator', () => {
+  // A .xlsx is a ZIP and a diff cannot show what changed inside one, so the
+  // check is the only thing standing between the committed sample and a
+  // generator that has moved on. It only works because every zip entry is
+  // written with a pinned date; JSZip stamps `new Date()` by default.
+  const r = check(['tools/build/sample-workbook.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'sample-workbook --check failed');
+});
+
+
+
+test('docs/themes.csv matches the corpus the theme graph is read from', () => {
+  const r = spawnSync('python3', ['scripts/duplicated-claims.py', '--emit', 'docs/themes.csv', '--check'],
                       { cwd: repoRoot, encoding: 'utf8' });
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
@@ -98,14 +124,3 @@ test('the board generator is byte-deterministic', () => {
 // of derived artifact to forget, because nothing about editing docs/ suggests
 // that a second file exists, and a stale copy is silent: it injects confidently
 // and governs the session with last month's rules.
-test('the plugin\'s vendored conventions match docs/', () => {
-  for (const name of ['CONVENTIONS.md', 'SURFACING.md']) {
-    const source = readFileSync(join(repoRoot, 'docs', name), 'utf8');
-    const vendored = readFileSync(join(repoRoot, '.claude/skills/web-tools', name), 'utf8');
-    assert.equal(
-      vendored, source,
-      `.claude/skills/web-tools/${name} is behind docs/${name}. ` +
-      'Run: cp docs/CONVENTIONS.md docs/SURFACING.md .claude/skills/web-tools/'
-    );
-  }
-});

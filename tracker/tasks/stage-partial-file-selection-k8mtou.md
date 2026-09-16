@@ -8,7 +8,7 @@ size: M
 # Give the stage a way to carry part of a file
 
 The stage is the repo's tool for choosing which files travel, and it works at
-whole-file granularity only. Every carrier built on it (`#stage=`, the bundle
+whole-file granularity only. Everything built on it (`#stage=`, the bundle
 download, the Diff lens, the brief's hand-off from PR #295) inherits that.
 
 The gap shows up whenever the interesting part is a region rather than a file:

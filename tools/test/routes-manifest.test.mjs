@@ -5,7 +5,7 @@
 // render path takes no fetch, and adding a route to one without the other fails
 // here.
 //
-// Four carriers since 2026-08-18. The three tables (modes, routes, showing
+// Four files since 2026-08-18. The three tables (modes, routes, showing
 // mechanisms) are CSV registries of their own; docs/routes.json keeps what is
 // not a table: the grammar, the parameter precedence, and the showing frame.
 //
@@ -20,7 +20,7 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
 // An independent CSV reader, not the loader under tools/build/: this file is a
-// gate on what the carriers hold, so borrowing the parser it checks against
+// gate on what those files hold, so borrowing the parser it checks against
 // would let a parser bug agree with itself.
 function parseCsv(raw) {
   const rows = [];
@@ -192,27 +192,26 @@ test('the picker only routes to mechanisms that exist', () => {
 //
 // So showing.md gets the same instrument CLAUDE.md has, for the same reason.
 // The ceiling is set with room above the 2026-08-19 chop and well under what
-// the file was; the remedy when it fires is extraction, never shaving. If the
-// material is a mechanism, a boundary, or an address, it is a row in
-// showing-mechanisms.csv or a field of the routes.json showing block. What
-// belongs in prose is what no row can hold: a relation between two rows, or a
-// record of what a boundary cost to find.
+// the file was. If it fails, a mechanism, a boundary or an address is a row in
+// showing-mechanisms.csv or a field of the routes.json showing block. Prose
+// keeps what no row can hold: a relation between two rows, or a record of what
+// a boundary cost to find. Raising the limit requires user approval.
 const SHOWING_LIMIT = 1500;
 
 test('docs/showing.md delegates the mechanisms rather than restating them', () => {
   const doc = readFileSync(path.join(repoRoot, 'docs', 'showing.md'), 'utf8');
 
   assert.match(doc, /showing-mechanisms\.csv/,
-    'showing.md no longer points at the carrier it delegates to');
+    'showing.md no longer points at the file it delegates to');
   assert.match(doc, /routes\.json/,
     'showing.md no longer points at the frame (the routes.json showing block)');
 
   const words = doc.split(/\s+/).length;
   assert.ok(words < SHOWING_LIMIT,
     `docs/showing.md is ${words} words, over its ${SHOWING_LIMIT}-word ceiling. ` +
-    'The fix is extraction, not shaving: a mechanism, a boundary or an address ' +
-    'is a row in showing-mechanisms.csv or a field of the routes.json showing ' +
-    'block. Prose keeps only what no row can hold.');
+    'A mechanism, a boundary or an address is a row in showing-mechanisms.csv ' +
+    'or a field of the routes.json showing block. Prose keeps only what no row ' +
+    'can hold. Raising the limit requires user approval.');
 });
 
 // The one duplicate a word cap cannot see, because it is inside the budget:
@@ -235,7 +234,7 @@ test('docs/showing.md does not repeat a paragraph within itself', () => {
 
 // ── Kinds: what is being shown, and what that buys once it is on screen ─────
 //
-// docs/routes-kinds.csv is the fourth carrier, added 2026-08-31. The three
+// docs/routes-kinds.csv is the fourth file, added 2026-08-31. The three
 // above answer how a subject reaches a viewer; this one answers what the
 // subject IS, which is the question three separate pieces of code were each
 // answering privately: ViewRegistry.READ_MODE (which mode a file opens in),
@@ -352,34 +351,44 @@ test('every kind that names a kit inlines its own row there', () => {
     assert.equal(lit.aim, row.aim, row.kit + ': aim');
     assert.equal(lit.aimLabel, row.aim_label, row.kit + ': aim_label');
     assert.equal(lit.aimHint, row.aim_hint, row.kit + ': aim_hint');
+    assert.equal(lit.aimIcon || '', row.aim_icon, row.kit + ': aim_icon');
     assert.ok(row.unit.startsWith(lit.unit),
       `${row.kit}: unit "${row.unit}" does not open with "${lit.unit}"`);
   }
 });
 
 // The optional half of the contract, stated as a check so it cannot quietly
-// become mandatory. A kind with an aim has to name what that aim is called and
-// what its hint says, since kits/annotate.js draws the row from those two and
-// an empty label would paint a blank control. A kind WITHOUT one carries
-// neither: source code declines the gesture half because a line range is what
-// an ordinary text selection already spans.
+// become mandatory. A kind with an aim has to name what that aim is called,
+// what its hint says and what glyph marks it, since kits/annotate.js and
+// alpineComponents/fab.js draw the row from those three and an empty one paints
+// a blank control. A kind WITHOUT an aim carries none of them: source code
+// declines the gesture half because a line range is what an ordinary text
+// selection already spans.
+//
+// THE ICON IS AS MANDATORY AS THE LABEL, and that is the point of the column.
+// Both surfaces hardcoded `ph-text-align-left` until 2026-09-06, so a kind
+// declaring an aim inherited markdown's glyph with its own name. Making it
+// optional here would leave the fallback in place and the same drift with it.
 test('a kind names its aim completely, or carries no aim at all', () => {
   for (const k of manifest.kinds) {
     if (k.aim) {
       assert.ok(k.aim_label, k.kind + ': an aim with no label paints a blank row');
       assert.ok(k.aim_hint, k.kind + ': an aim with no hint');
       assert.ok(k.kit, k.kind + ': an aim needs a kit to define its units');
+      assert.match(k.aim_icon, /^ph-[a-z0-9-]+$/,
+        k.kind + ': an aim needs a phosphor glyph, so both surfaces stop guessing one');
     } else {
       assert.equal(k.aim_label, '', k.kind + ': a label for an aim that does not exist');
       assert.equal(k.aim_hint, '', k.kind + ': a hint for an aim that does not exist');
+      assert.equal(k.aim_icon, '', k.kind + ': an icon for an aim that does not exist');
     }
   }
 });
 
-// The carrier is the one place the aim rule lives, and both conditions have to
-// be in it: a kind declaring an aim, and units for that aim to hit. Split
+// kits/src-doc.js is the one place the aim rule lives, and both conditions have
+// to be in it: a kind declaring an aim, and units for that aim to hit. Split
 // across the kits it would be re-derived by every kind that ever declares.
-test('the aim test is the carrier\'s, and tests both halves', () => {
+test('the aim test is src-doc\'s, and tests both halves', () => {
   const src = readFileSync(path.join(repoRoot, 'lib/kits/src-doc.js'), 'utf8');
   assert.match(src, /st\.kind && st\.kind\.aim && st\.units > 0/,
     'kits/src-doc.js no longer tests both the declared aim and the unit count');

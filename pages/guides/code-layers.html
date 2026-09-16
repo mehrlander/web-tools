@@ -324,7 +324,7 @@
   <div x-show="tab === 'options'" class="space-y-3">
     <template x-for="o in options" :key="o.id">
       <div class="bg-base-100 rounded-lg p-4"
-           :class="o.decided ? 'ring-2 ring-primary' : ''">
+           :class="o.decided ? 'ring-2 ring-[var(--color-primary)]' : ''">
         <div class="flex items-start gap-2 flex-wrap mb-2">
           <span class="badge" :class="o.decided ? 'badge-primary' : 'badge-ghost'"
                 x-text="o.id"></span>
@@ -416,7 +416,7 @@
       </div>
     </div>
 
-    <div class="bg-base-100 rounded-lg divide-y divide-base-200">
+    <div class="bg-base-100 rounded-lg divide-y divide-[var(--color-base-200)]">
       <template x-for="(p, i) in phases" :key="i">
         <div class="flex gap-3 p-3">
           <div class="badge badge-neutral badge-sm shrink-0 mt-0.5" x-text="i + 1"></div>

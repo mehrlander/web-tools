@@ -184,21 +184,19 @@ try {
   ok('no Save button survives',
     !(await page.evaluate(() =>
       [...document.querySelectorAll('button')].some(b => /^\s*Save\s*$/.test(b.textContent)))));
-  // FOUR ACROSS is the phone's case and never this browser's: Share is bound
-  // to navigator.share, which headless Chromium does not have, so the row
-  // above was measured three wide. The tightest column, 92px at 390, is the
-  // one that decides whether a name still fits beside its icon.
-  const four = await page.evaluate(() => {
-    const c = document.querySelector('[x-data="dictate"]')._x_dataStack[0];
-    c.canShare = true;
-    return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => {
-      const b = [...document.querySelectorAll('button')]
-        .filter(x => /^(Copy|Share|Jot|Drop)$/.test(x.textContent.trim()))
-        .map(x => ({ name: x.textContent.trim(), ...x.getBoundingClientRect().toJSON() }));
-      c.canShare = !!navigator.share;
-      done(b);
-    })));
-  });
+  // FOUR ACROSS, and the fourth is Send rather than Share. Share was bound to
+  // navigator.share, which headless Chromium does not have, so this had to
+  // force `canShare` to measure a row the browser would not otherwise draw.
+  // Send is unconditional (it opens a sheet, it does not call a platform API),
+  // and Share is the second button at the foot of that sheet, so the row is
+  // four wide here and on a desktop alike. The tightest column, 92px at 390,
+  // is the one that decides whether a name still fits beside its icon.
+  const four = await page.evaluate(() => new Promise(done =>
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      done([...document.querySelectorAll('button')]
+        .filter(x => /^(Copy|Send|Jot|Drop)$/.test(x.textContent.trim()))
+        .map(x => ({ name: x.textContent.trim(), ...x.getBoundingClientRect().toJSON() })));
+    }))));
   ok('all four fit the row at phone width', four.length === 4
     && four.every(b => b.width >= 80 && b.height >= 44 && b.height < 60),
     JSON.stringify(four.map(b => [b.name, Math.round(b.width), Math.round(b.height)])));
@@ -988,13 +986,23 @@ try {
   // THE DELETE KEY IS A KEY: same row as the marks and the shift, not the
   // header and not the send row. It is tapped over and over mid-sentence,
   // which is what that row is tall for.
-  ok('backspace sits in the key row, beside the shift',
+  //
+  // NOT BESIDE THE SHIFT ANY MORE, and the gap between them is the point. The
+  // row divides into writing and repair past a hairline, so backspace is the
+  // repair group's last key and the shift is the writing group's, with the
+  // step-back and stitch keys between them. Same row, same parent, and this
+  // asserts the divider rather than pretending the two are still adjacent.
+  ok('backspace ends the key row, past the hairline that divides it',
     await page.evaluate(() => {
       const b = document.querySelector('button:has(i.ph-backspace)');
       if (!b) return false;
       const shift = [...document.querySelectorAll('button')].find(x => /^(·!¶|abc)$/.test(x.textContent.trim()));
-      return !!shift && b.parentElement === shift.parentElement
-        && b.previousElementSibling === shift;
+      if (!shift || b.parentElement !== shift.parentElement) return false;
+      const kids = [...b.parentElement.children];
+      const rule = kids.find(e => e.tagName === 'DIV' && e.className.includes('w-px'));
+      return !!rule && kids.indexOf(shift) < kids.indexOf(rule)
+        && kids.indexOf(rule) < kids.indexOf(b)
+        && b === kids[kids.length - 1];
     }));
 
   // ── 4b. The two modifier taps ────────────────────────────────────────
@@ -1070,6 +1078,44 @@ try {
     writes[0]?.text);
   ok('and the sheet stays open, since the list under it is the confirmation',
     await page.locator('input[placeholder="heard"]').isVisible());
+  // ── An arrival, and the draft it displaces ──────────────────────────────
+  // The expand carries a draft here through one localStorage key, and this
+  // page saves whatever it is shown. Joining the arrival onto the stored draft
+  // therefore compounded: the second expand opened on the first note stacked
+  // above it, the third on both. An arrival replaces now, and what it
+  // displaced is one tap away rather than gone.
+  console.log('\nan arrival replaces the stored draft:');
+  await page.evaluate(() => {
+    localStorage.setItem('dictate:draft', 'an older note nobody filed');
+    localStorage.setItem('wt:dictate-handoff', JSON.stringify({
+      text: 'the note being carried over', at: '/pages/annotate.html', sentAt: Date.now() }));
+    localStorage.removeItem('dictate:aside');
+  });
+  await open();
+  ok('the page opens on the carried words alone',
+    (await buffer()).trim() === 'the note being carried over', await buffer());
+  ok('and says where they came from',
+    (await page.locator('text=Carried over from').count()) === 1);
+  ok('the displaced draft is offered back, not discarded',
+    await page.locator('button:has-text("Bring back")').isVisible());
+
+  await page.locator('button:has-text("Bring back")').click();
+  await page.waitForTimeout(300);
+  ok('and one tap puts it above what is here',
+    (await buffer()).replace(/\s+/g, ' ').trim()
+      === 'an older note nobody filed the note being carried over', await buffer());
+  // x-show hides rather than removes, so this asks whether it is VISIBLE.
+  ok('the offer is spent, since those words are now in the buffer',
+    !(await page.locator('button:has-text("Bring back")').isVisible()));
+
+  // The pile-up this replaced: a second arrival must not stack on the first.
+  await page.evaluate(() => {
+    localStorage.setItem('wt:dictate-handoff', JSON.stringify({
+      text: 'a second note', at: '/pages/annotate.html', sentAt: Date.now() }));
+  });
+  await open();
+  ok('a second arrival opens on itself, not on the pile',
+    (await buffer()).trim() === 'a second note', await buffer());
 } finally {
   await browser.close();
   server.close();

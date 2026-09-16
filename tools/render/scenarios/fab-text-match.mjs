@@ -8,7 +8,7 @@
 // THE READ IS REAL: the figures come from walking this page's own DOM, which
 // the sandbox renders for real. THE TWO REGISTRY-AND-TREE READS ARE SEEDED,
 // because there is no GitHub here and no token. The seeds carry the shape each
-// carrier really has, CSV text rather than objects, so the rows exercise
+// registry really has, CSV text rather than objects, so the rows exercise
 // the real lookup rather than being written into the component's state. Same
 // split as tools/render/scenarios/fab-traffic.mjs, and for the same reason.
 

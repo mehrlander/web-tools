@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/workbook-extract-v1.schema.json",
+  "title": "Workbook extract (v1)",
+  "description": "Part of an .xlsx workbook, picked along two axes (which sheets, which kinds of reading) and carried as data. A PROFILE OVER data-view: every item is a data-view item, so an extract renders in pages/data-view.html unchanged, and this schema adds only what that envelope has no slot for, namely where the extract came from and what was left behind. Written by lib/kits/xlsx-extract.js. Documentation: docs/envelopes/workbook-extract.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "items", "picked", "left"],
+  "properties": {
+    "kind": { "const": "workbook-extract/1" },
+    "title": { "type": "string" },
+    "note": { "type": "string" },
+    "source": {
+      "description": "Where the workbook was read from. Null when it has no address: a file dropped onto a page has bytes and a name and nothing else, and saying so is better than minting a repo path it never had.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "repo": { "type": "string", "description": "owner/repo, when the workbook is committed somewhere." },
+            "ref": { "type": "string", "description": "A commit SHA, or a branch name where that is all the reader had. A SHA is the only form that still resolves to these bytes later." },
+            "path": { "type": "string", "description": "Path within the repo." },
+            "name": { "type": "string", "description": "The filename, which a dropped file has even when nothing else is known." },
+            "bytes": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "taken": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the extract was made. Ref plus time is what lets a reader tell a stale extract from a current one."
+    },
+    "picked": { "$ref": "#/$defs/axes" },
+    "left": {
+      "allOf": [{ "$ref": "#/$defs/axes" }],
+      "description": "The complement of `picked` against the workbook's sheets and this format's kinds. Stated rather than inferred, because the reader of an extract cannot otherwise tell four kinds out of twelve from the whole file."
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheets", "kinds"],
+      "properties": {
+        "sheets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sheet display names, in workbook order."
+        },
+        "kinds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/kindId" }
+        }
+      }
+    },
+    "kindId": {
+      "enum": [
+        "values", "cells", "formulas", "styles", "merges", "comments", "validations",
+        "conditional", "columns", "pivots", "records", "sources", "queries"
+      ],
+      "description": "The kind axis. The first eight are read per sheet; the last four are read once per workbook and carry a null `sheet`."
+    },
+    "item": {
+      "type": "object",
+      "required": ["name", "content"],
+      "description": "A data-view item, plus this format's per-item record. The first five properties are data-view's and are all a data-view reader reads; the rest it ignores.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique within the envelope: a name is how #item= addresses one item, so a collision is a link that opens the wrong thing."
+        },
+        "view": {
+          "type": "string",
+          "description": "A viewer module id. `table` for every tabular kind, `code` for Power Query's M source. A preference, not a demand: the viewer falls back when the mode is unavailable."
+        },
+        "note": {
+          "type": "string",
+          "description": "One line, DERIVED from this item's own record rather than written beside it: the cut first (\"2 of 4 rows\"), then whatever the kind had to say. It exists so today's data-view reader shows the cut without knowing this format."
+        },
+        "content": {
+          "type": "string",
+          "description": "The item's bytes. A JSON array of row objects for a tabular kind, the M source for a query."
+        },
+        "src": {
+          "type": "string",
+          "description": "data-view's by-reference alternative to `content`. An extract is produced inline, so this is not written today; it is listed because an item here is a data-view item and a later writer may use it."
+        },
+        "sheet": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "The sheet this item was read from, by display name. Null for a workbook-scoped kind."
+        },
+        "kind": { "$ref": "#/$defs/kindId" },
+        "rows": {
+          "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }],
+          "description": "Rows in `content`. Null for a non-tabular kind."
+        },
+        "total": {
+          "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }],
+          "description": "Rows the workbook holds for this cell of the matrix. Equal to `rows` when nothing was cut."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "Whether `content` is short of `total`. Reported rather than silently applied, which is pivotRecords' habit and the reason this format keeps it."
+        }
+      }
+    }
+  }
+}

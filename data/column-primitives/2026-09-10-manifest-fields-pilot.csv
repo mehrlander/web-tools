@@ -1,0 +1,59 @@
+key,declared_type,primitive,cardinality,note
+icon,string,label,one,Phosphor class from that library's vocabulary
+estate,boolean,label,one,two-value domain
+group,string,label,one,"'core', 'data'; small open-ended set"
+note,string,value,one,prose
+order,number,value,one,figure
+inbox,string,locator,one,"resolves to a dir; 'inbox', '@ref:dir' or 'owner/repo:dir'"
+outbox,string,locator,one,same grammar as inbox
+landing,string,locator,one,repo-relative path to a page
+pages,array,,,"NESTED TABLE, not a field: members declared as pages[].*"
+pages[].path,string,locator,one,bare or qualified cross-repo ref
+pages[].title,string,value,one,prose display name
+pages[].note,string,value,one,prose
+pages[].icon,string,label,one,Phosphor class
+pages[].thumb,string,locator,one,path to a committed thumbnail
+pages[].project,string,locator,one,"resolves to a projects[] entry; foreign key into a small set"
+pages[].appView,boolean,label,one,two-value domain
+pages[].viewLabel,string,value,one,prose display name
+pages[].order,number,value,one,figure
+pages[].slug,string,id,one,"unique per page and becomes ?app=<slug>; id AND address component"
+pages[].query,string,value,one,opaque query string handed down
+pins,array,locator,many,list of paths
+checks,array,,,"NESTED TABLE, not a field"
+checks[].kind,string,label,one,closed six-value domain; the textbook case
+checks[].path,string,locator,one,a glob for absent; a board.csv for tracker
+checks[].label,string,value,one,"prose row caption. A field NAMED label that is a value"
+checks[].pattern,string,value,one,"a regex. Not prose, figure, packed or blob: shape gap"
+checks[].staleAfterDays,number,value,one,figure
+checks[].sources,array,locator,many,list of paths
+checks[].staleOver,number,value,one,figure
+checks[].ignore,array,value,many,list of bare names
+checks[].awaitingOver,number,value,one,figure
+links,string,locator,one,path to the links board
+projects,array,,,"NESTED TABLE, not a field"
+projects[].path,string,id+locator,one,"BOTH: identifies the project and resolves to a folder"
+projects[].label,string,value,one,prose display name
+projects[].tracker,string|boolean,locator+label,one,"UNION: a path or a boolean. Two primitives in one field"
+projects[].landing,string,locator,one,repo-root-relative
+projects[].inbox,string,locator,one,inbox grammar
+projects[].icon,string,label,one,accepted and ignored; dead field
+tracker,string,locator,one,path to the task board
+scope,string,value,one,prose
+skills,array,,,"NESTED TABLE, not a field"
+skills[].name,string,id,one,"directory name, also the slash command; unique"
+skills[].origin,string,label,one,closed set (local/forked)
+growth,string,locator,one,path to the doc-growth payload
+checking,object,,,"NESTED TABLE, not a field"
+checking.files,string,locator,one,path to the file-grain reading
+checking.comparisons,string,locator,one,path to the comparison-grain rows
+checking.as_of,string,value,one,"a date. Not prose, figure, packed or blob: shape gap"
+surface,string|array,locator,one-or-many,cardinality union rather than a primitive union
+stage,object,,,"NESTED TABLE, not a field"
+stage.files,array,locator,many,bare or qualified refs
+stage.targets,array,locator,many,'owner/repo:dir' strings
+hidden,array,locator,many,owner/repo refs
+conventions,string,label,one,one-value domain ('optout')
+sessions,string,locator,one,path to the session-records dir
+quickLink,boolean|object,label,one,"UNION: boolean or object; superseded by icon+estate"
+showing,object,,,"NESTED TABLE, not a field"

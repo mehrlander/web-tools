@@ -133,7 +133,7 @@ where a new page-free function goes, not a migration target for the 27.
 
 ## tools/, which is the weak layer
 
-Since 2026-08-08 the accounting below has a carrier:
+Since 2026-08-08 the accounting below is committed as data:
 [`docs/harness.csv`](harness.csv), the harness registry, one row per code file
 under `tools/` and `scripts/` (`tools/test/` stays with the test registry).
 `role` is authored and a blank role is counted rather than hidden;

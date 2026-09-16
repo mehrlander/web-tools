@@ -1,31 +1,32 @@
 # Text content and commentary
 
-Where the estate's authored text lives, whether the carrier holding it is in
-any shape to be relied on, and how much text never reached a carrier at all.
+Where the estate's authored text lives, whether the data file holding it is in
+any shape to be relied on, and how much text never reached a data file at all.
 Measured 2026-08-10 across `mehrlander/web-tools` and `mehrlander/home`, with
 two instruments that make every figure below one command away:
 
 ```bash
-python3 scripts/embedded-prose.py . pages lib --weight   # text with no carrier
-python3 scripts/text-carriers.py . --fields           # the carriers we have
+python3 scripts/embedded-prose.py . pages lib --weight   # text in no data file
+python3 scripts/text-carriers.py . --fields           # the data files we have
 ```
 
 Re-derive rather than cite. The numbers move as the repos do.
 
 Two questions, and they needed different work:
 
-1. **How organized are the carriers we have?** Every authored carrier in both
-   repos is declared, which is better than expected. The vocabulary inside them
-   was not: budget-DRS used **16 different field names for what is broadly one
-   concept**, an authored justification or gloss, across 46 carriers and 31,883
-   words. [`docs/text-fields.csv`](text-fields.csv) now states twelve names with
-   the rule for picking among them, and every prose field name in budget-DRS
-   maps to one of them.
-2. **What never reached a carrier?** Widening the scan from `.js`/`.html` to
+1. **How organized are the data files we have?** Every authored data file in
+   both repos is declared, which is better than expected. The vocabulary inside
+   them was not: budget-DRS used **16 different field names for what is broadly
+   one concept**, an authored justification or gloss, across 46 data files and
+   31,883 words. [`docs/text-fields.csv`](text-fields.csv) now states twelve
+   names with the rule for picking among them, and every prose field name in
+   budget-DRS maps to one of them.
+2. **What never reached a data file?** Widening the scan from `.js`/`.html` to
    `.py` roughly doubled the commentary found in budget-DRS's app and took its
-   uncarried text tables from 2 to 10. Six registry rows moved another 53,115
-   words from "no carrier" to correctly declared as supplied or generated, and
-   the largest remaining uncarried table, the app's ten view blurbs, now has one.
+   count of text tables with no data file behind them from 2 to 10. Six registry
+   rows moved another 53,115 words from "no data file" to correctly declared as
+   supplied or generated, and the largest remaining table with none, the app's
+   ten view blurbs, now has one.
 
 ## Three kinds, three different answers
 
@@ -34,9 +35,9 @@ that decides where each belongs.
 
 | Kind | Reader | Belongs in | Failure mode |
 | --- | --- | --- | --- |
-| **Text content** | the app's reader | a data carrier (CSV, JSON) with declared authorship | only an editor can find or revise it |
+| **Text content** | the app's reader | a data file (CSV, JSON) with declared authorship | only an editor can find or revise it |
 | **Commentary** | whoever edits the file | the source file | grows into a document with no registry row |
-| **Inline prose** | the app's reader | rendered from a carrier | a sentence with no owner, category, or check |
+| **Inline prose** | the app's reader | rendered from a data file | a sentence with no owner, category, or check |
 
 The scan names them `text-table`, `commentary`, and `inline`. None is an
 error and the script never says otherwise. A comment is supposed to exist, and
@@ -44,7 +45,7 @@ a three-row gloss table is not worth a CSV.
 
 ---
 
-# Part 1: the carriers we have
+# Part 1: the data files we have
 
 [`scripts/text-carriers.py`](../scripts/text-carriers.py) finds every CSV column
 and JSON key whose values are sentences, then asks whether anything in the repo
@@ -52,12 +53,12 @@ names the file and whether the text is the estate's own voice or quoted source.
 
 ## Declaration is not the problem
 
-| | Carriers | Authored words | Undeclared |
+| | Data files | Authored words | Undeclared |
 | --- | --- | --- | --- |
 | budget-DRS | 160 (67 authored) | 53,852 | **0** |
 | web-tools | 22 (16 authored) | 13,978 | 1,031 in one file |
 
-Every authored carrier in budget-DRS is named by a registry, a README, or
+Every authored data file in budget-DRS is named by a registry, a README, or
 `CLAUDE.md`. web-tools has one exception,
 [`tracker/assessments/2026-08-07.json`](../tracker/assessments/2026-08-07.json).
 Whatever else is wrong here, text is not being filed into files nobody knows
@@ -65,13 +66,13 @@ about.
 
 ## The vocabulary is the problem
 
-budget-DRS's 67 authored carriers use **65 distinct prose field names**, and
-**80% of them appear in exactly one carrier**. web-tools is the same shape at a
+budget-DRS's 67 authored data files use **65 distinct prose field names**, and
+**80% of them appear in exactly one file**. web-tools is the same shape at a
 smaller scale: 25 names, 64% used once.
 
 Sixteen of budget-DRS's names are doing one job:
 
-| Field | Carriers | Words |
+| Field | Files | Words |
 | --- | --- | --- |
 | `note` | 25 | 15,567 |
 | `basis` | 6 | 1,205 |
@@ -79,15 +80,15 @@ Sixteen of budget-DRS's names are doing one job:
 | `why` | 3 | 868 |
 | `origin`, `notes`, `method`, `detail` | 2 each | 6,389 |
 | `rationale`, `comment`, `reason`, `concordance`, `implication`, `premise`, `description`, `work` | 1 each | 5,920 |
-| **total** | **46 carriers** | **31,883** |
+| **total** | **46 files** | **31,883** |
 
 That is not a naming quibble. It means no reader and no tool can ask this repo
 for its authored rationale and get an answer, and the estate's own
 `concept-index` and `semsearch` tools cannot weight a `why` differently from an
 `item_title`. A vocabulary nobody has stated is the honest measure of how
-organized the carriers are, and this one has never been stated.
+organized the data files are, and this one has never been stated.
 
-Note what the spread is *not* evidence of. `note` at 25 carriers is a
+Note what the spread is *not* evidence of. `note` in 25 files is a
 reasonable default and most of those rows are fine. The cost lands on the tail:
 `premise`, `concordance`, `implication`, and `work` each exist once, and a
 reader meeting one of them has no way to know whether it means what `basis`
@@ -95,11 +96,11 @@ means somewhere else.
 
 ---
 
-# Part 2: text that never reached a carrier
+# Part 2: text that never reached a data file
 
 [`scripts/embedded-prose.py`](../scripts/embedded-prose.py) reads `.js`, `.mjs`,
 `.html`, and `.py`, splits what it finds into the three kinds, and separates
-generated payloads and supplied files, whose text has a carrier somewhere else.
+generated payloads and supplied files, whose text has a data file somewhere else.
 It reads the repo's `data/design/content.csv` where one exists, so it reports
 against the declaration rather than beside it.
 
@@ -110,7 +111,7 @@ against the declaration rather than beside it.
 | Class | Words | Units |
 | --- | --- | --- |
 | commentary | 138,089 | 2,757 blocks, 892,473 bytes, 18% of the tree |
-| text tables | 801 | 5 tables, none with a carrier |
+| text tables | 801 | 5 tables, none backed by a data file |
 | inline prose | 4,589 | 190 runs |
 
 Comment blocks by size, where a block is one HTML comment, one `/* */`, or a
@@ -171,8 +172,9 @@ two halves want opposite treatments:
 
 The contract half checks out as redundant on every probe run against it: all
 ten `.web-tools.json` fields in its table are in the doc, and
-[`manifest-fields.csv`](manifest-fields.csv) governs forty-six; the federation account is in
-the doc's Roadmap with the same reasoning; the branch overlay section is longer
+[`manifest-fields.csv`](manifest-fields.csv) governs forty-six; the federation account was in
+the doc's Roadmap with the same reasoning, and is now in the closed tracker task
+`private-repo-landing-federation-u50nns`, which holds the fuller version; the branch overlay section is longer
 and carries a "why this needs to exist" analysis the block lacks; the boundary
 covers four channels where the block covers two.
 
@@ -230,8 +232,8 @@ it is a shipped artifact and should be accounted for like one.
 | Class | Words | Units |
 | --- | --- | --- |
 | commentary | 68,306 | 1,563 blocks, 447,432 bytes, 8% of the tree |
-| text tables, no carrier | 1,361 | 10 tables |
-| text tables inside generated payloads | 17,735 | 14 tables, carrier is the builder's input |
+| text tables, no data file | 1,361 | 10 tables |
+| text tables inside generated payloads | 17,735 | 14 tables, the builder's input file holds the text |
 | inline prose | 8,578 | 482 runs |
 
 The 8% is diluted by the committed data payloads. In the hand-written view
@@ -239,9 +241,9 @@ modules the density matches web-tools: `app/view/views/spend.js` 28%,
 `composition.js` 43%, `app/view/app.html` 35%. The largest single block is 610
 words, against web-tools' 5,962.
 
-The 13-to-1 split between carried and uncarried text content is still the
-finding worth keeping. The repo's "data before display" rule is holding nearly
-everywhere it applies.
+The 13-to-1 split between text content that sits in a data file and text
+content that does not is still the finding worth keeping. The repo's "data
+before display" rule is holding nearly everywhere it applies.
 
 ## What widening the net cost, and what it found
 
@@ -251,7 +253,7 @@ Reading `.py` was not a rounding error. In the same scope, adding builders to
 | | `.js`/`.html` only | with `.py` |
 | --- | --- | --- |
 | commentary | 34,911 words | 68,306 |
-| uncarried text tables | 739 words, 2 tables | 1,361 words, 10 tables |
+| text tables, no data file | 739 words, 2 tables | 1,361 words, 10 tables |
 
 Python belongs in scope because a build script is where a page's reader-facing
 strings go to hide. A `blurb` list in
@@ -266,7 +268,7 @@ distinction is mechanical: a string inside a `raise`, `assert`, `sys.exit`, or
 
 ## Six registry rows, and 53,115 words
 
-The other half of "never reached a carrier" is text the registry mislabels
+The other half of "never reached a data file" is text the registry mislabels
 because the covering row is a directory. Four rows added to home's
 `data/design/content.csv` and two to web-tools':
 
@@ -288,14 +290,15 @@ when written and outlived a file that landed under it. That is the recurring
 shape of this problem, and it argues for the periodic re-run rather than for
 more rows up front.
 
-Home's uncarried inline prose fell from 75,280 words to 29,371 as a result, and
-its registry now covers 324 of 324 files that hold prose.
+Home's inline prose with no data file behind it fell from 75,280 words to
+29,371 as a result, and its registry now covers 324 of 324 files that hold
+prose.
 
 ---
 
 # The specific violators
 
-## Text tables with no carrier
+## Text tables with no data file
 
 The clearest case, because there is no judgment in it. Reader-facing prose
 keyed by something, with nothing behind it:
@@ -309,7 +312,7 @@ The first has a second reason to move.
 [`app/data-explorer/tools/build-data-explorer.py`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/data-explorer/tools/build-data-explorer.py)
 regex-parses those `blurb` strings back out of `app.html` so the Views manifest
 can reuse them, and carries two guards against "regex shape drift." The guards
-are the tell. The builder is doing the right thing about the wrong carrier: the
+are the tell. The builder is doing the right thing about the wrong file: the
 app shell is being treated as the registry, which inverts the rule the rest of
 the repo follows. A CSV with `view, title, lens, blurb` would let the shell and
 the manifest read the same rows, and the regexes would go away.
@@ -325,15 +328,15 @@ the manifest read the same rows, and the regexes would go away.
 The first draft of this document proposed `data/design/text.csv`: one row per
 text set, carrying `carrier`, `rendered_by`, `field`, `rows`, and the rest. That
 was a mistake, and the estate's own rule says why. **Do not commit what a live
-read already answers.** `text-carriers.py` derives the carrier, the field, the
+read already answers.** `text-carriers.py` derives the file, the field, the
 row count, and the word count on every run; committing them would add a refresh
 obligation and a way to be out of date, which is exactly the argument that
 retired `docs/MERGE-GUIDE.md`.
 
 What a scan cannot derive is what a name *means*. That is the whole finding of
-Part 1, and it needs one row per **name**, not one per carrier.
+Part 1, and it needs one row per **name**, not one per file.
 
-## The carrier: docs/text-fields.csv
+## The vocabulary file: docs/text-fields.csv
 
 Thirteen sanctioned names, each with the audience it implies, a gloss, and the
 `use_when` rule that settles which to pick. A definition alone never settles
@@ -358,17 +361,17 @@ that, which is why `use_when` is required rather than optional:
 It is portable, because a concept named once should be the same concept in every
 repo, and it is declared in [`docs/properties.csv`](properties.csv) with
 [`tools/test/text-fields-registry.test.mjs`](../tools/test/text-fields-registry.test.mjs)
-as its gate. That test holds the size (a vocabulary that grows a name whenever a
-carrier wants one is not a vocabulary), the typing, and two properties that are
-invisible on reading the file: the alias map has to be a function, and no alias
-may also be a sanctioned name.
+as its gate. That test holds the size (a vocabulary that admits a new name
+whenever a file uses one is not a vocabulary), the typing, and two properties
+that are invisible on reading the file: the alias map has to be a function, and
+no alias may also be a sanctioned name.
 
 ## Conformance by declaration, not by rename
 
 The `instead_of` column is the part that makes this usable on an estate that
 already exists. It lists the names in use that each sanctioned name accounts
 for, so `text-carriers.py` resolves an old name rather than reporting it as a
-violation. **An existing carrier conforms by declaration.** Renaming is optional
+violation. **An existing file conforms by declaration.** Renaming is optional
 and separate, and mostly not worth it: `blurb` appears in 23 places across
 budget-DRS, and renaming it to `gloss` would buy nothing the alias map does not
 already give while touching a live app in 23 places.
@@ -390,7 +393,7 @@ name in the set annotates a subject, and that one is the subject. It earned a
 thirteenth name, `payload`, rather than an alias to something it is not.
 
 That is the intended way for the vocabulary to grow: a name is added when a
-carrier turns out to hold a kind the set genuinely lacks, and the count in
+file turns out to hold a kind the set genuinely lacks, and the count in
 [`text-fields-registry.test.mjs`](../tools/test/text-fields-registry.test.mjs)
 has to move in the same commit, so growth is deliberate.
 
@@ -406,7 +409,7 @@ The migration this document listed as the highest-ratio move, done, so the
 convention has a case rather than only a rule.
 
 [`data/design/views.csv`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/views.csv)
-is now the carrier for ten views' `title`, `lens`, `kind`, and `gloss`. It sits
+now holds ten views' `title`, `lens`, `kind`, and `gloss`. It sits
 beside `view-grains.csv` and `view-tabs.csv`, which are the same kind of
 manifest about the same views, and that placement was not a preference: the
 verify suite's leaf-homing rule rejected it anywhere else.
@@ -416,7 +419,7 @@ source, data links, embed), and it merges the text in from a generated
 `views-data.js` at module scope, so every consumer still reads one `VIEWS`
 object. `build-data-explorer.py` reads the CSV directly, and the two drift
 guards it carried against its own regexes are gone, replaced by a stronger
-check: the carrier and the shell have to agree about which views exist, which
+check: the CSV and the shell have to agree about which views exist, which
 neither could notice before.
 
 `app/data-explorer/data.js` came out **byte-identical**, which is what a refactor
@@ -429,10 +432,10 @@ Three things the migration turned up that generalize:
   runtime and exactly wrong to leave unchecked, since a stale payload renders as
   a plausible header with the prose silently gone.
   [`verify-views-text.mjs`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/tools/verify-views-text.mjs)
-  walks carrier to payload to shell and was confirmed against a negative
+  walks the CSV to the payload to the shell and was confirmed against a negative
   control.
 * **Two verify scripts were reading the fields being moved.** Both now read the
-  carrier, which is a better place to read them from.
+  CSV, which is a better place to read them from.
 * **Widening a check's assumption exposed a second one.** Letting the lineage
   verifier accept a payload in the page's own directory made its bare `src=`
   pattern match a comment explaining why a relative `src="./data.js"` resolves
@@ -454,10 +457,10 @@ misfire.
   Unambiguous, and `--tables` already reports it, with generated payloads
   separated out so a built `data.js` does not read as a violation.
 - A prose field whose name is not in the stated vocabulary.
-- An authored carrier nothing in the repo names. `text-carriers.py --check`
+- An authored data file nothing in the repo names. `text-carriers.py --check`
   exits 1 on one; both repos pass today except for a single web-tools file.
 - A comment block over N words. `embedded-prose.py --check N` names the offenders.
-- Drift between a declared `rows` count and the carrier's actual row count, the
+- Drift between a declared `rows` count and the file's actual row count, the
   same shape as the registry gates already running.
 
 **Not checkable, and a gate would be wrong:**
@@ -496,10 +499,10 @@ table bought.
 
 **The gate runs in both suites.** `text-carriers.py --check` is a step of home's
 `tools/verify-artifacts.sh` and a node test here, and both pass. It gates two
-classes and only two: an authored carrier nothing names, and a field name
+classes and only two: an authored data file nothing names, and a field name
 nothing accounts for. An alias passes.
 
-**The check that holds the migrations is generic**, not one per carrier.
+**The check that holds the migrations is generic**, not one per file pair.
 [`verify-text-payloads.mjs`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/lineage/tools/verify-text-payloads.mjs)
 declares nothing new: it reads `pipeline.csv` for which CSV feeds which payload,
 `pages.csv` for which page loads it, and this vocabulary for which columns hold
@@ -507,7 +510,7 @@ prose. It found a third pair nobody had touched, and covers the next one without
 being edited.
 
 **Markdown is read now too**, which closes the gap this document used to name.
-`--markdown` reports GFM tables as carriers, with two deliberate exemptions: a
+`--markdown` reads GFM tables too, with two deliberate exemptions: a
 table header is a phrase written for a reader rather than a field name a tool
 reads, so headers report as `label` and are never gated; and a `.md` needs no
 second file to vouch for it, so the naming check skips it. Both were found by
@@ -524,15 +527,198 @@ What remains:
 
 Stated so the numbers are not read as more than they are.
 
-- **Markdown prose outside a table is uncovered.** The carrier scan reads GFM
-  tables under `--markdown`; body prose in a document is not a carrier and
+- **Markdown prose outside a table is uncovered.** The scan reads GFM
+  tables under `--markdown`; body prose in a document is not a table and
   nothing here counts it.
 - **A template literal that emits JavaScript** reads as prose to a word
   counter. The `inline` class filters the obvious cases and still leaks.
 - **"Generated" is detected from a banner** in the first 800 bytes, or from a
   `mechanical`/`supplied` row in `content.csv`. A payload built without either
-  reports as having no carrier, which is how the blog twin was found.
-- **The field-name tally counts names, not meanings.** Two carriers using
+  reports as having no data file behind it, which is how the blog twin was found.
+- **The field-name tally counts names, not meanings.** Two files using
   `note` for genuinely different things read as agreement here.
 - **Consistency is not correctness.** Neither instrument says whether any of
   this text is true or current.
+
+
+---
+
+# Is it true? A read of six files, 2026-09-08
+
+Every figure above measures how much prose there is and whether it sits in a
+data file. The closing limit of this document said the honest thing about that:
+consistency is not correctness, and neither instrument says whether any of the
+text is true. This section is the first pass at the other question, and it
+changes what a gate should aim at.
+
+Six files were read in full by three agents, two files each, sampling comment
+blocks on a fixed stride and classifying every sampled block into one primary
+category: **contract** (what a function, option or return is), **criterion** (a
+condition or threshold that changes how the code must be edited), **history** (a
+dated measurement, or the story of how a bug was found), **rationale at length**
+(a legitimate why at several times the words its criterion needs),
+**restatement**, **stale**, and **debris**. Each reader also checked six claims
+per file against the code.
+
+| File | Comment words | Share of lines | Cut outright | Move to a record |
+| --- | --- | --- | --- | --- |
+| `lib/kits/swipe-deck.js` | 8,088 | 60% | 1,300 to 1,800 | 900 to 1,300 |
+| `lib/alpineComponents/stage.js` | 21,111 | 41% | 700 to 1,600 | 500 to 1,200 |
+| `pages/toss-render.html` | 7,019 | 44% | 1,300 to 2,100 | 1,100 to 1,600 |
+| `tools/render/cdn.mjs` | 1,376 | 34% | 100 to 180 | 220 to 320 |
+| home `views/spend.js` | 9,572 | 27% | 2,800 to 3,600 | 500 to 1,150 |
+| home `build-submittal.py` | 8,235 | 41% | 1,550 to 2,300 | 1,650 to 2,300 |
+
+`stage.js` counts the 56 HTML comment blocks inside its Alpine template, which
+the block definition used elsewhere in this document excludes. They are the same
+prose in a different delimiter.
+
+**The categories a cleanup would aim at are empty.** Restatement and debris
+together were 1 to 3 percent of sampled words in every file, and one reader
+found no commented-out line at all in 354 blocks. There is nothing here to tidy.
+What could go is history and long rationale, and all of it is true, which is why
+it is the harder kind to cut: the criterion is often the middle sentence rather
+than the first, so a fast pass takes the load-bearing clause with the story
+around it.
+
+**Two defects did show up, and neither is length.**
+
+*The file header is the least accurate prose in the file.* `swipe-deck.js`
+documents fourteen options where the code reads twenty, and omits three keys
+from the return it describes. `stage.js`'s header says a content-carrying `#gz=`
+form is "a contemplated follow-up, not built here" while `mint` emits one.
+`toss-render.html`'s header restates three arguments its own per-site comments
+own, near verbatim, and the header copy is the one that went stale. The
+40-to-249-word header essay is this codebase's convention and this document
+defends it; the convention protects a header's length without gating its truth.
+
+*A count inside a narrative goes stale with nothing to re-run it.*
+`build-submittal.py` says "0 of 20" and "0 of 22" for two CSVs that now hold 15
+and 32 rows, and derives a figure from them that is wrong by the same drift.
+Across 36 claims checked, 28 held; every failure was one of these two shapes.
+
+## What this adds to the gate
+
+The split proposed above still stands, and one line moves. "Whether a comment is
+too long in general" remains uncheckable and a ceiling would still misfire. But
+a **dated claim** is checkable in the only sense that matters, which is that it
+can be listed and re-read:
+
+    python3 scripts/embedded-prose.py . lib pages app --dated
+
+`--dated` lists every comment block asserting an ISO date, oldest first, marking
+those carrying a figure beside the date, since a figure counts something that
+moves while the sentence does not. web-tools' `lib`, `pages` and `app` hold 324
+such blocks in 69 files, 132 of them carrying a figure; home's budget-drs,
+local-models and tools hold 408 in 157 files, 213 with a figure. It is advisory
+and not a gate, because a dated block is not a defect. It is a claim someone has
+to re-check, and the report only says which and how old.
+
+**Its limit is the honest half of the result.** Of the two stale counts found by
+reading, `--dated` catches one. The other, at `build-submittal.py:1616`, says
+"three of these cites are a README.md" where there are now eight, and carries no
+date at all. An undated count is invisible to a dated report, and no instrument
+here reaches it. So the report narrows the class rather than closing it, and
+reading remains the only thing that found the header drift.
+
+
+---
+
+# The history the pilot moved out, 2026-09-08
+
+The rewrite of four files ([PR #625](https://github.com/mehrlander/web-tools/pull/625))
+removed 48 passages of history under the rule that a comment keeps its
+criterion and sends the date, the measurement and the incident here. This is
+where they went, filtered: a passage already held by a test or by another file
+is not repeated, because a second copy is the thing this whole pass is against.
+
+Dropped as already held, with what holds them: the 867px-track-in-a-430px-panel
+regression and the three-link width chain
+([`swipe-deck-width.test.mjs`](../tools/test/swipe-deck-width.test.mjs)); the
+44px phone floor and `size:'tight'`
+([`deck-entry-parity.test.mjs`](../tools/test/deck-entry-parity.test.mjs));
+`--deck-head` and `--deck-side` (`app/index.html` sets them); the charset and
+inline-deps findings (`toss-charset.mjs`, `toss-inline-deps.test.mjs`); the
+slide-retention DOM counts (`swipe-deck-stack.test.mjs` and
+[`branch-overlay.md`](branch-overlay.md)); the menu placement measurement, which
+is now restored to the code as a criterion rather than moved.
+
+**What a constant was measured against.** `DIM_SATURATE` and `DIM_ALPHA` in
+`toss-render.html` were picked against real icons on a light and a dark tab
+strip; alpha near 0.55 reads well on light and goes muddy on dark, and full
+grayscale is unmistakable but discards the colour that makes an icon
+recognizable. `INK_TIE` in the sibling budget-drs work came from the atlas's
+rounder 0.3, which put white on this palette's blue and red where black carries
+about 60 percent more contrast. `GZ_MAX` is 24k of base64 against Safari's
+roughly 80k URL ceiling, and a 7 KB HTML paste encodes to about 2 KB.
+
+**What was tried and rejected.** The deck's desktop panel was a centred card
+(`max-w-4xl my-4 rounded-3xl`, border and shadow) until 2026-08-18; over
+show-repo it floated across the sidebar, so chrome the reader still needed sat
+under a card they had to dismiss. Its overlay was measured the same day as
+computed `rgba(0,0,0,0)` with no background image, meaning every deck had been
+transparent since it was written. The header pill cost about 64px of a 390px
+row and truncated a filename to "flow-a...." beside a duplicate of the count
+the footer already showed. `stage.js`'s reader was a centred dialog over a
+scrim with hand-rolled touch and arrow keys until 2026-08-18, and sixty lines
+of pointer handling went with it.
+
+**Where a fix looked correct for a long time.** The deck's grid rows were
+auto-placed rather than named, which is invisible while a slide's content is
+taller than the panel and appeared only against the pdf module's continuous
+column on 2026-08-25: the track measured 111px inside an 843px panel while the
+footer took 667. Two branches each added a watcher named `paneWatch`; git
+merged them cleanly into two `const paneWatch` in one scope and the file did
+not parse, which is a clean textual merge producing a syntax error.
+
+**Where a default was wrong rather than missing.** `stage.js` read only tab as
+a delimiter until 2026-08-18, so a table pasted from Excel opened correctly and
+the same data as CSV arrived as a wall of text. Its `dataUri` read `IMAGE_MIME`
+until 2026-08-15, so a dropped PDF rendered as mojibake. Its offers bar listed
+only leftovers until 2026-08-28, which made it read as an ADD list rather than
+as what is available.
+
+**One thing that shipped and was withdrawn.** A links extractor lived in the
+stage for a day, first emitting `a[href]` as a two-column CSV and then as
+markdown, before being removed; its leftovers were a `-links.md` example in the
+peek path and a dead duplicate comment, both now gone.
+
+
+---
+
+# What the pilot taught about running the pass, 2026-09-08
+
+The trim is the smaller finding. The larger one is about the operation, and it
+is the reason the fan-out this pilot was meant to authorize should not run in
+the shape that was proposed.
+
+**A rewriter marking its own work is not evidence.** Each of the six agents
+reported that it kept every criterion and removed only history. A second agent
+per file, told only to find where the first was wrong, found eleven defects.
+**Seven were claims the rewrite ADDED**, not text it lost. `swipe-deck.js` came
+back stating a menu's flip condition backwards, in a file where no test
+exercises that placement. `spend.js` hardened a hedge into "never the
+all-biennia totals" against its own `budgetAll` branch fifteen lines below,
+which shows exactly those totals; that item had been reported as one of its
+fixes. `stage.js` declared a diff ceiling absent that its own code surfaces a
+warning for. A false comment is worse than a verbose one, so a pass that trades
+length for accuracy in this direction loses.
+
+**And the mechanical check proves the wrong thing.** Stripping comments and
+comparing the remainder shows the code is character-identical, which is true,
+necessary, and reads as verification. It is the easy half. A comment cannot fail
+it however false it becomes, so it certifies exactly the property that was never
+at risk. Two of the six files also needed the check taught that HTML comments in
+an Alpine template and CSS comments in a styles literal are string content to a
+JavaScript lexer; without that it reported a difference on the two files most
+likely to have been over-cut, which is the failure that looks like diligence.
+
+**The cost changes accordingly.** The honest unit is a writer plus an adversary,
+which is roughly double, and the adversary needs the same model as the writer,
+since what it is looking for is a plausible sentence that happens to be false.
+Against that, the four accuracy fixes to file headers and the five stale counts
+were most of what the pass actually bought. **An accuracy pass that touches
+nothing else, reading each header against its code and each figure against its
+file, is a much cheaper operation than the trim and captures the larger share of
+the value.** That is the version worth considering next, and
+`embedded-prose.py --dated` already lists half its worklist.

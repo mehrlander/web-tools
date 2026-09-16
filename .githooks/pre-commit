@@ -67,6 +67,20 @@ if git status --porcelain -- lib/ | grep -q .; then
   fi
 fi
 
+# --- leg 1b: lib/ or pages/dictate.html -> dist/dictate.js --------------------
+# The dictation page adopts its own build (tools/build/build.mjs), so a change to
+# lib/ or to the page's reach re-emits it. It is the one PER-PAGE build that is
+# tracked, and it is tracked because the page imports it: the chain it replaces
+# was fourteen serial contents-API round trips, which is what made the page slow
+# to open on a phone (measured 2026-09-08).
+if git status --porcelain -- lib/ pages/dictate.html | grep -q .; then
+  if npm run build:dictate --silent >/dev/null 2>&1; then
+    stage dist/dictate.js
+  else
+    echo "build hook: 'npm run build:dictate' failed — committing without refreshing dist/dictate.js" >&2
+  fi
+fi
+
 # --- leg 1a: lib/ or app/index.html -> dist/app.js (the app's pre-build) ------
 # The app imports its own walked build (tools/build/build-app.mjs), so a change
 # to the page's reach re-emits it too.
@@ -84,26 +98,6 @@ if git status --porcelain -- console/base.js console/mods/ | grep -q .; then
     stage console/suite.js
   else
     echo "build hook: 'npm run build:console' failed — committing without refreshing console/suite.js" >&2
-  fi
-fi
-
-# --- leg 1c: docs/ -> the plugin's vendored conventions -----------------------
-# The plugin ships its own copies of the two conventions docs so injection is a
-# file read rather than a fetch (see .claude/skills/hooks/inject-conventions.sh).
-# A copy is a derived artifact like any other, so it rides the same commit as
-# its source rather than drifting until someone notices.
-#
-# The copies sit at a different depth than docs/, so every relative link inside
-# them resolves against the wrong directory: dead-links.py reports 11 dead
-# links across the pair, and they are not repairable here. Editing the copies is
-# worse than leaving them, because the cp below silently reverts the edit on the
-# next commit that touches docs/. The files exist to be read as injected context,
-# not browsed. Fix a link in docs/ or not at all.
-if git status --porcelain -- docs/CONVENTIONS.md docs/SURFACING.md | grep -q .; then
-  if cp docs/CONVENTIONS.md docs/SURFACING.md .claude/skills/web-tools/ 2>/dev/null; then
-    stage .claude/skills/web-tools/CONVENTIONS.md .claude/skills/web-tools/SURFACING.md
-  else
-    echo "build hook: could not refresh the plugin's vendored conventions — committing without them" >&2
   fi
 fi
 
@@ -131,7 +125,11 @@ if [ -n "$changed_pages" ]; then
   # its arguments the same way. Get this wrong and the nudge points at a
   # thumbnail that does not exist and hands over a command that shoots nothing.
   while IFS= read -r p; do
-    case "$p" in pages/index.html|pages/thumbs/*) continue ;; esac
+    # The two folder indexes are generated listings, not catalogued pages, so
+    # neither has a thumbnail to nag about. lib/kits/demos/index.html was
+    # nagged on every touch until 2026-09-05: pages-shots is handed a name the
+    # catalog does not carry and silently shoots nothing.
+    case "$p" in pages/index.html|lib/kits/demos/index.html|pages/thumbs/*) continue ;; esac
     case "$p" in
       lib/kits/demos/*) virt="kit-demos/${p#lib/kits/demos/}" ;;
       *)                virt="${p#pages/}" ;;
@@ -169,9 +167,21 @@ if git status --porcelain -- tools scripts package.json tools/build/tools-index.
   fi
 fi
 
+# --- leg 2c2: lib/kits/ -> the kits registry ----------------------------------
+# docs/kits.csv authors nothing: namespace, headline, boot, demo, users and
+# tested are all read off the tree, so any change on the shelf, to a demo, to a
+# page that loads a kit, or to the boot manifest can move a row.
+if git status --porcelain -- lib pages app tools/test tools/build/kits-index.mjs docs/kits.csv | grep -q .; then
+  if npm run kits-index --silent >/dev/null 2>&1; then
+    stage docs/kits.csv
+  else
+    echo "build hook: 'npm run kits-index' failed — docs/kits.csv may be stale" >&2
+  fi
+fi
+
 # --- leg 2d: lib/ or pages/ -> the registries' renders_in field ---------------
 # docs/registries.csv is authored everywhere except `renders_in`, the app
-# files that name each carrier, stamped the way leg 3a stamps reach. Must
+# files that name each registry, stamped the way leg 3a stamps reach. Must
 # precede 3a: this writes docs/registries.csv, which is a docs/ file whose
 # word count 3a measures. properties-registry.test.mjs is the backstop.
 if git status --porcelain -- lib pages docs/registries.csv tools/build/registries-reach.mjs | grep -q .; then
@@ -198,9 +208,17 @@ fi
 # being committed, which is the last moment folding it into the entry that
 # already owns it is cheap. So the generator's stdout is shown rather than
 # swallowed, unlike the legs above.
+#
+# BOTH OUTPUTS ARE STAGED, and only one was. The generator rewrites the index
+# block inside docs/SNAGS.md AND emits docs/snags.csv, and this leg staged the
+# markdown alone. So every commit touching the log left the csv dirty in the
+# working tree, which the stop hook caught three times (2026-09-07, 2026-09-08)
+# and no gate did: the csv is not compared against its source by the suite the
+# way dist/ is, so nothing on the way to a merge would have noticed.
 if git status --porcelain -- docs/SNAGS.md | grep -q .; then
   if out="$(npm run snags-index --silent 2>&1)"; then
     stage docs/SNAGS.md
+    stage docs/snags.csv
     printf '%s\n' "$out" >&2
   else
     echo "build hook: 'npm run snags-index' failed — committing without refreshing the snags index" >&2
@@ -221,15 +239,28 @@ if git status --porcelain -- .claude/skills skills lib pages docs tools/build/do
   fi
 fi
 
+# --- leg 3e: the traveling docs -> the plugin's copies ------------------------
+# The default skill ships its own copy of each doc it delivers, so a session
+# that installed the plugin reads them off disk. docs/ is authoritative; this
+# keeps the copy from drifting in the commit that moves the source, which is
+# how it drifted before (resynced by hand in 2b785b2).
+if git status --porcelain -- docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md tools/build/vendor-docs.mjs | grep -q .; then
+  if npm run vendor-docs --silent >/dev/null 2>&1; then
+    stage .claude/skills/default/SURFACING.md .claude/skills/default/surfacing-course.md .claude/skills/default/QUALIFIED-WRITING.md
+  else
+    echo "build hook: 'npm run vendor-docs' failed - the plugin's doc copies may be stale" >&2
+  fi
+fi
+
 # --- leg 3d: any markdown -> the theme graph ----------------------------------
-# docs/themes.json is the duplication graph the Map view's Themes tab reads, and
+# docs/themes.csv is the duplication graph the Map view's Themes tab reads, and
 # every edge in it is a fact about prose, so any .md edit can move it. Cheap
 # (about 1.2s) and byte-stable by construction: keys sorted, one separator.
 if git status --porcelain -- '*.md' scripts/duplicated-claims.py | grep -q .; then
   if npm run themes-graph --silent >/dev/null 2>&1; then
-    stage docs/themes.json
+    stage docs/themes.csv
   else
-    echo "build hook: 'npm run themes-graph' failed - docs/themes.json may be stale" >&2
+    echo "build hook: 'npm run themes-graph' failed - docs/themes.csv may be stale" >&2
   fi
 fi
 

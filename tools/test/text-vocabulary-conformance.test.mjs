@@ -2,17 +2,17 @@
 //
 // text-fields-registry.test.mjs holds the vocabulary's shape; this holds the
 // repo to it. The two fail differently and both matter: one catches a
-// vocabulary that has stopped being coherent, this catches a carrier that has
+// vocabulary that has stopped being coherent, this catches a data file that has
 // grown a name nobody has accounted for.
 //
 // Only the UNCLAIMED class is gated, which is the same posture dead-links.py
 // takes with its internal class. An alias passes: the vocabulary states what
-// the old name means, so a carrier using it conforms by declaration, and gating
-// on aliases would turn every existing carrier red with a rename across the
+// the old name means, so a file using it conforms by declaration, and gating
+// on aliases would turn every existing file red with a rename across the
 // estate as the only route back to green. That is the cost `instead_of` exists
 // to avoid.
 //
-// A failure here is not automatically a mistake. Sometimes a carrier really has
+// A failure here is not automatically a mistake. Sometimes a file really has
 // found a kind the set lacks, which is how `payload` was added: a tracker
 // assessment's `prompt` column holds a session instruction, so the row exists to
 // carry the text rather than to describe something else it holds, and no
@@ -39,8 +39,8 @@ test('every prose field name in this repo is one the vocabulary accounts for', (
     out = (e.stdout || '') + (e.stderr || '');
   }
   assert.ok(!failed,
-    'text-carriers.py --check failed. Either a carrier grew a field name nothing ' +
+    'text-carriers.py --check failed. Either a data file grew a field name nothing ' +
     'accounts for (see: python3 scripts/text-carriers.py . --offvocab), or an ' +
-    'authored carrier is named nowhere in the repo. Tail of the run:\n' +
+    'authored data file is named nowhere in the repo. Tail of the run:\n' +
     out.split('\n').slice(-8).join('\n'));
 });

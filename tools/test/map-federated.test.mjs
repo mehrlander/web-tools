@@ -141,6 +141,14 @@ test('a selection naming a repo the cache no longer carries falls back to the hu
 
 // ── Skills ───────────────────────────────────────────────────────────────────
 
+test('Docs exposes the context page and sends branch HTML through the renderer', () => {
+  assert.ok(el.querySelector('a[href="../pages/session-context.html"]'));
+  window.history.replaceState(null, '', '?use=codex/context');
+  assert.equal(data.contextUrl,
+    '../pages/toss-render.html#gh=mehrlander/web-tools@codex/context:pages/session-context.html?use=codex%2Fcontext');
+  window.history.replaceState(null, '', window.location.pathname);
+});
+
 test('the estate skills half reads each repo\'s own declaration, and skips the hub', async () => {
   await data.loadEstateSkills();
   assert.deepEqual([...data.estateSkills.map(g => g.repo)], ['mehrlander/home'],
@@ -174,7 +182,7 @@ test('the three sets are one axis, and the search runs across all of them', asyn
   assert.equal(data.skillManifestPath, 'skills/manifest.csv');
   data.skillSet = 'plugin';
   assert.equal(data.skillManifestPath, 'docs/portable.csv',
-    'the registry chip follows the one set backed by another carrier');
+    'the registry chip follows the one set backed by a different file');
   data.skillSet = '';
 });
 

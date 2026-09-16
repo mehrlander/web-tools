@@ -53,7 +53,7 @@ const PULLS = {
   'feat/c': [],
 };
 
-const calls = { compare: [], pulls: [], csv: [] };
+const calls = { compare: [], pulls: [], csv: [], trees: [] };
 let hold = null;                 // when set, compares wait on it
 
 const { window } = makeWindow({
@@ -72,6 +72,18 @@ class FakeGH {
     return compareFor(head);
   }
   async req(p) {
+    // The SCAN's two reads, base tree and tip tree, which is what turns a file
+    // list into landed / differs / missing. Every branch's one changed file
+    // holds a different blob on each side, so the partition is one `differs`
+    // and the count is a fact rather than a zero.
+    if (/^git\/trees\//.test(p)) {
+      calls.trees.push(p);
+      const onTip = !/trees\/main/.test(p);
+      return { truncated: false, tree: [
+        { path: 'feat/a.js', type: 'blob', sha: onTip ? 'tip' : 'base' },
+        { path: 'feat/c.js', type: 'blob', sha: onTip ? 'tip' : 'base' },
+      ] };
+    }
     const m = /head=([^&]*)/.exec(p || '');
     const head = m ? decodeURIComponent(m[1]).split(':')[1] : '';
     calls.pulls.push(this.repo + '@' + head);
@@ -130,7 +142,8 @@ const mount = async (branch, extra = {}) => {
   return data;
 };
 
-const reset = () => { calls.compare.length = 0; calls.pulls.length = 0; calls.csv.length = 0; meta.length = 0; };
+const reset = () => { calls.compare.length = 0; calls.pulls.length = 0; calls.csv.length = 0;
+                      calls.trees.length = 0; meta.length = 0; };
 
 // What the reader tapping "Read the changed files" does, which is the row the
 // list leaves where the diff would be while the compare is deferred. It goes
@@ -190,7 +203,10 @@ test('the merged PR is reported, which is the whole point of onMeta', async () =
 });
 
 // The head is the reason `facts` exists: deferring the compare would otherwise
-// blank four numbers the host measured minutes ago.
+// blank the numbers the host measured minutes ago. It asserted the lifespan as
+// its third figure until 2026-09-05, when the head dropped that fact and its
+// getter with it; `behind` took its place, being the number the head now leads
+// with and the only one on the line that says something has to be done.
 test('a host lends its row, and the compare corrects it', async () => {
   window.BranchBrief.forget();
   reset();
@@ -198,7 +214,7 @@ test('a host lends its row, and the compare corrects it', async () => {
                                    lastDate: '2026-07-08T00:00:00Z', sessions: ['s1'] } });
   assert.equal(data.brief.ahead, 9);
   assert.equal(data.brief.state, 'live', 'the badge is right on the first frame');
-  assert.equal(data.lifespan, '7d');
+  assert.equal(data.brief.behind, 1);
   await openFiles();
   assert.equal(data.brief.ahead, 2, 'the read wins wherever the two differ');
   assert.equal(data.brief.sessions.length, 0, 'and the lent list is dropped, not merged');
@@ -284,6 +300,33 @@ test('framed: the head holds its place and the pane takes the scroll', async () 
     'without which a flex child refuses to shrink and scrolls the document again');
 });
 
+// THE HEAD'S CEILING. It was three bands and 188px at 390x844 until
+// 2026-09-05: an identity block, a bordered card holding four figures, and the
+// Look row. The reader's report was that a third of the phone went by before
+// the first file row. The card went, its figures moved onto the identity block
+// as a plain line, and `lifespan` went with it, being the widest fact on the
+// line and the one they said they never read. The head is 102px now.
+//
+// A jsdom box has no layout, so two mechanical facts stand in for the pixels:
+// how many bands the head has, and whether any of them is drawn as a card. A
+// third band, or a border inside one, is the old shape coming back, and nothing
+// else in the suite would notice. The pixels themselves are
+// tools/render/scenarios/branch-guide.mjs at 390x844.
+test('the head stays two bands, and none of them is a card', async () => {
+  window.BranchBrief.forget();
+  await mount('feat/a');
+  const head = window.document.querySelector('#m > div > div').firstElementChild;
+  assert.ok(head.className.includes('shrink-0'), 'this is the head');
+  assert.equal(head.children.length, 2,
+    'the identity block and the Look row; a third band is the figures card returning');
+  for (const el of head.querySelectorAll('*')) {
+    assert.ok(!/\bborder-base-300\b/.test(String(el.className)),
+      'nothing in the head is drawn as a card: ' + String(el.className).slice(0, 60));
+  }
+  assert.doesNotMatch(head.textContent, /lifespan/i,
+    'the fact that forced the wrap, and the one the reader never read');
+});
+
 test('framed: the document itself is left alone', async () => {
   assert.equal(window.document.body.style.overflow, '',
     'a host owns its own document; this view pins nothing outside its mount');
@@ -356,6 +399,76 @@ test('with nothing lending the head, the compare is not deferred', async () => {
   assert.equal(d.brief.ahead, 2);
   assert.equal(d.brief.state, 'live');
   assert.deepEqual(calls.compare, ['me/tools@feat/a']);
+
+  // AND IT MEASURES WHAT IT READ. A host lends `scan` so its slide draws the
+  // verdict strip on the first frame; this host is lent nothing, so the only
+  // way the strip exists is the page computing it. It did not until 2026-09-04:
+  // the scan rides ensureCompare(), load() called that only for a branch with
+  // no guide, and feat/a has a pull request, so a cold page paid for the
+  // compare and rendered its file list with no strip over it.
+  await tick(8);
+  assert.equal(calls.trees.length, 2, 'the base tree and the tip tree, one read each');
+  assert.ok(d.scan, 'the cold host is the one that cannot be lent a verdict, so it computes one');
+  assert.equal(d.verdict.nUnique, 1);
+  assert.equal(d.verdict.nDiffers, 1, 'the file is on both sides and the bytes differ');
+  assert.equal(d.verdict.lent, false, 'measured here, not handed down');
+});
+
+// The other thing only a host could answer, until it wasn't. A branch sharing
+// no ancestor with the base 404s the compare, so there is no file list at all;
+// the crawl reads one anyway through BranchStatus.recentHistory and lends its
+// slides the missing paths. A cold page had nobody to lend it one and said
+// "No file differs from main", which is not a smaller answer but a false one.
+test('no merge base: the page reads the fallback the crawl would have lent it', async () => {
+  window.BranchBrief.forget();
+  reset();
+  let first = true;
+  const realCompare = FakeGH.prototype.compare;
+  FakeGH.prototype.compare = async function (base, head) {
+    // The default compare 404s; the fallback's (parent...tip) answers.
+    if (first) { first = false; throw Object.assign(new Error('no merge base'), { status: 404 }); }
+    calls.compare.push(this.repo + '@' + head);
+    return { files: [{ filename: 'feat/a.js', status: 'modified', additions: 1, deletions: 0 }] };
+  };
+  const realReq = FakeGH.prototype.req;
+  FakeGH.prototype.req = async function (p) {
+    if (/^commits\?/.test(p)) {
+      calls.pulls.push('commits');
+      return [{ sha: 'tip', commit: { message: 'tip', committer: { date: '2026-08-02T00:00:00Z' } }, parents: [{ sha: 'p1' }] },
+              { sha: 'old', commit: { message: 'old', committer: { date: '2026-08-01T00:00:00Z' } }, parents: [{ sha: 'p0' }] }];
+    }
+    // The path is on the tip and NOT on the base, so it classifies missing,
+    // which is the class this pane lists by name. The shared tree fixture puts
+    // every path on both sides, which would make it merely differ.
+    if (/^git\/trees\//.test(p)) {
+      calls.trees.push(p);
+      const onTip = !/trees\/main/.test(p);
+      return { truncated: false, tree: onTip ? [{ path: 'feat/a.js', type: 'blob', sha: 'only' }] : [] };
+    }
+    return realReq.call(this, p);
+  };
+  try {
+    window.__opts = { repo: 'me/tools', base: 'main', branch: 'feat/a', onMeta: (m) => meta.push(m) };
+    const host = window.document.getElementById('m');
+    host.innerHTML = '';
+    const el = window.document.createElement('div');
+    el.setAttribute('x-data', 'branchBrief(window.__opts)');
+    host.append(el);
+    Alpine.initTree(el);
+    await tick(14);
+    const d = Alpine.$data(el);
+    assert.equal(d.brief.noBase, true, 'the 404 is an answer, and the brief carries it');
+    assert.equal(d.brief.files.length, 0, 'there is no diff, so the file list stays empty');
+    assert.ok(calls.pulls.includes('commits'), 'the fallback walked the branch history');
+    assert.equal(d.fallbackFiles.length, 1, 'and found what the recent history changed');
+    // feat/a.js is on the tip tree and not on the base tree in this fixture,
+    // so the one path classifies missing, which is the actionable half.
+    assert.deepEqual([...d.lentMissing], ['feat/a.js'],
+      'so the page lists the paths the base does not have, as the takeover does');
+  } finally {
+    FakeGH.prototype.compare = realCompare;
+    FakeGH.prototype.req = realReq;
+  }
 });
 
 test('a compare that lands after a step does not overwrite the newer branch', async () => {
@@ -384,11 +497,18 @@ test('a compare that lands after a step does not overwrite the newer branch', as
 // work in prose, so only the no-PR case it carried alone survived, into the
 // guide's own section. Guide and Files went on 2026-08-31, because a switch
 // between them was answering a question nobody had: they are not alternatives,
-// and a tab made each one the cost of hiding the other. Both render now, files
-// above the guide, and `pane` names what an ADDRESS asked for rather than what
-// is visible.
+// and a tab made each one the cost of hiding the other. Both render now, and
+// `pane` names what an ADDRESS asked for rather than what is visible.
+//
+// THE ORDER HAS MOVED TWICE, and each move was the reader's. Files led while
+// the guide was the only prose on the page, on the reading that the list is
+// what cannot be read anywhere else in one place. The guide led on 2026-09-06,
+// because presenting the readable files meant the page opened on a document
+// with no statement of what the branch was for. Files lead again from
+// 2026-09-07: the list is SHUT, so it costs a heading row rather than a screen,
+// and the guide keeps the clip that made leading with it affordable.
 
-test('both sections render at once, files above the guide', async () => {
+test('files and the guide are tabs over one pane, files first in the tree', async () => {
   window.BranchBrief.forget();
   reset();
   const d = await mount('feat/a');
@@ -399,7 +519,11 @@ test('both sections render at once, files above the guide', async () => {
   assert.ok(files && guide, 'both sections are in the tree');
   // DOCUMENT_POSITION_FOLLOWING: the guide comes after the files.
   assert.ok(files.compareDocumentPosition(guide) & 4,
-    'files lead, because the list is what cannot be read anywhere else in one place');
+    'the shut list leads, so the page opens on what the branch touched');
+  // And the presented documents come last of the three.
+  const strip = d.$el.querySelector('[x-ref="revStrip"]');
+  if (strip) assert.ok(guide.compareDocumentPosition(strip) & 4,
+    'the documents themselves are last');
   // SHOWN, not merely present. Everything here renders into the tree and hides
   // with a style, so a textContent check would pass on a panel nobody can see:
   // it is exactly the state a deferred compare left behind before the x-show
@@ -407,13 +531,18 @@ test('both sections render at once, files above the guide', async () => {
   const list = d.$el.querySelector('[x-ref="fileList"]');
   assert.ok(list && list.style.display !== 'none', 'the file list is on screen');
   assert.ok(list.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
-  assert.ok(guide.textContent.includes('#443'), 'and the guide is under it, without a tap');
-  // Asking for one hides nothing. That is the whole difference from a tab, and
-  // the assertion the switch could never have passed.
+  assert.ok(guide.textContent.includes('#443'), 'and the guide is in the tree beside it');
+  // ASKING FOR ONE HIDES THE OTHER, since 2026-09-07. This asserted the
+  // opposite, which was the whole difference from a tab while both sections
+  // shared one scroll; they ARE tabs now, over one pane the locked layout can
+  // divide, so the swap is the point rather than the thing being avoided.
   d.setPane('guide');
-  await tick(2);
-  assert.ok(d.$el.querySelector('[x-ref="fileList"]').style.display !== 'none',
-    'going to the guide leaves the list where it was');
+  await tick(6);
+  assert.equal(files.style.display, 'none', 'the list steps aside');
+  assert.notEqual(guide.style.display, 'none', 'and the guide has the pane');
+  d.setPane('files');
+  await tick(6);
+  assert.notEqual(files.style.display, 'none', 'and back');
 });
 
 test('with no PR, the commits are the account, and they are read without asking', async () => {

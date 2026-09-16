@@ -1,0 +1,25 @@
+# Registry CSVs carry columns a deriver writes, so two branches that each add a
+# test or a page collide on numbers neither of them wrote. The merge driver
+# named here reads docs/properties.csv to tell a computed cell from an authored
+# one, unions the rows on the registry's declared key, and refuses (falling back
+# to a normal conflict) on anything it does not fully understand.
+#
+# Why it matters more than the two minutes it saves: a conflicted pull request
+# has no merge ref, so no `pull_request` CI run starts and the head sits at zero
+# checks with nothing saying why. See docs/SNAGS.md, ci-run-silently-not-started
+# and derived-field-conflicts-per-branch.
+#
+# The driver itself is registered per clone by .claude/hooks/session-githooks.sh,
+# since git config is not cloned. Without that line these attributes are inert
+# and a conflict here behaves exactly as it does today.
+
+docs/docs.csv merge=derived-csv
+docs/harness.csv merge=derived-csv
+docs/kits.csv merge=derived-csv
+pages/pages.csv merge=derived-csv
+docs/registries.csv merge=derived-csv
+docs/snags.csv merge=derived-csv
+docs/tests.csv merge=derived-csv
+docs/themes.csv merge=derived-csv
+tracker/board-tags.csv merge=derived-csv
+tracker/board.csv merge=derived-csv

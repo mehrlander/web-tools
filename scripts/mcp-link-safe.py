@@ -19,7 +19,7 @@ survives, and a single character more wraps the pair. Comma-joining ends the run
 and puts each URL back on its own count.
 
 Measured 2026-08-25 (issue #498, PR #499); the evidence, with every probe and
-its control, is in docs/environment/capabilities.md. Chat replies are untouched
+its control, is in docs/github/mcp.md. Chat replies are untouched
 by any of this, so this checker is about write-path output only.
 
 Usage:
@@ -47,6 +47,17 @@ LINK = re.compile(r'\[(?P<label>[^\]]*)\]\((?P<url>[^)\s]*)\)')
 # A URL inside a plain code span. Not a link, so nothing dies, but at the same
 # threshold it is stored double-backticked with quotes added around the address.
 CODESPAN = re.compile(r'(?<!`)`(?P<url>https?://[^`\s]+)`(?!`)')
+
+# A URL written on its own, with no markdown link and no code span around it.
+# GitHub autolinks it, so it reads as a link and dies the same way a bracketed
+# one does, and until 2026-09-09 nothing here looked for it. Found the way these
+# things are usually found: a PR body written from this repo put two 195- and
+# 330-character render URLs in bare, this checker called the body clean because
+# neither was inside brackets, and both were stored dead.
+BARE = re.compile(r'https?://[^\s<>`\]]+')
+# Trailing punctuation a reader typed as prose, not as address. GitHub's own
+# autolinker trims the same set, so measuring with it attached over-counts.
+BARE_TRAIL = '.,;:!?)\'"'
 
 # The joining run that fuses the next link into the current span. Matched at the
 # current URL's closing paren, so it consumes `)/[label](url)` in one step.
@@ -144,6 +155,35 @@ def findings(text, path='-', threshold=THRESHOLD, unescape=False):
             'fix': fix,
         })
 
+    # Bare URLs, minus every offset already accounted for above. A markdown
+    # link's URL and a code span's contents both match BARE too, so without the
+    # exclusion every finding would be reported twice and every safe bracketed
+    # link would gain a phantom bare twin.
+    taken = []
+    for start, end, urls, labels in spans(text):
+        taken.append((start, end))
+    for cm in CODESPAN.finditer(text):
+        taken.append((cm.start('url'), cm.end('url')))
+    for bm in BARE.finditer(text):
+        b0, b1 = bm.start(), bm.end()
+        if any(a <= b0 < b for a, b in taken):
+            continue
+        u = bm.group(0).rstrip(BARE_TRAIL)
+        if len(u) < threshold:
+            continue
+        out.append({
+            'path': path,
+            'line': lineno(b0),
+            'kind': 'bare',
+            'length': len(u),
+            'over': len(u) - threshold + 1,
+            'urls': [u],
+            'joined_labels': [],
+            'fix': ('a bare URL autolinks, so it dies exactly as a bracketed one '
+                    'does; shorten it, or split the address so no single token '
+                    'reaches the threshold'),
+        })
+
     for cm in CODESPAN.finditer(text):
         u = cm.group('url')
         if len(u) < threshold:
@@ -187,6 +227,7 @@ def main(argv=None):
     else:
         for f in all_found:
             noun = {'pair': 'slash-joined pair', 'link': 'link',
+                    'bare': 'bare URL (autolinked, so it dies too)',
                     'codespan': 'code-span URL (rewritten, not killed)',
                     'defanged': 'ALREADY DEFANGED link'}[f['kind']]
             if f['kind'] == 'defanged':

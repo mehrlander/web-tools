@@ -456,3 +456,153 @@ test('a labeler asked past the end answers rather than throwing', async () => {
   const opts = await deckOpts(REC);
   assert.deepEqual(opts.index(99), {});
 });
+
+// ── The fan-out (schema 8) ──────────────────────────────────────────────────
+//
+// A dispatch's own result is a launch receipt, so before schema 8 a card that
+// ran 126 agents rendered 126 lines saying a dispatch succeeded. The record now
+// carries what each agent DID, and drawing that raised the opposite problem,
+// reported from a phone on 2026-09-08: "if I try to expand it, it gets
+// overloaded." Two independent things caused it, and both are pinned here.
+//
+//   THE FOLD held everything. Adjacent tool calls merge into one run and
+//   adjacent runs into one sequence, so a fan-out interleaved with the main
+//   loop's own Bash calls became a single fold labelled "173 calls" that opened
+//   onto both halves at once.
+//
+//   THE BODY held everything. Every agent drew its full call list and the whole
+//   content of every file it wrote. Measured on the two largest records on
+//   file, that is 886 KB and 8.0 MB of markdown, against returns of 12 KB and
+//   129 KB: the part a reader opened the card for is 1.5% of what arrived.
+const agentRec = (n, { calls = 2, wrote = 4000 } = {}) => {
+  const pad = i => String(i).padStart(2, '0');
+  const agents = [], dispatch = [];
+  for (let i = 0; i < n; i++) {
+    const id = 'toolu_' + pad(i);
+    agents.push({
+      id: 'a' + pad(i), label: 'Reader batch ' + pad(i), model: 'sonnet',
+      tool_use_id: id, started: at(10), ended: at(30),
+      tokens: { output: 300 }, returned: 'Batch ' + pad(i) + ': 40 records.',
+      calls: [
+        ...Array.from({ length: calls }, (_, j) => ({ name: 'Bash', arg: 'python3 step' + j + '.py' })),
+        { name: 'Write', arg: 'out/' + pad(i) + '.json', content: 'x'.repeat(wrote) },
+      ],
+    });
+    dispatch.push({ name: 'Agent', at: at(10), arg: 'label ' + pad(i), agent: id, ok: true, bytes: 90 });
+  }
+  return {
+    prompts: [{ at: at(0), text: 'Score the classifier.' }],
+    replies: [{ at: at(40), text: 'Done.' }],
+    // A shell call on either side, which is what made one fold hold the lot.
+    calls: [{ name: 'Bash', at: at(5), arg: 'ls', body: 'a\nb' }, ...dispatch,
+            { name: 'Bash', at: at(35), arg: 'git status', body: 'clean' }],
+    agents,
+  };
+};
+
+const foldsOf = rec => {
+  const card = groups(turns(rec)).find(c => c.some(t => t.role === 'user'));
+  return blocks(card);
+};
+
+test('a dispatch run is its own fold, not a step inside the shell work', () => {
+  const bs = foldsOf(agentRec(8));
+  const fan = bs.filter(b => b.tools?.length && b.tools[0].agent);
+  assert.equal(fan.length, 1, 'the eight dispatches are one block of their own');
+  assert.equal(fan[0].tools.length, 8, 'and the Bash calls around them stayed out of it');
+  assert.ok(bs.some(b => b.tools?.length && !b.tools[0].agent),
+    'the shell calls still have a fold; splitting must not swallow them');
+  // sequence() combines adjacent tool blocks, and would hand the split straight
+  // back if a fan-out were allowed to join one.
+  assert.ok(!bs.some(b => b.steps?.some(st => st.tools?.[0]?.agent)),
+    'a fan-out must never be absorbed into a sequence fold');
+});
+
+test('the fan-out fold counts agents and names the models, not "8× Agent"', () => {
+  const fan = foldsOf(agentRec(8)).find(b => b.tools?.[0]?.agent);
+  assert.match(fan.label, /^8 agents/, 'the count is of agents, since every call here is one');
+  assert.match(fan.label, /8× sonnet/, 'and the interesting axis is who did the work');
+  assert.doesNotMatch(fan.label, /Agent/, 'the tool name is the one fact the count already gave');
+});
+
+test('a refused dispatch is counted as refused, never as an agent that ran', () => {
+  // No agent ran: the harness turned the dispatch away at the concurrency cap.
+  // Counting the two together reported 126 agents on a fan-out where 124 worked.
+  const rec = agentRec(8);
+  rec.calls.push({ name: 'Agent', at: at(31), arg: 'over the cap', ok: false, bytes: 40 });
+  const fan = foldsOf(rec).find(b => b.tools?.[0]?.agent);
+  assert.match(fan.label, /^8 agents/);
+  assert.match(fan.label, /1 refused/);
+});
+
+test('past the density threshold an agent draws its return and its shape, not its files', () => {
+  const many = foldsOf(agentRec(8)).find(b => b.tools?.[0]?.agent).tools;
+  const md = many[0].md;
+  assert.match(md, /Batch 00: 40 records\./, 'the return is the whole point and always shows');
+  assert.match(md, /3 calls/, 'the shape shows: how many calls, how long, how much authored');
+  assert.match(md, /3.9 KB authored/, 'and the total it wrote, which stands in for the fences');
+  assert.match(md, /\*\*Wrote\*\* `out\/00\.json`/, 'and WHICH file, since a byte count answers less');
+  assert.doesNotMatch(md, /xxxxx/, 'but not the file itself, which is what overloaded the fold');
+  assert.ok(md.length < 400, `a scanned agent is a few lines, got ${md.length} chars`);
+});
+
+test('below the threshold nothing changes: a review panel arrives whole', () => {
+  // Three agents writing 4 KB each is exactly what a reader wants on screen,
+  // and for a structured fan-out the authored file IS the answer.
+  const few = foldsOf(agentRec(3)).find(b => b.tools?.[0]?.agent).tools;
+  const md = few[0].md;
+  assert.match(md, /xxxxx/, 'the file content is inline');
+  assert.match(md, /- `Bash` — python3 step0\.py/, 'and so is the call list');
+});
+
+test('the density is the record\'s, so a card does not switch register mid-scroll', () => {
+  // Built per turn, before the runs are grouped, and that is the truer unit: a
+  // session that dispatched a hundred agents is one a reader scans throughout.
+  const rec = agentRec(8);
+  const fan = foldsOf(rec).find(b => b.tools?.[0]?.agent).tools;
+  assert.ok(fan.every(t => !/xxxxx/.test(t.md)), 'every agent in the run reads the same way');
+});
+
+// ── The header's title, when the prompt arrived with attachments ─────────────
+// Same defect the row's ask had, one surface over: a prompt opening with three
+// attached files opens with about 300 characters of upload path, so the brief's
+// header read as a UUID. The rule is repo-sessions-cache's (askParts), reached
+// through the global, so this also has to hold what happens when that kit is
+// absent, which is the case on every page that never loads it.
+
+const UP = '/root/.claude/uploads/aaaa1111-bbbb-cccc-dddd-eeee00001111/';
+const ATTACHED =
+  `@"${UP}22288270-COREPAM_Decision_Package.docx" ` +
+  `@"${UP}eb36c7f0-IT_Fiscal_Workbook__CORE_PAM.xlsx" ` +
+  'Please review the attached documents.';
+
+function withCacheKit() {
+  const w = { ...window };
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/closing-state.js'), 'utf8'))(w);
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/repo-sessions-cache.js'), 'utf8'))(w);
+  return w.RepoSessionsCache;
+}
+
+test('the title is the question, not the upload paths', () => {
+  const kit = withCacheKit();
+  window.RepoSessionsCache = kit;
+  try {
+    assert.match(describe({ short: 'aaaa1111', opening_ask: ATTACHED }).title,
+                 /^Please review the attached documents/);
+    // A prompt that was ONLY attachments has no prose to title with, so the
+    // names stand in rather than leaving the header on the bare short id.
+    const namesOnly = describe({ short: 'aaaa1111', opening_ask: `@"${UP}22288270-Only_File.docx"` });
+    assert.match(namesOnly.title, /Only_File\.docx/);
+  } finally { delete window.RepoSessionsCache; }
+});
+
+test('without the cache kit the title is what it always was, not empty', () => {
+  // This kit renders on pages that never load repo-sessions-cache. Failing open
+  // means the paths come back, which is the behaviour before the lift; failing
+  // closed would blank a header.
+  assert.equal('RepoSessionsCache' in window, false);
+  const d = describe({ short: 'aaaa1111', opening_ask: ATTACHED });
+  assert.match(d.title, /uploads/);
+  assert.equal(describe({ short: 'aaaa1111' }).title, 'aaaa1111');
+});

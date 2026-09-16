@@ -10,8 +10,14 @@ import assert from 'node:assert/strict';
 import { makeWindow, startAlpine } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
+// The chat archive is a SECOND store this kit reads, through kits/chat-archive.js
+// rather than directly: that kit owns the shard memo, so the lane here adds no
+// cache and the test can prove the memo by counting reads.
+const ARCHIVE = 'me/chats';
 
 let FILES = {};    // registry "<path>" -> parsed JSON
+let CHAT_FILES = {};   // archive "<path>" -> parsed JSON; absent -> 404
+let CHAT_READS = [];   // every archive path actually fetched
 // "<repo>@<ref>" -> blob entries, each a path or a { path, size }; absent ->
 // the fetch throws. The two forms exist because the trees API reports a blob's
 // size on the entry and most of these tests do not care what it is.
@@ -30,6 +36,10 @@ class FakeGH {
   get headers() { return { Accept: 'application/vnd.github.v3+json' }; }
   async get(name) {
     if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
+    if (this.repo === ARCHIVE) {
+      CHAT_READS.push(name);
+      if (CHAT_FILES[name]) return { text: JSON.stringify(CHAT_FILES[name]) };
+    }
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
@@ -65,6 +75,8 @@ await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/closing-state.js',
   'lib/kits/repo-sessions-cache.js',
+  'lib/kits/chat-archive.js',
+  'lib/kits/session-index.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -242,87 +254,91 @@ test('code: a GitHub answer speaks for itself and costs no second call', async (
   SEARCH_REJECT = null;
 });
 
-test('sessions: greps what a record quotes, caches the corpus, newest first', async () => {
+test('sessions: what was SAID is answered from the index, newest first', async () => {
+  // The store is not read at all any more. The shards are, one per month, and
+  // they are built by the same kit the crawl builds them with, so this drives
+  // the real encoder rather than a transcription of it.
+  const X = window.SessionIndex;
   FILES = {
     'state/sessions.json': { rows: [
       { id: 'aaaa1111', day: '2026-08-02' },
       { id: 'bbbb2222', day: '2026-08-05' },
     ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the wayback urls', prompts: [], last_message: 'done' },
-    'sessions/2026/08/2026-08-05-bbbb2222.json':
-      { day: '2026-08-05', opening_ask: 'other', prompts: [{ at: 't', text: 'wayback again please' }], last_message: '' },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('about the wayback urls'),
+      bbbb2222: X.tokens('other · wayback again please'),
+    }),
   };
   const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...res.hits.map(h => h.id)], ['bbbb2222', 'aaaa1111']);
-  // The corpus is cached: a changed store answers the same until reset.
-  FILES['sessions/2026/08/2026-08-02-aaaa1111.json'].opening_ask = 'edited away';
-  const again = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
-  assert.equal(again.hits.length, 2);
+  assert.equal(res.indexed, 1, 'one shard answered');
+  // Nothing to quote when the conversation is what matched: the index holds
+  // terms, not text.
+  assert.equal(res.hits[0].frag, 'said in the conversation');
+  // The shard is cached: a changed registry answers the same until reset.
+  FILES['state/sessions-index/2026-08.json'] = X.buildShard({ aaaa1111: X.tokens('edited away') });
+  assert.equal((await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.length, 2);
   ES.reset();
-  const fresh = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...fresh.hits.map(h => h.id)], ['bbbb2222']);
+  assert.deepEqual([...(await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)], []);
 });
 
-test('sessions: the derived name is searchable, and says so in the hit', async () => {
-  ES.reset();   // the corpus cache is module-level and survives the test above
+test('sessions: a substring reaches inside a term, which whole words cannot', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
   FILES = {
-    'state/sessions.json': { rows: [
-      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'] },
-    ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+    'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] },
+    'state/sessions-index/2026-08.json': X.buildShard({
+      aaaa1111: X.tokens('touched lib/kits/estate-search.js today'),
+    }),
   };
-  // The title as remembered, spaced, finds the slug as stored.
-  const spaced = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...spaced.hits.map(h => h.id)], ['aaaa1111']);
-  // And the note line says the name matched, not the conversation, which is the
-  // whole reason a name rides the same corpus as what was said.
-  assert.match(spaced.hits[0].frag, /session name:/);
-  ES.reset();
-  const slug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
+  // `search.js` is not a whole term here; it lives inside the path. The lane
+  // scans the dictionary for it, which is the rule the index is exact under.
+  for (const q of ['search.js', 'estate-search', 'lib/kits', 'ESTATE']) {
+    ES.reset();
+    assert.deepEqual([...(await ES.sessions({ q, registry: REGISTRY, token: 'tkn' })).hits.map(h => h.id)],
+                     ['aaaa1111'], `should find: ${q}`);
+  }
 });
 
-test('sessions: the exported title is searchable beside the derived name', async () => {
+test('sessions: a month with no shard is reported, not counted as searched', async () => {
   ES.reset();
+  FILES = { 'state/sessions.json': { rows: [{ id: 'aaaa1111', day: '2026-08-02' }] } };
+  const res = await ES.sessions({ q: 'wayback', registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.indexed, 0, 'no shard answered, and the caller has to be able to see that');
+  assert.equal(res.months, 1);
+  assert.equal(res.hits.length, 0);
+});
+
+test('sessions: the row is searched beside the index, and the hit says which answered', async () => {
+  ES.reset();
+  const X = window.SessionIndex;
   FILES = {
     'state/sessions.json': { titlesAt: '2026-08-04', rows: [
       { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'],
         title: 'FAB naming convention' },
     ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
+    'state/sessions-index/2026-08.json': X.buildShard({ aaaa1111: X.tokens('about the app button') }),
   };
-  // The title as it was actually read in the sidebar, which the slug cannot
-  // reach: "convention" is the word the branch name truncated away.
+  // The title as it was read in the sidebar, which the slug cannot reach:
+  // "convention" is the word the branch name truncated away.
   const byTitle = await ES.sessions({ q: 'naming convention', registry: REGISTRY, token: 'tkn' });
   assert.deepEqual([...byTitle.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(byTitle.hits[0].frag, /session title:/);
-  // Both forms are carried, so the slug still finds the same session. That is
-  // the point of the pair: a titled row must not become unreachable by the name
-  // it was findable by yesterday.
-  ES.reset();
-  const bySlug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...bySlug.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(bySlug.hits[0].frag, /session name:/);
-});
-
-test('sessions: an untitled row still answers to its derived name', async () => {
-  // The per-row fallback, from the search side. Most of the store is in this
-  // state: the join keys on the record's session URL and nothing written before
-  // 2026-08-06 has one.
-  ES.reset();
-  FILES = {
-    'state/sessions.json': { titlesAt: '2026-08-04', rows: [
-      { id: 'aaaa1111', day: '2026-08-02', branches: ['claude/fab-naming-todqvq'] },
-    ] },
-    'sessions/2026/08/2026-08-02-aaaa1111.json':
-      { day: '2026-08-02', opening_ask: 'about the app button', prompts: [], last_message: '' },
-  };
-  const res = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
-  assert.deepEqual([...res.hits.map(h => h.id)], ['aaaa1111']);
-  assert.match(res.hits[0].frag, /session name:/);
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  // Both spellings of the name still answer, which is the promise the retired
+  // nameSegs carried and RepoSessionsCache.searchSegs carries now. Which
+  // segment gets QUOTED follows searchSegs' own order, title before name, so
+  // the spaced query quotes the title that holds both words and the slug
+  // quotes the name, which is the only segment that holds a hyphen.
+  const spaced = await ES.sessions({ q: 'fab naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...spaced.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(spaced.hits[0].frag, /^title:/);
+  const slug = await ES.sessions({ q: 'fab-naming', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...slug.hits.map(h => h.id)], ['aaaa1111']);
+  assert.match(slug.hits[0].frag, /^name:/);
+  // And the conversation still answers on its own, through the index.
+  const said = await ES.sessions({ q: 'app button', registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...said.hits.map(h => h.id)], ['aaaa1111']);
+  assert.equal(said.hits[0].frag, 'said in the conversation');
 });
 
 test('sessions: a match on what was said beats the name to the note line', async () => {
@@ -361,4 +377,109 @@ test('code: the three rejection outcomes are told apart by their wording', async
   // And none of them may be the browser's own words, which say nothing.
   for (const m of msgs) assert.doesNotMatch(m, /^Network error on GET/);
   SEARCH_REJECT = null;
+});
+
+// ── The chats lane ──────────────────────────────────────────────────────────
+// The sessions lane's opposite number: it matches what a SUMMARY says about a
+// chat rather than what a record quotes, so it reads about 10 MB of monthly
+// catalog shards instead of the whole record store. What is worth holding is
+// the economy (the frontier is the spine, shards are read once, a month with no
+// shard is reported rather than thrown) and the labelling that lets a hit say
+// which field answered.
+
+const A_FRONTIER = {
+  archived_through: '2026-07-06',
+  providers: {
+    Claude:  { frontier: '2026-07-06', chats: 3, months: ['2026-06', '2026-07'], snapshots: ['2026-06-01'] },
+    ChatGPT: { frontier: '2026-05-30', chats: 1, months: ['2026-05'], snapshots: ['2026-07-06'] },
+  },
+};
+const CLAUDE_URL = 'https://claude.ai/chat/aaaaaaaa-0000-0000-0000-000000000001';
+const GEMINI_URL = 'gemini-session/341';
+
+function seedArchive() {
+  CHAT_FILES = {
+    'annotations/catalog/frontier.json': A_FRONTIER,
+    // July has only the hand layer, June only the machine layer: most months
+    // carry exactly one, which is why a 404 on either is normal.
+    'annotations/catalog/by-month/2026-07.json': [
+      { url: CLAUDE_URL, date: '2026-07-02', title: 'Packing a bookmarklet with gzip',
+        summary: 'A base64url envelope so the payload rides in the fragment.',
+        tags: ['bookmarklets', 'compression'] },
+    ],
+    'annotations/summaries/by-month/2026-06.json': [
+      { url: GEMINI_URL, date: '2026-06-11', title: 'Allotment schedule walkthrough',
+        summary: 'Worked through the allotment packet by fund.', tags: ['wa-budget'] },
+    ],
+    // 2026-05 is named by the frontier and has NEITHER layer: a hole in the
+    // archive, which the lane reports beside the hits.
+  };
+  CHAT_READS = [];
+}
+
+test('chats: the frontier is the spine, and every month it names is read', async () => {
+  seedArchive();
+  const res = await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.months, 3, 'three months on the spine, deduped across providers');
+  // Spread into this realm's Array: startAlpine evaluates the kit in a vm
+  // context, so its arrays are structurally equal and not reference-equal.
+  assert.deepEqual([...res.missing], ['2026-05']);
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Packing a bookmarklet with gzip');
+  assert.equal(res.hits[0].provider, 'claude');
+  assert.equal(res.hits[0].open, CLAUDE_URL);
+  // The frontier plus two shards per month; the missing month costs two 404s.
+  assert.ok(CHAT_READS.includes('annotations/catalog/frontier.json'));
+});
+
+test('chats: a shard is read once, so a second query costs nothing', async () => {
+  const before = CHAT_READS.length;
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.total, 1);
+  assert.equal(res.hits[0].title, 'Allotment schedule walkthrough');
+  // chat-archive memoizes the merged month, so nothing new was fetched. Only
+  // the month with no shard at all is re-attempted, since a failed read is
+  // never memoized as an empty month.
+  const fresh = CHAT_READS.slice(before);
+  assert.ok(fresh.every(p => p.includes('2026-05')), `unexpected refetch: ${fresh.join(', ')}`);
+});
+
+test('chats: a Gemini row is a hit with no address, not a dead link', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn' });
+  assert.equal(res.hits[0].url, GEMINI_URL);
+  assert.equal(res.hits[0].open, '', 'Takeout keeps no per-conversation URL');
+});
+
+test('chats: the quoted fragment says which field answered', async () => {
+  const byTag = await ES.chats({ q: 'wa-budget', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTag.hits[0].frag, /^tags:/);
+  const byTitle = await ES.chats({ q: 'bookmarklet', repo: ARCHIVE, token: 'tkn' });
+  assert.match(byTitle.hits[0].frag, /^title:/);
+  const bySummary = await ES.chats({ q: 'base64url', repo: ARCHIVE, token: 'tkn' });
+  assert.match(bySummary.hits[0].frag, /^summary:/);
+});
+
+test('chats: progress counts shards, so a long read can say how far along it is', async () => {
+  seedArchive();
+  window.chatArchive.forget();
+  const seen = [];
+  await ES.chats({ q: 'gzip', repo: ARCHIVE, token: 'tkn', onProgress: (p) => seen.push(p) });
+  assert.equal(seen.length, 3);
+  assert.deepEqual([...seen.map(p => p.done)], [1, 2, 3]);
+  assert.ok(seen.every(p => p.total === 3));
+});
+
+test('chats: months caps the walk from the newest end', async () => {
+  const res = await ES.chats({ q: 'allotment', repo: ARCHIVE, token: 'tkn', months: 1 });
+  assert.equal(res.months, 1);
+  assert.equal(res.total, 0, 'June holds the hit and only July was read');
+});
+
+test('chats: without the archive kit the lane says so rather than answering empty', async () => {
+  const kit = window.chatArchive;
+  delete window.chatArchive;
+  try {
+    await assert.rejects(() => ES.chats({ q: 'x', repo: ARCHIVE, token: 'tkn' }),
+      /chat archive kit has not loaded/);
+  } finally { window.chatArchive = kit; }
 });

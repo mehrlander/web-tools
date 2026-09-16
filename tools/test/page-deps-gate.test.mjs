@@ -36,7 +36,14 @@ const pagesDir = path.join(repoRoot, 'pages');
 const atRisk = readdirSync(pagesDir)
   .filter(f => f.endsWith('.html'))
   .map(f => ({ file: f, src: readFileSync(path.join(pagesDir, f), 'utf8') }))
-  .filter(({ src }) => /dist\/web-tools\.js/.test(src) && /gh\.load\(/.test(src));
+  // READ FROM CODE, NOT FROM COMMENTS, the same guard tools/build/graph.mjs
+  // puts on its own scanner. A page explaining why it does NOT import the
+  // whole-library build says the name in prose, and this selector then put it
+  // in the at-risk set and failed it for lacking a gate it does not need:
+  // pages/dictate.html, 2026-09-08, whose own build boots no Alpine.
+  .map(({ file, src }) => ({ file, src,
+    code: src.split('\n').filter(l => !/^\s*(\/\/|\*|<!--)/.test(l)).join('\n') }))
+  .filter(({ code }) => /dist\/web-tools\.js/.test(code) && /gh\.load\(/.test(code));
 
 test('the set of at-risk pages is non-empty, or this check is silently vacuous', () => {
   assert.ok(atRisk.length >= 3, `expected the pre-build pages, found ${atRisk.length}`);

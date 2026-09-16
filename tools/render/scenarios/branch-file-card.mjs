@@ -39,7 +39,7 @@ export default async function (page, ctx) {
       { sha: 'f1a2b3c4d5e6', msg: 'Stage intake: one tray per workspace', date: '2026-08-19T09:10:00Z', author: 'mehrlander' },
       { sha: 'a9b8c7d6e5f4', msg: 'Per-repo crawl progress on the State view', date: '2026-08-18T17:40:00Z', author: 'mehrlander' },
       { sha: '112233445566', msg: 'Revise the HTML style guide for clarity', date: '2026-08-18T11:02:00Z', author: 'mehrlander' },
-      { sha: '778899aabbcc', msg: 'Record the carrier-stub rule the migration earned', date: '2026-08-17T20:15:00Z', author: 'mehrlander' },
+      { sha: '778899aabbcc', msg: 'Record the file-stub rule the migration earned', date: '2026-08-17T20:15:00Z', author: 'mehrlander' },
       { sha: 'ddeeff001122', msg: 'concept-lab: note the sibling that ran the same problem', date: '2026-08-17T08:30:00Z', author: 'mehrlander' },
     ];
     window.GH.prototype.compare = async () => ({

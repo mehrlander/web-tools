@@ -25,17 +25,14 @@
   const SECTIONS = [
     {
       title: 'Class-shortcut directives',
-      intro: 'Each block injects alpine-bundle.js into its own frame; the bundle boots Alpine and registers its directives there. Edit the markup and the frame re-renders. These four mirror the html.* presets, as directives.',
+      intro: 'Each block injects alpine-bundle.js into its own frame; the bundle boots Alpine and registers its directives there. Edit the markup and the frame re-renders. These three mirror the html.* presets, as directives.',
       examples: [
         {
-          title: 'x-tip · x-btn · x-toolbar · x-lines',
-          prose: `<code class="${c()}">x-tip.&lt;pos&gt;</code> takes an HTML body; <code class="${c()}">x-btn.&lt;size|variant&gt;</code> adds daisyUI button classes + an optional click handler; <code class="${c()}">x-toolbar</code> and <code class="${c()}">x-lines.&lt;gap&gt;</code> are layout containers.`,
+          title: 'x-btn · x-toolbar · x-lines',
+          prose: `<code class="${c()}">x-btn.&lt;size|variant&gt;</code> adds daisyUI button classes + an optional click handler; <code class="${c()}">x-toolbar</code> and <code class="${c()}">x-lines.&lt;gap&gt;</code> are layout containers.`,
           lang: 'html', kind: 'render', inject, daisy: true,
           code:
 `<div x-data class="flex flex-col gap-4 items-start">
-  <button x-tip.top="'<strong>Rich tooltip</strong><div>HTML body, not escaped text</div>'"
-          class="btn btn-sm">Hover for a tip</button>
-
   <button x-btn.sm.primary="$el.textContent = 'clicked!'">x-btn.sm.primary</button>
 
   <div x-toolbar class="w-full">
@@ -147,11 +144,11 @@
 </script>
 </head>
 
-<body class="min-h-screen bg-base-100 text-base-content antialiased">
+<body class="min-h-dvh bg-base-100 text-base-content antialiased">
 
   <div id="display-ctrl"></div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
     <header class="mb-10">
       <div class="flex items-baseline justify-between mb-3">
@@ -163,11 +160,11 @@
       <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
         Alpine directives. <span class="opacity-50">Edit the markup, watch it bind.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         The directives, stores, and magics
         <a href="https://github.com/mehrlander/web-tools/blob/main/alpine-bundle.js" class="link link-hover">alpine-bundle.js</a>
         adds on top of Alpine. Each block injects the bundle into an isolated
-        frame — it self-boots Alpine there — so every snippet is a fully live,
+        frame, where it self-boots Alpine, so every snippet is a fully live,
         editable Alpine page of its own.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
@@ -177,7 +174,7 @@
 
     <footer class="mt-4 pt-6 border-t border-base-300">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 text-pretty space-y-2">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code> (itself framework-free). Each block injects <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">alpine-bundle.js</code>, which loads Alpine and registers its directives inside the frame. The bundle also ships <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">$clip</code>/<code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">$paste</code> and a dropdown auto-close handler not shown here.</p>
         <p>The framework-free counterpart is <a href="vanilla-bundle-demo.html" class="link link-hover">vanilla-bundle</a>.</p>
       </div>

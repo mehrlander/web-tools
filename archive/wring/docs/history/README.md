@@ -31,7 +31,7 @@ Do not try to read these as one renamed sequence. The closest honest mapping of 
 | 1 · Discovery | Partially superseded | Tokenize + Sequitur | Suffix array / LCP enumeration → grammar induction (Sequitur/Re-Pair). Interface contracts and failure modes still valid. |
 | 2 · Topology | Superseded | (folded into Bookend Merge) | Pairwise gap-variance discrimination → structural Bookend Merge. The decoy-problem analysis survives as background. |
 | 3 · Refinement | Partially superseded | Bookend Merge | Center-star alignment and the MDL cost model still apply; the input interface changed (templates now come from Bookend Merge, not chain mining). |
-| 4 · Selection | Current in content, archived in form | Selection | Algorithms (weighted interval scheduling, MDL, hierarchy, residual diagnosis) are path-independent and apply unmodified. The spec is written in the prior-architecture idiom and cross-references Phase 3's I/O, so it lives here; the live carriers are `ARCHITECTURE.md` §4 and `selection/mdl-select.js`. |
+| 4 · Selection | Current in content, archived in form | Selection | Algorithms (weighted interval scheduling, MDL, hierarchy, residual diagnosis) are path-independent and apply unmodified. The spec is written in the prior-architecture idiom and cross-references Phase 3's I/O, so it lives here; the live account is `ARCHITECTURE.md` §4 and `selection/mdl-select.js`. |
 
 ## Contents
 

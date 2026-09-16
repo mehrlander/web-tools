@@ -426,7 +426,7 @@ test('a card-s live read is written back into the row it was opened from', () =>
   assert.deepEqual(plain_(data.fileParts(after)), { lead: 1, added: 1 });
   assert.equal(data.freshCount, 1, 'and the list-s age stamp knows a row outran it');
 
-  // Both carriers, since which one a row reads from turns on whether it has an
+  // Both lists, since which one a row reads from turns on whether it has an
   // open PR and this must land either way.
   assert.equal(plain_(data.activity['me/tools'].openPRs[0]).aheadBy, 9);
   assert.equal(plain_(data.activity['me/tools'].scan.branches[0]).aheadBy, 9);
@@ -719,9 +719,8 @@ test('the turns card is the transcript, and its head answers the tap', () => {
   // the ask is only the first of them, and the assistant half rides the head.
   //
   // THE HEAD STATES WHAT THE READER TAPPED. A prose card otherwise counts the
-  // turns it was handed, which here is both roles and only the last
-  // TURNS_KEPT, so deriving would answer a glyph reading 12 with some other
-  // number entirely.
+  // turns it was handed, which here is both roles, so deriving would answer a
+  // glyph reading 12 with some other number entirely.
   const row = SESSION_ROW();
   data.openSessionCard(row, 'turns', null);
   assert.equal(data.rowCard.kind, 'prose');

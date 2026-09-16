@@ -11,7 +11,7 @@
 // (issue #498, PR #499, 2026-08-25), so this file is the rule in executable
 // form: if someone "fixes" the threshold or drops the pair handling, the
 // disagreement is with a measurement rather than with an opinion. Evidence:
-// docs/environment/capabilities.md, "What gets counted".
+// docs/github/mcp.md, "Writing: a URL of 150 characters or more is wrapped".
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -145,16 +145,60 @@ test('--check exits non-zero only when something would be defanged', () => {
 // into a PR body. It did until 2026-08-25, contradicting SURFACING.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule moved out of the caption skill and into SURFACING.md's course when
-  // the skill was retired (2026-08-31): the course is the only carrier now, and
-  // it is delivered on PR creation, which is exactly when a sync is possible.
-  const course = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8')
-    .split('## The surfacing course')[1] || '';
-  assert.ok(course.length > 0, 'the course section still exists');
-  assert.ok(/The body does not enumerate files/.test(course),
+  // The rule moved out of the caption skill and into the course when the skill
+  // was retired (2026-08-31): the course is the only place it is stated now, and
+  // it is delivered on PR creation, which is exactly when a sync is possible. The
+  // course became its own file on 2026-09-10, so this reads the file rather
+  // than a section of SURFACING.md.
+  const course = readFileSync(path.join(repoRoot, 'docs', 'surfacing-course.md'), 'utf8');
+  assert.ok(course.length > 0, 'the course document still exists');
+  // Reworded 2026-09-07 ("Do not list files, diff statistics, or CI results
+  // there"), so the pattern matches the rule rather than one phrasing of it.
+  assert.ok(/not (?:list|enumerate) files/i.test(course),
     'the course should say the body carries judgment, not a file list');
   assert.ok(/no link triplets/.test(course),
     'the guide template should ask for prose, not the caption\'s link triplets');
   assert.ok(/mcp-link-safe\.py/.test(course),
     'the course should name the checker for anything written to a body');
+});
+
+// ── Bare URLs ───────────────────────────────────────────────────────────────
+// Added 2026-09-09 after this checker cleared a PR body that was already dead.
+// The body carried two 195- and 330-character render addresses written on their
+// own, with no brackets; the write path wrapped both and stored them as text.
+// Every rule above measured only what was inside `[...](...)`, so the gap was
+// exactly the shape of the mistake: a checker that passes the one construct it
+// cannot see is worse than no checker, because it certifies the failure.
+
+test('a bare URL over the threshold is caught, because GitHub autolinks it', () => {
+  const found = scan(`A body line, then the address:\n\n${url(LONG, 195)}\n`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'bare');
+  assert.equal(found[0].length, 195);
+});
+
+test('a bare URL under the threshold passes, at the same 150 boundary', () => {
+  assert.equal(wraps(`see ${url(LONG, 149)}\n`), false);
+  assert.equal(wraps(`see ${url(LONG, 150)}\n`), true);
+});
+
+test('a bracketed URL is not reported twice as its own bare twin', () => {
+  // BARE matches inside `[label](url)` too, so without the offset exclusion
+  // every real finding would double and every safe link would grow a phantom.
+  const found = scan(`[label](${url(LONG, 195)})\n`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'link');
+  assert.equal(wraps(`[label](${url(LONG, 149)})\n`), false);
+});
+
+test('a code-span URL keeps its own verdict rather than becoming bare', () => {
+  const found = scan('`' + url(LONG, 195) + '`\n');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'codespan');
+});
+
+test('trailing sentence punctuation is not part of the address', () => {
+  // 149 characters of URL followed by a full stop is a safe link in a sentence,
+  // and counting the stop would report it as the shortest possible failure.
+  assert.equal(wraps(`The address is ${url(LONG, 149)}.\n`), false);
 });

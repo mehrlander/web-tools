@@ -2,7 +2,7 @@
 // a token and the live API, neither of which the headless harness has, so the
 // load is bypassed and its three outputs are supplied instead: the manifest
 // (read from the served working tree, the same bytes at this ref), the
-// per-carrier last-commit dates (read from this checkout's git log, which is
+// per-file last-commit dates (read from this checkout's git log, which is
 // what the API call answers), and a set of open PRs.
 //
 // The dates are DERIVED here rather than frozen into this file: a committed
@@ -32,7 +32,7 @@ function touchesFromGit() {
   return out;
 }
 
-// Three shapes the pane has to tell apart: a PR on a narrow carrier (open on
+// Three shapes the pane has to tell apart: a PR on a narrow file (open on
 // that route), a PR on a wide one (near several), and a PR touching nothing any
 // route declares (on no row at all).
 const PRS = [

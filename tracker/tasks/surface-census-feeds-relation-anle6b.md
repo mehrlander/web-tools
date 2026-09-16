@@ -46,7 +46,7 @@ say it is disjoint from `pages-catalog` the way `harness` subtracts `tools/test/
 1. A gate asserting every `feeds` entry is a routed key. ~20 lines on the
    `owners-registry.test.mjs` pattern. First, and total now that `feeds` is an
    array rather than the prose the gate was first scoped against.
-2. The surface registry: carrier, `target: a routed view`, the `component` field,
+2. The surface registry: its file, `target: a routed view`, the `component` field,
    the scope above, and a row in `docs/properties.csv`.
 3. The `cache → module` scanner, and the composition that replaces `feeds`.
 
@@ -71,7 +71,7 @@ fails the suite rather than orphaning a string.
   commits. `feeds` is gone from state-view.js; the authored side is `reads` on
   `docs/app-routes.csv`, which is the surface registry the design called for and
   which already existed (added 2026-08-29, same target, same identity space,
-  gated to VIEWS both ways), so a second carrier would have been the duplication
+  gated to VIEWS both ways), so a second registry would have been the duplication
   the task's own constraint forbids. The recorded middle hop does not resolve:
   `component` per view composes to eight chips on the configs row where the
   prose had one, because estate.js backs seven routes. `reads` is authored at

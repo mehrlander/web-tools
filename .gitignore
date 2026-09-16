@@ -5,6 +5,7 @@ __pycache__/
 dist/*
 !dist/web-tools.js
 !dist/app.js
+!dist/dictate.js
 package-lock.json
 
 # bake-page scratch (skills/bake-page/scripts/bake.js cleans these up; belt and braces)

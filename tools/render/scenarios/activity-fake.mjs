@@ -83,7 +83,7 @@ export default async (page) => {
   // The route chips: the Branches pane reads the same manifest and PR file
   // lists the Routes pane loads, so this seeds that shared half directly rather
   // than letting the pane fetch (no token here). Files are chosen to exercise
-  // all three cases: a narrow carrier (on), a widely shared one (near), and a
+  // all three cases: a narrow file (on), a widely shared one (near), and a
   // branch touching nothing any route declares.
   await page.evaluate(async () => {
     const d = window.Alpine.$data(document.querySelector('[x-data="estate()"]'));

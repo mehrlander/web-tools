@@ -8,7 +8,7 @@ opened: 2026-07-22
 ---
 # Fold chat-results into the surface schema, or keep it a sibling
 
-The content-envelope family (`docs/envelopes/`) now has three carriers: surface, chat-results, and the stage. The stage already converged onto the surface schema (a stage item is a surface item's `target.source` triple with annotations empty). Chat-results has not: it remains a separate schema (`results[]`, `facets[]`, `narrative`; `docs/envelopes/chat-results.md`) designed apart from surface v2, though the two share curated items, per-item annotation, `#gz=`/`?src=` delivery, and live-code rendering.
+The content-envelope family (`docs/envelopes/`) now has three members: surface, chat-results, and the stage. The stage already converged onto the surface schema (a stage item is a surface item's `target.source` triple with annotations empty). Chat-results has not: it remains a separate schema (`results[]`, `facets[]`, `narrative`; `docs/envelopes/chat-results.md`) designed apart from surface v2, though the two share curated items, per-item annotation, `#gz=`/`?src=` delivery, and live-code rendering.
 
 The question: should chat-results become a **surface profile** (`profile: {name: "chat-results", version: 1}`, the way `branch-review/1` is a profile over the same core), or stay a **third sibling schema** that only shares delivery mechanics?
 

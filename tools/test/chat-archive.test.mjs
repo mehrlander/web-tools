@@ -144,3 +144,55 @@ test('the month spine is every provider\'s months, deduped and newest first', ()
   assert.deepEqual(A.monthsDesc(FRONTIER), ['2026-07', '2026-06', '2026-05']);
   assert.deepEqual(A.monthsDesc({}), []);
 });
+
+// ── The cheap pass, matched ──────────────────────────────────────────────────
+// The catalog is what a summary SAYS ABOUT a chat, not what was said in it.
+// That is the whole reach of any chat search a browser can run here, so these
+// hold both directions: what the segments carry, and what they cannot.
+
+const ROW = {
+  url: CLAUDE,
+  title: 'Packing a bookmarklet with gzip',
+  summary: 'Worked out a base64url envelope so the payload rides in the fragment.',
+  tags: ['bookmarklets', 'compression'],
+  provider: 'claude',
+  hand: true,
+};
+
+test('segments are labelled, so a hit can say which field answered', () => {
+  assert.deepEqual(A.searchSegs(ROW), [
+    'title: Packing a bookmarklet with gzip',
+    'summary: Worked out a base64url envelope so the payload rides in the fragment.',
+    'tags: bookmarklets, compression',
+  ]);
+  // A row with nothing to say produces no segments rather than empty labels,
+  // so a query never matches the word "title" on a titleless row.
+  assert.deepEqual(A.searchSegs({}), []);
+  assert.deepEqual(A.searchSegs(null), []);
+});
+
+test('terms are ANDed across the row and ORed across its fields', () => {
+  // One field.
+  assert.equal(A.matches(ROW, 'bookmarklet'), true);
+  // Two terms in two different fields is a real answer: the question is about
+  // the chat, not about one sentence.
+  assert.equal(A.matches(ROW, 'gzip compression'), true);
+  // Every term must land somewhere.
+  assert.equal(A.matches(ROW, 'gzip pensions'), false);
+  // An empty query is not a filter.
+  assert.equal(A.matches(ROW, ''), true);
+  assert.equal(A.matches(ROW, '   '), true);
+});
+
+test('matching is case- and whitespace-insensitive the way a person types', () => {
+  assert.equal(A.matches(ROW, 'GZIP'), true);
+  assert.equal(A.matches(ROW, '  Base64URL   envelope '), true);
+});
+
+test('the catalog cannot answer for words the chat used and the summary did not', () => {
+  // The honest limit, held as a test because a miss here reads exactly like a
+  // chat that does not exist. The snapshots hold the transcript; nothing in a
+  // browser reads them, and chat-histories tools/search_chats.py is where the
+  // exhaustive pass lives.
+  assert.equal(A.matches(ROW, 'atob'), false);
+});

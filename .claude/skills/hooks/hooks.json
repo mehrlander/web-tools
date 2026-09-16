@@ -9,6 +9,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-dispatch.sh\""
           }
         ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/invoke-default.sh\""
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -20,6 +29,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/reading-column-guard.sh\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*__send_later",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/send-later-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -29,6 +47,15 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-subscribe-hint.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/warn-governing-docs.sh\""
           }
         ]
       }

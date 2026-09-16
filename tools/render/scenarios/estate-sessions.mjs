@@ -16,8 +16,23 @@
 // CARD=reply opens the ask line's card, which renders the session as a
 // transcript through kits/chat-render.js and so needs the network the other
 // four do not.
+// ROW=<n> puts CARD on the nth row instead of the first, anchor included, for
+// a case only one fixture row carries: the tools card's agents note is the
+// single-dispatch row's, since a session whose Agent line is already in the
+// list gets no note.
 // CARDTOP=1 scrolls that card back to its first entry (it opens at the last).
 // STALE=1 puts the first row a summarizer version behind.
+//
+// LIVE=1 replaces the first row's hand-written prose with a lean row plus a
+// stubbed record (TURNS_RECORD below), so the card runs the real path: the
+// summarizer heads the turns, the header numbers them off their own instants,
+// and a tap has a record to open the deck against. Anything about TRUNCATION,
+// the header's clock or the rail's placement has to be shot this way: a
+// hand-written row carries a UTC clock string and no instants, so its rail
+// falls back to even spacing and its clock to the string. With it:
+//   TAP=<n>      taps the nth turn (1-based), which opens the session deck on
+//                that exchange; the card stays open underneath it
+//   SCROLL=<px>  scrolls the card down that far, for the header's position
 
 const SESSIONS = [
   {
@@ -30,8 +45,14 @@ const SESSIONS = [
     repos: [{ name: 'web-tools', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 572 },
             { name: 'home', branch: 'claude/show-repo-docs-surfacing-3sr7ab', lines: 3 }],
     branches: ['claude/show-repo-docs-surfacing-3sr7ab'],
-    exchanges: 10, messages: 340, calls: 206, failures: 1,
-    tools: [['Bash', 132], ['Edit', 34], ['Read', 17]],
+    exchanges: 10, messages: 340, calls: 206, failures: 1, agents: 5,
+    // Agent is IN this list, which is the case where the tools card says
+    // nothing extra: the reader who taps the agents figure finds its line
+    // already there. Dispatches are a subset of the calls, so every fixture
+    // here keeps the tool counts inside `calls` and `agents` inside its own
+    // line; the card's note prints that number in a sentence, so a fixture
+    // that broke the subset would print a falsehood on screen.
+    tools: [['Bash', 132], ['Edit', 34], ['Read', 17], ['Agent', 5]],
     tokens: { input: 624, output: 337631, cache_read: 92466018, cache_write: 3979906 },
     filesTotal: 14, files: [['web-tools/lib/alpineComponents/estate.js', 11], ['web-tools/docs/showing.md', 4]],
     // MARKDOWN, because a Claude reply is markdown and the store keeps it
@@ -68,7 +89,6 @@ const SESSIONS = [
       ['u', 'Good. Please proceed with the Map view tab.', '15:20:03'],
       ['a', 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it.', '15:44:29', 891],
     ],
-    turnsCut: 'cut',
     askAt: '13:51:08',
     replyAt: '16:49:16',
     // The closing state, and it deliberately DISAGREES with the rail above it:
@@ -123,8 +143,13 @@ const SESSIONS = [
     ask: 'What is in the budget-wa crosswalks directory and does the verify suite still pass?',
     repos: [{ name: 'budget-wa', branch: 'main', lines: 88 }],
     branches: [],
-    exchanges: 3, messages: 64, calls: 41, failures: 3,
-    tools: [['Bash', 33], ['Read', 6]],
+    exchanges: 3, messages: 210, calls: 289, failures: 3, agents: 126,
+    // The high end of the spectrum, and the shape a real one has: Agent leads
+    // the list and the parent's own file count stays at zero, because the
+    // reading happened in the subagents. Drawn from the store's own top rows,
+    // where the four largest run 83 to 160 dispatches against 269 to 1,010
+    // calls. Three digits, so it is also what holds the column's width honest.
+    tools: [['Agent', 126], ['Bash', 141], ['Read', 6]],
     tokens: { input: 210, output: 38000, cache_read: 12000000, cache_write: 900000 },
     filesTotal: 0, files: [],
     reply: 'Nine crosswalk CSVs, and the verify suite passes.',
@@ -144,8 +169,13 @@ const SESSIONS = [
     ask: 'The wsl-fetch cron has not landed its errand in three days. Work out whether it is the schedule or the runner.',
     repos: [{ name: 'web-tools', branch: 'claude/wsl-fetch-cron-8dk2mq', lines: 41 }],
     branches: ['claude/wsl-fetch-cron-8dk2mq'],
-    exchanges: 5, messages: 88, calls: 63, failures: 0,
-    tools: [['Bash', 44], ['Read', 11]],
+    exchanges: 5, messages: 88, calls: 63, failures: 0, agents: 1,
+    // The other end, and the case the card's note exists for: six tools busier
+    // than one dispatch, so Agent falls outside the cut and the list the tap
+    // opens would otherwise never mention it. 7 of the store's 30 fan-out
+    // records look like this, every one of them a single dispatch.
+    tools: [['Bash', 44], ['Read', 11], ['mcp__github__update_pull_request', 3],
+            ['ToolSearch', 2], ['Edit', 1], ['Write', 1]],
     tokens: { input: 300, output: 71000, cache_read: 19000000, cache_write: 1200000 },
     filesTotal: 3, files: [['web-tools/.github/workflows/wsl-fetch.yml', 5]],
     reply: 'The schedule is fine and the runner is asleep: the cron fires while the machine is off, and a hosted runner cannot reach the share. It needs the self-hosted runner, which is yours to start.',
@@ -289,6 +319,52 @@ const RECORD = {
   calls: [],
 };
 
+// ── The record behind the first row, for LIVE=1 ──────────────────────────────
+// Longer, and long on purpose. The card heads every scroll-back turn at 240
+// characters and reports what it left; a fixture whose turns all fit under the
+// cap can draw the transcript and cannot draw the one thing the reader is
+// being offered, which is the rest of the turn. So most of these run past it,
+// the opening ask included, and three of the replies are followed by tool
+// calls, which is the case the card drops as work in progress.
+//
+// Nothing here is headed by hand: the row is built from this record by the
+// real summarizer inside the page, so the fixture cannot state a cut the code
+// would not make.
+const at = (t) => '2026-08-05T' + t + 'Z';
+const TURNS_RECORD = {
+  ...RECORD,
+  opening_ask: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.',
+  prompts: [
+    { at: at('13:51:08'), text: 'We have done some significant work on surfacing our documentation in the show-repo app, and I have lost track of where it landed. Walk me through what is in place now, what is still prose in CLAUDE.md, and what the app derives. I would rather have one place that is right than three that mostly agree.' },
+    { at: at('14:19:40'), text: 'Can we get the render line printed rather than remembered? I keep handing over the wrong link, and the section that was meant to stop it is the longest one in the file, so reading it is evidently not the thing that fixes this.' },
+    { at: at('14:52:10'), text: 'Good. What does the honesty rule cost us if no script can supply it?' },
+    { at: at('15:12:44'), text: '[3 images]' },
+    { at: at('15:20:03'), text: 'Please proceed with the Map view tab.' },
+    { at: at('15:58:20'), text: 'Does the CSV need a column for what each mechanism misses, or is that already implied by what it reaches? I do not want two columns saying one thing, but I also do not want a reader inferring the gap.' },
+    { at: at('16:22:15'), text: 'Take the second option.' },
+    { at: at('16:38:02'), text: 'One more: does the tab survive a mechanism being added, or does somebody have to touch the renderer too?' },
+    { at: at('16:44:30'), text: 'That is what I wanted. Anything left open?' },
+    { at: at('16:47:10'), text: 'Wrap up.' },
+  ],
+  replies: [
+    { at: at('13:58:00'), text: 'Reading the three surfaces before answering.' },
+    { at: at('14:02:11'), text: 'Here is where it stands. The mechanisms live as data in `docs/showing-mechanisms.csv`, and the Map view renders that file directly rather than restating it in prose. What is still in CLAUDE.md is the part no table can carry: the honesty gate, which says that where no link reaches a change you say so and send a screenshot instead. That paragraph is 63% of the file and it did not stop a session with all of it in context from handing over the wrong link, which is the whole reason the data moved into the app.' },
+    { at: at('14:31:07'), text: '`npm run showing` now reads the branch\'s changed files and prints the line to paste, or an honest no-link with the reason. The rule the section stated in prose is executable, so the failure mode changes shape: a session that skips the script gets nothing rather than a plausible wrong link, and a session that runs it cannot pick the mechanism by mood.' },
+    { at: at('14:58:44'), text: 'It costs the one judgement the script cannot make, and that is the right thing to leave in prose. A script can tell you which mechanism reaches a file. It cannot tell you whether the reader will read the resulting link as a claim about something the link does not actually show, which is what the honesty gate is about. So the rule stays a sentence, and the sentence is short enough to survive being read.\n\n🟡 **Pending:** the Map view needs the CSV to exist before the tab can read it, and the CSV is still being derived from the prose.' },
+    { at: at('15:44:29'), text: 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it. The tab sorts by what each mechanism reaches, which is the column a reader scans, and the misses ride beside it rather than in a second table.\n\n❇️ **Ready to assess:** whether the CSV wants a column for what each mechanism misses, or whether that is already implied by what it reaches.' },
+    { at: at('16:10:22'), text: 'Two readings, and they are not the same. If "misses" is the complement of "reaches" then yes, it is implied and a second column is a copy that will drift the first time one side is edited. But most of these do not have a clean complement: a toss reaches a page and misses same-repo relative dependencies, which is not the negation of anything in the reaches column. So the honest shape is one column for reach and one for the named exception, and the exception is empty for the mechanisms that have none.' },
+    { at: at('16:30:40'), text: 'Done. The column is `misses`, empty where there is no named exception, and the tab renders it beside the reach rather than under it.' },
+    { at: at('16:41:18'), text: 'It survives. The tab is a renderer over the CSV with no per-row code, so a new mechanism is one row and nothing else. The one thing that does need touching is the test that holds the CSV against the prose in SURFACING.md, which is the gate that keeps a mechanism from being added to one and not the other.\n\n⚪ **Clean exit.** The column is in, the tab renders it, and the gate holds both sides.' },
+    { at: at('16:46:05'), text: 'Nothing blocking. The one open thread is that `docs/showing.md` still carries the frame and the record, and now that the app holds the mechanisms it could fold down to a pointer plus the dated decisions.' },
+    { at: at('16:49:16'), text: 'The docs surfacing now runs through the **Map view** rather than through prose in `CLAUDE.md`:\n\n- `docs/showing-mechanisms.csv` is the data\n- the Showing tab renders it\n- `npm run showing` prints the line to paste\n\n```bash\nnpm run showing\n```\n\nSo the choice is executable rather than remembered.\n\n🟢 **Ready to continue.** Available on "go": folding `docs/showing.md` down to a pointer, now that the app holds the mechanisms.' },
+  ],
+  // Three replies are narration: a sentence announcing a step, with the calls
+  // it issued at the same stamp. The card drops these and the deck keeps them,
+  // which is the one place the two part company on purpose.
+  calls: [{ at: at('13:58:00') }, { at: at('16:30:40') }, { at: at('16:41:18') }],
+  exchanges: 10,
+};
+
 export default async function (page) {
   await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS }) => {
     // The estate component's own root carries its Alpine scope.
@@ -323,6 +399,57 @@ export default async function (page) {
     window.__shell.hasToken = () => true;
   }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS });
   await page.waitForTimeout(600);
+
+  // The ROUTE CHIPS on the nested branch tiles, seeded the way activity-fake
+  // seeds them for the Branches pane: the join is the same one, and the pane
+  // would otherwise fetch it (no token here). Without this the tiles render
+  // with the one item on their control line whose width is a branch's data,
+  // missing, which is the half of the row worth shooting.
+  //
+  // The two branches cover the two cases. show-repo-docs-surfacing touches
+  // lib/alpineComponents/estate.js, which nine routes declare, so it draws one
+  // solid chip for the narrow file beside it and a ghosted chip per shared
+  // route: the widest a tile ever gets, and the one that wraps. Board
+  // determinism touches a single narrow file and draws one chip.
+  await page.evaluate(async () => {
+    const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+    try {
+      if (!window.routeActivity) await window.gh.load('kits/route-activity.js');
+      const split = (v) => String(v || '').split(';').map(x => x.trim()).filter(Boolean);
+      const rows = window.Csv.rows(await (await fetch('/docs/app-routes.csv')).text());
+      const vocab = window.Csv.rows(await (await fetch('/docs/vocabularies.csv')).text());
+      st.routeManifest = window.routeActivity.manifest(
+        rows.map(r => ({ ...r, files: split(r.files), tabs: split(r.tabs) })), vocab);
+    } catch (e) { console.warn('route chips unavailable:', e.message); }
+    st.routeJoinTried = true;
+    st.routeBranchFiles = [
+      { repo: 'mehrlander/web-tools', name: 'claude/show-repo-docs-surfacing-3sr7ab', pr: 271,
+        files: ['lib/alpineComponents/estate.js', 'lib/kits/route-activity.js', 'docs/showing.md'] },
+      { repo: 'mehrlander/web-tools', name: 'claude/board-determinism-k2p1x', pr: 262,
+        files: ['lib/alpineComponents/stage.js', 'tools/build/tracker-board.mjs'] },
+    ];
+  });
+  await page.waitForTimeout(300);
+
+  // QUERY=<text> types into the pane's text box, which narrows BOTH row lenses
+  // and makes every chip above recount against what it leaves. Typed through
+  // the real input rather than set on the component, so the debounce and the
+  // x-model binding are part of what is shot; LENS=table then shows the same
+  // query answering in the table, which is the pair worth having in one place.
+  if (process.env.QUERY) {
+    if (process.env.LENS) {
+      // Through the component's own setter rather than a click: the lens pills
+      // are one of three tab groups on this pane and the shot is about the box,
+      // not about finding the pill.
+      await page.evaluate((k) => {
+        window.Alpine.$data(document.querySelector('[x-data^="estate"]')).setLens(k);
+      }, process.env.LENS);
+      await page.waitForTimeout(900);
+    }
+    await page.getByLabel('Filter sessions').fill(process.env.QUERY);
+    // Past the 150ms debounce, then a beat for the table to replace its rows.
+    await page.waitForTimeout(900);
+  }
 
   // DECK=1 opens the session swiper on the first row: the brief mounted as a
   // slide, which is the whole reason the view left pages/session.html. The
@@ -366,8 +493,51 @@ export default async function (page) {
     await page.evaluate(() => {
       const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
       st.sessionRows_ = st.sessionRows_.map((r, i) =>
-        (i ? r : { ...r, reply: '', replyCut: '', turns: [], turnsCut: '', replyAt: '' }));
+        (i ? r : { ...r, reply: '', replyCut: '', turns: [], replyAt: '' }));
     });
+    await page.waitForTimeout(200);
+  }
+
+  // LIVE=1: the first row goes LEAN and a record stands behind it, which is
+  // the state most of the store is in since the writer stopped carrying prose
+  // on a row. The card's own ensureProse path then reads the record and
+  // summarises it, so the turns on screen are the ones the real summarizer
+  // makes, cuts and all, and a tap has somewhere to read the rest from.
+  if (process.env.LIVE) {
+    if (process.env.SLOW) await page.evaluate((ms) => { window.__slowRecord = +ms; }, process.env.SLOW);
+    await page.evaluate((REC) => {
+      const Real = window.GH;
+      window.GH = class extends Real {
+        async get(p) {
+          if (p.startsWith('sessions/')) {
+            // SLOW=<ms> holds the record back, which is the field's own timing:
+            // the card opens on the ask, and the transcript lands a beat later.
+            // Anything about what the card does WHILE it waits has to be shot
+            // against a delay, since a local fixture answers in one microtask.
+            if (window.__slowRecord) await new Promise(r => setTimeout(r, window.__slowRecord));
+            return { text: JSON.stringify(REC) };
+          }
+          return super.get(p);
+        }
+      };
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      // The registry client is memoised on the component, so a swap of the
+      // class alone would be read through a client built before it. Dropping
+      // the key is what makes the next read go through the stub.
+      st._regKey = '';
+      const S = window.RepoSessionsCache;
+      st.sessionRows_ = st.sessionRows_.map((r, i) => {
+        if (i) return r;
+        const lean = { ...r };
+        for (const k of S.PROSE_KEYS) delete lean[k];
+        // `ask` is not a prose key (the row keeps it, cut at ASK_CHARS), so it
+        // has to be brought over from this record or the card opens on the old
+        // fixture's question and answers a different one under it.
+        return { ...lean, exchanges: REC.exchanges, messages: REC.replies.length,
+                 ask: String(REC.opening_ask || '').slice(0, S.ASK_CHARS),
+                 askAt: String(REC.prompts[0].at || '').slice(11, 19) };
+      });
+    }, TURNS_RECORD);
     await page.waitForTimeout(200);
   }
 
@@ -377,34 +547,74 @@ export default async function (page) {
     // would put it rather than at an invented coordinate.
     const sel = { turns: 'ph-chats-circle', tools: 'ph-wrench',
                   files: 'ph-files', tokens: null, reply: null, state: null }[card];
-    await page.evaluate(({ card, sel }) => {
+    await page.evaluate(({ card, sel, at }) => {
       const host = document.querySelector('[x-data^="estate"]');
       const st = window.Alpine.$data(host);
-      const row = st.sessionRows[0];
+      const row = st.sessionRows[at] || st.sessionRows[0];
+      // The anchor is found by the FIGURE the trigger shows, not by position:
+      // the pane sorts its rows and `sessionRows` does not, so the nth button
+      // is not the nth row's and ROW=3 anchored a truthful panel a row too low.
+      // Matching the number ties the two ends of the same tap together.
       // The reply card opens off the ask LINE, which is a <p> and not a
       // button: that is the whole point of it staying prose.
       // The states card opens off the GLYPH, the row's first control, which
       // is the one button on the line carrying no text of its own.
+      const nth = (q) => document.querySelectorAll(q)[at] || document.querySelector(q);
+      const shows = { turns: row.exchanges, tools: row.calls, files: row.filesTotal }[card];
+      const byFigure = sel && [...document.querySelectorAll(`.ph.${sel}`)]
+        .map(i => i.closest('button'))
+        .find(b => b && b.textContent.trim() === String(shows));
       const btn = card === 'state'
-        ? document.querySelector('button.w-5')
+        ? nth('button.w-5')
         : card === 'reply'
-        ? document.querySelector('p.truncate.mt-0\\.5')
+        ? nth('p.truncate.mt-0\\.5')
         : sel
-        ? document.querySelector(`.ph.${sel}`)?.closest('button')
-        : [...document.querySelectorAll('button')].find(b => /^\s*\d+k?\s*$/.test(b.textContent));
+        ? byFigure || nth(`.ph.${sel}`)?.closest('button')
+        : [...document.querySelectorAll('button')].filter(b => /^\s*\d+k?\s*$/.test(b.textContent))[at];
       st.openSessionCard(row, card, btn || null);
-    }, { card, sel });
+    }, { card, sel, at: +(process.env.ROW || 0) });
     await page.waitForTimeout(400);
     // CARDTOP=1 scrolls the reply card back to its first entry. The card opens
-    // at the BOTTOM, on the closing reply, so the head of the scroll back and
-    // the truncation note are otherwise unshootable.
+    // at the BOTTOM, on the closing reply, so the head of the transcript and
+    // any note above it are otherwise unshootable. The extra wait is not
+    // padding: settlePin forces the bottom for six frames after every mount and
+    // LIVE=1 mounts twice, once on the ask and again when the record lands, so
+    // a scroll issued too early is put back before the shot. A programmatic
+    // write is not a gesture and so does not cancel the settle.
     if (process.env.CARDTOP) {
+      await page.waitForTimeout(400);
       await page.evaluate(() => {
         const el = [...document.querySelectorAll('div.fixed.overflow-y-auto')]
           .find(d => d.scrollHeight > d.clientHeight);
         if (el) el.scrollTop = 0;
       });
       await page.waitForTimeout(150);
+    }
+
+    // SCROLL=<px> puts the card somewhere in the middle of the transcript,
+    // which is the only place the header's position line says anything a
+    // reader could not already see. Driven as a real scroll event, so what
+    // updates the header is the page's own handler.
+    if (process.env.SCROLL) {
+      await page.evaluate((y) => {
+        const el = [...document.querySelectorAll('div.fixed.overflow-y-auto')]
+          .find(d => d.scrollHeight > d.clientHeight);
+        if (el) { el.scrollTop = +y; el.dispatchEvent(new Event('scroll')); }
+      }, process.env.SCROLL);
+      await page.waitForTimeout(300);
+    }
+
+    // TAP=<n> taps the nth turn, 1-based, and the session deck takes over on
+    // that exchange. A real click on the turn itself rather than a call into
+    // the component, since the guard that makes a tap on a link or a Copy
+    // button do nothing is part of what is being shot. Scoped to the
+    // transcript host, so the header's rail is not one of the tap targets.
+    if (process.env.TAP) {
+      await page.evaluate((i) => {
+        const host = document.querySelector('[x-ref="replyBody"]');
+        [...host.querySelectorAll('.cursor-pointer')][i - 1]?.click();
+      }, +process.env.TAP);
+      await page.waitForTimeout(2500);
     }
   }
 }

@@ -32,7 +32,7 @@ const { window } = makeWindow({
 });
 const doc = window.document;
 const Alpine = await startAlpine(window, [
-  // kits/csv.js first: Match's registry lane parses five CSV carriers through
+  // kits/csv.js first: Match's registry lane parses five CSV registries through
   // it, the same way the pre-build's boot list supplies it on a real page.
   'lib/kits/csv.js',
   'lib/kits/guide-render.js', 'lib/alpineComponents/path-picker.js', 'lib/alpineComponents/fab.js',
@@ -262,7 +262,7 @@ test('named paths include code spans; bare paths do not', async () => {
     'every path named anywhere is a candidate, sorted and deduplicated');
 });
 
-// The registry stubs, as the CSV text each carrier really holds, so the reader
+// The registry stubs, as the CSV text each registry really holds, so the reader
 // is exercised through its parser rather than around it. All five are CSV since
 // 2026-08-18; the page catalog is keyed by `href` under a `pages/` prefix
 // rather than by a full path, which is the one shape difference left.
@@ -327,7 +327,7 @@ test('match looks up the registered set, and root-level files are reachable', as
   assert.equal(claude.what, 'the repo instructions');
   assert.equal(claude.tag, 'living');
 
-  // A nested carrier is read by the same reader, and carries a live address,
+  // A nested registry is read by the same reader, and carries a live address,
   // which is a better gloss for a page than any sentence about it.
   const page = d.textMatch.hits.find(h => h.path === 'pages/shorter.html');
   assert.equal(page.what, 'line up a shorter draft');

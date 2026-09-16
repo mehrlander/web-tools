@@ -238,13 +238,13 @@ show-repo contributed exactly one row through it, the app-wide paste, and on
 2026-08-22 that row was promoted into the fab beside "Take a note" and "Web
 Tools home". The promotion is the argument: a paste is worth most exactly where
 there is no other way in, and a contributed row could only ever appear on the
-page that already had a Stage on screen. What being everywhere costs is a
-carrier, since the stage is `Alpine.store('browser').stage`, a store array held
-for one page load, and the navigation that reaches a Stage is what would
-otherwise discard the paste. So the fab defers to `pasteAnywhere` on a document
-that renders the Stage, and parks the clipboard's flavors through
+page that already had a Stage on screen. What being everywhere costs is
+somewhere to hold the paste, since the stage is `Alpine.store('browser').stage`,
+a store array held for one page load, and the navigation that reaches a Stage is
+what would otherwise discard the paste. So the fab defers to `pasteAnywhere` on
+a document that renders the Stage, and parks the clipboard's flavors through
 [`kits/stage-handoff.js`](../lib/kits/stage-handoff.js) everywhere else, for
-this app to drain at boot. The carrier moves **flavors, not staged items**: what
+this app to drain at boot. The handoff moves **flavors, not staged items**: what
 a pasted thing becomes is this file's intake decision, and making the sending
 page decide would mean pulling the 233K stage component on a long press for a
 paste that may never happen.
@@ -483,6 +483,34 @@ It opens on hover where the pointer can hover, and on focus for a keyboard
 reader. On a touch screen it never opens: the icon keeps its single meaning,
 which is a tap that jumps to GitHub.
 
+**One address, one destination**, since 2026-09-04. The mark was four
+attributes, `:href="hubUrl(p)" :data-peek="peek(p)" target="_blank"
+rel="noopener"`, and nothing held the first two to the same file: a site could
+open one path and preview another, silently, because both halves render fine
+when they disagree. The `x-blob` directive
+([`lib/alpine-bundle.js`](https://github.com/mehrlander/web-tools/blob/main/lib/alpine-bundle.js))
+takes the address once and derives the href from it through `SourcePeek.blobUrl`,
+the same builder the card's own head uses. The GLYPH stays at the call site,
+because it is not invariant: a github mark says "the file on GitHub" and a
+`ph-function` mark says "the builder that stamps this", which is a different
+claim about the same kind of link. Nineteen sites in the Map view are converted;
+`estate.js`, `stage.js`, `state-view.js` and `tools.js` still spell the pair by
+hand. [`tools/test/x-blob.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/x-blob.test.mjs)
+holds the directive and keeps the Map view's count from going back up.
+
+The card's head carries a mark of its own (2026-09-04), inline after the
+filename, and it is the same destination the trigger has: the card is enterable,
+so a reader who has moved onto it to read the excerpt has left a 16 px glyph
+behind, and going to GitHub meant travelling back to it. The URL is derived from
+the address the head displays rather than read off the trigger's `href`, so a
+card cannot name one commit and open another; a key that is not an address (the
+stage's pasted flavors) names no repo and gets no mark. It is one anchor, not a
+control: nothing at the call site changes, and the narrow rule above is
+unaltered. Whether it can be pressed at all is a claim a browser has to make,
+since mousedown focuses an anchor before the click resolves and the focus
+handler used to dismiss on that, so [`tools/test/peek-head-link.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/peek-head-link.mjs)
+(`npm run test:peek-link`) drives a real press.
+
 ## The estate: the all-repo view
 
 The estate (`lib/alpineComponents/estate.js`) is the central dashboard over the
@@ -502,8 +530,54 @@ the header nav the way a repo shows landing/atlas/files/…:
 - **Lists** — the two personal piles, To-do over Jot, in one pane rather than
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
 - **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
+
+For a PowerShell or XAML file open in Files, **Compare copy** accepts pasted
+text, a dropped file, or a chosen file (including on a phone). App-wide paste
+and drop use the open file as context. A
+`# @file projects/wps/app/Modules/Forms/Forms.psm1` line instead names a
+repository-relative PowerShell file; the app supplies the current repository
+and branch. XAML uses the selected file. When a declaration conflicts with the
+open file, the user chooses which association to use. Paste inside an editing
+field remains native. Auto file decoding accepts UTF-8 and BOM-marked UTF-16;
+the file chooser also offers explicit UTF-16 and Windows-1252 for older files.
+An undecodable file produces an error rather than disappearing.
+
+The incoming text is held intact and compared in the existing Stage reader
+against a pinned repository revision. Repeating a check reuses that Stage
+repository item while keeping each submitted copy and dated check separate.
+For a correspondence pair, Stage normalizes CRLF and CR to LF in its displayed
+diff. A check labels a difference caused only by line endings; its exact-match
+observation remains strict, and the submitted text and hash stay unchanged.
+The check stores the submitted text, path, repository, branch, revision and
+hashes in browser IndexedDB; the Files panel can reopen it or export its JSON.
+If repository lookup fails, the submission remains in Stage and in a
+browser-local unfinished list in **Compare copy**. From there, retry its
+address or associate it with the currently open file. A match describes only
+the submitted text at that revision, not the saved file on another computer.
+Clearing browser site data removes checks and unfinished submissions, so
+export checks for a backup. Any transfer to or from a separate installation
+remains manual.
+
+A workspace whose manifest entry carries `installation` (a repo-root-relative
+`installation.json`; see [manifest-fields.csv](manifest-fields.csv)) gets an
+**Installation** pill on its project view (`?view=project&project=<path>&tab=installation`,
+with the selected file as `&item=`). The pill lists the workspace's PowerShell
+material by the areas the manifest declares (Profile, Modules, Forms, Scripts),
+a form's controller beside its XAML, each file with its intended location under
+the installation root and a state read from the workspace's observations ledger
+(`lib/kits/installation.js`): `local state unknown`, `reported installed`,
+`verified from supplied copy`, `GitHub changed since`, `local copy differs`, or
+`repository only`. Areas the manifest names as local-only or unresolved are
+listed without repository files. For the selected file: Compare copy (the flow
+above, with the page-wide paste and drop aimed at that file), Copy GitHub text,
+Download, Files, Stage, and **Record installed**, which opens a confirm showing
+the exact ledger row and commits it on the branch being browsed only when the
+reader taps "I placed this on the work computer". A browser-local check can be
+promoted to a `verified` or `differs` row the same way. A comparison, copy, or
+download never writes a row; the ledger is appended, never rewritten, and a
+later session reads the same states from the repository.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
-- **Map** (`?view=map`, `&tab=` deep-links a tab) — the portable set, Surfacing, Showing, the Docs registry, and Tests (below). Per-repo scope and adoption live on the Repos cards.
+- **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
   (below). The one conditional entry: shown only while something is pending.
 
@@ -735,7 +809,7 @@ worth stating once: these are **app routes**, addresses in this page;
 [`docs/routes-routes.csv`](routes-routes.csv)'s rows are **toss routes**, a content type
 mapped to a renderer page. Different targets, so neither describes the other.
 
-The pane reads the manifest and one `commits?path=` call per declared carrier
+The pane reads the manifest and one `commits?path=` call per declared file
 against the hub, ranks the rows freshest first, and joins each to the open pull
 requests whose files it touches. Nothing is cached and nothing is crawled: these
 routes belong to one page in one repo, so the read is about two dozen requests
@@ -802,7 +876,7 @@ it; a **Branches** row carries a chip strip of the routes it is working on, off
 the same manifest, the same PR file lists, and the same narrow/wide rule, so the
 two readings cannot disagree. That shared half (the manifest plus one
 `pulls/N/files` per open PR, about six calls) loads on either pane, so visiting
-one warms the other, and the Branches pane skips the per-carrier dating it has
+one warms the other, and the Branches pane skips the per-file dating it has
 no use for. A chip taps through to its route. Rows from every other repo carry
 nothing rather than an empty strip: routes are one page in one repo, and a row
 that cannot be answered should not look like a row with no answer.
@@ -1640,21 +1714,26 @@ link, and a file listing lives in Public browse.
 the coordination layer itself into a first-class object, and is the operational
 face of the constellation doctrine ([`docs/CONSTELLATION.md`](CONSTELLATION.md)
 is the portable kernel, opened from the set header; the full worked instance is
-in the private `home` repo). Five tabs, `lib/alpineComponents/map.js`, each
-answering one question about the layer: what travels (the set), what to hand
-over in chat (Surfacing), how content moves and shows (Showing), what the
-documentation holds and what holds it (Docs), and what the suite checks
-(Tests). Who carries the set is a fact about a repo and lives on the Repos
-cards.
+in the private `home` repo). Ten top-level tabs in
+`lib/alpineComponents/map.js` answer distinct questions about the layer. Two of
+those stops carry a smaller second level: **Docs** holds **Purpose**, **Inventory**,
+and **Growth**, while **Harness** holds **Automation** and **Tests**. Who
+carries the set is a fact about a repo
+and lives on the Repos cards.
 
-**The open tab is addressable:** `?view=map&tab=surfacing|showing|docs|claims|tests`,
+**The open tab or subview is addressable:**
+`?view=map&tab=aims|set|surfacing|showing|docs|growth|claims|harness|tests|kits|skills|views|registries`,
 on the same `tab` key the project view's pills use, with the default (`set`)
 left out of the URL so a plain `?view=map` link is unchanged. The tab is held
 by the shell rather than by `map()`, because the URL is the shell's to own and
 the component mounts lazily; the component renders whichever tab is set, watches
 the shell for a back-button change, and fetches that tab's manifest on arrival
-by whatever route. That last part is the failure this replaced: the four
-non-default tabs used to fetch from the click handler alone, so a tab nobody
+by whatever route. Existing `?tab=aims`, `?tab=growth`, and `?tab=tests` links
+retain their exact destinations even though their views now sit below Docs or
+Harness rather than on the main strip. A tap on the Docs top-level stop opens
+Purpose; `?tab=docs` still opens Inventory, preserving saved links. That last
+part is the failure this replaced: non-default tabs once
+fetched from the click handler alone, so a tab nobody
 tapped had nothing to render.
 
 *Portable* (labelled The set until 2026-08-07; the `?tab=set` URL key is
@@ -1706,11 +1785,58 @@ verdict and no chips: absent means not read, never not aligned.
 *Surfacing* indexes the primitives from [`docs/surfacing.csv`](surfacing.csv),
 one card each (glyph, use, form, boundary). The ownership runs opposite to
 every other tab, and the header says so: [`SURFACING.md`](SURFACING.md) is the
-authoritative carrier, since it is what sessions load and follow, and the
+authoritative document, since it is what sessions load and follow, and the
 manifest is its gated index (membership held two-way to the doc's bullet
 lead-ins by `tools/test/surfacing-manifest.test.mjs`; the card summaries are
 paraphrases and stay unchecked, which the Docs registry's claims table states).
-Surfacing decides what to hand over; Showing is what makes it openable.
+A card's TITLE opens the doc at the bullet it paraphrases (2026-09-04), docking
+the deck so the two sit side by side, scrolling smoothly to the bullet and
+tinting it yellow for four seconds. That treatment is
+[`lib/kits/land.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js)'s
+rather than this tab's, and the kit is a SECOND implementation lifted rather
+than a first invented: `mehrlander/home`'s budget-drs submittal view has
+answered the same question for months over two subjects, a block of prose in an
+office document and a rectangle on a page of a PDF, and this tab arrived at a
+near-identical scroller walk independently. A landing sits 28% down rather than
+centred, since centred puts half the previous section above the heading that was
+asked for; only the nearest scrolling ancestor moves, since scrollIntoView walks
+every one and scrolled the card list out from under the reader. home's copy is
+still inline in its own page and is the adopter, not the source.
+
+**The estate had six landings and they disagreed on both axes.** A survey on
+2026-09-04 found them in five files across two repos, sitting at the centre, at
+28%, at a fixed 80px and at the page top, in three different yellows, two of
+them a hardcoded orange the theme does not carry. Nothing reported it, because
+each one looked right on its own surface. `kits/pdf.js` is the one now brought
+alongside: its find hit lands at the kit's height and its marks read
+`--color-warning` through the same `color-mix` the kit compiles to, held by
+[`tools/test/land-parity.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/land-parity.test.mjs)
+rather than by a call, since pdf.js has no kit dependencies and one consumer
+loads it straight from jsDelivr. Three of its lessons went the other way: a set
+has a **current** member and is drawn at two strengths; an overlay mark
+**multiplies** so it sits under the glyphs it covers; and a mark over a rendered
+page needs a stronger percentage than one behind DOM text, because multiplying
+against white washes the same number out. `state-view.js`'s `aim` takes the kit's
+scroll and keeps its own tint, since `item` already drives a reactive class
+there and two owners for one mark leaves one behind. Two stay put on purpose:
+`fab.js`'s highlight has no dwell and a clear button, which makes it a
+highlighter rather than a landing, and `annotate.js` lands on a foreign page
+where its 80px is a gap above a drawn rectangle rather than a fraction of a
+pane.
+No correspondence is invented for it: `surfacing.csv`'s `lead` already is that
+bullet's bold lead-in, held both ways by `surfacing-manifest.test.mjs`. What the
+manifest gate cannot say is whether the key survives RENDERING, and it barely
+does: the primitives are a loose list, so marked wraps each item in a `<p>` and
+the lead-in is `li > p > strong:first-child`. The tight `li > strong` matched
+none of the twenty-two. [`tools/test/surfacing-lead-anchor.test.mjs`](https://github.com/mehrlander/web-tools/blob/main/tools/test/surfacing-lead-anchor.test.mjs)
+renders the real doc and holds both facts.
+
+The header's deck door opens `SURFACING.md` and its index as two slides of the
+house swipe deck rather than routing to the Files view (2026-09-04): docked, the
+prose sits beside the cards it is authoritative for, where the route change put
+them off screen. It wears `swipeDeck.entry`'s glyph and wording like every other
+door in the estate, ghost-toned because the cards are the subject. Surfacing
+decides what to hand over; Showing is what makes it openable.
 
 *Showing* (named Transport until 2026-08-04; renamed because
 [`SURFACING.md`](SURFACING.md) already uses "transport" for the stage link, and
@@ -1745,9 +1871,16 @@ fetch, with `tools/test/routes-manifest.test.mjs` failing if the two drift: the
 same builder-plus-drift-check shape as the set's manifest test. Public, like the
 set, and loaded on first open of the tab rather than at mount.
 
-*Docs* renders the documentation registry,
+*Docs/Purpose* renders the existing estate mission, five goals, and reading
+paths from `docs/aims.json`, `docs/aims-goals.csv`, and `docs/aims-reading.csv`.
+The reading list begins with the root `README.md` (the repository's public
+front door), `CLAUDE.md` (its agent contract), and `docs/README.md` (the
+generated documentation index). None is copied into a new Aims Markdown file.
+The route remains `?tab=aims` so saved links reach Purpose directly.
+
+*Docs/Inventory* renders the documentation registry,
 [`docs/docs.csv`](docs.csv), in the same lazy shape. Two tables. The
-**documents table**: every `.md`/`.json` under `docs/`, each with its subject,
+**documents table**: every `.md`/`.json`/`.csv` under `docs/`, each with its subject,
 its status (**living** claims current truth and is wrong when stale; **record**
 preserves a moment and is wrong when rewritten; **measured** carries dated
 observations and is corrected by re-probing), its **reach** and **words** (both
@@ -1765,9 +1898,22 @@ cannot drift, paging through the selected folder's files as filtered, opened
 on the tapped row; its GitHub icon, inline with the badges and always visible,
 carries the source peek for the desktop glance, one details toggle on the
 reach strip shows every row's maintenance at once, and the files view stays
-the route for working on a file rather than reading it. The file list runs two
+the route for working on a file rather than reading it. The folder heading
+carries the deck's own door beside its GitHub mark (2026-09-04), since the row
+tap was a gesture nobody was told about. The **Tests** and **Automation**
+subviews under Harness answer the same tap the same way from that date: a row
+title opens the deck rather than routing to the Files view, and each carries the
+door. Tests pages the suite as its strip has cut it, counted in checks rather
+than files, since what a check protects is prose at the top of its own file;
+Automation pages the selected folder, the Docs Inventory shape exactly. A
+`.csv` row opens as a TABLE rather
+than as raw text: the deck converts it to a markdown table so md-doc's wide-table
+scroller and prose styling apply, with each cell's markdown escaped, since a
+registry that describes markdown was otherwise rendering its own
+`[caption](url)` as a link. The peek keeps the raw excerpt, which is what a
+glance at the head of a file wants. The file list runs two
 columns above `xl` so a wide screen is used rather than left as a gutter. And the **shared claims**: statements that live in
-more than one place, each with its one authoritative carrier and its typed
+more than one place, each with the one file that owns it and its typed
 repetitions (copy, paraphrase, pointer, live read; a copy says who keeps it, by
 hand or by a named builder), where an absent check renders in the warning tone
 rather than being omitted, because an unchecked copy should look unchecked every
@@ -1778,7 +1924,15 @@ read as an appendix, first open, then folded behind a count; a tab keeps the
 documents on one viewport and gives the claims their own. The two registries differ in
 how membership is decided, which is the whole reason they cannot share a pane: the claims are
 curated and authoritative only for what they cover, while the documents are computed from the
-folder and therefore complete. The documents half is public, like the other two tabs.
+folder and therefore complete. The documents half is public, like the other hub-owned readings.
+
+The **Growth** subview keeps the same documentation subject but changes the
+scale of the reading. It frames `pages/doc-growth.html` over the declared
+`data/doc-growth/*.json` payload, showing every Markdown file as a bubble moving
+through repository history. Inventory answers how one document has changed;
+Growth answers what the corpus is doing as a whole. A repository selector only
+appears when more than one estate repo declares a growth payload. The retained
+`?tab=growth` address opens this subview directly.
 
 Three numbers sit on a row, and they answer three different questions. **Reach**
 (derived by `tools/build/docs-reach.mjs`, gated against the registry) says who
@@ -1800,14 +1954,19 @@ That last case is the reason the caveats are on screen instead of in this file:
 estate and are precisely the two no file tool can see, so a bare count would rank
 them last.
 
-*Tests* is the same shape one axis over, from [`docs/tests.csv`](tests.csv):
+*Harness* has two local readings. *Tests*, from
+[`docs/tests.csv`](tests.csv), is the Docs Inventory shape one axis over:
 every file in the suite with its kind (gate or behavior)
 and what breaks if it is deleted, its assertions, method,
 runner and boot-smoke count all derived from the files and gated against the
 registry. The strip cuts the total by kind rather than reporting it, since a
 pass count cannot tell a boot check from an adversarial gate, and a browser
 check reports **no** assertion count rather than zero, because `test()` is not
-its unit. Public.
+its unit. *Automation*, from [`docs/harness.csv`](harness.csv), holds every
+executable the repository runs on itself, including scripts, git hooks,
+session and plugin hooks, and CI workflows. It is grouped by the route on which
+execution arrives and keeps test files in the Tests registry rather than
+duplicating them. Both readings are public.
 
 **Tools** (`?view=tools`) is a curated gallery of the utility pages the owner
 reaches for (the text-diff tool, the transform/compress round-trip, and so on),
@@ -2360,8 +2519,10 @@ tracker follow-up.
 
 The stage's contract lives in its own reference now, [stage.md](stage.md):
 the bench, intake (the paste offer bar, the Add panes, manifest seeds), the
-walkable preview and its diff, the Out surface, and the `#stage=` link grammar
-with `&prompts=` and `&mode=`. What stays here is the boundary: the stage is
+walkable preview and its diff, the Out surface, and the `#stage=` link grammar,
+whose four parts are refs, content (`&gz=`, which carries pasted text in the link
+itself and is what a token-less review handoff rides), commentary (`&prompts=`)
+and intent (`&mode=`, `&cmp=`, `&view=`, `&dest=`). What stays here is the boundary: the stage is
 `store.stage`, one list of `{repo, ref, path}` refs (plus local items) sitting
 above any repo, which is why it is a nav stop of the estate rather than
 anything a repo owns.
@@ -2528,16 +2689,103 @@ never executed; a 404 means no config.
 (lazy-loaded on first send). Mechanics:
 
 - Destination spec: `owner/repo`, `owner/repo:dir`, or `owner/repo@ref:dir`.
-- Each file lands as **its own commit** through the Contents API; the payload
-  stays **base64 end to end**, so binaries copy as faithfully as text.
+- The whole deposit lands as **one commit** through the Git Data API (a blob per
+  file, one tree over the branch's current one, one commit, then the ref moves).
+  The payload stays **base64 end to end**, so binaries copy as faithfully as
+  text, and refs and pasted files ride the same commit. `gh.copyTo` is still
+  there and still writes one commit per file through the Contents API; nothing
+  in the app calls it now.
+- The commit message names the deposit and lists its paths, capped at twenty:
+  that list is what the per-file messages used to carry, and once a deposit is
+  one commit it is the only record of what was in it.
+- A source file that cannot be read is **reported and left out**, and the rest
+  still commit; when nothing reads, no commit is made. The tolerance is the one
+  `copyTo` always had. The atomic part is the write.
+- A branch that takes another commit while the blobs upload makes the ref move
+  fail rather than clobber it, and the tree is rebuilt on the new tip. Three
+  attempts, then the error stands.
 - **Two-tap confirm**: the first tap arms for 3 seconds, the second sends. A
   cross-repo write with the viewer's token stays a deliberate gesture.
 - Writes land on the destination's **default branch** unless an `@ref`/branch is
   given.
-- The Contents API caps a file at ~1 MB; a larger file **errors** rather than
-  writing an empty file at the destination.
+- A file over the Contents API's ~1 MB cap comes back as metadata with an
+  **empty content string**, which is the one answer a deposit must never pass
+  on: an empty string is valid base64 for zero bytes, so a write takes it and
+  lands an empty file while reporting success. `getRaw` reads such a file
+  through `git/blobs/<sha>` instead, the same fallback `gh.bytes` has always
+  had, so read and write now meet at roughly 100 MB rather than 1 MB apart. The
+  extra request fires only on a file that would otherwise have failed; past
+  about 100 MB the blob endpoint withholds the bytes too and the error names
+  the size. A file's mode is still not carried: the Contents API never returned
+  one, so everything lands `100644`.
 - A file that would copy onto itself (same repo, no `:dir`, same ref) is
   refused with a prompt to add a `:dir` or `@ref`.
+
+## Writes: the estate's commit stream, read for who wrote it
+
+`?view=writes`, the sixth pill under Activity. Branches, Sessions and Chats all
+ask **who was working**, and every answer they can give is development. This
+pane asks the question none of them can: how much of what lands in these repos
+is development at all.
+
+The classifier is [`lib/kits/write-kinds.js`](../lib/kits/write-kinds.js), seven
+kinds over one split:
+
+| | kinds | signal |
+| --- | --- | --- |
+| **development history** | session, merge, CI, authored | the author the platform sets, or a merge subject |
+| **application state** | crawl, tap, device | a subject this estate writes on purpose |
+
+**The accent marks the split and nothing else.** Seven colours would mean none
+of them did, so kinds are told apart by icon and label and the primary colour
+says one thing: the app or the phone using a repo as its store.
+
+**`device` is the only kind that is a guess**, a heuristic over the subject
+prefixes Log-Repo has been observed to write, and the pane marks it with a `?`.
+Every other kind reads a signal a writer emits deliberately. `authored` is the
+residual and claims nothing: session work pushed from a local CLI is authored by
+the account and is indistinguishable from a person's own commit, so it is not
+guessed at.
+
+**It renders from the activity cache**, the same read the Branches pane already
+pays for, so the default costs no request. That cache keeps the newest thirty
+commits per repo, which is a month in a quiet repo and about three hours in the
+registry, where the session recorder commits on every Stop. So the pane states
+the window its rows actually cover, and one control reads a hundred commits per
+repo when that window is too short, which it is wherever the app writes most.
+
+## What the app's own commits say, and why
+
+Every write the app makes is a real commit on a real branch, made with the
+viewer's token, so it lands in `git log` beside development history and is
+indistinguishable from it by author. **Three writers share the same GitHub
+identity in the registry repo**: this app, the phone (through `Log-Repo` in
+`mehrlander/shortcut-tools`, which is where `page report:`, `probe-unattended:`
+and `manifest:` come from), and a pull-request merge. Only a Claude session
+stands apart, authored as `Claude <noreply@anthropic.com>` and carrying its own
+trailers. So the subject line is the only thing that says who wrote a commit,
+and that makes its shape a contract rather than a courtesy.
+
+**`via Web Tools` marks a write a person made by tapping in this app.** It is
+on the twenty-one sites a person reaches: a jot, a to-do, a pin, a
+`.web-tools.json` save, an estate join or set-aside, a proposal applied or
+retired, a mailbox request fulfilled, a stage deposit.
+
+**The crawl's writes carry no trailer**, and the absence is the signal. The four
+cache refreshes (`state/configs.json`, `state/activity.json`,
+`state/sessions.json`, `state/calls.json`) run on a tab-arrival kick as well as
+on the Refresh button, so nobody deliberately made them. Their subjects already
+name a derived file, which is all a reader needs.
+
+That split was measured on 2026-09-08 and it is lopsided: of 584 stamped
+commits in the registry repo, 563 were the crawl and about twenty were a
+person. Claiming a person acted on all of them made the twenty unfindable,
+which is the whole cost of a trailer that means nothing.
+
+**A commit here is application state, not development history.** It has no
+branch, no pull request and no review, and it is not a step toward a release; it
+is the app using a repo as its store. Both halves are real GitHub commits, so
+nothing separates them but this convention.
 
 ## Boundary: show-repo vs toss-render vs artifacts
 
@@ -2554,25 +2802,11 @@ Three cross-repo live-view channels, one job each:
 - **review** (`pages/review.html`, marked 🔍) *reads* a changeset: one card per
   changed file with a CM6 diff against the base, patch text, and the caption's
   `[new]/[main]/[diff]` links. Address grammar `#gh=owner/repo[@ref][:path][&base=…]`
-  (the toss `#gh=` address plus a base); token-gated the same way. Folding its
-  per-file dossier (`lib/alpineComponents/file-review.js`) into this shell as a
-  view is on the roadmap below.
-
-## Roadmap (not built)
-
-- A content-carrying `#gz=`-style stage bundle for token-less contexts.
-- A review view: mount `fileReview` cards (pages/review.html's dossier) over
-  the stage's Compare result, so a ref-diff reads in place instead of only
-  listing files.
-- Batch-as-one-commit transfer (needs the Git Data API; Contents-API
-  per-file commits are the current scope).
-
-Private-repo landing presence used to sit on this list as *federation*: a
-curated `landing.json` in `mehrlander/home`, read through a single `HOME_REPO`
-hinge. It is off the list because it shipped in the per-repo form described
-above: a repo opts itself in through its own `.web-tools.json` (`estate`, plus `pages`
-and `appView` for what it publishes), the config cache aggregates the opt-ins, and
-the registry repo is the only private name this public page carries.
+  (the toss `#gh=` address plus a base); token-gated the same way. Its per-file
+  dossier (`lib/alpineComponents/file-review.js`) is already in this shell: the
+  branch view mounts `branchBrief`, which builds the same `fileReview` cards and
+  drills into them through `kits/file-deck.js`. So `review.html` is the
+  standalone ADDRESS for a changeset rather than a capability the app lacks.
 
 ## Using it from a Claude session
 

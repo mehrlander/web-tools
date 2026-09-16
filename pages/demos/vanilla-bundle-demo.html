@@ -24,7 +24,7 @@
   const SECTIONS = [
     {
       title: 'Select and read',
-      intro: 'Each block injects vanilla-bundle.js into its own frame, builds a little scene, then runs the helper on it — edit the code and watch the frame redraw.',
+      intro: 'Each block injects vanilla-bundle.js into its own frame, builds a little scene, then runs the helper on it. Edit the code and watch the frame redraw.',
       examples: [
         {
           title: 'ea(sel, cb?) + el',
@@ -44,7 +44,7 @@ document.body.append(Object.assign(document.createElement('pre'),
       intro: 'Three ways to turn the DOM into variables: by id document-wide, by data-ui within a scope, or a one-shot snapshot of a subtree.',
       examples: [
         {
-          title: 'ids — by id, live, keyed by name',
+          title: 'ids: by id, live, keyed by name',
           prose: `<code class="${c()}">ids.fooBar</code> resolves <code class="${c()}">getElementById('foo-bar')</code> on access, so destructuring binds by name, never by document order.`,
           lang: 'js', kind: 'jsrender', inject,
           code:
@@ -54,8 +54,8 @@ const { out } = ids;
 out.textContent = 'resolved #out via ids — keyed by name, not document order';`
         },
         {
-          title: 'ui(root) — by data-ui, scoped, repeatable',
-          prose: `<code class="${c()}">ui(root).fooBar</code> finds <code class="${c()}">[data-ui="foo-bar"]</code> within <code class="${c()}">root</code> — the same name can repeat across instances. Click +1 in the frame.`,
+          title: 'ui(root): by data-ui, scoped, repeatable',
+          prose: `<code class="${c()}">ui(root).fooBar</code> finds <code class="${c()}">[data-ui="foo-bar"]</code> within <code class="${c()}">root</code>, so the same name can repeat across instances. Click +1 in the frame.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
           code:
 `document.body.innerHTML = \`
@@ -70,7 +70,7 @@ let n = 0;
 on(inc, 'click', () => count.textContent = ++n);`
         },
         {
-          title: 'grab(root) — eager snapshot of one subtree',
+          title: 'grab(root): eager snapshot of one subtree',
           prose: `One scan into a plain object keyed by camelCased id. A snapshot, not live, but it hands you the whole bag in a single call.`,
           lang: 'js', kind: 'jsrender', inject,
           code:
@@ -88,7 +88,7 @@ document.body.append(Object.assign(document.createElement('pre'),
       intro: 'fill is a declarative batch write: the value type picks the action. The callback helpers (attr/cls/listen/data) return el ⇒ el so they slot into a fill array.',
       examples: [
         {
-          title: 'fill(root, spec) — the value shapes',
+          title: 'fill(root, spec): the value shapes',
           prose: `A plain string sets escaped text; a branded <code class="${c()}">html()</code> value is parsed to nodes; an object is <code class="${c()}">Object.assign</code>ed; a function runs; an array runs each callback.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
           code:
@@ -133,8 +133,8 @@ fill(document, {
       ],
     },
     {
-      title: 'fill templates — html.* presets',
-      intro: 'Methods on html that mint configured branded values — the same kind html("<raw>") produces, but with daisyUI/Tailwind classes baked in. Each takes a mods array of short tokens.',
+      title: 'fill templates: html.* presets',
+      intro: 'Methods on html that mint configured branded values: the same kind html("<raw>") produces, with daisyUI and Tailwind classes baked in. Each takes a mods array of short tokens.',
       examples: [
         {
           title: 'html.btn / toolbar / lines',
@@ -151,20 +151,7 @@ fill(document, {
 });`
         },
         {
-          title: 'html.tip — rich tooltip',
-          prose: `A daisyUI tooltip with an HTML body. <code class="${c()}">mods</code> takes a position and text mods. Hover the trigger in the frame.`,
-          lang: 'js', kind: 'jsrender', inject, daisy: true,
-          code:
-`document.body.innerHTML = '<div id="t" class="flex justify-center p-2"></div>';
-
-fill(document, {
-  '#t': html.tip(['top', 'xs'],
-    '<button class="btn btn-sm">Hover me</button>',
-    '<strong>Tooltip body</strong><div class="opacity-60">rich HTML, not escaped text</div>')
-});`
-        },
-        {
-          title: 'html.modal — full-screen dialog',
+          title: 'html.modal: full-screen dialog',
           prose: `Mints a <code class="${c()}">&lt;dialog&gt;</code>; open it via its <code class="${c()}">showModal()</code>. Click the button in the frame.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
           code:
@@ -186,7 +173,7 @@ on(ids.open, 'click', () => document.querySelector('#slot dialog').showModal());
       examples: [
         {
           title: 'tpl`…`(rows)(target)',
-          prose: `Bare <code class="${c()}">tpl\`…\`</code> parses the markup and replaceChildren's it — preserving context-sensitive nodes a bare innerHTML would drop. Function interpolations are raw HTML, so the caller owns escaping.`,
+          prose: `Bare <code class="${c()}">tpl\`…\`</code> parses the markup and replaceChildren's it, preserving context-sensitive nodes a bare innerHTML would drop. Function interpolations are raw HTML, so the caller owns escaping.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
           code:
 `const rows = [
@@ -244,7 +231,7 @@ on(ids.btn, 'click', () => ids.out.textContent = 'clicked ' + (++clicks) + '×')
         },
         {
           title: 'route(root, type, routes)',
-          prose: `One listener on a container fans out by selector: on each event it walks <code class="${c()}">closest(sel)</code> through the routes in order and calls the first match. Add or remove children freely — no re-binding.`,
+          prose: `One listener on a container fans out by selector: on each event it walks <code class="${c()}">closest(sel)</code> through the routes in order and calls the first match. Add or remove children freely, with no re-binding.`,
           lang: 'js', kind: 'jsrender', inject, daisy: true,
           code:
 `document.body.innerHTML = \`
@@ -275,11 +262,11 @@ route(ids.target, 'click', {
 </script>
 </head>
 
-<body class="min-h-screen bg-base-100 text-base-content antialiased">
+<body class="min-h-dvh bg-base-100 text-base-content antialiased">
 
   <div id="display-ctrl"></div>
 
-  <div class="mx-auto max-w-[920px] px-4 sm:px-6 py-8 sm:py-10">
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
     <header class="mb-10">
       <div class="flex items-baseline justify-between mb-3">
@@ -291,10 +278,10 @@ route(ids.target, 'click', {
       <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
         Terse DOM shorthand. <span class="opacity-50">Edit it, watch it run.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[64ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         The framework-free globals
         <a href="https://github.com/mehrlander/web-tools/blob/main/vanilla-bundle.js" class="link link-hover">vanilla-bundle.js</a>
-        installs — a more direct way to write what you'd otherwise spell out with
+        installs, a more direct way to write what you would otherwise spell out with
         querySelector, loops, and addEventListener. Each block injects the bundle
         into an isolated frame, builds a scene, and runs the helper live.
       </p>
@@ -305,7 +292,7 @@ route(ids.target, 'click', {
 
     <footer class="mt-4 pt-6 border-t border-base-300">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[64ch] space-y-2">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 text-pretty space-y-2">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. Each block injects <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-bundle.js</code> into its frame, so the globals are real, not stubbed.</p>
         <p>The Alpine-flavored counterpart is <a href="alpine-bundle-demo.html" class="link link-hover">alpine-bundle</a>.</p>
       </div>

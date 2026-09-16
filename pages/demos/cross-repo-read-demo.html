@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   // ?use=<branch|tag|sha> picks which ref the loaded code comes from; defaults
-  // to main. read() lives in lib/gh-api.js — until it's on main, open this with
+  // to main. read() lives in lib/gh-api.js, so until it is on main open this with
   // ?use=<branch-or-sha> so the bundle that boots here actually has it.
   const ref = new URLSearchParams(location.search).get('use');
   if (ref) {
@@ -91,7 +91,7 @@
         }
       },
 
-      description: 'Read repo data, then freeze it to a local document.currentScript.value file that read() picks up first — as a single file or a page+data zip.'
+      description: 'Read repo data, then freeze it to a local document.currentScript.value file that read() picks up first, as a single file or a page+data zip.'
     }));
   });
 
@@ -99,8 +99,8 @@
 </script>
 </head>
 
-<body class="min-h-screen bg-base-100 text-base-content antialiased">
-  <div class="mx-auto max-w-[860px] px-4 sm:px-6 py-8 sm:py-10" x-data="app()">
+<body class="min-h-dvh bg-base-100 text-base-content antialiased">
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8" x-data="app()">
 
     <header class="mb-8">
       <div class="flex items-baseline justify-between mb-3">
@@ -112,15 +112,15 @@
       <h1 class="text-[clamp(1.6rem,4vw,2.2rem)] leading-none font-bold tracking-tight">
         Repo data → local file. <span class="opacity-50">One <code class="text-[0.6em] align-middle">read()</code>, two sources.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 max-w-[68ch]">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
         <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">read(path)</code>
         resolves a path locally if a file sits beside the page, otherwise from the repo.
         Read the repo copy here, then <b>Save local copy</b> to freeze it into a
         <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">document.currentScript.value</code>
         file. Drop that beside a saved copy of this page, reopen over
         <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">file://</code>, and the same call resolves local.
-        Or <b>Export</b> for both at once — page at the zip root, data under
-        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">data/</code> beside it — so unzip-and-open just works.
+        Or <b>Export</b> for both at once: page at the zip root, data under
+        <code class="font-mono text-[0.85em] bg-base-100 border border-base-300 rounded px-1">data/</code> beside it, so unzip-and-open just works.
       </p>
     </header>
 
@@ -172,7 +172,7 @@
     <section x-show="generated" x-cloak class="mb-6">
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-sm font-semibold opacity-70">
-          Local file — <code class="font-mono text-xs" x-text="filename"></code>
+          Local file: <code class="font-mono text-xs" x-text="filename"></code>
         </h2>
         <button class="btn btn-xs" @click="$clip?.(generated)"><i class="ph ph-copy"></i> Copy</button>
       </div>
@@ -187,11 +187,11 @@
 
     <footer class="mt-10 pt-6 border-t border-base-300">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">How it resolves</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 max-w-[68ch] space-y-2">
-        <p><b>local</b> — <code class="font-mono text-[0.85em]">read</code> injects
+      <div class="text-[0.9rem] leading-relaxed opacity-60 text-pretty space-y-2">
+        <p><b>local</b>: <code class="font-mono text-[0.85em]">read</code> injects
         <code class="font-mono text-[0.85em]">&lt;script src=path&gt;</code>; the file deposits its payload on
         <code class="font-mono text-[0.85em]">document.currentScript.value</code> and <code class="font-mono text-[0.85em]">read</code> lifts it off the node. The only thing that runs on <code class="font-mono text-[0.85em]">file://</code>.</p>
-        <p><b>repo</b> — if there's no local file, <code class="font-mono text-[0.85em]">read</code> fetches via the API
+        <p><b>repo</b>: with no local file, <code class="font-mono text-[0.85em]">read</code> fetches via the API
         and runs the file with <code class="font-mono text-[0.85em]">gh</code> injected; the file just
         <code class="font-mono text-[0.85em]">return</code>s its payload. Neither path touches <code class="font-mono text-[0.85em]">window</code>.</p>
       </div>

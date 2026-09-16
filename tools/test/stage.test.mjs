@@ -15,6 +15,12 @@ const calls = [];
 // A GH stand-in: srcGh builds `new base.constructor(...)`, so the methods must
 // live on the class. copyTo (refs), save/saveBytes (local bytes), get (reads).
 class FakeGH {
+  // The deposit reaches the encoder through the class, the way gh-store.js puts
+  // it on window.GH, so the fake carries it as a static too.
+  static toBase64(input) {
+    if (typeof input === 'string') return btoa(String.fromCharCode(...new TextEncoder().encode(input)));
+    return btoa(String.fromCharCode(...input));
+  }
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = 'main'; }
   async get(path) {
     // One repo that always 404s, so a failing read has a fixture: the reader
@@ -31,6 +37,17 @@ class FakeGH {
     return [];
   }
   async copyTo(dest, paths) { calls.push({ kind: 'copyTo', from: this.repo, dest, paths }); return paths.map(p => ({ path: p, status: 'ok' })); }
+  // The deposit reads every source, then writes once. getRaw hands back base64
+  // so the commit body can be decoded and checked byte for byte.
+  async getRaw(path) {
+    calls.push({ kind: 'getRaw', repo: this.repo, ref: this.ref, path });
+    if (this.repo === 'me/missing') throw Object.assign(new Error('404'), { status: 404 });
+    return { content: btoa('CONTENT ' + this.repo + ':' + path), sha: 'x' };
+  }
+  async commitFiles(files, opts = {}) {
+    calls.push({ kind: 'commitFiles', repo: this.repo, ref: this.ref, files, message: opts.message });
+    return { sha: 'c0ffee1234', branch: this.ref || 'main', tree: 't', files: files.length };
+  }
   async save(path, value, msg) { calls.push({ kind: 'save', repo: this.repo, ref: this.ref, path, value, msg }); return { content: { sha: 'x' } }; }
   async saveBytes(path, bytes, msg) { calls.push({ kind: 'saveBytes', repo: this.repo, ref: this.ref, path, bytes, msg }); return { content: { sha: 'x' } }; }
 }
@@ -96,6 +113,15 @@ const reset = () => {
   store.stage = []; store.stageFocus = ''; store.stageOffers = []; data.reader = null;
   data.diffA = 0; data.diffB = 0; data._diffTouched = false; data.diffRows = null;
 };
+
+// THE REAL srcGh, HELD SO A STUB CAN BE PUT BACK. Three tests below swap in a
+// save-only GH, and `delete data.srcGh` does NOT restore the method: the
+// component is a plain object whose srcGh is an own property, so the assignment
+// overwrote the original and the delete removes what Alpine's reactive proxy
+// then re-reads as the stub. Every later test that deposits was therefore
+// sending through a GH with no commitFiles, failing as "gh-transfer.js
+// unavailable" whenever one was added after them. Restore, never delete.
+const realSrcGh = data.srcGh;
 
 // navigator.clipboard isn't polyfilled by makeWindow (see its header note).
 // Component code runs in the jsdom window realm (new window.Function(src)()),
@@ -444,6 +470,27 @@ test('focus names an item and the stage opens its reader, then forgets it', asyn
   assert.equal(store.stageFocus, '', 'reading the request clears it, so a later mount does not reopen');
   assert.ok(data.reader, 'the reader opened');
   assert.equal(data.reader.name, it.name);
+});
+
+test('a comparison arriving while Stage is hidden waits until Stage is shown', async () => {
+  reset();
+  const ref = { repo: 'me/a', ref: 'revision', path: 'Forms.psm1', correspondenceText: 'one\n' };
+  const local = window.StageIntake.textItem('Forms.psm1', 'one\r\n');
+  local.correspondenceFor = data.itemKey(ref);
+  window.__shell = Alpine.reactive({ view: 'search' });
+  store.stage = [ref, local];
+  store.stageCompare = { a: data.itemKey(ref), b: data.itemKey(local) };
+  await tick(5);
+  assert.deepEqual(plain_(store.stageCompare), { a: data.itemKey(ref), b: data.itemKey(local) });
+  assert.equal(data.reader, null, 'a hidden Stage does not open a reader behind Files');
+  window.__shell.view = 'stage';
+  data.focusFromStore(); // the shell-view watcher does this on the real app mount
+  await shown();
+  assert.equal(store.stageCompare, null, 'the visible Stage consumes the request');
+  assert.ok(data._cmpDeck, 'the comparison is open');
+  assert.equal(data.diffStat, 'identical');
+  delete window.__shell;
+  reset();
 });
 
 test('a drop on the view itself opens one file, and stays out of the way for a batch', async () => {
@@ -1358,8 +1405,8 @@ test('a renamed local file deposits under its new name', async () => {
   data.destSpec = 'me/dest:pkg';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.path, 'pkg/docs/notes.md', 'a slash in the name is a subpath under the destination');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.files[0].path, 'pkg/docs/notes.md', 'a slash in the name is a subpath under the destination');
 });
 
 test('a name that cleans to nothing leaves the item alone, and so does Escape', () => {
@@ -1423,7 +1470,7 @@ test('groups covers only refs; local items render on their own', () => {
 
 // ---- one deposit: refs via copyTo, local bytes via saveBytes/save --------
 
-test('send deposits refs through copyTo and local files through save/saveBytes', async () => {
+test('a deposit is ONE commit, refs and pasted files together', async () => {
   reset();
   calls.length = 0;
   store.stage = [
@@ -1437,20 +1484,68 @@ test('send deposits refs through copyTo and local files through save/saveBytes',
   assert.equal(calls.length, 0, 'arming writes nothing');
   await data.send();               // second tap deposits
 
-  const copy = calls.find(c => c.kind === 'copyTo');
-  assert.equal(copy.from, 'me/a');
-  assert.equal(copy.dest.repo, 'me/dest');
-  assert.equal(copy.dest.dir, 'pkg');
-  assert.deepEqual(plain_(copy.paths), ['lib/x.js']);
+  const commits = calls.filter(c => c.kind === 'commitFiles');
+  assert.equal(commits.length, 1, 'three files, one commit');
+  assert.equal(commits[0].repo, 'me/dest');
+  assert.deepEqual(plain_(commits[0].files.map(f => f.path)),
+    ['pkg/lib/x.js', 'pkg/a.bin', 'pkg/note.txt'],
+    'refs keep their full path under the dir, locals their basename');
+  assert.equal(atob(commits[0].files[2].content), 'yo', 'text rides as base64');
+  assert.deepEqual([...atob(commits[0].files[1].content)].map(c => c.charCodeAt(0)), [9, 9],
+    'bytes ride byte-exact');
+  assert.ok(!calls.some(c => c.kind === 'save' || c.kind === 'saveBytes' || c.kind === 'copyTo'),
+    'the per-file write paths are not used, which is what made a deposit N commits');
+});
 
-  const bin = calls.find(c => c.kind === 'saveBytes');
-  assert.equal(bin.repo, 'me/dest');
-  assert.equal(bin.path, 'pkg/a.bin');
-  assert.equal(bin.bytes[0], 9);
+test('a source read that fails is reported and left out, and the rest still commit', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [
+    { repo: 'me/missing', ref: '', path: 'gone.js' },
+    { repo: 'me/a', ref: '', path: 'lib/x.js' },
+  ];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.deepEqual(plain_(commit.files.map(f => f.path)), ['pkg/lib/x.js'],
+    'the unreadable file is out of the tree, not committed empty');
+  assert.match(data.sendStatus, /^1\/2 copied/, 'the count is what landed, not what was staged');
+});
 
-  const txt = calls.find(c => c.kind === 'save' && c.path === 'pkg/note.txt');
-  assert.equal(txt.repo, 'me/dest');
-  assert.equal(txt.value, 'yo');
+test('nothing readable means no commit at all', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [{ repo: 'me/missing', ref: '', path: 'gone.js' }];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  assert.ok(!calls.some(c => c.kind === 'commitFiles'), 'an empty tree is not a commit');
+});
+
+test('the commit message names the deposit and lists what is in it', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [
+    { local: true, id: 97, name: 'one.txt', path: 'one.txt', size: 1, isText: true, text: 'a' },
+    { local: true, id: 98, name: 'two.txt', path: 'two.txt', size: 1, isText: true, text: 'b' },
+  ];
+  data.destSpec = 'me/dest:pkg';
+  await data.send();
+  await data.send();
+  const msg = calls.find(c => c.kind === 'commitFiles').message;
+  assert.equal(msg.split('\n')[0], 'Add 2 files to me/dest:pkg via Web Tools',
+    'the trailer marks a write a person made by tapping, not the crawl');
+  assert.match(msg, /- pkg\/one\.txt\n- pkg\/two\.txt/, 'the paths the per-file messages used to carry');
+});
+
+test('a long deposit caps the message body rather than writing a line per file', () => {
+  const files = Array.from({ length: 25 }, (_, i) => ({ path: 'p/f' + i + '.txt' }));
+  const msg = data.depositMessage(files, { repo: 'me/dest', dir: 'p' });
+  const lines = msg.trim().split('\n');
+  assert.equal(lines[0], 'Add 25 files to me/dest:p via Web Tools');
+  assert.equal(lines.filter(l => l.startsWith('- ')).length, 21, '20 paths plus the tail');
+  assert.equal(lines.at(-1), '- …and 5 more');
 });
 
 test('an empty dir deposits local files at the repo root', async () => {
@@ -1460,8 +1555,8 @@ test('an empty dir deposits local files at the repo root', async () => {
   data.destSpec = 'me/dest';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.path, 'top.txt', 'no dir prefix at root');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.files[0].path, 'top.txt', 'no dir prefix at root');
 });
 
 test('a local-only stage still mints: the text rides the fragment, gzipped', async () => {
@@ -1711,6 +1806,37 @@ test('runDiff resolves a local text item against a ref item', async () => {
   assert.ok(data.diffRows, 'diff produced');
   assert.deepEqual(plain_(data.diffRows.filter(r => r.t !== 'ctx')), [{ t: 'add', line: 'extra' }]);
   assert.equal(data.diffStat, '+1 \u22120');
+});
+
+test('correspondence diff folds line endings for PowerShell and XAML display but keeps both raw texts', async () => {
+  for (const [path, repository, submitted] of [
+    ['Modules/Forms/Forms.psm1', 'function F {\n  1\n}\n', 'function F {\r\n  1\r\n}\r\n'],
+    ['Forms/Bookmarks/Bookmarks.xaml', '<Window>\r\n  <TextBlock />\r\n</Window>\r\n', '<Window>\r  <TextBlock />\r</Window>\r'],
+  ]) {
+    reset();
+    clipWrites.length = 0;
+    const ref = { repo: 'me/a', ref: 'revision', path, correspondenceText: repository };
+    const local = { local: true, id: 601, name: path.split('/').pop(), isText: true,
+      text: submitted, correspondenceFor: data.itemKey(ref) };
+    store.stage = [ref, local];
+    data.diffA = 0; data.diffB = 1;
+    await data.runDiff();
+    assert.equal(data.diffStat, 'identical', path);
+    assert.ok(data.diffRows.every(row => row.t === 'ctx'), path);
+    assert.equal(data._diffTextA, repository, path);
+    assert.equal(data._diffTextB, submitted, path);
+    assert.equal(local.text, submitted, path);
+    await data.copyPrompt('Check content.', 0);
+    assert.ok(clipWrites[0].includes(submitted), 'review prompt retains raw ' + path);
+    assert.equal(data.diffRows.map(row => row.line).join('\n'), repository.replace(/\r\n?/g, '\n'), path);
+    assert.ok(!data.diffDump.includes('\r'), 'copyable displayed diff is normalized for ' + path);
+  }
+  reset();
+  const ref = { repo: 'me/a', ref: 'revision', path: 'unrelated.ps1', correspondenceText: 'a\nb\n' };
+  store.stage = [ref, { local: true, id: 602, name: 'other.ps1', isText: true, text: 'a\r\nb\r\n' }];
+  data.diffA = 0; data.diffB = 1;
+  await data.runDiff();
+  assert.notEqual(data.diffStat, 'identical', 'ordinary Stage pairs still show raw line-ending differences');
 });
 
 test('diffHandoff builds the Diff page address from the staged pair', () => {
@@ -2844,10 +2970,10 @@ test('a dest-carrying send lands local files ON the named branch', async () => {
   data.destSpec = 'me/dest@claude/some-branch:dump';
   await data.send();               // arm
   await data.send();               // deposit
-  const txt = calls.find(c => c.kind === 'save');
-  assert.equal(txt.repo, 'me/dest');
-  assert.equal(txt.ref, 'claude/some-branch', 'the writer is pointed at the branch, not the default');
-  assert.equal(txt.path, 'dump/drop.html');
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  assert.equal(commit.repo, 'me/dest');
+  assert.equal(commit.ref, 'claude/some-branch', 'the commit lands on the branch, not the default');
+  assert.equal(commit.files[0].path, 'dump/drop.html');
 });
 
 test('parseDest reads a slashed branch out of owner/repo@ref:dir', () => {
@@ -3074,6 +3200,10 @@ test('the stage paints through the kit and its pad turns into casing keys', asyn
   assert.equal(data.dictText, 'the QUICK brown fox.');
   data.dictDrop();
   assert.equal(data.dictSel, false);
+  // The plain marks: the buffer ends with a full stop and nothing follows it,
+  // so there is no break to close and the stitch has nothing to offer. Taking a
+  // trailing mark off is the backspace's job, which is exactly why the stitch
+  // stopped answering for one (kits/dictate.js, stitchAim).
   assert.deepEqual(plain_(data.dictMarks), ['.', ',', '?'], 'and the marks came back');
   data.dictCancel();
 });
@@ -3299,7 +3429,7 @@ test('loadAsks keeps valid asks and drops everything it cannot use', async () =>
   assert.deepEqual(plain_(data.asks.map(a => a.id)), ['ask-ok'],
     'a malformed ask and an unparsable record drop their own row, not the section');
   assert.equal(data.asks[0].dest, 'me/dest:projects/wps/dump');
-  delete data.srcGh;
+  data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
@@ -3315,7 +3445,7 @@ test('resolveAsk writes the result that closes it, and drops the row', async () 
   assert.equal(saved[0].body.answered, true);
   assert.deepEqual(plain_(data.asks), []);
 
-  delete data.srcGh;
+  data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
@@ -3335,7 +3465,7 @@ test('resolveAsk refuses a decline with no reason, and leaves the row standing',
   assert.equal(saved[0].body.answered, false);
   assert.equal(saved[0].body.ok, true, 'a decline is a served request, not a failure');
 
-  delete data.srcGh;
+  data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
@@ -3383,4 +3513,179 @@ test('paste: something arriving is staged and reported as a success', async () =
   await data.pasteIn();
   assert.equal(store.stage.length, 1);
   assert.match(toastLog[0].msg, /^Staged /);
+});
+
+// ── Standoff notes ──────────────────────────────────────────────────────────
+// A comment about a staged file is a FILE: it lands beside its subject, named
+// for it, carrying a pointer back. These hold the three things that makes true
+// (the name, the document, the deposit) and the two bindings that keep the pair
+// from coming apart (rename carries the note, removal takes it along).
+
+const local = (id, name, text = 'hi') =>
+  ({ local: true, id, name, path: name, size: text.length, isText: true, text });
+
+test('a note is a staged file, named for its subject and pointing back at it', () => {
+  reset();
+  store.stage = [local(300, 'rates.json', '{"a":1}')];
+  data.startNote(data.localItems[0]);
+  assert.equal(data.noteId, 'local:300', 'the editor keys on the subject, not on an id');
+  data.noteDraft = 'The OFM rate pull. The last two columns are unlabelled.';
+  data.commitNote();
+
+  assert.equal(store.stage.length, 2, 'the note is one more thing on the stage');
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.name, 'rates.json.note.md');
+  assert.equal(note.path, 'rates.json.note.md', 'the deposit and the reader both read path');
+  assert.equal(note.isText, true, 'a note rides a #gz= link like any other local text');
+  assert.match(note.text, /^---\nabout: rates\.json\nadded: \d{4}-\d{2}-\d{2}\n---\n\n/);
+  assert.match(note.text, /The OFM rate pull\./);
+  assert.equal(data.noteId, null);
+});
+
+test('a note lands beside its subject at the destination', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [local(301, 'rates.json', '{"a":1}')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'why this is here';
+  data.commitNote();
+  data.destSpec = 'me/dest:chron/dump';
+  await data.send();               // arm
+  await data.send();               // deposit
+  const commit = calls.find(c => c.kind === 'commitFiles');
+  // Spread into this realm's Array: the component builds its arrays inside the
+  // jsdom window, and deepStrictEqual compares prototypes across realms.
+  assert.deepEqual([...commit.files.map(f => f.path)].sort(),
+    ['chron/dump/rates.json', 'chron/dump/rates.json.note.md'],
+    'one commit, both files, the pair adjacent');
+});
+
+test('a subpath keeps the pair adjacent wherever the subject lands', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [local(302, 'data/rates.json', '{"a":1}')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'why';
+  data.commitNote();
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.name, 'data/rates.json.note.md');
+  assert.match(note.text, /^---\nabout: rates\.json\n/,
+    'about: is the BASENAME, since the note sits in the same folder as its subject');
+});
+
+test('renaming the subject carries its note, name and pointer both', () => {
+  reset();
+  store.stage = [local(303, '2026-09-13-paste.txt')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'a body worth keeping';
+  data.commitNote();
+  data.startRename(data.items.find(x => x.id === 303));
+  data.renameDraft = 'notes.md';
+  data.commitRename();
+
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.name, 'notes.md.note.md', 'a note under the old name points at nothing');
+  assert.match(note.text, /^---\nabout: notes\.md\n/);
+  assert.match(note.text, /a body worth keeping/, 'the rename rewrites the wrapper, not the prose');
+  assert.equal(note.noteFor, 'local:303', 'the binding is the id, so a rename never breaks it');
+});
+
+test('removing the subject takes its note; removing the note leaves the subject', () => {
+  reset();
+  store.stage = [local(304, 'a.json'), local(305, 'b.json')];
+  for (const id of [304, 305]) {
+    data.startNote(data.items.find(x => x.id === id));
+    data.noteDraft = 'note on ' + id;
+    data.commitNote();
+  }
+  assert.equal(store.stage.length, 4);
+
+  data.rm(store.stage.find(it => it.noteFor === 'local:304'));
+  assert.equal(store.stage.length, 3, 'a note removes alone');
+  assert.ok(store.stage.some(it => it.id === 304), 'and leaves its subject staged');
+
+  data.rm(store.stage.find(it => it.id === 305));
+  assert.equal(store.stage.length, 1, 'a subject takes its note with it');
+  assert.equal(store.stage[0].id, 304, 'and nothing else');
+});
+
+test('re-opening a note edits the prose, and saving replaces rather than duplicating', () => {
+  reset();
+  store.stage = [local(306, 'a.json')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'first pass';
+  data.commitNote();
+
+  data.startNote(data.items.find(x => x.id === 306));
+  assert.equal(data.noteDraft, 'first pass', 'the editor opens on the body, not the front matter');
+  data.noteDraft = 'second pass';
+  data.commitNote();
+
+  const notes = store.stage.filter(it => it.noteFor);
+  assert.equal(notes.length, 1, 'one subject, one note');
+  assert.match(notes[0].text, /second pass/);
+  assert.doesNotMatch(notes[0].text, /first pass/);
+});
+
+test('an emptied note removes the file rather than depositing an empty one', () => {
+  reset();
+  store.stage = [local(307, 'a.json')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'said something';
+  data.commitNote();
+  assert.equal(store.stage.length, 2);
+
+  data.startNote(data.items.find(x => x.id === 307));
+  data.noteDraft = '   ';
+  data.commitNote();
+  assert.equal(store.stage.length, 1, 'nothing to read is nothing to land');
+});
+
+test('commitNote is idempotent, and a note takes no note of its own', () => {
+  reset();
+  store.stage = [local(308, 'a.json')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'once';
+  data.commitNote();
+  data.commitNote();               // the second call finds nothing open
+  assert.equal(store.stage.filter(it => it.noteFor).length, 1);
+
+  data.startNote(store.stage.find(it => it.noteFor));
+  assert.equal(data.noteId, null, 'the row offers no bubble, and the call refuses one');
+});
+
+test('a note about a ref carries the origin the deposit would otherwise lose', () => {
+  reset();
+  store.stage = [{ repo: 'me/a', ref: 'trunk', path: 'lib/x.js' }];
+  data.startNote(data.refItems[0]);
+  assert.equal(data.noteId, 'me/a@trunk:lib/x.js');
+  data.noteDraft = 'the version we actually shipped';
+  data.commitNote();
+
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.name, 'lib/x.js.note.md');
+  assert.match(note.text, /^---\nabout: x\.js\n/);
+  assert.match(note.text, /\nsource: me\/a@trunk:lib\/x\.js\n/,
+    'a copied file lands under its own name and the commit keeps no record of where from');
+});
+
+test('a note sits directly under its subject in the staged list', () => {
+  reset();
+  store.stage = [local(309, 'a.json'), local(310, 'b.json')];
+  data.startNote(data.items.find(x => x.id === 309));
+  data.noteDraft = 'about a';
+  data.commitNote();
+  assert.deepEqual([...data.localItems.map(it => it.name)],
+    ['a.json', 'a.json.note.md', 'b.json'],
+    'the pair is the unit, wherever the intake appended it');
+});
+
+test('noteSubject survives a stage that no longer holds the subject', () => {
+  reset();
+  store.stage = [local(311, 'a.json')];
+  data.startNote(data.localItems[0]);
+  assert.equal(data.noteSubject.id, 311);
+  store.stage = [];
+  assert.equal(data.noteSubject, null, 'the panel draws nothing rather than a header about nothing');
+  data.cancelNote();
 });

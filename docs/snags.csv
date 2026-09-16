@@ -1,18 +1,40 @@
 slug,title,count,last_seen,seen,targets
+backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",7,2026-09-10,2026-09-01;2026-09-01;2026-09-01;2026-09-01;2026-09-08;2026-09-10;2026-09-10,loader.md
+ci-run-silently-not-started,a commit sat in an open PR with no checks,6,2026-09-14,2026-08-06;2026-09-10;2026-09-10;2026-09-14;2026-09-14;2026-09-14,../.github/workflows/test.yml
+link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",4,2026-09-08,2026-08-18;2026-09-01;2026-09-07;2026-09-08,SURFACING.md
+daisy-divide-paints-black,"hairlines come out black, not grey",3,2026-09-08,2026-07-28;2026-08-22;2026-09-08,../skills/daisy-alpine/references/mechanics.md
 headless-shot-prose-flat,typography CSS misses in screenshots,3,2026-09-02,2026-08-07;2026-08-14;2026-09-02,environment/testing.md
 untracked-file-invisible-to-the-suite,a local green over a file the scanner never enumerated,3,2026-08-30,2026-08-28;2026-08-29;2026-08-30,../scripts/text-carriers.py;../tools/test/text-vocabulary-conformance.test.mjs
 opacity-step-off-the-tens,"a class that generates nothing, so the text meant to recede advances",3,2026-08-19,2026-08-19;2026-08-19;2026-08-19,../skills/daisy-alpine/SKILL.md
 mcp-body-escaping,"the GitHub MCP mangles link shapes in a PR body, on write as well as read",3,2026-08-16,2026-08-05;2026-08-05;2026-08-16,SURFACING.md
-link-sha-not-resolved,"a commit SHA typed from memory, well-formed and pointing at nothing",2,2026-09-01,2026-08-18;2026-09-01,SURFACING.md
+marker-on-a-living-doc,annotated a doc instead of fixing it,2,2026-09-16,2026-08-06;2026-09-16,CONVENTIONS.md
+csv-rewrite-restamps-every-line,a one-row edit that arrives as a whole-file diff,2,2026-09-10,2026-09-10;2026-09-10,
+orphan-reads-as-unreferenced,"a label about delivery, read as a claim about links",2,2026-09-10,2026-09-10;2026-09-10,../tools/build/docs-reach.mjs
+output-on-disk-is-not-agent-done,a launch was refused at the concurrency cap on a hand count of nineteen,2,2026-09-06,2026-09-06;2026-09-06,environment/capabilities.md
+merge-drops-authored-csv-cells,"taking one side of a derived registry loses the authored half, and the generator refills it blank",2,2026-09-04,2026-09-04;2026-09-04,../tools/README.md#the-refresh-model
 phosphor-weight-is-a-family,an icon renders as nothing at all,2,2026-08-31,2026-07-28;2026-08-31,../skills/phosphor-icons/SKILL.md;../scripts/blank-icons.py
 hand-rolled-use-block-boots-nothing,"a copied boot block was rewritten instead, and shipped blank",2,2026-08-30,2026-08-22;2026-08-30,loader.md;../tools/test/use-boot-block.test.mjs
 house-style-not-consulted,"built a page with stat cards, page prose, and small type, against a doc that forbids all three",2,2026-08-29,2026-08-04;2026-08-29,../skills/daisy-alpine/SKILL.md
-daisy-divide-paints-black,"hairlines come out black, not grey",2,2026-08-22,2026-07-28;2026-08-22,../skills/daisy-alpine/references/mechanics.md
 claude-logomark-copied,the standard session mark is six inline copies with no owner,2,2026-08-21,2026-08-09;2026-08-21,code-layers.md
 cached-read-feeds-a-write,a fresh-looking read hands back the sha it just replaced,2,2026-08-16,2026-08-13;2026-08-16,../lib/gh-api.js
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
+cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,
+nudge-names-an-unresolvable-skill,the prod fired and its command did not exist,1,2026-09-13,2026-09-13,../.claude/skills/hooks/invoke-default.sh
+cross-realm-read-renders-once,the control worked and its label lied,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
+entity-in-an-alpine-expression-ends-the-string,one `&apos;` broke the whole component,1,2026-09-10,2026-09-10,../skills/daisy-alpine/references/mechanics.md
+keyboard-only-verb-is-no-verb-on-a-phone,an instrument you could arm and not use,1,2026-09-10,2026-09-10,../lib/alpineComponents/fab.js
+header-essay-outlives-its-code,the file-header contract drifted while every per-site comment stayed true,1,2026-09-08,2026-09-08,text-content.md
+rewriter-marks-its-own-work,a comment pass that changed no code still made the file wrong,1,2026-09-08,2026-09-08,text-content.md
+stale-store-reads-as-dead-link,"a present checkout, two weeks behind, reported four good links dead",1,2026-09-08,2026-09-08,environment/container.md
+diagnostic-took-the-page-down,the readout added to find the failure was the failure,1,2026-09-07,2026-09-07,../pages/audit-render.html
+long-press-threshold-eats-the-tap,a control read as dead because an ordinary tap was a long press,1,2026-09-07,2026-09-07,../lib/alpineComponents/fab.js
+use-swaps-the-lib-not-the-page,"a page-file fix was handed over on a `?use=` link, twice",1,2026-09-07,2026-09-07,../CLAUDE.md;../scripts/showing.py
+shot-of-a-prebuilt-page-ignores-lib,a break-check that proved nothing,1,2026-09-06,2026-09-06,../tools/README.md#the-pre-build
+id-called-the-filename-stem,a session id read off the store's own directory listing found no record,1,2026-09-05,2026-09-05,../lib/alpineComponents/session-brief.js;../tools/test/session-brief.test.mjs
+toss-carries-no-page-address,"a render link that resolved, rendered, and opened an empty form",1,2026-09-05,2026-09-05,showing.md;../scripts/showing.py
+consumer-tag-outlives-the-merge,a lib file loaded by a plain `<script src>` at `@main` in another repo showed the old code a day after the merge,1,2026-09-04,2026-09-04,loader.md#consumers-in-other-repos
 shallow-clone-has-no-merge-base,"the render-link script reported ""nothing"" over a nine-file branch",1,2026-09-03,2026-09-03,
 pipe-eats-the-exit-code,"a runner that reports a fatal, read through a pipe that returns zero",1,2026-09-01,2026-09-01,environment/testing.md
 annotated-document-resists-edits,editing CONVENTIONS.md costs an annotation rebuild,1,2026-08-31,2026-08-31,
@@ -43,7 +65,7 @@ fetched-ref-behind-remote,a merge preflight certifies a merge GitHub refuses,1,2
 silent-fallback-old-build,"the pixels do not change, and nothing says the file failed to load",1,2026-08-14,2026-08-14,loader.md
 stub-hides-the-wiring,a test that stubs a lazy dependency cannot see it go missing,1,2026-08-13,2026-08-13,loader.md
 page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md
-derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md
+derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 runner-tag-documented-unused,"a convention in the contract, used once, re-derived from memory",1,2026-08-09,2026-08-09,TRACKER.md
 status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,../.claude/skills/markers/status.py
 venues-invisible-from-inside,a session inventories only the venues it can see from its own sandbox,1,2026-08-09,2026-08-09,venues.md
@@ -51,11 +73,9 @@ daisy-color-in-variant,"a daisyUI color inside an arbitrary variant generates no
 pre-build-boots-alpine-early,a page's own gh.load chain runs after its components init,1,2026-08-07,2026-08-07,loader.md
 regex-backtracking-in-a-hook,"a test that ""hung"" was the redactor going quadratic",1,2026-08-07,2026-08-07,
 use-ref-stale-bundle,"`?use=` served a stale bundle, and a comment said it could not",1,2026-08-07,2026-08-07,showing.md
-ci-run-silently-not-started,a commit sat in an open PR with no checks,1,2026-08-06,2026-08-06,../.github/workflows/test.yml
 form-sized-by-container,"a form's fields stopped short of their labels, and its desktop layout was a ribbon",1,2026-08-06,2026-08-06,../skills/daisy-alpine/SKILL.md
 fragment-goto-does-not-reload,a render scenario asserts against stale state,1,2026-08-06,2026-08-06,environment/testing.md
 hosted-closer-runs-main,"a 🌿 closer is a hosted link, so it runs main's page",1,2026-08-06,2026-08-06,showing.md
-marker-on-a-living-doc,annotated a doc instead of fixing it,1,2026-08-06,2026-08-06,CONVENTIONS.md
 prose-classes-absent,"`prose` is not available on most pages, and it fails silently",1,2026-08-06,2026-08-06,show-repo.md
 allowlist-table-trusted-stale,trusted the network allowlist table instead of re-probing it,1,2026-08-05,2026-08-05,environment/capabilities.md
 api-access-read-as-impossible,"read ""needs API access"" as ""cannot be done here,"" for three weeks and 147 PRs",1,2026-08-05,2026-08-05,SURFACING.md
@@ -65,9 +85,17 @@ https-block-resets-instead-of-403,a blocked host looks like a network flake,1,20
 word-boundary-before-alternation,a scan reports zero and looks authoritative,1,2026-08-03,2026-08-03,
 x-collapse-needs-x-show,a panel renders at zero size,1,2026-07-15,2026-07-15,environment/testing.md
 an-unlayered-rule-beats-every-layer,`max-w-none` reads as the undo and is not one,0,,,
-backtick-in-an-html-comment-ends-the-template,"a component that will not parse, from prose",0,,,
+boot-throw-hides-behind-x-cloak,"a bad `?use=` ref rendered as a broken page, not a bad link",0,,,
 both-caps-sat-in-the-guard-exemptions,a clean scan over a screen with two corridors,0,,,
+browser-check-outside-the-suite-rots,two stale checks found in one merge,0,,,
 cross-repo-lib-consumer-invisible,in-repo greps cannot see an external runtime consumer of a lib file,0,,,
+gate-inherits-the-fixture,"green here, red on the runner, and the diff was ordering",0,,,
 line-clamp-is-not-a-height,"the utility collided with a display four times in one branch, then failed only on the phone",0,,,
+proxy-is-never-its-target,an identity test that reads right and is always false,0,,,
 python-offsets-read-as-utf16,an emoji shifts every standoff offset the browser reads,0,,,
 safari-button-sizes-from-unclipped-content,"the child clipped, the fade landed, and the button stayed tall",0,,,
+shell-pin-kills-the-tab,the repo's own render link crashed the phone it was handed to,0,,,
+state-only-check-agrees-with-a-broken-page,four reproductions passed while the panel sat on screen,0,,,../lib/kits/probe.js
+tick-count-guesses-a-chain,a passing test that starts failing on somebody else's change,0,,,
+tightest-band-becomes-the-default,"one page's spacing, spent on seven surfaces",0,,,
+touch-synthesises-a-hover,"the same gate, missed on the second of two elements",0,,,

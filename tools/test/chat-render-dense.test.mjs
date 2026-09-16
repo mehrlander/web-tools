@@ -126,7 +126,7 @@ test('a dense reply carries typography\'s paragraph rhythm halved, edges include
 });
 
 test('the role WORD goes for the two chat roles and stays for every other', () => {
-  // Four carriers already say user from assistant in an alternating transcript:
+  // Four cues already say user from assistant in an alternating transcript:
   // the icon, the rail, the indent, and mono against prose. A system or tool
   // turn has none of that going for it, so it keeps its word.
   for (const role of ['user', 'assistant']) {
@@ -326,4 +326,40 @@ test('an ask keeps its fill even where the lead could not fold', () => {
   // The gutter is the half that needs a lead, so it stays gated.
   assert.equal(el.querySelector('i.ph').parentElement.style.position, '',
     'with no lead to fold, nothing is positioned into the gutter');
+});
+
+// ── A tappable turn says so before it is tapped ─────────────────────────────
+
+test('a tappable turn carries a hover surface, not only the cursor', () => {
+  // The cursor is the one affordance a touch screen cannot show and a desktop
+  // reader has to already be over the turn to see. Asked for 2026-09-08 against
+  // the Activity transcript card, which is the only surface that passes `tap`.
+  const el = cr.message({ role: 'assistant', md: 'Something.' }, { dense: true, tap: () => {} });
+  assert.match(el.className, /cursor-pointer/);
+  assert.match(el.className, /hover:bg-base-200/, 'the theme\'s own next surface up');
+  assert.match(el.className, /transition-colors/, 'so it fades rather than snapping');
+  // NOT an alpha on base-content. /5 is not a step Tailwind generates, so it
+  // renders at FULL strength and the hover would be a solid black band; the
+  // opacity-scan gate caught exactly that before it shipped, and /10 is heavier
+  // than a hover wants behind a tinted ask.
+  assert.doesNotMatch(el.className, /hover:bg-base-content/);
+});
+
+test('a turn with no tap carries none of it, so a read-only card stays flat', () => {
+  const el = cr.message({ role: 'assistant', md: 'Something.' }, { dense: true });
+  assert.doesNotMatch(el.className, /cursor-pointer|hover:bg-/);
+});
+
+test('the more-chip is exported, so a second surface draws the same mark', () => {
+  // session-export's outline rows clamp with CSS rather than cutting the text,
+  // so their count is measured rather than carried; what must not differ is the
+  // mark, since a reader meets both within two taps.
+  assert.equal(typeof cr.moreChip, 'function');
+  const chip = cr.moreChip(1234, false);
+  assert.equal(chip.textContent, '+1,234 chars');
+  assert.match(chip.title, /Open the session to read it whole/);
+  // The title is the one thing that legitimately differs: where the chip IS the
+  // way to the rest, a sentence naming a longer route would be wrong.
+  assert.equal(cr.moreChip(9, false, 'Read the rest of this line').title,
+    'Read the rest of this line');
 });

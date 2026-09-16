@@ -46,6 +46,20 @@ is required: typography ships unlayered CSS and Tailwind's utilities are
 layered, so the plain `max-w-none` loses whatever the source order. `mx-auto`
 is not part of the test: half these caps carry no centering. The page's own
 layout sets the width. A reading column is also a common tell for rule 2.
+
+**An arbitrary value is the same cap.** `max-w-[64ch]` is that 65ch measure
+written out, and `max-w-[920px]` is `max-w-4xl` with a different number on it.
+Any `ch` cap counts, whatever the number, since the unit measures characters; an
+absolute cap counts between 42rem and 64rem, the band from `max-w-2xl` up to the
+page-shell sizes. This is the form that got past the gate: six kit demos ran in
+`mx-auto max-w-[920px]` with their prose at `max-w-[64ch]`, 38 occurrences, and
+the scan called the tree clean because neither spelling is a name it knew.
+
+Where the measure has to come from somewhere, take it from the layout rather
+than from the element: a grid track (`lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]`,
+with `min-w-0` on the wide track) gives running copy a column and lets it fill
+the page when the tracks stack.
+
 Refused at edit time by the `reading-column` hook and listed by `npm run
 reading-column`; `modal-box` sizing is exempt, and a genuine exception takes a
 `reading-column-ok` comment on the line or the line above.
@@ -90,25 +104,20 @@ decoration. Assign it by semantic role, and in a comparison lock each side's
 treatment across every view. Where two concerns compete for the accent, let a
 control pick which one is marked rather than spending a second colour.
 
-**11. A tooltip worth having is worth building.** Prefer text on the page. Do not
-use `cursor-help`, daisyUI's `tooltip`, or `data-tip`; this overrides
-`references/daisyui.md`. There are three tiers and the boundaries are mechanical,
-not judgments about length:
-
-| | use | boundary |
-| --- | --- | --- |
-| `title` | a label that carries no fact: a word in a mockup, an icon-only control's `aria-label` companion | anything a reader would be worse off missing is over the line |
-| `data-note` | a sentence a reader looks at, via [`kits/note.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/note.js) | the panel is `pointer-events:none` and cannot be entered |
-| a built panel | anything a reader taps inside: a link, a copy button, a table | [`references/mechanics.md`](references/mechanics.md) has the hover thresholds and dismissal |
-
-`data-note` is the tier that was missing until 2026-09-01, and its absence is
-why facts kept landing in `title`: a `title` reaches no touch screen, renders
-outside the page's theme, and **cannot be captured in a screenshot**, so a fact
-parked in one is invisible to every review that happens through pixels. The kit
-puts the text in the DOM, shows it on hover, tap and focus, and opens on demand
-for a shot (`Note.open('#id')`).
-
-`npm run stranded-titles` lists facts parked in a `title`.
+**11. A tooltip worth having is worth building.** Prefer text on the page. A
+`title` never carries a fact: it reaches no touch screen, renders outside the
+page's theme, and cannot be captured in a screenshot, so a fact parked in one is
+invisible to every review that happens through pixels. Every other popup is a
+**note** or a **card**, and the whole rule, the criterion that separates them,
+what each opens and closes on, and the ✕, is stated once in
+[`references/mechanics.md`, "Notes and cards"](references/mechanics.md#notes-and-cards).
+In one line: a note is one line the page already implies (a header unwrapped, a
+unit spelled out), closes on its own tap, and is written as `data-note="…"`
+through [`kits/note.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/note.js);
+anything that scrolls, can be tapped inside, or whose source a reader might ask
+for is a card, which names that source with a ↗ and carries its ✕. Do not use `cursor-help`, daisyUI's `tooltip`, or `data-tip`; this overrides
+`references/daisyui.md`. `npm run stranded-titles` lists facts parked in a
+`title`; `Note.open('#id')` opens a note on demand for a shot.
 
 ## The shape a browsing page takes
 

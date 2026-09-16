@@ -82,7 +82,7 @@ never to dump a whole container.
 
 ## Configuration
 
-`sources.toml` (beside this file) lists named sources, each a set of path globs
+`sources.csv` (beside this file) lists named sources, one row per (source, glob) pair
 resolved against the corpus root. Anchor every glob to a real directory; a bare
 `**/*.md` would recurse `node_modules/`. Edit it to point at a different corpus.
 
