@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Approve</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔏</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  approve.html — renders an `approval/1` surface: a request for a DECISION.
+
+  inquiry.html collects answers; this collects a verdict. The difference is not
+  the form but the reader's licence: the expected outcome includes "no", and
+  the page has to make refusing as cheap as agreeing or it is a rubber stamp
+  with extra steps.
+
+  Three layers, as in inquiry:
+    the OBJECT     an approval/1 surface, self-addressed via context.reply_to
+    the RENDERING  this page: the diff first, the author's reason beside it
+    the CONSTRAINT the profile schema, which names what the author owed
+
+  What it writes back is <reply_to>/<id>.verdict.json, through the viewer's own
+  token. That file is the point of the whole envelope: "did the user approve
+  this" stops being a claim a session types into a commit message and becomes a
+  file a commit hook resolves. Contract: docs/envelopes/approval.md.
+
+  Addressing, the same grammar every envelope here uses:
+    #src=owner/repo[@ref]:path     fetch the envelope through the stored token
+    #gz=<base64url gzip>           carry it inline, for a token-less reader
+  Both also read from ?query, for a context that strips fragments.
+
+  A FRAMED APPROVAL IS A BROKEN APPROVAL, for inquiry.html's reason: the return
+  leg needs this page's own origin and the viewer's token, and a sandboxed frame
+  has neither. The frame is detected and the direct address offered, rather than
+  letting the failure arrive at the moment of decision.
+
+  Diff cards are alpineComponents/file-review.js, the same component
+  pages/review.html mounts per changed file, so a reviewer here sees exactly
+  what a reviewer there sees. Notes are kits/annotate.js enabled over this
+  document: a selection in a diff pane becomes a note, and the set rides out on
+  the verdict rather than saving as its own jot, since here a note is part of a
+  decision rather than a standalone reading.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('gh-store.js');
+    await gh.load('kits/cm6-merge.js');
+    await gh.load('alpineComponents/file-review.js');
+    await gh.load('kits/annotate.js');
+  } finally { window.__depsDone(); }
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="fixed inset-0 grid grid-rows-[auto_1fr_auto] bg-base-200 text-base-content" x-data="approveApp()" x-cloak>
+
+<header class="navbar bg-base-100 border-b border-base-300 min-h-0 py-1 px-3 gap-2 flex-nowrap">
+  <i class="ph ph-seal-check text-primary text-lg shrink-0"></i>
+  <span class="font-semibold text-sm truncate" x-text="env?.manifest?.name || 'Approve'"></span>
+  <div class="grow"></div>
+  <span class="badge badge-sm badge-ghost" x-show="ctx.kind" x-text="ctx.kind"></span>
+  <span class="badge badge-sm badge-ghost" x-show="ctx.occasion" x-text="ctx.occasion"></span>
+  <span class="badge badge-sm" x-show="items.length" x-text="items.length"></span>
+  <button class="btn btn-ghost btn-xs" @click="toggleNotes()" x-show="env"
+          :class="noting && 'text-primary'">
+    <i class="ph ph-note-pencil"></i><span x-text="notes.length || ''"></span>
+  </button>
+</header>
+
+<main class="overflow-y-auto px-3 py-3 grid gap-3 content-start">
+
+  <div x-show="loading" class="flex items-center gap-2 text-sm opacity-70">
+    <span class="loading loading-spinner loading-sm"></span> Loading
+  </div>
+
+  <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
+    <i class="ph ph-warning-circle"></i><span x-text="error"></span>
+  </div>
+
+  <div x-show="framed" class="alert alert-warning py-2 px-3 text-sm">
+    <i class="ph ph-frame-corners"></i>
+    <span class="text-balance">A framed page cannot reach your token, so the verdict cannot be posted from here.</span>
+    <a :href="direct" target="_blank" class="btn btn-sm">Open directly</a>
+  </div>
+
+  <!-- The author's reason, first and unabbreviated. It is what the reader is
+       deciding about; the diffs are the evidence for it. -->
+  <section x-show="ctx.rationale" class="card bg-base-100 border border-base-300">
+    <div class="card-body p-3 gap-2">
+      <div class="flex items-center gap-2 text-xs opacity-60 font-mono">
+        <span x-text="ctx.id"></span>
+        <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
+           target="_blank" class="link" x-text="ctx.branch"></a>
+        <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link">session</a>
+      </div>
+      <p class="text-pretty" x-text="ctx.rationale"></p>
+    </div>
+  </section>
+
+  <!-- One card per proposed item. A documentation item mounts the same diff
+       card review.html mounts; a task item has no diff and answers a different
+       question, so the two render from one loop and diverge only where they
+       genuinely differ. -->
+  <template x-for="it in items" :key="it.id">
+    <section class="card bg-base-100 border border-base-300">
+      <div class="card-body p-3 gap-2">
+
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <span class="font-medium" x-text="it.title"></span>
+          <span class="badge badge-xs badge-ghost" x-show="it.change?.status" x-text="it.change?.status"></span>
+        </div>
+
+        <p class="text-pretty" x-text="it.commentary"></p>
+
+        <div x-show="it.metadata?.deferred_because" class="border-l-2 border-primary pl-3">
+          <div class="text-xs opacity-60">Not done in that session because</div>
+          <p class="text-pretty" x-text="it.metadata?.deferred_because"></p>
+        </div>
+
+        <div x-show="(it.related || []).length" class="flex items-center gap-2 flex-wrap text-sm">
+          <span class="text-xs opacity-60">Answers to</span>
+          <template x-for="r in (it.related || [])" :key="r.item">
+            <a class="link link-hover" target="_blank"
+               :href="'https://github.com/' + repoOf() + '/blob/' + (ctx.branch || 'HEAD') + '/' + r.item"
+               x-text="r.item"></a>
+          </template>
+        </div>
+
+        <div x-show="ctx.kind === 'documentation' && pathOf(it)"
+             x-data="fileReview({
+               repo: repoOf(), ref: ctx.branch, base: baseOf(), baseName: baseOf(),
+               path: pathOf(it), prevPath: it.change?.previous_path,
+               status: it.change?.status, patch: it.change?.patch, open: true, bare: true })"></div>
+
+      </div>
+    </section>
+  </template>
+
+</main>
+
+<footer class="bg-base-100 border-t border-base-300 px-3 py-2 grid gap-2">
+
+  <div x-show="sent" class="alert alert-success py-2 px-3 text-sm">
+    <i class="ph ph-check-circle"></i>
+    <span>Recorded as <span class="font-mono" x-text="decision"></span>.
+      <a :href="sent" target="_blank" class="link" x-text="sentPath"></a></span>
+  </div>
+
+  <!-- Refusing is one tap, in the same row and the same size as agreeing. A
+       decision surface whose "no" is harder to reach than its "yes" collects
+       agreement rather than decisions. -->
+  <div class="flex gap-2 items-center" x-show="env && !sent">
+    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending">
+      <i class="ph ph-arrow-u-up-left"></i> Return
+    </button>
+    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !notes.length">
+      <i class="ph ph-pencil-simple"></i> With edits
+    </button>
+    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending">
+      <i class="ph ph-check"></i> Approve
+    </button>
+  </div>
+
+  <div class="text-xs opacity-60 font-mono truncate" x-show="ctx.reply_to" x-text="ctx.reply_to"></div>
+</footer>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('approveApp', () => ({
+    env: null, items: [], notes: [],
+    loading: true, error: '', sending: false, sent: '', sentPath: '', decision: '',
+    noting: false,
+    framed: window.top !== window.self,
+
+    get ctx() { return this.env?.context || {}; },
+    get direct() {
+      return 'https://mehrlander.github.io/web-tools/pages/approve.html' + location.hash;
+    },
+
+    // Where the items live. The request names one repo for the set, since a
+    // decision spanning two repos is two decisions.
+    repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
+    baseOf() { return this.ctx.base || 'main'; },
+    pathOf(it) { return it.target?.path || it.title; },
+
+    // hash first, then query: the fragment is the private form, the query is
+    // what survives a context that strips fragments.
+    param(key) {
+      const h = new URLSearchParams(location.hash.slice(1)).get(key);
+      return h || new URLSearchParams(location.search).get(key);
+    },
+
+    toggleNotes() {
+      if (!window.Annotate) return;
+      if (this.noting) { this.notes = window.Annotate.items; window.Annotate.disable(); }
+      else window.Annotate.enable({ subject: { title: this.env?.manifest?.name, url: location.href } });
+      this.noting = !this.noting;
+    },
+
+    async init() {
+      await window.__depsReady;
+      try {
+        const gz = this.param('gz');
+        const src = this.param('src');
+        if (gz) {
+          const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+          const ds = new DecompressionStream('gzip');
+          this.env = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
+        } else if (src) {
+          const [addr, ...rest] = src.split(':');
+          const [repo, ref] = addr.split('@');
+          this.env = JSON.parse((await new GH({ token: window.TOKEN, repo, ref: ref || '' }).get(rest.join(':'))).text);
+        } else {
+          this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
+        }
+        this.items = this.env?.items || [];
+      } catch (e) {
+        this.error = e.message;
+      }
+      this.loading = false;
+    },
+
+    async send(decision) {
+      this.sending = true;
+      try {
+        if (this.noting) this.toggleNotes();
+        const [repo, dir] = (this.ctx.reply_to || '').split(':');
+        const gh2 = new GH({ token: window.TOKEN, repo, ref: this.ctx.reply_ref || '' });
+        const path = `${dir ? dir.replace(/\/$/, '') + '/' : ''}${this.ctx.id}.verdict.json`;
+        // paths comes from the request, never from a field: the decision has to
+        // cover exactly what was shown, and a typed list is a second chance to
+        // get that wrong.
+        const body = {
+          id: this.ctx.id,
+          kind: this.ctx.kind,
+          decision,
+          decided_at: new Date().toISOString(),
+          paths: this.items.map(it => this.pathOf(it)),
+          notes: (window.Annotate?.items || []).map(n => ({
+            anchor: n.quote || n.address || '', note: n.note || '',
+          })),
+        };
+        const res = await gh2.save(path, body, `Approval ${decision}: ${this.ctx.id}`);
+        this.decision = decision;
+        this.sentPath = path;
+        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+      } catch (e) {
+        this.error = e.message;
+      }
+      this.sending = false;
+    },
+  }));
+});
+</script>
+</body>
+</html>

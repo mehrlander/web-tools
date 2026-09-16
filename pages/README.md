@@ -14,6 +14,7 @@ the link-dense text twin of the visual index above.
 | Page | Title | Links |
 |---|---|---|
 | `annotate` | Annotate | [view](https://mehrlander.github.io/web-tools/pages/annotate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/annotate.html) |
+| `approve` | Approve | [view](https://mehrlander.github.io/web-tools/pages/approve.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/approve.html) |
 | `audit-render` | Audit render | [view](https://mehrlander.github.io/web-tools/pages/audit-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html) |
 | `bench` | Bench | [view](https://mehrlander.github.io/web-tools/pages/bench.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/bench.html) |
 | `branch` | Branch | [view](https://mehrlander.github.io/web-tools/pages/branch.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/branch.html) |

@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-8 by a skill, 29 by a page or component. The remaining 26 are
+11 by a skill, 27 by a page or component. The remaining 27 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -80,6 +80,7 @@ marked *(orphan)* below: nothing points at them except this index.
 ## docs/envelopes/
 
 - [`README.md`](envelopes/README.md) *(orphan)* — the content-envelope family: members, shared grammar, and the sibling decision
+- [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 - [`chat-results.md`](envelopes/chat-results.md) — the chat-results envelope contract
 - [`data-view.md`](envelopes/data-view.md) *(orphan)* — the data-view envelope contract
 - [`shorter.md`](envelopes/shorter.md) — the shorter envelope contract: a document and a shortening to adjudicate
@@ -94,6 +95,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/envelopes/schemas/profiles/
 
+- [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 - [`branch-review-v1.schema.json`](envelopes/schemas/profiles/branch-review-v1.schema.json) *(orphan)* — the branch-review profile schema
 - [`inquiry-v1.schema.json`](envelopes/schemas/profiles/inquiry-v1.schema.json) *(orphan)* — the inquiry profile schema
 - [`stage-v1.schema.json`](envelopes/schemas/profiles/stage-v1.schema.json) *(orphan)* — the stage profile schema
