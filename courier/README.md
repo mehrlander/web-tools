@@ -51,6 +51,16 @@ other route here gets:
 | the errand list | [`errands.json`](errands.json) | per errand |
 | the errand script | `sites/<hostname>/courier/<id>.js` | per errand, then frozen when it closes |
 
+**The pointer carries no `?` and no character above ASCII, on purpose.** Chrome
+stores a `javascript:` bookmark as a parsed URL and percent-decodes it before
+running it, so an encoded bookmark still works. What it does is legible: the
+first `?` ends the opaque path and starts a query component, and every
+apostrophe after that point comes back as `%27`. The script runs either way and
+becomes unreadable in the bookmark editor. So the bootstrap read omits `ref` and
+takes the repository's default branch, which is `main`, and the two places that
+wanted a ternary use an `if` instead. `run.js` still names `main` explicitly for
+everything it reads after that, so only the first fetch is implicit.
+
 **The panel names what it is connected to**, in its header: `mehrlander/web-tools@main`,
 linked to this folder. That is a constant, not a setting. A courier you could
 aim at another repo is a courier somebody else can aim, and the trust story here
