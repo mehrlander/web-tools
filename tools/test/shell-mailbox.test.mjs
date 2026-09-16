@@ -1,5 +1,5 @@
 // processMailbox: the shell's side of the mailbox channel, and specifically the
-// guard that keeps an `ask` alive.
+// guard that keeps an `ask` alive, and with it any kind this loop cannot serve.
 //
 // The trap this exists to prevent is quiet and total. fulfill() returns a result
 // for an unsupported kind rather than throwing, and processMailbox writes every
@@ -7,7 +7,10 @@
 // pending means "no same-named result file exists". So an ask that reached
 // fulfill() would be closed by its own rejection on the very first page load,
 // with a result saying "unsupported kind: ask" and nothing on screen. The
-// channel would look implemented and deliver nothing.
+// channel would look implemented and deliver nothing. That is not hypothetical:
+// it happened to the first real ask on 2026-08-13, under a guard that knew only
+// `ask` by name. The guard is an allowlist now, so the case below covers the
+// kind nobody has added yet as well as the one that was eaten.
 //
 // The shell's app() lives inline in app/index.html, so this evaluates the plain
 // <script> block against stubs via the shared shell.mjs harness.
@@ -77,6 +80,18 @@ test('a malformed ask is skipped too, since the guard reads the kind not the ver
   await shell.processMailbox();
   assert.deepEqual(registry.saved, [],
     'a half-written ask must wait for a person, not be answered by its own rejection');
+});
+
+test('a kind the loop has never heard of is skipped, not closed by its rejection', async () => {
+  const registry = makeRegistry({
+    requests: { 'later.json': { id: 'later', kind: 'some-kind-invented-in-2027', repo: 'o/r' } },
+  });
+  const shell = shellWith(registry);
+  await shell.processMailbox();
+  assert.deepEqual(registry.saved, [],
+    'the guard is an allowlist, so a kind added to this channel later is left for '
+    + 'whoever can serve it rather than eaten on the first page load, which is what '
+    + 'happened to the first real ask on 2026-08-13 under a guard that knew only `ask`');
 });
 
 test('the read kinds still fulfil, so the guard did not switch the channel off', async () => {

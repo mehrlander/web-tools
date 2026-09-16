@@ -1,5 +1,6 @@
 // repo-mailbox.js — the read-only request/response channel. Run the IIFE
-// against a window stub, then check pending-detection, request validation, and
+// against a window stub, then check pending-detection, the servable allowlist,
+// request validation, and
 // fulfillment of each kind against a stub GH (tree/branches/fetch), including
 // per-file error isolation on fetch and network-error capture.
 
@@ -82,6 +83,19 @@ test('fulfill captures a bad request without touching the network', async () => 
 // be answered by its own rejection), and it must be closable with a message in
 // both directions, because "no, and here is why" is a served request rather
 // than a failure.
+
+test('servable is an allowlist, so an unknown kind is left alone rather than eaten', () => {
+  for (const k of M.KINDS) assert.equal(M.servable({ kind: k, repo: 'o/r' }), true, k);
+  // The case the guard exists for. An ask is not servable, and neither is a
+  // kind nobody has invented yet: fulfill() answers both with a rejection, and
+  // writing a rejection is what closes a request for good. The first real ask
+  // was closed this way on 2026-08-13, by a loop that knew only to skip `ask`.
+  assert.equal(M.servable({ kind: 'ask', note: 'x', dest: 'o/r:d' }), false);
+  assert.equal(M.servable({ kind: 'some-kind-invented-in-2027' }), false);
+  assert.equal(M.servable({}), false);
+  assert.equal(M.servable(null), false);
+  assert.equal(M.servable('tree'), false);
+});
 
 test('isAsk keys on the record, not on whether it validates', () => {
   assert.equal(M.isAsk({ kind: 'ask', note: 'x', dest: 'o/r:d' }), true);
