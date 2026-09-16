@@ -2277,11 +2277,17 @@ function app(){ return {
     if (url && url.window) this.branchWindow = url.window;
     await this.ensureBrowser(url?.repo, url?.ref);
     try { await this.routeFromUrl(url); } finally { this._routedResolve(); }
-    const staged = window.StageLink ? window.StageLink.read(location).items : [];
-    if (staged.length) {
-      Alpine.store('browser').stage = staged;
-      this.goStage();
-    }
+    const link = window.StageLink ? window.StageLink.read(location) : null;
+    const staged = link ? link.items : [];
+    if (staged.length) Alpine.store('browser').stage = staged;
+    // A `gz` payload is local text carried in the fragment, and gzip decoding is
+    // asynchronous, so `read` hands back the raw payload and the stage component
+    // resolves it once it mounts. The route cannot wait for that, so the mere
+    // PRESENCE of a payload is what says this link is bound for the stage.
+    // Without this line a link that is nothing but a paste opened on the estate
+    // while its file appeared, correctly, in a view the reader was not looking
+    // at. Found by the courier, which mints exactly that link.
+    if (staged.length || (link && link.gz)) this.goStage();
     // A bare open (no repo, file, view, or stage addressed) lands on the
     // estate: the all-repo view is the page's front door.
     else if (!url) this.goDashboard();
