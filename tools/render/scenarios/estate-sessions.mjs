@@ -43,6 +43,10 @@
 //              to shoot the note: it is opened by a pointer, not by a class.
 //   MARKTAP=1  taps that mark instead, so the shot is where the tap landed:
 //              the strip's session scrolled under the lane and ringed.
+//   ROWMARK=<n> hovers the nth tick (1-based) on the FIRST row's own rail
+//              instead, which is the link running the other way: the row tick
+//              and the strip mark above it light together, because both carry
+//              the same data-tick column and one rule matches both.
 
 const SESSIONS = [
   {
@@ -678,6 +682,28 @@ export default async function (page) {
   // because the thing under test is the resolution from a pointer position to
   // the nearest mark, and a call that hands the component a mark has already
   // done the only part that can be wrong.
+  // ROWMARK hovers a tick on the first row's rail. Same real-pointer argument
+  // as MARK: what is under test is the resolution from a position to a tick and
+  // then to its column, and a call that hands the component a tick has skipped
+  // both steps.
+  if (process.env.ROWMARK) {
+    const at = await page.evaluate((i) => {
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      const card = document.querySelector('[data-session-node]');
+      const tick = card?.querySelector('[data-tick]');
+      if (!tick) return null;
+      const b = tick.parentElement.getBoundingClientRect();
+      const row = st.sessionNodes.find((n) => n.key === card.dataset.sessionNode)?.row;
+      const ticks = st.sessionRailTicks(row);
+      const p = ticks[Math.min(ticks.length - 1, Math.max(0, i - 1))];
+      return p === undefined ? null : { x: b.left + (b.width * p) / 100, y: b.top + b.height / 2 };
+    }, +process.env.ROWMARK);
+    if (at) {
+      await page.mouse.move(at.x, at.y);
+      await page.waitForTimeout(400);
+    }
+  }
+
   if (process.env.MARK || process.env.MARKTAP) {
     const strip = await page.$('[data-session-lane] [role="group"]');
     const box = strip && await strip.boundingBox();

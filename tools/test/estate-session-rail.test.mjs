@@ -311,3 +311,63 @@ test('the keyboard walks the same marks the pointer resolves to', () => {
   data.railStep(-1);
   assert.equal(data.railHover.k, strip[0].k, 'the ends hold rather than wrapping');
 });
+
+// ── THE LINK BETWEEN THE TWO LANES ────────────────────────────────────────
+//
+// Hovering either lane lights one COLUMN in both. That rests on a single
+// claim: a tick a row draws and the strip mark above it are in the same
+// column, always. It holds by construction, since the strip sums these rows
+// under this window with this drop rule, but "by construction" is exactly the
+// kind of claim that stops being true when one side grows a second copy of
+// railBin. These tests are that guard.
+
+test('a row tick and the strip mark above it are the same column', () => {
+  const rows = [liveRow(12, 2, [0, 47, 181, 362]), { ...liveRow(9, 1, [0, 33]), id: 'b' }];
+  listRows('day', rows);
+  const columns = new Set(plain(data.sessionRailAll).map((m) => m.k));
+  for (const r of rows)
+    for (const p of plain(data.sessionRailTicks(r)))
+      assert.ok(columns.has(data.railBin(p)),
+        `the tick at ${p}% has a mark in column ${data.railBin(p)}`);
+});
+
+test('a column is one function, so neither lane can round differently', () => {
+  scope('week');
+  // The ends, where an off-by-one in either direction would show first.
+  assert.equal(data.railBin(0), 0, 'the left edge is the first column');
+  assert.equal(data.railBin(100), 239, 'and now is the last, not one past it');
+  assert.equal(data.railBin(-1), 0, 'a percent below the span clamps in');
+  assert.equal(data.railBin(101), 239, 'and one above it clamps in too');
+  // Two turns inside one column resolve alike, which is what makes them one mark.
+  assert.equal(data.railBin(50), data.railBin(50.4), 'a column is 1/240 wide');
+  assert.notEqual(data.railBin(50), data.railBin(50.5), 'and no wider than that');
+});
+
+test('hovering a row rail lights the column, without opening the strip note', () => {
+  listRows('day', [liveRow(12, 2, [0, 360])]);
+  const row = liveRow(12, 2, [0, 360]);
+  const ticks = plain(data.sessionRailTicks(row));
+  // A fake pointer event: the two fields railPct reads, and a box 100 wide
+  // starting at 0, so clientX IS the percent. jsdom lays nothing out, so a real
+  // element would report a zero-width box and the handler would bail.
+  const over = (pct) => ({ clientX: pct, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) } });
+  data.railHover = null;
+  data.rowRailTrack(over(ticks[1]), row);
+  assert.equal(data.railHover.k, data.railBin(ticks[1]),
+    'the hover settles on the column the nearest tick is in');
+  // Nearest, not exact: a pointer between two ticks takes the closer one.
+  data.rowRailTrack(over((ticks[0] + ticks[1]) / 2 - 1), row);
+  assert.equal(data.railHover.k, data.railBin(ticks[0]), 'just left of the midpoint takes the left tick');
+  // And the strip's own handler lands on the same column from the same x.
+  data.railHover = null;
+  data.railTrack(over(ticks[1]));
+  assert.equal(data.railHover.k, data.railBin(ticks[1]), 'both lanes resolve one x alike');
+});
+
+test('a row with no turn times has no tick to hover, and nothing is invented', () => {
+  listRows('week', [liveRow(20, 4)]);
+  const over = { clientX: 50, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) } };
+  data.railHover = null;
+  data.rowRailTrack(over, liveRow(20, 4));
+  assert.equal(data.railHover, null, 'no ticks, no column, no hover');
+});
