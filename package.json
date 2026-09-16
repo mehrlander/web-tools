@@ -79,6 +79,7 @@
     "tests-index": "node tools/build/tests-index.mjs",
     "kits-index": "node tools/build/kits-index.mjs",
     "test:shortcut-log": "node tools/test/shortcut-log-page.mjs",
+    "test:shortcuts-page": "node tools/test/shortcuts-page.mjs",
     "test:bench-page": "node tools/test/bench-page.mjs",
     "test:playground": "node tools/test/playground-pass.mjs",
     "tools-index": "node tools/build/tools-index.mjs",
