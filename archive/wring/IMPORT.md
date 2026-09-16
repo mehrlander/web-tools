@@ -6,7 +6,8 @@ at commit `23114dc` (main; the repo was never tagged) on 2026-06-10.
 This directory is a complete snapshot of the wring repository: the source
 modules, the six-harness test suite, the CLI drivers, the original browser
 demos, and the research record (`docs/research/`, `docs/history/`,
-`docs/concepts/`). Files are byte-for-byte copies of the upstream sources.
+`docs/concepts/`). Files are byte-for-byte copies of the upstream
+sources, with one added directory noted below.
 
 To recreate the snapshot:
 
@@ -14,6 +15,18 @@ To recreate the snapshot:
 curl -sSL https://codeload.github.com/mehrlander/wring/tar.gz/23114dca52677fdff9c58dd4ad17377c9b34eb9f | tar xz
 mv Wring-*/ archive/wring/   # then drop this IMPORT.md in
 ```
+
+## What was added to the snapshot (not from upstream)
+
+One directory is **not** an upstream file and is the single exception to the
+byte-for-byte claim above: [`docs/research/from-archive/`](docs/research/from-archive/README.md),
+added 2026-09-16. It holds complete copies of the five Gemini research reports,
+assembled from this snapshot's own copies plus the canvas renders preserved in
+the private `mehrlander/chat-histories` archive, because neither copy carries
+both the citation markers and the source list. A sixth report that was never
+committed here is recovered alongside them. Nothing under `docs/research/0N-*/`
+was touched, so the recreate recipe above still reproduces every upstream file
+exactly; it simply does not produce that one folder.
 
 ## What was ported out of the snapshot (the live copies)
 

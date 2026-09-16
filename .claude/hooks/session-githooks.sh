@@ -15,6 +15,21 @@
 # Nothing here depends on ordering against the sibling session scripts, which
 # the dispatcher runs in parallel.
 #
+# The second line registers a MERGE DRIVER, and it is here for the same reason
+# as the first: git config is not cloned, so an attribute in .gitattributes
+# naming a driver git has never heard of is inert. scripts/derived-csv-merge.mjs
+# resolves this repo's registry CSVs by reading docs/properties.csv for which
+# columns a deriver owns, instead of conflicting on a number no human wrote.
+# What that buys is not the two minutes of resolution: a conflicted pull request
+# has no merge ref, so no CI run starts and the head sits at zero checks with
+# nothing saying why (docs/SNAGS.md, ci-run-silently-not-started, six sightings).
+# Without this line the attributes do nothing and a conflict behaves as before.
+#
 # Never fails the session: all errors are swallowed, always exits 0.
-git -C "${CLAUDE_PROJECT_DIR:-.}" config core.hooksPath .githooks >/dev/null 2>&1 || true
+DIR="${CLAUDE_PROJECT_DIR:-.}"
+git -C "$DIR" config core.hooksPath .githooks >/dev/null 2>&1 || true
+git -C "$DIR" config merge.derived-csv.name \
+  "registry CSVs: union the rows, let the deriver own its own columns" >/dev/null 2>&1 || true
+git -C "$DIR" config merge.derived-csv.driver \
+  "node scripts/derived-csv-merge.mjs %O %A %B %P" >/dev/null 2>&1 || true
 exit 0

@@ -15,7 +15,7 @@
 // `path` so consumers written against the split still read.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from '../test/bootstrap.mjs';
+import { repoRoot } from '../repo-root.mjs';   // not the test bootstrap: that one needs jsdom
 
 // Comma-separated, double-quote quoting with "" escapes, one record per line.
 // The registries' prose is single-line by construction, which is what lets the
