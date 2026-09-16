@@ -74,8 +74,8 @@ So there are three shapes, and the payload picks which.
 | 📲 [NEW: Double-BackTap](shortcuts://run-shortcut?name=Library-Import&input=text&text=…) |
 | --- |
 | *Says* `double-back` *to the router, nothing else.* |
-| 🧩 [Chain page](https://mehrlander.github.io/web-tools/pages/shortcuts.html?name=Double-BackTap) |
 | `⁰ │ text "double-back"`<br>`¹ │ run Route-Gesture ← «0»` |
+| ⚡[`/workflows/double-backtap.json`](https://mehrlander.github.io/web-tools/pages/shortcuts.html?name=Double-BackTap) |
 
 ### Names: the sequence card
 
@@ -139,18 +139,37 @@ a payload that omits part of the payload is the failure this format exists to
 prevent, and the day it matters is the day a probe has no `Log-Repo` and nothing
 says so.
 
-**The chain page appears on the install card and nowhere else.**
-`pages/shortcuts.html?name=<Name>` shows a chain's actions, what it calls, what
-calls it, and whether the phone is carrying this build. That is what you want
-before taking something on permanently, and it is not what you want while
-running a shortcut you already have: a step in a sequence is on the phone
-already, and turning its name into a link invites reading where the card was
-meant to remove reading. So the page gets a row of its own on the install card,
-above the listing, and a step in a sequence card is a plain name. A chain this
-repo does not hold has no page at all, `Open-URL` and `Fav-Settings` among them,
-which is a second reason not to make step names links: half of them could not be
-one, and a list where some names are tappable and some are not reads as an
-error.
+**The last row is the file, and only an install card has one.** The form is
+`⚡` with no space, then the repo-relative path in a code span, linking to
+`pages/shortcuts.html?name=<Name>`. Every part of that was chosen against
+something else:
+
+- **`⚡` is the shortcuts library's own mark**, not a decoration and not a verb.
+  📲 means a tap that reaches the device; this row reaches a page, so it cannot
+  carry the same glyph. An earlier 🧩 with the words "Chain page" was tried and
+  refused: the glyph meant nothing and the label named a thing by a term the
+  reader does not use.
+- **The path is the label**, because the name is already in the header and a
+  second copy of it says nothing. It is a code span so it sets in monospace,
+  which is what marks it as a file rather than as prose.
+- **The leading slash stays**, since a bare `workflows/…` could be any depth and
+  the card offers no other context. The repo name and the owner do not appear:
+  the slash is the repo root, and once an owner is at the front the slash has to
+  go, which trades a character you can read at a glance for two words you
+  already know.
+- **The destination is the page, not the blob.** The path is the file's
+  identity; the page is where its actions, its callers and its build state can
+  be seen at once. A blob shows one file and answers none of that.
+
+It is the **last** row because the payload ends the card, and the file is a
+destination rather than part of the payload.
+
+**A sequence card has no such row**, and a step name is never a link. A step is a
+shortcut already on the phone, so a link invites reading where the card exists to
+remove it, and half these names could not carry one anyway: a step can be a
+shortcut this repo holds no file for, `Open-URL` and `Fav-Settings` among them. A
+list where some names are tappable and some are not reads as an error rather than
+as a distinction.
 
 **The argument goes in the header when it is short** and drops to a gutter row
 when it is not, which carries both a one-word input and a 52-name payload without
