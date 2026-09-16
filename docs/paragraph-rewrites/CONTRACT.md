@@ -136,9 +136,9 @@ Prefer split `proposals.jsonl` so runners only append.
 
 ---
 
-## Future shapes (not active — do not implement unless Mark asks)
+## Future concepts
 
-Two related expansions are on the table. They share one rule and diverge in storage theater.
+Two related expansions. They share one rule and diverge in storage theater.
 
 ### Shared rule: full replacement of the same trunk
 
@@ -179,4 +179,4 @@ Treat each indexed chunk as its **own file**, whose content *is* the original tr
 | You want minimal ceremony | You want per-proposal isolation and commit narratives |
 | Index lives beside docs as data | You want a dedicated “revision vault” repo or tree |
 
-Until Mark says otherwise: **run the active simple model** (paragraph scan + append-only proposals). Treat A and B as documented options, not work to start.
+Active model remains paragraph scan + append-only proposals. A and B are future concepts.
