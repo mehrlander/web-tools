@@ -338,6 +338,12 @@ html.dk-dragging main{transition:none !important}
   <div class="alert text-base gap-2" :class="t.cls">
     <i class="ph" :class="'ph-'+t.icon"></i>
     <span x-text="t.msg"></span>
+    <!-- At most one action, and it takes the toast away with it. The Lists
+         view's undo is the only caller so far; see the toast store for why a
+         reversal lives here rather than on the row it undoes. -->
+    <button x-show="t.action" @click="t.action.run()"
+            class="btn btn-ghost btn-xs gap-1 shrink-0">
+      <i class="ph ph-arrow-counter-clockwise"></i><span x-text="t.action?.label"></span></button>
   </div>
   </template>
 </div>

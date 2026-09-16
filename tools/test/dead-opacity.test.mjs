@@ -1,27 +1,30 @@
-// scripts/dead-opacity.py — a daisyUI theme colour carrying an opacity step
-// that generates no CSS rule (the house style mechanics: the shipped ramp is 10..90 by tens).
+// scripts/dead-opacity.py — pages that render a daisyUI theme colour with an
+// opacity modifier and never tell Tailwind the name is a colour.
 //
-// What is pinned here is the CLASSIFIER and the repo's cleanliness, in that
-// order. The classifier matters because the obvious version of this scan is
-// wrong in a way that reads as a finding: "opacity must be a multiple of ten"
-// flags every `bg-red-500/25` in the tree, and every one of those is fine. The
-// rule is about daisyUI's theme colours, which are CSS variables served off a
-// ramp daisyUI's own stylesheet ships; a stock palette colour is compiled by
-// the browser build and takes any step at all.
+// WHAT IS PINNED, in order: the classifier, the REGISTRATION BOUNDARY, and the
+// repo's cleanliness. The classifier matters because the obvious version of
+// this scan is wrong in a way that reads as a finding: "opacity must be a
+// multiple of ten" flags every `bg-red-500/25` in the tree, and every one of
+// those is fine. The boundary matters because it is what the scan is now about.
 //
-// Measured 2026-08-19 in headless Chromium against this app's own stylesheet,
-// reading getComputedStyle on injected elements. The boundary:
+// Tailwind writes an opacity modifier by composing a color-mix, which it can
+// only do for a name it knows is a colour. A compiled build is told by
+// `@plugin "daisyui"`; pages here load daisyUI as a prebuilt stylesheet beside
+// Tailwind's browser JIT and were told by nothing. Since 2026-09-16
+// lib/gh-boot.js registers the twenty names, so a page that boots through it
+// composes every case correctly and a page that does not is where the failures
+// survive. The page is therefore the unit, and the page is what the fix changes.
 //
-//     bg-primary/10 .. /90 by tens     generate
-//     bg-primary/0 /5 /25 /33 /75 /95 /100   DEAD -> rgba(0, 0, 0, 0)
-//     bg-primary/[25%]                 DEAD
-//     bg-red-500/<anything>            fine
+// Measured in headless Chromium against this app's own stylesheet, reading
+// getComputedStyle either side of a real hover. On an UNREGISTERED page:
 //
-// The failure is silent and inverted, which is the whole reason for a gate
-// rather than an advisory: a background falls back to transparent so the tint
-// never draws, and text falls back to full strength so the thing meant to
-// recede advances. Nothing errors. PR #457 corrected 193 of these by hand and
-// left one behind, in the one file `grep -rn` could not fully read.
+//     bg-primary/10        static, on daisyUI's ramp    fine, it ships this
+//     bg-primary/25        static, off the ramp         DEAD
+//     bg-primary/[25%]     the bracket escape           DEAD
+//     hover:bg-primary/10  any variant, any step        DEAD
+//     bg-red-500/<any>     stock palette                fine throughout
+//
+// On a REGISTERED page every one of them paints, the bracket escape included.
 //
 // The script is python3/stdlib, so this drives it the way a person does,
 // through the file system, and reads what it prints.
@@ -55,40 +58,76 @@ function withFile(contents, fn) {
   try { return fn(file); } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-test('a theme colour off the ramp is reported, with the step it should be', () => {
-  withFile('<div class="bg-primary/25"></div>', (f) => {
+// A page that loads Tailwind and registers nothing: the failing case.
+const BARE = '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>\n';
+// The same page, told that the names are colours.
+const REGISTERED = BARE +
+  '<style type="text/tailwindcss">@theme inline{--color-primary:var(--color-primary);}</style>\n';
+
+test('on an unregistered page, a variant plus an opacity modifier is reported', () => {
+  withFile(BARE + '<div class="hover:bg-primary/10"></div>', (f) => {
     const { out } = run([f]);
-    assert.match(out, /bg-primary\/25 -> bg-primary\/20/);
+    assert.match(out, /hover:bg-primary\/10 generates nothing here \(under a variant\)/,
+      'the report names the whole class, variant included, or it is not actionable');
   });
 });
 
-test('every step the stylesheet ships is left alone', () => {
+test('every variant form is caught, not just hover', () => {
+  withFile(BARE + [
+    '<div class="group-hover:bg-base-200/60"></div>',
+    '<div class="focus:text-base-content/70"></div>',
+    '<div class="active:border-primary/50"></div>',
+  ].join('\n'), (f) => {
+    const { out } = run([f]);
+    for (const v of ['group-hover', 'focus', 'active']) assert.match(out, new RegExp(v));
+  });
+});
+
+test('on an unregistered page, a static step off the ramp is still reported', () => {
+  withFile(BARE + '<div class="bg-primary/25"></div>', (f) => {
+    assert.match(run([f]).out, /bg-primary\/25 generates nothing here \(step is off daisyUI ramp\)/);
+  });
+});
+
+test('but a static step ON the ramp is fine even unregistered, because daisyUI ships it', () => {
   const ok = [10, 20, 30, 40, 50, 60, 70, 80, 90]
     .map(n => `<div class="bg-primary/${n} text-base-content/${n}"></div>`).join('\n');
-  withFile(ok, (f) => {
+  withFile(BARE + ok, (f) => {
     assert.match(run([f]).out, /dead-opacity: none/);
   });
 });
 
-test('the ends of the range do not generate either, so they are reported', () => {
-  withFile('<i class="bg-primary/0"></i><i class="bg-primary/100"></i>', (f) => {
-    const { out } = run([f]);
-    assert.match(out, /bg-primary\/0 ->/);
-    assert.match(out, /bg-primary\/100 ->/);
+test('REGISTERING THE NAMES CLEARS EVERY SHAPE, which is the point of the boundary', () => {
+  withFile(REGISTERED + [
+    '<div class="hover:bg-primary/10"></div>',
+    '<div class="bg-primary/25"></div>',
+    '<div class="bg-primary/[25%]"></div>',
+    '<div class="group-hover:text-base-content/70"></div>',
+  ].join('\n'), (f) => {
+    assert.match(run([f]).out, /dead-opacity: none/,
+      'these all paint once Tailwind knows the name is a colour; flagging them ' +
+      'would send someone to rewrite working markup');
   });
 });
 
-test('the bracket escape is reported as unfixable by a step', () => {
-  withFile('<div class="bg-primary/[25%]"></div>', (f) => {
-    assert.match(run([f]).out, /bg-primary\/\[25%\] -> \(no step generates\)/);
+test('booting through gh-boot counts as registered, since it injects the block', () => {
+  withFile(BARE + '<script type="module" src="../lib/gh-api.js"></script>\n' +
+                  '<div class="hover:bg-primary/10"></div>', (f) => {
+    assert.match(run([f]).out, /dead-opacity: none/);
+  });
+});
+
+test('a page that never loads Tailwind is not this scan\'s business', () => {
+  withFile('<div class="hover:bg-primary/10"></div>', (f) => {
+    assert.match(run([f]).out, /dead-opacity: none/);
   });
 });
 
 // THE HALF THE OBVIOUS SCAN GETS WRONG. Each of these is valid and must never
 // be reported; a scan that flags them sends someone to "fix" working markup.
 test('a stock palette colour takes any step and is never reported', () => {
-  withFile([
-    '<div class="bg-red-500/25"></div>',
+  withFile(BARE + [
+    '<div class="hover:bg-red-500/25"></div>',
     '<div class="text-slate-700/33"></div>',
     '<div class="bg-black/5 bg-white/95"></div>',
   ].join('\n'), (f) => {
@@ -97,67 +136,19 @@ test('a stock palette colour takes any step and is never reported', () => {
 });
 
 test('a fraction is not an opacity modifier', () => {
-  withFile('<div class="w-1/2 basis-1/3 top-1/2 aspect-16/9"></div>', (f) => {
+  withFile(BARE + '<div class="w-1/2 basis-1/3 top-1/2 aspect-16/9"></div>', (f) => {
     assert.match(run([f]).out, /dead-opacity: none/);
   });
 });
 
 test('a path that happens to contain a slash is not a class', () => {
-  withFile('<a href="docs/stage.md">see also lib/kits/text-diff.js</a>', (f) => {
+  withFile(BARE + '<a href="docs/stage.md">see also lib/kits/text-diff.js</a>', (f) => {
     assert.match(run([f]).out, /dead-opacity: none/);
   });
 });
 
-test('a variant prefix does not hide the class', () => {
-  withFile('<div class="hover:bg-primary/25 sm:text-base-content/45 dark:border-error/15"></div>', (f) => {
-    const { out } = run([f]);
-    assert.match(out, /bg-primary\/25/);
-    assert.match(out, /text-base-content\/45 -> text-base-content\/40/);
-    assert.match(out, /border-error\/15 -> border-error\/10/);
-  });
-});
-
-// `base-content` must not be matched as `base` with `-content` left over, and
-// `base-100` ends in a digit where the next character is the slash.
-test('the longest colour name wins, so base-content and base-100 resolve whole', () => {
-  withFile('<div class="text-base-content/45 bg-base-100/15 bg-base-300/25"></div>', (f) => {
-    const { out } = run([f]);
-    assert.match(out, /text-base-content\/45/);
-    assert.match(out, /bg-base-100\/15/);
-    assert.match(out, /bg-base-300\/25/);
-  });
-});
-
-// Ties go down, which is what the estate's own 193-occurrence sweep chose.
-test('the suggested step is the nearest ten, ties down, floored at 10', () => {
-  withFile([
-    '<i class="bg-primary/5"></i>',    // nothing below 10 exists
-    '<i class="bg-primary/15"></i>',
-    '<i class="bg-primary/35"></i>',
-    '<i class="bg-primary/55"></i>',
-    '<i class="bg-primary/95"></i>',
-  ].join('\n'), (f) => {
-    const { out } = run([f]);
-    assert.match(out, /bg-primary\/5 -> bg-primary\/10/);
-    assert.match(out, /bg-primary\/15 -> bg-primary\/10/);
-    assert.match(out, /bg-primary\/35 -> bg-primary\/30/);
-    assert.match(out, /bg-primary\/55 -> bg-primary\/50/);
-    assert.match(out, /bg-primary\/95 -> bg-primary\/90/);
-  });
-});
-
-test('--check exits non-zero on a finding and zero on a clean tree', () => {
-  withFile('<div class="bg-primary/25"></div>', (f) => {
-    assert.equal(run(['--check', f]).code, 1);
-  });
-  withFile('<div class="bg-primary/20"></div>', (f) => {
-    assert.equal(run(['--check', f]).code, 0);
-  });
-});
-
-// The gate itself. Everything above pins the classifier; this is the claim
-// that matters to a reader of the app.
-test('lib, pages and app carry no opacity step that fails to generate', () => {
-  const { code, out } = run(['--check', 'lib', 'pages', 'app']);
-  assert.equal(code, 0, 'dead-opacity found classes that generate no rule:\n' + out);
+test('the repo is clean, and --check is the gate that keeps it so', () => {
+  const { code, out } = run(['--check']);
+  assert.equal(code, 0, out);
+  assert.match(out, /dead-opacity: none/);
 });

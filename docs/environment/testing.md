@@ -283,6 +283,34 @@ it.
   no `exports` map, CJS interop double-wraps the default export, and the
   symptom is `Alpine.start is not a function`.
 
+## x-show hides on a tick and shows on a frame (2026-09-15)
+
+`Alpine.nextTick()` is not enough to witness an element coming back. Alpine's
+`x-show` is asymmetric: hiding writes `display: none` as the reactive queue
+flushes, while showing runs through `toggleAndCascadeWithTransitions`, which
+defers the restore to `requestAnimationFrame`. Under jsdom that frame lands on
+a timer turn `nextTick` has already returned from.
+
+The symptom is a test that passes on every hide and fails on every show, with
+the element still carrying `style="display: none"` and the expression itself
+evaluating true. That reads exactly like a dead reactive effect, which is the
+wrong repair: `Alpine.evaluate(el, '<the x-show expression>')` returning the
+right answer while the element stays hidden is the tell that the effect ran and
+the frame did not.
+
+Await a frame as well:
+
+```js
+const settle = async () => { await Alpine.nextTick(); await new Promise(r => setTimeout(r, 30)); };
+```
+
+`bootstrap.mjs` already installs `global.requestAnimationFrame`, so nothing is
+missing; the callback simply has not run yet. Both directions land within a
+frame in real Chromium, so a failure here is the harness reporting on itself
+rather than a defect in the page. Found while testing the Lists view's in-place
+editing (`tools/test/estate-list-edit.test.mjs`), and confirmed in Chromium
+before the tests were changed.
+
 ## Fallback: driving Chromium directly
 
 For HTML that isn't a repo page (a scratch file, a `data:` URL, a non-gh.load
