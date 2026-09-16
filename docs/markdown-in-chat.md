@@ -144,7 +144,20 @@ carries. The first two are the ones that changed the design.
 | an inline code span gets **no background tint** here | monospace alone is a quiet signal; most renderers give code a grey pill and this one does not |
 | this client **italicises a code span** | split the italic around an identifier, or it comes out slanted monospace |
 | **bold nests with a code span** | `**`+span+`**` renders bold monospace, available but rarely needed |
-| superscript digits keep their shape **outside** a code span | an index can be small and raised; inside a span it flattens to monospace |
+| superscript digits render raised **inside or outside** a code span | an index can be small and raised either way; what differs is spacing, not shape |
+
+**Put the index inside the span, with the gutter.** Outside, the digit is
+proportional body type and the space before the backtick is a proportional
+space, so the gutter column drifts row to row and steps sideways the moment an
+index needs two characters. Inside, both are monospace and right-aligning the
+index holds the column at any width.
+
+**Wrong 2026-09-15 → the row above:** this table first read that superscript
+"keeps its shape outside a code span and flattens inside one". The screenshots
+it was drawn from show the digits raised and the same size in both, so the claim
+was a generalisation from one glance, and the real difference is spacing and
+alignment. Caught by the reader comparing a generated listing against the
+hand-typed ones that preceded it.
 
 **Superscript has a hazard worth knowing even though it did not bite here.**
 `¹ ² ³` come from Latin-1 Supplement and `⁰ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹` from the Superscripts
