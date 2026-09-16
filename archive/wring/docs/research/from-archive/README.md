@@ -10,7 +10,7 @@ snapshot they always were.
 No copy of a Gemini report in this estate is complete on its own, and the two
 halves are complementary rather than redundant.
 
-| | `../0N-*/gemini-report.md` (this repo) | The chat archive's copy |
+| | `../0N-*/gemini-report.md` (this repo) | The canvas source in the export |
 | --- | --- | --- |
 | Body prose | yes | yes |
 | Headings, bold, tables | flattened | yes |
@@ -19,12 +19,20 @@ halves are complementary rather than redundant.
 | Numbered source list | **yes, 29 to 52 entries** | **absent** |
 
 The committed copy was made by pasting a Gemini Canvas build into a file, which
-kept the bibliography and flattened everything else. The archive's copy is the
-canvas as it was rendered into the conversation stream, which kept the structure
-and never had a bibliography: Google Takeout exports no canvas content at all,
-and the on-screen render shows a canvas document without its sources. So the
-five files here are the two halves joined, and 187 cited sources become
-resolvable rather than sitting under prose that no longer points at them.
+kept the bibliography and flattened everything else. The other copy is the
+canvas document's **own Markdown source**, which Google Takeout does export:
+every `Created Gemini Canvas titled …` activity record carries it in
+`subtitles[0].name`, and the private `mehrlander/chat-histories` archive renders
+that field inline in its conversation files byte-identically. It kept the
+structure, the math and the markers, and it has no bibliography: for all five,
+`Works cited` is absent, there are zero `http` occurrences, and the `[n]`
+markers sit there with nothing to resolve against. So the missing sources are
+not a Takeout gap and not a rendering artifact. The canvas document as stored
+simply ends without them, and the paste is the only surviving copy of the
+bibliographies.
+
+Joining the two makes 187 cited sources resolvable rather than leaving them
+under prose that no longer points at them.
 
 ## What is here
 
@@ -38,10 +46,16 @@ resolvable rather than sitting under prose that no longer points at them.
 ## Provenance
 
 All five canvas builds come from one Gemini session, `gemini-session/177`, on
-2025-12-20, preserved in `mehrlander/chat-histories` at
-`2026-06-01-gemini-export/conversations/2025-12/0376-2025-12-20-discuss-how-we-could-use-an-arrow-function-and-template-lite.md`.
-The canvas catalog in that snapshot lists the same five titles and no content,
-which is why the conversation render is the only copy.
+2025-12-20. The source of record is the export's activity log,
+`2026-06-01-gemini-export/activity/2025-12.json`, five `Created Gemini Canvas
+titled …` records between 20:54 and 21:29 UTC. This script reads them through
+the snapshot's conversation render,
+`2026-06-01-gemini-export/conversations/2025-12/0376-2025-12-20-discuss-how-we-could-use-an-arrow-function-and-template-lite.md`,
+which is byte-identical to the activity field for all five (24,835, 25,743,
+23,303, 28,385 and 32,999 characters). That snapshot's canvas catalog is
+title-only and says the content is not exported at all, which is wrong and is
+marked `Wrong` there as of 2026-09-16, with the measurements in its
+`canvas/content-2026-09-16.md`.
 
 | Report | Canvas title, and time (UTC) | ChatGPT counterpart, same day |
 | --- | --- | --- |

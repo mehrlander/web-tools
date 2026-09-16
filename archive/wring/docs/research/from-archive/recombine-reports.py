@@ -4,13 +4,18 @@
 Neither copy of a report in this estate is complete. The five committed
 `../0N-*/gemini-report.md` files were made by pasting a Gemini Canvas build
 into a file, which kept the numbered source list and lost the inline `[n]`
-markers, the heading structure and every display-math block. The copy in the
-private `mehrlander/chat-histories` archive is the canvas as it was rendered
-into the conversation stream, which kept all of that and never had a
-bibliography, because Google Takeout does not export canvas content and the
-on-screen render shows a canvas document without its sources.
+markers, the heading structure and every display-math block. The other copy is
+the canvas document's own Markdown source, which Google Takeout does export:
+every `Created Gemini Canvas titled …` activity record carries it in
+`subtitles[0].name`, and the private `mehrlander/chat-histories` archive renders
+it inline in its conversation files byte-identically (checked on all five:
+24,835, 25,743, 23,303, 28,385 and 32,999 characters). That source kept the
+structure, the math and the markers, and it has no bibliography: no `Works
+cited`, no URLs, and inline `[n]` markers with nothing to resolve against. The
+source list therefore survives only in the paste, and the body only in the
+export.
 
-This script joins the two: canvas body plus committed source list.
+This script joins the two: canvas source plus committed source list.
 
 It needs the private archive checked out as a sibling of this repo, so it
 cannot run for a public reader. The generated files are therefore the durable
@@ -125,10 +130,15 @@ def note(folder, time, bib, unresolved):
     """The provenance block inserted under each report's own title."""
     lines = [
         "> **Assembled from two partial copies, neither of them complete.**",
-        "> Body, headings, display math and the inline `[n]` markers are the",
-        f"> Gemini Canvas build of 2025-12-20 {time} UTC, preserved in the"
-        " private",
-        f"> `mehrlander/chat-histories` archive (`{SNAPSHOT}`, `{SESSION}`).",
+        "> Body, headings, display math and the inline `[n]` markers are the"
+        " Gemini",
+        f"> Canvas document's own Markdown source, built 2025-12-20 {time} UTC"
+        " and",
+        "> exported by Takeout in its activity record's `subtitles[0].name`,"
+        " read here",
+        f"> from the private `mehrlander/chat-histories` archive (`{SNAPSHOT}`,"
+        f" `{SESSION}`),",
+        "> whose conversation render of it is byte-identical to that field.",
         f"> The {len(bib)} sources under Works cited come from this repo's own",
         f"> [`../{folder}/gemini-report.md`](../{folder}/gemini-report.md),"
         " which kept",
@@ -220,11 +230,16 @@ def deep_research_report():
         "> whose activity record holds the finished report in full:",
         f"> {src}",
         ">",
-        "> Unlike a Canvas build, a Deep Research record carries its own source"
-        " list, so",
-        "> this copy is complete as exported. Two edits: the `## Works cited`"
-        " heading",
-        f"> above that list, and its {n} entries turned into Markdown links.",
+        "> A Deep Research record and a Canvas record arrive in opposite"
+        " formats, which",
+        "> is why this one needed no repair: Takeout exported it as HTML in the"
+        " activity",
+        "> record's `safeHtmlItem`, carrying its own source list, where a Canvas"
+        " arrives as",
+        "> Markdown in `subtitles` carrying no sources at all. Two edits: the"
+        " `## Works",
+        "> cited` heading above that list, and its"
+        f" {n} entries turned into Markdown links.",
         "",
         "<details>",
         "<summary>Originating prompt, as the archive's extractor inferred"

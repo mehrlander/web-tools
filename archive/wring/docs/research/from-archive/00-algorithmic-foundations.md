@@ -8,9 +8,11 @@
 > whose activity record holds the finished report in full:
 > `activity/2025-12.json`, `Prompted Start research` @ 2025-12-20T17:29:31.524Z · 4,433 words · 40 cited sources
 >
-> Unlike a Canvas build, a Deep Research record carries its own source list, so
-> this copy is complete as exported. Two edits: the `## Works cited` heading
-> above that list, and its 40 entries turned into Markdown links.
+> A Deep Research record and a Canvas record arrive in opposite formats, which
+> is why this one needed no repair: Takeout exported it as HTML in the activity
+> record's `safeHtmlItem`, carrying its own source list, where a Canvas arrives as
+> Markdown in `subtitles` carrying no sources at all. Two edits: the `## Works
+> cited` heading above that list, and its 40 entries turned into Markdown links.
 
 <details>
 <summary>Originating prompt, as the archive's extractor inferred it</summary>

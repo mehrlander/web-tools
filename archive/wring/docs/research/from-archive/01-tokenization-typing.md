@@ -1,9 +1,11 @@
 # Architectural Synthesis of Representational Strategies for Single-Document Template Induction: A Dual-Stream, Minimum Description Length Approach for the Wring Project
 
 > **Assembled from two partial copies, neither of them complete.**
-> Body, headings, display math and the inline `[n]` markers are the
-> Gemini Canvas build of 2025-12-20 20:58 UTC, preserved in the private
-> `mehrlander/chat-histories` archive (`2026-06-01-gemini-export`, `gemini-session/177`).
+> Body, headings, display math and the inline `[n]` markers are the Gemini
+> Canvas document's own Markdown source, built 2025-12-20 20:58 UTC and
+> exported by Takeout in its activity record's `subtitles[0].name`, read here
+> from the private `mehrlander/chat-histories` archive (`2026-06-01-gemini-export`, `gemini-session/177`),
+> whose conversation render of it is byte-identical to that field.
 > The 40 sources under Works cited come from this repo's own
 > [`../01-tokenization-typing/gemini-report.md`](../01-tokenization-typing/gemini-report.md), which kept
 > the bibliography and lost the markers, the headings and the display math

@@ -1,9 +1,11 @@
 # Operationalizing Minimum Description Length for Pattern Mining: A Comprehensive Framework for Objective Scoring and Selection Regimes
 
 > **Assembled from two partial copies, neither of them complete.**
-> Body, headings, display math and the inline `[n]` markers are the
-> Gemini Canvas build of 2025-12-20 21:26 UTC, preserved in the private
-> `mehrlander/chat-histories` archive (`2026-06-01-gemini-export`, `gemini-session/177`).
+> Body, headings, display math and the inline `[n]` markers are the Gemini
+> Canvas document's own Markdown source, built 2025-12-20 21:26 UTC and
+> exported by Takeout in its activity record's `subtitles[0].name`, read here
+> from the private `mehrlander/chat-histories` archive (`2026-06-01-gemini-export`, `gemini-session/177`),
+> whose conversation render of it is byte-identical to that field.
 > The 41 sources under Works cited come from this repo's own
 > [`../04-objective-selection/gemini-report.md`](../04-objective-selection/gemini-report.md), which kept
 > the bibliography and lost the markers, the headings and the display math
