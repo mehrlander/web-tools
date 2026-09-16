@@ -102,6 +102,7 @@ tools/render/scenarios/annotate-touch-scroll.mjs,"drag real touch events through
 tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newest line in a box of whole lines, then three taps in a run taking the whole thing",tools/render/scenarios,102,driver,no,no,no
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
+tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
 tools/render/scenarios/audit-boots.mjs,,tools/render/scenarios,79,driver,no,yes,no
 tools/render/scenarios/audit-deck.mjs,"the audit render in the swipe deck, one document section per slide",tools/render/scenarios,23,driver,no,no,no
@@ -237,13 +238,13 @@ tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no
 tools/render/scenarios/sidebar-projects.mjs,drive show-repo's sidebar into the nested-projects state,tools/render/scenarios,66,driver,no,yes,no
 tools/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,tools/render/scenarios,61,driver,no,no,no
-tools/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",tools/render/scenarios,67,driver,no,no,no
+tools/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",tools/render/scenarios,67,driver,no,yes,no
 tools/render/scenarios/stage-aimed-deposit.mjs,"the stage opened at a branch destination, the shape a branch-page deposit hands it",tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/stage-compare-pick.mjs,"the reader's compare picker: the first staged file against the last, which the adjacent-pair rule could not reach, with the list open over it",tools/render/scenarios,135,driver,no,no,no
 tools/render/scenarios/stage-dictate.mjs,"the stage's dictation intake: the mic beside Paste, committed text with a live interim, and the mark pad",tools/render/scenarios,33,driver,no,no,no
 tools/render/scenarios/stage-diff-longrefs.mjs,the Diff tab's A/B selects clipping long repo@ref:path labels,tools/render/scenarios,18,driver,no,no,no
 tools/render/scenarios/stage-diff-review.mjs,"the Stage's Diff lens run on two local items, with the review-prompts panel",tools/render/scenarios,29,driver,no,yes,no
-tools/render/scenarios/stage-errands.mjs,"the stage's errand panel: the open courier errands read tokenless from the public list, the pointer beside them, and (ERR=1) the rate-limited failure state",tools/render/scenarios,51,driver,no,no,no
+tools/render/scenarios/stage-errands.mjs,"the stage's errand panel: the open courier errands read tokenless from the public list, the pointer beside them, and (ERR=1) the rate-limited failure state",tools/render/scenarios,72,driver,no,no,no
 tools/render/scenarios/stage-flavor-bar.mjs,"the flavors bar after a web-page paste and one conversion: every flavor named, the staged ones ticked, and the markdown that was made sitting beside them as a pill",tools/render/scenarios,76,driver,no,no,no
 tools/render/scenarios/stage-image-preview.mjs,,tools/render/scenarios,32,driver,no,no,no
 tools/render/scenarios/stage-keyboard-mode.mjs,"the stage's dictation card with the keyboard open, which is where the recording misreading was reported",tools/render/scenarios,53,driver,no,no,no
