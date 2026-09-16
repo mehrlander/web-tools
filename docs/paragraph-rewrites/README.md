@@ -22,7 +22,7 @@ A complete inventory of blank-line-separated paragraphs across every `.md` file 
 
 ## Upload status (honest)
 
-GitHub MCP `push_files` cannot carry the full ~6.5MB `inventory.jsonl` / 222 by-file tree in one go. This PR holds the **human entry points** (CONTRACT, SUMMARY, sample by-file reviews, assemble scripts). The **complete local deliverable** (full inventory + all by-file reviews + b64 shards) was produced on the agent machine and is available as the overnight tarball handed to Mark in chat: `web-tools-paragraph-rewrites-2026-09-16.tar.gz`.
+GitHub MCP `push_files` cannot carry the full ~6.5MB `inventory.jsonl` / 222 by-file tree in one go. This PR holds the **human entry points** (CONTRACT, SUMMARY, sample by-file reviews, assemble scripts). The **complete local deliverable** (full inventory + all by-file reviews + b64 shards) was produced on the agent machine and is available as the overnight tarball: `web-tools-paragraph-rewrites-2026-09-16.tar.gz`.
 
 To rebuild on a machine that has the tarball:
 
@@ -51,7 +51,7 @@ bash assemble-inventory.sh   # rebuilds inventory.jsonl from shards if present
 - **9081** paragraph blocks
 - **2275** rewritten (avg ratio **0.543**)
 - Agent: `Chief of Staff (Grok)` · `2026-09-16`
-- Target filled: **`0.5` only** — do not generate `0.25` / `0.75` until Mark asks
+- Target filled: **`0.5` only** (other ratios are future work)
 
 ## Review workflow
 
