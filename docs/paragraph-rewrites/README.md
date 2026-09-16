@@ -13,13 +13,11 @@ A complete inventory of blank-line-separated paragraphs across every `.md` file 
 | Path | Role |
 |------|------|
 | `inventory.jsonl` | One JSON object per paragraph (original + optional draft) |
-| `SUMMARY.md` | Counts, ratios, top unre written longs |
+| `inventory-parts/` | Same inventory split for transport; `cat` in order equals `inventory.jsonl` |
+| `SUMMARY.md` | Counts, ratios, top unrewritten longs |
 | `by-file/*.md` | Human review: original vs proposed, per source file |
 | `README.md` | This file |
-
-## Inventory record fields
-
-`id`, `path`, `index`, `startLine`, `endLine`, `kind` (`prose`|`list`|`blockquote`|`other`), `chars`, `words`, `original`, `draft`, `draftWords`, `ratio`, `agent`, `signedAt`, `priority`, `notes`.
+| `assemble-inventory.sh` | `cat inventory-parts/part-*.jsonl > inventory.jsonl` |
 
 ## Quick stats
 
@@ -34,9 +32,9 @@ A complete inventory of blank-line-separated paragraphs across every `.md` file 
 2. Open `by-file/` entries for docs you care about (start with `docs__show-repo.md`, `docs__SNAGS.md`, `docs__stage.md`, `README.md`).
 3. Cherry-pick accepted drafts into a follow-up docs PR.
 
-## Priority rules used
+## Assemble inventory from parts (if needed)
 
-- **high:** words ≥ 80, or path under `docs/` with words ≥ 50
-- **medium:** words ≥ 40
-- **low:** otherwise
-- `archive/**`: inventoried; rewrites deprioritized (drafts usually null)
+```bash
+cd docs/paragraph-rewrites && bash assemble-inventory.sh
+# or: cat inventory-parts/part-*.jsonl > inventory.jsonl
+```
