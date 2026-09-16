@@ -46,21 +46,42 @@
   NO STAT CARDS. The counts are one compact line in the header, per the house
   style. The figure that would deserve room is "how many are stale", and it earns
   its place by being a filter rather than a tile.
+
+  ONE PAGE, TWO VIEWS. ?name=<Chain> opens that chain on its own: its sentence,
+  every action in order, what it calls, what calls it, and the same install and
+  run links its row carries. A view rather than a second page, because the two
+  halves share a boot, one catalog fetch and one read of the device, and because
+  a listing's `run X` line is then a link to X's own page. Unnamed chains are
+  reachable the same way as ?chain=<file>, since half the catalog is probes and
+  demos and a row that cannot be opened is a dead row.
+
+  WHY IT EXISTS AT ALL. A handover in chat carries the listing in its own table,
+  and used to carry a path into GitHub beside it. The path answered "where does
+  this come from" and nothing else. This view answers the question that follows
+  it: what the chain calls, what would break if it changed, and whether the phone
+  is holding this build.
 -->
 </head>
 <body class="bg-base-200">
-<div class="fixed inset-0 grid grid-rows-[auto_1fr_auto]">
+<div class="fixed inset-0 grid grid-rows-[auto_1fr_auto] grid-cols-[minmax(0,1fr)]">
 
   <header class="bg-base-100 border-b border-base-300 px-3 py-2 flex flex-col gap-2">
-    <div class="flex items-center gap-2 flex-wrap">
-      <h1 class="text-lg font-bold">Shortcuts</h1>
-      <span id="tally" class="text-xs opacity-60 font-mono">loading</span>
+    <div class="flex items-center gap-2">
+      <a id="back" class="btn btn-xs btn-ghost btn-circle hidden" href="#" aria-label="All chains">
+        <i class="ph ph-arrow-left"></i>
+      </a>
+      <h1 id="title" class="text-lg font-bold truncate min-w-0">Shortcuts</h1>
+      <span id="tally" class="text-xs opacity-60 font-mono truncate min-w-0">loading</span>
       <span id="status" class="badge badge-ghost badge-sm ml-auto">…</span>
       <button id="refresh" class="btn btn-xs btn-ghost" aria-label="Refresh">
         <i class="ph ph-arrows-clockwise"></i>
       </button>
     </div>
-    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+    <!-- The header's second line is the filters in the list and the chain's own
+         figures in the detail view: one slot, since a reader is never doing
+         both, and a footer cannot hold them without truncating on a phone. -->
+    <div id="meta" class="hidden text-xs opacity-60 font-mono text-pretty"></div>
+    <div id="filters" class="flex flex-col sm:flex-row sm:items-center gap-2">
       <input id="q" type="search" placeholder="filter by name"
              class="input input-sm input-bordered w-full sm:flex-1 sm:min-w-0">
       <select id="view" class="select select-sm select-bordered w-full sm:w-auto">
@@ -76,23 +97,26 @@
 
   <!-- pb-14 keeps the last row clear of the boot chain's floating button,
        which is fixed and therefore sits over the end of a scrolling table. -->
-  <main class="overflow-auto pb-14">
-    <table class="table table-pin-rows">
-      <thead>
-        <tr class="text-xs">
-          <th>Chain</th>
-          <th class="text-right hidden sm:table-cell">Cards</th>
-          <th class="hidden sm:table-cell">Build</th>
-          <th>Device</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+  <main class="overflow-auto pb-14 min-w-0">
+    <div id="list">
+      <table class="table table-pin-rows">
+        <thead>
+          <tr class="text-xs">
+            <th>Chain</th>
+            <th class="text-right hidden sm:table-cell">Cards</th>
+            <th class="hidden sm:table-cell">Build</th>
+            <th>Device</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="detail" class="hidden"></div>
   </main>
 
   <footer class="bg-base-100 border-t border-base-300 px-3 py-2 flex items-center gap-3 text-xs">
-    <span id="count" class="opacity-60 font-mono"></span>
+    <span id="count" class="opacity-60 font-mono truncate min-w-0"></span>
     <a class="link link-hover ml-auto" href="shortcut-log.html">Log</a>
     <a class="link link-hover"
        href="https://github.com/mehrlander/shortcut-tools/tree/main/workflows">Chains</a>
@@ -276,7 +300,28 @@ function matches(row, view, needle) {
   }
 }
 
-// ---- render ---------------------------------------------------------------
+// ---- routing --------------------------------------------------------------
+
+// ?name=<Chain> is the detail view's whole address, so a link handed over in
+// chat lands on it. ?use= and ?ref= ride along untouched through every
+// navigation: they say which code and which branch the page is reading, and
+// losing either mid-visit would silently change what is being looked at.
+function href(row) {
+  const p = new URLSearchParams(location.search);
+  p.delete('name'); p.delete('chain');
+  if (row) row.name ? p.set('name', row.name) : p.set('chain', row.file);
+  const s = p.toString();
+  return s ? '?' + s : location.pathname;
+}
+const go = to => { history.pushState(null, '', to); route(); };
+// A link that navigates within the page still has to BE a link: long-press,
+// copy, open-in-new-tab and the keyboard all come from the href, not the click.
+const nav = a => { a.onclick = e => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); go(a.getAttribute('href')) } }; return a };
+
+const byName = n => catalog.rows.find(r => r.name === n);
+const byFile = f => catalog.rows.find(r => r.file === f);
+
+// ---- render: the list -----------------------------------------------------
 
 // A label reads "Name: what it does (N actions)". The name is already the first
 // column and the count is already a column, so the row shows the middle.
@@ -297,7 +342,8 @@ function paint() {
     const tr = node('tr', 'hover');
 
     const first = node('td', 'align-top');
-    first.append(node('div', 'font-medium', row.name || row.file.replace(/\.json$/, '')));
+    first.append(nav(link('link link-hover font-medium', href(row),
+                          row.name || row.file.replace(/\.json$/, ''))));
     first.append(node('div', 'text-xs opacity-60 text-pretty', gist(row)));
     if (row.targets.length)
       first.append(node('div', 'text-xs opacity-40 font-mono', '→ ' + row.targets.join(' · ')));
@@ -319,8 +365,8 @@ function paint() {
 
     const acts = node('td', 'align-top');
     const bar = node('div', 'flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:justify-end');
-    const act = (cls, href, label, icon) => {
-      const a = link(cls + ' whitespace-nowrap', href, null);
+    const act = (cls, to, label, icon) => {
+      const a = link(cls + ' whitespace-nowrap', to, null);
       a.append(node('i', 'ph ' + icon));
       a.append(node('span', 'hidden sm:inline', label));
       a.setAttribute('aria-label', label);
@@ -338,6 +384,192 @@ function paint() {
   }
 
   el('count').textContent = `${shown.length} of ${catalog.rows.length}`;
+}
+
+// ---- render: one chain ----------------------------------------------------
+
+// sketch.py writes "%3d %s%s%s": a right-aligned index, the nesting as two
+// spaces per level, the verb, and one summarised parameter. The index becomes
+// the gutter and the indent is kept as text, so a branch body still reads as a
+// branch body.
+const INDEX = 4;
+
+// Four kinds of token appear in a listing and only one of them is a shortcut
+// name. «N» is the line that produced a value, "…" is a literal the chain
+// carries, $input and its siblings are the run-time sources, and a bare
+// capitalised word after `run` is a by-name call: a string nothing validates,
+// which is why it is worth making it a link that visibly fails to resolve.
+const TOKEN = /«\d+»|"[^"]*"|\$[A-Za-z]+/g;
+
+function tokens(text, into) {
+  let at = 0;
+  for (const m of text.matchAll(TOKEN)) {
+    if (m.index > at) into.append(document.createTextNode(text.slice(at, m.index)));
+    const t = m[0];
+    if (t.startsWith('«')) {
+      const jump = node('button', 'link link-primary decoration-dotted align-baseline', t);
+      jump.onclick = () => flash(t.slice(1, -1));
+      into.append(jump);
+    } else if (t.startsWith('"')) {
+      into.append(node('span', 'text-success', t));
+    } else {
+      into.append(node('span', 'text-secondary', t));
+    }
+    at = m.index + t.length;
+  }
+  if (at < text.length) into.append(document.createTextNode(text.slice(at)));
+}
+
+function flash(i) {
+  const row = el('L' + i);
+  if (!row) return;
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  row.classList.add('bg-warning/30');
+  setTimeout(() => row.classList.remove('bg-warning/30'), 1400);
+}
+
+// A catalog published before the listing existed has no sketch, and a ?ref=
+// can still name one. Saying so beats a chain that renders as having no
+// actions, which is the same shape as a chain that has none.
+function listing(row) {
+  if (!row.sketch)
+    return node('p', 'text-sm opacity-50', `No listing in catalog.json at ${REF}.`);
+  const box = node('div', 'bg-base-100 border border-base-300 rounded-box py-2');
+  for (const raw of row.sketch) {
+    const i = raw.slice(0, INDEX).trim();
+    let rest = raw.slice(INDEX);
+
+    const line = node('div', 'flex gap-2 px-3 py-0.5 rounded transition-colors hover:bg-base-200');
+    line.id = 'L' + i;
+    line.append(node('span', 'w-7 shrink-0 text-right font-mono text-sm opacity-40 select-none', i));
+
+    const code = node('code', 'font-mono text-sm whitespace-pre-wrap break-words');
+    const indent = rest.match(/^ */)[0];
+    if (indent) code.append(document.createTextNode(indent));
+    rest = rest.slice(indent.length);
+
+    // The verb is the leading run of lowercase words, which stops at the first
+    // capital, digit or token. That is exact for `run Name` and for every flow
+    // word, and where it matches nothing the line renders plain rather than
+    // guessing.
+    const verb = /^[a-z#][a-z #<>.\-]*/.exec(rest);
+    if (verb) {
+      code.append(node('span', 'font-semibold', verb[0]));
+      rest = rest.slice(verb[0].length);
+    }
+    if (verb && verb[0].trim() === 'run') {
+      const call = /^([^«"$][^←]*?)\s*(?= ←|$)/.exec(rest);
+      if (call) {
+        const target = byName(call[1]);
+        code.append(target
+          ? nav(link('link link-primary font-medium', href(target), call[1]))
+          : node('span', 'font-medium', call[1]));
+        rest = rest.slice(call[0].length);
+      }
+    }
+    tokens(rest, code);
+    line.append(code);
+    box.append(line);
+  }
+  return box;
+}
+
+function chips(label, names) {
+  if (!names.length) return null;
+  const wrap = node('div', 'flex flex-wrap items-baseline gap-2');
+  wrap.append(node('span', 'text-xs uppercase tracking-wide opacity-50 w-20 shrink-0', label));
+  for (const n of names) {
+    const row = byName(n);
+    wrap.append(row
+      ? nav(link('badge badge-ghost badge-sm hover:badge-primary', href(row), n))
+      : node('span', 'badge badge-outline badge-sm opacity-60', n));
+  }
+  return wrap;
+}
+
+function detail(row) {
+  const pane = el('detail');
+  pane.textContent = '';
+  const wrap = node('div', 'px-3 py-3 flex flex-col gap-4');
+
+  wrap.append(node('p', 'text-base leading-relaxed text-pretty', gist(row)));
+
+  const bar = node('div', 'flex flex-wrap gap-2');
+  const s = state(row);
+  const btn = (cls, to, label, icon) => {
+    const a = link('btn btn-sm ' + cls, to, null);
+    a.append(node('i', 'ph ' + icon));
+    a.append(node('span', null, label));
+    return a;
+  };
+  if (row.name) {
+    // "Reinstall" only where the device has been read and says so. Unknown
+    // reads as Install, which is the honest word for a state nobody looked up.
+    bar.append(btn('btn-primary', installLink(row.name),
+                   s && s !== 'not on device' ? 'Reinstall' : 'Install', 'ph-download-simple'));
+    bar.append(btn('', runLink(row.name), 'Run', 'ph-play'));
+  }
+  bar.append(btn('btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));
+  if (row.name) bar.append(btn('btn-ghost', PLIST(row.name), 'Plist', 'ph-file-text'));
+  wrap.append(bar);
+
+  // What it calls, and what calls it. The second is the one no file holds: a
+  // chain records its targets and nothing records its callers, so the answer
+  // only exists once every row is in hand, which is here. Both sit above the
+  // listing: on a 67-action chain they are otherwise three screens down.
+  const callers = catalog.rows.filter(r => r.name && r.targets.includes(row.name))
+                              .map(r => r.name);
+  const rel = node('div', 'flex flex-col gap-2');
+  for (const c of [chips('Calls', row.targets), chips('Called by', callers)])
+    if (c) rel.append(c);
+  if (rel.children.length) wrap.append(rel);
+
+  wrap.append(listing(row));
+
+  pane.append(wrap);
+
+  el('title').textContent = row.name || row.file.replace(/\.json$/, '');
+  const head = [];
+  if (s) head.push(s);
+  if (row.name && device && device.ran.get(row.name) && s === 'stale')
+    head.push('ran ' + device.ran.get(row.name));
+  el('tally').textContent = head.join(' · ');
+  el('meta').textContent = [row.file, row.name ? row.build : null,
+                            row.actions + ' cards',
+                            row.settings ? 'file settings' : null,
+                            REF !== 'main' ? REF : null].filter(Boolean).join(' · ');
+  el('count').textContent = '';
+}
+
+function missing(what) {
+  const pane = el('detail');
+  pane.textContent = '';
+  pane.append(node('p', 'px-3 py-6 text-base opacity-60', `No chain here called ${what}.`));
+  el('title').textContent = what;
+  el('tally').textContent = '';
+  el('meta').textContent = '';
+  el('count').textContent = '';
+}
+
+// ---- render: which view ---------------------------------------------------
+
+function route() {
+  if (!catalog) return;
+  const p = new URLSearchParams(location.search);
+  const name = p.get('name'), file = p.get('chain');
+  const row = name ? byName(name) : file ? byFile(file) : null;
+  const detailed = !!(name || file);
+
+  el('list').classList.toggle('hidden', detailed);
+  el('detail').classList.toggle('hidden', !detailed);
+  el('filters').classList.toggle('hidden', detailed);
+  el('meta').classList.toggle('hidden', !detailed);
+  el('back').classList.toggle('hidden', !detailed);
+  el('back').setAttribute('href', href(null));
+  document.querySelector('main').scrollTop = 0;
+
+  if (!detailed) { el('title').textContent = 'Shortcuts'; paint(); tally(); return }
+  if (row) detail(row); else missing(name || file);
 }
 
 // The header's one compact line, which is where the figures go instead of a row
@@ -361,9 +593,9 @@ async function load() {
   el('status').textContent = 'loading';
   try {
     await loadCatalog();
-    paint(); tally();                       // the public half paints immediately
+    route();                                  // the public half paints immediately
     device = await loadDevice();
-    paint(); tally();
+    route();
     el('status').className = device ? 'badge badge-success badge-sm' : 'badge badge-warning badge-sm';
     el('status').textContent = device ? 'device read' : 'no token';
   } catch (e) {
@@ -372,6 +604,8 @@ async function load() {
   }
 }
 
+nav(el('back'));
+window.onpopstate = route;
 el('refresh').onclick = load;
 el('view').onchange = () => paint();
 el('q').oninput = () => paint();
