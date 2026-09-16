@@ -42,6 +42,27 @@ export default async (page) => {
       headers: { 'content-type': 'text/plain', 'access-control-allow-origin': '*' } });
   });
 
+  // ROUTE=1 arrives by address instead of by tap, which is the path the courier
+  // takes from our own origin: ?view=stage&tab=errands must open the panel on
+  // mount, with no click anywhere.
+  if (process.env.ROUTE) {
+    // Reload so the mount happens with the stub above in place. The shot tool
+    // answers api.github.com from the working tree and the first load is
+    // already over by the time a scenario runs, so without this the panel
+    // opens correctly and renders the contents-API envelope as no errands.
+    await page.reload({ waitUntil: 'load' });
+    await page.locator('.ph-moped').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1200);
+    const seen = await page.evaluate(() => ({
+      open: !!document.querySelector('a[title^="Drag to your bookmarks bar"]'),
+      rows: document.querySelectorAll('button[title^="Errands:"]').length,
+      search: location.search,
+    }));
+    console.log('panel open on arrival:', seen.open ? 'YES' : 'NO (bug)');
+    console.log('address after mount:', seen.search);
+    return;
+  }
+
   const btn = page.locator('button[title^="Errands:"]');
   await btn.waitFor({ state: 'visible', timeout: 15000 });
   await btn.click();

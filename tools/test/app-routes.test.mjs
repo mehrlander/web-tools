@@ -137,8 +137,13 @@ test('the two sub-tab encodings, counted', () => {
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
   // 2026-09-14: the project view gained an Installation pill, shown only for a
-  // workspace whose manifest entry declares an installation manifest.
-  assert.equal(params, 17, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // workspace whose manifest entry declares an installation manifest. 17 to 18
+  // on 2026-09-16: the Stage took `&tab=errands`, which is the first value here
+  // that opens a PANEL rather than switching a tab. It reuses this key rather
+  // than minting one because the courier needs an address to land on from our
+  // own origin, and a second sub-address grammar for one destination would be
+  // the more expensive answer.
+  assert.equal(params, 18, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 test('an alias is a retired key, so it never doubles as a live one', () => {
