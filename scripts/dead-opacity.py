@@ -1,33 +1,49 @@
 #!/usr/bin/env python3
-"""Tailwind opacity modifiers on a daisyUI theme colour that generate no rule.
+"""Pages that render a daisyUI theme colour with an opacity modifier and never
+tell Tailwind the name is a colour.
 
-A class like `bg-primary/25` looks exactly like a class that works, and does
-nothing. The failure is silent and, worse, INVERTED: a background falls back to
-transparent, so the tint never draws, and text falls back to full strength, so
-the thing meant to recede advances. Nothing errors, nothing warns, and on the
-machine where the UI was built it simply looks like a taste decision.
+The class looks exactly like a class that works and does nothing. The failure is
+silent and, for text, INVERTED: a background falls back to transparent so the
+tint never draws, and text keeps its resting colour so the thing meant to change
+does not. Nothing errors, and on the machine where the UI was built it reads as
+a taste decision.
 
-MEASURED, not assumed (2026-08-19, headless Chromium against this app's own
-stylesheet, reading getComputedStyle on injected elements):
+WHAT CHANGED ON 2026-09-16, AND WHY THIS SCAN IS ABOUT PAGES NOW. Tailwind
+writes an opacity modifier by composing a color-mix, which it can only do for a
+name it knows is a colour. A compiled build is told by `@plugin "daisyui"`;
+pages here load daisyUI as a prebuilt stylesheet beside Tailwind's browser JIT
+and were told by nothing. lib/gh-boot.js now registers the twenty names
+(`@theme inline`, self-referencing var(), so daisyUI keeps the values), and
+every page that boots through it composes every case correctly. A page that does
+NOT reach that registration is where the old failures survive, so the page is
+the unit this scans and the page is what the fix changes.
 
-    bg-primary/10 .. /90 by tens   generate
-    bg-primary/0, /5, /25, /33,
-      /75, /95, /100               DEAD  -> rgba(0, 0, 0, 0)
-    bg-primary/[25%]               DEAD  (the bracket escape does not help)
-    bg-red-500/<anything>          fine, including /0, /33, /95, /100
-    bg-black/<anything>            fine
+Two shapes are dead on such a page, and one is fine:
 
-So the rule is NARROWER than "use tens": it is about daisyUI's THEME COLOURS,
-which are CSS variables, and the working set is exactly the ramp daisyUI's own
-stylesheet ships. A stock palette colour is compiled by the browser build and
-takes any step. A scanner written to the looser rule would flag every
-`bg-red-500/25` in the tree and be wrong about all of them, which is why the
-colour list below is the whole classifier and is pinned by test.
+    bg-primary/10        static, on the ramp     daisyUI ships it, fine
+    bg-primary/25        static, off the ramp    DEAD
+    hover:bg-primary/10  any variant, any step   DEAD
+    group-hover:bg-*/n   any variant, any step   DEAD
 
-Advisory by default, in the idiom of dead-links.py and stranded-titles.py: run
-it, read the list, fix or shrug. `--check` makes it a gate, which is what
-tools/test/dead-opacity.test.mjs uses, because unlike a stranded title this one
-has no judgment in it: the class either generates or it does not.
+The ramp is daisyUI's own enumerated set, 10 to 90 by tens, which is why a
+static class on it survives without help. The variant case has no such fallback:
+daisyUI ships each colour's `hover:` rule at full opacity only and no
+`group-hover:` rules at all.
+
+MEASURED BOTH WAYS in headless Chromium against this app's own stylesheet,
+reading getComputedStyle either side of a real hover. Unregistered: /25, /5 and
+/[25%] all dead, every variant-plus-opacity dead, stock palette colours like
+bg-red-500/25 fine throughout. Registered: all of them paint, including the
+bracket escape. The rule is about daisyUI's theme colours specifically, which is
+why the colour list below is the whole classifier and is pinned by test; a scan
+written to the looser rule "opacity must be a multiple of ten" would flag every
+bg-red-500/25 in the tree and be wrong about all of them.
+
+History: PR #457 hand-corrected 193 instances of the static off-ramp shape, and
+this branch found 103 of the variant shape. Both were the same missing
+registration, which is the argument for fixing pages rather than classes.
+tools/test/theme-registration.test.mjs holds gh-boot's name list to the one
+below so the two cannot drift.
 """
 
 import argparse
@@ -89,18 +105,56 @@ def nearest_ten(step):
     return min(GENERATES, key=lambda g: (abs(g - step), g))
 
 
+# A page reaches the registration one of two ways: it carries the @theme block
+# itself, or it boots through gh-boot.js, which injects one. A file that is not
+# a standalone page (a component, a kit, a doc) renders inside whichever page
+# hosts it and answers for nothing on its own.
+REACHES = re.compile(r'@theme inline|gh-api\.js|gh-boot|dist/web-tools\.js'
+                     r'|dist/app\.js|dist/dictate\.js')
+LOADS_TAILWIND = re.compile(r'tailwindcss/browser')
+
+
+def unregistered(text, path):
+    """A standalone page that renders these classes without the registration.
+
+    Only an HTML page can answer this: the classes themselves are fine, and a
+    component carrying one is fine, because the host page is what does or does
+    not tell Tailwind the names are colours."""
+    if not path.endswith('.html'):
+        return False
+    if not LOADS_TAILWIND.search(text):
+        return False
+    return not REACHES.search(text)
+
+
+# A variant prefix is what the registration is really needed for. Without it,
+# daisyUI's own enumerated ramp still answers a STATIC class on the tens.
+VARIANT = re.compile(r'[a-z-]+:$')
+
+
 def scan_text(text, path):
+    """On an unregistered page, two shapes are dead and one is fine.
+
+        bg-primary/10        static, on the ramp      daisyUI ships it
+        bg-primary/25        static, off the ramp     DEAD
+        hover:bg-primary/10  any variant, any step    DEAD
+
+    Both dead shapes have the same cure, which is why they are one scan now:
+    register the names and Tailwind composes every case itself."""
     out = []
+    if not unregistered(text, path):
+        return out
     for i, line in enumerate(text.splitlines(), 1):
         for m in PATTERN.finditer(line):
+            before = line[:m.start()]
+            vm = VARIANT.search(before)
+            under_variant = bool(vm)
+            full = (before[vm.start():] if vm else '') + m.group(0)
             step = m.group('step')
-            if step.startswith('['):
-                out.append((path, i, m.group(0), None))
+            on_ramp = (not step.startswith('[')) and int(step) in GENERATES
+            if on_ramp and not under_variant:
                 continue
-            n = int(step)
-            if n in GENERATES:
-                continue
-            out.append((path, i, m.group(0), nearest_ten(n)))
+            out.append((path, i, full, 'variant' if under_variant else 'step'))
     return out
 
 
@@ -134,16 +188,22 @@ def main(argv):
             continue
         found.extend(scan_text(text, path))
 
-    for path, line, cls, suggestion in sorted(found):
-        fix = cls.rsplit('/', 1)[0] + '/' + str(suggestion) if suggestion else '(no step generates)'
-        print(f'{path}:{line}: {cls} -> {fix}')
+    for path, line, cls, why in sorted(found):
+        note = ('under a variant' if why == 'variant' else 'step is off daisyUI ramp')
+        print(f'{path}:{line}: {cls} generates nothing here ({note})')
 
     if not found:
-        print('dead-opacity: none; every theme-colour opacity is on the shipped ramp (10..90 by tens)')
+        print('dead-opacity: none; every page rendering a theme-colour opacity '
+              'class reaches the @theme registration')
         return 0
 
-    files = len({f for f, _, _, _ in found})
-    print(f'\ndead-opacity: {len(found)} in {files} file(s); these classes generate no rule')
+    files = sorted({f for f, _, _, _ in found})
+    print(f'\ndead-opacity: {len(found)} class(es) in {len(files)} page(s) that never '
+          f'tell Tailwind these names are colours, so none of them generate.')
+    print('Fix the PAGE, not the classes: add the @theme inline block beside its '
+          'Tailwind script, or boot it through gh-boot.js.')
+    for f in files:
+        print(f'  {f}')
     return 1 if args.check else 0
 
 
