@@ -1478,6 +1478,22 @@ test('a local-only stage still mints: the text rides the fragment, gzipped', asy
   assert.deepEqual(plain_(back), [{ name: 'draft.html', text: '<!doctype html><p>hi' }]);
 });
 
+// The precondition the app's boot route depends on. A link that is nothing but
+// a paste resolves to ZERO items synchronously, because gzip decoding is async,
+// so a route keying on items alone would send such a link to the estate while
+// its file appeared in a view the reader was not looking at. The boot keys on
+// the payload being PRESENT instead; this holds `read` to giving it that.
+test('a gz-only link reads as no items, a live payload and its dest', async () => {
+  const loc = {
+    hash: '#gz=' + 'H4sIAAAA' + '&dest=' + encodeURIComponent('me/private@main:in/box'),
+    search: '',
+  };
+  const link = window.StageLink.read(loc);
+  assert.equal(link.items.length, 0, 'a paste has no refs to resolve');
+  assert.ok(link.gz && link.gz.length, 'the payload survives the read, undecoded');
+  assert.equal(link.dest, 'me/private@main:in/box', 'and the destination rides with it');
+});
+
 test('a local BINARY still cannot ride, and the refusal says which', async () => {
   reset();
   store.stage = [{ local: true, id: 96, name: 'a.bin', path: 'a.bin', size: 2,

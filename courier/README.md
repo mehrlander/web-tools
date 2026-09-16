@@ -206,12 +206,28 @@ than as silence.
 
 ## Getting the result back
 
-The panel offers Copy and Commit. Commit opens GitHub's new-file form with the
-content prefilled, on your signed-in session, and you tap Commit changes there.
-The 7,500-character prefill limit is known before the tap rather than after it,
-so past that Commit arrives disabled and reading Too long to commit, with the
-count in the header and Copy the route. Neither route needs a token in the
-bookmark.
+The panel offers Copy and **Send to the stage**. Send opens the Web Tools app
+with the result carried in the link: gzip plus base64url of `[{name, text}]` in
+the fragment, which never reaches a server, and `&dest=` aiming the stage's send
+field at the errand's `result` repo, branch and directory. The stage decodes it
+into a local file and sends nothing until you tap send there.
+
+**That is the whole reason the destination is a page of ours.** A credential
+belongs in a realm the visited page never executed code in, and your own origin
+is the only such realm reachable from a bookmarklet. So the courier carries
+content and never a token, and the token that finally writes the file is the one
+the app already holds.
+
+Budget: 24K of base64, matching `StageLink`'s own cap, checked before the tap, so
+past it the button arrives disabled and Copy is the route. Measured on the DRS
+errand, a 2,215-character result packs to 786 characters, 3% of the allowance.
+
+This replaced a prefilled `github.com/<repo>/new/<branch>?value=` form. That
+route authenticates fine, by your github.com session, and it is still how
+[`drop-link`](../.claude/skills/drop-link/SKILL.md) works, with the filename
+only. It was dropped here because it leaned on an undocumented editor parameter
+nothing in this repo had exercised, and because it carried the content raw in a
+URL, which made its cap a guess rather than a measurement.
 
 **Nothing tells the courier the result landed.** The errand stays `open` until
 someone edits `errands.json`, which is the session's job on reading the result,

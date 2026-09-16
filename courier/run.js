@@ -35,11 +35,13 @@
 // is answering: labels and structure instead of prose, one size for content,
 // one accent that means "the selected target".
 //
-// WHAT THE TRUST MODEL IS. No token anywhere: the errand list and the scripts
-// are public, and a result leaves by clipboard or by a prefilled GitHub form
-// you submit while signed in. A bookmarklet's code runs inside the visited
-// page's JavaScript context, where a hostile page could shim `fetch` and read
-// an Authorization header off it, so there is nothing to read. The confirm gate
+// WHAT THE TRUST MODEL IS. No token in the bookmark, which is not the same as
+// no authentication. A bookmarklet's code runs inside the visited page's
+// JavaScript context, where a hostile page could shim `fetch` and read an
+// Authorization header off it, so there is nothing here to read: the errand
+// list and the scripts are public, and the result leaves by clipboard or in a
+// link to the STAGE, a page on our own origin, where the token that writes the
+// file lives in a realm the visited page never executed code in. The confirm gate
 // lives here rather than in the bookmark, which makes it revisable by a commit
 // to this repo; that is a smaller guarantee than the first cut had, stated
 // rather than quietly lost.
@@ -59,7 +61,11 @@
 (async (popup, home) => {
   const HOST = location.hostname;
   const REPO = 'mehrlander/web-tools';
-  const FORM_CAP = 7500;
+  // The stage, on our own origin, and the budget its link carries. Both match
+  // StageLink in lib/alpineComponents/stage.js: the stage is the reader of this
+  // format and the courier is a second writer of it.
+  const STAGE = 'https://mehrlander.github.io/web-tools/app/';
+  const GZ_MAX = 24 * 1024;
 
   // Through the GitHub API, not the raw CDN. raw.githubusercontent caches five
   // minutes at the edge and `cache: no-store` defeats only the browser's copy,
@@ -349,16 +355,35 @@
     $('.cx-body').replaceWith(box);
     $('.cx-pick').parentElement.remove();
 
-    // GitHub's new-file form takes the content prefilled, on your signed-in
-    // session, so nothing here needs a token. The cap is where the prefill stops
-    // being reliable, not where the form stops accepting, and it is known before
-    // the tap, so it is a disabled button rather than an error after one.
-    const commitUrl = 'https://github.com/' + errand.result.repo + '/new/' + errand.result.branch
-      + '?filename=' + encodeURIComponent(errand.result.path)
-      + '&value=' + encodeURIComponent(out);
-    const over = commitUrl.length > FORM_CAP;
+    // The result goes to the STAGE rather than to GitHub's new-file form. The
+    // stage is a page on our own origin, so the token that eventually writes
+    // the file sits where a credential belongs, and the link carries the
+    // content itself: gzip + base64url of [{name, text}] in the fragment, which
+    // never reaches a server. `dest` aims the stage's send field; the stage
+    // sends nothing without a tap of its own.
+    //
+    // This replaced a prefilled github.com/<repo>/new/<branch>?value= form.
+    // That route authenticates fine, by your github.com session, but it leans
+    // on an undocumented editor parameter nothing here had ever exercised, and
+    // it carried the content raw in a URL, which is why its cap was a guess.
+    const b64url = (bytes) => {
+      let bin = '';
+      for (const b of bytes) bin += String.fromCharCode(b);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    };
+    const name = errand.result.path.split('/').pop();
+    const dir = errand.result.path.slice(0, -name.length).replace(/\/$/, '');
+    let payload = '';
+    try {
+      const json = JSON.stringify([{ name, text: out }]);
+      const gz = new Blob([new TextEncoder().encode(json)]).stream()
+        .pipeThrough(new CompressionStream('gzip'));
+      payload = b64url(new Uint8Array(await new Response(gz).arrayBuffer()));
+    } catch (e) { payload = ''; }
+    const over = payload.length > GZ_MAX;
     state(out.length.toLocaleString() + ' characters'
-      + (over ? ', over the ' + FORM_CAP.toLocaleString() + ' the GitHub form takes' : ''));
+      + (payload ? ', ' + Math.max(1, Math.round(payload.length / 1024)) + 'K packed' : '')
+      + (over ? ', over the ' + Math.round(GZ_MAX / 1024) + 'K a link carries' : ''));
 
     button('Copy', 'cx-quiet', () => {
       box.select();
@@ -366,11 +391,15 @@
       if (nav.clipboard) nav.clipboard.writeText(out).then(() => state('copied'), () => state('copy it by hand'));
       else state('copy it by hand');
     });
-    const commit = button(over ? 'Too long to commit' : 'Commit', over ? 'cx-quiet' : 'cx-go', () => {
-      (popup || window).open(commitUrl, '_blank');
-      state('finish in the GitHub tab');
-    });
-    commit.disabled = over;
+    const dest = errand.result.repo + '@' + errand.result.branch + (dir ? ':' + dir : '');
+    const stageUrl = STAGE + '#gz=' + payload + '&dest=' + encodeURIComponent(dest);
+    const blocked = !payload || over;
+    const send = button(!payload ? 'Could not pack it' : over ? 'Too long for a link' : 'Send to the stage',
+      blocked ? 'cx-quiet' : 'cx-go', () => {
+        (popup || window).open(stageUrl, '_blank');
+        state('staged; send it to the repo from there');
+      });
+    send.disabled = blocked;
     button('Close', 'cx-quiet', () => close());
   });
 })(typeof w !== 'undefined' ? w : null, typeof home !== 'undefined' ? home : false);
