@@ -205,7 +205,7 @@ rendered page with and without the block on both `app/index.html` and
 `pages/index.html`, identical either way. It also lifts the step rule entirely,
 since Tailwind composes the opacity itself once it knows the name: `/25`, `/5`
 and `/[33%]` all paint now.
-→ [lib/gh-boot.js](../lib/gh-boot.js) *(seen: 2026-09-15, fixed: 2026-09-16)*
+Fixed 2026-09-16. → [lib/gh-boot.js](../lib/gh-boot.js) *(seen: 2026-09-15)*
 
 ### cross-repo-data-invisible-to-the-render: a headless shot shows chrome over an empty table
 
