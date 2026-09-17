@@ -316,6 +316,63 @@ test('a document copies its source, not the rendered markup', () => {
   assert.equal(d.copyTitle, 'Copy note.md', 'the tooltip names it, since the glyph cannot');
 });
 
+// ── The rendered comparison ─────────────────────────────────────────────────
+// A fourth reading of the same pair, and markdown's alone. What is pinned is
+// the routing: which kinds offer it, that it is a VIEW rather than a tab (the
+// file button must not stay lit while it is showing), and that it survives the
+// two paths that reset a tab. The rendering itself is kits/md-diff.js's and is
+// tested there.
+
+test('a document offers the comparison rendered, and nothing else does', () => {
+  const d = data('docRead');
+  assert.deepEqual(JSON.parse(JSON.stringify(d.viewModes.map(m => m.key))),
+    ['file', 'rendered', 'split', 'unified']);
+  assert.equal(d.panes.some(p => p.id === 'mddiff'), true);
+
+  // An html page is source someone edits, and its own presentation is the page
+  // running, so a rendered word diff has nothing to lay itself over.
+  assert.equal(data('page').viewModes.some(m => m.key === 'rendered'), false);
+  assert.equal(data('png').panes.some(p => p.id === 'mddiff'), false);
+});
+
+test('the file control goes dark while the rendered comparison is showing', () => {
+  const d = data('docRead');
+  const lit = () => d.viewModes.filter(m => m.on).map(m => m.key);
+  d.tab = 'read';
+  assert.deepEqual(JSON.parse(JSON.stringify(lit())), ['file']);
+  d.tab = 'mddiff';
+  assert.deepEqual(JSON.parse(JSON.stringify(lit())), ['rendered'],
+    'one control lit, and it is the one showing');
+});
+
+test('the rendered comparison is a tab a reset will keep', () => {
+  // _tabUsable is what a base reload and a comparison flip both consult. A
+  // tab it does not recognise is silently swapped for the default, so a
+  // reviewer who chose this view would land back on the document every time
+  // the compare ref moved, which is precisely when they want to look.
+  const d = data('docRead');
+  d.newText = '# One\n\ntext';
+  d.baseText = '# One\n\nolder text';
+  assert.equal(d._tabUsable('mddiff'), true);
+  assert.equal(data('png')._tabUsable('mddiff'), false, 'not for a kind with no document');
+});
+
+test('a host can name the pane to land on, and is refused one that shows nothing', () => {
+  // pages/approve.html asks for the rendered comparison, because a page that
+  // exists to judge a change should not open on the finished document. The
+  // refusal half is what keeps that safe to ask for unconditionally: the same
+  // host mounts one card per changed file and does not know which are markdown.
+  const d = data('docRead');
+  d.openOn = 'mddiff';
+  d.newText = '# One\n\ntext';
+  d.baseText = '# One\n\nolder text';
+  assert.equal(d._defaultTab(), 'mddiff');
+
+  const img = data('png');
+  img.openOn = 'mddiff';
+  assert.equal(img._defaultTab(), 'image', 'an image has no rendered comparison, so it keeps its own');
+});
+
 test('the controls sit on the tab row, not on a strip above it', () => {
   const card = window.document.getElementById('withPatch');
   const row = card.querySelector('[role="tablist"]').parentElement;

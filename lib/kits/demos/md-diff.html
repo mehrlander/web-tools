@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>md-diff — a documentation change, read as the document</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The chain boot. md-diff loads guide-render, md-doc and swipe-deck itself,
+  // but naming them here is what makes the demo's dependencies readable.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/guide-render.js');
+  await gh.load('kits/md-doc.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/md-diff.js');
+
+  // A documentation edit of the shape the kit is built for: a few scattered
+  // changes in a file that is mostly unchanged. Every case is here once, which
+  // is the point of the fixture: a word swap, a rewritten paragraph, a new
+  // block, a dropped block, a list item, a table cell and a line inside a fence.
+  const BEFORE = `## Reading fund 600
+
+Fund 600 is reported as one number and read as two. The appropriated lane
+carries recordkeeping and the agency's own operations, and it is the lane a
+budget bill moves.
+
+The non-appropriated lane carries what the plans pay for directly. It reports
+on the same fund number and never nets into the appropriated total.
+
+| Lane | Moves with a bill | Reported under |
+| --- | --- | --- |
+| Appropriated | yes | 600 |
+| Non-appropriated | no | 600 |
+
+Three things follow:
+
+- A schedule adding the two lanes produces a figure nobody recognises.
+- Carry-forward level is the base a request is measured against.
+- The enacted total is a different base again.
+
+This paragraph is taken out entirely, and nothing replaces it where it stood.
+
+\`\`\`sh
+python3 tools/allotment.py --fund 600 --lane appropriated
+\`\`\`
+
+This paragraph is here to be deleted, and says nothing else.`;
+
+  const AFTER = `## Reading fund 600
+
+Fund 600 is reported as one number and read as two. The appropriated lane
+carries recordkeeping and the agency's own operations, and it is the only lane
+a budget bill moves.
+
+The non-appropriated lane carries what the plans pay for directly: contracted
+medical review, the actuary's own work, and anything else a plan buys on its
+own account. It reports on the same fund number and never nets into the
+appropriated total, which is the whole reason the two cannot be added.
+
+| Lane | Moves with a bill | Reported under |
+| --- | --- | --- |
+| Appropriated | yes | 600 |
+| Non-appropriated | never | 600 |
+
+Three things follow:
+
+- A schedule adding the two lanes produces a figure nobody in either lane recognises.
+- Carry-forward level is the base a request is measured against.
+- The enacted total is a different base again.
+
+\`\`\`sh
+python3 tools/allotment.py --fund 600 --lane appropriated --biennium 2027-29
+\`\`\`
+
+Both figures are audited, and the audit is published beside the CAFR.
+
+This paragraph is here to be deleted, and says nothing else.`;
+
+  const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER);
+  document.getElementById('count').textContent = `${out.count} changed blocks`;
+  document.getElementById('jump').addEventListener('click', out.next);
+  document.body.dataset.ready = '1';
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-100 text-base-content">
+<main class="px-4 py-6 sm:px-6 sm:py-8 grid grid-cols-[minmax(0,1fr)] gap-6">
+
+  <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <h1 class="text-2xl font-semibold">md-diff</h1>
+    <code class="font-mono text-[13px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
+    <span class="text-[13px] text-base-content/50">swipe a change · difference on/off · ← → jumps</span>
+    <span class="ml-auto flex items-center gap-2">
+      <span id="count" class="text-[13px] text-base-content/50"></span>
+      <button id="jump" class="btn btn-sm">Next change</button>
+    </span>
+  </header>
+
+  <div id="doc"></div>
+
+</main>
+</body>
+</html>

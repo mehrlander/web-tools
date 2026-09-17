@@ -166,13 +166,22 @@
              A reading host hands that question up and the strip collapses to
              the document plus one Compare pane. Mounted without it, an
              approval showed five tabs and opened on Patch, which is the rawest
-             view of a change someone is being asked to judge. -->
+             view of a change someone is being asked to judge.
+
+             openOn: 'mddiff' is the second half of that. A reading card lands
+             on the document, which is right for a deck you are browsing and
+             wrong here: this page exists to judge a CHANGE, and a reviewer
+             handed the finished document has to find what moved before they
+             can weigh it. The rendered comparison is that document with the
+             change marked in it, so it is the same reading with the question
+             answered. The card falls back to the document where the file has
+             no rendered comparison to offer. -->
         <div x-show="ctx.kind === 'documentation' && pathOf(it)"
              x-data="fileReview({
                repo: repoOf(), ref: ctx.branch, base: baseOf(), baseName: baseOf(),
                path: pathOf(it), prevPath: it.change?.previous_path,
                status: it.change?.status, patch: it.change?.patch,
-               open: true, bare: true, read: true })"></div>
+               open: true, bare: true, read: true, openOn: 'mddiff' })"></div>
 
       </section>
     </template>
