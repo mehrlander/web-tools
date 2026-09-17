@@ -4,23 +4,29 @@ title: Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 status: backlog
 opened: 2026-07-25
 size: M
-awaiting: drop VJE entirely vs own tree for display and keep VJE for edit
+awaiting: the reader/writer split, recommended in the body and unanswered since filing
 ---
 # Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 
 A 1.27 MB editor (373 KB gzipped) is the display path for every JSON file anyone
 looks at, and almost nobody types.
 
-## The three mounts, measured 2026-09-04
+## The three mounts, measured 2026-09-04, restamped 2026-09-17
 
 | Mount | Mode | Who edits |
 | --- | --- | --- |
 | `alpineComponents/viewer.js` | editable, fires `viewer:tree-change` | `popups/idb-nav.html` alone |
 | `alpineComponents/console.js` | `readOnly: true` | nobody |
-| `alpineComponents/transform-workbench.js` | editable | the workbench |
+| `alpineComponents/transform-workbench.js` | `readOnly: true` since 2026-09-14 | nobody |
 
 Every other consumer of viewer's tree (the data route, Files, the stage preview,
 chat-results) is read-only and reaches it through the editable mount.
+
+**So two of the three mounts are display-only, and one page edits.** The
+workbench went read-only on 2026-09-14 with its reasoning in the code: it was
+mounted editable, had no `onChange` and no reader for the handle, so every edit
+was accepted and discarded on the next mode switch. That is the case this task
+argues, arriving from a direction the task did not predict.
 
 ## Why build the reader
 
@@ -77,3 +83,9 @@ has held this task for its whole life.
   slightly stronger, `console.js` being a second display-only mount paying the
   CDN cost. Sized M; body cut from 923 words.
 - 2026-09-17: Surfaced the long-standing VJE decision as `awaiting:` so the board shows the hold.
+- 2026-09-17: Mount table restamped. `transform-workbench.js` is `readOnly: true`
+  since 2026-09-14, so the 2026-09-04 correction here ("both mount VJE since
+  then", implying two editors) now reads the wrong way: two of three mounts are
+  display-only and `viewer.js` is the only editor, serving `popups/idb-nav.html`.
+  That is a stronger case for the split than the body made, not a weaker one, and
+  it was found by reading the mounts rather than the task.
