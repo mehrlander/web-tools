@@ -84,7 +84,14 @@
   </button>
 </header>
 
-<main class="px-3 py-3 grid gap-3 content-start">
+<!-- grid-cols-[minmax(0,1fr)], not a bare `grid`. A grid item defaults to
+     min-width:auto, so one wide descendant (a code fence with long lines) sizes
+     the track to max-content and EVERY block inside lays out at that width:
+     measured at 390px, the whole rendered document was 1398px wide, so ordinary
+     paragraphs did not wrap and the card clipped them with overflow-hidden.
+     Letting the column shrink below its content is what hands the overflow back
+     to the objects that know how to scroll. -->
+<main class="px-3 py-3 grid grid-cols-[minmax(0,1fr)] gap-3 content-start">
 
   <div x-show="loading" class="flex items-center gap-2 opacity-70">
     <span class="loading loading-spinner loading-sm"></span> Loading
@@ -129,7 +136,7 @@
   <div x-show="items.length" class="border border-base-300 rounded-lg overflow-hidden bg-base-100
               divide-y divide-[var(--color-base-300)]">
     <template x-for="it in items" :key="it.id">
-      <section class="p-3 grid gap-2">
+      <section class="p-3 grid grid-cols-[minmax(0,1fr)] gap-2">
 
         <div class="flex items-baseline gap-2 flex-wrap">
           <span class="font-medium font-mono" x-text="it.title"></span>
