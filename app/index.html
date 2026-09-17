@@ -5128,12 +5128,18 @@ function app(){ return {
     if (!top) return false;
     try { if (typeof top.__tossLeave === 'function') { top.__tossLeave(url); return true; } } catch (e) {}
     try { top.location.href = url; return true; } catch (e) {}
-    // A framer that is neither ours nor permissive. A NEW TAB rather than this
-    // frame: allow-popups is granted where allow-top-navigation is not, and
-    // reaching home in a second tab is a real outcome, while reloading inside
-    // the preview is the confusing half-success this method exists to stop.
-    // Returns true either way, so the caller never falls back to the frame.
-    try { window.open(url, '_blank', 'noopener'); } catch (e) {}
+    // NEITHER AVAILABLE, and the honest answer is to say so rather than to
+    // invent a way out. A new tab was tried here first and is gone: it works,
+    // and it is not what the row promises. Tapping "Home" and getting a second
+    // tab beside the one you wanted to leave is its own small wrongness, and it
+    // was reported as one within a day.
+    //
+    // This only fires from a framer that offers no __tossLeave and forbids the
+    // top write: a stale cached copy of our own renderer, or somebody else's
+    // frame. Navigating THIS frame stays out of the question, since that is the
+    // half-success the whole method exists to stop.
+    notify('This preview cannot leave the page it is framed in. Open ' + url + ' directly.',
+           'alert-warning', 'warning');
     return true;
   },
   goMarkDashboard(){

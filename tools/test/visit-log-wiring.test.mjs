@@ -311,16 +311,19 @@ test('a framed app leaves through the shell, because the sandbox forbids the tab
   assert.equal(topLoc.href, b.shell.APP_HOME);
   assert.equal(b.location.href, 'blob:https://mehrlander.github.io/abc');
 
-  // Neither available: a NEW TAB, never this frame. allow-popups is granted
-  // where allow-top-navigation is not, and reaching home in a second tab is a
-  // real outcome; reloading inside the preview is the half-success being fixed.
+  // Neither available: SAY SO. A new tab was tried here and is gone; it works,
+  // and tapping "Home" to get a second tab beside the one you wanted to leave
+  // is its own small wrongness, reported as one within a day. Navigating this
+  // frame stays out of the question either way.
   const opened = [];
   win.open = (u) => { opened.push(u); };
   const c = framed({ location: { set href(v) { throw new Error('blocked'); } } });
   c.shell.goHomeOnMain();
-  assert.deepEqual(opened, [c.shell.APP_HOME], 'a sealed frame offered no way home at all');
+  assert.deepEqual(opened, [], 'a sealed frame opened a tab the reader did not ask for');
   assert.equal(c.location.href, 'blob:https://mehrlander.github.io/abc',
     'the frame navigated itself, which is the bug being fixed');
+  assert.ok(c.toasts.some(t => /framed in/.test(t.msg || '')),
+    'a sealed frame failed silently, which reads as a dead button');
   delete win.open;
 });
 
