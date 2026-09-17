@@ -12,6 +12,19 @@ We operate in two modes:
 * **GitHub flow (Branch & PR):** The standard route for code, tooling, features, and documentation. Changes live on a branch, follow the PR guide lifecycle below, and merge via pull request.
 * **Real-time (Direct to `main`):** For shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. These commit straight to `main` and push to GitHub as you go so everyone stays synchronized in real time. See [direct-to-main.csv](direct-to-main.csv) for the registry of writers and paths.
 
+## Assistant identity and attribution
+
+Four AI assistants contribute across this ecosystem. Each assistant identifies its work using its dedicated branch prefix and commit attribution so the Web Tools Activity view and automated crawlers can classify work accurately:
+
+| Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
+| :--- | :--- | :--- | :--- |
+| **Claude** | `claude/<slug>` | `Claude-Session: <url>` | Automated by Claude Code harness |
+| **Codex** | `codex/<slug>` | PR guide format | Standard Codex branch workflow |
+| **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits |
+| **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
+
+Any commit or branch that carries no assistant prefix or trailer is human work by definition.
+
 Maintain the PR body as the workstream's current state and durable record. Open a draft PR on the first push.
 
 ## PR template
