@@ -135,8 +135,14 @@ test('a turn outside the window is dropped, never clamped to the edge', () => {
   // cluster and did not happen then.
   assert.ok(!ticks.includes(0), 'nothing piled on the origin');
   near(ticks[0], (1 / 24) * 100, 'the first kept turn is 23 hours back');
-  // It is not silent either. The note on the rail counts what it could not draw.
-  assert.match(data.sessionRailNote(r), /2 of them fell before this window/);
+  // It is not silent either, and the saying moved from the rail to the MARK.
+  // A note on the rail answered "what is this mark" with a paragraph about the
+  // row; the mark's own note numbers the turn within the session, so the first
+  // drawn mark reading "turn 3 of 4" states the clipping by being an ordinal,
+  // and says it in a sentence as well rather than leaving it to be inferred.
+  const first = data.railTurnNote(r, data.railTurns(r)[0]);
+  assert.match(first.note, /^Turn 3 of 4/, 'the third turn of the session, not the first drawn');
+  assert.match(first.note, /2 earlier turns fall before this window/);
 });
 
 test('a session that began before the window runs off the left edge', () => {
@@ -165,8 +171,10 @@ test('a row summarised before version 22 says so instead of drawing an empty rai
   // The segment is still true, so it is still drawn; the dash is what says the
   // detail is missing rather than absent.
   assert.match(data.sessionRailSeg(old), /repeating-linear-gradient/);
-  assert.match(data.sessionRailNote(old), /version 22/);
-  assert.match(data.sessionRailNote(old), /Refresh/);
+  // The one case the RAIL still carries a note of its own: there are no marks
+  // to ask about, so there is nothing for a per-mark note to answer.
+  assert.match(data.railStaleNote(old), /version 22/);
+  assert.match(data.railStaleNote(old), /Refresh/);
   // And a healed row of the same shape is drawn solid.
   assert.ok(!/repeating-linear-gradient/.test(data.sessionRailSeg(row(20, 4, [0, 30]))));
 });
@@ -183,13 +191,37 @@ test('the day lane tiles the span exactly, with no gap and no overlap', () => {
   }
 });
 
-test('the note counts the turns it drew, not the counter beside it', () => {
+test('a mark counts the turns the rail drew, not the counter beside it', () => {
   // `exchanges` is the recorder's and the two can disagree: one record on file
   // stores 16 prompts under an `exchanges` of 8. The rail draws the beats, so
-  // its note counts the beats.
+  // its notes count the beats.
   scope('day');
   const r = { ...row(6, 1, [0, 10, 20]), exchanges: 99 };
-  assert.match(data.sessionRailNote(r), /^3 user turns/);
+  const turns = data.railTurns(r);
+  assert.equal(turns.length, 3, 'three beats, three marks');
+  assert.match(data.railTurnNote(r, turns[2]).note, /^Turn 3 of 3\b/);
+});
+
+test('a rail with every turn inside the window says nothing about clipping', () => {
+  scope('day');
+  const r = row(6, 1, [0, 10, 20]);
+  const n = data.railTurnNote(r, data.railTurns(r)[0]);
+  assert.equal(n.note, 'Turn 1 of 3 in this session.', 'the note is the turn, and nothing else');
+  assert.ok(n.when, 'and the lead line is when it happened');
+  // And the rail itself carries no note at all, so hovering it answers with the
+  // mark under the pointer rather than with a summary of the row.
+  assert.equal(data.railStaleNote(r), '', 'nothing on the rail to fire');
+});
+
+test('a drawn turn knows its place in the session, not in what survived the window', () => {
+  scope('day');
+  // Six turns, the first four before the window opens. What the rail draws is
+  // two marks; what they are is turns five and six.
+  const r = row(40, 1, [0, 60, 120, 180, 1020, 1080]);
+  const turns = plain(data.railTurns(r));
+  assert.deepEqual(turns.map((t) => t.i), [4, 5], 'the indices are the session\'s own');
+  assert.match(data.railTurnNote(r, turns[0]).note, /^Turn 5 of 6/);
+  assert.match(data.railTurnNote(r, turns[1]).note, /^Turn 6 of 6/);
 });
 
 // ── THE LANE'S SUMMED STRIP ───────────────────────────────────────────────
@@ -355,33 +387,55 @@ test('a column is one function, so neither lane can round differently', () => {
     'two turns five pixels apart are two columns, which 240 could not say');
 });
 
-test('hovering a row rail lights the column, without opening the strip note', () => {
+// A pointer event over a REAL rail element, cursor and all, because the handler
+// reaches into it: it finds [data-rail-cursor] and writes this turn's note onto
+// it. A plain object stood in until the cursor existed and then only proved
+// that the geometry was right. The box is stubbed 100 wide from 0, so clientX
+// IS the percent, since jsdom lays nothing out and a real box would be zero
+// wide and make the handler bail.
+function overRail(pct) {
+  const el = window.document.createElement('div');
+  el.innerHTML = '<span data-rail-cursor></span>';
+  el.getBoundingClientRect = () => ({ left: 0, width: 100 });
+  return { clientX: pct, currentTarget: el };
+}
+const cursorOf = (ev) => ev.currentTarget.querySelector('[data-rail-cursor]');
+
+test('hovering a row rail lights the column and names the turn under the pointer', () => {
   listRows('day', [liveRow(12, 2, [0, 360])]);
   const row = liveRow(12, 2, [0, 360]);
   const ticks = plain(data.sessionRailTicks(row));
-  // A fake pointer event: the two fields railPct reads, and a box 100 wide
-  // starting at 0, so clientX IS the percent. jsdom lays nothing out, so a real
-  // element would report a zero-width box and the handler would bail.
-  const over = (pct) => ({ clientX: pct, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) } });
   data.railHover = null;
-  data.rowRailTrack(over(ticks[1]), row);
+
+  let ev = overRail(ticks[1]);
+  data.rowRailTrack(ev, row);
   assert.equal(data.railHover.k, data.railBin(ticks[1]),
     'the hover settles on the column the nearest tick is in');
-  // Nearest, not exact: a pointer between two ticks takes the closer one.
-  data.rowRailTrack(over((ticks[0] + ticks[1]) / 2 - 1), row);
+  // And the note is about THAT TURN, parked at it, which is the whole point of
+  // the cursor: a note anchored to the rail would open over the middle of it.
+  assert.equal(cursorOf(ev).getAttribute('data-note'), 'Turn 2 of 2 in this session.');
+  assert.equal(cursorOf(ev).style.left, ticks[1] + '%', 'and sits on the mark it describes');
+
+  // Nearest, not exact: a pointer between two ticks takes the closer one, and
+  // the note follows it rather than staying on the last one named.
+  ev = overRail((ticks[0] + ticks[1]) / 2 - 1);
+  data.rowRailTrack(ev, row);
   assert.equal(data.railHover.k, data.railBin(ticks[0]), 'just left of the midpoint takes the left tick');
+  assert.equal(cursorOf(ev).getAttribute('data-note'), 'Turn 1 of 2 in this session.');
+
   // And the strip's own handler lands on the same column from the same x.
   data.railHover = null;
-  data.railTrack(over(ticks[1]));
+  data.railTrack(overRail(ticks[1]));
   assert.equal(data.railHover.k, data.railBin(ticks[1]), 'both lanes resolve one x alike');
 });
 
 test('a row with no turn times has no tick to hover, and nothing is invented', () => {
   listRows('week', [liveRow(20, 4)]);
-  const over = { clientX: 50, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) } };
+  const ev = overRail(50);
   data.railHover = null;
-  data.rowRailTrack(over, liveRow(20, 4));
+  data.rowRailTrack(ev, liveRow(20, 4));
   assert.equal(data.railHover, null, 'no ticks, no column, no hover');
+  assert.equal(cursorOf(ev).getAttribute('data-note'), null, 'and no note is written');
 });
 
 // ── THE TWO THINGS THAT MADE THE HOVER FEEL BROKEN ────────────────────────
