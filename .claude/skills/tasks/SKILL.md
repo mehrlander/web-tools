@@ -203,14 +203,28 @@ conversation, runs the two as one pass.
 ## Refine the tracker
 
 Refinement restores scope truth by mutating task files ("groom the tracker"
-still invokes it). When refining, prefer adding or appending a `## Related` block (paths, sibling task ids, premise PRs) over burying new pointers in prose; see `docs/TRACKER.md`. Read every body and log. Flag a `backlog` or `blocked` task
+still invokes it). Read every body and log. Flag a `backlog` or `blocked` task
 that is superseded, stale, a duplicate, framed for work that has since landed
 or shifted, or oversized, and an `in-progress` task whose `session:` branch is
 merged or gone. Check status, not only prose: waiting on an event or a machine
 is `backlog` with `awaiting:` or `runner:`, since `blocked` reads as "do not
 try"; a `done` without `closed:` or a `backlog` with `session:` is the same
 class of finding. Propose; confirm before closing, reframing, or splitting.
-Dormant tasks are out of scope unless the user just asked about one.
+Dormant tasks are out of scope unless the user just asked about one. Where an
+earlier session left a condition for the change you are making ("fold these two
+once the owner says so"), cite that condition rather than asserting the owner
+agreed. A condition is checkable in the repo afterwards and an assent is not.
+
+**What a refinement pass adds, and what it leaves alone.** The highest-value
+output is a `## Related` block: paths, sibling task ids, premise PRs, one line
+and one clause of why each matters, per `docs/TRACKER.md`. Pointing costs a
+session little and saves the next one a search, which is why it beats more
+prose. Against that, do not disturb what is already true. Never reflow a
+paragraph you are not changing, never rewrite a dated log entry to restamp a
+fact (add a new entry that corrects it), and write one log line for the pass
+rather than one per edit. A diff full of rewrapping hides the three changes that
+matter among thirty that do not, and a reviewer who cannot see what moved has
+been given work rather than relieved of it.
 
 A refinement close is `status: done`, `closed: <date>`, the open tag
 `resolution: superseded | stale | duplicate | dropped`, and the cause in a log

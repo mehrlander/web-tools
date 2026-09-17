@@ -65,7 +65,15 @@ priority: high        # example open tag: not acted on until promoted
 - PR #123: change that restamped the premise
 ```
 
-Rules: high-signal only (skip "might be related"); prefer paths that exist on `main`; one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
+Rules: high-signal only (skip "might be related"); one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
+
+**A path here must resolve, and a check enforces it.** The shape it keys on is the one the example shows: where a bullet opens with backticked tokens before its first colon, each is read as a repository path and must exist. A bullet opening with `task ` or `PR ` is a reference of another kind, and backticks after the colon are prose, so neither is path-checked; a path that does not exist yet can still be named after the colon, where it reads as description rather than as a pointer to open. `tools/test/tracker-tasks.test.mjs` holds this, and the same file holds the no-em-dash line above. Both rules were stated here and enforced nowhere until 2026-09-17, when one grooming pass broke both inside the pass that added this section.
+
+**A pointer leaving the prose moves here rather than disappearing.** A cross-reference can go stale in one sense and stay live in another: a sibling task that closed is no longer a dependency, and is still where the reasoning happened. Refinement that cuts such a reference out of a paragraph puts it in Related with its new status. This is what makes the section cheaper than prose rather than merely shorter.
+
+**Conventional body section: `## Done when`.** One or two sentences naming the observable condition that closes the task, stated so a later session can check it without rebuilding the argument. Because it is the exit and not a summary, **a task folded into another sends its exit condition along**, as a clause of the host's `## Done when`. A fold that carries the work and leaves the exit behind retires a question nobody decided to retire, which is what happened to `estate-js-commentary-read-mymt4u` on 2026-09-17 before the clause was restored.
+
+**`## Progress log` is last, and appends at the bottom,** oldest entry first, so the end of the file is the newest state and "append-only" below means what it says. Measured 2026-09-17: 90 task files here run oldest-first and 3 run newest-first. Migrate one of the three when you next touch it, rather than in a sweep. **Do not rewrite a dated entry** to restamp a fact; add a new entry that corrects it, so the log stays a record of what was believed when.
 
 **Status carries two companion fields.** `session` names the owning branch while a task is `in-progress`; `closed` dates it when it goes `done`. A `done` task keeps `session` set to the branch that completed it, so the board can say where the work happened after the fact.
 
