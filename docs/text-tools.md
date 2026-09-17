@@ -1,10 +1,12 @@
 # Text tools on the page at hand
 
-The FAB drawer's fifth tab. It reads the text of the page you are looking at and
-reports two things: some figures about the prose, and which registered files the
-text names. No model, no network for the figures, and nothing is written
-anywhere. Built 2026-08-13. This document is the design account and the honest
-assessment; the mechanics live in
+The FAB drawer's Text tab. It reads the page or selection you are looking at and
+reports three things: prior revisions retained for the same literal strings,
+figures about the prose, and which registered files the text names. The figures
+are local; the other two lanes read committed catalogs. No model is called and
+nothing is written anywhere. Built 2026-08-13 and connected to the shared Text
+proposal sources on 2026-09-17. This document is the design account and the
+honest assessment; the mechanics live in
 [`fab.js`](../lib/alpineComponents/fab.js) beside the code.
 
 ## Why it exists
@@ -36,6 +38,23 @@ it.
 **Figures**, computed locally: words against a chrome denominator, sentences and
 their average, reading time, the longest sentence with its text, and two
 house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
+
+**Prior revisions**, reconstructed from the private estate's durable Text
+sources. The browser reads `projects/text/current-sources.json`, the phrase
+review and its passage context, and the document-audit packet. Those inputs
+produce the attributed proposal subset counted live in Text Lab. An exact band
+means the edge-trimmed selection equals a proposal's original string. A
+contained band means the same case-sensitive, token-bounded string occurs
+inside the larger selection or page. Neither band is semantic, and neither says
+that prior source-occurrence work should be applied to the occurrence now on
+screen.
+
+Every proposal shows its earlier original and revision, action, attribution,
+and source provenance. Phrase reviews retain their passage and imported
+judgments. Document-audit proposals retain the historical patient revision,
+rationale, relocation, and evidence. There is no Apply action. A browse-all
+link opens the same records in Text Lab, where they can be searched, filtered,
+expanded, and addressed by proposal ID.
 
 **One gate.** Under 6 mean words per text run, the page is treated as an app
 rather than a document, and the two house-rule rows are withheld: they are prose
@@ -70,7 +89,7 @@ for every path the five carry:
 
 | Registry | Covers | Says |
 | --- | --- | --- |
-| [`docs.csv`](docs.csv) | `docs/`, `.md` and `.json` | subject, status |
+| [`docs.csv`](docs.csv) | declared documentation paths | subject, status |
 | [`tests.csv`](tests.csv) | `tools/test/` | protects, kind |
 | [`harness.csv`](harness.csv) | `tools/`, `scripts/` | role, layer |
 | [`portable.csv`](portable.csv) | the portable set | role, kind |
@@ -99,9 +118,12 @@ nothing. Both lanes run when the tab opens.
 **Not semantic.** A regular expression, a set-membership test and a dictionary
 lookup. The word "resolve" describes a string comparison.
 
-**Not a general capability.** It works because *this* estate keys its registries
-by path. Off `mehrlander/web-tools` there are no descriptions at all, and within
-it `lib/` and `pages/` are uncovered, so many rows carry a link and nothing else.
+**Not a general capability.** The registered-file lane works because *this*
+estate keys its registries by path. Off `mehrlander/web-tools` there are no path
+descriptions at all, and within it `lib/` is uncovered, so many rows carry a
+link and nothing else. The proposal lane is also estate-specific:
+it reads `mehrlander/home@main` and requires the viewer's access to that private
+repository.
 
 **Not built on the recognizer, deliberately.** `state/entities.json` reports ORG
 precision of 0.19 stratified on one rater; its top ORG entries for this repo are
@@ -116,9 +138,10 @@ change. The other four figures are generic.
 **Thinly calibrated.** The app gate rests on six pages plus one long document
 observed later. The threshold decides whether the house-rule rows appear at all.
 
-**Inert.** It writes nothing and carries nothing. Notes produces an annotation
-set that can leave the page; this produces figures that exist while the drawer
-is open.
+**Read-only.** It writes nothing and cannot apply a proposal. The local figures
+exist while the drawer is open; retained proposals have stable IDs and can be
+opened in Text Lab, but a later source edit remains a separate operation against
+a verified current occurrence.
 
 **Unproven in use.** Every run so far has been a demonstration. There is no
 evidence a second tap follows a first.
@@ -149,10 +172,11 @@ not have. The `assumed` tier is a property of a repo's whole prose, so this pane
 can only reach it by fetching the vocabulary index the estate declines to
 commit. It likely stays an agent-side answer the tab links to.
 
-The private text project now builds an ignored, current-checkout collection
-keyed by retained strings. This drawer has no transport for that machine-local
-store yet, so it does not claim to expose the collection merely because the
-catalog moved.
+The private text project also builds an ignored, current-checkout collection far
+larger than this browser projection. The browser does not transport that
+machine-local store. It reconstructs only the proposals recoverable from
+committed review sources, so current occurrences, normalization and lemma
+relationships, the wider exact index, and any semantic index remain absent.
 
 **Ask** (hand the text to a model) probably belongs in the FAB's existing
 take-away menu, whose job is already handing the page somewhere else.

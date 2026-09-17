@@ -10,20 +10,25 @@
 
 <!--
   text-lab.html — the estate's text-analysis and NLP work as one reading
-  surface. Four panes over one subject, in the order a reader wants them: what
-  we tried, what we read with, what we read against, what came out.
+  surface. Five panes over one subject: what we tried, the prior revisions we
+  retained, what we read with, what we read against, and what came out.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
   Instruments on sight, which no amount of context undoes, and with this page's
-  own `instruments` tab, so the whole and one of its four parts wore one word.
+  own `instruments` tab, so the whole and one of its five parts wore one word.
   `-lab` is the suffix the tools themselves already use (termlab, registerlab,
   entitylab, concept-lab), so it names the whole without renaming a part.
 
     probes       projects/local-models/probes/probes.json. One record per
                  bounded question: question, method, corpus, result, verdict,
                  what it opens. Failures are recorded at the same weight as
-                 successes, so the standing counts lead the header rather than
-                 being tucked behind a total.
+                  successes, so the standing counts lead the header rather than
+                  being tucked behind a total.
+    proposals    A browser projection rebuilt from projects/text's declared
+                 phrase-review and document-audit sources. It carries prior
+                 source-occurrence revisions with their provenance. It is not
+                 the ignored full-text collection and does not claim that a
+                 proposal applies to the document a reader has open.
     instruments  projects/text/INSTRUMENTS.md, rendered. Organised by
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
@@ -51,9 +56,13 @@
   accent, so any colour on this page is a verdict and nothing else. The four
   values are a scale, not four decorations.
 
-  Two params:
+  Address params:
     ?use=<ref>   pins this page's own lib chain to a ref.
     ?data=<ref>  pins which ref of home is read (defaults to main).
+    ?pane=<name> opens one pane.
+    ?q=<text>    searches the proposal projection.
+    ?lane=<name> and ?action=<name> filter proposal rows.
+    ?proposal=<id> opens one proposal and implies the proposals pane.
 -->
 
 <style>[x-cloak]{display:none!important}</style>
@@ -81,7 +90,22 @@
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
       DATA_REF: params.get('data') || 'main',
 
-      PANES: ['probes', 'instruments', 'resources', 'runs'],
+      PANES: ['probes', 'proposals', 'instruments', 'resources', 'runs'],
+
+      PROPOSAL_LANES: [
+        { key: '', label: 'all sources' },
+        { key: 'phrase-reviews', label: 'phrase reviews' },
+        { key: 'audit-packet', label: 'document audit' },
+      ],
+      PROPOSAL_ACTIONS: [
+        { key: '', label: 'all actions' },
+        { key: 'qualify', label: 'qualify' },
+        { key: 'rephrase', label: 'rephrase' },
+        { key: 'reorder', label: 'reorder' },
+        { key: 'repair', label: 'repair' },
+        { key: 'tighten', label: 'tighten' },
+        { key: 'extract', label: 'extract' },
+      ],
 
       // The page's only coloured dimension.
       STANDINGS: {
@@ -132,7 +156,7 @@
       },
 
       home: null,
-      pane: params.get('pane') || 'probes',
+      pane: params.get('proposal') ? 'proposals' : (params.get('pane') || 'probes'),
       probes: [],
       concept: '',
       filterStanding: '',
@@ -142,12 +166,20 @@
       resources: [],
       rate: '',
       filterState: '',
+      proposalIndex: null,
+      proposalState: 'idle',
+      proposalError: '',
+      proposalQ: params.get('q') || '',
+      proposalLane: params.get('lane') || '',
+      proposalAction: params.get('action') || '',
+      proposalOpen: params.get('proposal') || '',
       loading: true,
       error: '',
       framed: window.self !== window.top,
 
       async init() {
         document.getElementById('boot')?.remove();
+        this.normalizeProposalParams();
         this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
         try {
           const res = await this.home.get(`${this.ROOT}/probes/probes.json`);
@@ -207,14 +239,17 @@
       },
 
       // The two render kits load here rather than in the boot chain. The
-      // register is one pane of three, and a kit that fails to arrive must not
-      // be able to blank the other two: everything on this page sits inside one
+      // instrument register is one pane of five, and a kit that fails to arrive must not
+      // be able to blank the other four: everything on this page sits inside one
       // x-cloak root, so anything that stops Alpine starting renders as a white
       // page with nothing to read.
       async showPane(name) {
-        this.pane = name;
+        const pane = this.PANES.includes(name) ? name : 'probes';
+        this.pane = pane;
+        this.syncPaneAddress();
         try {
-          if (name === 'instruments' && !this.guideHtml) {
+          if (pane === 'proposals') await this.loadProposals();
+          if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
             const res = await this.home.get(this.INSTRUMENTS);
@@ -226,14 +261,154 @@
               window.SourcePeek.fenceFrontmatter(res.text),
               { knownRefs: [this.DATA_REF, 'main'] }).html;
           }
-          if (name === 'resources' && !this.resources.length) {
+          if (pane === 'resources' && !this.resources.length) {
             await gh.load('kits/csv.js');
             const res = await this.home.get(`${this.ROOT}/resources.csv`);
             this.resources = window.Csv.rows(res.text);
           }
         } catch (e) {
-          this.error = `${name}: ${e.message || e}`;
+          this.error = `${pane}: ${e.message || e}`;
         }
+      },
+
+      // This is deliberately a proposal projection rather than the whole text
+      // collection. The shared kit rebuilds it from the three durable sources
+      // that both this pane and the FAB read. Keeping parsing in the kit gives
+      // the two interfaces one answer and keeps the generated local store local.
+      async loadProposals() {
+        if (this.proposalState === 'loading' || this.proposalState === 'done') return;
+        this.proposalState = 'loading';
+        this.proposalError = '';
+        try {
+          await gh.load('kits/csv.js');
+          await gh.load('kits/text-proposals.js');
+          this.proposalIndex = await window.TextProposals.load(this.home);
+          this.proposalState = 'done';
+          if (this.proposalOpen
+              && !window.TextProposals.view(this.proposalIndex, this.proposalOpen)) {
+            this.proposalOpen = '';
+            this.syncProposalAddress();
+          }
+          // A proposal ID is a visible address, not merely an expanded row. Do
+          // this only after the initial load, so opening a row by hand does not
+          // make the list jump under the reader.
+          const addressed = this.proposalOpen;
+          if (addressed) this.$nextTick(() => {
+            if (this.proposalOpen !== addressed) return;
+            document.getElementById(`proposal-${addressed}`)
+              ?.scrollIntoView({ block: 'start' });
+          });
+        } catch (e) {
+          this.proposalError = e.message || String(e);
+          this.proposalState = 'error';
+        }
+      },
+
+      get proposalRows() {
+        if (!this.proposalIndex || !window.TextProposals) return [];
+        const rows = window.TextProposals.search(this.proposalIndex, {
+          q: this.proposalQ,
+          lane: this.proposalLane,
+          action: this.proposalAction,
+        });
+        // A direct proposal address remains visible even when stale filters
+        // also rode in the URL. The id is the stronger, exact address.
+        if (this.proposalOpen && !rows.some(row => row.id === this.proposalOpen)) {
+          const selected = window.TextProposals.view(this.proposalIndex, this.proposalOpen);
+          if (selected) return [selected, ...rows];
+        }
+        return rows;
+      },
+
+      get proposalTotal() {
+        if (!this.proposalIndex) return 0;
+        return this.proposalIndex.summary?.proposals
+          || this.proposalIndex.proposals?.length || 0;
+      },
+
+      proposalGroups() {
+        const rows = this.proposalRows;
+        return [
+          { lane: 'phrase-reviews', label: 'Phrase reviews',
+            items: rows.filter(row => row.lane === 'phrase-reviews') },
+          { lane: 'audit-packet', label: 'Document audit',
+            items: rows.filter(row => row.lane === 'audit-packet') },
+        ].filter(group => group.items.length);
+      },
+
+      proposalLaneCount(key) {
+        return this.proposalIndex?.summary?.by_lane?.[key] || 0;
+      },
+      proposalActionCount(key) {
+        return this.proposalIndex?.summary?.by_action?.[key] || 0;
+      },
+
+      proposalPreview(value, limit = 190) {
+        const text = String(value || '').replace(/\s+/g, ' ').trim();
+        if (text.length <= limit) return text;
+        const cut = text.slice(0, limit).replace(/\s+\S*$/, '');
+        return `${cut || text.slice(0, limit)}…`;
+      },
+
+      proposalOriginSource(origin) { return origin?.source || {}; },
+      proposalOriginContext(origin) { return origin?.context || {}; },
+      proposalOriginPatient(origin) { return origin?.patient || {}; },
+      proposalOriginLabel(origin) {
+        const source = this.proposalOriginSource(origin);
+        const context = this.proposalOriginContext(origin);
+        const bits = [source.path || 'source'];
+        if (origin?.record !== undefined && origin?.record !== '') bits.push(`record ${origin.record}`);
+        if (context.section) bits.push(context.section);
+        if (source.sha) bits.push(source.sha.slice(0, 7));
+        return bits.join(' · ');
+      },
+
+      toggleProposal(id) {
+        this.proposalOpen = this.proposalOpen === id ? '' : id;
+        this.syncProposalAddress();
+      },
+
+      setProposalFilter(kind, value) {
+        if (kind === 'lane') this.proposalLane = value;
+        if (kind === 'action') this.proposalAction = value;
+        this.proposalOpen = '';
+        this.syncProposalAddress();
+        this.shut();
+      },
+
+      normalizeProposalParams() {
+        const lane = this.PROPOSAL_LANES.some(row => row.key === this.proposalLane)
+          ? this.proposalLane : '';
+        const action = this.PROPOSAL_ACTIONS.some(row => row.key === this.proposalAction)
+          ? this.proposalAction : '';
+        if (lane === this.proposalLane && action === this.proposalAction) return;
+        this.proposalLane = lane;
+        this.proposalAction = action;
+        const url = new URL(location.href);
+        if (!lane) url.searchParams.delete('lane');
+        if (!action) url.searchParams.delete('action');
+        history.replaceState(null, '', url);
+      },
+
+      syncPaneAddress() {
+        const url = new URL(location.href);
+        if (this.pane === 'probes') url.searchParams.delete('pane');
+        else url.searchParams.set('pane', this.pane);
+        if (this.pane !== 'proposals') url.searchParams.delete('proposal');
+        history.replaceState(null, '', url);
+      },
+
+      syncProposalAddress() {
+        const url = new URL(location.href);
+        url.searchParams.set('pane', 'proposals');
+        const set = (key, value) => value
+          ? url.searchParams.set(key, value)
+          : url.searchParams.delete(key);
+        set('q', this.proposalQ.trim());
+        set('lane', this.proposalLane);
+        set('action', this.proposalAction);
+        set('proposal', this.proposalOpen);
+        history.replaceState(null, '', url);
       },
 
       get resCounts() {
@@ -364,6 +539,24 @@
          ("4 worked 6 mixed 5 failed 1 open"). -->
     <div class="px-5 sm:px-7 py-2 border-t border-base-200 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs">
 
+      <div x-show="pane === 'proposals'" class="flex items-center gap-3 grow min-w-[14rem]">
+        <label class="flex items-center gap-2 grow min-w-0">
+          <i class="ph ph-magnifying-glass opacity-30 shrink-0"></i>
+          <input class="bg-transparent outline-none min-w-0 grow placeholder:text-base-content/30"
+                 aria-label="Search proposals" placeholder="search original, revision, or rationale"
+                 x-model="proposalQ"
+                 @input.debounce.250ms="proposalOpen = ''; syncProposalAddress()"
+                 @keydown.escape="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
+        </label>
+        <button x-show="proposalQ" class="opacity-40 hover:opacity-100"
+                aria-label="Clear proposal search"
+                @click="proposalQ = ''; proposalOpen = ''; syncProposalAddress()">
+          <i class="ph ph-x"></i>
+        </button>
+        <span class="opacity-40 whitespace-nowrap tabular-nums"
+              x-text="proposalRows.length + ' of ' + proposalTotal"></span>
+      </div>
+
       <div x-show="pane === 'probes'" class="flex items-baseline gap-x-5">
         <template x-for="key in ['worked','mixed','failed','open']" :key="key">
           <button class="hover:opacity-100 transition-opacity whitespace-nowrap"
@@ -385,6 +578,48 @@
       </div>
 
       <div class="grow"></div>
+
+      <div x-show="pane === 'proposals'" class="dropdown">
+        <div tabindex="0" role="button"
+             class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+             :class="proposalLane && 'opacity-100 font-medium'">
+          <span x-text="(PROPOSAL_LANES.find(row => row.key === proposalLane) || PROPOSAL_LANES[0]).label"></span>
+          <i class="ph ph-caret-down"></i>
+        </div>
+        <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-60 shadow-lg">
+          <template x-for="row in PROPOSAL_LANES" :key="row.key || 'all'">
+            <li>
+              <a class="font-mono text-xs justify-between"
+                 :class="proposalLane === row.key && 'font-medium'"
+                 @click="setProposalFilter('lane', row.key)">
+                <span x-text="row.label"></span>
+                <span x-show="row.key" class="opacity-40" x-text="proposalLaneCount(row.key)"></span>
+              </a>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <div x-show="pane === 'proposals'" class="dropdown dropdown-end">
+        <div tabindex="0" role="button"
+             class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
+             :class="proposalAction && 'opacity-100 font-medium'">
+          <span x-text="(PROPOSAL_ACTIONS.find(row => row.key === proposalAction) || PROPOSAL_ACTIONS[0]).label"></span>
+          <i class="ph ph-caret-down"></i>
+        </div>
+        <ul tabindex="0" class="dropdown-content menu flex-nowrap bg-base-100 border border-base-300 rounded-box z-30 w-52 shadow-lg">
+          <template x-for="row in PROPOSAL_ACTIONS" :key="row.key || 'all'">
+            <li>
+              <a class="font-mono text-xs justify-between"
+                 :class="proposalAction === row.key && 'font-medium'"
+                 @click="setProposalFilter('action', row.key)">
+                <span x-text="row.label"></span>
+                <span x-show="row.key" class="opacity-40" x-text="proposalActionCount(row.key)"></span>
+              </a>
+            </li>
+          </template>
+        </ul>
+      </div>
 
       <div x-show="pane === 'resources'" class="dropdown dropdown-end">
         <div tabindex="0" role="button" class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity"
@@ -428,12 +663,214 @@
     </div>
   </header>
 
-  <main class="px-5 sm:px-7 py-7 max-w-[72rem] mx-auto">
+  <main class="px-5 sm:px-7 py-7 mx-auto"
+        :class="pane === 'proposals' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
 
-    <div x-show="loading" class="py-24 text-center">
+    <div x-show="pane === 'probes' && loading" class="py-24 text-center">
       <span class="loading loading-dots loading-md opacity-20"></span>
     </div>
-    <div x-show="error" class="font-mono text-sm text-error py-6" x-text="error"></div>
+    <div x-show="error && pane !== 'proposals'" class="font-mono text-sm text-error py-6" x-text="error"></div>
+
+    <!-- ── proposals ────────────────────────────────────────────────────
+         This is the reviewable browser projection, not the full local text
+         store. Each row is one attributed edge from retained text to a prior
+         revision. It can be inspected here; applying it remains a separate
+         decision against a current occurrence. -->
+    <section x-show="pane === 'proposals'">
+      <div x-show="proposalState === 'idle' || proposalState === 'loading'" class="py-24 text-center">
+        <span class="loading loading-dots loading-md opacity-20"></span>
+      </div>
+
+      <div x-show="proposalState === 'error'"
+           class="font-mono text-sm text-error py-6 break-words" x-text="proposalError"></div>
+
+      <template x-for="g in proposalGroups()" :key="g.lane">
+        <section class="mb-10">
+          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+            <span x-text="g.label"></span>
+            <span class="ml-2 tabular-nums" x-text="g.items.length"></span>
+          </h2>
+
+          <template x-for="p in g.items" :key="p.id">
+            <article class="border-b border-base-200 scroll-mt-24"
+                     :id="'proposal-' + p.id"
+                     :class="proposalOpen === p.id && 'bg-base-200/30'">
+              <button class="w-full text-left py-5" @click="toggleProposal(p.id)">
+                <span class="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:gap-5 items-start">
+                  <span class="min-w-0">
+                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Original</span>
+                    <span class="block text-lg leading-7 text-pretty"
+                          x-text="proposalPreview(p.from.text)"></span>
+                  </span>
+                  <span class="sm:pt-7 opacity-25 justify-self-center">
+                    <i class="ph ph-arrow-down sm:hidden"></i>
+                    <i class="ph ph-arrow-right hidden sm:inline"></i>
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Prior revision</span>
+                    <span class="block text-lg leading-7 text-pretty font-medium"
+                          x-text="proposalPreview(p.to.text)"></span>
+                  </span>
+                </span>
+
+                <span class="mt-2 flex items-center gap-2 font-mono text-xs opacity-40 min-w-0">
+                  <span class="uppercase tracking-wide" x-text="p.action"></span>
+                  <span>·</span>
+                  <span>source-occurrence work</span>
+                  <span>·</span>
+                  <span class="truncate" x-text="proposalOriginLabel((p.origins || [])[0])"></span>
+                  <i class="ph shrink-0 ml-auto" :class="proposalOpen === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
+                </span>
+              </button>
+
+              <template x-if="proposalOpen === p.id">
+                <div class="border-t border-base-300/60 px-1 sm:px-4 pt-5 pb-6 grid gap-6">
+                  <div class="grid lg:grid-cols-2 gap-6 lg:gap-10">
+                    <div class="min-w-0">
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Original text</div>
+                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.from.text"></div>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Prior revision</div>
+                      <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.to.text"></div>
+                    </div>
+                  </div>
+
+                  <div class="grid sm:grid-cols-2 gap-5 border-t border-base-300/60 pt-5">
+                    <div>
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40">Purpose</div>
+                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.purpose"></div>
+                    </div>
+                    <div>
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40">Attribution</div>
+                      <div class="text-lg leading-7 text-pretty mt-0.5" x-text="p.author"></div>
+                    </div>
+                  </div>
+
+                  <template x-if="p.analysis">
+                    <div class="border-t border-base-300/60 pt-5">
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40">Imported review</div>
+                      <dl class="mt-1 grid sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+                        <div x-show="p.analysis.ordinary_reading">
+                          <dt class="font-mono text-xs opacity-40">ordinary reading</dt>
+                          <dd class="mt-0.5" x-text="p.analysis.ordinary_reading"></dd>
+                        </div>
+                        <div x-show="p.analysis.closed_in_situ">
+                          <dt class="font-mono text-xs opacity-40">closed in place</dt>
+                          <dd class="mt-0.5" x-text="p.analysis.closed_in_situ"></dd>
+                        </div>
+                        <div x-show="p.analysis.fix_words !== null">
+                          <dt class="font-mono text-xs opacity-40">added words</dt>
+                          <dd class="mt-0.5 tabular-nums" x-text="p.analysis.fix_words"></dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </template>
+
+                  <div>
+                    <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Provenance</div>
+                    <template x-for="(origin, oi) in p.origins" :key="p.id + ':' + oi">
+                      <div class="border-t border-base-300/60 py-3 grid gap-3">
+                        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs">
+                          <template x-if="proposalOriginSource(origin).url">
+                            <a class="link link-hover opacity-60 hover:opacity-100"
+                               :href="proposalOriginSource(origin).url" target="_blank" rel="noopener">
+                              <span x-text="proposalOriginLabel(origin)"></span><i class="ph ph-arrow-square-out ml-1"></i>
+                            </a>
+                          </template>
+                          <template x-if="!proposalOriginSource(origin).url">
+                            <span class="opacity-50" x-text="proposalOriginLabel(origin)"></span>
+                          </template>
+                          <span class="opacity-40" x-text="origin.scope || 'source-occurrence'"></span>
+                        </div>
+
+                        <template x-if="origin.rationale">
+                          <div>
+                            <div class="font-mono text-xs uppercase tracking-wide opacity-40">Rationale</div>
+                            <div class="text-lg leading-7 text-pretty mt-0.5" x-text="origin.rationale"></div>
+                          </div>
+                        </template>
+
+                        <template x-if="origin.original_status || origin.original_note">
+                          <div>
+                            <div class="font-mono text-xs uppercase tracking-wide opacity-40">Original record</div>
+                            <div class="text-sm leading-6 mt-0.5">
+                              <span x-show="origin.original_status" x-text="origin.original_status"></span>
+                              <span x-show="origin.original_note"
+                                    x-text="(origin.original_status ? ' · ' : '') + origin.original_note"></span>
+                            </div>
+                          </div>
+                        </template>
+
+                        <template x-if="proposalOriginContext(origin).markdown">
+                          <div>
+                            <div class="font-mono text-xs uppercase tracking-wide opacity-40">
+                              Context <span class="normal-case tracking-normal" x-text="proposalOriginContext(origin).section || ''"></span>
+                            </div>
+                            <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words mt-0.5"
+                                 x-text="proposalOriginContext(origin).markdown"></div>
+                          </div>
+                        </template>
+
+                        <template x-if="proposalOriginPatient(origin).path">
+                          <div class="font-mono text-xs opacity-50">
+                            Patient:
+                            <template x-if="proposalOriginPatient(origin).url">
+                              <a class="link link-hover" :href="proposalOriginPatient(origin).url"
+                                 target="_blank" rel="noopener"
+                                 x-text="proposalOriginPatient(origin).repo + '/' + proposalOriginPatient(origin).path"></a>
+                            </template>
+                            <template x-if="!proposalOriginPatient(origin).url">
+                              <span x-text="proposalOriginPatient(origin).repo + '/' + proposalOriginPatient(origin).path"></span>
+                            </template>
+                          </div>
+                        </template>
+
+                        <template x-if="origin.relocation && origin.relocation.destination">
+                          <div>
+                            <div class="font-mono text-xs uppercase tracking-wide opacity-40">Relocation</div>
+                            <div class="text-sm leading-6 mt-0.5">
+                              <span x-text="origin.relocation.destination"></span>
+                              <span x-show="origin.relocation.status"
+                                    x-text="' · ' + origin.relocation.status"></span>
+                            </div>
+                          </div>
+                        </template>
+
+                        <template x-if="origin.evidence && origin.evidence.length">
+                          <div>
+                            <div class="font-mono text-xs uppercase tracking-wide opacity-40">Evidence</div>
+                            <ul class="mt-1 grid gap-1 text-sm leading-6">
+                              <template x-for="(item, ei) in origin.evidence" :key="ei">
+                                <li class="break-words">
+                                  <span x-show="item.source" class="font-mono text-xs opacity-50"
+                                        x-text="item.source + ': '"></span>
+                                  <span x-text="item.quote || item.note || ''"></span>
+                                </li>
+                              </template>
+                            </ul>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div class="font-mono text-xs opacity-40 border-t border-base-300/60 pt-3 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>prior work, not an automatic recommendation</span>
+                    <span class="break-all" x-text="p.id"></span>
+                  </div>
+                </div>
+              </template>
+            </article>
+          </template>
+        </section>
+      </template>
+
+      <p x-show="proposalState === 'done' && !proposalRows.length"
+         class="py-16 text-center font-mono text-xs opacity-40">
+        no proposal carries that combination
+      </p>
+    </section>
 
     <!-- ── probes ─────────────────────────────────────────────────────── -->
     <section x-show="pane === 'probes' && !loading">

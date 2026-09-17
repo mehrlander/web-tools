@@ -71,7 +71,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
-- [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
+- [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: local prose figures, registered-file matches, retained prior revisions, and the limits of all three
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`venues.md`](venues.md) *(measured)* — the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split
