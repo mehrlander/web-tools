@@ -14,8 +14,8 @@ The one named gap in `lattice` as shipped in PR #294.
 Many tables omit their outer borders: interior rules divide the columns, but
 nothing is drawn down the left and right edges, or across the top and
 bottom. The cell walk starts from a junction taken as a top-left corner, so
-where the perimeter is missing there is no corner to start from, and the table
-yields nothing at all. Not a degraded result, an empty one.
+where the perimeter is missing there is no corner to start from, and the
+table yields nothing at all. Not a degraded result, an empty one.
 
 This is common in government forms and is the reason a stream reading is
 often the only one that works on them, which costs the cross-method control
@@ -41,7 +41,8 @@ lattice currently reports traces to a mark on the page. So the inferred
 edges need to be marked as inferred in the output, and the shape of that
 marking is the actual design question, not the geometry.
 
-Inferred edges must be marked as inferred in the output; settle that marking shape here when implementing.
+Inferred edges must be marked as inferred in the output; settle that marking
+shape here when implementing.
 
 `document-structure-harness-4mz7wk` once shared this provenance question; that
 task is done (closed 2026-08-25) and frozen out to the private estate. The lattice

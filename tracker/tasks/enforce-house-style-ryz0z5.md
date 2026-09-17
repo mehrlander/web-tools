@@ -33,8 +33,11 @@ Three pieces, one outcome:
   them read the branch diff, which is the shape `npm run showing` already uses.
 **The discovery half is confirmed to have worked, so it is no longer part of
 this task.** Read from `skillAttention` on 2026-09-03, across 296 sessions:
-`daisy-alpine` fired 5 times in the 267 sessions before 2026-08-31 and 8 times in
- the 29 since, moving from 1.9% of sessions to 28%. It was the most-invoked skill in the post-change window, ahead of `tasks`. `dataviz`, which it trailed 5 to 4 before the change, has not fired since 2026-08-28. PR #554 worked; what is left here is the catching, not the finding.
+`daisy-alpine` fired 5 times in the 267 sessions before 2026-08-31 and 8 times
+in the 29 since, moving from 1.9% of sessions to 28%. It was the most-invoked
+skill in the post-change window, ahead of `tasks`. `dataviz`, which it trailed
+5 to 4 before the change, has not fired since 2026-08-28. PR #554 worked; what
+is left here is the catching, not the finding.
 
 **Done when** a stat-card grid in a changed file fails the suite and the
 scanners reach files outside `lib app pages`.

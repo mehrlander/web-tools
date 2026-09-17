@@ -40,8 +40,8 @@ earlier.
   whose only job is to find where the first was wrong. That pairing is not
   optional and is not a review formality: unpaired, the six pilot rewrites
   introduced seven false statements, and the mechanical equivalence check cannot
-  see one. Both agents want the stronger model, since the thing being hunted is
-  a plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
+  see one. Both agents want the stronger model, since the thing being hunted is a
+  plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
   scripts, generated payloads, and the paths frozen in home's
   `projects/budget-drs/.paths.json`.
 
