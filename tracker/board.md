@@ -20,7 +20,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
 - 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md) · S (awaiting: leave it in the library and close, recommended with three supports)
-- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L (awaiting: three decisions, each with a lean argued in the body: frontmatter for docs, folder over suffix, this task before column-primitive)
+- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M (awaiting: one decision, not three: take the recommended shape (fix pages.note, split tests only, named exceptions elsewhere). The ordering question closed itself on 2026-09-10)
 - 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md) · S
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M (awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body)
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
