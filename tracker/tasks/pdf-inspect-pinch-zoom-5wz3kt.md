@@ -4,6 +4,7 @@ title: Pinch-zoom and pan for pdf-inspect's page view
 status: backlog
 opened: 2026-07-26
 size: M
+awaiting: CSS transform-then-settle vs live re-render
 ---
 # Pinch-zoom and pan for pdf-inspect's page view
 
@@ -49,3 +50,4 @@ axis picker and saved views exist so the gesture is never the only route.
 
 ## Progress log
 - 2026-07-26: Filed at the wrap-up of PR #294, from using the page on a phone.
+- 2026-09-17: Marked awaiting zoom strategy (CSS transform then settle vs live re-render).

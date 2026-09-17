@@ -3,7 +3,7 @@ id: stranded-titles-panel-or-drop-o6hqom
 title: Decide the remaining stranded title attributes, panel or leave
 status: backlog
 opened: 2026-08-19
-size: M
+size: S
 priority: low
 ---
 # Decide the remaining stranded title attributes, panel or leave
@@ -72,3 +72,4 @@ not the total.
   four-component table is the 2026-08-19 survey and is not restamped; rerun the
   command for current per-component figures.
 - 2026-09-17: Queue after Map cleanup (`align-map-view-cleanup-40afu8`); start with `map.js` as the largest untouched carrier.
+- 2026-09-17: Deep-groom pass 2: PR #610 cut stranded titles ~128→~25 (notes+cards). Body counts and the four-component table are pre-#610 — re-run `npm run stranded-titles` before deciding. Size M→S. Queue after Map cleanup; start with `map.js`.

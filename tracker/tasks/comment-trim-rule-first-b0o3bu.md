@@ -40,8 +40,8 @@ earlier.
   whose only job is to find where the first was wrong. That pairing is not
   optional and is not a review formality: unpaired, the six pilot rewrites
   introduced seven false statements, and the mechanical equivalence check cannot
-  see one. Both agents want the stronger model, since the thing being hunted is a
-  plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
+  see one. Both agents want the stronger model, since the thing being hunted is
+  a plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
   scripts, generated payloads, and the paths frozen in home's
   `projects/budget-drs/.paths.json`.
 
@@ -65,6 +65,7 @@ Decide first, then run:
 2. **Or paired fan-out** over the heaviest remaining files: one rewriter + one adversarial checker per file (pairing is not optional).
 
 Include `lib/alpineComponents/estate.js` (folded from `estate-js-commentary-read-mymt4u` on 2026-09-17).
+On that file, also answer the #403 question (contract restating docs vs rationale in place); do not authorize deletion by token overlap alone (`docs/text-content.md`).
 
 Pilot lessons live in `docs/text-content.md` ("What the pilot taught about running the pass").
 
@@ -79,7 +80,7 @@ Pilot lessons live in `docs/text-content.md` ("What the pilot taught about runni
   other, a file header drifting from the code, has no mechanical report and is
   logged as `header-essay-outlives-its-code` in SNAGS.
 - 2026-09-08: Steps 1 and 2 done on `claude/code-comments-assessment-sqzvrz`
-  (web-tools PR #625, home PR #605). The rule is in `docs/CONVENTIONS.md` under
+  (web-tools PR #625, home PR #605). The rule is in `CLAUDE.md` (conventions home after PR #634; was `docs/CONVENTIONS.md`) under
   "Prose that describes state is unimplemented"; the six pilot files are
   rewritten and mechanically verified comment-only, by stripping comments and
   comparing the remainder rather than by reading the diff. Comment words fell
@@ -110,3 +111,4 @@ Pilot lessons live in `docs/text-content.md` ("What the pilot taught about runni
   weighing the accuracy-only pass (header contracts and stale figures, which the
   pilot found were most of the value) against the paired fan-out.
 - 2026-09-17: Reframed to residual only (size L→M). Folded `estate-js-commentary-read-mymt4u` into this worklist after owner assent.
+- 2026-09-17: Rule home restamped after PR #634 (CONVENTIONS.md retired → CLAUDE.md).

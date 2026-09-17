@@ -5,6 +5,7 @@ status: backlog
 project: show-repo
 opened: 2026-08-15
 size: M
+awaiting: ?header=0|1 vs off; sidebar default by omission vs third value
 ---
 # Retire `shell`, and name the parts instead of the collection
 
@@ -90,3 +91,4 @@ responsive default is expressed by omission or a third value.
   `docs/HTML-STYLE.md` is a pointer since 2026-08-31. References are by content
   now. Verified still true: `?shell=` and `shellMode` live in `app/index.html`,
   `chrome` still definitional in the skill. Body cut from 885 words.
+- 2026-09-17: Surfaced the header-param / sidebar-default decision as awaiting so On deck shows the hold.
