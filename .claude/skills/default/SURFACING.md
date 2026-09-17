@@ -27,7 +27,7 @@ Use these rules when chat is the only output channel. The canonical source is `m
 
 ### A reply that changed files
 
-* **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`.
+* **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch. Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`.
 
 * **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a renderable page its 🥏, ⭐, or 📦. Reserve `file:line` for grep and debugging.
 
