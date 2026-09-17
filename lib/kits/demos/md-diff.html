@@ -17,90 +17,134 @@
   await gh.load('kits/swipe-deck.js');
   await gh.load('kits/md-diff.js');
 
-  // A documentation edit of the shape the kit is built for: a few scattered
-  // changes in a file that is mostly unchanged. Every case is here once, which
-  // is the point of the fixture: a word swap, a rewritten paragraph, a new
-  // block, a dropped block, a list item, a table cell and a line inside a fence.
-  const BEFORE = `## Reading fund 600
+  // A documentation edit at the density documentation edits actually have:
+  // fourteen blocks, three of them touched. The kit's whole shape rests on that
+  // assumption, so a fixture that changed every paragraph was testing a case
+  // the design is not for and made the page look like a diff rather than a
+  // document.
+  const BEFORE = `# Reading fund 600
 
 Fund 600 is reported as one number and read as two. The appropriated lane
 carries recordkeeping and the agency's own operations, and it is the lane a
 budget bill moves.
 
-The non-appropriated lane carries what the plans pay for directly. It reports
-on the same fund number and never nets into the appropriated total.
+The non-appropriated lane carries what the plans pay for directly. It reports on
+the same fund number and never nets into the appropriated total.
+
+## Why the distinction survives every reorganisation
+
+The two lanes answer to different authorities. An appropriation is an act of the
+legislature and lapses on its own schedule; a non-appropriated expenditure is
+made under the plan's own authority and does not.
 
 | Lane | Moves with a bill | Reported under |
 | --- | --- | --- |
 | Appropriated | yes | 600 |
 | Non-appropriated | no | 600 |
 
-Three things follow:
+So a schedule that adds the two lanes together has produced a figure nobody in
+either lane recognises, and there is no reconciliation that will recover it.
 
-- A schedule adding the two lanes produces a figure nobody recognises.
-- Carry-forward level is the base a request is measured against.
-- The enacted total is a different base again.
+## The three bases, and which one a request is measured against
 
-This paragraph is taken out entirely, and nothing replaces it where it stood.
+Carry-forward level is the base a request is measured against, not the base an
+agency spends from. Maintenance level lands on top of it and policy level on top
+of that, and only the third is discretionary in the sense a reader assumes.
+
+Anyone comparing a request against last biennium's enacted total is comparing
+two different bases and will find a swing that is not there.
+
+## Pulling the numbers
+
+The allotment tool reads the same two lanes and will not add them:
 
 \`\`\`sh
 python3 tools/allotment.py --fund 600 --lane appropriated
 \`\`\`
 
-This paragraph is here to be deleted, and says nothing else.`;
+Its output is one row per month per lane. Joining across lanes is the caller's
+job and the tool refuses to guess at it.
 
-  const AFTER = `## Reading fund 600
+## What is still unsettled
+
+Whether the 466 transfers belong in this picture at all. They move between two
+funds this document does not otherwise discuss, and nobody has yet written down
+why they appear on the same schedule.`;
+
+  const AFTER = `# Reading fund 600
 
 Fund 600 is reported as one number and read as two. The appropriated lane
-carries recordkeeping and the agency's own operations, and it is the only lane
-a budget bill moves.
+carries recordkeeping and the agency's own operations, and it is the only lane a
+budget bill moves.
 
-The non-appropriated lane carries what the plans pay for directly: contracted
-medical review, the actuary's own work, and anything else a plan buys on its
-own account. It reports on the same fund number and never nets into the
-appropriated total, which is the whole reason the two cannot be added.
+The non-appropriated lane carries what the plans pay for directly. It reports on
+the same fund number and never nets into the appropriated total.
+
+## Why the distinction survives every reorganisation
+
+The two lanes answer to different authorities. An appropriation is an act of the
+legislature and lapses on its own schedule; a non-appropriated expenditure is
+made under the plan's own authority and does not.
 
 | Lane | Moves with a bill | Reported under |
 | --- | --- | --- |
 | Appropriated | yes | 600 |
-| Non-appropriated | never | 600 |
+| Non-appropriated | no | 600 |
 
-Three things follow:
+So a schedule that adds the two lanes together has produced a figure nobody in
+either lane recognises, and there is no reconciliation that will recover it.
 
-- A schedule adding the two lanes produces a figure nobody in either lane recognises.
-- Carry-forward level is the base a request is measured against.
-- The enacted total is a different base again.
+## The three bases, and which one a request is measured against
+
+Carry-forward level is the base a request is measured against, not the base an
+agency spends from. Maintenance level lands on top of it and policy level on top
+of that, and only the third is discretionary in the sense a reader assumes.
+
+Anyone comparing a request against last biennium's enacted total is comparing
+two different bases and will find a swing that is not there.
+
+## Pulling the numbers
+
+The allotment tool reads the same two lanes and will not add them:
 
 \`\`\`sh
 python3 tools/allotment.py --fund 600 --lane appropriated --biennium 2027-29
 \`\`\`
 
-Both figures are audited, and the audit is published beside the CAFR.
+Its output is one row per month per lane. Joining across lanes is the caller's
+job and the tool refuses to guess at it.
 
-This paragraph is here to be deleted, and says nothing else.`;
+## What is still unsettled
+
+Whether the 466 transfers belong in this picture at all. They move between two
+funds this document does not otherwise discuss, and nobody has yet written down
+why they appear on the same schedule.
+
+Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
 
   const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER);
-  document.getElementById('count').textContent = `${out.count} changed blocks`;
   document.getElementById('jump').addEventListener('click', out.next);
   document.body.dataset.ready = '1';
 </script>
 <script defer src="https://unpkg.com/alpinejs"></script>
 </head>
 <body class="bg-base-100 text-base-content">
-<main class="px-4 py-6 sm:px-6 sm:py-8 grid grid-cols-[minmax(0,1fr)] gap-6">
 
-  <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-    <h1 class="text-2xl font-semibold">md-diff</h1>
-    <code class="font-mono text-[13px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
-    <span class="text-[13px] text-base-content/50">swipe a change · ← → jumps</span>
-    <span class="ml-auto flex items-center gap-2">
-      <span id="count" class="text-[13px] text-base-content/50"></span>
-      <button id="jump" class="btn btn-sm">Next change</button>
-    </span>
-  </header>
+<!-- Sticky, because the one control that takes you through a long document
+     should not be the first thing to scroll out of reach. -->
+<header class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-300
+               px-4 sm:px-6 py-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+  <h1 class="text-lg font-semibold">md-diff</h1>
+  <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
+  <span class="text-[12px] text-base-content/50">swipe a change · ← → jumps</span>
+  <button id="jump" class="btn btn-xs ml-auto">Next change</button>
+</header>
 
+<!-- --md-diff-top is the kit's one host contract: how far down this page's
+     own top is, so the jump strip sticks below the header instead of under it. -->
+<main class="px-4 py-4 sm:px-6 grid grid-cols-[minmax(0,1fr)]" style="--md-diff-top:2.75rem">
   <div id="doc"></div>
-
 </main>
+
 </body>
 </html>
