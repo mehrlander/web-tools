@@ -111,8 +111,10 @@ export default async function (page, ctx) {
       containers: boxes.length,
       marked: document.querySelectorAll('ins.md-diff-ins, del.md-diff-del').length,
       // A container with no height is the failure this scenario exists to
-      // catch: the routing would still report success.
-      drawn: [...boxes].filter((b) => b.getBoundingClientRect().height > 40).length,
+      // catch: the routing would still report success. The floor is low on
+      // purpose, since a change is now a block of prose and its label rather
+      // than a card, and a one-line change is a short thing legitimately.
+      drawn: [...boxes].filter((b) => b.getBoundingClientRect().height > 24).length,
       hosted: !!host,
     };
   }, { BEFORE, AFTER });
