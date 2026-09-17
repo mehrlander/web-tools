@@ -168,7 +168,7 @@ The board adds three derived values the task file does not state:
 
 No artifact carries a timestamp, so the same input produces the same bytes and the gates that re-run the generator against a clean tree do not fail on every run. `board-tags.csv` is written even when nothing is tagged, header and no rows, since a check that compares bytes needs the file to exist either way.
 
-The generator ships with the `portable` plugin as `tasks/build-board.py` (python3, stdlib only, zero dependencies). It is one canonical implementation, so every tracker's board comes out the same shape and a repo does not write its own. A repo running without the plugin fetches that same script by raw URL into a gitignored path (see [PORTABLE.md](PORTABLE.md)); it is the same file reached by a different transport, not a reimplementation. The skill carries the invocation.
+The generator ships with the `portable` plugin as `tasks/build-board.py` (python3, stdlib only, zero dependencies). It is one canonical implementation, so every tracker's board comes out the same shape and a repo does not write its own. A repo running without the plugin fetches that same tracked script from its [raw GitHub path](https://raw.githubusercontent.com/mehrlander/web-tools/main/.claude/skills/tasks/build-board.py) into a gitignored location; it is the same file reached by a different transport, not a reimplementation. The skill carries the invocation.
 
 ## Assessment and refinement
 

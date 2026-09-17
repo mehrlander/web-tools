@@ -26,6 +26,8 @@ Four AI assistants contribute across this ecosystem. Each assistant identifies i
 Any commit or branch that carries no assistant prefix or trailer is human work by definition.
 
 Maintain the PR body as the workstream's current state and durable record. Open a draft PR on the first push.
+Body sync is manual: after each push that materially changes state, rewrite the guide region
+through this course. No hook or CI keeps it synchronized.
 
 ## PR template
 

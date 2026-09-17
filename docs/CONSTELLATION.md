@@ -8,10 +8,10 @@ mechanics) lives in the private `home` repo at
 `2026-06-27-constellation-mechanics.md` companion. This file is the public,
 reusable statement; that one is the instance.
 
-The Web Tools app's **Map** view is the operational face of this doctrine: it renders the
-portable set (below) and, per repo, the repo's own scope statement beside a live
-read of how far the repo carries the set. The theory here is what the per-repo
-scope stories apply.
+The Web Tools app's **Map** view is the operational face of this doctrine: its
+Distribution tab renders the crosswalk of what travels, and each repo's card
+sets the repo's own scope statement beside a live read of how far it carries the
+set. The theory here is what the per-repo scope stories apply.
 
 ## The constraint that selects everything: the ephemeral fresh clone
 
@@ -82,8 +82,8 @@ A repo's account of what it holds and why is a property of the repo, not of the
 set. It is stated on the repo's own terms and does not change when a sibling
 appears or disappears. Housing it centrally invites writing it comparatively, as
 differentiation, which rots the moment the roster changes. So each repo declares
-its own scope (in its `.web-tools.json` `scope` field, per
-[`PORTABLE.md`](PORTABLE.md)); the cross-repo picture is a view that stacks those
+its own scope in its `.web-tools.json` `scope` field (see
+[`manifest.md`](manifest.md)); the cross-repo picture is a view that stacks those
 statements, never an authored central list. This is the same shape as estate
 membership (a repo opts in on its own config; there is no registry roster of
 members) and as the surface split (a repo owns the surface that tells its own

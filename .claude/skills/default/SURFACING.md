@@ -1,6 +1,11 @@
 # Surfacing
 
-Use these rules when chat is the only output channel. The canonical source is `mehrlander/web-tools` at `docs/SURFACING.md`, loaded by that repo's `CLAUDE.md` `@`-import or fetched by the `default` skill. Local `CLAUDE.md` rules override these defaults. Apply repo- and branch-scoped rules per workstream, substituting the current repo in URL templates.
+Use these rules when chat is the only output channel. The canonical source is
+`mehrlander/web-tools` at `docs/SURFACING.md`. The portable plugin's `default`
+skill loads the byte-matched copy shipped beside it and fetches this source only
+as a fallback. Local `CLAUDE.md` rules override these defaults. Apply repo- and
+branch-scoped rules per workstream, substituting the current repo in URL
+templates.
 
 ---
 

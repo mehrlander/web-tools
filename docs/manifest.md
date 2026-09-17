@@ -25,8 +25,8 @@ addressed `pages[].path` and `stage.files`, and a `required` column says whether
 a member has to be present, blank on a top-level key because that was never
 recorded.
 
-Root `.web-tools.json` is the repo's **web-tools config file** (canonical location
-documented in [PORTABLE.md](PORTABLE.md)). show-repo is one consumer: it reads the
+Root `.web-tools.json` is the repo's canonical **web-tools config file**.
+show-repo is one consumer: it reads the
 `landing`, `pins`, and `stage` fields to decide how to present the repo. Those
 fields sit at the top level, not under a `showRepo` key, because they describe the
 repo in ways any web-tools page may read, not just this shell. The shell probes

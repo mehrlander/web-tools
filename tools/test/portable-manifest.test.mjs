@@ -23,6 +23,7 @@ const harnessPaths = new Set(
 // one the owners table already gives, read the original.
 const marketplace = JSON.parse(
   readFileSync(path.join(repoRoot, '.claude-plugin', 'marketplace.json'), 'utf8'));
+const portablePlugin = marketplace.plugins.find(p => p.name === 'portable');
 
 test('the set is typed and non-empty, and the plugins match the marketplace', () => {
   assert.equal(`${marketplace.owner.name}/${marketplace.name}`, 'mehrlander/web-tools');
@@ -48,14 +49,51 @@ test('every manifest path exists in the repo', () => {
   }
 });
 
+// `source` says where the plugin package starts; `skills` says which children
+// Claude registers from that package. Those are not the same boundary. The
+// source directory can contain support files and unregistered skill folders,
+// so deriving the roster from disk let a deleted `./web-tools` entry coexist
+// with six catalogued skills the plugin never exposed. The distribution
+// crosswalk is the authored roster: a skill travels in this plugin exactly when
+// its row says kind=skill,use=plugin.
+const pluginEntryFor = (item) => {
+  const source = String(portablePlugin.source || '').replace(/^\.\//, '').replace(/\\/g, '/');
+  const skillDir = path.posix.dirname(String(item.path).replace(/\\/g, '/'));
+  const rel = path.posix.relative(source, skillDir);
+  return './' + rel;
+};
 
+test('the portable plugin registers exactly the skills its distribution rows call plugin', () => {
+  assert.ok(portablePlugin, 'the marketplace has a portable plugin');
+  assert.ok(Array.isArray(portablePlugin.skills), 'portable declares an explicit skill roster');
 
-// The registry. The plugin's source boundary is ./.claude/skills (see
-// .claude-plugin/marketplace.json), so every skill directory on disk SHIPS,
-// catalogued or not. Four shipped uncatalogued for a while (measured
-// 2026-08-04: disk 15, manifest 9, MARKETPLACE.md 5), because the tests above
-// gate the Docs/Scripts tables and never counted skills. Disk is the
-// authoritative for membership; the manifest is the gated copy.
+  const catalogued = manifest.items
+    .filter(i => i.kind === 'skill' && i.use === 'plugin')
+    .map(pluginEntryFor)
+    .sort();
+  const registered = portablePlugin.skills.map(String).sort();
+  assert.deepEqual(registered, catalogued,
+    'marketplace skills must exactly match kind=skill,use=plugin rows in docs/portable.csv');
+});
+
+test('every explicitly registered portable skill resolves inside the plugin source', () => {
+  assert.ok(portablePlugin, 'the marketplace has a portable plugin');
+  const sourceDir = path.resolve(repoRoot, portablePlugin.source);
+  for (const entry of portablePlugin.skills || []) {
+    const skillDir = path.resolve(sourceDir, entry);
+    const rel = path.relative(sourceDir, skillDir);
+    assert.ok(rel && !rel.startsWith('..') && !path.isAbsolute(rel),
+      `portable skill escapes its source boundary: ${entry}`);
+    assert.ok(existsSync(skillDir), `portable plugin lists a missing skill directory: ${entry}`);
+    assert.ok(existsSync(path.join(skillDir, 'SKILL.md')),
+      `portable plugin skill has no SKILL.md: ${entry}`);
+  }
+});
+
+// The registry also describes every skill directory in the source tree. That
+// is a catalog-completeness check, separate from the explicit registration
+// check above: being physically inside `source` does not by itself expose a
+// skill when the marketplace carries a `skills` list.
 test('every skill directory on disk is a manifest skill item', () => {
   const skillsDir = path.join(repoRoot, '.claude', 'skills');
   const onDisk = readdirSync(skillsDir, { withFileTypes: true })

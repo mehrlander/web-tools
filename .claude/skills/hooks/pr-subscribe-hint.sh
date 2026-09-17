@@ -31,7 +31,7 @@
 #
 # The gap worth knowing: this matcher is the MCP tool, so a PR the PLATFORM
 # creates automatically does not fire it. Those sessions get the pointer in the
-# session-start header and /web-tools, same as before.
+# session-start header and /portable:default, same as before.
 #
 # Shape copied from mcp-fail-hint.sh, including the env-var payload: a
 # `python3 - <<HEREDOC` occupies stdin with the program text, so hook JSON piped
@@ -66,7 +66,7 @@ owner, repo, number = m.groups()
 def course():
     try:
         return (Path(os.environ["HOOK_DIR"]) / ".."
-                / "web-tools" / "surfacing-course.md").read_text().strip()
+                / "default" / "surfacing-course.md").read_text().strip()
     except Exception:
         return ""
 
