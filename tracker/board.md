@@ -3,6 +3,7 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
+- 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · M
 - 🎫 [Reach the take-away menu from show-repo's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
 - 🎫 [Trim code commentary to its criterion, rule first](tasks/comment-trim-rule-first-b0o3bu.md) · L
 - 🎫 [Enforce the house style, now that it is findable](tasks/enforce-house-style-ryz0z5.md) · M
