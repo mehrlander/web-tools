@@ -4,6 +4,7 @@ title: Decide whether apple-shortcuts-actions belongs in the portable plugin
 status: backlog
 opened: 2026-08-10
 size: S
+awaiting: promote into portable plugin, leave in library, or split
 ---
 # Decide whether apple-shortcuts-actions belongs in the portable plugin
 
@@ -39,3 +40,4 @@ or left in the library with the reasoning recorded here so it is not re-asked.
   `.claude/skills/` holds 15 `SKILL.md` files plus a `hooks/` directory that is
   not a skill, against 41 in the on-demand `skills/` library. The decision is
   untouched and still the whole task.
+- 2026-09-17: Marked awaiting the promote / leave / split ruling; the task is entirely that decision.

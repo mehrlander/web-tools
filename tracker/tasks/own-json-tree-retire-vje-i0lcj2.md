@@ -4,6 +4,7 @@ title: Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 status: backlog
 opened: 2026-07-25
 size: M
+awaiting: drop VJE entirely vs own tree for display and keep VJE for edit
 ---
 # Build our own JSON tree for display, keep vanilla-jsoneditor for editing
 
@@ -75,3 +76,4 @@ has held this task for its whole life.
   then, and `dist` went three occurrences to four. The recommendation is
   slightly stronger, `console.js` being a second display-only mount paying the
   CDN cost. Sized M; body cut from 923 words.
+- 2026-09-17: Surfaced the long-standing VJE decision as `awaiting:` so the board shows the hold.

@@ -1,0 +1,106 @@
+---
+id: align-map-view-cleanup-40afu8
+title: Align the Map view's names, addresses, and warning vocabulary
+status: backlog
+opened: 2026-09-17
+size: M
+project: map
+---
+# Align the Map view's names, addresses, and warning vocabulary
+
+A 2026-09-17 reading of Map (`lib/alpineComponents/map.js`) against the docs
+and registries found the tab strip itself is sound. What drifts is the language
+around it: old addresses, unfinished renames, and the same "unread / unowned /
+blank" finding named six different ways.
+
+One task, one outcome: a reader of Map (or of a doc that points at Map) meets
+one vocabulary and lands where the label says.
+
+## Scope
+
+**1. Finish Injection → Context.**
+`docs/environment/capabilities.md` still says the Map "Injection tab" renders
+`startup_delivery` (schema 7). Map has no Injection tab; Harness → Context is
+the successor, and `pages/delivery.html` / `docs/delivery.json` are historical.
+Either retarget every remaining "Injection tab" pointer at Context, or give
+Context an explicit Delivery lens so the measured full-vs-injected view has one
+home. Do not leave a third name.
+
+**2. Promote current labels into the primary addresses (keep aliases).**
+These still speak two languages:
+
+| Label | URL key today |
+| --- | --- |
+| Portable | `set` |
+| Themes | `claims` |
+| Purpose | `aims` |
+| Docs click → Purpose | `?tab=docs` still means Inventory |
+| Automation | reuses parent key `harness` |
+
+Aliases for saved links are fine. Make the current name the primary key, with
+redirects, or surface the alias in the UI so teaching Map does not require a
+glossary.
+
+**3. Clarify Portable ↔ Skills.**
+Skills already shows three arrival sets and pulls plugin rows from
+`portable.csv`. Portable still lists the whole to-go bag, including those
+skills. Keep the two questions (files that travel vs how a skill reaches a
+session), but make the handoff obvious: Portable owns non-skill travelers plus
+a door into Skills; Skills stays the answer to "is there a skill for X?"
+
+**4. Label the Surfacing → Showing → Context pipeline.**
+Map's own comments treat these as a sequence (what to hand over, what makes it
+openable, how material enters a session). They can stay three tabs; they should
+read as one family (cross-links or a shared framing line), not three unrelated
+siblings.
+
+**5. One warning grammar for the unread/unowned/blank finding.**
+Today:
+
+- Docs: orphan reach
+- Registries: unread (`renders_in` empty), including Snags and Sources
+- Kits: blank gloss / namespace / nothing loads
+- Automation: blank role / invoke "none found"
+- Themes/Owners: measured pair with no account
+- Tests: unexplained files
+
+Same governance shape. Share vocabulary and strip behavior so Map feels like
+one instrument.
+
+**6. Small leftovers (fold in, do not spawn siblings).**
+
+- Automation still has no gloss while Tests and Context do.
+- Views lives in Map, but `app-routes` does not list `map.js` in `renders_in`.
+- Header comments still cite `docs/PORTABLE.md`; the tree has `portable.csv` and
+  no `PORTABLE.md` (Surfacing and Showing each have a prose parent).
+- Docs Inventory and Harness Automation share a folder-rail pattern; keep them
+  from drifting (extract or document the twin).
+- Growth (corpus chart) and Inventory (per-row trend) are dual grain on purpose;
+  bridge them in UI copy so they do not read as duplication.
+- Growth and Context are iframe islands while the rest of Map is native; either
+  name that as intentional, or pull the Map-needed parts (especially startup
+  delivery) into native panes.
+
+## Out of scope
+
+Pages / Tools / tracker boards that render elsewhere by design. Themes'
+measured graph beside Owners' curated registry (that contrast is the point).
+Kits vs Automation. Building a Snags or Sources *tab* unless the warning pass
+shows the Registries surface is not enough; prefer rendering unread registries
+well before minting new tabs.
+
+## Done when
+
+- No doc or UI string promises a Map Injection tab.
+- Primary Map addresses match current labels (aliases still resolve).
+- Portable and Skills cross-link without double-teaching plugin skills.
+- Surfacing, Showing, and Context read as one pipeline.
+- The unread/unowned/blank finding uses one shared warning vocabulary across
+  the Map tabs that carry it.
+- The small leftovers above are fixed or explicitly deferred in a Progress log
+  line with a reason.
+
+## Progress log
+- 2026-09-17: Filed from a Map gap-and-alignment reading. Highest-payoff first
+  cut called out as closing Injection→Context in docs and UI, then normalizing
+  URL keys to current labels.

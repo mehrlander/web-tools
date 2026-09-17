@@ -5,6 +5,7 @@ status: backlog
 project: show-repo
 opened: 2026-07-26
 size: XS
+awaiting: next estate crawl with FAB capture
 ---
 # Live-confirm the BranchSessions query
 
@@ -39,3 +40,4 @@ text here.
 - 2026-08-07: Retitled to the one remaining confirmation.
 - 2026-09-04: Verified still live and still unconfirmed. Call site named above so
   the next session does not search for it. Body cut from 653 words.
+- 2026-09-17: Marked as XS fold-in on the next estate crawl with FAB capture, not a solo session.

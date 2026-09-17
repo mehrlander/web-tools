@@ -4,6 +4,7 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: L
+awaiting: authored home shape; naming layout; order vs column-primitive
 ---
 # Separate authored from derived data across the registries
 
@@ -65,8 +66,8 @@ table inside 145 KB of machine output.
   mixing legible. Survey measured against that branch's tip.
 - 2026-08-18: Corrected after the vocabulary pass. The defect is not confined to
   one kind of registry: `pages` is curated and has it too. Table names updated.
-- 2026-09-04: Property count restamped 126 to 152; body cut from 1,038 words to 534. The survey tables keep their 2026-08-18 measurements, which carry
-  the shape of the finding rather than a total. Still first: decision 1.
+- 2026-09-04: Property count restamped 126 to 152; body cut from 1,038 words to 534. The survey tables keep their 2026-08-18 measurements, which carry the
+  shape of the finding rather than a total. Still first: decision 1.
 - 2026-09-10: **Scoped against a second task that lands on the same 161 rows and
   the same gate.** budget-drs's `column-primitive-across-registries-r8qiea` adds
   one property, `column_primitive`, saying what kind of thing each column holds
@@ -80,3 +81,4 @@ table inside 145 KB of machine output.
   Layer 2 finding, that `pages.note` is declared `computed` while a human writes
   the 26 blurbs, means the `mode` column is currently false on some rows, and a
   second property added beside a false one inherits the falsehood.
+- 2026-09-17: Layer 3 (vocabularies out of map.js) sequences after Map cleanup. Surfaced shape/order decisions as awaiting; carve Layer 3 as its own task after Map if approved.

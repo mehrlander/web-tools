@@ -3,30 +3,30 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
+- 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · M
 - 🎫 [Reach the take-away menu from show-repo's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
-- 🎫 [Trim code commentary to its criterion, rule first](tasks/comment-trim-rule-first-b0o3bu.md) · L
-- 🎫 [Enforce the house style, now that it is findable](tasks/enforce-house-style-ryz0z5.md) · M
-- 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md) · M
+- 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md) · M
+- 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
 - 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
-- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M
-- 🎫 [Live-confirm the BranchSessions query](tasks/live-confirm-graphql-queries-7maacy.md) · XS
-- 🎫 [Stop storing the conventions twice](tasks/one-copy-of-the-conventions-i9i931.md) · S (awaiting: a decision on whether to depend on the marketplace clone's path (stage 2 only; stage 1 is startable now))
-- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
+- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: growth measure; reads axis; corner labels; include injected docs?)
+- 🎫 [Live-confirm the BranchSessions query](tasks/live-confirm-graphql-queries-7maacy.md) · XS (awaiting: next estate crawl with FAB capture)
+- 🎫 [Stop dual-storing SURFACING under the default skill](tasks/one-copy-of-the-conventions-i9i931.md) · S (awaiting: SURFACING dual-copy residual — delete copies vs skill-primary path; stage-2 marketplace clone if still wanted)
+- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M (awaiting: drop VJE entirely vs own tree for display and keep VJE for edit)
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
-- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
+- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M (awaiting: CSS transform-then-settle vs live re-render)
 - 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) · M
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
-- 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md) · S
-- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L
+- 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md) · S (awaiting: promote into portable plugin, leave in library, or split)
+- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L (awaiting: authored home shape; naming layout; order vs column-primitive)
 - 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md) · S
-- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
+- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M (awaiting: ?header=0|1 vs off; sidebar default by omission vs third value)
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
-- 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
+- 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
-- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS
+- 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
 
 ## In progress
 - (none)
@@ -60,6 +60,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [A multi-method harness for extracting structure from scanned documents](tasks/document-structure-harness-4mz7wk.md)
 - 🎫 [Estate activity signals from a registry activity cache](tasks/estate-activity-signals-cache-38eze9.md) (`claude/branches-view-api-caching-ef4l5d`)
 - 🎫 [Estate cards still carry the retired three-icon cluster](tasks/estate-cards-icon-cluster-txr3os.md) (`claude/web-tools-project-tracker-reo5qo`)
+- 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md)
 - 🎫 [Update estate tests to the groupSections layout](tasks/estate-rows-tests-stale-7r39ry.md) (`claude/viewer-button-dropdown-0h4u57`)
 - 🎫 [Extract drop-zone as a reusable Alpine component](tasks/extract-drop-zone-component-ckg7l1.md) (`claude/tracker-summary-nu74te`)
 - 🎫 [Generalize FAB embed handling to declared embeds](tasks/fab-declared-embeds-1jtpll.md)
