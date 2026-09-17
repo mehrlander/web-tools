@@ -1,11 +1,15 @@
 ---
 id: enforce-house-style-ryz0z5
-title: Enforce the house style, now that it is findable
+title: Gate house-style rule 1 (stat cards) and widen scanner roots
 status: backlog
 opened: 2026-08-30
-size: M
+size: S
 ---
-# Enforce the house style, now that it is findable
+# Gate house-style rule 1 (stat cards) and widen scanner roots
+
+Discovery half and rule 3 are shipped (PR #554, PR #565). Residual only:
+gate rule 1 (stat-card grids) and widen `dead-opacity.py` / `stranded-titles.py`
+roots (or make them read the branch diff).
 
 Third recurrence of `house-style-not-consulted` in [SNAGS.md](../../docs/SNAGS.md)
 (2026-08-04, 2026-08-29, 2026-08-30). PR #554 fixed the discovery half: the style
@@ -41,3 +45,4 @@ scanners reach files outside `lib app pages`.
 ## Progress log
 - 2026-09-01: Rule 3 landed on `claude/map-injection-tab-wrapping-veo5r5` (PR #565), which corrects this task's claim that rule 1 was the only rule with a mechanical tell. The guard ships in the portable plugin rather than under `scripts/`, which also answers the second bullet for this rule: a `PreToolUse` hook is path-independent, so a page built in `dump/` is covered even though the scanners' default roots are not. Rule 1 and the invocation-count reading are the residual.
 - 2026-08-30: Filed at the third recurrence, per the conventions' rule that the third earns a task. The discovery half shipped in PR #554; this is the enforcement residual it does not cover.
+- 2026-09-17: Reframed to residual rule 1 + scanner roots (size M→S).

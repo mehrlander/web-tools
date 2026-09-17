@@ -41,9 +41,14 @@ lattice currently reports traces to a mark on the page. So the inferred
 edges need to be marked as inferred in the output, and the shape of that
 marking is the actual design question, not the geometry.
 
-That question is shared with the Python side (tracker task
-`document-structure-harness-4mz7wk`), which needs to express several
-readings of one region with their provenance. Worth settling once, for both.
+Inferred edges must be marked as inferred in the output; settle that marking
+shape here when implementing.
+
+`document-structure-harness-4mz7wk` once shared this provenance question; that
+task is done (closed 2026-08-25) and frozen out to the private estate. The lattice
+gap is still real; there is no longer a web-tools dependency blocking it.
+
 
 ## Progress log
 - 2026-07-25: Filed from PR #294 as the kit's main known gap.
+- 2026-09-17: Dropped the harness-dependency framing (harness task done 2026-08-25). Provenance marking for inferred edges is decided in this task when the work runs.
