@@ -27,14 +27,13 @@ A whole aesthetic philosophy, subject left open. One example effort, for a webpa
 
 Each axis points a direction. Foreign and literary phrases tagged.
 
-**The work itself**
+**Make it alive**
 
-- make it sing
-- spend it all
-- burn at it
-- make it shimmer
+- make it sing / shimmer / breathe
+- give it a pulse
+- make it deeply human
 - follow the flash
-- fail better (Beckett)
+- wabi-sabi: beauty in the imperfect, impermanent, incomplete (Japanese)
 
 **Move the audience**
 
@@ -44,25 +43,36 @@ Each axis points a direction. Foreign and literary phrases tagged.
 - move them
 - pity and terror (Aristotle)
 
-**Reach and ambition**
+**Reach past the safe**
 
+- spend it all
+- burn at it
 - reach for greatness
+- fail better (Beckett)
 - a man's reach should exceed his grasp (Browning)
 - not because they are easy, but because they are hard (JFK)
 - per aspera ad astra: through hardship to the stars
 
-**Stake your reputation**
+**Bind yourself to it**
 
 - sign it
 - put your name on it
 - carve it in stone / carve it in the stars
 - exegi monumentum (Horace, more lasting than bronze)
+- cross the Rubicon / the die is cast (Caesar)
+- burn the boats (Cortés)
+- once more unto the breach (Shakespeare)
 
-**Become the reference**
+**Be the standard**
 
+- top of the line
+- best in class
 - make it the benchmark
 - set the bar
-- set a standard
+- the flagship, not the base model
+- no expense spared
+- ne plus ultra: nothing beyond this point (Latin)
+- hors concours: too good to be judged with the rest (French)
 
 **Integrity and wholeness**
 
@@ -70,19 +80,6 @@ Each axis points a direction. Foreign and literary phrases tagged.
 - nothing false in it
 - only connect (Forster)
 - make it new (Pound)
-
-**Breath and the human hand**
-
-- make it deeply human
-- make it breathe
-- give it a pulse
-- wabi-sabi: beauty in the imperfect, impermanent, incomplete (Japanese)
-
-**Commit, no retreat**
-
-- cross the Rubicon / the die is cast (Caesar)
-- burn the boats (Cortés)
-- once more unto the breach (Shakespeare)
 
 **Craft against excess**
 
