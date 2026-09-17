@@ -11,7 +11,7 @@ A census on 2026-09-08 measured comment density across this repo and home, and
 three agents read six files in full. Findings in
 [docs/text-content.md](../../docs/text-content.md), "Is it true? A read of six
 files", and the run record in home at
-`chron/2026/09/2026-09-08-code-comment-census.md`. The short version: comment
+`chron/2026/2026-09-08-code-comment-census.md`. The short version: comment
 density roughly tripled between June and September (8.3% to 29.7% of lines in
 `lib`, `pages` and `app`), restatement and debris are 1 to 3 percent of comment
 words so there is nothing to tidy, and the removable mass is history and
