@@ -203,7 +203,9 @@ conversation, runs the two as one pass.
 ## Refine the tracker
 
 Refinement restores scope truth by mutating task files ("groom the tracker"
-still invokes it). Read every body and log. Flag a `backlog` or `blocked` task
+still invokes it). Read every body and log against the tree, since a task
+decays by the repo moving under it while every line in the file stays true.
+Flag a `backlog` or `blocked` task
 that is superseded, stale, a duplicate, framed for work that has since landed
 or shifted, or oversized, and an `in-progress` task whose `session:` branch is
 merged or gone. Check status, not only prose: waiting on an event or a machine
