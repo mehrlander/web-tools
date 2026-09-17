@@ -1,11 +1,11 @@
 ---
 id: comment-trim-rule-first-b0o3bu
-title: Trim code commentary to its criterion, rule first
+title: Finish commentary trim: accuracy pass or paired fan-out
 status: backlog
 opened: 2026-09-08
-size: L
+size: M
 ---
-# Trim code commentary to its criterion, rule first
+# Finish commentary trim: accuracy pass or paired fan-out
 
 A census on 2026-09-08 measured comment density across this repo and home, and
 three agents read six files in full. Findings in
@@ -40,8 +40,8 @@ earlier.
   whose only job is to find where the first was wrong. That pairing is not
   optional and is not a review formality: unpaired, the six pilot rewrites
   introduced seven false statements, and the mechanical equivalence check cannot
-  see one. Both agents want the stronger model, since the thing being hunted is a
-  plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
+  see one. Both agents want the stronger model, since the thing being hunted is
+  a plausible sentence that is false. Exclude `archive/`, `dist/`, vendored skill
   scripts, generated payloads, and the paths frozen in home's
   `projects/budget-drs/.paths.json`.
 
@@ -53,20 +53,23 @@ earlier.
   already.
 
 ## Done when
-The rule is stated where the conventions live, the six pilot files are rewritten
-and adversarially checked, and either the fan-out has run or the pilot has shown
-it is not worth running, said in one line here.
+Either the accuracy-only pass has run on the heavy files (including estate.js),
+or the paired fan-out has, or a log line here records that neither is worth
+running and why.
+
+
+## Residual (steps 1–2 are on main)
+Decide first, then run:
+
+1. **Accuracy-only pass** (prefer first per pilot lesson): headers against code, figures against files. `embedded-prose.py --dated` lists much of the worklist; header drift has no mechanical report (`header-essay-outlives-its-code` in SNAGS).
+2. **Or paired fan-out** over the heaviest remaining files: one rewriter + one adversarial checker per file (pairing is not optional).
+
+Include `lib/alpineComponents/estate.js` (folded from `estate-js-commentary-read-mymt4u` on 2026-09-17).
+
+Pilot lessons live in `docs/text-content.md` ("What the pilot taught about running the pass").
 
 ## Notes
-`estate-js-commentary-read-mymt4u` is this same operation scoped to one file,
-filed 2026-08-10 before the census existed. Folding it into this task's fan-out
-step would be the tidier shape, but that is a reframing and needs the owner's
-say-so, so both stand until then.
-
-The trap the pilot must not fall into: the criterion is often the middle
-sentence of a paragraph rather than the first, and the ALL-CAPS lead-in this
-codebase favors reliably marks a keepable criterion rather than noise. A pass
-that trims on tone or on position cuts the load-bearing half.
+`estate-js-commentary-read-mymt4u` was the same operation scoped to one file; closed 2026-09-17 as duplicate of this task after owner assent.
 
 ## Progress log
 - 2026-09-08: Filed out of the census and the six-file read. Nothing trimmed
@@ -93,7 +96,7 @@ that trims on tone or on position cuts the load-bearing half.
   step 3 are in [docs/text-content.md](../../docs/text-content.md), "What the
   pilot taught about running the pass", and indexed in SNAGS as
   `rewriter-marks-its-own-work`. The relocated history is recorded in the same
-  document and in home's `chron/2026/09/2026-09-08-code-comment-census.md`,
+  document and in home's `chron/2026/2026-09-08-code-comment-census.md`,
   filtered against what a test or data file already holds.
   Step 3 is not started and should not start without the pairing above, or
   without first weighing the accuracy-only pass against it.
@@ -106,3 +109,4 @@ that trims on tone or on position cuts the load-bearing half.
   running, is still open. A session picking this up decides one thing first,
   weighing the accuracy-only pass (header contracts and stale figures, which the
   pilot found were most of the value) against the paired fan-out.
+- 2026-09-17: Reframed to residual only (size L→M). Folded `estate-js-commentary-read-mymt4u` into this worklist after owner assent.

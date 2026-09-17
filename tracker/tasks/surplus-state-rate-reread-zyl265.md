@@ -4,6 +4,7 @@ title: Re-read the surplus closing-state rate against its baseline
 status: backlog
 opened: 2026-09-10
 size: XS
+awaiting: fortnight sample after 2026-09-24 PT
 ---
 # Re-read the surplus closing-state rate against its baseline
 
@@ -43,3 +44,4 @@ shorter window cannot separate a real move from noise.
 ## Progress log
 - 2026-09-10: Filed with the baseline and the decision rule. Nothing to do
   until roughly 2026-09-24.
+- 2026-09-17: Marked awaiting fortnight sample after 2026-09-24 PT so On deck does not read as startable.

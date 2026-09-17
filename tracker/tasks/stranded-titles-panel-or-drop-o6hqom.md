@@ -71,3 +71,4 @@ not the total.
   for working the list a component at a time rather than waiting on it. The
   four-component table is the 2026-08-19 survey and is not restamped; rerun the
   command for current per-component figures.
+- 2026-09-17: Queue after Map cleanup (`align-map-view-cleanup-40afu8`); start with `map.js` as the largest untouched carrier.

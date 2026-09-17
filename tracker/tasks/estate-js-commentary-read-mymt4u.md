@@ -1,9 +1,11 @@
 ---
 id: estate-js-commentary-read-mymt4u
 title: Read estate.js's commentary the way show-repo.html's was read
-status: backlog
+status: done
 opened: 2026-08-10
+closed: 2026-09-17
 size: M
+resolution: duplicate
 ---
 # Read estate.js's commentary the way show-repo.html's was read
 
@@ -44,3 +46,4 @@ rest sits at its code, as in #403.
   figures above are one taken during this refinement pass with a line-based
   scan. Nothing else about the task changes: the ranking holds, and the point
   stands that the reading, not the count, is the work.
+- 2026-09-17: Closed as duplicate of `comment-trim-rule-first-b0o3bu`. That task's Notes already named this as the same operation scoped to one file, pending owner say-so; Mark assented in the 2026-09-17 grooming pass. `estate.js` joins the residual accuracy/fan-out worklist there.
