@@ -14,7 +14,7 @@ Three kinds of file, all on `main`:
 - `board.md`, with `board.csv` and `board-tags.csv` beside it: rollups generated from the task files, never hand-edited.
 - `assessments/YYYY-MM-DD.json`: optional dated assessment records, authored judgment about the tracker as a whole (see Assessment and refinement below).
 
-Feature work rides its branch as usual. Tracker changes do not: task files, assessment records, and the generated rollups are committed directly to `main`, which is what makes the tracker shared. Where a session carries a blanket instruction to keep its commits on its feature branch (some environments inject one), these two paths are the standing exception, not a violation. Nothing else about a repo's branch or PR flow changes. The skill carries the push recipe and the scope of the permission.
+Feature work follows GitHub flow on a branch as usual. Tracker changes operate in Real-time mode: task files, assessment records, and the generated rollups are committed directly to `main` and pushed to GitHub as you go, which is what makes the tracker shared. Where a session carries a blanket instruction to keep its commits on its feature branch (some environments inject one), this Real-time path is the standing exception, not a violation. Nothing else about a repo's branch or PR flow changes. The skill carries the push recipe and the scope of the permission.
 
 Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 

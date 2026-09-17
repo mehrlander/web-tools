@@ -33,6 +33,10 @@ many-revision input a session usually does not need, with skip-smudge).
 "Regenerable" is safe only when the builder is committed and deterministic and
 the inputs are durably sourced; otherwise it is data loss with extra steps.
 
+Commit discipline operates in two modes:
+* **GitHub flow (Branch & PR):** Used for code, features, refactors, and documentation. Edits are isolated on a branch, verified, reviewed, and merged via pull request.
+* **Real-time (Direct to `main`):** Used for shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. Because an ephemeral container cannot read an unmerged feature branch in a sibling session, these commit directly to `main` and push to GitHub as you go so all sessions stay synchronized in real time.
+
 ## Principle 2: visibility is the (almost) only thing that forces a repo boundary
 
 Once discipline rather than size keeps a repo clean, most reasons to split
