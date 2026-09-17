@@ -10,12 +10,13 @@ assessment; the mechanics live in
 ## Why it exists
 
 The estate holds a shelf of text instruments: the private estate's
-`local-models/instruments/concept-lab/` (here until 2026-08-25),
+`projects/text/instruments/concept-lab/` (in this repo until 2026-08-25),
 [`vocab.py`](../.claude/skills/concept-index/vocab.py),
-`semsearch.py` (moved to the private estate with concept-lab), and the
+`semsearch.py` (moved to the private estate with concept-lab, then into the
+shared text project), and the
 [entities](../pages/entities.html), [citations](../pages/citations.html) and
 [shorter](../pages/shorter.html) pages. The private estate's
-`local-models/INSTRUMENTS.md` is the index of them, and the count is not
+`projects/text/INSTRUMENTS.md` is the index of them, and the count is not
 carried here because this document cannot gate it. Almost all take a corpus or
 a paste. **None takes the document a reader currently has open.** This tab is
 the only thing that closes that gap, and it is the strongest claim available
@@ -51,7 +52,8 @@ separation, putting the most document-like page at 2% and an app at 9%:
 The tab was asked for as *terms* connected to registered data. It matches
 *filenames*, and the retreat is structural rather than a shortcut.
 
-Nothing in the estate is keyed by the words prose actually uses.
+Nothing committed for a browser to read is keyed by the words prose actually
+uses.
 [`surfacing.csv`](surfacing.csv) is keyed by sentence-shaped titles
 (*Reference is a link*) that never occur in running text.
 [`text-fields.csv`](text-fields.csv) and [`properties.csv`](properties.csv)
@@ -146,6 +148,11 @@ forced it.
 not have. The `assumed` tier is a property of a repo's whole prose, so this pane
 can only reach it by fetching the vocabulary index the estate declines to
 commit. It likely stays an agent-side answer the tab links to.
+
+The private text project now builds an ignored, current-checkout collection
+keyed by retained strings. This drawer has no transport for that machine-local
+store yet, so it does not claim to expose the collection merely because the
+catalog moved.
 
 **Ask** (hand the text to a model) probably belongs in the FAB's existing
 take-away menu, whose job is already handing the page somewhere else.

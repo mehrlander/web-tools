@@ -24,7 +24,7 @@
                  what it opens. Failures are recorded at the same weight as
                  successes, so the standing counts lead the header rather than
                  being tucked behind a total.
-    instruments  projects/local-models/INSTRUMENTS.md, rendered. Organised by
+    instruments  projects/text/INSTRUMENTS.md, rendered. Organised by
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
                  actually arrives with: I have text at this grain.
@@ -77,6 +77,7 @@
     Alpine.data('textInstruments', () => ({
       REPO: 'mehrlander/home',
       ROOT: 'projects/local-models',
+      INSTRUMENTS: 'projects/text/INSTRUMENTS.md',
       TOSS: 'https://mehrlander.github.io/web-tools/pages/toss-render.html',
       DATA_REF: params.get('data') || 'main',
 
@@ -216,7 +217,7 @@
           if (name === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
-            const res = await this.home.get(`${this.ROOT}/INSTRUMENTS.md`);
+            const res = await this.home.get(this.INSTRUMENTS);
             await window.GuideRender.needMarked();
             // bodyClass() injects the stylesheet as a side effect, so this
             // assignment is what styles the pane, not just what labels it.
