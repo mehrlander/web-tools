@@ -126,9 +126,18 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
   // toggle and the position stay put through a scroll. The jump is this page's
   // own button on the handle's `next`, which is why the kit no longer draws
   // arrows of its own: two jump mechanisms on one page is one too many.
+  // The controls go in THIS page's header, which is sticky, so the layout
+  // toggle stays put through a scroll. `readout: false` because this page
+  // draws the position itself, as a badge on its own jump arrow: two readouts
+  // side by side is one too many.
   const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,
-    { controls: document.getElementById('bar') });
+    { controls: document.getElementById('bar'), readout: false });
   document.getElementById('jump').addEventListener('click', out.next);
+  const count = document.getElementById('count');
+  out.onMove(({ at, count: n }) => {
+    count.textContent = at < 0 ? n : `${at + 1}/${n}`;
+    count.classList.toggle('badge-neutral', at >= 0);
+  });
   document.body.dataset.ready = '1';
 </script>
 <script defer src="https://unpkg.com/alpinejs"></script>
@@ -142,7 +151,15 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
   <h1 class="text-lg font-semibold">md-diff</h1>
   <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
   <span id="bar" class="flex items-center gap-2 ml-auto"></span>
-  <button id="jump" class="btn btn-xs">Next change</button>
+  <!-- The jump is an arrow with the count hung off it, rather than a labelled
+       button beside a second readout. daisyUI's indicator is what attaches one
+       to the other, so the pair moves as one thing. -->
+  <span class="indicator">
+    <span id="count" class="indicator-item badge badge-xs tabular-nums">0</span>
+    <button id="jump" class="btn btn-xs btn-circle" title="Next change" aria-label="Next change">
+      <i class="ph ph-arrow-down text-sm"></i>
+    </button>
+  </span>
 </header>
 
 <main class="px-4 py-4 sm:px-6 grid grid-cols-[minmax(0,1fr)]">
