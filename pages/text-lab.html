@@ -836,6 +836,8 @@
                               <span x-text="origin.relocation.destination"></span>
                               <span x-show="origin.relocation.status"
                                     x-text="' · ' + origin.relocation.status"></span>
+                              <span x-show="origin.relocation?.note" class="opacity-60"
+                                    x-text="' · ' + origin.relocation?.note"></span>
                             </div>
                           </div>
                         </template>

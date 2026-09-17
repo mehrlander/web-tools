@@ -93,6 +93,7 @@ const PACKET = JSON.stringify({
         destination: 'docs/spec.md, the notes section',
         status: 'drafted',
         excerpt: 'The notes move whole; the source paragraph is untouched.',
+        note: 'Drafting the destination section is a step in applying this.',
       },
       evidence: [
         { type: 'walk', source: 'coverage-walk.md, relocated bucket', quote: 'Destination named.' },
@@ -205,6 +206,8 @@ test('view exposes one stable shape for phrase and audit provenance', () => {
   const extract = T.search(index, { lane: 'audit-packet', action: 'extract' })[0];
   assert.equal(extract.origins[0].relocation.destination, 'docs/spec.md, the notes section');
   assert.equal(extract.origins[0].relocation.status, 'drafted');
+  assert.match(extract.origins[0].relocation.note, /applying this/,
+    'a pending relocation explains itself, and both surfaces show that note');
   assert.deepEqual(extract.origins[0].evidence.map(row => row.type), ['walk', 'lexical']);
   assert.ok(extract.origins[0].evidence.every(row => row.source && row.quote),
     'every evidence row carries the source and the quote the surfaces render');
@@ -328,8 +331,13 @@ test('load shares work, preserves quiet reads, supports fresh reads, and holds r
   // session; holding it forever would mean a reload was the only way back.
   T.clear();
   const held = fixtureGh({ repo: 'mehrlander/home-held', failSpecOnce: true });
-  await assert.rejects(T.load(held), /fixture spec read failed/);
-  await assert.rejects(T.load(held), /fixture spec read failed/);
+  const failed = (error) => {
+    assert.equal(error.message, 'Prior revisions are unavailable.');
+    assert.match(error.cause.message, /fixture spec read failed/);
+    return true;
+  };
+  await assert.rejects(T.load(held), failed);
+  await assert.rejects(T.load(held), failed);
   assert.equal(held.calls.length, 1,
     'a repeat scan inside the window reuses the rejection instead of re-reading');
 
@@ -366,5 +374,31 @@ test('an unreachable catalog reports the status without naming a cause', async (
     return true;
   });
   assert.equal(denied.calls.length, 1, 'the spec read fails before the three role reads');
+
+  // A read that fails without an HTTP status, which is what an empty 200 body
+  // produces one layer down, is the same unavailable state to a reader.
+  const broken = fixtureGh({ repo: 'mehrlander/home-broken' });
+  broken.get = async (path) => {
+    broken.calls.push({ path, options: {} });
+    throw new TypeError("Cannot read properties of undefined (reading 'content')");
+  };
+  await assert.rejects(T.load(broken), (error) => {
+    assert.equal(error.message, 'Prior revisions are unavailable.');
+    assert.match(error.cause.message, /reading 'content'/);
+    return true;
+  });
+  T.clear();
+});
+
+// The kit's own validation still names the problem: those errors are thrown
+// after every read has returned, so the unavailable wrapper never reaches them.
+test('a malformed catalog still says what is wrong with it', async () => {
+  T.clear();
+  const wrong = fixtureGh({ repo: 'mehrlander/home-wrong' });
+  const good = wrong.get.bind(wrong);
+  wrong.get = async (path, options) => path === SPEC_PATH
+    ? { ...(await good(path, options)), text: JSON.stringify({ schema: 'nope/v1' }) }
+    : good(path, options);
+  await assert.rejects(T.load(wrong), /Unsupported text source schema: nope\/v1/);
   T.clear();
 });
