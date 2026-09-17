@@ -133,10 +133,20 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
   for (const p of documented) {
     assert.ok(modes.includes(p), 'the fab would read ' + p + '= as a route key: ' + p);
   }
-  // The one extra is url's alias, which toss-render reads and the manifest does
-  // not describe. Pinned so the list cannot quietly grow a third member.
-  assert.deepEqual(modes.filter(m => !documented.includes(m)), ['u']);
-  assert.match(tossRender, /param\('url'\) \|\| param\('u'\)/, 'the u alias is gone; drop it here too');
+  // NO EXTRAS NOW, and that pin is worth reading as a change of purpose rather
+  // than a tightening. This asserted `['u']` while url's alias was a mode
+  // toss-render read and the manifest did not describe: a known one-member gap,
+  // pinned so it could not grow. `u` has its own row since 2026-09-17, because
+  // `carries` stopped being a note and became the boundary a visit log filters
+  // on (lib/kits/visit-log.js). A mode the table does not describe is invisible
+  // to anything reading the table to decide what may be stored, which is the
+  // one gap an allowlist cannot fail safe through, so the answer was to
+  // describe it rather than to keep pinning it.
+  assert.deepEqual(modes.filter(m => !documented.includes(m)), [],
+    'the fab reads a delivery mode docs/routes-modes.csv does not describe');
+  assert.deepEqual(documented.filter(p => !modes.includes(p)), [],
+    'the table describes a mode the fab would read as a route key');
+  assert.match(tossRender, /param\('url'\) \|\| param\('u'\)/, 'the u alias is gone; drop its row too');
 });
 
 // ── The `showing` block ────────────────────────────────────────────────────
