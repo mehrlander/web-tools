@@ -5584,8 +5584,25 @@ function app(){ return {
   // the subject's own params (appViewUrl), and the fragment is where they
   // belong, so an address arriving with ?on= leaves with '#'. That is the
   // self-heal, and it is why the key is in this list rather than a stamp.
+  //
+  // THE SESSIONS ROW'S FOUR ARRIVED LATE AND WERE MISSING FOR A WEEK.
+  // `session` and `set` name the record and the scope; `lens` and `grain` are
+  // how it is read. All four are stamped (PR #636 and #641, 2026-09-08 and
+  // 09-09) and none was listed here, so they were written and never cleared:
+  // leaving Sessions with a record open put `&session=…&set=…&lens=…&grain=…`
+  // on the Map, on the Atlas, and on every address copied afterwards. The
+  // second harm is worse than the untidiness, because these four are seeded
+  // from `location.search` at construction: a cold load of one of those
+  // polluted addresses arms the Sessions pane with a record and a lens the
+  // reader never asked for, which appears the next time they open it.
+  //
+  // The rule this list states is not "list what looks stale". It is that a key
+  // ANY row can stamp must be here, or the address carries it out of the only
+  // screen that means it. tools/test/app-routes.test.mjs now holds the two to
+  // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
+              'session', 'set', 'lens', 'grain',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
