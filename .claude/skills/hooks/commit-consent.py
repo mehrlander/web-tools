@@ -90,6 +90,28 @@ def doc_globs(root):
 GENERATED = re.compile(r"generated\b.*\b(from|by)\b|do not hand-edit", re.I)
 
 
+# A LOG SAYS SO ITSELF. Some documents are records of what happened rather than
+# claims about the world: a friction log, a session diary, a run sheet. Nobody
+# has to endorse an entry, and stopping one to ask costs a cycle for nothing.
+# chron/, blog/ and dump/ are exempt by path because whole trees of a repo are
+# that kind; a single file inside docs/ is not reachable that way, and naming it
+# here would put one repo's filenames in a portable gate.
+#
+# So the document declares it, in the sentence a reader sees, and this reads the
+# same sentence. One statement, one owner, which is the estate's own rule about
+# where a fact lives.
+NEEDS_NO_APPROVAL = re.compile(r"\bneeds no approval\b", re.I)
+
+
+def declares_free(root, rel):
+    try:
+        with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
+            head = "".join(next(fh, "") for _ in range(12))
+    except OSError:
+        return False
+    return bool(NEEDS_NO_APPROVAL.search(head))
+
+
 def is_generated(root, rel):
     try:
         with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
@@ -230,7 +252,8 @@ def main(argv):
     globs = doc_globs(root)
     tasks = [p for st, p in rows if st == "A" and "/tracker/tasks/" in f"/{p}"]
     docs = [p for st, p in rows if st == "M" and is_doc(p, globs)
-            and not is_generated(root, p) and not is_copy(root, p)]
+            and not is_generated(root, p) and not is_copy(root, p)
+            and not declares_free(root, p)]
     if not tasks and not docs:
         return 0
 
