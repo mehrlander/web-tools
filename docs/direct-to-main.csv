@@ -1,0 +1,5 @@
+﻿process,target_repo,path_pattern,writer,sync_discipline,purpose
+tracker-state,all,"*/tracker/tasks/*.md, */tracker/board.*, trackers.md",agent / tasks-skill,immediate push on commit,cross-session memory and backlog status
+session-records,web-tools-private,"sessions/YYYY/MM/*.json",on-stop hook (git plumbing),throttled push during session,preserving ephemeral container transcripts
+personal-lists,web-tools-private,"lists/*.json",browser GitHub API,immediate push on user gesture,real-time personal capture
+crawl-caches,web-tools-private,"state/configs.json, state/activity.json",browser crawl / refresh script,throttled push on material change,caching cross-repo API scans
