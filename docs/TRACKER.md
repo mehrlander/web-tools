@@ -14,7 +14,7 @@ Three kinds of file, all on `main`:
 - `board.md`, with `board.csv` and `board-tags.csv` beside it: rollups generated from the task files, never hand-edited.
 - `assessments/YYYY-MM-DD.json`: optional dated assessment records, authored judgment about the tracker as a whole (see Assessment and refinement below).
 
-Feature work rides its branch as usual. Tracker changes do not: task files, assessment records, and the generated rollups are committed directly to `main`, which is what makes the tracker shared. Where a session carries a blanket instruction to keep its commits on its feature branch (some environments inject one), these two paths are the standing exception, not a violation. Nothing else about a repo's branch or PR flow changes. The skill carries the push recipe and the scope of the permission.
+Feature work follows GitHub flow on a branch as usual. Tracker changes operate in Real-time mode: task files, assessment records, and the generated rollups are committed directly to `main` and pushed to GitHub as you go, which is what makes the tracker shared. Where a session carries a blanket instruction to keep its commits on its feature branch (some environments inject one), this Real-time path is the standing exception, not a violation. Nothing else about a repo's branch or PR flow changes. The skill carries the push recipe and the scope of the permission.
 
 Scope a tracker to a workspace, a bounded area you keep coherent across sessions. A repo may have several (nested or sibling), each in its own directory; a repo whose work is coherent uses one.
 
@@ -42,9 +42,30 @@ priority: high        # example open tag: not acted on until promoted
 
 <what the task is, why, and what "done" means>
 
+## Related
+
+- `path/to/file`: why this file matters for the task
+
+## Done when
+
+<observable condition>
+
 ## Progress log
 - YYYY-MM-DD: <what happened, and the intended next step>
 ```
+
+
+**Conventional body section: `## Related`.** After the opening problem statement (and after Scope / Notes if present), before `## Done when`, list the high-signal pointers a future session should open first. Keep `## Progress log` last. Each bullet is one pointer and one short clause of why it matters:
+
+```markdown
+## Related
+
+- `path/to/file`: role in this task (edit surface, premise, test, hook)
+- task `other-task-id`: sequencing or shared surface
+- PR #123: change that restamped the premise
+```
+
+Rules: high-signal only (skip "might be related"); prefer paths that exist on `main`; one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
 
 **Status carries two companion fields.** `session` names the owning branch while a task is `in-progress`; `closed` dates it when it goes `done`. A `done` task keeps `session` set to the branch that completed it, so the board can say where the work happened after the fact.
 

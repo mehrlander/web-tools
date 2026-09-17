@@ -20,6 +20,7 @@ cached-read-feeds-a-write,a fresh-looking read hands back the sha it just replac
 mcp-approval-is-often-routing,an approval prompt that is really a wall,2,2026-08-15,2026-07-15;2026-08-15,github/mcp-server-routing.md
 ci-watch-on-blocked-api,a curl watch loop on the GitHub API waits forever,2,2026-08-14,2026-08-10;2026-08-14,environment/capabilities.md
 x-data-scope-shadows-component-names,"a mount's config read a component, not the host's field",2,2026-08-14,2026-08-14;2026-08-14,show-repo.md;../skills/daisy-alpine/SKILL.md
+app-frame-outruns-the-inliner,the shell draws and every view is empty,1,2026-09-17,2026-09-17,../scripts/showing.py
 conflicted-pr-queues-no-ci,the Checks tab is empty and CI is not slow,1,2026-09-16,2026-09-16,../.github/workflows/test.yml
 variant-plus-opacity-generates-nothing,"the rule was not faint, it was absent",1,2026-09-15,2026-09-15,
 cross-repo-data-invisible-to-the-render,a headless shot shows chrome over an empty table,1,2026-09-14,2026-09-14,

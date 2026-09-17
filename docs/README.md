@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-8 by a skill, 29 by a page or component. The remaining 26 are
+8 by a skill, 29 by a page or component. The remaining 27 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -76,6 +76,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`venues.md`](venues.md) *(measured)* — the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
+- [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the processes that write straight to main, and the sync discipline each follows
 
 ## docs/envelopes/
 

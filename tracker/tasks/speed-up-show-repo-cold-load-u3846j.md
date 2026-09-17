@@ -32,7 +32,7 @@ predates the pre-build and was simply never switched onto it.
 pattern (`import('../dist/web-tools.js')`, re-pinned to jsDelivr under
 `?use=<ref>` for branch preview). Verify with `npm run verify-build` that
 the two boot paths render identically before relying on it. This only
-changes *how show-repo's own UI code* loads — it is always the public
+changes *how show-repo's own UI code* loads: it is always the public
 mehrlander/web-tools repo regardless of which (possibly private) repo the
 user is currently browsing, so no public/private branching is needed here.
 
@@ -41,8 +41,8 @@ user is currently browsing, so no public/private branching is needed here.
 `lib/gh-api.js`'s `recentFiles()` (used by show-repo's sidebar) fetches the
 commit list once, then walks it in a loop, `await`-ing each commit's detail
 **one at a time**, to find `n` distinct changed file paths (up to 8-9 serial
-round trips in the worst case). It does not block the rest of the page —
-Alpine mounts independently — but it does tie up the browser's small pool
+round trips in the worst case). It does not block the rest of the page, since
+Alpine mounts independently, but it does tie up the browser's small pool
 of concurrent connections to `api.github.com` during the exact window the
 file tree and landing view are also trying to load.
 
@@ -90,7 +90,7 @@ branch first, but it's one call, not a bottleneck).
 - A rough before/after check (round-trip count is enough; no need for real
   mobile timing) shows the reduction.
 
-No fixed opinion on sequencing or exact mechanism beyond the above — the
+No fixed opinion on sequencing or exact mechanism beyond the above. The
 owner explicitly wants the executing session to find the best approach and
 report back.
 

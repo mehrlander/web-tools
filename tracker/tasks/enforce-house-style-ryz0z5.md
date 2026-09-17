@@ -43,6 +43,6 @@ is left here is the catching, not the finding.
 scanners reach files outside `lib app pages`.
 
 ## Progress log
-- 2026-09-01: Rule 3 landed on `claude/map-injection-tab-wrapping-veo5r5` (PR #565), which corrects this task's claim that rule 1 was the only rule with a mechanical tell. The guard ships in the portable plugin rather than under `scripts/`, which also answers the second bullet for this rule: a `PreToolUse` hook is path-independent, so a page built in `dump/` is covered even though the scanners' default roots are not. Rule 1 and the invocation-count reading are the residual.
 - 2026-08-30: Filed at the third recurrence, per the conventions' rule that the third earns a task. The discovery half shipped in PR #554; this is the enforcement residual it does not cover.
-- 2026-09-17: Reframed to residual rule 1 + scanner roots (size M→S).
+- 2026-09-01: Rule 3 landed on `claude/map-injection-tab-wrapping-veo5r5` (PR #565), which corrects this task's claim that rule 1 was the only rule with a mechanical tell. The guard ships in the portable plugin rather than under `scripts/`, which also answers the second bullet for this rule: a `PreToolUse` hook is path-independent, so a page built in `dump/` is covered even though the scanners' default roots are not. Rule 1 and the invocation-count reading are the residual.
+- 2026-09-17: Reframed to the residual, rule 1 plus the scanner roots (size M to S). Log entries reordered oldest first, this file having been the tracker's one internally inconsistent log after that day's append.
