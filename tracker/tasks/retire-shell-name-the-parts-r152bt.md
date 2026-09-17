@@ -5,7 +5,7 @@ status: backlog
 project: show-repo
 opened: 2026-08-15
 size: M
-awaiting: ?header=0|1 vs off; sidebar default by omission vs third value
+awaiting: one spelling, ?header=0|1 or ?header=off; the sidebar half is settled by the body
 ---
 # Retire `shell`, and name the parts instead of the collection
 
@@ -78,8 +78,11 @@ judgment, and `__shell` → `__app` is ~40 files and purely mechanical. Keep the
 last alone, since a mechanical rename reviewed beside a prose rewrite is how one
 hides in the other.
 
-**The user's call:** `?header=0|1` or `?header=off`, and whether the sidebar's
-responsive default is expressed by omission or a third value.
+**The user's call, and it is one question rather than two.** `?header=0|1` or
+`?header=off`. The sidebar half was listed here as open until 2026-09-17 and the
+Work section above had already answered it: "an omitted value means the per-width
+default", which is expression by omission. Nothing else in the task argues for a
+third value, so that half is settled and this note no longer asks it.
 
 ## Progress log
 - 2026-08-15: Filed from PR #425, where the analysis was done. Origin was a
@@ -92,3 +95,7 @@ responsive default is expressed by omission or a third value.
   now. Verified still true: `?shell=` and `shellMode` live in `app/index.html`,
   `chrome` still definitional in the skill. Body cut from 885 words.
 - 2026-09-17: Surfaced the header-param / sidebar-default decision as awaiting so On deck shows the hold.
+- 2026-09-17: The sidebar half of that hold was never open. The Work section
+  answers it in its first bullet, so Notes and `awaiting:` were asking a question
+  the body had already settled. Narrowed both to the `?header=` spelling, which
+  is the only thing left here that a person has to pick.

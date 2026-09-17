@@ -4,7 +4,7 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: L
-awaiting: three decisions, all yours: sibling CSV or the subject's own file, per registry; suffix or folder for the naming; and whether this runs before or after budget-drs's column-primitive task
+awaiting: three decisions, each with a lean argued in the body: frontmatter for docs, folder over suffix, this task before column-primitive
 ---
 # Separate authored from derived data across the registries
 
