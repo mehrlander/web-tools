@@ -577,7 +577,7 @@ promoted to a `verified` or `differs` row the same way. A comparison, copy, or
 download never writes a row; the ledger is appended, never rewritten, and a
 later session reads the same states from the repository.
 - **Tools** (`?view=tools`) — a curated gallery of utility pages (below).
-- **Map** (`?view=map`, `&tab=` deep-links a tab or subview): the portable set, Surfacing, Showing, Docs with Purpose, Inventory, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
+- **Map** (`?view=map`, `&tab=` deep-links a tab or subview): Distribution, Surfacing, Showing, Docs with Inventory, Purpose, and Growth, and Harness with Automation and Tests (below). Per-repo scope and adoption live on the Repos cards.
 - **Proposals** (`?view=proposals`) — pending cross-repo edits awaiting a confirm
   (below). The one conditional entry: shown only while something is pending.
 
@@ -1713,10 +1713,10 @@ link, and a file listing lives in Public browse.
 **Map** (`?view=map`, always stamped; `?view=portable` still resolves here) turns
 the coordination layer itself into a first-class object, and is the operational
 face of the constellation doctrine ([`docs/CONSTELLATION.md`](CONSTELLATION.md)
-is the portable kernel, opened from the set header; the full worked instance is
+is the portable kernel, opened from the Distribution header; the full worked instance is
 in the private `home` repo). Ten top-level tabs in
 `lib/alpineComponents/map.js` answer distinct questions about the layer. Two of
-those stops carry a smaller second level: **Docs** holds **Purpose**, **Inventory**,
+those stops carry a smaller second level: **Docs** holds **Inventory**, **Purpose**,
 and **Growth**, while **Harness** holds **Automation** and **Tests**. Who
 carries the set is a fact about a repo
 and lives on the Repos cards.
@@ -1730,23 +1730,33 @@ the component mounts lazily; the component renders whichever tab is set, watches
 the shell for a back-button change, and fetches that tab's manifest on arrival
 by whatever route. Existing `?tab=aims`, `?tab=growth`, and `?tab=tests` links
 retain their exact destinations even though their views now sit below Docs or
-Harness rather than on the main strip. A tap on the Docs top-level stop opens
-Purpose; `?tab=docs` still opens Inventory, preserving saved links. That last
-part is the failure this replaced: non-default tabs once
+Harness rather than on the main strip. A tap on the Docs top-level stop and
+`?tab=docs` both open Inventory; Purpose remains addressable at `?tab=aims`.
+That routing also avoids the failure this replaced: non-default tabs once
 fetched from the click handler alone, so a tab nobody
 tapped had nothing to render.
 
-*Portable* (labelled The set until 2026-08-07; the `?tab=set` URL key is
-unchanged) renders the to-go bag from the hub's committed manifest,
-[`docs/portable.csv`](portable.csv), whose prose parent is
-[`docs/PORTABLE.md`](PORTABLE.md) (a test,
-`tools/test/portable-manifest.test.mjs`, holds the two consistent, so the UI
-never drifts from the catalog). Grouped as plugin skills, docs, and scripts;
-each row shows its role and adoption mode (in the plugin, fetched live, fetch
-to adopt, on demand) and opens in the shell's own viewer, rendered, so reading
-CONVENTIONS.md is one tap from the dashboard. The doctrine kernel rides here as
-a doc, so the theory sits beside the conventions it governs. Public: the hub
-repo is public, so this half needs no token.
+*Distribution* (labelled Portable until 2026-09-17 and The set until
+2026-08-07; the `?tab=set` URL key is unchanged) renders the hub's authored
+crosswalk, [`docs/portable.csv`](portable.csv). The registry is the owner; it
+has no prose parent. Its rows select artifacts from their primary inventories
+and say how each one travels: installed by the plugin, read live, referenced,
+adopted once, or fetched on demand. Skills remains the capability inventory,
+Docs/Inventory remains the documentation inventory, and Harness/Automation
+remains the executable inventory. Distribution links to those owning views
+instead of pretending to be a second copy of them.
+
+Opening a file title launches the Map's Swipe Deck over the visible crosswalk,
+with the selected row first and the rest available by swiping. Markdown opens
+rendered; the deck's view control exposes its source, and the action menu keeps
+the copy and Files-view routes. In rendered Markdown, authored relative links
+and whole inline-code filenames that resolve to one repository file become
+repository doors. A file already in the deck becomes the active slide; any
+other file opens one level down, where Back returns to the citing document.
+Ambiguous code names stay inert. Directory rows open their folders, and each
+row's GitHub control still provides the direct source path. The doctrine kernel
+rides here as a reference, so the theory sits beside the delivery contract it
+explains. The hub is public, so this view needs no token.
 
 *Scope and adoption moved to the Repos cards on 2026-08-03.* They are facts
 about a repo, and a card is where a repo is described, so a second grid of the

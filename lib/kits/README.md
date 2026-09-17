@@ -543,6 +543,8 @@ window.mdDoc.html(src, o)          // a prose HTML string, tables contained
 window.mdDoc.render(host, src, o)  // mounts into host -> { box, sections }
 window.mdDoc.enhance(box, src, o)  // the same over markup another renderer made
 window.mdDoc.contain(el)           // el, nothing left that can widen a column
+window.mdDoc.linkRepoFiles(el, o)  // relative links + unambiguous whole-code file references
+window.mdDoc.repoPath(file, href)  // resolve a relative href without escaping the repository root
 window.mdDoc.locate(node)          // { addr, sections, section } for any node in a render
 window.mdDoc.sourceRef(node)       // "docs/APP.md § Mechanism (lines 16-28)"
 ```

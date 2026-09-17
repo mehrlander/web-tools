@@ -159,11 +159,70 @@ test('Docs/Purpose renders its existing Aims data and ordered reading as Markdow
   assert.equal(data.aimsMd(), '', 'nothing loaded copies nothing rather than a heading');
 });
 
-test('the set groups into plugin / docs / scripts sections', () => {
+test('Distribution groups by delivery mode while every row keeps its artifact type and owner', () => {
   const secs = data.setSections;
-  // [...] rebuilds the realm-crossed array on this side for deepEqual.
-  assert.deepEqual([...secs.map(s => s.label)], ['In the plugin', 'Docs', 'Scripts']);
+  // [...] rebuilds the realm-crossed array on this side for deepEqual. The
+  // fixture has one row in three delivery modes; kind is deliberately
+  // orthogonal and therefore must not be the section heading.
+  assert.deepEqual([...secs.map(s => s.key)], ['plugin', 'live', 'on-demand']);
+  for (const sec of secs)
+    assert.ok(sec.items.every(it => it.use === sec.key), sec.key + ': a delivery group mixed modes');
   assert.equal(secs[0].items[0].title, 'tasks');
+  assert.equal(data.kindLabel(manifest.items[0]), 'Skill');
+  assert.equal(data.kindLabel(manifest.items[1]), 'Document');
+  assert.equal(data.kindLabel(manifest.items[2]), 'Standalone tool');
+  assert.equal(data.setOwner(manifest.items[0]).tab, 'skills');
+  assert.equal(data.setOwner(manifest.items[1]).tab, 'docs');
+  assert.equal(data.setOwner(manifest.items[2]).tab, 'harness');
+});
+
+test('plugin-internal scripts cross-reference their parent skill, not Automation', async () => {
+  const supportFiles = [
+    ['.claude/skills/tasks/build-board.py', 'tasks'],
+    ['.claude/skills/in-flight/in-flight.py', 'in-flight'],
+  ];
+  const realSetTab = data.setTab;
+  let openedTab = '';
+  data.setTab = tab => { openedTab = tab; };
+
+  try {
+    for (const [path, skill] of supportFiles) {
+      const item = { kind: 'script', path, title: path.split('/').at(-1) };
+      const owner = data.setOwner(item);
+      assert.equal(owner.tab, 'skills', path);
+      assert.equal(owner.set, 'plugin', path);
+      assert.equal(owner.query, skill, path);
+
+      await data.openSetOwner(item);
+      assert.equal(openedTab, 'skills', path);
+      assert.equal(data.skillSet, 'plugin', path);
+      assert.equal(data.skillQ, skill, path);
+    }
+  } finally {
+    data.setTab = realSetTab;
+    data.skillSet = '';
+    data.skillQ = '';
+  }
+
+  // A repository script remains Automation-owned; only helpers nested inside
+  // .claude/skills inherit a parent skill.
+  assert.equal(data.setOwner(manifest.items[2]).tab, 'harness');
+});
+
+test('Distribution search spans the row name, path, command, and inherited role', () => {
+  const all = data.setSections.flatMap(s => [...s.items]);
+  assert.equal(all.length, manifest.items.length);
+
+  for (const [q, expected] of [
+    ['portable:tasks', 'tasks'],       // command
+    ['CONVENTIONS.md', 'Working conventions'], // path
+    ['sunset markers', 'sunset-scan.py'],       // inherited harness role
+  ]) {
+    data.setQ = q;
+    const hits = data.setSections.flatMap(s => [...s.items]);
+    assert.deepEqual([...hits.map(i => i.title)], [expected], q);
+  }
+  data.setQ = '';
 });
 
 
@@ -328,6 +387,22 @@ test('the Docs folder rail rolls up, nests, and prunes by reach without changing
     'a folder links to its GitHub tree at the read ref');
 });
 
+test('Docs search starts corpus-wide, matches subject text, and can then be folder-scoped', () => {
+  data.docQ = 'chat-handoff';
+  data.docSearchDir = '';
+  const corpusHits = data.docDirFiles;
+  assert.ok(corpusHits.length > 0, 'a subject-only phrase finds at least one document');
+  assert.ok(corpusHits.length < data.docsReg.documents.length, 'the query narrows the corpus');
+  assert.ok(corpusHits.every(d => (d.path + ' ' + d.subject).toLowerCase().includes('chat-handoff')));
+
+  const folder = corpusHits[0].path.slice(0, corpusHits[0].path.lastIndexOf('/'));
+  data.docSearchDir = folder;
+  assert.ok(data.docDirFiles.every(d => d.path.startsWith(folder + '/')),
+    'the folder scope applies only after the reader chooses it');
+  data.docQ = '';
+  data.docSearchDir = '';
+});
+
 test('a row title opens the doc deck: full folder, tapped row first, rendered by kind, cached', async () => {
   // marked stubbed so the markdown path is deterministic and offline; the
   // component only lazily loads the CDN copy when window.marked is absent.
@@ -385,6 +460,8 @@ test('a row title opens the doc deck: full folder, tapped row first, rendered by
     'GitHub is a header link now, not a mark inside the reading surface');
   assert.ok(o.actions.some(a => typeof a.onClick === 'function'),
     'and the reference menu is a header action');
+  assert.ok(o.actions.some(a => a.title === 'View raw Markdown'),
+    'a rendered Markdown slide offers its source as a first-class reading mode');
 
   // The contents labeler: one call per row, and the gloss is the registry's own
   // subject rather than a second copy of the path.
@@ -402,6 +479,206 @@ test('a row title opens the doc deck: full folder, tapped row first, rendered by
     'and carries the rendered document');
   delete window.marked;
   delete window.swipeDeck;
+});
+
+test('the deck reading action toggles exact source bytes and rendered Markdown in place', async () => {
+  const path = 'docs/CONVENTIONS.md';
+  const slide = window.document.createElement('div');
+  slide.innerHTML = '<div data-deck-content></div>';
+  const actionSets = [];
+  const prior = {
+    deck: data._deck, key: data._deckKey, files: data._deckFiles,
+    reading: data._deckReading, ready: data._slideReady,
+    marked: window.marked,
+  };
+  data._deckFiles = [{ path }];
+  data._deckKey = 'reading-mode-test';
+  data._deckReading = null;
+  data._slideReady = null;
+  data._deck = {
+    deck: { active: () => 0, track: { children: [slide] } },
+    setActions: actions => actionSets.push(actions),
+  };
+  window.marked = { parse: () => '<h1>Rendered</h1>' };
+
+  const raw = data.deckActions(path).find(a => a.title === 'View raw Markdown');
+  assert.ok(raw, 'rendered is the initial reading and offers raw Markdown');
+  await raw.onClick();
+  const box = slide.querySelector('[data-deck-content]');
+  assert.equal(data.deckReading(path), 'source');
+  assert.equal(box.querySelector('[data-deck-source]').textContent, await data.docDeckText(path),
+    'source mode is the fetched file itself, before frontmatter fencing or conversion');
+  assert.equal(actionSets.at(-1)[0].title, 'View rendered Markdown',
+    'the same header action now names the way back');
+
+  await actionSets.at(-1)[0].onClick();
+  assert.equal(data.deckReading(path), 'rendered');
+  assert.equal(box.querySelector('[data-deck-source]'), null);
+  assert.ok(box.querySelector('.prose'), 'the reading surface returns to rendered Markdown');
+  assert.equal(actionSets.at(-1)[0].title, 'View raw Markdown');
+
+  data._deck = prior.deck;
+  data._deckKey = prior.key;
+  data._deckFiles = prior.files;
+  data._deckReading = prior.reading;
+  data._slideReady = prior.ready;
+  if (prior.marked === undefined) delete window.marked;
+  else window.marked = prior.marked;
+});
+
+test('rendered deck documents hand repository links to deck navigation', async () => {
+  const priorMdDoc = window.mdDoc;
+  const priorMarked = window.marked;
+  const priorReading = data._deckReading;
+  const wired = [];
+  window.marked = { parse: () => '<p>Rendered</p>' };
+  window.mdDoc = {
+    render(host){ host.innerHTML = '<div class="prose"><p>Rendered</p></div>'; },
+    linkRepoFiles(host, options){ wired.push({ host, options }); return { authored: 0, inferred: 0 }; },
+  };
+  data._deckReading = null;
+
+  const host = window.document.createElement('div');
+  await data.docDeckRead(host, 'docs/CONVENTIONS.md');
+  assert.equal(wired.length, 1);
+  assert.equal(wired[0].options.path, 'docs/CONVENTIONS.md');
+  assert.ok(wired[0].options.paths.has('docs/SURFACING.md'),
+    'the known-path set includes repository documents outside the current deck');
+  assert.equal(wired[0].options.href('docs/SURFACING.md', '#branch'),
+    data.hubUrl('docs/SURFACING.md') + '#branch');
+
+  const opened = [];
+  const priorOpen = data.openDeckLink;
+  data.openDeckLink = target => opened.push(target);
+  const target = { path: 'docs/SURFACING.md', hash: '#branch', source: 'authored' };
+  wired[0].options.open(target);
+  assert.deepEqual(opened, [target], 'the renderer resolves; the deck owns navigation');
+  data.openDeckLink = priorOpen;
+
+  data._deckReading = priorReading;
+  if (priorMdDoc === undefined) delete window.mdDoc;
+  else window.mdDoc = priorMdDoc;
+  if (priorMarked === undefined) delete window.marked;
+  else window.marked = priorMarked;
+});
+
+test('a delayed rendered pass cannot overwrite a newer source pass', async () => {
+  const path = 'docs/race.md';
+  const host = window.document.createElement('div');
+  const prior = {
+    text: data.docDeckText, paths: data.deckRepoPaths, reading: data._deckReading,
+    mdDoc: window.mdDoc, marked: window.marked,
+  };
+  let releaseRendered;
+  let renderedStarted;
+  const blocked = new Promise(resolve => { releaseRendered = resolve; });
+  const started = new Promise(resolve => { renderedStarted = resolve; });
+  data.docDeckText = async () => '# exact source\n';
+  data.deckRepoPaths = async () => {
+    renderedStarted();
+    await blocked;
+    return new Set([path]);
+  };
+  window.marked = { parse: () => '<p data-old-render>old rendered pass</p>' };
+  window.mdDoc = {
+    render(box){ box.innerHTML = '<div class="prose"><p data-old-render>old rendered pass</p></div>'; },
+    linkRepoFiles(){ return { authored: 0, inferred: 0 }; },
+  };
+  data._deckReading = { [path]: 'rendered' };
+
+  const delayed = data.docDeckRead(host, path);
+  await started;
+  data._deckReading = { [path]: 'source' };
+  await data.docDeckRead(host, path);
+  assert.equal(host.querySelector('[data-deck-source]').textContent, '# exact source\n',
+    'the newer source request commits while rendered work is still pending');
+
+  releaseRendered();
+  await delayed;
+  assert.equal(host.querySelector('[data-deck-source]').textContent, '# exact source\n');
+  assert.equal(host.querySelector('[data-old-render]'), null,
+    'the late rendered result is discarded rather than replacing the newer source');
+
+  data.docDeckText = prior.text;
+  data.deckRepoPaths = prior.paths;
+  data._deckReading = prior.reading;
+  if (prior.mdDoc === undefined) delete window.mdDoc;
+  else window.mdDoc = prior.mdDoc;
+  if (prior.marked === undefined) delete window.marked;
+  else window.marked = prior.marked;
+});
+
+test('hash landing ignores stale readiness from an older deck generation', async () => {
+  const path = 'docs/reopened.md';
+  const prior = { ready: data._slideReady, token: data._deckToken, markLead: data.markLead };
+  const stale = window.document.createElement('div');
+  stale.innerHTML = '<h2 id="target" data-generation="stale">Stale</h2>';
+  const fresh = window.document.createElement('div');
+  fresh.innerHTML = '<h2 id="target" data-generation="fresh">Fresh</h2>';
+  const landed = [];
+  data._deckToken = 202;
+  data._slideReady = new Map([[path, { token: 101, promise: Promise.resolve(stale) }]]);
+  data.markLead = target => landed.push(target.dataset.generation);
+
+  const landing = data.landDeckHash(path, '#target');
+  data._slideReady.set(path, { token: 202, promise: Promise.resolve(fresh) });
+  await landing;
+  assert.deepEqual(landed, ['fresh'],
+    'a reopened child lands in its current box, never the detached box cached by the old token');
+
+  data._slideReady = prior.ready;
+  data._deckToken = prior.token;
+  data.markLead = prior.markLead;
+});
+
+test('repository links page within the current deck and drill for a child with Back', async () => {
+  const prior = { deck: data._deck, key: data._deckKey, files: data._deckFiles,
+                  token: data._deckToken, serial: data._deckSerial,
+                  swipeDeck: window.swipeDeck };
+  const moves = { build: [], go: [], close: 0 };
+  const parentFiles = [{ path: 'docs/one.md' }, { path: 'docs/two.md' }];
+  const parent = {
+    close(){ moves.close++; },
+    deck: {
+      active: () => 0,
+      build: i => moves.build.push(i),
+      go: i => moves.go.push(i),
+    },
+  };
+  data._deck = parent;
+  data._deckKey = 'docs:docs';
+  data._deckFiles = parentFiles;
+  const parentHandle = data._deck;
+  const parentPager = data._deckFiles;
+
+  await data.openDeckLink({ path: 'docs/two.md' });
+  assert.deepEqual(moves.build, [1], 'the target slide is made ready before navigation');
+  assert.deepEqual(moves.go, [1], 'a target already in the deck stays in that pager');
+
+  let drilled = null;
+  const child = { deck: { active: () => 0 }, setActions(){} };
+  window.swipeDeck = {
+    drill(parentDeck, options){ drilled = { parentDeck, options }; return child; },
+    open(){ assert.fail('a linked file with a parent must drill, not open a new root deck'); },
+  };
+  await data.openDeckLink({ path: 'docs/outside.md' });
+  assert.equal(drilled.parentDeck, parentHandle, 'the current deck is the child route\'s parent');
+  assert.equal(moves.close, 0, 'drilling preserves the parent under the child');
+  assert.notEqual(data._deck, parentHandle, 'the child is now the active deck');
+  assert.deepEqual([...data._deckFiles.map(f => f.path)], ['docs/outside.md']);
+
+  drilled.options.onClose();
+  assert.equal(data._deck, parentHandle, 'Back from the drilled deck restores the parent handle');
+  assert.equal(data._deckKey, 'docs:docs');
+  assert.equal(data._deckFiles, parentPager, 'and restores the parent pager, not a rebuilt copy');
+
+  data._deck = prior.deck;
+  data._deckKey = prior.key;
+  data._deckFiles = prior.files;
+  data._deckToken = prior.token;
+  data._deckSerial = prior.serial;
+  if (prior.swipeDeck === undefined) delete window.swipeDeck;
+  else window.swipeDeck = prior.swipeDeck;
 });
 
 // ── Readership ──────────────────────────────────────────────────────────────
@@ -517,8 +794,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['aims', 'docs', 'growth']),
-    'Docs exposes Purpose, Inventory, and Growth');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'aims', 'growth']),
+    'Docs exposes Inventory first, then Purpose and Growth');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -527,7 +804,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   window.__shell = undefined;
 });
 
-test('the Docs top-level tap opens Purpose while the docs route still means Inventory', async () => {
+test('the Docs top-level tap opens Inventory, the route its key has always named', async () => {
   const taps = [];
   window.__shell = { mapTab: 'set', goMapTab: t => taps.push(t) };
   const el2b = window.document.createElement('div');
@@ -542,24 +819,11 @@ test('the Docs top-level tap opens Purpose while the docs route still means Inve
   docsButton.click();
   await tick(3);
   const d2b = Alpine.$data(el2b);
-  assert.equal(d2b.mapTab, 'aims');
+  assert.equal(d2b.mapTab, 'docs');
   assert.equal(d2b.displayTab, 'docs');
-  assert.ok(d2b.aims?.goals.length, 'Purpose loads its existing data');
-  assert.deepEqual(taps, ['aims']);
-  const purpose = el2b.querySelector('section[x-show="mapTab===\'aims\'"]');
-  const reading = [...purpose.querySelectorAll('a')]
-    .filter(a => ['README.md', 'CLAUDE.md', 'docs/README.md'].includes(a.textContent.trim()));
-  assert.deepEqual(reading.map(a => [a.textContent.trim(), a.getAttribute('href')]), [
-    ['README.md', d2b.hubUrl('README.md')],
-    ['CLAUDE.md', d2b.hubUrl('CLAUDE.md')],
-    ['docs/README.md', d2b.hubUrl('docs/README.md')],
-  ], 'the three entry documents lead the reading list');
-  assert.equal(purpose.querySelectorAll('a[href*="/blob/"]').length,
-    d2b.aims.reading.length, 'every declared reading path renders, including those after the first five');
-  assert.equal(new Set(d2b.aims.reading.map(r => (r.repo || '') + ':' + r.path)).size,
-    d2b.aims.reading.length, 'the keyed reading list has no duplicate document');
-  d2b.setTab('docs');
-  assert.equal(d2b.mapTab, 'docs', 'the legacy docs route stays on Inventory');
+  assert.ok(d2b.docsReg?.documents.length, 'Inventory loads its registry');
+  assert.equal(d2b.aims, null, 'Purpose is not fetched until the reader chooses it');
+  assert.deepEqual(taps, ['docs']);
   window.__shell = undefined;
 });
 

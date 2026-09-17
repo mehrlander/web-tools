@@ -51,7 +51,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
-- [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
+- [`portable.csv`](portable.csv) — the distribution crosswalk: what travels to another repo, how it travels, and which primary inventory owns it
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the metadata model: targets, scopes, properties, declarations, assertions; ownership not overlay; the registry and catalog reduction

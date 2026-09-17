@@ -71,7 +71,7 @@ for every path the five carry:
 | [`docs.csv`](docs.csv) | `docs/`, `.md` and `.json` | subject, status |
 | [`tests.csv`](tests.csv) | `tools/test/` | protects, kind |
 | [`harness.csv`](harness.csv) | `tools/`, `scripts/` | role, layer |
-| [`portable.csv`](portable.csv) | the portable set | role, kind |
+| [`portable.csv`](portable.csv) | the distribution crosswalk | role, kind, delivery mode |
 | [`pages.csv`](../pages/pages.csv) | `pages/` | note, live address |
 
 Row counts are deliberately not carried in this prose: the

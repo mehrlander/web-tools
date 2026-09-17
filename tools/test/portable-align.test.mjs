@@ -39,6 +39,7 @@ test('enabledHubPlugins keeps only true @web-tools entries, bare names', () => {
 
 test('conventionsWired accepts the known wiring phrasings, rejects unrelated text', () => {
   assert.equal(PA.conventionsWired('Run /web-tools at session start.'), true);
+  assert.equal(PA.conventionsWired('Run /portable:default at session start.'), true);
   assert.equal(PA.conventionsWired('loads docs/CONVENTIONS.md by import'), true);
   assert.equal(PA.conventionsWired('enabledPlugins names portable@web-tools'), true);
   assert.equal(PA.conventionsWired('A repo about something else entirely.'), false);

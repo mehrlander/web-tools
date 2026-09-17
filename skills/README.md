@@ -9,7 +9,11 @@ Static resource. **Not a registered skill folder.** Sits at `web-tools/skills/`,
 | `web-tools/.claude/skills/&lt;name&gt;/SKILL.md` | Registered skill | Available and matchable via description |
 | `web-tools/skills/&lt;name&gt;/SKILL.md` | Library resource | Not registered anywhere; fetched on demand |
 
-At session start, only `web-tools` and `load-skill` are registered from web-tools itself. Everything under `skills/` is content the `load-skill` mechanism can pull in.
+Every `SKILL.md`-bearing directory under `.claude/skills/` is registered when
+this checkout is the project. The portable plugin explicitly registers the same
+15 directories in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)
+and exposes them under `/portable:<name>`. Everything under `skills/` remains
+library content that the `load-skill` mechanism can pull in.
 
 **One exception, and the marketplace declares it.** A library skill can also be published as its own plugin in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json). A repo that enables that plugin gets the skill ambient: model-invocable, firing on matching work without being asked. Nothing moves into this repo's own `.claude/skills/`, so the library-load model here is unchanged, and the marketplace file is the only list of which skills are promoted that way.
 
