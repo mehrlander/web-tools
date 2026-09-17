@@ -11,7 +11,7 @@ A census on 2026-09-08 measured comment density across this repo and home, and
 three agents read six files in full. Findings in
 [docs/text-content.md](../../docs/text-content.md), "Is it true? A read of six
 files", and the run record in home at
-`chron/2026/2026-09-08-code-comment-census.md`. The short version: comment
+`chron/2026/09/2026-09-08-code-comment-census.md`. The short version: comment
 density roughly tripled between June and September (8.3% to 29.7% of lines in
 `lib`, `pages` and `app`), restatement and debris are 1 to 3 percent of comment
 words so there is nothing to tidy, and the removable mass is history and
@@ -52,25 +52,34 @@ earlier.
   share of the value. `embedded-prose.py --dated` lists half its worklist
   already.
 
+## Residual
+Steps 1 and 2 are on `main`. Step 3 is the whole of what is left, and the first
+move is choosing which shape it takes:
+
+1. **Accuracy-only pass**, which the pilot favors: headers read against their
+   code, figures read against their files. `embedded-prose.py --dated` lists
+   much of the worklist; header drift has no mechanical report and is logged as
+   `header-essay-outlives-its-code` in SNAGS.
+2. **Or the paired fan-out** over the heaviest remaining files: one rewriter
+   plus one adversarial checker per file. The pairing is not optional.
+
+Either shape includes `lib/alpineComponents/estate.js`, folded in from
+`estate-js-commentary-read-mymt4u` on 2026-09-17. That file carries a question
+the rest of the worklist does not: how much of its 25,643 comment words restate
+`docs/show-repo.md`'s estate sections, and how much is rationale sitting where
+it belongs. Do not answer it by token overlap; the reason is in
+`docs/text-content.md` and is the lesson of PR #403.
+
+Pilot lessons live in `docs/text-content.md`, "What the pilot taught about
+running the pass".
+
 ## Done when
-Either the accuracy-only pass has run on the heavy files (including estate.js),
-or the paired fan-out has, or a log line here records that neither is worth
-running and why.
-
-
-## Residual (steps 1–2 are on main)
-Decide first, then run:
-
-1. **Accuracy-only pass** (prefer first per pilot lesson): headers against code, figures against files. `embedded-prose.py --dated` lists much of the worklist; header drift has no mechanical report (`header-essay-outlives-its-code` in SNAGS).
-2. **Or paired fan-out** over the heaviest remaining files: one rewriter + one adversarial checker per file (pairing is not optional).
-
-Include `lib/alpineComponents/estate.js` (folded from `estate-js-commentary-read-mymt4u` on 2026-09-17).
-On that file, also answer the #403 question (contract restating docs vs rationale in place); do not authorize deletion by token overlap alone (`docs/text-content.md`).
-
-Pilot lessons live in `docs/text-content.md` ("What the pilot taught about running the pass").
-
-## Notes
-`estate-js-commentary-read-mymt4u` was the same operation scoped to one file; closed 2026-09-17 as duplicate of this task after owner assent.
+Either the accuracy-only pass has run on the heavy files, or the paired fan-out
+has, or a log line here records that neither is worth running and why. In every
+case `lib/alpineComponents/estate.js` gets its PR #403 answer in a log line
+here: the commentary is rationale in place, or the contract half is retired and
+the rest sits at the code it explains. That clause arrived with the fold and
+does not lapse if the pass itself is judged not worth running.
 
 ## Progress log
 - 2026-09-08: Filed out of the census and the six-file read. Nothing trimmed
@@ -97,7 +106,7 @@ Pilot lessons live in `docs/text-content.md` ("What the pilot taught about runni
   step 3 are in [docs/text-content.md](../../docs/text-content.md), "What the
   pilot taught about running the pass", and indexed in SNAGS as
   `rewriter-marks-its-own-work`. The relocated history is recorded in the same
-  document and in home's `chron/2026/2026-09-08-code-comment-census.md`,
+  document and in home's `chron/2026/09/2026-09-08-code-comment-census.md`,
   filtered against what a test or data file already holds.
   Step 3 is not started and should not start without the pairing above, or
   without first weighing the accuracy-only pass against it.
@@ -110,5 +119,11 @@ Pilot lessons live in `docs/text-content.md` ("What the pilot taught about runni
   running, is still open. A session picking this up decides one thing first,
   weighing the accuracy-only pass (header contracts and stale figures, which the
   pilot found were most of the value) against the paired fan-out.
-- 2026-09-17: Reframed to residual only (size L→M). Folded `estate-js-commentary-read-mymt4u` into this worklist after owner assent.
-- 2026-09-17: Rule home restamped after PR #634 (CONVENTIONS.md retired → CLAUDE.md).
+- 2026-09-17: Reframed to the residual only (size L to M). Folded
+  `estate-js-commentary-read-mymt4u` in, taking the fold condition this task's
+  Notes recorded on 2026-09-12: the same operation scoped to one file, tidier
+  folded, held pending the owner's say-so. Its estate.js question and its
+  do-not-use-token-overlap warning are carried above, and its exit condition is
+  carried into "Done when" so the fold cannot swallow it.
+- 2026-09-17: Rule home restamped after PR #634: `docs/CONVENTIONS.md` retired,
+  conventions now in `CLAUDE.md`.

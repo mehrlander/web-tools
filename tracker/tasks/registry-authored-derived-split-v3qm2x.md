@@ -4,7 +4,7 @@ title: Separate authored from derived data across the registries
 status: backlog
 opened: 2026-08-18
 size: L
-awaiting: authored home shape; naming layout; order vs column-primitive
+awaiting: three decisions, all yours: sibling CSV or the subject's own file, per registry; suffix or folder for the naming; and whether this runs before or after budget-drs's column-primitive task
 ---
 # Separate authored from derived data across the registries
 
@@ -49,6 +49,19 @@ only slot. Where a subject does describe itself, the registry stays clean:
 3. Layer 1, with the mode-matches-file gate alongside, since the gate is what
    keeps the split from decaying.
 
+## Related
+
+- `docs/properties.csv`: the `mode` declaration this task's gate compares against the file
+- `docs/vocabularies.csv`: Layer 3's destination, already in the tree
+- `lib/alpineComponents/map.js`: holds the five glossaries Layer 3 moves, warning words among them
+- `lib/alpineComponents/estate.js`, `lib/alpineComponents/file-review.js`: the other Layer 3 carriers (`ADOPT_VERDICT`, `DUE`, `STATUS_TAG`)
+- `docs/docs.csv`, `docs/harness.csv`: two registries whose columns carry a warning word as a value (`reach: orphan`, `invocation: none found`)
+- `tools/build/pages-index.mjs`, `tools/build/docs-reach.mjs`: Layer 2's authored blocks, inside generators
+- `docs/registries.csv`: decision 3's subject, 11 authored columns beside one computed
+- `tools/test/properties-registry.test.mjs`: where this task's gate and `column-primitive-across-registries-r8qiea` meet
+- `docs/column-primitives.md`: the neighbouring task's doctrine, read before settling the order
+- task `align-map-view-cleanup-40afu8`: its item 5 waits on this task's Layer 3
+
 ## Done when
 Every property's declared `mode` matches the file its column lives in, a gate
 holds it, and no authored value remains in a generator or component except
@@ -82,3 +95,16 @@ table inside 145 KB of machine output.
   the 26 blurbs, means the `mode` column is currently false on some rows, and a
   second property added beside a false one inherits the falsehood.
 - 2026-09-17: Layer 3 (vocabularies out of map.js) sequences after Map cleanup. Surfaced shape/order decisions as awaiting; carve Layer 3 as its own task after Map if approved.
+- 2026-09-17: **The sequencing in the line above is backwards, and it was
+  circular.** `align-map-view-cleanup-40afu8` had recorded the same claim in the
+  other direction, so each task was waiting on the other. This task's own Stages
+  list settles it: Layer 3 goes first, because it exercises the join before
+  anything structural moves. Map's item 5 now waits on Layer 3 and says so.
+  Layer 3 also grew a subject the survey did not name: the warning words those
+  glossaries carry are not all component strings. `docs/docs.csv` holds `orphan`
+  on 26 rows of `reach` and `docs/harness.csv` holds `none found` in
+  `invocation`, so the six-way naming Map complains of is partly a column
+  vocabulary and lands here. `docs/vocabularies.csv`, the destination the survey
+  names, already exists.
+- 2026-09-17: Added `## Related`, and rewrote `awaiting:` from four noun
+  fragments into the decisions they stand for.

@@ -43,4 +43,12 @@ rest sits at its code, as in #403.
   figures above are one taken during this refinement pass with a line-based
   scan. Nothing else about the task changes: the ranking holds, and the point
   stands that the reading, not the count, is the work.
-- 2026-09-17: Closed as duplicate of `comment-trim-rule-first-b0o3bu`. That task's Notes already named this as the same operation scoped to one file, pending owner say-so; Mark assented in the 2026-09-17 grooming pass. `estate.js` joins the residual accuracy/fan-out worklist there.
+- 2026-09-17: Closed as duplicate of `comment-trim-rule-first-b0o3bu`, taking
+  the fold condition that task's Notes recorded on 2026-09-12. `estate.js` joins
+  its residual worklist, and this task's two distinguishing parts travel with
+  it: the PR #403 question (contract restating `docs/show-repo.md` against
+  rationale in place) and the warning not to answer it by token overlap. Its
+  exit condition is now a clause of that task's "Done when", so a decision not
+  to run the pass does not close this question silently. The 2026-09-04
+  measurement (25,643 comment words in 566 blocks, 2,523 of 8,451 lines) stays
+  here rather than being copied over.

@@ -4,7 +4,7 @@ title: Stop dual-storing SURFACING under the default skill
 status: backlog
 opened: 2026-08-31
 size: S
-awaiting: SURFACING dual-copy residual — delete copies vs skill-primary path; stage-2 marketplace clone if still wanted
+awaiting: SURFACING dual-copy residual: delete the copies, or make the skill path primary; stage 2 marketplace clone if still wanted
 ---
 # Stop dual-storing SURFACING under the default skill
 

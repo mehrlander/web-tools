@@ -92,14 +92,14 @@ shape (a bare path string vs. something that can also carry `@ref`).
 
 ## Open decisions (settle when building)
 
-- Folder vs. branch for inbox/outbox (new, above) — likely settled first,
+- Folder vs. branch for inbox/outbox (new, above), likely settled first,
   since it shapes the field format for everything below.
 - Convention default on by default, or opt-in (for inbox; decide separately,
   or the same way, for outbox).
 - Field name and shape: single `inbox`/`outbox` strings, or nested under the
   existing `stage` block (`stage.inbox`, `stage.outbox`). Originally scoped as
   receive-side only, resisting a send-side field "until a second consumer
-  needs it" — the public-repo raw-URL case above is that second consumer, so
+  needs it". The public-repo raw-URL case above is that second consumer, so
   build both together now rather than deferring outbox again.
 
 **Not in scope:** folding a dropped local file into the ref-based stage list as
