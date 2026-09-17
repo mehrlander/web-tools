@@ -1,0 +1,48 @@
+{
+  "manifest": {
+    "name": "A snag needs no approval, and the log says so",
+    "created_at": "2026-09-18T00:20:00Z",
+    "schema": {
+      "name": "surface",
+      "version": 2
+    },
+    "profile": {
+      "name": "approval",
+      "version": 1
+    }
+  },
+  "context": {
+    "id": "2026-09-18-snags-need-no-approval",
+    "kind": "documentation",
+    "reply_to": "mehrlander/web-tools:approvals",
+    "repo": "mehrlander/web-tools",
+    "branch": "claude/record-document-gating-fu48ar",
+    "base": "main",
+    "occasion": "snag",
+    "session": "https://claude.ai/code/session_01WtGbEtQgWAJcvN8J5pwYmd",
+    "rationale": "The policy is already decided: entering a snag should not need a verdict, because the log records what tripped rather than making a claim anyone has to endorse. What is out for a decision is only the wording, since that sentence is load-bearing twice over: a reader takes it as the intake rule, and the consent gate reads the same line and stands aside. Approving it commits the three lines below and nothing else. Refusing it leaves docs/SNAGS.md gated, which is where it is today."
+  },
+  "items": [
+    {
+      "id": "p1",
+      "title": "docs/SNAGS.md",
+      "type": "file",
+      "role": "changed",
+      "view": {
+        "mode": "diff"
+      },
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools",
+          "ref": "claude/record-document-gating-fu48ar"
+        },
+        "path": "docs/SNAGS.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -5,6 +5,10 @@\n one-liner (symptom, then the corrected move) with a `\u2192` to the durable doc that\n carries the full fix. Newest on top.\n \n+**Adding a snag needs no approval.** A record of what tripped is not a claim\n+anyone has to endorse, so a session writes one without asking; the consent\n+gate reads this line and stands aside.\n+\n **Recurrence is the signal.** One trip is noise; the same trip two or three\n times earns a systematic fix. An entry tracks how often it bit; a snag that\n keeps recurring graduates to a [tracker](../tracker/) task that removes the"
+      },
+      "note": "Three lines after the opening paragraph, before the recurrence rule. It changes what the document claims in one way: the log now states its own intake cost, which it never did, and the phrase 'needs no approval' in the first twelve lines is what the gate matches on. Nothing else in the file moves."
+    }
+  ]
+}
