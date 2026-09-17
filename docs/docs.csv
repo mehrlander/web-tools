@@ -7,7 +7,7 @@ docs/QUALIFIED-WRITING.md,"the prose rules: qualify noun phrases, introduce befo
 docs/README.md,the docs folder's front door: the generated index of this registry,living,skill,1597,"generated from docs.csv by tools/build/docs-readme.mjs (commit hook plus the derived-artifacts gate); edit the registry, never this file",
 docs/SNAGS.md,"the friction log: one line per snag, symptom then corrected move",living,project,23882,"authored; append-on-trip, entries updated on recurrence, graduation to the tracker on the third bite",
 docs/SURFACING.md,the surfacing primitives: the chat-handoff mechanics every reply uses,living,injected,744,"authored, edited in place; delivered by the portable plugin rather than an @-import from 2026-09-12; the guide-PR course split out to surfacing-course.md 2026-09-10; vendored copy byte-gated (derived-artifacts.test.mjs, added 2026-09-11; the earlier claim named a test that checks link targets instead)",
-docs/TRACKER.md,"the opt-in cross-session project tracker: schema, ids, board",living,project,3838,"authored, edited in place; the schema the tasks skill implements, held to it by review alone",
+docs/TRACKER.md,"the opt-in cross-session project tracker: schema, ids, board",living,project,3988,"authored, edited in place; the schema the tasks skill implements, held to it by review alone",
 docs/aims-goals.csv,the five goals the estate's material is held to,living,app,44,authored; rendered by Map → Docs → Purpose,
 docs/aims-reading.csv,the guided reading list Docs/Purpose offers a new reader,living,app,93,authored; rendered by Map → Docs → Purpose,
 docs/aims.json,the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs,living,app,15,authored; rendered by Map → Docs → Purpose,
