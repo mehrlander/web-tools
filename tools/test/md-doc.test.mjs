@@ -255,6 +255,38 @@ test('a token spanning a newline is re-opened on the next line', () => {
     'the second half is still a comment, in its own element');
 });
 
+test('the gutter comes back off, keeping whatever the block was already wearing', () => {
+  // The pair is what makes it a control rather than a page-load setting: the
+  // demo's first toggle reloaded with a different query, which cannot work in a
+  // toss because the framed document's location is a blob: URL. Unwrapping
+  // rather than re-rendering is the part worth pinning, since a block Prism has
+  // coloured has to keep its colours across the round trip and a version that
+  // restored from the held source would pass a line count and lose every token.
+  const host = window.document.createElement('div');
+  host.innerHTML = '<pre><code class="language-js">'
+    + '<span class="token keyword">let</span> a\nlet b\nlet c\n</code></pre>';
+  const before = host.querySelector('code').innerHTML;
+
+  mdDoc.number(host, 2);
+  assert.equal(host.querySelectorAll('.md-line').length, 3);
+  assert.equal(host.querySelectorAll('pre.md-numbered').length, 1);
+
+  mdDoc.unnumber(host);
+  assert.equal(host.querySelectorAll('.md-line').length, 0);
+  assert.equal(host.querySelectorAll('pre.md-numbered').length, 0);
+  assert.equal(host.querySelector('pre').style.getPropertyValue('--md-gutter'), '');
+  assert.equal(host.querySelector('code').dataset.mdLines, undefined);
+  // The trailing newline the fixture ended on is the one thing not restored:
+  // splitLines drops it as a line the document does not have.
+  assert.equal(host.querySelector('code').textContent, before.replace(/\n$/, '').replace(/<[^>]+>/g, ''));
+  assert.equal(host.querySelectorAll('.token.keyword').length, 1, 'the highlighting survives the round trip');
+
+  // And it can be turned back on. A held entry that is never released gives a
+  // one-way toggle, which looks identical to a working one until the second press.
+  mdDoc.number(host, 2);
+  assert.equal(host.querySelectorAll('.md-line').length, 3);
+});
+
 test('numbering twice is not doubling, and a three-digit block pays for three digits', () => {
   const host = window.document.createElement('div');
   const body = ['```sh'].concat(Array.from({ length: 120 }, (_, i) => `echo ${i}`), ['```', '']).join('\n');
