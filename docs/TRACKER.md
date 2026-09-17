@@ -42,9 +42,30 @@ priority: high        # example open tag: not acted on until promoted
 
 <what the task is, why, and what "done" means>
 
+## Related
+
+- `path/to/file`: why this file matters for the task
+
+## Done when
+
+<observable condition>
+
 ## Progress log
 - YYYY-MM-DD: <what happened, and the intended next step>
 ```
+
+
+**Conventional body section: `## Related`.** After the opening problem statement (and after Scope / Notes if present), before `## Done when`, list the high-signal pointers a future session should open first. Keep `## Progress log` last. Each bullet is one pointer and one short clause of why it matters:
+
+```markdown
+## Related
+
+- `path/to/file`: role in this task (edit surface, premise, test, hook)
+- task `other-task-id`: sequencing or shared surface
+- PR #123: change that restamped the premise
+```
+
+Rules: high-signal only (skip "might be related"); prefer paths that exist on `main`; one line per pointer; grooming may append without rewriting the body; do not encode a product decision here (`awaiting:` and open questions stay elsewhere). Filing may omit Related when nothing is known yet; refining should add it when the connections are found.
 
 **Status carries two companion fields.** `session` names the owning branch while a task is `in-progress`; `closed` dates it when it goes `done`. A `done` task keeps `session` set to the branch that completed it, so the board can say where the work happened after the fact.
 
