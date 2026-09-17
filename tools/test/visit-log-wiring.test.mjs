@@ -81,10 +81,17 @@ test('a visit is recorded on a push and not on a replace', () => {
   // did not drift onto the wrong branch of the if.
   const src = page.match(/if \(this\._restoring \|\| next === cur\) history\.replaceState[\s\S]{0,160}/);
   assert.ok(src, 'the push/replace branch in syncUrl was not found');
-  assert.match(src[0], /else \{ history\.pushState\(null, '', next\); this\.recordVisit\(next\); \}/,
-    'recordVisit is not on the push branch');
-  assert.ok(!/replaceState\(null, '', next\); this\.recordVisit/.test(src[0]),
-    'recordVisit moved onto the replace branch, where it would log no-ops and popstate restores');
+  assert.match(src[0], /else this\._pushVisit\(next\);/, 'the push branch does not reach _pushVisit');
+  assert.ok(!/replaceState\(null, '', next\); this\._pushVisit/.test(src[0]),
+    '_pushVisit moved onto the replace branch, where it would log no-ops and popstate restores');
+  // And _pushVisit reads the address back before recording. Without this a toss
+  // of the app records on every syncUrl, because the renderer wraps pushState
+  // to swallow a SecurityError and `cur` therefore never moves. Those rows land
+  // in the same-origin localStorage the real app reads.
+  const fn = page.match(/_pushVisit\(next\)\{[\s\S]*?\n  \},/);
+  assert.ok(fn, '_pushVisit was not found');
+  assert.match(fn[0], /if \(location\.pathname \+ location\.search \+ location\.hash === next\) this\.recordVisit/,
+    '_pushVisit records without checking that the push took');
 });
 
 test('recording a route stores the destination, and a revisit moves it rather than splitting it', () => {
@@ -118,7 +125,57 @@ test('rendering a pasted document is counted and never stored', () => {
   assert.ok(!JSON.stringify(shell.visits).includes(MARK),
     'the log holds the pasted document; this is the failure the whole design exists to prevent');
   assert.equal(shell.visitOpenable(row), false, 'a payload row must not offer a link it cannot honour');
-  assert.match(shell.visitDetail(row), /not stored/);
+  // The row says its size and nothing else, on one line, since the size is the
+  // only honest thing a refusal can report about what it refused.
+  assert.equal(shell.visitLabel(row), 'Local document');
+  assert.match(shell.visitDetail(row), /^\d+(\.\d)? (B|KB|MB)$/,
+    'a payload row should name its size: ' + shell.visitDetail(row));
+  assert.equal(shell.visitBytes(0), 'not stored');
+});
+
+test('a row is one line: the thing, then the short context, and never both the same', () => {
+  // The house style keeps a menu row to one line (the launcher menu says so
+  // outright) and keeps one type size across everything a reader came to read.
+  // A stacked label over a muted text-sm detail broke both, and it also buried
+  // the filename behind its category. So the label names the SPECIFIC thing and
+  // the detail names the short context it sits in.
+  const { shell } = shellWith();
+  shell.routeManifest = { routes: rows('app-routes.csv') };
+  const say = (u) => {
+    shell.visits = [];
+    shell.recordVisit(u);
+    const v = shell.visits[0];
+    return [shell.visitLabel(v), shell.visitDetail(v)];
+  };
+
+  assert.deepEqual(say('/web-tools/app/?view=search&sfile=mehrlander/home:CLAUDE.md'),
+    ['CLAUDE.md', 'Files'], 'a file row leads with the file, not with its category');
+  assert.deepEqual(say('/web-tools/app/?view=project&project=projects/budget-drs&tab=board'),
+    ['budget-drs', 'Project']);
+  assert.deepEqual(say('/web-tools/app/?view=sessions&session=2bf8fcae'),
+    ['2bf8fcae', 'Sessions']);
+  assert.deepEqual(say('/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@x:pages/links.html'),
+    ['links.html', 'web-tools']);
+
+  // A route that IS the destination names itself once and takes its repo as the
+  // context, rather than saying the same word in both halves.
+  // The unrecognized row follows the same rule: the page that failed to match
+  // is the specific thing, and the word "unrecognized" is its context. Labelled
+  // the other way round it clipped itself against a filename.
+  assert.deepEqual(say('/web-tools/pages/toss-render.html#undescribedKey=abc'),
+    ['toss-render.html', 'unrecognized']);
+
+  const [repoLabel, repoDetail] = say('/web-tools/app/?view=estate');
+  assert.equal(repoLabel, 'Repos');
+  assert.notEqual(repoDetail, 'Repos', 'the two halves said the same word twice');
+
+  // Nothing is parked in a `title`, which reaches no touch screen and no
+  // screenshot (house style, rule 11).
+  const panel = page.match(/<div x-show="markMenu"[\s\S]*?\n      <\/div>/);
+  assert.ok(panel, 'the mark menu panel was not found');
+  assert.ok(!/:title=/.test(panel[0]), 'a fact was parked in a title inside the mark menu');
+  assert.ok(!/text-sm/.test(panel[0]),
+    'the menu demoted a row to text-sm; this sidebar carries hierarchy in opacity, not size');
 });
 
 test('the list is capped, so the log cannot grow without bound', () => {

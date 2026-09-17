@@ -664,11 +664,20 @@ html.dk-dragging main{transition:none !important}
           </button>
 
           <div x-show="visits.length" class="my-1 border-t border-base-200"></div>
-          <div x-show="visits.length" class="px-3 pb-1 pt-1 text-sm font-semibold text-base-content/40">Visited</div>
+          <!-- Section header at the size the Recent block above uses, not a
+               smaller one: this sidebar carries hierarchy in opacity and weight
+               and keeps one size for everything a reader came to read. -->
+          <div x-show="visits.length" class="px-3 pb-1 pt-1 text-base font-semibold text-base-content/50 flex items-center gap-1.5">
+            <i class="ph ph-arrow-u-up-left"></i>Visited
+          </div>
+          <!-- ONE LINE: the thing, then the short context, then the revisit
+               count. The detail is short by construction rather than clipped
+               into shape, and it is a `span` on the row rather than a `title`,
+               since a fact parked in a title reaches no touch screen and no
+               screenshot (house style, rule 11). -->
           <template x-for="v in visits" :key="v.key">
             <button @click="openVisit(v)" :disabled="!visitOpenable(v)"
-                    :title="visitDetail(v)"
-                    class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left transition-colors"
+                    class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors"
                     :class="visitOpenable(v)
                       ? 'text-base-content/80 hover:bg-base-200 active:bg-base-300'
                       : 'text-base-content/35 cursor-default'">
@@ -678,11 +687,11 @@ html.dk-dragging main{transition:none !important}
                        : v.kind === 'toss' ? 'ph-frame-corners text-base-content/50'
                        : v.kind === 'stage' ? 'ph-stack text-base-content/50'
                        : 'ph-arrow-bend-up-left text-base-content/50'"></i>
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-base" x-text="visitLabel(v)"></span>
-                <span x-show="visitDetail(v)" class="block truncate text-sm text-base-content/40" x-text="visitDetail(v)"></span>
-              </span>
-              <span x-show="v.seen > 1" class="shrink-0 text-sm text-base-content/30" x-text="v.seen"></span>
+              <span class="min-w-0 flex-1 truncate" x-text="visitLabel(v)"></span>
+              <span x-show="visitDetail(v)" class="shrink-0 max-w-[45%] truncate text-base-content/40"
+                    x-text="visitDetail(v)"></span>
+              <span x-show="v.seen > 1"
+                    class="shrink-0 text-xs tabular-nums text-base-content/30" x-text="v.seen"></span>
             </button>
           </template>
         </div>
@@ -5958,33 +5967,66 @@ function app(){ return {
     } catch (e) { this.visits = []; }
   },
 
-  // What a row says in the menu. The LABEL joins docs/app-routes.csv when the
-  // manifest is in hand and falls back to the view key, rather than storing a
-  // label at write time: the registry owns route names, and a stored copy would
-  // be the duplicate the registries rule warns about. A toss names its file,
-  // since the repo and path ARE the thing you went to look at.
+  // ── What a row SAYS ──────────────────────────────────────────────────────
+  //
+  // ONE LINE, like every other row in this sidebar and like the launcher menu,
+  // which put the rule plainly when it dropped a two-line hint: a menu is read
+  // in the moment before the finger lifts and has no room for a second line.
+  // The first draft stacked a label over a muted detail at text-sm, which broke
+  // that and rule 7 with it, demoting the half of the row that tells two
+  // Sessions visits apart. Size carries nothing here; opacity does, the way
+  // the Recent block above already works.
+  //
+  // So the split is LABEL = the specific thing, DETAIL = the short context it
+  // sits in, and the detail is short BY CONSTRUCTION rather than truncated into
+  // shape. "CLAUDE.md · Files" reads; "Files · mehrlander/home:CLAUDE.md"
+  // buries the filename behind a category and then clips it.
+  //
+  // Route names join docs/app-routes.csv rather than being stored at write
+  // time, since that registry owns them and a stored copy would be the
+  // duplicate the registries rule warns about.
+  routeLabel(view){
+    const row = this.routeManifest?.routes?.find(r => r.key === view || r.writes === view);
+    return row?.label || view || '';
+  },
   visitLabel(v){
     if (!v) return '';
-    if (v.kind === 'unrecognized') return 'Unrecognized address';
-    if (v.kind === 'payload') return 'Local document (' + v.mode + ')';
+    // The PAGE leads here too, by the same rule: which page failed to match is
+    // the specific thing, and "unrecognized" is the context. Labelling it the
+    // other way round clipped a long word against a filename and told the
+    // reader the one thing the dimming and the glyph already said.
+    if (v.kind === 'unrecognized') return (v.path || '').split('/').pop() || 'address';
+    if (v.kind === 'payload') return 'Local document';
     if (v.kind === 'stage') return 'Stage';
-    if (v.kind === 'toss') return (v.path || '').split('/').pop() || v.repo;
-    const row = this.routeManifest?.routes?.find(r => r.key === v.view || r.writes === v.view);
-    const base = row?.label || v.view;
-    return v.project ? base + ': ' + v.project.split('/').pop() : base;
+    if (v.kind === 'toss') return (v.path || '').split('/').pop() || v.repo || '';
+    // The most specific thing the row names, falling back to the route itself
+    // when the route IS the destination (Repos, Tools, the Map).
+    const file = v.sfile && v.sfile.split(/[:/]/).pop();
+    return file || (v.project && v.project.split('/').pop()) || v.session || v.detail
+        || v.app || v.item || this.routeLabel(v.view);
   },
-  // The second line: which repo, which ref, which record. Never the address.
+  // The right-hand half: short, muted, and never the address. It answers "which
+  // one of these" rather than repeating what the label already said.
   visitDetail(v){
     if (!v) return '';
-    if (v.kind === 'unrecognized') return v.why || '';
-    if (v.kind === 'payload') return v.bytes ? v.bytes.toLocaleString() + ' bytes, not stored' : 'not stored';
-    if (v.kind === 'stage') return v.spec || '';
-    const bits = [];
-    if (v.repo) bits.push(v.repo.split('/')[1] || v.repo);
-    if (v.ref) bits.push(v.ref);
-    if (v.kind === 'toss' && v.path) bits.push(v.path);
-    for (const k of ['session', 'detail', 'sfile', 'item', 'tab', 'app']) if (v[k]) { bits.push(v[k]); break; }
-    return bits.join(' · ');
+    if (v.kind === 'unrecognized') return 'unrecognized';
+    if (v.kind === 'payload') return this.visitBytes(v.bytes);
+    if (v.kind === 'stage') {
+      const n = String(v.spec || '').split(',').filter(Boolean).length;
+      return n ? n + (n === 1 ? ' file' : ' files') : '';
+    }
+    if (v.kind === 'toss') return (v.repo || '').split('/')[1] || v.repo || '';
+    // A route whose label was spent on the specific thing names its route here;
+    // one that used the route name as its label names its repo instead, so the
+    // two halves never say the same word twice.
+    const named = this.visitLabel(v) === this.routeLabel(v.view);
+    return named ? ((v.repo || '').split('/')[1] || '') : this.routeLabel(v.view);
+  },
+  visitBytes(n){
+    if (!n) return 'not stored';
+    return n < 1024 ? n + ' B'
+      : n < 1024 * 1024 ? Math.round(n / 1024) + ' KB'
+      : (n / (1024 * 1024)).toFixed(1) + ' MB';
   },
   // A payload row and an unrecognized row have nowhere to go, by construction.
   visitOpenable(v){ return !!v && v.kind !== 'payload' && v.kind !== 'unrecognized'; },
@@ -6005,7 +6047,7 @@ function app(){ return {
     // while restoring from a popstate, replaces in place instead, so Back never
     // needs a double press and popstate restoration doesn't re-push.
     if (this._restoring || next === cur) history.replaceState(null, '', next);
-    else { history.pushState(null, '', next); this.recordVisit(next); }
+    else this._pushVisit(next);
     // The tab names what the address names: the product, plus the open repo
     // exactly when deepLinkParams stamps `repo` (off the default only), owner
     // dropped the way the sidebar crumb drops it. Stamped here rather than in
@@ -6024,6 +6066,26 @@ function app(){ return {
     // reliably sees an app view being LEFT. A watcher on `view` would miss the
     // boot case, where the shell arrives on a route without ever changing it.
     if (this.view !== 'app') { this._appTitle = ''; this.resetAppIcon(); }
+  },
+
+  // PUSH, THEN RECORD ONLY IF THE PUSH TOOK, which is not defensive coding but
+  // a measured fix. Inside a #gh= toss the renderer wraps pushState to swallow
+  // a SecurityError (a relative push resolves against the stamped <base>, which
+  // matches neither the frame's blob: document nor this origin), so the call is
+  // a silent no-op. `cur` then never moves, `next !== cur` stays true forever,
+  // and a recorder hanging off the branch alone logs a visit on EVERY syncUrl
+  // of a previewed app. A blob inherits its creator's origin, so those rows land
+  // in the same localStorage the real app reads: previewing the app on a branch
+  // would quietly fill the reader's own log.
+  //
+  // Measured, not reasoned about: a headless toss of app/index.html had two
+  // visits recorded before anything was clicked. Reading the address back makes
+  // the log depend on what actually happened rather than on which branch of an
+  // if was taken, which is the same move recordVisit already makes by hanging
+  // off syncUrl's own push/replace decision instead of inventing a second one.
+  _pushVisit(next){
+    history.pushState(null, '', next);
+    if (location.pathname + location.search + location.hash === next) this.recordVisit(next);
   },
 
   // Its own method because the mark arrives LATE, after the address is
