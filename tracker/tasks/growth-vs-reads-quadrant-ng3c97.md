@@ -4,7 +4,7 @@ title: Read a document's growth against its readership, on the Docs tab
 status: backlog
 opened: 2026-08-28
 size: M
-awaiting: growth measure; reads axis; corner labels; include injected docs?
+awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded
 ---
 # Read a document's growth against its readership, on the Docs tab
 
@@ -48,6 +48,24 @@ is the rendering and the reading, not the data.
   the estate and precisely the two no file tool can count, so they distort
   either axis.
 
+## Recommended answers, so this is four confirmations rather than a design pass
+
+Each follows from an argument already in this task, so a reader who disagrees
+has something specific to disagree with. Added 2026-09-17; none is acted on.
+
+- **Recent slope, not net delta.** The task's own sentence decides it: a doc that
+  grew once in March and has been still since is not the finding. Net delta
+  scores it identically to one still accreting.
+- **Presence, not access.** The quadrant asks whether anyone opened a document.
+  Presence answers that; access answers how often, which is a different question
+  and belongs in the table the rows already have.
+- **Label the corners.** The view exists to make one corner's argument. An
+  unlabelled quadrant makes the reader rediscover the argument every time, which
+  is the table's failure restated in two dimensions.
+- **Exclude injected docs, and say so on the view.** An axis that cannot count
+  its two largest values is not measuring. A one-line note naming the exclusion
+  is honest; silently dropping them is not.
+
 ## Done when
 The Docs tab renders growth against readership for every registered doc, the
 zero-read population is legible as a count rather than inferred, and a point
@@ -61,3 +79,7 @@ opens its document in the deck the table's rows already use.
   on. The zero-read figure is not restamped on purpose: it joins the sessions
   cache rather than the registry, and rendering it live is the point of the task.
 - 2026-09-17: Surfaced the four open axis/label questions as awaiting.
+- 2026-09-17: Answered all four with recommendations drawn from arguments this
+  task already makes, so the hold is four confirmations rather than a design
+  pass. This is the only one of the board's parked tasks whose questions were
+  genuinely open on both sides; the rest were waiting on a yes.
