@@ -135,8 +135,17 @@ reference-is-a-link rules govern authored markdown. The tab reads rendered
 output, reports a count, and offers no route to the source line that must
 change. The other four figures are generic.
 
-**Thinly calibrated.** The app gate rests on six pages plus one long document
-observed later. The threshold decides whether the house-rule rows appear at all.
+**Thinly calibrated, and the table above predates the read it describes.** The
+app gate rests on six pages plus one long document observed later. The threshold
+decides whether the house-rule rows appear at all. Those figures were measured
+before the read learned to skip hidden text, which every page with a closed tab,
+an inactive pane or an `x-cloak` attribute has. Re-measured on 2026-09-17 with
+and without that filter, on pages rendered without their live data, so the
+absolute numbers are not the calibration conditions and only the movement means
+anything: words-per-run shifted a little and chrome share roughly halved.
+No page changed side of the gate, and the pages index moved from 5.4 to 5.9
+against a threshold of 6, which is most of its remaining margin. The right fix
+is a re-measurement under the original conditions, not a nudge to the threshold.
 
 **Read-only.** It writes nothing and cannot apply a proposal. The local figures
 exist while the drawer is open; retained proposals have stable IDs and can be

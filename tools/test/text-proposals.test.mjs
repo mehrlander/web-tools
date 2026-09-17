@@ -70,7 +70,15 @@ const PACKET = JSON.stringify({
       decision: 'repair',
       rationale: 'The replacement states the claim directly.',
       relocation: null,
-      evidence: [{ kind: 'source', value: 'README.md' }],
+      // The shapes make-packet.py actually writes. An invented {kind, value}
+      // stood here and passed, because the kit hands evidence through whole
+      // and no test rendered it: both surfaces read {type, source, quote} and
+      // would have drawn nothing.
+      evidence: [{
+        type: 'probe',
+        source: 'position-probes.md, probe E',
+        quote: 'Real catch: the phrase is undefined at this point.',
+      }],
     },
     {
       id: 'extract-1',
@@ -81,8 +89,15 @@ const PACKET = JSON.stringify({
       original_text_note: null,
       decision: 'extract',
       rationale: 'The detail belongs with its specification.',
-      relocation: { path: 'docs/spec.md' },
-      evidence: [],
+      relocation: {
+        destination: 'docs/spec.md, the notes section',
+        status: 'drafted',
+        excerpt: 'The notes move whole; the source paragraph is untouched.',
+      },
+      evidence: [
+        { type: 'walk', source: 'coverage-walk.md, relocated bucket', quote: 'Destination named.' },
+        { type: 'lexical', source: 'lexical-report.md, rung 1', quote: 'p16~p18 cosine 0.29.' },
+      ],
     },
   ],
 }, null, 2);
@@ -178,8 +193,23 @@ test('view exposes one stable shape for phrase and audit provenance', () => {
     'https://github.com/mehrlander/web-tools/blob/abc123/README.md');
   assert.equal(audit.origins[0].original_status, 'verified');
   assert.equal(audit.origins[0].original_note, 'README line 10');
-  assert.deepEqual(audit.origins[0].evidence,
-    [{ kind: 'source', value: 'README.md' }]);
+  assert.deepEqual(audit.origins[0].evidence, [{
+    type: 'probe',
+    source: 'position-probes.md, probe E',
+    quote: 'Real catch: the phrase is undefined at this point.',
+  }], 'evidence passes through with the three keys the packet writes');
+
+  // Both surfaces read origin.relocation.destination and origin.relocation
+  // .status, and origin.evidence[].type/.source/.quote. A fixture that does
+  // not carry those keys cannot tell whether either surface draws anything.
+  const extract = T.search(index, { lane: 'audit-packet', action: 'extract' })[0];
+  assert.equal(extract.origins[0].relocation.destination, 'docs/spec.md, the notes section');
+  assert.equal(extract.origins[0].relocation.status, 'drafted');
+  assert.deepEqual(extract.origins[0].evidence.map(row => row.type), ['walk', 'lexical']);
+  assert.ok(extract.origins[0].evidence.every(row => row.source && row.quote),
+    'every evidence row carries the source and the quote the surfaces render');
+  assert.equal(extract.origins[0].source.pinned, false,
+    'the contents-API address follows the ref, and the surfaces must say so');
 });
 
 test('lookup keeps exact and contained results distinct and honors Python edge trimming', () => {
@@ -272,7 +302,7 @@ test('load cache never crosses authenticated clients', async () => {
   T.clear();
 });
 
-test('load shares work, preserves quiet reads, supports fresh reads, and evicts rejection', async () => {
+test('load shares work, preserves quiet reads, supports fresh reads, and holds rejection briefly', async () => {
   T.clear();
   const gh = fixtureGh();
   const [left, right] = await Promise.all([T.load(gh), T.load(gh)]);
@@ -292,12 +322,49 @@ test('load shares work, preserves quiet reads, supports fresh reads, and evicts 
   assert.ok(quiet.calls.every(call => call.options.quiet === true),
     'every optional FAB read suppresses gh-auth page takeover');
 
+  // A rejection is HELD for FAIL_MS and then dropped. The FAB re-reads on
+  // every scan, so evicting on rejection meant one failing request per
+  // selection change against a catalog that is unreachable for the whole
+  // session; holding it forever would mean a reload was the only way back.
   T.clear();
-  const retrying = fixtureGh({ repo: 'mehrlander/home-retry', failSpecOnce: true });
-  await assert.rejects(T.load(retrying), /fixture spec read failed/);
-  const recovered = await T.load(retrying);
-  assert.equal(recovered.summary.proposals, 4);
-  assert.equal(retrying.calls.length, 5,
-    'the failed spec read plus a complete retry proves rejection was evicted');
+  const held = fixtureGh({ repo: 'mehrlander/home-held', failSpecOnce: true });
+  await assert.rejects(T.load(held), /fixture spec read failed/);
+  await assert.rejects(T.load(held), /fixture spec read failed/);
+  assert.equal(held.calls.length, 1,
+    'a repeat scan inside the window reuses the rejection instead of re-reading');
+
+  const previous = T.FAIL_MS;
+  try {
+    T.FAIL_MS = 0;
+    const recovered = await T.load(held);
+    assert.equal(recovered.summary.proposals, 4,
+      'past the window the read is retried, so access granted later recovers without a reload');
+    assert.equal(held.calls.length, 5, 'and the retry reads every durable source');
+  } finally {
+    T.FAIL_MS = previous;
+  }
+  T.clear();
+});
+
+// A 404 on a private repository is missing access, a missing path, or a source
+// that has not landed on the ref being read. The surfaces must not pick one.
+test('an unreachable catalog reports the status without naming a cause', async () => {
+  T.clear();
+  const denied = fixtureGh({ repo: 'mehrlander/home-denied' });
+  denied.get = async (path) => {
+    denied.calls.push({ path, options: {} });
+    const error = new Error('GitHub Error 404: Not Found (Rate Rem: 59)');
+    error.status = 404;
+    throw error;
+  };
+  await assert.rejects(T.load(denied), (error) => {
+    assert.equal(error.status, 404);
+    assert.match(error.message, /Prior revisions are unavailable \(the catalog read returned 404\)\./);
+    assert.doesNotMatch(error.message, /access|permission|token|private/i,
+      'the message states what happened, not why');
+    assert.match(error.cause.message, /Not Found/, 'the original stays reachable for debugging');
+    return true;
+  });
+  assert.equal(denied.calls.length, 1, 'the spec read fails before the three role reads');
   T.clear();
 });

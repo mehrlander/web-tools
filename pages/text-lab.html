@@ -299,7 +299,7 @@
               ?.scrollIntoView({ block: 'start' });
           });
         } catch (e) {
-          this.proposalError = e.message || String(e);
+          this.proposalError = `${e.message || e} — ${this.REPO}@${this.DATA_REF}`;
           this.proposalState = 'error';
         }
       },
@@ -359,7 +359,10 @@
         const bits = [source.path || 'source'];
         if (origin?.record !== undefined && origin?.record !== '') bits.push(`record ${origin.record}`);
         if (context.section) bits.push(context.section);
-        if (source.sha) bits.push(source.sha.slice(0, 7));
+        // The sha names the exact blob; the href does not resolve to it, so the
+        // label says which. Showing the two together unqualified read as a
+        // permalink.
+        if (source.sha) bits.push(source.sha.slice(0, 7) + (source.pinned ? '' : ' (link follows the ref)'));
         return bits.join(' · ');
       },
 
@@ -843,9 +846,11 @@
                             <ul class="mt-1 grid gap-1 text-sm leading-6">
                               <template x-for="(item, ei) in origin.evidence" :key="ei">
                                 <li class="break-words">
+                                  <span x-show="item.type" class="font-mono text-xs opacity-40 uppercase"
+                                        x-text="item.type + ' '"></span>
                                   <span x-show="item.source" class="font-mono text-xs opacity-50"
                                         x-text="item.source + ': '"></span>
-                                  <span x-text="item.quote || item.note || ''"></span>
+                                  <span x-text="item.quote || ''"></span>
                                 </li>
                               </template>
                             </ul>

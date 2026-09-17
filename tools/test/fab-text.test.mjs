@@ -137,11 +137,18 @@ test('the read separates body prose from chrome, and counts runs', async () => {
 
   // The button and link text an app is made of is counted apart, so the word
   // row can carry a denominator instead of a bare number.
-  const mixed = d._textRead(docWith(PROSE + '<button>Save</button><a href="#">Open</a>'));
+  const mixed = d._textRead(docWith(PROSE + '<button>Save</button> <a href="#">Open</a>'));
   assert.equal(mixed.chrome, 2, 'button and link words land in chrome');
   assert.equal(mixed.words, r.words, 'and are kept out of the body count');
   assert.match(mixed.visible, /Save Open/,
     'proposal lookup keeps visible chrome even though prose figures exclude it');
+
+  // The separator is the markup's, never the reader's. Two controls written
+  // without a space between them render without one, and inventing one made
+  // the lookup claim "Web Tools" on a page that says WebTools.
+  const glued = d._textRead(docWith('<button>Save</button><a href="#">Open</a>'));
+  assert.match(glued.visible, /SaveOpen/,
+    'adjacent runs concatenate as rendered rather than gaining a space');
 
   const linked = d._textRead(docWith('<p>Review <a href="#">bill-section families</a> now.</p>'));
   assert.equal(linked.body, 'Review now.', 'linked text stays out of prose-only figures');
