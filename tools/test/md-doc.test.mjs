@@ -124,6 +124,33 @@ test('a code block scrolls as itself, without waiting for the typography plugin'
     'a pre is already a block with its own edges: no wrapper is minted for it');
 });
 
+test('a fenced block says which language it is', () => {
+  // marked has always emitted `language-sh` on the code element and nothing in
+  // the prose path ever read it, so every fence rendered as an unlabelled grey
+  // slab. A markdown file quoting markdown was the confusing case: a block of
+  // plain text with no sign it was a sample rather than the document.
+  const host = window.document.createElement('div');
+  mdDoc.render(host, DOC, { addr: ADDR });
+  const pre = host.querySelector('pre');
+  const tag = pre.querySelector('.md-fence-lang');
+  assert.ok(tag, 'the fence carries a language tag');
+  assert.equal(tag.textContent, 'sh');
+  assert.equal(pre.dataset.mdFence, 'sh');
+  assert.equal(pre.style.position, 'relative',
+    'the tag is positioned on the pre, so the block keeps its own edges');
+});
+
+test('an unlabelled fence gains no tag, and labelling twice mints one', () => {
+  const host = window.document.createElement('div');
+  mdDoc.render(host, '```\nplain\n```\n', { addr: ADDR });
+  const pre = host.querySelector('pre');
+  assert.equal(pre.querySelector('.md-fence-lang'), null,
+    'nothing to say, so nothing is said');
+  // contain() is re-entrant, as the table box test asserts for its own case.
+  mdDoc.contain(host);
+  assert.equal(host.querySelectorAll('.md-fence-lang').length, 0);
+});
+
 // ── Cut ─────────────────────────────────────────────────────────────────────
 
 test('every heading is a section, and a fenced # is not', () => {
