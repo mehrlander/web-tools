@@ -112,6 +112,14 @@ project: <optional workspace>
 
 <what the task is, why, and what "done" means>
 
+## Related
+
+- `path/to/file`: why this file matters for the task
+
+## Done when
+
+<observable condition>
+
 ## Progress log
 - <YYYY-MM-DD>: <what happened, and the intended next step>
 ```
@@ -195,7 +203,7 @@ conversation, runs the two as one pass.
 ## Refine the tracker
 
 Refinement restores scope truth by mutating task files ("groom the tracker"
-still invokes it). Read every body and log. Flag a `backlog` or `blocked` task
+still invokes it). When refining, prefer adding or appending a `## Related` block (paths, sibling task ids, premise PRs) over burying new pointers in prose; see `docs/TRACKER.md`. Read every body and log. Flag a `backlog` or `blocked` task
 that is superseded, stale, a duplicate, framed for work that has since landed
 or shifted, or oversized, and an `in-progress` task whose `session:` branch is
 merged or gone. Check status, not only prose: waiting on an event or a machine

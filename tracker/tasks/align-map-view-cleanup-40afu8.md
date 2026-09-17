@@ -89,6 +89,15 @@ Kits vs Automation. Building a Snags or Sources *tab* unless the warning pass
 shows the Registries surface is not enough; prefer rendering unread registries
 well before minting new tabs.
 
+## Related
+
+- `lib/alpineComponents/map.js`: Map implementation; names, URL keys, warning copy, tab strip
+- `docs/environment/capabilities.md`: still names a Map Injection tab (Context is the successor)
+- `pages/delivery.html`, `docs/delivery.json`: historical delivery surface behind the Injection to Context rename
+- `docs/SURFACING.md`: prose parent for the Surfacing tab family (PORTABLE.md is gone; portable travelers live in data)
+- task `stranded-titles-panel-or-drop-o6hqom`: queue after this; `map.js` is the largest remaining stranded-title carrier
+- task `registry-authored-derived-split-v3qm2x`: Layer 3 (vocabularies out of map.js) sequences after Map cleanup
+
 ## Done when
 
 - No doc or UI string promises a Map Injection tab.
@@ -104,3 +113,4 @@ well before minting new tabs.
 - 2026-09-17: Filed from a Map gap-and-alignment reading. Highest-payoff first
   cut called out as closing Injection→Context in docs and UI, then normalizing
   URL keys to current labels.
+- 2026-09-17: Added `## Related` (paths, sibling tasks, premise PRs) as a groomable context block.

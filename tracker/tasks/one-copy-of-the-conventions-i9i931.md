@@ -61,6 +61,17 @@ Unchanged by either stage: who receives the conventions, which repositories opt
 in, the payload ceiling and drop order, and every other document staying
 uninjected.
 
+## Related
+
+- `docs/SURFACING.md`: canonical Surfacing prose (docs side of the remaining dual-copy)
+- `.claude/skills/default/SURFACING.md`: skill-side copy (same blob as docs; residual after #634)
+- `.claude/skills/default/SKILL.md`: stage 1 path change (prefer plugin-root read over fetch)
+- `CLAUDE.md`: conventions home after PR #634 (`docs/CONVENTIONS.md` retired)
+- `.claude-plugin/marketplace.json`: declares skill payload source; why docs/ does not travel today
+- `.githooks/pre-commit`: regenerates / polices portable copies
+- `tools/test/portable-manifest.test.mjs`: byte-parity / manifest gate for copies that travel
+- PR #634: retired CONVENTIONS dual-store and injection hook; narrowed this task to SURFACING
+
 ## Done when
 Stage 1 is in and the skill no longer fetches on its normal path. If stage 2 is
 taken: `.claude/skills/web-tools/` holds only `SKILL.md`, the byte-parity test is
@@ -76,3 +87,4 @@ gone, `docs/PORTABLE.md`'s no-fetch rationale is rewritten, and
 - 2026-09-04: Body cut from 775 words. The reviewer-facing artifact writeup is
   dropped from here, being a snapshot of code this task quotes anyway.
 - 2026-09-17: Deep-groom pass 2: PR #634 retired `docs/CONVENTIONS.md` and the injection hook; conventions live in `CLAUDE.md`. Remaining dual-copy is SURFACING (`docs/SURFACING.md` ↔ `.claude/skills/default/SURFACING.md`, same blob). Reframed title/awaiting to that residual; stage 1 path cleanup still startable.
+- 2026-09-17: Added `## Related` (paths, sibling tasks, premise PRs) as a groomable context block.
