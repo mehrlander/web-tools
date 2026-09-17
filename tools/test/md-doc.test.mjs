@@ -134,10 +134,25 @@ test('a fenced block says which language it is', () => {
   const pre = host.querySelector('pre');
   const tag = pre.querySelector('.md-fence-lang');
   assert.ok(tag, 'the fence carries a language tag');
-  assert.equal(tag.textContent, 'sh');
+  // The LABEL spells out what the fence declared; the dataset keeps the
+  // document's own token. A reader asked what `sh` meant, which is fair of a
+  // two-letter label, and the answer must not be to rewrite what the document
+  // said it was.
+  assert.equal(tag.textContent, 'shell');
   assert.equal(pre.dataset.mdFence, 'sh');
   assert.equal(pre.style.position, 'relative',
     'the tag is positioned on the pre, so the block keeps its own edges');
+  assert.ok(pre.classList.contains('md-fence'),
+    'and the pre is marked, which is what reserves the strip the label sits in');
+});
+
+test('a language the map does not name passes through verbatim', () => {
+  // The map covers only the tokens that are not words. Anything else is the
+  // document's own name for its language and inventing a prettier one would be
+  // claiming something the document did not say.
+  const host = window.document.createElement('div');
+  mdDoc.render(host, '```rust\nfn main() {}\n```\n', { addr: ADDR });
+  assert.equal(host.querySelector('.md-fence-lang').textContent, 'rust');
 });
 
 test('an unlabelled fence gains no tag, and labelling twice mints one', () => {
