@@ -18,10 +18,17 @@
   await gh.load('kits/md-diff.js');
 
   // A documentation edit at the density documentation edits actually have:
-  // fourteen blocks, three of them touched. The kit's whole shape rests on that
+  // eighteen blocks, three of them touched. The kit's whole shape rests on that
   // assumption, so a fixture that changed every paragraph was testing a case
   // the design is not for and made the page look like a diff rather than a
   // document.
+  //
+  // TWO FENCES, at either end of the length distribution, because the line
+  // gutter is gated on length and a fixture with only short fences cannot show
+  // the gate working. The one-line command is the edited block and sits below
+  // the minimum; the fifteen-line script is untouched prose and sits above it.
+  // `?numbers=2` numbers both, which is how to see the gutter inside a change
+  // container rather than only in the body.
   const BEFORE = `# Reading fund 600
 
 Fund 600 is reported as one number and read as two. The appropriated lane
@@ -64,6 +71,25 @@ python3 tools/allotment.py --fund 600 --lane appropriated
 
 Its output is one row per month per lane. Joining across lanes is the caller's
 job and the tool refuses to guess at it.
+
+A run that has to be reproduced later is a script rather than a command, and
+this is the whole of it:
+
+\`\`\`sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIENNIUM="\${BIENNIUM:-2027-29}"
+OUT="out/fund-600"
+mkdir -p "$OUT"
+
+for lane in appropriated non-appropriated; do
+  python3 tools/allotment.py --fund 600 --lane "$lane" \\
+    --biennium "$BIENNIUM" > "$OUT/$lane.csv"
+done
+
+wc -l "$OUT"/*.csv
+\`\`\`
 
 ## What is still unsettled
 
@@ -114,6 +140,25 @@ python3 tools/allotment.py --fund 600 --lane appropriated --biennium 2027-29
 Its output is one row per month per lane. Joining across lanes is the caller's
 job and the tool refuses to guess at it.
 
+A run that has to be reproduced later is a script rather than a command, and
+this is the whole of it:
+
+\`\`\`sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIENNIUM="\${BIENNIUM:-2027-29}"
+OUT="out/fund-600"
+mkdir -p "$OUT"
+
+for lane in appropriated non-appropriated; do
+  python3 tools/allotment.py --fund 600 --lane "$lane" \\
+    --biennium "$BIENNIUM" > "$OUT/$lane.csv"
+done
+
+wc -l "$OUT"/*.csv
+\`\`\`
+
 ## What is still unsettled
 
 Whether the 466 transfers belong in this picture at all. They move between two
@@ -127,8 +172,23 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
   // the handle's `next`, which is why the kit draws no arrows of its own. `readout: false` because this page
   // draws the position itself, as a badge on its own jump arrow: two readouts
   // side by side is one too many.
+  // THE GUTTER IS A RELOAD, NOT A LIVE CONTROL, and deliberately: numbering is
+  // a property of the document being read, like its type size, so the demo
+  // reads it off the URL rather than putting a fourth switch in the chrome. The
+  // param doubles as the threshold, so `?numbers=2` shows every fence numbered
+  // and `?numbers=1` is the honest worst case.
+  const q = new URLSearchParams(location.search);
+  const numbers = q.has('numbers') ? (Number(q.get('numbers')) || true) : null;
+  const num = document.getElementById('numbers');
+  num.classList.toggle('btn-active', !!numbers);
+  num.addEventListener('click', () => {
+    const next = new URLSearchParams(location.search);
+    if (numbers) next.delete('numbers'); else next.set('numbers', '8');
+    location.search = next.toString();
+  });
+
   const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,
-    { controls: document.getElementById('bar'), readout: false });
+    { controls: document.getElementById('bar'), readout: false, numbers });
   document.getElementById('jump').addEventListener('click', out.next);
   const count = document.getElementById('count');
   out.onMove(({ at, count: n }) => {
@@ -147,7 +207,13 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
                px-4 sm:px-6 py-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
   <h1 class="text-lg font-semibold">md-diff</h1>
   <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
-  <span id="bar" class="flex items-center gap-2 ml-auto"></span>
+  <span class="flex items-center gap-2 ml-auto">
+    <button id="numbers" class="btn btn-xs btn-circle btn-ghost" title="Line numbers on long fences"
+            aria-label="Line numbers on long fences">
+      <i class="ph ph-list-numbers text-sm"></i>
+    </button>
+    <span id="bar" class="flex items-center gap-2"></span>
+  </span>
   <!-- The jump is an arrow with the count hung off it, rather than a labelled
        button beside a second readout. daisyUI's indicator is what attaches one
        to the other, so the pair moves as one thing. -->

@@ -166,6 +166,105 @@ test('an unlabelled fence gains no tag, and labelling twice mints one', () => {
   assert.equal(host.querySelectorAll('.md-fence-lang').length, 0);
 });
 
+test('a fence carrying diff marks gives up its language class, so the highlighter leaves it alone', () => {
+  // Prism's highlightElement assigns element.innerHTML, so it replaces
+  // everything inside a <code> with its own token spans and any <ins>/<del>
+  // kits/md-diff.js laid over that fence goes with it. Measured 2026-09-17 in
+  // the browser: three marks on the page and zero inside the fence, in the one
+  // block whose edit was the point. jsdom loads no Prism, so what is pinned
+  // here is the CLASS, which is the whole mechanism: Prism's selector is
+  // `code[class*="language-"], code[class*="lang-"]` and both alternatives have
+  // to miss. A first attempt renamed `language-sh` to `md-marked-lang-sh`,
+  // which still matched the second one.
+  const host = window.document.createElement('div');
+  mdDoc.render(host, '```sh\nls -l\n```\n', { addr: ADDR });
+  const code = host.querySelector('pre > code');
+  assert.match(code.className, /\blanguage-sh\b/, 'an unmarked fence keeps its class');
+
+  const marked2 = window.document.createElement('div');
+  marked2.innerHTML = '<pre><code class="language-sh">ls <ins>-l</ins></code></pre>';
+  mdDoc.contain(marked2);
+  const c2 = marked2.querySelector('pre > code');
+  assert.equal(/\blang(uage)?-/.test(c2.className), false,
+    'neither of Prism\'s two class selectors may match a marked block');
+  assert.equal(c2.dataset.mdMarkedLang, 'sh', 'the language it declared is kept, off the class');
+  assert.equal(c2.querySelectorAll('ins').length, 1, 'and the mark is still there');
+});
+
+// ── Numbered lines ──────────────────────────────────────────────────────────
+// What jsdom can answer is the STRUCTURE: how many line elements, holding what
+// text, and whether a token that spans a newline is re-opened on the next line.
+// Register under wrapping is layout and is measured in the browser
+// (tools/render/scenarios/md-diff-line-numbers.mjs).
+
+const SCRIPT = ['```sh', '#!/usr/bin/env bash', 'set -e', '', 'echo one', 'echo two',
+                'echo three', 'echo four', 'echo five', 'echo six', '```', ''].join('\n');
+
+test('no gutter unless the caller asks for one', () => {
+  const host = window.document.createElement('div');
+  mdDoc.render(host, SCRIPT, { addr: ADDR });
+  assert.equal(host.querySelectorAll('.md-line').length, 0);
+  assert.equal(host.querySelectorAll('pre.md-numbered').length, 0);
+});
+
+test('the gutter is gated on length, and the minimum is the caller\'s to set', () => {
+  // Measured across this repo's docs/ and .claude/skills/: 107 fences, median 3
+  // lines, 27% of eight lines or more. A number beside a one-line shell command
+  // is a column of nothing in the narrowest column on the page.
+  const short = window.document.createElement('div');
+  mdDoc.render(short, '```sh\nls -l\n```\n', { addr: ADDR, numbers: true });
+  assert.equal(short.querySelectorAll('.md-line').length, 0, 'one line is below any useful minimum');
+
+  const host = window.document.createElement('div');
+  mdDoc.render(host, SCRIPT, { addr: ADDR, numbers: true });
+  assert.equal(host.querySelectorAll('.md-line').length, 9, 'nine lines clears the default minimum of eight');
+
+  const low = window.document.createElement('div');
+  mdDoc.render(low, '```sh\nls\ncd\n```\n', { addr: ADDR, numbers: 2 });
+  assert.equal(low.querySelectorAll('.md-line').length, 2, 'a number sets the minimum');
+});
+
+test('every source line gets exactly one element, blanks included, and the trailing newline is not one', () => {
+  const host = window.document.createElement('div');
+  mdDoc.render(host, SCRIPT, { addr: ADDR, numbers: true });
+  const lines = [...host.querySelectorAll('.md-line')];
+  assert.deepEqual(lines.map((l) => l.textContent),
+    ['#!/usr/bin/env bash', 'set -e', '', 'echo one', 'echo two', 'echo three',
+     'echo four', 'echo five', 'echo six']);
+  // The count is what the numbers are drawn from, so it has to agree with the
+  // elements rather than with what the splitter thought it did.
+  const code = host.querySelector('pre > code');
+  assert.equal(code.dataset.mdLines, '9');
+  assert.equal(code.parentElement.style.getPropertyValue('--md-gutter'), '1ch',
+    'the gutter is sized to the widest number it has to hold');
+});
+
+test('a token spanning a newline is re-opened on the next line', () => {
+  // The case that makes this more than a string split: a highlighted block
+  // comment, heredoc or template literal is ONE element holding a newline, and
+  // a splitter that only cut text nodes would leave the second half inside the
+  // first line's element and lose a line.
+  const host = window.document.createElement('div');
+  host.innerHTML = '<pre><code class="language-js">'
+    + '<span class="token comment">/* one\ntwo */</span>\nlet a\nlet b\n</code></pre>';
+  mdDoc.contain(host, { numbers: 2 });
+  const lines = [...host.querySelectorAll('.md-line')];
+  assert.deepEqual(lines.map((l) => l.textContent), ['/* one', 'two */', 'let a', 'let b']);
+  assert.equal(lines[0].querySelector('.token.comment').textContent, '/* one');
+  assert.equal(lines[1].querySelector('.token.comment').textContent, 'two */',
+    'the second half is still a comment, in its own element');
+});
+
+test('numbering twice is not doubling, and a three-digit block pays for three digits', () => {
+  const host = window.document.createElement('div');
+  const body = ['```sh'].concat(Array.from({ length: 120 }, (_, i) => `echo ${i}`), ['```', '']).join('\n');
+  mdDoc.render(host, body, { addr: ADDR, numbers: true });
+  assert.equal(host.querySelectorAll('.md-line').length, 120);
+  assert.equal(host.querySelector('pre').style.getPropertyValue('--md-gutter'), '3ch');
+  mdDoc.contain(host, { numbers: true });
+  assert.equal(host.querySelectorAll('.md-line').length, 120, 'contain() stays re-entrant');
+});
+
 // ── Cut ─────────────────────────────────────────────────────────────────────
 
 test('every heading is a section, and a fenced # is not', () => {
