@@ -136,13 +136,14 @@ test('a turn outside the window is dropped, never clamped to the edge', () => {
   assert.ok(!ticks.includes(0), 'nothing piled on the origin');
   near(ticks[0], (1 / 24) * 100, 'the first kept turn is 23 hours back');
   // It is not silent either, and the saying moved from the rail to the MARK.
-  // A note on the rail answered "what is this mark" with a paragraph about the
-  // row; the mark's own note numbers the turn within the session, so the first
-  // drawn mark reading "turn 3 of 4" states the clipping by being an ordinal,
-  // and says it in a sentence as well rather than leaving it to be inferred.
+  // The ordinal is the turn's place in the SESSION, so the first drawn mark
+  // reads "Turn 3 of 4" and states the clipping by being an ordinal.
   const first = data.railTurnNote(r, data.railTurns(r)[0]);
-  assert.match(first.note, /^Turn 3 of 4/, 'the third turn of the session, not the first drawn');
-  assert.match(first.note, /2 earlier turns fall before this window/);
+  assert.match(first.when, /^Turn 3 of 4 /, 'the third turn of the session, not the first drawn');
+  // And the clipping is a parenthetical, not a sentence. "33 of them fell
+  // before this window and are not drawn" was the whole body on a clipped row:
+  // it spent the note on the one thing the reader had not asked about.
+  assert.match(first.note, /\(earlier turns out of range\)$/);
 });
 
 test('a session that began before the window runs off the left edge', () => {
@@ -199,15 +200,15 @@ test('a mark counts the turns the rail drew, not the counter beside it', () => {
   const r = { ...row(6, 1, [0, 10, 20]), exchanges: 99 };
   const turns = data.railTurns(r);
   assert.equal(turns.length, 3, 'three beats, three marks');
-  assert.match(data.railTurnNote(r, turns[2]).note, /^Turn 3 of 3\b/);
+  assert.match(data.railTurnNote(r, turns[2]).when, /^Turn 3 of 3 /);
 });
 
 test('a rail with every turn inside the window says nothing about clipping', () => {
   scope('day');
   const r = row(6, 1, [0, 10, 20]);
   const n = data.railTurnNote(r, data.railTurns(r)[0]);
-  assert.equal(n.note, 'Turn 1 of 3 in this session.', 'the note is the turn, and nothing else');
-  assert.ok(n.when, 'and the lead line is when it happened');
+  assert.match(n.when, /^Turn 1 of 3 · /, 'the lead orients: which turn, and when');
+  assert.doesNotMatch(n.note, /out of range/, 'nothing clipped, nothing said about clipping');
   // And the rail itself carries no note at all, so hovering it answers with the
   // mark under the pointer rather than with a summary of the row.
   assert.equal(data.railStaleNote(r), '', 'nothing on the rail to fire');
@@ -220,8 +221,8 @@ test('a drawn turn knows its place in the session, not in what survived the wind
   const r = row(40, 1, [0, 60, 120, 180, 1020, 1080]);
   const turns = plain(data.railTurns(r));
   assert.deepEqual(turns.map((t) => t.i), [4, 5], 'the indices are the session\'s own');
-  assert.match(data.railTurnNote(r, turns[0]).note, /^Turn 5 of 6/);
-  assert.match(data.railTurnNote(r, turns[1]).note, /^Turn 6 of 6/);
+  assert.match(data.railTurnNote(r, turns[0]).when, /^Turn 5 of 6 /);
+  assert.match(data.railTurnNote(r, turns[1]).when, /^Turn 6 of 6 /);
 });
 
 // ── THE LANE'S SUMMED STRIP ───────────────────────────────────────────────
@@ -405,6 +406,7 @@ test('hovering a row rail lights the column and names the turn under the pointer
   listRows('day', [liveRow(12, 2, [0, 360])]);
   const row = liveRow(12, 2, [0, 360]);
   const ticks = plain(data.sessionRailTicks(row));
+  const turns = plain(data.railTurns(row));
   data.railHover = null;
 
   let ev = overRail(ticks[1]);
@@ -413,15 +415,20 @@ test('hovering a row rail lights the column and names the turn under the pointer
     'the hover settles on the column the nearest tick is in');
   // And the note is about THAT TURN, parked at it, which is the whole point of
   // the cursor: a note anchored to the rail would open over the middle of it.
-  assert.equal(cursorOf(ev).getAttribute('data-note'), 'Turn 2 of 2 in this session.');
+  assert.equal(cursorOf(ev).getAttribute('data-note-title'), 'Turn 2 of 2 · ' + data.railWhen(turns[1].at));
   assert.equal(cursorOf(ev).style.left, ticks[1] + '%', 'and sits on the mark it describes');
+  // The body is the turn's own opening where the row carries one. These rows
+  // are two ends and a beat list with no transcript behind them, which is the
+  // lean shape the cache stores, so the note says so rather than inventing a
+  // line. railTurnHead's own tests cover the join that finds the text.
+  assert.match(cursorOf(ev).getAttribute('data-note'), /^No text for this turn/);
 
   // Nearest, not exact: a pointer between two ticks takes the closer one, and
   // the note follows it rather than staying on the last one named.
   ev = overRail((ticks[0] + ticks[1]) / 2 - 1);
   data.rowRailTrack(ev, row);
   assert.equal(data.railHover.k, data.railBin(ticks[0]), 'just left of the midpoint takes the left tick');
-  assert.equal(cursorOf(ev).getAttribute('data-note'), 'Turn 1 of 2 in this session.');
+  assert.equal(cursorOf(ev).getAttribute('data-note-title'), 'Turn 1 of 2 · ' + data.railWhen(turns[0].at));
 
   // And the strip's own handler lands on the same column from the same x.
   data.railHover = null;
@@ -490,4 +497,86 @@ test('the hot column is an attribute on the few marks, not a stylesheet edit', (
   assert.equal(sheet.textContent, before, 'and its text does not move with the pointer');
   assert.match(before, /\[data-tick\]\[data-hot\]/, 'two selectors, so it outranks the utility class');
   host.remove();
+});
+
+// ── THE HEAD UNDER A MARK, and the join that finds it ─────────────────────
+//
+// The text is the row's own: replyTurns is the transcript the exchange card
+// reads, and its user entries are what a mark quotes. Nothing new is fetched
+// or stored for it. What IS new is the join from a beat to one of those
+// entries, and the reason it is a clock join rather than an index one:
+// fullTurns drops the first prompt and collapses a RUN of attachments into one
+// entry, while beats counts every prompt. So the nth user entry is not the nth
+// beat on any session where somebody dropped two screenshots into one message,
+// which across the store is 142 sessions.
+
+// A row the cache would leave with a transcript: two ends, beats, and the
+// headed turns. `ts` is UTC HH:MM:SS, which is what priorTurns keeps, and the
+// beats are the matching minute offsets.
+function spoken(beats, turns, ask) {
+  const t0 = Date.parse(at(12));                 // started 12 hours ago
+  const clock = (m) => new Date(t0 + m * 60000).toISOString().slice(11, 19);
+  return {
+    id: 'spoken', started: at(12), ended: at(2), beats,
+    ask: ask || '', askAt: ask ? clock(beats[0]) : '',
+    turns: turns.map(([k, md, m]) => [k, md, clock(m)]),
+  };
+}
+
+test('a mark quotes the turn it sits on', () => {
+  scope('day');
+  const r = spoken([0, 30, 90], [['u', 'Second question', 30],
+                                 ['a', 'An answer nobody asked for', 60],
+                                 ['u', 'Third question', 90]], 'Opening ask');
+  const turns = data.railTurns(r);
+  assert.equal(data.railTurnNote(r, turns[0]).note, 'Opening ask', 'the ask is turn one');
+  assert.equal(data.railTurnNote(r, turns[1]).note, 'Second question');
+  assert.equal(data.railTurnNote(r, turns[2]).note, 'Third question',
+    'and the assistant turn between them is not a mark and not quoted');
+});
+
+test('an attachment run does not shift what the later marks quote', () => {
+  scope('day');
+  // Three screenshots in one message: three beats, ONE entry in the row's
+  // turns. An index join would hand the last mark the image placeholder and
+  // every mark after it the turn before. The clock join holds.
+  const r = spoken([0, 30, 31, 32, 90],
+                   [['u', '[3 images]', 30], ['u', 'Third question', 90]], 'Opening ask');
+  const turns = data.railTurns(r);
+  assert.equal(turns.length, 5, 'five prompts, five marks');
+  assert.equal(data.railTurnNote(r, turns[0]).note, 'Opening ask');
+  assert.equal(data.railTurnNote(r, turns[4]).note, 'Third question',
+    'the last mark still quotes the last turn, four entries out of step');
+});
+
+test('an ambiguous minute declines rather than guessing', () => {
+  scope('day');
+  // Two turns in the same minute: nothing on the row can say which mark is
+  // which, and a confident line of the wrong turn is worse than none.
+  const r = spoken([0, 30, 30], [['u', 'One thing', 30], ['u', 'And another', 30]], 'Opening ask');
+  const turns = data.railTurns(r);
+  assert.match(data.railTurnNote(r, turns[1]).note, /^No text for this turn/);
+  // The first mark is still unambiguous, so it still speaks.
+  assert.equal(data.railTurnNote(r, turns[0]).note, 'Opening ask');
+});
+
+test('a quoted turn is flattened and cut to fit a note', () => {
+  scope('day');
+  const md = '* [2025-27 Biennial Budget Instructions](https://ofm.wa.gov/x)\n'
+           + '* [Budget Development Manual](https://ofm.wa.gov/y)\n\n'
+           + 'Read these and tell me which ones the submittal needs to cite.';
+  const r = spoken([0], [], md);
+  const got = data.railTurnNote(r, data.railTurns(r)[0]).note;
+  assert.doesNotMatch(got, /https:|\]\(|^\*/, 'no markup survives into a note that cannot render it');
+  assert.match(got, /2025-27 Biennial Budget Instructions · Budget Development Manual/,
+    'a list keeps its boundaries as the separator the bullets were');
+  // The note kit caps a note at six lines and warns when one overflows. The
+  // cache heads a user turn at 240, which is a card's budget; this is cut again.
+  assert.ok(got.length <= 160, `cut to a note's width: ${got.length}`);
+});
+
+test('a row with no transcript says so rather than inventing a line', () => {
+  scope('day');
+  const r = row(12, 2, [0, 60]);                  // beats, no turns, no ask
+  assert.match(data.railTurnNote(r, data.railTurns(r)[0]).note, /^No text for this turn/);
 });

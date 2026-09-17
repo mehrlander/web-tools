@@ -401,7 +401,23 @@ export default async function (page) {
     // draws the same strip and two shots a week apart are comparable. Clustered
     // rather than evenly spaced, because an even rail is the one shape real
     // turn times never have and the marks must not invent it.
+    // FROM THE ROW'S OWN CLOCKS where it has them, which is the only version
+    // that is internally consistent. The first draft spread `exchanges` beats
+    // across `mins` pseudo-randomly, which drew a believable rail and made the
+    // row lie about itself: ten marks over a transcript carrying four user
+    // turns. A mark's note joins a beat to a turn ON THE CLOCK, so a fixture
+    // whose beats answer to nothing could only ever shoot the decline.
+    //
+    // A row with no transcript keeps the spread, deliberately: that is the
+    // other case the note has to handle, a mark whose turn was never cached,
+    // and the fixture should carry one.
     const beatsOf = (r) => {
+      const t0 = Date.parse(r.started || '');
+      const day = String(r.started || '').slice(0, 10);
+      const at = (clock) => Math.round((Date.parse(day + 'T' + clock + 'Z') - t0) / 60000);
+      const said = [r.askAt, ...(r.turns || []).filter(([k]) => k === 'u').map(([, , ts]) => ts)];
+      const real = said.filter(Boolean).map(at).filter(n => Number.isFinite(n) && n >= 0);
+      if (real.length) return [...new Set(real)].sort((a, b) => a - b);
       let s = 7;
       for (const c of r.id) s = (s * 31 + c.charCodeAt(0)) >>> 0;
       const n = Math.max(1, r.exchanges || 1), mins = r.mins || 1, out = [];
@@ -427,9 +443,30 @@ export default async function (page) {
       const t = Date.parse(iso || '');
       return Number.isFinite(t) ? new Date(t + shift).toISOString() : iso;
     };
+    // THE CLOCK STRINGS MOVE WITH THE TIMESTAMPS, which the first draft of this
+    // knob did not do and which made the fixture disagree with itself: `started`
+    // landed in September while every turn still said 14:19, so a mark's note,
+    // which joins a beat to a turn on the clock, could never match one. Same
+    // offset, applied to a clock through the day it belonged to.
+    const slideClock = (clock, day) => {
+      const t = Date.parse(day + 'T' + clock + 'Z');
+      return Number.isFinite(t) ? new Date(t + shift).toISOString().slice(11, 19) : clock;
+    };
+    const slideThird = (rows, day) => (rows || []).map((e) => {
+      const c = [...e];
+      if (c[2]) c[2] = slideClock(c[2], day);
+      return c;
+    });
     st.sessionRows_ = SESSIONS.map(r => {
       const { behindV, ...row } = r;
       if (shift){
+        // The clocks first, off the day they were written on, then the two
+        // timestamps that day is read from.
+        const day = String(row.started || '').slice(0, 10);
+        if (row.askAt) row.askAt = slideClock(row.askAt, day);
+        if (row.replyAt) row.replyAt = slideClock(row.replyAt, day);
+        if (Array.isArray(row.turns)) row.turns = slideThird(row.turns, day);
+        if (Array.isArray(row.states)) row.states = slideThird(row.states, day);
         row.started = slide(row.started);
         row.ended = slide(row.ended);
         row.day = (row.started || '').slice(0, 10);
