@@ -84,6 +84,19 @@ Work section above had already answered it: "an omitted value means the per-widt
 default", which is expression by omission. Nothing else in the task argues for a
 third value, so that half is settled and this note no longer asks it.
 
+**Recommended: `?header=0|1`,** on three grounds, checked 2026-09-17.
+
+- **Repo precedent runs eight to one.** The boolean-ish parameters already in
+  use are `recursive=1`, `page=1`, `edit=1` and `a=1`; only `report=off` uses a
+  word.
+- **It matches `?sidebar=`, which is the point of splitting the enum.** The two
+  parameters are being introduced together to replace one preset, so a reader
+  who learns one should have learned the other.
+- **`off` cannot express the third state.** Both parameters want absent, on and
+  off: absent is the responsive or per-width default, and the other two are
+  explicit. `off` gives two states with no natural partner, so `?header=` could
+  force-hide and never force-show.
+
 ## Progress log
 - 2026-08-15: Filed from PR #425, where the analysis was done. Origin was a
   term-squatting problem in that PR's own writing (`live-term-wider-referent` in
@@ -99,3 +112,7 @@ third value, so that half is settled and this note no longer asks it.
   answers it in its first bullet, so Notes and `awaiting:` were asking a question
   the body had already settled. Narrowed both to the `?header=` spelling, which
   is the only thing left here that a person has to pick.
+- 2026-09-17: Recommended `?header=0|1` over `?header=off`, on repo precedent
+  (eight `=1` parameters against one `=off`), symmetry with `?sidebar=`, and the
+  third state: absent has to mean the default, so a two-valued spelling cannot
+  force-show.
