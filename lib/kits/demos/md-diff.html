@@ -122,7 +122,12 @@ why they appear on the same schedule.
 
 Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
 
-  const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER);
+  // The controls go in THIS page's header, which is sticky, so the layout
+  // toggle and the position stay put through a scroll. The jump is this page's
+  // own button on the handle's `next`, which is why the kit no longer draws
+  // arrows of its own: two jump mechanisms on one page is one too many.
+  const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,
+    { controls: document.getElementById('bar') });
   document.getElementById('jump').addEventListener('click', out.next);
   document.body.dataset.ready = '1';
 </script>
@@ -136,13 +141,11 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
                px-4 sm:px-6 py-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
   <h1 class="text-lg font-semibold">md-diff</h1>
   <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
-  <span class="text-[12px] text-base-content/50">swipe a change · ← → jumps</span>
-  <button id="jump" class="btn btn-xs ml-auto">Next change</button>
+  <span id="bar" class="flex items-center gap-2 ml-auto"></span>
+  <button id="jump" class="btn btn-xs">Next change</button>
 </header>
 
-<!-- --md-diff-top is the kit's one host contract: how far down this page's
-     own top is, so the jump strip sticks below the header instead of under it. -->
-<main class="px-4 py-4 sm:px-6 grid grid-cols-[minmax(0,1fr)]" style="--md-diff-top:2.75rem">
+<main class="px-4 py-4 sm:px-6 grid grid-cols-[minmax(0,1fr)]">
   <div id="doc"></div>
 </main>
 
