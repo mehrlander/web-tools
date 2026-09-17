@@ -3,7 +3,7 @@ id: align-map-view-cleanup-40afu8
 title: Align the Map view's names, addresses, and warning vocabulary
 status: backlog
 opened: 2026-09-17
-size: M
+size: L
 project: map
 ---
 # Align the Map view's names, addresses, and warning vocabulary
@@ -13,8 +13,16 @@ and registries found the tab strip itself is sound. What drifts is the language
 around it: old addresses, unfinished renames, and the same "unread / unowned /
 blank" finding named six different ways.
 
-One task, one outcome: a reader of Map (or of a doc that points at Map) meets
-one vocabulary and lands where the label says.
+The outcome: a reader of Map, or of a doc pointing at Map, meets one vocabulary
+and lands where the label says.
+
+**Three phases, and the first is startable alone.** Scope items 1 and 2 are the
+addressing half, 3 to 5 are the vocabulary half, and 6 is the leftovers. Item 1
+is the smallest and the most certain: `docs/environment/capabilities.md:63`
+still names a "Map view's Injection tab" that does not exist, which is a
+checkable defect rather than a design question. Start there. If the vocabulary
+half stalls on a decision, carve items 1 and 2 off as their own task and leave
+the rest here, rather than letting a settled rename wait on an unsettled one.
 
 ## Scope
 
@@ -113,4 +121,12 @@ well before minting new tabs.
 - 2026-09-17: Filed from a Map gap-and-alignment reading. Highest-payoff first
   cut called out as closing Injection→Context in docs and UI, then normalizing
   URL keys to current labels.
-- 2026-09-17: Added `## Related` (paths, sibling tasks, premise PRs) as a groomable context block.
+- 2026-09-17: Added `## Related`.
+- 2026-09-17: Resized M to L on a read of the scope against `TRACKER.md`'s
+  calibration: item 2 (primary URL keys plus alias redirects across five tabs)
+  and item 5 (one warning grammar over six tabs drawing on different registries)
+  are each a full session on their own. Phased the body and named the carve
+  point. Three claims spot-checked and all three hold:
+  `docs/environment/capabilities.md:63` names the Injection tab,
+  `lib/alpineComponents/map.js:3265` carries `key: 'set', context: 'Portable'`,
+  and `map.js:9` cites a `docs/PORTABLE.md` that does not exist.

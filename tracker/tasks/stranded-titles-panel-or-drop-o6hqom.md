@@ -82,6 +82,8 @@ not the total.
   for working the list a component at a time rather than waiting on it. The
   four-component table is the 2026-08-19 survey and is not restamped; rerun the
   command for current per-component figures.
-- 2026-09-17: Queue after Map cleanup (`align-map-view-cleanup-40afu8`); start with `map.js` as the largest untouched carrier.
-- 2026-09-17: Deep-groom pass 2: PR #610 cut stranded titles ~128→~25 (notes+cards). Body counts and the four-component table are pre-#610 — re-run `npm run stranded-titles` before deciding. Size M→S. Queue after Map cleanup; start with `map.js`.
-- 2026-09-17: Added `## Related` (paths, sibling tasks, premise PRs) as a groomable context block.
+- 2026-09-17: PR #610 cut stranded titles from about 128 to about 25 (notes and
+  cards). The body counts and the four-component table are pre-#610, so re-run
+  `npm run stranded-titles` before deciding anything. Size M to S. Queue after
+  `align-map-view-cleanup-40afu8` and start with `map.js`, the largest untouched
+  carrier. Added `## Related`.
