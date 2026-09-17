@@ -75,7 +75,7 @@ why they appear on the same schedule.`;
 
 Fund 600 is reported as one number and read as two. The appropriated lane
 carries recordkeeping and the agency's own operations, and it is the only lane a
-budget bill moves.
+bill moves.
 
 The non-appropriated lane carries what the plans pay for directly. It reports on
 the same fund number and never nets into the appropriated total.
@@ -123,11 +123,8 @@ why they appear on the same schedule.
 Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
 
   // The controls go in THIS page's header, which is sticky, so the layout
-  // toggle and the position stay put through a scroll. The jump is this page's
-  // own button on the handle's `next`, which is why the kit no longer draws
-  // arrows of its own: two jump mechanisms on one page is one too many.
-  // The controls go in THIS page's header, which is sticky, so the layout
-  // toggle stays put through a scroll. `readout: false` because this page
+  // toggle stays put through a scroll. The jump is this page's own button on
+  // the handle's `next`, which is why the kit draws no arrows of its own. `readout: false` because this page
   // draws the position itself, as a badge on its own jump arrow: two readouts
   // side by side is one too many.
   const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,

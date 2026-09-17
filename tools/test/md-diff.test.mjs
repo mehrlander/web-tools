@@ -222,6 +222,40 @@ test('taking the removals back out returns the new document exactly', () => {
   }
 });
 
+// ── The side-by-side halves ─────────────────────────────────────────────────
+// One run list, two coordinate systems. The old column indexes the OLD text
+// and the new column the new, so a mode that reads the wrong one lands its
+// marks on whatever happens to sit at those offsets, which is the failure a
+// screenshot would show as "close enough".
+
+test('the old column marks what left, in the old text', () => {
+  const oldMd = 'The fund is reported as one large number.';
+  const newMd = 'The fund is reported as one number.';
+  const box = renderBox(oldMd);
+  mdDiff.mark(box, mdDiff.runs(box.textContent, renderBox(newMd).textContent), 'old');
+  const del = [...box.querySelectorAll('del')];
+  assert.equal(del.length, 1);
+  assert.equal(del[0].textContent.trim(), 'large');
+  assert.equal(box.querySelectorAll('ins').length, 0, 'nothing arrived in the old text');
+  assert.equal(box.textContent, renderBox(oldMd).textContent,
+    'marking the old column adds no text to it');
+});
+
+test('the new column marks what arrived, and leaves the removals out', () => {
+  // The difference from the inline reading: inline PUTS the removed words back
+  // so the reader sees the swap in place, and the new column must not, because
+  // the old column is already showing them.
+  const oldMd = 'The fund is reported as one large number.';
+  const newMd = 'The fund is reported as one small number.';
+  const box = markPair(oldMd, newMd);
+  assert.ok(box.querySelector('del'), 'the inline reading carries the removal');
+
+  const side = renderBox(newMd);
+  mdDiff.mark(side, mdDiff.runs(renderBox(oldMd).textContent, side.textContent), 'new');
+  assert.equal(side.querySelectorAll('del').length, 0, 'the new column does not');
+  assert.equal(side.querySelector('ins').textContent.trim(), 'small');
+});
+
 test('marking a block with no change leaves the tree alone', () => {
   const md = 'Nothing moved here at all.';
   const box = renderBox(md);
