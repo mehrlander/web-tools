@@ -39,6 +39,17 @@ priority rather than a defect list.
 Do it a component at a time; they decouple cleanly and nothing here needs to
 land together.
 
+## Related
+
+- `scripts/stranded-titles.py`: `npm run stranded-titles`; re-run before deciding (body table is pre-#610)
+- `lib/alpineComponents/map.js`: start here after Map cleanup; largest untouched carrier at filing
+- `lib/alpineComponents/estate.js`: worked precedent for building a panel from a stranded title
+- `lib/alpineComponents/state-view.js`, `lib/alpineComponents/fab.js`: other concentrated carriers in the filing table
+- `docs/HTML-STYLE.md`: house-style rule 7 (panel behaviors a built title owes); PR #543 carried it into daisy-alpine
+- task `align-map-view-cleanup-40afu8`: soft sequence: finish Map alignment before working map.js titles
+- PR #610: cut stranded titles ~128 to ~25 (notes+cards); restamp counts before acting
+- PR #447: original survey and worst-case fixes on branch/session rows
+
 ## Done when
 
 Every stranded title in those four components has been decided rather than
@@ -73,3 +84,4 @@ not the total.
   command for current per-component figures.
 - 2026-09-17: Queue after Map cleanup (`align-map-view-cleanup-40afu8`); start with `map.js` as the largest untouched carrier.
 - 2026-09-17: Deep-groom pass 2: PR #610 cut stranded titles ~128→~25 (notes+cards). Body counts and the four-component table are pre-#610 — re-run `npm run stranded-titles` before deciding. Size M→S. Queue after Map cleanup; start with `map.js`.
+- 2026-09-17: Added `## Related` (paths, sibling tasks, premise PRs) as a groomable context block.
