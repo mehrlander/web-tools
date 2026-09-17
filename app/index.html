@@ -5100,10 +5100,41 @@ function app(){ return {
     // Assigning the address already showing is a silent no-op, so make it mean
     // "load this again" rather than nothing.
     if (url === location.href) { location.reload(); return; }
-    try {
-      if (window.top && window.top !== window.self) { window.top.location.href = url; return; }
-    } catch (e) { /* cross-origin top: fall through to this document */ }
+    if (this._leaveFrame(url)) return;
     location.href = url;
+  },
+
+  // ── Leaving a frame, which this app cannot do by writing window.top ───────
+  //
+  // Inside a #gh= toss this app runs in an iframe whose sandbox grants
+  // allow-scripts, allow-same-origin, allow-popups, allow-forms, allow-modals
+  // and allow-downloads, and deliberately NOT allow-top-navigation. So
+  // `window.top.location.href = url` is refused by the browser, and the
+  // fallback beside it navigates THIS FRAME instead: the app reloads at main
+  // inside the preview, the address bar never moves, and the reader is still
+  // where they started. Reported from a phone as "it reloads but it doesn't
+  // navigate", which is that failure exactly.
+  //
+  // allow-same-origin is the way out. The subject may CALL into the shell, and
+  // the shell is not sandboxed, so pages/toss-render.html exposes __tossLeave
+  // and performs the navigation in its own document. window.top is still tried
+  // after it, for a framer that is not our renderer and may permit the write.
+  //
+  // Returns whether the trip was handed off, so the caller knows not to
+  // navigate its own frame as well.
+  _leaveFrame(url){
+    let top = null;
+    try { top = window.top && window.top !== window.self ? window.top : null; } catch (e) { return false; }
+    if (!top) return false;
+    try { if (typeof top.__tossLeave === 'function') { top.__tossLeave(url); return true; } } catch (e) {}
+    try { top.location.href = url; return true; } catch (e) {}
+    // A framer that is neither ours nor permissive. A NEW TAB rather than this
+    // frame: allow-popups is granted where allow-top-navigation is not, and
+    // reaching home in a second tab is a real outcome, while reloading inside
+    // the preview is the confusing half-success this method exists to stop.
+    // Returns true either way, so the caller never falls back to the frame.
+    try { window.open(url, '_blank', 'noopener'); } catch (e) {}
+    return true;
   },
   goMarkDashboard(){
     this.closeMarkMenu();

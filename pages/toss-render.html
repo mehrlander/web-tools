@@ -1109,6 +1109,27 @@ document.addEventListener('click',function(e){
   // step.
   window.__tossRoute = (key, raw) => showRoute(key, String(raw || '').trim());
 
+  // LEAVE ENTIRELY, which the subject cannot do for itself. The address-mode
+  // sandbox grants allow-scripts, allow-same-origin, allow-popups, allow-forms,
+  // allow-modals and allow-downloads, and deliberately NOT allow-top-navigation,
+  // so `window.top.location.href = url` from inside the frame is refused by the
+  // browser. The subject can still CALL into this document (allow-same-origin),
+  // and this document is not sandboxed, so the navigation happens here.
+  //
+  // The fab never needed this because a fab inside the frame declines to mount
+  // (__fabHosted) and the one that runs is this document's own, already at the
+  // top. The app is the case that broke it: show-repo's sidebar mark grew a
+  // "Home" row, and inside a toss that row is running in the framed document.
+  // Reported from a phone as "it reloads but it doesn't navigate", which is
+  // exactly the shape of a blocked top navigation falling back to reloading the
+  // frame.
+  //
+  // Same-origin callers only, since a payload-mode frame has an opaque origin
+  // and cannot reach this function at all. The URL is not validated here: a
+  // caller that can reach this handle is already running same-origin with the
+  // token, so a check would be ceremony rather than a control.
+  window.__tossLeave = url => { if (url) location.href = String(url); };
+
   // One resolution for both callers: the boot path below and __tossRoute above.
   // A trailing #frag belongs to the RENDERER, not the envelope address:
   // #data=owner/repo:rows.csv#item=2 addresses rows.csv and opens the page at

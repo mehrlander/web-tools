@@ -267,18 +267,75 @@ test('off the default ref, Home on main leaves for the deployed app', () => {
   assert.equal(shell.homeAddress, 'web-tools@main');
 });
 
-test('a framed app leaves through the TOP document, not its own frame', () => {
-  // The reported symptom: tap Home on main inside a #gh= toss and the yellow
-  // launcher stays yellow. Assigning this document's location loads home INSIDE
-  // the preview frame, so the reader never leaves it. Both copies of _go carry
-  // the guard and neither may quietly lose it.
-  const fab = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
-  for (const [name, src] of [['app/index.html', page], ['lib/alpineComponents/fab.js', fab]]) {
-    const fn = src.match(/_go\(url\) ?\{[\s\S]*?window\.top[\s\S]{0,200}/);
-    assert.ok(fn, name + ': _go lost its top-document guard, so a framed app navigates its own frame');
-    assert.match(fn[0], /window\.top !== window\.self/, name + ': the guard is malformed');
-  }
+test('a framed app leaves through the shell, because the sandbox forbids the tab', () => {
+  // The reported symptom, twice over. First the row threw, because the shell had
+  // no _go. Then it "reloaded but did not navigate", which is the shape of a
+  // BLOCKED TOP NAVIGATION: pages/toss-render.html mounts address mode with
+  // `allow-scripts allow-same-origin allow-popups allow-forms allow-modals
+  // allow-downloads` and no allow-top-navigation, so `window.top.location.href`
+  // is refused and the fallback navigated the frame instead. The app reloaded at
+  // main INSIDE the preview and the address bar never moved.
+  //
+  // allow-same-origin is the way out: the subject calls __tossLeave and the
+  // unsandboxed shell navigates itself.
+  const toss = readFileSync(path.join(repoRoot, 'pages/toss-render.html'), 'utf8');
+  const addressMode = toss.match(/mountFrame\(html, '([^']*allow-same-origin[^']*)'/);
+  assert.ok(addressMode, 'the address-mode mountFrame call was not found');
+  assert.ok(!addressMode[1].includes('allow-top-navigation'),
+    'address mode now permits top navigation; the __tossLeave hop may be unnecessary, ' +
+    'but do not drop it without re-testing on a phone');
+  assert.match(toss, /window\.__tossLeave = /, 'the shell lost the handle the framed app leaves through');
+
+  const framed = (top) => {
+    const m = makeShell({ browserStore: { repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main' },
+                          search: '?use=claude/x', win });
+    m.location.href = 'blob:https://mehrlander.github.io/abc';
+    m.win.top = top; m.win.self = m.win;
+    return m;
+  };
+
+  // The real case: the shell offers the handle and the top write would throw.
+  let left = '';
+  const a = framed({ __tossLeave: (u) => { left = u; },
+                     location: { set href(v) { throw new Error('sandbox: top navigation refused'); } } });
+  a.shell.goHomeOnMain();
+  assert.equal(left, a.shell.APP_HOME, 'the handoff did not reach __tossLeave');
+  assert.equal(a.location.href, 'blob:https://mehrlander.github.io/abc',
+    'the frame navigated itself as a consolation, which is the bug being fixed: ' +
+    'the reader reloads inside the preview and never leaves it');
+
+  // A framer that is not our renderer: no handle, but the write may be allowed.
+  const topLoc = { href: 'https://example.invalid/' };
+  const b = framed({ location: topLoc });
+  b.shell.goHomeOnMain();
+  assert.equal(topLoc.href, b.shell.APP_HOME);
+  assert.equal(b.location.href, 'blob:https://mehrlander.github.io/abc');
+
+  // Neither available: a NEW TAB, never this frame. allow-popups is granted
+  // where allow-top-navigation is not, and reaching home in a second tab is a
+  // real outcome; reloading inside the preview is the half-success being fixed.
+  const opened = [];
+  win.open = (u) => { opened.push(u); };
+  const c = framed({ location: { set href(v) { throw new Error('blocked'); } } });
+  c.shell.goHomeOnMain();
+  assert.deepEqual(opened, [c.shell.APP_HOME], 'a sealed frame offered no way home at all');
+  assert.equal(c.location.href, 'blob:https://mehrlander.github.io/abc',
+    'the frame navigated itself, which is the bug being fixed');
+  delete win.open;
 });
+
+test('unframed, Home on main is a plain navigation to the base URL', () => {
+  // What the row means with no branches in the picture at all: the deployed
+  // address, no query, no pin, nothing clever.
+  const m = makeShell({ browserStore: { repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main' },
+                        search: '?use=claude/x&view=map', win });
+  m.location.href = 'https://mehrlander.github.io/web-tools/app/?use=claude/x&view=map';
+  m.win.top = m.win; m.win.self = m.win;
+  m.shell.goHomeOnMain();
+  assert.equal(m.location.href, m.shell.APP_HOME);
+  assert.ok(!m.location.href.includes('?'), 'the base URL carried a query');
+});
+
 
 
 test('re-opening a visit rebuilds an address from the row, never replays a string', () => {
