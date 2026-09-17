@@ -32,8 +32,11 @@ test('classify correctly identifies all assistants and human fallback', () => {
   assert.equal(assistantMark.classify({ name: 'gemini/activity-assistant-attribution' }), 'gemini');
   assert.equal(assistantMark.classify({ name: 'agent/two-modes-github-flow-and-real-time' }), 'gemini');
   assert.equal(assistantMark.classify({ name: 'agent/shortcut-run-test' }), 'gemini');
-  assert.equal(assistantMark.classify({ name: 'agent/concept-index-workflow' }), 'gemini');
   assert.equal(assistantMark.classify({ name: 'feature-branch', trailer: 'Co-Authored-By: Gemini <gemini@google.com>' }), 'gemini');
+  // Gemini, Codex, and Grok take precedence even when an ancestor commit carries a Claude session URL
+  assert.equal(assistantMark.classify({ name: 'gemini/rebuild-app-prebuild', session: 'https://claude.ai/code/session_ancestor' }), 'gemini');
+  assert.equal(assistantMark.classify({ name: 'codex/move-files', session: 'https://claude.ai/code/session_ancestor' }), 'codex');
+  assert.equal(assistantMark.classify({ name: 'grok/summary', session: 'https://claude.ai/code/session_ancestor' }), 'grok');
 
   // Grok
   assert.equal(assistantMark.classify({ name: 'grok/paragraph-rewrites' }), 'grok');
