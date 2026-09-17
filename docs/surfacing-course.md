@@ -5,6 +5,13 @@ through. [SURFACING.md](SURFACING.md) holds the primitives and is injected into 
 this file is not, and is delivered by the `pr-subscribe-hint` hook at the moment a PR is opened,
 which is when the course first applies.
 
+## The two modes: GitHub flow and Real-time
+
+We operate in two modes:
+
+* **GitHub flow (Branch & PR):** The standard route for code, tooling, features, and documentation. Changes live on a branch, follow the PR guide lifecycle below, and merge via pull request.
+* **Real-time (Direct to `main`):** For shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. These commit straight to `main` and push to GitHub as you go so everyone stays synchronized in real time. See [direct-to-main.csv](direct-to-main.csv) for the registry of writers and paths.
+
 Maintain the PR body as the workstream's current state and durable record. Open a draft PR on the first push.
 
 ## PR template
