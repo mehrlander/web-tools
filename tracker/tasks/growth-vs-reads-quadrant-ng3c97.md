@@ -4,6 +4,7 @@ title: Read a document's growth against its readership, on the Docs tab
 status: backlog
 opened: 2026-08-28
 size: M
+awaiting: growth measure; reads axis; corner labels; include injected docs?
 ---
 # Read a document's growth against its readership, on the Docs tab
 
@@ -59,3 +60,4 @@ opens its document in the deck the table's rows already use.
 - 2026-09-04: `docs/docs.csv` now holds 76 rows against the 70 this was written
   on. The zero-read figure is not restamped on purpose: it joins the sessions
   cache rather than the registry, and rendering it live is the point of the task.
+- 2026-09-17: Surfaced the four open axis/label questions as awaiting.

@@ -10,21 +10,21 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
 - 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
-- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M
+- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: growth measure; reads axis; corner labels; include injected docs?)
 - 🎫 [Live-confirm the BranchSessions query](tasks/live-confirm-graphql-queries-7maacy.md) · XS (awaiting: next estate crawl with FAB capture)
-- 🎫 [Stop storing the conventions twice](tasks/one-copy-of-the-conventions-i9i931.md) · S (awaiting: a decision on whether to depend on the marketplace clone's path (stage 2 only; stage 1 is startable now))
+- 🎫 [Stop dual-storing SURFACING under the default skill](tasks/one-copy-of-the-conventions-i9i931.md) · S (awaiting: SURFACING dual-copy residual — delete copies vs skill-primary path; stage-2 marketplace clone if still wanted)
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M (awaiting: drop VJE entirely vs own tree for display and keep VJE for edit)
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
-- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
+- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M (awaiting: CSS transform-then-settle vs live re-render)
 - 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) · M
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md) · M
 - 🎫 [Decide whether apple-shortcuts-actions belongs in the portable plugin](tasks/promote-shortcuts-skill-to-plugin-5d74br.md) · S (awaiting: promote into portable plugin, leave in library, or split)
-- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L
+- 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · L (awaiting: authored home shape; naming layout; order vs column-primitive)
 - 🎫 [Inline the run-time CDN references a rendering copy still carries](tasks/render-copy-runtime-cdn-refs-p4m2wq.md) · S
-- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
+- 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M (awaiting: ?header=0|1 vs off; sidebar default by omission vs third value)
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
-- 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
+- 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
 
