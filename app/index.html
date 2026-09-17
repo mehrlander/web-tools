@@ -657,10 +657,25 @@ html.dk-dragging main{transition:none !important}
             <i class="ph ph-squares-four shrink-0 text-xl text-base-content/50"></i>
             <span class="min-w-0 flex-1 truncate">Dashboard</span>
           </button>
+          <!-- THE REF IS SAID AS AN ADDRESS, not as the word "main" inside a
+               sentence. The repo already speaks one grammar for this
+               (kits/review-target.js states the family: `owner/repo` is the
+               repo, `owner/repo@branch` is it at a ref, and the ':' introduces
+               a path), so the row names where it goes in the vocabulary every
+               other address here uses, and the owner is dropped in mono the
+               way the crumb trail beside it already drops it.
+
+               One imprecision worth stating rather than hiding: this row goes
+               to the deployed APP at main, and `web-tools@main` names the repo
+               at main. They read the same to a reader switching off a branch
+               preview, since the app at a ref IS that ref's code, and the
+               alternative (`web-tools@main:app/index.html`) spends the row's
+               width restating the page you are already on. -->
           <button x-show="offMainRef" @click="goHomeOnMain()"
                   class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base text-base-content/80 transition-colors hover:bg-base-200 active:bg-base-300">
             <i class="ph ph-house shrink-0 text-xl text-warning"></i>
-            <span class="min-w-0 flex-1 truncate">Home on main</span>
+            <span class="min-w-0 flex-1 truncate">Home</span>
+            <span class="shrink-0 font-mono text-base-content/50" x-text="homeAddress"></span>
           </button>
 
           <div x-show="visits.length" class="my-1 border-t border-base-200"></div>
@@ -5038,17 +5053,57 @@ function app(){ return {
     this.markMenu = false;
     document.getElementById('sidebarCrumbs')?.__crumbBar?.setOpen(false);
   },
+  // WHERE HOME IS. The same address lib/alpineComponents/fab.js carries as
+  // `showRepoBase` for its own Home row, held here too because the shell cannot
+  // depend on a fab being mounted and the fab floats over pages that are not
+  // this app. visit-log-wiring.test.mjs holds the two strings to each other, so
+  // the duplicate is loud rather than silent.
+  APP_HOME: 'https://mehrlander.github.io/web-tools/app/',
+
   // OFF THE DEFAULT REF ONLY. On main this row would go where you already are,
   // and a menu row that does nothing teaches a reader to distrust the menu.
-  // `offRef` is the same question the fab's launcher answers with its tint: the
-  // shell is running from a branch, through ?use= or a toss.
+  // This is the same question the launcher answers with its warning tint.
+  //
+  // Reading ?use= covers the toss case as well as the direct one, which is not
+  // obvious and is worth stating: inside a #gh= toss the renderer's params shim
+  // answers URLSearchParams lookups for the subject's ref, so this returns the
+  // branch even though the frame's own location is a blob: URL with no query.
+  // Measured in a headless toss rather than reasoned about.
   get offMainRef(){
-    const pin = new URLSearchParams(location.search).get('use');
+    let pin = '';
+    try { pin = new URLSearchParams(location.search).get('use') || ''; } catch (e) { return false; }
     return !!pin && pin !== 'main';
+  },
+  // `owner/repo@ref` with the owner dropped, which is the crumb trail's own
+  // display rule and the address grammar's pathless form at once.
+  get homeAddress(){
+    const repo = (this.APP_HOME.match(/github\.io\/([\w.-]+)\//) || [])[1] || 'web-tools';
+    return repo + '@main';
   },
   goHomeOnMain(){
     this.closeMarkMenu();
-    this._go(this.showRepoBase);
+    this._go(this.APP_HOME);
+  },
+
+  // LEAVE FOR A URL, and the top-document guard is the whole reason this is a
+  // method. Inside a #gh= toss this app runs in an iframe, so assigning its own
+  // location would load home INSIDE the frame: the reader taps "Home on main"
+  // and the yellow launcher stays yellow, because they are still inside the
+  // preview. That is exactly what was reported on a phone.
+  //
+  // The fab's _go carries the same guard for the same reason and is the other
+  // copy. Two exist because the fab floats over pages that are not this app and
+  // the shell cannot require one to be mounted; the test holds both to the
+  // guard so neither can quietly lose it.
+  _go(url){
+    if (!url) return;
+    // Assigning the address already showing is a silent no-op, so make it mean
+    // "load this again" rather than nothing.
+    if (url === location.href) { location.reload(); return; }
+    try {
+      if (window.top && window.top !== window.self) { window.top.location.href = url; return; }
+    } catch (e) { /* cross-origin top: fall through to this document */ }
+    location.href = url;
   },
   goMarkDashboard(){
     this.closeMarkMenu();

@@ -218,35 +218,82 @@ test('the mark opens a menu, and Home on main appears only off the default ref',
   assert.equal(shell.offMainRef, false);
 });
 
+// THE SHELL MUST ALREADY HAVE WHAT THESE TESTS STUB, and this guard exists
+// because the first version of them did not check. `goHomeOnMain` called
+// `this._go(this.showRepoBase)`, lifted from fab.js where both of those live;
+// the shell had neither. The tests passed anyway: one INSTALLED `_go` before
+// calling the method under test, and the assertion compared `went` against
+// `shell.showRepoBase`, which was undefined on both sides. So a dead row and a
+// green suite, until it was tapped on a phone. A stub may stand in for a
+// method; it may never conjure one.
+function goCapture(shell) {
+  assert.equal(typeof shell._go, 'function',
+    'the shell has no _go, so every navigation in the mark menu is a TypeError');
+  const calls = [];
+  shell._go = (u) => calls.push(u);
+  return calls;
+}
+
+test("the shell owns the address Home on main goes to, and it matches the fab's", () => {
+  const { shell } = shellWith();
+  assert.match(shell.APP_HOME, /^https:\/\/[\w.-]+\/[\w./-]*$/,
+    'APP_HOME is not an absolute URL: ' + shell.APP_HOME);
+  // The fab carries the same address for its own Home row, for pages that are
+  // not this app. Two copies, held to each other here so the duplicate is loud.
+  const fab = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+  const m = fab.match(/showRepoBase: '([^']+)'/);
+  assert.ok(m, "the fab's showRepoBase was not found");
+  assert.equal(shell.APP_HOME, m[1],
+    'app/index.html APP_HOME and fab.js showRepoBase name different homes');
+});
+
 test('off the default ref, Home on main leaves for the deployed app', () => {
-  const { shell, location } = makeShell({
+  const { shell } = makeShell({
     browserStore: { repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main' },
     search: '?use=claude/some-branch&view=map', win,
   });
   assert.equal(shell.offMainRef, true, 'a ?use= pin off main is exactly the state this row is for');
-  let went = '';
-  shell._go = (u) => { went = u; };
+  const went = goCapture(shell);
   shell.goHomeOnMain();
-  assert.equal(went, shell.showRepoBase,
+  assert.deepEqual(went, [shell.APP_HOME],
     'Home on main must be a fixed address, not a re-render of this view elsewhere');
+  assert.ok(went[0], 'the navigation target was empty');
   assert.equal(shell.markMenu, false, 'the menu stayed up over the navigation');
-  assert.ok(location);
+
+  // The ref is said as an ADDRESS, in the pathless form of the grammar the
+  // repo already speaks (kits/review-target.js: `owner/repo@branch` is the repo
+  // at a ref, and the ':' introduces a path), with the owner dropped the way
+  // the crumb trail beside it drops it.
+  assert.equal(shell.homeAddress, 'web-tools@main');
 });
+
+test('a framed app leaves through the TOP document, not its own frame', () => {
+  // The reported symptom: tap Home on main inside a #gh= toss and the yellow
+  // launcher stays yellow. Assigning this document's location loads home INSIDE
+  // the preview frame, so the reader never leaves it. Both copies of _go carry
+  // the guard and neither may quietly lose it.
+  const fab = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+  for (const [name, src] of [['app/index.html', page], ['lib/alpineComponents/fab.js', fab]]) {
+    const fn = src.match(/_go\(url\) ?\{[\s\S]*?window\.top[\s\S]{0,200}/);
+    assert.ok(fn, name + ': _go lost its top-document guard, so a framed app navigates its own frame');
+    assert.match(fn[0], /window\.top !== window\.self/, name + ': the guard is malformed');
+  }
+});
+
 
 test('re-opening a visit rebuilds an address from the row, never replays a string', () => {
   const { shell } = shellWith();
-  let went = '';
-  shell._go = (u) => { went = u; };
+  const went = goCapture(shell);
 
   shell.openVisit({ kind: 'toss', repo: 'mehrlander/web-tools', ref: 'claude/x', path: 'pages/index.html' });
-  assert.equal(went, '../pages/toss-render.html#gh=mehrlander/web-tools@claude/x:pages/index.html');
+  assert.equal(went.at(-1), '../pages/toss-render.html#gh=mehrlander/web-tools@claude/x:pages/index.html');
 
   shell.openVisit({ kind: 'route', view: 'project', project: 'projects/budget-drs', tab: 'board' });
-  assert.match(went, /\?view=project&project=projects%2Fbudget-drs&tab=board$/);
+  assert.match(went.at(-1), /\?view=project&project=projects%2Fbudget-drs&tab=board$/);
 
   // The two rows that have nowhere to go stay where they are.
-  went = '';
+  const before = went.length;
   shell.openVisit({ kind: 'payload', mode: 'gz', bytes: 900 });
   shell.openVisit({ kind: 'unrecognized', why: 'x' });
-  assert.equal(went, '', 'a row with no stored address offered a navigation anyway');
+  assert.equal(went.length, before, 'a row with no stored address offered a navigation anyway');
 });
