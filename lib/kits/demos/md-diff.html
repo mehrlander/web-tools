@@ -23,12 +23,10 @@
   // the design is not for and made the page look like a diff rather than a
   // document.
   //
-  // TWO FENCES, at either end of the length distribution, because the line
-  // gutter is gated on length and a fixture with only short fences cannot show
-  // the gate working. The one-line command is the edited block and sits below
-  // the minimum; the fifteen-line script is untouched prose and sits above it.
-  // `?numbers=2` numbers both, which is how to see the gutter inside a change
-  // container rather than only in the body.
+  // TWO FENCES, one of them the edited block. The one-line command is the
+  // change, which is what puts a diff mark inside a code fence and is the case
+  // the highlighter used to eat; the thirteen-line script is untouched prose,
+  // and is where the wrap and the language label are read at a phone's width.
   const BEFORE = `# Reading fund 600
 
 Fund 600 is reported as one number and read as two. The appropriated lane
@@ -169,36 +167,19 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
 
   // The controls go in THIS page's header, which is sticky, so the layout
   // toggle stays put through a scroll. The jump is this page's own button on
-  // the handle's `next`, which is why the kit draws no arrows of its own. `readout: false` because this page
-  // draws the position itself, as a badge on its own jump arrow: two readouts
-  // side by side is one too many.
-  // The gutter's starting state comes off the URL, so a link can carry it and
-  // the param doubles as the threshold: `?numbers=2` numbers every fence and
-  // `?numbers=1` is the honest worst case, a `1` beside a one-line command.
-  const q = new URLSearchParams(location.search);
-  const min = q.has('numbers') ? (Number(q.get('numbers')) || 8) : null;
-  const num = document.getElementById('numbers');
-
+  // the handle's `next`, which is why the kit draws no arrows of its own.
   const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,
-    { controls: document.getElementById('bar'), readout: false, numbers: min });
+    { controls: document.getElementById('bar'), readout: false });
 
-  // AND THE TOGGLE MOVES IT IN PLACE, rather than reloading with a different
-  // query. The first version did reload, which worked at this page's own URL
-  // and was dead in a toss: the framed document's location is a `blob:` URL, so
-  // setting `location.search` navigates to a blob nothing can serve and the
-  // frame goes white. Every branch demo is handed over as a toss, so a reload
-  // control is broken exactly where a reader meets it. `out.setNumbers` exists
-  // for this.
-  num.classList.toggle('btn-active', !!min);
-  num.addEventListener('click', () => {
-    num.classList.toggle('btn-active', !!out.setNumbers(out.numbers ? null : (min || 8)));
-  });
   document.getElementById('jump').addEventListener('click', out.next);
-  const count = document.getElementById('count');
-  out.onMove(({ at, count: n }) => {
-    count.textContent = at < 0 ? n : `${at + 1}/${n}`;
-    count.classList.toggle('badge-neutral', at >= 0);
-  });
+  // HOW MANY, NOT WHICH ONE. The badge counted `2/3` while the reader was in a
+  // block, which is three glyphs and a slash on a 16px circle: it did not fit
+  // and it read as clutter rather than as a position. The count is one number
+  // and it never changes, so the badge is set once and left alone. Which block
+  // the reader is in is already said where it belongs, by the yellow index
+  // badge on the block itself, and saying it twice was what made the arrow
+  // crowded.
+  document.getElementById('count').textContent = out.count;
   document.body.dataset.ready = '1';
 </script>
 <script defer src="https://unpkg.com/alpinejs"></script>
@@ -211,16 +192,12 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
                px-4 sm:px-6 py-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
   <h1 class="text-lg font-semibold">md-diff</h1>
   <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
-  <span class="flex items-center gap-2 ml-auto">
-    <button id="numbers" class="btn btn-xs btn-circle btn-ghost" title="Line numbers on long fences"
-            aria-label="Line numbers on long fences">
-      <i class="ph ph-list-numbers text-sm"></i>
-    </button>
-    <span id="bar" class="flex items-center gap-2"></span>
-  </span>
-  <!-- The jump is an arrow with the count hung off it, rather than a labelled
-       button beside a second readout. daisyUI's indicator is what attaches one
-       to the other, so the pair moves as one thing. -->
+  <span id="bar" class="flex items-center gap-2 ml-auto"></span>
+  <!-- The jump is an arrow with HOW MANY changes hung off it, rather than a
+       labelled button beside a second readout. daisyUI's indicator is what
+       attaches one to the other, so the pair moves as one thing. The badge is a
+       count and not a position: `2/3` did not fit on the circle and said what
+       the block's own index badge already says. -->
   <span class="indicator">
     <span id="count" class="indicator-item badge badge-xs tabular-nums">0</span>
     <button id="jump" class="btn btn-xs btn-circle" title="Next change" aria-label="Next change">
