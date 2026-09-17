@@ -99,6 +99,36 @@ def is_generated(root, rel):
     return bool(GENERATED.search(head))
 
 
+def is_copy(root, rel):
+    """A vendored copy is not authored language either, and nothing in the file
+    says so. A generated artifact usually announces itself in a banner, which
+    is what is_generated reads; a copy announces nothing, because being
+    byte-identical to its source is the whole point and a banner would break the
+    check that holds it there.
+
+    Found by this gate stopping its own repo's CI. web-tools ships three docs
+    inside a plugin skill by copying them from docs/, main revised one of them,
+    and the commit that re-ran the copier was refused: the language had been
+    approved where it was written, and the commit propagating it had nothing to
+    ask about. That is the third false positive of one family, after a new file
+    written to spec and a regenerated index, and the comment above GENERATED
+    already says why they matter more than they look: a gate that stops a
+    generator teaches a session that the answer is --no-verify.
+
+    Same basename and identical bytes, against the index rather than the working
+    tree, so the twin is a file this commit is being measured against. Narrow on
+    purpose: two unrelated documents that happen to share a name will not be
+    identical, and a copy that has drifted from its source is authored again and
+    is caught again."""
+    name = os.path.basename(rel)
+    listed = git(root, "ls-files", "--full-name", "*/" + name, name).split()
+    twins = [t for t in listed if t != rel]
+    if not twins:
+        return False
+    blob = git(root, "show", f":{rel}")
+    return any(blob and git(root, "show", f"HEAD:{t}") == blob for t in twins)
+
+
 def is_doc(rel, globs):
     if rel.startswith(FREE) or "/dump/" in rel or rel.startswith("tracker/tasks/"):
         return False
@@ -200,7 +230,7 @@ def main(argv):
     globs = doc_globs(root)
     tasks = [p for st, p in rows if st == "A" and "/tracker/tasks/" in f"/{p}"]
     docs = [p for st, p in rows if st == "M" and is_doc(p, globs)
-            and not is_generated(root, p)]
+            and not is_generated(root, p) and not is_copy(root, p)]
     if not tasks and not docs:
         return 0
 
