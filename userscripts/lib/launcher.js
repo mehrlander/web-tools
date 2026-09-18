@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '107ebdd';
-const BUILT = '2026-09-06T14:31:53Z';
+const BUILD = '9abfd8d';
+const BUILT = '2026-09-18T04:37:17Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -60,6 +60,9 @@ const REF = 'main';
 // unlooked-up answer reading as a good one is worse than no verdict, which is
 // the rule the shortcut library already runs on its own build manifest.
 const MANIFEST = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/builds.json`;
+const ERRANDS_MANIFEST = 'https://api.github.com/repos/mehrlander/web-tools/contents/courier/errands.json';
+const STAGE = 'https://mehrlander.github.io/web-tools/app/';
+const GZ_MAX = 24 * 1024;
 
 window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {}) => {
   const ID = 'wt-launcher';
@@ -185,7 +188,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // the whole reason to reach for capture.
   const state = { tab: 'page', links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
-                  seenLinks: new Map() };
+                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null };
 
   // One markdown document, assembled from whatever is currently ticked. It is
   // markdown because the destination is a repo, where a capture that renders is
@@ -243,15 +246,27 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .btn { width: 3.5rem; height: 3.5rem; border-radius: 1rem;
            border: 1px solid ${mix(P, 20)}; background: ${mix(P, 10)};
            display: flex; align-items: center; justify-content: center;
-           cursor: grab; touch-action: none;
+           cursor: grab; touch-action: none; position: relative;
            -webkit-user-select: none; user-select: none; transition: all .3s; }
     .btn:active { cursor: grabbing; }
     .btn.on { background: ${mix(P, 30)}; border-color: ${mix(P, 50)}; }
     .btn svg { width: 1.5rem; height: 1.5rem; color: ${mix(P, 40)}; transition: color .3s; }
     .btn.on svg { color: var(--wt-p); }
+    .btn.has-errand {
+      border-color: oklch(75% .18 55);
+      background: ${mix('oklch(75% .18 55)', 15)};
+      box-shadow: 0 0 0 2px ${mix('oklch(75% .18 55)', 35)};
+    }
+    .btn.has-errand svg { color: oklch(75% .18 55); }
+    .badge {
+      position: absolute; top: -3px; right: -3px; width: 10px; height: 10px;
+      border-radius: 9999px; background: oklch(75% .18 55);
+      border: 2px solid var(--wt-b100); display: none;
+    }
+    .btn.has-errand .badge { display: block; }
 
     .menu { position: absolute; bottom: 100%; right: 0; margin-bottom: .5rem;
-            width: 14rem; border-radius: 1rem; border: 1px solid var(--wt-b300);
+            width: 14.5rem; border-radius: 1rem; border: 1px solid var(--wt-b300);
             background: var(--wt-b100); overflow: hidden;
             box-shadow: 0 25px 50px -12px #00000040; }
     .row { display: flex; align-items: center; gap: .625rem;
@@ -259,7 +274,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
            text-decoration: none; text-align: left; cursor: pointer; }
     .row:hover, .row:active { background: var(--wt-b200); }
     .row svg { width: 17px; height: 17px; color: var(--wt-p); flex: none; }
-    .row span { font-size: .875rem; font-weight: 600; }
+    .row span { font-size: .875rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row.errand-row {
+      background: ${mix('oklch(75% .18 55)', 12)};
+      border-bottom: 1px solid var(--wt-b300);
+    }
+    .row.errand-row svg { color: oklch(65% .18 55); }
+    .row.errand-row span { color: oklch(45% .18 55); }
+    .row[hidden] { display: none; }
 
     /* The drawer, in the fab's shape: an absolute panel inside a fixed
        overflow-hidden layer, so the off-screen half is clipped rather than
@@ -293,6 +315,37 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .stale { display: block; margin-top: .25rem; font-size: 11px; font-weight: 600;
              color: oklch(55% .17 40); }
     .stale[hidden] { display: none; }
+
+    .errand-banner {
+      margin: .625rem .875rem .25rem; padding: .625rem .75rem; border-radius: .75rem;
+      background: ${mix('oklch(75% .18 55)', 12)};
+      border: 1px solid ${mix('oklch(75% .18 55)', 40)};
+      display: flex; flex-direction: column; gap: .375rem;
+    }
+    .errand-banner[hidden] { display: none; }
+    .errand-tag {
+      display: inline-flex; align-items: center; gap: .25rem;
+      font: 700 10px ui-monospace, monospace; color: oklch(65% .18 55);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .errand-tag svg { width: 12px; height: 12px; }
+    .errand-title {
+      display: block; font-size: .8125rem; font-weight: 600;
+      color: var(--wt-bc);
+    }
+    .errand-note {
+      font-size: .75rem; color: ${mix('var(--wt-bc)', 75)}; margin: 0; line-height: 1.35;
+    }
+    .errand-result[hidden] { display: none; }
+    .errand-out {
+      width: 100%; height: 95px; font: 11px/1.4 ui-monospace, monospace;
+      border: 1px solid var(--wt-b300); border-radius: .375rem;
+      background: var(--wt-b100); color: var(--wt-bc); padding: .375rem;
+      resize: vertical; box-sizing: border-box; margin-top: .375rem;
+    }
+    .errand-bar { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; }
+    .errand-status { font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; margin-left: auto; }
+
     .tabs { display: flex; border-bottom: 1px solid var(--wt-b300); flex: none; }
     .tab { flex: 1; padding: .5rem; background: none; border: 0;
            border-bottom: 2px solid transparent; cursor: pointer;
@@ -330,6 +383,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .text { font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap;
             overflow-wrap: break-word; color: ${mix('var(--wt-bc)', 85)}; }
+
+    /* Take tab items */
+    .take-item {
+      padding: .625rem .75rem; border-radius: .5rem;
+      border: 1px solid var(--wt-b300); margin-bottom: .625rem;
+      background: var(--wt-b100);
+    }
+    .take-item b { display: flex; align-items: center; gap: .375rem; font-size: .8125rem; font-weight: 600; }
+    .take-item b svg { width: 14px; height: 14px; color: var(--wt-p); flex: none; }
+    .take-item p { font-size: .75rem; color: ${mix('var(--wt-bc)', 70)}; margin: .25rem 0 .5rem; line-height: 1.35; }
+    .take-acts { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .take-size { margin-left: auto; font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 55)}; }
+
     .foot { border-top: 1px solid var(--wt-b300);
             padding: .625rem 5.25rem .625rem .875rem;
             display: flex; gap: .5rem; align-items: center; flex: none; }
@@ -351,6 +417,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     hide: 'M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C25,88.84,9.38,123.2,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208a127.11,127.11,0,0,0,52.07-10.83l22,24.21a8,8,0,1,0,11.84-10.76Zm47.33,75.84,41.67,45.85a32,32,0,0,1-41.67-45.85ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.16,133.16,0,0,1,25,128c4.69-8.79,19.66-33.39,47.35-49.38l18,19.75a48,48,0,0,0,63.66,70l14.73,16.2A112,112,0,0,1,128,192Zm6-95.43a8,8,0,0,1,3-15.72,48.16,48.16,0,0,1,38.77,42.64,8,8,0,0,1-7.22,8.71,6.39,6.39,0,0,1-.75,0,8,8,0,0,1-8-7.26A32.09,32.09,0,0,0,134,96.57Zm113.28,34.69c-.42.94-10.55,23.37-33.36,43.8a8,8,0,1,1-10.67-11.92A132.77,132.77,0,0,0,231.05,128a133.15,133.15,0,0,0-23.12-30.77C185.67,75.19,158.78,64,128,64a118.37,118.37,0,0,0-19.36,1.57A8,8,0,1,1,106,49.79,134,134,0,0,1,128,48c34.88,0,66.57,13.26,91.66,38.35,18.83,18.83,27.3,37.62,27.65,38.41A8,8,0,0,1,247.31,131.26Z',
     refresh: 'M224,48V96a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h28.69L182.06,73.37a79.56,79.56,0,0,0-56.13-23.43h-.45A79.52,79.52,0,0,0,69.59,72.71,8,8,0,0,1,58.41,61.27a96,96,0,0,1,135,.79L208,76.69V48a8,8,0,0,1,16,0ZM186.41,183.29a80,80,0,0,1-112.47-.66L59.31,168H88a8,8,0,0,0,0-16H40a8,8,0,0,0-8,8v48a8,8,0,0,0,16,0V179.31l14.63,14.63A95.43,95.43,0,0,0,130,222.06h.53a95.36,95.36,0,0,0,67.07-27.33,8,8,0,0,0-11.18-11.44Z',
     check: 'M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z',
+    lightning: 'M212.92,106.84A8,8,0,0,0,206,104H144V24a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,40,128h64v80a8,8,0,0,0,13.66,5.66l96-96A8,8,0,0,0,212.92,106.84Z',
+    code: 'M69.66,154.34a8,8,0,0,1-11.32,11.32l-40-40a8,8,0,0,1,0-11.32l40-40a8,8,0,0,1,11.32,11.32L35.31,120Zm152-40a8,8,0,0,0-11.32-11.32l-40,40a8,8,0,0,0,0,11.32l40,40a8,8,0,0,0,11.32-11.32L180.69,120ZM101.44,213.6l56-176a8,8,0,0,0-15.28-4.8l-56,176a8,8,0,1,0,15.28,4.8Z',
+    jina: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM192,152H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z',
   };
 
   const layer = document.createElement('div');
@@ -361,10 +430,25 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div><b></b><small></small><span class="stale" hidden></span></div>
         <button class="reread" aria-label="Read this page again">${svg(ICON.refresh)}</button>
       </div>
+      <div class="errand-banner" hidden>
+        <span class="errand-tag">${svg(ICON.lightning)} Errand Available</span>
+        <span class="errand-title"></span>
+        <p class="errand-note"></p>
+        <div class="errand-bar">
+          <button class="act run-errand">Run Errand</button>
+          <button class="act copy-errand" hidden>Copy</button>
+          <a class="act send-errand" hidden target="_blank" rel="noopener">Send to Stage ↗</a>
+          <span class="errand-status"></span>
+        </div>
+        <div class="errand-result" hidden>
+          <textarea class="errand-out" readonly></textarea>
+        </div>
+      </div>
       <div class="tabs">
         <button class="tab on" data-tab="page">Page</button>
         <button class="tab" data-tab="links">Links</button>
         <button class="tab" data-tab="text">Text</button>
+        <button class="tab" data-tab="take">Take</button>
       </div>
       <div class="pane" data-pane="page"></div>
       <div class="pane" data-pane="links" hidden>
@@ -382,6 +466,45 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         </div>
         <div class="text"></div>
       </div>
+      <div class="pane" data-pane="take" hidden>
+        <div class="take-item">
+          <b>${svg(ICON.code)} HTML</b>
+          <p>Full serialized DOM snapshot (outerHTML) of the current page.</p>
+          <div class="take-acts">
+            <button class="act" data-take-html>Copy HTML</button>
+            <a class="act" data-take-send="html" target="_blank" rel="noopener">Send to Stage</a>
+            <span class="take-size" data-take-size="html"></span>
+          </div>
+        </div>
+        <div class="take-item">
+          <b>${svg(ICON.note)} Markdown</b>
+          <p>Readable brief composed from title, URL, description, selection, and extracted text.</p>
+          <div class="take-acts">
+            <button class="act" data-take-md>Copy MD</button>
+            <a class="act" data-take-send="md" target="_blank" rel="noopener">Send to Stage</a>
+            <span class="take-size" data-take-size="md"></span>
+          </div>
+        </div>
+        <div class="take-item">
+          <b>${svg(ICON.sidebar)} Metadata JSON</b>
+          <p>Structured page envelope (title, URL, meta description, links, selection).</p>
+          <div class="take-acts">
+            <button class="act" data-take-json>Copy JSON</button>
+            <a class="act" data-take-send="json" target="_blank" rel="noopener">Send to Stage</a>
+            <span class="take-size" data-take-size="json"></span>
+          </div>
+        </div>
+        <div class="take-item">
+          <b>${svg(ICON.jina)} Jina Reader</b>
+          <p>Clean markdown extracted via Jina AI Reader (<a href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" style="color:var(--wt-p)">r.jina.ai</a>).</p>
+          <div class="take-acts">
+            <button class="act" data-take-jina-fetch>Fetch Jina MD</button>
+            <button class="act" data-take-jina-copy hidden>Copy Jina MD</button>
+            <a class="act" data-take-jina-open href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">Open in Jina ↗</a>
+            <span class="take-size" data-take-size="jina"></span>
+          </div>
+        </div>
+      </div>
       <div class="foot">
         <button class="act" data-copy>Copy</button>
         <a class="act" data-send>Send</a>
@@ -393,12 +516,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   wrap.className = 'wrap';
   wrap.innerHTML = `
     <div class="menu" hidden>
+      <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
+      <button class="row" data-menu-html>${svg(ICON.code)}<span>Copy HTML</span></button>
+      <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
       <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
       <div class="foot">${BUILD}</div>
     </div>
-    <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}</div>`;
+    <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}<span class="badge"></span></div>`;
 
   const vp = document.createElement('div');
   vp.className = 'vp';
@@ -457,6 +583,191 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       : `${state.text.length} chars`;
   };
 
+  const pageSlug = () => (location.hostname + location.pathname)
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50) || 'capture';
+
+  const b64url = bytes => {
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+
+  const packToStage = async (name, text, dest = '') => {
+    try {
+      const json = JSON.stringify([{ name, text }]);
+      const gz = new Blob([new TextEncoder().encode(json)]).stream()
+        .pipeThrough(new CompressionStream('gzip'));
+      const payload = b64url(new Uint8Array(await new Response(gz).arrayBuffer()));
+      if (!payload || payload.length > GZ_MAX) return null;
+      return `${STAGE}#gz=${payload}${dest ? '&dest=' + encodeURIComponent(dest) : ''}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const copyText = async (text, el, done = 'Copied') => {
+    const prev = el.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      el.textContent = done;
+    } catch { el.textContent = 'Blocked'; }
+    setTimeout(() => { el.textContent = prev; }, 1600);
+  };
+
+  const fetchText = async (url, headers = { Accept: 'application/vnd.github.raw' }) => {
+    if (typeof GM !== 'undefined' && GM.xmlHttpRequest) {
+      return new Promise((resolve, reject) => {
+        GM.xmlHttpRequest({
+          method: 'GET', url, headers,
+          onload: r => (r.status >= 200 && r.status < 300) ? resolve(r.responseText) : reject(new Error('HTTP ' + r.status)),
+          onerror: reject,
+        });
+      });
+    }
+    const res = await fetch(url, { headers, cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.text();
+  };
+
+  const updateTakeSizes = () => {
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const md = compose();
+    const json = JSON.stringify({
+      title: page.title, href: page.href, description: page.description,
+      selection: state.sel, links: state.links,
+      text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
+    }, null, 2);
+
+    const slug = pageSlug();
+
+    const htmlSize = q('[data-take-size="html"]');
+    const htmlSend = q('[data-take-send="html"]');
+    if (htmlSize) htmlSize.textContent = `${Math.max(1, Math.round(html.length / 1024))} KB`;
+    packToStage(`${slug}.html`, html).then(url => {
+      if (htmlSend) {
+        if (url) {
+          htmlSend.href = url;
+          htmlSend.classList.remove('off');
+        } else {
+          htmlSend.removeAttribute('href');
+          htmlSend.classList.add('off');
+          if (htmlSize && !htmlSize.textContent.includes('Copy only')) htmlSize.textContent += ' · Copy only';
+        }
+      }
+    });
+
+    const mdSize = q('[data-take-size="md"]');
+    const mdSend = q('[data-take-send="md"]');
+    if (mdSize) mdSize.textContent = `${md.length.toLocaleString()} chars`;
+    packToStage(`${slug}.md`, md).then(url => {
+      if (mdSend) {
+        if (url) {
+          mdSend.href = url;
+          mdSend.classList.remove('off');
+        } else {
+          mdSend.removeAttribute('href');
+          mdSend.classList.add('off');
+          if (mdSize && !mdSize.textContent.includes('Copy only')) mdSize.textContent += ' · Copy only';
+        }
+      }
+    });
+
+    const jsonSize = q('[data-take-size="json"]');
+    const jsonSend = q('[data-take-send="json"]');
+    if (jsonSize) jsonSize.textContent = `${Math.max(1, Math.round(json.length / 1024))} KB`;
+    packToStage(`${slug}.json`, json).then(url => {
+      if (jsonSend) {
+        if (url) {
+          jsonSend.href = url;
+          jsonSend.classList.remove('off');
+        } else {
+          jsonSend.removeAttribute('href');
+          jsonSend.classList.add('off');
+          if (jsonSize && !jsonSize.textContent.includes('Copy only')) jsonSize.textContent += ' · Copy only';
+        }
+      }
+    });
+  };
+
+  const runActiveErrand = async () => {
+    if (!state.errand) return;
+    const errand = state.errand;
+    const banner = q('.errand-banner');
+    const runBtn = banner.querySelector('.run-errand');
+    const copyBtn = banner.querySelector('.copy-errand');
+    const sendLink = banner.querySelector('.send-errand');
+    const statusEl = banner.querySelector('.errand-status');
+    const resultBox = banner.querySelector('.errand-result');
+    const outEl = banner.querySelector('.errand-out');
+
+    runBtn.disabled = true;
+    statusEl.textContent = 'reading script…';
+
+    try {
+      const scriptUrl = `https://api.github.com/repos/mehrlander/web-tools/contents/${errand.script}`;
+      const src = await fetchText(scriptUrl);
+      statusEl.textContent = 'running…';
+
+      let out;
+      try {
+        out = await new Function('ctx', src)({ errand });
+      } catch (err) {
+        out = 'ERROR: ' + (err && err.stack || err);
+      }
+      if (typeof out !== 'string') out = JSON.stringify(out, null, 2);
+      state.errandOut = out;
+
+      resultBox.hidden = false;
+      outEl.value = out;
+      copyBtn.hidden = false;
+
+      const name = errand.result?.path?.split('/').pop() || `${errand.id}.md`;
+      const dir = errand.result?.path?.slice(0, -name.length).replace(/\/$/, '') || '';
+      const dest = errand.result?.repo
+        ? `${errand.result.repo}@${errand.result.branch || 'main'}${dir ? ':' + dir : ''}`
+        : '';
+      const stageUrl = await packToStage(name, out, dest);
+      if (stageUrl) {
+        sendLink.href = stageUrl;
+        sendLink.hidden = false;
+        statusEl.textContent = `${out.length.toLocaleString()} chars · staged`;
+      } else {
+        sendLink.hidden = true;
+        statusEl.textContent = `${out.length.toLocaleString()} chars · copy only`;
+      }
+    } catch (e) {
+      statusEl.textContent = 'failed: ' + e.message;
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run Errand';
+    }
+  };
+
+  const checkErrands = async () => {
+    try {
+      const raw = await fetchText(ERRANDS_MANIFEST);
+      const data = JSON.parse(raw);
+      const errand = (data.errands || []).find(e => e.host === location.hostname && e.status === 'open');
+      if (!errand) return;
+
+      state.errand = errand;
+      btn.classList.add('has-errand');
+      btn.setAttribute('title', `Errand available: ${errand.title}`);
+
+      const banner = q('.errand-banner');
+      banner.querySelector('.errand-title').textContent = errand.title;
+      banner.querySelector('.errand-note').textContent = errand.note || '';
+      banner.hidden = false;
+
+      const menuErrand = q('[data-menu-errand]');
+      if (menuErrand) menuErrand.hidden = false;
+    } catch {
+      // Fail silently if network/CORS blocks background check
+    }
+  };
+
   const renderLinks = () => {
     list.innerHTML = state.links.map(({ href, text }, i) => `
       <button class="link${state.picked.has(href) ? ' on' : ''}" data-i="${i}">
@@ -506,6 +817,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (!read) { readPage(); checkBuild(); read = true; }
     renderPage();
     refresh();
+    updateTakeSizes();
     panel.classList.add('open');
     btn.classList.add('on');
   };
@@ -513,6 +825,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.reread').onclick = () => {
     readPage();
     renderPage();
+    updateTakeSizes();
     const b = q('.reread');
     b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
   };
@@ -584,19 +897,64 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     // run to a hundred thousand characters, and laying that out behind a tab
     // nobody opened is work for nothing.
     if (state.tab === 'text' && !q('[data-pane="text"] .text').textContent) showText();
+    if (state.tab === 'take') updateTakeSizes();
   });
 
   // The clipboard is the route with no ceiling, and it needs the user gesture
   // it is already inside. A refusal is reported on the button rather than
   // thrown away, since a Copy that silently did nothing is the worst outcome.
-  copyEl.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(compose());
-      copyEl.textContent = 'Copied';
-    } catch { copyEl.textContent = 'Blocked'; }
-    setTimeout(() => { copyEl.textContent = 'Copy'; }, 1600);
-  };
+  copyEl.onclick = () => copyText(compose(), copyEl);
   sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
+
+  // Take actions wiring
+  q('[data-take-html]').onclick = () => copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-take-html]'));
+  q('[data-take-md]').onclick = () => copyText(compose(), q('[data-take-md]'));
+  q('[data-take-json]').onclick = () => {
+    const json = JSON.stringify({
+      title: page.title, href: page.href, description: page.description,
+      selection: state.sel, links: state.links,
+      text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
+    }, null, 2);
+    copyText(json, q('[data-take-json]'));
+  };
+  q('[data-take-jina-fetch]').onclick = async () => {
+    const b = q('[data-take-jina-fetch]');
+    const copyBtn = q('[data-take-jina-copy]');
+    const sz = q('[data-take-size="jina"]');
+    b.disabled = true;
+    b.textContent = 'Fetching…';
+    try {
+      const text = await fetchText(`https://r.jina.ai/${page.href}`, { Accept: 'text/markdown, text/plain, */*' });
+      state.jinaMd = text;
+      b.textContent = 'Fetched';
+      copyBtn.hidden = false;
+      sz.textContent = `${text.length.toLocaleString()} chars`;
+    } catch {
+      b.textContent = 'Blocked';
+      sz.textContent = 'Blocked · use Open ↗';
+    }
+    setTimeout(() => { b.textContent = 'Fetch Jina MD'; b.disabled = false; }, 2000);
+  };
+  q('[data-take-jina-copy]').onclick = () => {
+    if (state.jinaMd) copyText(state.jinaMd, q('[data-take-jina-copy]'));
+  };
+
+  q('[data-menu-html]').onclick = () => {
+    copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-menu-html] span'), 'Copied HTML');
+  };
+
+  q('.run-errand').onclick = runActiveErrand;
+  q('.copy-errand').onclick = () => {
+    if (state.errandOut) copyText(state.errandOut, q('.copy-errand'), 'Copied');
+  };
+  const menuErrand = q('[data-menu-errand]');
+  if (menuErrand) {
+    menuErrand.onclick = () => {
+      setMenu(false);
+      openDrawer();
+      runActiveErrand();
+    };
+  }
 
   q('[data-hide]').onclick = () => { stopCollecting(); host.remove(); };
   menu.addEventListener('click', e => { if (e.target.closest('.row')) setMenu(false); });
@@ -679,6 +1037,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };
   document.documentElement.append(host);
+  checkErrands();
 
   // The second half of the yield rule. A web-tools page boots its loader and
   // mounts the real fab after document-end, so the synchronous check above can

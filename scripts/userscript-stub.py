@@ -92,7 +92,7 @@ def main() -> int:
         print(f'no such body: {body.relative_to(ROOT)}', file=sys.stderr)
         return 1
 
-    text = body.read_text()
+    text = body.read_text(encoding='utf-8')
     fn = fn_name(a.lib)
     if f'window.{fn}' not in text:
         print(f'{body.relative_to(ROOT)} does not define window.{fn}', file=sys.stderr)
@@ -114,14 +114,14 @@ def main() -> int:
     for pat, key, val in ((STAMP, 'BUILD', build), (BUILT, 'BUILT', built), (REF, 'REF', ref)):
         stamped = pat.sub(f"const {key} = '{val}';", stamped, count=1)
     if stamped != text:
-        body.write_text(stamped)
+        body.write_text(stamped, encoding='utf-8', newline='\n')
 
     # The manifest the launcher reads to answer "am I current?". One row per
     # body, so adding a script does not disturb the others.
     mf = ROOT / MANIFEST
-    rows = json.loads(mf.read_text()) if mf.exists() else {}
+    rows = json.loads(mf.read_text(encoding='utf-8')) if mf.exists() else {}
     rows[a.lib] = {'build': build, 'built': built}
-    mf.write_text(json.dumps(dict(sorted(rows.items())), indent=2) + '\n')
+    mf.write_text(json.dumps(dict(sorted(rows.items())), indent=2) + '\n', encoding='utf-8', newline='\n')
     req = REQUIRE.format(ref=ref, lib=a.lib)
     url = CDN.format(ref=ref, lib=a.lib)
     matches = '\n'.join(f'// @match       {m}' for m in a.match)
@@ -138,11 +138,12 @@ def main() -> int:
 // and read from raw rather than a CDN, so editing the body is a push and never
 // a reinstall of this file.
 window.{fn}();
-""")
+""", encoding='utf-8', newline='\n')
 
     (ROOT / 'bookmarklets' / f'{a.lib}.js').write_text(
         f"javascript:(s=>{{s.src='{url}';s.onload=()=>{fn}();"
-        f"document.body.appendChild(s)}})(document.createElement('script'))\n")
+        f"document.body.appendChild(s)}})(document.createElement('script'))\n",
+        encoding='utf-8', newline='\n')
 
     print(f'{a.lib} stamped {build} at {built}, pinned to {ref}')
     print(f'  userscripts/{a.lib}.user.js')
