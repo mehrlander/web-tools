@@ -224,7 +224,7 @@ tools/render/scenarios/proposals-stale-demo.mjs,the staleness guard and signatur
 tools/render/scenarios/record-deck-wide.mjs,,tools/render/scenarios,68,driver,no,no,no
 tools/render/scenarios/record-deck.mjs,,tools/render/scenarios,37,driver,no,no,no
 tools/render/scenarios/ref-switch.mjs,the header ref switch seeded token-free,tools/render/scenarios,57,driver,no,no,no
-tools/render/scenarios/rendered-compare.mjs,,tools/render/scenarios,151,driver,no,no,no
+tools/render/scenarios/rendered-compare.mjs,,tools/render/scenarios,218,driver,no,no,no
 tools/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo declaring a `landing`: the Landing row beside Overview, which no real repo produces",tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo on its second committed layout, the half a default shot cannot reach: the same rows banded on fiscal year instead of on budget version.",tools/render/scenarios,13,driver,no,no,no
 tools/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",tools/render/scenarios,12,driver,no,no,no

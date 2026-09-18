@@ -123,6 +123,54 @@ export default async function (page, ctx) {
       // on an empty box. pages/approve.html is the only host that asks, so the
       // app looked fine and the approval surface looked as though the view had
       // been dropped. Re-opening the same card is enough to separate the two.
+      // AND IT CARRIES WHAT THE APPROVAL SURFACE CARRIES. Everything
+      // pages/approve.html gained over 2026-09-17 and -18 was built in shared
+      // code, on the reasoning that the two views differ only in the verdict
+      // button. That is a claim about this surface, so it is checked on this
+      // surface: a one-off measurement saying so is not a check, and the two
+      // could drift the moment either kit grows a caller-specific branch.
+      parity: await (async () => {
+        const doc = document.querySelector('.md-diff-doc');
+        if (!doc) return { error: 'no rendered document' };
+        const top = window.swipeDeck.top();
+        const header = top.el.querySelector('.sd-header');
+        const strip = doc.querySelector('.sticky');
+        const box = doc.querySelector('.md-diff-change');
+        const sdSlide = box.closest('.sd-slide');
+        const r = box.getBoundingClientRect();
+        // The floating strip must not resize as its readout changes, since it
+        // is anchored on its right edge.
+        const w = () => Math.round(strip.getBoundingClientRect().width);
+        const step = () => doc.querySelector('button[title="Next change"]').click();
+        const widths = [w()];
+        step(); await wait(350); widths.push(w());
+        step(); await wait(350); widths.push(w());
+        const lit = () => doc.querySelectorAll('.md-diff-change[class*="warning"]').length;
+        const spot = doc.querySelector('button[title="Highlight every change"]');
+        const litBefore = lit();
+        if (spot) { spot.click(); await wait(250); }
+        const litAfter = lit();
+        if (spot) { spot.click(); await wait(200); }
+        const track = box.querySelector('.sd-track');
+        return {
+          strip: !!strip, sticky: strip && getComputedStyle(strip).position === 'sticky',
+          jump: !!doc.querySelector('button[title="Next change"]'),
+          spot: !!spot, litBefore, litAfter,
+          total: doc.querySelectorAll('.md-diff-change').length,
+          widths,
+          viewIcons: header.querySelectorAll('button[title^="Compare"]').length,
+          ghMark: !!header.querySelector('.ph-github-logo'),
+          // `hosted` means the slide is the document and the card draws no row.
+          cardRows: [...top.el.querySelectorAll('.flex.items-center.gap-1')]
+            .filter((e) => e.offsetParent && e.querySelector('[x-text="namePart"], .ph-github-logo')).length,
+          padLeft: sdSlide && getComputedStyle(sdSlide).paddingLeft,
+          ringL: Math.round(r.left), ringR: Math.round(innerWidth - r.right),
+          heights: track ? [...track.children].map((sl) => {
+            const cc = sl.firstElementChild && sl.firstElementChild.firstElementChild;
+            return cc ? cc.scrollHeight : null;
+          }) : [],
+        };
+      })(),
       openedOn: await (async () => {
         c.openOn = 'mddiff';
         c.loaded = false; c._picked = false; c.tab = 'read';
@@ -145,6 +193,25 @@ export default async function (page, ctx) {
   }
   if (!out.openedOn.containers) {
     throw new Error('rendered-compare: it landed on the rendered comparison and drew nothing');
+  }
+
+  const p = out.parity;
+  const gone = (m) => { throw new Error(`rendered-compare: ${m}, got ${JSON.stringify(p)}`); };
+  if (p.error) gone(p.error);
+  if (!p.strip || !p.sticky) gone('the comparison draws no floating strip here');
+  if (!p.jump) gone('no change-to-change arrow on this surface');
+  if (!p.spot) gone('no highlight-every-change toggle on this surface');
+  if (p.litAfter !== p.total) gone(`the toggle lit ${p.litAfter} of ${p.total}`);
+  if (p.litBefore >= p.total) gone('every change was already washed, so the toggle proved nothing');
+  if (new Set(p.widths).size !== 1) gone(`the strip resizes with its readout (${p.widths.join(', ')})`);
+  if (p.viewIcons < 2) gone('the view icons are not in this deck header');
+  if (!p.ghMark) gone('the github mark is not beside the file name');
+  if (p.cardRows) gone('a card draws its own control row inside a hosted slide');
+  if (parseFloat(p.padLeft) > 12) gone(`the slide still carries the reading measure (${p.padLeft})`);
+  if (p.ringL < 2) gone("a changed block's ring runs off the left edge");
+  if (p.ringL !== p.ringR) gone('the document sits off-centre in its scroller');
+  if (new Set(p.heights.filter((h) => h != null)).size > 1) {
+    gone(`a change container's readings are not all one height (${p.heights.join(', ')})`);
   }
   await page.waitForTimeout(500);
 }
