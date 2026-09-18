@@ -88,14 +88,21 @@ refuse the same way.
   through a token held on the web-tools origin, which a foreign origin does not
   have and must not be given, and Inspect lists what `gh.load()` fetched, which
   on a foreign page is nothing. What a foreign page does hold is its own
-  content, so the four panes are the answers it can give.
+  content, presented through a **vanilla swipe deck** with a collapsible header metadata disclosure.
 
-  | Pane | Holds |
-  | --- | --- |
-  | Page | title, address, description, and the selection, read on each open |
-  | Links | every off-page link, deduped by address, each one tickable |
-  | Text | the page's own prose, from its `<article>` or the densest block |
-  | Take | artifact extraction suite: full HTML snapshot, Markdown brief, Envelope JSON, and Jina AI Reader |
+  - **Header Metadata Disclosure (`[ ℹ Page Info ▾ ]`):** Title, address, meta description, and the user's current selection sit in an expandable header dropdown, freeing the entire drawer body for content.
+  - **Fullscreen Deck (`[ ⤢ ]`):** Toggle the drawer into full-bleed view directly from the header or the hold menu for reading on small screens or deep reading on desktop.
+
+  | Slide | Holds | Actions |
+  | --- | --- | --- |
+  | **Markdown** | Composed brief with metadata, selection, and readable prose | `[ Copy ]`, `[ Stage ]` |
+  | **Text** | Extracted page prose or live feed accumulation | `[ Include in MD ]`, `[ Collect ]` |
+  | **Links** | Deduplicated off-page link checklist | `[ All ]`, `[ None ]`, checkbox toggle |
+  | **HTML** | Clean outerHTML snapshot of the full page DOM | `[ Copy ]`, `[ Stage ]` |
+  | **JSON** | Structured envelope of page metadata, links, and prose | `[ Copy ]`, `[ Stage ]` |
+  | **Jina** | Live markdown from Jina AI Reader (`r.jina.ai`) | `Open in Jina ↗`, `[ Copy ]`, `[ Stage ]` |
+
+  **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by 6 tap-target pager dots (`● ○ ○ ○ ○ ○`) and a live character / KB counter.
 
   **Ambient Errand Sensing & Execution.** When visiting a host with an open errand
   registered in [`courier/errands.json`](../courier/errands.json), the launcher
@@ -103,15 +110,6 @@ refuse the same way.
   the hold-menu, and an Errand banner sits atop the drawer allowing one-tap
   execution directly in the host page context. Errand results can be copied or
   handed off directly to the Web Tools Stage via gzip compression in the URL fragment.
-
-  **Take / Content Extraction Suite.** Mirroring the primary Web Tools FAB "Take"
-  concept for arbitrary pages, the Take tab offers:
-  - **HTML:** Clean outerHTML snapshot of the full page DOM.
-  - **Markdown:** Composed document containing page metadata, user selection, and prose.
-  - **Metadata JSON:** Structured envelope of page metadata, links, and text.
-  - **Jina Reader:** Integration with Jina AI Reader (`r.jina.ai/<url>`) with fallback to "Open in Jina ↗".
-  Each artifact calculates live payload sizes and packages gzip streams into Stage
-  handoff links when under the 24 KB fragment budget.
 
   The header carries a **refresh**, because a read is a moment and a news front
   page is not. **Collect** answers the harder version: a virtual-scroll feed

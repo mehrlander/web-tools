@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '3cab829';
-const BUILT = '2026-09-18T14:48:10Z';
+const BUILD = '1757e7c';
+const BUILT = '2026-09-18T15:23:01Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -185,10 +185,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   // The selection is read when the drawer OPENS, not when the launcher mounts:
   // a page load has no selection, and the one the reader made a moment ago is
-  // the whole reason to reach for capture.
-  const state = { tab: 'page', links: [], text: '', picked: new Set(), withText: false,
+  const SLIDES = [
+    { id: 'md', label: 'Markdown', ext: 'md' },
+    { id: 'text', label: 'Text', ext: 'txt' },
+    { id: 'links', label: 'Links', ext: 'md' },
+    { id: 'html', label: 'HTML', ext: 'html' },
+    { id: 'json', label: 'JSON', ext: 'json' },
+    { id: 'jina', label: 'Jina', ext: 'md' },
+  ];
+
+  const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
-                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null, takeFmt: 'md' };
+                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null,
+                  fullscreen: false, metaOpen: false };
 
   // One markdown document, assembled from whatever is currently ticked. It is
   // markdown because the destination is a repo, where a capture that renders is
@@ -299,25 +308,45 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
              pointer-events: auto; overscroll-behavior: contain; }
     .panel.open { transform: translateX(0); }
     .head { padding: .625rem .875rem; border-bottom: 1px solid var(--wt-b300);
-            display: flex; align-items: center; gap: .5rem; }
-    .head > div { min-width: 0; flex: 1; }
-    .reread { flex: none; width: 2rem; height: 2rem; border: 0; border-radius: .5rem;
-              background: none; cursor: pointer; display: flex;
-              align-items: center; justify-content: center; }
-    .reread:active { background: var(--wt-b200); }
-    .reread svg { width: 1.125rem; height: 1.125rem; color: ${mix(P, 70)}; }
-    .bar button.on { color: var(--wt-p); }
-    .bar button.on::before { content: '● '; }
-    .head b { display: block; font-size: .875rem; font-weight: 600;
-              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .head small { display: block; font: 11px ui-monospace, monospace;
-                  color: ${mix('var(--wt-bc)', 60)}; }
-    .stale { display: block; margin-top: .25rem; font-size: 11px; font-weight: 600;
+            display: flex; flex-direction: column; gap: .25rem; flex: none; }
+    .head-top { display: flex; align-items: center; gap: .5rem; }
+    .head-top b { flex: 1; font-size: .875rem; font-weight: 600;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .head-actions { display: flex; align-items: center; gap: .125rem; flex: none; }
+    .icon-btn { width: 1.75rem; height: 1.75rem; border: 0; border-radius: .375rem;
+                background: none; cursor: pointer; display: flex;
+                align-items: center; justify-content: center; }
+    .icon-btn:hover { background: var(--wt-b200); }
+    .icon-btn svg { width: 1.05rem; height: 1.05rem; color: ${mix(P, 70)}; }
+    .head-sub { display: flex; align-items: center; gap: .5rem; }
+    .head-sub small { font: 11px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; flex: 1;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-toggle { display: inline-flex; align-items: center; gap: .25rem;
+                   padding: .125rem .375rem; border-radius: .25rem;
+                   border: 1px solid var(--wt-b300); background: var(--wt-b200);
+                   cursor: pointer; font: 600 10px ui-sans-serif, system-ui, sans-serif;
+                   color: ${mix('var(--wt-bc)', 75)}; flex: none; }
+    .meta-toggle:hover { background: var(--wt-b300); }
+    .meta-toggle svg { width: 11px; height: 11px; color: var(--wt-p); }
+    .meta-arr { font-size: 8px; transition: transform .2s; }
+    .meta-toggle.on .meta-arr { transform: rotate(180deg); }
+    .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
+                 background: var(--wt-b200); border: 1px solid var(--wt-b300);
+                 font-size: 11px; max-height: 10rem; overflow-y: auto; }
+    .page-meta[hidden] { display: none; }
+    .page-meta p { margin: 0 0 .375rem; overflow-wrap: break-word; }
+    .page-meta p:last-child { margin-bottom: 0; }
+    .page-meta .k { display: block; font: 10px ui-monospace, monospace;
+                    color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
+    .quote { border-left: 2px solid ${mix(P, 40)}; padding-left: .625rem;
+             color: ${mix('var(--wt-bc)', 80)}; }
+    .none { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
+    .stale { display: block; margin-top: .125rem; font-size: 11px; font-weight: 600;
              color: oklch(55% .17 40); }
     .stale[hidden] { display: none; }
 
     .errand-banner {
-      margin: .625rem .875rem .25rem; padding: .625rem .75rem; border-radius: .75rem;
+      margin: .5rem .875rem .25rem; padding: .625rem .75rem; border-radius: .75rem;
       background: ${mix('oklch(75% .18 55)', 12)};
       border: 1px solid ${mix('oklch(75% .18 55)', 40)};
       display: flex; flex-direction: column; gap: .375rem;
@@ -346,28 +375,40 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .errand-bar { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; }
     .errand-status { font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; margin-left: auto; }
 
-    .tabs { display: flex; border-bottom: 1px solid var(--wt-b300); flex: none; }
-    .tab { flex: 1; padding: .5rem; background: none; border: 0;
-           border-bottom: 2px solid transparent; cursor: pointer;
-           font-size: .8125rem; font-weight: 600; color: ${mix('var(--wt-bc)', 55)}; }
-    .tab.on { color: var(--wt-p); border-bottom-color: var(--wt-p); }
-    /* overscroll-contain here as well as on the panel: a scroll that reaches
-       its end must not hand the rest to the document, which inside a
-       sheet-presented in-app browser is the gesture that dismisses the sheet. */
-    .pane { flex: 1; overflow-y: auto; overscroll-behavior: contain;
-            padding: .75rem .875rem; }
-    .pane[hidden] { display: none; }
-    .pane p { margin: 0 0 .625rem; overflow-wrap: break-word; }
-    .k { display: block; font: 11px ui-monospace, monospace;
-         color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
-    .quote { border-left: 2px solid ${mix(P, 40)}; padding-left: .625rem;
-             color: ${mix('var(--wt-bc)', 80)}; }
-    .none { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
-    .bar { display: flex; align-items: center; gap: .5rem; padding: 0 .875rem .5rem; }
+    .deck-nav { border-bottom: 1px solid var(--wt-b300); flex: none; background: var(--wt-b100); }
+    .deck-bar { display: flex; overflow-x: auto; scrollbar-width: none;
+                padding: 0 .375rem; gap: .125rem; }
+    .deck-bar::-webkit-scrollbar { display: none; }
+    .deck-tab { padding: .4375rem .625rem; background: none; border: 0;
+                border-bottom: 2px solid transparent; cursor: pointer;
+                font-size: .8125rem; font-weight: 600; color: ${mix('var(--wt-bc)', 55)};
+                white-space: nowrap; flex: none; transition: all .15s; }
+    .deck-tab:hover { color: var(--wt-bc); }
+    .deck-tab.on { color: var(--wt-p); border-bottom-color: var(--wt-p); }
+
+    .deck-track {
+      display: flex; flex: 1; min-height: 0; width: 100%;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+      scrollbar-width: none; scroll-behavior: smooth;
+    }
+    .deck-track::-webkit-scrollbar { display: none; }
+    .deck-slide {
+      flex: 0 0 100%; width: 100%; height: 100%;
+      scroll-snap-align: start; scroll-snap-stop: always;
+      display: flex; flex-direction: column;
+      overflow-y: auto; overscroll-behavior-y: contain;
+      padding: .75rem .875rem; box-sizing: border-box;
+    }
+
+    .bar { display: flex; align-items: center; gap: .5rem; padding: 0 0 .5rem; flex: none; }
     .bar button { background: none; border: 0; cursor: pointer; padding: .25rem 0;
                   font-size: .75rem; font-weight: 600; color: var(--wt-p); }
+    .bar button.on { color: var(--wt-p); }
+    .bar button.on::before { content: '● '; }
     .bar .count { margin-left: auto; font: 11px ui-monospace, monospace;
                   color: ${mix('var(--wt-bc)', 55)}; }
+
     .link { display: flex; gap: .5rem; align-items: flex-start; width: 100%;
             padding: .375rem .25rem; background: none; border: 0;
             text-align: left; cursor: pointer; border-radius: .375rem; }
@@ -381,23 +422,36 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .link u { display: block; font: 10px ui-monospace, monospace; text-decoration: none;
               color: ${mix('var(--wt-bc)', 50)};
               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     .text { font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap;
             overflow-wrap: break-word; color: ${mix('var(--wt-bc)', 85)}; }
 
-    .take-fmt { font-weight: 500; }
-    .take-fmt.on { font-weight: 700; color: var(--wt-p); }
-    .take-content { min-height: 120px; }
-
     .foot { border-top: 1px solid var(--wt-b300);
-            padding: .625rem 5.25rem .625rem .875rem;
+            padding: .625rem .875rem;
             display: flex; gap: .5rem; align-items: center; flex: none; }
     .act { padding: .4375rem .875rem; border-radius: .5rem; cursor: pointer;
            border: 1px solid ${mix(P, 30)}; background: ${mix(P, 10)};
            color: var(--wt-p); font-size: .8125rem; font-weight: 600;
            text-decoration: none; display: inline-block; }
     .act.off { opacity: .4; pointer-events: none; }
-    .size { margin-left: auto; font: 11px ui-monospace, monospace;
-            color: ${mix('var(--wt-bc)', 55)}; text-align: right; }
+    .size { font: 11px ui-monospace, monospace;
+            color: ${mix('var(--wt-bc)', 55)}; text-align: right; white-space: nowrap; }
+
+    .pager { display: flex; align-items: center; justify-content: center;
+             gap: 2px; margin: 0 auto; flex: none; }
+    .dot { width: 22px; height: 22px; padding: 0; background: none; border: 0;
+           display: flex; align-items: center; justify-content: center;
+           cursor: pointer; border-radius: 9999px; }
+    .dot::before { content: ''; display: block; width: 6px; height: 6px;
+                   border-radius: 9999px; background: ${mix('var(--wt-bc)', 25)};
+                   transition: all .2s; }
+    .dot:hover::before { background: ${mix('var(--wt-bc)', 45)}; transform: scale(1.2); }
+    .dot.on::before { width: 16px; background: var(--wt-p); }
+
+    .panel.fullscreen {
+      width: 100vw; max-width: 100vw; height: 100dvh;
+      border-left: 0; border-radius: 0;
+    }
   `);
   root.adoptedStyleSheets = [sheet];
 
@@ -412,6 +466,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     lightning: 'M212.92,106.84A8,8,0,0,0,206,104H144V24a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,40,128h64v80a8,8,0,0,0,13.66,5.66l96-96A8,8,0,0,0,212.92,106.84Z',
     code: 'M69.66,154.34a8,8,0,0,1-11.32,11.32l-40-40a8,8,0,0,1,0-11.32l40-40a8,8,0,0,1,11.32,11.32L35.31,120Zm152-40a8,8,0,0,0-11.32-11.32l-40,40a8,8,0,0,0,0,11.32l40,40a8,8,0,0,0,11.32-11.32L180.69,120ZM101.44,213.6l56-176a8,8,0,0,0-15.28-4.8l-56,176a8,8,0,1,0,15.28,4.8Z',
     jina: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM192,152H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z',
+    expand: 'M208,40H160a8,8,0,0,0,0,16h28.69L141.34,103.34a8,8,0,0,0,11.32,11.32L200,67.31V96a8,8,0,0,0,16,0V48A8,8,0,0,0,208,40ZM103.34,141.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l47.35-47.34a8,8,0,0,0-11.32-11.32Z',
+    collapse: 'M205.66,106.34a8,8,0,0,0,2.34-5.66V56a8,8,0,0,0-16,0V84.69L144.66,37.34a8,8,0,0,0-11.32,11.32L180.69,96H152a8,8,0,0,0,0,16h48A8,8,0,0,0,205.66,106.34ZM104,144H56a8,8,0,0,0,0,16H84.69L37.34,207.34a8,8,0,0,0,11.32,11.32L96,171.31V200a8,8,0,0,0,16,0V152A8,8,0,0,0,104,144Z',
+    info: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z',
   };
 
   const layer = document.createElement('div');
@@ -419,8 +476,24 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   layer.innerHTML = `
     <div class="panel">
       <div class="head">
-        <div><b></b><small></small><span class="stale" hidden></span></div>
-        <button class="reread" aria-label="Read this page again">${svg(ICON.refresh)}</button>
+        <div class="head-top">
+          <b></b>
+          <div class="head-actions">
+            <button class="icon-btn toggle-fullscreen" aria-label="Toggle Fullscreen Deck" title="Toggle Fullscreen">${svg(ICON.expand)}</button>
+            <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
+          </div>
+        </div>
+        <div class="head-sub">
+          <small></small>
+          <button type="button" class="meta-toggle" aria-expanded="false">${svg(ICON.info)}<span>Page Info</span><span class="meta-arr">▾</span></button>
+        </div>
+        <span class="stale" hidden></span>
+        <div class="page-meta" hidden>
+          <p><span class="k">TITLE</span><span class="meta-title"></span></p>
+          <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
+          <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
+          <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+        </div>
       </div>
       <div class="errand-banner" hidden>
         <span class="errand-tag">${svg(ICON.lightning)} Errand Available</span>
@@ -436,41 +509,66 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <textarea class="errand-out" readonly></textarea>
         </div>
       </div>
-      <div class="tabs">
-        <button class="tab on" data-tab="page">Page</button>
-        <button class="tab" data-tab="links">Links</button>
-        <button class="tab" data-tab="text">Text</button>
-        <button class="tab" data-tab="take">Take</button>
-      </div>
-      <div class="pane" data-pane="page"></div>
-      <div class="pane" data-pane="links" hidden>
-        <div class="bar">
-          <button data-all>All</button><button data-none>None</button>
-          <span class="count"></span>
+      <div class="deck-nav">
+        <div class="deck-bar">
+          <button class="deck-tab on" data-slide="0">Markdown</button>
+          <button class="deck-tab" data-slide="1">Text</button>
+          <button class="deck-tab" data-slide="2">Links</button>
+          <button class="deck-tab" data-slide="3" data-take-html>HTML</button>
+          <button class="deck-tab" data-slide="4">JSON</button>
+          <button class="deck-tab" data-slide="5">Jina</button>
         </div>
-        <div data-list></div>
       </div>
-      <div class="pane" data-pane="text" hidden>
-        <div class="bar">
-          <button data-toggle-text></button>
-          <button data-collect></button>
-          <span class="count"></span>
+      <div class="deck-track" tabindex="0">
+        <!-- Slide 0: Markdown -->
+        <div class="deck-slide" data-slide-i="0">
+          <div class="text slide-content md-content"></div>
         </div>
-        <div class="text"></div>
-      </div>
-      <div class="pane" data-pane="take" hidden>
-        <div class="bar">
-          <button class="take-fmt on" data-fmt="md">Markdown</button>
-          <button class="take-fmt" data-fmt="html" data-take-html>HTML</button>
-          <button class="take-fmt" data-fmt="json">JSON</button>
-          <button class="take-fmt" data-fmt="jina">Jina</button>
-          <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" hidden style="font-size:11px;margin-left:auto;color:var(--wt-p);text-decoration:none">Open ↗</a>
+        <!-- Slide 1: Text -->
+        <div class="deck-slide" data-slide-i="1">
+          <div class="bar">
+            <button data-toggle-text></button>
+            <button data-collect></button>
+            <span class="count text-count"></span>
+          </div>
+          <div class="text slide-content text-content"></div>
         </div>
-        <div class="text take-content"></div>
+        <!-- Slide 2: Links -->
+        <div class="deck-slide" data-slide-i="2">
+          <div class="bar">
+            <button data-all>All</button><button data-none>None</button>
+            <span class="count links-count"></span>
+          </div>
+          <div data-list class="links-list"></div>
+        </div>
+        <!-- Slide 3: HTML -->
+        <div class="deck-slide" data-slide-i="3">
+          <div class="text slide-content html-content"></div>
+        </div>
+        <!-- Slide 4: JSON -->
+        <div class="deck-slide" data-slide-i="4">
+          <div class="text slide-content json-content"></div>
+        </div>
+        <!-- Slide 5: Jina -->
+        <div class="deck-slide" data-slide-i="5">
+          <div class="bar">
+            <span class="count jina-status">Clean reader markdown</span>
+            <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" style="font-size:11px;margin-left:auto;color:var(--wt-p);text-decoration:none">Open in Jina ↗</a>
+          </div>
+          <div class="text slide-content jina-content"></div>
+        </div>
       </div>
       <div class="foot">
         <button class="act" data-copy>Copy</button>
-        <a class="act" data-send>Send</a>
+        <a class="act" data-send>Stage</a>
+        <div class="pager" aria-label="Deck pagination">
+          <button class="dot on" data-go="0" aria-label="Slide 1: Markdown"></button>
+          <button class="dot" data-go="1" aria-label="Slide 2: Text"></button>
+          <button class="dot" data-go="2" aria-label="Slide 3: Links"></button>
+          <button class="dot" data-go="3" aria-label="Slide 4: HTML"></button>
+          <button class="dot" data-go="4" aria-label="Slide 5: JSON"></button>
+          <button class="dot" data-go="5" aria-label="Slide 6: Jina"></button>
+        </div>
         <span class="size"></span>
       </div>
     </div>`;
@@ -480,6 +578,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   wrap.innerHTML = `
     <div class="menu" hidden>
       <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
+      <button class="row" data-menu-deck>${svg(ICON.expand)}<span>Fullscreen Deck</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
       <button class="row" data-menu-html>${svg(ICON.code)}<span>Copy HTML</span></button>
       <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
@@ -523,54 +622,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       op: 'capture', name: 'launcher', build: BUILD,
       title: page.title, href: page.href, md,
     }));
-
-  // The readout is the whole of the size story: what this capture weighs, and
-  // whether Send can carry it. Saying "too big for Send, use Copy" is the point
-  // of measuring at all, since the alternative is a URL that arrives truncated
-  // and reads as complete.
-  const refresh = () => {
-    if (state.tab === 'take') {
-      const text = getTakeText(state.takeFmt);
-      const slug = pageSlug();
-      const ext = (state.takeFmt === 'html') ? 'html' : (state.takeFmt === 'json') ? 'json' : 'md';
-      packToStage(`${slug}.${ext}`, text).then(url => {
-        if (state.tab !== 'take') return;
-        if (url) {
-          sendEl.href = url;
-          sendEl.textContent = 'Stage';
-          sendEl.classList.remove('off');
-          q('.size').textContent = (text.length > 10000)
-            ? `${Math.round(text.length / 1024)} KB`
-            : `${text.length} chars`;
-        } else {
-          sendEl.removeAttribute('href');
-          sendEl.textContent = 'Send';
-          sendEl.classList.add('off');
-          q('.size').textContent = (text.length > 10000)
-            ? `${Math.round(text.length / 1024)} KB · Copy only`
-            : `${text.length} chars · Copy only`;
-        }
-      });
-      return;
-    }
-
-    sendEl.textContent = 'Send';
-    const md = compose();
-    const url = shortcutUrl(md);
-    const ok = url.length <= SEND_MAX;
-    sendEl.href = ok ? url : '';
-    sendEl.classList.toggle('off', !ok);
-    q('.size').textContent = ok ? `${md.length} chars` : `${md.length} chars · Copy only`;
-    q('[data-pane="links"] .count').textContent = `${state.picked.size}/${state.links.length}`;
-    const t = q('[data-toggle-text]');
-    t.textContent = state.withText ? 'Included' : 'Include';
-    const c = q('[data-collect]');
-    c.textContent = state.collect ? 'Collecting' : 'Collect';
-    c.classList.toggle('on', state.collect);
-    q('[data-pane="text"] .count').textContent = state.blocks.length
-      ? `${state.blocks.length} blocks · ${state.blockChars} chars`
-      : `${state.text.length} chars`;
-  };
 
   const pageSlug = () => (location.hostname + location.pathname)
     .replace(/[^a-zA-Z0-9_-]+/g, '-')
@@ -622,8 +673,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return res.text();
   };
 
-  const getTakeText = (fmt = state.takeFmt) => {
-    switch (fmt) {
+  const getSlideText = (i = state.slide) => {
+    const slide = SLIDES[i] || SLIDES[0];
+    switch (slide.id) {
+      case 'md':
+        return compose();
+      case 'text':
+        return state.blocks.length ? state.blocks.join('\n\n') : (state.text || '');
+      case 'links': {
+        const target = state.picked.size
+          ? state.links.filter(l => state.picked.has(l.href))
+          : state.links;
+        return target.map(l => `- [${l.text || l.href}](${l.href})`).join('\n');
+      }
       case 'html':
         return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
       case 'json':
@@ -637,34 +699,187 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         }, null, 2);
       case 'jina':
         return state.jinaMd || '';
-      case 'md':
       default:
-        return compose();
+        return '';
     }
   };
 
-  const showTake = async (fmt = state.takeFmt) => {
-    state.takeFmt = fmt;
-    root.querySelectorAll('.take-fmt').forEach(b => b.classList.toggle('on', b.dataset.fmt === fmt));
-    const contentEl = q('.take-content');
-    const jinaExt = q('.jina-ext');
-    if (jinaExt) jinaExt.hidden = (fmt !== 'jina');
+  const renderPageMeta = () => {
+    const titleEl = q('.meta-title');
+    const hrefEl = q('.meta-href');
+    const descWrap = q('.meta-desc-wrap');
+    const descEl = q('.meta-desc');
+    const selEl = q('.meta-sel');
 
-    if (fmt === 'jina' && !state.jinaMd) {
-      contentEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
-      try {
-        const res = await fetchText('https://r.jina.ai/' + page.href, { Accept: 'text/markdown, text/plain, */*' });
-        state.jinaMd = res;
-        if (state.takeFmt === 'jina') contentEl.textContent = res;
-      } catch {
-        if (state.takeFmt === 'jina') {
-          contentEl.textContent = 'Direct fetch blocked by page CSP. Tap "Open ↗" above to view in Jina Reader.';
-        }
+    if (titleEl) titleEl.textContent = page.title;
+    if (hrefEl) hrefEl.textContent = page.href;
+    if (descWrap && descEl) {
+      if (page.description) {
+        descEl.textContent = page.description;
+        descWrap.hidden = false;
+      } else {
+        descWrap.hidden = true;
       }
-    } else {
-      contentEl.textContent = getTakeText(fmt);
+    }
+    if (selEl) {
+      if (state.sel) {
+        selEl.textContent = state.sel.slice(0, 600);
+        selEl.className = 'meta-sel quote';
+      } else {
+        selEl.textContent = 'Nothing selected. Select text on the page, then reopen.';
+        selEl.className = 'meta-sel none';
+      }
+    }
+  };
+
+  const toggleMeta = on => {
+    state.metaOpen = typeof on === 'boolean' ? on : !state.metaOpen;
+    const metaEl = q('.page-meta');
+    const toggleBtn = q('.meta-toggle');
+    if (metaEl) metaEl.hidden = !state.metaOpen;
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('on', state.metaOpen);
+      toggleBtn.setAttribute('aria-expanded', String(state.metaOpen));
+      const arr = toggleBtn.querySelector('.meta-arr');
+      if (arr) arr.textContent = state.metaOpen ? '▴' : '▾';
+    }
+  };
+
+  const toggleFullscreen = on => {
+    state.fullscreen = typeof on === 'boolean' ? on : !state.fullscreen;
+    panel.classList.toggle('fullscreen', state.fullscreen);
+    const fsBtn = q('.toggle-fullscreen');
+    if (fsBtn) {
+      fsBtn.innerHTML = svg(state.fullscreen ? ICON.collapse : ICON.expand);
+      fsBtn.setAttribute('aria-label', state.fullscreen ? 'Exit Fullscreen' : 'Fullscreen Deck');
+      fsBtn.setAttribute('title', state.fullscreen ? 'Exit Fullscreen' : 'Fullscreen Deck');
+    }
+    setTimeout(() => goToSlide(state.slide, false), 50);
+  };
+
+  const loadJina = async () => {
+    const contentEl = q('.jina-content');
+    const statusEl = q('.jina-status');
+    if (state.jinaMd) {
+      contentEl.textContent = state.jinaMd;
+      if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina Reader`;
+      refresh();
+      return;
+    }
+    contentEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
+    if (statusEl) statusEl.textContent = 'Reading…';
+    try {
+      const res = await fetchText('https://r.jina.ai/' + page.href, { Accept: 'text/markdown, text/plain, */*' });
+      state.jinaMd = res;
+      contentEl.textContent = res;
+      if (statusEl) statusEl.textContent = `${res.length.toLocaleString()} chars · Jina Reader`;
+    } catch {
+      contentEl.textContent = 'Direct fetch blocked by page CSP. Tap "Open in Jina ↗" above to read in Jina Reader.';
+      if (statusEl) statusEl.textContent = 'Blocked by CSP';
     }
     refresh();
+  };
+
+  const renderActiveSlide = (i = state.slide) => {
+    const slide = SLIDES[i] || SLIDES[0];
+    switch (slide.id) {
+      case 'md':
+        q('.md-content').textContent = compose();
+        break;
+      case 'text': {
+        const textContent = q('.text-content');
+        if (textContent) {
+          textContent.textContent = state.blocks.length
+            ? state.blocks.join('\n\n')
+            : (state.collect ? 'Nothing collected yet. Scroll the page.' : (state.text || 'No readable text found.'));
+        }
+        break;
+      }
+      case 'links':
+        renderLinks();
+        break;
+      case 'html': {
+        const html = document.documentElement.outerHTML;
+        q('.html-content').textContent = '<!DOCTYPE html>\n' + (html.length > 50000 ? html.slice(0, 50000) + '\n\n… [preview truncated for display; Copy and Stage export complete HTML]' : html);
+        break;
+      }
+      case 'json':
+        q('.json-content').textContent = getSlideText(i);
+        break;
+      case 'jina':
+        loadJina();
+        break;
+    }
+    refresh();
+  };
+
+  const syncSlideUI = i => {
+    if (i < 0 || i >= SLIDES.length) return;
+    state.slide = i;
+    root.querySelectorAll('.deck-tab').forEach((t, idx) => {
+      t.classList.toggle('on', idx === i);
+      if (idx === i) t.scrollIntoView({ inline: 'nearest', behavior: 'smooth' });
+    });
+    root.querySelectorAll('.pager .dot').forEach((d, idx) => {
+      d.classList.toggle('on', idx === i);
+    });
+    renderActiveSlide(i);
+  };
+
+  const goToSlide = (i, smooth = true) => {
+    const track = q('.deck-track');
+    if (!track) return;
+    const w = track.clientWidth || panel.clientWidth;
+    track.scrollTo({ left: i * w, behavior: smooth ? 'smooth' : 'auto' });
+    syncSlideUI(i);
+  };
+
+  // The readout is the whole of the size story: what this capture weighs, and
+  // whether Stage can carry it. Saying "too big for Stage, use Copy" is the point
+  // of measuring at all, since the alternative is a URL that arrives truncated
+  // and reads as complete.
+  const refresh = () => {
+    const slide = SLIDES[state.slide] || SLIDES[0];
+    const text = getSlideText(state.slide);
+    const slug = pageSlug();
+    const filename = `${slug}-${slide.id}.${slide.ext}`;
+
+    packToStage(filename, text).then(url => {
+      if (url) {
+        sendEl.href = url;
+        sendEl.textContent = 'Stage';
+        sendEl.classList.remove('off');
+        q('.size').textContent = (text.length > 10000)
+          ? `${Math.round(text.length / 1024)} KB`
+          : `${text.length} chars`;
+      } else {
+        sendEl.removeAttribute('href');
+        sendEl.textContent = 'Stage';
+        sendEl.classList.add('off');
+        q('.size').textContent = (text.length > 10000)
+          ? `${Math.round(text.length / 1024)} KB · Copy only`
+          : `${text.length} chars · Copy only`;
+      }
+    });
+
+    const linksCount = q('.links-count');
+    if (linksCount) linksCount.textContent = `${state.picked.size}/${state.links.length} picked`;
+    const t = q('[data-toggle-text]');
+    if (t) {
+      t.textContent = state.withText ? 'Included in MD' : 'Include in MD';
+      t.classList.toggle('on', state.withText);
+    }
+    const c = q('[data-collect]');
+    if (c) {
+      c.textContent = state.collect ? 'Collecting…' : 'Collect';
+      c.classList.toggle('on', state.collect);
+    }
+    const textCount = q('.text-count');
+    if (textCount) {
+      textCount.textContent = state.blocks.length
+        ? `${state.blocks.length} blocks · ${state.blockChars} chars`
+        : `${state.text.length} chars`;
+    }
   };
 
   const runActiveErrand = async () => {
@@ -753,36 +968,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       '<p class="none">No links on this page.</p>';
   };
 
-  const renderPage = () => {
-    q('[data-pane="page"]').innerHTML = `
-      <p><span class="k">TITLE</span>${esc(page.title)}</p>
-      <p><span class="k">ADDRESS</span>${esc(page.href)}</p>
-      ${page.description ? `<p><span class="k">DESCRIPTION</span>${esc(page.description)}</p>` : ''}
-      <p><span class="k">SELECTION</span>${state.sel
-        ? `<span class="quote">${esc(state.sel.slice(0, 600))}</span>`
-        : '<span class="none">Nothing selected. Select text on the page, then reopen.</span>'}</p>`;
-  };
-
-  const showText = () => {
-    q('[data-pane="text"] .text').textContent = state.blocks.length
-      ? state.blocks.join('\n\n')
-      : (state.collect ? 'Nothing collected yet. Scroll the page.'
-                       : (state.text || 'No readable text found.'));
-  };
 
   // One read of the page, run on the first open and by the header's refresh.
   // Ticked links survive it: state.picked holds addresses, so a link still on
   // the page comes back ticked and one that has gone simply stops being listed.
-  // The one read path: the first open, the header's refresh, and each pass of
-  // the watcher all come through here, so there is one answer to what a read
-  // does rather than three that drift.
   const readPage = () => {
     const newLinks = readLinks();
     if (!state.blocks.length) state.text = readText();
     const newBlocks = state.collect || state.blocks.length ? collectBlocks() : 0;
+    renderPageMeta();
     if (newLinks) renderLinks();
-    if (newBlocks || newLinks) showText();
-    refresh();
+    renderActiveSlide(state.slide);
   };
 
   // Built on the first open rather than at mount, for the reason the fab builds
@@ -791,17 +987,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const openDrawer = () => {
     state.sel = clean(String(getSelection() || ''));
     if (!read) { readPage(); checkBuild(); read = true; }
-    renderPage();
-    refresh();
-    if (state.tab === 'take') showTake();
+    renderPageMeta();
+    renderActiveSlide(state.slide);
     panel.classList.add('open');
     btn.classList.add('on');
+    requestAnimationFrame(() => goToSlide(state.slide, false));
   };
 
   q('.reread').onclick = () => {
     readPage();
-    renderPage();
-    if (state.tab === 'take') showTake();
     checkBuild(true);
     const b = q('.reread');
     b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
@@ -850,46 +1044,80 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.picked.has(href) ? state.picked.delete(href) : state.picked.add(href);
     el.classList.toggle('on', state.picked.has(href));
     refresh();
+    if (state.slide === 0) q('.md-content').textContent = compose();
   });
-  q('[data-all]').onclick = () => { state.links.forEach(l => state.picked.add(l.href)); renderLinks(); refresh(); };
-  q('[data-none]').onclick = () => { state.picked.clear(); renderLinks(); refresh(); };
-  q('[data-toggle-text]').onclick = () => { state.withText = !state.withText; refresh(); };
+  q('[data-all]').onclick = () => {
+    state.links.forEach(l => state.picked.add(l.href));
+    renderLinks();
+    refresh();
+    if (state.slide === 0) q('.md-content').textContent = compose();
+  };
+  q('[data-none]').onclick = () => {
+    state.picked.clear();
+    renderLinks();
+    refresh();
+    if (state.slide === 0) q('.md-content').textContent = compose();
+  };
+  q('[data-toggle-text]').onclick = () => {
+    state.withText = !state.withText;
+    refresh();
+    if (state.slide === 0) q('.md-content').textContent = compose();
+  };
   q('[data-collect]').onclick = () => {
     state.collect = !state.collect;
-    // Turning it on seeds from what is on screen now, so the first thing you
-    // see is a count rather than an empty pane; turning it off freezes what was
-    // gathered rather than discarding it, since discarding a scroll nobody can
-    // repeat is the one unrecoverable move here.
     state.collect ? startCollecting() : stopCollecting();
     if (state.collect) state.withText = true;
-    showText();
+    renderActiveSlide(1);
     refresh();
+    if (state.slide === 0) q('.md-content').textContent = compose();
   };
 
-  root.querySelectorAll('.tab').forEach(t => t.onclick = () => {
-    state.tab = t.dataset.tab;
-    root.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
-    root.querySelectorAll('.pane').forEach(p => p.hidden = p.dataset.pane !== state.tab);
-    // The extract is dropped in only when its pane is first looked at: it can
-    // run to a hundred thousand characters, and laying that out behind a tab
-    // nobody opened is work for nothing.
-    if (state.tab === 'text' && !q('[data-pane="text"] .text').textContent) showText();
-    if (state.tab === 'take') showTake();
-    refresh();
+  // Deck scrolling & pagination
+  const track = q('.deck-track');
+  let scrollTimer = 0;
+  track.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      const w = track.clientWidth;
+      if (!w) return;
+      const idx = Math.round(track.scrollLeft / w);
+      const clamped = Math.max(0, Math.min(SLIDES.length - 1, idx));
+      if (clamped !== state.slide) syncSlideUI(clamped);
+    }, 60);
+  }, { passive: true });
+
+  root.querySelectorAll('.deck-tab').forEach(tab => {
+    tab.onclick = () => {
+      const i = parseInt(tab.dataset.slide, 10);
+      goToSlide(i);
+    };
   });
+  root.querySelectorAll('.pager .dot').forEach(dot => {
+    dot.onclick = () => {
+      const i = parseInt(dot.dataset.go, 10);
+      goToSlide(i);
+    };
+  });
+
+  q('.meta-toggle').onclick = () => toggleMeta();
+  q('.toggle-fullscreen').onclick = () => toggleFullscreen();
 
   // The clipboard is the route with no ceiling, and it needs the user gesture
   // it is already inside. A refusal is reported on the button rather than
   // thrown away, since a Copy that silently did nothing is the worst outcome.
   copyEl.onclick = () => {
-    const text = (state.tab === 'take') ? getTakeText(state.takeFmt) : compose();
-    copyText(text, copyEl);
+    copyText(getSlideText(state.slide), copyEl);
   };
   sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
 
-  root.querySelectorAll('.take-fmt').forEach(b => b.onclick = () => {
-    showTake(b.dataset.fmt);
-  });
+  const menuDeck = q('[data-menu-deck]');
+  if (menuDeck) {
+    menuDeck.onclick = () => {
+      setMenu(false);
+      openDrawer();
+      toggleFullscreen(true);
+    };
+  }
 
   q('[data-menu-html]').onclick = () => {
     copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-menu-html] span'), 'Copied HTML');

@@ -121,10 +121,11 @@ test('the manifest names nothing that has no body', () => {
     'ships: ' + orphans.join(', '));
 });
 
-test('launcher body includes errand sensing and take artifact definitions', () => {
+test('launcher body includes errand sensing, swipe deck, and artifact definitions', () => {
   const text = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', 'launcher.js'), 'utf8');
   assert.match(text, /ERRANDS_MANIFEST/, 'launcher must define ERRANDS_MANIFEST');
-  assert.match(text, /data-tab="take"/, 'launcher must have a Take tab');
+  assert.match(text, /deck-track/, 'launcher must have a swipe deck track');
+  assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
   assert.match(text, /errand-banner/, 'launcher must have an errand banner');
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
