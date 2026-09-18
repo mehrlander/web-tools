@@ -31,14 +31,12 @@
     #gz=<base64url gzip>           carry it inline, for a token-less reader
   Both also read from ?query, for a context that strips fragments.
 
-  WHAT THE RETURN LEG NEEDS IS THE TOKEN, NOT THE TOP WINDOW, and the first
-  draft of this page tested the wrong one. It refused whenever it was framed,
-  which condemned the app, whose view iframe carries allow-same-origin and can
-  therefore read this origin's localStorage perfectly well. toss-render is the
-  frame that cannot: it sandboxes payloads WITHOUT allow-same-origin on purpose,
-  since anyone can craft a toss link and this origin holds a gh token. So the
-  page asks the question the return leg actually depends on, which answers both
-  cases, and offers its direct address where the answer is no.
+  THE TOKEN IS NOT SPECIAL HERE, and two drafts of this page treated it as
+  though it were. The first refused whenever it was framed; the second kept a
+  pre-flight probe, a flag, dimmed buttons and a banner about sandboxes. A
+  verdict is a commit like any other commit this estate makes: the page reads
+  the token the way kits/annotate.js reads it for a jot, writes, and reports
+  what the write said. Nothing is asked in advance.
 
   Diff cards are alpineComponents/file-review.js, the same component
   pages/review.html mounts per changed file, so a reviewer here sees exactly
@@ -98,19 +96,6 @@
   </div>
   <div x-show="error" class="alert alert-error py-2 px-3">
     <i class="ph ph-warning-circle"></i><span x-text="error"></span>
-  </div>
-
-  <!-- The test is whether the TOKEN is reachable, not whether this is framed.
-       The app frames its views with allow-same-origin, so this origin's
-       localStorage is readable there and the return leg works. toss-render
-       sandboxes WITHOUT it, deliberately, because anyone can craft a toss link
-       and this origin holds a gh token. Asking the question the return leg
-       actually depends on answers both cases correctly; asking about the frame
-       answered neither. -->
-  <div x-show="!canPost" class="alert alert-warning py-2 px-3">
-    <i class="ph ph-key"></i>
-    <span class="text-balance">No token reachable here, so a verdict cannot be posted. A toss sandbox withholds it by design.</span>
-    <a :href="direct" target="_blank" class="btn btn-sm">Open directly</a>
   </div>
 
   <!-- The author's reason, first. It is what the decision is about; the diffs
@@ -201,13 +186,13 @@
        decision surface whose "no" is harder to reach than its "yes" collects
        agreement rather than decisions. -->
   <div class="flex gap-2 items-center" x-show="env && !sent">
-    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending || !canPost">
+    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending">
       <i class="ph ph-arrow-u-up-left"></i> Return
     </button>
-    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !canPost || !notes.length">
+    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !notes.length">
       <i class="ph ph-pencil-simple"></i> With edits
     </button>
-    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending || !canPost">
+    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending">
       <i class="ph ph-check"></i> Approve
     </button>
   </div>
@@ -221,30 +206,24 @@ document.addEventListener('alpine:init', () => {
     env: null, items: [], notes: [],
     loading: true, error: '', sending: false, sent: '', sentPath: '', decision: '',
     noting: false,
-    // Probed once at init rather than derived from the frame: a sandbox without
-    // allow-same-origin THROWS on the localStorage accessor, so the try/catch is
-    // the test, and an empty store is the same no as an unreachable one.
-    canPost: true,
-
-    // THE TOKEN, AND WHY THIS PAGE KEPT SAYING IT HAD NONE. It read
-    // `window.TOKEN`, which nothing on this page sets: only app/index.html and
-    // repo-atlas.html define that global, each with their own three lines. So a
-    // reader with a perfectly good token saw the verdict buttons dimmed, here
-    // and in a toss alike, and the surface could never be used at all. Measured
-    // 2026-09-18: localStorage reachable in the frame, `window.TOKEN` undefined.
+    // THE TOKEN, THE WAY EVERY OTHER WRITER HERE GETS IT. The global a shell
+    // sets, else this origin's store, and a write that finds neither fails at
+    // the write. It is kits/annotate.js's three lines for a jot, and a verdict
+    // is not a different kind of act.
     //
-    // `window.ghAuth.resolve()` is the shared reader, so this asks it. The
-    // global stays first, for a host that framed this page and set one.
+    // It used to be a pre-flight probe, a `canPost` flag, dimmed buttons and a
+    // banner about sandboxes. All of it was answering a question no other page
+    // asks, and answering it wrong: the flag was set from `window.TOKEN`, which
+    // only app/index.html and pages/repo-atlas.html ever define, so a reader
+    // holding a perfectly good token was told there was none. Measured
+    // 2026-09-18, tossed with a token in the store: readable, `window.TOKEN`
+    // undefined, buttons dead. The surface had never been usable.
     get token() {
       if (window.TOKEN) return window.TOKEN;
-      try { return (window.ghAuth && window.ghAuth.resolve()) || ''; } catch (e) { return ''; }
+      try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
     },
 
     get ctx() { return this.env?.context || {}; },
-    get direct() {
-      return 'https://mehrlander.github.io/web-tools/pages/approve.html' + location.hash;
-    },
-
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -267,10 +246,6 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       await window.__depsReady;
-      try {
-        localStorage.getItem('ghToken');      // throws under an opaque origin
-        this.canPost = !!this.token;
-      } catch (e) { this.canPost = false; }
       try {
         const gz = this.param('gz');
         const src = this.param('src');
