@@ -30,7 +30,11 @@ const { window } = makeWindow();
 window.marked = marked;
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;
-for (const kit of ['guide-render.js', 'md-diff.js']) {
+// swipe-deck too, because the render-level cases below build a real container
+// and a container is a deck. The kit is framework-free and does not mind jsdom;
+// what it cannot do there is lay anything out, which is why the assertions ask
+// which readings a block offers rather than where they sit.
+for (const kit of ['guide-render.js', 'swipe-deck.js', 'md-diff.js']) {
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits', kit), 'utf8'))(window, window.document);
 }
 const mdDiff = window.mdDiff;
@@ -262,4 +266,39 @@ test('marking a block with no change leaves the tree alone', () => {
   const html = box.innerHTML;
   mdDiff.mark(box, mdDiff.runs(box.textContent, box.textContent));
   assert.equal(box.innerHTML, html);
+});
+
+test('a wholly new block has one reading, as a wholly removed one does', () => {
+  // With no old text, `inline` and `new` are the same words twice: the marked
+  // reading is the paragraph washed green and the other is the paragraph. A
+  // reader met three such blocks and asked what the second stop was for, which
+  // is the question a control earns when it changes nothing.
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const stops = (kind) => [...host.querySelectorAll('.md-diff-change')]
+    .map((b) => [...b.querySelectorAll('button')].map((x) => x.textContent.trim())
+      .filter((t) => /^(old|inline|new|added|removed)$/.test(t)));
+
+  return mdDiff.render(host,
+    'Keep this paragraph.\n\nAnd keep this one too.\n',
+    'Keep this paragraph.\n\nA paragraph that is wholly new.\n\nAnd keep this one too.\n',
+  ).then(() => {
+    assert.deepEqual(stops(), [['added']], 'an added block offers one reading, named');
+    host.remove();
+  });
+});
+
+test('a wholly removed block still has its one reading', () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  return mdDiff.render(host,
+    'Keep this paragraph.\n\nA paragraph that goes away.\n\nAnd keep this one too.\n',
+    'Keep this paragraph.\n\nAnd keep this one too.\n',
+  ).then(() => {
+    const stops = [...host.querySelectorAll('.md-diff-change')]
+      .map((b) => [...b.querySelectorAll('button')].map((x) => x.textContent.trim())
+        .filter((t) => /^(old|inline|new|added|removed)$/.test(t)));
+    assert.deepEqual(stops, [['removed']]);
+    host.remove();
+  });
 });
