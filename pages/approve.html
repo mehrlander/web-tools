@@ -59,6 +59,8 @@
   try {
     await gh.load('gh-store.js');
     await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/subject-channel.js');
+    await gh.load('kits/file-deck.js');
     await gh.load('kits/cm6-merge.js');
     await gh.load('alpineComponents/file-review.js');
     await gh.load('kits/annotate.js');
@@ -107,73 +109,17 @@
        template per item and gives each clone its own `it` before Alpine
        initialises it, which is the ordinary way to hand one record to one
        subtree. -->
-  <!-- A SLIDE IS THE DOCUMENT, AND NOTHING ELSE IS ON IT.
-       It carried four things above the file: the item's title and change
-       status, its `commentary`, a `deferred_because` note, and its `related`
-       links under "Answers to". Every one of them is the REQUEST talking about
-       the change rather than the change itself, and a reader arriving to judge
-       wording met a paragraph of justification before the first line of it.
-       Reported 2026-09-18: "we don't want to read a discussion of your
-       justification there, we just want to see the thing."
-
-       The envelope still carries all four. This page stops drawing them, which
-       is a presentation decision rather than a schema one: the fields are the
-       record of why the request was made, and the place to argue about a
-       request is the conversation that produced it.
-
-       What the title said is now the deck's header, which is where a reader
-       looks for the name of what they are reading, and it follows the slide so
-       it names the file in front of them rather than the set. -->
-  <template x-ref="itemTpl">
-    <!-- THE GUTTER IS RESERVED ON BOTH EDGES, and that is what keeps the
-         document centred. This section is the scroller, so where the browser
-         draws a CLASSIC scrollbar it takes the space out of the right side of
-         the content box: the changed blocks' left ring sat 4px from the
-         viewport and the right ring 4px plus the scrollbar's width, which
-         reads as one wide margin rather than as a scrollbar. Reported
-         2026-09-18 from a desktop browser; headless Chromium here draws
-         OVERLAY scrollbars, which take no space at all, so the asymmetry does
-         not reproduce in a shot and was measured off the reader's screen.
-         AND IT IS GATED AT `sm:`, because `stable` reserves the gutter whether
-         or not the scrollbar would have taken it. Measured here: unconditional,
-         it cost 20px of width at every size, so a phone whose scrollbar
-         overlays and takes nothing would have paid 10 a side for a bar that
-         does not exist. There is no media query for "this browser draws
-         classic scrollbars", so the width stands in for it: overlay below 640,
-         classic above, which is how these two populations actually divide.
-         `thin` applies at every size and is the other half, since a reserved
-         gutter is only tolerable when it is narrow. -->
-    <section data-slide class="h-full overflow-y-auto [scrollbar-width:thin]
-                               sm:[scrollbar-gutter:stable_both-edges]
-                               px-2 py-2 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
-
-        <!-- read: true, which is the card's READING mode. Its own design note
-             says the four source tabs are four readings of one fixed pair,
-             right for scanning thirty rows in a list and wrong for reading one
-             file, where the question is not which rendering but against what.
-             A reading host hands that question up and the strip collapses to
-             the document plus one Compare pane. Mounted without it, an
-             approval showed five tabs and opened on Patch, which is the rawest
-             view of a change someone is being asked to judge.
-
-             openOn: 'mddiff' is the second half of that. A reading card lands
-             on the document, which is right for a deck you are browsing and
-             wrong here: this page exists to judge a CHANGE, and a reviewer
-             handed the finished document has to find what moved before they
-             can weigh it. The rendered comparison is that document with the
-             change marked in it, so it is the same reading with the question
-             answered. The card falls back to the document where the file has
-             no rendered comparison to offer. -->
-        <div x-show="ctx.kind === 'documentation' && pathOf(it)"
-             x-data="fileReview({
-               repo: repoOf(), ref: ctx.branch, base: baseOf(), baseName: baseOf(),
-               path: pathOf(it), prevPath: it.change?.previous_path,
-               status: it.change?.status, patch: it.change?.patch,
-               open: true, bare: true, read: true, openOn: 'mddiff' })"></div>
-
-    </section>
-  </template>
-</div>
+  <!-- NO SLIDE TEMPLATE. The page cloned one per item and mounted a
+       fileReview card in it, which is what kits/file-deck.js already does, and
+       does with the card `hosted` so the slide is nothing but the document.
+       What used to sit above each card (the item's title and status, its
+       commentary, a deferred_because note, and its related links) was the
+       REQUEST talking about the change rather than the change itself, and a
+       reader arriving to judge wording met a paragraph of justification before
+       the first line of it. Reported 2026-09-18: "we don't want to read a
+       discussion of your justification there, we just want to see the thing."
+       The envelope still carries all four fields; the page stops drawing them,
+       which is a presentation decision rather than a schema one. -->
 
 <!-- The sent notice is all the page still draws of the decision. The verdict
      itself is one button in the deck's header, built in `approveBtn`. -->
@@ -240,98 +186,26 @@ document.addEventListener('alpine:init', () => {
       });
       return b;
     },
-    // THE JUMP, IN THE HEADER RATHER THAN IN THE DOCUMENT. Stepping change to
-    // change is what a reader does most on this page, and the control for it
-    // sat in md-diff's own strip, which scrolls away with the prose. The deck
-    // header does not, so it is where a control used on every change belongs.
-    //
-    // It reaches the document by element, not by handle. The comparison is
-    // rendered by kits/md-diff.js inside alpineComponents/file-review.js
-    // inside a deck slide, so this page never sees what render() returned;
-    // what it can see is the active slide and the one stable class on the
-    // document inside it. The count stays in md-diff's own readout, which is
-    // already on the page, rather than being drawn a second time here.
-    jumpBtn() {
-      const b = document.createElement('button');
-      // AN EDGE AND A GAP, because a bare glyph beside a filled green circle
-      // reads as part of it. The deck's own {icon,title,onClick} spec draws a
-      // ghost circle with no border, which is right where an action stands
-      // among other actions and wrong where the only thing beside it is a
-      // decision. Reported 2026-09-18: the arrow sat uncomfortably close to
-      // the check with no visible boundary of its own.
-      b.className = 'btn btn-sm btn-circle btn-ghost border border-base-300 shrink-0 mr-1';
-      b.innerHTML = '<i class="ph ph-arrow-down text-base"></i>';
-      b.title = 'Next change';
-      b.setAttribute('aria-label', 'Next change');
-      b.addEventListener('click', () => {
-        const core = this._deck && this._deck.deck;
-        const slide = core && core.track.children[core.active()];
-        const doc = slide && slide.querySelector('.md-diff-doc');
-        if (doc) doc.dispatchEvent(new CustomEvent('md-diff:jump', { detail: { d: 1 } }));
-      });
-      return b;
-    },
+    // THE JUMP IS NOT HERE ANY MORE. It sat in this header for a day, and the
+    // header is for controls about the FILE: its github links, which reading to
+    // show. Stepping change to change is about the COMPARISON, so it lives in
+    // kits/md-diff.js's own floating strip now, beside the readout that already
+    // says which change of how many. The measurement that settled it: with the
+    // jump here, ten buttons left the title 38px of a 390px header.
+
     // THE HEADER NAMES THE FILE, split the way the file cards split a path:
     // the name carries the weight and the folders sit under it, dimmed. One
     // request has one `manifest.name`, so a header carrying that read the same
     // on every slide and told a reader nothing about the document in front of
     // them. The request's own name and id are in the envelope and on the link;
     // the header is for what is on screen.
-    nameOf(it) { const p = this.pathOf(it) || ''; return p.split('/').pop() || p; },
-    // THE REPO IS PART OF THE ADDRESS, not a detail. A reader working across
-    // several repositories in one afternoon meets a header saying SKILL.md and
-    // has no way to tell which estate it belongs to, and the request names one
-    // repo for the whole set so the answer is always available. Folder after
-    // it, since the repo is the coarser half.
-    dirOf(it) {
-      const p = this.pathOf(it) || '';
-      const i = p.lastIndexOf('/');
-      // The repo NAME, not owner/name. At 390px the full address left
-      // "mehrlander/web-tools · .claude/…", which spends the width on the half
-      // that never varies and truncates away the half that does. Every repo a
-      // reader meets here is one of a handful under one owner, so the name
-      // alone identifies it, and the full address is one tap away in the mark
-      // beside the title.
-      const repo = (this.repoOf() || '').split('/').pop();
-      return [repo, i < 0 ? '' : p.slice(0, i)].filter(Boolean).join(' · ');
-    },
-    // THE FILE'S LINKS, BESIDE THE FILE'S NAME. The estate's convention is that
-    // a filename pointing at GitHub carries this dropdown next to it; in the
-    // card's control row it sat nowhere near the name, and the name is in the
-    // deck header now. `setTitleMark` is the deck's slot for a mark belonging
-    // to the NAME rather than to the header's controls, which is exactly what
-    // this is, so the card stands its own copy down under `bare`.
-    //
-    // Built from what the page already holds rather than read off the card:
-    // the request names the repo, the branch and the base, and the item names
-    // the path. That is three of the card's five rows. The two it cannot build
-    // are Last commit, which costs a fetch, and Render, which the card drops
-    // here anyway since its first view icon opens exactly that.
-    ghMark(it) {
-      const path = this.pathOf(it);
-      if (!path) return null;
-      const repo = this.repoOf(), br = this.ctx.branch || 'HEAD', base = this.baseOf();
-      const rows = [
-        ['ph-file', 'This version', '', `https://github.com/${repo}/blob/${br}/${path}`],
-        ['ph-git-branch', 'Base version', base, `https://github.com/${repo}/blob/${base}/${path}`],
-        ['ph-file-text', 'Raw', '', `https://raw.githubusercontent.com/${repo}/${br}/${path}`],
-      ];
-      const d = document.createElement('details');
-      d.className = 'dropdown dropdown-start shrink-0';
-      d.innerHTML = '<summary class="btn btn-ghost btn-xs gap-0.5 px-1 cursor-pointer" '
-        + 'title="This file on GitHub"><i class="ph ph-github-logo text-base"></i>'
-        + '<i class="ph ph-caret-down text-[10px] opacity-50"></i></summary>'
-        + '<ul class="dropdown-content menu menu-sm z-30 mt-1 w-56 rounded-box border '
-        + 'border-base-300 bg-base-100 p-1 shadow-lg">'
-        + rows.map(([icon, label, hint, url]) =>
-            `<li><a href="${url}" target="_blank" rel="noopener" class="gap-2 flex-nowrap">`
-            + `<i class="ph ${icon} shrink-0"></i><span class="shrink-0">${label}</span>`
-            + '<span class="grow"></span>'
-            + `<span class="font-mono text-xs opacity-40 shrink-0">${hint}</span></a></li>`).join('')
-        + '</ul>';
-      d.addEventListener('click', (e) => { if (e.target.closest('a')) d.open = false; });
-      return d;
-    },
+    // `nameOf`, `dirOf` and `ghMark` lived here and are gone with the deck that
+    // needed them: kits/file-deck.js splits the path into title and crumb and
+    // builds the github mark against the name, from the card's own `ghLinks`
+    // rather than from addresses this page assembled. That menu offers five
+    // rows where the hand-built one offered three, since the card knows the
+    // last commit and this page never did.
+
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -381,70 +255,73 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => this.deck());
     },
 
-    // THE SET IS A DECK, AND THE STANDARD ONE. The first version mounted the
-    // bare track, `swipeDeck.core`, which is the format without its chrome: a
-    // short first slide, a screen of white below it, and nothing anywhere
+    // THE SET IS A DECK, AND IT IS THE ESTATE'S FILE DECK. The first version
+    // mounted the bare track, `swipeDeck.core`, which is the format without its
+    // chrome: a short first slide, a screen of white below it, and nothing
     // saying there were two more to the right. A reader met it and asked
-    // whether it was working. It was, and that is the point: a deck with no
-    // pager is a deck nobody knows they can move.
+    // whether it was working. The second built `swipeDeck.open` by hand and
+    // grew, over several rounds, a title that follows the slide, a directory
+    // subtitle, a github menu against the name, and a header that carries the
+    // file's controls.
     //
-    // `swipeDeck.open` is the format WITH its chrome, and the kit's own header
-    // says why a second consumer must not rebuild it: the title, the contents
-    // list behind the mark, and the footer's dots and arrows all come from one
-    // place so they cannot fork. The decisions ride in the `subheader`, the row
-    // the kit places and the caller fills, because the deck owns the foot.
+    // Every one of those already existed in kits/file-deck.js, which is what
+    // the branch detail view opens, with the same reasoning written in its own
+    // comments. Building a second copy of it is exactly what its note warns
+    // against, and the copy was the weaker one: three menu rows against five,
+    // and the layout icons still in the slide rather than the header.
     //
-    // THE SLIDES ARE THE ITEMS AND NOTHING ELSE. A first slide carrying the
-    // request's reason put a page of prose in front of the two files someone
-    // came to judge, and read as instructions rather than as the thing. The
-    // deck is one of two, two of two. `index` names each slide by its path,
-    // which is what the header mark's contents list shows.
+    // So the page opens THAT deck and adds one thing to it, which is the only
+    // thing an approval has that a read does not: a verdict button. `actions`
+    // is the kit's slot for exactly that, appended after the card's own
+    // controls. The jump rides beside it, since stepping change to change is
+    // this surface's own verb.
+    //
+    // `openOn: 'mddiff'` is the second half. A reading deck lands on the file,
+    // which is right for browsing and wrong here: a reviewer handed the
+    // finished document has to find what moved before they can weigh it, and
+    // the rendered comparison is that document with the change marked in it.
+    // The card falls back to the file where there is no rendered comparison.
     deck() {
-      if (!window.swipeDeck || this._deck) return;
-      const tpl = this.$refs.itemTpl;
-      if (!tpl || !this.items.length) return;
-      this._deck = window.swipeDeck.open({
-        count: this.items.length,
-        title: this.nameOf(this.itemAt(0)) || 'Approve',
-        subtitle: this.dirOf(this.itemAt(0)),
-        icon: 'ph-seal-check',
-        index: (i) => this.pathOf(this.itemAt(i)) || `Item ${i + 1}`,
-        actions: [this.jumpBtn(), this.approveBtn()],
-        // NO SUBHEADER UNTIL THERE IS ONE. The notice used to be passed here
-        // at open, and `empty:hidden` never fired: the slot holds whatever
-        // element it is given, and this one is a wrapper whose alert is
-        // `x-show`-ed, so the slot had a child, was not `:empty`, and drew an
-        // empty bordered band under the header for the whole session. The
-        // kit's contract is that a filled slot is a shown slot; the caller
-        // decides when it is filled, so `send()` fills it.
-        slideScroll: false,
-        innerClass: 'w-full h-full min-w-0',
-        snapStop: true,
-        render: (n, slide) => {
-          const node = tpl.content.firstElementChild.cloneNode(true);
-          node.setAttribute('x-data', `{ it: itemAt(${n}) }`);
-          slide.append(node);
-          window.Alpine.initTree(node);
-        },
-        // Dismissing leaves the page with nothing on it, since the deck IS the
-        // page. Re-opening on the next tick is what makes ✕ a no-op here rather
-        // than a way to empty the screen; a reader closing an app view uses the
-        // shell's own chrome.
-        // The header follows the reader. `_deck` is not assigned until open()
-        // returns, so the guard is not defensive dressing: a slide event during
-        // construction would otherwise land on null.
-        onSlide: (i) => {
-          if (!this._deck) return;
-          const it = this.itemAt(i);
-          this._deck.setTitle(this.nameOf(it) || 'Approve');
-          this._deck.setSubtitle(this.dirOf(it));
-          this._deck.setTitleMark(this.ghMark(it));
-        },
+      if (!window.fileDeck || this._deck) return;
+      if (!this.items.length) return;
+      this._deck = window.fileDeck.open({
+        repo: this.repoOf(),
+        ref: this.ctx.branch,
+        base: this.baseOf(),
+        baseName: this.baseOf(),
+        // The request's items ARE the file list, in the shape the deck takes.
+        // `previousPath` and `patch` ride where the request carries them; the
+        // deck reads a missing one as "not stated" rather than as a fact.
+        files: this.items.map((it) => ({
+          path: this.pathOf(it),
+          previousPath: it.change?.previous_path || '',
+          status: it.change?.status || '',
+          patch: it.change?.patch || '',
+        })),
+        openOn: 'mddiff',
+        // THE REPO, AS THE CRUMB'S CONTEXT. file-deck builds each slide's
+        // subtitle from [parent title, this, the file's folder], and in the app
+        // the deck above it already names the repo. Opened from a link there is
+        // no deck above, so without this the subtitle is a bare folder and a
+        // reader working across several repositories in one afternoon cannot
+        // tell one SKILL.md from another. The repo NAME rather than
+        // owner/name: at 390px the full address spends the width on the half
+        // that never varies and truncates away the half that does.
+        subtitle: (this.repoOf() || '').split('/').pop(),
+        // ONE ACTION, WHICH IS THE WHOLE DIFFERENCE between this page and the
+        // branch detail view's file deck. Everything else in the header is the
+        // kit's: the file's name, its github menu, and which reading to show.
+        actions: [this.approveBtn()],
+        // The ✕ is a back chevron with no parent deck to drill from, the same
+        // call the branch takeover makes: dismissing returns the reader to
+        // whatever opened this link, and an ✕ would promise to close something
+        // this page does not own. Re-opening on the next tick is what keeps it
+        // from emptying the screen, since the deck IS the page.
         onClose: () => { this._deck = null; this.$nextTick(() => this.deck()); },
+        // Nothing here should retarget a sidebar: this page is a decision about
+        // one request, not a place to browse a repo from.
+        announce: false,
       });
-      // `title` and `subtitle` are open() options and the mark is not, so the
-      // first slide's gets set here. onSlide only fires on a scroll.
-      this._deck.setTitleMark(this.ghMark(this.itemAt(0)));
     },
 
     async send(decision) {

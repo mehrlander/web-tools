@@ -65,8 +65,11 @@ export default async function (page) {
   });
 
   const start = await here();
-  const btn = await page.$('.sd-header button[title="Next change"]');
-  if (!btn) throw new Error('approve-header: no jump button in the deck header');
+  // The jump moved out of the deck header on 2026-09-18 and into md-diff's own
+  // floating strip, which is where the readout that names the change already
+  // is. The header is for controls about the FILE.
+  const btn = await page.$('.md-diff-doc button[title="Next change"]');
+  if (!btn) throw new Error('approve-header: no jump button on the comparison');
   await btn.click();
   await page.waitForTimeout(500);
   const one = await here();
@@ -79,7 +82,8 @@ export default async function (page) {
     return h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
   });
   const prose = await page.evaluate(() => {
-    const slide = document.querySelector('[data-slide]');
+    const t = document.querySelector('.sd-track');
+    const slide = t && t.children[Math.round(t.scrollLeft / (t.clientWidth || 1))];
     return slide ? slide.textContent.replace(/\s+/g, ' ') : '';
   });
 
@@ -105,12 +109,43 @@ export default async function (page) {
   // since slide two's comparison may not have drawn yet.
   const gaps = await page.evaluate(() => {
     const box = document.querySelector('.md-diff-change');
-    const sec = box.closest('section[data-slide]');
+    // `.sd-slide` BY NAME, not the nearest <section>. The rendered document
+    // contains sections of its own, so `closest('section')` answered with one
+    // of those and reported the slide's scrollbar as `auto` while the slide
+    // itself computed `thin`. The class is the deck's own and is what the
+    // gutter rule keys on.
+    const sec = box.closest('.sd-slide');
     const r = box.getBoundingClientRect();
     return { left: Math.round(r.left), right: Math.round(window.innerWidth - r.right),
              gutter: Math.round(sec.offsetWidth - sec.clientWidth),
              sbWidth: getComputedStyle(sec).scrollbarWidth,
-             declares: /scrollbar-gutter:stable/.test(sec.className) };
+             // The rule lives in kits/swipe-deck.js's own stylesheet now, not
+             // in a class on the element, so the element is asked what it
+             // COMPUTED rather than what it was labelled.
+             declares: !!sec.closest('.sd-slide') || /sd-slide/.test(sec.className) };
+  });
+
+  // BEFORE THE SWIPE, for the same reason the gaps are: slide two's card is
+  // still loading 600ms after it arrives, and a card with no bytes offers no
+  // view modes, so the header has no view icons to count and a correct page
+  // fails the check.
+  const chrome = await page.evaluate(() => {
+    // VISIBLE, not merely present. `hosted` hides the card's row with x-show,
+    // which is display:none: the element is still in the tree and a bare
+    // querySelector reports a row that nobody can see.
+    const rows = [...document.querySelectorAll('.sd-track .flex.items-center.gap-1')];
+    const row = rows.find((e) => e.offsetParent) || null;
+    const own = document.querySelector('.md-diff-doc > .sticky');
+    const menus = document.querySelectorAll('.sd-track details.dropdown');
+    let visible = 0;
+    for (const m of menus) if (m.querySelector('.ph-github-logo') && m.offsetParent) visible++;
+    return {
+      rowText: row ? row.textContent.replace(/\s+/g, ' ') : null,
+      ownStrip: !!own,
+      markInHeader: !!document.querySelector('.sd-header .ph-github-logo'),
+      viewIcons: document.querySelectorAll('.sd-header button[title^="Compare"]').length,
+      menusOnSlide: visible,
+    };
   });
 
   // And it follows the reader. One slide along is a different file, so a header
@@ -123,26 +158,12 @@ export default async function (page) {
     return h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
   });
 
-  const chrome = await page.evaluate(() => {
-    const row = document.querySelector('[data-slide] .flex.items-center.gap-1');
-    const own = document.querySelector('.md-diff-doc > .sticky');
-    const menus = document.querySelectorAll('[data-slide] details.dropdown');
-    let visible = 0;
-    for (const m of menus) if (m.querySelector('.ph-github-logo') && m.offsetParent) visible++;
-    return {
-      rowText: row ? row.textContent.replace(/\s+/g, ' ') : null,
-      rowHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
-      ownStrip: !!own,
-      markInHeader: !!document.querySelector('.sd-header .ph-github-logo'),
-      menusOnSlide: visible,
-    };
-  });
-
   const jumpEdge = await page.evaluate(() => {
-    const b = document.querySelector('.sd-header button[title="Next change"]');
+    const b = document.querySelector('.md-diff-doc button[title="Next change"]');
     if (!b) return null;
-    const cs = getComputedStyle(b);
-    return { w: cs.borderTopWidth, mr: cs.marginRight };
+    const strip = b.closest('.sticky');
+    return { floats: !!strip, pos: strip ? getComputedStyle(strip).position : '',
+             right: strip ? Math.round(innerWidth - strip.getBoundingClientRect().right) : -1 };
   });
 
   const seen = { band, start, one, two, approve, head, next, chrome, gaps, jumpEdge, prose: prose.slice(0, 120) };
@@ -162,26 +183,24 @@ export default async function (page) {
   if (/Adds a fourth marker flavor/.test(prose)) bad("the item's commentary is still drawn above the document");
   if (/Answers to/.test(prose)) bad('the related links are still drawn above the document');
   if (!/README\.md/.test(next)) bad('the header did not follow the reader to the next file');
-  if (chrome.ownStrip) bad("md-diff still draws its own strip, so the card has two rows of chrome");
-  // The readout says "10 changes" at rest and "2 / 10" once a change is
-  // claimed, and the jumps above have already claimed one by this point, so the
-  // check has to accept either. Asserting the resting wording alone failed here
-  // on the first run, against a row that was perfectly correct.
-  if (!/\d+ changes|\d+ \/ \d+/.test(chrome.rowText || ''))
-    bad("md-diff's readout never reached the card's row");
-  if (!/swipe/.test(chrome.rowText || '')) bad("md-diff's layout toggle never reached the card's row");
-  if (chrome.rowHeight > 40) bad('the control row is taller than one row');
+  // THE SLIDE IS THE DOCUMENT AND THE HEADER IS THE FILE'S. Under `hosted` the
+  // card draws no row at all, so the readout and the layout toggle have nowhere
+  // in the slide to go and the kit floats its own strip instead. Both halves
+  // are asserted, since a slide with neither would pass a check for either.
+  if (!chrome.ownStrip) bad('the comparison draws no floating strip, so nothing carries the layout toggle');
+  if (chrome.rowText !== null) bad('the card still draws a control row inside the slide');
   if (!chrome.markInHeader) bad('the github menu is not beside the file name in the header');
+  if (chrome.viewIcons < 2) bad('the view icons are not in the deck header');
   if (chrome.menusOnSlide) bad('the card still draws its own github menu, so there are two');
   if (!/web-tools/.test(head)) bad('the header does not name the repository');
   if (gaps.left < 2) bad("a changed block's ring runs off the left edge");
   if (gaps.left !== gaps.right) bad('the document sits off-centre in its scroller');
   if (gaps.gutter) bad('a gutter is reserved at phone width, where scrollbars overlay and take none');
   if (gaps.sbWidth !== 'thin') bad('the slide draws a full-width scrollbar');
-  if (!gaps.declares) bad('the slide reserves no gutter on a desktop scrollbar');
+  if (!gaps.declares) bad('the slide is not the deck\'s own, so it carries no gutter rule');
   if (!jumpEdge) bad('no jump button to measure');
-  if (parseFloat(jumpEdge.w) <= 0) bad('the jump button has no visible edge beside the green check');
-  if (parseFloat(jumpEdge.mr) <= 0) bad('the jump button sits flush against the green check');
+  if (!jumpEdge.floats) bad('the jump is not in the comparison\'s own strip');
+  if (jumpEdge.pos !== 'sticky') bad('the strip does not stay with the reader as they scroll');
 
   console.log('approve-header:', JSON.stringify(seen));
 }
