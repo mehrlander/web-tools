@@ -159,37 +159,14 @@
   </template>
 </div>
 
-<!-- The deck places this row, as its subheader; the page only owns the markup.
-     It is not a <footer> any more because the deck owns the foot, where its
-     pager lives. -->
-<div x-ref="verdict" class="w-full grid gap-2">
-
+<!-- The sent notice is all the page still draws of the decision. The verdict
+     itself is one button in the deck's header, built in `approveBtn`. -->
+<div x-ref="sent" class="w-full">
   <div x-show="sent" class="alert alert-success py-2 px-3">
     <i class="ph ph-check-circle"></i>
     <span>Recorded as <span class="font-mono" x-text="decision"></span>.
       <a :href="sent" target="_blank" class="link" x-text="sentPath"></a></span>
   </div>
-
-  <!-- Refusing is one tap, in the same row and the same size as agreeing. A
-       decision surface whose "no" is harder to reach than its "yes" collects
-       agreement rather than decisions. -->
-  <div class="flex gap-2 items-center" x-show="env && !sent">
-    <button class="btn btn-ghost btn-sm shrink-0" @click="toggleNotes()" :class="noting && 'text-primary'"
-            title="Take notes on this request" aria-label="Take notes on this request">
-      <i class="ph ph-note-pencil"></i><span x-text="notes.length || ''"></span>
-    </button>
-    <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending">
-      <i class="ph ph-arrow-u-up-left"></i> Return
-    </button>
-    <button class="btn btn-sm grow" @click="send('approved-with-edits')" :disabled="sending || !notes.length">
-      <i class="ph ph-pencil-simple"></i> With edits
-    </button>
-    <button class="btn btn-sm btn-primary grow" @click="send('approved')" :disabled="sending">
-      <i class="ph ph-check"></i> Approve
-    </button>
-  </div>
-
-  <div class="text-xs opacity-60 font-mono truncate" x-show="ctx.reply_to" x-text="ctx.reply_to"></div>
 </div>
 
 <script>
@@ -197,7 +174,6 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('approveApp', () => ({
     env: null, items: [], notes: [], _deck: null,
     loading: true, error: '', sending: false, sent: '', sentPath: '', decision: '',
-    noting: false,
     // THE TOKEN, THE WAY EVERY OTHER WRITER HERE GETS IT. The global a shell
     // sets, else this origin's store, and a write that finds neither fails at
     // the write. It is kits/annotate.js's three lines for a jot, and a verdict
@@ -217,6 +193,31 @@ document.addEventListener('alpine:init', () => {
 
     get ctx() { return this.env?.context || {}; },
     itemAt(i) { return this.items[i] || {}; },
+
+    // ONE BUTTON, IN THE DECK'S HEADER. The page used to carry a row of three
+    // verdicts plus a notes toggle plus the reply address, under the header and
+    // above every item, which is four controls and a line of chrome in front of
+    // the thing being judged. Two of them had other owners already: the
+    // annotator is started from the FAB (its launcher menu, its take grid, or a
+    // text selection), and `approved-with-edits` is not a separate decision but
+    // the same one taken with notes attached, which this can read for itself.
+    //
+    // An Element rather than an {icon,title,onClick} spec, because the deck
+    // draws that shape as a ghost circle and a decision is not a circle.
+    approveBtn() {
+      const b = document.createElement('button');
+      b.className = 'btn btn-sm btn-success shrink-0 gap-1';
+      b.innerHTML = '<i class="ph ph-check"></i><span>Approve</span>';
+      b.addEventListener('click', () => {
+        if (this.sending || this.sent) return;
+        b.disabled = true;
+        const notes = (window.Annotate && window.Annotate.items) || [];
+        this.notes = notes;
+        this.send(notes.length ? 'approved-with-edits' : 'approved')
+          .finally(() => { b.disabled = !!this.sent; });
+      });
+      return b;
+    },
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -228,13 +229,6 @@ document.addEventListener('alpine:init', () => {
     param(key) {
       const h = new URLSearchParams(location.hash.slice(1)).get(key);
       return h || new URLSearchParams(location.search).get(key);
-    },
-
-    toggleNotes() {
-      if (!window.Annotate) return;
-      if (this.noting) { this.notes = window.Annotate.items; window.Annotate.disable(); }
-      else window.Annotate.enable({ subject: { title: this.env?.manifest?.name, url: location.href } });
-      this.noting = !this.noting;
     },
 
     async init() {
@@ -301,7 +295,8 @@ document.addEventListener('alpine:init', () => {
         subtitle: this.ctx.id,
         icon: 'ph-seal-check',
         index: (i) => this.pathOf(this.itemAt(i)) || `Item ${i + 1}`,
-        subheader: this.$refs.verdict,
+        actions: [this.approveBtn()],
+        subheader: this.$refs.sent,
         slideScroll: false,
         innerClass: 'w-full h-full min-w-0',
         snapStop: true,
@@ -322,7 +317,9 @@ document.addEventListener('alpine:init', () => {
     async send(decision) {
       this.sending = true;
       try {
-        if (this.noting) this.toggleNotes();
+        // Whatever the annotator holds when the verdict is taken rides out with
+        // it. It is started from the FAB, so there is nothing here to switch off.
+        if (window.Annotate && window.Annotate.disable) { try { window.Annotate.disable(); } catch (e) {} }
         const [repo, dir] = (this.ctx.reply_to || '').split(':');
         const gh2 = new GH({ token: this.token, repo, ref: this.ctx.reply_ref || '' });
         const path = `${dir ? dir.replace(/\/$/, '') + '/' : ''}${this.ctx.id}.verdict.json`;
