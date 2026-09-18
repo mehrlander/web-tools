@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'd1f09ef';
-const BUILT = '2026-09-18T18:06:38Z';
+const BUILD = '70dc4fd';
+const BUILT = '2026-09-18T18:10:43Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -868,8 +868,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <div class="head-titles">
             <h1 class="head-title"><span class="title-text"></span></h1>
             <p class="head-sub"><span></span></p>
-          </div>
-          <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>5</span></div>
           <div class="head-actions">
             <div class="head-tools" hidden>
               <div class="seg" role="group" aria-label="Markdown engine">
@@ -882,6 +880,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
             <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
+            <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>5</span></div>
           </div>
         </div>
         <div class="head-intro">

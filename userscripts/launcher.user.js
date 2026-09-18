@@ -2,8 +2,8 @@
 // @name        wt launcher
 // @description Web Tools launcher
 // @match       *://*/*
-// @version     d1f09ef
-// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=d1f09ef
+// @version     70dc4fd
+// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=70dc4fd
 // @grant       GM.xmlHttpRequest
 // @grant       GM.getValue
 // @grant       GM.setValue
@@ -50,7 +50,7 @@
               if (res.status < 200 || res.status >= 300) return;
               const data = JSON.parse(res.responseText);
               const latestBuild = data?.['launcher']?.build;
-              const activeBuild = await getVal('wt_launcher_build') || 'd1f09ef';
+              const activeBuild = await getVal('wt_launcher_build') || '70dc4fd';
               if (latestBuild && latestBuild !== activeBuild) {
                 xhr({
                   method: 'GET',
