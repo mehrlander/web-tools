@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '9abfd8d';
-const BUILT = '2026-09-18T04:37:17Z';
+const BUILD = '0231a8e';
+const BUILT = '2026-09-18T05:10:58Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -188,7 +188,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // the whole reason to reach for capture.
   const state = { tab: 'page', links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
-                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null };
+                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null, takeFmt: 'md' };
 
   // One markdown document, assembled from whatever is currently ticked. It is
   // markdown because the destination is a repo, where a capture that renders is
@@ -384,17 +384,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .text { font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap;
             overflow-wrap: break-word; color: ${mix('var(--wt-bc)', 85)}; }
 
-    /* Take tab items */
-    .take-item {
-      padding: .625rem .75rem; border-radius: .5rem;
-      border: 1px solid var(--wt-b300); margin-bottom: .625rem;
-      background: var(--wt-b100);
-    }
-    .take-item b { display: flex; align-items: center; gap: .375rem; font-size: .8125rem; font-weight: 600; }
-    .take-item b svg { width: 14px; height: 14px; color: var(--wt-p); flex: none; }
-    .take-item p { font-size: .75rem; color: ${mix('var(--wt-bc)', 70)}; margin: .25rem 0 .5rem; line-height: 1.35; }
-    .take-acts { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .take-size { margin-left: auto; font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 55)}; }
+    .take-fmt { font-weight: 500; }
+    .take-fmt.on { font-weight: 700; color: var(--wt-p); }
+    .take-content { min-height: 120px; }
 
     .foot { border-top: 1px solid var(--wt-b300);
             padding: .625rem 5.25rem .625rem .875rem;
@@ -467,43 +459,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="text"></div>
       </div>
       <div class="pane" data-pane="take" hidden>
-        <div class="take-item">
-          <b>${svg(ICON.code)} HTML</b>
-          <p>Full serialized DOM snapshot (outerHTML) of the current page.</p>
-          <div class="take-acts">
-            <button class="act" data-take-html>Copy HTML</button>
-            <a class="act" data-take-send="html" target="_blank" rel="noopener">Send to Stage</a>
-            <span class="take-size" data-take-size="html"></span>
-          </div>
+        <div class="bar">
+          <button class="take-fmt on" data-fmt="md">Markdown</button>
+          <button class="take-fmt" data-fmt="html" data-take-html>HTML</button>
+          <button class="take-fmt" data-fmt="json">JSON</button>
+          <button class="take-fmt" data-fmt="jina">Jina</button>
+          <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" hidden style="font-size:11px;margin-left:auto;color:var(--wt-p);text-decoration:none">Open ↗</a>
         </div>
-        <div class="take-item">
-          <b>${svg(ICON.note)} Markdown</b>
-          <p>Readable brief composed from title, URL, description, selection, and extracted text.</p>
-          <div class="take-acts">
-            <button class="act" data-take-md>Copy MD</button>
-            <a class="act" data-take-send="md" target="_blank" rel="noopener">Send to Stage</a>
-            <span class="take-size" data-take-size="md"></span>
-          </div>
-        </div>
-        <div class="take-item">
-          <b>${svg(ICON.sidebar)} Metadata JSON</b>
-          <p>Structured page envelope (title, URL, meta description, links, selection).</p>
-          <div class="take-acts">
-            <button class="act" data-take-json>Copy JSON</button>
-            <a class="act" data-take-send="json" target="_blank" rel="noopener">Send to Stage</a>
-            <span class="take-size" data-take-size="json"></span>
-          </div>
-        </div>
-        <div class="take-item">
-          <b>${svg(ICON.jina)} Jina Reader</b>
-          <p>Clean markdown extracted via Jina AI Reader (<a href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" style="color:var(--wt-p)">r.jina.ai</a>).</p>
-          <div class="take-acts">
-            <button class="act" data-take-jina-fetch>Fetch Jina MD</button>
-            <button class="act" data-take-jina-copy hidden>Copy Jina MD</button>
-            <a class="act" data-take-jina-open href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">Open in Jina ↗</a>
-            <span class="take-size" data-take-size="jina"></span>
-          </div>
-        </div>
+        <div class="text take-content"></div>
       </div>
       <div class="foot">
         <button class="act" data-copy>Copy</button>
@@ -566,6 +529,32 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // of measuring at all, since the alternative is a URL that arrives truncated
   // and reads as complete.
   const refresh = () => {
+    if (state.tab === 'take') {
+      const text = getTakeText(state.takeFmt);
+      const slug = pageSlug();
+      const ext = (state.takeFmt === 'html') ? 'html' : (state.takeFmt === 'json') ? 'json' : 'md';
+      packToStage(`${slug}.${ext}`, text).then(url => {
+        if (state.tab !== 'take') return;
+        if (url) {
+          sendEl.href = url;
+          sendEl.textContent = 'Stage';
+          sendEl.classList.remove('off');
+          q('.size').textContent = (text.length > 10000)
+            ? `${Math.round(text.length / 1024)} KB`
+            : `${text.length} chars`;
+        } else {
+          sendEl.removeAttribute('href');
+          sendEl.textContent = 'Send';
+          sendEl.classList.add('off');
+          q('.size').textContent = (text.length > 10000)
+            ? `${Math.round(text.length / 1024)} KB · Copy only`
+            : `${text.length} chars · Copy only`;
+        }
+      });
+      return;
+    }
+
+    sendEl.textContent = 'Send';
     const md = compose();
     const url = shortcutUrl(md);
     const ok = url.length <= SEND_MAX;
@@ -631,64 +620,49 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return res.text();
   };
 
-  const updateTakeSizes = () => {
-    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-    const md = compose();
-    const json = JSON.stringify({
-      title: page.title, href: page.href, description: page.description,
-      selection: state.sel, links: state.links,
-      text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
-    }, null, 2);
+  const getTakeText = (fmt = state.takeFmt) => {
+    switch (fmt) {
+      case 'html':
+        return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      case 'json':
+        return JSON.stringify({
+          title: page.title,
+          href: page.href,
+          description: page.description,
+          selection: state.sel,
+          links: state.links,
+          text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
+        }, null, 2);
+      case 'jina':
+        return state.jinaMd || '';
+      case 'md':
+      default:
+        return compose();
+    }
+  };
 
-    const slug = pageSlug();
+  const showTake = async (fmt = state.takeFmt) => {
+    state.takeFmt = fmt;
+    root.querySelectorAll('.take-fmt').forEach(b => b.classList.toggle('on', b.dataset.fmt === fmt));
+    const contentEl = q('.take-content');
+    const jinaExt = q('.jina-ext');
+    if (jinaExt) jinaExt.hidden = (fmt !== 'jina');
 
-    const htmlSize = q('[data-take-size="html"]');
-    const htmlSend = q('[data-take-send="html"]');
-    if (htmlSize) htmlSize.textContent = `${Math.max(1, Math.round(html.length / 1024))} KB`;
-    packToStage(`${slug}.html`, html).then(url => {
-      if (htmlSend) {
-        if (url) {
-          htmlSend.href = url;
-          htmlSend.classList.remove('off');
-        } else {
-          htmlSend.removeAttribute('href');
-          htmlSend.classList.add('off');
-          if (htmlSize && !htmlSize.textContent.includes('Copy only')) htmlSize.textContent += ' · Copy only';
+    if (fmt === 'jina' && !state.jinaMd) {
+      contentEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
+      try {
+        const res = await fetchText('https://r.jina.ai/' + page.href, { Accept: 'text/markdown, text/plain, */*' });
+        state.jinaMd = res;
+        if (state.takeFmt === 'jina') contentEl.textContent = res;
+      } catch {
+        if (state.takeFmt === 'jina') {
+          contentEl.textContent = 'Direct fetch blocked by page CSP. Tap "Open ↗" above to view in Jina Reader.';
         }
       }
-    });
-
-    const mdSize = q('[data-take-size="md"]');
-    const mdSend = q('[data-take-send="md"]');
-    if (mdSize) mdSize.textContent = `${md.length.toLocaleString()} chars`;
-    packToStage(`${slug}.md`, md).then(url => {
-      if (mdSend) {
-        if (url) {
-          mdSend.href = url;
-          mdSend.classList.remove('off');
-        } else {
-          mdSend.removeAttribute('href');
-          mdSend.classList.add('off');
-          if (mdSize && !mdSize.textContent.includes('Copy only')) mdSize.textContent += ' · Copy only';
-        }
-      }
-    });
-
-    const jsonSize = q('[data-take-size="json"]');
-    const jsonSend = q('[data-take-send="json"]');
-    if (jsonSize) jsonSize.textContent = `${Math.max(1, Math.round(json.length / 1024))} KB`;
-    packToStage(`${slug}.json`, json).then(url => {
-      if (jsonSend) {
-        if (url) {
-          jsonSend.href = url;
-          jsonSend.classList.remove('off');
-        } else {
-          jsonSend.removeAttribute('href');
-          jsonSend.classList.add('off');
-          if (jsonSize && !jsonSize.textContent.includes('Copy only')) jsonSize.textContent += ' · Copy only';
-        }
-      }
-    });
+    } else {
+      contentEl.textContent = getTakeText(fmt);
+    }
+    refresh();
   };
 
   const runActiveErrand = async () => {
@@ -817,7 +791,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (!read) { readPage(); checkBuild(); read = true; }
     renderPage();
     refresh();
-    updateTakeSizes();
+    if (state.tab === 'take') showTake();
     panel.classList.add('open');
     btn.classList.add('on');
   };
@@ -825,7 +799,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.reread').onclick = () => {
     readPage();
     renderPage();
-    updateTakeSizes();
+    if (state.tab === 'take') showTake();
+    checkBuild(true);
     const b = q('.reread');
     b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
   };
@@ -897,47 +872,22 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     // run to a hundred thousand characters, and laying that out behind a tab
     // nobody opened is work for nothing.
     if (state.tab === 'text' && !q('[data-pane="text"] .text').textContent) showText();
-    if (state.tab === 'take') updateTakeSizes();
+    if (state.tab === 'take') showTake();
+    refresh();
   });
 
   // The clipboard is the route with no ceiling, and it needs the user gesture
   // it is already inside. A refusal is reported on the button rather than
   // thrown away, since a Copy that silently did nothing is the worst outcome.
-  copyEl.onclick = () => copyText(compose(), copyEl);
+  copyEl.onclick = () => {
+    const text = (state.tab === 'take') ? getTakeText(state.takeFmt) : compose();
+    copyText(text, copyEl);
+  };
   sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
 
-  // Take actions wiring
-  q('[data-take-html]').onclick = () => copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-take-html]'));
-  q('[data-take-md]').onclick = () => copyText(compose(), q('[data-take-md]'));
-  q('[data-take-json]').onclick = () => {
-    const json = JSON.stringify({
-      title: page.title, href: page.href, description: page.description,
-      selection: state.sel, links: state.links,
-      text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
-    }, null, 2);
-    copyText(json, q('[data-take-json]'));
-  };
-  q('[data-take-jina-fetch]').onclick = async () => {
-    const b = q('[data-take-jina-fetch]');
-    const copyBtn = q('[data-take-jina-copy]');
-    const sz = q('[data-take-size="jina"]');
-    b.disabled = true;
-    b.textContent = 'Fetching…';
-    try {
-      const text = await fetchText(`https://r.jina.ai/${page.href}`, { Accept: 'text/markdown, text/plain, */*' });
-      state.jinaMd = text;
-      b.textContent = 'Fetched';
-      copyBtn.hidden = false;
-      sz.textContent = `${text.length.toLocaleString()} chars`;
-    } catch {
-      b.textContent = 'Blocked';
-      sz.textContent = 'Blocked · use Open ↗';
-    }
-    setTimeout(() => { b.textContent = 'Fetch Jina MD'; b.disabled = false; }, 2000);
-  };
-  q('[data-take-jina-copy]').onclick = () => {
-    if (state.jinaMd) copyText(state.jinaMd, q('[data-take-jina-copy]'));
-  };
+  root.querySelectorAll('.take-fmt').forEach(b => b.onclick = () => {
+    showTake(b.dataset.fmt);
+  });
 
   q('[data-menu-html]').onclick = () => {
     copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-menu-html] span'), 'Copied HTML');
@@ -1022,17 +972,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.head b').textContent = page.title;
   q('.head small').textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
 
-  // Asked once, on the first open, and never allowed to fail loudly.
+  // Asked on first open and on refresh, and never allowed to fail loudly.
   let checked = false;
-  const checkBuild = async () => {
-    if (checked) return;
+  const checkBuild = async (force = false) => {
+    if (checked && !force) return;
     checked = true;
     try {
-      const r = await fetch(MANIFEST + '?_=' + Date.now(), { cache: 'no-store' });
-      const current = (await r.json())?.launcher?.build;
+      const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
+      const current = JSON.parse(raw)?.launcher?.build;
       if (!current || current === BUILD) return;
       const el = q('.stale');
-      el.textContent = `${current} is current. Reload; an edge may still be catching up.`;
+      const updateUrl = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/launcher.user.js`;
+      el.innerHTML = `<a href="${updateUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Build ${current} available · Tap to update ↗</a>`;
       el.hidden = false;
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };
