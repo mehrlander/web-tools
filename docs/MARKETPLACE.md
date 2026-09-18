@@ -6,7 +6,7 @@ This repo publishes its portable set as a Claude Code **plugin marketplace**: th
 
 | Plugin | Skills | What it is |
 | :--- | :--- | :--- |
-| `portable` | the 15 skills explicitly listed under its `.claude/skills/` source in the marketplace catalog, cross-referenced one row per piece in [`portable.csv`](portable.csv) | The to-go bag: the conventions loader and its surfacing contract, the tracker operator, and the rest of the set. This file deliberately does not enumerate the roster: the catalog is the definition and the Distribution registry is its reader-facing crosswalk |
+| `portable` | the 16 skills explicitly listed under its `.claude/skills/` source in the marketplace catalog, cross-referenced one row per piece in [`portable.csv`](portable.csv) | The to-go bag: the conventions loader and its surfacing contract, the tracker operator, and the rest of the set. This file deliberately does not enumerate the roster: the catalog is the definition and the Distribution registry is its reader-facing crosswalk |
 | `daisy-alpine` | `/daisy-alpine:daisy-alpine` | The house style for pages, model-invocable so it fires on matching artifact work; the DaisyUI 5 + Tailwind 4 + Alpine.js mechanics ride beside it in `references/mechanics.md` |
 
 Plugin skills are namespaced by plugin name, so `/tasks` installed by hand and `/portable:tasks` installed by plugin coexist without conflict.

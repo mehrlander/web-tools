@@ -29,7 +29,8 @@
         "./drop-link",
         "./file-retrieval",
         "./scour",
-        "./gold-set"
+        "./gold-set",
+        "./apple-shortcuts-actions"
       ],
       "keywords": [
         "conventions",
