@@ -124,18 +124,26 @@ const sectionOrder = () => {
   const topStrip = window.document.querySelector('[x-ref="topStrip"]');
   const filesEl = window.document.querySelector('[x-ref="files"]');
   const guideEl = window.document.querySelector('[x-ref="guide"]');
+  const top = kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]'));
+  const topSec = kids[top];
+  const rowEl = topSec?.querySelector('[role="tablist"]')?.closest('.border-b') || topSec?.firstElementChild;
   return { kids,
-           row: kids.findIndex(c => /sticky top-0/.test(c.className || '')),
-           top: kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]')),
+           row: top,
+           rowEl,
+           top,
+           topStrip,
            filesBeforeGuide: filesEl && guideEl ? Boolean(filesEl.compareDocumentPosition(guideEl) & 4) : true,
-           rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]')) };
+           rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]') || c.matches('[data-rev-section]')) };
 };
 
 test('the page reads files, then the guide, then the documents', () => {
   const o = sectionOrder();
-  assert.ok(o.row >= 0 && o.top >= 0 && o.rev >= 0,
+  assert.ok(o.top >= 0 && o.rev >= 0,
     'all sections are children of the one scroller');
-  assert.ok(o.row < o.top, 'the heading row heads the list it belongs to');
+  const topSec = o.kids[o.top];
+  const headerCap = topSec.firstElementChild;
+  assert.ok(headerCap && o.topStrip && Boolean(headerCap.compareDocumentPosition(o.topStrip) & 4),
+    'the heading row heads the list it belongs to');
   assert.ok(o.filesBeforeGuide, 'the list leads, shut, so it costs a row not a screen');
   assert.ok(o.rev > o.top, 'and the documents are last');
 });
@@ -145,38 +153,29 @@ test('the page reads files, then the guide, then the documents', () => {
 // Two rules the page states with spacing rather than with prose, both reported
 // from a phone on 2026-09-07.
 //
-// ONE CORNER. The guide, the file list and a presented document are the page's
-// three content containers, and they carried rounded-lg over a daisyUI card
-// whose own radius is --radius-box: an 8px clip around a 16px card, which shows
-// as a doubled corner beside a panel that has a clean one. They take the theme
-// token now, so a theme that moves its radius moves all three together.
+// ONE CORNER. The top section container and bottom reviewable document container
+// are the page's two content containers, both styled as rounded-box with matching
+// curved header caps.
 //
 // GROUPING IS SPACING. A control sits closer to what it controls than sections
-// sit to each other: the file list is flush to its heading row, the strip's dots
-// are a gap-1 under the strip, and the container's gap-2 is reserved for one
-// section against the next.
+// sit to each other.
 test('the content containers share one corner, and grouping is spacing', () => {
   const doc = window.document;
   const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
-  const guideBox = doc.querySelector('[x-ref="guide"] .rounded-box');
+  const topBox = doc.querySelector('[data-top-section]');
   const panelWrap = doc.querySelector('[data-rev] .rounded-box');
-  const listPanel = [...doc.querySelectorAll('div')]
-    .find(e => /border-base-300 rounded-\S+ overflow-hidden/.test(e.className || ''));
-  const found = { guide: radius(guideBox), panel: radius(panelWrap), list: listPanel && radius(listPanel) };
-  assert.ok(found.guide && found.panel && found.list, 'all three carry a radius: ' + JSON.stringify(found));
-  assert.equal(new Set(Object.values(found)).size, 1, 'and it is the same one: ' + JSON.stringify(found));
-  assert.equal(found.guide, 'rounded-box',
-    'the theme token, so a theme that moves its radius moves all three');
+  const found = { top: radius(topBox), panel: radius(panelWrap) };
+  assert.ok(found.top && found.panel, 'both containers carry a radius: ' + JSON.stringify(found));
+  assert.equal(found.top, 'rounded-box',
+    'the theme token, so a theme that moves its radius moves both');
+  assert.equal(found.panel, 'rounded-box');
   // No fade gradient overlay remains: content stays in its container.
   assert.equal(doc.querySelectorAll('.bg-gradient-to-b').length, 0, 'no fade overlay on containers');
 
-  // The heading row is a toolbar: its height is four max-sm:h-11 tap targets,
-  // and padding on top of that pads an affordance that carries its own room.
-  // 44px is the floor, and it is an estate idiom rather than this page's
-  // choice, so it does not move here on its own.
-  const row = [...doc.querySelectorAll('div')].find(e => /sticky top-0/.test(e.className || ''));
-  assert.ok(!/\bpy-\d/.test(row.className), 'no vertical padding on the row: ' + row.className);
-  assert.match(row.className, /px-4/, 'the horizontal padding stays, since it cancels the full bleed');
+  // The heading row is a header cap matching the file review container's header cap.
+  const row = doc.querySelector('[data-top-section] [role="tablist"]')?.closest('.border-b');
+  assert.ok(row, 'heading row found');
+  assert.match(row.className, /px-3 py-1\.5/, 'the header cap has standard padding');
 
   // ONE GAP VALUE. The page ran 8 between sections and 4 inside one until the
   // sections came down to 2 on 2026-09-07, and a control gap looser than a
@@ -215,7 +214,7 @@ test('the content containers share one corner, and grouping is spacing', () => {
 test('files and the guide are two tabs over one pane', async () => {
   await tick(6);   // earlier tests mutate brief; let the pane's x-show settle
   const o = sectionOrder();
-  const row = o.kids[o.row];
+  const row = o.rowEl;
   const tabs = [...row.querySelectorAll('[role="tab"]')];
   assert.equal(tabs.length, 2, 'Files and Guide');
   assert.deepEqual(tabs.map(t => t.textContent.replace(/\s+/g, ' ').trim().split(' ')[0]),
@@ -240,7 +239,7 @@ test('files and the guide are two tabs over one pane', async () => {
 test('with no guide there is one tab and it is the one showing', () => {
   assert.equal(data.hasGuide, false, 'this fixture serves no pull request');
   assert.equal(data.topPane, 'files');
-  const row = sectionOrder().kids[sectionOrder().row];
+  const row = sectionOrder().rowEl;
   const guideTab = [...row.querySelectorAll('[role="tab"]')]
     .find(t => /Guide/.test(t.textContent));
   assert.equal(guideTab.style.display, 'none', 'the Guide tab is not offered');
