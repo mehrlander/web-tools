@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '87cb182';
-const BUILT = '2026-09-18T15:46:14Z';
+const BUILD = 'd7ef71a';
+const BUILT = '2026-09-18T16:02:40Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -191,25 +191,125 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'links', label: 'Links', ext: 'md' },
     { id: 'html', label: 'HTML', ext: 'html' },
     { id: 'json', label: 'JSON', ext: 'json' },
-    { id: 'jina', label: 'Jina', ext: 'md' },
   ];
 
   const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
-                  seenLinks: new Map(), errand: null, errandOut: '', jinaMd: null,
+                  seenLinks: new Map(), errand: null, errandOut: '', localMd: null,
+                  jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   fullscreen: false, metaOpen: false };
 
-  // One markdown document, assembled from whatever is currently ticked. It is
-  // markdown because the destination is a repo, where a capture that renders is
-  // worth more than one that parses.
-  const compose = () => {
+  // DOM-to-Markdown extractor: converts article/main or content dense tree into
+  // clean, structured Markdown, preserving headings, quotes, code blocks, lists,
+  // bold/italics, links, and images.
+  const domToMarkdown = () => {
+    const named = document.querySelector('article, main, [role="main"]');
+    let target = named;
+    if (!target) {
+      let score = 0;
+      for (const el of document.querySelectorAll('body *')) {
+        if (/^(SCRIPT|STYLE|NAV|HEADER|FOOTER|ASIDE|SVG|NOSCRIPT|IFRAME|FORM)$/.test(el.tagName)) continue;
+        const t = el.innerText || '';
+        if (t.length < 400) continue;
+        const s = t.length / (1 + el.querySelectorAll('a').length * 40);
+        if (s > score) { score = s; target = el; }
+      }
+    }
+    target = target || document.body;
+
+    const walk = (node, depth = 0) => {
+      if (depth > 40 || !node) return '';
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent.replace(/[^\S\n]+/g, ' ');
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return '';
+      const tag = node.tagName.toUpperCase();
+      if (/^(SCRIPT|STYLE|NAV|HEADER|FOOTER|ASIDE|SVG|NOSCRIPT|IFRAME|FORM|BUTTON)$/.test(tag)) return '';
+      if (node.id === ID || node.closest?.('#' + ID)) return '';
+
+      const kids = () => Array.from(node.childNodes).map(c => walk(c, depth + 1)).join('');
+      const text = () => clean(node.innerText || '');
+
+      switch (tag) {
+        case 'H1': return `\n\n# ${text()}\n\n`;
+        case 'H2': return `\n\n## ${text()}\n\n`;
+        case 'H3': return `\n\n### ${text()}\n\n`;
+        case 'H4': return `\n\n#### ${text()}\n\n`;
+        case 'H5': return `\n\n##### ${text()}\n\n`;
+        case 'H6': return `\n\n###### ${text()}\n\n`;
+        case 'P': {
+          const inner = kids().trim();
+          return inner ? `\n\n${inner}\n\n` : '';
+        }
+        case 'BLOCKQUOTE': {
+          const inner = clean(node.innerText);
+          return inner ? `\n\n> ${inner.replace(/\n+/g, '\n> ')}\n\n` : '';
+        }
+        case 'PRE': {
+          const code = node.innerText.trim();
+          return code ? `\n\n\`\`\`\n${code}\n\`\`\`\n\n` : '';
+        }
+        case 'CODE': {
+          if (node.closest('pre')) return node.innerText;
+          const code = node.textContent.trim();
+          return code ? `\`${code}\`` : '';
+        }
+        case 'UL':
+        case 'OL': {
+          const items = Array.from(node.children)
+            .filter(c => c.tagName === 'LI')
+            .map((li, idx) => {
+              const liText = Array.from(li.childNodes).map(c => walk(c, depth + 1)).join('').trim();
+              return tag === 'OL' ? `${idx + 1}. ${liText}` : `- ${liText}`;
+            })
+            .filter(Boolean)
+            .join('\n');
+          return items ? `\n\n${items}\n\n` : '';
+        }
+        case 'LI': {
+          const inner = kids().trim();
+          return inner ? `- ${inner}\n` : '';
+        }
+        case 'A': {
+          const href = node.href;
+          const inner = kids().trim() || text() || href;
+          if (!href || /^javascript:/i.test(href)) return inner;
+          return `[${inner}](${href})`;
+        }
+        case 'STRONG':
+        case 'B': {
+          const inner = kids().trim();
+          return inner ? `**${inner}**` : '';
+        }
+        case 'EM':
+        case 'I': {
+          const inner = kids().trim();
+          return inner ? `*${inner}*` : '';
+        }
+        case 'HR':
+          return '\n\n---\n\n';
+        case 'BR':
+          return '\n';
+        case 'IMG': {
+          const src = node.src;
+          const alt = clean(node.alt || node.title || '');
+          return src ? `![${alt}](${src})` : '';
+        }
+        default:
+          return kids();
+      }
+    };
+
     const out = [`# ${page.title}`, '', page.href];
     if (page.description) out.push('', page.description);
     if (state.sel) out.push('', '> ' + state.sel.replace(/\n+/g, '\n> '));
-    // Once anything has been collected the collected set is the text: turning
-    // the switch off stops the watcher, it does not throw the tape away.
-    const body = state.blocks.length ? state.blocks.join('\n\n') : state.text;
-    if (state.withText && body) out.push('', '---', '', body);
+
+    const bodyContent = state.blocks.length
+      ? state.blocks.join('\n\n')
+      : walk(target).replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+
+    if (bodyContent) out.push('', '---', '', bodyContent);
+
     if (state.picked.size) {
       out.push('', '## Links', '');
       for (const { href, text } of state.links) {
@@ -217,6 +317,97 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
     }
     return out.join('\n');
+  };
+
+  const compose = () => domToMarkdown();
+
+  // Markdown Preview Renderer: converts Markdown to styled prose HTML
+  const renderMarkdownToHtml = md => {
+    if (!md) return '<p class="none">No markdown content.</p>';
+    let raw = esc(md);
+    const blocks = [];
+    raw = raw.replace(/```([\s\S]*?)```/g, (_, code) => {
+      blocks.push(`<pre class="md-pre"><code class="md-code">${code.trim()}</code></pre>`);
+      return `\n%%BLOCK_${blocks.length - 1}%%\n`;
+    });
+    raw = raw.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+    raw = raw.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a class="md-link" href="$2" target="_blank" rel="noopener">$1</a>');
+    raw = raw.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    raw = raw.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    const lines = raw.split('\n');
+    const out = [];
+    let inList = false;
+    let inQuote = false;
+    let quoteLines = [];
+
+    const flushQuote = () => {
+      if (inQuote) {
+        out.push(`<blockquote class="md-quote">${quoteLines.join('<br>')}</blockquote>`);
+        quoteLines = [];
+        inQuote = false;
+      }
+    };
+    const flushList = () => {
+      if (inList) {
+        out.push('</ul>');
+        inList = false;
+      }
+    };
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushQuote();
+        flushList();
+        continue;
+      }
+      if (trimmed.startsWith('%%BLOCK_') && trimmed.endsWith('%%')) {
+        flushQuote();
+        flushList();
+        const idx = parseInt(trimmed.replace(/\D/g, ''), 10);
+        out.push(blocks[idx] || '');
+        continue;
+      }
+      if (/^#{1,6}\s/.test(trimmed)) {
+        flushQuote();
+        flushList();
+        const level = trimmed.match(/^#+/)[0].length;
+        const text = trimmed.replace(/^#+\s*/, '');
+        out.push(`<h${level} class="md-h md-h${level}">${text}</h${level}>`);
+        continue;
+      }
+      if (trimmed === '---') {
+        flushQuote();
+        flushList();
+        out.push('<hr class="md-hr">');
+        continue;
+      }
+      if (trimmed.startsWith('&gt; ')) {
+        flushList();
+        inQuote = true;
+        quoteLines.push(trimmed.slice(5));
+        continue;
+      } else {
+        flushQuote();
+      }
+      if (/^[-*]\s/.test(trimmed)) {
+        flushQuote();
+        if (!inList) {
+          out.push('<ul class="md-ul">');
+          inList = true;
+        }
+        out.push(`<li class="md-li">${trimmed.replace(/^[-*]\s+/, '')}</li>`);
+        continue;
+      } else {
+        flushList();
+      }
+
+      out.push(`<p class="md-p">${trimmed}</p>`);
+    }
+    flushQuote();
+    flushList();
+    return out.join('');
   };
 
   // ---- The surface -------------------------------------------------------
@@ -323,20 +514,29 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel.fullscreen ~ .backdrop,
     .panel.fullscreen + .backdrop { display: none; }
 
-    .head { padding: .625rem .875rem; border-bottom: 1px solid var(--wt-b300);
+    .head { padding: .5rem .75rem; border-bottom: 1px solid var(--wt-b300);
             display: flex; flex-direction: column; gap: .25rem; flex: none; background: var(--wt-b100); }
-    .head-top { display: flex; align-items: center; gap: .5rem; }
-    .head-top b { flex: 1; font-size: .875rem; font-weight: 600;
-                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .head-top { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .plaque { width: 2.25rem; height: 2.25rem; border-radius: .625rem;
+              background: ${mix(P, 12)}; color: var(--wt-p);
+              display: flex; align-items: center; justify-content: center; flex: none; }
+    .plaque svg { width: 1.25rem; height: 1.25rem; }
+    .head-titles { display: flex; flex-direction: column; min-width: 0; flex: 1; justify-content: center; }
+    .head-title { margin: 0; font-size: .875rem; font-weight: 600; line-height: 1.25;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wt-bc); }
+    .head-sub { margin: 0; font-size: 11px; color: ${mix('var(--wt-bc)', 60)};
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill { display: inline-flex; align-items: center; gap: 1px;
+            padding: .15rem .45rem; border-radius: 9999px;
+            border: 1px solid var(--wt-b300); background: var(--wt-b200);
+            font: 600 11px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 70)}; flex: none; }
+    .pill-sep { opacity: .4; margin: 0 1px; }
     .head-actions { display: flex; align-items: center; gap: .25rem; flex: none; }
     .icon-btn { width: 1.75rem; height: 1.75rem; border: 0; border-radius: .375rem;
                 background: none; cursor: pointer; display: flex;
                 align-items: center; justify-content: center; }
     .icon-btn:hover { background: var(--wt-b200); }
     .icon-btn svg { width: 1.05rem; height: 1.05rem; color: ${mix(P, 70)}; }
-    .head-sub { display: flex; align-items: center; gap: .5rem; }
-    .head-sub small { font: 11px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; flex: 1;
-                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .meta-toggle { display: inline-flex; align-items: center; gap: .25rem;
                    padding: .125rem .375rem; border-radius: .25rem;
                    border: 1px solid var(--wt-b300); background: var(--wt-b200);
@@ -415,18 +615,104 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       flex: 0 0 100%; width: 100%; min-width: 100%; max-width: 100%;
       box-sizing: border-box;
       scroll-snap-align: start; scroll-snap-stop: always;
-      overflow-y: auto; overscroll-behavior-y: contain;
-      padding: .75rem .875rem 2.5rem;
+      overflow-y: hidden; overscroll-behavior-y: contain;
+      padding: .625rem .75rem 2.25rem;
     }
 
-    /* Fullscreen Deck: centered readable width matching house swipe-deck.js */
-    .panel.fullscreen .deck-slide {
-      padding: 1.25rem 1.5rem 3rem;
+    /* House card viewer layout */
+    .card {
+      display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%;
+      border: 1px solid var(--wt-b300); border-radius: .75rem;
+      background: var(--wt-b100); overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04); box-sizing: border-box;
     }
-    .panel.fullscreen .slide-content,
-    .panel.fullscreen .links-list,
-    .panel.fullscreen .bar {
+    .card-bar {
+      display: flex; align-items: center; gap: .375rem; padding: .45rem .625rem;
+      border-bottom: 1px solid var(--wt-b300); background: var(--wt-b200);
+      flex: none; min-height: 2.25rem; box-sizing: border-box;
+    }
+    .card-body {
+      flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
+      padding: .625rem .75rem;
+    }
+    .card-action-btn {
+      background: none; border: 0; cursor: pointer; padding: .2rem .4rem;
+      font-size: .75rem; font-weight: 600; color: var(--wt-p); border-radius: .25rem;
+    }
+    .card-action-btn:hover { background: var(--wt-b300); }
+    .card-action-btn.on { color: var(--wt-p); font-weight: 700; }
+    .card-action-btn.on::before { content: '● '; }
+
+    .seg {
+      display: inline-flex; align-items: center; border-radius: .375rem;
+      background: var(--wt-b300); padding: 2px; gap: 2px;
+    }
+    .seg-btn {
+      border: 0; border-radius: .25rem; background: none; cursor: pointer;
+      padding: .2rem .45rem; font: 600 11px ui-sans-serif, system-ui, sans-serif;
+      color: ${mix('var(--wt-bc)', 70)}; transition: all .15s;
+    }
+    .seg-btn:hover { color: var(--wt-bc); }
+    .seg-btn.on {
+      background: var(--wt-b100); color: var(--wt-p);
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+
+    /* Prose typography */
+    .md-prose {
+      font: 400 13px/1.65 ui-sans-serif, -apple-system, system-ui, sans-serif;
+      color: var(--wt-bc); word-break: break-word;
+    }
+    .md-prose .md-h { color: var(--wt-bc); font-weight: 700; line-height: 1.25; margin: 1rem 0 .375rem; }
+    .md-prose .md-h1 { font-size: 1.25rem; margin-top: 0; }
+    .md-prose .md-h2 { font-size: 1.1rem; border-bottom: 1px solid var(--wt-b300); padding-bottom: .25rem; }
+    .md-prose .md-h3 { font-size: .95rem; }
+    .md-prose .md-h4, .md-prose .md-h5, .md-prose .md-h6 { font-size: .85rem; }
+    .md-prose .md-p { margin: 0 0 .625rem; line-height: 1.6; }
+    .md-prose .md-quote {
+      margin: .625rem 0; padding: .375rem .625rem; border-left: 3px solid var(--wt-p);
+      background: ${mix(P, 6)}; border-radius: 0 .375rem .375rem 0;
+      font-style: italic; color: ${mix('var(--wt-bc)', 85)};
+    }
+    .md-prose .md-pre {
+      margin: .625rem 0; padding: .5rem .625rem; border-radius: .375rem;
+      background: var(--wt-b200); border: 1px solid var(--wt-b300);
+      overflow-x: auto; font: 11px/1.45 ui-monospace, monospace;
+    }
+    .md-prose .md-code { font: inherit; }
+    .md-prose .md-inline-code {
+      font: 11px ui-monospace, monospace; padding: .125rem .25rem; border-radius: .25rem;
+      background: var(--wt-b200); border: 1px solid var(--wt-b300);
+    }
+    .md-prose .md-link {
+      color: var(--wt-p); text-decoration: underline; text-underline-offset: 2px;
+    }
+    .md-prose .md-ul { margin: .375rem 0 .625rem 1.125rem; padding: 0; }
+    .md-prose .md-li { margin-bottom: .2rem; }
+    .md-prose .md-hr { border: 0; border-top: 1px solid var(--wt-b300); margin: 1rem 0; }
+
+    /* Fullscreen Deck: centered readable card width matching house swipe-deck.js */
+    .panel.fullscreen .head {
+      padding: .625rem 1.25rem;
+    }
+    .panel.fullscreen .head-top {
       max-width: 52rem; width: 100%; margin-inline: auto;
+    }
+    .panel.fullscreen .deck-slide {
+      padding: 1.25rem 1.5rem 3.5rem;
+    }
+    .panel.fullscreen .card {
+      max-width: 52rem; width: 100%; margin-inline: auto;
+      border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    }
+    .panel.fullscreen .card-bar {
+      padding: .625rem 1rem;
+    }
+    .panel.fullscreen .card-body {
+      padding: 1.25rem 1.5rem;
+    }
+    .panel.fullscreen .foot {
+      padding: .75rem 6rem .75rem 1.25rem;
     }
 
     .bar { display: flex; align-items: center; gap: .5rem; padding: 0 0 .5rem; flex: none; }
@@ -484,6 +770,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   const svg = d => `<svg viewBox="0 0 256 256" fill="currentColor"><path d="${d}"/></svg>`;
   const ICON = {
+    caretLeft: 'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z',
     sidebar: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H80V200H40ZM216,200H96V56H216V200Z',
     cardsThree: 'M208,88H48a16,16,0,0,0-16,16v96a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104A16,16,0,0,0,208,88Zm0,112H48V104H208v96ZM48,64a8,8,0,0,1,8-8H200a8,8,0,0,1,0,16H56A8,8,0,0,1,48,64ZM64,32a8,8,0,0,1,8-8H184a8,8,0,0,1,0,16H72A8,8,0,0,1,64,32Z',
     note: 'M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z',
@@ -497,6 +784,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     expand: 'M208,40H160a8,8,0,0,0,0,16h28.69L141.34,103.34a8,8,0,0,0,11.32,11.32L200,67.31V96a8,8,0,0,0,16,0V48A8,8,0,0,0,208,40ZM103.34,141.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l47.35-47.34a8,8,0,0,0-11.32-11.32Z',
     collapse: 'M205.66,106.34a8,8,0,0,0,2.34-5.66V56a8,8,0,0,0-16,0V84.69L144.66,37.34a8,8,0,0,0-11.32,11.32L180.69,96H152a8,8,0,0,0,0,16h48A8,8,0,0,0,205.66,106.34ZM104,144H56a8,8,0,0,0,0,16H84.69L37.34,207.34a8,8,0,0,0,11.32,11.32L96,171.31V200a8,8,0,0,0,16,0V152A8,8,0,0,0,104,144Z',
     info: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z',
+    textT: 'M208,56V88a8,8,0,0,1-16,0V64H136V192h20a8,8,0,0,1,0,16H100a8,8,0,0,1,0-16h20V64H64V88a8,8,0,0,1-16,0V56a8,8,0,0,1,8-8H200A8,8,0,0,1,208,56Z',
+    eye: 'M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z',
   };
 
   const layer = document.createElement('div');
@@ -506,15 +795,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     <div class="panel">
       <div class="head">
         <div class="head-top">
-          <b></b>
-          <div class="head-actions">
-            <button class="icon-btn toggle-fullscreen" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
-            <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
+          <button class="icon-btn toggle-fullscreen" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
+          <div class="plaque">${svg(ICON.cardsThree)}</div>
+          <div class="head-titles">
+            <h1 class="head-title"><span class="title-text"></span></h1>
+            <p class="head-sub"><span></span></p>
           </div>
-        </div>
-        <div class="head-sub">
-          <small></small>
-          <button type="button" class="meta-toggle" aria-expanded="false">${svg(ICON.info)}<span>Page Info</span><span class="meta-arr">▾</span></button>
+          <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>5</span></div>
+          <div class="head-actions">
+            <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
+            <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
+          </div>
         </div>
         <span class="stale" hidden></span>
         <div class="page-meta" hidden>
@@ -545,46 +836,77 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <button class="deck-tab" data-slide="2">Links</button>
           <button class="deck-tab" data-slide="3" data-take-html>HTML</button>
           <button class="deck-tab" data-slide="4">JSON</button>
-          <button class="deck-tab" data-slide="5">Jina</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
         <!-- Slide 0: Markdown -->
         <div class="deck-slide active" data-slide-i="0">
-          <div class="text slide-content md-content"></div>
+          <div class="card">
+            <div class="card-bar">
+              <div class="seg" role="group" aria-label="Markdown engine">
+                <button type="button" class="seg-btn on" data-md-engine="local">Local</button>
+                <button type="button" class="seg-btn" data-md-engine="jina">Jina AI</button>
+              </div>
+              <div class="seg" role="group" aria-label="Markdown view mode">
+                <button type="button" class="seg-btn on" data-md-view="preview">Preview</button>
+                <button type="button" class="seg-btn" data-md-view="raw">Raw</button>
+              </div>
+              <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" hidden style="font-size:11px;margin-left:auto;color:var(--wt-p);text-decoration:none">Open ↗</a>
+              <span class="count md-status" style="margin-left:auto"></span>
+            </div>
+            <div class="card-body">
+              <div class="md-preview-wrap md-prose"></div>
+              <pre class="md-raw-wrap text" hidden></pre>
+            </div>
+          </div>
         </div>
         <!-- Slide 1: Text -->
         <div class="deck-slide" data-slide-i="1">
-          <div class="bar">
-            <button data-toggle-text></button>
-            <button data-collect></button>
-            <span class="count text-count"></span>
+          <div class="card">
+            <div class="card-bar">
+              <button class="card-action-btn" data-toggle-text></button>
+              <button class="card-action-btn" data-collect></button>
+              <span class="count text-count" style="margin-left:auto"></span>
+            </div>
+            <div class="card-body">
+              <div class="text slide-content text-content"></div>
+            </div>
           </div>
-          <div class="text slide-content text-content"></div>
         </div>
         <!-- Slide 2: Links -->
         <div class="deck-slide" data-slide-i="2">
-          <div class="bar">
-            <button data-all>All</button><button data-none>None</button>
-            <span class="count links-count"></span>
+          <div class="card">
+            <div class="card-bar">
+              <button class="card-action-btn" data-all>All</button>
+              <button class="card-action-btn" data-none>None</button>
+              <span class="count links-count" style="margin-left:auto"></span>
+            </div>
+            <div class="card-body">
+              <div data-list class="links-list"></div>
+            </div>
           </div>
-          <div data-list class="links-list"></div>
         </div>
         <!-- Slide 3: HTML -->
         <div class="deck-slide" data-slide-i="3">
-          <div class="text slide-content html-content"></div>
+          <div class="card">
+            <div class="card-bar">
+              <span class="count html-status">Full DOM tree</span>
+            </div>
+            <div class="card-body">
+              <div class="text slide-content html-content"></div>
+            </div>
+          </div>
         </div>
         <!-- Slide 4: JSON -->
         <div class="deck-slide" data-slide-i="4">
-          <div class="text slide-content json-content"></div>
-        </div>
-        <!-- Slide 5: Jina -->
-        <div class="deck-slide" data-slide-i="5">
-          <div class="bar">
-            <span class="count jina-status">Clean reader markdown</span>
-            <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" style="font-size:11px;margin-left:auto;color:var(--wt-p);text-decoration:none">Open in Jina ↗</a>
+          <div class="card">
+            <div class="card-bar">
+              <span class="count json-status">Metadata payload</span>
+            </div>
+            <div class="card-body">
+              <div class="text slide-content json-content"></div>
+            </div>
           </div>
-          <div class="text slide-content jina-content"></div>
         </div>
       </div>
       <div class="foot">
@@ -596,7 +918,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <button class="dot" data-go="2" aria-label="Slide 3: Links"></button>
           <button class="dot" data-go="3" aria-label="Slide 4: HTML"></button>
           <button class="dot" data-go="4" aria-label="Slide 5: JSON"></button>
-          <button class="dot" data-go="5" aria-label="Slide 6: Jina"></button>
         </div>
         <span class="size"></span>
       </div>
@@ -706,7 +1027,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const slide = SLIDES[i] || SLIDES[0];
     switch (slide.id) {
       case 'md':
-        return compose();
+        return state.mdEngine === 'jina' ? (state.jinaMd || '') : (state.localMd || domToMarkdown());
       case 'text':
         return state.blocks.length ? state.blocks.join('\n\n') : (state.text || '');
       case 'links': {
@@ -725,15 +1046,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           selection: state.sel,
           links: state.links,
           text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
+          markdown: state.localMd || domToMarkdown(),
         }, null, 2);
-      case 'jina':
-        return state.jinaMd || '';
       default:
         return '';
     }
   };
 
   const renderPageMeta = () => {
+    const headTitle = q('.head-title .title-text');
+    if (headTitle) headTitle.textContent = page.title;
+    const headSub = q('.head-sub span');
+    if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
+
     const titleEl = q('.meta-title');
     const hrefEl = q('.meta-href');
     const descWrap = q('.meta-desc-wrap');
@@ -779,7 +1104,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     panel.classList.toggle('fullscreen', state.fullscreen);
     const fsBtn = q('.toggle-fullscreen');
     if (fsBtn) {
-      fsBtn.innerHTML = svg(state.fullscreen ? ICON.sidebar : ICON.cardsThree);
+      fsBtn.innerHTML = svg(state.fullscreen ? ICON.caretLeft : ICON.cardsThree);
       fsBtn.setAttribute('aria-label', state.fullscreen ? 'Return to Drawer' : 'Full Swipe Deck');
       fsBtn.setAttribute('title', state.fullscreen ? 'Return to Drawer' : 'Full Swipe Deck');
     }
@@ -795,23 +1120,29 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const loadJina = async () => {
-    const contentEl = q('.jina-content');
-    const statusEl = q('.jina-status');
+    const statusEl = q('.md-status');
+    const rawEl = q('.md-raw-wrap');
+    const prevEl = q('.md-preview-wrap');
     if (state.jinaMd) {
-      contentEl.textContent = state.jinaMd;
-      if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina Reader`;
+      if (rawEl) rawEl.textContent = state.jinaMd;
+      if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.jinaMd);
+      if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina AI`;
       refresh();
       return;
     }
-    contentEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
-    if (statusEl) statusEl.textContent = 'Reading…';
+    if (statusEl) statusEl.textContent = 'Reading from Jina AI…';
+    if (prevEl) prevEl.innerHTML = '<p class="none">Reading from Jina AI Reader (r.jina.ai)…</p>';
+    if (rawEl) rawEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
     try {
       const res = await fetchText('https://r.jina.ai/' + page.href, { Accept: 'text/markdown, text/plain, */*' });
       state.jinaMd = res;
-      contentEl.textContent = res;
-      if (statusEl) statusEl.textContent = `${res.length.toLocaleString()} chars · Jina Reader`;
+      if (rawEl) rawEl.textContent = res;
+      if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(res);
+      if (statusEl) statusEl.textContent = `${res.length.toLocaleString()} chars · Jina AI`;
     } catch {
-      contentEl.textContent = 'Direct fetch blocked by page CSP. Tap "Open in Jina ↗" above to read in Jina Reader.';
+      const msg = 'Direct fetch blocked by page CSP. Tap "Open ↗" above to read in Jina Reader.';
+      if (rawEl) rawEl.textContent = msg;
+      if (prevEl) prevEl.innerHTML = `<p class="none">${msg}</p>`;
       if (statusEl) statusEl.textContent = 'Blocked by CSP';
     }
     refresh();
@@ -820,9 +1151,32 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const renderActiveSlide = (i = state.slide) => {
     const slide = SLIDES[i] || SLIDES[0];
     switch (slide.id) {
-      case 'md':
-        q('.md-content').textContent = compose();
+      case 'md': {
+        const rawEl = q('.md-raw-wrap');
+        const prevEl = q('.md-preview-wrap');
+        const statusEl = q('.md-status');
+        const jinaExt = q('.jina-ext');
+
+        if (state.mdEngine === 'jina') {
+          if (jinaExt) jinaExt.hidden = false;
+          if (state.jinaMd) {
+            if (rawEl) rawEl.textContent = state.jinaMd;
+            if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.jinaMd);
+            if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina AI`;
+          } else {
+            loadJina();
+          }
+        } else {
+          if (jinaExt) jinaExt.hidden = true;
+          state.localMd = domToMarkdown();
+          if (rawEl) rawEl.textContent = state.localMd;
+          if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.localMd);
+          if (statusEl) statusEl.textContent = `${state.localMd.length.toLocaleString()} chars · Local DOM`;
+        }
+        if (rawEl) rawEl.hidden = state.mdView !== 'raw';
+        if (prevEl) prevEl.hidden = state.mdView !== 'preview';
         break;
+      }
       case 'text': {
         const textContent = q('.text-content');
         if (textContent) {
@@ -843,16 +1197,16 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       case 'json':
         q('.json-content').textContent = getSlideText(i);
         break;
-      case 'jina':
-        loadJina();
-        break;
     }
     refresh();
   };
 
-  const syncSlideUI = i => {
+  const syncSlideTabsAndDots = i => {
     if (i < 0 || i >= SLIDES.length) return;
     state.slide = i;
+    const curEl = q('.cur-slide');
+    if (curEl) curEl.textContent = String(i + 1);
+
     root.querySelectorAll('.deck-tab').forEach((t, idx) => {
       t.classList.toggle('on', idx === i);
       if (idx === i) {
@@ -876,6 +1230,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     root.querySelectorAll('.pager .dot').forEach((d, idx) => {
       d.classList.toggle('on', idx === i);
     });
+  };
+
+  const syncSlideUI = i => {
+    syncSlideTabsAndDots(i);
     renderActiveSlide(i);
   };
 
@@ -1028,21 +1386,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // Ticked links survive it: state.picked holds addresses, so a link still on
   // the page comes back ticked and one that has gone simply stops being listed.
   const renderAllSlides = () => {
-    q('.md-content').textContent = compose();
-    const textContent = q('.text-content');
-    if (textContent) {
-      textContent.textContent = state.blocks.length
-        ? state.blocks.join('\n\n')
-        : (state.collect ? 'Nothing collected yet. Scroll the page.' : (state.text || 'No readable text found.'));
-    }
-    renderLinks();
-    const html = document.documentElement.outerHTML;
-    q('.html-content').textContent = '<!DOCTYPE html>\n' + (html.length > 50000 ? html.slice(0, 50000) + '\n\n… [preview truncated for display; Copy and Stage export complete HTML]' : html);
-    q('.json-content').textContent = getSlideText(4);
-    if (state.slide === 5) loadJina();
+    renderActiveSlide(state.slide);
   };
 
   const readPage = () => {
+    state.localMd = null;
+    state.jinaMd = null;
     readLinks();
     if (!state.blocks.length) state.text = readText();
     if (state.collect || state.blocks.length) collectBlocks();
@@ -1137,47 +1486,76 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const { href } = state.links[+el.dataset.i];
     state.picked.has(href) ? state.picked.delete(href) : state.picked.add(href);
     el.classList.toggle('on', state.picked.has(href));
+    state.localMd = null;
     refresh();
-    if (state.slide === 0) q('.md-content').textContent = compose();
+    if (state.slide === 0) renderActiveSlide(0);
   });
   q('[data-all]').onclick = () => {
     state.links.forEach(l => state.picked.add(l.href));
     renderLinks();
+    state.localMd = null;
     refresh();
-    if (state.slide === 0) q('.md-content').textContent = compose();
+    if (state.slide === 0) renderActiveSlide(0);
   };
   q('[data-none]').onclick = () => {
     state.picked.clear();
     renderLinks();
+    state.localMd = null;
     refresh();
-    if (state.slide === 0) q('.md-content').textContent = compose();
+    if (state.slide === 0) renderActiveSlide(0);
   };
   q('[data-toggle-text]').onclick = () => {
     state.withText = !state.withText;
+    state.localMd = null;
     refresh();
-    if (state.slide === 0) q('.md-content').textContent = compose();
+    if (state.slide === 0) renderActiveSlide(0);
   };
   q('[data-collect]').onclick = () => {
     state.collect = !state.collect;
     state.collect ? startCollecting() : stopCollecting();
     if (state.collect) state.withText = true;
+    state.localMd = null;
     renderActiveSlide(1);
     refresh();
-    if (state.slide === 0) q('.md-content').textContent = compose();
+    if (state.slide === 0) renderActiveSlide(0);
   };
 
-  // Deck scrolling & pagination (active in both drawer and fullscreen modes)
+  root.querySelectorAll('[data-md-engine]').forEach(b => {
+    b.onclick = () => {
+      state.mdEngine = b.dataset.mdEngine;
+      root.querySelectorAll('[data-md-engine]').forEach(el => {
+        el.classList.toggle('on', el === b);
+      });
+      renderActiveSlide(0);
+    };
+  });
+
+  root.querySelectorAll('[data-md-view]').forEach(b => {
+    b.onclick = () => {
+      state.mdView = b.dataset.mdView;
+      root.querySelectorAll('[data-md-view]').forEach(el => {
+        el.classList.toggle('on', el === b);
+      });
+      renderActiveSlide(0);
+    };
+  });
+
+  // Deck scrolling & pagination: high-performance rAF updates tabs & dots instantly
   const track = q('.deck-track');
-  let scrollTimer = 0;
+  let rAF = 0;
   track.addEventListener('scroll', () => {
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => {
+    if (rAF) return;
+    rAF = requestAnimationFrame(() => {
+      rAF = 0;
       const w = track.clientWidth;
       if (!w) return;
       const idx = Math.round(track.scrollLeft / w);
       const clamped = Math.max(0, Math.min(SLIDES.length - 1, idx));
-      if (clamped !== state.slide) syncSlideUI(clamped);
-    }, 60);
+      if (clamped !== state.slide) {
+        syncSlideTabsAndDots(clamped);
+        renderActiveSlide(clamped);
+      }
+    });
   }, { passive: true });
 
   root.querySelectorAll('.deck-tab').forEach(tab => {
@@ -1294,8 +1672,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     setMenu(true);
   });
 
-  q('.head b').textContent = page.title;
-  q('.head small').textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
+  const headTitle = q('.head-title .title-text');
+  if (headTitle) headTitle.textContent = page.title;
+  const headSub = q('.head-sub span');
+  if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
 
   // Asked on first open and on refresh, and never allowed to fail loudly.
   let checked = false;
