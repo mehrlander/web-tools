@@ -89,6 +89,30 @@ export default async function (page) {
     return { cls: b.className, text: b.textContent.trim(), icon: !!b.querySelector('i.ph-check') };
   });
 
+  // THE DOCUMENT SITS EVENLY IN ITS SCROLLER. A changed block bleeds past the
+  // text with -mx-2 so its tinted ring is visible, and the slide is the
+  // scroller, so a CLASSIC scrollbar takes its width out of the right side of
+  // the content box and the ring lands 4px from the left and 4 plus a scrollbar
+  // from the right. Reported 2026-09-18 from a desktop browser. This runs at
+  // 390 where scrollbars overlay and the gutter is not reserved, so what it
+  // pins is the phone's 4 and 4; the desktop half is the `sm:` gutter and is
+  // asserted as a declaration rather than a measurement.
+  //
+  // BEFORE THE SWIPE, deliberately. Measured after it, a bare querySelector
+  // answers with slide one's block, which is then a screen-width to the LEFT
+  // of the viewport: it read -386 and failed a check that was right about the
+  // page. Scoping to the active slide is the other repair and a worse one,
+  // since slide two's comparison may not have drawn yet.
+  const gaps = await page.evaluate(() => {
+    const box = document.querySelector('.md-diff-change');
+    const sec = box.closest('section[data-slide]');
+    const r = box.getBoundingClientRect();
+    return { left: Math.round(r.left), right: Math.round(window.innerWidth - r.right),
+             gutter: Math.round(sec.offsetWidth - sec.clientWidth),
+             sbWidth: getComputedStyle(sec).scrollbarWidth,
+             declares: /scrollbar-gutter:stable/.test(sec.className) };
+  });
+
   // And it follows the reader. One slide along is a different file, so a header
   // that did not move would still be naming the first one.
   const next = await page.evaluate(async () => {
@@ -121,7 +145,7 @@ export default async function (page) {
     return { w: cs.borderTopWidth, mr: cs.marginRight };
   });
 
-  const seen = { band, start, one, two, approve, head, next, chrome, jumpEdge, prose: prose.slice(0, 120) };
+  const seen = { band, start, one, two, approve, head, next, chrome, gaps, jumpEdge, prose: prose.slice(0, 120) };
   const bad = (m) => { throw new Error(`approve-header: ${m}, got ${JSON.stringify(seen)}`); };
 
   if (band.present && band.h > 0) bad('the empty subheader still draws a band under the header');
@@ -150,6 +174,11 @@ export default async function (page) {
   if (!chrome.markInHeader) bad('the github menu is not beside the file name in the header');
   if (chrome.menusOnSlide) bad('the card still draws its own github menu, so there are two');
   if (!/web-tools/.test(head)) bad('the header does not name the repository');
+  if (gaps.left < 2) bad("a changed block's ring runs off the left edge");
+  if (gaps.left !== gaps.right) bad('the document sits off-centre in its scroller');
+  if (gaps.gutter) bad('a gutter is reserved at phone width, where scrollbars overlay and take none');
+  if (gaps.sbWidth !== 'thin') bad('the slide draws a full-width scrollbar');
+  if (!gaps.declares) bad('the slide reserves no gutter on a desktop scrollbar');
   if (!jumpEdge) bad('no jump button to measure');
   if (parseFloat(jumpEdge.w) <= 0) bad('the jump button has no visible edge beside the green check');
   if (parseFloat(jumpEdge.mr) <= 0) bad('the jump button sits flush against the green check');

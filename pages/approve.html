@@ -125,7 +125,27 @@
        looks for the name of what they are reading, and it follows the slide so
        it names the file in front of them rather than the set. -->
   <template x-ref="itemTpl">
-    <section data-slide class="h-full overflow-y-auto px-2 py-2 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
+    <!-- THE GUTTER IS RESERVED ON BOTH EDGES, and that is what keeps the
+         document centred. This section is the scroller, so where the browser
+         draws a CLASSIC scrollbar it takes the space out of the right side of
+         the content box: the changed blocks' left ring sat 4px from the
+         viewport and the right ring 4px plus the scrollbar's width, which
+         reads as one wide margin rather than as a scrollbar. Reported
+         2026-09-18 from a desktop browser; headless Chromium here draws
+         OVERLAY scrollbars, which take no space at all, so the asymmetry does
+         not reproduce in a shot and was measured off the reader's screen.
+         AND IT IS GATED AT `sm:`, because `stable` reserves the gutter whether
+         or not the scrollbar would have taken it. Measured here: unconditional,
+         it cost 20px of width at every size, so a phone whose scrollbar
+         overlays and takes nothing would have paid 10 a side for a bar that
+         does not exist. There is no media query for "this browser draws
+         classic scrollbars", so the width stands in for it: overlay below 640,
+         classic above, which is how these two populations actually divide.
+         `thin` applies at every size and is the other half, since a reserved
+         gutter is only tolerable when it is narrow. -->
+    <section data-slide class="h-full overflow-y-auto [scrollbar-width:thin]
+                               sm:[scrollbar-gutter:stable_both-edges]
+                               px-2 py-2 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
 
         <!-- read: true, which is the card's READING mode. Its own design note
              says the four source tabs are four readings of one fixed pair,
