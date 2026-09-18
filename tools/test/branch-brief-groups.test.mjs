@@ -154,7 +154,7 @@ test('the page reads files, then the guide, then the documents', () => {
 // from a phone on 2026-09-07.
 //
 // ONE CORNER. The top section container and bottom reviewable document container
-// are the page's two content containers, both styled as rounded-box with matching
+// are the page's two content containers, both styled as rounded-lg with matching
 // curved header caps.
 //
 // GROUPING IS SPACING. A control sits closer to what it controls than sections
@@ -163,12 +163,12 @@ test('the content containers share one corner, and grouping is spacing', () => {
   const doc = window.document;
   const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
   const topBox = doc.querySelector('[data-top-section]');
-  const panelWrap = doc.querySelector('[data-rev] .rounded-box');
+  const panelWrap = doc.querySelector('[data-rev] .rounded-lg');
   const found = { top: radius(topBox), panel: radius(panelWrap) };
   assert.ok(found.top && found.panel, 'both containers carry a radius: ' + JSON.stringify(found));
-  assert.equal(found.top, 'rounded-box',
+  assert.equal(found.top, 'rounded-lg',
     'the theme token, so a theme that moves its radius moves both');
-  assert.equal(found.panel, 'rounded-box');
+  assert.equal(found.panel, 'rounded-lg');
   // No fade gradient overlay remains: content stays in its container.
   assert.equal(doc.querySelectorAll('.bg-gradient-to-b').length, 0, 'no fade overlay on containers');
 
@@ -251,7 +251,7 @@ test('the top container (guide) and bottom container (panel) scroll without clip
   assert.ok(guideScroller, 'guide scroller found');
   assert.match(guideScroller.className, /overflow-y-auto/, 'the guide scrolls in place');
 
-  const panel = window.document.querySelector('[data-rev] .rounded-box');
+  const panel = window.document.querySelector('[data-rev] .rounded-lg');
   assert.ok(panel, 'a presented file is found');
   assert.match(panel.className, /overflow-y-auto/, 'and scrolls inside its container');
 
@@ -313,9 +313,7 @@ const settle = async (ok, n = 60) => {
   return ok();
 };
 const stripReady = () => {
-  const row = window.document.querySelector('[data-rev-pager]');
-  const dots = window.document.querySelectorAll('[data-rev-pager] button').length;
-  return dots === data.reviewableFiles.length && !!row && row.style.display === '';
+  return data.revPanels().length === data.reviewableFiles.length;
 };
 const withReviewable = async (fn) => {
   const keep = data.brief.files;
@@ -353,26 +351,24 @@ test('the presented files are one swiped container, not a stack', () => withRevi
   assert.ok(!panels.some(k => k.tagName === 'TEMPLATE'), 'and it is not one of them');
 }));
 
-test('the dots are the position and the only way off an iframe panel',
+test('an n/m pill on each card indicates position when there are multiple reviewable files',
   () => withReviewable(async () => {
-    // A touch inside an iframe never reaches the parent scroller, so on the
-    // html panel a swipe does nothing and these are the whole navigation.
-    const dots = [...window.document.querySelectorAll('[data-rev-pager] button')];
-    assert.equal(dots.length, 3, 'one per file');
-    assert.deepEqual(dots.map(b => b.getAttribute('title')),
-      data.reviewableFiles.map(f => f.path), 'each naming its file');
-    const row = window.document.querySelector('[data-rev-pager]');
-    assert.equal(row.style.display, '', 'the row is shown while there are several');
+    assert.equal(window.document.querySelector('[data-rev-pager]'), null, 'no inline dots pager row');
+    await settle(() => {
+      const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+      return badges.length === 3;
+    });
+    const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+    assert.equal(badges.length, 3, 'one pager pill per reviewable file');
+    assert.deepEqual(badges.map(b => b.textContent.trim()), ['1/3', '2/3', '3/3'], 'each card states its position');
   }));
 
-// One file is not a set to page through, so the row that says which of them
-// you are on has nothing to say.
+// One file is not a set to page through, so no pager pill is offered.
 test('with one reviewable file there is no pager', async () => {
   await tick(4);
   assert.equal(data.reviewableFiles.length, 1);
-  const row = window.document.querySelector('[data-rev-pager]');
-  assert.equal(row.querySelectorAll('button').length, 1, 'x-for still draws it');
-  assert.equal(row.style.display, 'none', 'and x-show hides the row');
+  const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+  assert.equal(badges.length, 0, 'no n/m pill when only one reviewable file');
 });
 
 test('the strip reads its position and is driven to one', () => withReviewable(async () => {
