@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'b4a6726';
-const BUILT = '2026-09-18T15:33:37Z';
+const BUILD = '87cb182';
+const BUILT = '2026-09-18T15:46:14Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -259,7 +259,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
            -webkit-user-select: none; user-select: none; transition: all .3s, opacity .2s; }
     .btn:active { cursor: grabbing; }
     .btn.on { background: ${mix(P, 30)}; border-color: ${mix(P, 50)}; }
-    .btn.drawer-open { opacity: 0; pointer-events: none; transform: scale(.75); }
     .btn svg { width: 1.5rem; height: 1.5rem; color: ${mix(P, 40)}; transition: color .3s; }
     .btn.on svg { color: var(--wt-p); }
     .btn.has-errand {
@@ -403,44 +402,31 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .deck-tab:hover { color: var(--wt-bc); }
     .deck-tab.on { color: var(--wt-p); border-bottom-color: var(--wt-p); }
 
-    /* Mode A: Drawer Mode (stacked, vertical scrolling) */
-    .panel:not(.fullscreen) .deck-track {
-      display: block; flex: 1; min-height: 0; width: 100%;
-      overflow-y: auto; overflow-x: hidden;
-      overscroll-behavior-y: contain;
-    }
-    .panel:not(.fullscreen) .deck-slide {
-      display: none; width: 100%; height: 100%;
-      padding: .75rem .875rem; box-sizing: border-box;
-      flex-direction: column;
-    }
-    .panel:not(.fullscreen) .deck-slide.active {
-      display: flex;
-    }
-    .panel:not(.fullscreen) .pager {
-      display: none;
-    }
-    .panel:not(.fullscreen) .size {
-      margin-left: auto;
-    }
-
-    /* Mode B: Fullscreen Swipe Deck (horizontal snap track) */
-    .panel.fullscreen .deck-track {
+    /* Horizontal snap track in both drawer and fullscreen modes */
+    .deck-track {
       display: flex; flex: 1; min-height: 0; width: 100%;
       overflow-x: auto; overflow-y: hidden;
       scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
       scrollbar-width: none; scroll-behavior: smooth;
     }
-    .panel.fullscreen .deck-track::-webkit-scrollbar { display: none; }
-    .panel.fullscreen .deck-slide {
+    .deck-track::-webkit-scrollbar { display: none; }
+    .deck-slide {
       display: flex; flex-direction: column;
-      flex: 0 0 100vw; width: 100vw; height: 100%;
+      flex: 0 0 100%; width: 100%; min-width: 100%; max-width: 100%;
+      box-sizing: border-box;
       scroll-snap-align: start; scroll-snap-stop: always;
       overflow-y: auto; overscroll-behavior-y: contain;
-      padding: 1rem 1.25rem; box-sizing: border-box;
+      padding: .75rem .875rem 2.5rem;
     }
-    .panel.fullscreen .pager {
-      display: flex; margin: 0 auto;
+
+    /* Fullscreen Deck: centered readable width matching house swipe-deck.js */
+    .panel.fullscreen .deck-slide {
+      padding: 1.25rem 1.5rem 3rem;
+    }
+    .panel.fullscreen .slide-content,
+    .panel.fullscreen .links-list,
+    .panel.fullscreen .bar {
+      max-width: 52rem; width: 100%; margin-inline: auto;
     }
 
     .bar { display: flex; align-items: center; gap: .5rem; padding: 0 0 .5rem; flex: none; }
@@ -469,34 +455,37 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             overflow-wrap: break-word; color: ${mix('var(--wt-bc)', 85)}; }
 
     .foot { border-top: 1px solid var(--wt-b300);
-            padding: .625rem .875rem;
-            display: flex; gap: .5rem; align-items: center; flex: none;
-            background: var(--wt-b100); }
-    .act { padding: .4375rem .75rem; border-radius: .5rem; cursor: pointer;
+            padding: .5rem 5rem .5rem .75rem;
+            display: flex; gap: .375rem; align-items: center; flex: none;
+            background: var(--wt-b100); min-height: 3.5rem; box-sizing: border-box; }
+    .panel.fullscreen .foot { padding-right: 5.5rem; }
+    .act { padding: .375rem .625rem; border-radius: .375rem; cursor: pointer;
            border: 1px solid ${mix(P, 30)}; background: ${mix(P, 10)};
-           color: var(--wt-p); font-size: .8125rem; font-weight: 600;
+           color: var(--wt-p); font-size: .75rem; font-weight: 600;
            text-decoration: none; display: inline-flex; align-items: center;
            justify-content: center; flex: none; }
     .act.off { opacity: .4; pointer-events: none; }
     .size { font: 11px ui-monospace, monospace;
-            color: ${mix('var(--wt-bc)', 55)}; text-align: right; white-space: nowrap; flex: none; }
+            color: ${mix('var(--wt-bc)', 55)}; text-align: right; white-space: nowrap; flex: none;
+            margin-left: auto; }
 
     .pager { display: flex; align-items: center; justify-content: center;
              gap: 2px; flex: none; }
-    .dot { width: 22px; height: 22px; padding: 0; background: none; border: 0;
+    .dot { width: 18px; height: 18px; padding: 0; background: none; border: 0;
            display: flex; align-items: center; justify-content: center;
            cursor: pointer; border-radius: 9999px; }
-    .dot::before { content: ''; display: block; width: 6px; height: 6px;
+    .dot::before { content: ''; display: block; width: 5px; height: 5px;
                    border-radius: 9999px; background: ${mix('var(--wt-bc)', 25)};
                    transition: all .2s; }
     .dot:hover::before { background: ${mix('var(--wt-bc)', 45)}; transform: scale(1.2); }
-    .dot.on::before { width: 16px; background: var(--wt-p); }
+    .dot.on::before { width: 14px; background: var(--wt-p); }
   `);
   root.adoptedStyleSheets = [sheet];
 
   const svg = d => `<svg viewBox="0 0 256 256" fill="currentColor"><path d="${d}"/></svg>`;
   const ICON = {
     sidebar: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H80V200H40ZM216,200H96V56H216V200Z',
+    cardsThree: 'M208,88H48a16,16,0,0,0-16,16v96a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104A16,16,0,0,0,208,88Zm0,112H48V104H208v96ZM48,64a8,8,0,0,1,8-8H200a8,8,0,0,1,0,16H56A8,8,0,0,1,48,64ZM64,32a8,8,0,0,1,8-8H184a8,8,0,0,1,0,16H72A8,8,0,0,1,64,32Z',
     note: 'M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z',
     out: 'M224,104a8,8,0,0,1-16,0V59.32l-66.33,66.34a8,8,0,0,1-11.32-11.32L196.68,48H152a8,8,0,0,1,0-16h64a8,8,0,0,1,8,8Zm-40,24a8,8,0,0,0-8,8v72H48V80h72a8,8,0,0,0,0-16H48A16,16,0,0,0,32,80V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V136A8,8,0,0,0,184,128Z',
     hide: 'M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C25,88.84,9.38,123.2,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208a127.11,127.11,0,0,0,52.07-10.83l22,24.21a8,8,0,1,0,11.84-10.76Zm47.33,75.84,41.67,45.85a32,32,0,0,1-41.67-45.85ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.16,133.16,0,0,1,25,128c4.69-8.79,19.66-33.39,47.35-49.38l18,19.75a48,48,0,0,0,63.66,70l14.73,16.2A112,112,0,0,1,128,192Zm6-95.43a8,8,0,0,1,3-15.72,48.16,48.16,0,0,1,38.77,42.64,8,8,0,0,1-7.22,8.71,6.39,6.39,0,0,1-.75,0,8,8,0,0,1-8-7.26A32.09,32.09,0,0,0,134,96.57Zm113.28,34.69c-.42.94-10.55,23.37-33.36,43.8a8,8,0,1,1-10.67-11.92A132.77,132.77,0,0,0,231.05,128a133.15,133.15,0,0,0-23.12-30.77C185.67,75.19,158.78,64,128,64a118.37,118.37,0,0,0-19.36,1.57A8,8,0,1,1,106,49.79,134,134,0,0,1,128,48c34.88,0,66.57,13.26,91.66,38.35,18.83,18.83,27.3,37.62,27.65,38.41A8,8,0,0,1,247.31,131.26Z',
@@ -508,7 +497,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     expand: 'M208,40H160a8,8,0,0,0,0,16h28.69L141.34,103.34a8,8,0,0,0,11.32,11.32L200,67.31V96a8,8,0,0,0,16,0V48A8,8,0,0,0,208,40ZM103.34,141.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l47.35-47.34a8,8,0,0,0-11.32-11.32Z',
     collapse: 'M205.66,106.34a8,8,0,0,0,2.34-5.66V56a8,8,0,0,0-16,0V84.69L144.66,37.34a8,8,0,0,0-11.32,11.32L180.69,96H152a8,8,0,0,0,0,16h48A8,8,0,0,0,205.66,106.34ZM104,144H56a8,8,0,0,0,0,16H84.69L37.34,207.34a8,8,0,0,0,11.32,11.32L96,171.31V200a8,8,0,0,0,16,0V152A8,8,0,0,0,104,144Z',
     info: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z',
-    close: 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z',
   };
 
   const layer = document.createElement('div');
@@ -520,9 +508,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="head-top">
           <b></b>
           <div class="head-actions">
-            <button class="icon-btn toggle-fullscreen" aria-label="Expand to Fullscreen Swipe Deck" title="Fullscreen Deck">${svg(ICON.expand)}</button>
+            <button class="icon-btn toggle-fullscreen" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
             <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
-            <button class="icon-btn close-btn" aria-label="Close drawer" title="Close">${svg(ICON.close)}</button>
           </div>
         </div>
         <div class="head-sub">
@@ -620,7 +607,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   wrap.innerHTML = `
     <div class="menu" hidden>
       <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
-      <button class="row" data-menu-deck>${svg(ICON.expand)}<span>Fullscreen Swipe Deck</span></button>
+      <button class="row" data-menu-deck>${svg(ICON.cardsThree)}<span>Full Swipe Deck</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
       <button class="row" data-menu-html>${svg(ICON.code)}<span>Copy HTML</span></button>
       <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
@@ -792,19 +779,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     panel.classList.toggle('fullscreen', state.fullscreen);
     const fsBtn = q('.toggle-fullscreen');
     if (fsBtn) {
-      fsBtn.innerHTML = svg(state.fullscreen ? ICON.collapse : ICON.expand);
-      fsBtn.setAttribute('aria-label', state.fullscreen ? 'Return to Drawer' : 'Expand to Fullscreen Swipe Deck');
-      fsBtn.setAttribute('title', state.fullscreen ? 'Return to Drawer' : 'Fullscreen Deck');
+      fsBtn.innerHTML = svg(state.fullscreen ? ICON.sidebar : ICON.cardsThree);
+      fsBtn.setAttribute('aria-label', state.fullscreen ? 'Return to Drawer' : 'Full Swipe Deck');
+      fsBtn.setAttribute('title', state.fullscreen ? 'Return to Drawer' : 'Full Swipe Deck');
     }
-    if (state.fullscreen) {
-      requestAnimationFrame(() => {
-        const track = q('.deck-track');
-        if (track) {
-          const w = track.clientWidth || window.innerWidth;
-          track.scrollTo({ left: state.slide * w, behavior: 'auto' });
-        }
-      });
-    }
+    requestAnimationFrame(() => {
+      const track = q('.deck-track');
+      if (track) {
+        const w = track.clientWidth || window.innerWidth;
+        track.scrollTo({ left: state.slide * w, behavior: 'auto' });
+      }
+    });
     syncSlideUI(state.slide);
     refresh();
   };
@@ -896,12 +881,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   const goToSlide = (i, smooth = true) => {
     if (i < 0 || i >= SLIDES.length) return;
-    if (state.fullscreen) {
-      const track = q('.deck-track');
-      if (track) {
-        const w = track.clientWidth || window.innerWidth;
-        track.scrollTo({ left: i * w, behavior: smooth ? 'smooth' : 'auto' });
-      }
+    const track = q('.deck-track');
+    if (track) {
+      const w = track.clientWidth || window.innerWidth;
+      track.scrollTo({ left: i * w, behavior: smooth ? 'smooth' : 'auto' });
     }
     syncSlideUI(i);
   };
@@ -1044,13 +1027,28 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // One read of the page, run on the first open and by the header's refresh.
   // Ticked links survive it: state.picked holds addresses, so a link still on
   // the page comes back ticked and one that has gone simply stops being listed.
+  const renderAllSlides = () => {
+    q('.md-content').textContent = compose();
+    const textContent = q('.text-content');
+    if (textContent) {
+      textContent.textContent = state.blocks.length
+        ? state.blocks.join('\n\n')
+        : (state.collect ? 'Nothing collected yet. Scroll the page.' : (state.text || 'No readable text found.'));
+    }
+    renderLinks();
+    const html = document.documentElement.outerHTML;
+    q('.html-content').textContent = '<!DOCTYPE html>\n' + (html.length > 50000 ? html.slice(0, 50000) + '\n\n… [preview truncated for display; Copy and Stage export complete HTML]' : html);
+    q('.json-content').textContent = getSlideText(4);
+    if (state.slide === 5) loadJina();
+  };
+
   const readPage = () => {
-    const newLinks = readLinks();
+    readLinks();
     if (!state.blocks.length) state.text = readText();
-    const newBlocks = state.collect || state.blocks.length ? collectBlocks() : 0;
+    if (state.collect || state.blocks.length) collectBlocks();
     renderPageMeta();
-    if (newLinks) renderLinks();
-    renderActiveSlide(state.slide);
+    renderAllSlides();
+    refresh();
   };
 
   // Built on the first open rather than at mount, for the reason the fab builds
@@ -1063,10 +1061,16 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     syncSlideUI(state.slide);
     panel.classList.add('open');
     layer.classList.add('open');
-    btn.classList.add('drawer-open');
     btn.classList.add('on');
     const bd = q('.backdrop');
     if (bd) bd.hidden = false;
+    requestAnimationFrame(() => {
+      const track = q('.deck-track');
+      if (track) {
+        const w = track.clientWidth || window.innerWidth;
+        track.scrollTo({ left: state.slide * w, behavior: 'auto' });
+      }
+    });
   };
 
   const closeDrawer = () => {
@@ -1076,11 +1080,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.fullscreen = false;
     const fsBtn = q('.toggle-fullscreen');
     if (fsBtn) {
-      fsBtn.innerHTML = svg(ICON.expand);
-      fsBtn.setAttribute('aria-label', 'Expand to Fullscreen Swipe Deck');
-      fsBtn.setAttribute('title', 'Fullscreen Deck');
+      fsBtn.innerHTML = svg(ICON.cardsThree);
+      fsBtn.setAttribute('aria-label', 'Full Swipe Deck');
+      fsBtn.setAttribute('title', 'Full Swipe Deck');
     }
-    btn.classList.remove('drawer-open');
     btn.classList.remove('on');
     const bd = q('.backdrop');
     if (bd) bd.hidden = true;
@@ -1163,11 +1166,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (state.slide === 0) q('.md-content').textContent = compose();
   };
 
-  // Deck scrolling & pagination (active in Fullscreen Mode)
+  // Deck scrolling & pagination (active in both drawer and fullscreen modes)
   const track = q('.deck-track');
   let scrollTimer = 0;
   track.addEventListener('scroll', () => {
-    if (!state.fullscreen) return;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       const w = track.clientWidth;
@@ -1193,7 +1195,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   q('.meta-toggle').onclick = () => toggleMeta();
   q('.toggle-fullscreen').onclick = () => toggleFullscreen();
-  q('.close-btn').onclick = closeDrawer;
   q('.backdrop').onclick = closeDrawer;
 
   // The clipboard is the route with no ceiling, and it needs the user gesture
