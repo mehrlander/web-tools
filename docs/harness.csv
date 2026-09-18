@@ -68,7 +68,7 @@ tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the tes
 tools/build/tools-index.mjs,restamp the derived half of this registry,tools/build,261,npm:tools-index,yes,yes,yes
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
-tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,515,imported,no,yes,yes
+tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,529,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes
@@ -197,6 +197,7 @@ tools/render/scenarios/map-tests.mjs,the Map view's Tests tab: the test registry
 tools/render/scenarios/md-diff-fence-marks.mjs,,tools/render/scenarios,71,driver,no,no,no
 tools/render/scenarios/md-diff-jump.mjs,,tools/render/scenarios,74,driver,no,yes,no
 tools/render/scenarios/md-diff-keys.mjs,,tools/render/scenarios,90,driver,no,no,no
+tools/render/scenarios/md-diff-one-stop.mjs,,tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,tools/render/scenarios,78,driver,no,no,no

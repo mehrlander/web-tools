@@ -382,8 +382,22 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
   // So a ref that git can resolve is read from git. The working tree stays the
   // answer for a ref git does not know, for a path that is not committed, and
   // for no ref at all, which keeps the common case exactly as it was.
+  //
+  // EXCEPT THE CODE UNDER TEST, which is the trap the first version walked
+  // into. A page boots its library with a ref of its own, and a demo's is
+  // `main` by default; honouring that served main's lib to a shot of the
+  // working tree, so the very change being photographed was not in the picture.
+  // Caught within the hour by a scenario that asserted a style the working tree
+  // sets and the shot did not have.
+  //
+  // The split is what each path IS. `lib/` and `dist/` are the program doing
+  // the rendering, and a headless shot exists to photograph the program on
+  // disk. Everything else is the material it renders, where a ref is a real
+  // question with two different answers, which is the case the ref support was
+  // added for.
+  const CODE = /^(lib|dist)\//;
   const gitShow = (root, ref, rel) => {
-    if (!ref) return null;
+    if (!ref || CODE.test(rel)) return null;
     const r = spawnSync('git', ['-C', root, 'show', `${ref}:${rel}`],
                         { maxBuffer: 64 * 1024 * 1024 });
     return r.status === 0 ? r.stdout : null;
