@@ -26,14 +26,14 @@ lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",474,no,no,7,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",199,no,yes,8,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,164,no,no,2,yes
-lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",478,no,no,10,yes
+lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",478,no,no,11,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,12,yes
 lib/kits/installation.js,Installation,"The installation ledger: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed…",236,no,no,2,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",216,no,yes,20,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,5,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,2,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1080,no,yes,5,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1093,no,yes,5,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,873,no,no,13,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
