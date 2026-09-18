@@ -158,6 +158,35 @@ export default async function (page) {
     return h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
   });
 
+  // THE FLOATING STRIP NEVER CHANGES WIDTH. It is anchored on its right edge,
+  // so anything that resizes the readout slides the whole control under the
+  // reader's thumb. Measured before the fix at 1200: 191px saying "10 changes",
+  // 162 at "1 / 10", 168 at "10 / 10". Two shifts, one on the first tap and one
+  // crossing into two digits. This walks the same three states.
+  const strip = await page.evaluate(async () => {
+    const el = document.querySelector('.md-diff-doc .sticky');
+    const w = () => Math.round(el.getBoundingClientRect().width);
+    const step = () => document.querySelector('.md-diff-doc button[title="Next change"]').click();
+    const seen = [w()];
+    step(); await new Promise((r) => setTimeout(r, 350)); seen.push(w());
+    for (let i = 0; i < 9; i++) { step(); await new Promise((r) => setTimeout(r, 120)); }
+    seen.push(w());
+    return { widths: seen, text: el.querySelector('span').textContent };
+  });
+
+  // UP AND DOWN WALK THE CHANGES once one is claimed, which is the same gate
+  // left and right already had on a block's stops.
+  const keys = await page.evaluate(() => {
+    const doc = document.querySelector('.md-diff-doc');
+    return [...doc.querySelectorAll('.md-diff-change')].findIndex((b) => b.hasAttribute('data-md-diff-here'));
+  });
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(350);
+  const afterUp = await page.evaluate(() => {
+    const doc = document.querySelector('.md-diff-doc');
+    return [...doc.querySelectorAll('.md-diff-change')].findIndex((b) => b.hasAttribute('data-md-diff-here'));
+  });
+
   const jumpEdge = await page.evaluate(() => {
     const b = document.querySelector('.md-diff-doc button[title="Next change"]');
     if (!b) return null;
@@ -166,7 +195,7 @@ export default async function (page) {
              right: strip ? Math.round(innerWidth - strip.getBoundingClientRect().right) : -1 };
   });
 
-  const seen = { band, start, one, two, approve, head, next, chrome, gaps, jumpEdge, prose: prose.slice(0, 120) };
+  const seen = { band, start, one, two, approve, head, next, chrome, gaps, strip, keys, afterUp, jumpEdge, prose: prose.slice(0, 120) };
   const bad = (m) => { throw new Error(`approve-header: ${m}, got ${JSON.stringify(seen)}`); };
 
   if (band.present && band.h > 0) bad('the empty subheader still draws a band under the header');
@@ -198,6 +227,10 @@ export default async function (page) {
   if (gaps.gutter) bad('a gutter is reserved at phone width, where scrollbars overlay and take none');
   if (gaps.sbWidth !== 'thin') bad('the slide draws a full-width scrollbar');
   if (!gaps.declares) bad('the slide is not the deck\'s own, so it carries no gutter rule');
+  if (new Set(strip.widths).size !== 1)
+    bad(`the floating strip changes width as the readout does (${strip.widths.join(', ')})`);
+  if (!/\d+ \/ \d+/.test(strip.text)) bad('the readout does not name which change of how many');
+  if (afterUp !== keys - 1) bad(`ArrowUp did not step back a change (${keys} then ${afterUp})`);
   if (!jumpEdge) bad('no jump button to measure');
   if (!jumpEdge.floats) bad('the jump is not in the comparison\'s own strip');
   if (jumpEdge.pos !== 'sticky') bad('the strip does not stay with the reader as they scroll');
