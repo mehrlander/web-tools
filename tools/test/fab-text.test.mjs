@@ -26,8 +26,10 @@ import { makeWindow, startAlpine, tick, repoRoot } from './bootstrap.mjs';
 // x-if claims are read from the source rather than from the rendered tree:
 // a pane only renders once its tab is opened, and the claim is about all five.
 const SRC = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+const REPO_SRC = readFileSync(path.join(repoRoot, 'lib/alpineComponents/repo.js'), 'utf8');
+const AUTH_SRC = readFileSync(path.join(repoRoot, 'lib/gh-auth.js'), 'utf8');
 
-const { window } = makeWindow({
+const { window, problems } = makeWindow({
   html: `<!doctype html><html><body></body></html>`,
 });
 const doc = window.document;
@@ -135,9 +137,34 @@ test('the read separates body prose from chrome, and counts runs', async () => {
 
   // The button and link text an app is made of is counted apart, so the word
   // row can carry a denominator instead of a bare number.
-  const mixed = d._textRead(docWith(PROSE + '<button>Save</button><a href="#">Open</a>'));
+  const mixed = d._textRead(docWith(PROSE + '<button>Save</button> <a href="#">Open</a>'));
   assert.equal(mixed.chrome, 2, 'button and link words land in chrome');
   assert.equal(mixed.words, r.words, 'and are kept out of the body count');
+  assert.match(mixed.visible, /Save Open/,
+    'proposal lookup keeps visible chrome even though prose figures exclude it');
+
+  // The separator is the markup's, never the reader's. Two controls written
+  // without a space between them render without one, and inventing one made
+  // the lookup claim "Web Tools" on a page that says WebTools.
+  const glued = d._textRead(docWith('<button>Save</button><a href="#">Open</a>'));
+  assert.match(glued.visible, /SaveOpen/,
+    'adjacent runs concatenate as rendered rather than gaining a space');
+
+  const linked = d._textRead(docWith('<p>Review <a href="#">bill-section families</a> now.</p>'));
+  assert.equal(linked.body, 'Review now.', 'linked text stays out of prose-only figures');
+  assert.equal(linked.visible, 'Review bill-section families now.',
+    'visible lookup text preserves inline order across a link');
+
+  const linkOnly = d._textRead(docWith('<a href="#">bill-section families</a>'));
+  assert.equal(linkOnly.body, '');
+  assert.equal(linkOnly.visible, 'bill-section families',
+    'a selected link is still a proposal subject even when it is not prose');
+
+  const hidden = d._textRead(docWith(`<p>Reader text.</p>
+    <p hidden>hidden attribute</p><p aria-hidden="true">aria ghost</p>
+    <p x-cloak>cloaked ghost</p><p style="display:none">inactive pane</p>`));
+  assert.equal(hidden.visible, 'Reader text.',
+    'proposal lookup excludes hidden and inactive text the reader cannot see');
 });
 
 test('a block boundary ends a sentence; an inline element does not', async () => {
@@ -434,14 +461,156 @@ test('a tree failure degrades the answer rather than ending it', async () => {
   assert.match(d.textMatchError, /not checked against the tree/);
 });
 
-test('match runs with the read, without a tap', async () => {
+test('match and prior revisions run with the read, without another tap', async () => {
   const d = await mountFab();
-  let ran = 0;
-  d.textMatchRun = async function () { ran++; };
+  let matched = 0, revised = 0;
+  d.textMatchRun = async function () { matched++; };
+  d.textPriorRun = async function () { revised++; };
   d.textScan();
-  assert.equal(ran, 1, 'opening the tab looks things up; a button gate hid the answer ' +
+  assert.equal(matched, 1, 'opening the tab looks paths up; a button gate hid the answer ' +
     'behind a decision nobody had the information to make');
+  assert.equal(revised, 1, 'the same read looks up prior revisions without another gate');
 });
+
+const proposalView = (id, from, to) => ({
+  id, lane: 'phrase-reviews',
+  from: { text_id: 'from-' + id, text: from },
+  to: { text_id: 'to-' + id, text: to },
+  author: 'imported run', purpose: 'Imported qualify recommendation', action: 'qualify',
+  analysis: { ordinary_reading: 'households', closed_in_situ: 'no', fix_words: 2 },
+  origins: [{
+    proposal_id: id, lane: 'phrase-reviews', scope: 'source-occurrence', record: 1,
+    source: { repo: 'mehrlander/home', ref: 'main', path: 'review.csv', sha: 'abc', size: 1,
+      url: 'https://github.com/mehrlander/home/blob/main/review.csv', source_id: 'review.csv@abc' },
+    context: null, original_verdict: 'qualify', patient: null, operation: null,
+    original_status: null, original_note: null, decision: null, rationale: null,
+    relocation: null, evidence: [],
+  }],
+});
+
+test('prior revisions use the private home catalog and keep exact and contained apart', async () => {
+  const d = await mountFab();
+  const exact = proposalView('exact', 'families', 'bill-section families');
+  const contained = { ...proposalView('inside', 'chrome', 'decoration'), spans: [[12, 18]] };
+  const answer = { selection: { text: 'families' }, exact: [exact], contained: [contained],
+    warnings: ['Imported proposals are source-occurrence work, not automatic recommendations.'] };
+  let options = null, address = null;
+  window.GH = function (o) { address = o; };
+  window.TOKEN = 'stale-page-boot-token';
+  window.ghAuth = { resolve: () => 'current-saved-token' };
+  window.TextProposals = {
+    load: async (_gh, o) => { options = o; return { proposals: [exact, contained] }; },
+    lookup: (_index, text, o) => {
+      assert.equal(text, 'families');
+      assert.equal(o.contained, true);
+      return answer;
+    },
+  };
+  d.textStats = { body: '', visible: 'families' };
+  d.textScope = 'selection';
+  const problemCount = problems.length;
+  await d.textPriorRun();
+  await tick(2);
+
+  assert.deepEqual(problems.slice(problemCount), [],
+    'an exact row has no contained spans, and hidden Alpine bindings still evaluate');
+  assert.equal(address.token, 'current-saved-token');
+  assert.equal(address.repo, 'mehrlander/home');
+  assert.equal(address.ref, 'main');
+  assert.equal(options.specPath, 'projects/text/current-sources.json');
+  assert.equal(options.quiet, true, 'an optional background read cannot replace the host page');
+  assert.equal(d.textPriorState, 'done');
+  assert.equal(d.textPrior.selection.text, answer.selection.text);
+  assert.equal(d.textPrior.exact[0].id, answer.exact[0].id);
+  assert.equal(d.textPrior.contained[0].id, answer.contained[0].id);
+  assert.equal(d.textPriorCount, 2);
+  assert.equal([...d.textPriorBands].map(b => b.label).join('|'),
+    'Exact source text|Same string found in this selection');
+  d.textScope = 'page';
+  assert.equal([...d.textPriorBands][1].label, 'Same string found on this page');
+});
+
+test('a later prior-revision scan wins when an earlier request settles last', async () => {
+  const d = await mountFab();
+  const waits = new Map();
+  window.GH = function () {};
+  window.TextProposals = {
+    load: async () => ({}),
+    lookup: (_index, text) => new Promise(resolve => waits.set(text, resolve)),
+  };
+
+  d.textStats = { body: 'first', visible: 'first' };
+  const first = d.textPriorRun();
+  await tick(2);
+  d.textStats = { body: 'second', visible: 'second' };
+  const second = d.textPriorRun();
+  await tick(2);
+  assert.ok(waits.has('first') && waits.has('second'), 'both lookups reached the adapter');
+
+  const newer = { selection: { text: 'second' }, exact: [], contained: [], warnings: [] };
+  waits.get('second')(newer);
+  await second;
+  waits.get('first')({ selection: { text: 'first' }, exact: [], contained: [], warnings: [] });
+  await first;
+  assert.equal(d.textPrior.selection.text, 'second', 'the stale completion did not repaint the pane');
+  assert.equal(d.textPriorState, 'done');
+});
+
+test('a proposal-index failure is isolated from the local text read', async () => {
+  const d = await mountFab();
+  const stats = { body: 'families', visible: 'families', words: 1 };
+  window.GH = function () {};
+  window.TextProposals = { load: async () => { throw new Error('catalog unavailable'); } };
+  d.textStats = stats;
+  await d.textPriorRun();
+  assert.equal(d.textPriorState, 'error');
+  assert.match(d.textPriorError, /catalog unavailable/);
+  assert.equal(d.textStats.body, stats.body, 'a remote failure does not erase the local figures');
+  assert.equal(d.textStats.words, stats.words);
+});
+
+test('a token change clears private proposal state before the next account read', async () => {
+  assert.match(AUTH_SRC, /window\.TOKEN = token/,
+    'the app-wide credential follows the centralized account control');
+  assert.match(AUTH_SRC, /window\.GH\.memoClear\?\.\(\)/,
+    'GitHub response memoization cannot cross the account boundary');
+  assert.match(AUTH_SRC, /window\.TextProposals\?\.clear\?\.\(\)/,
+    'the private proposal projection cannot cross the account boundary');
+  assert.match(AUTH_SRC, /new CustomEvent\('web-tools:token-changed'\)/,
+    'mounted private-data surfaces are told to discard their view');
+  assert.match(REPO_SRC, /window\.ghAuth\.save\(t\)[\s\S]*?location\.reload\(\)/,
+    'saving an account reloads every private-data component atomically');
+  assert.match(REPO_SRC, /window\.ghAuth\.clear\(\)[\s\S]*?location\.reload\(\)/,
+    'signing out reloads every private-data component atomically');
+
+  const d = await mountFab();
+  d.activeTab = 'render';
+  d.textPrior = { exact: [{ id: 'old-account' }], contained: [] };
+  d.textPriorState = 'done';
+  d.textPriorError = 'old error';
+  const before = d._textPriorEpoch;
+  window.dispatchEvent(new window.CustomEvent('web-tools:token-changed'));
+  await tick(1);
+  assert.equal(d.textPrior, null);
+  assert.equal(d.textPriorState, 'idle');
+  assert.equal(d.textPriorError, '');
+  assert.equal(d._textPriorEpoch, before + 1,
+    'an old in-flight lookup can no longer repaint the drawer');
+});
+
+test('the prior-revision pane is inspect-only and routes collection browsing to Text Lab', () => {
+  const start = SRC.indexOf('Prior revisions');
+  const end = SRC.indexOf('>Body</div>', start);
+  const pane = SRC.slice(start, end);
+  assert.ok(start > 0 && end > start, 'the prior-revision block leads the Body figures');
+  assert.match(SRC, /Exact source text/);
+  assert.match(SRC, /Same string found in this selection/);
+  assert.match(SRC, /Same string found on this page/);
+  assert.match(SRC, /text-lab\.html\?pane=proposals/);
+  assert.match(pane, /historical patient/);
+  assert.doesNotMatch(pane, /@click="[^"]*apply/i, 'the drawer inspects proposals but cannot apply them');
+});
+
 test('an unreadable document is a null, not a throw', async () => {
   const d = await mountFab();
   assert.equal(d._textRead(null), null);
@@ -455,7 +624,8 @@ test('an unreadable document is a null, not a throw', async () => {
   // found by the suite rather than by reading, one as a thrown test and one as
   // stderr noise that failed the file while every subtest passed.
   const guarded = [...SRC.matchAll(/<[a-z]+\b[^>]*?x-show="([^"]*)"[^>]*?x-text="([^"]*)"[^>]*>/gs)]
-    .filter(([, , text]) => /\btext(Match|Stats)\./.test(text) && !/\btext(Match|Stats)\?\./.test(text));
+    .filter(([, , text]) => /(?:\btext(?:Match|Stats)|\bo\.relocation)\./.test(text)
+      && !/(?:\btext(?:Match|Stats)|\bo\.relocation)\?\./.test(text));
   assert.equal(guarded.length, 0,
     'x-show does not stop the x-text beside it from evaluating; use template x-if ' +
     `(offender: ${guarded[0]?.[2] || ''})`);

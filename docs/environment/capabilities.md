@@ -168,8 +168,8 @@ model (install `click` first; the spacy CLI imports it and errors without
 it), and model2vec pulls `minishlab/potion-base-8M` from the Hugging Face
 Hub unauthenticated, so a tiny static-embedding model runs in-session with
 no torch. Measured in the concept-lab experiments, whose findings log moved to
-the private estate (`local-models/instruments/concept-lab/findings.md`) on
-2026-08-25.
+the private estate on 2026-08-25 and now lives at
+`projects/text/instruments/concept-lab/findings.md`.
 Heavier stacks (torch, sentence-transformers) untested.
 
 ## Network access: two gates, and a browser with no egress

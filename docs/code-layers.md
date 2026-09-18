@@ -159,7 +159,8 @@ still overlap on their default path; only the overlay posture distinguishes
 them.
 
 `tools/concept-lab/` was a fourth thing here until 2026-08-25, when it moved to
-the private `home` estate as `projects/local-models/instruments/concept-lab/`.
+the private `home` estate under `projects/local-models/`. The shared text
+project adopted it as `projects/text/instruments/concept-lab/` on 2026-09-16.
 Its stated admission rule (experimental ground, read-only, prototypes that have
 not earned a place yet) was legitimate and is not what moved it. What moved it
 was the constellation rule read as written: a repo boundary exists where a
