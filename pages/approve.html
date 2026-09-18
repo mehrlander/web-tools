@@ -223,9 +223,22 @@ document.addEventListener('alpine:init', () => {
     noting: false,
     // Probed once at init rather than derived from the frame: a sandbox without
     // allow-same-origin THROWS on the localStorage accessor, so the try/catch is
-    // the test. window.TOKEN is what gh-auth resolved, and an empty one is the
-    // same no as an unreachable store.
+    // the test, and an empty store is the same no as an unreachable one.
     canPost: true,
+
+    // THE TOKEN, AND WHY THIS PAGE KEPT SAYING IT HAD NONE. It read
+    // `window.TOKEN`, which nothing on this page sets: only app/index.html and
+    // repo-atlas.html define that global, each with their own three lines. So a
+    // reader with a perfectly good token saw the verdict buttons dimmed, here
+    // and in a toss alike, and the surface could never be used at all. Measured
+    // 2026-09-18: localStorage reachable in the frame, `window.TOKEN` undefined.
+    //
+    // `window.ghAuth.resolve()` is the shared reader, so this asks it. The
+    // global stays first, for a host that framed this page and set one.
+    get token() {
+      if (window.TOKEN) return window.TOKEN;
+      try { return (window.ghAuth && window.ghAuth.resolve()) || ''; } catch (e) { return ''; }
+    },
 
     get ctx() { return this.env?.context || {}; },
     get direct() {
@@ -256,7 +269,7 @@ document.addEventListener('alpine:init', () => {
       await window.__depsReady;
       try {
         localStorage.getItem('ghToken');      // throws under an opaque origin
-        this.canPost = !!window.TOKEN;
+        this.canPost = !!this.token;
       } catch (e) { this.canPost = false; }
       try {
         const gz = this.param('gz');
@@ -268,7 +281,7 @@ document.addEventListener('alpine:init', () => {
         } else if (src) {
           const [addr, ...rest] = src.split(':');
           const [repo, ref] = addr.split('@');
-          this.env = JSON.parse((await new GH({ token: window.TOKEN, repo, ref: ref || '' }).get(rest.join(':'))).text);
+          this.env = JSON.parse((await new GH({ token: this.token, repo, ref: ref || '' }).get(rest.join(':'))).text);
         } else {
           this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
@@ -294,7 +307,7 @@ document.addEventListener('alpine:init', () => {
       try {
         if (this.noting) this.toggleNotes();
         const [repo, dir] = (this.ctx.reply_to || '').split(':');
-        const gh2 = new GH({ token: window.TOKEN, repo, ref: this.ctx.reply_ref || '' });
+        const gh2 = new GH({ token: this.token, repo, ref: this.ctx.reply_ref || '' });
         const path = `${dir ? dir.replace(/\/$/, '') + '/' : ''}${this.ctx.id}.verdict.json`;
         // paths comes from the request, never from a field: the decision has to
         // cover exactly what was shown, and a typed list is a second chance to
