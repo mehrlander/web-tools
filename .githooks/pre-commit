@@ -318,4 +318,15 @@ if [ -f scripts/sunset-scan.py ]; then
   [ -n "$out" ] && printf '%s\n' "$out" >&2 || true
 fi
 
+# --- leg 6: a Wrong marker on a file nothing declares a record (BLOCKS) -------
+# The one marker rule a fact can settle. Wrong preserves a claim in a dated
+# record; a living document gets the claim corrected and the marker records what
+# it used to say, which is Corrected. So this refuses a Wrong on an undeclared
+# path and says which word to use instead. No question, no justification field:
+# the declaration answers it, which is what stops a session from reasoning its
+# way past the gate the way it reasoned its way into the mistake.
+if [ -f .claude/skills/markers/status.py ]; then
+  python3 .claude/skills/markers/status.py gate || exit 1
+fi
+
 exit 0

@@ -24,6 +24,16 @@
       "path": "pages/doc-growth.html",
       "title": "Doc Growth",
       "note": "This repo's markdown over time: every file a bubble, drifting right as it grows."
+    },
+    {
+      "path": "pages/approve.html",
+      "title": "Approve",
+      "note": "A proposed change presented for a decision: the author's reason, the diffs, and a verdict that commits back.",
+      "appView": true,
+      "viewLabel": "Approve",
+      "icon": "ph-seal-check",
+      "order": 50,
+      "slug": "approve"
     }
   ],
   "stage": {

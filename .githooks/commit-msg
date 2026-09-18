@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# git commit-msg hook — the consent gate. The engine is portable and lives in
+# the plugin (.claude/skills/hooks/commit-consent.py); this file is the two
+# lines that let git find it, the same split markers/status.py already uses.
+#
+# WHY commit-msg AND NOT pre-commit. pre-commit runs before the message exists,
+# so it can refuse but cannot read an answer. commit-msg gets the message file
+# and can do both, and it works with `git commit -m`, which is how a session
+# actually commits: the commit aborts, the prompt lands on stderr, nothing was
+# created, the staged files are untouched, and the retry carries the trailer.
+#
+# --no-verify bypasses, as it does for the size guard and the derived-artifact
+# rebuild beside it. These are guardrails, not security controls.
+set -u
+
+plugin_script() {            # $1 = e.g. hooks/commit-consent.py
+  local p
+  p="$(git rev-parse --show-toplevel)/.claude/skills/$1"
+  [ -f "$p" ] && { echo "$p"; return 0; }          # this repo IS the plugin source
+  local reg="$HOME/.claude/plugins/installed_plugins.json"
+  p=$(python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d['plugins']['portable@web-tools'][0]['installPath'])" "$reg" 2>/dev/null || true)
+  [ -n "$p" ] && [ -f "$p/$1" ] && { echo "$p/$1"; return 0; }
+  p="$HOME/.claude/plugins/marketplaces/web-tools/.claude/skills/$1"
+  [ -f "$p" ] && { echo "$p"; return 0; }
+  return 1
+}
+
+script=$(plugin_script hooks/commit-consent.py) || exit 0   # absent: never block
+python3 "$script" "$1" || exit 1
