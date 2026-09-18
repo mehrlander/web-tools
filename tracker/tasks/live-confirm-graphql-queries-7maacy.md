@@ -1,11 +1,12 @@
 ---
 id: live-confirm-graphql-queries-7maacy
 title: Live-confirm the BranchSessions query
-status: backlog
+status: done
 project: show-repo
 opened: 2026-07-26
+closed: 2026-09-18
 size: XS
-awaiting: next estate crawl with FAB capture
+resolution: confirmed-live
 ---
 # Live-confirm the BranchSessions query
 
@@ -50,3 +51,12 @@ text here.
   the next session does not search for it. Body cut from 653 words.
 - 2026-09-17: Marked as XS fold-in on the next estate crawl with FAB capture, not a solo session.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-09-18: **Closed as confirmed-live.** Ran the production BranchSessions
+  document against `mehrlander/web-tools` via authenticated `gh api graphql`
+  (same fields the FAB walk uses: heads refs → Commit.history → messageBody).
+  HTTP 200; first page returned 30 of 636 heads with populated messageBody.
+  SESSION_RE (`https://claude.ai/code/session_…`) matched on 23 of those 30
+  branches. Semantic questions answered: messageBody carries the session
+  trailer, and the query returns data under current permissions. Not a
+  FAB-capture receipt; same query and fields the crawl would exercise.
+  Cleared awaiting.
