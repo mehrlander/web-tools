@@ -203,6 +203,33 @@ chosen not to keep.
 its locators are often directories, and its description classifies how content
 was made rather than saying what a file is.
 
+## The Proposals reading, on the document
+
+Since 2026-09-18 the app's file viewer offers a **Proposals** mode for any
+markdown file, beside Preview. It puts the retained proposals on the document
+rather than beside it: [`kits/md-proposals.js`](../lib/kits/md-proposals.js)
+finds the paragraphs whose exact text has a proposal in the shared projection,
+composes a second copy of the file with one proposal substituted per paragraph,
+and hands both to [`kits/md-diff.js`](../lib/kits/md-diff.js). Each such
+paragraph is then a swipeable container between the text as it stands, the
+marked reading, and the text as proposed, with a line underneath naming who
+proposed it, what kind of proposal it is, its length against the original, and
+the proposer's own note, labelled unverified where it is a model's. A paragraph
+with more than one proposal carries a row of alternatives; choosing one is what
+the swipe then compares. The strip counts the paragraphs and lights them all on
+one tap, which is the first question a reader arriving at a file has.
+
+The join is exact, on the paragraph's text with whitespace flattened, and that
+is the honest limit. Measured on 2026-09-18 over the web-tools paragraph lane,
+2,201 of 2,272 retained originals match a block of their document at `main`;
+the 71 that do not are paragraphs edited since the scan, and they are not shown
+against the paragraph that replaced them. The mode reads the same private
+projection the Text tab reads, so it needs the reader's token, and it applies
+nothing: like the tab and Text Lab, it is a way of seeing what has been
+retained, not a way of accepting it. The demo at
+[`kits/demos/md-proposals.html`](../lib/kits/demos/md-proposals.html) shows
+the surface over a fixture, since a public page cannot read the projection.
+
 ## Proposals from a local model
 
 Home's [local proposal worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/proposals)

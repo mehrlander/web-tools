@@ -477,12 +477,17 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         return { kind: 'fulfill', contentType: 'application/json; charset=utf-8',
                  tag: `api ${name} dir ${rel}`, body: JSON.stringify(entries) };
       }
-      const text = readFileSync(fp, 'utf8');
+      // Bytes, for the same reason the own-repo route above reads bytes: a
+      // utf8 decode replaces every invalid sequence, so a gzip inventory or an
+      // image served this way arrived corrupted, and a page reading it through
+      // DecompressionStream reported the damage as "Failed to fetch"
+      // (2026-09-18, the viewer's Proposals mode over home's drafts.jsonl.gz).
+      const bytes = readFileSync(fp);
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({
-          content: Buffer.from(text).toString('base64'),
-          encoding: 'base64', sha: 'local', size: text.length, html_url: '',
+          content: bytes.toString('base64'),
+          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
         }),
       };
     }
