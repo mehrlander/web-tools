@@ -72,7 +72,7 @@ LOG_DATE = re.compile(r"^\s*[-*]\s*\**(\d{4}-\d{2}-\d{2})", re.M)
 
 
 def meta(p):
-    text = p.read_text()
+    text = p.read_text(encoding="utf-8")
     parts = text.split("---")
     if len(parts) < 3:
         return {}
@@ -212,10 +212,10 @@ artifacts = ((out, board_md), (out_csv, board_csv), (out_tags, tags_csv))
 
 if CHECK:
     stale = [str(f) for f, want in artifacts
-             if not f.exists() or f.read_text() != want]
+             if not f.exists() or f.read_text(encoding="utf-8") != want]
     if stale:
         sys.exit(f"stale: {', '.join(stale)}\n"
                  f"  run: python3 {sys.argv[0]} {tasks_dir} {out}")
 else:
     for f, want in artifacts:
-        f.write_text(want)
+        f.write_text(want, encoding="utf-8", newline="\n")
