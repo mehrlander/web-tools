@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '9abfd8d';
-const BUILT = '2026-09-18T04:37:17Z';
+const BUILD = 'ca8d524';
+const BUILT = '2026-09-18T05:04:26Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -826,6 +826,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     readPage();
     renderPage();
     updateTakeSizes();
+    checkBuild(true);
     const b = q('.reread');
     b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
   };
@@ -1022,17 +1023,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   q('.head b').textContent = page.title;
   q('.head small').textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
 
-  // Asked once, on the first open, and never allowed to fail loudly.
+  // Asked on first open and on refresh, and never allowed to fail loudly.
   let checked = false;
-  const checkBuild = async () => {
-    if (checked) return;
+  const checkBuild = async (force = false) => {
+    if (checked && !force) return;
     checked = true;
     try {
-      const r = await fetch(MANIFEST + '?_=' + Date.now(), { cache: 'no-store' });
-      const current = (await r.json())?.launcher?.build;
+      const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
+      const current = JSON.parse(raw)?.launcher?.build;
       if (!current || current === BUILD) return;
       const el = q('.stale');
-      el.textContent = `${current} is current. Reload; an edge may still be catching up.`;
+      const updateUrl = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/launcher.user.js`;
+      el.innerHTML = `<a href="${updateUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Build ${current} available · Tap to update ↗</a>`;
       el.hidden = false;
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };
