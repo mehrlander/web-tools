@@ -107,29 +107,25 @@
        template per item and gives each clone its own `it` before Alpine
        initialises it, which is the ordinary way to hand one record to one
        subtree. -->
+  <!-- A SLIDE IS THE DOCUMENT, AND NOTHING ELSE IS ON IT.
+       It carried four things above the file: the item's title and change
+       status, its `commentary`, a `deferred_because` note, and its `related`
+       links under "Answers to". Every one of them is the REQUEST talking about
+       the change rather than the change itself, and a reader arriving to judge
+       wording met a paragraph of justification before the first line of it.
+       Reported 2026-09-18: "we don't want to read a discussion of your
+       justification there, we just want to see the thing."
+
+       The envelope still carries all four. This page stops drawing them, which
+       is a presentation decision rather than a schema one: the fields are the
+       record of why the request was made, and the place to argue about a
+       request is the conversation that produced it.
+
+       What the title said is now the deck's header, which is where a reader
+       looks for the name of what they are reading, and it follows the slide so
+       it names the file in front of them rather than the set. -->
   <template x-ref="itemTpl">
     <section data-slide class="h-full overflow-y-auto px-2 py-2 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
-
-        <div class="flex items-baseline gap-2 flex-wrap">
-          <span class="font-medium font-mono" x-text="it.title"></span>
-          <span class="text-xs opacity-60" x-show="it.change?.status" x-text="it.change?.status"></span>
-        </div>
-
-        <p class="text-pretty" x-text="it.commentary"></p>
-
-        <div x-show="it.metadata?.deferred_because" class="border-l-2 border-primary pl-3">
-          <div class="text-xs opacity-60">Not done in that session because</div>
-          <p class="text-pretty" x-text="it.metadata?.deferred_because"></p>
-        </div>
-
-        <div x-show="(it.related || []).length" class="flex items-baseline gap-2 flex-wrap">
-          <span class="text-xs opacity-60">Answers to</span>
-          <template x-for="r in (it.related || [])" :key="r.item">
-            <a class="link link-hover font-mono" target="_blank"
-               :href="'https://github.com/' + repoOf() + '/blob/' + (ctx.branch || 'HEAD') + '/' + r.item"
-               x-text="r.item"></a>
-          </template>
-        </div>
 
         <!-- read: true, which is the card's READING mode. Its own design note
              says the four source tabs are four readings of one fixed pair,
@@ -235,17 +231,34 @@ document.addEventListener('alpine:init', () => {
     // what it can see is the active slide and the one stable class on the
     // document inside it. The count stays in md-diff's own readout, which is
     // already on the page, rather than being drawn a second time here.
-    jumpAction() {
-      return {
-        icon: 'ph-arrow-down',
-        title: 'Next change',
-        onClick: (core) => {
-          const slide = core && core.track.children[core.active()];
-          const doc = slide && slide.querySelector('.md-diff-doc');
-          if (doc) doc.dispatchEvent(new CustomEvent('md-diff:jump', { detail: { d: 1 } }));
-        },
-      };
+    jumpBtn() {
+      const b = document.createElement('button');
+      // AN EDGE AND A GAP, because a bare glyph beside a filled green circle
+      // reads as part of it. The deck's own {icon,title,onClick} spec draws a
+      // ghost circle with no border, which is right where an action stands
+      // among other actions and wrong where the only thing beside it is a
+      // decision. Reported 2026-09-18: the arrow sat uncomfortably close to
+      // the check with no visible boundary of its own.
+      b.className = 'btn btn-sm btn-circle btn-ghost border border-base-300 shrink-0 mr-1';
+      b.innerHTML = '<i class="ph ph-arrow-down text-base"></i>';
+      b.title = 'Next change';
+      b.setAttribute('aria-label', 'Next change');
+      b.addEventListener('click', () => {
+        const core = this._deck && this._deck.deck;
+        const slide = core && core.track.children[core.active()];
+        const doc = slide && slide.querySelector('.md-diff-doc');
+        if (doc) doc.dispatchEvent(new CustomEvent('md-diff:jump', { detail: { d: 1 } }));
+      });
+      return b;
     },
+    // THE HEADER NAMES THE FILE, split the way the file cards split a path:
+    // the name carries the weight and the folders sit under it, dimmed. One
+    // request has one `manifest.name`, so a header carrying that read the same
+    // on every slide and told a reader nothing about the document in front of
+    // them. The request's own name and id are in the envelope and on the link;
+    // the header is for what is on screen.
+    nameOf(it) { const p = this.pathOf(it) || ''; return p.split('/').pop() || p; },
+    dirOf(it) { const p = this.pathOf(it) || ''; const i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); },
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -319,11 +332,11 @@ document.addEventListener('alpine:init', () => {
       if (!tpl || !this.items.length) return;
       this._deck = window.swipeDeck.open({
         count: this.items.length,
-        title: this.env?.manifest?.name || 'Approve',
-        subtitle: this.ctx.id,
+        title: this.nameOf(this.itemAt(0)) || 'Approve',
+        subtitle: this.dirOf(this.itemAt(0)),
         icon: 'ph-seal-check',
         index: (i) => this.pathOf(this.itemAt(i)) || `Item ${i + 1}`,
-        actions: [this.jumpAction(), this.approveBtn()],
+        actions: [this.jumpBtn(), this.approveBtn()],
         // NO SUBHEADER UNTIL THERE IS ONE. The notice used to be passed here
         // at open, and `empty:hidden` never fired: the slot holds whatever
         // element it is given, and this one is a wrapper whose alert is
@@ -344,6 +357,15 @@ document.addEventListener('alpine:init', () => {
         // page. Re-opening on the next tick is what makes ✕ a no-op here rather
         // than a way to empty the screen; a reader closing an app view uses the
         // shell's own chrome.
+        // The header follows the reader. `_deck` is not assigned until open()
+        // returns, so the guard is not defensive dressing: a slide event during
+        // construction would otherwise land on null.
+        onSlide: (i) => {
+          if (!this._deck) return;
+          const it = this.itemAt(i);
+          this._deck.setTitle(this.nameOf(it) || 'Approve');
+          this._deck.setSubtitle(this.dirOf(it));
+        },
         onClose: () => { this._deck = null; this.$nextTick(() => this.deck()); },
       });
     },
