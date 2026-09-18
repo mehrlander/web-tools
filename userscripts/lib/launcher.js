@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '2a0d03b';
-const BUILT = '2026-09-18T17:23:38Z';
+const BUILD = 'd1f09ef';
+const BUILT = '2026-09-18T18:06:38Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -540,29 +540,39 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .icon-btn:hover { background: var(--wt-b200); }
     .icon-btn svg { width: 1.05rem; height: 1.05rem; color: ${mix(P, 70)}; }
     .icon-btn[hidden] { display: none; }
+    .panel:not(.fullscreen) .copy-btn { display: none !important; }
+
+    .head-intro {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: .5rem; margin-top: .25rem;
+    }
+    .head-desc {
+      margin: 0; font-size: 11.5px; line-height: 1.4;
+      color: ${mix('var(--wt-bc)', 75)};
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; flex: 1; min-width: 0;
+    }
+    .head-desc[hidden] { display: none; }
     .meta-toggle { display: inline-flex; align-items: center; gap: .25rem;
-                   padding: .125rem .375rem; border-radius: .25rem;
+                   padding: .15rem .375rem; border-radius: .25rem;
                    border: 1px solid var(--wt-b300); background: var(--wt-b200);
                    cursor: pointer; font: 600 10px ui-sans-serif, system-ui, sans-serif;
-                   color: ${mix('var(--wt-bc)', 75)}; flex: none; }
+                   color: ${mix('var(--wt-bc)', 75)}; flex: none; margin-left: auto; }
     .meta-toggle:hover { background: var(--wt-b300); }
     .meta-toggle svg { width: 11px; height: 11px; color: var(--wt-p); }
     .meta-arr { font-size: 8px; transition: transform .2s; }
     .meta-toggle.on .meta-arr { transform: rotate(180deg); }
-    .head-desc {
-      margin: .25rem 0 0; font-size: 11.5px; line-height: 1.4;
-      color: ${mix('var(--wt-bc)', 75)};
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .head-desc[hidden] { display: none; }
+
     .head-sel {
       margin: .25rem 0 0; font-size: 11px; line-height: 1.35;
       max-height: 3.5rem; overflow-y: auto;
     }
     .head-sel[hidden] { display: none; }
+    .panel.fullscreen .head-intro,
     .panel.fullscreen .head-desc,
-    .panel.fullscreen .head-sel { display: none !important; }
+    .panel.fullscreen .head-sel,
+    .panel.fullscreen .meta-toggle,
+    .panel.fullscreen .page-meta { display: none !important; }
     .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
                  background: var(--wt-b200); border: 1px solid var(--wt-b300);
                  font-size: 11px; max-height: 10rem; overflow-y: auto; }
@@ -872,10 +882,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
             <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
-            <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
           </div>
         </div>
-        <p class="head-desc" hidden></p>
+        <div class="head-intro">
+          <p class="head-desc" hidden></p>
+          <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
+        </div>
         <div class="head-sel quote" hidden></div>
         <span class="stale" hidden></span>
         <div class="page-meta" hidden>
