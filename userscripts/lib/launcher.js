@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'c471c1e';
-const BUILT = '2026-09-18T16:13:00Z';
+const BUILD = 'c89dfb1';
+const BUILT = '2026-09-18T16:38:42Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -530,6 +530,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             padding: .15rem .45rem; border-radius: 9999px;
             border: 1px solid var(--wt-b300); background: var(--wt-b200);
             font: 600 11px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 70)}; flex: none; }
+    .panel:not(.fullscreen) .pill { display: none; }
+    .panel.fullscreen .pill { display: inline-flex; }
     .pill-sep { opacity: .4; margin: 0 1px; }
     .head-actions { display: flex; align-items: center; gap: .25rem; flex: none; }
     .icon-btn { width: 1.75rem; height: 1.75rem; border: 0; border-radius: .375rem;
@@ -547,6 +549,20 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .meta-toggle svg { width: 11px; height: 11px; color: var(--wt-p); }
     .meta-arr { font-size: 8px; transition: transform .2s; }
     .meta-toggle.on .meta-arr { transform: rotate(180deg); }
+    .head-desc {
+      margin: .25rem 0 0; font-size: 11.5px; line-height: 1.4;
+      color: ${mix('var(--wt-bc)', 75)};
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .head-desc[hidden] { display: none; }
+    .head-sel {
+      margin: .25rem 0 0; font-size: 11px; line-height: 1.35;
+      max-height: 3.5rem; overflow-y: auto;
+    }
+    .head-sel[hidden] { display: none; }
+    .panel.fullscreen .head-desc,
+    .panel.fullscreen .head-sel { display: none !important; }
     .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
                  background: var(--wt-b200); border: 1px solid var(--wt-b300);
                  font-size: 11px; max-height: 10rem; overflow-y: auto; }
@@ -591,6 +607,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
     .errand-bar { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; }
     .errand-status { font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; margin-left: auto; }
+
+    .deck-nav { border-bottom: 1px solid var(--wt-b300); flex: none; background: var(--wt-b100); }
+    .deck-bar { display: flex; overflow-x: auto; scrollbar-width: none;
+                padding: 0 .375rem; gap: .125rem; }
+    .deck-bar::-webkit-scrollbar { display: none; }
+    .deck-tab { padding: .4375rem .625rem; background: none; border: 0;
+                border-bottom: 2px solid transparent; cursor: pointer;
+                font-size: .8125rem; font-weight: 600; color: ${mix('var(--wt-bc)', 55)};
+                white-space: nowrap; flex: none; transition: all .15s; }
+    .deck-tab:hover { color: var(--wt-bc); }
+    .deck-tab.on { color: var(--wt-p); border-bottom-color: var(--wt-p); }
+    .panel.fullscreen .deck-nav { display: none; }
 
     /* Horizontal snap track in both drawer and fullscreen modes */
     .deck-track {
@@ -791,9 +819,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       <div class="head">
         <div class="head-top">
           <button class="icon-btn return-btn" aria-label="Return to Drawer" title="Return to Drawer" hidden>${svg(ICON.caretLeft)}</button>
-          <div class="plaque">${svg(ICON.note)}</div>
+          <div class="plaque">${svg(ICON.sidebar)}</div>
           <div class="head-titles">
-            <h1 class="head-title"><span class="title-text">Markdown</span></h1>
+            <h1 class="head-title"><span class="title-text"></span></h1>
             <p class="head-sub"><span></span></p>
           </div>
           <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>5</span></div>
@@ -803,6 +831,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
           </div>
         </div>
+        <p class="head-desc" hidden></p>
+        <div class="head-sel quote" hidden></div>
         <span class="stale" hidden></span>
         <div class="page-meta" hidden>
           <p><span class="k">TITLE</span><span class="meta-title"></span></p>
@@ -823,6 +853,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         </div>
         <div class="errand-result" hidden>
           <textarea class="errand-out" readonly></textarea>
+        </div>
+      </div>
+      <div class="deck-nav">
+        <div class="deck-bar">
+          <button class="deck-tab on" data-slide="0">Markdown</button>
+          <button class="deck-tab" data-slide="1">Text</button>
+          <button class="deck-tab" data-slide="2">Links</button>
+          <button class="deck-tab" data-slide="3" data-take-html>HTML</button>
+          <button class="deck-tab" data-slide="4">JSON</button>
         </div>
       </div>
       <div class="deck-track" tabindex="0">
@@ -1052,23 +1091,59 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  const renderPageMeta = () => {
+  const updateHeader = () => {
     const headTitle = q('.head-title .title-text');
-    if (headTitle && SLIDES[state.slide]) headTitle.textContent = SLIDES[state.slide].label;
     const headSub = q('.head-sub span');
-    if (headSub) headSub.textContent = `${page.title} · ${location.hostname}`;
+    const plaque = q('.plaque');
+    const curEl = q('.cur-slide');
+
+    if (state.fullscreen) {
+      const slide = SLIDES[state.slide] || SLIDES[0];
+      if (headTitle) headTitle.textContent = slide.label;
+      if (headSub) headSub.textContent = page.title;
+      if (plaque) plaque.innerHTML = svg(ICON[slide.icon]);
+      if (curEl) curEl.textContent = String(state.slide + 1);
+    } else {
+      if (headTitle) headTitle.textContent = page.title;
+      if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
+      if (plaque) plaque.innerHTML = svg(ICON.sidebar);
+    }
+  };
+
+  const renderPageMeta = () => {
+    updateHeader();
+
+    const descEl = q('.head-desc');
+    if (descEl) {
+      if (page.description) {
+        descEl.textContent = page.description;
+        descEl.hidden = false;
+      } else {
+        descEl.hidden = true;
+      }
+    }
+
+    const headSel = q('.head-sel');
+    if (headSel) {
+      if (state.sel) {
+        headSel.textContent = state.sel.slice(0, 240);
+        headSel.hidden = false;
+      } else {
+        headSel.hidden = true;
+      }
+    }
 
     const titleEl = q('.meta-title');
     const hrefEl = q('.meta-href');
     const descWrap = q('.meta-desc-wrap');
-    const descEl = q('.meta-desc');
+    const descElMeta = q('.meta-desc');
     const selEl = q('.meta-sel');
 
     if (titleEl) titleEl.textContent = page.title;
     if (hrefEl) hrefEl.textContent = page.href;
-    if (descWrap && descEl) {
+    if (descWrap && descElMeta) {
       if (page.description) {
-        descEl.textContent = page.description;
+        descElMeta.textContent = page.description;
         descWrap.hidden = false;
       } else {
         descWrap.hidden = true;
@@ -1105,6 +1180,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const returnBtn = q('.return-btn');
     if (expandBtn) expandBtn.hidden = state.fullscreen;
     if (returnBtn) returnBtn.hidden = !state.fullscreen;
+    updateHeader();
     requestAnimationFrame(() => {
       const track = q('.deck-track');
       if (track) {
@@ -1201,15 +1277,25 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const syncSlideTabsAndDots = i => {
     if (i < 0 || i >= SLIDES.length) return;
     state.slide = i;
-    const curEl = q('.cur-slide');
-    if (curEl) curEl.textContent = String(i + 1);
+    updateHeader();
 
-    const plaque = q('.plaque');
-    if (plaque && SLIDES[i]) plaque.innerHTML = svg(ICON[SLIDES[i].icon]);
-
-    const titleEl = q('.head-title .title-text');
-    if (titleEl && SLIDES[i]) titleEl.textContent = SLIDES[i].label;
-
+    root.querySelectorAll('.deck-tab').forEach((t, idx) => {
+      t.classList.toggle('on', idx === i);
+      if (idx === i && !state.fullscreen) {
+        const bar = q('.deck-bar');
+        if (bar) {
+          const tabLeft = t.offsetLeft;
+          const tabWidth = t.offsetWidth;
+          const barScroll = bar.scrollLeft;
+          const barWidth = bar.clientWidth;
+          if (tabLeft < barScroll) {
+            bar.scrollTo({ left: Math.max(0, tabLeft - 8), behavior: 'smooth' });
+          } else if (tabLeft + tabWidth > barScroll + barWidth) {
+            bar.scrollTo({ left: tabLeft + tabWidth - barWidth + 8, behavior: 'smooth' });
+          }
+        }
+      }
+    });
     root.querySelectorAll('.deck-slide').forEach((s, idx) => {
       s.classList.toggle('active', idx === i);
     });
@@ -1417,6 +1503,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const returnBtn = q('.return-btn');
     if (expandBtn) expandBtn.hidden = false;
     if (returnBtn) returnBtn.hidden = true;
+    updateHeader();
     btn.classList.remove('on');
     const bd = q('.backdrop');
     if (bd) bd.hidden = true;
@@ -1541,6 +1628,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
     });
   }, { passive: true });
+
+  root.querySelectorAll('.deck-tab').forEach(tab => {
+    tab.onclick = () => {
+      const i = parseInt(tab.dataset.slide, 10);
+      goToSlide(i);
+    };
+  });
 
   root.querySelectorAll('.pager .dot').forEach(dot => {
     dot.onclick = () => {
