@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-8 by a skill, 29 by a page or component. The remaining 27 are
+11 by a skill, 27 by a page or component. The remaining 28 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -50,7 +50,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`markdown-in-chat.md`](markdown-in-chat.md) *(measured)* — working visually with markdown in a chat client on a phone
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
-- [`portable.csv`](portable.csv) — the distribution crosswalk: what travels to another repo, how it travels, and which primary inventory owns it
+- [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the metadata model: targets, scopes, properties, declarations, assertions; ownership not overlay; the registry and catalog reduction
@@ -71,12 +71,12 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
-- [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: local prose figures, registered-file matches, retained prior revisions, and the limits of all three
+- [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`venues.md`](venues.md) *(measured)* — the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
-- [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the processes that write straight to main, and the sync discipline each follows
+- [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 
 ## docs/envelopes/
 
@@ -86,6 +86,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`shorter.md`](envelopes/shorter.md) — the shorter envelope contract: a document and a shortening to adjudicate
 - [`surface.md`](envelopes/surface.md) — the surface format contract
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
+- [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 
 ## docs/envelopes/schemas/
 
@@ -98,6 +99,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`branch-review-v1.schema.json`](envelopes/schemas/profiles/branch-review-v1.schema.json) *(orphan)* — the branch-review profile schema
 - [`inquiry-v1.schema.json`](envelopes/schemas/profiles/inquiry-v1.schema.json) *(orphan)* — the inquiry profile schema
 - [`stage-v1.schema.json`](envelopes/schemas/profiles/stage-v1.schema.json) *(orphan)* — the stage profile schema
+- [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 
 ## docs/environment/
 

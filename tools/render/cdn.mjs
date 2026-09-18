@@ -40,6 +40,7 @@
 // vendor-and-intercept concept is docs/headless-vendoring.md.
 
 import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
@@ -366,11 +367,58 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     };
   }
 
+  // A REF IS A REF, and for a long time this pretended otherwise. Every
+  // contents read was answered from the working tree whatever `?ref=` asked
+  // for, which is right for the common case (a page loading its own lib at the
+  // branch under test) and silently wrong for any surface that COMPARES two
+  // refs. kits/md-diff.js and alpineComponents/file-review.js both do: handed
+  // two refs that resolve to one tree, the card correctly concluded the file
+  // was unchanged, dropped to its read pane, and every headless shot of a
+  // comparison showed the feature switched off. One such shot was handed to a
+  // reader as evidence the page was wrong. Measured 2026-09-18 on
+  // pages/approve.html, whose two items differ from main by 36 lines and came
+  // back identical.
+  //
+  // So a ref that git can resolve is read from git. The working tree stays the
+  // answer for a ref git does not know, for a path that is not committed, and
+  // for no ref at all, which keeps the common case exactly as it was.
+  //
+  // EXCEPT THE CODE UNDER TEST, which is the trap the first version walked
+  // into. A page boots its library with a ref of its own, and a demo's is
+  // `main` by default; honouring that served main's lib to a shot of the
+  // working tree, so the very change being photographed was not in the picture.
+  // Caught within the hour by a scenario that asserted a style the working tree
+  // sets and the shot did not have.
+  //
+  // The split is what each path IS. `lib/` and `dist/` are the program doing
+  // the rendering, and a headless shot exists to photograph the program on
+  // disk. Everything else is the material it renders, where a ref is a real
+  // question with two different answers, which is the case the ref support was
+  // added for.
+  const CODE = /^(lib|dist)\//;
+  const gitShow = (root, ref, rel) => {
+    if (!ref || CODE.test(rel)) return null;
+    const r = spawnSync('git', ['-C', root, 'show', `${ref}:${rel}`],
+                        { maxBuffer: 64 * 1024 * 1024 });
+    return r.status === 0 ? r.stdout : null;
+  };
+
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
   if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
     const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
     const rel = decodeURIComponent(tail).replace(/\/$/, '');
     const fp = path.join(repoRoot, rel);
+    const atRef = gitShow(repoRoot, u.searchParams.get('ref'), rel);
+    if (atRef) {
+      return {
+        kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+        tag: `api ${tail} @${u.searchParams.get('ref')}`,
+        body: JSON.stringify({
+          content: atRef.toString('base64'),
+          encoding: 'base64', sha: 'local', size: atRef.length, html_url: '',
+        }),
+      };
+    }
     if (existsSync(fp)) {
       // A directory path returns the contents-API array, not file bytes — and
       // readFileSync on a dir throws EISDIR, so this guard is also a crash fix.
@@ -429,12 +477,17 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
         return { kind: 'fulfill', contentType: 'application/json; charset=utf-8',
                  tag: `api ${name} dir ${rel}`, body: JSON.stringify(entries) };
       }
-      const text = readFileSync(fp, 'utf8');
+      // Bytes, for the same reason the own-repo route above reads bytes: a
+      // utf8 decode replaces every invalid sequence, so a gzip inventory or an
+      // image served this way arrived corrupted, and a page reading it through
+      // DecompressionStream reported the damage as "Failed to fetch"
+      // (2026-09-18, the viewer's Proposals mode over home's drafts.jsonl.gz).
+      const bytes = readFileSync(fp);
       return {
         kind: 'fulfill', contentType: 'application/json; charset=utf-8', tag: `api ${name}/${rel}`,
         body: JSON.stringify({
-          content: Buffer.from(text).toString('base64'),
-          encoding: 'base64', sha: 'local', size: text.length, html_url: '',
+          content: bytes.toString('base64'),
+          encoding: 'base64', sha: 'local', size: bytes.length, html_url: '',
         }),
       };
     }

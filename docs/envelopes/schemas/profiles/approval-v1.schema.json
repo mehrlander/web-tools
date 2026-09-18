@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/envelopes/schemas/profiles/approval-v1.schema.json",
+  "title": "approval profile (v1)",
+  "description": "Profile schema for a surface that asks for a DECISION rather than a reading. Like inquiry/1 it is self-addressed, and it adds the two things a decision needs that an answer does not: a verdict for the set, and a reason the author owes before asking. A document claiming this profile must validate against BOTH the core surface v2 schema and this schema. Documentation: docs/envelopes/approval.md.",
+  "type": "object",
+  "required": ["manifest", "context", "items"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "required": ["profile", "name", "created_at"],
+      "properties": {
+        "profile": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "const": "approval" },
+            "version": { "const": 1 }
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "required": ["id", "kind", "reply_to", "rationale"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+          "description": "The name the decision is cited by. A commit's Approved: trailer carries this string, and the verdict lands at <reply_to>/<id>.verdict.json, so the hook resolves the citation to a file rather than to a claim. Lowercase, hyphenated, unique within reply_to; a date prefix is the convention that keeps it so."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["documentation", "task"],
+          "description": "Which decision is being asked for, and therefore which questions the author owed and which the page renders. Two values because two gates exist; a third belongs here only when a third gate does."
+        },
+        "reply_to": {
+          "type": "string",
+          "description": "Where the verdict is posted, as owner/repo[:dir]. Same field and same meaning as inquiry/1's: the answer's address, not a claim about where the items should live. The request is conventionally committed beside the verdict it will receive."
+        },
+        "reply_ref": {
+          "type": "string",
+          "description": "Branch in reply_to that the verdict commits to. Omit for the repository's default branch, which is the usual case: a verdict is a fact about a moment, so it does not belong on a branch that may never merge."
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 20,
+          "description": "Why this set of changes should exist at all, in the author's own words, written before the ask rather than in answer to a challenge. This is the field the gate exists to collect: a request that cannot fill it is one whose author has not established that anything is needed."
+        },
+        "occasion": {
+          "type": "string",
+          "enum": ["new-capability", "snag", "correction", "cleanup"],
+          "description": "What prompted the change, from a closed set so the record is countable. new-capability: something can now be done that could not. snag: a logged friction gets its durable fix. correction: a claim here was measured false. cleanup: neither the capability nor the claims move."
+        },
+        "session": {
+          "type": "string",
+          "description": "The authoring session's URL, so a verdict read months later reaches the conversation that produced the request."
+        },
+        "branch": {
+          "type": "string",
+          "description": "The branch the proposed items live on. The page diffs each item against its base from here, so a request without it can state a change but cannot show one."
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "type", "commentary"],
+        "properties": {
+          "commentary": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Why THIS item, as distinct from the set's rationale. For kind=documentation, what the edit changes about what the document claims. For kind=task, why the outcome deserves to survive this session."
+          },
+          "change": {
+            "type": "object",
+            "description": "For kind=documentation: the item's diff, in the core schema's own change block. status and patch come straight from the compare API, so the page renders the same card pages/review.html renders.",
+            "properties": {
+              "status": { "type": "string" },
+              "previous_path": { "type": "string" },
+              "patch": { "type": "string" }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "deferred_because": {
+                "type": "string",
+                "minLength": 10,
+                "description": "Required when kind=task: why this cannot be finished in the session proposing it. A task that could be done now and is filed instead has traded a deliverable for a record of a deliverable, and this field is where that trade has to be defended."
+              }
+            }
+          },
+          "related": {
+            "type": "array",
+            "description": "Core schema's related[]. For kind=documentation, the other documents this edit answers to, so a reader can check the change against what already owns the subject rather than judging it alone."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 top,group,label,title,href,thumb,code,note
 main,,annotate,Annotate,annotate.html,thumbs/annotate.png,https://github.com/mehrlander/web-tools/blob/main/pages/annotate.html,
+main,,approve,Approve,approve.html,thumbs/approve.png,https://github.com/mehrlander/web-tools/blob/main/pages/approve.html,
 main,,audit-render,Audit render,audit-render.html,thumbs/audit-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html,
 main,,bench,Bench,bench.html,thumbs/bench.png,https://github.com/mehrlander/web-tools/blob/main/pages/bench.html,
 main,,branch,Branch,branch.html,thumbs/branch.png,https://github.com/mehrlander/web-tools/blob/main/pages/branch.html,
@@ -20,6 +21,7 @@ main,,links,Links,links.html,thumbs/links.png,https://github.com/mehrlander/web-
 main,,pdf-inspect,PDF Inspect,pdf-inspect.html,thumbs/pdf-inspect.png,https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html,
 main,,peek,Peek — DOM under a selection,peek.html,thumbs/peek.png,https://github.com/mehrlander/web-tools/blob/main/pages/peek.html,
 main,,pip-steps,Floating steps,pip-steps.html,thumbs/pip-steps.png,https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html,"Steps that float over another app, through iOS Picture-in-Picture."
+main,,probe-snap,Probe snap,probe-snap.html,thumbs/probe-snap.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html,
 main,,probe-window,Probe window,probe-window.html,thumbs/probe-window.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html,
 main,,repo-atlas,Repo Atlas,repo-atlas.html,thumbs/repo-atlas.png,https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html,"Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count."
 main,,review,Review,review.html,thumbs/review.png,https://github.com/mehrlander/web-tools/blob/main/pages/review.html,"A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target."
@@ -69,6 +71,8 @@ kit-demos,lib/kits/demos/,dock-split,dock-split — the drag handle between two 
 kit-demos,lib/kits/demos/,export,export — living demo,../lib/kits/demos/export.html,thumbs/kit-demos/export.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html,Export kit — file download from a user gesture.
 kit-demos,lib/kits/demos/,io,io — living demo,../lib/kits/demos/io.html,thumbs/kit-demos/io.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html,"IO kit — read/write helpers, shown live."
 kit-demos,lib/kits/demos/,land,land — where the reader was just sent,../lib/kits/demos/land.html,thumbs/kit-demos/land.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html,
+kit-demos,lib/kits/demos/,md-diff,"md-diff — a documentation change, read as the document",../lib/kits/demos/md-diff.html,thumbs/kit-demos/md-diff.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html,
+kit-demos,lib/kits/demos/,md-proposals,md-proposals — a document read with its retained proposals,../lib/kits/demos/md-proposals.html,thumbs/kit-demos/md-proposals.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-proposals.html,
 kit-demos,lib/kits/demos/,messaging,messaging — living demo,../lib/kits/demos/messaging.html,thumbs/kit-demos/messaging.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html,Messaging kit — cross-context postMessage helpers.
 kit-demos,lib/kits/demos/,note,note — the small tooltip,../lib/kits/demos/note.html,thumbs/kit-demos/note.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html,
 kit-demos,lib/kits/demos/,peek,peek — the region under the pointer,../lib/kits/demos/peek.html,thumbs/kit-demos/peek.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html,

@@ -204,3 +204,12 @@ test('the markup exposes provenance and never offers Apply', () => {
   assert.match(SRC, /const pane = this\.PANES\.includes\(name\)/,
     'async pane work keeps the pane that initiated it instead of rereading mutable state');
 });
+
+test('local model proposals have a visible group and addressable objective filters', () => {
+  const h = harness('?pane=proposals&lane=local-proposals&action=clarity');
+  h.model.proposalIndex = { ...INDEX, rows: [{ ...ROWS[0], id: 'local-1', lane: 'local-proposals', action: 'clarity' }] };
+  assert.equal(h.model.proposalRows.length, 1);
+  assert.equal(h.model.proposalGroups()[0].label, 'Local models');
+  assert.equal(h.model.PROPOSAL_LANES.some(row => row.key === 'local-proposals'), true);
+  assert.equal(h.model.PROPOSAL_ACTIONS.some(row => row.key === 'half'), true);
+});

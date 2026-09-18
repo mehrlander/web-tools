@@ -2,6 +2,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-check-manifest.sh,"one-shot gated note: silent until a snapshot postdates the 2026-09-14 setup-script revision, then reports whether ~/.claude/env-manifest.txt landed and asks to be deleted",.claude/hooks,28,session:SessionStart,no,yes,no
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,36,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
+.claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,289,imported,no,no,yes
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
@@ -11,7 +12,8 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,.claude/skills/hooks,251,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
-.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,322,git:pre-commit,no,yes,yes
+.githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,30,git:commit-msg,no,no,no
+.githooks/pre-commit,"the derived-artifact refresher: regenerates and stages whatever the pending commit touches, one leg per generator",.githooks,333,git:pre-commit,no,yes,yes
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,114,ci:pull_request+push+workflow_dispatch,no,yes,no
 .github/workflows/wsl-fetch.yml,"the monthly WSL snapshot errand, on a cron",.github/workflows,79,ci:schedule+workflow_dispatch,no,yes,no
 scripts/blank-icons.py,"report a Phosphor class naming an icon the installed font does not carry. The class resolves to a :before rule keyed by name, so a name with no rule renders a zero-width blank: no console error, no fallback glyph, nothing to debug but the state around it. Names the two mistakes apart, weight-as-a-suffix (ph-play-fill, mechanical, the fix is proven) from a name borrowed off another icon family (ph-git-compare, a guess at best). Reads the valid set off the installed stylesheet rather than a committed list, so it cannot be wrong about the font. --check gates it",scripts,174,npm:icon-scan,no,yes,yes
@@ -66,7 +68,7 @@ tools/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the tes
 tools/build/tools-index.mjs,restamp the derived half of this registry,tools/build,261,npm:tools-index,yes,yes,yes
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
-tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,481,imported,no,yes,yes
+tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,534,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes
@@ -100,6 +102,8 @@ tools/render/scenarios/annotate-touch-scroll.mjs,"drag real touch events through
 tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newest line in a box of whole lines, then three taps in a run taking the whole thing",tools/render/scenarios,102,driver,no,no,no
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
+tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
+tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,291,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
 tools/render/scenarios/audit-boots.mjs,,tools/render/scenarios,79,driver,no,yes,no
 tools/render/scenarios/audit-deck.mjs,"the audit render in the swipe deck, one document section per slide",tools/render/scenarios,23,driver,no,no,no
@@ -172,6 +176,7 @@ tools/render/scenarios/fab-toss.mjs,toss-render address mode with the fab's toss
 tools/render/scenarios/fab-traffic-toss.mjs,"the Traffic tab inside a toss: the bands describe the tossed page, not the shell",tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/fab-traffic.mjs,the fab's Traffic tab with a real BOOT band from the loopback render,tools/render/scenarios,78,driver,no,no,no
 tools/render/scenarios/fab-width-bar.mjs,"the FAB Render tab's width bar, shot on toss-render where the lever is live",tools/render/scenarios,30,driver,no,no,no
+tools/render/scenarios/fence-label-clear.mjs,,tools/render/scenarios,64,driver,no,no,no
 tools/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,tools/render/scenarios,36,driver,no,yes,no
 tools/render/scenarios/installation-home.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,tools/render/scenarios,67,driver,no,no,no
@@ -190,6 +195,11 @@ tools/render/scenarios/map-skills.mjs,"the Map's Skills tab with all three sets 
 tools/render/scenarios/map-surfacing-read.mjs,"the Surfacing tab's two header doors: the Read deck (filled, docked, and on its index slide) and the peek card over the doc's own mark",tools/render/scenarios,97,driver,no,no,no
 tools/render/scenarios/map-tests-compared.mjs,"the Map view's Tests tab with the compared toggle on: the comparison-grain reading under each explained file, and the estate section fed by home's own file",tools/render/scenarios,97,driver,no,no,no
 tools/render/scenarios/map-tests.mjs,the Map view's Tests tab: the test registry rendered live with assertion names expanded,tools/render/scenarios,63,driver,no,no,no
+tools/render/scenarios/md-diff-fence-marks.mjs,,tools/render/scenarios,71,driver,no,no,no
+tools/render/scenarios/md-diff-jump.mjs,,tools/render/scenarios,74,driver,no,yes,no
+tools/render/scenarios/md-diff-keys.mjs,,tools/render/scenarios,90,driver,no,no,no
+tools/render/scenarios/md-diff-one-height.mjs,,tools/render/scenarios,63,driver,no,no,no
+tools/render/scenarios/md-diff-one-stop.mjs,,tools/render/scenarios,51,driver,no,no,no
 tools/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,tools/render/scenarios,78,driver,no,no,no
@@ -214,6 +224,7 @@ tools/render/scenarios/proposals-stale-demo.mjs,the staleness guard and signatur
 tools/render/scenarios/record-deck-wide.mjs,,tools/render/scenarios,68,driver,no,no,no
 tools/render/scenarios/record-deck.mjs,,tools/render/scenarios,37,driver,no,no,no
 tools/render/scenarios/ref-switch.mjs,the header ref switch seeded token-free,tools/render/scenarios,57,driver,no,no,no
+tools/render/scenarios/rendered-compare.mjs,,tools/render/scenarios,218,driver,no,no,no
 tools/render/scenarios/repo-landing-row.mjs,"the per-repo sidebar for a repo declaring a `landing`: the Landing row beside Overview, which no real repo produces",tools/render/scenarios,56,driver,no,no,no
 tools/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo on its second committed layout, the half a default shot cannot reach: the same rows banded on fiscal year instead of on budget version.",tools/render/scenarios,13,driver,no,no,no
 tools/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",tools/render/scenarios,12,driver,no,no,no
@@ -235,7 +246,7 @@ tools/render/scenarios/sidebar-compare.mjs,,tools/render/scenarios,194,driver,no
 tools/render/scenarios/sidebar-projects-overlay.mjs,the same sidebar state in overlay posture; only the posture distinguishes the pair,tools/render/scenarios,51,driver,no,yes,no
 tools/render/scenarios/sidebar-projects.mjs,drive show-repo's sidebar into the nested-projects state,tools/render/scenarios,66,driver,no,yes,no
 tools/render/scenarios/sidebar-repo-menus.mjs,the sidebar Repos index with one row's two menus open,tools/render/scenarios,61,driver,no,no,no
-tools/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",tools/render/scenarios,67,driver,no,no,no
+tools/render/scenarios/sidebar-view-labels.mjs,"the estate sidebar's app-view rows when two repos promote the same label: a fixture config cache in the 2026-08-26 shape, where home's promotion is cross-repo, so the shot proves the row names the promoting repo rather than the page's own; COLLIDE=0 is the control",tools/render/scenarios,67,driver,no,yes,no
 tools/render/scenarios/stage-aimed-deposit.mjs,"the stage opened at a branch destination, the shape a branch-page deposit hands it",tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/stage-compare-pick.mjs,"the reader's compare picker: the first staged file against the last, which the adjacent-pair rule could not reach, with the list open over it",tools/render/scenarios,135,driver,no,no,no
 tools/render/scenarios/stage-dictate.mjs,"the stage's dictation intake: the mic beside Paste, committed text with a live interim, and the mark pad",tools/render/scenarios,33,driver,no,no,no

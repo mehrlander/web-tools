@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Probe snap</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+</head>
+<!--
+  A SIDE TEST FOR ONE FAILURE, not a demo of the deck.
+
+  md-diff's change container is a three-stop swipeDeck.core. On iOS a flick
+  crosses the middle stop and lands on the far side, and it can also come to
+  rest BETWEEN two stops, which `scroll-snap-type: x mandatory` is supposed to
+  forbid. Neither reproduces headless: Playwright's touch emulation has no
+  momentum phase, so the only instrument is a thumb.
+
+  Four tracks, identical content, differing in exactly one thing each, so a
+  swipe on each says which mechanism is responsible rather than that something
+  is wrong.
+
+    A  as shipped: snapStop (the property AND the kit's overshoot guard), and
+       the height written from inside the scroll handler on every frame, which
+       is what the container does.
+    B  the property only, guard removed. Isolates the guard: if A sticks and B
+       does not, the guard's corrective `go()` is fighting the engine's snap.
+    C  the guard kept, the height written only once the scroll has gone quiet.
+       Isolates the write: `scrollHeight` is a layout-flushing read, and the
+       value changes at the midpoint of every flick, so the scroller's own box
+       animates under a finger that is still moving.
+    D  neither, and all three stops the same height, so nothing about the
+       scroller changes during a gesture. The floor: if D sticks too, both
+       hypotheses are wrong and the cause is in the engine or the page around
+       it.
+    E  the candidate fix, if C or D clears it: the box opens to the tallest
+       stop on touchdown, before momentum exists, and eases to the exact
+       height once the scroll is quiet. Unequal heights are kept, since they
+       are what the readings actually are.
+
+  Each track reports where it came to REST, in slide widths. A whole number is
+  a snap point honoured; 0.70 is the failure in the screenshot. It also reports
+  how many stops the last gesture crossed, which is the other half of the same
+  complaint.
+
+  THE ANSWER, measured by thumb on an iPhone 2026-09-18: D, and only D. Not B,
+  so the guard was not the cause. Not C, so deferring the write until the
+  scroll went quiet was not enough. Not E, so one write before the drag was not
+  enough either. Every lane that resized the scroller at any point failed, and
+  the lane that never resized it worked.
+
+  What shipped from that: md-diff's change container is sized once to its
+  tallest reading and never resized, its height transition is gone, and
+  swipe-deck's overshoot guard is gone with it. The invariant is held by
+  tools/render/scenarios/md-diff-one-height.mjs. This page stays as the
+  instrument, not as an open question.
+
+  Plain DOM, no Alpine. The code under test is framework-free (lib/kits) and a
+  probe that wraps it in a component is measuring the wrapper too.
+-->
+<body class="m-0 bg-base-100 text-base-content">
+
+<div class="px-3 py-3">
+  <div class="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <b class="text-sm">Probe snap</b>
+    <span class="text-[11px] opacity-55">flick each track left, hard, from stop 1</span>
+    <span class="text-[11px] opacity-55" id="ua"></span>
+  </div>
+  <div id="lanes" class="flex flex-col gap-4"></div>
+</div>
+
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/swipe-deck.js');
+
+  document.getElementById('ua').textContent =
+    'scrollend ' + ('onscrollend' in document.createElement('div') ? 'yes' : 'no');
+
+  // Three stops of deliberately unequal height, because that difference is
+  // what turns the container's per-frame write into a real layout change.
+  const WORDS = [
+    'Frozen: preserved on purpose.',
+    'Frozen: preserved on purpose. Correct as written, and the living version '
+      + 'has moved on. The arrow points at the living copy, so a reader who '
+      + 'wants the current wording has somewhere to go. Stale is the weaker '
+      + 'claim: no longer accurate, aged out of true, with nothing said about '
+      + 'what replaced it.',
+    'Wrong: flatly incorrect, not merely aged. The marker carries what the '
+      + 'text used to say.',
+  ];
+
+  const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+
+  // Every lane reports the same two numbers, read when the scroll goes quiet.
+  // `scrollend` where it exists, a 160ms lull where it does not, so the lane
+  // says the same thing on every engine.
+  function watch(track, say) {
+    let from = -1, t = 0;
+    const start = () => { if (from < 0) from = Math.round(track.scrollLeft / (track.clientWidth || 1)); };
+    const rest = () => {
+      const w = track.clientWidth || 1, at = track.scrollLeft / w;
+      say(at, from < 0 ? null : Math.round(at) - from);
+      from = -1;
+    };
+    track.addEventListener('pointerdown', start, { passive: true });
+    track.addEventListener('touchstart', start, { passive: true });
+    if ('onscrollend' in track) track.addEventListener('scrollend', rest);
+    else track.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(rest, 160); }, { passive: true });
+  }
+
+  function lane({ key, note, guard, fit, equal }) {
+    const wrap = el('div', 'rounded-box border border-base-300 overflow-hidden');
+    const head = el('div', 'flex items-baseline gap-2 px-2 py-1 bg-base-200 text-[11px]');
+    const name = el('b', 'text-xs', key);
+    const why = el('span', 'opacity-55', note);
+    const out = el('span', 'ml-auto font-mono tabular-nums opacity-55', 'rest —');
+    head.append(name, why, out);
+
+    const host = el('div', 'flex min-h-0 transition-[height] duration-200');
+    // `snapStop` is the kit option that turns on BOTH the property and the
+    // overshoot guard. A lane that wants the property without the guard asks
+    // for neither and sets the property itself, so the kit stays untouched.
+    const deck = window.swipeDeck.core(3, (n, slide) => {
+      const p = el('p', 'px-3 py-2 text-[15px] leading-relaxed', WORDS[equal ? 1 : n]);
+      // Lane D gives every stop the same text, so without a number a reader
+      // cannot tell a landing from an overshoot. Every lane carries it, so the
+      // lanes stay comparable.
+      p.prepend(el('b', 'mr-2 rounded-full bg-base-200 px-2 py-0.5 text-[11px]', String(n + 1)));
+      slide.append(p);
+    }, { slideScroll: false, innerClass: 'w-full', slideClass: '',
+         snapStop: !!guard, behavior: 'smooth' });
+    if (!guard) for (const s of deck.track.children) s.style.scrollSnapStop = 'always';
+    host.append(deck.track);
+
+    const height = (a) => {
+      const inner = deck.track.children[a] && deck.track.children[a].firstElementChild;
+      const content = inner && inner.firstElementChild;
+      if (content) host.style.height = content.scrollHeight + 'px';
+    };
+    if (fit === 'frame') deck.onSlide(height);
+    if (fit === 'settle' || fit === 'grow') {
+      let t = 0;
+      deck.track.addEventListener('scroll', () => {
+        clearTimeout(t); t = setTimeout(() => height(deck.active()), 160);
+      }, { passive: true });
+    }
+    // The candidate shape rather than a bare deferral: the box opens to the
+    // tallest stop BEFORE the drag, so nothing clips while the reader moves,
+    // and eases to the exact height once the scroll is quiet. One write, and
+    // it lands before momentum exists rather than in the middle of it.
+    if (fit === 'grow') {
+      const tallest = () => Math.max(...[...deck.track.children].map((s) => {
+        const c = s.firstElementChild && s.firstElementChild.firstElementChild;
+        return c ? c.scrollHeight : 0;
+      }));
+      const open = () => { host.style.height = tallest() + 'px'; };
+      deck.track.addEventListener('pointerdown', open, { passive: true });
+      deck.track.addEventListener('touchstart', open, { passive: true });
+    }
+    requestAnimationFrame(() => height(equal ? 1 : 0));
+
+    watch(deck.track, (at, crossed) => {
+      const off = Math.abs(at - Math.round(at)) > 0.02;
+      out.textContent = `rest ${at.toFixed(2)}` + (crossed == null ? '' : `  crossed ${Math.abs(crossed)}`);
+      out.className = 'ml-auto font-mono tabular-nums '
+        + (off || Math.abs(crossed || 0) > 1 ? 'text-error font-medium' : 'opacity-55');
+    });
+
+    wrap.append(head, host);
+    return wrap;
+  }
+
+  const lanes = document.getElementById('lanes');
+  lanes.append(
+    lane({ key: 'A', note: 'as shipped', guard: true, fit: 'frame' }),
+    lane({ key: 'B', note: 'no guard', guard: false, fit: 'frame' }),
+    lane({ key: 'C', note: 'height on settle', guard: true, fit: 'settle' }),
+    lane({ key: 'D', note: 'equal heights, nothing written', guard: false, fit: null, equal: true }),
+    lane({ key: 'E', note: 'grow before the drag, exact on settle', guard: true, fit: 'grow' }),
+  );
+</script>
+</body>
+</html>

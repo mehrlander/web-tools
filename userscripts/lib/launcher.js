@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '70dc4fd';
-const BUILT = '2026-09-18T18:10:43Z';
+const BUILD = '800ab04';
+const BUILT = '2026-09-18T20:45:09Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -65,16 +65,37 @@ const STAGE = 'https://mehrlander.github.io/web-tools/app/';
 const GZ_MAX = 24 * 1024;
 
 window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {}) => {
+  if (typeof window === 'undefined' || window.top !== window.self) return;
+
   const ID = 'wt-launcher';
-  if (document.getElementById(ID)) return;
+  if (document.getElementById(ID) || window.__wtLauncherMounting || window.__wtLauncherMounted) return;
+  window.__wtLauncherMounting = true;
+
+  // Detect Web Tools app origin or pages
+  const isWebToolsOrigin = () => {
+    try {
+      const u = new URL(app);
+      if (location.origin === u.origin && location.pathname.startsWith(u.pathname.replace(/\/app\/?$/, ''))) return true;
+    } catch {}
+    if (location.hostname === 'mehrlander.github.io' && location.pathname.startsWith('/web-tools')) return true;
+    return false;
+  };
+
+  // Detect real Web Tools FAB or scripts in DOM (which cross the Isolated World barrier)
+  const realFab = () => document.querySelector('[aria-label="Web-tools panel"], [x-data*="fab"]');
+  const hasWebToolsScript = () => !!document.querySelector(
+    'script[src*="gh-api"], script[src*="web-tools"], script[src*="fab.js"], link[href*="web-tools"]'
+  );
 
   // A page that carries the loader will mount its own fab, and one that has
   // refused a fab has refused this too: data-no-fab is an answer to the
   // question this file is asking, not a web-tools-only setting.
-  const realFab = () => document.querySelector('[aria-label="Web-tools panel"]');
-  if (realFab() || window.gh || window.__fabHosted ||
+  if (isWebToolsOrigin() || realFab() || hasWebToolsScript() || window.gh || window.__fabHosted ||
       document.documentElement.hasAttribute('data-no-fab') ||
-      document.body?.hasAttribute('data-no-fab')) return;
+      document.body?.hasAttribute('data-no-fab')) {
+    window.__wtLauncherMounting = false;
+    return;
+  }
 
   // Under this many characters the whole shortcuts:// URL is sent; over it,
   // Send stands down and names Copy. See the two-routes note above.
@@ -193,11 +214,33 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
   ];
 
+  const getPref = key => {
+    try {
+      const v = localStorage.getItem('wt_' + key);
+      if (v !== null) return v === 'true';
+    } catch {}
+    return true; // Default to true
+  };
+  const getPrefVal = (key, fallback = '') => {
+    try {
+      const v = localStorage.getItem('wt_' + key);
+      if (v !== null) return v;
+    } catch {}
+    return fallback;
+  };
+  const setPref = (key, val) => {
+    try { localStorage.setItem('wt_' + key, String(val)); } catch {}
+    const setGm = (typeof GM !== 'undefined' && GM.setValue) ? GM.setValue.bind(GM)
+      : (typeof GM_setValue !== 'undefined' ? (k, v) => Promise.resolve(GM_setValue(k, v)) : null);
+    if (setGm) setGm('wt_' + key, val).catch(() => {});
+  };
+
   const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
                   seenLinks: new Map(), errand: null, errandOut: '', localMd: null,
                   jinaMd: null, mdEngine: 'local', mdView: 'preview',
-                  fullscreen: false, metaOpen: false };
+                  htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
+                  fullscreen: false, metaOpen: false, autoCheck: getPref('autocheck_updates') };
 
   // DOM-to-Markdown extractor: converts article/main or content dense tree into
   // clean, structured Markdown, preserving headings, quotes, code blocks, lists,
@@ -410,6 +453,130 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return out.join('');
   };
 
+  // DOM HTML Formatter & Syntax Highlighter: formats and indents the live document
+  // tree into clean, 2-space indented HTML with syntax coloring tokens for tags,
+  // attributes, strings, comments, and doctypes.
+  const formatAndHighlightDom = (rootNode = document.documentElement) => {
+    const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+    const parts = [];
+    let lines = 0;
+    const MAX_LINES = 1800;
+
+    parts.push('<span class="tok-doc">&lt;!DOCTYPE html&gt;</span>\n');
+    lines++;
+
+    const walk = (node, indent = 0) => {
+      if (lines >= MAX_LINES || !node) return;
+      if (node.id === ID || node.closest?.('#' + ID)) return;
+
+      const pad = '  '.repeat(indent);
+
+      if (node.nodeType === Node.COMMENT_NODE) {
+        const text = esc((node.textContent || '').trim());
+        if (text) {
+          parts.push(`${pad}<span class="tok-com">&lt;!-- ${text} --&gt;</span>\n`);
+          lines++;
+        }
+        return;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = (node.textContent || '').trim();
+        if (text) {
+          parts.push(`${pad}<span class="tok-txt">${esc(text)}</span>\n`);
+          lines++;
+        }
+        return;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+      const tag = node.tagName.toLowerCase();
+      let open = `${pad}<span class="tok-tag">&lt;${tag}</span>`;
+
+      if (node.hasAttributes()) {
+        for (const attr of node.attributes) {
+          const name = esc(attr.name);
+          const val = esc(attr.value);
+          open += ` <span class="tok-attr">${name}</span>=<span class="tok-val">"${val}"</span>`;
+        }
+      }
+
+      if (VOID.has(tag)) {
+        open += `<span class="tok-tag">&gt;</span>\n`;
+        parts.push(open);
+        lines++;
+        return;
+      }
+
+      // Filter children
+      const kids = Array.from(node.childNodes).filter(c => {
+        if (c.id === ID || c.closest?.('#' + ID)) return false;
+        if (c.nodeType === Node.TEXT_NODE) return (c.textContent || '').trim().length > 0;
+        return true;
+      });
+
+      // Inline compact elements with single short text node
+      if (kids.length === 1 && kids[0].nodeType === Node.TEXT_NODE && (kids[0].textContent || '').trim().length < 80) {
+        const text = esc((kids[0].textContent || '').trim());
+        parts.push(`${open}<span class="tok-tag">&gt;</span><span class="tok-txt">${text}</span><span class="tok-tag">&lt;/${tag}&gt;</span>\n`);
+        lines++;
+        return;
+      }
+
+      // Inline script or style with bounded preview
+      if (tag === 'script' || tag === 'style') {
+        const raw = (node.textContent || '').trim();
+        if (raw) {
+          open += `<span class="tok-tag">&gt;</span>\n`;
+          parts.push(open);
+          lines++;
+          const preview = raw.length > 500 ? raw.slice(0, 500) : raw;
+          const snippet = preview.split('\n').slice(0, 8);
+          for (const l of snippet) {
+            if (lines >= MAX_LINES) break;
+            parts.push(`${pad}  <span class="tok-inner">${esc(l)}</span>\n`);
+            lines++;
+          }
+          if (raw.length > 500 || raw.split('\n').length > 8) {
+            parts.push(`${pad}  <span class="tok-com">/* … truncated script/style preview … */</span>\n`);
+            lines++;
+          }
+          parts.push(`${pad}<span class="tok-tag">&lt;/${tag}&gt;</span>\n`);
+          lines++;
+          return;
+        }
+      }
+
+      if (kids.length === 0) {
+        open += `<span class="tok-tag">&gt;&lt;/${tag}&gt;</span>\n`;
+        parts.push(open);
+        lines++;
+        return;
+      }
+
+      open += `<span class="tok-tag">&gt;</span>\n`;
+      parts.push(open);
+      lines++;
+
+      for (const kid of kids) {
+        walk(kid, indent + 1);
+        if (lines >= MAX_LINES) break;
+      }
+
+      parts.push(`${pad}<span class="tok-tag">&lt;/${tag}&gt;</span>\n`);
+      lines++;
+    };
+
+    walk(rootNode, 0);
+
+    if (lines >= MAX_LINES) {
+      parts.push(`\n<span class="tok-com">&lt;!-- [Preview capped at ${MAX_LINES} lines; Copy and Stage buttons export 100% complete HTML] --&gt;</span>\n`);
+    }
+
+    return { html: parts.join(''), lines };
+  };
+
   // ---- The surface -------------------------------------------------------
 
   const P = 'var(--wt-p)';
@@ -482,6 +649,23 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .row.errand-row svg { color: oklch(65% .18 55); }
     .row.errand-row span { color: oklch(45% .18 55); }
     .row[hidden] { display: none; }
+    .pill-toggle {
+      font: 700 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .15rem .45rem; border-radius: 9999px;
+      margin-left: auto; flex: none;
+      transition: all .2s;
+    }
+    .pill-toggle.on {
+      background: ${mix(P, 15)}; color: var(--wt-p); border: 1px solid ${mix(P, 40)};
+    }
+    .pill-toggle.off {
+      background: var(--wt-b200); color: ${mix('var(--wt-bc)', 50)}; border: 1px solid var(--wt-b300);
+    }
+    .menu-foot {
+      padding: .375rem .75rem; border-top: 1px solid var(--wt-b300);
+      font-size: 10px; color: ${mix('var(--wt-bc)', 50)}; text-align: right;
+      background: var(--wt-b200);
+    }
 
     /* The drawer, in the fab's shape: an absolute panel inside a fixed
        overflow-hidden layer, so the off-screen half is clipped rather than
@@ -544,7 +728,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     .head-intro {
       display: flex; align-items: flex-start; justify-content: space-between;
-      gap: .5rem; margin-top: .25rem;
+      gap: .5rem;
     }
     .head-desc {
       margin: 0; font-size: 11.5px; line-height: 1.4;
@@ -581,6 +765,24 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .page-meta p:last-child { margin-bottom: 0; }
     .page-meta .k { display: block; font: 10px ui-monospace, monospace;
                     color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
+    .meta-pref-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: .5rem; padding-top: .375rem;
+      border-top: 1px dashed var(--wt-b300);
+    }
+    .meta-pref-row .k { margin-bottom: 0 !important; }
+    .meta-pref-btn {
+      font: 700 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .15rem .45rem; border-radius: 9999px;
+      cursor: pointer; transition: all .2s;
+      border: 1px solid var(--wt-b300);
+    }
+    .meta-pref-btn.on {
+      background: ${mix(P, 15)}; color: var(--wt-p); border-color: ${mix(P, 40)};
+    }
+    .meta-pref-btn.off {
+      background: var(--wt-b100); color: ${mix('var(--wt-bc)', 50)};
+    }
     .quote { border-left: 2px solid ${mix(P, 40)}; padding-left: .625rem;
              color: ${mix('var(--wt-bc)', 80)}; }
     .none { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
@@ -673,8 +875,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       color: ${mix('var(--wt-bc)', 55)}; white-space: nowrap; flex: none;
     }
 
-    .head-tools { display: flex; align-items: center; gap: .375rem; }
-    .head-tools[hidden] { display: none; }
+    .head-tools, .head-html-tools { display: flex; align-items: center; gap: .375rem; }
+    .head-tools[hidden], .head-html-tools[hidden] { display: none; }
 
     .copy-btn.copied svg { color: oklch(65% .2 145); }
 
@@ -780,6 +982,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     .text { font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap;
             overflow-wrap: break-word; color: ${mix('var(--wt-bc)', 85)}; }
+    .html-code-wrap {
+      font: 11.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word;
+      margin: 0; padding: .375rem 0; color: ${mix('var(--wt-bc)', 85)};
+    }
+    .html-code-wrap[hidden] { display: none; }
+    .tok-doc { color: oklch(60% .2 310); font-weight: 600; }
+    .tok-tag { color: var(--wt-p); font-weight: 600; }
+    .tok-attr { color: oklch(65% .18 195); }
+    .tok-val { color: oklch(65% .18 140); }
+    .tok-txt { color: var(--wt-bc); }
+    .tok-com { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
+    .tok-inner { color: ${mix('var(--wt-bc)', 75)}; }
 
     .panel:not(.fullscreen) .foot { display: none !important; }
     .panel.fullscreen .foot {
@@ -868,6 +1083,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <div class="head-titles">
             <h1 class="head-title"><span class="title-text"></span></h1>
             <p class="head-sub"><span></span></p>
+          </div>
           <div class="head-actions">
             <div class="head-tools" hidden>
               <div class="seg" role="group" aria-label="Markdown engine">
@@ -876,6 +1092,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
               </div>
               <button type="button" class="icon-btn md-view-toggle on" aria-label="Toggle preview" title="Preview mode (click for raw Markdown)">${svg(ICON.eye)}</button>
               <a class="icon-btn jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" aria-label="Open in Jina Reader" title="Open in Jina Reader" hidden>${svg(ICON.out)}</a>
+            </div>
+            <div class="head-html-tools" hidden>
+              <div class="seg" role="group" aria-label="HTML view">
+                <button type="button" class="seg-btn on" data-html-mode="pretty">Formatted</button>
+                <button type="button" class="seg-btn" data-html-mode="raw">Raw</button>
+              </div>
             </div>
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
@@ -894,6 +1116,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
           <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
           <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+          <div class="meta-pref-row">
+            <span class="k">AUTO-CHECK UPDATES</span>
+            <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
+          </div>
         </div>
       </div>
       <div class="errand-banner" hidden>
@@ -972,9 +1198,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         </div>
         <!-- Slide 3: HTML -->
         <div class="deck-slide" data-slide-i="3" data-take-html>
+          <div class="slide-tools">
+            <div class="slide-tools-inner">
+              <div class="seg" role="group" aria-label="HTML view">
+                <button type="button" class="seg-btn on" data-html-mode="pretty">Formatted</button>
+                <button type="button" class="seg-btn" data-html-mode="raw">Raw</button>
+              </div>
+              <span class="tool-meta html-meta"></span>
+            </div>
+          </div>
           <div class="slide-body">
             <div class="slide-body-inner">
-              <div class="text slide-content html-content"></div>
+              <pre class="html-formatted-wrap html-code-wrap" tabindex="0"></pre>
+              <div class="text slide-content html-content" hidden></div>
             </div>
           </div>
         </div>
@@ -1014,7 +1250,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
       <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
-      <div class="foot">${BUILD}</div>
+      <button class="row" data-toggle-autocheck>${svg(ICON.refresh)}<span>Auto-check updates</span><span class="pill-toggle on">ON</span></button>
+      <div class="menu-foot font-mono">${BUILD}</div>
     </div>
     <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}<span class="badge"></span></div>`;
 
@@ -1040,6 +1277,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // ---- Behaviour ---------------------------------------------------------
 
   const q = s => root.querySelector(s);
+  const qa = s => root.querySelectorAll(s);
   const btn = q('.btn'), menu = q('.menu'), panel = q('.panel');
   const list = q('[data-list]'), sendEl = q('[data-send]'), copyEl = q('[data-copy]');
 
@@ -1116,8 +1354,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           : state.links;
         return target.map(l => `- [${l.text || l.href}](${l.href})`).join('\n');
       }
-      case 'html':
-        return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      case 'html': {
+        const clone = document.documentElement.cloneNode(true);
+        clone.querySelector('#' + ID)?.remove();
+        return '<!DOCTYPE html>\n' + clone.outerHTML;
+      }
       case 'json':
         return JSON.stringify({
           title: page.title,
@@ -1139,6 +1380,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const plaque = q('.plaque');
     const curEl = q('.cur-slide');
     const headTools = q('.head-tools');
+    const headHtmlTools = q('.head-html-tools');
 
     if (state.fullscreen) {
       const slide = SLIDES[state.slide] || SLIDES[0];
@@ -1147,11 +1389,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       if (plaque) plaque.innerHTML = svg(ICON[slide.icon]);
       if (curEl) curEl.textContent = String(state.slide + 1);
       if (headTools) headTools.hidden = slide.id !== 'md';
+      if (headHtmlTools) headHtmlTools.hidden = slide.id !== 'html';
     } else {
       if (headTitle) headTitle.textContent = page.title;
       if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
       if (plaque) plaque.innerHTML = svg(ICON.sidebar);
       if (headTools) headTools.hidden = true;
+      if (headHtmlTools) headHtmlTools.hidden = true;
     }
   };
 
@@ -1318,8 +1562,30 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         renderLinks();
         break;
       case 'html': {
-        const html = document.documentElement.outerHTML;
-        q('.html-content').textContent = '<!DOCTYPE html>\n' + (html.length > 50000 ? html.slice(0, 50000) + '\n\n… [preview truncated for display; Copy and Stage export complete HTML]' : html);
+        const metaEl = q('.html-meta');
+        const formattedWrap = q('.html-formatted-wrap');
+        const rawContent = q('.html-content');
+        if (state.htmlMode === 'pretty') {
+          if (!state.formattedHtml) {
+            const res = formatAndHighlightDom();
+            state.formattedHtml = res.html;
+            state.htmlLines = res.lines;
+          }
+          if (formattedWrap) {
+            formattedWrap.innerHTML = state.formattedHtml;
+            formattedWrap.hidden = false;
+          }
+          if (rawContent) rawContent.hidden = true;
+          if (metaEl) metaEl.textContent = `${state.htmlLines} lines`;
+        } else {
+          const raw = getSlideText(i);
+          if (rawContent) {
+            rawContent.textContent = raw.length > 50000 ? raw.slice(0, 50000) + '\n\n… [preview truncated for display; Copy and Stage export complete HTML]' : raw;
+            rawContent.hidden = false;
+          }
+          if (formattedWrap) formattedWrap.hidden = true;
+          if (metaEl) metaEl.textContent = (raw.length > 10000) ? `${Math.round(raw.length / 1024)} KB` : `${raw.length} chars`;
+        }
         break;
       }
       case 'json':
@@ -1519,6 +1785,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const readPage = () => {
     state.localMd = null;
     state.jinaMd = null;
+    state.formattedHtml = null;
     readLinks();
     if (!state.blocks.length) state.text = readText();
     if (state.collect || state.blocks.length) collectBlocks();
@@ -1532,7 +1799,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   let read = false;
   const openDrawer = () => {
     state.sel = clean(String(getSelection() || ''));
-    if (!read) { readPage(); checkBuild(); read = true; }
+    if (!read) { readPage(); read = true; }
+    if (state.autoCheck) checkBuild();
     renderPageMeta();
     syncSlideUI(state.slide);
     panel.classList.add('open');
@@ -1663,6 +1931,19 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     };
   });
 
+  const syncHtmlModeUI = mode => {
+    state.htmlMode = mode;
+    setPref('html_mode', mode);
+    qa('[data-html-mode]').forEach(b => {
+      b.classList.toggle('on', b.getAttribute('data-html-mode') === mode);
+    });
+    if (state.slide === 3) renderActiveSlide(3);
+  };
+  qa('[data-html-mode]').forEach(b => {
+    b.onclick = () => syncHtmlModeUI(b.getAttribute('data-html-mode'));
+  });
+  syncHtmlModeUI(state.htmlMode);
+
   // Deck scrolling & pagination: high-performance rAF updates tabs & dots instantly
   const track = q('.deck-track');
   let rAF = 0;
@@ -1742,7 +2023,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   }
 
   q('[data-menu-html]').onclick = () => {
-    copyText('<!DOCTYPE html>\n' + document.documentElement.outerHTML, q('[data-menu-html] span'), 'Copied HTML');
+    copyText(getSlideText(3), q('[data-menu-html] span'), 'Copied HTML');
   };
 
   q('.run-errand').onclick = runActiveErrand;
@@ -1757,6 +2038,28 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       runActiveErrand();
     };
   }
+
+  const updateAutoCheckUI = () => {
+    const on = !!state.autoCheck;
+    qa('[data-toggle-autocheck]').forEach(el => {
+      const pill = el.classList.contains('meta-pref-btn') ? el : el.querySelector('.pill-toggle');
+      if (pill) {
+        pill.textContent = on ? 'ON' : 'OFF';
+        pill.classList.toggle('on', on);
+        pill.classList.toggle('off', !on);
+      }
+    });
+  };
+  updateAutoCheckUI();
+
+  qa('[data-toggle-autocheck]').forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      state.autoCheck = !state.autoCheck;
+      setPref('autocheck_updates', state.autoCheck);
+      updateAutoCheckUI();
+    };
+  });
 
   q('[data-hide]').onclick = () => { stopCollecting(); host.remove(); };
   menu.addEventListener('click', e => { if (e.target.closest('.row')) setMenu(false); });
@@ -1826,11 +2129,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const headSub = q('.head-sub span');
   if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
 
-  // Asked on first open and on refresh, and never allowed to fail loudly.
-  let checked = false;
+  // Asked on drawer open (if autoCheck) and on refresh, and never allowed to fail loudly.
+  let lastBuildCheck = 0;
+  const CHECK_COOLDOWN = 30 * 1000;
   const checkBuild = async (force = false) => {
-    if (checked && !force) return;
-    checked = true;
+    const now = Date.now();
+    if (!force && (now - lastBuildCheck < CHECK_COOLDOWN)) return;
+    lastBuildCheck = now;
     try {
       const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
       const current = JSON.parse(raw)?.launcher?.build;
@@ -1868,6 +2173,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };
   document.documentElement.append(host);
+  window.__wtLauncherMounted = true;
+  window.__wtLauncherMounting = false;
   checkErrands();
 
   // The second half of the yield rule. A web-tools page boots its loader and
@@ -1875,10 +2182,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // miss it; watching until it appears is what keeps the two from standing side
   // by side. Ten seconds is a boot that has plainly not happened.
   const watch = new MutationObserver(() => {
-    if (!realFab()) return;
+    if (!realFab() && !hasWebToolsScript()) return;
     stopCollecting();
     host.remove();
     watch.disconnect();
+    window.__wtLauncherMounted = false;
   });
   watch.observe(document.documentElement, { childList: true, subtree: true });
   setTimeout(() => watch.disconnect(), 10000);

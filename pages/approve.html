@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en" data-theme="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Approve</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔏</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  approve.html — renders an `approval/1` surface: a request for a DECISION.
+
+  inquiry.html collects answers; this collects a verdict. The difference is not
+  the form but the reader's licence: the expected outcome includes "no", and
+  the page has to make refusing as cheap as agreeing or it is a rubber stamp
+  with extra steps.
+
+  Three layers, as in inquiry:
+    the OBJECT     an approval/1 surface, self-addressed via context.reply_to
+    the RENDERING  this page: the diff first, the author's reason beside it
+    the CONSTRAINT the profile schema, which names what the author owed
+
+  What it writes back is <reply_to>/<id>.verdict.json, through the viewer's own
+  token. That file is the point of the whole envelope: "did the user approve
+  this" stops being a claim a session types into a commit message and becomes a
+  file a commit hook resolves. Contract: docs/envelopes/approval.md.
+
+  Addressing, the same grammar every envelope here uses:
+    #src=owner/repo[@ref]:path     fetch the envelope through the stored token
+    #gz=<base64url gzip>           carry it inline, for a token-less reader
+  Both also read from ?query, for a context that strips fragments.
+
+  THE TOKEN IS NOT SPECIAL HERE, and two drafts of this page treated it as
+  though it were. The first refused whenever it was framed; the second kept a
+  pre-flight probe, a flag, dimmed buttons and a banner about sandboxes. A
+  verdict is a commit like any other commit this estate makes: the page reads
+  the token the way kits/annotate.js reads it for a jot, writes, and reports
+  what the write said. Nothing is asked in advance.
+
+  Diff cards are alpineComponents/file-review.js, the same component
+  pages/review.html mounts per changed file, so a reviewer here sees exactly
+  what a reviewer there sees. Notes are kits/annotate.js enabled over this
+  document: a selection in a diff pane becomes a note, and the set rides out on
+  the verdict rather than saving as its own jot, since here a note is part of a
+  decision rather than a standalone reading.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('gh-store.js');
+    await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/subject-channel.js');
+    await gh.load('kits/file-deck.js');
+    await gh.load('kits/cm6-merge.js');
+    await gh.load('alpineComponents/file-review.js');
+    await gh.load('kits/annotate.js');
+  } finally { window.__depsDone(); }
+</script>
+<style>[x-cloak]{display:none!important}</style>
+</head>
+<!-- NO PAGE HEADER, AND THE SET IS A DECK. The page used to open on a strip of
+     its own chrome (a seal, the request's name, its kind and occasion, a notes
+     button), then the id and branch, then the rationale, then a bordered frame
+     holding every item stacked. On a phone that is most of a screen before the
+     first thing anyone came to read, and the frame put a second box around
+     cards that already have edges.
+     The house format for a set you go THROUGH is the swipe deck, so the set is
+     one: the ask is slide one and each item is its own after it. Nothing is
+     nested, so a change container gets the full width, and the only chrome left
+     is the row of decisions at the foot, which is what the page is for.
+     `h-dvh` with the deck growing, not `min-h-dvh`: a track has to be given a
+     height to snap inside. Normal flow rather than `fixed inset-0`, since this
+     page is framed as an app view and rule 5 of the house style is that a fixed
+     child measures against the OUTER viewport. -->
+<body class="h-dvh flex flex-col bg-base-100 text-base-content overflow-hidden"
+      x-data="approveApp()" x-cloak>
+
+<div x-show="loading" class="flex items-center gap-2 opacity-70 px-3 py-3">
+  <span class="loading loading-spinner loading-sm"></span> Loading
+</div>
+<div x-show="error" class="alert alert-error py-2 px-3 m-3">
+  <i class="ph ph-warning-circle"></i><span x-text="error"></span>
+</div>
+
+<!-- grid-cols-[minmax(0,1fr)], not a bare `grid`. A grid item defaults to
+     min-width:auto, so one wide descendant (a code fence with long lines) sizes
+     the track to max-content and EVERY block inside lays out at that width:
+     measured at 390px, the whole rendered document was 1398px wide, so ordinary
+     paragraphs did not wrap and the card clipped them with overflow-hidden.
+     Letting the column shrink below its content is what hands the overflow back
+     to the objects that know how to scroll. -->
+<div x-ref="pool" class="hidden">
+
+  <!-- A PLAIN TEMPLATE, NOT x-for. The first version generated the item
+       sections with x-for and moved the nodes into the deck's slides; Alpine
+       owns an x-for's output, re-created it in the pool behind the move, and
+       the slides ended up holding detached copies with nothing in them.
+       Measured: three slides, zero change containers. So the deck clones this
+       template per item and gives each clone its own `it` before Alpine
+       initialises it, which is the ordinary way to hand one record to one
+       subtree. -->
+  <!-- NO SLIDE TEMPLATE. The page cloned one per item and mounted a
+       fileReview card in it, which is what kits/file-deck.js already does, and
+       does with the card `hosted` so the slide is nothing but the document.
+       What used to sit above each card (the item's title and status, its
+       commentary, a deferred_because note, and its related links) was the
+       REQUEST talking about the change rather than the change itself, and a
+       reader arriving to judge wording met a paragraph of justification before
+       the first line of it. Reported 2026-09-18: "we don't want to read a
+       discussion of your justification there, we just want to see the thing."
+       The envelope still carries all four fields; the page stops drawing them,
+       which is a presentation decision rather than a schema one. -->
+
+<!-- The sent notice is all the page still draws of the decision. The verdict
+     itself is one button in the deck's header, built in `approveBtn`. -->
+<div x-ref="sent" class="w-full">
+  <div x-show="sent" class="alert alert-success py-2 px-3">
+    <i class="ph ph-check-circle"></i>
+    <span>Recorded as <span class="font-mono" x-text="decision"></span>.
+      <a :href="sent" target="_blank" class="link" x-text="sentPath"></a></span>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('approveApp', () => ({
+    env: null, items: [], notes: [], _deck: null,
+    loading: true, error: '', sending: false, sent: '', sentPath: '', decision: '',
+    // THE TOKEN, THE WAY EVERY OTHER WRITER HERE GETS IT. The global a shell
+    // sets, else this origin's store, and a write that finds neither fails at
+    // the write. It is kits/annotate.js's three lines for a jot, and a verdict
+    // is not a different kind of act.
+    //
+    // It used to be a pre-flight probe, a `canPost` flag, dimmed buttons and a
+    // banner about sandboxes. All of it was answering a question no other page
+    // asks, and answering it wrong: the flag was set from `window.TOKEN`, which
+    // only app/index.html and pages/repo-atlas.html ever define, so a reader
+    // holding a perfectly good token was told there was none. Measured
+    // 2026-09-18, tossed with a token in the store: readable, `window.TOKEN`
+    // undefined, buttons dead. The surface had never been usable.
+    get token() {
+      if (window.TOKEN) return window.TOKEN;
+      try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+    },
+
+    get ctx() { return this.env?.context || {}; },
+    itemAt(i) { return this.items[i] || {}; },
+
+    // ONE BUTTON, IN THE DECK'S HEADER. The page used to carry a row of three
+    // verdicts plus a notes toggle plus the reply address, under the header and
+    // above every item, which is four controls and a line of chrome in front of
+    // the thing being judged. Two of them had other owners already: the
+    // annotator is started from the FAB (its launcher menu, its take grid, or a
+    // text selection), and `approved-with-edits` is not a separate decision but
+    // the same one taken with notes attached, which this can read for itself.
+    //
+    // A FILLED GREEN CIRCLE, and the word is gone. It read `✓ Approve` until
+    // the header had to hold a second control; the label is the widest thing
+    // in the row and the only one a reader does not need, since a green check
+    // on a page called Approve is not ambiguous. An Element rather than an
+    // {icon,title,onClick} spec, because the deck draws that shape as a GHOST
+    // circle and a decision is not ghost chrome.
+    approveBtn() {
+      const b = document.createElement('button');
+      b.className = 'btn btn-sm btn-circle btn-success shrink-0';
+      b.innerHTML = '<i class="ph ph-check text-lg"></i>';
+      b.title = 'Approve';
+      b.setAttribute('aria-label', 'Approve');
+      b.addEventListener('click', () => {
+        if (this.sending || this.sent) return;
+        b.disabled = true;
+        const notes = (window.Annotate && window.Annotate.items) || [];
+        this.notes = notes;
+        this.send(notes.length ? 'approved-with-edits' : 'approved')
+          .finally(() => { b.disabled = !!this.sent; });
+      });
+      return b;
+    },
+    // THE JUMP IS NOT HERE ANY MORE. It sat in this header for a day, and the
+    // header is for controls about the FILE: its github links, which reading to
+    // show. Stepping change to change is about the COMPARISON, so it lives in
+    // kits/md-diff.js's own floating strip now, beside the readout that already
+    // says which change of how many. The measurement that settled it: with the
+    // jump here, ten buttons left the title 38px of a 390px header.
+
+    // THE HEADER NAMES THE FILE, split the way the file cards split a path:
+    // the name carries the weight and the folders sit under it, dimmed. One
+    // request has one `manifest.name`, so a header carrying that read the same
+    // on every slide and told a reader nothing about the document in front of
+    // them. The request's own name and id are in the envelope and on the link;
+    // the header is for what is on screen.
+    // `nameOf`, `dirOf` and `ghMark` lived here and are gone with the deck that
+    // needed them: kits/file-deck.js splits the path into title and crumb and
+    // builds the github mark against the name, from the card's own `ghLinks`
+    // rather than from addresses this page assembled. That menu offers five
+    // rows where the hand-built one offered three, since the card knows the
+    // last commit and this page never did.
+
+    // Where the items live. The request names one repo for the set, since a
+    // decision spanning two repos is two decisions.
+    repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
+    baseOf() { return this.ctx.base || 'main'; },
+    pathOf(it) { return it.target?.path || it.title; },
+
+    // hash first, then query: the fragment is the private form, the query is
+    // what survives a context that strips fragments.
+    param(key) {
+      const h = new URLSearchParams(location.hash.slice(1)).get(key);
+      return h || new URLSearchParams(location.search).get(key);
+    },
+
+    async init() {
+      await window.__depsReady;
+      try {
+        const gz = this.param('gz');
+        const src = this.param('src');
+        if (gz) {
+          const bin = Uint8Array.from(atob(gz.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+          const ds = new DecompressionStream('gzip');
+          this.env = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
+        } else if (src) {
+          const [addr, ...rest] = src.split(':');
+          const [repo, ref] = addr.split('@');
+          this.env = JSON.parse((await new GH({ token: this.token, repo, ref: ref || '' }).get(rest.join(':'))).text);
+        } else {
+          this.error = 'No request. Address one with #src=owner/repo[@ref]:path or #gz=…';
+        }
+        this.items = this.env?.items || [];
+        // A reading card asks its host what to compare against. The request
+        // already names the pair, so publish it before the cards mount rather
+        // than leaving each one to pick, which is the choice the card says it
+        // has no business making.
+        if (this.ctx.branch) {
+          window.__compareRef = {
+            repo: this.repoOf(), ref: this.ctx.branch,
+            base: this.baseOf(), baseName: this.baseOf(),
+          };
+        }
+      } catch (e) {
+        this.error = e.message;
+      }
+      this.loading = false;
+      // After the sections exist, not before: x-for has to have run for there
+      // to be anything to move.
+      this.$nextTick(() => this.deck());
+    },
+
+    // THE SET IS A DECK, AND IT IS THE ESTATE'S FILE DECK. The first version
+    // mounted the bare track, `swipeDeck.core`, which is the format without its
+    // chrome: a short first slide, a screen of white below it, and nothing
+    // saying there were two more to the right. A reader met it and asked
+    // whether it was working. The second built `swipeDeck.open` by hand and
+    // grew, over several rounds, a title that follows the slide, a directory
+    // subtitle, a github menu against the name, and a header that carries the
+    // file's controls.
+    //
+    // Every one of those already existed in kits/file-deck.js, which is what
+    // the branch detail view opens, with the same reasoning written in its own
+    // comments. Building a second copy of it is exactly what its note warns
+    // against, and the copy was the weaker one: three menu rows against five,
+    // and the layout icons still in the slide rather than the header.
+    //
+    // So the page opens THAT deck and adds one thing to it, which is the only
+    // thing an approval has that a read does not: a verdict button. `actions`
+    // is the kit's slot for exactly that, appended after the card's own
+    // controls. The jump rides beside it, since stepping change to change is
+    // this surface's own verb.
+    //
+    // `openOn: 'mddiff'` is the second half. A reading deck lands on the file,
+    // which is right for browsing and wrong here: a reviewer handed the
+    // finished document has to find what moved before they can weigh it, and
+    // the rendered comparison is that document with the change marked in it.
+    // The card falls back to the file where there is no rendered comparison.
+    deck() {
+      if (!window.fileDeck || this._deck) return;
+      if (!this.items.length) return;
+      this._deck = window.fileDeck.open({
+        repo: this.repoOf(),
+        ref: this.ctx.branch,
+        base: this.baseOf(),
+        baseName: this.baseOf(),
+        // The request's items ARE the file list, in the shape the deck takes.
+        // `previousPath` and `patch` ride where the request carries them; the
+        // deck reads a missing one as "not stated" rather than as a fact.
+        files: this.items.map((it) => ({
+          path: this.pathOf(it),
+          previousPath: it.change?.previous_path || '',
+          status: it.change?.status || '',
+          patch: it.change?.patch || '',
+        })),
+        openOn: 'mddiff',
+        // THE REPO, AS THE CRUMB'S CONTEXT. file-deck builds each slide's
+        // subtitle from [parent title, this, the file's folder], and in the app
+        // the deck above it already names the repo. Opened from a link there is
+        // no deck above, so without this the subtitle is a bare folder and a
+        // reader working across several repositories in one afternoon cannot
+        // tell one SKILL.md from another. The repo NAME rather than
+        // owner/name: at 390px the full address spends the width on the half
+        // that never varies and truncates away the half that does.
+        subtitle: (this.repoOf() || '').split('/').pop(),
+        // ONE ACTION, WHICH IS THE WHOLE DIFFERENCE between this page and the
+        // branch detail view's file deck. Everything else in the header is the
+        // kit's: the file's name, its github menu, and which reading to show.
+        actions: [this.approveBtn()],
+        // The ✕ is a back chevron with no parent deck to drill from, the same
+        // call the branch takeover makes: dismissing returns the reader to
+        // whatever opened this link, and an ✕ would promise to close something
+        // this page does not own. Re-opening on the next tick is what keeps it
+        // from emptying the screen, since the deck IS the page.
+        onClose: () => { this._deck = null; this.$nextTick(() => this.deck()); },
+        // Nothing here should retarget a sidebar: this page is a decision about
+        // one request, not a place to browse a repo from.
+        announce: false,
+      });
+    },
+
+    async send(decision) {
+      this.sending = true;
+      try {
+        // Whatever the annotator holds when the verdict is taken rides out with
+        // it. It is started from the FAB, so there is nothing here to switch off.
+        if (window.Annotate && window.Annotate.disable) { try { window.Annotate.disable(); } catch (e) {} }
+        const [repo, dir] = (this.ctx.reply_to || '').split(':');
+        const gh2 = new GH({ token: this.token, repo, ref: this.ctx.reply_ref || '' });
+        const path = `${dir ? dir.replace(/\/$/, '') + '/' : ''}${this.ctx.id}.verdict.json`;
+        // paths comes from the request, never from a field: the decision has to
+        // cover exactly what was shown, and a typed list is a second chance to
+        // get that wrong.
+        const body = {
+          id: this.ctx.id,
+          kind: this.ctx.kind,
+          decision,
+          decided_at: new Date().toISOString(),
+          paths: this.items.map(it => this.pathOf(it)),
+          notes: (window.Annotate?.items || []).map(n => ({
+            anchor: n.quote || n.address || '', note: n.note || '',
+          })),
+        };
+        const res = await gh2.save(path, body, `Approval ${decision}: ${this.ctx.id}`);
+        this.decision = decision;
+        this.sentPath = path;
+        this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        // Now there is something to show, so the slot gets filled. `$nextTick`
+        // because the alert inside it is `x-show`-ed on `sent`, which Alpine
+        // has not applied yet at this line.
+        this.$nextTick(() => this._deck && this._deck.setSubheader(this.$refs.sent));
+      } catch (e) {
+        this.error = e.message;
+      }
+      this.sending = false;
+    },
+  }));
+});
+</script>
+</body>
+</html>

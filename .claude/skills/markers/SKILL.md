@@ -38,15 +38,35 @@ something outside the prose declares them.
 - **`Frozen`**: preserved on purpose. Correct as a snapshot; the living version
   has moved on. The arrow points at the living copy.
 - **`Stale`**: no longer accurate, aged out of truth.
-- **`Wrong`**: flatly incorrect, not merely aged.
+- **`Wrong`**: flatly incorrect, not merely aged. The claim **stays as written**,
+  so this is the record's word, and a path has to be declared a record before a
+  commit may add one (below).
+- **`Corrected`**: the claim was wrong and **has been fixed**. The marker records
+  what the text used to say. This is the living document's word.
+
+The first three describe the text they sit beside. `Corrected` describes text
+that is gone, which is why it is a flavor rather than a phrasing of `Wrong`.
 
 ## Marking a claim
 
-Inline, for one claim inside a living document:
+Two shapes, and choosing between them is the whole of the decision. A claim
+that still stands is **deferred**: the arrow sends the reader to the living
+copy. A claim that has been fixed is **retracted**: the arrow points back at the
+correction and the marker carries what was withdrawn.
 
 ```markdown
 **Stale 2026-07-20 → ../timeline.md:** the dates here predate the reschedule.
+**Corrected 2026-09-08 → the paragraph above:** this read "the fetch went
+through jsDelivr", whose edge cache held a replaced file for twelve hours.
 ```
+
+Deferral is right in a dated record, where the text is the evidence and editing
+it would destroy what the file is for. Retraction is right in a living document,
+which is read for what it currently claims, so a false sentence left standing
+under a banner goes on being read as the rule. Getting this backwards is logged
+twice in [`docs/SNAGS.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SNAGS.md)
+as `marker-on-a-living-doc`; `.githooks/pre-commit` now refuses the case a fact
+can settle, a `Wrong` added to a path no declaration calls a record.
 
 Whole file or section, as a GFM alert with the flavor in the bold lead-in
 (`> [!NOTE]` for `Frozen`, `> [!WARNING]` for `Stale` and `Wrong`):
@@ -67,9 +87,12 @@ the call. The target is optional and may be a path, a markdown link, or prose
 A `status: frozen 2026-07-06; note` line in frontmatter is the optional
 metadata layer.
 
-**Annotate, do not rewrite.** A dated file stays put as a record. When one of
-its claims ages, mark the claim; do not edit the record into agreement with the
-present.
+**Annotate a record; correct a living document.** A dated file stays put as
+evidence, so mark its claim and leave the text. A document read for what it
+currently says gets the claim fixed and the marker records what it used to say.
+The scope is the file's job, not its folder's name: a live README inside a dated
+snapshot directory is a living document, which is exactly the reading that has
+failed twice.
 
 ## Declaring a path
 
@@ -78,8 +101,14 @@ relative to its own directory, and the nearest declaration wins. This is the
 `.gitignore` cascade, and it is what lets one repo hold several workspaces with
 different regimes without a root file that knows about all of them.
 
+`frozen` and `record` are separate properties about the same kind of target, so
+one file may carry both lists. `frozen` says do not edit this at all. `record`
+says its existing text stays as written, which is what licenses a `Wrong`
+marker; append to it freely.
+
 ```json
 {
+  "record": ["chron/"],
   "frozen": [
     "research/budget-dive/dashboard.html",
     { "path": "app/studies/", "since": "2026-07-05", "why": "task 0016: pinned exhibits",
@@ -116,7 +145,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/markers/status.py" is projects/budget-drs/app/spe
 | `inventory` | every marker and declaration, as tables, plus findings |
 | `declared` | just the declared paths, one per line, for piping |
 | `check` | findings only; exit 1 if any |
-| `is PATH` | whether that path is frozen, and which file says so |
+| `is PATH` | whether that path is frozen or a record, and which file says so |
+| `gate` | refuse a staged `Wrong` marker on a path no declaration calls a record |
 
 `--root DIR` scopes it; the default is the git toplevel of the working
 directory.

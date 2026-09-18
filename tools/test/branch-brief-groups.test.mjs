@@ -124,18 +124,26 @@ const sectionOrder = () => {
   const topStrip = window.document.querySelector('[x-ref="topStrip"]');
   const filesEl = window.document.querySelector('[x-ref="files"]');
   const guideEl = window.document.querySelector('[x-ref="guide"]');
+  const top = kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]'));
+  const topSec = kids[top];
+  const rowEl = topSec?.querySelector('[role="tablist"]')?.closest('.border-b') || topSec?.firstElementChild;
   return { kids,
-           row: kids.findIndex(c => /sticky top-0/.test(c.className || '')),
-           top: kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]')),
+           row: top,
+           rowEl,
+           top,
+           topStrip,
            filesBeforeGuide: filesEl && guideEl ? Boolean(filesEl.compareDocumentPosition(guideEl) & 4) : true,
-           rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]')) };
+           rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]') || c.matches('[data-rev-section]')) };
 };
 
 test('the page reads files, then the guide, then the documents', () => {
   const o = sectionOrder();
-  assert.ok(o.row >= 0 && o.top >= 0 && o.rev >= 0,
+  assert.ok(o.top >= 0 && o.rev >= 0,
     'all sections are children of the one scroller');
-  assert.ok(o.row < o.top, 'the heading row heads the list it belongs to');
+  const topSec = o.kids[o.top];
+  const headerCap = topSec.firstElementChild;
+  assert.ok(headerCap && o.topStrip && Boolean(headerCap.compareDocumentPosition(o.topStrip) & 4),
+    'the heading row heads the list it belongs to');
   assert.ok(o.filesBeforeGuide, 'the list leads, shut, so it costs a row not a screen');
   assert.ok(o.rev > o.top, 'and the documents are last');
 });
@@ -145,38 +153,29 @@ test('the page reads files, then the guide, then the documents', () => {
 // Two rules the page states with spacing rather than with prose, both reported
 // from a phone on 2026-09-07.
 //
-// ONE CORNER. The guide, the file list and a presented document are the page's
-// three content containers, and they carried rounded-lg over a daisyUI card
-// whose own radius is --radius-box: an 8px clip around a 16px card, which shows
-// as a doubled corner beside a panel that has a clean one. They take the theme
-// token now, so a theme that moves its radius moves all three together.
+// ONE CORNER. The top section container and bottom reviewable document container
+// are the page's two content containers, both styled as rounded-lg with matching
+// curved header caps.
 //
 // GROUPING IS SPACING. A control sits closer to what it controls than sections
-// sit to each other: the file list is flush to its heading row, the strip's dots
-// are a gap-1 under the strip, and the container's gap-2 is reserved for one
-// section against the next.
+// sit to each other.
 test('the content containers share one corner, and grouping is spacing', () => {
   const doc = window.document;
   const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
-  const guideBox = doc.querySelector('[x-ref="guide"] .rounded-box');
-  const panelWrap = doc.querySelector('[data-rev] .rounded-box');
-  const listPanel = [...doc.querySelectorAll('div')]
-    .find(e => /border-base-300 rounded-\S+ overflow-hidden/.test(e.className || ''));
-  const found = { guide: radius(guideBox), panel: radius(panelWrap), list: listPanel && radius(listPanel) };
-  assert.ok(found.guide && found.panel && found.list, 'all three carry a radius: ' + JSON.stringify(found));
-  assert.equal(new Set(Object.values(found)).size, 1, 'and it is the same one: ' + JSON.stringify(found));
-  assert.equal(found.guide, 'rounded-box',
-    'the theme token, so a theme that moves its radius moves all three');
+  const topBox = doc.querySelector('[data-top-section]');
+  const panelWrap = doc.querySelector('[data-rev] .rounded-lg');
+  const found = { top: radius(topBox), panel: radius(panelWrap) };
+  assert.ok(found.top && found.panel, 'both containers carry a radius: ' + JSON.stringify(found));
+  assert.equal(found.top, 'rounded-lg',
+    'the theme token, so a theme that moves its radius moves both');
+  assert.equal(found.panel, 'rounded-lg');
   // No fade gradient overlay remains: content stays in its container.
   assert.equal(doc.querySelectorAll('.bg-gradient-to-b').length, 0, 'no fade overlay on containers');
 
-  // The heading row is a toolbar: its height is four max-sm:h-11 tap targets,
-  // and padding on top of that pads an affordance that carries its own room.
-  // 44px is the floor, and it is an estate idiom rather than this page's
-  // choice, so it does not move here on its own.
-  const row = [...doc.querySelectorAll('div')].find(e => /sticky top-0/.test(e.className || ''));
-  assert.ok(!/\bpy-\d/.test(row.className), 'no vertical padding on the row: ' + row.className);
-  assert.match(row.className, /px-4/, 'the horizontal padding stays, since it cancels the full bleed');
+  // The heading row is a header cap matching the file review container's header cap.
+  const row = doc.querySelector('[data-top-section] [role="tablist"]')?.closest('.border-b');
+  assert.ok(row, 'heading row found');
+  assert.match(row.className, /px-3 py-1\.5/, 'the header cap has standard padding');
 
   // ONE GAP VALUE. The page ran 8 between sections and 4 inside one until the
   // sections came down to 2 on 2026-09-07, and a control gap looser than a
@@ -215,7 +214,7 @@ test('the content containers share one corner, and grouping is spacing', () => {
 test('files and the guide are two tabs over one pane', async () => {
   await tick(6);   // earlier tests mutate brief; let the pane's x-show settle
   const o = sectionOrder();
-  const row = o.kids[o.row];
+  const row = o.rowEl;
   const tabs = [...row.querySelectorAll('[role="tab"]')];
   assert.equal(tabs.length, 2, 'Files and Guide');
   assert.deepEqual(tabs.map(t => t.textContent.replace(/\s+/g, ' ').trim().split(' ')[0]),
@@ -240,7 +239,7 @@ test('files and the guide are two tabs over one pane', async () => {
 test('with no guide there is one tab and it is the one showing', () => {
   assert.equal(data.hasGuide, false, 'this fixture serves no pull request');
   assert.equal(data.topPane, 'files');
-  const row = sectionOrder().kids[sectionOrder().row];
+  const row = sectionOrder().rowEl;
   const guideTab = [...row.querySelectorAll('[role="tab"]')]
     .find(t => /Guide/.test(t.textContent));
   assert.equal(guideTab.style.display, 'none', 'the Guide tab is not offered');
@@ -252,7 +251,7 @@ test('the top container (guide) and bottom container (panel) scroll without clip
   assert.ok(guideScroller, 'guide scroller found');
   assert.match(guideScroller.className, /overflow-y-auto/, 'the guide scrolls in place');
 
-  const panel = window.document.querySelector('[data-rev] .rounded-box');
+  const panel = window.document.querySelector('[data-rev] .rounded-lg');
   assert.ok(panel, 'a presented file is found');
   assert.match(panel.className, /overflow-y-auto/, 'and scrolls inside its container');
 
@@ -314,9 +313,7 @@ const settle = async (ok, n = 60) => {
   return ok();
 };
 const stripReady = () => {
-  const row = window.document.querySelector('[data-rev-pager]');
-  const dots = window.document.querySelectorAll('[data-rev-pager] button').length;
-  return dots === data.reviewableFiles.length && !!row && row.style.display === '';
+  return data.revPanels().length === data.reviewableFiles.length;
 };
 const withReviewable = async (fn) => {
   const keep = data.brief.files;
@@ -354,26 +351,24 @@ test('the presented files are one swiped container, not a stack', () => withRevi
   assert.ok(!panels.some(k => k.tagName === 'TEMPLATE'), 'and it is not one of them');
 }));
 
-test('the dots are the position and the only way off an iframe panel',
+test('an n/m pill on each card indicates position when there are multiple reviewable files',
   () => withReviewable(async () => {
-    // A touch inside an iframe never reaches the parent scroller, so on the
-    // html panel a swipe does nothing and these are the whole navigation.
-    const dots = [...window.document.querySelectorAll('[data-rev-pager] button')];
-    assert.equal(dots.length, 3, 'one per file');
-    assert.deepEqual(dots.map(b => b.getAttribute('title')),
-      data.reviewableFiles.map(f => f.path), 'each naming its file');
-    const row = window.document.querySelector('[data-rev-pager]');
-    assert.equal(row.style.display, '', 'the row is shown while there are several');
+    assert.equal(window.document.querySelector('[data-rev-pager]'), null, 'no inline dots pager row');
+    await settle(() => {
+      const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+      return badges.length === 3;
+    });
+    const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+    assert.equal(badges.length, 3, 'one pager pill per reviewable file');
+    assert.deepEqual(badges.map(b => b.textContent.trim()), ['1/3', '2/3', '3/3'], 'each card states its position');
   }));
 
-// One file is not a set to page through, so the row that says which of them
-// you are on has nothing to say.
+// One file is not a set to page through, so no pager pill is offered.
 test('with one reviewable file there is no pager', async () => {
   await tick(4);
   assert.equal(data.reviewableFiles.length, 1);
-  const row = window.document.querySelector('[data-rev-pager]');
-  assert.equal(row.querySelectorAll('button').length, 1, 'x-for still draws it');
-  assert.equal(row.style.display, 'none', 'and x-show hides the row');
+  const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
+  assert.equal(badges.length, 0, 'no n/m pill when only one reviewable file');
 });
 
 test('the strip reads its position and is driven to one', () => withReviewable(async () => {
@@ -546,16 +541,10 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   // the guide is a pane that scrolls itself, so the reader asked for the two
   // panels to divide the screen and for the guide to take the slack. The list
   // gets its cap back with the pane it defends against.
-  const files = root.querySelector('[x-ref="files"]');
+  const top = root.querySelector('[data-top-section]');
+  assert.ok(classes(top).has(R('flex-1')) && classes(top).has(R('min-h-0')),
+    'the top section takes whatever the others leave: ' + top.className);
   const guide = root.querySelector('[x-ref="guide"]');
-  assert.ok(classes(guide).has(R('flex-1')) && classes(guide).has(R('min-h-0')),
-    'the guide takes whatever the others leave: ' + guide.className);
-  // NO CAP. A 40% ceiling stopped a long list crushing the guide while both
-  // were on screen. They are tabs now, so only one is, and each takes the pane.
-  assert.match(files.getAttribute(':class') || '', /roomy:flex-1/,
-    'the list takes the pane it is showing in');
-  assert.doesNotMatch(files.getAttribute(':class') || '', /max-h-\[40%\]/,
-    'and needs no share of a box it no longer shares');
   const guideScroller = guide.querySelector('.overflow-y-auto');
   assert.ok(guideScroller, 'guide scroller found');
   assert.match(guideScroller.className, /overflow-y-auto/, 'scrolling what does not fit');
@@ -564,10 +553,8 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   // 50/50 SPLIT: the top pane (files and guide) and bottom section (reviewable
   // files) each take basis-1/2 and max-h-[50%] so the top pane sticks to the
   // top half regardless of whether reviewables exist.
-  assert.match(files.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(files.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
-  assert.match(guide.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(guide.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  assert.match(top.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(top.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
   const rev = root.querySelector('[data-rev-section]');
   assert.ok(rev, 'reviewable section found');
   assert.match(rev.getAttribute(':class') || '', /roomy:basis-1\/2/);
