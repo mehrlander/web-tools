@@ -65,7 +65,7 @@ The reasoning above is that record; closing this needs only your word.
 
 ## Related
 
-- `skills/apple-shortcuts-actions/SKILL.md`: the library skill under decision
+- `.claude/skills/apple-shortcuts-actions/SKILL.md`: the portable skill (moved from `skills/apple-shortcuts-actions/`)
 - `skills/README.md`: on-demand library vs plugin placement; PR #392 drift context
 - `.claude-plugin/marketplace.json`: how plugin skills track main
 - task `retire-shell-name-the-parts-r152bt`: cited worked example against a one-member collective
