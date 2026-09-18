@@ -13,26 +13,27 @@ const estateSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/estate.
 const branchBriefSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/branch-brief.js'), 'utf8');
 const sessionBriefSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
 
-test('estate.js branchRowBody aligns toss render pages with a single leading frisbee icon', () => {
+test('estate.js branchRowBody renders frisbee dropdown button and omits staging button', () => {
   // Extract branchRowBody definition
   const startMatch = estateSrc.match(/const branchRowBody = \(opts = \{\}\) => `([\s\S]*?)`;\s*return {/);
   assert.ok(startMatch, 'branchRowBody function found in estate.js');
   const body = startMatch[1];
 
-  // 1. Toss render pages strip (branchPageStrip)
-  assert.ok(body.includes('branchPageStrip(row).chips.length'), 'has branchPageStrip conditional');
+  // 1. Toss render pages frisbee dropdown button
+  assert.ok(body.includes('branchPages(row).length'), 'has branchPages conditional');
   assert.ok(
-    body.includes('data-note="Pages this branch changed, rendered via toss"') &&
-    body.includes('data-note-bare>🥏</span>'),
-    'has single leading frisbee icon with standard data-note and data-note-bare'
+    body.includes("@click.stop=\"openRowCard(row, 'renders', $event)\"") &&
+    body.includes('select-none leading-none">🥏</span>') &&
+    body.includes('ph ph-caret-down'),
+    'has interactive frisbee dropdown button opening renders row card'
   );
   assert.ok(
-    !body.includes('x-text="t.mark"'),
-    'does not repeat t.mark (frisbee icon) inside individual page chips'
+    !body.includes('ph-stack'),
+    'dispenses with the icon button for staging session/branch files'
   );
   assert.ok(
-    body.includes(':data-note="t.title" data-note-bare'),
-    'uses :data-note and data-note-bare on individual page chips'
+    estateSrc.includes("rowCard.kind === 'renders'"),
+    'estate.js contains panel card support for renders kind'
   );
 
   // 2. Changed views strip (branchRoutes)
