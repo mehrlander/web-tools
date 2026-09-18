@@ -242,7 +242,7 @@ if [ "${#ASSEMBLED}" -gt "$OUTPUT_BUDGET" ]; then
   echo "writes the rest to a file nothing reads, so MOST OF WHAT FOLLOWS DID NOT ARRIVE."
   [ -n "$biggest" ] && echo "Largest contributor: $biggest at ${biggest_n} bytes."
   echo "Whatever a session-start script was meant to tell you, assume it did not. Run"
-  echo "/web-tools for the conventions, and shrink the script named above."
+  echo "/portable:default for the conventions, and shrink the script named above."
   echo
 fi
 

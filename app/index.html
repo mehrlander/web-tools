@@ -168,7 +168,7 @@
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
-  // Pure alignment assessment behind the Portable view (window.PortableAlign).
+  // Pure alignment assessment behind the Distribution/Repos view (window.PortableAlign).
   await gh.load('kits/portable-align.js');
   // Declared staleness checks, evaluated on sight from a repo's own config.
   await gh.load('kits/repo-checks.js');
@@ -246,7 +246,7 @@
    gives a 1024px window a 200px list that truncates every row, and a 2560px one
    a 700px list of short titles beside the wasted half of a document. The clamp
    is what keeps both ends readable, and the floor is set at the width where the
-   Portable tab's longest row label stops wrapping to three lines.
+   Distribution tab's longest row label stops wrapping to three lines.
 
    Below lg there is no dock and the toggle does not render: three columns do
    not fit, and a phone's answer to "see the list and the file" is the deck's
@@ -6430,8 +6430,8 @@ function app(){ return {
   // 404ing into Repos; the pane no longer switches on which one arrived.
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.syncUrl(); },
   goJots(){ this.estateSeen = true; this.view = 'jots'; this.syncUrl(); },
-  // The Map view: the coordination layer made inspectable (the portable set +
-  // per-repo scope + adoption). Renamed from "Portable"; goPortable stays as a
+  // The Map view: the coordination layer made inspectable (the Distribution
+  // crosswalk plus per-repo scope and adoption). Renamed from "Portable"; goPortable stays as a
   // thin alias so any caller or old ?view=portable link still resolves.
   //
   // The tab or subview is addressable (?view=map&tab=docs), on the same `tab` key the

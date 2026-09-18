@@ -198,7 +198,10 @@ const DECLARED = [
   ['app/index.html', 'the Pages filter and the project Docs path filter', 2],
   ['lib/alpineComponents/search-view.js', 'the Files view query', 1],
   ['lib/alpineComponents/estate.js', "the Sessions pane's filter and the Chats pane's filter", 2],
-  ['lib/alpineComponents/map.js', "the Map's Skills search", 1],
+  // Distribution, Docs Inventory, and Skills are sibling mapTab sections.
+  // x-show leaves only the selected section with client rects, so the router
+  // still sees exactly one visible primary finder at a time.
+  ['lib/alpineComponents/map.js', "the Map's Distribution, Docs Inventory, and Skills searches", 3],
   ['lib/alpineComponents/config.js', "the Config view's key filter", 1],
   ['lib/alpineComponents/public-browse.js', 'the public browser file filter', 1],
 ];
@@ -224,7 +227,7 @@ test('and nothing else does', () => {
       // The ATTRIBUTE on an input, not the name: the router's own source and
       // comments say `data-find-box` several times and declare nothing.
       if (/<input\b[^>]*\bdata-find-box\b/.test(readFileSync(full, 'utf8')))
-        hits.push(path.relative(repoRoot, full));
+        hits.push(path.relative(repoRoot, full).split(path.sep).join('/'));
     }
   };
   roots.forEach(r => walk(path.join(repoRoot, r)));

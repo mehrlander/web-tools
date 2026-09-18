@@ -58,18 +58,64 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   assert.equal(TABS.length, 10, 'ten top-level tabs, or this test is reading the wrong literal');
   assert.equal(SUBVIEWS.length, 6, 'Docs and Harness each carry three choices');
   assert.deepEqual(SUBVIEW_PARENT, { aims: 'docs', growth: 'docs', tests: 'harness', context: 'harness' });
-  assert.deepEqual(SUBVIEWS.filter(s => SUBVIEW_PARENT[s.k] === 'docs').map(s => s.n),
-    ['Purpose', 'Growth'], 'Aims has a short Docs label; Inventory uses the parent key');
+  assert.deepEqual(SUBVIEWS.slice(0, 3).map(s => [s.k, s.n]),
+    [['docs', 'Inventory'], ['aims', 'Purpose'], ['growth', 'Growth']],
+    'Docs leads with its inventory; Purpose and Growth keep their established route keys');
   // One x-for per level, not hand-copied buttons: the copies are what let a tab
   // ship without a sentence, and what let the Injection tab ship without an icon.
   const buttons = src.match(/role="tab" @click="setTab\(/g) || [];
   assert.equal(buttons.length, 2, 'the top-level strip and subview strip each generate one button shape');
   assert.match(src, /<template x-for="t in TABS"/, 'the strip loops over the array');
   assert.match(src, /<template x-for="s in subviews"/, 'the nested strip loops over the current parent subviews');
-  assert.match(src, /@click="setTab\(t\.k === 'docs' \? 'aims' : t\.k\)"/,
-    'the top-level Docs stop opens on Purpose without changing old Inventory links');
+  assert.match(src, /@click="setTab\(t\.k\)"/,
+    'a top-level stop opens its own route, so Docs opens Inventory');
   assert.match(src, /displayTab === t\.k/, 'a selected subview keeps its parent highlighted');
   assert.match(src, /x-text="tabGloss"/, 'the lede is rendered from the selected tab');
+});
+
+test('reader labels clarify the stable route keys', () => {
+  const distribution = TABS.find(t => t.k === 'set');
+  assert.ok(distribution, 'the long-lived ?tab=set route remains declared');
+  assert.equal(distribution.n, 'Distribution',
+    'the reader sees the cross-repository purpose rather than the internal Portable name');
+
+  const kits = TABS.find(t => t.k === 'kits');
+  assert.match(kits?.g || '', /browser JavaScript/i,
+    'the Kits lede names the runtime that distinguishes a kit from a standalone script');
+  assert.match(kits?.g || '', /lib\/kits\/\*\.js/,
+    'the lede names the exact shelf boundary the kits registry builds');
+});
+
+// View-local searches are siblings under mapTab, so only one has layout at a
+// time. That keeps the shell's first-visible data-find-box rule deterministic
+// while letting each large inventory use the same `/` interaction.
+const sectionSource = (key) => {
+  const start = src.indexOf(`<section x-show="mapTab==='${key}'">`);
+  if (start < 0) return '';
+  const end = src.indexOf('</section>', start);
+  return src.slice(start, end < 0 ? undefined : end);
+};
+
+test('Distribution is a searchable delivery crosswalk, not a second artifact inventory', () => {
+  const section = sectionSource('set');
+  assert.ok(section, 'the stable set route has a section');
+  assert.match(section, /<input\b[^>]*\bdata-find-box\b[^>]*\bx-model="setQ"/s,
+    'Distribution participates in the app-wide finder convention');
+  assert.match(section, /x-for="sec in setSections"/,
+    'delivery-mode groups come from the component rather than duplicated markup');
+  assert.match(section, /kindLabel\(it\)/,
+    'each cross-kind row says whether it is a skill, document, directory, or standalone tool');
+  assert.match(section, /openSetOwner\(it\)/,
+    'a row can cross-reference the owning Skills, Docs, or Automation inventory');
+});
+
+test('Docs Inventory carries its own scoped finder', () => {
+  const section = sectionSource('docs');
+  assert.ok(section, 'the Inventory route has a section');
+  assert.match(section, /<input\b[^>]*\bdata-find-box\b[^>]*\bx-model="docQ"/s,
+    'Inventory exposes the same visible search contract as Skills and Distribution');
+  assert.match(section, /@input="docSearchDir = ''"/,
+    'typing starts corpus-wide; choosing a folder is a separate, explicit scope');
 });
 
 test('every tab key the view dispatches on has an entry', () => {
