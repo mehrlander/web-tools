@@ -574,3 +574,25 @@ test('the guide marker asks for the guide, and the ask is reported', async () =>
   assert.equal(meta.at(-1).pane, 'guide');
   assert.deepEqual(calls.compare, [], 'jumping to the guide is a scroll, not a read');
 });
+
+test('setPane files automatically triggers ensureCompare when brief is pending', async () => {
+  window.BranchBrief.forget();
+  reset();
+  const d = await mount('feat/a');
+  assert.equal(d.brief.pending, true);
+  assert.deepEqual(calls.compare, []);
+  d.setPane('files');
+  await tick(4);
+  assert.deepEqual(calls.compare, ['me/tools@feat/a']);
+  assert.equal(d.brief.pending, false);
+});
+
+test('autoCompare option triggers ensureCompare on mount', async () => {
+  window.BranchBrief.forget();
+  reset();
+  const d = await mount('feat/a', { autoCompare: true });
+  await tick(4);
+  assert.deepEqual(calls.compare, ['me/tools@feat/a']);
+  assert.equal(d.brief.pending, false);
+});
+

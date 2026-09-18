@@ -209,3 +209,18 @@ test('a repo that declares no routes is answered without a request', async () =>
   assert.equal(asked, 0, 'routes are one page in one repo; nobody else is asked for the CSV');
   window.GH = FakeGH;
 });
+
+test('lent pages populate pageChips while brief is pending', async () => {
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'claude/y', base: 'main',
+                                           facts: { ahead: 2, behind: 0 }, sha: '${TIP}',
+                                           pages: ['pages/branch.html'] })`);
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(8);
+  const d = Alpine.$data(el);
+  assert.equal(d.brief.pending, true);
+  assert.equal(d.pageChips.length, 1, 'lent pages populate pageChips immediately');
+  assert.equal(d.pageChips[0].path, 'pages/branch.html');
+});
+
