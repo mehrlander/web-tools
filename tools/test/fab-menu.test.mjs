@@ -716,3 +716,95 @@ test('a probe that cannot load opens the drawer, since that is where the reason 
   assert.equal(d.open, true, 'a failure has to put its own explanation on screen');
   assert.match(d.outMsg, /\?probe=/);
 });
+
+// ── The gesture that raises the menu must not also toggle the drawer ────────
+//
+// A long press and a right-click raise the SAME menu, and both have to spend
+// the gesture, since the release behind either still reaches onUp. The long
+// press does it with a flag set by its own timer. The right-click did it with
+// a flag set by onContextMenu, and that half was wrong for a reason no reading
+// of this file would have caught: it assumed the contextmenu event lands
+// BETWEEN pointerdown and pointerup. macOS and Linux raise the context menu on
+// the press, so it does; Windows raises it on the release, so pointerup ran
+// first with the flag still false and toggled the drawer under the menu.
+//
+// Both orders are dispatched here, against the component's own handlers
+// through the template's bindings, because the defect is not in either
+// handler's body. It is in the order they run in, which only a dispatched
+// sequence can express.
+async function mountFabSurface() {
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const surface = root.querySelector('[data-dom-shot-ignore]');
+  // jsdom implements no pointer capture, and onDown calls for it unguarded.
+  surface.setPointerCapture = () => {};
+  return { d: Alpine.$data(root), surface };
+}
+
+const sendPointer = (el, type, init) =>
+  el.dispatchEvent(new window.MouseEvent(type, {
+    bubbles: true, cancelable: true, clientX: 10, clientY: 10, button: 0, ...init,
+  }));
+
+test('right-click raises the menu without toggling the drawer, in either platform\'s event order', async () => {
+  clearPages();
+  const { d, surface } = await mountFabSurface();
+
+  // macOS and Linux: the context menu is raised by the PRESS.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  await tick(2);
+  assert.equal(d.fabMenu, true, 'the menu is what a right-click is for');
+  assert.equal(d.open, false, 'and the drawer is not');
+
+  // Windows: the context menu is raised by the RELEASE, so pointerup arrives
+  // first. This is the order the 2026-09-08 fix did not cover.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  await tick(2);
+  assert.equal(d.fabMenu, true);
+  assert.equal(d.open, false, 'the release must not toggle the drawer ahead of the menu');
+
+  // AND IT MUST NOT CLOSE ONE EITHER. toggle() is symmetric, so a right-click
+  // over an open drawer failed the same way in the other direction: the reader
+  // asked for a menu and lost the panel they were reading.
+  d.open = true; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 2, buttons: 2 });
+  sendPointer(surface, 'pointerup', { button: 2, buttons: 0 });
+  sendPointer(surface, 'contextmenu', { button: 2 });
+  await tick(2);
+  assert.equal(d.open, true, 'a right-click leaves the drawer exactly as it found it');
+});
+
+test('a ctrl+click reporting button 0 still spends its gesture, and a plain tap still opens the drawer', async () => {
+  clearPages();
+  const { d, surface } = await mountFabSurface();
+
+  // Safari on macOS reports button 0 for a ctrl+click and raises contextmenu
+  // from it, so the button number says nothing and onContextMenu's flag is the
+  // only thing that stops the release from toggling. This is why that flag is
+  // kept rather than replaced by the button read.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 0, buttons: 1, ctrlKey: true });
+  sendPointer(surface, 'contextmenu', { button: 0, ctrlKey: true });
+  sendPointer(surface, 'pointerup', { button: 0, buttons: 0, ctrlKey: true });
+  await tick(2);
+  assert.equal(d.fabMenu, true);
+  assert.equal(d.open, false);
+
+  // The gesture the launcher exists for is untouched: press, release, drawer.
+  d.open = false; d.fabMenu = false;
+  sendPointer(surface, 'pointerdown', { button: 0, buttons: 1 });
+  sendPointer(surface, 'pointerup', { button: 0, buttons: 0 });
+  await tick(2);
+  assert.equal(d.open, true, 'a left tap still opens the drawer');
+  assert.equal(d.fabMenu, false);
+});

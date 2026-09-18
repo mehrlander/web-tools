@@ -9,7 +9,16 @@ Static resource. **Not a registered skill folder.** Sits at `web-tools/skills/`,
 | `web-tools/.claude/skills/&lt;name&gt;/SKILL.md` | Registered skill | Available and matchable via description |
 | `web-tools/skills/&lt;name&gt;/SKILL.md` | Library resource | Not registered anywhere; fetched on demand |
 
-At session start, only `web-tools` and `load-skill` are registered from web-tools itself. Everything under `skills/` is content the `load-skill` mechanism can pull in.
+Every `SKILL.md`-bearing directory under `.claude/skills/` is registered when
+this checkout is the project. The portable plugin explicitly registers the same
+16 directories in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)
+and exposes them under `/portable:<name>`. Everything under `skills/` remains
+library content that the `load-skill` mechanism can pull in.
+
+**Promoted out of this library:** `apple-shortcuts-actions` now lives at
+[`.claude/skills/apple-shortcuts-actions/`](../.claude/skills/apple-shortcuts-actions/)
+and ships with the portable plugin (`/portable:apple-shortcuts-actions`). It is
+no longer a library fetch target.
 
 **One exception, and the marketplace declares it.** A library skill can also be published as its own plugin in [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json). A repo that enables that plugin gets the skill ambient: model-invocable, firing on matching work without being asked. Nothing moves into this repo's own `.claude/skills/`, so the library-load model here is unchanged, and the marketplace file is the only list of which skills are promoted that way.
 
@@ -32,7 +41,7 @@ Trigger phrases live in the `load-skill` skill's description. Only fire on expli
 
 Skill bodies are edited in place here. Any repo that loads them picks up the change on next fetch: the URL always points at `main`. No target repo needs to be updated when a body changes.
 
-**That holds for `/load-skill` and not for an account-level install.** A skill also installed at claude.ai account scope has a second copy this library does not reach, and that copy is the one that fires unprompted, while the library's is fetched deliberately. Editing here therefore leaves the stale version in charge. Either drop the account copy and let `/load-skill` be the only route, or re-upload after every edit. Measured 2026-08-10: `apple-shortcuts-actions` was rewritten here while the account copy went on triggering on a renamed shortcut and a superseded payload format.
+**That holds for `/load-skill` and not for an account-level install.** A skill also installed at claude.ai account scope has a second copy this library does not reach, and that copy is the one that fires unprompted, while the library's is fetched deliberately. Editing here therefore leaves the stale version in charge. Either drop the account copy and let `/load-skill` be the only route, or re-upload after every edit. Measured 2026-08-10: `apple-shortcuts-actions` was rewritten in the library while the account copy went on triggering on a renamed shortcut and a superseded payload format. That skill has since been promoted into the portable plugin (see above), so the library is no longer its home.
 
 Adding a new skill: create `web-tools/skills/<name>/SKILL.md` with the standard YAML frontmatter (`name`, `description`), then add an entry to `manifest.csv`. That's it. Callers see the new skill on their next manifest fetch.
 

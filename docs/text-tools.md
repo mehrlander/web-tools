@@ -1,21 +1,24 @@
 # Text tools on the page at hand
 
-The FAB drawer's fifth tab. It reads the text of the page you are looking at and
-reports two things: some figures about the prose, and which registered files the
-text names. No model, no network for the figures, and nothing is written
-anywhere. Built 2026-08-13. This document is the design account and the honest
-assessment; the mechanics live in
+The FAB drawer's Text tab. It reads the page or selection you are looking at and
+reports three things: prior revisions retained for the same literal strings,
+figures about the prose, and which registered files the text names. The figures
+are local; the other two lanes read committed catalogs. No model is called and
+nothing is written anywhere. Built 2026-08-13 and connected to the shared Text
+proposal sources on 2026-09-17. This document is the design account and the
+honest assessment; the mechanics live in
 [`fab.js`](../lib/alpineComponents/fab.js) beside the code.
 
 ## Why it exists
 
 The estate holds a shelf of text instruments: the private estate's
-`local-models/instruments/concept-lab/` (here until 2026-08-25),
+`projects/text/instruments/concept-lab/` (in this repo until 2026-08-25),
 [`vocab.py`](../.claude/skills/concept-index/vocab.py),
-`semsearch.py` (moved to the private estate with concept-lab), and the
+`semsearch.py` (moved to the private estate with concept-lab, then into the
+shared text project), and the
 [entities](../pages/entities.html), [citations](../pages/citations.html) and
 [shorter](../pages/shorter.html) pages. The private estate's
-`local-models/INSTRUMENTS.md` is the index of them, and the count is not
+`projects/text/INSTRUMENTS.md` is the index of them, and the count is not
 carried here because this document cannot gate it. Almost all take a corpus or
 a paste. **None takes the document a reader currently has open.** This tab is
 the only thing that closes that gap, and it is the strongest claim available
@@ -36,6 +39,25 @@ it.
 their average, reading time, the longest sentence with its text, and two
 house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
+**Prior revisions**, reconstructed from the private estate's durable Text
+sources. The browser reads `projects/text/current-sources.json`, the phrase
+review and its passage context, the document-audit packet, and (when declared)
+`web_tools_paragraphs.drafts_inventory` (gzip JSONL of draft-bearing rows with
+originals and path/line/paragraph provenance). Those inputs produce the
+attributed proposal subset counted live in Text Lab. An exact band
+means the edge-trimmed selection equals a proposal's original string. A
+contained band means the same case-sensitive, token-bounded string occurs
+inside the larger selection or page. Neither band is semantic, and neither says
+that prior source-occurrence work should be applied to the occurrence now on
+screen.
+
+Every proposal shows its earlier original and revision, action, attribution,
+and source provenance. Phrase reviews retain their passage and imported
+judgments. Document-audit proposals retain the historical patient revision,
+rationale, relocation, and evidence. There is no Apply action. A browse-all
+link opens the same records in Text Lab, where they can be searched, filtered,
+expanded, and addressed by proposal ID.
+
 **One gate.** Under 6 mean words per text run, the page is treated as an app
 rather than a document, and the two house-rule rows are withheld: they are prose
 rules, and a file browser listing filenames is not prose. The threshold was
@@ -51,7 +73,8 @@ separation, putting the most document-like page at 2% and an app at 9%:
 The tab was asked for as *terms* connected to registered data. It matches
 *filenames*, and the retreat is structural rather than a shortcut.
 
-Nothing in the estate is keyed by the words prose actually uses.
+Nothing committed for a browser to read is keyed by the words prose actually
+uses.
 [`surfacing.csv`](surfacing.csv) is keyed by sentence-shaped titles
 (*Reference is a link*) that never occur in running text.
 [`text-fields.csv`](text-fields.csv) and [`properties.csv`](properties.csv)
@@ -68,10 +91,10 @@ for every path the five carry:
 
 | Registry | Covers | Says |
 | --- | --- | --- |
-| [`docs.csv`](docs.csv) | `docs/`, `.md` and `.json` | subject, status |
+| [`docs.csv`](docs.csv) | declared documentation paths | subject, status |
 | [`tests.csv`](tests.csv) | `tools/test/` | protects, kind |
 | [`harness.csv`](harness.csv) | `tools/`, `scripts/` | role, layer |
-| [`portable.csv`](portable.csv) | the portable set | role, kind |
+| [`portable.csv`](portable.csv) | the distribution crosswalk | role, kind, delivery mode |
 | [`pages.csv`](../pages/pages.csv) | `pages/` | note, live address |
 
 Row counts are deliberately not carried in this prose: the
@@ -97,9 +120,12 @@ nothing. Both lanes run when the tab opens.
 **Not semantic.** A regular expression, a set-membership test and a dictionary
 lookup. The word "resolve" describes a string comparison.
 
-**Not a general capability.** It works because *this* estate keys its registries
-by path. Off `mehrlander/web-tools` there are no descriptions at all, and within
-it `lib/` and `pages/` are uncovered, so many rows carry a link and nothing else.
+**Not a general capability.** The registered-file lane works because *this*
+estate keys its registries by path. Off `mehrlander/web-tools` there are no path
+descriptions at all, and within it `lib/` is uncovered, so many rows carry a
+link and nothing else. The proposal lane is also estate-specific:
+it reads `mehrlander/home@main` and requires the viewer's access to that private
+repository.
 
 **Not built on the recognizer, deliberately.** `state/entities.json` reports ORG
 precision of 0.19 stratified on one rater; its top ORG entries for this repo are
@@ -111,12 +137,22 @@ reference-is-a-link rules govern authored markdown. The tab reads rendered
 output, reports a count, and offers no route to the source line that must
 change. The other four figures are generic.
 
-**Thinly calibrated.** The app gate rests on six pages plus one long document
-observed later. The threshold decides whether the house-rule rows appear at all.
+**Thinly calibrated, and the table above predates the read it describes.** The
+app gate rests on six pages plus one long document observed later. The threshold
+decides whether the house-rule rows appear at all. Those figures were measured
+before the read learned to skip hidden text, which every page with a closed tab,
+an inactive pane or an `x-cloak` attribute has. Re-measured on 2026-09-17 with
+and without that filter, on pages rendered without their live data, so the
+absolute numbers are not the calibration conditions and only the movement means
+anything: words-per-run shifted a little and chrome share roughly halved.
+No page changed side of the gate, and the pages index moved from 5.4 to 5.9
+against a threshold of 6, which is most of its remaining margin. The right fix
+is a re-measurement under the original conditions, not a nudge to the threshold.
 
-**Inert.** It writes nothing and carries nothing. Notes produces an annotation
-set that can leave the page; this produces figures that exist while the drawer
-is open.
+**Read-only.** It writes nothing and cannot apply a proposal. The local figures
+exist while the drawer is open; retained proposals have stable IDs and can be
+opened in Text Lab, but a later source edit remains a separate operation against
+a verified current occurrence.
 
 **Unproven in use.** Every run so far has been a demonstration. There is no
 evidence a second tap follows a first.
@@ -146,6 +182,12 @@ forced it.
 not have. The `assumed` tier is a property of a repo's whole prose, so this pane
 can only reach it by fetching the vocabulary index the estate declines to
 commit. It likely stays an agent-side answer the tab links to.
+
+The private text project also builds an ignored, current-checkout collection far
+larger than this browser projection. The browser does not transport that
+machine-local store. It reconstructs only the proposals recoverable from
+committed review sources, so current occurrences, normalization and lemma
+relationships, the wider exact index, and any semantic index remain absent.
 
 **Ask** (hand the text to a model) probably belongs in the FAB's existing
 take-away menu, whose job is already handing the page somewhere else.

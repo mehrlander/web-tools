@@ -71,6 +71,18 @@ test('selecting text on the page raises the offer, on the passage', async () => 
   assert.match(offerEl().querySelector('button').title, /quick brown fox/);
 });
 
+test('the offer stands behind an open drawer instead of covering its phone-width pane', async () => {
+  const p1 = doc.getElementById('p1').firstChild;
+  select(p1, 4, 19);
+  await settle();
+  assert.ok(d.selOffer, 'the selection remains available');
+  d.open = true;
+  await tick(3);
+  assert.equal(offerEl().style.display, 'none', 'the teleported offer cannot sit over the drawer');
+  d.open = false;
+  await tick(3);
+});
+
 test('the offer is placed on the passage, and follows it when the page scrolls', async () => {
   // It sat above the launcher first, which put a control about these words in
   // the corner where the fab lives. jsdom has no layout, so the range's rect is

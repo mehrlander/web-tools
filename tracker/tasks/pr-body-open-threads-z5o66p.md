@@ -42,6 +42,14 @@ Triaging the existing ~185 items. Build the reader, look at the list, then decid
 whether to triage or declare everything before a cutoff expired. Committing to
 the triage first is how this becomes an XL.
 
+## Related
+
+- `docs/SURFACING.md`: Next steps / open threads template this hardens into task-list items
+- `lib/kits/guide-render.js`: parsing precedent for PR-body fold
+- `lib/kits/repo-activity-cache.js`: crawl-in-shell / kit-fold split to mirror (guide-index.js was retired)
+- `lib/alpineComponents/estate.js`: estate Lists surface where a threads list would sit
+- PR #377: open-thread origin that filed this
+
 ## Done when
 An unchecked thread from any repo's PR bodies appears in one list without walking
 GitHub by hand, and ticking it there marks it in the body it came from.
@@ -52,3 +60,4 @@ GitHub by hand, and ticking it there marks it in the body it came from.
 - 2026-09-04: Tracker side restamped, 72 to 94. The PR figures stand at their
   2026-08-09 reading; note which way the gap moved, since the repo was near
   PR #440 then and is at #581 now. The order-of-magnitude finding widened.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

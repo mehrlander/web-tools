@@ -93,7 +93,7 @@ test('a mark is stamped only for a repo this pass actually read', () => {
   // refreshed. The stamp sits after the fetch, beside it in `fetched`.
   const body = shellSrc.slice(shellSrc.indexOf('const cskipped = []'),
                               shellSrc.indexOf('const moved = window.RepoConfigCache.changedRepos'));
-  assert.match(body, /fetched\[repo\] = entry;\n\s*\/\/[\s\S]{0,400}?if \(pushedAt\.get\(repo\)\) cmarks\[repo\] = pushedAt\.get\(repo\);/);
+  assert.match(body, /fetched\[repo\] = entry;\r?\n\s*\/\/[\s\S]{0,400}?if \(pushedAt\.get\(repo\)\) cmarks\[repo\] = pushedAt\.get\(repo\);/);
 });
 
 // ── The sessions gate: the listing is the evidence ─────────────────────────
@@ -190,6 +190,13 @@ test('goState announces each kick as it lands, and once when all settle', () => 
   // freezes the other two rows' ages for the life of the page. The `finally`
   // that carries this is asserted whole further down.
   assert.match(go, /Promise\.resolve\(run\(\)\)\.catch\(\(\) => \{\}\)/);
+});
+
+test('goState announces committed activity and sessions caches', () => {
+  const go = shellSrc.slice(shellSrc.indexOf('goState(item){'),
+                            shellSrc.indexOf('this.syncUrl();', shellSrc.indexOf('goState(item){')));
+  assert.match(go, /this\.announceActivity\(r\)/, 'announces in-memory activity document');
+  assert.match(go, /this\.announceSessions\(r\)/, 'announces in-memory sessions document');
 });
 
 test('the view listens for it, and cleans the listener up', () => {

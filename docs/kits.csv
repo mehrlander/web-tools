@@ -82,3 +82,6 @@ lib/kits/wsl.js,wsl,browser-facing WSL kit.,299,no,no,3,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,708,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1098,no,no,2,yes
 lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2317,no,yes,8,yes
+lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,114,yes,no,1,yes
+lib/kits/text-proposals.js,TextProposals,"browser projection of retained, attributed revisions.",852,no,no,2,yes
+lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",316,no,no,2,yes

@@ -13,27 +13,28 @@ allowed there, and Safari only asks when the menu is opened. That cost one
 detour on 2026-09-05, with the script installed and matched and nothing on
 screen.
 
-**Edit, without reinstalling.** The stub is pinned to a **branch**, so it never
-changes and the phone never sees it again after the first install. Editing is:
+**Edit, without reinstalling.** The stub is pinned to a **branch** and includes an
+auto-updating loader. When installed once with GM storage permissions (`@grant GM.getValue`,
+`@grant GM.setValue`, `@grant GM.xmlHttpRequest`), the stub caches and dynamically evaluates
+the latest `launcher.js` body from GitHub. Updates are fetched silently in the background
+(with a 5-minute cooldown) or immediately when tapping the refresh `[ ⟳ ]` button inside the
+launcher drawer.
+
+In addition, `@version {build}` and `@require ...?v={build}` bust the Userscripts Safari
+extension's internal `@require` cache if manual re-installation is ever triggered.
+
+Editing workflow:
 
 ```bash
 vim userscripts/lib/launcher.js
 python3 scripts/userscript-stub.py launcher --ref main --name 'wt launcher' \
-    --description '...' --match '*://*/*'      # re-stamps the body
+    --description '...' --match '*://*/*'      # re-stamps body and stub
 git commit && git push
 ```
 
-**Pin `main`, not a working branch.** A branch pin is right while a script is
-being built and wrong the moment its branch merges: deleting the branch 404s the
-`@require`, and the installed script stops running with nothing on screen to say
-why. Re-pin to main before merging, which costs one last install.
-
-No purge, because the `@require` reads **raw.githubusercontent**, whose cache is
-five minutes. jsDelivr was the first answer and was the wrong one for a file
-edited several times an hour: it caches a branch for about twelve hours,
-propagates a purge per edge, and rate-limits purging to roughly hourly per path.
-Measured 2026-09-06, an hour after a push it still served two builds back with
-the purge window closed, while raw already had the current one.
+The next time a webpage loads, the background loader detects the new build in `builds.json`,
+downloads the new body into GM storage, and runs it on the subsequent page load or reload—with
+zero manual extension sheets required.
 
 **The bookmarklet cannot follow it there**, so the two routes read different
 hosts on purpose. Raw serves `text/plain` with `nosniff`, which a browser
@@ -87,13 +88,28 @@ refuse the same way.
   through a token held on the web-tools origin, which a foreign origin does not
   have and must not be given, and Inspect lists what `gh.load()` fetched, which
   on a foreign page is nothing. What a foreign page does hold is its own
-  content, so the three panes are the three answers it can give.
+  content, presented through a **vanilla swipe deck** with a collapsible header metadata disclosure.
 
-  | Pane | Holds |
-  | --- | --- |
-  | Page | title, address, description, and the selection, read on each open |
-  | Links | every off-page link, deduped by address, each one tickable |
-  | Text | the page's own prose, from its `<article>` or the densest block |
+  - **Header Metadata Disclosure (`[ ℹ Page Info ▾ ]`):** Title, address, meta description, and the user's current selection sit in an expandable header dropdown, freeing the entire drawer body for content.
+  - **Fullscreen Deck (`[ ⤢ ]`):** Toggle the drawer into full-bleed view directly from the header or the hold menu for reading on small screens or deep reading on desktop.
+
+  | Slide | Holds | Actions |
+  | --- | --- | --- |
+  | **Markdown** | Composed brief with metadata, selection, and readable prose | `[ Copy ]`, `[ Stage ]` |
+  | **Text** | Extracted page prose or live feed accumulation | `[ Include in MD ]`, `[ Collect ]` |
+  | **Links** | Deduplicated off-page link checklist | `[ All ]`, `[ None ]`, checkbox toggle |
+  | **HTML** | Clean outerHTML snapshot of the full page DOM | `[ Copy ]`, `[ Stage ]` |
+  | **JSON** | Structured envelope of page metadata, links, and prose | `[ Copy ]`, `[ Stage ]` |
+  | **Jina** | Live markdown from Jina AI Reader (`r.jina.ai`) | `Open in Jina ↗`, `[ Copy ]`, `[ Stage ]` |
+
+  **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by 6 tap-target pager dots (`● ○ ○ ○ ○ ○`) and a live character / KB counter.
+
+  **Ambient Errand Sensing & Execution.** When visiting a host with an open errand
+  registered in [`courier/errands.json`](../courier/errands.json), the launcher
+  illuminates with an amber accent and badge indicator. An Errand row appears in
+  the hold-menu, and an Errand banner sits atop the drawer allowing one-tap
+  execution directly in the host page context. Errand results can be copied or
+  handed off directly to the Web Tools Stage via gzip compression in the URL fragment.
 
   The header carries a **refresh**, because a read is a moment and a news front
   page is not. **Collect** answers the harder version: a virtual-scroll feed

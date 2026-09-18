@@ -49,6 +49,59 @@ function viewKeys(src) {
   return keys;
 }
 
+// ── A key any row stamps must be a key every stamp clears ──────────────────
+//
+// deepLinkParams() deletes VIEW_KEYS unconditionally and then lets ONE row
+// stamp, so the address never depends on what the base happened to hold. That
+// promise holds only while the two lists agree. They stopped agreeing for a
+// week: the Sessions row gained `session`, `set`, `lens` and `grain` on
+// 2026-09-08 and 09-09, none of them reached VIEW_KEYS, and the four were
+// written but never cleared. They rode onto every later screen, and because
+// each is seeded from location.search at construction, a cold load of one of
+// those addresses armed the Sessions pane with a record and a lens nobody
+// asked for.
+//
+// Read out of the source rather than executed, following this file's own
+// method: the shell is a 3,000-line inline literal with no export.
+function stampedKeys(src) {
+  const block = src.match(/\n {2}VIEWS: \[([\s\S]*?)\n {2}\],/);
+  assert.ok(block, 'VIEWS table not found');
+  return [...new Set([...block[1].matchAll(/p\.set\('([a-zA-Z]+)'/g)].map(m => m[1]))];
+}
+
+// EVERY way a key gets cleared, not just the list. deepLinkParams clears in
+// two ways and both are load-bearing: the VIEW_KEYS loop, and a set-or-delete
+// pair for the two keys that belong to no view (`repo` and `shell` are
+// repo- and reading-scoped, so they are written outside the table and their
+// else-branch is their clear). A test that knew only the list would demand
+// `repo` be added to it, which would be wrong: VIEW_KEYS is deleted before the
+// stamp, and `repo` is decided after.
+function clearedKeys(src) {
+  const list = src.match(/\n {2}VIEW_KEYS: \[([\s\S]*?)\],\n/);
+  assert.ok(list, 'VIEW_KEYS not found');
+  const keys = [...list[1].matchAll(/'([a-zA-Z]+)'/g)].map(m => m[1]);
+  assert.ok(keys.length > 15, 'VIEW_KEYS parsed suspiciously short: ' + keys.length);
+  const fn = src.match(/\n {2}deepLinkParams\(base\)\{([\s\S]*?)\n {2}\},/);
+  assert.ok(fn, 'deepLinkParams not found');
+  const deleted = [...fn[1].matchAll(/p\.delete\('([a-zA-Z]+)'\)/g)].map(m => m[1]);
+  return keys.concat(deleted);
+}
+
+test('every key a VIEWS row stamps is cleared before the next stamp', () => {
+  const cleared = new Set(clearedKeys(shellSrc));
+  for (const k of stampedKeys(shellSrc)) {
+    assert.ok(cleared.has(k),
+      `VIEWS stamps '${k}' and VIEW_KEYS does not clear it, so it rides onto every later screen`);
+  }
+});
+
+// The inverse is NOT asserted. VIEW_KEYS deliberately holds keys nothing
+// stamps: `file` and `path` are the retired Files view's, kept so a stale one
+// is cleared rather than carried, and `on` is the ?on= fallback that exists to
+// be deleted and never written. A test demanding symmetry would have to be
+// taught those three exceptions and would then fail for the next deliberate
+// one, which is a worse trade than leaving this direction to the reader.
+
 test('every route the router dispatches is described, and nothing else is', () => {
   const inRouter = new Set(viewKeys(shellSrc));
   const inManifest = new Set(manifest.routes.map(r => r.key));

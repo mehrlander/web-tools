@@ -121,6 +121,36 @@ test('a dropped read is retried once and then succeeds', async () => {
   assert.deepEqual(out, { ok: 1 });
 });
 
+test('the shared read memo never crosses authenticated identities', async () => {
+  const seen = [];
+  const [left, right] = await withFetch(async (_url, options) => {
+    const authorization = options.headers.Authorization;
+    seen.push(authorization);
+    return ok({ authorization });
+  }, async () => {
+    const a = new GH({ token: 'account-a', repo: 'o/private' });
+    const b = new GH({ token: 'account-b', repo: 'o/private' });
+    return Promise.all([a.req('contents/private.json'), b.req('contents/private.json')]);
+  });
+  assert.equal(seen.length, 2, 'each credential reaches the network once');
+  assert.equal(left.authorization, 'Bearer account-a');
+  assert.equal(right.authorization, 'Bearer account-b');
+});
+
+test('tuple-form Authorization stays out of the shared memo key', async () => {
+  const secret = 'Bearer tuple-account-secret';
+  const gh = new GH({ repo: 'o/private' });
+  await withFetch(async (_url, options) => {
+    assert.deepEqual(options.headers, [['Authorization', secret], ['Accept', 'application/json']]);
+    return ok({ ok: true });
+  }, () => gh.req('contents/private.json', {
+    headers: [['Authorization', secret], ['Accept', 'application/json']],
+  }));
+  const keys = [...GH._memo.keys()];
+  assert.equal(keys.length, 1);
+  assert.ok(!keys[0].includes(secret), 'a valid HeadersInit tuple must use the opaque auth scope');
+});
+
 test('a read that keeps dropping throws, naming the call', async () => {
   const gh = new GH({ repo: 'o/r' });
   let tries = 0;

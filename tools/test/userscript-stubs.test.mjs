@@ -31,7 +31,8 @@ const BUILT = /^const BUILT = '([^']*)';$/m;
 const REF = /^const REF = '([^']*)';$/m;
 const fnName = lib => 'wt' + lib.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('');
 const stampOf = text => crypto.createHash('sha256').update(
-  text.replace(STAMP, "const BUILD = '#BUILD#';")
+  text.replace(/\r\n/g, '\n')
+      .replace(STAMP, "const BUILD = '#BUILD#';")
       .replace(BUILT, "const BUILT = '#BUILT#';")
       .replace(REF, "const REF = '#REF#';")).digest('hex').slice(0, 7);
 const manifest = JSON.parse(
@@ -45,7 +46,7 @@ test('every stub loads a body that exists and defines what the stub calls', () =
 
     const req = src.match(/@require\s+(\S+)/);
     assert.ok(req, `${stub}: no @require`);
-    assert.ok(req[1].endsWith(`/userscripts/lib/${lib}.js`),
+    assert.ok(req[1].split('?')[0].endsWith(`/userscripts/lib/${lib}.js`),
       `${stub}: @require does not point at userscripts/lib/${lib}.js`);
 
     const body = path.join(ROOT, 'userscripts', 'lib', `${lib}.js`);
@@ -119,3 +120,28 @@ test('the manifest names nothing that has no body', () => {
     'these rows outlived their script and would answer for a build nobody ' +
     'ships: ' + orphans.join(', '));
 });
+
+test('launcher body includes errand sensing, swipe deck, and artifact definitions', () => {
+  const text = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', 'launcher.js'), 'utf8');
+  assert.match(text, /ERRANDS_MANIFEST/, 'launcher must define ERRANDS_MANIFEST');
+  assert.match(text, /deck-track/, 'launcher must have a swipe deck track');
+  assert.match(text, /meta-toggle/, 'launcher must have a page metadata disclosure');
+  assert.match(text, /errand-banner/, 'launcher must have an errand banner');
+  assert.match(text, /data-take-html/, 'launcher must support copying HTML');
+  assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
+});
+
+test('stubs include @version, versioned @require, and auto-update storage loader', () => {
+  for (const stub of stubs) {
+    const lib = stub.replace('.user.js', '');
+    const src = fs.readFileSync(path.join(ROOT, 'userscripts', stub), 'utf8');
+    const row = manifest[lib];
+    assert.match(src, new RegExp(`// @version\\s+${row.build}`), `${stub}: missing @version ${row.build}`);
+    assert.match(src, new RegExp(`@require\\s+\\S+\\?v=${row.build}`), `${stub}: @require missing ?v=${row.build}`);
+    assert.match(src, /@grant\s+GM\.getValue/, `${stub}: missing @grant GM.getValue`);
+    assert.match(src, /@grant\s+GM\.setValue/, `${stub}: missing @grant GM.setValue`);
+    assert.match(src, /@grant\s+GM\.xmlHttpRequest/, `${stub}: missing @grant GM.xmlHttpRequest`);
+    assert.match(src, new RegExp(`wt_${lib}_code`), `${stub}: missing storage cache key`);
+  }
+});
+

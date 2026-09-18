@@ -8,24 +8,25 @@ description: >-
   first because nested bullets balloon vertically on mobile. Use when the
   user says "tree", "show the repo structure", "file tree", "map the repo",
   "lay out the folders", "/tree", or names a subtree/depth to render.
-  Answers "what is here" (structure); the caption skill answers "what
-  moved" (change).
+  Answers "what is here" (structure); the surfacing contract answers
+  "what moved" (change).
 ---
 
 # tree
 
 An orientation view: the shape of a repo or a subtree, rendered for a chat
-reader on a phone. It is the structural sibling of the `caption` skill. The
-boundary, worth stating so the two do not drift:
+reader on a phone. It is the structural sibling of the surfacing contract's
+change handoff. The boundary, worth stating so the two do not drift:
 
-- **caption** answers *what moved* this session (axis: the git diff;
-  `[new]/[main]/[diff]` links, render lines).
+- **Surfacing** answers *what moved* this session (axis: the git diff; a
+  branch-page caption by default, with `[new]/[main]/[diff]` file rows as the
+  fallback when that page cannot be used).
 - **tree** answers *what is here* (axis: the filesystem; folders and files
   as links, depth shown visually).
 
 They share DNA (tappable GitHub links at a ref) but answer different
-questions. When the ask is about change, use `caption`; about structure,
-use this.
+questions. When the ask is about change, follow
+[`SURFACING.md`](../../../docs/SURFACING.md); about structure, use this.
 
 Substitute the current repo into all URL templates. The rendering rules
 below are the applied form of [`docs/markdown-in-chat.md`](../../../docs/markdown-in-chat.md);
@@ -63,8 +64,7 @@ subtree with neither block nor gloss, the raw output is the deliverable.
 Bare `/tree` renders a **dense default**: the repo root as the table
 header, its top level one deep, and a curated **Major folders** block
 beneath (see below). Depth is opt-in from there; ask to go deeper.
-Free-form arguments refine it; interpret them into these dimensions (same
-preset-plus-free-form model as `caption`'s sizes):
+Free-form arguments refine it; interpret them into these dimensions:
 
 | Dimension | Bare default | Example phrasing |
 |---|---|---|
@@ -185,11 +185,12 @@ Folders 📁; markdown/text/other 📄; python 🐍; js/ts 📜; html 🌐; css 
 json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 `build-tree.py`; extend it there, not per-render.
 
-## Boundary with caption and web-tools
+## Boundary with surfacing and Web Tools
 
-This skill owns structure rendering. `caption` owns change surfacing
-(`[new]/[main]/[diff]`, render lines) and `web-tools` owns the conventions
-(PR bodies, the merge guide). A tree is not a caption: it carries no change
-state and no diff links. If the ask is "what did I touch," route to
-`caption`; a tree that also marks change is a deliberate combined view,
-not the default.
+This skill owns structure rendering. [`SURFACING.md`](../../../docs/SURFACING.md)
+owns change surfacing: the branch-page caption by default, the
+`[new]/[main]/[diff]` file list as fallback, and render lines. The
+[`surfacing-course`](../../../docs/surfacing-course.md) owns PR bodies and the
+merge guide. A tree is not a change handoff: it carries no change state and no
+diff links. If the ask is "what did I touch," follow the surfacing contract; a
+tree that also marks change is a deliberate combined view, not the default.

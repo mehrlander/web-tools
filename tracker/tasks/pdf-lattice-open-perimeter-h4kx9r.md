@@ -49,6 +49,17 @@ task is done (closed 2026-08-25) and frozen out to the private estate. The latti
 gap is still real; there is no longer a web-tools dependency blocking it.
 
 
+## Related
+
+- `lib/kits/pdf.js`: `lattice` implementation; inferred edges are the design question
+- `docs/pdf-structure.md`: lattice vs stream control rationale
+- `pages/pdf-inspect.html`: surface that shows empty lattice results today
+- task `pdf-table-splitter-page-q7vm2d`: stream-side splitter surface on the same page
+- task `pdf-inspect-pinch-zoom-5wz3kt`: sibling page-mode UX gap
+- task `document-structure-harness-4mz7wk`: done; once shared provenance marking, no longer blocking
+- PR #294: lattice shipped with this named gap
+
 ## Progress log
 - 2026-07-25: Filed from PR #294 as the kit's main known gap.
 - 2026-09-17: Dropped the harness-dependency framing (harness task done 2026-08-25). Provenance marking for inferred edges is decided in this task when the work runs.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

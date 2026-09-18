@@ -89,7 +89,7 @@ test('the logomark path exists in exactly one file', () => {
   const needle = 'M12,12 L12.0,1.6 M12,12 L17.62,3.25';
   const offenders = sourceFiles()
     .filter(fp => readFileSync(fp, 'utf8').includes(needle))
-    .map(fp => path.relative(repoRoot, fp))
+    .map(fp => path.relative(repoRoot, fp).replaceAll('\\', '/'))
     .filter(rel => rel !== KIT);
   assert.deepEqual(offenders, [],
     `the logomark belongs to ${KIT} alone; these carry their own copy: ${offenders.join(', ')}`);
@@ -98,9 +98,9 @@ test('the logomark path exists in exactly one file', () => {
 // Every consumer reads the kit through an Alpine `x-html`, so its argument is
 // a string in a template that nothing type-checks and no unit test mounts with
 // the pane state needed to render it. Pulling the real expressions out and
-// running them is the cheap way to know all six draw something: a typo in one
-// site's options object is otherwise a blank icon nobody sees until they open
-// that pane.
+// running them is the cheap way to know all four direct consumers draw something:
+// a typo in one site's options object is otherwise a blank icon nobody sees until
+// they open that pane.
 test('every call site renders the mark, arguments and all', () => {
   const { claudeMark } = load();
   const sites = sourceFiles().flatMap((fp) => {
@@ -108,7 +108,7 @@ test('every call site renders the mark, arguments and all', () => {
     return [...readFileSync(fp, 'utf8').matchAll(/x-html="(window\.claudeMark\.svg\([^"]*\))"/g)]
       .map(m => [rel, m[1]]);
   });
-  assert.ok(sites.length >= 6, `expected the known consumers, found ${sites.length}`);
+  assert.ok(sites.length >= 4, `expected the known consumers, found ${sites.length}`);
   for (const [rel, expr] of sites) {
     const out = new Function('window', `return ${expr};`)({ claudeMark });
     assert.ok(out.includes(claudeMark.PATH), `${rel} draws no mark: ${expr}`);

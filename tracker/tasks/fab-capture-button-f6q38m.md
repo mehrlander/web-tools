@@ -31,6 +31,14 @@ capture there covers the shell only and must say which it got. No pixels: state
 is what is wanted, and the visual question is answered by the user looking at
 the page.
 
+## Related
+
+- `lib/alpineComponents/fab.js`: Inspect header capture UI; clipboard half already here
+- `tools/test/fab-capture.test.mjs`: holds the Copy-capture serialization path
+- `lib/kits/repo-activity-cache.js`: proven browser-commit-to-private pattern to reapply
+- task `live-confirm-graphql-queries-7maacy`: FAB capture is its confirming instrument
+- PR #339: clipboard first cut; write path remains
+
 ## Done when
 
 Tapping capture inside a `#gh=` toss can commit the JSON bundle to
@@ -46,3 +54,4 @@ one viewer, in one browser, on one open.
   "Capture button on the FAB" to the residual write path; the collection
   survey and the capture-button design points that shipped with PR #339 are
   history in this log, and the stale `next:` tag is dropped.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

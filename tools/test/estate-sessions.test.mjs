@@ -1239,6 +1239,29 @@ test('the tools card accounts for the agents figure the top-six cut hid', () => 
   data.closeRowCard();
 });
 
+test('topToolsLabel and the tools card header reflect failures when present', () => {
+  const S = window.RepoSessionsCache;
+  const cleanRow = S.summarize(rec({ calls_total: 10, failures: 0, tools: { Bash: 8, Read: 2 } }), 'x');
+  assert.equal(data.topToolsLabel(cleanRow), '10 tool calls · Bash 8, Read 2');
+
+  const failedRow = S.summarize(rec({ calls_total: 15, failures: 3, tools: { Bash: 10, Read: 5 } }), 'x');
+  assert.equal(data.topToolsLabel(failedRow), '15 tool calls (3 failed) · Bash 10, Read 5');
+
+  data.closeRowCard();
+  data.openSessionCard(failedRow, 'tools', null);
+  assert.equal(data.rowCard.aside, '3 failed');
+  assert.equal(data.rowCard.asideCls, 'text-warning');
+  assert.equal(data.rowCard.asideTitle, '3 tool calls failed in this session');
+  assert.match(data.rowCard.note, /3 of these calls failed\./);
+
+  data.closeRowCard();
+  data.openSessionCard(cleanRow, 'tools', null);
+  assert.equal(data.rowCard.aside, '');
+  assert.equal(data.rowCard.asideCls, '');
+  assert.doesNotMatch(data.rowCard.note, /failed/);
+  data.closeRowCard();
+});
+
 test('no renderer means an empty host, not a thrown card', async () => {
   delete window.chatRender;
   const row = window.RepoSessionsCache.summarize(

@@ -40,6 +40,16 @@ Compare pane with the second ref owned by the sidebar.
    `pages/review.html` is its only host, so either it keeps that shape or review
    adopts the deck too. Decide rather than leave two.
 
+## Related
+
+- `lib/kits/file-deck.js`: declares Files-as-list vs deck-as-read; still mounts both
+- `pages/review.html`: remaining four-tab dossier host once the list stops expanding
+- `tools/test/file-review-card.test.mjs`: pins current row-expansion behaviour
+- `tools/test/branch-brief-cards.test.mjs`: companion pin that moves with the split
+- task `file-review-collapsed-density-2rvxfn`: collapsed-row predecessor this finishes
+- task `sidebar-compare-view-lkjang`: deck reading surface predecessor
+- PR #518: 430px measurement that filed the chrome-and-expansion problem
+
 ## Done when
 A file is one tap from the deck, no row expands in place, and the chrome above
 the first filename is a decision rather than an accumulation.
@@ -58,3 +68,4 @@ Not a rewrite. The collapsed row is the output of
 - 2026-09-04: Re-verified after PR #574 touched the Files view. Both facts hold:
   the `cardOpts` hedge is still there and `openFileDeckAt` is still the method.
   #574 changed widths, not this structure. Body cut from 683 words.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

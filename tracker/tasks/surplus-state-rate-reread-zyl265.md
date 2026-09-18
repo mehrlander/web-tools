@@ -22,6 +22,13 @@ Run `python3 sessions/tools/search.py --surplus` in web-tools-private.
   +/- 1.66 points. The design effect is 4.9x, so the naive binomial interval
   understates the spread by more than a factor of two and must not be quoted.
 
+## Related
+
+- `docs/SURFACING.md`: close-order / surplus-state rules PR #646 added
+- `docs/surfacing.csv`: `close-order` row that kept the stronger clause during the drift
+- task `surfacing-gate-content-okwnp6`: gate hole that let the weaker prose ship
+- PR #646: rules under measurement (run `sessions/tools/search.py --surplus` in web-tools-private)
+
 ## Done when
 A fortnight of fresh records has accrued and the rate is read against the
 figures above, with the verdict written here in one line.
@@ -45,3 +52,4 @@ shorter window cannot separate a real move from noise.
 - 2026-09-10: Filed with the baseline and the decision rule. Nothing to do
   until roughly 2026-09-24.
 - 2026-09-17: Marked awaiting fortnight sample after 2026-09-24 PT so On deck does not read as startable.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

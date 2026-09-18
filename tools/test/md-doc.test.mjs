@@ -440,6 +440,152 @@ test('a node outside any declared render locates nothing', () => {
 
 // ── Enhance ─────────────────────────────────────────────────────────────────
 
+test('repository hrefs resolve from the current file without escaping the root', () => {
+  assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '../SURFACING.md#branch-anchor'),
+    { path: 'docs/SURFACING.md', hash: '#branch-anchor' },
+    'a sibling-tree link keeps its authored fragment');
+  assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '/lib/kits/md-doc.js'),
+    { path: 'lib/kits/md-doc.js', hash: '' },
+    'a root-relative href starts at the repository root');
+  assert.equal(mdDoc.repoPath('docs/guides/START.md', '../../../outside.md'), null,
+    'a relative href cannot climb above the repository');
+  assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '#local-heading'),
+    { path: 'docs/guides/START.md', hash: '#local-heading' },
+    'a same-document fragment stays in the current repository reader');
+});
+
+test('a same-document fragment is bound as an authored repository link', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = '<h2 id="local-heading">Local</h2><p><a href="#local-heading">Earlier section</a></p>';
+  const opened = [];
+  const counts = mdDoc.linkRepoFiles(box, {
+    path: 'docs/guides/START.md',
+    paths: new Set(['docs/guides/START.md']),
+    href: (p, hash) => '/repo/' + p + hash,
+    open: t => opened.push(t),
+  });
+
+  assert.deepEqual(counts, { authored: 1, inferred: 0 });
+  const link = box.querySelector('a');
+  assert.equal(link.dataset.repoLink, 'authored');
+  assert.equal(link.dataset.repoPath, 'docs/guides/START.md');
+  assert.equal(link.dataset.repoHash, '#local-heading');
+  assert.equal(link.getAttribute('href'), '/repo/docs/guides/START.md#local-heading');
+  link.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.deepEqual(opened.map(t => [t.path, t.hash, t.source]),
+    [['docs/guides/START.md', '#local-heading', 'authored']]);
+});
+
+test('binary repository links keep a usable href without becoming text-deck doors', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = marked.parse([
+    '[Script](../../lib/kits/md-doc.js)',
+    '',
+    '[Workbook](../../artifacts/report.xlsx)',
+    '[Image](../../artifacts/chart.png)',
+    '[PDF](../../artifacts/brief.pdf)',
+    '[Word](../../artifacts/spec.docx)',
+    '',
+    '`report.xlsx`',
+  ].join('\n'));
+  const paths = new Set([
+    'lib/kits/md-doc.js',
+    'artifacts/report.xlsx',
+    'artifacts/chart.png',
+    'artifacts/brief.pdf',
+    'artifacts/spec.docx',
+  ]);
+  const opened = [];
+  const counts = mdDoc.linkRepoFiles(box, {
+    path: 'docs/guides/START.md',
+    paths,
+    href: (p, hash) => '/repo/' + p + hash,
+    open: t => opened.push(t),
+  });
+
+  assert.deepEqual(counts, { authored: 1, inferred: 0 });
+  const links = Object.fromEntries([...box.querySelectorAll('a')].map(a => [a.textContent, a]));
+  assert.equal(links.Script.dataset.repoLink, 'authored', 'a supported source file stays in the deck');
+  assert.equal(links.Script.getAttribute('href'), '/repo/lib/kits/md-doc.js');
+  for (const [label, path] of [
+    ['Workbook', 'artifacts/report.xlsx'],
+    ['Image', 'artifacts/chart.png'],
+    ['PDF', 'artifacts/brief.pdf'],
+    ['Word', 'artifacts/spec.docx'],
+  ]) {
+    assert.equal(links[label].hasAttribute('data-repo-link'), false,
+      label + ' does not acquire an in-deck handler');
+    assert.equal(links[label].hasAttribute('data-repo-path'), false,
+      label + ' is not marked as a deck destination');
+    assert.equal(links[label].getAttribute('href'), '/repo/' + path,
+      label + ' still points at its ordinary repository destination');
+  }
+  assert.equal(box.querySelector('code').closest('a'), null,
+    'an inline-code xlsx reference is not inferred as a text-deck door');
+
+  links.Script.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.deepEqual(opened.map(t => t.path), ['lib/kits/md-doc.js']);
+});
+
+test('authored file links and only unique whole-code filenames become repository doors', () => {
+  const box = window.document.createElement('div');
+  box.innerHTML = marked.parse([
+    '[Surfacing](../SURFACING.md#branch-anchor)',
+    '',
+    '`ONLY.md` `README.md` `missing.md` and `see ONLY.md`.',
+    '',
+    '```text',
+    'ONLY.md',
+    '```',
+    '',
+    '[Elsewhere](https://example.test/docs/SURFACING.md)',
+  ].join('\n'));
+  const paths = new Set([
+    'docs/guides/START.md',
+    'docs/SURFACING.md',
+    'docs/unique/ONLY.md',
+    'README.md',
+    'docs/a/README.md',
+    'docs/b/README.md',
+  ]);
+  const opened = [];
+  const counts = mdDoc.linkRepoFiles(box, {
+    path: 'docs/guides/START.md',
+    paths,
+    href: (p, hash) => '/repo/' + p + hash,
+    open: t => opened.push(t),
+  });
+
+  assert.deepEqual(counts, { authored: 1, inferred: 1 });
+  const authored = box.querySelector('a[data-repo-link="authored"]');
+  assert.equal(authored.textContent, 'Surfacing', 'authored link text is preserved');
+  assert.equal(authored.dataset.repoPath, 'docs/SURFACING.md');
+  assert.equal(authored.dataset.repoHash, '#branch-anchor');
+  assert.equal(authored.getAttribute('href'), '/repo/docs/SURFACING.md#branch-anchor');
+
+  const inferred = box.querySelector('a[data-repo-link="inferred"]');
+  assert.equal(inferred.dataset.repoPath, 'docs/unique/ONLY.md');
+  assert.equal(inferred.querySelector('code')?.textContent, 'ONLY.md',
+    'the code span remains the visible label inside its inferred link');
+
+  const codes = [...box.querySelectorAll('code')];
+  const code = text => codes.find(c => c.textContent === text);
+  assert.equal(code('README.md').closest('a'), null,
+    'a bare basename stays inert when both root and nested candidates exist');
+  assert.equal(code('missing.md').closest('a'), null, 'an unknown filename stays inert');
+  assert.equal(code('see ONLY.md').closest('a'), null, 'only a whole code span is inferred');
+  assert.equal(box.querySelector('pre code').closest('a'), null, 'a code block is never inferred as a file link');
+  assert.equal(box.querySelector('a[href^="https://example.test"]').hasAttribute('data-repo-link'), false,
+    'an external authored link keeps the browser route');
+
+  authored.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  inferred.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.deepEqual(opened.map(t => [t.path, t.hash, t.source]), [
+    ['docs/SURFACING.md', '#branch-anchor', 'authored'],
+    ['docs/unique/ONLY.md', '', 'inferred'],
+  ]);
+});
+
 test('enhance does the same over markup another renderer produced', () => {
   // kits/guide-render.js renders a doc with the link re-aiming a guide body
   // needs. That reader wants the containment and the controls without giving

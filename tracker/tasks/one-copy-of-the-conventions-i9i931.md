@@ -1,10 +1,11 @@
 ---
 id: one-copy-of-the-conventions-i9i931
 title: Stop dual-storing SURFACING under the default skill
-status: backlog
+status: done
 opened: 2026-08-31
+closed: 2026-09-18
 size: S
-awaiting: close as superseded, recommended: the premise dissolved when the injector went
+resolution: superseded
 ---
 # Stop dual-storing SURFACING under the default skill
 
@@ -116,3 +117,4 @@ gone, `docs/PORTABLE.md`'s no-fetch rationale is rewritten, and
   byte-identical to their `docs/` originals under the pre-commit hook's staging.
   Recommended close as superseded, stated at the head of the body. Not closed:
   a close is the owner's to confirm.
+- 2026-09-18: Closed as superseded after Mark's nod. Premise dissolved with the injector (PR #634); remaining docs/ vs `.claude/skills/default/` SURFACING pair is the intentional travelling copy, not unfinished dual-store work.

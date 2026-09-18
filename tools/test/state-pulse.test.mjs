@@ -367,3 +367,54 @@ test('a completed crawl document wins over a cached repeat read', async () => {
     'and threads that document into the State load');
 });
 
+test('the rail uses data-rail-cursor and no native title attribute', () => {
+  const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'state-view.js'), 'utf8');
+  const rail = src.slice(src.indexOf('const TICKS ='), src.indexOf('// THE CARD for the tick'));
+  assert.doesNotMatch(rail, /:title=/, 'the rail must not use native title tooltips');
+  assert.match(rail, /data-rail-cursor\s+data-note-bare/, 'the rail carries a note cursor');
+  assert.doesNotMatch(src, /\$\{PEEK\(/, 'the inline card under the rail is removed');
+});
+
+test('tickNote formats the responsible repo, detail, branch, and relative time', () => {
+  const t = Date.parse('2026-09-17T12:00:00Z');
+  const commitMark = { t, name: 'web-tools', detail: '8afa393', msg: 'fix: timeline tooltip' };
+  const commitNote = data.tickNote({ stream: 'commits' }, commitMark);
+  assert.equal(commitNote.title, 'web-tools \u00b7 8afa393');
+  assert.match(commitNote.note, /fix: timeline tooltip/);
+  assert.match(commitNote.note, /\(.*ago\)/);
+
+  const sessionMark = { t, name: 'web-tools', detail: '45m', branch: 'claude/state-view' };
+  const sessionNote = data.tickNote({ stream: 'sessions' }, sessionMark);
+  assert.equal(sessionNote.title, 'web-tools \u00b7 45m');
+  assert.match(sessionNote.note, /claude\/state-view/);
+  assert.match(sessionNote.note, /\(.*ago\)/);
+});
+
+test('peekAt updates data-rail-cursor attributes and clearPeek clears it', () => {
+  const attrs = {};
+  const cur = {
+    style: { left: '' },
+    getAttribute(name) { return attrs[name] || null; },
+    setAttribute(name, val) { attrs[name] = String(val); },
+    removeAttribute(name) { delete attrs[name]; },
+  };
+  const box = { left: 0, width: 100 };
+  const ev = {
+    currentTarget: {
+      getBoundingClientRect: () => box,
+      querySelector: (sel) => (sel === '[data-rail-cursor]' ? cur : null),
+    },
+    clientX: 10,
+    type: 'pointermove',
+  };
+
+  data.peekAt(row('activity'), 24, ev);
+  assert.ok(cur.style.left.endsWith('%'), 'cursor left style is set as percentage');
+  assert.ok(attrs['data-note-title'], 'data-note-title is set on cursor');
+  assert.ok(attrs['data-note'], 'data-note is set on cursor');
+
+  data.clearPeek();
+  assert.equal(data.peek, null);
+});
+
+

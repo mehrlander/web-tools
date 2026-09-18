@@ -86,6 +86,11 @@ test('the progress bar still counts a skipped repo', () => {
   assert.match(loop.slice(0, 400), /done: \+\+done, total: members\.length/);
 });
 
+test('watermark reader gates dormant repos with no pushes or open PRs', () => {
+  assert.match(shellSrc, /needsPrCheck/, 'checks whether repo needs live PR watermark probe');
+  assert.match(shellSrc, /prAt\[repo\] = marks\[repo\]\?\.prAt \?\? ''/, 'reuses recorded mark for quiet repo');
+});
+
 // ── The reader, run for real ──────────────────────────────────────────────
 // gh-api is an ES module and gh-fetch extends its prototype, so it is imported
 // and the extension applied by hand, the same way branches-dated-sessions does.

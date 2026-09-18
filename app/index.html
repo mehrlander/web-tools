@@ -159,6 +159,8 @@
   // The owner/repo[@ref]:path grammar, and the inbox/outbox boxes built on it.
   await gh.load('kits/repo-address.js');
   await gh.load('kits/persistence.js');
+  // The allowlist that decides what a visit may store (window.VisitLog).
+  await gh.load('kits/visit-log.js');
   await gh.load('kits/file-correspondence.js');
   // The installation ledger's derivation and its one write, behind the
   // project view's Installation pill.
@@ -166,7 +168,7 @@
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
-  // Pure alignment assessment behind the Portable view (window.PortableAlign).
+  // Pure alignment assessment behind the Distribution/Repos view (window.PortableAlign).
   await gh.load('kits/portable-align.js');
   // Declared staleness checks, evaluated on sight from a repo's own config.
   await gh.load('kits/repo-checks.js');
@@ -244,7 +246,7 @@
    gives a 1024px window a 200px list that truncates every row, and a 2560px one
    a 700px list of short titles beside the wasted half of a document. The clamp
    is what keeps both ends readable, and the floor is set at the width where the
-   Portable tab's longest row label stops wrapping to three lines.
+   Distribution tab's longest row label stops wrapping to three lines.
 
    Below lg there is no dock and the toggle does not render: three columns do
    not fit, and a phone's answer to "see the list and the file" is the deck's
@@ -623,6 +625,92 @@ html.dk-dragging main{transition:none !important}
            when only a phone could, and a panel that closes with no visible way
            to close it is the defect that hid. -->
       <button @click="sidebarOpen=false" class="btn btn-square btn-ghost shrink-0" title="Hide the sidebar"><i class="ph ph-x text-lg"></i></button>
+
+      <!-- THE MARK'S MENU: the fixed destinations, then where you have been.
+           Anchored under the bar in the same panel idiom as the repo
+           switcher below (inset, top-full, rounded-box, shadow), because they
+           are two lists from one bar and a second geometry would read as a
+           second kind of thing.
+
+           HOME ON MAIN appears only off the default ref, and it is the row this
+           whole menu was built around: the mark used to run crumbHome(), which
+           swaps the view and stays on whatever ref the shell is running at, so
+           from a branch it reached the branch's dashboard and there was no
+           control anywhere that changed both at once.
+
+           THE VISITED LIST is coarser than browser Back on purpose: one row per
+           destination, deduped, most recent first. It also reaches what Back
+           cannot, since toss-render only ever calls replaceState.
+
+           A PAYLOAD ROW IS COUNTED AND NOT LINKED. Rendering a pasted document
+           records that it happened and its size, never its address, because the
+           address IS the document (kits/visit-log.js). It draws dimmed and
+           unclickable rather than being dropped: a gap in the list reads as a
+           bug, and a row that says what it will not hold is honest. The same
+           goes for an unrecognized address, which is the signal that a registry
+           has fallen behind the code. -->
+      <div x-show="markMenu" x-cloak x-transition.opacity.duration.120ms
+           class="absolute inset-x-2 top-full z-40 mt-1 max-h-[70vh] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-xl">
+        <div class="flex flex-col py-1">
+          <button @click="goMarkDashboard()"
+                  class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base text-base-content/80 transition-colors hover:bg-base-200 active:bg-base-300">
+            <i class="ph ph-squares-four shrink-0 text-xl text-base-content/50"></i>
+            <span class="min-w-0 flex-1 truncate">Dashboard</span>
+          </button>
+          <!-- THE REF IS SAID AS AN ADDRESS, not as the word "main" inside a
+               sentence. The repo already speaks one grammar for this
+               (kits/review-target.js states the family: `owner/repo` is the
+               repo, `owner/repo@branch` is it at a ref, and the ':' introduces
+               a path), so the row names where it goes in the vocabulary every
+               other address here uses, and the owner is dropped in mono the
+               way the crumb trail beside it already drops it.
+
+               One imprecision worth stating rather than hiding: this row goes
+               to the deployed APP at main, and `web-tools@main` names the repo
+               at main. They read the same to a reader switching off a branch
+               preview, since the app at a ref IS that ref's code, and the
+               alternative (`web-tools@main:app/index.html`) spends the row's
+               width restating the page you are already on. -->
+          <button x-show="offMainRef" @click="goHomeOnMain()"
+                  class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base text-base-content/80 transition-colors hover:bg-base-200 active:bg-base-300">
+            <i class="ph ph-house shrink-0 text-xl text-warning"></i>
+            <span class="min-w-0 flex-1 truncate">Home</span>
+            <span class="shrink-0 font-mono text-base-content/50" x-text="homeAddress"></span>
+          </button>
+
+          <div x-show="visits.length" class="my-1 border-t border-base-200"></div>
+          <!-- Section header at the size the Recent block above uses, not a
+               smaller one: this sidebar carries hierarchy in opacity and weight
+               and keeps one size for everything a reader came to read. -->
+          <div x-show="visits.length" class="px-3 pb-1 pt-1 text-base font-semibold text-base-content/50 flex items-center gap-1.5">
+            <i class="ph ph-arrow-u-up-left"></i>Visited
+          </div>
+          <!-- ONE LINE: the thing, then the short context, then the revisit
+               count. The detail is short by construction rather than clipped
+               into shape, and it is a `span` on the row rather than a `title`,
+               since a fact parked in a title reaches no touch screen and no
+               screenshot (house style, rule 11). -->
+          <template x-for="v in visits" :key="v.key">
+            <button @click="openVisit(v)" :disabled="!visitOpenable(v)"
+                    class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors"
+                    :class="visitOpenable(v)
+                      ? 'text-base-content/80 hover:bg-base-200 active:bg-base-300'
+                      : 'text-base-content/35 cursor-default'">
+              <i class="ph shrink-0 text-xl"
+                 :class="v.kind === 'payload' ? 'ph-file-dashed text-base-content/30'
+                       : v.kind === 'unrecognized' ? 'ph-question text-base-content/30'
+                       : v.kind === 'toss' ? 'ph-frame-corners text-base-content/50'
+                       : v.kind === 'stage' ? 'ph-stack text-base-content/50'
+                       : 'ph-arrow-bend-up-left text-base-content/50'"></i>
+              <span class="min-w-0 flex-1 truncate" x-text="visitLabel(v)"></span>
+              <span x-show="visitDetail(v)" class="shrink-0 max-w-[45%] truncate text-base-content/40"
+                    x-text="visitDetail(v)"></span>
+              <span x-show="v.seen > 1"
+                    class="shrink-0 text-xs tabular-nums text-base-content/30" x-text="v.seen"></span>
+            </button>
+          </template>
+        </div>
+      </div>
 
       <!-- The repo crumb opens a REPO SWITCHER: which repository is showing,
            and nothing else. A breadcrumb names where you are, so the only menu
@@ -2349,6 +2437,11 @@ function app(){ return {
 
     // Browser Back/Forward restores state from the URL (syncUrl pushes an entry
     // per distinct URL, so the history has real steps to walk).
+    // The visit log is ESTATE-WIDE, so it is read once here rather than in the
+    // repo@ref watcher beside loadRecent(): a repo switch does not change where
+    // the reader has been, and re-reading there would clobber in-memory rows
+    // the switch itself had just recorded.
+    this.loadVisits();
     window.addEventListener('popstate', () => this.restoreFromUrl());
     // The framed page's mark, announced up by toss-render. Wired here rather
     // than on the frame so it is registered before any app view can load.
@@ -3314,10 +3407,25 @@ function app(){ return {
     const marks = this.readWatermarks();
     const prAt = {};
     {
+      const CORE_REPOS = new Set([this.REGISTRY_REPO, 'mehrlander/web-tools', 'mehrlander/home']);
+      const needsPrCheck = (repo) => {
+        if (force) return true;
+        const m = marks[repo];
+        if (!m || !prev?.repos?.[repo]) return true;
+        const pushed = metaByName.get(repo)?.pushed_at || '';
+        if (pushed && pushed !== m.pushedAt) return true;
+        if ((prev.repos[repo]?.openPRs?.length || 0) > 0) return true;
+        if (CORE_REPOS.has(repo)) return true;
+        return false;
+      };
       let wi = 0;
       const readMark = async () => {
         while (wi < members.length){
           const repo = members[wi++];
+          if (!needsPrCheck(repo)) {
+            prAt[repo] = marks[repo]?.prAt ?? '';
+            continue;
+          }
           try { prAt[repo] = (await new window.GH({ token: window.TOKEN, repo }).prWatermark()).updatedAt; }
           catch { prAt[repo] = null; }
         }
@@ -4896,8 +5004,21 @@ function app(){ return {
   // the same account on every repo, so it costs width and says nothing.
   get sidebarCrumbs(){
     const s = Alpine.store('browser');
-    const mark = { key: 'home', img: '../lib/favicon.svg', title: 'Dashboard',
-                   action: () => this.crumbHome() };
+    // THE MARK IS A MENU NOW, and it costs the one-tap trip to the dashboard
+    // that used to be its whole job. Dashboard is the menu's first row instead.
+    // The trade is deliberate: the menu's point is that a reader LOOKS here,
+    // and hiding it behind a long press would make it a control only someone
+    // who already knew about it would find. The fab keeps the long press, where
+    // the gesture is established and the launcher has no other use for a tap.
+    //
+    // It is also where "home on main" belongs, which is the gap that started
+    // this. crumbHome() swaps the view and stays on whatever ref the shell is
+    // running at, so from a branch it reaches the BRANCH's dashboard. The
+    // header's ref switch returns this view to main without changing view, and
+    // the fab's Home row reaches main's dashboard but floats furthest from
+    // where a reader looks for it. Nothing put the two halves together.
+    const mark = { key: 'home', img: '../lib/favicon.svg', title: 'Web Tools',
+                   menu: true, action: (open) => this.toggleMarkMenu(open) };
     // At the app level the trail is just the mark: there is no repo to name,
     // and a lone mark reads as "the app" without spending a word on it.
     if (this.estateCtx || !s.repo) return [mark];
@@ -4923,6 +5044,141 @@ function app(){ return {
     this.goDashboard();
   },
 
+  // ── The mark's menu ─────────────────────────────────────────────────────
+  // Fixed destinations first, then where you have been. Separate state from the
+  // repo crumb's switcher below, since the two crumbs each own a panel and both
+  // can be on screen at once.
+  markMenu: false,
+  toggleMarkMenu(open){
+    this.markMenu = open;
+    if (!open) return;
+    this.crumbMenu = false;
+    // ASK FOR THE ROUTE NAMES, and do not wait for them. visitLabel joins
+    // docs/app-routes.csv for a route's proper name ("Files", not "search"),
+    // and that manifest is a lazy fetch the Map view normally triggers, so a
+    // menu opened before ever visiting Map would read in view keys. The panel
+    // paints from the rows already in hand and the labels improve in place when
+    // the fetch lands, which is the right order: a menu that awaited a network
+    // call before drawing would be slower than the thing it is a shortcut for.
+    // Attempt-once is loadRouteJoin's own guard, so this costs nothing on the
+    // second open, and it no-ops without a token.
+    try { this.loadRouteJoin(); } catch (e) {}
+  },
+  closeMarkMenu(){
+    this.markMenu = false;
+    document.getElementById('sidebarCrumbs')?.__crumbBar?.setOpen(false);
+  },
+  // WHERE HOME IS. The same address lib/alpineComponents/fab.js carries as
+  // `showRepoBase` for its own Home row, held here too because the shell cannot
+  // depend on a fab being mounted and the fab floats over pages that are not
+  // this app. visit-log-wiring.test.mjs holds the two strings to each other, so
+  // the duplicate is loud rather than silent.
+  APP_HOME: 'https://mehrlander.github.io/web-tools/app/',
+
+  // OFF THE DEFAULT REF ONLY. On main this row would go where you already are,
+  // and a menu row that does nothing teaches a reader to distrust the menu.
+  // This is the same question the launcher answers with its warning tint.
+  //
+  // Reading ?use= covers the toss case as well as the direct one, which is not
+  // obvious and is worth stating: inside a #gh= toss the renderer's params shim
+  // answers URLSearchParams lookups for the subject's ref, so this returns the
+  // branch even though the frame's own location is a blob: URL with no query.
+  // Measured in a headless toss rather than reasoned about.
+  get offMainRef(){
+    let pin = '';
+    try { pin = new URLSearchParams(location.search).get('use') || ''; } catch (e) { return false; }
+    return !!pin && pin !== 'main';
+  },
+  // `owner/repo@ref` with the owner dropped, which is the crumb trail's own
+  // display rule and the address grammar's pathless form at once.
+  get homeAddress(){
+    const repo = (this.APP_HOME.match(/github\.io\/([\w.-]+)\//) || [])[1] || 'web-tools';
+    return repo + '@main';
+  },
+  goHomeOnMain(){
+    this.closeMarkMenu();
+    this._go(this.APP_HOME);
+  },
+
+  // LEAVE FOR A URL, and the top-document guard is the whole reason this is a
+  // method. Inside a #gh= toss this app runs in an iframe, so assigning its own
+  // location would load home INSIDE the frame: the reader taps "Home on main"
+  // and the yellow launcher stays yellow, because they are still inside the
+  // preview. That is exactly what was reported on a phone.
+  //
+  // The fab's _go carries the same guard for the same reason and is the other
+  // copy. Two exist because the fab floats over pages that are not this app and
+  // the shell cannot require one to be mounted; the test holds both to the
+  // guard so neither can quietly lose it.
+  _go(url){
+    if (!url) return;
+    // Assigning the address already showing is a silent no-op, so make it mean
+    // "load this again" rather than nothing.
+    if (url === location.href) { location.reload(); return; }
+    if (this._leaveFrame(url)) return;
+    location.href = url;
+  },
+
+  // ── Leaving a frame, which this app cannot do by writing window.top ───────
+  //
+  // Inside a #gh= toss this app runs in an iframe whose sandbox grants
+  // allow-scripts, allow-same-origin, allow-popups, allow-forms, allow-modals
+  // and allow-downloads, and deliberately NOT allow-top-navigation. So
+  // `window.top.location.href = url` is refused by the browser, and the
+  // fallback beside it navigates THIS FRAME instead: the app reloads at main
+  // inside the preview, the address bar never moves, and the reader is still
+  // where they started. Reported from a phone as "it reloads but it doesn't
+  // navigate", which is that failure exactly.
+  //
+  // allow-same-origin is the way out. The subject may CALL into the shell, and
+  // the shell is not sandboxed, so pages/toss-render.html exposes __tossLeave
+  // and performs the navigation in its own document. window.top is still tried
+  // after it, for a framer that is not our renderer and may permit the write.
+  //
+  // Returns whether the trip was handed off, so the caller knows not to
+  // navigate its own frame as well.
+  _leaveFrame(url){
+    let top = null;
+    try { top = window.top && window.top !== window.self ? window.top : null; } catch (e) { return false; }
+    if (!top) return false;
+    try { if (typeof top.__tossLeave === 'function') { top.__tossLeave(url); return true; } } catch (e) {}
+    try { top.location.href = url; return true; } catch (e) {}
+    // NEITHER AVAILABLE, and the honest answer is to say so rather than to
+    // invent a way out. A new tab was tried here first and is gone: it works,
+    // and it is not what the row promises. Tapping "Home" and getting a second
+    // tab beside the one you wanted to leave is its own small wrongness, and it
+    // was reported as one within a day.
+    //
+    // This only fires from a framer that offers no __tossLeave and forbids the
+    // top write: a stale cached copy of our own renderer, or somebody else's
+    // frame. Navigating THIS frame stays out of the question, since that is the
+    // half-success the whole method exists to stop.
+    notify('This preview cannot leave the page it is framed in. Open ' + url + ' directly.',
+           'alert-warning', 'warning');
+    return true;
+  },
+  goMarkDashboard(){
+    this.closeMarkMenu();
+    this.goDashboard();
+  },
+  // Re-open a stored visit. The row was rebuilt from a route template, so this
+  // rebuilds an address from the row rather than replaying a string nobody
+  // validated: the same direction of travel that makes the log safe to keep.
+  openVisit(v){
+    this.closeMarkMenu();
+    if (!this.visitOpenable(v)) return;
+    if (v.kind === 'toss' || v.kind === 'stage') {
+      const frag = v.kind === 'stage' ? '#stage=' + v.spec
+        : '#' + (v.route || 'gh') + '=' + v.repo + (v.ref ? '@' + v.ref : '') + ':' + v.path;
+      return this._go('../pages/toss-render.html' + frag);
+    }
+    const p = new URLSearchParams();
+    for (const k of ['view', 'repo', 'ref', 'project', 'tab', 'item', 'session', 'detail', 'sfile', 'app']) {
+      if (v[k]) p.set(k, v[k]);
+    }
+    this._go(location.pathname + '?' + p.toString());
+  },
+
   // The crumb's dropdown, anchored under the sidebar top bar. Separate state
   // from the sheet, since they are two presentations that can never be up at
   // once (one lives in a repo, the other in the estate list).
@@ -4940,6 +5196,7 @@ function app(){ return {
   // put the caret back down too, which the component alone cannot know about.
   closeCrumbMenu(){
     this.crumbMenu = false;
+    this.markMenu = false;
     document.getElementById('sidebarCrumbs')?.__crumbBar?.setOpen(false);
   },
 
@@ -5584,8 +5841,25 @@ function app(){ return {
   // the subject's own params (appViewUrl), and the fragment is where they
   // belong, so an address arriving with ?on= leaves with '#'. That is the
   // self-heal, and it is why the key is in this list rather than a stamp.
+  //
+  // THE SESSIONS ROW'S FOUR ARRIVED LATE AND WERE MISSING FOR A WEEK.
+  // `session` and `set` name the record and the scope; `lens` and `grain` are
+  // how it is read. All four are stamped (PR #636 and #641, 2026-09-08 and
+  // 09-09) and none was listed here, so they were written and never cleared:
+  // leaving Sessions with a record open put `&session=…&set=…&lens=…&grain=…`
+  // on the Map, on the Atlas, and on every address copied afterwards. The
+  // second harm is worse than the untidiness, because these four are seeded
+  // from `location.search` at construction: a cold load of one of those
+  // polluted addresses arms the Sessions pane with a record and a lens the
+  // reader never asked for, which appears the next time they open it.
+  //
+  // The rule this list states is not "list what looks stale". It is that a key
+  // ANY row can stamp must be here, or the address carries it out of the only
+  // screen that means it. tools/test/app-routes.test.mjs now holds the two to
+  // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile',
+              'session', 'set', 'lens', 'grain',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -5721,6 +5995,149 @@ function app(){ return {
     this.syncUrl();
   },
 
+  // ── The visit log ────────────────────────────────────────────────────────
+  //
+  // Where the reader has been, as a short list the sidebar mark's menu reads.
+  // Browser Back already walks the navigation, so this is not a second copy of
+  // the history stack: it is coarser (one row per DESTINATION, deduped and
+  // moved to the top on a revisit) and it reaches places Back cannot, since
+  // pages/toss-render.html only ever calls replaceState and therefore leaves no
+  // browser history at all.
+  //
+  // WHAT IS STORED IS DECIDED BY kits/visit-log.js, NOT HERE, and that split is
+  // the whole safety argument. An address in this estate is not always a
+  // location: #gz= carries a document and a stage link folds local text in
+  // beside its refs, so storing addresses verbatim would put pasted data in the
+  // log and a workbench used on local material would leak it on the next
+  // navigation. The kit matches against a closed allowlist and rebuilds the row
+  // from the matched route's template, so nothing that arrived is written.
+  // Read its head comment before changing anything below.
+  //
+  // localStorage, capped, per browser. It has to be SYNCHRONOUS, because the
+  // menu paints on the tap that opens it and a list that arrives a frame later
+  // is worse than a short list that is right immediately. The full log, with
+  // the tosses and the payload refusals kept for a Visited view, wants
+  // IndexedDB through kits/persistence.js; that half is not built.
+  VISITS_KEY: 'visits',
+  VISITS_CAP: 25,
+
+  // THE ALLOWLIST, held in code because the recorder runs on a navigation and
+  // cannot wait on a fetch. Same trade the fab makes with _TOSS_MODES, and the
+  // same guard: docs/routes-modes.csv and docs/routes-routes.csv own these
+  // tables, tools/test/visit-log-wiring.test.mjs fails if either drifts. App
+  // routes need no list at all, since VIEWS IS the router and the kit takes the
+  // keys straight off it, which is one fewer thing that can disagree.
+  VISIT_MODES: [
+    { param: 'gh', carries: 'reference' }, { param: 'gz', carries: 'inline' },
+    { param: 'html', carries: 'inline' }, { param: 'url', carries: 'inline' },
+    { param: 'u', carries: 'inline' }, { param: 'src', carries: 'reference' },
+  ],
+  VISIT_TOSS_ROUTES: [
+    { key: 'chat-results' }, { key: 'data' }, { key: 'pdf' }, { key: 'shorter' },
+  ],
+
+  visits: [],
+
+  visitTables(){
+    return {
+      modes: this.VISIT_MODES,
+      tossRoutes: this.VISIT_TOSS_ROUTES,
+      routes: this.VIEWS.map(r => ({ key: r.key, writes: r.writes, alias: r.alias })),
+      now: Date.now(),
+    };
+  },
+
+  // Called from syncUrl's PUSH branch only, so the log inherits the browser's
+  // own notion of a navigation rather than inventing a second one. A replace is
+  // a no-op change or a popstate restore, and neither is a new destination.
+  recordVisit(href){
+    if (!window.VisitLog) return;
+    let row, key;
+    try {
+      row = window.VisitLog.classify(href, this.visitTables());
+      if (!row) return;
+      key = window.VisitLog.key(row);
+    } catch (e) { return; }
+    // A payload visit is COUNTED AND NOT LINKED. Dropping it would leave a gap
+    // that reads as a bug; keeping the address would be the one thing this
+    // whole design exists to prevent. The row carries its size and nothing else.
+    const next = this.visits.filter(v => v.key !== key);
+    next.unshift({ key, ...row, seen: (this.visits.find(v => v.key === key)?.seen || 0) + 1 });
+    this.visits = next.slice(0, this.VISITS_CAP);
+    try { localStorage.setItem(this.VISITS_KEY, JSON.stringify(this.visits)); } catch (e) {}
+  },
+
+  loadVisits(){
+    try {
+      const v = JSON.parse(localStorage.getItem(this.VISITS_KEY) || '[]');
+      this.visits = Array.isArray(v) ? v.slice(0, this.VISITS_CAP) : [];
+    } catch (e) { this.visits = []; }
+  },
+
+  // ── What a row SAYS ──────────────────────────────────────────────────────
+  //
+  // ONE LINE, like every other row in this sidebar and like the launcher menu,
+  // which put the rule plainly when it dropped a two-line hint: a menu is read
+  // in the moment before the finger lifts and has no room for a second line.
+  // The first draft stacked a label over a muted detail at text-sm, which broke
+  // that and rule 7 with it, demoting the half of the row that tells two
+  // Sessions visits apart. Size carries nothing here; opacity does, the way
+  // the Recent block above already works.
+  //
+  // So the split is LABEL = the specific thing, DETAIL = the short context it
+  // sits in, and the detail is short BY CONSTRUCTION rather than truncated into
+  // shape. "CLAUDE.md · Files" reads; "Files · mehrlander/home:CLAUDE.md"
+  // buries the filename behind a category and then clips it.
+  //
+  // Route names join docs/app-routes.csv rather than being stored at write
+  // time, since that registry owns them and a stored copy would be the
+  // duplicate the registries rule warns about.
+  routeLabel(view){
+    const row = this.routeManifest?.routes?.find(r => r.key === view || r.writes === view);
+    return row?.label || view || '';
+  },
+  visitLabel(v){
+    if (!v) return '';
+    // The PAGE leads here too, by the same rule: which page failed to match is
+    // the specific thing, and "unrecognized" is the context. Labelling it the
+    // other way round clipped a long word against a filename and told the
+    // reader the one thing the dimming and the glyph already said.
+    if (v.kind === 'unrecognized') return (v.path || '').split('/').pop() || 'address';
+    if (v.kind === 'payload') return 'Local document';
+    if (v.kind === 'stage') return 'Stage';
+    if (v.kind === 'toss') return (v.path || '').split('/').pop() || v.repo || '';
+    // The most specific thing the row names, falling back to the route itself
+    // when the route IS the destination (Repos, Tools, the Map).
+    const file = v.sfile && v.sfile.split(/[:/]/).pop();
+    return file || (v.project && v.project.split('/').pop()) || v.session || v.detail
+        || v.app || v.item || this.routeLabel(v.view);
+  },
+  // The right-hand half: short, muted, and never the address. It answers "which
+  // one of these" rather than repeating what the label already said.
+  visitDetail(v){
+    if (!v) return '';
+    if (v.kind === 'unrecognized') return 'unrecognized';
+    if (v.kind === 'payload') return this.visitBytes(v.bytes);
+    if (v.kind === 'stage') {
+      const n = String(v.spec || '').split(',').filter(Boolean).length;
+      return n ? n + (n === 1 ? ' file' : ' files') : '';
+    }
+    if (v.kind === 'toss') return (v.repo || '').split('/')[1] || v.repo || '';
+    // A route whose label was spent on the specific thing names its route here;
+    // one that used the route name as its label names its repo instead, so the
+    // two halves never say the same word twice.
+    const named = this.visitLabel(v) === this.routeLabel(v.view);
+    return named ? ((v.repo || '').split('/')[1] || '') : this.routeLabel(v.view);
+  },
+  visitBytes(n){
+    if (!n) return 'not stored';
+    return n < 1024 ? n + ' B'
+      : n < 1024 * 1024 ? Math.round(n / 1024) + ' KB'
+      : (n / (1024 * 1024)).toFixed(1) + ' MB';
+  },
+  // A payload row and an unrecognized row have nowhere to go, by construction.
+  visitOpenable(v){ return !!v && v.kind !== 'payload' && v.kind !== 'unrecognized'; },
+
   syncUrl(){
     this.dropDecksOnNav();
     const qs = this.deepLinkParams(new URLSearchParams(location.search)).toString();
@@ -5737,7 +6154,7 @@ function app(){ return {
     // while restoring from a popstate, replaces in place instead, so Back never
     // needs a double press and popstate restoration doesn't re-push.
     if (this._restoring || next === cur) history.replaceState(null, '', next);
-    else history.pushState(null, '', next);
+    else this._pushVisit(next);
     // The tab names what the address names: the product, plus the open repo
     // exactly when deepLinkParams stamps `repo` (off the default only), owner
     // dropped the way the sidebar crumb drops it. Stamped here rather than in
@@ -5756,6 +6173,26 @@ function app(){ return {
     // reliably sees an app view being LEFT. A watcher on `view` would miss the
     // boot case, where the shell arrives on a route without ever changing it.
     if (this.view !== 'app') { this._appTitle = ''; this.resetAppIcon(); }
+  },
+
+  // PUSH, THEN RECORD ONLY IF THE PUSH TOOK, which is not defensive coding but
+  // a measured fix. Inside a #gh= toss the renderer wraps pushState to swallow
+  // a SecurityError (a relative push resolves against the stamped <base>, which
+  // matches neither the frame's blob: document nor this origin), so the call is
+  // a silent no-op. `cur` then never moves, `next !== cur` stays true forever,
+  // and a recorder hanging off the branch alone logs a visit on EVERY syncUrl
+  // of a previewed app. A blob inherits its creator's origin, so those rows land
+  // in the same localStorage the real app reads: previewing the app on a branch
+  // would quietly fill the reader's own log.
+  //
+  // Measured, not reasoned about: a headless toss of app/index.html had two
+  // visits recorded before anything was clicked. Reading the address back makes
+  // the log depend on what actually happened rather than on which branch of an
+  // if was taken, which is the same move recordVisit already makes by hanging
+  // off syncUrl's own push/replace decision instead of inventing a second one.
+  _pushVisit(next){
+    history.pushState(null, '', next);
+    if (location.pathname + location.search + location.hash === next) this.recordVisit(next);
   },
 
   // Its own method because the mark arrives LATE, after the address is
@@ -6008,8 +6445,8 @@ function app(){ return {
   // 404ing into Repos; the pane no longer switches on which one arrived.
   goTodo(){ this.estateSeen = true; this.view = 'todo'; this.syncUrl(); },
   goJots(){ this.estateSeen = true; this.view = 'jots'; this.syncUrl(); },
-  // The Map view: the coordination layer made inspectable (the portable set +
-  // per-repo scope + adoption). Renamed from "Portable"; goPortable stays as a
+  // The Map view: the coordination layer made inspectable (the Distribution
+  // crosswalk plus per-repo scope and adoption). Renamed from "Portable"; goPortable stays as a
   // thin alias so any caller or old ?view=portable link still resolves.
   //
   // The tab or subview is addressable (?view=map&tab=docs), on the same `tab` key the
@@ -6099,9 +6536,21 @@ function app(){ return {
         .finally(() => { mark(key, false); checked(false); });
     };
     Promise.all([
-      kick('configs', () => this.refreshConfigCache?.()),
-      kick('activity', () => this.refreshActivityCache?.(false, { deep: false })),
-      kick('sessions', () => this.refreshSessionsCache?.()),
+      kick('configs', async () => {
+        const r = await this.refreshConfigCache?.();
+        if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
+        return r;
+      }),
+      kick('activity', async () => {
+        const r = await this.refreshActivityCache?.(false, { deep: false });
+        if (r?.committed) this.announceActivity(r);
+        return r;
+      }),
+      kick('sessions', async () => {
+        const r = await this.refreshSessionsCache?.();
+        if (r?.committed) this.announceSessions(r);
+        return r;
+      }),
     ]).then(() => checked(true));
     // Announced even when the view is already mounted: arriving from a second
     // age pill has to move the highlight, and re-setting `view` to the value it
