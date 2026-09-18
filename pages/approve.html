@@ -58,6 +58,7 @@
   }
   try {
     await gh.load('gh-store.js');
+    await gh.load('kits/swipe-deck.js');
     await gh.load('kits/cm6-merge.js');
     await gh.load('alpineComponents/file-review.js');
     await gh.load('kits/annotate.js');
@@ -65,22 +66,34 @@
 </script>
 <style>[x-cloak]{display:none!important}</style>
 </head>
-<body class="min-h-dvh bg-base-200 text-base-content" x-data="approveApp()" x-cloak>
+<!-- NO PAGE HEADER, AND THE SET IS A DECK. The page used to open on a strip of
+     its own chrome (a seal, the request's name, its kind and occasion, a notes
+     button), then the id and branch, then the rationale, then a bordered frame
+     holding every item stacked. On a phone that is most of a screen before the
+     first thing anyone came to read, and the frame put a second box around
+     cards that already have edges.
+     The house format for a set you go THROUGH is the swipe deck, so the set is
+     one: the ask is slide one and each item is its own after it. Nothing is
+     nested, so a change container gets the full width, and the only chrome left
+     is the row of decisions at the foot, which is what the page is for.
+     `h-dvh` with the deck growing, not `min-h-dvh`: a track has to be given a
+     height to snap inside. Normal flow rather than `fixed inset-0`, since this
+     page is framed as an app view and rule 5 of the house style is that a fixed
+     child measures against the OUTER viewport. -->
+<body class="h-dvh flex flex-col bg-base-100 text-base-content overflow-hidden"
+      x-data="approveApp()" x-cloak>
 
-<!-- Normal flow with sticky chrome, not `fixed inset-0`: this page is meant to
-     be framed as an app view, and rule 5 of the house style is that a fixed
-     child measures against the OUTER viewport, so its right-hand column is cut
-     off inside a narrower iframe and headless Chromium will not reveal it. -->
-<header class="sticky top-0 z-30 bg-base-100 border-b border-base-300 flex items-center gap-2 px-3 py-2">
-  <i class="ph ph-seal-check text-primary shrink-0"></i>
-  <span class="font-semibold truncate" x-text="env?.manifest?.name || 'Approve'"></span>
-  <div class="grow"></div>
-  <span class="text-xs opacity-60 font-mono hidden sm:inline" x-text="ctx.kind"></span>
-  <span class="text-xs opacity-60 font-mono" x-show="ctx.occasion" x-text="ctx.occasion"></span>
-  <button class="btn btn-ghost btn-sm" @click="toggleNotes()" x-show="env" :class="noting && 'text-primary'">
-    <i class="ph ph-note-pencil"></i><span x-text="notes.length || ''"></span>
-  </button>
-</header>
+<div x-show="loading" class="flex items-center gap-2 opacity-70 px-3 py-3">
+  <span class="loading loading-spinner loading-sm"></span> Loading
+</div>
+<div x-show="error" class="alert alert-error py-2 px-3 m-3">
+  <i class="ph ph-warning-circle"></i><span x-text="error"></span>
+</div>
+
+<!-- The track lives here and the slides are filled from the pool below. Alpine
+     builds each section once, with its bindings; the deck MOVES the node rather
+     than re-rendering it, so nothing is built twice and nothing loses state. -->
+<main class="grow min-h-0" x-ref="deck"></main>
 
 <!-- grid-cols-[minmax(0,1fr)], not a bare `grid`. A grid item defaults to
      min-width:auto, so one wide descendant (a code fence with long lines) sizes
@@ -89,14 +102,22 @@
      paragraphs did not wrap and the card clipped them with overflow-hidden.
      Letting the column shrink below its content is what hands the overflow back
      to the objects that know how to scroll. -->
-<main class="px-3 py-3 grid grid-cols-[minmax(0,1fr)] gap-3 content-start">
+<div x-ref="pool" class="hidden">
 
-  <div x-show="loading" class="flex items-center gap-2 opacity-70">
-    <span class="loading loading-spinner loading-sm"></span> Loading
-  </div>
-  <div x-show="error" class="alert alert-error py-2 px-3">
-    <i class="ph ph-warning-circle"></i><span x-text="error"></span>
-  </div>
+  <section data-slide class="h-full overflow-y-auto px-3 py-3 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
+    <div class="flex items-baseline gap-2 flex-wrap">
+      <i class="ph ph-seal-check text-primary"></i>
+      <span class="font-semibold" x-text="env?.manifest?.name || 'Approve'"></span>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap font-mono text-xs opacity-60">
+      <span x-text="ctx.id"></span>
+      <span x-show="ctx.occasion" x-text="ctx.occasion"></span>
+      <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
+         target="_blank" class="link link-hover" x-text="ctx.branch"></a>
+      <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link link-hover">session</a>
+    </div>
+    <p class="text-pretty" x-text="ctx.rationale"></p>
+  </section>
 
   <!-- The author's reason, first. It is what the decision is about; the diffs
        below are the evidence for it. Labelled rather than boxed, so the page
@@ -111,17 +132,19 @@
     <p class="text-pretty" x-text="ctx.rationale"></p>
   </section>
 
-  <!-- ONE frame around the whole set, with a hairline between items, which is
-       what pages/review.html does with its file cards. A box per item made the
-       page read as unrelated tiles and buried the thing they have in common. -->
-  <!-- divide-[var(--color-base-300)], not divide-base-300: daisyUI ships no
-       divide- utility in its colour families, so the plain name compiles to
-       nothing and the hairlines would silently be browser-default grey. Caught
-       by the dead-colour-utility test, which names the substitution. -->
-  <div x-show="items.length" class="border border-base-300 rounded-lg overflow-hidden bg-base-100
-              divide-y divide-[var(--color-base-300)]">
-    <template x-for="it in items" :key="it.id">
-      <section class="p-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+  <!-- One item per slide, so no frame around the set and no box inside one: the
+       item IS the screen. The bordered frame that used to hold them made the
+       page read as a stack of tiles and cost the change container its width. -->
+  <!-- A PLAIN TEMPLATE, NOT x-for. The first version generated the item
+       sections with x-for and moved the nodes into the deck's slides; Alpine
+       owns an x-for's output, re-created it in the pool behind the move, and
+       the slides ended up holding detached copies with nothing in them.
+       Measured: three slides, zero change containers. So the deck clones this
+       template per item and gives each clone its own `it` before Alpine
+       initialises it, which is the ordinary way to hand one record to one
+       subtree. -->
+  <template x-ref="itemTpl">
+    <section data-slide class="h-full overflow-y-auto px-2 py-2 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
 
         <div class="flex items-baseline gap-2 flex-wrap">
           <span class="font-medium font-mono" x-text="it.title"></span>
@@ -168,11 +191,9 @@
                status: it.change?.status, patch: it.change?.patch,
                open: true, bare: true, read: true, openOn: 'mddiff' })"></div>
 
-      </section>
-    </template>
-  </div>
-
-</main>
+    </section>
+  </template>
+</div>
 
 <footer class="sticky bottom-0 z-30 bg-base-100 border-t border-base-300 px-3 py-2 grid gap-2">
 
@@ -186,6 +207,10 @@
        decision surface whose "no" is harder to reach than its "yes" collects
        agreement rather than decisions. -->
   <div class="flex gap-2 items-center" x-show="env && !sent">
+    <button class="btn btn-ghost btn-sm shrink-0" @click="toggleNotes()" :class="noting && 'text-primary'"
+            title="Take notes on this request" aria-label="Take notes on this request">
+      <i class="ph ph-note-pencil"></i><span x-text="notes.length || ''"></span>
+    </button>
     <button class="btn btn-sm grow" @click="send('returned')" :disabled="sending">
       <i class="ph ph-arrow-u-up-left"></i> Return
     </button>
@@ -224,6 +249,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     get ctx() { return this.env?.context || {}; },
+    itemAt(i) { return this.items[i] || {}; },
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -275,6 +301,37 @@ document.addEventListener('alpine:init', () => {
         this.error = e.message;
       }
       this.loading = false;
+      // After the sections exist, not before: x-for has to have run for there
+      // to be anything to move.
+      this.$nextTick(() => this.deck());
+    },
+
+    // THE SET IS A DECK, and the slides are the sections Alpine already built.
+    // `render` MOVES a node out of the pool rather than constructing one, so
+    // every binding, every mounted card and every bit of state comes with it
+    // and nothing is built twice. The deck builds lazily, so a request with
+    // twenty items still costs three slides on open.
+    //
+    // `slideScroll: false` because each section owns its own vertical scroll:
+    // the deck's own padding is what would inset a change container from the
+    // edge, and the whole point of moving to a deck was to stop nesting.
+    // `snapStop` for the reason the change containers have it: a set is stepped
+    // through, not flicked past.
+    deck() {
+      const host = this.$refs.deck, pool = this.$refs.pool;
+      if (!host || !pool || !window.swipeDeck) return;
+      const ask = pool.querySelector('[data-slide]');
+      const tpl = this.$refs.itemTpl;
+      if (!ask || !tpl) return;
+      host.textContent = '';
+      const d = window.swipeDeck.core(1 + this.items.length, (n, slide) => {
+        if (n === 0) { slide.append(ask); return; }
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        node.setAttribute('x-data', `{ it: itemAt(${n - 1}) }`);
+        slide.append(node);
+        window.Alpine.initTree(node);
+      }, { slideScroll: false, innerClass: 'w-full h-full min-w-0', snapStop: true });
+      host.append(d.track);
     },
 
     async send(decision) {
