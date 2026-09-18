@@ -97,10 +97,12 @@ GENERATED = re.compile(r"generated\b.*\b(from|by)\b|do not hand-edit", re.I)
 # that kind; a single file inside docs/ is not reachable that way, and naming it
 # here would put one repo's filenames in a portable gate.
 #
-# So the document declares it, in the sentence a reader sees, and this reads the
+# So the document says it, in the sentence a reader sees, and this reads the
 # same sentence. One statement, one owner, which is the estate's own rule about
-# where a fact lives.
-NEEDS_NO_APPROVAL = re.compile(r"\bneeds no approval\b", re.I)
+# where a fact lives. The shape is the instruction as a person writes it, "do
+# not ask ... to approve", rather than a machine token: a reader who has never
+# heard of this gate still learns the intake rule from it.
+DO_NOT_ASK = re.compile(r"\bdo not ask\b[^.]{0,40}\bapprove\b", re.I)
 
 
 def declares_free(root, rel):
@@ -109,7 +111,7 @@ def declares_free(root, rel):
             head = "".join(next(fh, "") for _ in range(12))
     except OSError:
         return False
-    return bool(NEEDS_NO_APPROVAL.search(head))
+    return bool(DO_NOT_ASK.search(head))
 
 
 def is_generated(root, rel):

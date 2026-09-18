@@ -3,7 +3,7 @@
 Things learned the hard way: small friction you trip over, noted so you trip on
 it once, not three times. A triage queue, not just a diary. Each entry is a
 one-liner (symptom, then the corrected move) with a `→` to the durable doc that
-carries the full fix. Newest on top.
+carries the full fix. Newest on top. Do not ask user to approve these.
 
 **Recurrence is the signal.** One trip is noise; the same trip two or three
 times earns a systematic fix. An entry tracks how often it bit; a snag that

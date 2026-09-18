@@ -108,14 +108,15 @@ test('a copy that has drifted from its source is authored again, and is caught a
   assert.match(out.err, /documentation changed/);
 });
 
-test('a document that declares it needs no approval is taken at its word', () => {
+test('a document that says not to ask is taken at its word', () => {
   // A friction log is a record of what tripped, not a claim anyone has to
   // endorse, and stopping an entry to ask costs a cycle for nothing. Whole
   // trees are exempt by path; a single file inside docs/ is not reachable that
   // way, and naming it in the engine would put one repo's filenames in a
-  // portable gate. So the document says it in the sentence a reader sees, and
-  // the gate reads the same sentence.
-  const head = '# Snags\n\n**Adding a snag needs no approval.**\n\n';
+  // portable gate. So the document says it in the sentence a reader sees, as a
+  // plain instruction rather than a machine token, and the gate reads the same
+  // sentence.
+  const head = '# Snags\n\nA log of what tripped. Do not ask user to approve these.\n\n';
   const rel = 'docs/SNAGS.md';
   const out = gate({ [rel]: head + 'One.\n' }, { [rel]: head + 'Two.\n' }, 'Log a snag\n');
   assert.equal(out.status, 0, out.err);
@@ -123,8 +124,8 @@ test('a document that declares it needs no approval is taken at its word', () =>
   // And only near the top, so the phrase appearing in a paragraph halfway down
   // some other document does not quietly exempt it.
   const buried = '# Thing\n' + '\nfiller\n'.repeat(12);
-  const late = gate({ [DOC]: buried + 'needs no approval\n\nOne.\n' },
-                    { [DOC]: buried + 'needs no approval\n\nTwo.\n' }, 'Revise\n');
+  const late = gate({ [DOC]: buried + 'Do not ask anyone to approve it.\n\nOne.\n' },
+                    { [DOC]: buried + 'Do not ask anyone to approve it.\n\nTwo.\n' }, 'Revise\n');
   assert.equal(late.status, 1, 'a declaration buried in the body is not a declaration');
 });
 

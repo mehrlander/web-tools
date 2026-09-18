@@ -2,7 +2,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-check-manifest.sh,"one-shot gated note: silent until a snapshot postdates the 2026-09-14 setup-script revision, then reports whether ~/.claude/env-manifest.txt landed and asks to be deleted",.claude/hooks,28,session:SessionStart,no,yes,no
 .claude/hooks/session-githooks.sh,points core.hooksPath at .githooks/ so the pre-commit refresher runs in this clone,.claude/hooks,36,session:SessionStart,no,yes,no
 .claude/hooks/session-start.sh,installs devDependencies once per container so headless rendering works,.claude/hooks,34,session:SessionStart,no,yes,no
-.claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,287,imported,no,no,yes
+.claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,289,imported,no,no,yes
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
