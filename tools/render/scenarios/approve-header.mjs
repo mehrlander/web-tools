@@ -28,6 +28,21 @@
 // the page stops drawing them. So the assertion is textual: none of the
 // envelope's commentary appears anywhere on the slide.
 //
+// ONE ROW OF CHROME, NOT TWO. md-diff draws a readout and a swipe/side toggle,
+// and left to itself it puts them in a sticky strip inside the document. On a
+// reading card that was a second row directly under the card's own, the two of
+// them saying different halves of one thing. The kit hands its controls to a
+// host that asks, so file-review asks and places them beside its view icons.
+// Asserted as the absence of the kit's own strip AND the presence of its text
+// in the card's row, since either alone would pass on a card that simply lost
+// the controls.
+//
+// AND THE FILE'S LINKS SIT BESIDE THE FILE'S NAME, which is the estate's
+// convention for a filename pointing at GitHub. The name is the deck's title
+// now, so the menu is the deck's title MARK, built by the page from the
+// addresses the request already carries. The card stands its own copy down
+// under `bare`, whose meaning widened to cover it.
+//
 // AND THE SUBHEADER BAND. The deck's subheader slot collapses with
 // `empty:hidden`, which is `:empty` and therefore false the moment the slot
 // holds any child at all. The page passed a wrapper whose alert is `x-show`-ed
@@ -84,6 +99,21 @@ export default async function (page) {
     return h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
   });
 
+  const chrome = await page.evaluate(() => {
+    const row = document.querySelector('[data-slide] .flex.items-center.gap-1');
+    const own = document.querySelector('.md-diff-doc > .sticky');
+    const menus = document.querySelectorAll('[data-slide] details.dropdown');
+    let visible = 0;
+    for (const m of menus) if (m.querySelector('.ph-github-logo') && m.offsetParent) visible++;
+    return {
+      rowText: row ? row.textContent.replace(/\s+/g, ' ') : null,
+      rowHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
+      ownStrip: !!own,
+      markInHeader: !!document.querySelector('.sd-header .ph-github-logo'),
+      menusOnSlide: visible,
+    };
+  });
+
   const jumpEdge = await page.evaluate(() => {
     const b = document.querySelector('.sd-header button[title="Next change"]');
     if (!b) return null;
@@ -91,7 +121,7 @@ export default async function (page) {
     return { w: cs.borderTopWidth, mr: cs.marginRight };
   });
 
-  const seen = { band, start, one, two, approve, head, next, jumpEdge, prose: prose.slice(0, 120) };
+  const seen = { band, start, one, two, approve, head, next, chrome, jumpEdge, prose: prose.slice(0, 120) };
   const bad = (m) => { throw new Error(`approve-header: ${m}, got ${JSON.stringify(seen)}`); };
 
   if (band.present && band.h > 0) bad('the empty subheader still draws a band under the header');
@@ -108,6 +138,18 @@ export default async function (page) {
   if (/Adds a fourth marker flavor/.test(prose)) bad("the item's commentary is still drawn above the document");
   if (/Answers to/.test(prose)) bad('the related links are still drawn above the document');
   if (!/README\.md/.test(next)) bad('the header did not follow the reader to the next file');
+  if (chrome.ownStrip) bad("md-diff still draws its own strip, so the card has two rows of chrome");
+  // The readout says "10 changes" at rest and "2 / 10" once a change is
+  // claimed, and the jumps above have already claimed one by this point, so the
+  // check has to accept either. Asserting the resting wording alone failed here
+  // on the first run, against a row that was perfectly correct.
+  if (!/\d+ changes|\d+ \/ \d+/.test(chrome.rowText || ''))
+    bad("md-diff's readout never reached the card's row");
+  if (!/swipe/.test(chrome.rowText || '')) bad("md-diff's layout toggle never reached the card's row");
+  if (chrome.rowHeight > 40) bad('the control row is taller than one row');
+  if (!chrome.markInHeader) bad('the github menu is not beside the file name in the header');
+  if (chrome.menusOnSlide) bad('the card still draws its own github menu, so there are two');
+  if (!/web-tools/.test(head)) bad('the header does not name the repository');
   if (!jumpEdge) bad('no jump button to measure');
   if (parseFloat(jumpEdge.w) <= 0) bad('the jump button has no visible edge beside the green check');
   if (parseFloat(jumpEdge.mr) <= 0) bad('the jump button sits flush against the green check');

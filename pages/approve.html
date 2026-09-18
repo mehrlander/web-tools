@@ -258,7 +258,60 @@ document.addEventListener('alpine:init', () => {
     // them. The request's own name and id are in the envelope and on the link;
     // the header is for what is on screen.
     nameOf(it) { const p = this.pathOf(it) || ''; return p.split('/').pop() || p; },
-    dirOf(it) { const p = this.pathOf(it) || ''; const i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); },
+    // THE REPO IS PART OF THE ADDRESS, not a detail. A reader working across
+    // several repositories in one afternoon meets a header saying SKILL.md and
+    // has no way to tell which estate it belongs to, and the request names one
+    // repo for the whole set so the answer is always available. Folder after
+    // it, since the repo is the coarser half.
+    dirOf(it) {
+      const p = this.pathOf(it) || '';
+      const i = p.lastIndexOf('/');
+      // The repo NAME, not owner/name. At 390px the full address left
+      // "mehrlander/web-tools · .claude/…", which spends the width on the half
+      // that never varies and truncates away the half that does. Every repo a
+      // reader meets here is one of a handful under one owner, so the name
+      // alone identifies it, and the full address is one tap away in the mark
+      // beside the title.
+      const repo = (this.repoOf() || '').split('/').pop();
+      return [repo, i < 0 ? '' : p.slice(0, i)].filter(Boolean).join(' · ');
+    },
+    // THE FILE'S LINKS, BESIDE THE FILE'S NAME. The estate's convention is that
+    // a filename pointing at GitHub carries this dropdown next to it; in the
+    // card's control row it sat nowhere near the name, and the name is in the
+    // deck header now. `setTitleMark` is the deck's slot for a mark belonging
+    // to the NAME rather than to the header's controls, which is exactly what
+    // this is, so the card stands its own copy down under `bare`.
+    //
+    // Built from what the page already holds rather than read off the card:
+    // the request names the repo, the branch and the base, and the item names
+    // the path. That is three of the card's five rows. The two it cannot build
+    // are Last commit, which costs a fetch, and Render, which the card drops
+    // here anyway since its first view icon opens exactly that.
+    ghMark(it) {
+      const path = this.pathOf(it);
+      if (!path) return null;
+      const repo = this.repoOf(), br = this.ctx.branch || 'HEAD', base = this.baseOf();
+      const rows = [
+        ['ph-file', 'This version', '', `https://github.com/${repo}/blob/${br}/${path}`],
+        ['ph-git-branch', 'Base version', base, `https://github.com/${repo}/blob/${base}/${path}`],
+        ['ph-file-text', 'Raw', '', `https://raw.githubusercontent.com/${repo}/${br}/${path}`],
+      ];
+      const d = document.createElement('details');
+      d.className = 'dropdown dropdown-start shrink-0';
+      d.innerHTML = '<summary class="btn btn-ghost btn-xs gap-0.5 px-1 cursor-pointer" '
+        + 'title="This file on GitHub"><i class="ph ph-github-logo text-base"></i>'
+        + '<i class="ph ph-caret-down text-[10px] opacity-50"></i></summary>'
+        + '<ul class="dropdown-content menu menu-sm z-30 mt-1 w-56 rounded-box border '
+        + 'border-base-300 bg-base-100 p-1 shadow-lg">'
+        + rows.map(([icon, label, hint, url]) =>
+            `<li><a href="${url}" target="_blank" rel="noopener" class="gap-2 flex-nowrap">`
+            + `<i class="ph ${icon} shrink-0"></i><span class="shrink-0">${label}</span>`
+            + '<span class="grow"></span>'
+            + `<span class="font-mono text-xs opacity-40 shrink-0">${hint}</span></a></li>`).join('')
+        + '</ul>';
+      d.addEventListener('click', (e) => { if (e.target.closest('a')) d.open = false; });
+      return d;
+    },
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
     repoOf() { return this.ctx.repo || (this.ctx.reply_to || '').split(':')[0]; },
@@ -365,9 +418,13 @@ document.addEventListener('alpine:init', () => {
           const it = this.itemAt(i);
           this._deck.setTitle(this.nameOf(it) || 'Approve');
           this._deck.setSubtitle(this.dirOf(it));
+          this._deck.setTitleMark(this.ghMark(it));
         },
         onClose: () => { this._deck = null; this.$nextTick(() => this.deck()); },
       });
+      // `title` and `subtitle` are open() options and the mark is not, so the
+      // first slide's gets set here. onSlide only fires on a scroll.
+      this._deck.setTitleMark(this.ghMark(this.itemAt(0)));
     },
 
     async send(decision) {
