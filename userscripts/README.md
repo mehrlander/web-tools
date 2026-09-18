@@ -87,13 +87,30 @@ refuse the same way.
   through a token held on the web-tools origin, which a foreign origin does not
   have and must not be given, and Inspect lists what `gh.load()` fetched, which
   on a foreign page is nothing. What a foreign page does hold is its own
-  content, so the three panes are the three answers it can give.
+  content, so the four panes are the answers it can give.
 
   | Pane | Holds |
   | --- | --- |
   | Page | title, address, description, and the selection, read on each open |
   | Links | every off-page link, deduped by address, each one tickable |
   | Text | the page's own prose, from its `<article>` or the densest block |
+  | Take | artifact extraction suite: full HTML snapshot, Markdown brief, Envelope JSON, and Jina AI Reader |
+
+  **Ambient Errand Sensing & Execution.** When visiting a host with an open errand
+  registered in [`courier/errands.json`](../courier/errands.json), the launcher
+  illuminates with an amber accent and badge indicator. An Errand row appears in
+  the hold-menu, and an Errand banner sits atop the drawer allowing one-tap
+  execution directly in the host page context. Errand results can be copied or
+  handed off directly to the Web Tools Stage via gzip compression in the URL fragment.
+
+  **Take / Content Extraction Suite.** Mirroring the primary Web Tools FAB "Take"
+  concept for arbitrary pages, the Take tab offers:
+  - **HTML:** Clean outerHTML snapshot of the full page DOM.
+  - **Markdown:** Composed document containing page metadata, user selection, and prose.
+  - **Metadata JSON:** Structured envelope of page metadata, links, and text.
+  - **Jina Reader:** Integration with Jina AI Reader (`r.jina.ai/<url>`) with fallback to "Open in Jina ↗".
+  Each artifact calculates live payload sizes and packages gzip streams into Stage
+  handoff links when under the 24 KB fragment budget.
 
   The header carries a **refresh**, because a read is a moment and a news front
   page is not. **Collect** answers the harder version: a virtual-scroll feed
