@@ -116,6 +116,21 @@ export default async function (page, ctx) {
       // than a card, and a one-line change is a short thing legitimately.
       drawn: [...boxes].filter((b) => b.getBoundingClientRect().height > 24).length,
       hosted: !!host,
+      // AND THE OTHER ROUTE IN, which is the one that was broken. Everything
+      // above got here through pickView, so through setTab, which draws. A host
+      // that asks the card to LAND on this pane goes through load() instead,
+      // and load set the tab without ever calling the renderer: the card opened
+      // on an empty box. pages/approve.html is the only host that asks, so the
+      // app looked fine and the approval surface looked as though the view had
+      // been dropped. Re-opening the same card is enough to separate the two.
+      openedOn: await (async () => {
+        c.openOn = 'mddiff';
+        c.loaded = false; c._picked = false; c.tab = 'read';
+        if (c.$refs && c.$refs.mdDiffHost) c.$refs.mdDiffHost.textContent = '';
+        await c.load();
+        await wait(1800);
+        return { tab: c.tab, containers: document.querySelectorAll('.md-diff-change').length };
+      })(),
     };
   }, { BEFORE, AFTER });
 
@@ -124,6 +139,12 @@ export default async function (page, ctx) {
   if (!out.containers) throw new Error('rendered-compare: no change containers drawn');
   if (out.drawn !== out.containers) {
     throw new Error(`rendered-compare: ${out.containers - out.drawn} container(s) with no height`);
+  }
+  if (out.openedOn.tab !== 'mddiff') {
+    throw new Error(`rendered-compare: openOn did not land, got ${out.openedOn.tab}`);
+  }
+  if (!out.openedOn.containers) {
+    throw new Error('rendered-compare: it landed on the rendered comparison and drew nothing');
   }
   await page.waitForTimeout(500);
 }
