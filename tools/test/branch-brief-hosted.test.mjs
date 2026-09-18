@@ -538,17 +538,17 @@ test('files and the guide are tabs over one pane, files first in the tree', asyn
   assert.ok(list && list.style.display !== 'none', 'the file list is on screen');
   assert.ok(list.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
   assert.ok(guide.textContent.includes('#443'), 'and the guide is in the tree beside it');
-  // ASKING FOR ONE HIDES THE OTHER, since 2026-09-07. This asserted the
-  // opposite, which was the whole difference from a tab while both sections
-  // shared one scroll; they ARE tabs now, over one pane the locked layout can
-  // divide, so the swap is the point rather than the thing being avoided.
+  const topStrip = d.$el.querySelector('[x-ref="topStrip"]');
+  assert.ok(topStrip, 'top strip exists for swiping between files and guide');
+  assert.equal(d.topPane, 'files');
   d.setPane('guide');
   await tick(6);
-  assert.equal(files.style.display, 'none', 'the list steps aside');
+  assert.equal(d.topPane, 'guide', 'switched to guide pane');
   assert.notEqual(guide.style.display, 'none', 'and the guide has the pane');
   d.setPane('files');
   await tick(6);
-  assert.notEqual(files.style.display, 'none', 'and back');
+  assert.equal(d.topPane, 'files', 'and back');
+  assert.notEqual(files.style.display, 'none');
 });
 
 test('with no PR, the commits are the account, and they are read without asking', async () => {

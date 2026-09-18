@@ -224,3 +224,65 @@ test('lent pages populate pageChips while brief is pending', async () => {
   assert.equal(d.pageChips[0].path, 'pages/branch.html');
 });
 
+test('desktop arrow keys step through reviewable files when hovered over review section', async () => {
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows', base: 'main',
+                                           facts: { ahead: 2, behind: 0 }, sha: '${TIP}' })`);
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(8);
+  const d = Alpine.$data(el);
+  d.brief = {
+    ...d.brief,
+    files: [
+      { path: 'docs/a.md', status: 'modified' },
+      { path: 'docs/b.md', status: 'modified' },
+    ],
+  };
+  await tick(4);
+  assert.equal(d.reviewableFiles.length, 2, 'two reviewable files exist');
+  assert.equal(d.revAt, 0, 'starts at first file');
+
+  d.revHovered = true;
+  const evtRight = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
+  window.dispatchEvent(evtRight);
+  assert.equal(d.revAt, 1, 'ArrowRight steps to second reviewable file');
+  assert.equal(evtRight.defaultPrevented, true, 'and prevents default');
+
+  const evtLeft = new window.KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true, bubbles: true });
+  window.dispatchEvent(evtLeft);
+  assert.equal(d.revAt, 0, 'ArrowLeft steps back to first reviewable file');
+  assert.equal(evtLeft.defaultPrevented, true, 'and prevents default');
+  el.remove();
+});
+
+test('desktop arrow keys switch between files and guide when hovered over top section', async () => {
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows-top', base: 'main' })`);
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(8);
+  const d = Alpine.$data(el);
+  d.brief = {
+    ...d.brief,
+    prs: [{ number: 10, title: 'PR 10', body: 'Guide content', state: 'open' }],
+    files: [{ path: 'src/app.js', status: 'modified' }],
+  };
+  await tick(4);
+  assert.equal(d.hasGuide, true, 'branch has guide');
+  d.setPane('files');
+  assert.equal(d.topPane, 'files');
+
+  d.topHovered = true;
+  const evtRight = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
+  window.dispatchEvent(evtRight);
+  assert.equal(d.topPane, 'guide', 'ArrowRight switches to guide');
+  assert.equal(evtRight.defaultPrevented, true, 'and prevents default');
+
+  const evtLeft = new window.KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true, bubbles: true });
+  window.dispatchEvent(evtLeft);
+  assert.equal(d.topPane, 'files', 'ArrowLeft switches back to files');
+  assert.equal(evtLeft.defaultPrevented, true, 'and prevents default');
+  el.remove();
+});
+
