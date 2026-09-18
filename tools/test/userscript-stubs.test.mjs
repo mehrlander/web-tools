@@ -31,7 +31,8 @@ const BUILT = /^const BUILT = '([^']*)';$/m;
 const REF = /^const REF = '([^']*)';$/m;
 const fnName = lib => 'wt' + lib.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('');
 const stampOf = text => crypto.createHash('sha256').update(
-  text.replace(STAMP, "const BUILD = '#BUILD#';")
+  text.replace(/\r\n/g, '\n')
+      .replace(STAMP, "const BUILD = '#BUILD#';")
       .replace(BUILT, "const BUILT = '#BUILT#';")
       .replace(REF, "const REF = '#REF#';")).digest('hex').slice(0, 7);
 const manifest = JSON.parse(
