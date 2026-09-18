@@ -25,10 +25,11 @@
                   successes, so the standing counts lead the header rather than
                   being tucked behind a total.
     proposals    A browser projection rebuilt from projects/text's declared
-                 phrase-review and document-audit sources. It carries prior
-                 source-occurrence revisions with their provenance. It is not
-                 the ignored full-text collection and does not claim that a
-                 proposal applies to the document a reader has open.
+                 phrase-review, document-audit, and web-tools paragraph sources.
+                 It carries prior source-occurrence revisions with their
+                 provenance. It is not the ignored full-text collection and
+                 does not claim that a proposal applies to the document a
+                 reader has open.
     instruments  projects/text/INSTRUMENTS.md, rendered. Organised by
                  unit of analysis (word, term of art, named entity, speaker,
                  sentence, document), because that is the question a session
@@ -96,6 +97,7 @@
         { key: '', label: 'all sources' },
         { key: 'phrase-reviews', label: 'phrase reviews' },
         { key: 'audit-packet', label: 'document audit' },
+        { key: 'web-tools-paragraphs', label: 'web-tools paragraphs' },
       ],
       PROPOSAL_ACTIONS: [
         { key: '', label: 'all actions' },
@@ -105,6 +107,7 @@
         { key: 'repair', label: 'repair' },
         { key: 'tighten', label: 'tighten' },
         { key: 'extract', label: 'extract' },
+        { key: 'half-length', label: 'half-length' },
       ],
 
       // The page's only coloured dimension.
@@ -333,6 +336,8 @@
             items: rows.filter(row => row.lane === 'phrase-reviews') },
           { lane: 'audit-packet', label: 'Document audit',
             items: rows.filter(row => row.lane === 'audit-packet') },
+          { lane: 'web-tools-paragraphs', label: 'Web-tools paragraphs',
+            items: rows.filter(row => row.lane === 'web-tools-paragraphs') },
         ].filter(group => group.items.length);
       },
 
@@ -353,11 +358,17 @@
       proposalOriginSource(origin) { return origin?.source || {}; },
       proposalOriginContext(origin) { return origin?.context || {}; },
       proposalOriginPatient(origin) { return origin?.patient || {}; },
+      proposalOriginDocument(origin) { return origin?.document || {}; },
       proposalOriginLabel(origin) {
         const source = this.proposalOriginSource(origin);
         const context = this.proposalOriginContext(origin);
-        const bits = [source.path || 'source'];
-        if (origin?.record !== undefined && origin?.record !== '') bits.push(`record ${origin.record}`);
+        const document = this.proposalOriginDocument(origin);
+        const bits = [];
+        if (document.label) bits.push(document.label);
+        else bits.push(source.path || 'source');
+        if (!document.label && origin?.record !== undefined && origin?.record !== '') {
+          bits.push(`record ${origin.record}`);
+        }
         if (context.section) bits.push(context.section);
         // The sha names the exact blob; the href does not resolve to it, so the
         // label says which. Showing the two together unqualified read as a
@@ -826,6 +837,32 @@
                             <template x-if="!proposalOriginPatient(origin).url">
                               <span x-text="proposalOriginPatient(origin).repo + '/' + proposalOriginPatient(origin).path"></span>
                             </template>
+                          </div>
+                        </template>
+
+                        <template x-if="proposalOriginDocument(origin).path">
+                          <div class="font-mono text-xs opacity-50 grid gap-1">
+                            <div>
+                              Document:
+                              <template x-if="proposalOriginDocument(origin).url">
+                                <a class="link link-hover" :href="proposalOriginDocument(origin).url"
+                                   target="_blank" rel="noopener"
+                                   x-text="proposalOriginDocument(origin).label || (proposalOriginDocument(origin).repo + '/' + proposalOriginDocument(origin).path)"></a>
+                              </template>
+                              <template x-if="!proposalOriginDocument(origin).url">
+                                <span x-text="proposalOriginDocument(origin).label || proposalOriginDocument(origin).path"></span>
+                              </template>
+                            </div>
+                            <div x-show="origin.agent || origin.signedAt || origin.targetRatio !== null"
+                                 class="opacity-70">
+                              <span x-show="origin.agent" x-text="origin.agent"></span>
+                              <span x-show="origin.signedAt"
+                                    x-text="(origin.agent ? ' · ' : '') + 'signed ' + origin.signedAt"></span>
+                              <span x-show="origin.targetRatio !== null && origin.targetRatio !== undefined"
+                                    x-text="' · targetRatio ' + origin.targetRatio"></span>
+                              <span x-show="origin.document && origin.document.import_id"
+                                    x-text="' · import ' + origin.document.import_id + ' (provenance only)'"></span>
+                            </div>
                           </div>
                         </template>
 
