@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name        wt launcher
-// @description The Web Tools launcher on pages that have none of their own. Tap for a drawer: what this page is, what it links to, what it says. Collect keeps gathering as you scroll a feed.
+// @description Web Tools launcher
 // @match       *://*/*
-// @version     c89dfb1
-// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=c89dfb1
+// @version     004b72f
+// @require     https://raw.githubusercontent.com/mehrlander/web-tools/main/userscripts/lib/launcher.js?v=004b72f
 // @grant       GM.xmlHttpRequest
 // @grant       GM.getValue
 // @grant       GM.setValue
@@ -50,7 +50,7 @@
               if (res.status < 200 || res.status >= 300) return;
               const data = JSON.parse(res.responseText);
               const latestBuild = data?.['launcher']?.build;
-              const activeBuild = await getVal('wt_launcher_build') || 'c89dfb1';
+              const activeBuild = await getVal('wt_launcher_build') || '004b72f';
               if (latestBuild && latestBuild !== activeBuild) {
                 xhr({
                   method: 'GET',
