@@ -68,6 +68,18 @@ nesting section.
 equivalent). Both words have legitimate English uses, so write the pattern and
 its exemptions from what survives step 2, not before.
 
+## Related
+
+- `app/index.html`: `?shell=` / `shellMode` live here; split into `?header=` and `?sidebar=`
+- `docs/showing.md`: three senses of `shell` in one nesting section
+- `docs/APP.md`: application naming split step 2 aligns with
+- `docs/SNAGS.md`: `live-term-wider-referent` origin
+- `skills/daisy-alpine/SKILL.md`: definitional chrome rules 5 and 7
+- `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample
+- `tools/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned
+- task `promote-shortcuts-skill-to-plugin-5d74br`: cites this as the one-member-collective lesson
+- PR #425: analysis that filed the rename-vs-parts finding
+
 ## Done when
 `?header=` and `?sidebar=` are the address, `?shell=` resolves as a sunset alias,
 no sense above survives in living prose or identifiers, and a check holds it.
@@ -116,3 +128,4 @@ third value, so that half is settled and this note no longer asks it.
   (eight `=1` parameters against one `=off`), symmetry with `?sidebar=`, and the
   third state: absent has to mean the default, so a two-valued spelling cannot
   force-show.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

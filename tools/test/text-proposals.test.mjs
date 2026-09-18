@@ -468,6 +468,7 @@ test('web-tools paragraph lane rebuilds from gzip drafts_inventory with document
       drafts_inventory: WEB_TOOLS_PATH,
       run_id: 'demo',
       scanned_repo: 'mehrlander/web-tools',
+      scanned_commit: '6a3a1341abc4e33159f73c3b6f6e88078944a243',
       scan_method: 'blank-line paragraph scan',
       agent: 'Chief of Staff (Grok)',
       signedAt: '2026-09-16',
@@ -500,7 +501,9 @@ test('web-tools paragraph lane rebuilds from gzip drafts_inventory with document
   assert.equal(row.origins[0].document.paragraph, 1);
   assert.equal(row.origins[0].document.import_id, 'docs/demo.md:p001');
   assert.equal(row.origins[0].targetRatio, 0.5);
-  assert.match(row.origins[0].document.url, /docs\/demo\.md#L10-L12$/);
+  assert.equal(row.origins[0].document.commit, '6a3a1341abc4e33159f73c3b6f6e88078944a243');
+  assert.equal(row.origins[0].document.url,
+    'https://github.com/mehrlander/web-tools/blob/6a3a1341abc4e33159f73c3b6f6e88078944a243/docs/demo.md#L10-L12');
   assert.equal(row.origins[0].document.label.includes('p1'), true);
 
   // Duplicate original string from phrase lane + web-tools shares exact lookup.
@@ -517,6 +520,7 @@ test('load fetches gzip drafts_inventory through gh.bytes when the lane is decla
       drafts_inventory: WEB_TOOLS_PATH,
       inventory: 'projects/text/runs/demo/inventory.jsonl.gz',
       scanned_repo: 'mehrlander/web-tools',
+      scanned_commit: '6a3a1341abc4e33159f73c3b6f6e88078944a243',
       scan_method: 'blank-line paragraph scan',
       agent: 'Chief of Staff (Grok)',
       signedAt: '2026-09-16',

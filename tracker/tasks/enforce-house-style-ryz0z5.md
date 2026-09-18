@@ -42,7 +42,18 @@ is left here is the catching, not the finding.
 **Done when** a stat-card grid in a changed file fails the suite and the
 scanners reach files outside `lib app pages`.
 
+## Related
+
+- `docs/SNAGS.md`: third recurrence of `house-style-not-consulted`
+- `scripts/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
+- `scripts/stranded-titles.py`: sibling scanner with the same root limit
+- `.claude/skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
+- `skills/daisy-alpine/SKILL.md`: discovery half that PR #554 fixed
+- PR #554: style-guide discovery half
+- PR #565: rule 3 (reading columns) shipped; residual is rule 1 plus scanner roots
+
 ## Progress log
 - 2026-08-30: Filed at the third recurrence, per the conventions' rule that the third earns a task. The discovery half shipped in PR #554; this is the enforcement residual it does not cover.
 - 2026-09-01: Rule 3 landed on `claude/map-injection-tab-wrapping-veo5r5` (PR #565), which corrects this task's claim that rule 1 was the only rule with a mechanical tell. The guard ships in the portable plugin rather than under `scripts/`, which also answers the second bullet for this rule: a `PreToolUse` hook is path-independent, so a page built in `dump/` is covered even though the scanners' default roots are not. Rule 1 and the invocation-count reading are the residual.
 - 2026-09-17: Reframed to the residual, rule 1 plus the scanner roots (size M to S). Log entries reordered oldest first, this file having been the tracker's one internally inconsistent log after that day's append.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

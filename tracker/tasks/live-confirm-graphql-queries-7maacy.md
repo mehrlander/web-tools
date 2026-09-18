@@ -19,6 +19,14 @@ Called from one place, `fab.js`'s branch scan, behind a `typeof` guard and cache
 under a `walk|<repo>` key. That guard is why nothing has surfaced either way: a
 rejection costs session links on uncovered rows and says nothing.
 
+## Related
+
+- `lib/alpineComponents/fab.js`: sole call site (`branchSessions` behind a `typeof` guard)
+- `tools/test/fab-capture.test.mjs`: capture path that settled `branchesForPath`
+- task `fab-capture-button-f6q38m`: write-path sibling; a capture still confirms this
+- PR #297: `branchSessions` / `messageBody` shape
+- PR #339: partial-data graphql fix found by the first FAB capture
+
 ## Done when
 It runs on the throttled estate crawl (~12h per repo) and returns data. The
 confirming sight is a session icon on a **recent branch with no PR and no survey
@@ -41,3 +49,4 @@ text here.
 - 2026-09-04: Verified still live and still unconfirmed. Call site named above so
   the next session does not search for it. Body cut from 653 words.
 - 2026-09-17: Marked as XS fold-in on the next estate crawl with FAB capture, not a solo session.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

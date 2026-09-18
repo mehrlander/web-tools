@@ -13,26 +13,45 @@ const estateSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/estate.
 const branchBriefSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/branch-brief.js'), 'utf8');
 const sessionBriefSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
 
-test('estate.js branchRowBody aligns toss render pages with a single leading frisbee icon', () => {
+test('estate.js branchRowBody renders frisbee dropdown button and omits staging button', () => {
   // Extract branchRowBody definition
   const startMatch = estateSrc.match(/const branchRowBody = \(opts = \{\}\) => `([\s\S]*?)`;\s*return {/);
   assert.ok(startMatch, 'branchRowBody function found in estate.js');
   const body = startMatch[1];
 
-  // 1. Toss render pages strip (branchPageStrip)
-  assert.ok(body.includes('branchPageStrip(row).chips.length'), 'has branchPageStrip conditional');
+  // 1. Toss render pages frisbee button
+  assert.ok(body.includes('branchPages(row).length'), 'has branchPages conditional');
+  const frisbeeMatch = body.match(/<template x-if="branchPages\(row\)\.length">([\s\S]*?)<\/template>/);
+  assert.ok(frisbeeMatch, 'frisbee template block found');
+  const frisbeeBtn = frisbeeMatch[1];
   assert.ok(
-    body.includes('data-note="Pages this branch changed, rendered via toss"') &&
-    body.includes('data-note-bare>🥏</span>'),
-    'has single leading frisbee icon with standard data-note and data-note-bare'
+    frisbeeBtn.includes("@click.stop=\"openRowCard(row, 'renders', $event)\"") &&
+    frisbeeBtn.includes('select-none leading-none">🥏</span>'),
+    'has interactive frisbee button opening renders row card'
   );
   assert.ok(
-    !body.includes('x-text="t.mark"'),
-    'does not repeat t.mark (frisbee icon) inside individual page chips'
+    !frisbeeBtn.includes('ph ph-caret-down'),
+    'dispenses with the dropdown caret on the frisbee button'
   );
   assert.ok(
-    body.includes(':data-note="t.title" data-note-bare'),
-    'uses :data-note and data-note-bare on individual page chips'
+    !body.includes('ph-stack'),
+    'dispenses with the icon button for staging session/branch files'
+  );
+  assert.ok(
+    estateSrc.includes("rowCard.kind === 'renders'"),
+    'estate.js contains panel card support for renders kind'
+  );
+  assert.ok(
+    !estateSrc.includes('Pages this branch changed, rendered via toss.'),
+    'estate.js dispenses with redundant subtitle paragraph in renders card'
+  );
+  assert.ok(
+    !estateSrc.includes('btn btn-xs btn-primary gap-1 font-mono shrink-0 normal-case'),
+    'estate.js dispenses with bulky blue button in renders card'
+  );
+  assert.ok(
+    !estateSrc.includes('x-show="row.failures" @click.stop="openSessionCard(row, \'tools\', $event)"'),
+    'session rows omit standalone failure button'
   );
 
   // 2. Changed views strip (branchRoutes)

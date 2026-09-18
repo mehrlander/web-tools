@@ -62,6 +62,14 @@ addressing hypothetical problems asks for.
 or left in the library with the reasoning recorded here so it is not re-asked.
 The reasoning above is that record; closing this needs only your word.
 
+## Related
+
+- `skills/apple-shortcuts-actions/SKILL.md`: the library skill under decision
+- `skills/README.md`: on-demand library vs plugin placement; PR #392 drift context
+- `.claude-plugin/marketplace.json`: how plugin skills track main
+- task `retire-shell-name-the-parts-r152bt`: cited worked example against a one-member collective
+- PR #392: account-scope install drift that never argued for promotion
+
 ## Progress log
 - 2026-09-04: Skill count corrected, 16 to 15, in a refinement pass:
   `.claude/skills/` holds 15 `SKILL.md` files plus a `hooks/` directory that is
@@ -72,3 +80,4 @@ The reasoning above is that record; closing this needs only your word.
   body so the Done-when clause is satisfied either way this goes. The load-bearing
   correction is that the PR #392 drift was an account-scope install rather than a
   library one, so it never argued for promotion.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

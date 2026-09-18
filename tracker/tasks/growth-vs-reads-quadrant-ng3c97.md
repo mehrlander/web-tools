@@ -66,6 +66,14 @@ has something specific to disagree with. Added 2026-09-17; none is acted on.
   its two largest values is not measuring. A one-line note naming the exclusion
   is honest; silently dropping them is not.
 
+## Related
+
+- `lib/alpineComponents/map.js`: Docs tab host; `loadDocsReg`, `loadDocReads`, `docGrowth` already here
+- `docs/docs.csv`: registry the quadrant joins against (hub only, not federated Growth)
+- `tools/test/map-view.test.mjs`: Docs on-demand load and registry coverage
+- PR #528: Doc words + readership presence landed apart; this crosses them
+- PR #534: Growth federated; settled that this view belongs on Docs
+
 ## Done when
 The Docs tab renders growth against readership for every registered doc, the
 zero-read population is legible as a count rather than inferred, and a point
@@ -83,3 +91,4 @@ opens its document in the deck the table's rows already use.
   task already makes, so the hold is four confirmations rather than a design
   pass. This is the only one of the board's parked tasks whose questions were
   genuinely open on both sides; the rest were waiting on a yes.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

@@ -23,6 +23,15 @@ the copy a session reads, so the delivered rule was the weaker one, and 338 of
 
 21 primitives carry the same exposure in both directions.
 
+## Related
+
+- `tools/test/surfacing-manifest.test.mjs`: lead-in-only membership gate that missed the drift
+- `docs/surfacing.csv`: manifest rows whose `boundary` clauses should stay in the prose
+- `docs/SURFACING.md`: prose bullets a session reads; source of the lost clause
+- `docs/docs.csv`: says summaries are paraphrases and deliberately unchecked
+- task `surplus-state-rate-reread-zyl265`: measures whether the restored close-order rule worked
+- PR #646: restored the clause; left this gate unchanged
+
 ## Done when
 A drift between a bullet and its row is loud, and the mechanism is written
 down. What it must not become is a demand that the paraphrase match the prose
@@ -48,3 +57,4 @@ clause lived and where it survived.
 ## Progress log
 - 2026-09-10: Filed out of PR #646, which restored the lost clause but left the
   gate that missed it unchanged.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
