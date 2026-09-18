@@ -553,7 +553,7 @@ test('a filled card pins its control row; an unfilled one has nothing to pin to'
   // Opaque, or the prose slides through it; full-bleed against the wrapper's
   // px-3, since the pane under it is -mx-3 and would otherwise show at both
   // edges of a band three units narrow.
-  assert.match(cls(filled), /bg-base-100/, 'and opaque');
+  assert.match(cls(filled), /bg-base-200/, 'and banner');
   assert.match(cls(filled), /-mx-3/, 'and as wide as the pane beneath it');
   assert.doesNotMatch(cls(own), /sticky/, 'unfilled: ' + cls(own));
 

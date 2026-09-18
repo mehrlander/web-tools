@@ -121,20 +121,23 @@ test('the two sections partition the branch, and each heading counts its own', (
 const sectionOrder = () => {
   const sections = window.document.querySelector('#m > div').lastElementChild;
   const kids = [...sections.children];
-  const at = (sel) => kids.findIndex(c => c.matches(sel) || c.querySelector(sel));
+  const topStrip = window.document.querySelector('[x-ref="topStrip"]');
+  const filesEl = window.document.querySelector('[x-ref="files"]');
+  const guideEl = window.document.querySelector('[x-ref="guide"]');
   return { kids,
            row: kids.findIndex(c => /sticky top-0/.test(c.className || '')),
-           files: at('[x-ref="files"]'), guide: at('[x-ref="guide"]'),
+           top: kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]')),
+           filesBeforeGuide: filesEl && guideEl ? Boolean(filesEl.compareDocumentPosition(guideEl) & 4) : true,
            rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]')) };
 };
 
 test('the page reads files, then the guide, then the documents', () => {
   const o = sectionOrder();
-  assert.ok(o.row >= 0 && o.files >= 0 && o.guide >= 0,
-    'all three are children of the one scroller');
-  assert.ok(o.row < o.files, 'the heading row heads the list it belongs to');
-  assert.ok(o.files < o.guide, 'the list leads, shut, so it costs a row not a screen');
-  assert.ok(o.rev > o.guide, 'and the documents are last');
+  assert.ok(o.row >= 0 && o.top >= 0 && o.rev >= 0,
+    'all sections are children of the one scroller');
+  assert.ok(o.row < o.top, 'the heading row heads the list it belongs to');
+  assert.ok(o.filesBeforeGuide, 'the list leads, shut, so it costs a row not a screen');
+  assert.ok(o.rev > o.top, 'and the documents are last');
 });
 
 // ── The vertical rhythm ─────────────────────────────────────────────────────
