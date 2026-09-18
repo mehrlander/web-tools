@@ -446,6 +446,11 @@ const controlRow = (id) => {
   return row;
 };
 const rowPart = (el) => {
+  // The rendered comparison's own controls, which the kit fills and the card
+  // only places. Empty on every other pane, and `empty:hidden` collapses it
+  // there; jsdom applies no stylesheet, so it is named rather than filtered
+  // out, and its POSITION is the thing worth pinning either way.
+  if (el.getAttribute('x-ref') === 'mdControls') return 'changes';
   if (el.querySelector('.ph-github-logo')) return 'github';
   if (el.querySelector('.ph-git-diff')) return 'compare';
   if (el.querySelector('.ph-copy')) return 'copy';
@@ -482,7 +487,7 @@ test('a reading card orders its row identity, arrangement, utility', async () =>
   // and put a git-diff glyph over a page nobody was diffing.
   const resting = order();
   assert.deepEqual(resting,
-    ['name', 'github', 'spacer', 'layouts', 'spacer', 'copy'],
+    ['name', 'github', 'spacer', 'changes', 'layouts', 'spacer', 'copy'],
     'read order: ' + JSON.stringify(resting));
 
   // On a comparison it takes its place, between the identity cluster and the
@@ -493,7 +498,7 @@ test('a reading card orders its row identity, arrangement, utility', async () =>
   await tick(3);
   const diffing = order();
   assert.deepEqual(diffing,
-    ['name', 'github', 'compare', 'spacer', 'layouts', 'spacer', 'copy'],
+    ['name', 'github', 'compare', 'spacer', 'changes', 'layouts', 'spacer', 'copy'],
     'diff order: ' + JSON.stringify(diffing));
   // Put it back, in a finally-shaped way: a throw above must not leave the card
   // on a diff for whatever runs next.
@@ -759,7 +764,7 @@ test('a filled card drops copy, and the layouts take the end it leaves', async (
     'precondition: a comparison to lay out (loaded ' + d.loaded
       + ', diffable ' + d.diffable + ', off ' + d.compareOff + ')');
 
-  const want = ['name', 'github', 'spacer', 'layouts'];
+  const want = ['name', 'github', 'spacer', 'changes', 'layouts'];
   const filled = await settlesTo(() => rowOrder(controlRow('filled')), want);
   assert.deepEqual(filled, want, 'filled order: ' + JSON.stringify(filled));
   assert.ok(d.copyable, 'not for want of anything to copy: the pane holds text');
