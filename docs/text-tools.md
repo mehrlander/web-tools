@@ -41,8 +41,10 @@ house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
 **Prior revisions**, reconstructed from the private estate's durable Text
 sources. The browser reads `projects/text/current-sources.json`, the phrase
-review and its passage context, and the document-audit packet. Those inputs
-produce the attributed proposal subset counted live in Text Lab. An exact band
+review and its passage context, the document-audit packet, and (when declared)
+`web_tools_paragraphs.drafts_inventory` (gzip JSONL of draft-bearing rows with
+originals and path/line/paragraph provenance). Those inputs produce the
+attributed proposal subset counted live in Text Lab. An exact band
 means the edge-trimmed selection equals a proposal's original string. A
 contained band means the same case-sensitive, token-bounded string occurs
 inside the larger selection or page. Neither band is semantic, and neither says
