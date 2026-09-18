@@ -581,6 +581,13 @@ test('with no reviewable files the bottom half renders a placeholder, preserving
     assert.ok(placeholder, 'placeholder is in the DOM');
     assert.notEqual(placeholder.style.display, 'none', 'placeholder is visible');
     assert.match(placeholder.textContent, /no reviewable docs/);
+
+    data.filesLoading = true;
+    await tick(4);
+    assert.match(placeholder.textContent, /reading changed files/);
+    data.filesLoading = false;
+    await tick(4);
+    assert.match(placeholder.textContent, /no reviewable docs/);
   } finally { data.brief = { ...data.brief, files: keep }; await tick(4); }
 });
 
