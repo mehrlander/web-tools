@@ -1,10 +1,11 @@
 ---
 id: promote-shortcuts-skill-to-plugin-5d74br
 title: Decide whether apple-shortcuts-actions belongs in the portable plugin
-status: backlog
+status: done
 opened: 2026-08-10
+closed: 2026-09-18
 size: S
-awaiting: leave it in the library and close, recommended with three supports
+resolution: promoted
 ---
 # Decide whether apple-shortcuts-actions belongs in the portable plugin
 
@@ -64,7 +65,7 @@ The reasoning above is that record; closing this needs only your word.
 
 ## Related
 
-- `skills/apple-shortcuts-actions/SKILL.md`: the library skill under decision
+- `.claude/skills/apple-shortcuts-actions/SKILL.md`: the portable skill (moved from `skills/apple-shortcuts-actions/`)
 - `skills/README.md`: on-demand library vs plugin placement; PR #392 drift context
 - `.claude-plugin/marketplace.json`: how plugin skills track main
 - task `retire-shell-name-the-parts-r152bt`: cited worked example against a one-member collective
@@ -81,3 +82,6 @@ The reasoning above is that record; closing this needs only your word.
   correction is that the PR #392 drift was an account-scope install rather than a
   library one, so it never argued for promotion.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-09-18: Mark decided portable for personal use; promoted into
+  `.claude/skills` / portable plugin; overturned leave-in-library recommendation.
+  Closed as promoted.

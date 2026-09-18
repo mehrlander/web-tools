@@ -74,7 +74,7 @@ control-flow entries, so for anything else this is the sole source.
 
 ## Not this skill
 
-Delivering a shortcut, rather than composing one, is [`shortcut-links`](../shortcut-links/SKILL.md):
+Delivering a shortcut, rather than composing one, is [`shortcut-links`](../../skills/shortcut-links/SKILL.md):
 installing, running remotely, opening a settings page, and the return channel.
 This skill ends at the clipboard.
 
