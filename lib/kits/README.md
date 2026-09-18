@@ -1229,9 +1229,9 @@ XlsxExtract.receptions(catalog, declared)
                                     //   for each declaration whose match.sheets
                                     //   are all present. Nothing about any one
                                     //   workbook lives here; the receiver says
-XlsxExtract.receptionTarget(reception, source, now)
-                                    // -> { dest, file } with {date} and {stem}
-                                    //   filled in
+XlsxExtract.receptionTarget(reception, source, now, sheet)
+                                    // -> { dest, file } with {date}, {time},
+                                    //   {stem}, {slug} and {sheet} filled in
 XlsxExtract.KINDS                   // the catalogue: { id, label, scope, view,
                                     //   gloss, count, parts }
 ```

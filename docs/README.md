@@ -35,7 +35,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
-- [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to point it at a repo, and the traps that make it lie
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
@@ -77,16 +76,17 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`venues.md`](venues.md) *(measured)* — the venue map: where work can run besides the session reading it, what each reaches, and the attended-versus-unattended split
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
+- [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 
 ## docs/envelopes/
 
 - [`README.md`](envelopes/README.md) *(orphan)* — the content-envelope family: members, shared grammar, and the sibling decision
-- [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 - [`chat-results.md`](envelopes/chat-results.md) — the chat-results envelope contract
 - [`data-view.md`](envelopes/data-view.md) *(orphan)* — the data-view envelope contract
 - [`shorter.md`](envelopes/shorter.md) — the shorter envelope contract: a document and a shortening to adjudicate
 - [`surface.md`](envelopes/surface.md) — the surface format contract
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
+- [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 
 ## docs/envelopes/schemas/
 
@@ -96,10 +96,10 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/envelopes/schemas/profiles/
 
-- [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 - [`branch-review-v1.schema.json`](envelopes/schemas/profiles/branch-review-v1.schema.json) *(orphan)* — the branch-review profile schema
 - [`inquiry-v1.schema.json`](envelopes/schemas/profiles/inquiry-v1.schema.json) *(orphan)* — the inquiry profile schema
 - [`stage-v1.schema.json`](envelopes/schemas/profiles/stage-v1.schema.json) *(orphan)* — the stage profile schema
+- [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 
 ## docs/environment/
 
