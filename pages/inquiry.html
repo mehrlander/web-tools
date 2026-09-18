@@ -159,6 +159,15 @@
 
 <script>
 document.addEventListener('alpine:init', () => {
+  // The global a shell sets, else this origin's store: kits/annotate.js's rule
+  // for a jot, and an inquiry's reply is no different. It read `window.TOKEN`
+  // alone, which only app/index.html and pages/repo-atlas.html ever define, so
+  // the reply leg was dead on this page exactly as it was on approve.html.
+  const tokenNow = () => {
+    if (window.TOKEN) return window.TOKEN;
+    try { return localStorage.getItem('ghToken') || ''; } catch (e) { return ''; }
+  };
+
   Alpine.data('inquiryApp', () => ({
     env: null, items: [], answers: {}, ran: {},
     loading: true, error: '', sending: false, sent: '', sentPath: '',
@@ -208,7 +217,7 @@ document.addEventListener('alpine:init', () => {
           const [addr, ...rest] = src.split(':');
           const path = rest.join(':');
           const [repo, ref] = addr.split('@');
-          this.env = JSON.parse((await new GH({ token: window.TOKEN, repo, ref: ref || '' }).get(path)).text);
+          this.env = JSON.parse((await new GH({ token: tokenNow(), repo, ref: ref || '' }).get(path)).text);
         } else {
           this.error = 'No envelope. Address one with #src=owner/repo[@ref]:path or #gz=…';
         }
@@ -223,7 +232,7 @@ document.addEventListener('alpine:init', () => {
       this.sending = true;
       try {
         const [repo, dir] = (this.env.context.reply_to || '').split(':');
-        const gh2 = new GH({ token: window.TOKEN, repo, ref: this.env.context.reply_ref || '' });
+        const gh2 = new GH({ token: tokenNow(), repo, ref: this.env.context.reply_ref || '' });
         const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const name = (this.env.manifest?.name || 'inquiry').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
         const path = `${dir ? dir.replace(/\/$/, '') + '/' : ''}${stamp}-${name}.json`;
