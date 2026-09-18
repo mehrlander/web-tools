@@ -7,11 +7,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { TextEncoder } from 'node:util';
+import { gzipSync } from 'node:zlib';
 import { loadKit } from './bootstrap.mjs';
 
 const window = {
   crypto: webcrypto,
   TextEncoder,
+  DecompressionStream: globalThis.DecompressionStream,
   GH: { FRESH: { cache: 'no-store' } },
 };
 loadKit('csv.js', { window });
@@ -104,6 +106,45 @@ const PACKET = JSON.stringify({
 }, null, 2);
 
 const SPEC_TEXT = JSON.stringify(SPEC, null, 2);
+
+const WEB_TOOLS_PATH = 'projects/text/runs/demo/drafts.jsonl.gz';
+const WEB_TOOLS_ROWS = [
+  {
+    id: 'docs/demo.md:p001',
+    path: 'docs/demo.md',
+    index: 1,
+    startLine: 10,
+    endLine: 12,
+    kind: 'prose',
+    original: 'The families of this page need a shorter reading.',
+    draft: 'This page needs a shorter reading.',
+    words: 9,
+    draftWords: 6,
+    ratio: 0.5,
+    agent: 'Chief of Staff (Grok)',
+    signedAt: '2026-09-16',
+    priority: 'high',
+  },
+  {
+    id: 'docs/demo.md:p002',
+    path: 'docs/demo.md',
+    index: 2,
+    startLine: 14,
+    endLine: 14,
+    kind: 'prose',
+    original: 'chrome',
+    draft: 'decoration',
+    words: 1,
+    draftWords: 1,
+    ratio: 0.5,
+    agent: 'Chief of Staff (Grok)',
+    signedAt: '2026-09-16',
+    priority: 'low',
+  },
+];
+const WEB_TOOLS_JSONL = WEB_TOOLS_ROWS.map(row => JSON.stringify(row)).join('\n') + '\n';
+const WEB_TOOLS_GZ = gzipSync(Buffer.from(WEB_TOOLS_JSONL, 'utf8'), { mtime: 0 });
+
 const SHAS = {
   [SPEC_PATH]: '0'.repeat(40),
   [SPEC.phrase_reviews]: '1'.repeat(40),
@@ -140,7 +181,7 @@ test('build preserves the Python proposal identity and collapses duplicate trans
     proposals: 4,
     origins: 5,
     contexts: 3,
-    by_lane: { 'phrase-reviews': 2, 'audit-packet': 2 },
+    by_lane: { 'phrase-reviews': 2, 'audit-packet': 2, 'web-tools-paragraphs': 0 },
     by_action: { qualify: 1, rephrase: 1, repair: 1, extract: 1 },
   });
 
@@ -175,7 +216,9 @@ test('view exposes one stable shape for phrase and audit provenance', () => {
   assert.deepEqual(phrase.origins.map(origin => origin.record), [1, 4]);
   assert.deepEqual(Object.keys(phrase.origins[0]), [
     'proposal_id', 'lane', 'scope', 'record', 'source', 'context',
-    'original_verdict', 'patient', 'operation', 'original_status',
+    'original_verdict', 'patient', 'document', 'agent', 'signedAt',
+    'targetRatio', 'ratio', 'draftWords', 'words',
+    'operation', 'original_status',
     'original_note', 'decision', 'rationale', 'relocation', 'evidence',
   ]);
   assert.equal(phrase.origins[0].source.path, SPEC.phrase_reviews);
@@ -263,13 +306,16 @@ test('build rejects a claimed edit without a fix and a review without context', 
     /Phrase review context does not exist: B2/);
 });
 
-function fixtureGh({ repo = 'mehrlander/home', token = '', failSpecOnce = false } = {}) {
+function fixtureGh({ repo = 'mehrlander/home', token = '', failSpecOnce = false,
+                     specText = SPEC_TEXT, blobsExtra = {}, bytesExtra = {} } = {}) {
   const blobs = {
-    [SPEC_PATH]: SPEC_TEXT,
+    [SPEC_PATH]: specText,
     [SPEC.phrase_reviews]: PHRASES,
     [SPEC.phrase_context]: PASSAGES,
     [SPEC.audit_packet]: PACKET,
+    ...blobsExtra,
   };
+  const byteBlobs = { ...bytesExtra };
   const calls = [];
   let shouldFail = failSpecOnce;
   return {
@@ -278,7 +324,7 @@ function fixtureGh({ repo = 'mehrlander/home', token = '', failSpecOnce = false 
     get headers() { return token ? { Authorization: `Bearer ${token}` } : {}; },
     calls,
     async get(path, options = {}) {
-      calls.push({ path, options });
+      calls.push({ path, method: 'get', options });
       if (path === SPEC_PATH && shouldFail) {
         shouldFail = false;
         throw new Error('fixture spec read failed');
@@ -286,8 +332,19 @@ function fixtureGh({ repo = 'mehrlander/home', token = '', failSpecOnce = false 
       if (!(path in blobs)) throw new Error(`Unknown fixture path: ${path}`);
       return {
         text: blobs[path],
-        sha: SHAS[path],
+        sha: SHAS[path] || 'f'.repeat(40),
         size: Buffer.byteLength(blobs[path]),
+      };
+    },
+    async bytes(path, options = {}) {
+      calls.push({ path, method: 'bytes', options });
+      if (!(path in byteBlobs)) throw new Error(`Unknown fixture bytes path: ${path}`);
+      const bytes = byteBlobs[path];
+      return {
+        bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes),
+        sha: SHAS[path] || 'e'.repeat(40),
+        size: bytes.byteLength || bytes.length,
+        url: `https://github.com/${repo}/blob/main/${path}`,
       };
     },
   };
@@ -402,3 +459,82 @@ test('a malformed catalog still says what is wrong with it', async () => {
   await assert.rejects(T.load(wrong), /Unsupported text source schema: nope\/v1/);
   T.clear();
 });
+
+test('web-tools paragraph lane rebuilds from gzip drafts_inventory with document provenance', async () => {
+  const spec = {
+    ...SPEC,
+    web_tools_paragraphs: {
+      inventory: 'projects/text/runs/demo/inventory.jsonl.gz',
+      drafts_inventory: WEB_TOOLS_PATH,
+      run_id: 'demo',
+      scanned_repo: 'mehrlander/web-tools',
+      scan_method: 'blank-line paragraph scan',
+      agent: 'Chief of Staff (Grok)',
+      signedAt: '2026-09-16',
+      targetRatio: 0.5,
+      purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement',
+      drafts: 2,
+    },
+  };
+  const index = await T.build({
+    ...args({ spec }),
+    files: {
+      ...args().files,
+      web_tools_paragraphs: WEB_TOOLS_JSONL,
+    },
+    metadata: {
+      phrase_reviews: { sha: SHAS[SPEC.phrase_reviews] },
+      phrase_context: { sha: SHAS[SPEC.phrase_context] },
+      audit_packet: { sha: SHAS[SPEC.audit_packet] },
+      web_tools_paragraphs: { sha: 'e'.repeat(40), size: WEB_TOOLS_GZ.length },
+      spec: { sha: SHAS[SPEC_PATH] },
+    },
+  });
+  assert.equal(index.summary.by_lane['web-tools-paragraphs'], 2);
+  assert.equal(index.summary.by_action['half-length'], 2);
+  const row = T.search(index, { lane: 'web-tools-paragraphs', q: 'shorter reading' })[0];
+  assert.equal(row.action, 'half-length');
+  assert.equal(row.author, 'Chief of Staff (Grok)');
+  assert.match(row.purpose, /retention is not endorsement/);
+  assert.equal(row.origins[0].document.path, 'docs/demo.md');
+  assert.equal(row.origins[0].document.paragraph, 1);
+  assert.equal(row.origins[0].document.import_id, 'docs/demo.md:p001');
+  assert.equal(row.origins[0].targetRatio, 0.5);
+  assert.match(row.origins[0].document.url, /docs\/demo\.md#L10-L12$/);
+  assert.equal(row.origins[0].document.label.includes('p1'), true);
+
+  // Duplicate original string from phrase lane + web-tools shares exact lookup.
+  const hit = T.lookup(index, 'chrome', { contained: false });
+  assert.ok(hit.exact.some(r => r.lane === 'web-tools-paragraphs'));
+  assert.ok(hit.exact.some(r => r.lane === 'phrase-reviews'));
+});
+
+test('load fetches gzip drafts_inventory through gh.bytes when the lane is declared', async () => {
+  T.clear();
+  const spec = {
+    ...SPEC,
+    web_tools_paragraphs: {
+      drafts_inventory: WEB_TOOLS_PATH,
+      inventory: 'projects/text/runs/demo/inventory.jsonl.gz',
+      scanned_repo: 'mehrlander/web-tools',
+      scan_method: 'blank-line paragraph scan',
+      agent: 'Chief of Staff (Grok)',
+      signedAt: '2026-09-16',
+      targetRatio: 0.5,
+      purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement',
+      drafts: 2,
+    },
+  };
+  SHAS[WEB_TOOLS_PATH] = 'e'.repeat(40);
+  const gh = fixtureGh({
+    specText: JSON.stringify(spec),
+    bytesExtra: { [WEB_TOOLS_PATH]: WEB_TOOLS_GZ },
+  });
+  const index = await T.load(gh);
+  assert.equal(index.summary.by_lane['web-tools-paragraphs'], 2);
+  assert.equal(gh.calls.filter(c => c.method === 'get').length, 4);
+  assert.equal(gh.calls.filter(c => c.method === 'bytes').length, 1);
+  assert.equal(gh.calls.find(c => c.method === 'bytes').path, WEB_TOOLS_PATH);
+  T.clear();
+});
+
