@@ -99,34 +99,6 @@
      to the objects that know how to scroll. -->
 <div x-ref="pool" class="hidden">
 
-  <!-- The ask, and only what the deck's header does not already say. The name,
-       the id and the occasion are up there now; repeating them here made the
-       first slide a second header. -->
-  <section data-slide class="h-full overflow-y-auto px-3 py-3 grid grid-cols-[minmax(0,1fr)] gap-2 content-start">
-    <p class="text-pretty" x-text="ctx.rationale"></p>
-    <div class="flex items-center gap-3 flex-wrap font-mono text-xs opacity-60">
-      <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
-         target="_blank" class="link link-hover" x-text="ctx.branch"></a>
-      <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link link-hover">session</a>
-    </div>
-  </section>
-
-  <!-- The author's reason, first. It is what the decision is about; the diffs
-       below are the evidence for it. Labelled rather than boxed, so the page
-       reads as one document instead of a stack of cards. -->
-  <section x-show="ctx.rationale">
-    <div class="flex items-center gap-3 flex-wrap font-mono text-xs opacity-60 mb-1">
-      <span x-text="ctx.id"></span>
-      <a x-show="ctx.branch" :href="'https://github.com/' + repoOf() + '/tree/' + ctx.branch"
-         target="_blank" class="link link-hover" x-text="ctx.branch"></a>
-      <a x-show="ctx.session" :href="ctx.session" target="_blank" class="link link-hover">session</a>
-    </div>
-    <p class="text-pretty" x-text="ctx.rationale"></p>
-  </section>
-
-  <!-- One item per slide, so no frame around the set and no box inside one: the
-       item IS the screen. The bordered frame that used to hold them made the
-       page read as a stack of tiles and cost the change container its width. -->
   <!-- A PLAIN TEMPLATE, NOT x-for. The first version generated the item
        sections with x-for and moved the nodes into the deck's slides; Alpine
        owns an x-for's output, re-created it in the pool behind the move, and
@@ -314,27 +286,28 @@ document.addEventListener('alpine:init', () => {
     // place so they cannot fork. The decisions ride in the `subheader`, the row
     // the kit places and the caller fills, because the deck owns the foot.
     //
-    // `index` is what turns the header mark into the contents list: the ask,
-    // then a row per item under its own path.
+    // THE SLIDES ARE THE ITEMS AND NOTHING ELSE. A first slide carrying the
+    // request's reason put a page of prose in front of the two files someone
+    // came to judge, and read as instructions rather than as the thing. The
+    // deck is one of two, two of two. `index` names each slide by its path,
+    // which is what the header mark's contents list shows.
     deck() {
       if (!window.swipeDeck || this._deck) return;
-      const pool = this.$refs.pool, tpl = this.$refs.itemTpl;
-      const ask = pool && pool.querySelector('[data-slide]');
-      if (!ask || !tpl) return;
+      const tpl = this.$refs.itemTpl;
+      if (!tpl || !this.items.length) return;
       this._deck = window.swipeDeck.open({
-        count: 1 + this.items.length,
+        count: this.items.length,
         title: this.env?.manifest?.name || 'Approve',
-        subtitle: [this.ctx.id, this.ctx.occasion].filter(Boolean).join(' · '),
+        subtitle: this.ctx.id,
         icon: 'ph-seal-check',
-        index: (i) => (i === 0 ? 'The ask' : (this.pathOf(this.itemAt(i - 1)) || `Item ${i}`)),
+        index: (i) => this.pathOf(this.itemAt(i)) || `Item ${i + 1}`,
         subheader: this.$refs.verdict,
         slideScroll: false,
         innerClass: 'w-full h-full min-w-0',
         snapStop: true,
         render: (n, slide) => {
-          if (n === 0) { slide.append(ask); return; }
           const node = tpl.content.firstElementChild.cloneNode(true);
-          node.setAttribute('x-data', `{ it: itemAt(${n - 1}) }`);
+          node.setAttribute('x-data', `{ it: itemAt(${n}) }`);
           slide.append(node);
           window.Alpine.initTree(node);
         },
