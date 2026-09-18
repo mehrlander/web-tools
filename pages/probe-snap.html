@@ -43,6 +43,18 @@
   how many stops the last gesture crossed, which is the other half of the same
   complaint.
 
+  THE ANSWER, measured by thumb on an iPhone 2026-09-18: D, and only D. Not B,
+  so the guard was not the cause. Not C, so deferring the write until the
+  scroll went quiet was not enough. Not E, so one write before the drag was not
+  enough either. Every lane that resized the scroller at any point failed, and
+  the lane that never resized it worked.
+
+  What shipped from that: md-diff's change container is sized once to its
+  tallest reading and never resized, its height transition is gone, and
+  swipe-deck's overshoot guard is gone with it. The invariant is held by
+  tools/render/scenarios/md-diff-one-height.mjs. This page stays as the
+  instrument, not as an open question.
+
   Plain DOM, no Alpine. The code under test is framework-free (lib/kits) and a
   probe that wraps it in a component is measuring the wrapper too.
 -->

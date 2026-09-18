@@ -10,6 +10,13 @@
 // one and the one a reader is usually going to, and lands on the far side. A
 // reader reported exactly that.
 //
+// AND THE PROPERTY DID NOT FIX IT. Measured by hand on iOS through
+// pages/probe-snap.html: `scroll-snap-stop: always` is applied, computes as
+// `always`, and a flick still crossed the middle. What fixed it was giving
+// every reading one height, which md-diff-one-height.mjs asserts. The property
+// stays because it is correct where an engine honours it and free where it is
+// not, so this scenario pins a declaration rather than a cure.
+//
 // What is asserted is the property, not a simulated flick. `scroll-snap-stop`
 // is a guarantee the engine makes about momentum, and a synthetic drag in a
 // headless browser does not reproduce a thumb's velocity curve well enough for

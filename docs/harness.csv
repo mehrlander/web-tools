@@ -197,8 +197,8 @@ tools/render/scenarios/map-tests.mjs,the Map view's Tests tab: the test registry
 tools/render/scenarios/md-diff-fence-marks.mjs,,tools/render/scenarios,71,driver,no,no,no
 tools/render/scenarios/md-diff-jump.mjs,,tools/render/scenarios,74,driver,no,yes,no
 tools/render/scenarios/md-diff-keys.mjs,,tools/render/scenarios,90,driver,no,no,no
-tools/render/scenarios/md-diff-one-stop-guard.mjs,,tools/render/scenarios,47,driver,no,no,no
-tools/render/scenarios/md-diff-one-stop.mjs,,tools/render/scenarios,44,driver,no,no,no
+tools/render/scenarios/md-diff-one-height.mjs,,tools/render/scenarios,63,driver,no,no,no
+tools/render/scenarios/md-diff-one-stop.mjs,,tools/render/scenarios,51,driver,no,no,no
 tools/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",tools/render/scenarios,44,driver,no,no,no
 tools/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,tools/render/scenarios,20,driver,no,no,no
 tools/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,tools/render/scenarios,78,driver,no,no,no
