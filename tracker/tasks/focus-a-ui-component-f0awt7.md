@@ -57,6 +57,16 @@ So: a scope option on `plan`/`assemble`, fed by a Peek chain, resolving to the
 modules behind the picked subtree. The `scope` verb is the work; `filter`, the
 third verb this task once listed, has no consumer asking for it and is dropped.
 
+## Related
+
+- `lib/kits/brief.js`: only consumer left; needs a scope on `plan` / `assemble`
+- `lib/kits/peek.js`: designation chain already built (PR #547)
+- `lib/kits/annotate.js`: anchoring vocabulary already built
+- `app/index.html`: hardest page and the real test of region-to-module
+- task `brief-from-the-pages-gallery-7d4031`: gallery entry may carry scope later
+- task `stage-partial-file-selection-k8mtou`: same pressure from the stage / range side
+- PR #295: brief kit and take-away landed; this piece was left deliberate
+
 ## Done means
 
 `brief` assembles for a picked region of `app/index.html` and names its scope in
@@ -76,3 +86,4 @@ resolved for a subtree even with Peek's chain in hand, said in one line here.
   and be honest elsewhere, is the position annotate took. `brief.js` is
   unchanged and still refuses a whole-lib page while naming a per-component
   scope that has no entry point, which is now the whole task.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

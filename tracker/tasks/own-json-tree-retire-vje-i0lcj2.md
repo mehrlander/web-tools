@@ -64,6 +64,16 @@ gets fixed; a writer that saves a mangled value costs data, and its edge cases
 (precision, key order, undefined vs null, partial edits mid-keystroke) are the
 ones nobody tests. Build the reader, keep the writer.
 
+## Related
+
+- `lib/alpineComponents/viewer.js`: only editable VJE mount (`popups/idb-nav.html`)
+- `lib/alpineComponents/console.js`: display-only mount that should move to a reader
+- `lib/alpineComponents/transform-workbench.js`: readOnly since 2026-09-14; strengthens the split
+- `popups/idb-nav.html`: sole page that edits through viewer
+- `dist/web-tools.js`: offline artifact still CDN-importing VJE on the default path
+- task `data-view-mobile-chrome-x5plcv`: double-switcher friction VJE will not negotiate
+- PR #288: `#data=` session that filed the size and CDN counts
+
 ## Done when
 A `tree` module renders with no network call, honors the theme, and caps
 large-array expansion visibly; VJE is reachable as an explicit mode with both
@@ -89,3 +99,4 @@ has held this task for its whole life.
   display-only and `viewer.js` is the only editor, serving `popups/idb-nav.html`.
   That is a stronger case for the split than the body made, not a weaker one, and
   it was found by reading the mounts rather than the task.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

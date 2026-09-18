@@ -39,8 +39,17 @@ smaller than a file, which is the same pressure
 Contract lives in `docs/show-repo.md` and `lib/alpineComponents/stage.js`
 (`StageLink`).
 
+## Related
+
+- `lib/alpineComponents/stage.js`: `StageLink` and whole-file `#stage=` grammar
+- `docs/show-repo.md`: stage contract this would extend with ranges
+- `lib/kits/brief.js`: consumer that inherits whole-file stage granularity
+- task `focus-a-ui-component-f0awt7`: same region-vs-file pressure from the UI side
+- PR #295: brief hand-off through the stage that made the gap visible
+
 ## Progress log
 - 2026-07-26: Filed from PR #295 wrap-up. Raised there while deciding whether
   the brief should route through the stage; the conclusion was that the FAB
   computes the fileset and the stage receives it, which leaves this gap
   visible but not blocking.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

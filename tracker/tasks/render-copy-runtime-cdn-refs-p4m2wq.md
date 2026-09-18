@@ -28,9 +28,17 @@ Rewrite `<script src>` values pointing at `cdn.jsdelivr.net/gh/mehrlander/...` i
 
 A baked page built from the canonical boot block still carries the `?use=` branch that fetches `gh-api.js` from `raw.githubusercontent.com` and blob-imports it, bypassing the inlined build. Harmless where a rendering copy actually lands (no query string on a paste), but it means a baked page handed a `?use=` goes back to the network. Decide whether bake should neutralize that branch or leave it as the documented escape hatch it is on a deployed page.
 
+## Related
+
+- `lib/kits/export.js`: `bakeHtml` / `collectCache` shared by renderCopy and zip
+- `tools/test/render-copy.mjs`: test that found and still reports `cdnRefs`
+- `dist/web-tools.js`: offline build context for why run-time CDN refs matter
+- PR #288: adjacent `#data=` / export era; this gap filed with renderCopy
+
 ## Progress log
 - 2026-07-27 filed while adding `renderCopy`; the count exists because the gap was found by a test that blocks every repo host and watches what the copy still asks for (`tools/test/render-copy.mjs`)
 - 2026-09-04: Placement settled by reading `lib/kits/export.js` rather than by
   arguing: `bakeHtml` is already shared by `renderCopy` and the zip, so the
   divergence the task was holding for has no substance. What remains is writing
   the rewrite. Sized S.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

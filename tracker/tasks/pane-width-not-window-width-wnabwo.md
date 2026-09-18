@@ -35,6 +35,15 @@ zero, with the undocked layout unchanged at every width.
 each exempt by design and still compose into a corridor. Look for the second
 mechanism, not just the first.
 
+## Related
+
+- `skills/daisy-alpine/references/mechanics.md`: rule 10 already states container sizing
+- `docs/SNAGS.md`: `viewport-rule-blind-to-a-docked-pane` filing note
+- `docs/HTML-STYLE.md`: pointer since 2026-08-31; mechanics.md owns the rule
+- `lib/alpineComponents/viewer.js`: Files corridor fix (`!max-w-none`) lived here
+- PR #480: Docs conversion that filed the sweep
+- PR #574: Files conversion without citing this task
+
 ## Done when
 Every view reachable in the content pane has been opened with the deck docked and
 either reflows or is recorded as deliberately fixed-width.
@@ -47,3 +56,4 @@ either reflows or is recorded as deliberately fixed-width.
 - 2026-09-04: Recorded that conversion, trimmed the done-condition (the clause
   asking this task to write its own rule is satisfied), and cut the body from
   581 words. Still unaudited: every view but those three.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

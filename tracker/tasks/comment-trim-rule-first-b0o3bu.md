@@ -73,6 +73,17 @@ it belongs. Do not answer it by token overlap; the reason is in
 Pilot lessons live in `docs/text-content.md`, "What the pilot taught about
 running the pass".
 
+## Related
+
+- `CLAUDE.md`: conventions home after PR #634; holds the commentary rule (was docs/CONVENTIONS.md)
+- `docs/text-content.md`: census findings and pilot lessons for the residual pass
+- `docs/SNAGS.md`: `header-essay-outlives-its-code` and `rewriter-marks-its-own-work`
+- `scripts/embedded-prose.py`: `--dated` worklist for the accuracy-only shape
+- `lib/alpineComponents/estate.js`: fold-in residual; PR #403 question lives here
+- `lib/kits/swipe-deck.js`, `lib/alpineComponents/stage.js`: pilot files still named in the body
+- task `estate-js-commentary-read-mymt4u`: folded source of the estate.js exit clause
+- PR #625: steps 1 and 2 already on main
+
 ## Done when
 Either the accuracy-only pass has run on the heavy files, or the paired fan-out
 has, or a log line here records that neither is worth running and why. In every
@@ -127,3 +138,4 @@ does not lapse if the pass itself is judged not worth running.
   carried into "Done when" so the fold cannot swallow it.
 - 2026-09-17: Rule home restamped after PR #634: `docs/CONVENTIONS.md` retired,
   conventions now in `CLAUDE.md`.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

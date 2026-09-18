@@ -48,6 +48,15 @@ The orbit gesture in stack mode fights the Claude app's sheet, which reads a
 horizontal drag as a swipe to dismiss. That is outside the page's control; the
 axis picker and saved views exist so the gesture is never the only route.
 
+## Related
+
+- `pages/pdf-inspect.html`: page-mode stage with `touch-none` that blocks pinch
+- `lib/kits/pdf.js`: `pdf.view` overlay projection that must move with the canvas
+- task `pdf-table-splitter-page-q7vm2d`: same page; selection drag must stay distinct from pinch
+- task `pdf-lattice-open-perimeter-h4kx9r`: sibling lattice gap in the same pdf kit
+- PR #294: kit and page ship; this usability gap was named at wrap-up
+
 ## Progress log
 - 2026-07-26: Filed at the wrap-up of PR #294, from using the page on a phone.
 - 2026-09-17: Marked awaiting zoom strategy (CSS transform then settle vs live re-render).
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

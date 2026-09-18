@@ -32,6 +32,13 @@ the drawer.
 Depends on the focus task only loosely: if per-region scope lands first, the
 gallery link should carry that too rather than being retrofitted twice.
 
+## Related
+
+- `app/index.html`: Pages gallery (`gallery()`) this task should link from
+- `lib/kits/brief.js`: take-away / brief consumer the gallery reaches via the FAB
+- task `focus-a-ui-component-f0awt7`: Notes say the gallery link should carry region scope if that lands first
+- PR #295: shipped the FAB take-away menu this entry point opens into
+
 ## Progress log
 - 2026-07-26: Filed from PR #295 wrap-up, where the gallery entry point was
   proposed and deliberately not built.
@@ -40,3 +47,4 @@ gallery link should carry that too rather than being retrofitted twice.
   `lib/alpineComponents/pages.js`, which the task had pointed at, was deleted
   with its only mount (`nav-repo.html`). The design is unaffected: the card
   still holds a path and still has to link into the FAB rather than rebuild it.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).

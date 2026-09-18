@@ -41,6 +41,15 @@ always, and an italic W overhangs on the right by up to 1.01pt. A "shrink
 wrapped" border looks loose left and can clip an italic right. That is the
 document, not the drawing.
 
+## Related
+
+- `pages/pdf-inspect.html`: interaction surface; splitter is the residual after PR #294
+- `lib/kits/pdf.js`: `pdf.stream.split` / `.columns` / `.gutters` and `pdf.view` already exist
+- `docs/pdf-structure.md`: stream vs lattice background for assignment reuse
+- task `pdf-inspect-pinch-zoom-5wz3kt`: one-pointer selection must keep working beside pinch
+- task `pdf-lattice-open-perimeter-h4kx9r`: lattice sibling on the same kit
+- PR #294: page, overlay, hit testing, and `pdf.view` landed; splitter left
+
 ## Done when
 Boundaries can be placed, dragged and deleted with items recoloring live and the
 extraction following the same assignment the overlay shows; header lumping
@@ -55,3 +64,4 @@ reproduced and held by a test; one-pointer selection still works.
 - 2026-08-07: Retitled to that residual per the assessment. Popup-era history
   (cross-window font rendering, the data-URL relay) retired with the popup.
 - 2026-09-04: Body cut from 595 words.
+- 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
