@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '0231a8e';
-const BUILT = '2026-09-18T05:10:58Z';
+const BUILD = '3cab829';
+const BUILT = '2026-09-18T14:48:10Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -606,9 +606,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const fetchText = async (url, headers = { Accept: 'application/vnd.github.raw' }) => {
-    if (typeof GM !== 'undefined' && GM.xmlHttpRequest) {
+    const xhr = (typeof GM !== 'undefined' && GM.xmlHttpRequest) ? GM.xmlHttpRequest.bind(GM)
+      : (typeof GM_xmlhttpRequest !== 'undefined' ? GM_xmlhttpRequest : null);
+    if (xhr) {
       return new Promise((resolve, reject) => {
-        GM.xmlHttpRequest({
+        xhr({
           method: 'GET', url, headers,
           onload: r => (r.status >= 200 && r.status < 300) ? resolve(r.responseText) : reject(new Error('HTTP ' + r.status)),
           onerror: reject,
@@ -980,10 +982,36 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     try {
       const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
       const current = JSON.parse(raw)?.launcher?.build;
-      if (!current || current === BUILD) return;
+      if (!current || current === BUILD) {
+        const el = q('.stale');
+        if (el) el.hidden = true;
+        return;
+      }
       const el = q('.stale');
-      const updateUrl = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/launcher.user.js`;
+
+      const setVal = (typeof GM !== 'undefined' && GM.setValue) ? GM.setValue.bind(GM)
+        : (typeof GM_setValue !== 'undefined' ? (k, v) => Promise.resolve(GM_setValue(k, v)) : null);
+
+      if (setVal) {
+        el.textContent = `Downloading build ${current}…`;
+        el.style.color = 'var(--wt-p)';
+        el.hidden = false;
+        try {
+          const freshCode = await fetchText(`https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/lib/launcher.js?_=${Date.now()}`);
+          if (freshCode && freshCode.includes('window.wtLauncher')) {
+            await setVal('wt_launcher_code', freshCode);
+            await setVal('wt_launcher_build', current);
+            el.innerHTML = `Build ${current} downloaded · <a href="#" style="color:inherit;text-decoration:underline">Reload page to apply</a>`;
+            el.style.color = 'oklch(60% .18 140)';
+            el.querySelector('a')?.addEventListener('click', e => { e.preventDefault(); location.reload(); });
+            return;
+          }
+        } catch { /* if background fetch fails, fall through to link */ }
+      }
+
+      const updateUrl = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/launcher.user.js?_=${Date.now()}`;
       el.innerHTML = `<a href="${updateUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Build ${current} available · Tap to update ↗</a>`;
+      el.style.color = '';
       el.hidden = false;
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };

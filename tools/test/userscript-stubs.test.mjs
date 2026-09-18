@@ -46,7 +46,7 @@ test('every stub loads a body that exists and defines what the stub calls', () =
 
     const req = src.match(/@require\s+(\S+)/);
     assert.ok(req, `${stub}: no @require`);
-    assert.ok(req[1].endsWith(`/userscripts/lib/${lib}.js`),
+    assert.ok(req[1].split('?')[0].endsWith(`/userscripts/lib/${lib}.js`),
       `${stub}: @require does not point at userscripts/lib/${lib}.js`);
 
     const body = path.join(ROOT, 'userscripts', 'lib', `${lib}.js`);
@@ -129,3 +129,18 @@ test('launcher body includes errand sensing and take artifact definitions', () =
   assert.match(text, /data-take-html/, 'launcher must support copying HTML');
   assert.match(text, /r\.jina\.ai/, 'launcher must support Jina AI Reader integration');
 });
+
+test('stubs include @version, versioned @require, and auto-update storage loader', () => {
+  for (const stub of stubs) {
+    const lib = stub.replace('.user.js', '');
+    const src = fs.readFileSync(path.join(ROOT, 'userscripts', stub), 'utf8');
+    const row = manifest[lib];
+    assert.match(src, new RegExp(`// @version\\s+${row.build}`), `${stub}: missing @version ${row.build}`);
+    assert.match(src, new RegExp(`@require\\s+\\S+\\?v=${row.build}`), `${stub}: @require missing ?v=${row.build}`);
+    assert.match(src, /@grant\s+GM\.getValue/, `${stub}: missing @grant GM.getValue`);
+    assert.match(src, /@grant\s+GM\.setValue/, `${stub}: missing @grant GM.setValue`);
+    assert.match(src, /@grant\s+GM\.xmlHttpRequest/, `${stub}: missing @grant GM.xmlHttpRequest`);
+    assert.match(src, new RegExp(`wt_${lib}_code`), `${stub}: missing storage cache key`);
+  }
+});
+

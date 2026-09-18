@@ -13,27 +13,28 @@ allowed there, and Safari only asks when the menu is opened. That cost one
 detour on 2026-09-05, with the script installed and matched and nothing on
 screen.
 
-**Edit, without reinstalling.** The stub is pinned to a **branch**, so it never
-changes and the phone never sees it again after the first install. Editing is:
+**Edit, without reinstalling.** The stub is pinned to a **branch** and includes an
+auto-updating loader. When installed once with GM storage permissions (`@grant GM.getValue`,
+`@grant GM.setValue`, `@grant GM.xmlHttpRequest`), the stub caches and dynamically evaluates
+the latest `launcher.js` body from GitHub. Updates are fetched silently in the background
+(with a 5-minute cooldown) or immediately when tapping the refresh `[ ⟳ ]` button inside the
+launcher drawer.
+
+In addition, `@version {build}` and `@require ...?v={build}` bust the Userscripts Safari
+extension's internal `@require` cache if manual re-installation is ever triggered.
+
+Editing workflow:
 
 ```bash
 vim userscripts/lib/launcher.js
 python3 scripts/userscript-stub.py launcher --ref main --name 'wt launcher' \
-    --description '...' --match '*://*/*'      # re-stamps the body
+    --description '...' --match '*://*/*'      # re-stamps body and stub
 git commit && git push
 ```
 
-**Pin `main`, not a working branch.** A branch pin is right while a script is
-being built and wrong the moment its branch merges: deleting the branch 404s the
-`@require`, and the installed script stops running with nothing on screen to say
-why. Re-pin to main before merging, which costs one last install.
-
-No purge, because the `@require` reads **raw.githubusercontent**, whose cache is
-five minutes. jsDelivr was the first answer and was the wrong one for a file
-edited several times an hour: it caches a branch for about twelve hours,
-propagates a purge per edge, and rate-limits purging to roughly hourly per path.
-Measured 2026-09-06, an hour after a push it still served two builds back with
-the purge window closed, while raw already had the current one.
+The next time a webpage loads, the background loader detects the new build in `builds.json`,
+downloads the new body into GM storage, and runs it on the subsequent page load or reload—with
+zero manual extension sheets required.
 
 **The bookmarklet cannot follow it there**, so the two routes read different
 hosts on purpose. Raw serves `text/plain` with `nosniff`, which a browser
