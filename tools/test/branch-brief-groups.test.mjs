@@ -557,6 +557,31 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   assert.ok(guideScroller, 'guide scroller found');
   assert.match(guideScroller.className, /overflow-y-auto/, 'scrolling what does not fit');
   assert.doesNotMatch(guideScroller.className, /max-h-\[18rem\]/, 'no 18rem clip on guide');
+
+  // 50/50 SPLIT: the top pane (files and guide) and bottom section (reviewable
+  // files) each take basis-1/2 and max-h-[50%] so the top pane sticks to the
+  // top half regardless of whether reviewables exist.
+  assert.match(files.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(files.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  assert.match(guide.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(guide.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  const rev = root.querySelector('[data-rev-section]');
+  assert.ok(rev, 'reviewable section found');
+  assert.match(rev.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(rev.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+});
+
+test('with no reviewable files the bottom half renders a placeholder, preserving the 50/50 split', async () => {
+  const keep = data.brief.files;
+  data.brief = { ...data.brief, files: keep.filter(f => !/\.md$/.test(f.path)) };
+  await tick(4);
+  try {
+    assert.equal(data.reviewableFiles.length, 0);
+    const placeholder = window.document.querySelector('[data-rev-placeholder]');
+    assert.ok(placeholder, 'placeholder is in the DOM');
+    assert.notEqual(placeholder.style.display, 'none', 'placeholder is visible');
+    assert.match(placeholder.textContent, /no reviewable docs/);
+  } finally { data.brief = { ...data.brief, files: keep }; await tick(4); }
 });
 
 // WHICH COPY OF THE PAGE IS RUNNING, stated on the page itself.
