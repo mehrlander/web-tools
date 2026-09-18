@@ -40,6 +40,7 @@
 // vendor-and-intercept concept is docs/headless-vendoring.md.
 
 import { readFileSync, existsSync, statSync, lstatSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 export const REPO = 'mehrlander/web-tools';
@@ -366,11 +367,44 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     };
   }
 
+  // A REF IS A REF, and for a long time this pretended otherwise. Every
+  // contents read was answered from the working tree whatever `?ref=` asked
+  // for, which is right for the common case (a page loading its own lib at the
+  // branch under test) and silently wrong for any surface that COMPARES two
+  // refs. kits/md-diff.js and alpineComponents/file-review.js both do: handed
+  // two refs that resolve to one tree, the card correctly concluded the file
+  // was unchanged, dropped to its read pane, and every headless shot of a
+  // comparison showed the feature switched off. One such shot was handed to a
+  // reader as evidence the page was wrong. Measured 2026-09-18 on
+  // pages/approve.html, whose two items differ from main by 36 lines and came
+  // back identical.
+  //
+  // So a ref that git can resolve is read from git. The working tree stays the
+  // answer for a ref git does not know, for a path that is not committed, and
+  // for no ref at all, which keeps the common case exactly as it was.
+  const gitShow = (root, ref, rel) => {
+    if (!ref) return null;
+    const r = spawnSync('git', ['-C', root, 'show', `${ref}:${rel}`],
+                        { maxBuffer: 64 * 1024 * 1024 });
+    return r.status === 0 ? r.stdout : null;
+  };
+
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
   if (host === 'api.github.com' && u.pathname.startsWith(`/repos/${REPO}/contents/`)) {
     const tail = u.pathname.slice(`/repos/${REPO}/contents/`.length);
     const rel = decodeURIComponent(tail).replace(/\/$/, '');
     const fp = path.join(repoRoot, rel);
+    const atRef = gitShow(repoRoot, u.searchParams.get('ref'), rel);
+    if (atRef) {
+      return {
+        kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+        tag: `api ${tail} @${u.searchParams.get('ref')}`,
+        body: JSON.stringify({
+          content: atRef.toString('base64'),
+          encoding: 'base64', sha: 'local', size: atRef.length, html_url: '',
+        }),
+      };
+    }
     if (existsSync(fp)) {
       // A directory path returns the contents-API array, not file bytes — and
       // readFileSync on a dir throws EISDIR, so this guard is also a crash fix.
