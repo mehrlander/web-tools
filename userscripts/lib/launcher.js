@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '004b72f';
-const BUILT = '2026-09-18T16:56:11Z';
+const BUILD = '2a0d03b';
+const BUILT = '2026-09-18T17:23:38Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -660,13 +660,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
     .tool-meta {
       margin-left: auto; font: 10.5px ui-monospace, monospace;
-      color: ${mix('var(--wt-bc)', 55)}; white-space: nowrap;
+      color: ${mix('var(--wt-bc)', 55)}; white-space: nowrap; flex: none;
     }
 
     .head-tools { display: flex; align-items: center; gap: .375rem; }
     .head-tools[hidden] { display: none; }
 
     .copy-btn.copied svg { color: oklch(65% .2 145); }
+
+    .icon-btn.md-view-toggle svg { color: ${mix('var(--wt-bc)', 45)}; transition: color .15s; }
+    .icon-btn.md-view-toggle.on svg { color: var(--wt-p); }
+    .icon-btn.jina-ext svg { color: ${mix('var(--wt-bc)', 60)}; transition: color .15s; }
+    .icon-btn.jina-ext:hover svg { color: var(--wt-p); }
 
     .seg {
       display: inline-flex; align-items: center; border-radius: .375rem;
@@ -859,9 +864,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <div class="head-tools" hidden>
               <div class="seg" role="group" aria-label="Markdown engine">
                 <button type="button" class="seg-btn on" data-md-engine="local">Local</button>
-                <button type="button" class="seg-btn" data-md-engine="jina">Jina AI</button>
+                <button type="button" class="seg-btn" data-md-engine="jina">Jina</button>
               </div>
-              <button type="button" class="tool-btn md-view-toggle">Raw</button>
+              <button type="button" class="icon-btn md-view-toggle on" aria-label="Toggle preview" title="Preview mode (click for raw Markdown)">${svg(ICON.eye)}</button>
+              <a class="icon-btn jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" aria-label="Open in Jina Reader" title="Open in Jina Reader" hidden>${svg(ICON.out)}</a>
             </div>
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
@@ -909,10 +915,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <div class="slide-tools-inner">
               <div class="seg" role="group" aria-label="Markdown engine">
                 <button type="button" class="seg-btn on" data-md-engine="local">Local</button>
-                <button type="button" class="seg-btn" data-md-engine="jina">Jina AI</button>
+                <button type="button" class="seg-btn" data-md-engine="jina">Jina</button>
               </div>
-              <button type="button" class="tool-btn md-view-toggle">Raw</button>
-              <a class="jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" hidden style="font-size:11px;color:var(--wt-p);text-decoration:none">Open ↗</a>
+              <button type="button" class="icon-btn md-view-toggle on" aria-label="Toggle preview" title="Preview mode (click for raw Markdown)">${svg(ICON.eye)}</button>
+              <a class="icon-btn jina-ext" href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener" aria-label="Open in Jina Reader" title="Open in Jina Reader" hidden>${svg(ICON.out)}</a>
               <span class="tool-meta md-status"></span>
             </div>
           </div>
@@ -1227,11 +1233,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (state.jinaMd) {
       if (rawEl) rawEl.textContent = state.jinaMd;
       if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.jinaMd);
-      if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina AI`;
+      if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars`;
       refresh();
       return;
     }
-    if (statusEl) statusEl.textContent = 'Reading from Jina AI…';
+    if (statusEl) statusEl.textContent = 'Reading…';
     if (prevEl) prevEl.innerHTML = '<p class="none">Reading from Jina AI Reader (r.jina.ai)…</p>';
     if (rawEl) rawEl.textContent = 'Reading from Jina AI Reader (r.jina.ai)…';
     try {
@@ -1239,9 +1245,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.jinaMd = res;
       if (rawEl) rawEl.textContent = res;
       if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(res);
-      if (statusEl) statusEl.textContent = `${res.length.toLocaleString()} chars · Jina AI`;
+      if (statusEl) statusEl.textContent = `${res.length.toLocaleString()} chars`;
     } catch {
-      const msg = 'Direct fetch blocked by page CSP. Tap "Open ↗" above to read in Jina Reader.';
+      const msg = 'Direct fetch blocked by page CSP. Tap the external link icon above to read in Jina Reader.';
       if (rawEl) rawEl.textContent = msg;
       if (prevEl) prevEl.innerHTML = `<p class="none">${msg}</p>`;
       if (statusEl) statusEl.textContent = 'Blocked by CSP';
@@ -1256,29 +1262,32 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         const rawEl = q('.md-raw-wrap');
         const prevEl = q('.md-preview-wrap');
         const statusEl = q('.md-status');
-        const jinaExt = q('.jina-ext');
+
+        root.querySelectorAll('.jina-ext').forEach(el => {
+          el.hidden = state.mdEngine !== 'jina';
+        });
 
         if (state.mdEngine === 'jina') {
-          if (jinaExt) jinaExt.hidden = false;
           if (state.jinaMd) {
             if (rawEl) rawEl.textContent = state.jinaMd;
             if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.jinaMd);
-            if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars · Jina AI`;
+            if (statusEl) statusEl.textContent = `${state.jinaMd.length.toLocaleString()} chars`;
           } else {
             loadJina();
           }
         } else {
-          if (jinaExt) jinaExt.hidden = true;
           state.localMd = domToMarkdown();
           if (rawEl) rawEl.textContent = state.localMd;
           if (prevEl) prevEl.innerHTML = renderMarkdownToHtml(state.localMd);
-          if (statusEl) statusEl.textContent = `${state.localMd.length.toLocaleString()} chars · Local DOM`;
+          if (statusEl) statusEl.textContent = `${state.localMd.length.toLocaleString()} chars`;
         }
         if (rawEl) rawEl.hidden = state.mdView !== 'raw';
         if (prevEl) prevEl.hidden = state.mdView !== 'preview';
         root.querySelectorAll('.md-view-toggle').forEach(btn => {
-          btn.textContent = state.mdView === 'raw' ? 'Preview' : 'Raw';
-          btn.classList.toggle('on', state.mdView === 'raw');
+          const isPreview = state.mdView === 'preview';
+          btn.classList.toggle('on', isPreview);
+          btn.setAttribute('aria-pressed', String(isPreview));
+          btn.title = isPreview ? 'Preview mode (click for raw Markdown)' : 'Raw mode (click for preview)';
         });
         root.querySelectorAll('[data-md-engine]').forEach(el => {
           el.classList.toggle('on', el.dataset.mdEngine === state.mdEngine);
