@@ -202,12 +202,18 @@ document.addEventListener('alpine:init', () => {
     // text selection), and `approved-with-edits` is not a separate decision but
     // the same one taken with notes attached, which this can read for itself.
     //
-    // An Element rather than an {icon,title,onClick} spec, because the deck
-    // draws that shape as a ghost circle and a decision is not a circle.
+    // A FILLED GREEN CIRCLE, and the word is gone. It read `✓ Approve` until
+    // the header had to hold a second control; the label is the widest thing
+    // in the row and the only one a reader does not need, since a green check
+    // on a page called Approve is not ambiguous. An Element rather than an
+    // {icon,title,onClick} spec, because the deck draws that shape as a GHOST
+    // circle and a decision is not ghost chrome.
     approveBtn() {
       const b = document.createElement('button');
-      b.className = 'btn btn-sm btn-success shrink-0 gap-1';
-      b.innerHTML = '<i class="ph ph-check"></i><span>Approve</span>';
+      b.className = 'btn btn-sm btn-circle btn-success shrink-0';
+      b.innerHTML = '<i class="ph ph-check text-lg"></i>';
+      b.title = 'Approve';
+      b.setAttribute('aria-label', 'Approve');
       b.addEventListener('click', () => {
         if (this.sending || this.sent) return;
         b.disabled = true;
@@ -217,6 +223,28 @@ document.addEventListener('alpine:init', () => {
           .finally(() => { b.disabled = !!this.sent; });
       });
       return b;
+    },
+    // THE JUMP, IN THE HEADER RATHER THAN IN THE DOCUMENT. Stepping change to
+    // change is what a reader does most on this page, and the control for it
+    // sat in md-diff's own strip, which scrolls away with the prose. The deck
+    // header does not, so it is where a control used on every change belongs.
+    //
+    // It reaches the document by element, not by handle. The comparison is
+    // rendered by kits/md-diff.js inside alpineComponents/file-review.js
+    // inside a deck slide, so this page never sees what render() returned;
+    // what it can see is the active slide and the one stable class on the
+    // document inside it. The count stays in md-diff's own readout, which is
+    // already on the page, rather than being drawn a second time here.
+    jumpAction() {
+      return {
+        icon: 'ph-arrow-down',
+        title: 'Next change',
+        onClick: (core) => {
+          const slide = core && core.track.children[core.active()];
+          const doc = slide && slide.querySelector('.md-diff-doc');
+          if (doc) doc.dispatchEvent(new CustomEvent('md-diff:jump', { detail: { d: 1 } }));
+        },
+      };
     },
     // Where the items live. The request names one repo for the set, since a
     // decision spanning two repos is two decisions.
@@ -295,8 +323,14 @@ document.addEventListener('alpine:init', () => {
         subtitle: this.ctx.id,
         icon: 'ph-seal-check',
         index: (i) => this.pathOf(this.itemAt(i)) || `Item ${i + 1}`,
-        actions: [this.approveBtn()],
-        subheader: this.$refs.sent,
+        actions: [this.jumpAction(), this.approveBtn()],
+        // NO SUBHEADER UNTIL THERE IS ONE. The notice used to be passed here
+        // at open, and `empty:hidden` never fired: the slot holds whatever
+        // element it is given, and this one is a wrapper whose alert is
+        // `x-show`-ed, so the slot had a child, was not `:empty`, and drew an
+        // empty bordered band under the header for the whole session. The
+        // kit's contract is that a filled slot is a shown slot; the caller
+        // decides when it is filled, so `send()` fills it.
         slideScroll: false,
         innerClass: 'w-full h-full min-w-0',
         snapStop: true,
@@ -340,6 +374,10 @@ document.addEventListener('alpine:init', () => {
         this.decision = decision;
         this.sentPath = path;
         this.sent = res?.content?.html_url || `https://github.com/${repo}/blob/HEAD/${path}`;
+        // Now there is something to show, so the slot gets filled. `$nextTick`
+        // because the alert inside it is `x-show`-ed on `sent`, which Alpine
+        // has not applied yet at this line.
+        this.$nextTick(() => this._deck && this._deck.setSubheader(this.$refs.sent));
       } catch (e) {
         this.error = e.message;
       }
