@@ -542,3 +542,68 @@ test('load fetches gzip drafts_inventory through gh.bytes when the lane is decla
   T.clear();
 });
 
+
+const LOCAL_PATH = 'projects/text/runs/local-fixture/proposals.json';
+function localBundle() {
+  const runtime = { name: 'fixture', digest: 'sha256:fixture', ollama_version: 'fixture-1' };
+  const original = 'Original prose for testing.';
+  const replacement = 'Clearer prose for testing.';
+  return {
+    schema: 'text-local-proposals/v1', run: { run_id: 'fixture-run' }, runtime,
+    rows: [{
+      proposal_id: '684f707d24a11bb871017ee9af955cb0ca580592aef14b2587c4211f3be440b2',
+      from: 'b356ca3fe3a80746bce228cbc7ba6b48db8f3817fae84dd5740654f30971021e',
+      to: '7d5443dc4363f7078f8c89c8bcd7f2feada9800840f1fd13f86e2ac5afdca1c0',
+      original, replacement, author: 'Ollama fixture @ sha256:fixture', purpose: 'Local proposal: clarity',
+      runtime, run_id: 'fixture-run',
+      task: { id: 'fixture-task', original, objective: 'clarity',
+        context: { before: 'Before this paragraph.', after: 'After this paragraph.' },
+        document: { repo: 'mehrlander/home', path: 'guide.md', commit: 'a'.repeat(40),
+          revision: 'committed', sha256: 'fixture', start_line: 3, end_line: 4 } },
+      result: { task_id: 'fixture-task', status: 'proposal', replacement, note: 'States the subject.',
+        finished_at: '2026-09-18T12:00:00Z', flags: ['qualifiers_changed'], word_ratio: 1, seconds: 30 },
+    }],
+  };
+}
+function localArgs(bundle = localBundle()) {
+  const input = args({ spec: { ...SPEC, local_proposals: [LOCAL_PATH] } });
+  input.files[LOCAL_PATH] = JSON.stringify(bundle);
+  input.metadata[LOCAL_PATH] = { sha: "f".repeat(40) };
+  return input;
+}
+
+test('local proposals preserve Python identities, provenance, diagnostics and searchable objectives', async () => {
+  const bundle = localBundle();
+  const index = await T.build(localArgs(bundle));
+  const row = T.search(index, { lane: 'local-proposals', action: 'clarity' })[0];
+  assert.equal(row.id, bundle.rows[0].proposal_id);
+  assert.equal(row.origins[0].document.url, `https://github.com/mehrlander/home/blob/${'a'.repeat(40)}/guide.md#L3-L4`);
+  assert.match(row.origins[0].rationale, /Model note \(unverified\)/);
+  assert.equal(row.origins[0].evidence[1].quote, 'Before this paragraph.');
+  assert.equal(row.analysis.quality_assessed, false);
+  assert.equal(index.summary.by_lane['local-proposals'], 1);
+  assert.equal(T.lookup(index, bundle.rows[0].original).exact[0].id, row.id);
+});
+
+test('local bundles reject tampered identities and never link dirty source bytes to main', async () => {
+  const bundle = localBundle();
+  bundle.rows[0].replacement = 'Tampered';
+  await assert.rejects(T.build(localArgs(bundle)), /identity or provenance mismatch/);
+  const dirty = localBundle();
+  dirty.rows[0].task.document.revision = 'working-tree';
+  dirty.rows[0].task.document.commit = null;
+  const index = await T.build(localArgs(dirty));
+  assert.equal(T.search(index, { lane: 'local-proposals' })[0].origins[0].document.url, '');
+});
+
+test('load fetches each optional local bundle and validates the registry type', async () => {
+  T.clear();
+  const gh = fixtureGh({ specText: JSON.stringify({ ...SPEC, local_proposals: [LOCAL_PATH] }),
+    blobsExtra: { [LOCAL_PATH]: JSON.stringify(localBundle()) } });
+  const index = await T.load(gh);
+  assert.equal(index.summary.by_lane['local-proposals'], 1);
+  assert.equal(gh.calls.filter(c => c.path === LOCAL_PATH).length, 1);
+  T.clear();
+  await assert.rejects(T.load(fixtureGh({ specText: JSON.stringify({ ...SPEC, local_proposals: 'invalid' }) })), /must be an array/);
+  T.clear();
+});

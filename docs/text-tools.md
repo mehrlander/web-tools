@@ -202,3 +202,15 @@ chosen not to keep.
 `data/design/content.csv` is a sixth path-keyed registry, left out: it is a CSV,
 its locators are often directories, and its description classifies how content
 was made rather than saying what a file is.
+
+## Proposals from a local model
+
+Home's [local proposal worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/proposals)
+snapshots source paragraphs and generates edits with installed Ollama weights.
+Retained bundles registered in `current-sources.json` under `local_proposals`
+appear in the **Local models** group. The shared projection preserves Text's
+proposal identities, model attribution, source revision, saved context and
+unverified model notes. Clarity, tightening and half-length experiments can be
+filtered separately. Diagnostic flags do not establish quality. Working-tree
+snapshots have no source permalink because a commit would show different bytes.
+The page displays proposals; generation and retention remain Home operations.
