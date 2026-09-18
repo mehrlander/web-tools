@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '258fc20';
-const BUILT = '2026-09-18T18:30:38Z';
+const BUILD = '2a244a6';
+const BUILT = '2026-09-18T20:33:07Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -65,16 +65,37 @@ const STAGE = 'https://mehrlander.github.io/web-tools/app/';
 const GZ_MAX = 24 * 1024;
 
 window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {}) => {
+  if (typeof window === 'undefined' || window.top !== window.self) return;
+
   const ID = 'wt-launcher';
-  if (document.getElementById(ID)) return;
+  if (document.getElementById(ID) || window.__wtLauncherMounting || window.__wtLauncherMounted) return;
+  window.__wtLauncherMounting = true;
+
+  // Detect Web Tools app origin or pages
+  const isWebToolsOrigin = () => {
+    try {
+      const u = new URL(app);
+      if (location.origin === u.origin && location.pathname.startsWith(u.pathname.replace(/\/app\/?$/, ''))) return true;
+    } catch {}
+    if (location.hostname === 'mehrlander.github.io' && location.pathname.startsWith('/web-tools')) return true;
+    return false;
+  };
+
+  // Detect real Web Tools FAB or scripts in DOM (which cross the Isolated World barrier)
+  const realFab = () => document.querySelector('[aria-label="Web-tools panel"], [x-data*="fab"]');
+  const hasWebToolsScript = () => !!document.querySelector(
+    'script[src*="gh-api"], script[src*="web-tools"], script[src*="fab.js"], link[href*="web-tools"]'
+  );
 
   // A page that carries the loader will mount its own fab, and one that has
   // refused a fab has refused this too: data-no-fab is an answer to the
   // question this file is asking, not a web-tools-only setting.
-  const realFab = () => document.querySelector('[aria-label="Web-tools panel"]');
-  if (realFab() || window.gh || window.__fabHosted ||
+  if (isWebToolsOrigin() || realFab() || hasWebToolsScript() || window.gh || window.__fabHosted ||
       document.documentElement.hasAttribute('data-no-fab') ||
-      document.body?.hasAttribute('data-no-fab')) return;
+      document.body?.hasAttribute('data-no-fab')) {
+    window.__wtLauncherMounting = false;
+    return;
+  }
 
   // Under this many characters the whole shortcuts:// URL is sent; over it,
   // Send stands down and names Copy. See the two-routes note above.
@@ -193,11 +214,25 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     { id: 'json', label: 'JSON', ext: 'json', icon: 'tree' },
   ];
 
+  const getPref = key => {
+    try {
+      const v = localStorage.getItem('wt_' + key);
+      if (v !== null) return v === 'true';
+    } catch {}
+    return true; // Default to true
+  };
+  const setPref = (key, val) => {
+    try { localStorage.setItem('wt_' + key, String(val)); } catch {}
+    const setGm = (typeof GM !== 'undefined' && GM.setValue) ? GM.setValue.bind(GM)
+      : (typeof GM_setValue !== 'undefined' ? (k, v) => Promise.resolve(GM_setValue(k, v)) : null);
+    if (setGm) setGm('wt_' + key, val).catch(() => {});
+  };
+
   const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
                   sel: '', collect: false, seen: new Set(), blocks: [], blockChars: 0,
                   seenLinks: new Map(), errand: null, errandOut: '', localMd: null,
                   jinaMd: null, mdEngine: 'local', mdView: 'preview',
-                  fullscreen: false, metaOpen: false };
+                  fullscreen: false, metaOpen: false, autoCheck: getPref('autocheck_updates') };
 
   // DOM-to-Markdown extractor: converts article/main or content dense tree into
   // clean, structured Markdown, preserving headings, quotes, code blocks, lists,
@@ -482,6 +517,23 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .row.errand-row svg { color: oklch(65% .18 55); }
     .row.errand-row span { color: oklch(45% .18 55); }
     .row[hidden] { display: none; }
+    .pill-toggle {
+      font: 700 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .15rem .45rem; border-radius: 9999px;
+      margin-left: auto; flex: none;
+      transition: all .2s;
+    }
+    .pill-toggle.on {
+      background: ${mix(P, 15)}; color: var(--wt-p); border: 1px solid ${mix(P, 40)};
+    }
+    .pill-toggle.off {
+      background: var(--wt-b200); color: ${mix('var(--wt-bc)', 50)}; border: 1px solid var(--wt-b300);
+    }
+    .menu-foot {
+      padding: .375rem .75rem; border-top: 1px solid var(--wt-b300);
+      font-size: 10px; color: ${mix('var(--wt-bc)', 50)}; text-align: right;
+      background: var(--wt-b200);
+    }
 
     /* The drawer, in the fab's shape: an absolute panel inside a fixed
        overflow-hidden layer, so the off-screen half is clipped rather than
@@ -581,6 +633,24 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .page-meta p:last-child { margin-bottom: 0; }
     .page-meta .k { display: block; font: 10px ui-monospace, monospace;
                     color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
+    .meta-pref-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: .5rem; padding-top: .375rem;
+      border-top: 1px dashed var(--wt-b300);
+    }
+    .meta-pref-row .k { margin-bottom: 0 !important; }
+    .meta-pref-btn {
+      font: 700 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .15rem .45rem; border-radius: 9999px;
+      cursor: pointer; transition: all .2s;
+      border: 1px solid var(--wt-b300);
+    }
+    .meta-pref-btn.on {
+      background: ${mix(P, 15)}; color: var(--wt-p); border-color: ${mix(P, 40)};
+    }
+    .meta-pref-btn.off {
+      background: var(--wt-b100); color: ${mix('var(--wt-bc)', 50)};
+    }
     .quote { border-left: 2px solid ${mix(P, 40)}; padding-left: .625rem;
              color: ${mix('var(--wt-bc)', 80)}; }
     .none { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
@@ -895,6 +965,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
           <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
           <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+          <div class="meta-pref-row">
+            <span class="k">AUTO-CHECK UPDATES</span>
+            <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
+          </div>
         </div>
       </div>
       <div class="errand-banner" hidden>
@@ -1015,7 +1089,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
       <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
-      <div class="foot">${BUILD}</div>
+      <button class="row" data-toggle-autocheck>${svg(ICON.refresh)}<span>Auto-check updates</span><span class="pill-toggle on">ON</span></button>
+      <div class="menu-foot font-mono">${BUILD}</div>
     </div>
     <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}<span class="badge"></span></div>`;
 
@@ -1041,6 +1116,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // ---- Behaviour ---------------------------------------------------------
 
   const q = s => root.querySelector(s);
+  const qa = s => root.querySelectorAll(s);
   const btn = q('.btn'), menu = q('.menu'), panel = q('.panel');
   const list = q('[data-list]'), sendEl = q('[data-send]'), copyEl = q('[data-copy]');
 
@@ -1533,7 +1609,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   let read = false;
   const openDrawer = () => {
     state.sel = clean(String(getSelection() || ''));
-    if (!read) { readPage(); checkBuild(); read = true; }
+    if (!read) { readPage(); read = true; }
+    if (state.autoCheck) checkBuild();
     renderPageMeta();
     syncSlideUI(state.slide);
     panel.classList.add('open');
@@ -1759,6 +1836,28 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     };
   }
 
+  const updateAutoCheckUI = () => {
+    const on = !!state.autoCheck;
+    qa('[data-toggle-autocheck]').forEach(el => {
+      const pill = el.classList.contains('meta-pref-btn') ? el : el.querySelector('.pill-toggle');
+      if (pill) {
+        pill.textContent = on ? 'ON' : 'OFF';
+        pill.classList.toggle('on', on);
+        pill.classList.toggle('off', !on);
+      }
+    });
+  };
+  updateAutoCheckUI();
+
+  qa('[data-toggle-autocheck]').forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      state.autoCheck = !state.autoCheck;
+      setPref('autocheck_updates', state.autoCheck);
+      updateAutoCheckUI();
+    };
+  });
+
   q('[data-hide]').onclick = () => { stopCollecting(); host.remove(); };
   menu.addEventListener('click', e => { if (e.target.closest('.row')) setMenu(false); });
   addEventListener('keydown', e => {
@@ -1827,11 +1926,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const headSub = q('.head-sub span');
   if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
 
-  // Asked on first open and on refresh, and never allowed to fail loudly.
-  let checked = false;
+  // Asked on drawer open (if autoCheck) and on refresh, and never allowed to fail loudly.
+  let lastBuildCheck = 0;
+  const CHECK_COOLDOWN = 30 * 1000;
   const checkBuild = async (force = false) => {
-    if (checked && !force) return;
-    checked = true;
+    const now = Date.now();
+    if (!force && (now - lastBuildCheck < CHECK_COOLDOWN)) return;
+    lastBuildCheck = now;
     try {
       const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
       const current = JSON.parse(raw)?.launcher?.build;
@@ -1869,6 +1970,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     } catch { /* the page refused the fetch: say nothing rather than guess */ }
   };
   document.documentElement.append(host);
+  window.__wtLauncherMounted = true;
+  window.__wtLauncherMounting = false;
   checkErrands();
 
   // The second half of the yield rule. A web-tools page boots its loader and
@@ -1876,10 +1979,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // miss it; watching until it appears is what keeps the two from standing side
   // by side. Ten seconds is a boot that has plainly not happened.
   const watch = new MutationObserver(() => {
-    if (!realFab()) return;
+    if (!realFab() && !hasWebToolsScript()) return;
     stopCollecting();
     host.remove();
     watch.disconnect();
+    window.__wtLauncherMounted = false;
   });
   watch.observe(document.documentElement, { childList: true, subtree: true });
   setTimeout(() => watch.disconnect(), 10000);
