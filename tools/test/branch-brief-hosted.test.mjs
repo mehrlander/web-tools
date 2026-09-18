@@ -298,9 +298,9 @@ test('framed: the head holds its place and the pane takes the scroll', async () 
   assert.ok(root.lastElementChild.className.includes('min-h-0'),
     'without which a flex child refuses to shrink and scrolls the document again');
   assert.ok(root.lastElementChild.className.includes('flex-1'), 'the container takes the remaining height');
-  const files = root.querySelector('[x-ref="files"]');
-  assert.match(files.getAttribute(':class') || '', /basis-1\/2/, 'files pane takes top half');
-  assert.match(files.getAttribute(':class') || '', /max-h-\[50%\]/, 'files pane capped at half height');
+  const top = root.querySelector('[data-top-section]');
+  assert.match(top.getAttribute(':class') || '', /basis-1\/2/, 'top section takes top half');
+  assert.match(top.getAttribute(':class') || '', /max-h-\[50%\]/, 'top section capped at half height');
   const rev = root.querySelector('[data-rev-section]');
   assert.match(rev.getAttribute(':class') || '', /basis-1\/2/, 'reviewable section takes bottom half');
   assert.match(rev.getAttribute(':class') || '', /max-h-\[50%\]/, 'reviewable section capped at half height');
