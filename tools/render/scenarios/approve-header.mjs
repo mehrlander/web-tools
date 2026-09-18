@@ -174,17 +174,62 @@ export default async function (page) {
     return { widths: seen, text: el.querySelector('span').textContent };
   });
 
-  // UP AND DOWN WALK THE CHANGES once one is claimed, which is the same gate
-  // left and right already had on a block's stops.
+  // UP AND DOWN WALK THE CHANGES, and they do it from a standing start. The
+  // claim gated them until 2026-09-18, which meant a reader who had clicked the
+  // document and pressed Down got a scroll: the keys only began working once
+  // they had tapped a block, which is the move the keys were meant to save.
+  //
+  // AND LEFT AND RIGHT MUST NOT REACH THE DECK. kits/swipe-deck.js binds them
+  // on `window` to step the whole deck, and both listeners hear one event:
+  // `preventDefault` does not stop a sibling, and the deck registered first
+  // because it opened before this document rendered. So the kit listens in the
+  // capture phase and stops what it handles. The check is the deck's own
+  // position, which must not have moved.
+  // Cleared the way a reader clears it, with a tap on prose. Stripping the
+  // attribute instead leaves the kit's own `ci` where it was, and the check
+  // then walked from 1 to 2 and failed a page that was behaving correctly.
+  const walk = await page.evaluate(async () => {
+    const doc = document.querySelector('.md-diff-doc');
+    const prose = [...doc.children].find((e) => !e.classList.contains('md-diff-change')
+                                             && !e.classList.contains('sticky'));
+    // A dispatched pointerdown rather than page.click(): the kit listens for
+    // that event on `document` in the capture phase, and a real click needs the
+    // element scrolled into view and unobstructed, which timed out against a
+    // document the deck had already scrolled.
+    prose.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    const t = document.querySelector('.sd-track');
+    return {
+      slide: Math.round(t.scrollLeft / (t.clientWidth || 1)),
+      at: [...doc.querySelectorAll('.md-diff-change')]
+        .findIndex((b) => b.hasAttribute('data-md-diff-here')),
+    };
+  });
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(400);
   const keys = await page.evaluate(() => {
     const doc = document.querySelector('.md-diff-doc');
     return [...doc.querySelectorAll('.md-diff-change')].findIndex((b) => b.hasAttribute('data-md-diff-here'));
   });
-  await page.keyboard.press('ArrowUp');
-  await page.waitForTimeout(350);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(450);
   const afterUp = await page.evaluate(() => {
+    const t = document.querySelector('.sd-track');
+    return Math.round(t.scrollLeft / (t.clientWidth || 1));
+  });
+
+  // EVERY CHANGE AT ONCE. The document reads as prose by design, so the first
+  // question a reader has is where the changes are, and one tap answers it.
+  const light = await page.evaluate(async () => {
     const doc = document.querySelector('.md-diff-doc');
-    return [...doc.querySelectorAll('.md-diff-change')].findIndex((b) => b.hasAttribute('data-md-diff-here'));
+    const lit = () => doc.querySelectorAll('.md-diff-change[class*="warning"]').length;
+    const b = doc.querySelector('button[title="Highlight every change"]');
+    if (!b) return { missing: true };
+    const before = lit();
+    b.click(); await new Promise((r) => setTimeout(r, 250));
+    const on = lit();
+    b.click(); await new Promise((r) => setTimeout(r, 250));
+    return { before, on, off: lit(), total: doc.querySelectorAll('.md-diff-change').length };
   });
 
   const jumpEdge = await page.evaluate(() => {
@@ -195,7 +240,7 @@ export default async function (page) {
              right: strip ? Math.round(innerWidth - strip.getBoundingClientRect().right) : -1 };
   });
 
-  const seen = { band, start, one, two, approve, head, next, chrome, gaps, strip, keys, afterUp, jumpEdge, prose: prose.slice(0, 120) };
+  const seen = { band, start, one, two, approve, head, next, chrome, gaps, strip, walk, keys, afterUp, light, jumpEdge, prose: prose.slice(0, 120) };
   const bad = (m) => { throw new Error(`approve-header: ${m}, got ${JSON.stringify(seen)}`); };
 
   if (band.present && band.h > 0) bad('the empty subheader still draws a band under the header');
@@ -230,7 +275,13 @@ export default async function (page) {
   if (new Set(strip.widths).size !== 1)
     bad(`the floating strip changes width as the readout does (${strip.widths.join(', ')})`);
   if (!/\d+ \/ \d+/.test(strip.text)) bad('the readout does not name which change of how many');
-  if (afterUp !== keys - 1) bad(`ArrowUp did not step back a change (${keys} then ${afterUp})`);
+  if (walk.at !== -1) bad('the claim was not cleared, so the standing start proves nothing');
+  if (keys !== 0) bad(`ArrowDown from no claim did not land on the first change (${keys})`);
+  if (afterUp !== walk.slide) bad('ArrowRight swiped the deck instead of walking the block\'s readings');
+  if (light.missing) bad('no highlight-every-change toggle on the comparison');
+  if (light.before >= light.total) bad('every change is already washed, so the toggle proves nothing');
+  if (light.on !== light.total) bad(`the toggle lit ${light.on} of ${light.total} changes`);
+  if (light.off !== light.before) bad('the toggle does not go off again');
   if (!jumpEdge) bad('no jump button to measure');
   if (!jumpEdge.floats) bad('the jump is not in the comparison\'s own strip');
   if (jumpEdge.pos !== 'sticky') bad('the strip does not stay with the reader as they scroll');

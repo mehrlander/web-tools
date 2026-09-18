@@ -103,7 +103,7 @@ tools/render/scenarios/annotate-triple-tap.mjs,"the buffer scrolled to its newes
 tools/render/scenarios/annotate-units-demo.mjs,"the two unit modes, element pick and region drag, driven through real pointer events",tools/render/scenarios,54,driver,no,no,no
 tools/render/scenarios/app-deck-subject.mjs,"the app's branch deck naming the document a slide is showing, two levels down: a real fab adopting it, and the drilled file deck taking the subject and handing it back",tools/render/scenarios,115,driver,no,no,no
 tools/render/scenarios/approve-app-view.mjs,"approve.html as a promoted app view, with the shell drawn around it: stages the estate config a headless run has no token to read",tools/render/scenarios,72,driver,no,no,no
-tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,240,driver,no,no,no
+tools/render/scenarios/approve-header.mjs,,tools/render/scenarios,291,driver,no,no,no
 tools/render/scenarios/audit-absorb.mjs,,tools/render/scenarios,160,driver,no,no,no
 tools/render/scenarios/audit-boots.mjs,,tools/render/scenarios,79,driver,no,yes,no
 tools/render/scenarios/audit-deck.mjs,"the audit render in the swipe deck, one document section per slide",tools/render/scenarios,23,driver,no,no,no
