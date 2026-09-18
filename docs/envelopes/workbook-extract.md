@@ -194,8 +194,8 @@ readings to take, and where the extract lands.
   "omit": ["hidden"],
   "never": ["CC", "Cash"],
   "readings": ["cells"],
-  "dest": "projects/budget-drs/data/source/{date}-{slug}",
-  "file": "{slug}-{date}.json"
+  "dest": "projects/budget-drs/data/source/{slug}",
+  "file": "{date}-{time}-{sheet}.json"
 }]
 ```
 
@@ -266,9 +266,13 @@ private be dropped at all. The omitted
 sheets' cached values still ride along wherever a taken sheet's formula reads
 them, and `left.sheets` says which sheets were declared away.
 
-`{date}` in `dest` or `file` is the UTC day; `{stem}` is the workbook's name
-without its extension, reduced to filename characters; `{slug}` is that stem
-lowercased, for a folder convention that wants it. `file` defaults to
+`{date}` in `dest` or `file` is the UTC day and `{time}` the UTC hour and
+minute as `HHMM`; `{stem}` is the workbook's name without its extension,
+reduced to filename characters; `{slug}` is that stem lowercased, for a folder
+convention that wants it; `{sheet}` is the one picked sheet's name, slugged, or
+`workbook` when several are picked. One folder per workbook and one file per
+extract, stamped, is the shape that collects versions without overwriting:
+two extracts a minute apart, or of two sheets, never share a path. `file` defaults to
 `{stem}.extract.json`. `cap` defaults to null, since a landed extract is a file
 rather than a link.
 

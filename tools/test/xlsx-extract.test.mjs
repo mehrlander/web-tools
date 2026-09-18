@@ -540,6 +540,13 @@ test('a reception matches by sheet set, takes every sheet not omitted, and state
     { dest: 'data/source/2026-09-14-ledger', file: 'Cash-projection-2026-09-14.json' });
   assert.deepEqual(XlsxExtract.receptionTarget({ dest: 'd' }, null, '2026-09-14T12:00:00Z'),
     { dest: 'd', file: 'workbook.extract.json' }, 'a file name is never missing');
+  assert.deepEqual(XlsxExtract.receptionTarget({ dest: 'src/{slug}', file: '{date}-{time}-{sheet}.json' },
+    { name: 'Cash projection.xlsx' }, '2026-09-18T21:36:43Z', 'CORE PAM'),
+    { dest: 'src/cash-projection', file: '2026-09-18-2136-core-pam.json' },
+    'one folder per workbook, one stamped file per extract, the picked sheet in the name');
+  assert.deepEqual(XlsxExtract.receptionTarget({ dest: 'src/{slug}', file: '{date}-{time}-{sheet}.json' },
+    { name: 'Cash projection.xlsx' }, '2026-09-18T21:36:43Z'),
+    { dest: 'src/cash-projection', file: '2026-09-18-2136-workbook.json' }, 'several sheets picked: workbook');
   // The pick it hands over is one extractSelected accepts as it is, and the
   // envelope states the declared omission as what was left.
   const env = XlsxExtract.extractSelected(read(), got[0].pick, { catalog: cat, maxRows: got[0].cap, now: NOW });
