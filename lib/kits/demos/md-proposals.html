@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>md-proposals — a document read with its retained proposals</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The chain boot. md-proposals loads md-diff and text-proposals itself;
+  // naming them here is what makes the demo's dependencies readable.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/guide-render.js');
+  await gh.load('kits/md-doc.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/md-diff.js');
+  await gh.load('kits/text-proposals.js');
+  await gh.load('kits/md-proposals.js');
+
+  // A HAND-BUILT PROJECTION, in the shape kits/text-proposals.js produces. The
+  // live one is read from mehrlander/home, which is private, so a public demo
+  // cannot load it; what this page shows is the SURFACE, against a fixture at
+  // the density proposals actually have: nine blocks, three with proposals,
+  // one of those with two alternatives. The viewer's Proposals reading is the
+  // same kit over the live projection.
+  const P = {
+    lanes: 'Fund 600 is reported as one number and read as two. The appropriated lane\ncarries recordkeeping and the agency\'s own operations, and it is the lane a\nbudget bill moves.',
+    lanesClarity: 'Fund 600 is reported as one number and read as two. The appropriated lane carries recordkeeping and the agency\'s own operations. It is the only lane a budget bill moves.',
+    lanesHalf: 'Fund 600 is one number read as two lanes; only the appropriated lane moves with a bill.',
+    schedule: 'So a schedule that adds the two lanes together has produced a figure nobody in\neither lane recognises, and there is no reconciliation that will recover it.',
+    scheduleQualify: 'So a schedule that adds the two lanes together has produced a figure nobody in\neither lane recognises, and no reconciliation of the two fund 600 totals will recover it.',
+    base: 'Carry-forward level is the base a request is measured against, not the base an\nagency spends from. Maintenance level lands on top of it and policy level on top\nof that, and only the third is discretionary in the sense a reader assumes.',
+    baseHalf: 'Carry-forward level is the base a request is measured against. Maintenance and policy level stack on it; only policy is discretionary.',
+  };
+  const DOC = `# Reading fund 600
+
+${P.lanes}
+
+The non-appropriated lane carries what the plans pay for directly. It reports on
+the same fund number and never nets into the appropriated total.
+
+## Why the distinction survives every reorganisation
+
+The two lanes answer to different authorities. An appropriation is an act of the
+legislature and lapses on its own schedule; a non-appropriated expenditure is
+made under the plan's own authority and does not.
+
+${P.schedule}
+
+## The three bases
+
+${P.base}
+
+Anyone comparing a request against last biennium's enacted total is comparing
+two different bases and will find a swing that is not there.
+
+\`\`\`sh
+python3 tools/allotment.py --fund 600 --lane appropriated
+\`\`\`
+`;
+  const INDEX = {
+    proposals: [
+      { id: 'demo-lanes-clarity', from: 'a', to: 'a1', author: 'Ollama mistral:7b @ sha256:demo', purpose: 'Local proposal: clarity' },
+      { id: 'demo-lanes-half', from: 'a', to: 'a2', author: 'Chief of Staff (Grok)', purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement' },
+      { id: 'demo-schedule', from: 'b', to: 'b1', author: 'phrase review', purpose: 'qualify' },
+      { id: 'demo-base-half', from: 'c', to: 'c1', author: 'Chief of Staff (Grok)', purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement' },
+    ],
+    texts: { a: P.lanes, a1: P.lanesClarity, a2: P.lanesHalf, b: P.schedule, b1: P.scheduleQualify, c: P.base, c1: P.baseHalf },
+    sources: {}, contexts: {},
+    _lane_by_proposal: { 'demo-lanes-clarity': 'local-proposals', 'demo-lanes-half': 'web-tools-paragraphs',
+                         'demo-schedule': 'phrase-reviews', 'demo-base-half': 'web-tools-paragraphs' },
+    _origins_by_proposal: {
+      'demo-lanes-clarity': [{ proposal_id: 'demo-lanes-clarity', operation: 'clarity', agent: 'Ollama mistral:7b', ratio: 1.02,
+                               rationale: 'Model note (unverified): splits the long sentence and states which lane moves.' }],
+      'demo-lanes-half': [{ proposal_id: 'demo-lanes-half', agent: 'Chief of Staff (Grok)', ratio: 0.48 }],
+      'demo-schedule': [{ proposal_id: 'demo-schedule', original_verdict: 'qualify', agent: 'phrase review', ratio: 1.1,
+                          rationale: 'A bare "reconciliation" left the reader to guess which two figures.' }],
+      'demo-base-half': [{ proposal_id: 'demo-base-half', agent: 'Chief of Staff (Grok)', ratio: 0.46 }],
+    },
+    _analysis_by_proposal: {},
+  };
+
+  const host = document.getElementById('doc');
+  const count = document.getElementById('count');
+  const h = await mdProposals.render(host, DOC, INDEX, {
+    onPick: (i, k) => { count.textContent = `picked alternative ${k + 1} on block ${i + 1}`; },
+  });
+  count.textContent = `${h.plan.count} of ${mdDiff.blocks(DOC).length} blocks carry proposals, ${h.plan.proposals} proposals in all`;
+</script>
+</head>
+<body class="bg-base-100 text-base-content">
+  <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-base-300 bg-base-100/90 px-4 py-2 backdrop-blur">
+    <span class="font-medium">md-proposals</span>
+    <span id="count" class="text-sm opacity-60"></span>
+  </header>
+  <main class="px-4 py-6">
+    <div id="doc" class="guide-body"></div>
+  </main>
+</body>
+</html>
