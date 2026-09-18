@@ -545,10 +545,10 @@ test('a fact carries its definition on data-note, not in a title', () => {
   // comparison.
   const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  assert.equal(extras.length, 3,
-    'the id, the running-ref marker and the scope row, and nothing else off-strip: '
+  assert.equal(extras.length, 4,
+    'the id, the running-ref marker, the scope row, and the pages mark off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim())));
-  assert.equal(noted.length, d.strip.length + 3, 'every fact and those three, and nothing else');
+  assert.equal(noted.length, d.strip.length + 4, 'every fact and those four, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
