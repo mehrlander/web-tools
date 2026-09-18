@@ -154,20 +154,18 @@ test('the page reads files, then the guide, then the documents', () => {
 // section against the next.
 test('the content containers share one corner, and grouping is spacing', () => {
   const doc = window.document;
-  const radius = (el) => (String(el.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
-  const guideClip = doc.querySelector('[x-init*="watchClip($el, \'guide\'"]');
-  const panelWrap = [...doc.querySelectorAll('[x-init*="watchClip"]')]
-    .find(e => !/'guide'/.test(e.getAttribute('x-init')));
+  const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
+  const guideBox = doc.querySelector('[x-ref="guide"] .rounded-box');
+  const panelWrap = doc.querySelector('[data-rev] .rounded-box');
   const listPanel = [...doc.querySelectorAll('div')]
     .find(e => /border-base-300 rounded-\S+ overflow-hidden/.test(e.className || ''));
-  const found = { guide: radius(guideClip), panel: radius(panelWrap), list: listPanel && radius(listPanel) };
+  const found = { guide: radius(guideBox), panel: radius(panelWrap), list: listPanel && radius(listPanel) };
   assert.ok(found.guide && found.panel && found.list, 'all three carry a radius: ' + JSON.stringify(found));
   assert.equal(new Set(Object.values(found)).size, 1, 'and it is the same one: ' + JSON.stringify(found));
   assert.equal(found.guide, 'rounded-box',
     'the theme token, so a theme that moves its radius moves all three');
-  // A fade sits on its container's bottom edge and has to round with it.
-  for (const fade of doc.querySelectorAll('.bg-gradient-to-b'))
-    assert.match(fade.className, /rounded-b-box/, 'the fade follows its container');
+  // No fade gradient overlay remains: content stays in its container.
+  assert.equal(doc.querySelectorAll('.bg-gradient-to-b').length, 0, 'no fade overlay on containers');
 
   // The heading row is a toolbar: its height is four max-sm:h-11 tap targets,
   // and padding on top of that pads an affordance that carries its own room.
@@ -245,47 +243,27 @@ test('with no guide there is one tab and it is the one showing', () => {
   assert.equal(guideTab.style.display, 'none', 'the Guide tab is not offered');
 });
 
-// The guide is CLIPPED, not scrolled, and by the same mechanism and the same
-// height as a presented file. Leading with it only helps if leading with it is
-// cheap: a two-thousand-word body at the top of the page is the failure the
-// files had when they led.
-test('the guide scrolls as well as expands; a panel only expands', () => {
+test('the top container (guide) and bottom container (panel) scroll without clips or expander buttons', () => {
   const guide = window.document.querySelector('[x-ref="guide"]');
-  const clip = guide.querySelector('[x-init]');
-  assert.match(clip.getAttribute('x-init'), /watchClip\(\$el, 'guide'\)/);
+  const guideScroller = guide.querySelector('.overflow-y-auto');
+  assert.ok(guideScroller, 'guide scroller found');
+  assert.match(guideScroller.className, /overflow-y-auto/, 'the guide scrolls in place');
 
-  // THE PANEL CLIPS OUTSIDE THE LOCK AND SCROLLS INSIDE IT, and the reason is
-  // that the lock is what gives it a height to scroll in. Unlocked (a phone
-  // turned sideways) the panel is as tall as its card, so a scroller there
-  // would be a bar inside the card's own; the clip and its expander are the
-  // whole navigation. Locked, the panel HAS the strip's height, its card is
-  // told to fill rather than bound itself, and the panel is the one scroller.
-  // The guide's clip scrolls either way, its card owning none: shipped
-  // overflow-hidden on 2026-09-06 and reported the next day, since a reader
-  // skimming the body had nothing to drag.
-  const panel = [...window.document.querySelectorAll('[x-init*="watchClip"]')]
-    .find(e => !/'guide'/.test(e.getAttribute('x-init')));
-  assert.match(clip.className, /overflow-y-auto/, 'the guide scrolls in place');
-  assert.ok(panel && /(^|\s)overflow-hidden(\s|$)/.test(panel.className),
-    'a presented file is clipped: ' + panel.className);
-  assert.match(panel.className, /roomy:overflow-y-auto/,
-    'and scrolls once the lock has given it a height');
+  const panel = window.document.querySelector('[data-rev] .rounded-box');
+  assert.ok(panel, 'a presented file is found');
+  assert.match(panel.className, /overflow-y-auto/, 'and scrolls inside its container');
+
   // Nothing pins the vertical overscroll, so a drag that reaches the end of the
   // guide carries on down the page instead of stopping dead.
-  assert.ok(!/overscroll-y-contain|overscroll-contain/.test(clip.className),
+  assert.ok(!/overscroll-y-contain|overscroll-contain/.test(guideScroller.className),
     'and a drag past its end chains to the page');
 
-  // SHORTER THAN A PANEL TOO, and that difference is deliberate as well. A
-  // panel in the strip IS the document, which is what the page exists to show;
-  // the guide is a preview of prose whose full text is one tap away. Read as
-  // rem off the classes so the two cannot silently converge.
-  const rem = (el) => Number((/max-h-\[(\d+)rem\]/.exec(el.className || '') || [])[1]);
-  assert.equal(rem(clip), 18);
-  assert.ok(panel && rem(panel) > rem(clip),
-    'a presented document gets more room than the guide preview');
+  // Neither guide nor panel carries more/less expander buttons
+  const buttons = [...window.document.querySelectorAll('[data-rev] button, [x-ref="guide"] button')]
+    .filter(b => /more|less/.test(b.textContent));
+  assert.equal(buttons.length, 0, 'no more/less buttons on guide or panel');
 
-  // The clip is keyed, which is what lets one mechanism serve both. It was
-  // revOpen/watchRev while the panels were its only caller.
+  // The clip helper stubs exist and remain functional if called.
   data.clipOpen = {};
   assert.equal(data.clipExpanded('guide'), false);
   data.toggleClip('guide');
@@ -308,16 +286,11 @@ test('a panel hands its card the bounding, and the expander goes with the clip',
   assert.equal(opts.open, true, 'and it is open, a panel being the document itself');
   assert.equal(data.cardOpts(f).fill, undefined, 'a list card bounds itself as before');
 
-  // The more/less expander was standing in for content the clip put out of
-  // reach. Locked, nothing is out of reach and there is nowhere to expand into,
-  // so it is not offered; unlocked it is the whole navigation, so it stays.
-  const panel = [...window.document.querySelectorAll('[x-init*="watchClip"]')]
-    .find(e => !/'guide'/.test(e.getAttribute('x-init')));
-  const buttons = [...panel.parentElement.querySelectorAll('button')]
+  // The more/less expander was dispensed with: content stays in its container.
+  const panel = window.document.querySelector('[data-rev]');
+  const buttons = [...panel.querySelectorAll('button')]
     .filter(b => /more|less/.test(b.textContent));
-  assert.equal(buttons.length, 2, 'more and less');
-  for (const b of buttons)
-    assert.match(b.className, /roomy:hidden/, 'and neither is offered under the lock');
+  assert.equal(buttons.length, 0, 'neither more nor less is offered');
 });
 
 // ── The reviewable strip ────────────────────────────────────────────────────
@@ -580,15 +553,10 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
     'the list takes the pane it is showing in');
   assert.doesNotMatch(files.getAttribute(':class') || '', /max-h-\[40%\]/,
     'and needs no share of a box it no longer shares');
-  const guideClip = guide.querySelector('[x-init]');
-  assert.match(guideClip.className, /roomy:max-h-none/, 'the clip stops clipping and fills');
-  assert.match(guideClip.className, /overflow-y-auto/, 'scrolling what does not fit');
-  // The guide is clipped instead, by the page's one expander, which is what
-  // makes leading with it affordable.
-  const clip = guide.querySelector('[x-init]');
-  assert.match(clip.getAttribute('x-init'), /watchClip\(\$el, 'guide'\)/,
-    'the guide is measured by the shared clip');
-  assert.match(clip.className, /max-h-\[18rem\]/, 'and clipped');
+  const guideScroller = guide.querySelector('.overflow-y-auto');
+  assert.ok(guideScroller, 'guide scroller found');
+  assert.match(guideScroller.className, /overflow-y-auto/, 'scrolling what does not fit');
+  assert.doesNotMatch(guideScroller.className, /max-h-\[18rem\]/, 'no 18rem clip on guide');
 });
 
 // WHICH COPY OF THE PAGE IS RUNNING, stated on the page itself.
