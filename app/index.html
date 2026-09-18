@@ -3407,10 +3407,25 @@ function app(){ return {
     const marks = this.readWatermarks();
     const prAt = {};
     {
+      const CORE_REPOS = new Set([this.REGISTRY_REPO, 'mehrlander/web-tools', 'mehrlander/home']);
+      const needsPrCheck = (repo) => {
+        if (force) return true;
+        const m = marks[repo];
+        if (!m || !prev?.repos?.[repo]) return true;
+        const pushed = metaByName.get(repo)?.pushed_at || '';
+        if (pushed && pushed !== m.pushedAt) return true;
+        if ((prev.repos[repo]?.openPRs?.length || 0) > 0) return true;
+        if (CORE_REPOS.has(repo)) return true;
+        return false;
+      };
       let wi = 0;
       const readMark = async () => {
         while (wi < members.length){
           const repo = members[wi++];
+          if (!needsPrCheck(repo)) {
+            prAt[repo] = marks[repo]?.prAt ?? '';
+            continue;
+          }
           try { prAt[repo] = (await new window.GH({ token: window.TOKEN, repo }).prWatermark()).updatedAt; }
           catch { prAt[repo] = null; }
         }
@@ -6521,9 +6536,21 @@ function app(){ return {
         .finally(() => { mark(key, false); checked(false); });
     };
     Promise.all([
-      kick('configs', () => this.refreshConfigCache?.()),
-      kick('activity', () => this.refreshActivityCache?.(false, { deep: false })),
-      kick('sessions', () => this.refreshSessionsCache?.()),
+      kick('configs', async () => {
+        const r = await this.refreshConfigCache?.();
+        if (r?.committed) document.dispatchEvent(new CustomEvent('web-tools:configs-refreshed'));
+        return r;
+      }),
+      kick('activity', async () => {
+        const r = await this.refreshActivityCache?.(false, { deep: false });
+        if (r?.committed) this.announceActivity(r);
+        return r;
+      }),
+      kick('sessions', async () => {
+        const r = await this.refreshSessionsCache?.();
+        if (r?.committed) this.announceSessions(r);
+        return r;
+      }),
     ]).then(() => checked(true));
     // Announced even when the view is already mounted: arriving from a second
     // age pill has to move the highlight, and re-setting `view` to the value it
