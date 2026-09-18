@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>md-diff — a documentation change, read as the document</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The chain boot. md-diff loads guide-render, md-doc and swipe-deck itself,
+  // but naming them here is what makes the demo's dependencies readable.
+  const ref = new URLSearchParams(location.search).get('use') || 'main';
+  const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
+  await import(`${base}/gh-api.js`);
+  await gh.load('kits/guide-render.js');
+  await gh.load('kits/md-doc.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/md-diff.js');
+
+  // A documentation edit at the density documentation edits actually have:
+  // eighteen blocks, three of them touched. The kit's whole shape rests on that
+  // assumption, so a fixture that changed every paragraph was testing a case
+  // the design is not for and made the page look like a diff rather than a
+  // document.
+  //
+  // TWO FENCES, one of them the edited block. The one-line command is the
+  // change, which is what puts a diff mark inside a code fence and is the case
+  // the highlighter used to eat; the thirteen-line script is untouched prose,
+  // and is where the wrap and the language label are read at a phone's width.
+  const BEFORE = `# Reading fund 600
+
+Fund 600 is reported as one number and read as two. The appropriated lane
+carries recordkeeping and the agency's own operations, and it is the lane a
+budget bill moves.
+
+The non-appropriated lane carries what the plans pay for directly. It reports on
+the same fund number and never nets into the appropriated total.
+
+## Why the distinction survives every reorganisation
+
+The two lanes answer to different authorities. An appropriation is an act of the
+legislature and lapses on its own schedule; a non-appropriated expenditure is
+made under the plan's own authority and does not.
+
+| Lane | Moves with a bill | Reported under |
+| --- | --- | --- |
+| Appropriated | yes | 600 |
+| Non-appropriated | no | 600 |
+
+So a schedule that adds the two lanes together has produced a figure nobody in
+either lane recognises, and there is no reconciliation that will recover it.
+
+## The three bases, and which one a request is measured against
+
+Carry-forward level is the base a request is measured against, not the base an
+agency spends from. Maintenance level lands on top of it and policy level on top
+of that, and only the third is discretionary in the sense a reader assumes.
+
+Anyone comparing a request against last biennium's enacted total is comparing
+two different bases and will find a swing that is not there.
+
+## Pulling the numbers
+
+The allotment tool reads the same two lanes and will not add them:
+
+\`\`\`sh
+python3 tools/allotment.py --fund 600 --lane appropriated
+\`\`\`
+
+Its output is one row per month per lane. Joining across lanes is the caller's
+job and the tool refuses to guess at it.
+
+A run that has to be reproduced later is a script rather than a command, and
+this is the whole of it:
+
+\`\`\`sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIENNIUM="\${BIENNIUM:-2027-29}"
+OUT="out/fund-600"
+mkdir -p "$OUT"
+
+for lane in appropriated non-appropriated; do
+  python3 tools/allotment.py --fund 600 --lane "$lane" \\
+    --biennium "$BIENNIUM" > "$OUT/$lane.csv"
+done
+
+wc -l "$OUT"/*.csv
+\`\`\`
+
+## What is still unsettled
+
+Whether the 466 transfers belong in this picture at all. They move between two
+funds this document does not otherwise discuss, and nobody has yet written down
+why they appear on the same schedule.`;
+
+  const AFTER = `# Reading fund 600
+
+Fund 600 is reported as one number and read as two. The appropriated lane
+carries recordkeeping and the agency's own operations, and it is the only lane a
+bill moves.
+
+The non-appropriated lane carries what the plans pay for directly. It reports on
+the same fund number and never nets into the appropriated total.
+
+## Why the distinction survives every reorganisation
+
+The two lanes answer to different authorities. An appropriation is an act of the
+legislature and lapses on its own schedule; a non-appropriated expenditure is
+made under the plan's own authority and does not.
+
+| Lane | Moves with a bill | Reported under |
+| --- | --- | --- |
+| Appropriated | yes | 600 |
+| Non-appropriated | no | 600 |
+
+So a schedule that adds the two lanes together has produced a figure nobody in
+either lane recognises, and there is no reconciliation that will recover it.
+
+## The three bases, and which one a request is measured against
+
+Carry-forward level is the base a request is measured against, not the base an
+agency spends from. Maintenance level lands on top of it and policy level on top
+of that, and only the third is discretionary in the sense a reader assumes.
+
+Anyone comparing a request against last biennium's enacted total is comparing
+two different bases and will find a swing that is not there.
+
+## Pulling the numbers
+
+The allotment tool reads the same two lanes and will not add them:
+
+\`\`\`sh
+python3 tools/allotment.py --fund 600 --lane appropriated --biennium 2027-29
+\`\`\`
+
+Its output is one row per month per lane. Joining across lanes is the caller's
+job and the tool refuses to guess at it.
+
+A run that has to be reproduced later is a script rather than a command, and
+this is the whole of it:
+
+\`\`\`sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+BIENNIUM="\${BIENNIUM:-2027-29}"
+OUT="out/fund-600"
+mkdir -p "$OUT"
+
+for lane in appropriated non-appropriated; do
+  python3 tools/allotment.py --fund 600 --lane "$lane" \\
+    --biennium "$BIENNIUM" > "$OUT/$lane.csv"
+done
+
+wc -l "$OUT"/*.csv
+\`\`\`
+
+## What is still unsettled
+
+Whether the 466 transfers belong in this picture at all. They move between two
+funds this document does not otherwise discuss, and nobody has yet written down
+why they appear on the same schedule.
+
+Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
+
+  // The controls go in THIS page's header, which is sticky, so the layout
+  // toggle stays put through a scroll. The jump is this page's own button on
+  // the handle's `next`, which is why the kit draws no arrows of its own.
+  const out = await mdDiff.render(document.getElementById('doc'), BEFORE, AFTER,
+    { controls: document.getElementById('bar'), readout: false });
+
+  document.getElementById('jump').addEventListener('click', out.next);
+  // HOW MANY, NOT WHICH ONE. The badge counted `2/3` while the reader was in a
+  // block, which is three glyphs and a slash on a 16px circle: it did not fit
+  // and it read as clutter rather than as a position. The count is one number
+  // and it never changes, so the badge is set once and left alone. Which block
+  // the reader is in is already said where it belongs, by the yellow index
+  // badge on the block itself, and saying it twice was what made the arrow
+  // crowded.
+  document.getElementById('count').textContent = out.count;
+  document.body.dataset.ready = '1';
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-100 text-base-content">
+
+<!-- Sticky, because the one control that takes you through a long document
+     should not be the first thing to scroll out of reach. -->
+<header class="sticky top-0 z-30 bg-base-100/90 backdrop-blur border-b border-base-300
+               px-4 sm:px-6 py-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+  <h1 class="text-lg font-semibold">md-diff</h1>
+  <code class="font-mono text-[12px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">mdDiff.render(host, old, new)</code>
+  <span id="bar" class="flex items-center gap-2 ml-auto"></span>
+  <!-- The jump is an arrow with HOW MANY changes hung off it, rather than a
+       labelled button beside a second readout. daisyUI's indicator is what
+       attaches one to the other, so the pair moves as one thing. The badge is a
+       count and not a position: `2/3` did not fit on the circle and said what
+       the block's own index badge already says. -->
+  <span class="indicator">
+    <span id="count" class="indicator-item badge badge-xs tabular-nums">0</span>
+    <button id="jump" class="btn btn-xs btn-circle" title="Next change" aria-label="Next change">
+      <i class="ph ph-arrow-down text-sm"></i>
+    </button>
+  </span>
+</header>
+
+<main class="px-4 py-4 sm:px-6 grid grid-cols-[minmax(0,1fr)]">
+  <div id="doc"></div>
+</main>
+
+</body>
+</html>

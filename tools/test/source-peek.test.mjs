@@ -143,6 +143,39 @@ test('only leading frontmatter is fenced', () => {
   assert.equal(SP.fenceFrontmatter('---\na: 1\n---\n'), '```\na: 1\n```\n');
 });
 
+test('splitFrontmatter reads the fields a reader can show as metadata', () => {
+  // A block scalar folds into one string: this is a skill file's shape, and the
+  // description is the field a header exists to show.
+  const doc = [
+    '---', 'name: markers', 'description: >-', '  Operate the status system:',
+    '  mark a claim Frozen.', 'status: living', '---', '', '# markers', '', 'Body.',
+  ].join('\n');
+  const r = SP.splitFrontmatter(doc);
+  assert.deepEqual(r.fields, [
+    { key: 'name', value: 'markers' },
+    { key: 'description', value: 'Operate the status system: mark a claim Frozen.' },
+    { key: 'status', value: 'living' },
+  ]);
+  assert.equal(r.body, '\n# markers\n\nBody.');
+  assert.match(r.raw, /^name: markers/);
+});
+
+test('splitFrontmatter hands a document without frontmatter straight back', () => {
+  // The caller branches on one thing, so no frontmatter is empty fields and the
+  // whole text as body. A mid-document rule is a horizontal rule, not metadata.
+  const md = '# Title\n\n---\n\nmore';
+  const r = SP.splitFrontmatter(md);
+  assert.deepEqual(r.fields, []);
+  assert.equal(r.raw, '');
+  assert.equal(r.body, md);
+});
+
+test('splitFrontmatter names a nested mapping rather than parsing it', () => {
+  // The shallow read is deliberate: report the keys, do not pretend to be YAML.
+  const r = SP.splitFrontmatter('---\nallowed-tools:\n  Read: yes\n  Write: no\n---\nx');
+  assert.deepEqual(r.fields, [{ key: 'allowed-tools', value: 'Read, Write' }]);
+});
+
 test('an address omits a ref it was not given', () => {
   // '' means "the repo's default branch", which the contents API resolves. A
   // peek must not guess 'main' there: RepoAddress.parse would then report a ref

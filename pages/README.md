@@ -14,6 +14,7 @@ the link-dense text twin of the visual index above.
 | Page | Title | Links |
 |---|---|---|
 | `annotate` | Annotate | [view](https://mehrlander.github.io/web-tools/pages/annotate.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/annotate.html) |
+| `approve` | Approve | [view](https://mehrlander.github.io/web-tools/pages/approve.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/approve.html) |
 | `audit-render` | Audit render | [view](https://mehrlander.github.io/web-tools/pages/audit-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html) |
 | `bench` | Bench | [view](https://mehrlander.github.io/web-tools/pages/bench.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/bench.html) |
 | `branch` | Branch | [view](https://mehrlander.github.io/web-tools/pages/branch.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/branch.html) |
@@ -35,6 +36,7 @@ the link-dense text twin of the visual index above.
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |
+| `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
@@ -124,6 +126,7 @@ the link-dense text twin of the visual index above.
 | `export` | export — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/export.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/export.html) |
 | `io` | io — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/io.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/io.html) |
 | `land` | land — where the reader was just sent | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/land.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/land.html) |
+| `md-diff` | md-diff — a documentation change, read as the document | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/md-diff.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-diff.html) |
 | `messaging` | messaging — living demo | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/messaging.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/messaging.html) |
 | `note` | note — the small tooltip | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/note.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/note.html) |
 | `peek` | peek — the region under the pointer | [view](https://mehrlander.github.io/web-tools/lib/kits/demos/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/peek.html) |

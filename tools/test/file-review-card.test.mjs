@@ -91,7 +91,12 @@ Alpine.plugin(collapse);
 // viewer.js rides along for the three-way classifier check at the end: its
 // ViewRegistry is the third thing in this estate with an opinion about what a
 // file IS, and it was the one not held to the other two.
-for (const p of ['lib/kits/guide-render.js', 'lib/kits/source-peek.js',
+// vanilla-bundle first, as it is in the real boot chain (held by its own test):
+// it supplies window.esc, which the card's frontmatter header escapes with.
+// Omitted here, that header threw into the catch that tolerates a missing kit
+// and the metadata leaked back into the prose, silently.
+for (const p of ['lib/vanilla-bundle.js',
+                 'lib/kits/guide-render.js', 'lib/kits/source-peek.js',
                  'lib/alpineComponents/viewer.js',
                  'lib/alpineComponents/file-review.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, p), 'utf8'))(window);
@@ -311,6 +316,63 @@ test('a document copies its source, not the rendered markup', () => {
   assert.equal(d.copyTitle, 'Copy note.md', 'the tooltip names it, since the glyph cannot');
 });
 
+// ── The rendered comparison ─────────────────────────────────────────────────
+// A fourth reading of the same pair, and markdown's alone. What is pinned is
+// the routing: which kinds offer it, that it is a VIEW rather than a tab (the
+// file button must not stay lit while it is showing), and that it survives the
+// two paths that reset a tab. The rendering itself is kits/md-diff.js's and is
+// tested there.
+
+test('a document offers the comparison rendered, and nothing else does', () => {
+  const d = data('docRead');
+  assert.deepEqual(JSON.parse(JSON.stringify(d.viewModes.map(m => m.key))),
+    ['file', 'rendered', 'split', 'unified']);
+  assert.equal(d.panes.some(p => p.id === 'mddiff'), true);
+
+  // An html page is source someone edits, and its own presentation is the page
+  // running, so a rendered word diff has nothing to lay itself over.
+  assert.equal(data('page').viewModes.some(m => m.key === 'rendered'), false);
+  assert.equal(data('png').panes.some(p => p.id === 'mddiff'), false);
+});
+
+test('the file control goes dark while the rendered comparison is showing', () => {
+  const d = data('docRead');
+  const lit = () => d.viewModes.filter(m => m.on).map(m => m.key);
+  d.tab = 'read';
+  assert.deepEqual(JSON.parse(JSON.stringify(lit())), ['file']);
+  d.tab = 'mddiff';
+  assert.deepEqual(JSON.parse(JSON.stringify(lit())), ['rendered'],
+    'one control lit, and it is the one showing');
+});
+
+test('the rendered comparison is a tab a reset will keep', () => {
+  // _tabUsable is what a base reload and a comparison flip both consult. A
+  // tab it does not recognise is silently swapped for the default, so a
+  // reviewer who chose this view would land back on the document every time
+  // the compare ref moved, which is precisely when they want to look.
+  const d = data('docRead');
+  d.newText = '# One\n\ntext';
+  d.baseText = '# One\n\nolder text';
+  assert.equal(d._tabUsable('mddiff'), true);
+  assert.equal(data('png')._tabUsable('mddiff'), false, 'not for a kind with no document');
+});
+
+test('a host can name the pane to land on, and is refused one that shows nothing', () => {
+  // pages/approve.html asks for the rendered comparison, because a page that
+  // exists to judge a change should not open on the finished document. The
+  // refusal half is what keeps that safe to ask for unconditionally: the same
+  // host mounts one card per changed file and does not know which are markdown.
+  const d = data('docRead');
+  d.openOn = 'mddiff';
+  d.newText = '# One\n\ntext';
+  d.baseText = '# One\n\nolder text';
+  assert.equal(d._defaultTab(), 'mddiff');
+
+  const img = data('png');
+  img.openOn = 'mddiff';
+  assert.equal(img._defaultTab(), 'image', 'an image has no rendered comparison, so it keeps its own');
+});
+
 test('the controls sit on the tab row, not on a strip above it', () => {
   const card = window.document.getElementById('withPatch');
   const row = card.querySelector('[role="tablist"]').parentElement;
@@ -384,6 +446,11 @@ const controlRow = (id) => {
   return row;
 };
 const rowPart = (el) => {
+  // The rendered comparison's own controls, which the kit fills and the card
+  // only places. Empty on every other pane, and `empty:hidden` collapses it
+  // there; jsdom applies no stylesheet, so it is named rather than filtered
+  // out, and its POSITION is the thing worth pinning either way.
+  if (el.getAttribute('x-ref') === 'mdControls') return 'changes';
   if (el.querySelector('.ph-github-logo')) return 'github';
   if (el.querySelector('.ph-git-diff')) return 'compare';
   if (el.querySelector('.ph-copy')) return 'copy';
@@ -420,7 +487,7 @@ test('a reading card orders its row identity, arrangement, utility', async () =>
   // and put a git-diff glyph over a page nobody was diffing.
   const resting = order();
   assert.deepEqual(resting,
-    ['name', 'github', 'spacer', 'layouts', 'spacer', 'copy'],
+    ['name', 'github', 'spacer', 'changes', 'layouts', 'spacer', 'copy'],
     'read order: ' + JSON.stringify(resting));
 
   // On a comparison it takes its place, between the identity cluster and the
@@ -431,7 +498,7 @@ test('a reading card orders its row identity, arrangement, utility', async () =>
   await tick(3);
   const diffing = order();
   assert.deepEqual(diffing,
-    ['name', 'github', 'compare', 'spacer', 'layouts', 'spacer', 'copy'],
+    ['name', 'github', 'compare', 'spacer', 'changes', 'layouts', 'spacer', 'copy'],
     'diff order: ' + JSON.stringify(diffing));
   // Put it back, in a finally-shaped way: a throw above must not leave the card
   // on a diff for whatever runs next.
@@ -553,7 +620,7 @@ test('a filled card pins its control row; an unfilled one has nothing to pin to'
   // Opaque, or the prose slides through it; full-bleed against the wrapper's
   // px-3, since the pane under it is -mx-3 and would otherwise show at both
   // edges of a band three units narrow.
-  assert.match(cls(filled), /bg-base-100/, 'and opaque');
+  assert.match(cls(filled), /bg-base-200/, 'and banner');
   assert.match(cls(filled), /-mx-3/, 'and as wide as the pane beneath it');
   assert.doesNotMatch(cls(own), /sticky/, 'unfilled: ' + cls(own));
 
@@ -697,7 +764,7 @@ test('a filled card drops copy, and the layouts take the end it leaves', async (
     'precondition: a comparison to lay out (loaded ' + d.loaded
       + ', diffable ' + d.diffable + ', off ' + d.compareOff + ')');
 
-  const want = ['name', 'github', 'spacer', 'layouts'];
+  const want = ['name', 'github', 'spacer', 'changes', 'layouts'];
   const filled = await settlesTo(() => rowOrder(controlRow('filled')), want);
   assert.deepEqual(filled, want, 'filled order: ' + JSON.stringify(filled));
   assert.ok(d.copyable, 'not for want of anything to copy: the pane holds text');
@@ -812,25 +879,39 @@ test('the two classifiers agree about what markdown is', async () => {
   assert.equal(peek('a.png'), 'source', 'a peek card cannot show a PNG, so it does not try');
 });
 
-test('frontmatter is fenced before rendering, not read as a paragraph', async () => {
-  // Assert on what marked is HANDED rather than on what it emits: the fencing
-  // is the change, and a real markdown parse would drag a CDN fetch into a
-  // jsdom test to prove something the input already shows.
+test('frontmatter renders as metadata, and never as the document\'s first paragraph', async () => {
+  // Assert on what marked is HANDED rather than on what it emits: the split is
+  // the change, and a real markdown parse would drag a CDN fetch into a jsdom
+  // test to prove something the input already shows.
+  //
+  // Fencing was the whole treatment until 2026-09-16 and this test held it. It
+  // kept marked from reading "status: living date: 2026-08-14" as prose, which
+  // was the bug, but it put twenty lines of grey monospace above every skill
+  // file and pushed the document below the fold. The fields now render as a
+  // short labelled header instead, so the block never reaches marked at all.
   let seen = '';
   window.marked = { parse: (md) => { seen = md; return '<h1>Title</h1>'; } };
   const d = data('docRead');
   d.readHtml = '';
   d.newText = '---\nstatus: living\ndate: 2026-08-14\n---\n\n# Title\n\nBody.';
   await d._renderRead();
-  // Half this estate's docs open with a `---` block, and marked renders a bare
-  // one as a run of prose: the doc opened on "status: living date: 2026-08-14"
-  // as though that were its first paragraph. source-peek hit this first, and
-  // this is the third reader of its fix rather than a third copy of it.
-  assert.ok(seen.startsWith('```'), 'the block reached marked already fenced');
-  assert.ok(seen.includes('status: living'));
+  assert.ok(!/status: living/.test(seen), 'the metadata did not reach the parser');
   assert.ok(seen.includes('# Title'), 'and the document behind it is intact');
-  assert.equal(window.SourcePeek.fenceFrontmatter(d.newText), seen,
-    'byte for byte what source-peek would have produced');
+  // The header sits above the rendered body, with each field labelled.
+  assert.match(d.readHtml, /<dl[^>]*>[\s\S]*status[\s\S]*living[\s\S]*<\/dl>/);
+  assert.ok(d.readHtml.indexOf('<dl') < d.readHtml.indexOf('<h1>'),
+    'metadata leads, document follows');
+});
+
+test('a document with no frontmatter gains no header', async () => {
+  let seen = '';
+  window.marked = { parse: (md) => { seen = md; return '<h1>Title</h1>'; } };
+  const d = data('docRead');
+  d.readHtml = '';
+  d.newText = '# Title\n\nBody.';
+  await d._renderRead();
+  assert.equal(seen, '# Title\n\nBody.', 'handed over untouched');
+  assert.ok(!d.readHtml.includes('<dl'), 'and nothing is prepended');
 });
 
 

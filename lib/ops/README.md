@@ -74,7 +74,7 @@ so no shared cache exists to hold a replaced op and nothing has to be purged.
 A caller's own HTTP cache is the only layer left, and sixty seconds of it, which
 a throwaway query defeats, as `Run-Op` does.
 
-**Wrong until 2026-09-08 → the paragraph above:** this route was jsDelivr,
+**Corrected 2026-09-08 → the paragraph above:** this route was jsDelivr,
 `cdn.jsdelivr.net/gh/mehrlander/web-tools@main/lib/ops/<name>.js`, whose
 `s-maxage=43200` held a replaced op at the edge for twelve hours, so every
 publish owed a purge of the **ref path** (purging the bare path reported

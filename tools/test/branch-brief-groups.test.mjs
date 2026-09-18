@@ -121,20 +121,23 @@ test('the two sections partition the branch, and each heading counts its own', (
 const sectionOrder = () => {
   const sections = window.document.querySelector('#m > div').lastElementChild;
   const kids = [...sections.children];
-  const at = (sel) => kids.findIndex(c => c.matches(sel) || c.querySelector(sel));
+  const topStrip = window.document.querySelector('[x-ref="topStrip"]');
+  const filesEl = window.document.querySelector('[x-ref="files"]');
+  const guideEl = window.document.querySelector('[x-ref="guide"]');
   return { kids,
            row: kids.findIndex(c => /sticky top-0/.test(c.className || '')),
-           files: at('[x-ref="files"]'), guide: at('[x-ref="guide"]'),
+           top: kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]')),
+           filesBeforeGuide: filesEl && guideEl ? Boolean(filesEl.compareDocumentPosition(guideEl) & 4) : true,
            rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]')) };
 };
 
 test('the page reads files, then the guide, then the documents', () => {
   const o = sectionOrder();
-  assert.ok(o.row >= 0 && o.files >= 0 && o.guide >= 0,
-    'all three are children of the one scroller');
-  assert.ok(o.row < o.files, 'the heading row heads the list it belongs to');
-  assert.ok(o.files < o.guide, 'the list leads, shut, so it costs a row not a screen');
-  assert.ok(o.rev > o.guide, 'and the documents are last');
+  assert.ok(o.row >= 0 && o.top >= 0 && o.rev >= 0,
+    'all sections are children of the one scroller');
+  assert.ok(o.row < o.top, 'the heading row heads the list it belongs to');
+  assert.ok(o.filesBeforeGuide, 'the list leads, shut, so it costs a row not a screen');
+  assert.ok(o.rev > o.top, 'and the documents are last');
 });
 
 // ── The vertical rhythm ─────────────────────────────────────────────────────
@@ -543,16 +546,10 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   // the guide is a pane that scrolls itself, so the reader asked for the two
   // panels to divide the screen and for the guide to take the slack. The list
   // gets its cap back with the pane it defends against.
-  const files = root.querySelector('[x-ref="files"]');
+  const top = root.querySelector('[data-top-section]');
+  assert.ok(classes(top).has(R('flex-1')) && classes(top).has(R('min-h-0')),
+    'the top section takes whatever the others leave: ' + top.className);
   const guide = root.querySelector('[x-ref="guide"]');
-  assert.ok(classes(guide).has(R('flex-1')) && classes(guide).has(R('min-h-0')),
-    'the guide takes whatever the others leave: ' + guide.className);
-  // NO CAP. A 40% ceiling stopped a long list crushing the guide while both
-  // were on screen. They are tabs now, so only one is, and each takes the pane.
-  assert.match(files.getAttribute(':class') || '', /roomy:flex-1/,
-    'the list takes the pane it is showing in');
-  assert.doesNotMatch(files.getAttribute(':class') || '', /max-h-\[40%\]/,
-    'and needs no share of a box it no longer shares');
   const guideScroller = guide.querySelector('.overflow-y-auto');
   assert.ok(guideScroller, 'guide scroller found');
   assert.match(guideScroller.className, /overflow-y-auto/, 'scrolling what does not fit');
@@ -561,10 +558,8 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   // 50/50 SPLIT: the top pane (files and guide) and bottom section (reviewable
   // files) each take basis-1/2 and max-h-[50%] so the top pane sticks to the
   // top half regardless of whether reviewables exist.
-  assert.match(files.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(files.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
-  assert.match(guide.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(guide.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  assert.match(top.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(top.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
   const rev = root.querySelector('[data-rev-section]');
   assert.ok(rev, 'reviewable section found');
   assert.match(rev.getAttribute(':class') || '', /roomy:basis-1\/2/);

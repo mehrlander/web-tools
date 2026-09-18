@@ -41,9 +41,28 @@ const atRisk = readdirSync(pagesDir)
   // whole-library build says the name in prose, and this selector then put it
   // in the at-risk set and failed it for lacking a gate it does not need:
   // pages/dictate.html, 2026-09-08, whose own build boots no Alpine.
+  // A BLOCK COMMENT IS NOT ITS FIRST LINE. The line filter below drops the
+  // line a comment OPENS on and leaves every line after it, so a page whose
+  // header comment runs to thirty lines had twenty-nine of them read as code.
+  // Caught 2026-09-18 by pages/probe-snap.html, whose comment says the words
+  // "no Alpine" and was therefore counted as using it. Whole `<!-- -->` and
+  // `/* */` spans go first, then the line filter takes what is left.
   .map(({ file, src }) => ({ file, src,
-    code: src.split('\n').filter(l => !/^\s*(\/\/|\*|<!--)/.test(l)).join('\n') }))
-  .filter(({ code }) => /dist\/web-tools\.js/.test(code) && /gh\.load\(/.test(code));
+    code: src.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '')
+             .split('\n').filter(l => !/^\s*(\/\/|\*|<!--)/.test(l)).join('\n') }))
+  .filter(({ code }) => /dist\/web-tools\.js/.test(code) && /gh\.load\(/.test(code))
+  // AND IT NEEDS A COMPONENT TO RACE. The hazard above is a component's
+  // `init()` running during the import, before the page's own `gh.load` chain
+  // has finished. A page with no Alpine component has no `init()`, so its
+  // loader script IS the ordering: everything after its awaits is already
+  // after them, and a gate would be a promise the same script resolves and
+  // then waits on. pages/probe-snap.html, 2026-09-18, is that page — a
+  // framework-free side test for a kit.
+  //
+  // Deliberately broad on what counts as a component, since a false negative
+  // here is a real race let through and a false positive is only ceremony:
+  // any `x-data`, any `x-init`, or any reference to `Alpine` in code.
+  .filter(({ code }) => /x-data|x-init|\bAlpine\b/.test(code));
 
 test('the set of at-risk pages is non-empty, or this check is silently vacuous', () => {
   assert.ok(atRisk.length >= 3, `expected the pre-build pages, found ${atRisk.length}`);

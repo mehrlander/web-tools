@@ -295,9 +295,15 @@ test('framed: the head holds its place and the pane takes the scroll', async () 
   const root = window.document.querySelector('#m > div > div');
   assert.ok(root.className.includes('h-full'), 'the view fills what the host gave it');
   assert.ok(root.firstElementChild.className.includes('shrink-0'), 'the head holds its place');
-  assert.ok(root.lastElementChild.className.includes('overflow-y-auto'), 'the pane takes the scroll');
   assert.ok(root.lastElementChild.className.includes('min-h-0'),
     'without which a flex child refuses to shrink and scrolls the document again');
+  assert.ok(root.lastElementChild.className.includes('flex-1'), 'the container takes the remaining height');
+  const top = root.querySelector('[data-top-section]');
+  assert.match(top.getAttribute(':class') || '', /basis-1\/2/, 'top section takes top half');
+  assert.match(top.getAttribute(':class') || '', /max-h-\[50%\]/, 'top section capped at half height');
+  const rev = root.querySelector('[data-rev-section]');
+  assert.match(rev.getAttribute(':class') || '', /basis-1\/2/, 'reviewable section takes bottom half');
+  assert.match(rev.getAttribute(':class') || '', /max-h-\[50%\]/, 'reviewable section capped at half height');
 });
 
 // THE HEAD'S CEILING. It was three bands and 188px at 390x844 until
@@ -532,17 +538,17 @@ test('files and the guide are tabs over one pane, files first in the tree', asyn
   assert.ok(list && list.style.display !== 'none', 'the file list is on screen');
   assert.ok(list.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
   assert.ok(guide.textContent.includes('#443'), 'and the guide is in the tree beside it');
-  // ASKING FOR ONE HIDES THE OTHER, since 2026-09-07. This asserted the
-  // opposite, which was the whole difference from a tab while both sections
-  // shared one scroll; they ARE tabs now, over one pane the locked layout can
-  // divide, so the swap is the point rather than the thing being avoided.
+  const topStrip = d.$el.querySelector('[x-ref="topStrip"]');
+  assert.ok(topStrip, 'top strip exists for swiping between files and guide');
+  assert.equal(d.topPane, 'files');
   d.setPane('guide');
   await tick(6);
-  assert.equal(files.style.display, 'none', 'the list steps aside');
+  assert.equal(d.topPane, 'guide', 'switched to guide pane');
   assert.notEqual(guide.style.display, 'none', 'and the guide has the pane');
   d.setPane('files');
   await tick(6);
-  assert.notEqual(files.style.display, 'none', 'and back');
+  assert.equal(d.topPane, 'files', 'and back');
+  assert.notEqual(files.style.display, 'none');
 });
 
 test('with no PR, the commits are the account, and they are read without asking', async () => {
