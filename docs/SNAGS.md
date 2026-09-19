@@ -2168,13 +2168,10 @@ re-derives it. On 2026-08-31 a branch grew the primitives 66 bytes, the body
 walked up the window, and at CI's path length the pinned midpoint selected rung
 3 instead of rung 2.
 
-**Wrong 2026-08-31 → the first version of this entry:** it read the failure as
-the real budget being breached and SURFACING.md being dropped from session start.
-It was not. At the failing commit the real delivery was rung 2, front matter
-dropped and every primitive still sent; the 25,443 figure in the log is the
-injector's internal body allowance under the *synthetic* budget, not the real
-one. The 123-byte cut that followed was still the right move and did more than
-was claimed: it returned the real delivery to rung 1.
+The real delivery was never in danger: at the failing commit it was rung 2, front
+matter dropped and every primitive still sent, and the 123-byte cut that followed
+returned it to rung 1. The figure that reads like a breach is the injector's
+internal body allowance under the *synthetic* budget, not the real one.
 
 What stays true: a pinned midpoint that must be re-derived by hand whenever the
 prose changes size will fail again, and it fails in a shape that reads like a
