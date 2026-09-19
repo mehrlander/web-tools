@@ -14,6 +14,14 @@ The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark r
 
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
+## In review
+
+### Angled 3D hex nut
+
+<img src="web-tools-icon-3d.png" width="96" height="96" alt="blue hex nut rendered at a slight three-dimensional angle on graphite gray">
+
+File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
+
 ### Per-page emoji marks
 
 Eleven pages carry their own emoji favicon, written inline as a `data:image/svg+xml` URI holding a single `<text>` glyph: 🌿 branch, 📊 data-view, 🔖 links, 🧪 console-playground, 💎 shorter, 🔍 review and pdf-inspect, ✍️ word-select, 🐈‍⬛ compression-helper, 🥏 toss-render. A page that declares none inherits the hex nut from `gh-boot.js`, so the estate needs no per-page icon file and no registry.
