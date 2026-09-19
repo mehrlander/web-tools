@@ -5,6 +5,7 @@
     "test": "node --test --test-reporter=spec 'tools/test/**/*.test.mjs'",
     "preview": "node tools/render/preview.mjs",
     "shot": "node tools/render/screenshot.mjs",
+    "activity-refresh": "node scripts/activity-crawl.mjs",
     "build": "node tools/build/build.mjs",
     "build:lib": "node tools/build/build-lib.mjs",
     "build:app": "node tools/build/build-app.mjs",
