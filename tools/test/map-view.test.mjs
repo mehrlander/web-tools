@@ -54,6 +54,7 @@ const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanis
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
+const aimsInitiativesCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-initiatives.csv'), 'utf8');
 const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
 const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
 const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
@@ -92,6 +93,7 @@ window.GH = class {
     if (p === 'docs/docs.csv') return { text: docsCsv };
     if (p === 'docs/aims.json') return { text: aimsJson };
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
+    if (p === 'docs/aims-initiatives.csv') return { text: aimsInitiativesCsv };
     if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
     if (p === 'docs/surfacing.csv') return { text: surfCsv };
     if (p === 'docs/SURFACING.md') return { text: surfDoc };
@@ -922,6 +924,7 @@ test('an Aims deep link opens Docs/Purpose and loads its existing sources', asyn
   assert.equal(d4.subviews.find(s => s.k === 'aims')?.n, 'Purpose');
   assert.equal(d4.aims?.mission, JSON.parse(aimsJson).mission);
   assert.equal(d4.aims?.goals.length, window.Csv.rows(aimsGoalsCsv).length);
+  assert.equal(d4.aims?.initiatives.length, window.Csv.rows(aimsInitiativesCsv).length);
   assert.deepEqual([...d4.aims.reading.slice(0, 3).map(d => d.path)],
     ['README.md', 'CLAUDE.md', 'docs/README.md']);
   window.__shell = undefined;
