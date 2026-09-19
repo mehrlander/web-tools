@@ -56,7 +56,7 @@ test('DataProfile.analyze profiles empty, numeric, categorical, and text columns
   assert.equal(emptyCol.fillRate, 0);
 });
 
-test('TabularExplorer.mount builds navigation, profile, and pivot stages', () => {
+test('TabularExplorer.mount builds navigation, columns schema matrix, and pivot stages', () => {
   const container = window.document.createElement('div');
   window.document.body.append(container);
 
@@ -73,13 +73,24 @@ test('TabularExplorer.mount builds navigation, profile, and pivot stages', () =>
 
   assert.ok(container.querySelector('.tabular-explorer'));
   assert.ok(container.querySelector('button i.ph-table'));
-  assert.ok(container.querySelector('button i.ph-chart-bar'));
+  assert.ok(container.querySelector('button i.ph-columns'));
   assert.ok(container.querySelector('button i.ph-square-split-horizontal'));
 
-  // Switch to profile
-  explorer.setView('profile');
-  const cards = container.querySelectorAll('.tabular-col-card');
-  assert.ok(cards.length > 0);
+  // Card button is icon-only (no text label)
+  const cardBtn = container.querySelector('button i.ph-cards-three')?.parentElement;
+  assert.ok(cardBtn);
+  assert.equal(cardBtn.querySelectorAll('span').length, 0);
+
+  // Three-dot menu exists for options
+  assert.ok(container.querySelector('details summary i.ph-dots-three-vertical'));
+
+  // Switch to columns (or profile)
+  explorer.setView('columns');
+  const colRows = container.querySelectorAll('tbody tr');
+  assert.ok(colRows.length >= 2, 'lists dataset columns in schema table');
+
+  // Verify inspector is present
+  assert.ok(container.querySelector('.font-bold'), 'inspector renders active column details');
 
   // Switch to pivot
   explorer.setView('pivot');
