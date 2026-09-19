@@ -72,7 +72,7 @@ lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six 
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,24,yes
-lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",846,no,no,1,yes
+lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",940,no,no,1,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/text-proposals.js,TextProposals,"browser projection of retained, attributed revisions.",912,no,no,4,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",394,yes,no,3,yes
