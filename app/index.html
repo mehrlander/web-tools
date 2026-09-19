@@ -68,8 +68,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-title" content="Web Tools">
 <title>Web Tools</title>
 <link rel="icon" type="image/svg+xml" href="../lib/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
@@ -6201,10 +6203,17 @@ function app(){ return {
   stampTitle(){
     const av = this.view === 'app' ? this.appView : null;
     const name = this.appTabName(av);
-    if (name) { document.title = `${name} · Web Tools`; return; }
-    const repo = Alpine.store('browser').repo;
-    document.title = repo && repo !== this.DEFAULT_REPO
-      ? `Web Tools · ${repo.split('/')[1] || repo}` : 'Web Tools';
+    if (name) document.title = `${name} · Web Tools`;
+    else {
+      const repo = Alpine.store('browser').repo;
+      document.title = repo && repo !== this.DEFAULT_REPO
+        ? `Web Tools · ${repo.split('/')[1] || repo}` : 'Web Tools';
+    }
+    // Keep the installed tile short. A promoted app view still names itself;
+    // every Web Tools route uses the product name even when its tab adds repo
+    // context after it.
+    const mobileTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (mobileTitle) mobileTitle.content = name || 'Web Tools';
   },
 
   // What an app view is called in a tab. THE DECLARED LABEL WINS wherever
@@ -7509,6 +7518,7 @@ function app(){ return {
   _appIconKey: '',         // which app view the mark on screen belongs to
   _appTitle: '',           // the framed page's own <title>, when it announced one
   _baseIcon: '',           // the hex nut, captured before anything replaces it
+  _baseTouchIcon: '',      // the raster hex nut an iOS home-screen tile accepts
 
   // Lazy rather than read at init, but always called before the first
   // replacement, which is what makes it safe: setFavicon REMOVES the link it
@@ -7521,6 +7531,14 @@ function app(){ return {
     return this._baseIcon;
   },
 
+  baseTouchIcon(){
+    if (!this._baseTouchIcon) {
+      const el = document.querySelector('link[rel~="apple-touch-icon"]');
+      this._baseTouchIcon = (el && el.getAttribute('href')) || '';
+    }
+    return this._baseTouchIcon;
+  },
+
   // Replace rather than append. Two <link rel=icon> elements leave the choice
   // to the browser, which is not a thing to bet a mark on; toss-render's
   // setFavicon settled this the same way.
@@ -7530,6 +7548,8 @@ function app(){ return {
     const link = document.createElement('link');
     link.rel = rel;
     link.href = href;
+    if (rel === 'apple-touch-icon')
+      link.setAttribute('sizes', `${this.APP_ICON_PX}x${this.APP_ICON_PX}`);
     document.head.appendChild(link);
   },
 
@@ -7537,7 +7557,7 @@ function app(){ return {
     if (!this._appIconKey) return;              // nothing of ours is on screen
     this._appIconKey = '';
     this.setFavicon(this.baseIcon(), 'icon');
-    this.setFavicon('', 'apple-touch-icon');    // there is no base one to restore
+    this.setFavicon(this.baseTouchIcon(), 'apple-touch-icon');
   },
 
   // One listener on THIS window, wired at init, because the announcement comes
@@ -7570,6 +7590,7 @@ function app(){ return {
   // and a failure here leaves the tab alone rather than drawing a broken one.
   async applyAppIcon(key, src){
     this.baseIcon();                            // capture before the first replace
+    this.baseTouchIcon();
     const png = await this.iconPng(src);
     // The reader may have moved on while the canvas was decoding.
     if (this.view !== 'app' || !this.appView || this.appView.key !== key) return;
