@@ -7,13 +7,12 @@ name: Tests
 # and becomes a check: the green or red mark in the merge box, the Checks tab,
 # and the tick beside the commit wherever GitHub lists it.
 #
-# Why it exists: .claude/hooks/build-on-commit.sh regenerates dist/web-tools.js
-# and the page catalogs before a commit, but a hook only fires where the harness
-# registers it, and where it does not, it fails silently (cause and tells in
-# docs/environment/extending.md). tools/test/derived-artifacts.test.mjs is the
-# backstop for that, and until now it only ran when someone remembered to run the
-# suite. Here it runs on every PR, so a stale artifact is caught by the platform
-# rather than by memory.
+# Why it exists: the configured git hooks regenerate deterministic artifacts
+# during ordinary commits and local merge completion, but checkout setup can be
+# skipped, --no-verify can bypass the hooks, and GitHub API/MCP/server-side
+# writes cannot run them. tools/test/derived-artifacts.test.mjs is deliberately
+# independent of that refresh path. Here it runs on every PR, so stale output is
+# caught by the platform rather than accepted because local setup looked ready.
 #
 # The suite is browser-free: `node --test` globs tools/test/**/*.test.mjs, and
 # every Playwright-driven check (subject-actions, render-copy, the pdf probes) is
@@ -96,6 +95,9 @@ jobs:
       # playwright dev dependency's postinstall from fetching browsers the suite
       # never launches, which is most of the install time.
       - name: Install
+        # Deliberately not `npm run setup`: CI does not configure or exercise
+        # local hooks, and must verify the committed artifacts without repairing
+        # them first. Browser installation remains separate from this suite.
         run: npm install
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'

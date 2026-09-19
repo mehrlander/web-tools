@@ -86,11 +86,12 @@ export const KINDS = ['behavior', 'gate'];
 export const METHODS = ['kit', 'alpine', 'spawn', 'read', 'pure'];
 
 const TEST_DIR = 'tools/test';
-// Files in tools/test/ that are not tests: the shared harness and the
-// browser-driven checks, which are named without `.test.` so `node --test`
-// skips them. The registry covers both, since a check the suite never runs is
-// exactly the kind of thing that goes quietly stale.
-const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs']);
+// Files in tools/test/ that are harness machinery rather than checks. The
+// browser-driven checks are still inventoried even though they omit `.test.`;
+// a check the suite never runs is exactly the kind of thing that goes quietly
+// stale. The CommonJS preload only normalizes host command spellings before
+// those inventoried tests load.
+const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'runtime-command.cjs']);
 
 // A boot smoke assertion proves one thing: the component mounted and logged
 // nothing. Two things changed here on 2026-08-10, and both are about level.
@@ -150,7 +151,7 @@ export function deriveTests(repoRoot) {
   const scripts = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).scripts || {};
   const out = new Map();
   for (const name of readdirSync(dir)) {
-    if (!name.endsWith('.mjs') || NOT_A_TEST.has(name)) continue;
+    if (NOT_A_TEST.has(name) || !name.endsWith('.mjs')) continue;
     const rel = `${TEST_DIR}/${name}`;
     const src = readFileSync(path.join(dir, name), 'utf8');
     let runner = 'suite';

@@ -1,13 +1,12 @@
 // derived-artifacts.test.mjs — every deterministic derived artifact matches
 // the source it is generated from.
 //
-// CLAUDE.md says the commit hook owns these, and it does where it is wired. But
-// a hook only runs where the harness loads its settings, and that is not a
-// property of this repository: measured 2026-07-27, a session whose project
-// root sits ABOVE the repo (the repo arriving as an additional directory) never
-// reads .claude/settings.json, so the hook silently never fires and a stale
-// dist/web-tools.js rides into a commit unnoticed. That is exactly what
-// happened, and nothing caught it.
+// CLAUDE.md says the configured git hooks own the refresh, and they do for
+// ordinary commits and automatic local merge commits. The verification stays
+// separate because setup can be skipped, --no-verify can bypass the hooks, and
+// GitHub API/MCP/server-side writes have no local checkout in which to run them.
+// Readiness proves the local mechanism is usable; it intentionally does not
+// repair the artifact this test is meant to judge.
 //
 // So the invariant gets an owner that does not depend on the harness. These run
 // the generators in --check mode, which compares bytes instead of writing. Both

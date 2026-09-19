@@ -32,6 +32,22 @@
 # no longer gets asked.
 set -euo pipefail
 
+# A desktop host can put Git's cmd/ directory on PATH without its usr/bin/
+# directory. Git can still launch this hook, but grep and sed then disappear
+# inside it. Ask Git for the shell it actually uses and add that tool directory
+# before doing any work. cygpath handles Git for Windows' drive-letter path.
+git_shell="$(git var GIT_SHELL_PATH 2>/dev/null || true)"
+case "$git_shell" in
+  */*)
+    git_bin="${git_shell%/*}"
+    if [ -x "$git_bin/cygpath.exe" ]; then
+      git_bin="$("$git_bin/cygpath.exe" -u "$git_bin" 2>/dev/null || printf '%s' "$git_bin")"
+    fi
+    PATH="$git_bin:$PATH"
+    export PATH
+    ;;
+esac
+
 # Git runs a hook from the repository top-level, and CLAUDE_PROJECT_DIR is
 # exactly the value that is wrong here (it can name a directory ABOVE this
 # repo), so ask git rather than the environment.
@@ -39,6 +55,29 @@ root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ -n "$root" ] || exit 0
 
 cd "$root" || exit 0
+
+# checkout-setup may provide a local python3 command for platforms that expose
+# Python 3 only as `python`. npm scripts add this directory automatically; git
+# hooks do not, so put the same dependency command path first here.
+path_root="$root"
+if command -v cygpath >/dev/null 2>&1; then
+  path_root="$(cygpath -u "$root" 2>/dev/null || printf '%s' "$root")"
+fi
+PATH="$path_root/node_modules/.bin:$PATH"
+PYTHONUTF8=1
+PYTHONIOENCODING=utf-8
+export PATH PYTHONUTF8 PYTHONIOENCODING
+
+# The ordinary hook only runs a leg when its source has a pending change.
+# `git hook run pre-commit -- --all` is the explicit repair path for a clean
+# fetched tree whose committed artifacts may already be stale (for example,
+# after an API write or server-side merge). It reuses this exact order and the
+# same warning-versus-blocking policies instead of maintaining a second runner.
+refresh_all=0
+[ "${1:-}" = "--all" ] && refresh_all=1
+changed() {
+  [ "$refresh_all" = 1 ] || git status --porcelain -- "$@" | grep -q .
+}
 
 # `git add`, but LOUD about a path that is not there. Every add below used the
 # form `git add X 2>/dev/null || true`, which cannot tell "nothing to stage" from
@@ -59,7 +98,7 @@ stage() {
 }
 
 # --- leg 1: lib/ -> dist/web-tools.js (the pre-build) -------------------------
-if git status --porcelain -- lib/ | grep -q .; then
+if changed lib/; then
   if npm run build:lib --silent >/dev/null 2>&1; then
     stage dist/web-tools.js
   else
@@ -73,7 +112,7 @@ fi
 # tracked, and it is tracked because the page imports it: the chain it replaces
 # was fourteen serial contents-API round trips, which is what made the page slow
 # to open on a phone (measured 2026-09-08).
-if git status --porcelain -- lib/ pages/dictate.html | grep -q .; then
+if changed lib/ pages/dictate.html; then
   if npm run build:dictate --silent >/dev/null 2>&1; then
     stage dist/dictate.js
   else
@@ -84,7 +123,7 @@ fi
 # --- leg 1a: lib/ or app/index.html -> dist/app.js (the app's pre-build) ------
 # The app imports its own walked build (tools/build/build-app.mjs), so a change
 # to the page's reach re-emits it too.
-if git status --porcelain -- lib/ app/index.html | grep -q .; then
+if changed lib/ app/index.html; then
   if npm run build:app --silent >/dev/null 2>&1; then
     stage dist/app.js
   else
@@ -93,7 +132,7 @@ if git status --porcelain -- lib/ app/index.html | grep -q .; then
 fi
 
 # --- leg 1b: console/ -> console/suite.js (base + mods, one paste) ------------
-if git status --porcelain -- console/base.js console/mods/ | grep -q .; then
+if changed console/base.js console/mods/; then
   if npm run build:console --silent >/dev/null 2>&1; then
     stage console/suite.js
   else
@@ -112,7 +151,7 @@ fi
 # nothing, the commit went through, and derived-artifacts.test.mjs failed on the
 # next run. pages.csv was missing from the stage list on the same terms.
 changed_pages="$(git status --porcelain -- pages/ lib/kits/demos/ | grep '\.html' | sed 's/^...//; s/.* -> //' || true)"
-if [ -n "$changed_pages" ]; then
+if [ "$refresh_all" = 1 ] || [ -n "$changed_pages" ]; then
   if npm run pages-index --silent >/dev/null 2>&1; then
     stage pages/README.md pages/index.html pages/pages.csv
   else
@@ -124,7 +163,7 @@ if [ -n "$changed_pages" ]; then
   # is shot under its virtual folder, not its real path, and pages-shots names
   # its arguments the same way. Get this wrong and the nudge points at a
   # thumbnail that does not exist and hands over a command that shoots nothing.
-  while IFS= read -r p; do
+  while [ -n "$changed_pages" ] && IFS= read -r p; do
     # The two folder indexes are generated listings, not catalogued pages, so
     # neither has a thumbnail to nag about. lib/kits/demos/index.html was
     # nagged on every touch until 2026-09-05: pages-shots is handed a name the
@@ -146,7 +185,7 @@ fi
 # docs/tests.csv is a row in docs/docs.json, so a restamp here invalidates any
 # word count 3a had already taken. Running it after 3a leaves the suite failing
 # on exactly one row, which is how the ordering was found.
-if git status --porcelain -- tools/test package.json tools/build/tests-index.mjs | grep -q .; then
+if changed tools/test package.json tools/build/tests-index.mjs; then
   if npm run tests-index --silent >/dev/null 2>&1; then
     stage docs/tests.csv
   else
@@ -159,7 +198,7 @@ fi
 # lines, invocation, emits, named, and tested are stamped from the tree, and a
 # rename or a new npm script moves them without touching the registry.
 # artifacts-lockstep runs the generator's --check as the backstop.
-if git status --porcelain -- tools scripts package.json tools/build/tools-index.mjs docs/harness.csv | grep -q .; then
+if changed tools scripts package.json tools/build/tools-index.mjs docs/harness.csv; then
   if npm run tools-index --silent >/dev/null 2>&1; then
     stage docs/harness.csv
   else
@@ -171,7 +210,7 @@ fi
 # docs/kits.csv authors nothing: namespace, headline, boot, demo, users and
 # tested are all read off the tree, so any change on the shelf, to a demo, to a
 # page that loads a kit, or to the boot manifest can move a row.
-if git status --porcelain -- lib pages app tools/test tools/build/kits-index.mjs docs/kits.csv | grep -q .; then
+if changed lib pages app tools/test tools/build/kits-index.mjs docs/kits.csv; then
   if npm run kits-index --silent >/dev/null 2>&1; then
     stage docs/kits.csv
   else
@@ -184,7 +223,7 @@ fi
 # files that name each registry, stamped the way leg 3a stamps reach. Must
 # precede 3a: this writes docs/registries.csv, which is a docs/ file whose
 # word count 3a measures. properties-registry.test.mjs is the backstop.
-if git status --porcelain -- lib pages docs/registries.csv tools/build/registries-reach.mjs | grep -q .; then
+if changed lib pages docs/registries.csv tools/build/registries-reach.mjs; then
   if npm run registries-reach --silent >/dev/null 2>&1; then
     stage docs/registries.csv
   else
@@ -215,7 +254,7 @@ fi
 # working tree, which the stop hook caught three times (2026-09-07, 2026-09-08)
 # and no gate did: the csv is not compared against its source by the suite the
 # way dist/ is, so nothing on the way to a merge would have noticed.
-if git status --porcelain -- docs/SNAGS.md | grep -q .; then
+if changed docs/SNAGS.md; then
   if out="$(npm run snags-index --silent 2>&1)"; then
     stage docs/SNAGS.md
     stage docs/snags.csv
@@ -231,7 +270,7 @@ fi
 # length changes the second, and both edits are nowhere near docs/docs.json.
 # Restamp before leg 3b so the README projects the new value in the same commit.
 # docs-registry.test.mjs is the backstop where the hook does not run.
-if git status --porcelain -- .claude/skills skills lib pages docs tools/build/docs-reach.mjs | grep -q .; then
+if changed .claude/skills skills lib pages docs tools/build/docs-reach.mjs; then
   if npm run docs-reach --silent >/dev/null 2>&1; then
     stage docs/docs.csv
   else
@@ -244,7 +283,7 @@ fi
 # that installed the plugin reads them off disk. docs/ is authoritative; this
 # keeps the copy from drifting in the commit that moves the source, which is
 # how it drifted before (resynced by hand in 2b785b2).
-if git status --porcelain -- docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md tools/build/vendor-docs.mjs | grep -q .; then
+if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md tools/build/vendor-docs.mjs; then
   if npm run vendor-docs --silent >/dev/null 2>&1; then
     stage .claude/skills/default/SURFACING.md .claude/skills/default/surfacing-course.md .claude/skills/default/QUALIFIED-WRITING.md
   else
@@ -256,7 +295,7 @@ fi
 # docs/themes.csv is the duplication graph the Map view's Themes tab reads, and
 # every edge in it is a fact about prose, so any .md edit can move it. Cheap
 # (about 1.2s) and byte-stable by construction: keys sorted, one separator.
-if git status --porcelain -- '*.md' scripts/duplicated-claims.py | grep -q .; then
+if changed '*.md' scripts/duplicated-claims.py; then
   if npm run themes-graph --silent >/dev/null 2>&1; then
     stage docs/themes.csv
   else
@@ -267,7 +306,7 @@ fi
 # --- leg 3b: docs/docs.json -> docs/README.md ---------------------------------
 # The docs index is a projection of the documentation registry; regenerate it
 # whenever the registry (or the generator) has pending changes.
-if git status --porcelain -- docs/docs.csv tools/build/docs-readme.mjs | grep -q .; then
+if changed docs/docs.csv tools/build/docs-readme.mjs; then
   if npm run docs-readme --silent >/dev/null 2>&1; then
     stage docs/README.md
   else
@@ -288,9 +327,9 @@ if git status --porcelain -- docs/docs.csv tools/build/docs-readme.mjs | grep -q
 fi
 
 # --- leg 4: tracker/tasks/ -> tracker/board.md + board.json -------------------
-if git status --porcelain -- tracker/tasks/ | grep -q .; then
+if changed tracker/tasks/; then
   if npm run tracker-board --silent >/dev/null 2>&1; then
-    stage tracker/board.md tracker/board.csv
+    stage tracker/board.md tracker/board.csv tracker/board-tags.csv
   else
     echo "build hook: 'npm run tracker-board' failed — committing without refreshing the tracker rollups" >&2
   fi

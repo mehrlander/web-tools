@@ -2,7 +2,10 @@
   "name": "web-tools",
   "private": true,
   "scripts": {
-    "test": "node --test --test-reporter=spec 'tools/test/**/*.test.mjs'",
+    "setup": "node tools/checkout-setup.mjs",
+    "ready": "node tools/checkout-setup.mjs --check",
+    "artifacts:refresh": "git hook run pre-commit -- --all",
+    "test": "node --require ./tools/test/runtime-command.cjs --test --test-reporter=spec \"tools/test/**/*.test.mjs\"",
     "preview": "node tools/render/preview.mjs",
     "shot": "node tools/render/screenshot.mjs",
     "activity-refresh": "node scripts/activity-crawl.mjs",
