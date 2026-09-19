@@ -97,10 +97,16 @@ jobs:
       # resolve differently than it did yesterday.
       - name: Refresh the cache
         env:
-          # Reads every estate repo, writes mehrlander/web-tools-private. A
-          # fine-grained PAT with contents:read + metadata:read on the estate and
-          # contents:write on the registry is the smallest thing that works.
+          # Two fine-grained PATs, because one would be broader than the job.
+          # ESTATE_CRAWL_TOKEN reads every estate repo (contents + metadata,
+          # read), and a fine-grained PAT grants the same permissions to every
+          # repository it selects, so a single token doing both jobs would carry
+          # write access to the whole estate. REGISTRY_WRITE_TOKEN selects
+          # web-tools-private alone, with contents write, and the runner falls
+          # back to the read token when it is absent, so one token is a working
+          # first cut and two is the shape to land on.
           GH_TOKEN: ${{ secrets.ESTATE_CRAWL_TOKEN }}
+          GH_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
           # Untrusted input reaches the script through the environment and is
           # validated there, never interpolated into this shell.
           DISPATCH_REPO: ${{ github.event.client_payload.repo }}

@@ -22,10 +22,14 @@
 // materially wrong entry, which is why the GraphQL preflight below is a hard
 // gate rather than a warning.
 //
-// Credentials: GH_TOKEN (or GITHUB_TOKEN). It must reach the crawled repos for
-// reads and mehrlander/web-tools-private for the write, so a workflow's
-// GITHUB_TOKEN is not enough on its own; .github/workflows/activity-cache.yml
-// names the secret it passes.
+// Credentials: GH_TOKEN (or GITHUB_TOKEN) reads the crawled repos, and
+// GH_WRITE_TOKEN writes the registry if it is set, falling back to the read
+// token when it is not. A workflow's own GITHUB_TOKEN reaches neither, since
+// both live in other repositories. The split is worth taking: the read token is
+// the one that has to name every estate repo, and a fine-grained PAT grants the
+// same permissions to every repository it selects, so one token doing both jobs
+// is a write token for the whole estate. Two tokens make it a read token for the
+// estate and a write token for one repo.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -55,8 +59,9 @@ for (const r of named) {
 }
 
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+const writeToken = process.env.GH_WRITE_TOKEN || token;
 if (!token) {
-  console.error('No token. Set GH_TOKEN to one that can read the estate repos and write ' + REGISTRY + '.');
+  console.error('No token. Set GH_TOKEN to one that can read the estate repos, and GH_WRITE_TOKEN to one that can write ' + REGISTRY + '.');
   process.exit(1);
 }
 
@@ -94,7 +99,7 @@ const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache
 }
 
 const t0 = Date.now();
-const reg = new GH({ token, repo: REGISTRY, ref: 'main' });
+const reg = new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
 
 // Estate membership and each repo's own .web-tools.json, from the config cache
 // the sibling crawl maintains. Same rule the shell applies: `estate: true`, less
