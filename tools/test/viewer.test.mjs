@@ -184,6 +184,49 @@ test('the markdown preview scrolls on its pane, and its column is uncapped', () 
   } finally { delete window.URL.createObjectURL; }
 });
 
+test('markdown offers a separate full-width History reading', () => {
+  data.file = 'docs/history.md';
+  data.content = '# Passage history\n\nCurrent wording.\n';
+  const ids = data.availableModes.map(mode => mode.id);
+  assert.ok(ids.includes('proposals'));
+  assert.ok(ids.includes('history'), 'history is not folded into proposal semantics');
+  const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
+  assert.equal(mod.icon, 'ph-clock-counter-clockwise');
+  const doc = new window.DOMParser().parseFromString(mod.render(data.fileContext), 'text/html');
+  assert.ok(doc.querySelector('[data-md-history]'));
+  assert.match(doc.body.firstElementChild.className, /overflow-auto/);
+});
+
+test('History passes the untouched full file for Git blob scope while inspecting stripped Markdown', async () => {
+  const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
+  const root = window.document.createElement('div');
+  root.innerHTML = mod.render({});
+  window.document.body.append(root);
+  const source = '---\ntitle: Pinned bytes\n---\n# Passage history\n\nCurrent wording.\n';
+  let captured = null;
+  const previous = window.mdHistory;
+  window.mdHistory = {
+    index: async () => ({ id: 'history-index' }),
+    render: async (host, markdown, index, opts) => {
+      captured = { host, markdown, index, opts };
+      return { count: 1, ambiguous: 0 };
+    },
+  };
+  try {
+    await mod.after({
+      ext: 'md', content: source, repo: 'mehrlander/web-tools',
+      name: 'docs/history.md', ref: 'moving-main',
+    }, { root, alive: () => true });
+  } finally {
+    if (previous === undefined) delete window.mdHistory;
+    else window.mdHistory = previous;
+    root.remove();
+  }
+  assert.equal(captured.markdown, '# Passage history\n\nCurrent wording.\n');
+  assert.equal(captured.opts.source, source, 'full bytes, including frontmatter, determine the Git blob');
+  assert.equal(captured.opts.ref, 'moving-main');
+});
+
 // ── the pdf mode ────────────────────────────────────────────────────────────
 //
 // Its `after` fetches bytes and pulls pdf.js from a CDN, neither of which
