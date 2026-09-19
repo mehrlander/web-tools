@@ -10,6 +10,8 @@ The project's icon work in one place: the marks it ships, and the ones it has re
 
 Canonical file: [`lib/favicon.svg`](../../lib/favicon.svg). A slot-split hex nut: a hexagon (modular; its left/right points read as `<` `>`) with a round bore, split down the middle to pop the angle brackets. Blue-600.
 
+The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark rasterized at 180 × 180 for iOS, which does not use the SVG favicon for a Home Screen tile. `app/index.html` declares that PNG explicitly because the app is served below the `/web-tools/` project path rather than at the origin root.
+
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
 ### Per-page emoji marks

@@ -64,23 +64,26 @@ export function makeShell({ browserStore, search = '', win = {} } = {}) {
            win, toasts, history: hist, location: loc, doc, events, listeners, fire };
 }
 
-// The <link> half of a document, and deliberately nothing else. The shell
-// manages exactly two links (the favicon and the apple-touch icon), selects
-// them by `rel~=`, and replaces rather than appends; that is the whole surface
-// a test of the app view's mark needs. Anything broader would be a browser,
-// which this harness is not, and the canvas step it feeds is stubbed at the
-// method instead (see shell-app-view-mark.test.mjs).
+// The managed head tags, and deliberately nothing else. The shell replaces
+// the favicon and apple-touch icon by `rel~=` and keeps the mobile title in
+// step with the route; that is the whole surface a test of the app view's mark
+// needs. Anything broader would be a browser, which this harness is not, and
+// the canvas step it feeds is stubbed at the method instead (see
+// shell-app-view-mark.test.mjs).
 //
-// The base icon is read out of the page rather than written here, so the
-// harness cannot drift from what app/index.html actually ships and a test
-// asserting "the reset restores the hex nut" is asserting about the real one.
+// The base values are read out of the page rather than written here, so the
+// harness cannot drift from what app/index.html actually ships.
 export const BASE_ICON = (page.match(/<link rel="icon"[^>]*href="([^"]+)"/) || [])[1] || '';
+export const BASE_TOUCH_ICON = (page.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/) || [])[1] || '';
+export const BASE_MOBILE_TITLE = (page.match(/<meta name="apple-mobile-web-app-title" content="([^"]+)"/) || [])[1] || '';
 
 function linkDom() {
   const links = [];
   const matches = (el, sel) => {
     const m = /^link\[rel~="([^"]+)"\]$/.exec(sel);
-    return !!m && String(el.rel || '').split(/\s+/).includes(m[1]);
+    if (m) return String(el.rel || '').split(/\s+/).includes(m[1]);
+    const meta = /^meta\[name="([^"]+)"\]$/.exec(sel);
+    return !!meta && el.tag === 'meta' && el.name === meta[1];
   };
   // ANY OTHER TAG STILL THROWS, which is not an oversight: before this stub
   // existed `document.createElement` was undefined, and the shell has a code
@@ -95,6 +98,7 @@ function linkDom() {
     return {
       tag, rel: '', href: '',
       getAttribute(n) { return this[n] === undefined ? null : this[n]; },
+      setAttribute(n, v) { this[n] = String(v); },
       remove() { const i = links.indexOf(this); if (i >= 0) links.splice(i, 1); },
     };
   };
@@ -106,9 +110,17 @@ function linkDom() {
     querySelectorAll: (sel) => links.filter((el) => matches(el, sel)),
   };
   assert.ok(BASE_ICON, 'app/index.html must declare a <link rel="icon"> to capture');
+  assert.ok(BASE_TOUCH_ICON, 'app/index.html must declare a <link rel="apple-touch-icon"> to capture');
+  assert.ok(BASE_MOBILE_TITLE, 'app/index.html must declare an apple mobile title to update');
   const base = make('link');
   base.rel = 'icon';
   base.href = BASE_ICON;
   links.push(base);
+  const touch = make('link');
+  touch.rel = 'apple-touch-icon';
+  touch.href = BASE_TOUCH_ICON;
+  touch.setAttribute('sizes', '180x180');
+  links.push(touch);
+  links.push({ tag: 'meta', name: 'apple-mobile-web-app-title', content: BASE_MOBILE_TITLE });
   return dom;
 }

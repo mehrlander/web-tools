@@ -1,11 +1,10 @@
 // The app view's mark: what a tab, a bookmark and a home-screen tile carry.
 //
-// The shell stamped one title and one favicon for every route, so budget-drs,
-// News and the estate dashboard all read as "Web Tools" under the hex nut. An
-// app view is a page some repo PROMOTED and `?app=<slug>` is a whole address;
-// both should name the app. This is the second half of the tracker task
-// app-view-address-and-icon-tc1a91, whose first half (the address) landed in
-// PR #505.
+// The shell once stamped one title and one favicon for every route, so
+// budget-drs, News and the estate dashboard all read as "Web Tools" under the
+// hex nut. An app view is a page some repo PROMOTED and `?app=<slug>` is a whole
+// address; both should name the app. The base shell now has its own raster tile
+// too, and it must survive a visit to one of those promoted app views.
 //
 // The mark itself is the framed page's OWN icon and title, resolved by
 // toss-render (a private repo's icon file is reachable no other way than
@@ -20,7 +19,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
-import { makeShell, page, BASE_ICON } from './shell.mjs';
+import { makeShell, page, BASE_ICON, BASE_TOUCH_ICON, BASE_MOBILE_TITLE } from './shell.mjs';
 
 const toss = readFileSync(path.join(repoRoot, 'pages/toss-render.html'), 'utf8');
 
@@ -40,6 +39,18 @@ function onAppView({ png = PNG, key = 'me/home:app.html', label = 'Budget DRS',
 
 const icons = (doc) => doc.querySelectorAll('link[rel~="icon"]').map((l) => l.href);
 const tiles = (doc) => doc.querySelectorAll('link[rel~="apple-touch-icon"]').map((l) => l.href);
+const tileTitle = (doc) => doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.content;
+
+test('the page ships a 180 px Web Tools tile and mobile title', () => {
+  assert.equal(BASE_TOUCH_ICON, '../apple-touch-icon.png');
+  assert.equal(BASE_MOBILE_TITLE, 'Web Tools');
+  assert.match(page, /<link rel="apple-touch-icon" sizes="180x180" href="\.\.\/apple-touch-icon\.png">/);
+  const png = readFileSync(path.join(repoRoot, 'apple-touch-icon.png'));
+  assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10],
+    'the declared touch icon is a PNG');
+  assert.equal(png.readUInt32BE(16), 180, 'the PNG width matches its sizes attribute');
+  assert.equal(png.readUInt32BE(20), 180, 'the PNG height matches its sizes attribute');
+});
 
 test('the tab leads with the app view, and every other route keeps product-first', () => {
   const { shell, doc, browserStore } = makeShell();
@@ -47,7 +58,8 @@ test('the tab leads with the app view, and every other route keeps product-first
   shell.appView = { key: 'k', label: 'Budget DRS' };
   shell.syncUrl();
   assert.equal(doc.title, 'Budget DRS · Web Tools',
-    'a bookmark and a tile truncate from the right, so the app has to lead');
+    'a tab and bookmark truncate from the right, so the app has to lead');
+  assert.equal(tileTitle(doc), 'Budget DRS', 'an installed app uses the short app-view name');
 
   // The repo case is unchanged: the product leads, owner dropped.
   shell.view = 'landing';
@@ -55,6 +67,7 @@ test('the tab leads with the app view, and every other route keeps product-first
   browserStore.repo = 'me/home';
   shell.syncUrl();
   assert.equal(doc.title, 'Web Tools · home');
+  assert.equal(tileTitle(doc), 'Web Tools', 'repo context does not lengthen the installed tile name');
 
   browserStore.repo = shell.DEFAULT_REPO;
   shell.syncUrl();
@@ -64,14 +77,16 @@ test('the tab leads with the app view, and every other route keeps product-first
 test('the mark replaces the hex nut, and adds the tile iOS reads', async () => {
   const { shell, doc } = onAppView();
   assert.deepEqual(icons(doc), [BASE_ICON], 'the page opens on its own mark');
+  assert.deepEqual(tiles(doc), [BASE_TOUCH_ICON], 'the page opens on its own raster tile');
 
   await shell.applyAppIcon('me/home:app.html', SVG);
   assert.deepEqual(icons(doc), [PNG], 'exactly one icon link, and it is the app\'s');
   assert.deepEqual(tiles(doc), [PNG],
     'iOS reads apple-touch-icon and will not take the SVG most of these pages declare');
+  assert.equal(doc.querySelector('link[rel~="apple-touch-icon"]').getAttribute('sizes'), '180x180');
 });
 
-test('leaving an app view puts the hex nut back and takes the tile away', async () => {
+test('leaving an app view restores the Web Tools favicon and tile', async () => {
   const { shell, doc } = onAppView();
   await shell.applyAppIcon('me/home:app.html', SVG);
 
@@ -79,8 +94,7 @@ test('leaving an app view puts the hex nut back and takes the tile away', async 
   shell.appView = null;
   shell.syncUrl();                       // every route change passes through stamp()
   assert.deepEqual(icons(doc), [BASE_ICON], 'the shell gets its own mark back');
-  assert.deepEqual(tiles(doc), [],
-    'there is no base apple-touch-icon to restore, so the link goes rather than reverts');
+  assert.deepEqual(tiles(doc), [BASE_TOUCH_ICON], 'the shell gets its own iOS tile back');
 });
 
 test('a cleared mark is a message: the tab drops on it', async () => {
@@ -93,7 +107,7 @@ test('a cleared mark is a message: the tab drops on it', async () => {
   win.__tossSubjectMark = null;
   shell.onSubjectMark();
   assert.deepEqual(icons(doc), [BASE_ICON]);
-  assert.deepEqual(tiles(doc), []);
+  assert.deepEqual(tiles(doc), [BASE_TOUCH_ICON]);
 });
 
 test('a declared label outranks the page\'s own title', () => {
@@ -159,8 +173,8 @@ test('a canvas that fails leaves the tab alone rather than drawing a broken mark
   const { shell, doc } = onAppView({ png: null });
   await shell.applyAppIcon('me/home:app.html', SVG);
   assert.deepEqual(icons(doc), [SVG], 'the tab still gets the real icon, unrasterized');
-  assert.deepEqual(tiles(doc), [],
-    'but no tile, since iOS would refuse the SVG and a broken tile is worse than none');
+  assert.deepEqual(tiles(doc), [BASE_TOUCH_ICON],
+    'the stable Web Tools tile survives when the app icon cannot be rasterized');
 });
 
 test('the listener is wired at init, not per frame load', () => {
@@ -174,7 +188,7 @@ test('the listener is wired at init, not per frame load', () => {
 });
 
 test('toss-render hands the icon up undimmed, and clears the mark with the subject', () => {
-  assert.match(toss, /announceMark\(\{ icon: src \}\);\n\s+const icon = await isCanonicalSubject/,
+  assert.match(toss, /announceMark\(\{ icon: src \}\);\r?\n\s+const icon = await isCanonicalSubject/,
     'the announcement is taken BEFORE the dimming, which is the whole point of it');
   assert.match(toss, /w\.dispatchEvent\(new w\.CustomEvent\('toss-subject-mark'\)\)/,
     'announced with the TARGET window\'s constructor, the way subject-channel does it');
@@ -182,7 +196,7 @@ test('toss-render hands the icon up undimmed, and clears the mark with the subje
   // fact on the expensive one would leave the tab unnamed for the fetch.
   assert.match(toss, /if \(t && t !== seenTitle\) \{ seenTitle = t; announceMark\(\{ title: t \}\); \}/,
     'the subject\'s <title> rides the same channel, separately');
-  assert.match(toss, /Object\.assign\(\n?\s*\{ icon: null, title: '' \}, w\.__tossSubjectMark, patch\)/,
+  assert.match(toss, /Object\.assign\((?:\r?\n)?\s*\{ icon: null, title: '' \}, w\.__tossSubjectMark, patch\)/,
     'merged per host, so a title announced on load survives the icon landing later');
   const setSubject = toss.match(/function setSubject\(s\) \{[\s\S]*?\n  \}/);
   assert.ok(setSubject, 'setSubject was not found');
