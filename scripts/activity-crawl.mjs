@@ -104,7 +104,25 @@ const reg = new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
 // Estate membership and each repo's own .web-tools.json, from the config cache
 // the sibling crawl maintains. Same rule the shell applies: `estate: true`, less
 // whatever the registry's own config hides.
-const configs = JSON.parse((await reg.get(CC.CACHE_PATH, GH.FRESH)).text);
+// THE FIRST READ A NEW TOKEN MAKES, and therefore the one that has to explain
+// itself. GitHub answers a repository the credential cannot see with 404 rather
+// than 403, so the bare error reads as a missing file and is a missing
+// permission. Measured on this job's first live run, 2026-09-19: the token
+// authenticated (the preflight passed, the rate-limit header came back) and
+// still could not see the registry.
+let configs;
+try {
+  configs = JSON.parse((await reg.get(CC.CACHE_PATH, GH.FRESH)).text);
+} catch (e) {
+  if (e?.status === 404 || e?.status === 403) {
+    console.error(`Cannot read ${CC.CACHE_PATH} in ${REGISTRY} (HTTP ${e.status}).`);
+    console.error('The token reached GitHub, so this is what it is allowed to see rather than whether it works.');
+    console.error('A fine-grained token needs that repository in its selection, with Contents read.');
+    console.error('A classic token needs the `repo` scope; one with no scopes reads public repositories only.');
+    process.exit(1);
+  }
+  throw e;
+}
 const hidden = new Set(configs.repos?.[REGISTRY]?.config?.hidden || []);
 const members = Object.entries(configs.repos || {})
   .filter(([name, e]) => e?.config?.estate === true && !hidden.has(name))
