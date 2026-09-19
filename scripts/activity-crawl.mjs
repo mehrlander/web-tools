@@ -150,10 +150,13 @@ for (const repo of targets) {
 base = await readCache();
 prev = base?.doc || null;
 const nowISO = new Date().toISOString();
-// The carry scope is every repo already in the cache plus the ones this pass set
-// out to reach. buildCache PRUNES anything outside it, so a single-repo pass
-// that passed only its own name would delete the rest of the estate.
-const carry = [...new Set([...Object.keys(prev?.repos || {}), ...targets])];
+// The carry scope is what this pass SET OUT to cover, and the two modes differ.
+// buildCache prunes anything outside it, which is how the cache tracks estate
+// membership: an `--all` pass covers the estate, so a repo that has left it is
+// meant to go, exactly as the browser's pass drops it. A single-repo pass covers
+// one repo and knows nothing about the rest, so everything already in the cache
+// carries; passing only the target's name there would delete the estate.
+const carry = wantAll ? members : [...new Set([...Object.keys(prev?.repos || {}), ...targets])];
 const next = A.buildCache(prev, fetched, nowISO, A.COMMIT_CAP, carry);
 const changed = A.changedRepos(prev, next);
 
