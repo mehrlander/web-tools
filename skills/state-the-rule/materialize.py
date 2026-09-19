@@ -171,7 +171,10 @@ if __name__ == "__main__":
         print(report(r), file=sys.stderr)
     i = sys.argv.index("--out") if "--out" in sys.argv else None
     if i is not None:
-        pathlib.Path(sys.argv[i + 1]).write_text(out, encoding="utf-8")
+        # A projection is a deterministic artifact. Do not let Windows rewrite
+        # its LF newlines while persisting the same materialized string.
+        with pathlib.Path(sys.argv[i + 1]).open("w", encoding="utf-8", newline="\n") as target:
+            target.write(out)
         print(f"wrote {sys.argv[i + 1]}", file=sys.stderr)
     elif "--json" not in sys.argv:
         sys.stdout.write(out)
