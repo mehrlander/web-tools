@@ -81,9 +81,10 @@ concurrency:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    # A full estate pass is about four minutes of API round trips at its worst
-    # (a cold scan across every repo); a single-repo pass is seconds. Fifteen is
-    # slack, and a run that hits it is a hung read rather than a slow one.
+    # A single-repo pass is seconds, and the crawl's own logged runs across the
+    # whole estate sit near a minute (373 calls in 58s, 2026-08-17, from a
+    # browser). Fifteen minutes is slack for a cold pass that scans every repo,
+    # and a run that reaches it is a hung read rather than a slow one.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
