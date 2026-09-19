@@ -7,6 +7,17 @@
 <meta name="description" content="Compare the current Web Tools Home Screen icon with an angled 3D candidate at iPhone display sizes.">
 <title>Web Tools icon · iPhone size check</title>
 <link rel="icon" href="../../lib/favicon.svg">
+<script>
+  // Toss Render can load this branch's HTML before GitHub Pages has deployed
+  // its image. Keep the normal relative URL, then fall back to the exact
+  // committed raster so the branch preview still shows the candidate.
+  addEventListener('error', event => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement) || !image.hasAttribute('data-candidate') || image.dataset.fallback) return;
+    image.dataset.fallback = 'true';
+    image.src = 'https://raw.githubusercontent.com/mehrlander/web-tools/5433afa5fd9628ce99a583d0ff43505a04670bd3/docs/favicons/web-tools-icon-3d.png';
+  }, true);
+</script>
 <style>
   :root {
     color-scheme: light dark;
@@ -313,17 +324,17 @@
       <div class="wallpaper wallpaper-light">
         <span class="wallpaper-name">Light wallpaper</span>
         <div class="size-row">
-          <figure><div class="icon size-60"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
-          <figure><div class="icon size-40"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
-          <figure><div class="icon size-29"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+          <figure><div class="icon size-60"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
         </div>
       </div>
       <div class="wallpaper wallpaper-dark">
         <span class="wallpaper-name">Dark wallpaper</span>
         <div class="size-row">
-          <figure><div class="icon size-60"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
-          <figure><div class="icon size-40"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
-          <figure><div class="icon size-29"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+          <figure><div class="icon size-60"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
         </div>
       </div>
     </article>
@@ -336,7 +347,7 @@
       <p class="source-copy"><strong>Current</strong><span>180 × 180 raster, shown on black as iOS currently presents its transparent background.</span></p>
     </article>
     <article class="source-card">
-      <div class="source-icon"><img src="../../docs/favicons/web-tools-icon-3d.png" alt="Angled three-dimensional Web Tools icon candidate"></div>
+      <div class="source-icon"><img data-candidate src="../../docs/favicons/web-tools-icon-3d.png" alt="Angled three-dimensional Web Tools icon candidate"></div>
       <p class="source-copy"><strong>Angled 3D</strong><span>180 × 180 production-size raster, used directly for every iPhone-size test above.</span></p>
     </article>
   </section>
