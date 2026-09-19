@@ -461,7 +461,7 @@ test('a tree failure degrades the answer rather than ending it', async () => {
   assert.match(d.textMatchError, /not checked against the tree/);
 });
 
-test('match and prior revisions run with the read, without another tap', async () => {
+test('match and retained proposals run with the read, without another tap', async () => {
   const d = await mountFab();
   let matched = 0, revised = 0;
   d.textMatchRun = async function () { matched++; };
@@ -469,7 +469,7 @@ test('match and prior revisions run with the read, without another tap', async (
   d.textScan();
   assert.equal(matched, 1, 'opening the tab looks paths up; a button gate hid the answer ' +
     'behind a decision nobody had the information to make');
-  assert.equal(revised, 1, 'the same read looks up prior revisions without another gate');
+  assert.equal(revised, 1, 'the same read looks up retained proposals without another gate');
 });
 
 const proposalView = (id, from, to) => ({
@@ -488,7 +488,7 @@ const proposalView = (id, from, to) => ({
   }],
 });
 
-test('prior revisions use the private home catalog and keep exact and contained apart', async () => {
+test('retained proposals use the private home catalog and keep exact and contained apart', async () => {
   const d = await mountFab();
   const exact = proposalView('exact', 'families', 'bill-section families');
   const contained = { ...proposalView('inside', 'chrome', 'decoration'), spans: [[12, 18]] };
@@ -598,11 +598,11 @@ test('a token change clears private proposal state before the next account read'
     'an old in-flight lookup can no longer repaint the drawer');
 });
 
-test('the prior-revision pane is inspect-only and routes collection browsing to Text Lab', () => {
-  const start = SRC.indexOf('Prior revisions');
+test('the retained-proposal pane is inspect-only and routes collection browsing to Text Lab', () => {
+  const start = SRC.indexOf('Retained proposals');
   const end = SRC.indexOf('>Body</div>', start);
   const pane = SRC.slice(start, end);
-  assert.ok(start > 0 && end > start, 'the prior-revision block leads the Body figures');
+  assert.ok(start > 0 && end > start, 'the retained-proposal block leads the Body figures');
   assert.match(SRC, /Exact source text/);
   assert.match(SRC, /Same string found in this selection/);
   assert.match(SRC, /Same string found on this page/);

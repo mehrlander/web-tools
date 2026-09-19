@@ -220,6 +220,7 @@ test('view exposes one stable shape for phrase and audit provenance', () => {
     'targetRatio', 'ratio', 'draftWords', 'words',
     'operation', 'original_status',
     'original_note', 'decision', 'rationale', 'relocation', 'evidence',
+    'source_occurrence_id', 'reconsideration_id', 'historical_inputs',
   ]);
   assert.equal(phrase.origins[0].source.path, SPEC.phrase_reviews);
   assert.equal(phrase.origins[0].context.source.path, SPEC.phrase_context);
@@ -389,7 +390,7 @@ test('load shares work, preserves quiet reads, supports fresh reads, and holds r
   T.clear();
   const held = fixtureGh({ repo: 'mehrlander/home-held', failSpecOnce: true });
   const failed = (error) => {
-    assert.equal(error.message, 'Prior revisions are unavailable.');
+    assert.equal(error.message, 'Retained proposals are unavailable.');
     assert.match(error.cause.message, /fixture spec read failed/);
     return true;
   };
@@ -424,7 +425,7 @@ test('an unreachable catalog reports the status without naming a cause', async (
   };
   await assert.rejects(T.load(denied), (error) => {
     assert.equal(error.status, 404);
-    assert.match(error.message, /Prior revisions are unavailable \(the catalog read returned 404\)\./);
+    assert.match(error.message, /Retained proposals are unavailable \(the catalog read returned 404\)\./);
     assert.doesNotMatch(error.message, /access|permission|token|private/i,
       'the message states what happened, not why');
     assert.match(error.cause.message, /Not Found/, 'the original stays reachable for debugging');
@@ -440,7 +441,7 @@ test('an unreachable catalog reports the status without naming a cause', async (
     throw new TypeError("Cannot read properties of undefined (reading 'content')");
   };
   await assert.rejects(T.load(broken), (error) => {
-    assert.equal(error.message, 'Prior revisions are unavailable.');
+    assert.equal(error.message, 'Retained proposals are unavailable.');
     assert.match(error.cause.message, /reading 'content'/);
     return true;
   });

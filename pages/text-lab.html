@@ -10,7 +10,7 @@
 
 <!--
   text-lab.html — the estate's text-analysis and NLP work as one reading
-  surface. Five panes over one subject: what we tried, the prior revisions we
+  surface. Five panes over one subject: what we tried, the retained proposals we
   retained, what we read with, what we read against, and what came out.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
@@ -26,7 +26,7 @@
                   being tucked behind a total.
     proposals    A browser projection rebuilt from projects/text's declared
                  phrase-review, document-audit, and web-tools paragraph sources.
-                 It carries prior source-occurrence revisions with their
+                 It carries proposed replacements for prior source occurrences with their
                  provenance. It is not the ignored full-text collection and
                  does not claim that a proposal applies to the document a
                  reader has open.
@@ -726,7 +726,7 @@
                     <i class="ph ph-arrow-right hidden sm:inline"></i>
                   </span>
                   <span class="min-w-0">
-                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Prior revision</span>
+                    <span class="block font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</span>
                     <span class="block text-lg leading-7 text-pretty font-medium"
                           x-text="proposalPreview(p.to.text)"></span>
                   </span>
@@ -750,7 +750,7 @@
                       <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.from.text"></div>
                     </div>
                     <div class="min-w-0">
-                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Prior revision</div>
+                      <div class="font-mono text-xs uppercase tracking-wide opacity-40 mb-1">Proposed replacement</div>
                       <div class="text-lg leading-7 text-pretty whitespace-pre-wrap break-words" x-text="p.to.text"></div>
                     </div>
                   </div>
