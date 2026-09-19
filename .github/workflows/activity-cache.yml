@@ -1,0 +1,125 @@
+name: Activity cache
+
+# Refreshes the estate's activity cache (state/activity.json in
+# mehrlander/web-tools-private) without a browser, so the app's Activity view,
+# the branch review and the estate cards are current when someone opens them
+# rather than current only after someone opens them. The crawl is the same code
+# the app runs: lib/kits/activity-crawl.js, driven here by
+# scripts/activity-crawl.mjs (its header carries the design and the one
+# constraint that decided it).
+#
+# WHY IT LIVES IN THE PUBLIC REPO. Two reasons, and neither is where the file it
+# writes lives. Actions minutes are free on a public repository and billed on a
+# private one, and this job checks out THIS repo (the crawl and the kits are
+# here) while reaching everything else through the API. The cost is that the
+# token below sits as a secret in a public repo's settings. Fork pull requests
+# never receive secrets, and only the owner can push to main here, so the
+# exposure is "whoever can merge to main can read the token", which is already
+# true of everything else in the estate.
+#
+# WHAT IT IS NOT. It is not the app's crawl retired: the page still crawls on
+# arrival and on Refresh, still gated by its own watermarks, and it is still the
+# only path a phone has. This is the second writer, for the moments nobody is
+# looking at the app.
+
+on:
+  # This repo's own merges, which are most of the estate's. A push to main moves
+  # pushed_at, retires a branch's PR to merged, and lands new commits: exactly
+  # the three things the cache stores per repo.
+  push:
+    branches: [main]
+    # The monthly WSL snapshot is a data commit on a cron. It moves pushed_at
+    # like any other push, so the hourly pass below picks it up; it does not
+    # need its own run.
+    paths-ignore: ['pages/wsl-sync/data/**']
+
+  # Any other estate repo can fire this the moment it merges, which is the point
+  # of the whole workflow. The sender needs a token with contents:write on
+  # mehrlander/web-tools (GITHUB_TOKEN cannot dispatch across repositories), and
+  # its payload names the repo:
+  #
+  #   curl -X POST -H "Authorization: Bearer $TOKEN" \
+  #        -H "Accept: application/vnd.github+json" \
+  #        https://api.github.com/repos/mehrlander/web-tools/dispatches \
+  #        -d '{"event_type":"activity-refresh","client_payload":{"repo":"mehrlander/home"}}'
+  #
+  # Until a repo has that dispatcher, its merges are caught by the hourly pass.
+  repository_dispatch:
+    types: [activity-refresh]
+
+  # The catch-all, and the reason a missing dispatcher is a latency problem
+  # rather than a correctness one. Offset off the hour because scheduled runs
+  # queue behind everyone else's :00.
+  schedule:
+    - cron: '17 * * * *'
+
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'One repo to refresh (owner/name). Blank refreshes the whole estate.'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Crawl and report what changed, commit nothing.'
+        type: boolean
+        required: false
+        default: false
+
+# Read-only here. The write goes to another repo, through the PAT below, never
+# through GITHUB_TOKEN.
+permissions:
+  contents: read
+
+# One crawl at a time. Two runs folding the same 1.6 MB cache would race to
+# write it, and the loser would either lose its own pass or clobber the winner's.
+# Queued, not cancelled: a superseded run still holds the only fresh read of the
+# repo that fired it.
+concurrency:
+  group: activity-cache
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    # A full estate pass is about four minutes of API round trips at its worst
+    # (a cold scan across every repo); a single-repo pass is seconds. Fifteen is
+    # slack, and a run that hits it is a hung read rather than a slow one.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      # No install step, deliberately: the runner uses node's own fetch and the
+      # repo's own lib/, so there is nothing to resolve and nothing that can
+      # resolve differently than it did yesterday.
+      - name: Refresh the cache
+        env:
+          # Reads every estate repo, writes mehrlander/web-tools-private. A
+          # fine-grained PAT with contents:read + metadata:read on the estate and
+          # contents:write on the registry is the smallest thing that works.
+          GH_TOKEN: ${{ secrets.ESTATE_CRAWL_TOKEN }}
+          # Untrusted input reaches the script through the environment and is
+          # validated there, never interpolated into this shell.
+          DISPATCH_REPO: ${{ github.event.client_payload.repo }}
+          INPUT_REPO: ${{ inputs.repo }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          EVENT: ${{ github.event_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning title=Activity cache::No ESTATE_CRAWL_TOKEN secret, so the cache was not refreshed. Add the secret to turn this on."
+            exit 0
+          fi
+          ARGS=()
+          case "$EVENT" in
+            push)                ARGS+=(--repo "$THIS_REPO") ;;
+            repository_dispatch) if [ -n "$DISPATCH_REPO" ]; then ARGS+=(--repo "$DISPATCH_REPO"); else ARGS+=(--all); fi ;;
+            workflow_dispatch)   if [ -n "$INPUT_REPO" ]; then ARGS+=(--repo "$INPUT_REPO"); else ARGS+=(--all); fi
+                                 if [ "$INPUT_DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi ;;
+            *)                   ARGS+=(--all) ;;
+          esac
+          echo "Running: npm run activity-refresh -- ${ARGS[*]}"
+          npm run activity-refresh -- "${ARGS[@]}"
