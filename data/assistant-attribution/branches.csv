@@ -1,0 +1,191 @@
+repo,number,head,prefix,label,identity,created,title
+mehrlander/home,404,agent/local-model-systems,agent,,local,2026-08-03,Start Local Model Systems project
+mehrlander/home,471,agent/add-quips,agent,,web,2026-08-19,Add a quips file at natural sentence size
+mehrlander/home,481,tracker/docked-pane-card-overflow,tracker,,harness,2026-08-20,tracker: a pane's cards escape the pane when docked
+mehrlander/home,542,codex/term-migration-register,codex,codex,web,2026-08-29,Start term-migration project with register case
+mehrlander/home,544,copilot/look-at-trackers,copilot,copilot,web,2026-08-29,Count dormant tracker states in registry summaries
+mehrlander/home,545,codex/decision-package-fiscal-note-analysis,codex,codex,web,2026-08-29,Add decision package and fiscal note analysis
+mehrlander/home,629,claude/budget-drs-changes-unlanded-t95ijd,claude,claude,harness,2026-09-10,"submittal: the ABS Documents panel re-read, and the 02.01 it now serves"
+mehrlander/home,630,claude/budget-drs-ben-view-review-n616d3,claude,claude,harness,2026-09-10,"Portals against its feasibility study: the project total holds, the maintenance tab does not"
+mehrlander/home,631,claude/friendly-dijkstra-wn4v69,claude,claude,harness,2026-09-10,"submittal: a resize deferral is a notice, and the banner stops reporting it"
+mehrlander/home,632,claude/stoic-bardeen-8ckvht,claude,claude,harness,2026-09-10,"Submittal: the CORE Portals re-supply, and the workbook's rows are not objects"
+mehrlander/home,633,claude/adoring-bardeen-rjakju,claude,claude,harness,2026-09-10,submittal: a Fiscal Summary table stripped from 02.01 and filled for CORE PAM
+mehrlander/home,634,claude/zealous-fermat-s12v9r,claude,claude,harness,2026-09-10,"Point at /portable:default, the renamed conventions skill"
+mehrlander/home,635,claude/busy-tesla-6s09w3,claude,claude,harness,2026-09-10,submittal: a package subtab gets an outline of its own headings
+mehrlander/home,636,claude/busy-tesla-6s09w3,claude,claude,harness,2026-09-10,"submittal: the rail's prose figures, measured instead of subtracted"
+mehrlander/home,637,claude/budget-drs-submittal-view-ap29zn,claude,claude,harness,2026-09-11,"Submittal: the page says what to do, in one line a row"
+mehrlander/home,638,claude/budget-drs-questions-rlgbse,claude,claude,harness,2026-09-11,"Submittal: the Overview's lists say which table they are, and keep their closed rows"
+mehrlander/home,639,claude/budget-drs-pills-styling-fbpic9,claude,claude,harness,2026-09-11,"Submittal: the appendix tags take DRS's two colours, and the wrapper stops capping the split"
+mehrlander/home,640,claude/budget-drs-submittal-view-lqyk3v,claude,claude,harness,2026-09-11,Submittal: work the outstanding list down to what the packet owes
+mehrlander/home,641,claude/prioritization-codes-amounts-gfb8ra,claude,claude,harness,2026-09-11,"Submittal: the prioritization worksheet waits on ABS, and the matrix drops what is not a deliverable"
+mehrlander/home,642,claude/amazing-ritchie-a7n1n0,claude,claude,harness,2026-09-11,Land the CORE PAM technology budget version history
+mehrlander/home,643,claude/amazing-ritchie-a7n1n0,claude,claude,harness,2026-09-11,Hold the five CORE PAM tech budget amendment workbooks
+mehrlander/home,644,codex/core-pam-tech-budget-history,codex,codex,local,2026-09-11,Clarify CORE PAM technology budget history
+mehrlander/home,645,claude/budget-drs-core-pam-p0wnkp,claude,claude,harness,2026-09-11,"Submittal: the CORE carry-forward sourced from ABS, and the fee step dated"
+mehrlander/home,646,claude/relaxed-shannon-9dm6zz,claude,claude,harness,2026-09-11,"Submittal: retire the requirements matrix, split its rows onto Elements and the IT Addendum tab"
+mehrlander/home,647,claude/budget-drs-core-pam-p0wnkp,claude,claude,harness,2026-09-12,The CORE PAM package page carries its funding-history language
+mehrlander/home,648,claude/budget-drs-agent-personas-0nw36q,claude,claude,harness,2026-09-13,"Review: the seats, and the reviews conducted, inside the Data view"
+mehrlander/home,649,codex/core-pam-layout-pass,codex,codex,web,2026-09-13,Refine CORE PAM table layout
+mehrlander/home,650,claude/zealous-hypatia-yzua1h,claude,claude,web,2026-09-13,"Submittal: the package panes open on the package, and both state the model"
+mehrlander/home,651,codex/authored-use-locator,codex,codex,local,2026-09-13,Declare Budget DRS authored result isolation and UI uses
+mehrlander/home,652,codex/submittal-readme-single-view,codex,codex,local,2026-09-13,Make the Budget DRS submittal view authoritative
+mehrlander/home,653,claude/web-tools-readme-map-coverage-kpc7pt,claude,claude,harness,2026-09-13,"The conventions arrive through the plugin, not through a checkout"
+mehrlander/home,654,claude/intelligent-archimedes-kn2ezu,claude,claude,harness,2026-09-13,"Read a workbook export as a paste, and write its fixes back as a patch"
+mehrlander/home,655,claude/admiring-shannon-e8zahr,claude,claude,harness,2026-09-13,Read a file's standoff note before asking what it is
+mehrlander/home,656,agent/abs-guide-refinement,agent,,local,2026-09-13,"Submittal: refine the 35 ABS guide anchors, and record what tells a preparer the packet is ready"
+mehrlander/home,657,claude/claude-md-repo-injection-rmffx1,claude,claude,harness,2026-09-13,Name the session-start hook invoke-default in CLAUDE.md
+mehrlander/home,658,codex/word-fiscal-summary-powershell,codex,codex,local,2026-09-13,submittal: build Fiscal Summary table and document Word workflow
+mehrlander/home,659,claude/excel-extraction-web-tools-q6f11b,claude,claude,harness,2026-09-14,"Workbooks: six crosswalk rows move, and one splits"
+mehrlander/home,660,codex/wps-installation-map,codex,codex,local,2026-09-14,Map WPS work installation and align ISE Links paths
+mehrlander/home,661,claude/intelligent-archimedes-kn2ezu,claude,claude,harness,2026-09-14,Attach the patch script to a running Excel instead of starting a second one
+mehrlander/home,662,claude/intelligent-archimedes-kn2ezu,claude,claude,harness,2026-09-14,Put the survey report on the clipboard so it can be pasted back
+mehrlander/home,663,claude/budget-drs-sidebar-tables-fyl605,claude,claude,harness,2026-09-14,Collapse the budget-drs sidebar's supporting tables into bands
+mehrlander/home,664,claude/budget-drs-sidebar-tables-fyl605,claude,claude,harness,2026-09-14,"Search by view, and the ACFR tab rebuilt on its documents"
+mehrlander/home,665,claude/excel-sheet-picker-se09lo,claude,claude,harness,2026-09-14,Record the Excel sheet picker session as a failure log
+mehrlander/home,666,claude/wps-installation-tracker-i6s2du,claude,claude,harness,2026-09-14,"wps: a structured source for the work installation, and its ledger"
+mehrlander/home,667,claude/budget-drs-pam-funding-1lf8qx,claude,claude,harness,2026-09-14,"submittal: the CORE PAM Fiscal Summary, every cell, funds at 3.7 percent"
+mehrlander/home,668,codex/core-pam-draft-text-label,codex,codex,local,2026-09-14,Label CORE PAM prose as draft text
+mehrlander/home,669,claude/budget-drs-pam-funding-1lf8qx,claude,claude,harness,2026-09-14,submittal: New-FiscalSummary.ps1 runs on F5 in the ISE and opens Word on the result
+mehrlander/home,670,claude/budget-workbook-web-tools-utcuid,claude,claude,harness,2026-09-14,"The backup workbook lands by the other door: a reception declared here, read by Web Tools"
+mehrlander/home,671,claude/zealous-darwin-bxcrum,claude,claude,harness,2026-09-14,"Route a delimited paste to the Load tab, anywhere in the app"
+mehrlander/home,672,claude/upbeat-mayer-abazg3,claude,claude,harness,2026-09-14,"wps: snag, and a place to park what the work computer does not have yet"
+mehrlander/home,673,claude/budget-drs-submittal-review-w2gsad,claude,claude,harness,2026-09-14,"submittal: the ABS tab carries what OFM requires, beside how ABS takes it"
+mehrlander/home,674,claude/abs-material-entry-xrp8x4,claude,claude,harness,2026-09-14,"submittal: the fiscal detail each package files, as ABS import rows and a builder for its template"
+mehrlander/home,675,claude/drs-subtab-height-consistency-lk8los,claude,claude,harness,2026-09-15,submittal: one rhythm for every subtab strip
+mehrlander/home,676,claude/loving-cray-s4pvl6,claude,claude,harness,2026-09-15,budget-drs: the Data view's Load tab gets the Layout view
+mehrlander/home,677,claude/drs-pension-funding-logic-22dgpn,claude,claude,harness,2026-09-15,"budget-drs: the September 14 gate is met, and the request as filed comes in"
+mehrlander/home,678,claude/framed-view-paste-intake-lk8los,claude,claude,harness,2026-09-15,app: a framed view's pastes reach the workbench
+mehrlander/home,679,claude/abs-material-entry-xrp8x4,claude,claude,harness,2026-09-15,"submittal: the entry in ABS on every package pane, held to the rows and read against the filing"
+mehrlander/home,680,claude/abs-material-entry-xrp8x4,claude,claude,harness,2026-09-15,"submittal: Agency 740 as one form shown five ways, letters, modeled, carry-forward level, Fiscal Summary, by program"
+mehrlander/home,681,codex/agent-refinery-report,codex,codex,local,2026-09-16,Document evergreen agent work design
+mehrlander/home,682,claude/abs-material-entry-xrp8x4-tracker,claude,claude,harness,2026-09-16,tracker: file the post-filing reorganization of the submittal view
+mehrlander/home,683,claude/drs-pension-funding-logic-22dgpn-residuals,claude,claude,harness,2026-09-16,"tracker: the intake session's residual findings, logged on the post-filing task"
+mehrlander/home,684,claude/submittal-settle-filed-state,claude,claude,harness,2026-09-16,"submittal: settle the package fixes, Appendix B and the record to the filed request"
+mehrlander/home,685,claude/submittal-view-after-filing-stage2,claude,claude,harness,2026-09-16,"submittal: the Overview reads as a filed request, and the One-pager is retired"
+mehrlander/home,686,codex/text-project-start-20260916,codex,codex,web,2026-09-16,Start text project with collection prototype and Codex handoff
+mehrlander/home,687,claude/submittal-process-register,claude,claude,harness,2026-09-16,submittal: the process as a record for next cycle
+mehrlander/home,688,claude/budget-drs-submittal-cleanup-68st99,claude,claude,harness,2026-09-16,"budget-drs submittal: the carry-forward level CORE PAM's filing nets against, and the 740 uploads settled"
+mehrlander/home,689,claude/budget-drs-derivation-ladder-k3m9q1,claude,claude,harness,2026-09-16,Generalize the derivation ladder to every decision package
+mehrlander/home,690,codex/continue-text-project,codex,codex,local,2026-09-16,Integrate the shared text project
+mehrlander/home,691,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"wps: the Html and Formats areas land, and Stores is declined"
+mehrlander/home,692,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"wps: AEF05.ps1, which turns out to be a budget-drs generator"
+mehrlander/home,693,dump-drs-740-submittals,,,local,2026-09-17,chron/dump: add DRS (Agency 124) and Contributions (Agency 740) budget submittals
+mehrlander/home,694,claude/agency-740-submittal-files-v2eaod,claude,claude,harness,2026-09-17,"budget-drs: promote the Agency 740 packets and ABS reports, and close the last open fix rows"
+mehrlander/home,695,claude/agency-740-table-styling-dlbxyw,claude,claude,harness,2026-09-17,"budget-drs: one derivation strip on every package pane, group headers on By program"
+mehrlander/home,696,claude/budget-drs-user-notes-kbus0e,claude,claude,harness,2026-09-17,budget-drs: a conversation point replaces the preserved Agency 740 email
+mehrlander/home,697,agent/two-modes-github-flow-and-real-time,agent,,local,2026-09-17,docs(CLAUDE.md): reference GitHub flow and Real-time operational modes
+mehrlander/home,698,gemini/assistant-attribution-conventions,gemini,gemini,local,2026-09-17,docs: define assistant attribution conventions and add GEMINI.md
+mehrlander/home,699,agent/text-deposit-web-tools-paragraphs,agent,,web,2026-09-18,Incorporate web-tools paragraph inventory into shared Text collection
+mehrlander/home,700,codex/local-text-proposals,codex,codex,web,2026-09-18,Run local models to generate resumable text edit proposals
+mehrlander/home,701,claude/vibrant-cerf-rd5dih,claude,claude,harness,2026-09-18,budget-drs submittal: a Backup tab reads the workbook behind the request
+mehrlander/home,702,claude/determined-franklin-gdov1i,claude,claude,harness,2026-09-18,"By fund rung, filled biennium columns, Entered link, and the ABS exports as submitted"
+mehrlander/home,703,claude/friendly-cori-3qzedn,claude,claude,harness,2026-09-18,"budget-drs submittal: one sheet per decision package, in the strip's shape, as a generated workbook"
+mehrlander/home,704,antigravity/csv-viewer-workbench-handoff,antigravity,gemini,local,2026-09-19,budget-drs: CSV viewer icon and Load workbench intake handoff
+mehrlander/home,705,codex/passage-history-experiment,codex,codex,local,2026-09-19,Text: retain passage history experiment
+mehrlander/shortcut-tools,3,agent/document-shortcuts-dataflow,agent,,web,2026-08-08,Document Shortcuts dataflow and compact If patterns
+mehrlander/shortcut-tools,38,claude/web-tools-readme-map-coverage-kpc7pt,claude,claude,harness,2026-09-13,"The conventions arrive through the plugin, not through a checkout"
+mehrlander/shortcut-tools,39,claude/claude-md-repo-injection-rmffx1,claude,claude,harness,2026-09-13,Name the session-start hook invoke-default in CLAUDE.md
+mehrlander/shortcut-tools,40,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-14,"Run a copied shortcuts:// link from a back tap, and the four things that turned out to be in the way"
+mehrlander/shortcut-tools,41,claude/route-gesture-map,claude,claude,harness,2026-09-14,"One router, a stub per trigger, and a third carrier for target names"
+mehrlander/shortcut-tools,42,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-16,Send the instruction with the destination
+mehrlander/shortcut-tools,43,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-17,"Log-Repo hands its input back, and Library-Open says what it opened"
+mehrlander/shortcut-tools,44,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-17,"Library-Open takes a note, shown before the app takes over"
+mehrlander/shortcut-tools,45,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-17,Library-Replace filtered on a variable nothing sets
+mehrlander/shortcut-tools,46,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-17,Importing over an existing name leaves both copies
+mehrlander/shortcut-tools,47,claude/double-back-tap-menu-y2j29u,claude,claude,harness,2026-09-19,"Choose-GPT: the ChatGPT-app menu, drawn from one table with no network"
+mehrlander/web-tools,1,test-branch,,,web,2025-06-20,Update WebTools.js
+mehrlander/web-tools,336,agent/concept-index-workflow,agent,,web,2026-08-02,Add an installable concept-index workflow
+mehrlander/web-tools,436,agent/fix-toss-hash-navigation,agent,,local,2026-08-16,Keep tossed hash links inside the render
+mehrlander/web-tools,644,claude/provenance-authoring-protocol-lebcml,claude,claude,harness,2026-09-10,"Column primitives: the doctrine, and the property populated across 178 rows"
+mehrlander/web-tools,645,claude/provenance-authoring-protocol-lebcml,claude,claude,harness,2026-09-10,Correct the column_domain dependency: it holds for join domains only
+mehrlander/web-tools,646,claude/web-tools-changes-summary-vav66o,claude,claude,harness,2026-09-10,"Split the surfacing course onto its own channel, and stop the closing-state churn"
+mehrlander/web-tools,647,claude/documentation-agentic-terminology-d50099,claude,claude,harness,2026-09-10,"registries.md: state what the audits measured, drop the law they were read into"
+mehrlander/web-tools,648,claude/zealous-fermat-s12v9r,claude,claude,harness,2026-09-10,"Remove ""carrier"" from prose and from the names in code; add the session-start conventions nudge"
+mehrlander/web-tools,649,claude/budget-drs-changes-unlanded-t95ijd,claude,claude,harness,2026-09-10,"Snag: a CSV rewrite restamps every line, and the estate is not uniform"
+mehrlander/web-tools,650,claude/awesome-maxwell-1wy16s,claude,claude,harness,2026-09-10,"One text box per browsing pane, and a Chats lane beside Sessions"
+mehrlander/web-tools,651,codex/session-content-map,codex,codex,web,2026-09-11,Show how content reaches sessions
+mehrlander/web-tools,652,claude/web-tools-readme-map-coverage-kpc7pt,claude,claude,harness,2026-09-11,Give the prose half of the cross-repo contract the channels the surfacing half has
+mehrlander/web-tools,653,codex/stage-splitter-preview,codex,codex,local,2026-09-11,Add resizable Stage panes and repair activity refresh
+mehrlander/web-tools,654,codex/fab-dom-screenshots,codex,codex,local,2026-09-12,Add FAB DOM screenshots and swipeable Take browser
+mehrlander/web-tools,655,codex/fab-take-deck-content-only,codex,codex,local,2026-09-12,Keep FAB Take deck focused on outputs
+mehrlander/web-tools,656,codex/consolidate-map-tabs,codex,codex,local,2026-09-12,Consolidate Map growth and tests views
+mehrlander/web-tools,657,codex/map-docs-purpose,codex,codex,local,2026-09-12,Nest estate aims under Map Docs
+mehrlander/web-tools,658,claude/exciting-faraday-8nuit8,claude,claude,harness,2026-09-13,"Add caveman skill: compress wording, hold content fixed"
+mehrlander/web-tools,659,claude/clever-allen-5yb654,claude,claude,harness,2026-09-13,Draw each session's turns on one shared span in the Activity list
+mehrlander/web-tools,660,claude/amazing-edison-k9dk2n,claude,claude,harness,2026-09-13,"Commit the first conventions-delivery reading, and the column that dates a checkout"
+mehrlander/web-tools,661,claude/admiring-shannon-e8zahr,claude,claude,harness,2026-09-13,"Standoff notes on the stage, and a deposit that can read what it writes"
+mehrlander/web-tools,662,agent/document-visual-mapping-skill,agent,,local,2026-09-13,Skills: add document-visual-mapping for interactive readers and swipe decks
+mehrlander/web-tools,663,claude/claude-md-repo-injection-rmffx1,claude,claude,harness,2026-09-13,Name the session-start hook after what it emits: invoke-default
+mehrlander/web-tools,664,claude/amazing-edison-k9dk2n,claude,claude,harness,2026-09-13,"Refuse the scheduled PR check-in, and record what the setup script writes"
+mehrlander/web-tools,665,claude/excel-extraction-web-tools-q6f11b,claude,claude,harness,2026-09-14,"Read a workbook's structure, and give the living demos the window"
+mehrlander/web-tools,666,codex/wps-intake-comparison,codex,codex,local,2026-09-14,Compare PowerShell and XAML work copies against pinned repository files
+mehrlander/web-tools,667,agent/shortcut-run-test,agent,,web,2026-09-14,Add shortcut-run-test page for Safari handoff
+mehrlander/web-tools,668,claude/excel-selective-extraction-i4awo3,claude,claude,harness,2026-09-14,Pick part of a workbook and carry the answer away
+mehrlander/web-tools,669,claude/excel-sheet-picker-se09lo,claude,claude,harness,2026-09-14,Sheet picker: rebuild a workbook from a chosen subset of its sheets
+mehrlander/web-tools,670,claude/toss-render-links-broken-o8zduj,claude,claude,harness,2026-09-14,"The render link comes to the row: a branch's pages, at the branch, in the Activity view and on the session detail"
+mehrlander/web-tools,671,claude/toss-render-links-broken-o8zduj,claude,claude,harness,2026-09-14,The toss wears its own glyph: 🥏 where the app means a render link
+mehrlander/web-tools,672,claude/toss-render-links-broken-o8zduj,claude,claude,harness,2026-09-14,The unattributed block answers the window it is drawn in
+mehrlander/web-tools,673,claude/wps-installation-tracker-i6s2du,claude,claude,harness,2026-09-14,Installation pill: a workspace's PowerShell material against a work machine with no checkout
+mehrlander/web-tools,674,codex/sheet-centered-extract,codex,codex,local,2026-09-14,Build sheet-centered workbook extract picker
+mehrlander/web-tools,675,claude/budget-workbook-web-tools-utcuid,claude,claude,harness,2026-09-14,"A workbook meets its receiver: the cells reading, and receptions the receiving repo declares"
+mehrlander/web-tools,676,claude/zealous-darwin-bxcrum,claude,claude,harness,2026-09-14,"Icon-only output modes, and the JSON tree stops taking edits it discards"
+mehrlander/web-tools,677,claude/double-back-tap-shortcut-pj16xn,claude,claude,harness,2026-09-14,"Home base for the shortcut estate, and a render route for a sibling repo's data"
+mehrlander/web-tools,678,claude/upbeat-mayer-abazg3,claude,claude,harness,2026-09-14,"The installation view becomes a workspace's Overview, and the README moves to a peek"
+mehrlander/web-tools,679,claude/loving-cray-s4pvl6,claude,claude,harness,2026-09-14,"Report layout: a stored template, and the workbench's pivot drawn as one"
+mehrlander/web-tools,680,claude/loving-cray-s4pvl6,claude,claude,harness,2026-09-15,"Snags: two more CI sightings, and the link between them"
+mehrlander/web-tools,681,claude/list-item-hover-o3wgp1,claude,claude,harness,2026-09-15,"Lists: a row you can see and edit, and the registration that made it possible"
+mehrlander/web-tools,682,claude/derived-csv-merge,claude,claude,harness,2026-09-15,"Resolve registry-CSV merges from the declaration, not by hand"
+mehrlander/web-tools,683,claude/snags-fix-shipped,claude,claude,harness,2026-09-15,"Snags: record the merge driver as shipped, and what it does not cover"
+mehrlander/web-tools,684,claude/handover-card,claude,claude,harness,2026-09-16,"The handover card: three shapes, and eight findings about the chat renderer"
+mehrlander/web-tools,685,claude/gemini-reports-chat-histories-9azpj3,claude,claude,harness,2026-09-16,Wring research: one complete copy of each Gemini report
+mehrlander/web-tools,686,agent/paragraph-rewrites-grok,agent,,web,2026-09-16,docs: paragraph rewrite proposals (Chief of Staff / Grok)
+mehrlander/web-tools,687,claude/shortcut-detail,claude,claude,harness,2026-09-16,"shortcuts.html: a page per chain, addressed by name"
+mehrlander/web-tools,688,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,Mailbox: answer only a kind the loop knows; Stage: the courier's errands
+mehrlander/web-tools,689,claude/record-document-gating-fu48ar,claude,claude,harness,2026-09-16,"Gate the two acts a session has twice got wrong, and render a documentation change as the document"
+mehrlander/web-tools,690,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"On our own origin the courier opens the errand list, not one errand's page"
+mehrlander/web-tools,691,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,An ask note keeps the line breaks it was written with
+mehrlander/web-tools,692,codex/text-catalog-move,codex,codex,local,2026-09-16,Surface prior revisions in Text Lab and the FAB
+mehrlander/web-tools,693,claude/activity-timeline-improvements-s1iqcl,claude,claude,harness,2026-09-16,"Activity list: sum every session's turns onto the lane, and tap a mark to reach its session"
+mehrlander/web-tools,694,claude/top-of-line-phrase-ep0y5x,claude,claude,harness,2026-09-17,"inspire-excellence: nine phrase axes to seven, and add ""top of the line"""
+mehrlander/web-tools,695,claude/optimistic-brown-ldk2d3,claude,claude,harness,2026-09-17,"The launcher's right-click, and a visit log that cannot hold a pasted document"
+mehrlander/web-tools,696,claude/agency-740-submittal-files-v2eaod,claude,claude,harness,2026-09-17,snags: the app frame outruns the inliner on a private repo
+mehrlander/web-tools,697,claude/grok-tracker-grooming-review-p06flp,claude,claude,harness,2026-09-17,"State the tracker rules that were assumed, and enforce the two that are checkable"
+mehrlander/web-tools,698,agent/two-modes-github-flow-and-real-time,agent,,local,2026-09-17,docs: define GitHub flow and Real-time operational modes in portable conventions
+mehrlander/web-tools,699,gemini/assistant-attribution-conventions,gemini,gemini,local,2026-09-17,docs: establish assistant attribution conventions and AGENTS/GEMINI guides
+mehrlander/web-tools,700,gemini/activity-assistant-attribution,gemini,gemini,local,2026-09-17,feat(estate): surface assistant marks and attribution filter in Activity view
+mehrlander/web-tools,701,gemini/rebuild-app-prebuild,gemini,gemini,local,2026-09-17,build: rebuild app and lib pre-builds for assistant-mark
+mehrlander/web-tools,702,codex/map-distribution-alignment,codex,codex,local,2026-09-17,Align Map distribution and document navigation
+mehrlander/web-tools,703,gemini/state-view-timeline-tooltip,gemini,gemini,local,2026-09-18,state: standardize timeline tooltips and remove inline peek card
+mehrlander/web-tools,704,gemini/activity-crawl-optimization,gemini,gemini,local,2026-09-18,Gate PR watermarks for quiet repos and announce arrival caches
+mehrlander/web-tools,705,gemini/branch-item-toss-pills-and-tooltips,gemini,gemini,local,2026-09-18,Align toss render pages with changed views and standardize tooltips
+mehrlander/web-tools,706,gemini/fix-pages-deployment-and-test-suite,gemini,gemini,local,2026-09-18,fix(deploy): un-track node_modules symlink and update test registry
+mehrlander/web-tools,707,gemini/fix-docs-reach-word-counts,gemini,gemini,local,2026-09-18,Restamp docs registry word count for tests.csv
+mehrlander/web-tools,708,gemini/frisbee-dropdown-and-detail-containers,gemini,gemini,local,2026-09-18,Add frisbee render card tooltip and restructure branch detail containers
+mehrlander/web-tools,709,agent/text-lab-web-tools-paragraphs-companion,agent,,web,2026-09-18,Connect Home web-tools paragraph proposals to Text Lab and FAB Text
+mehrlander/web-tools,710,gemini/streamline-frisbee-card-and-session-errors,gemini,gemini,local,2026-09-18,Streamline frisbee render card and fold session failures into tools
+mehrlander/web-tools,711,feature/userscript-errands-and-artifacts,feature,,local,2026-09-18,Add ambient Courier errand sensing and Take extraction suite to userscripts
+mehrlander/web-tools,712,promote/apple-shortcuts-portable,promote,,web,2026-09-18,Promote apple-shortcuts-actions into the portable plugin
+mehrlander/web-tools,713,gemini/branch-files-guide-top-half,gemini,gemini,local,2026-09-18,Anchor branch files and guide to top half with 50/50 split and bottom placeholder
+mehrlander/web-tools,714,gemini/streamline-branch-lazy-load,gemini,gemini,local,2026-09-18,"fix(branch-brief): auto-load compare on active slide and files tab, lend crawl pages, and fix placeholder"
+mehrlander/web-tools,715,gemini/fix-branch-detail-desktop-layout,gemini,gemini,local,2026-09-18,fix(branch-brief): ensure 50/50 split on desktop and framed views without parent scroller
+mehrlander/web-tools,716,codex/local-text-proposals,codex,codex,web,2026-09-18,Display retained local model proposals in Text Lab
+mehrlander/web-tools,717,gemini/fix-guide-container-border-scroller,gemini,gemini,local,2026-09-18,fix(branch-brief): fix guide container nesting to enclose scrollbar and retain bottom border
+mehrlander/web-tools,718,feat/rev-arrow-keys-banner-swipe,feat,,local,2026-09-18,"feat(branch-brief): desktop arrow keys, review card banner, and top half swipe"
+mehrlander/web-tools,719,claude/approval-base-repoint,claude,claude,harness,2026-09-18,Point the pending approval request at the text it is asking about
+mehrlander/web-tools,720,fix/top-swipe-and-rev-banner,fix,,local,2026-09-18,fix(branch-brief): full-width top swipe panels and persistent review card banner
+mehrlander/web-tools,721,fix/header-container-consistency,fix,,local,2026-09-18,fix(branch-brief): unify top and bottom containers with matching curved header caps
+mehrlander/web-tools,722,fix/rev-pager-pill-and-button-sizes,fix,,local,2026-09-18,"fix(branch-brief): refine container border radius, remove swiper dots, add n/m pill and enlarge buttons"
+mehrlander/web-tools,723,claude/determined-franklin-gdov1i,claude,claude,harness,2026-09-18,"A filled viewer drops its frame, and a deck slide reserves a gutter only when it scrolls"
+mehrlander/web-tools,724,claude/confident-faraday-kxhic4,claude,claude,harness,2026-09-18,Read a markdown file with its retained proposals on the document
+mehrlander/web-tools,725,claude/vibrant-cerf-rd5dih,claude,claude,harness,2026-09-18,xlsx-extract: a reception's file name can carry {time} and {sheet}
+mehrlander/web-tools,726,fix/viewer-table-fill-height,fix,,local,2026-09-18,fix(viewer): set Tabulator height to 100% in table and xlsx modules
+mehrlander/web-tools,727,tabular-explorer,,,local,2026-09-19,"Tabular explorer: interactive Data, visual Profile, and Pivot views for CSV and tables"
+mehrlander/web-tools,728,codex/apple-touch-icon,codex,codex,local,2026-09-19,Add Web Tools iPhone home screen icon
+mehrlander/web-tools,729,tabular-explorer-refine,,,local,2026-09-19,"tabular-explorer: segmented tabs, icon-only card button, 3-dot menu, and master-detail column schema matrix"
+mehrlander/web-tools,730,codex/passage-history-experiment,codex,codex,local,2026-09-19,Text: expose passage history in viewer
+mehrlander/web-tools,731,claude/activity-view-refresh-main-vndwxh,claude,claude,harness,2026-09-19,"Refresh the activity cache on a merge, not on the next app visit"
+mehrlander/web-tools,732,codex/3d-icon-preview,codex,codex,local,2026-09-19,Add 3D icon preview page
+mehrlander/web-tools-private,53,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"Reopen the wps ask, which was closed by its own rejection"
+mehrlander/web-tools-private,54,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"Restructure the wps ask, and drop what has since landed"
+mehrlander/web-tools-private,55,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,"The listing is a first step, not a substitute for the four files"
+mehrlander/web-tools-private,56,claude/budget-drs-benefits-view-bdwaix,claude,claude,harness,2026-09-16,Close the wps ask: answered
