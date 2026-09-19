@@ -40,16 +40,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-# `Corrected` is the fourth and it was added 2026-09-16, for the reason the two
-# widenings below were made: the estate wrote a shape this vocabulary could not
-# say. Nine markers annotate a claim that has ALREADY been fixed, recording what
-# the text used to say, and two of them reach for `Wrong until <date>` and fail
-# to parse at all. `Frozen`, `Stale` and `Wrong` all describe the text they sit
-# beside; a retraction describes text that is gone, which is a different subject
-# and now has its own word. It is also what lets `Wrong` take an allowlist: once
-# the retraction has its own flavor, `Wrong` means only "the claim stands here,
-# deferred to a record", which is a claim a declaration can check.
-FLAVORS = ("Frozen", "Stale", "Wrong", "Corrected")
+# Three, and the set is closed. A `Corrected` fourth was added 2026-09-16 and
+# removed 2026-09-19: a marker leaves the text standing and sends the reader
+# elsewhere, so a note saying the text was already fixed is not a marker at all.
+# In a living document the move is to fix the sentence and leave no note, which
+# is why the reading that justified the fourth did not survive being read: of
+# the pre-existing `Corrected` notes cited for it, one was ordinary prose and
+# one was a second sighting mislabelled.
+FLAVORS = ("Frozen", "Stale", "Wrong")
 
 # **Flavor YYYY[-MM[-DD]] [(note)] [-> target]:**
 #
@@ -72,20 +70,6 @@ MARKER = re.compile(
     r"(?:\s*[:.]\*\*"                          # close, or...
     r"|[,:]\s)"                                # ...a lead-in clause, below
 )
-
-# The third widening, 2026-09-16, and made for the reason the first two were:
-# the estate had already written a shape this pattern could not read. Three
-# `Corrected` markers in web-tools run the retraction INSIDE the bold rather
-# than after it (`**Corrected 2026-08-16: the SHA fix no longer clears a
-# one-slash path.**`), and one of them does not close its bold on the marker's
-# own line at all. Flavor, date, note and target still hold their positions, so
-# the set stays auditable; what follows them is prose either way.
-#
-# `Wrong until <date>` is deliberately NOT accommodated. Two markers reach for
-# it, both meaning a retraction, and `Corrected` is now the word for that, so
-# they are migrated rather than parsed around. Widening for a shape the
-# vocabulary now covers would preserve the ambiguity the fourth flavor exists
-# to remove.
 
 # Anything that opens like a marker but did not parse. Two conditions, and both
 # are load-bearing:
@@ -511,11 +495,9 @@ def cmd_gate(root, args):
 
     The whole check, and why it is worth having, in one paragraph. A `Wrong`
     marker says "this claim stands here, go elsewhere for the truth", which is
-    correct in a dated record and wrong in a living document, where the claim
-    gets corrected and the marker records what it used to say. That second shape
-    is `Corrected`, and it needs no declaration, since a correction changed the
-    prose and git can see that it did. So the only thing left to refuse is a
-    `Wrong` on a path nothing declares a record, and the refusal is a fact
+    correct in a dated record and wrong in a living document, where the move is
+    to fix the sentence and leave no note behind. So the only thing to refuse is
+    a `Wrong` on a path nothing declares a record, and the refusal is a fact
     lookup rather than a question: no advice, no reflection prompt, no chance
     for a session to write a plausible wrong justification and pass.
 
@@ -549,9 +531,7 @@ def cmd_gate(root, args):
         f"Commit rejected: a Wrong marker was added to a file no declaration calls a record "
         f"({where}).\n\n"
         "Wrong preserves a claim in a dated record, which is why it needs the declaration.\n"
-        "A living document gets the claim corrected, and the marker records what it used to\n"
-        "say, which is Corrected and needs no declaration.\n\n"
-        "  **Corrected 2026-09-16 \u2192 the paragraph above:** this read \"\u2026\".\n\n"
+        "In a living document, fix the sentence and leave no note: git holds what it said.\n\n"
         "If the file really is a record, declare it in .paths.json under \"record\".",
         file=sys.stderr,
     )

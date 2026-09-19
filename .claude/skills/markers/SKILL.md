@@ -39,34 +39,30 @@ something outside the prose declares them.
   has moved on. The arrow points at the living copy.
 - **`Stale`**: no longer accurate, aged out of truth.
 - **`Wrong`**: flatly incorrect, not merely aged. The claim **stays as written**,
-  so this is the record's word, and a path has to be declared a record before a
-  commit may add one (below).
-- **`Corrected`**: the claim was wrong and **has been fixed**. The marker records
-  what the text used to say. This is the living document's word.
+  and a path has to be declared a record before a commit may add one (below).
 
-The first three describe the text they sit beside. `Corrected` describes text
-that is gone, which is why it is a flavor rather than a phrasing of `Wrong`.
+All three describe the text they sit beside, and all three leave it standing.
 
 ## Marking a claim
 
-Two shapes, and choosing between them is the whole of the decision. A claim
-that still stands is **deferred**: the arrow sends the reader to the living
-copy. A claim that has been fixed is **retracted**: the arrow points back at the
-correction and the marker carries what was withdrawn.
+A marker defers: it leaves the text standing and sends the reader elsewhere for
+the truth.
 
 ```markdown
 **Stale 2026-07-20 → ../timeline.md:** the dates here predate the reschedule.
-**Corrected 2026-09-08 → the paragraph above:** this read "the fetch went
-through jsDelivr", whose edge cache held a replaced file for twelve hours.
 ```
 
-Deferral is right in a dated record, where the text is the evidence and editing
-it would destroy what the file is for. Retraction is right in a living document,
-which is read for what it currently claims, so a false sentence left standing
-under a banner goes on being read as the rule. Getting this backwards is logged
-twice in [`docs/SNAGS.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SNAGS.md)
-as `marker-on-a-living-doc`; `.githooks/pre-commit` now refuses the case a fact
-can settle, a `Wrong` added to a path no declaration calls a record.
+That is right in a dated record, where the text is the evidence and editing it
+would destroy what the file is for. It is wrong everywhere else. A living
+document is read for what it currently claims, so a false sentence left standing
+under a banner goes on being read as the rule: fix the sentence. Do not add a
+note saying you fixed it, which buries the current claim under its own history
+and duplicates what git already holds.
+
+Getting this backwards is logged twice in
+[`docs/SNAGS.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SNAGS.md)
+as `marker-on-a-living-doc`; `.githooks/pre-commit` refuses the case a fact can
+settle, a `Wrong` added to a path no declaration calls a record.
 
 Whole file or section, as a GFM alert with the flavor in the bold lead-in
 (`> [!NOTE]` for `Frozen`, `> [!WARNING]` for `Stale` and `Wrong`):
