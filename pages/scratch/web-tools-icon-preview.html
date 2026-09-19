@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Compare the current Web Tools Home Screen icon with an angled 3D candidate at iPhone display sizes.">
+<title>Web Tools icon · iPhone size check</title>
+<link rel="icon" href="../../lib/favicon.svg">
+<style>
+  :root {
+    color-scheme: light dark;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    font-synthesis: none;
+    --page: light-dark(#eef0f3, #111317);
+    --surface: light-dark(#ffffff, #1d2026);
+    --surface-strong: light-dark(#f6f7f9, #252932);
+    --text: light-dark(#17191d, #f5f6f8);
+    --muted: light-dark(#60656f, #aeb4bf);
+    --line: light-dark(#d9dde4, #373c46);
+    --accent: #2563eb;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--page);
+    color: var(--text);
+  }
+
+  main {
+    width: min(880px, calc(100% - 32px));
+    margin-inline: auto;
+    padding: max(28px, env(safe-area-inset-top)) 0 max(36px, env(safe-area-inset-bottom));
+  }
+
+  header { margin-bottom: 22px; }
+
+  .eyebrow {
+    margin: 0 0 7px;
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  h1, h2, p { margin-top: 0; }
+
+  h1 {
+    margin-bottom: 8px;
+    font-size: clamp(1.75rem, 6vw, 2.65rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+
+  .intro {
+    max-width: 58ch;
+    margin-bottom: 0;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .candidate-grid,
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .candidate,
+  .source-card,
+  .checklist {
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--surface);
+  }
+
+  .candidate { overflow: hidden; }
+
+  .candidate-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 18px 14px;
+  }
+
+  .candidate-head h2 {
+    margin-bottom: 0;
+    font-size: 1.08rem;
+  }
+
+  .candidate-head span {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-align: right;
+  }
+
+  .wallpaper {
+    min-height: 134px;
+    padding: 17px 14px 13px;
+  }
+
+  .wallpaper + .wallpaper { border-top: 1px solid color-mix(in srgb, #ffffff 34%, transparent); }
+
+  .wallpaper-light {
+    color: #20242b;
+    background:
+      radial-gradient(circle at 18% 20%, rgb(255 255 255 / 82%), transparent 31%),
+      linear-gradient(145deg, #d9dee7 0%, #b9c4d3 49%, #e7ddd5 100%);
+  }
+
+  .wallpaper-dark {
+    color: #f7f8fa;
+    background:
+      radial-gradient(circle at 78% 15%, rgb(102 118 141 / 48%), transparent 34%),
+      linear-gradient(145deg, #2b3038 0%, #171a1f 54%, #3e3537 100%);
+  }
+
+  .wallpaper-name {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.045em;
+    opacity: 0.75;
+    text-transform: uppercase;
+  }
+
+  .size-row {
+    display: flex;
+    align-items: end;
+    justify-content: space-around;
+    gap: 12px;
+  }
+
+  figure {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    min-width: 64px;
+    margin: 0;
+  }
+
+  figcaption {
+    font-size: 0.73rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.78;
+  }
+
+  .icon {
+    width: var(--size);
+    height: var(--size);
+    overflow: hidden;
+    border-radius: 22.2%;
+    background: #000;
+  }
+
+  .icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .size-60 { --size: 60px; }
+  .size-40 { --size: 40px; }
+  .size-29 { --size: 29px; }
+
+  .section-heading {
+    margin: 30px 0 12px;
+    font-size: 1.12rem;
+  }
+
+  .source-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .source-icon {
+    width: min(180px, 34vw);
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 22.2%;
+    background: #000;
+  }
+
+  .source-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .source-copy strong,
+  .source-copy span { display: block; }
+
+  .source-copy span {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .checklist {
+    margin-top: 16px;
+    padding: 18px;
+    background: var(--surface-strong);
+  }
+
+  .checklist h2 {
+    margin-bottom: 10px;
+    font-size: 1rem;
+  }
+
+  .checklist ul {
+    display: grid;
+    gap: 7px;
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .status {
+    margin: 18px 2px 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  @media (max-width: 660px) {
+    .candidate-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .source-grid { grid-template-columns: 1fr; }
+
+    .candidate-head {
+      min-height: 82px;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 5px;
+      padding-inline: 14px;
+    }
+
+    .candidate-head span { text-align: left; }
+
+    .size-row {
+      align-items: center;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 14px;
+    }
+
+    .source-card { grid-template-columns: minmax(110px, 180px) 1fr; }
+    .source-icon { width: 100%; }
+  }
+
+  @media (max-width: 390px) {
+    main { width: min(100% - 20px, 880px); }
+    .wallpaper { padding-inline: 8px; }
+    figure { min-width: 58px; }
+    .source-card { grid-template-columns: 112px 1fr; gap: 12px; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Web Tools icon</p>
+    <h1>iPhone size check</h1>
+    <p class="intro">Compare the current tile with the lighter, angled 3D candidate. On iPhone, view this page at 100% zoom; 60 pt corresponds to the 180 px @3× Home Screen asset.</p>
+  </header>
+
+  <section class="candidate-grid" aria-label="Current and three-dimensional icon comparison">
+    <article class="candidate">
+      <div class="candidate-head">
+        <h2>Current</h2>
+        <span>flat mark · black fill</span>
+      </div>
+      <div class="wallpaper wallpaper-light">
+        <span class="wallpaper-name">Light wallpaper</span>
+        <div class="size-row">
+          <figure><div class="icon size-60"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+        </div>
+      </div>
+      <div class="wallpaper wallpaper-dark">
+        <span class="wallpaper-name">Dark wallpaper</span>
+        <div class="size-row">
+          <figure><div class="icon size-60"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img src="../../apple-touch-icon.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+        </div>
+      </div>
+    </article>
+
+    <article class="candidate">
+      <div class="candidate-head">
+        <h2>Angled 3D</h2>
+        <span>lighter graphite · 66%</span>
+      </div>
+      <div class="wallpaper wallpaper-light">
+        <span class="wallpaper-name">Light wallpaper</span>
+        <div class="size-row">
+          <figure><div class="icon size-60"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+        </div>
+      </div>
+      <div class="wallpaper wallpaper-dark">
+        <span class="wallpaper-name">Dark wallpaper</span>
+        <div class="size-row">
+          <figure><div class="icon size-60"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>60 pt</figcaption></figure>
+          <figure><div class="icon size-40"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>40 pt</figcaption></figure>
+          <figure><div class="icon size-29"><img src="../../docs/favicons/web-tools-icon-3d.png" alt=""></div><figcaption>29 pt</figcaption></figure>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <h2 class="section-heading">Source-size detail</h2>
+  <section class="source-grid" aria-label="Current and candidate icons at source size">
+    <article class="source-card">
+      <div class="source-icon"><img src="../../apple-touch-icon.png" alt="Current Web Tools icon"></div>
+      <p class="source-copy"><strong>Current</strong><span>180 × 180 raster, shown on black as iOS currently presents its transparent background.</span></p>
+    </article>
+    <article class="source-card">
+      <div class="source-icon"><img src="../../docs/favicons/web-tools-icon-3d.png" alt="Angled three-dimensional Web Tools icon candidate"></div>
+      <p class="source-copy"><strong>Angled 3D</strong><span>180 × 180 production-size raster, used directly for every iPhone-size test above.</span></p>
+    </article>
+  </section>
+
+  <aside class="checklist">
+    <h2>What to judge</h2>
+    <ul>
+      <li>Does the new mark carry about the same visual weight as neighboring apps?</li>
+      <li>Does the center slot remain open at 40 pt and 29 pt?</li>
+      <li>Does the lighter gray tile stay distinct on both wallpaper values?</li>
+    </ul>
+  </aside>
+
+  <p class="status">Design candidate only. The installed Web Tools icon has not changed.</p>
+</main>
+</body>
+</html>
