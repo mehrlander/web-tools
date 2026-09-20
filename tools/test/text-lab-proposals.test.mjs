@@ -190,7 +190,7 @@ test('the markup exposes provenance and never offers Apply', () => {
   assert.match(SRC, /x-show="pane === 'proposals'"/);
   assert.match(SRC, /Search proposals/);
   assert.match(SRC, /Original text/);
-  assert.match(SRC, /Prior revision/);
+  assert.match(SRC, /Proposed replacement/);
   assert.match(SRC, /Provenance/);
   assert.match(SRC, /Imported review/);
   assert.match(SRC, /Relocation/);

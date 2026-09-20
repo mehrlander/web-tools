@@ -1,3 +1,9 @@
+# Generators and the CSV merge driver emit LF bytes. Keep every detected text
+# file on that canonical checkout form too, so byte-for-byte verification and
+# executable shebangs behave the same under Windows, macOS, and Linux. Binary
+# files remain binary because text=auto classifies them before applying eol.
+* text=auto eol=lf
+
 # Registry CSVs carry columns a deriver writes, so two branches that each add a
 # test or a page collide on numbers neither of them wrote. The merge driver
 # named here reads docs/properties.csv to tell a computed cell from an authored
@@ -9,9 +15,10 @@
 # checks with nothing saying why. See docs/SNAGS.md, ci-run-silently-not-started
 # and derived-field-conflicts-per-branch.
 #
-# The driver itself is registered per clone by .claude/hooks/session-githooks.sh,
-# since git config is not cloned. Without that line these attributes are inert
-# and a conflict here behaves exactly as it does today.
+# The driver itself is registered per checkout by `npm run setup`; Claude's
+# session-githooks.sh delegates to the same implementation. Git config is not
+# cloned, so without setup these attributes are inert and a conflict here falls
+# back to Git's ordinary behavior.
 
 docs/docs.csv merge=derived-csv
 docs/harness.csv merge=derived-csv

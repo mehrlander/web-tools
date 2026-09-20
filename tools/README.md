@@ -50,6 +50,9 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 
 | Command | What it does |
 |---|---|
+| `npm run setup` | Configure this checkout's committed Git hooks and registry CSV merge driver, install usable development dependencies without a Playwright browser, and finish by checking readiness. Safe to repeat; never regenerates tracked artifacts. `node tools/checkout-setup.mjs` is the dependency-free bootstrap when npm itself cannot start; Windows PowerShell can use `npm.cmd run setup` to bypass a broken `.ps1` shim. |
+| `npm run ready` | Read-only checkout diagnosis: effective hook paths, merge-driver configuration and attributes, required runtimes, and npm's installed dependency metadata. Works for ordinary clones and linked worktrees without assuming `.git` is a directory. |
+| `npm run artifacts:refresh` | Force every hook-owned generator through the configured pre-commit refresher, in the same order and with the same staging and gate policies the commit hooks use. This is artifact repair, intentionally separate from setup. If verification names an artifact outside that hook's ownership, run the command it names. |
 | `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior (compression round-trips, persistence over fake-indexeddb, messaging, wsl-core parsing/classification, xlsx OOXML structural parsing), a registration smoke test across every kit, and jsdom + real-Alpine component logic tests (counter, sheet-modal). Offline; third-party libs come vendored from `node_modules`. |
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; `esm.sh`/cm6 can't load (reported, non-fatal). jsdom runs no module scripts or dynamic `import()`, so the boot block is rewritten to a classic IIFE with the `import(gh-api.js)` call shimmed. |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
@@ -265,6 +268,15 @@ view time.
 
 ## The refresh model
 
+Run `npm run setup` once in a new clone or linked worktree. The command stores a
+relative `.githooks` path, so Git resolves the hooks from the checkout it is
+actually operating on, and registers the `derived-csv` merge driver named by
+`.gitattributes`. `npm run ready` asks Git for the effective hook path and reads
+the effective driver config; it does not inspect a presumed `.git/config`,
+regenerate anything, or stage files. The Claude session-start wrappers call the
+git-only and dependency-only halves of this same entry point. No Claude variable
+is required by the shared command.
+
 Every derived artifact in the repo is refreshed one of two ways, split on one
 property: whether its generator is **deterministic**.
 
@@ -323,6 +335,28 @@ Every generator is byte-deterministic, so the hook can fire on every commit and
 no-op invisibly when nothing real changed. It's non-blocking: a generator failure
 warns and the commit proceeds.
 
+**Automatic local merge commits use the same order.** Git does not invoke
+`pre-commit` for a clean automatic merge; it invokes `pre-merge-commit` instead.
+The committed hook resolves the effective `pre-commit` path through Git,
+delegates after the combined index exists, and compares the index tree before
+and after. Git has already cached the proposed automatic merge tree at that
+point. If refresh changed the index, the hook deliberately stops the commit,
+leaves the clean merge and its refreshed index in progress, and prints one next
+step: `git -c core.editor=true merge --continue`. That continuation uses the
+ordinary commit path, so `pre-commit` runs again and `commit-msg` preserves the
+consent gate. If the
+refresh was a no-op, the automatic merge finishes in one command. A conflicted
+merge does not reach `pre-merge-commit`; its later continuation uses ordinary
+`pre-commit`. Fast-forwards create no merge commit, and `--no-verify` remains
+the deliberate bypass.
+
+The registry CSV merge driver and the refresh hook divide the job. The driver
+unions rows, strictly three-way merges authored cells, and deliberately leaves
+computed cells at the current side's value. The delegated refresher then runs
+the existing derivers over the combined tree, in the order above, and restamps
+those computed cells. It never takes one CSV side wholesale, so authored rows
+from the other branch survive.
+
 The tracker board was the last to get an owner there, on 2026-08-05, and the gap
 was not theoretical: `board.json`, the projection's shape until 2026-08-18,
 emitted its per-task keys by iterating a set, so hash randomization reordered
@@ -343,8 +377,18 @@ session wrap-up ritual in the root `CLAUDE.md` ("Wrapping up"). Until then,
 "no screenshot" placeholder.
 
 Nothing is generated server-side: GitHub Pages serves `main` as-is, with no CI
-and no deploy build. Committed artifacts are the truth, which is what lets a
-branch be previewed pre-merge via `?use=<sha>`. Authored docs (the merge guide,
+and no deploy build. GitHub's API, MCP writes, the web merge button, and other
+server-side merges cannot execute a local checkout's hooks. Before a server
+merge, merge the current base into the branch in a ready local checkout, run
+`npm test`, and push the refreshed branch. Follow a printed
+`git -c core.editor=true merge --continue` when the combined tree needed
+restamping. If a remote write already produced the exact tree to repair, fetch
+and check out that tree locally, run `npm run artifacts:refresh` followed by
+`npm test`, then run any additional generator the test names and commit and push
+the repair. Setup alone makes no claim about those paths.
+
+Committed artifacts are the truth, which is what lets a branch be previewed
+pre-merge via `?use=<sha>`. Authored docs (the merge guide,
 `docs/environment/`, this file) are never auto-generated.
 
 One human touch remains: a new page lists under its `<title>` until a blurb is
