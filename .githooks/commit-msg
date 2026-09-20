@@ -13,9 +13,35 @@
 # rebuild beside it. These are guardrails, not security controls.
 set -u
 
+# Match pre-commit's Git-for-Windows bootstrap before trying cygpath or the
+# checkout-local python3 shim. A host may expose Git's cmd directory but omit
+# its usr/bin directory from PATH even though Git launches this Bash itself.
+git_shell="$(git var GIT_SHELL_PATH 2>/dev/null || true)"
+case "$git_shell" in
+  */*)
+    git_bin="${git_shell%/*}"
+    if [ -x "$git_bin/cygpath.exe" ]; then
+      git_bin="$("$git_bin/cygpath.exe" -u "$git_bin" 2>/dev/null || printf '%s' "$git_bin")"
+    fi
+    PATH="$git_bin:$PATH"
+    export PATH
+    ;;
+esac
+
+root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -n "$root" ] || exit 0
+path_root="$root"
+if command -v cygpath >/dev/null 2>&1; then
+  path_root="$(cygpath -u "$root" 2>/dev/null || printf '%s' "$root")"
+fi
+PATH="$path_root/node_modules/.bin:$PATH"
+PYTHONUTF8=1
+PYTHONIOENCODING=utf-8
+export PATH PYTHONUTF8 PYTHONIOENCODING
+
 plugin_script() {            # $1 = e.g. hooks/commit-consent.py
   local p
-  p="$(git rev-parse --show-toplevel)/.claude/skills/$1"
+  p="$root/.claude/skills/$1"
   [ -f "$p" ] && { echo "$p"; return 0; }          # this repo IS the plugin source
   local reg="$HOME/.claude/plugins/installed_plugins.json"
   p=$(python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d['plugins']['portable@web-tools'][0]['installPath'])" "$reg" 2>/dev/null || true)

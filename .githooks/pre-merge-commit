@@ -1,0 +1,25 @@
+#!/bin/sh
+# An automatic merge commit does not invoke pre-commit. It invokes this hook
+# after Git has written the combined index and before commit-msg. Run the
+# established ordered refresher here so its marker gate can still block before
+# Git creates any commit.
+#
+# Ask Git for the effective hook rather than assuming .git/hooks: hooksPath is
+# configurable and a linked worktree's .git is a file, not the shared hooks
+# directory. Git has already cached the prospective merge tree by this point,
+# so staging is necessary but not sufficient. When the refresher changes the
+# index, stop the automatic commit and leave the clean merge in progress. A
+# deliberate noninteractive continuation then uses the ordinary commit path,
+# which runs pre-commit and commit-msg and writes the refreshed index into the
+# tree. A human who wants to edit the prepared message can instead use bare
+# `git merge --continue`.
+before="$(git write-tree)" || exit 1
+pre_commit="$(git rev-parse --path-format=absolute --git-path hooks/pre-commit)" || exit 1
+"$pre_commit" || exit $?
+after="$(git write-tree)" || exit 1
+
+if [ "$before" != "$after" ]; then
+  printf '%s\n' "pre-merge-commit: refreshed derived artifacts in the combined tree" >&2
+  printf '%s\n' "pre-merge-commit: run git -c core.editor=true merge --continue to create the gated merge commit" >&2
+  exit 1
+fi

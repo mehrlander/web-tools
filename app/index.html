@@ -139,6 +139,10 @@
   await gh.load('kits/branch-status.js');
   // Activity-aggregate builders for the private cache (state/activity.json).
   await gh.load('kits/repo-activity-cache.js');
+  // The per-repo crawl that fills one of its entries (window.ActivityCrawl),
+  // shared with scripts/activity-crawl.mjs so CI and this page crawl alike.
+  // After branch-status and the builders, since it calls both.
+  await gh.load('kits/activity-crawl.js');
   // What wrote a commit, read off the commit (window.WriteKinds). Beside the
   // activity cache because it classifies exactly what that cache stores.
   await gh.load('kits/write-kinds.js');
@@ -2547,25 +2551,12 @@ function app(){ return {
       if (this._configKey === key) this.checksRunning = false;
     }
   },
-  // One tree read and one commit read per distinct path, shared across every
-  // check in the batch: several checks routinely want the same tree, and a
-  // lockstep check asks for its sources' dates one at a time.
-  _checkReader(gh, ref){
-    let treeP = null;
-    const dates = new Map();
-    return {
-      text: async p => { try { return (await gh.get(p)).text; } catch { return null; } },
-      tree: () => (treeP ||= gh.req(`git/trees/${encodeURIComponent(ref || 'main')}?recursive=1`)
-        .then(t => (t?.tree || []).filter(e => e.type === 'blob').map(e => ({ path: e.path })))
-        .catch(() => null)),
-      lastCommitDate: p => {
-        if (!dates.has(p)) dates.set(p, gh
-          .req(`commits?sha=${encodeURIComponent(ref || 'main')}&path=${encodeURIComponent(p)}&per_page=1`)
-          .then(cs => cs?.[0]?.commit?.author?.date || null).catch(() => null));
-        return dates.get(p);
-      },
-    };
-  },
+  // The batched reader a check set runs against: one tree read and one commit
+  // read per distinct path, shared across every check in the batch. It moved to
+  // lib/kits/activity-crawl.js with the crawl that is its other caller, and this
+  // stays as the shell's name for it so the live config-view run and the crawl
+  // cannot drift into two readers.
+  _checkReader(gh, ref){ return window.ActivityCrawl.checkReader(gh, ref); },
   // A check that could not run is its own finding (a rename usually), so it is
   // shown, distinctly from a plain failure rather than folded in with it.
   checkTone(r){ return r.ok === false ? 'text-warning' : 'text-base-content/40'; },
@@ -3462,21 +3453,11 @@ function app(){ return {
       return prAt[repo] === m.prAt;
     };
 
-    const SCAN_SKEW_MS = 10 * 60 * 1000;
-    const needsScan = (repo) => {
-      const stored = prev?.repos?.[repo]?.scan;
-      // A stamp with no rows behind it is not a scan, and the gate must not
-      // read it as one. That is how a repo stayed empty after the failed-read
-      // wipe of 2026-08-17: the bad pass left `scannedAt` current and
-      // `branches` empty, so "not pushed since the last scan" skipped it
-      // forever. Costs nothing where it fires wrongly: a repo with no older
-      // branches scans an empty queue and makes no calls at all.
-      if (!stored?.branches?.length) return true;
-      const pushed = Date.parse(metaByName.get(repo)?.pushed_at || '');
-      const seen = Date.parse(stored.scannedAt || '');
-      if (!Number.isFinite(pushed) || !Number.isFinite(seen)) return true;
-      return pushed >= seen - SCAN_SKEW_MS;
-    };
+    // The scan gate itself lives in the crawl kit (window.ActivityCrawl.needsScan),
+    // so the headless runner gates on the same rule rather than on a copy of it.
+    // This closure is the lookup: which entry, and which live pushed_at.
+    const needsScan = (repo) =>
+      window.ActivityCrawl.needsScan(prev?.repos?.[repo], metaByName.get(repo)?.pushed_at || '');
 
     const failed = [], skipped = [];
     try {
@@ -3507,7 +3488,7 @@ function app(){ return {
           active.push(repo);
           this.tickCrawl('activity', { done, total: members.length, active });
           try {
-            const f = await this.crawlRepoActivity(repo, metaByName.get(repo), now, A, B, cfgByName.get(repo), deep && needsScan(repo), prev);
+            const f = await this.crawlRepoActivity(repo, metaByName.get(repo), now, B, cfgByName.get(repo), deep && needsScan(repo), prev);
             fetched[repo] = f;
             const pushed = metaByName.get(repo)?.pushed_at || '';
             if (pushed && prAt[repo] != null) nextMarks[repo] = { pushedAt: pushed, prAt: prAt[repo] };
@@ -4094,217 +4075,27 @@ function app(){ return {
   // `scan` key entirely rather than sending an empty one, because
   // RepoActivityCache.mergeRepo keeps the prior scan when the field is
   // undefined and clears it when present. That affordance already existed.
-  async crawlRepoActivity(repo, meta, now, A, B, cfg, deep = true, prev = null){
-    const def = meta?.default_branch || 'main';
-    const g = new window.GH({ token: window.TOKEN, repo, ref: def });
-    // Probe the repo's declared checks in the same pass. Cheap when declared
-    // (one tree read plus one commit read per distinct path, shared across the
-    // batch by _checkReader) and free when not: probe() short-circuits on an
-    // empty list before touching the network, so a repo declaring nothing pays
-    // nothing for a feature only some repos use.
-    const checkFacts = (Array.isArray(cfg?.checks) && cfg.checks.length && window.RepoChecks)
-      ? await window.RepoChecks.probe(cfg.checks, this._checkReader(g, def)).catch(() => [])
-      : [];
-    const [recentCommits, openPRs, branchPulls, branchWalk] = await Promise.all([
-      g.commits(this.ACTIVITY_RECENT_COMMITS).catch(() => []),
-      g.pulls('open', 30).catch(() => []),
-      // The PR each branch last had, in ANY state (gh.branchPulls). One call per
-      // repo per crawl, and the one that makes a branch row able to say merged
-      // rather than "no PR": the open read above cannot see a PR that merged,
-      // which is the state most branches in the recent window are actually in.
-      g.branchPulls(this.ACTIVITY_PR_REACH).catch(() => ({ rows: [], reach: '' })),
-      // The dated branch list AND the authoring session per branch, from one
-      // walk of one refs connection (gh.branchesDatedSessions). They used to be
-      // two GraphQL calls paying twice for the same pagination; the crawl's own
-      // call log put that pair at the top of the bill (2026-08-17: 79 posts,
-      // 75s of request time across 22 repos). Still optional by design: a
-      // failure here leaves the scan to fall back to the REST branch list and
-      // the session links blank, rather than costing the repo its row.
-      g.branchesDatedSessions().catch(() => null),
-    ]);
-    const branchSessions = branchWalk?.sessions || {};
-    // The default branch's tip, this pass and last. Every verdict below is a
-    // function of it and of one branch tip, so these two comparisons are what
-    // let the crawl skip work rather than redo it.
-    const mainSha = recentCommits[0]?.sha || '';
-    const prevMainSha = prev?.repos?.[repo]?.recentCommits?.[0]?.sha || '';
-    // Ahead/behind for each open PR head, so the Open view can show it without a
-    // per-visit compare. The same response carries the branch's oldest unique
-    // commit (BranchStatus.firstCommitDate), which is what lets the Open row
-    // show a lifespan for a PR head the scan never reached. Bounded pool,
-    // best-effort: a failure leaves it null.
-    // Same two inputs as the scan, so the same gate: a compare of `main` to a
-    // PR head cannot have moved while the PR has not been updated and the
-    // default branch's tip is where it was. The stored row already holds the
-    // answer, so this skips the call and carries it. (`updatedAt` moves on a
-    // push to the head, so a branch that gained commits is never carried.)
-    {
-      const priorPR = new Map((prev?.repos?.[repo]?.openPRs || []).map(r => [r.number, r]));
-      const mainHeld = prevMainSha && mainSha && prevMainSha === mainSha;
-      let pi = 0;
-      const prAheadBehind = async () => {
-        while (pi < openPRs.length){
-          const p = openPRs[pi++];
-          if (!p.head) continue;
-          const was = priorPR.get(p.number);
-          // `was.pages` in the gate, not just a carried field: a cache written
-          // before the field existed would otherwise keep answering "no pages"
-          // for every PR whose head has not moved since, which on a long-lived
-          // draft is forever. One re-compare per open PR, once, and then the
-          // gate holds again. The same trap firstDate hit, caught here rather
-          // than after a week of empty strips.
-          if (mainHeld && was && was.updatedAt === p.updatedAt && was.aheadBy != null && was.pages) {
-            p.aheadBy = was.aheadBy; p.behindBy = was.behindBy;
-            p.firstDate = was.firstDate || '';
-            // Carried with the pair it was read beside. A cache written before
-            // 2026-08-18 has no breakdown, and the row shows its files glyph
-            // without one until the next real compare rather than showing a 0.
-            p.stats = was.stats ?? null;
-            p.pages = was.pages || [];
-            if (was.sessions) { p.sessions = was.sessions; p.sessionsExact = !!was.sessionsExact; }
-            continue;
-          }
-          try {
-            const d = await g.compare(def, p.head);
-            p.aheadBy = d.ahead_by ?? null; p.behindBy = d.behind_by ?? null;
-            // What the branch changed and in what way, free from a response
-            // already in hand: this is the compare the ahead/behind pair comes
-            // from, and every file in it carries a status and a line count.
-            // A floor rather than a total on a sweeping branch, since GitHub
-            // caps a compare's file list at 300 and reports no total.
-            p.stats = B.fileStats(d.files);
-            // The renderable paths out of the same response. This is the one
-            // compare a FRESH branch gets: recent branches are listed date-only
-            // and never scanned (see `recent` below), so without this the rows
-            // a session is actually working would be the rows with no pages.
-            p.pages = B.renderablePages(d.files);
-            // One compare, every field it can answer, through the one reader
-            // that knows what each field does past GitHub's commit cap.
-            Object.assign(p, B.compareFields(d));
-          }
-          catch { p.aheadBy = null; p.behindBy = null; p.firstDate = ''; p.stats = null; p.pages = []; }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(4, openPRs.length) }, prAheadBehind));
-    }
-    // Branch scan: the same split the branches view runs (recent = date-only
-    // active; older = scanned, capped), through the shared orchestrator.
-    let branches = [], counts = { branches: 0, active: 0, landed: 0, stranded: 0, scanned: 0, older: 0, openPRs: openPRs.length };
-    let truncated = false;
-    // Held outside the guarded block because the successful scan's coverage
-    // travels in the returned cache entry below. Keeping this block-local made
-    // every real deep scan throw while assembling its result, after all of its
-    // GitHub reads had already succeeded.
-    let scanned = null;
-    // Whether this pass actually READ the branch list. Everything below is
-    // derived from it, so a failure here means the numbers are absent rather
-    // than zero, and the difference is the whole of the guard at the bottom.
-    let listOk = false;
-    try {
-      // The walk above already fetched this; REST is the fallback for a repo
-      // whose GraphQL read failed, and it carries no dates, which is why the
-      // classifier treats a dateless branch as older rather than guessing.
-      let list = branchWalk?.branches;
-      if (!list) list = (await g.branches()).map(b => ({ name: b.name, date: '', ago: '', sha: b.commit?.sha || '', subject: '' }));
-      listOk = true;
-      const dated = list.filter(b => b.name !== def)
-        .map(b => ({ ...b, daysAgo: b.date ? B.daysAgo(b.date, now) : Infinity }));
-      const recent = dated.filter(b => b.daysAgo <= B.RECENT_DAYS).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      const older = dated.filter(b => b.daysAgo > B.RECENT_DAYS).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      // What the last scan saw, so a branch whose tip has not moved since is
-      // carried rather than re-derived. `mainSha` is the default branch's tip
-      // from the commits read above, and it is the scan's other input: while
-      // both hold, a verdict cannot have changed. See BranchStatus.needsScan.
-      const prior = new Map((prev?.repos?.[repo]?.scan?.branches || []).map(r => [r.name, r]));
-      scanned = deep
-        ? await B.scanOlder(g, { defaultRef: def, older, cap: this.ACTIVITY_SCAN_CAP,
-                                   keep: this.ACTIVITY_SCAN_KEEP, pool: 3, now,
-                                   prior, mainSha, priorMainSha: prev?.repos?.[repo]?.scan?.mainSha || '',
-                                   errorRetry: this.ACTIVITY_ERROR_RETRY })
-        : { truncated: false, rows: [] };
-      truncated = scanned.truncated;
-      const prSessions = Object.fromEntries(openPRs.filter(p => p.head && p.sessions?.length).map(p => [p.head, p.sessions]));
-      const sessionsFor = b => {
-        if (b.sessions?.length) return { sessions: b.sessions, sessionsExact: !!b.sessionsExact };
-        if (prSessions[b.name]) return { sessions: prSessions[b.name], sessionsExact: true };
-        const g = branchSessions[b.name];
-        return g ? { sessions: [g], sessionsExact: false } : { sessions: [], sessionsExact: false };
-      };
-      const trim = b => ({ name: b.name, date: b.date || '', firstDate: b.firstDate || '',
-                           sha: b.sha || '', subject: b.subject || '', ago: b.ago || '',
-                           group: b.group, noBase: !!b.noBase, nUnique: b.nUnique || 0, nLanded: b.nLanded || 0,
-                           nMissing: b.nMissing || 0, nDiffers: b.nDiffers || 0,
-                           missingPaths: b.missingPaths || [], stats: b.stats || null,
-                           pages: b.pages || [],
-                           ...sessionsFor(b),
-                           aheadBy: b.aheadBy ?? null, behindBy: b.behindBy ?? null });
-      branches = [...recent.map(b => trim({ ...b, group: 'active' })), ...scanned.rows.map(trim)];
-      counts = {
-        branches: list.length,
-        active: recent.length,
-        landed: scanned.rows.filter(r => r.group === 'landed').length,
-        stranded: scanned.rows.filter(r => r.group === 'stranded').length,
-        scanned: scanned.rows.length,
-        older: older.length,
-        openPRs: openPRs.length,
-      };
-    } catch(e){ console.warn('activity scan', repo, e?.message || e); }
-
-    return {
-      pushedAt: meta?.pushed_at || '',
-      defaultBranch: def,
-      recentCommits,
-      openPRs,
-      // The any-state PR per branch, and how far back that read reached. Stored
-      // beside openPRs rather than folded into it: the open rows carry the
-      // guide body and the session, and this is a lean index whose only job is
-      // to tell a branch row what became of its PR.
-      branchPRs: branchPulls.rows || [],
-      prReach: branchPulls.reach || '',
-      // Read by mergeRepo and dropped there: it describes THIS PASS, not the
-      // repo, so it must never reach the stored entry or the hash. A pass whose
-      // branch list would not read is partial in exactly the same sense as a
-      // quick pass: it knows less than the stored entry does.
-      ...(deep && listOk && scanned ? {} : { partial: true }),
-      // Counts describe the branch list, so a pass that never read one has no
-      // counts to give. Omitting them entirely is what makes mergeRepo carry
-      // the stored ones; sending zeros would report an empty repo.
-      ...(listOk ? { counts } : {}),
-      // Omitted on a quick pass, so mergeRepo carries the prior scan
-      // forward. Sending { branches: [] } here would silently delete every
-      // content verdict the estate has, which is the trap this guards.
-      //
-      // IT GUARDED ONLY HALF THE TRAP UNTIL 2026-08-17. The quick pass was
-      // handled; a DEEP pass whose branch read failed still wrote
-      // `{ branches: [] }` over the stored rows, because the try/catch above
-      // leaves `branches` empty and carries on. Three repos were emptied that
-      // way in one run (home 89 rows, web-tools-private 25, fn-data 22) while
-      // the crawl reported success. `listOk` is the missing half.
-      // `mainSha` is what makes the next pass able to skip: it names the default
-      // branch this scan judged against, the other half of the pair (with
-      // each row's own `sha`) that decides whether a verdict can have moved.
-      // WHAT THIS PASS COULD NOT REACH, stored beside what it did, so the pane
-      // can say how far along coverage is instead of implying it is finished.
-      // `pending` is rows the budget ran out before deriving and falls to zero
-      // over quiet crawls; `beyondHorizon` is what `keep` itself cut and does
-      // not; `listOrdered` is whether the branch WALK cut by date or by name,
-      // which decides whether any of the three is a recency statement at all.
-      ...(deep && listOk && scanned ? { scan: { scannedAt: new Date(now).toISOString(), cap: this.ACTIVITY_SCAN_CAP,
-                             keep: this.ACTIVITY_SCAN_KEEP,
-                             mainSha: recentCommits[0]?.sha || '',
-                             scanned: counts.scanned, older: counts.older, truncated,
-                             pending: scanned.pending || 0,
-                             beyondHorizon: scanned.beyondHorizon || 0,
-                             listOrdered: branchWalk ? !!branchWalk.ordered : null,
-                             listCapped: branchWalk ? !!branchWalk.capped : null,
-                             branches } } : {}),
-      // Declared checks, PROBED not judged: the stored fact is time-independent
-      // so the cache hash stays stable across crawls, and the card computes the
-      // verdict against its own clock at render. Always an array, never
-      // undefined, so a repo that dropped its declarations clears rather than
-      // keeping a retired check alive through mergeRepo's snapshot fallback.
-      checks: checkFacts,
-    };
+  // One repo's pass, and now only the shell's half of it: which GH to build,
+  // which kits to hand over, and which budgets to spend. The crawl itself is
+  // lib/kits/activity-crawl.js, lifted out so scripts/activity-crawl.mjs can
+  // make the same call from Node: that is what lets a merge to main refresh
+  // state/activity.json instead of the cache waiting for whoever opens this
+  // page next. Two callers, one crawler, no pair to keep in agreement.
+  async crawlRepoActivity(repo, meta, now, B, cfg, deep = true, prev = null){
+    return window.ActivityCrawl.crawlRepo(repo, meta, now, {
+      makeGH: (r, ref) => new window.GH({ token: window.TOKEN, repo: r, ref }),
+      B, checks: window.RepoChecks, cfg, deep, prev,
+      // Passed, not defaulted: the constants above document what each budget
+      // costs, and the kit's CAPS is held equal to them by
+      // tools/test/activity-crawl.test.mjs.
+      caps: {
+        recentCommits: this.ACTIVITY_RECENT_COMMITS,
+        prReach: this.ACTIVITY_PR_REACH,
+        scanCap: this.ACTIVITY_SCAN_CAP,
+        scanKeep: this.ACTIVITY_SCAN_KEEP,
+        errorRetry: this.ACTIVITY_ERROR_RETRY,
+      },
+    });
   },
 
   // ── The app-route join, held once for two panes ───────────────────────────

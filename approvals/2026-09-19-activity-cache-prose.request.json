@@ -1,0 +1,100 @@
+{
+  "manifest": {
+    "name": "The prose for the merge-time activity cache refresh",
+    "created_at": "2026-09-19T04:55:00Z",
+    "schema": {
+      "name": "surface",
+      "version": 2
+    },
+    "profile": {
+      "name": "approval",
+      "version": 1
+    }
+  },
+  "context": {
+    "id": "2026-09-19-activity-cache-prose",
+    "kind": "documentation",
+    "reply_to": "mehrlander/web-tools:approvals",
+    "repo": "mehrlander/web-tools",
+    "base": "eb804b59f8ce8cb4009a3622cdbb60d407c79b02",
+    "occasion": "new-capability",
+    "session": "https://claude.ai/code/session_0178RKR8s9akShDxLxFppy8s",
+    "rationale": "PR #731 gives the estate's activity cache a second writer, so a merge refreshes state/activity.json instead of the cache waiting for whoever opens the app next. The code is in and its checks are green. Three documents make claims that the change falsifies, and these are the paragraphs that would fix them. Approve the wording, or return it; nothing in the branch depends on the answer except whether its prose may land with it.\n\nNO BRANCH FIELD, DELIBERATELY, so read the patch pane rather than the rendered comparison. The consent gate holds a documentation edit until a basis exists, which is this request, so the paragraphs are not committed anywhere for the page to diff. Each item carries its whole patch instead. The same three are also readable as one swipe deck through md-diff, handed over in the session linked above."
+  },
+  "items": [
+    {
+      "id": "p1",
+      "title": "CLAUDE.md",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools"
+        },
+        "path": "CLAUDE.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -51,7 +51,7 @@ Don't hand-edit a file the hook writes; edit the source and let the hook refresh\n \n Regenerating by hand after touching `lib/` or `pages/` is still the fast path; the test makes forgetting loud instead of silent. Why each generator has to be byte-deterministic, and the tracker board's 2026-08-05 counterexample, are in [`tools/README.md`](tools/README.md#the-refresh-model).\n \n-**And a third owner, which does not depend on anyone remembering.** The test only speaks when the suite is run, so [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR. That is the whole reason it exists: a hook that may not fire, guarded by a test that may not be run, was a chain with no link the platform enforced. It is the repo's only workflow triggered by a commit under review, so it is the only one whose result appears as a check rather than only in the Actions tab; `wsl-fetch.yml` is an errand on a cron. The suite is browser-free by construction (`node --test` globs `tools/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. One caveat worth knowing: `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.\n+**And a third owner, which does not depend on anyone remembering.** The test only speaks when the suite is run, so [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR. That is the whole reason it exists: a hook that may not fire, guarded by a test that may not be run, was a chain with no link the platform enforced. It is the repo's only workflow triggered by a commit under review, so it is the only one whose result appears as a check rather than only in the Actions tab. The other two are errands and report only in the Actions tab: `wsl-fetch.yml` on a cron, and [`activity-cache.yml`](.github/workflows/activity-cache.yml), which refreshes the estate's activity cache (`state/activity.json` in web-tools-private) when a merge lands rather than when someone next opens the app, and needs the `ESTATE_CRAWL_TOKEN` secret to do anything. The suite is browser-free by construction (`node --test` globs `tools/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. One caveat worth knowing: `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.\n \n ## Project tracker"
+      },
+      "commentary": "The build-and-check paragraph enumerated this repo's workflows as two, one verification and one errand. There are three now, so the sentence naming wsl-fetch.yml as the errand becomes a list of two errands, and the new one is named with the secret it waits on. The claim that test.yml is the only workflow whose result appears as a check is untouched and still true: activity-cache.yml runs on a push to main, not on a commit under review.",
+      "related": [
+        {
+          "item": ".github/workflows/activity-cache.yml",
+          "relation": "the workflow this sentence now names"
+        },
+        {
+          "item": "docs/show-repo.md",
+          "relation": "where the mechanism is stated in full"
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "docs/show-repo.md",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools"
+        },
+        "path": "docs/show-repo.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -1505,6 +1505,32 @@ either way (`lib/kits/branch-status.js` `scanBranchLive`, shared by the view and\n crawl). Source-of-truth rule as ever: the cache is derived and may be briefly\n stale; Refresh re-scans live.\n \n+**A second writer, so the cache stops waiting to be asked.** Every refresh above\n+is a browser's: the crawl runs when someone opens the app, which means the\n+Activity view's first paint after a quiet night is a stale one that then\n+repaints. Since 2026-09-19 a merge refreshes it instead.\n+[`.github/workflows/activity-cache.yml`](../.github/workflows/activity-cache.yml)\n+runs [`scripts/activity-crawl.mjs`](../scripts/activity-crawl.mjs) on a push to\n+this repo's main, on a `repository_dispatch` any estate repo can fire when it\n+merges, and hourly as the catch-all for a repo with no dispatcher yet. It is the\n+same crawl, not a copy: `crawlRepoActivity` moved out of the shell into\n+[`lib/kits/activity-crawl.js`](../lib/kits/activity-crawl.js), which the page\n+loads and the runner imports, and the shell keeps only the estate loop\n+(membership, the watermark gate, the progress ticks, the commit).\n+\n+**It runs in Actions and not in a Claude session, and the reason is measurable\n+rather than stylistic.** Two of the crawl's reads are GraphQL (`gh.branchPulls`,\n+`gh.branchesDatedSessions`), and a session's proxy answers `api.github.com/graphql`\n+with 403. Neither failure throws where the crawl would notice: the walk falls\n+back to the dateless REST branch list, so every branch classifies `older` and\n+`active` reads zero, and the PR index comes back empty. A pass like that reports\n+success and writes a wrong entry, so the runner preflights GraphQL and refuses\n+rather than degrading. The same audit found the browser's version of that\n+hazard: `branchPulls` failing returned an empty rows array, and `mergeRepo` takes\n+any array as a snapshot, so one failed GraphQL call blanked a repo's whole PR\n+index and every branch row went back to saying \"no PR\". The pair is omitted on a\n+failed read now, which is what `counts` and `scan` already did.\n+\n **Two gates decide what a pass actually pays for**, and they answer different\n questions. The **scan gate** has been there since the crawl was written: a repo\n whose `pushed_at` has not moved since its last `scannedAt` cannot have changed a"
+      },
+      "commentary": "Two paragraphs after the crawl-cost section, which until now said the cache is refreshed by a browser on a throttle and left it there. The first says a merge refreshes it too, and that the crawl moved into a kit so the page and the runner call one crawler rather than two. The second states the constraint that decided where it runs: a Claude session's proxy refuses the crawl's two GraphQL reads, and neither failure throws where the crawl would notice, so a session-run pass would report success and write a wrong entry. It also records the browser-side bug that audit turned up, a failed PR-index read blanking a repo's stored index.",
+      "related": [
+        {
+          "item": "lib/kits/activity-crawl.js",
+          "relation": "the kit the paragraphs describe"
+        },
+        {
+          "item": "mehrlander/web-tools-private DESIGN.md",
+          "relation": "the registry's own account of the same file"
+        }
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "DESIGN.md (mehrlander/web-tools-private)",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools-private"
+        },
+        "path": "DESIGN.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -92,9 +92,16 @@ Keep these apart; they have different owners and lifecycles.\n     commits accumulating and capped, open PRs) plus the capped landed/stranded\n     branch scan stored whole. Built by `lib/repo-activity-cache.js` in\n     web-tools from the shared branch-status math (`lib/kits/branch-status.js`); written by\n-    show-repo's `refreshActivityCache` under a longer per-browser throttle\n-    (~12h, since the crawl runs a per-repo branch scan), committed only when\n-    content changed. It exists to trade the branches view's per-visit API fanout\n+    show-repo's `refreshActivityCache` behind a per-browser floor and a per-repo\n+    quiet gate (the floor was ~12h when this was written and is now a minute,\n+    because the gate rations the pass instead of the clock), committed only when\n+    content changed. **Two writers since 2026-09-19**: web-tools'\n+    `.github/workflows/activity-cache.yml` runs the same crawl from GitHub\n+    Actions on a merge, so this file is current before anyone opens the app\n+    rather than after. Same crawler either way (web-tools\n+    `lib/kits/activity-crawl.js`); the runner is `scripts/activity-crawl.mjs`,\n+    and it cannot run from a Claude session, whose proxy refuses the crawl's two\n+    GraphQL reads. It exists to trade the branches view's per-visit API fanout\n     (~2 + 2N calls to scan N branches) for one occasional crawl, so the\n     per-repo branch review, the estate cards' freshness rollups, and the\n     cross-repo Activity view all render without asking GitHub each time."
+      },
+      "commentary": "The state/activity.json bullet named one writer and one throttle. It gains the second writer, and the throttle figure is corrected: it said ~12h, which stopped being true when the per-repo quiet gate replaced the clock as the thing rationing a pass. That repo runs no consent gate, so this item is here to be read rather than to authorize anything: its verdict cannot gate a commit in another repository.",
+      "related": [
+        {
+          "item": "docs/show-repo.md",
+          "relation": "the consumer-side statement of the same mechanism"
+        }
+      ]
+    }
+  ]
+}
