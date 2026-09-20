@@ -56,12 +56,12 @@ const withFixture = (files, fn) => {
 
 const ACCEPTED = {
   'plain, no target': '**Stale 2026-06-24:** aged out.',
-  'bare path target': '**Frozen 2026-07-10 → ../README.md:** moved.',
-  'task parenthetical': '**Frozen 2026-07-06 (tracker task 0032):** pinned exhibit.',
+  'bare path target': '**Stale 2026-07-10 → ../README.md:** moved.',
+  'task parenthetical': '**Stale 2026-07-06 (tracker task 0032):** counts predate it.',
   'markdown link target, spaces in label':
-    "**Frozen 2026-07-27 → [the app's Funding view](../view/README.md):** superseded.",
+    "**Wrong 2026-07-27 → [the app's Funding view](../view/README.md):** never held.",
   'inline-code target': '**Stale 2026-07-20 → `verify-properties.py` output:** counts moved.',
-  'prose target, sentence close': '**Frozen 2026-07-13 → two successors below.**',
+  'prose target, sentence close': '**Stale 2026-07-13 → two successors below.**',
   'quoted target': '**Stale 2026-07-21 → CLAUDE.md "Cross-repo conventions":** rewritten.',
   'year-only date': '**Wrong 2026:** never held.',
 };
@@ -76,13 +76,17 @@ for (const [label, line] of Object.entries(ACCEPTED)) {
   });
 }
 
-// Ordinary bold prose that merely starts with a flavor word must not be
+// Ordinary bold prose that merely starts with a marker word must not be
 // mistaken for an attempted marker: the convention's own worked-examples entry
-// writes `**Frozen**: preserved on purpose` as a definition list.
+// writes `**Stale**: aged out of truth` as a definition list.
 const NOT_MARKERS = {
-  'definition list': '- **Frozen**: preserved on purpose.',
-  'flavor then comma': '- **Stale, with a target**, in some file.',
+  'definition list': '- **Stale**: aged out of truth.',
+  'marker word then comma': '- **Stale, with a target**, in some file.',
   'hyphenated compound': '2. **Stale-branch piggybacking** rides old work.',
+  // A digit that is not a year: a lead-in of this shape aborted home's verify
+  // at step 1 for four days in September 2026, under the rule "any digit
+  // inside the bold".
+  'digit that is not a year': '- **Wrong in 3 places (Frame 3).** the table repeated a row.',
 };
 
 for (const [label, line] of Object.entries(NOT_MARKERS)) {
@@ -96,7 +100,7 @@ for (const [label, line] of Object.entries(NOT_MARKERS)) {
 }
 
 test('a malformed marker is reported, not skipped', () => {
-  withFixture({ 'a.md': '# A\n\n**Frozen July 2026:** no ISO date.\n' }, (dir) => {
+  withFixture({ 'a.md': '# A\n\n**Stale July 2026:** no ISO date.\n' }, (dir) => {
     const r = run(dir, 'check');
     assert.equal(r.status, 1);
     assert.match(r.stderr, /does not parse/);
@@ -188,27 +192,31 @@ test('a missing or empty declared path fails the check', () => {
   });
 });
 
-// --- the one cross-check, and its direction ---------------------------------
+// --- the retired word -------------------------------------------------------
 
-test('a markdown file declared frozen must carry a Frozen banner', () => {
+test('Frozen is not a marker word, and not a near-miss either', () => {
+  // Retired 2026-09-20: a whole file being preserved is what a `record`
+  // declaration says. The text has to read as ordinary prose, not as a
+  // malformed marker, or every file still carrying the old banner becomes a
+  // finding the day the plugin updates.
   withFixture({
-    '.paths.json': JSON.stringify({ frozen: ['silent.md', 'loud.md'] }),
-    'silent.md': '# Silent\n\nnothing says so.\n',
-    'loud.md': '# Loud\n\n> [!NOTE]\n> **Frozen 2026-07-06 (task 12):** pinned.\n',
+    'a.md': '# A\n\n> [!NOTE]\n> **Frozen 2026-07-06 (task 12):** pinned exhibit.\n',
   }, (dir) => {
-    const r = run(dir, 'check');
-    assert.equal(r.status, 1);
-    assert.match(r.stderr, /silent\.md: declared frozen, carries no Frozen banner/);
-    assert.doesNotMatch(r.stderr, /loud\.md/);
+    const out = run(dir, 'inventory').stdout;
+    assert.match(out, /^Markers: 0 inline/m);
+    assert.doesNotMatch(out, /does not parse/);
+    assert.equal(run(dir, 'check').status, 0);
   });
 });
 
-test('the cross-check does not run in reverse', () => {
-  // A Frozen marker inside a living document annotates one claim. Requiring a
-  // declaration for it would be wrong: the file is not the subject.
+test('a declared record needs no banner, and a declared frozen path needs none either', () => {
+  // The cross-check that demanded one was removed with `Frozen`. It had
+  // reached zero paths estate-wide: every frozen entry is a directory or a
+  // non-markdown artifact, neither of which can carry a GFM alert.
   withFixture({
-    'living.md': '# Living\n\n**Frozen 2026-07-03 → elsewhere.md:** that claim is a snapshot.\n',
-    'elsewhere.md': '# Elsewhere\n',
+    '.paths.json': JSON.stringify({ frozen: ['pinned.md'], record: ['kept.md'] }),
+    'pinned.md': '# Pinned\n\nnothing says so.\n',
+    'kept.md': '# Kept\n\nnothing says so either.\n',
   }, (dir) => {
     const r = run(dir, 'check');
     assert.equal(r.status, 0, r.stderr);

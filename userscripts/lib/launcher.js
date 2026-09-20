@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '2e1a8cf';
-const BUILT = '2026-09-19T23:50:40Z';
+const BUILD = 'f4224c4';
+const BUILT = '2026-09-20T02:09:40Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -127,6 +127,42 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // and labelled by their address, since an image link is still a link; ones
   // that go nowhere a reader could follow are dropped.
   //
+  // Shadow DOM Discovery: recursively finds all open shadow roots across the
+  // page, including nested shadow DOM inside web components, safely ignoring
+  // the launcher's own host root.
+  const findShadowRoots = () => {
+    const list = [];
+    const seen = new Set();
+    const walk = node => {
+      if (!node || seen.has(node) || node.id === ID || node.closest?.('#' + ID)) return;
+      seen.add(node);
+      if (node.shadowRoot && node !== host) {
+        list.push({
+          tag: node.tagName ? node.tagName.toLowerCase() : 'element',
+          mode: node.shadowRoot.mode || 'open',
+          host: node,
+          root: node.shadowRoot,
+        });
+        for (const child of node.shadowRoot.querySelectorAll?.('*') || []) {
+          walk(child);
+        }
+      }
+      for (const child of node.children || []) {
+        walk(child);
+      }
+    };
+    for (const el of document.querySelectorAll('*')) {
+      walk(el);
+    }
+    return list;
+  };
+
+  // Links, deduped by address. A page repeats its own navigation in a header
+  // and a footer, and a list of forty links where fifteen are the same six
+  // destinations is a list nobody reads. Anchors with no visible text are kept
+  // and labelled by their address, since an image link is still a link; ones
+  // that go nowhere a reader could follow are dropped.
+  //
   // It MERGES rather than replaces, and that is not an optimisation. A read
   // returns what is in the DOM now, so on a recycling feed a second read would
   // drop everything the first one found, ticks included; the first pass over
@@ -141,10 +177,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.seenLinks.set(href, text.slice(0, 120));
     };
     for (const a of document.querySelectorAll('a[href]')) processLink(a);
-    for (const host of document.querySelectorAll('*')) {
-      if (host.shadowRoot) {
-        for (const a of host.shadowRoot.querySelectorAll('a[href]')) processLink(a);
-      }
+    for (const s of findShadowRoots()) {
+      for (const a of s.root.querySelectorAll('a[href]')) processLink(a);
     }
     const before = state.links.length;
     state.links = [...state.seenLinks].map(([href, text]) => ({ href, text }));
@@ -213,10 +247,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       added++;
     };
     for (const el of document.querySelectorAll(BLOCKS)) process(el);
-    for (const host of document.querySelectorAll('*')) {
-      if (host.shadowRoot) {
-        for (const el of host.shadowRoot.querySelectorAll(BLOCKS)) process(el);
-      }
+    for (const s of findShadowRoots()) {
+      for (const el of s.root.querySelectorAll(BLOCKS)) process(el);
     }
     return added;
   };
@@ -264,6 +296,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
                   blocks: [], blockChars: 0, seenLinks: new Map(), errand: null,
                   errandOut: '', localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
+                  shadowRoots: [],
                   fullscreen: false, metaOpen: false, autoCheck: getPref('autocheck_updates') };
 
   // DOM-to-Markdown extractor: converts article/main or content dense tree into
@@ -605,8 +638,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       lines++;
 
       // Traverse shadow root as declarative template if present
-      if (node.shadowRoot) {
+      if (node.shadowRoot && node !== host) {
         const mode = esc(node.shadowRoot.mode || 'open');
+        parts.push(`${pad}  <span class="tok-com">&lt;!-- ⛶ shadow root (${mode}) --&gt;</span>\n`);
+        lines++;
         parts.push(`${pad}  <span class="tok-tag">&lt;template</span> <span class="tok-attr">shadowrootmode</span>=<span class="tok-val">"${mode}"</span><span class="tok-tag">&gt;</span>\n`);
         lines++;
         for (const sKid of node.shadowRoot.childNodes) {
@@ -1224,6 +1259,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
           <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
           <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+          <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
           <div class="meta-pref-row">
             <span class="k">AUTO-CHECK UPDATES</span>
             <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
@@ -1518,6 +1554,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           href: page.href,
           description: page.description,
           selection: state.sel,
+          shadowRoots: (state.shadowRoots || []).map(r => ({ host: r.tag, mode: r.mode })),
           links: state.links,
           text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
           markdown: state.localMd || domToMarkdown(),
@@ -1604,6 +1641,20 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       } else {
         selEl.textContent = 'Nothing selected. Select text on the page, then reopen.';
         selEl.className = 'meta-sel none';
+      }
+    }
+
+    const shadowEl = q('.meta-shadow');
+    if (shadowEl) {
+      const roots = state.shadowRoots || [];
+      if (roots.length > 0) {
+        const hostNames = [...new Set(roots.map(r => `<${r.tag}>`))].slice(0, 5).join(', ');
+        const more = roots.length > 5 ? ` +${roots.length - 5} more` : '';
+        shadowEl.textContent = `${roots.length} shadow root${roots.length > 1 ? 's' : ''} found (${hostNames}${more})`;
+        shadowEl.className = 'meta-shadow';
+      } else {
+        shadowEl.textContent = 'None found on this page';
+        shadowEl.className = 'meta-shadow none';
       }
     }
   };
@@ -1769,7 +1820,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             formattedWrap.hidden = false;
           }
           if (rawContent) rawContent.hidden = true;
-          if (metaEl) metaEl.textContent = `${state.htmlLines} lines`;
+          const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
+          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : ' · no shadow DOM';
+          if (metaEl) metaEl.textContent = `${state.htmlLines} lines${sInfo}`;
         } else {
           const raw = getSlideText(i);
           if (rawContent) {
@@ -1777,7 +1830,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             rawContent.hidden = false;
           }
           if (formattedWrap) formattedWrap.hidden = true;
-          if (metaEl) metaEl.textContent = (raw.length > 10000) ? `${Math.round(raw.length / 1024)} KB` : `${raw.length} chars`;
+          const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
+          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : ' · no shadow DOM';
+          const sizeStr = (raw.length > 10000) ? `${Math.round(raw.length / 1024)} KB` : `${raw.length} chars`;
+          if (metaEl) metaEl.textContent = `${sizeStr}${sInfo}`;
         }
         break;
       }
@@ -1979,6 +2035,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.localMd = null;
     state.jinaMd = null;
     state.formattedHtml = null;
+    state.shadowRoots = findShadowRoots();
     readLinks();
     if (!state.blocks.length) state.text = readText();
     if (state.collect || state.blocks.length) collectBlocks();
@@ -2394,7 +2451,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       const current = JSON.parse(raw)?.launcher?.build;
       if (!current || current === BUILD) {
         const el = q('.stale');
-        if (el) el.hidden = true;
+        if (el) {
+          if (force) {
+            const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
+            const sMsg = sCount ? `${sCount} shadow root${sCount > 1 ? 's' : ''}` : 'no shadow DOM';
+            el.textContent = `Build ${BUILD} is current · ${sMsg} on page`;
+            el.style.color = 'oklch(60% .18 140)';
+            el.hidden = false;
+            setTimeout(() => { if (el.textContent.includes('is current')) el.hidden = true; }, 3000);
+          } else {
+            el.hidden = true;
+          }
+        }
         return;
       }
       const el = q('.stale');

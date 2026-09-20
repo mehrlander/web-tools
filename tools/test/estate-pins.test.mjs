@@ -169,7 +169,9 @@ test('the picker panel mounts lazily on first toggle and opens', async () => {
   assert.equal(data.pinPickerOpen, false);
   data.togglePinPicker();
   assert.equal(data.pinPickerWanted, true);
-  await new Promise(r => setTimeout(r, 50));
+  // The mount is deferred, not timed: poll for it rather than sleeping a fixed
+  // 50 ms, which failed once under two suites running at the same time.
+  for (let i = 0; i < 40 && !data.pinPickerOpen; i++) await new Promise(r => setTimeout(r, 25));
   assert.equal(data.pinPickerOpen, true);
 });
 

@@ -1,5 +1,4 @@
 path,role,layer,lines,invocation,emits,named,tested
-.claude/hooks/session-check-manifest.sh,"one-shot gated note: silent until a snapshot postdates the 2026-09-14 setup-script revision, then reports whether ~/.claude/env-manifest.txt landed and asks to be deleted",.claude/hooks,28,session:SessionStart,no,yes,no
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,289,imported,no,no,yes
@@ -62,7 +61,7 @@ tools/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridg
 tools/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",tools/build,166,npm:kits-index,yes,no,yes
 tools/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,tools/build,461,npm:pages-index,yes,yes,yes
 tools/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",tools/build,85,npm:pages-shots,no,yes,no
-tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,no,yes
+tools/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",tools/build,103,imported,no,yes,yes
 tools/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Registries tab's warning state",tools/build,90,npm:registries-reach,yes,yes,yes
 tools/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,tools/build,167,argv,no,yes,no
 tools/build/sample-workbook.mjs,,tools/build,437,npm:sample-workbook,yes,yes,yes

@@ -28,7 +28,7 @@ templates.
 
   Every ✴️ ask requires an action link. For more than three asks, use an inquiry surface. Use 🟢, not 🆚, for confirmation.
 
-* **Close in one order.** End with the 🌿 caption, render line, 🧭, then the state. Include a state when no files changed. A wake that changed nothing says nothing at all: no state, no restated list.
+* **Close in one order.** End with the 🌿 caption, render line, 🧭, then the state. Include a state when no files changed. A nudge asking what you are doing, a stop hook, a finished background job, a subscription or check event, or a base branch moving is a wake, and a wake that leaves the reader nothing to do gets no reply at all.
 
 ### A reply that changed files
 

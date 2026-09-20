@@ -71,7 +71,7 @@ MCP tool definitions consume context. Claude Code can defer loading them through
 
 `.claude/hooks/session-start.sh` runs at session start. Nothing registers it: the `portable` plugin's dispatcher discovers it by its `session-*.sh` filename, from whatever project root the session has. This repo's `.claude/settings.json` declared it as a `SessionStart` hook until 2026-07-31 and no longer does, because the two together ran it twice whenever web-tools was the root. `session-githooks.sh` rides the same discovery, and since 2026-08-06 they are the only two, so `settings.json` declares no hooks at all.
 
-**A gated note is what that discovery is most useful for, and it is how you leave a check for a future session rather than holding it in mind.** The script runs every session and prints only while its condition is unmet, so a satisfied check is invisible and an unmet one reaches whichever session comes next. home carries three of them (the submittal deadline note, the news fetch, the memory manifest) and the plugin's own `invoke-default` is the same shape. A one-shot check clears itself by also speaking on success: it reports that it is finished and names itself for deletion, which is a one-line commit for the session that sees it. [`session-check-manifest.sh`](../../.claude/hooks/session-check-manifest.sh) is the worked example, and it stays silent on a snapshot older than the thing it verifies so it never nags about a condition that cannot yet be true. *(2026-09-14)*
+**A gated note is what that discovery is most useful for, and it is how you leave a check for a future session rather than holding it in mind.** The script runs every session and prints only while its condition is unmet, so a satisfied check is invisible and an unmet one reaches whichever session comes next. home carries three of them (the submittal deadline note, the news fetch, the memory manifest) and the plugin's own `invoke-default` is the same shape. A one-shot check clears itself by also speaking on success: it reports that it is finished and names itself for deletion, which is a one-line commit for the session that sees it. `session-check-manifest.sh` was the worked example: it stayed silent on a snapshot older than the thing it verified, so it never nagged about a condition that could not yet be true, spoke once on 2026-09-20 when the manifest had landed, and was deleted the same day as it asked. *(2026-09-20)*
 
 `session-start.sh`:
 
@@ -139,19 +139,9 @@ A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the fie
 
 #### Stop: the session recorder
 
-*Added 2026-07-30; wiring corrected the same day.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks. The marketplace entry declares nothing.
+*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
 
-**Wrong 2026-07-30 → the paragraph below:** this section first said a marketplace entry accepts any plugin-manifest field, and so declared `"hooks": "./hooks/hooks.json"` on the entry. The loader rejects that form and refuses the whole plugin:
-
-```
-Status: × failed to load
-Error: Hook load failed: hooks: the file-path and array forms are not yet
-supported in a marketplace entry. Define hooks in the plugin's own
-hooks/hooks.json (or its plugin.json), or inline them here as an object
-mapping hook event names to matcher arrays.
-```
-
-Removing the key flipped the same command to `√ enabled`. The declaration was redundant even when it worked, since it named the location discovery already uses, so the fix costs nothing. The pinning assertion in the suite is inverted to match: the key must now be **absent**, because re-adding it reads as diligence.
+**The marketplace entry declares nothing, and must not.** A `hooks` key on the entry refuses the whole plugin: the file-path and array forms are not supported there, only an inline object. The suite pins the key's **absence**, because adding it reads as diligence.
 
 **The distribution channel is the whole point, and the alternative was measured failing.** `mehrlander/web-tools-private` holds a session recorder that writes one JSON record per session. Its own installer writes `~/.claude/settings.json`, correctly avoiding a repo hook for the project-root reason above. But that file is provisioned fresh for every container, carrying the account's marketplace and plugin configuration and nothing else, so a hand-installed hook survives exactly as long as the container. On 2026-07-30 the store held one record, dated 2026-07-29, the session that built the recorder. At least four other sessions ran that day and merged pull requests; none was recorded, and nothing reported the gap. The installed-by-hand hook records the session that installs it and no other.
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Status markers and path declarations: inventory, resolve, and check.
 
-A marker and a declaration, split by subject (see docs/CONVENTIONS.md, "Status: frozen,
-stale, wrong"):
+A marker and a declaration, split by subject (the full statement is the markers
+skill, .claude/skills/markers/SKILL.md):
 
   * A **marker** annotates a claim in prose. It lives inline in markdown or as
     the bold lead-in of a GFM alert, and it says that one passage is preserved,
@@ -12,12 +12,12 @@ stale, wrong"):
     file, which may sit at a repo root or any workspace root, with entries
     relative to its own directory. Any file type.
 
-They are not two spellings of one thing. `Stale` and `Wrong` have no path
-analogue at all: a paragraph can be wrong while the file it sits in is
-perfectly live. Only `Frozen` overlaps, and only in one direction, which the
-`check` subcommand gates: a markdown file declared frozen should carry a banner
-so a human opening it can see so. The reverse does not hold, since a frozen
-claim inside a living document says nothing about the document.
+They are not two spellings of one thing, and since 2026-09-20 they do not
+overlap either. A marker answers to a claim in a sentence; a declaration answers
+to a whole path. `Frozen` was the one word that answered to the path, which is
+why it left the vocabulary: a whole file being preserved is what a `record`
+declaration already says, in a form that reaches `.html`, `.js`, and `.csv` as
+well as markdown.
 
 Usage:
   status.py inventory [--root DIR]   markers and declarations, as tables
@@ -40,32 +40,36 @@ import subprocess
 import sys
 from pathlib import Path
 
-# `Corrected` is the fourth and it was added 2026-09-16, for the reason the two
-# widenings below were made: the estate wrote a shape this vocabulary could not
-# say. Nine markers annotate a claim that has ALREADY been fixed, recording what
-# the text used to say, and two of them reach for `Wrong until <date>` and fail
-# to parse at all. `Frozen`, `Stale` and `Wrong` all describe the text they sit
-# beside; a retraction describes text that is gone, which is a different subject
-# and now has its own word. It is also what lets `Wrong` take an allowlist: once
-# the retraction has its own flavor, `Wrong` means only "the claim stands here,
-# deferred to a record", which is a claim a declaration can check.
-FLAVORS = ("Frozen", "Stale", "Wrong", "Corrected")
+# Three, and the set is closed. A `Corrected` fourth was added 2026-09-16 and
+# A marker's kind describes one passage. `Corrected` was removed 2026-09-19 (a note
+# saying the text was already fixed is not a marker: in a living document the
+# move is to fix the sentence and leave no note) and `Frozen` on 2026-09-20.
+#
+# Frozen went for a structural reason rather than a stylistic one. A census of
+# all 21 in the estate found two doing what a marker does, annotating a section
+# inside a live document, and both of those were one file whose real repair is a
+# split. Twelve asserted that a WHOLE file was preserved, which is a property of
+# the path; six more sat in a live README and described a frozen NEIGHBOUR,
+# which is a false statement in marker grammar and the one case the check could
+# not catch, since it only ever ran declaration -> banner. All of those are now
+# `record` or `frozen` entries in a `.paths.json`.
+KINDS = ("Stale", "Wrong")
 
-# **Flavor YYYY[-MM[-DD]] [(note)] [-> target]:**
+# **Kind YYYY[-MM[-DD]] [(note)] [-> target]:**
 #
 # Two deliberate widenings over the first draft of this pattern, each made
 # because the stricter form silently dropped markers people had actually
 # written, which is the convention's bug rather than the author's:
 #
-#   * the parenthetical, reached for twice to cite the tracker task that froze
-#     the thing (`**Frozen 2026-07-06 (tracker task 0032):**`);
+#   * the parenthetical, reached for twice to cite the tracker task that made
+#     the call (`**Stale 2026-07-06 (tracker task 0032):**`);
 #   * a target that is prose, inline code, or a markdown link with spaces in
 #     its label, not only a bare path (`-> [the app's Funding view](...)`,
 #     `-> two successors below.`). Five markers in the estate use one of those.
 #
 # The close is `:**` or `.**`, since a prose target ends its own sentence.
 MARKER = re.compile(
-    r"\*\*(" + "|".join(FLAVORS) + r")\s+"    # flavor
+    r"\*\*(" + "|".join(KINDS) + r")\s+"      # kind
     r"(\d{4}(?:-\d{2}){0,2})"                  # date, to whatever precision
     r"(?:\s*\(([^)]*)\))?"                     # optional note
     r"(?:\s*→\s*(.+?))?"                  # optional living-copy target
@@ -73,38 +77,27 @@ MARKER = re.compile(
     r"|[,:]\s)"                                # ...a lead-in clause, below
 )
 
-# The third widening, 2026-09-16, and made for the reason the first two were:
-# the estate had already written a shape this pattern could not read. Three
-# `Corrected` markers in web-tools run the retraction INSIDE the bold rather
-# than after it (`**Corrected 2026-08-16: the SHA fix no longer clears a
-# one-slash path.**`), and one of them does not close its bold on the marker's
-# own line at all. Flavor, date, note and target still hold their positions, so
-# the set stays auditable; what follows them is prose either way.
-#
-# `Wrong until <date>` is deliberately NOT accommodated. Two markers reach for
-# it, both meaning a retraction, and `Corrected` is now the word for that, so
-# they are migrated rather than parsed around. Widening for a shape the
-# vocabulary now covers would preserve the ambiguity the fourth flavor exists
-# to remove.
-
 # Anything that opens like a marker but did not parse. Two conditions, and both
 # are load-bearing:
 #
-#   * the flavor is followed by whitespace, which separates an attempted marker
-#     from ordinary bold prose (`**Frozen**: preserved on purpose`, a definition
+#   * the kind is followed by whitespace, which separates an attempted marker
+#     from ordinary bold prose (`**Stale**: aged out of truth`, a definition
 #     list in the convention's own worked-examples entry, or
 #     `**Stale-branch piggybacking**`);
-#   * a digit follows, inside the same bold span. A marker's shape mandates a
-#     date, so an attempt at one has a date in it however badly formed
-#     (`**Frozen July 2026:**`), while a bold lead-in that merely opens with the
-#     word has none. Without this the detector fired on `**Stale claims.**` and
-#     `**Wrong references**`, ordinary prose in two skill files, and a check
-#     whose every finding is a false positive is one nobody reads.
-NEAR_MISS = re.compile(r"\*\*(" + "|".join(FLAVORS) + r")\s+[^*]*\d")
+#   * a four-digit year follows, inside the same bold span. A marker's shape
+#     mandates a date, so an attempt at one has a year in it however badly
+#     formed (`**Stale July 2026:**`), while a bold lead-in that merely opens
+#     with the word has none. Without this the detector fired on `**Stale
+#     claims.**` and `**Wrong references**`, ordinary prose in two skill files,
+#     and a check whose every finding is a false positive is one nobody reads.
+#     Any digit was the rule until 2026-09-20, and it fired on a bold lead-in
+#     holding "(Frame 3)" in a home build note, which aborted home's verify
+#     suite at its first gate for four days.
+NEAR_MISS = re.compile(r"\*\*(" + "|".join(KINDS) + r")\s+[^*]*\d{4}")
 
-# `status: <flavor> YYYY-MM-DD; note` in frontmatter.
+# `status: <kind> YYYY-MM-DD; note` in frontmatter.
 STATUS_LINE = re.compile(
-    r"^status:\s*(frozen|stale|wrong)\s+(\d{4}(?:-\d{2}){0,2})", re.IGNORECASE
+    r"^status:\s*(stale|wrong)\s+(\d{4}(?:-\d{2}){0,2})", re.IGNORECASE
 )
 
 # A markdown link target: [text](path). Markers may write either form.
@@ -251,9 +244,9 @@ def status_of(rel: str, decls: list[Declaration], key: str | None = None) -> Dec
 
 
 class Marker:
-    def __init__(self, rel, line, flavor, date, note, target):
+    def __init__(self, rel, line, kind, date, note, target):
         self.rel, self.line = rel, line
-        self.flavor, self.date = flavor, date
+        self.kind, self.date = kind, date
         self.note, self.target = note or "", target or ""
 
     def resolved_target(self, root: Path) -> Path | None:
@@ -315,7 +308,7 @@ def scan_text(text: str, rel: str):
             mk = Marker(rel, n, m.group(1), m.group(2), m.group(3), m.group(4))
             # The line verbatim, for identity in dedupe_inlined. An inlined
             # copy is byte-identical to its source; two markers that merely
-            # share a flavor and date are not the same marker.
+            # share a kind and date are not the same marker.
             mk.text = line.strip()
             markers.append(mk)
         if not found and NEAR_MISS.search(line):
@@ -358,18 +351,6 @@ def duplicate_lines(markers: list["Marker"]) -> list[tuple[str, list["Marker"]]]
                   key=lambda kv: kv[1][0].rel)
 
 
-def has_banner(root: Path, rel: str) -> bool:
-    """Does this markdown file carry a Frozen marker or status line up top?"""
-    try:
-        text = (root / rel).read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return False
-    head = "\n".join(text.splitlines()[:20])
-    if any(m.group(1) == "Frozen" for m in MARKER.finditer(head)):
-        return True
-    return bool(re.search(r"^status:\s*frozen\b", head, re.IGNORECASE | re.MULTILINE))
-
-
 # --------------------------------------------------------------------------
 # reporting
 
@@ -405,14 +386,13 @@ def collect_findings(root, decls, decl_problems, markers, malformed):
         t = m.resolved_target(root)
         if t is not None and not t.exists():
             findings.append(("marker", f"{m.rel}:{m.line}: arrow target missing: {m.target}"))
-    # One-directional: a frozen markdown file should say so where it is read.
-    # Scoped to `frozen`, since a `record` file is live to append to and a banner
-    # would claim the opposite of what the declaration says.
-    for d in decls:
-        if d.is_dir or d.key != "frozen":
-            continue
-        if d.path.endswith(".md") and (root / d.path).exists() and not has_banner(root, d.path):
-            findings.append(("crosscheck", f"{d.path}: declared frozen, carries no Frozen banner"))
+    # There was a crosscheck here until 2026-09-20: a markdown file declared
+    # frozen had to carry a `Frozen` banner, so a reader opening it could see so.
+    # It went with `Frozen`, and the measurement is why it went quietly. Every
+    # `frozen` entry in the estate is a directory or a non-markdown artifact, so
+    # the rule reached zero paths and had never once fired. What a reader sees is
+    # now an ordinary sentence in the neighbouring README, which no check can
+    # verify and which was doing the real work anyway.
     return findings
 
 
@@ -421,14 +401,15 @@ def cmd_inventory(root, args):
     markers, malformed, status_lines = scan_markers(root)
 
     print(f"Markers: {len(markers)} inline, {len(status_lines)} frontmatter status lines")
-    print(f"Declared frozen: {len(decls)} entries "
+    nfrozen = sum(1 for d in decls if d.key == "frozen")
+    print(f"Declared: {nfrozen} frozen, {len(decls) - nfrozen} record, "
           f"from {len(set(d.source for d in decls))} .paths.json file(s)")
     print()
 
     print("MARKERS")
-    rows = [(m.flavor, m.date, m.target or "-", f"{m.rel}:{m.line}")
-            for m in sorted(markers, key=lambda m: (m.flavor, m.date, m.rel))]
-    print(fmt_table(rows, ("FLAVOR", "DATE", "SEE-TARGET", "LOCATION")))
+    rows = [(m.kind, m.date, m.target or "-", f"{m.rel}:{m.line}")
+            for m in sorted(markers, key=lambda m: (m.kind, m.date, m.rel))]
+    print(fmt_table(rows, ("KIND", "DATE", "SEE-TARGET", "LOCATION")))
     print()
 
     dups = duplicate_lines(markers)
@@ -441,10 +422,13 @@ def cmd_inventory(root, args):
                 print(f"       {m.rel}:{m.line}")
         print()
 
-    print("DECLARED FROZEN")
-    rows = [(d.path, d.since or "-", (d.why or "-")[:44], d.source)
-            for d in sorted(decls, key=lambda d: d.path)]
-    print(fmt_table(rows, ("PATH", "SINCE", "WHY", "DECLARED IN")))
+    # The key is a column rather than the heading: this table listed `record`
+    # entries under the word FROZEN until 2026-09-20, which is the two-property
+    # confusion showing up in the one place a reader would look to resolve it.
+    print("DECLARED PATHS")
+    rows = [(d.key, d.path, d.since or "-", (d.why or "-")[:40], d.source)
+            for d in sorted(decls, key=lambda d: (d.key, d.path))]
+    print(fmt_table(rows, ("KEY", "PATH", "SINCE", "WHY", "DECLARED IN")))
 
     if status_lines:
         print()
@@ -511,11 +495,9 @@ def cmd_gate(root, args):
 
     The whole check, and why it is worth having, in one paragraph. A `Wrong`
     marker says "this claim stands here, go elsewhere for the truth", which is
-    correct in a dated record and wrong in a living document, where the claim
-    gets corrected and the marker records what it used to say. That second shape
-    is `Corrected`, and it needs no declaration, since a correction changed the
-    prose and git can see that it did. So the only thing left to refuse is a
-    `Wrong` on a path nothing declares a record, and the refusal is a fact
+    correct in a dated record and wrong in a living document, where the move is
+    to fix the sentence and leave no note behind. So the only thing to refuse is
+    a `Wrong` on a path nothing declares a record, and the refusal is a fact
     lookup rather than a question: no advice, no reflection prompt, no chance
     for a session to write a plausible wrong justification and pass.
 
@@ -538,9 +520,9 @@ def cmd_gate(root, args):
                                 capture_output=True, text=True).stdout
         after = subprocess.run(["git", "-C", str(root), "show", f":{rel}"],
                                capture_output=True, text=True).stdout
-        was = {m.text for m in scan_text(before, rel)[0] if m.flavor == "Wrong"}
+        was = {m.text for m in scan_text(before, rel)[0] if m.kind == "Wrong"}
         for m in scan_text(after, rel)[0]:
-            if m.flavor == "Wrong" and m.text not in was:
+            if m.kind == "Wrong" and m.text not in was:
                 bad.append((rel, m.line))
     if not bad:
         return 0
@@ -549,9 +531,7 @@ def cmd_gate(root, args):
         f"Commit rejected: a Wrong marker was added to a file no declaration calls a record "
         f"({where}).\n\n"
         "Wrong preserves a claim in a dated record, which is why it needs the declaration.\n"
-        "A living document gets the claim corrected, and the marker records what it used to\n"
-        "say, which is Corrected and needs no declaration.\n\n"
-        "  **Corrected 2026-09-16 \u2192 the paragraph above:** this read \"\u2026\".\n\n"
+        "In a living document, fix the sentence and leave no note: git holds what it said.\n\n"
         "If the file really is a record, declare it in .paths.json under \"record\".",
         file=sys.stderr,
     )
