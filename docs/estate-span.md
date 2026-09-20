@@ -33,7 +33,13 @@ the crawl.
 | --- | --- | --- | --- |
 | committed skills outside the hub | 15, in 3 repos | 14 local | 1 forked |
 | trackers | 13, in 8 repos | 2 | 11 on the retired `board.json` |
-| `.paths.json` declarations | 2 | both | hub carries none |
+| `.paths.json` declaration files | 6, in 4 repos | all | hub carries two |
+
+The declarations were 2, in 2 repos, and the hub carried none, until 2026-09-20
+retired the `Frozen` marker flavor and moved every whole-path claim into the
+file that was already the place for it. The hub declares two (a closed tracker
+task and the `state-the-rule` log), home two (its root and budget-drs), and
+chat-histories and web-tools-private one each.
 
 The skills: home 10, chat-histories 4, wa-bills 1. The fork is wa-bills'
 `web-tools-conventions`, a 110-line copy of the hub's `default` skill whose
@@ -62,10 +68,11 @@ crawl already fetches. Reach for this when the hub genuinely needs one table.
 
 **Per-repo declaration.** The governed artifact is a file the hub defines and
 each repo carries, with no aggregate at all. `.paths.json` is the case, and it
-is the one that cannot be a row in `registries.csv`: the table asserts that the
-registry file exists in this repo and is a CSV, this repo has no `.paths.json`, and
-the two live instances are JSON. That is a fact about the model rather than an
-oversight, and `registries.csv`'s own scope sentence has recorded the miss since
+is the one that cannot be a row in `registries.csv`: the table asserts that a
+registry is a CSV, and every instance is JSON. This repo now carries two of
+them, so the second half of that refusal no longer applies, and the first half
+alone is still enough. That is a fact about the model rather than an oversight,
+and `registries.csv`'s own scope sentence has recorded the miss since
 2026-08-16. The gate is right to refuse it; what was missing was somewhere to
 say so.
 
