@@ -34,8 +34,8 @@ export default async function (page) {
           viewLabel: 'Approve',
           icon: 'ph-seal-check',
           slug: 'approve',
-          query: 'src=mehrlander/web-tools@claude/record-document-gating-fu48ar:'
-               + 'approvals/2026-09-16-marker-vocabulary.request.json',
+          query: 'src=mehrlander/web-tools:'
+               + 'approvals/2026-09-19-activity-cache-prose.request.json',
         }],
       } },
     } };
