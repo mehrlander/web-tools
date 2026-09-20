@@ -1,17 +1,18 @@
 ---
 name: markers
 description: >-
-  Operate the status system: mark a claim Frozen, Stale, or Wrong; declare a
-  path frozen in .paths.json; inventory every marker and declaration in a repo;
-  and check that arrow targets resolve and frozen files say so. Use when the
-  user asks whether something is frozen or pinned, says "is this frozen", "what
-  is frozen here", "mark this stale", "this is out of date but keep it", "flag
-  this as wrong", "freeze this page", "what should I not edit", "stale flags",
-  "update markers", or invokes /markers. Also use before editing anything in a
-  workspace that pins historical material, and when a session opens on a repo
-  whose frozen areas it has not seen. Owns the Frozen/Stale/Wrong vocabulary,
-  the .paths.json declaration, and status.py; the tasks skill owns tracker
-  tasks and the default skill owns PR bodies and surfacing links.
+  Operate the status system: mark a claim Stale or Wrong; declare a path frozen
+  or a record in .paths.json; inventory every marker and declaration in a repo;
+  and check that arrow targets and declared paths resolve. Use when the user
+  asks whether something is frozen or pinned, says "is this frozen", "what is
+  frozen here", "mark this stale", "this is out of date but keep it", "flag this
+  as wrong", "freeze this page", "preserve this as written", "what should I not
+  edit", "stale flags", "update markers", or invokes /markers. Also use before
+  editing anything in a workspace that pins historical material, and when a
+  session opens on a repo whose frozen areas it has not seen. Owns the
+  Stale/Wrong vocabulary, the .paths.json frozen/record declaration, and
+  status.py; the tasks skill owns tracker tasks and the default skill owns PR
+  bodies and surfacing links.
 ---
 
 # markers
@@ -21,12 +22,13 @@ whole point, so lead with it.
 
 | | Subject | Says | Covers |
 |---|---|---|---|
-| **Marker** | a claim, in prose | this passage is preserved, aged, or wrong | markdown only |
-| **Declaration** | a file path | this artifact is pinned and must not be edited or rebuilt | any file type |
+| **Marker** | a claim, in prose | this passage has aged out of truth, or was never true | markdown only |
+| **Declaration** | a file path | this whole path is pinned, or preserved as written | any file type |
 
-They are not two spellings of one thing. `Stale` and `Wrong` have no path
-analogue: a paragraph can be wrong while its file is perfectly live. Only
-`Frozen` overlaps, and only in one direction (below).
+**One question decides which you want: does the statement answer to a sentence
+or to a file?** A marker answers to a sentence. A declaration answers to a file
+or a folder. They are not two spellings of one thing, and since 2026-09-20 they
+do not overlap either.
 
 A marker cannot carry the declaration's job, and not by preference: a GFM alert
 renders in markdown and nowhere else, so `.html`, `.js`, and `.csv` artifacts
@@ -35,13 +37,28 @@ something outside the prose declares them.
 
 ## The vocabulary
 
-- **`Frozen`**: preserved on purpose. Correct as a snapshot; the living version
-  has moved on. The arrow points at the living copy.
+Two flavors, and both describe the text they sit beside without changing it:
+
 - **`Stale`**: no longer accurate, aged out of truth.
 - **`Wrong`**: flatly incorrect, not merely aged. The claim **stays as written**,
   and a path has to be declared a record before a commit may add one (below).
 
-All three describe the text they sit beside, and all three leave it standing.
+Two declaration keys, and both describe a whole path:
+
+- **`frozen`**: do not edit or rebuild this. A pinned exhibit, a payload no
+  builder regenerates, a reconstruction kept as the measurement it is.
+- **`record`**: preserved as written. It may gain a dated appendix; its existing
+  text stays. This is the key for a document that a successor superseded.
+
+**`Frozen` was a third flavor until 2026-09-20, and it left because it was
+answering the file question in the sentence form.** A census of all 21 in the
+estate is the argument. Twelve said a whole file was preserved, which is
+`record`. Six more sat in a live README and described a frozen *neighbour*,
+so the banner asserted of its own file the opposite of what was true, and
+nothing could catch it: the check only ever ran declaration to banner, never
+back. Two were genuinely about a section, and both were the same file, whose
+repair is a split rather than a marker. The last was a banner quoted inside
+pasted evidence. So the flavor was carrying one real job, twice, in one file.
 
 ## Marking a claim
 
@@ -64,24 +81,30 @@ Getting this backwards is logged twice in
 as `marker-on-a-living-doc`; `.githooks/pre-commit` refuses the case a fact can
 settle, a `Wrong` added to a path no declaration calls a record.
 
-Whole file or section, as a GFM alert with the flavor in the bold lead-in
-(`> [!NOTE]` for `Frozen`, `> [!WARNING]` for `Stale` and `Wrong`):
+A section, as a GFM alert with the flavor in the bold lead-in (`> [!WARNING]`
+for both flavors):
 
 ```markdown
-> [!NOTE]
-> **Frozen 2026-07-06 (tracker task 0032):** the page deliverables here are
-> pinned historical works, existence-checked but no longer rebuilt.
+> [!WARNING]
+> **Stale 2026-07-06 (tracker task 0032):** the counts below predate the
+> migration; the live figures are in the arrow target.
 ```
+
+For a **whole file** there is no banner form, because there is no marker for it:
+write the `.paths.json` entry instead. A note at the top of the file explaining
+what superseded it is welcome and is ordinary prose, not a marker.
 
 Shape: `**Flavor YYYY[-MM[-DD]] [(note)] [→ target]:**`. Flavor, date, and
 target hold fixed positions so the set is auditable rather than merely
-greppable. The date is when you flagged it, or the snapshot's as-of date for
-`Frozen`. The parenthetical is optional and usually cites the task that made
-the call. The target is optional and may be a path, a markdown link, or prose
+greppable. The date is when you flagged it. The parenthetical is optional and
+usually cites the task that made the call. The target is optional and may be a path, a markdown link, or prose
 ("two successors below"); only path-shaped targets are existence-checked.
 
-A `status: frozen 2026-07-06; note` line in frontmatter is the optional
-metadata layer.
+A `status: stale 2026-07-06; note` line in frontmatter is the optional metadata
+layer. It never says `frozen`: a whole-file claim belongs in `.paths.json`,
+where a tool can read it. Six files in home carried a bare `status: frozen` with
+no date, which the scanner requires, so they were invisible to every inventory
+that ran over them.
 
 **Annotate a record; correct a living document.** A dated file stays put as
 evidence, so mark its claim and leave the text. A document read for what it
@@ -183,20 +206,20 @@ The last entry is ranked last on purpose. A working clone attached beside the
 repo makes a cross-repo change testable before it merges, and keeping it below
 the installed copies means a normal run never silently exercises unmerged code.
 
-## The cross-check, and why it runs one way
-
-`check` reports:
+## What `check` reports
 
 1. a marker that does not parse, so a malformed one is loud instead of silently skipped;
 2. an arrow target that no longer exists;
-3. a declared path that does not exist;
-4. **a markdown file declared frozen that carries no `Frozen` banner.**
+3. a declared path that does not exist, is empty, or is an empty directory.
 
-Only (4) crosses from a declaration to a marker, and only in that direction. A frozen
-markdown file should say so where it is read, since the JSON is invisible to
-someone opening the file. The reverse does not hold: a `Frozen` marker inside a
-living document annotates one claim and implies nothing about the file, so
-requiring a declaration for every marker would be wrong.
+Every finding stays on one side of the split. **There was a fourth until
+2026-09-20**, crossing from a declaration to a marker: a markdown file declared
+frozen had to carry a `Frozen` banner, so a reader opening it could see so. It
+went with the flavor, and the measurement is why it went quietly. Every `frozen`
+entry in the estate is a directory or a non-markdown artifact, so the rule
+reached zero paths and had never once fired. What tells a reader is a sentence
+in the file or its README, which no check can verify and which was doing the
+work all along.
 
 ## What to do when asked
 
@@ -204,12 +227,13 @@ requiring a declaration for every marker would be wrong.
   not just yes or no.
 - **"What is frozen here?"** → `inventory`, and report the declarations. Say
   plainly if the repo declares nothing.
-- **"Mark this stale / wrong / frozen"** → write the marker at the claim, or
-  the banner at the top for a whole file. Date it today, except a `Frozen`
-  snapshot, which takes its as-of date. Point the arrow at the living copy when
-  there is one.
-- **"Freeze this page"** → add the `.paths.json` entry *and*, if it is
-  markdown, the banner. Name the task or the reason in `why`.
+- **"Mark this stale / wrong"** → write the marker at the claim, dated today,
+  with the arrow at the living copy when there is one. If the whole file is the
+  subject, this is the wrong instrument: declare it instead.
+- **"Freeze this page" / "preserve this as written"** → add the `.paths.json`
+  entry, `frozen` if nothing may touch it, `record` if it may gain an appendix.
+  Name the task or the reason in `why`. Add a plain sentence at the top of the
+  file saying what superseded it, which is prose and carries no marker grammar.
 - **Before editing** in a repo that declares anything → run `is` on the target
   path. A frozen file is re-anchored deliberately through its builder, never
   hand-edited.
