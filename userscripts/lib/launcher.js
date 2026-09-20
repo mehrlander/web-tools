@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '3022697';
-const BUILT = '2026-09-20T02:27:40Z';
+const BUILD = '23061b1';
+const BUILT = '2026-09-20T20:22:44Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -1592,10 +1592,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   wrap.innerHTML = `
     <div class="menu" hidden>
       <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
-      <button class="row" data-menu-deck>${svg(ICON.cardsThree)}<span>Full Swipe Deck</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
-      <button class="row" data-menu-html>${svg(ICON.code)}<span>Copy HTML</span></button>
-      <a class="row" data-menu-jina href="https://r.jina.ai/${page.href}" target="_blank" rel="noopener">${svg(ICON.jina)}<span>Open in Jina Reader</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
       <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
       <button class="row" data-toggle-autocheck>${svg(ICON.refresh)}<span>Auto-check updates</span><span class="pill-toggle on">ON</span></button>
@@ -2652,18 +2649,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   }
   if (sendEl) sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
 
-  const menuDeck = q('[data-menu-deck]');
-  if (menuDeck) {
-    menuDeck.onclick = () => {
-      setMenu(false);
-      openDrawer();
-      toggleFullscreen(true);
-    };
-  }
-
-  q('[data-menu-html]').onclick = () => {
-    copyText(getSlideText(3), q('[data-menu-html] span'), 'Copied HTML');
-  };
 
   q('.run-errand').onclick = runActiveErrand;
   q('.copy-errand').onclick = () => {
