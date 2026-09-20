@@ -1179,23 +1179,33 @@ test('an empty turn is dropped before the head, not after it', () => {
 // that make it cheap: it carries three fields per session and no more, and it
 // is keyed by branch so a lookup is a lookup rather than a scan.
 
-const menuRow = (id, ended, ask, branches = []) => ({ id, ended, ask, branches });
+const menuRow = (id, ended, ask, branches = [], agent = '') =>
+  ({ id, ended, ask, branches, agent });
 
 test('the menu index carries what a phone row needs and no more, keyed by branch, newest first', () => {
   const cache = { generatedAt: '2026-09-08T13:00:00Z', rows: [
     menuRow('aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', ['claude/older-aa11bb']),
-    menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd']),
+    menuRow('bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', ['claude/newer-cc22dd'],
+            'https://claude.ai/code/session_01abcDEF'),
   ] };
   const m = S.buildMenuIndex(cache);
   assert.equal(m.generatedAt, cache.generatedAt, 'one stamp, so the two files cannot disagree about freshness');
-  // A recent entry carries its branch as a fourth field and a `branches` entry
-  // does not, because there the key already is one. The row's label leads with
-  // the slug, so without the fourth field every recent row falls back to prose.
+  // Field 3 is the claude.ai session id, reduced from the row's whole URL: the
+  // back tap opens the conversation with it, so it rides into BOTH shapes. A
+  // recent entry then carries its branch as a fifth field and a `branches`
+  // entry does not, because there the key already is one. The row's label leads
+  // with the slug, so without that field every recent row falls back to prose.
   assert.deepEqual(m.recent, [
-    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'claude/newer-cc22dd'],
-    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', 'claude/older-aa11bb'],
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'session_01abcDEF', 'claude/newer-cc22dd'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', '', 'claude/older-aa11bb'],
   ]);
-  assert.deepEqual(m.branches['claude/older-aa11bb'], ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask']);
+  assert.deepEqual(m.branches['claude/newer-cc22dd'],
+    ['bbbbbbbb', '2026-09-08T12:30:00Z', 'Newer ask', 'session_01abcDEF']);
+  // A ROW WITH NO HARNESS URL LEAVES THE FIELD EMPTY RATHER THAN GUESSING, and
+  // the op offers no claude.ai row for it. 384 of 400 rows on the live store
+  // carry one; the 16 that do not are an older schema, measured 2026-09-19.
+  assert.deepEqual(m.branches['claude/older-aa11bb'],
+    ['aaaaaaaa', '2026-09-08T12:00:00Z', 'Older ask', '']);
   assert.deepEqual(Object.keys(m), ['generatedAt', 'recent', 'branches'],
     'nothing else rides this file: every field added here is bytes over cellular');
 });

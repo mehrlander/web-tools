@@ -19,11 +19,16 @@ Four AI assistants contribute across this ecosystem. Each assistant identifies i
 | Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
 | :--- | :--- | :--- | :--- |
 | **Claude** | `claude/<slug>` | `Claude-Session: <url>` | Automated by Claude Code harness |
-| **Codex** | `codex/<slug>` | PR guide format | Standard Codex branch workflow |
+| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Requested 2026-09-20; Codex commits carried no trailer before then, so the prefix was the only signal |
 | **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits |
 | **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
 
-Any commit or branch that carries no assistant prefix or trailer is human work by definition.
+A commit or branch that carries no assistant prefix or trailer is **unclassified**, not human. Read as human, it stated a finding the classifier never made: on 2026-09-18 four Gemini branches went out without the prefix and the Activity view reported them as a person's work. A branch that predates this table, or went out without its prefix, is declared by a row in [assistant-branches.csv](assistant-branches.csv) with the basis for the claim; the Activity view reads declarations only and guesses nothing.
+
+Two rules hold for every assistant, whichever tool it runs in:
+
+* **Preflight before a pull request.** In web-tools, `npm run preflight` (checkout setup, the derived-artifact refresh, then the suite). In home, `python3 tools/lint-conventions.py` and `bash tools/verify-artifacts.sh`. Twelve of fifteen Gemini branches in September 2026 ended red on the derived-artifact gate because the commit hook never ran in their checkout; the failing check names the command that repairs it. A red check is not mergeable, whoever opened the PR.
+* **Batch output is a run, not a PR against the documents.** An overnight pass that proposes changes across many documents lands in home as a run under `projects/text/runs/<date>-<name>/`, where the Text collection admits it as proposals. It never opens a pull request that edits the documents it proposes changes to.
 
 Maintain the PR body as the workstream's current state and durable record. Open a draft PR on the first push.
 Body sync is manual: after each push that materially changes state, rewrite the guide region

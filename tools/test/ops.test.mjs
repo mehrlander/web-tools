@@ -74,8 +74,11 @@ const rowText = (l) => plainText(l).replace(/^[\u{1F33F}\u{1F558}] /u, '').repla
 const NOW = Date.now();
 const stamp = (minsAgo) => new Date(NOW - minsAgo * 60000).toISOString();
 // The payload's entry shape, which is the whole thing the phone reads:
-// [id, last active, one plain line of the ask].
-const entry = (id, minsAgo, ask, branch = '') => [id, stamp(minsAgo), ask, branch];
+// [id, last active, one plain line of the ask, claude.ai session id, branch].
+// `branch` stays the fourth ARGUMENT while moving to the fifth FIELD, so every
+// call site that predates the session id reads unchanged.
+const entry = (id, minsAgo, ask, branch = '', sid = '') =>
+  [id, stamp(minsAgo), ask, sid, branch];
 const index = ({ recent = [], branches = {}, minsOld = 5 } = {}) =>
   ({ generatedAt: stamp(minsOld), recent, branches });
 
@@ -175,28 +178,69 @@ test('session-menu: a session row is named by its branch, not by a clipped ask',
   for (const l of r.rows) assert.match(r.urls[l], /session\.html#id=[0-9a-f]{8}$/);
 });
 
-test('session-menu: `menu` is three or four rows, and the fourth is what to do about the header', () => {
+test('session-menu: `menu` is three named destinations and the two verbs, in every state', () => {
   // The back tap draws this, and the header has already answered the question
   // the tap asked, so the rows only carry what to DO about it. The first build
-  // put the session list here and the phone showed what that is.
+  // put the session list here and the phone showed what that is: ten rows that
+  // told each other apart by nothing. What that reading forbids is a LIST, so
+  // the count is what is held here, not the number three for its own sake.
   const want = 'claude/x-aa11bb';
-  const found = index({ branches: { [want]: entry('aaaaaaaa', 30, 'Ask') },
-                        recent: Array.from({ length: 16 }, (_, i) => entry(String(i).padStart(8, '0'), i, 'Ask')) });
+  const found = index({
+    branches: { [want]: entry('aaaaaaaa', 30, 'Ask', '', 'session_01abcDEF'),
+                'claude/older-cc33dd': entry('cccccccc', 40, 'Ask') },
+    recent: Array.from({ length: 16 }, (_, i) => entry(String(i).padStart(8, '0'), i, 'Ask')) });
   const run = (input) => load('session-menu.js', { body: found }).fn({ input, token: 't' });
 
+  // THE CONVERSATION LEADS. The index carries the claude.ai id, so the first
+  // row is the session itself rather than the Web Tools page about it.
   const on = run(want);
-  assert.deepEqual(on.menu.map(plainText), ['🌿 Open this session', '🕘 All sessions', 'Show-Loop', 'Out']);
-  assert.equal(on.urls[on.menu[0]], 'https://mehrlander.github.io/web-tools/pages/session.html#id=aaaaaaaa');
+  assert.deepEqual(on.menu.map(plainText),
+    ['🌿 Open on claude.ai', '🌿 Session brief', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.equal(on.urls[on.menu[0]], 'https://claude.ai/code/session_01abcDEF');
+  assert.equal(on.urls[on.menu[1]], 'https://mehrlander.github.io/web-tools/pages/session.html#id=aaaaaaaa');
+
+  // A ROW IS NEVER PROMISED FOR AN ADDRESS THE INDEX DOES NOT HAVE. 13 of the
+  // 381 branches on file predate the field, and a bare `claude.ai/code/` row
+  // would open the wrong thing rather than fail visibly.
+  const old = run('claude/older-cc33dd');
+  assert.deepEqual(old.menu.map(plainText),
+    ['🌿 Session brief', '🕘 All sessions', 'Show-Loop', 'Out']);
+  for (const l of old.menu) assert.doesNotMatch(old.urls[l] || '', /claude\.ai\/code\/$/);
+
   // A BRANCH WITH NO ROW STILL GETS ONE, and this is the arm that matters most:
   // session.html's `#branch=` walks the store and reaches no cache, so it
   // answers for exactly the session this index cannot see yet.
   const missing = run('claude/brand-new-work-zz99yy');
-  assert.deepEqual(missing.menu.map(plainText), ['🌿 Look it up', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.deepEqual(missing.menu.map(plainText),
+    ['🌿 Look it up', '⌨️ Claude Code', '🕘 All sessions', 'Show-Loop', 'Out']);
   assert.equal(missing.urls[missing.menu[0]],
     'https://mehrlander.github.io/web-tools/pages/session.html#branch=claude/brand-new-work-zz99yy');
-  // No branch, so there is nothing to open and the row is not offered.
-  assert.deepEqual(run('some prose').menu.map(plainText), ['🕘 All sessions', 'Show-Loop', 'Out']);
-  assert.deepEqual(run('').menu.map(plainText), ['🕘 All sessions', 'Show-Loop', 'Out']);
+
+  // ANOTHER ASSISTANT'S BRANCH IS NOT A CLAUDE SESSION RUNNING LATE, so it gets
+  // no "Look it up": walking this store for it would always come back empty.
+  const codex = run('codex/map-data-census');
+  assert.equal(codex.state, 'other-agent');
+  // WHOLE, not through short(). That helper strips a trailing six-character
+  // segment, which is the harness suffix on a `claude/` branch and a word on
+  // anyone else's: this name came back as `codex/map-data` against the live
+  // store before the caption stopped calling it.
+  assert.deepEqual(header(codex.caption),
+    { rule: '🌿 another assistant’s branch', line: 'codex/map-data-census' });
+  assert.deepEqual(codex.menu.map(plainText),
+    ['⌨️ Claude Code', '💬 Claude chat', '🕘 All sessions', 'Show-Loop', 'Out']);
+  // The test is on the OTHERS and never on `claude/`: 2 of 381 branches on file
+  // are `agent/` and both carry real sessions, so a `claude/` test would call
+  // two live sessions foreign.
+  assert.equal(run('agent/abs-guide-refinement').state, 'no-session');
+
+  // Nothing to open, so the two plain destinations are the whole menu. This is
+  // the state that used to draw one row, and it is the one where a back tap is
+  // least likely to want a session list.
+  for (const input of ['some prose', '']) {
+    assert.deepEqual(run(input).menu.map(plainText),
+      ['⌨️ Claude Code', '💬 Claude chat', '🕘 All sessions', 'Show-Loop', 'Out'], input || '(empty)');
+    assert.equal(run(input).urls['💬 Claude chat'], 'https://claude.ai/new');
+  }
   // The list did not go away, it moved to where a list is worth reading.
   assert.equal(on.rows.length, 12, '`rows` still carries the list, for Claude-Session');
 });
@@ -243,9 +287,13 @@ test('session-menu: a failed read keeps the header shape, names the status and s
   // the route that still answers when this file is the thing that failed; the
   // estate view is what rebuilds the file. A menu of two verbs would have
   // dropped the only two rows worth tapping.
-  assert.deepEqual(r.menu.map(plainText), ['🌿 Look it up', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.deepEqual(r.menu.map(plainText),
+    ['🌿 Look it up', '⌨️ Claude Code', '🕘 All sessions', 'Show-Loop', 'Out']);
   assert.match(r.urls[r.menu[0]], /session\.html#branch=claude\/x-aa11bb$/);
-  assert.match(r.urls[r.menu[1]], /\/app\/\?view=sessions$/);
+  // claude.ai needs nothing from this index, so the plain destination is the
+  // one row an unreachable index cannot take away.
+  assert.equal(r.urls[r.menu[1]], 'https://claude.ai/code');
+  assert.match(r.urls[r.menu[2]], /\/app\/\?view=sessions$/);
   assert.deepEqual(Object.keys(r.probe), ['zen plain', 'zen auth', 'index auth only']);
 });
 

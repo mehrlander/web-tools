@@ -4,7 +4,7 @@ README.md,hybrid-authored,concept-vocabulary,The hub's own account of itself
 docs/,hybrid-authored,concept-vocabulary,The portable conventions and the repo's design docs; the densest vocabulary here
 skills/,mixed,concept-vocabulary,"Skill prose is authored vocabulary, but 117 vendored .xsd schemas sit alongside it and are supplied; not yet isolated"
 tracker/,hybrid-authored,concept-vocabulary,"Task files. Their boilerplate headings (Progress log, Definition of done) rank high in termlab and that is arguably correct"
-approvals/,hybrid-authored,exclude,"Approval envelopes (docs/envelopes/approval.md): a session writes the request, the reviewer's browser writes the verdict beside it. Requests so far, 2026-09-16-marker-vocabulary.request.json and 2026-09-19-activity-cache-prose.request.json; naming them here is what accounts for their authored text, since a request of three items or more is prose-bearing enough to count as a carrier"
+approvals/,hybrid-authored,exclude,"Approval envelopes (docs/envelopes/approval.md): a session writes the request, the reviewer's browser writes the verdict beside it. Requests so far, 2026-09-19-activity-cache-prose.request.json (2026-09-16-marker-vocabulary.request.json was withdrawn on 2026-09-20, having asked for a category the same branch removed); naming them here is what accounts for their authored text, since a request of three items or more is prose-bearing enough to count as a carrier"
 sites/,hybrid-authored,prose-review,Long-form written pages
 popups/,hybrid-authored,exclude,Browser tool markup
 lib/,hybrid-authored,exclude,Library JavaScript; code register
