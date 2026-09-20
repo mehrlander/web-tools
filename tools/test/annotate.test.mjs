@@ -1019,7 +1019,8 @@ test('the expand sits on each note and on the draft, not on the panel header', (
   A.notePage({ listen: false });
   S.dict.text = 'words being written now';
   assert.ok(S.outBtn, 'the draft has an expand');
-  assert.equal(S.compCap.parentNode, S.outBtn.parentNode, 'on the caption row, beside what it is about');
+  assert.equal(S.aimMenu.contains(S.outBtn), true, 'in the aim dropdown menu to save header space');
+  assert.equal(S.compCap.parentNode, S.panel.firstChild, 'and the label is up in the header');
   assert.equal(A.handoffText().split('\n').pop(), 'words being written now',
     'and with no note named it carries the draft, as it always did');
   A.disable();
@@ -2151,7 +2152,8 @@ test('a drag surface cancels the touch itself, not just its touch-action', () =>
   // `cursor:move` with a space, so a style-substring match is a false negative
   // waiting to happen.)
   const header = S.panel.firstChild;
-  assert.equal(header.firstChild, S.placeBtn, 'the header, by position');
+  assert.equal(header.firstChild, S.compCap, 'the caption is up in the header');
+  assert.equal(S.aimMenu.contains(S.placeBtn), true, 'and show notes is in the dropdown menu');
   assert.equal(touch(header, 'touchstart'), true, 'the bare header cancels');
   assert.equal(touch(S.pageChip, 'touchstart'), false,
     'and a chip inside it does not, or a tap on it would never become a click');
@@ -2561,13 +2563,14 @@ test('every key in the header row wears one shape, and states on with a fill', (
   const S = A._state;
   A.setReading('md');
 
-  const keys = [S.placeBtn, ...Object.values(S.readChips), S.serialCopy, S.aimBtn];
+  const keys = [...Object.values(S.readChips), S.serialCopy, S.aimBtn];
   for (const b of keys) {
     const css = b.getAttribute('style');
     assert.match(css, /min-height:\s*30px/, 'one height: ' + (b.title || b.textContent));
     assert.equal(b.style.border, '0px', 'no outline at rest: ' + (b.title || b.textContent));
     assert.equal(b.style.borderRadius, '7px', 'one corner: ' + (b.title || b.textContent));
   }
+  assert.equal(S.aimMenu.contains(S.placeBtn), true, 'and show notes is in the dropdown menu');
 
   // ON IS A FILL AND AN INK, and nothing else, wherever it appears.
   const lit = (b) => b.style.backgroundColor === 'rgb(250, 204, 21)'
@@ -2824,3 +2827,93 @@ test('an empty draft assembles to nothing worth carrying', () => {
   assert.equal(A.handoffText().replace(/^On .*$/m, '').trim(), '');
   A.disable();
 });
+
+test('drag resize adjusts panel dimensions and persists userWidth and userHeight', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+  const p = S.panel;
+  assert.ok(p, 'panel exists');
+
+  // Find gripBR in panel
+  const grips = [...p.children].filter(el => el.getAttribute('style')?.includes('cursor:nwse-resize') || el.title === 'Drag to resize');
+  assert.ok(grips.length > 0, 'drag resize grip exists');
+  const gripBR = grips[0];
+
+  // Stub getBoundingClientRect on panel and root
+  p.getBoundingClientRect = () => ({ left: 12, top: 100, width: 360, height: 300, right: 372, bottom: 400 });
+  S.ui.getBoundingClientRect = () => ({ left: 12, top: 100, width: 360, height: 300, right: 372, bottom: 400 });
+
+  // Simulate drag
+  gripBR.dispatchEvent(new window.PointerEvent('pointerdown', { clientX: 372, clientY: 400, bubbles: true }));
+  S.doc.dispatchEvent(new window.PointerEvent('pointermove', { clientX: 432, clientY: 480, bubbles: true }));
+  S.doc.dispatchEvent(new window.PointerEvent('pointerup', { clientX: 432, clientY: 480, bubbles: true }));
+
+  assert.equal(S.userWidth, 420, 'userWidth updated by dx');
+  assert.equal(S.userHeight, 380, 'userHeight updated by dy');
+  assert.equal(p.style.width, '420px');
+  assert.equal(p.style.height, '380px');
+  A.disable();
+});
+
+test('show notes, expand to full screen, and browse notes deck ride the aim dropdown menu', () => {
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+
+  // The dropdown holds show notes, expand to full screen, and browse deck
+  assert.ok(S.aimMenu.contains(S.placeBtn), 'show notes option is in the dropdown menu');
+  assert.ok(S.aimMenu.contains(S.outBtn), 'expand to full screen option is in the dropdown menu');
+  assert.ok(S.aimMenu.contains(S.deckBtn), 'browse notes deck option is in the dropdown menu');
+
+  // The caption is placed directly in the header row
+  const head = S.panel.firstChild;
+  assert.ok(head.contains(S.compCap), 'caption is in the header row');
+
+  // When a draft is open, caption shows and readBar is hidden
+  A.notePage({ listen: false });
+  assert.equal(S.compCap.style.display, 'block');
+  assert.equal(S.readBar.style.display, 'none');
+
+  // The composer no longer carries a separate caption row
+  assert.equal(S.compose.children.length, 1, 'composer only contains stack, saving an entire row of height');
+  assert.equal(S.compose.firstChild, S.compStack);
+  A.disable();
+});
+
+test('expand to full screen and browse notes deck open in the swipe deck viewer', async () => {
+  handoffKits();
+  A.enable({ doc, subject: { title: 'x', url: '' } });
+  const S = A._state;
+
+  let deckOpened = null;
+  window.swipeDeck = {
+    open: (opts) => {
+      deckOpened = opts;
+      return { close: () => { opts.onClose?.(); } };
+    }
+  };
+
+  A.add({ type: 'page' }, 'First slide note');
+  A.add({ type: 'page' }, 'Second slide note');
+
+  // Browse notes deck opens swipe deck
+  const ok = await A.openNotesDeck(0);
+  assert.equal(ok, true, 'openNotesDeck opened successfully');
+  assert.ok(deckOpened, 'swipeDeck.open was invoked');
+  assert.equal(deckOpened.count, 2, 'count matches notes count');
+  assert.equal(deckOpened.title, 'Notes');
+
+  // Render a slide
+  const slide = doc.createElement('div');
+  deckOpened.render(0, slide);
+  assert.match(slide.textContent, /First slide note/);
+
+  // Close the deck
+  S.notesDeckHandle.close();
+  assert.equal(S.notesDeckHandle, null);
+
+  // Test full-screen dictate expand
+  const docked = await A._dockDictate({ full: true });
+  assert.equal(docked, true, 'opens in swipe deck when full: true');
+  A.disable();
+});
+
