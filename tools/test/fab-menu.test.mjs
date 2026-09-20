@@ -898,3 +898,95 @@ test('the launcher disc itself is still guarded, which is what the guard is for'
   assert.equal(sendTouch(surface).defaultPrevented, true,
     'exempting the rows must not exempt the drag handle');
 });
+
+// ── The token card ───────────────────────────────────────────────────────────
+//
+// The trip is: tap Get token, Shortcuts runs, swipe back. The card is what the
+// reader comes back TO, so what is pinned here is that it raises itself on the
+// return rather than waiting for a second long press, and that it refuses a
+// value that is not shaped like a token. A wrong string saved silently fails
+// later as a 401 on some unrelated read, which is the failure this whole
+// section exists to end, arriving by the other door.
+async function mountForCard() {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  return { root: host.firstElementChild, d: Alpine.$data(host.firstElementChild) };
+}
+
+const returnToPage = () => doc.dispatchEvent(new window.Event('visibilitychange'));
+
+test('coming back from Shortcuts raises the paste card, without a second long press', async () => {
+  const { d } = await mountForCard();
+  d.hasToken = false;
+  d._awaitingToken = true;
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, true, 'the card is what the reader comes back to');
+  assert.equal(d._awaitingToken, false, 'and the arming is spent, so an ordinary tab switch later does nothing');
+});
+
+test('and it does not raise itself on a tab switch nobody asked for', async () => {
+  const { d } = await mountForCard();
+  d.hasToken = false;
+  d.tokenCard = false;
+  d._awaitingToken = false;          // no Get token tap preceded this
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, false);
+});
+
+test('a token that arrived while away means there is nothing to paste', async () => {
+  const { d } = await mountForCard();
+  d._awaitingToken = true;
+  d._readToken = () => true;         // the trip succeeded by some other route
+  returnToPage();
+  await tick(2);
+  assert.equal(d.tokenCard, false, 'no card over a browser that now has a token');
+  assert.equal(d.hasToken, true);
+});
+
+test('the card lives outside the launcher root, whose transform would trap it', async () => {
+  const { root } = await mountForCard();
+  const card = doc.querySelector('[data-fab-token-card]');
+  assert.ok(card, 'the card renders');
+  assert.equal(root.contains(card), false,
+    'a position:fixed child inside the drag transform is positioned against it and travels with the launcher');
+});
+
+test('saving refuses what is not shaped like a token, and says what it got', async () => {
+  const { d } = await mountForCard();
+  d.tokenCard = true;
+
+  d.tokenDraft = '';
+  d.saveTokenDraft();
+  assert.match(d.tokenMsg, /Nothing in the field/);
+
+  d.tokenDraft = 'hello world';
+  d.saveTokenDraft();
+  assert.match(d.tokenMsg, /does not look like a GitHub token/);
+  assert.match(d.tokenMsg, /11 characters/, 'the length is the part that separates an empty paste from a wrong one');
+  assert.equal(d.tokenCard, true, 'and the card stays up, since the reader has to act');
+
+  // The shapes GitHub actually issues, plus the classic 40-hex.
+  assert.equal(d._looksLikeToken('ghp_' + 'A'.repeat(36)), true);
+  assert.equal(d._looksLikeToken('github_pat_' + 'a1B2'.repeat(10)), true);
+  assert.equal(d._looksLikeToken('0123456789abcdef0123456789abcdef01234567'), true);
+  assert.equal(d._looksLikeToken('ghp_short'), false);
+  assert.equal(d._looksLikeToken('0123456789abcdef'), false);
+});
+
+test('the clipboard reader and the save check ask the same question', async () => {
+  const { d } = await mountForCard();
+  // One answer, from one place: two copies of the shape test would be two
+  // answers to give a reader about the same string.
+  const good = 'ghp_' + 'B'.repeat(36);
+  assert.equal(d._tokenFromFlavors([
+    { kind: 'text', type: 'text/html', text: '<code>' + good + '</code>' },
+    { kind: 'text', type: 'text/plain', text: '  ' + good + '  ' },
+  ]), good, 'the first flavor that IS a token, not the first flavor');
+  assert.equal(d._tokenFromFlavors([{ kind: 'text', type: 'text/plain', text: 'nope' }]), '');
+});
