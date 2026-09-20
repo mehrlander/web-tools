@@ -926,7 +926,8 @@ test('an Aims deep link opens Docs/Purpose and loads its existing sources', asyn
   assert.equal(d4.aims?.goals.length, window.Csv.rows(aimsGoalsCsv).length);
   assert.equal(d4.aims?.initiatives.length, window.Csv.rows(aimsInitiativesCsv).length);
   assert.deepEqual([...d4.aims.reading.slice(0, 3).map(d => d.path)],
-    ['README.md', 'CLAUDE.md', 'docs/README.md']);
+    ['README.md', 'CLAUDE.md', 'docs/CONSTELLATION.md']);
+  assert.equal(d4.aims?.reading.length, window.Csv.rows(aimsReadingCsv).length);
   window.__shell = undefined;
 });
 

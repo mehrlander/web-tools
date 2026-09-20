@@ -1,10 +1,6 @@
 repo,path,private,gloss
 ,README.md,,The repository's public front door.
-,CLAUDE.md,,The agent contract for work in this repository.
-,docs/README.md,,The generated index to the documentation folder.
+,CLAUDE.md,,The working contract for humans and AI agents.
 ,docs/CONSTELLATION.md,,"What goes where across the repos, and why."
-mehrlander/home,created/2026-06-27-constellation-architecture.md,true,"The same doctrine worked out on these repos, including why home is the private one."
-,docs/SURFACING.md,,How a session's work reaches a reader when chat is the only channel.
 ,docs/APP.md,,"What this app is for, and its own five durable goals."
-,docs/registries.md,,"How the estate classifies its own material, and who owns each claim."
-,docs/code-layers.md,,"Which layer a new code file belongs in, and the rule that decides."
+,docs/QUALIFIED-WRITING.md,,"The prose rules: high density, data before display, and avoiding bloat."
