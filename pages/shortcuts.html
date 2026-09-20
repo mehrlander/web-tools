@@ -36,12 +36,30 @@
   the repo's standing rule about unknown answers: "current" and "not looked up"
   must never render the same, so an unread device is blank rather than green.
 
-  THREE SOURCES SAY "ON DEVICE" AND ALL THREE ARE PARTIAL. index.json is a
+  THREE SOURCES SAY "ON DEVICE" AND ALL THREE ARE PARTIAL. library.json is a
   snapshot of the last dump, so anything installed since is missing from it. The
   newest manifest is the device's own list and is newer, but still a moment in
   time. The log holds installs and runs and only for chains that report. Reading
   all three together is what run.py's own audit does, and it is the reason a name
   installed yesterday does not read as absent.
+
+  THE INSTALL LINK PICKS ITS RECEIVER FROM THAT READ, which is the one thing
+  this page can do that tools/plist.py cannot. Library-Import and
+  Library-Replace take an identical two-line payload and differ only in whether
+  they delete the old copy by name first. Importing over a name the library
+  already holds leaves both copies and the OLDER one keeps the index, so every
+  link and every runworkflow card naming it still resolves to the copy that was
+  supposed to be replaced. This page knows which names the device holds, so it
+  emits Replace for those and Import for the rest; the CLI has no device read
+  and correctly defaults to Import. One rule, two owners, split on what each can
+  actually see.
+
+  AND A NAME OFF THE CATALOG GETS AN ANSWER. 77 chains here against 606 surveyed
+  on the device means most names a link can carry are not chains, and the page
+  used to answer all of them with "No chain here called X" whether the name was
+  a device shortcut, newer than the dump, or genuinely nothing. It now says
+  which, and offers Open rather than Install, because a device shortcut has no
+  plist here to install.
 
   NO STAT CARDS. The counts are one compact line in the header, per the house
   style. The figure that would deserve room is "how many are stale", and it earns
@@ -117,11 +135,20 @@
 
   <footer class="bg-base-100 border-t border-base-300 px-3 py-2 flex items-center gap-3 text-xs">
     <span id="count" class="opacity-60 font-mono truncate min-w-0"></span>
+    <!-- The three siblings, and both of the outward ones were repointed on
+         2026-09-19. "Chains" named the workflows tree while this page became the
+         app view called Chains, so the word meant two things one line apart; it
+         is the folder's own name now. "Library" pointed at a GitHub blob of
+         web-tools-private's 104-line library.html, which is not the library
+         surface: shortcut-tools' pages/library.html is, at 975 lines and four
+         facets, and it is the page promoted as the Shortcuts view. It is in a
+         repo with no Pages host, so it is reached the way the estate reaches any
+         unhosted page, through the toss. -->
     <a class="link link-hover ml-auto" href="shortcut-log.html">Log</a>
     <a class="link link-hover"
-       href="https://github.com/mehrlander/shortcut-tools/tree/main/workflows">Chains</a>
+       href="https://github.com/mehrlander/shortcut-tools/tree/main/workflows">Workflows</a>
     <a class="link link-hover"
-       href="https://github.com/mehrlander/web-tools-private/blob/main/shortcuts/library.html">Library</a>
+       href="toss-render.html#gh=mehrlander/shortcut-tools:pages/library.html">Library</a>
   </footer>
 </div>
 
@@ -188,13 +215,44 @@ let catalog = null;        // { meta, external_targets, rows }
 let device  = null;        // null while unread: unknown is not "absent"
 
 const runLink = n => `shortcuts://run-shortcut?name=${encodeURIComponent(n)}`;
-// Library-Import splits Shortcut Input on newlines and reads two: the name it
-// should land under, then where to fetch the plist. Emitting the address form
-// rather than an embedded payload is the repo's rule: a wrong character 404s
-// instead of quietly delivering less than it claims.
-const installLink = n =>
-  'shortcuts://run-shortcut?name=Library-Import&input=text&text='
+const openLink = n =>
+  'shortcuts://run-shortcut?name=Library-Open&input=text&text=' + encodeURIComponent(n);
+
+// TWO RECEIVERS, ONE PAYLOAD. Library-Import and Library-Replace both split
+// Shortcut Input on newlines and read the same two lines: the name to land
+// under, then where to fetch the plist. Only the receiver differs, so choosing
+// between them is a one-word change to the link and never a change to what is
+// sent. Emitting the address form rather than an embedded payload is the repo's
+// rule: a wrong character 404s instead of quietly delivering less than it claims.
+const IMPORT  = 'Library-Import';
+const REPLACE = 'Library-Replace';
+const installLink = (n, target) =>
+  `shortcuts://run-shortcut?name=${encodeURIComponent(target)}&input=text&text=`
   + encodeURIComponent(n + '\n' + PLIST(n));
+
+// WHICH RECEIVER IS A FACT ABOUT THE DEVICE, NOT ABOUT THE CHAIN, which is why
+// this page decides it and tools/plist.py does not. Importing over a name the
+// library already holds leaves BOTH copies, and the older one keeps the index:
+// every `shortcuts://run-shortcut?name=` link and every runworkflow card naming
+// it goes on resolving to the copy being replaced, so an install that looks like
+// an upgrade has done the opposite. Library-Replace deletes by name first, so it
+// is the right receiver whenever the name is already there.
+//
+// Two conditions, both required, and the second is not belt-and-braces. A link
+// naming a receiver the device lacks fails at the point of use with nothing
+// installed, and Library-Replace only reached the device on 2026-09-16, so the
+// page asks the manifest whether it is there rather than assuming the answer it
+// happens to hold today. Unread device, or a name known absent, falls back to
+// Import: unknown is not "already installed", and Import is the honest default
+// for a state nobody looked up.
+function installTarget(s) {
+  const present = s === 'current' || s === 'stale' || s === 'on device';
+  return (present && device && device.have.has(REPLACE)) ? REPLACE : IMPORT;
+}
+// The button says which of the two it is about to do, because "Reinstall"
+// described the intent and hid the mechanism, and the mechanism is the part
+// that leaves a duplicate when it is the wrong one.
+const installLabel = t => t === REPLACE ? 'Replace' : 'Install';
 
 // A missing file does not always arrive as a status: a CDN can answer 200 with
 // an empty body, and `await r.json()` then fails with a parser message naming
@@ -228,11 +286,24 @@ async function loadDevice() {
   if (!window.ghAuth.resolve()) return null;
   const have = new Set();            // every name the device is known to hold
   const ran  = new Map();            // name -> build id of its newest logged run
+  const lib  = new Map();            // name -> its survey row, for a name off the catalog
+  let dumped = null;                 // the dump every lib row came from
 
-  // index.json, the last dump. A snapshot, so it misses anything newer.
+  // library.json, the last dump, surveyed. A snapshot, so it misses anything
+  // newer. It replaced index.json here on 2026-09-19 and the swap is free: both
+  // are written by tools/survey.py over the same dump and carry the same 606
+  // names, checked identical before the change, but library.json rows also carry
+  // tier, provenance, connectivity and CALLERS. That last one is what lets a
+  // name this catalog does not hold still be answered rather than 404'd, and it
+  // is also the file library.html already reads, so the two shortcut surfaces
+  // now agree on where the library is rather than reading a file each.
   try {
-    const idx = JSON.parse((await priv.get('shortcuts/index.json')).text);
-    for (const r of idx) if (r && r.name) have.add(r.name);
+    const survey = JSON.parse((await priv.get('shortcuts/library.json')).text);
+    for (const r of (survey.rows || [])) if (r && r.name) { have.add(r.name); lib.set(r.name, r) }
+    // `from` is the dump zip each row came out of, so the newest one dates the
+    // whole survey. Stated rather than inferred, because the gap between it and
+    // the manifest is exactly what makes a name unlistable.
+    for (const r of lib.values()) if (r.from && (!dumped || r.from > dumped)) dumped = r.from;
   } catch (e) { if (e && e.status === 404) { window.ghAuth.prompt(NEED_TOKEN); return null } }
 
   // The newest manifest, which is newer than the dump and settles the names
@@ -263,7 +334,7 @@ async function loadDevice() {
     }
   } catch {}
 
-  return { have, ran };
+  return { have, ran, lib, dumped };
 }
 
 // ---- state ----------------------------------------------------------------
@@ -373,7 +444,8 @@ function paint() {
       return a;
     };
     if (row.name) {
-      bar.append(act('btn btn-xs', installLink(row.name), 'Install', 'ph-download-simple'));
+      const t = installTarget(s);
+      bar.append(act('btn btn-xs', installLink(row.name, t), installLabel(t), 'ph-download-simple'));
       bar.append(act('btn btn-xs btn-ghost', runLink(row.name), 'Run', 'ph-play'));
     }
     bar.append(act('btn btn-xs btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));
@@ -503,10 +575,8 @@ function detail(row) {
     return a;
   };
   if (row.name) {
-    // "Reinstall" only where the device has been read and says so. Unknown
-    // reads as Install, which is the honest word for a state nobody looked up.
-    bar.append(btn('btn-primary', installLink(row.name),
-                   s && s !== 'not on device' ? 'Reinstall' : 'Install', 'ph-download-simple'));
+    const t = installTarget(s);
+    bar.append(btn('btn-primary', installLink(row.name, t), installLabel(t), 'ph-download-simple'));
     bar.append(btn('', runLink(row.name), 'Run', 'ph-play'));
   }
   bar.append(btn('btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));
@@ -541,13 +611,91 @@ function detail(row) {
   el('count').textContent = '';
 }
 
+// A NAME OFF THE CATALOG IS STILL A QUESTION WITH AN ANSWER, and until
+// 2026-09-19 this page gave the same four words to three different situations.
+// `?name=Choose-GPT` is the case that exposed it: a real shortcut, second line
+// of the 2026-09-18 manifest, and the page said "No chain here called
+// Choose-GPT", which reads as "no such thing" and is not what was checked.
+//
+// Three outcomes now, and the third is silence about a thing we did not look at.
+// The device holds 606 surveyed names against this catalog's 77 chains, so most
+// names a link can carry are device shortcuts rather than authored chains, and
+// the honest reply names which set it fell in. There is nothing to install
+// either way: a device shortcut has no plist here, so the button that appears is
+// Open, not Install, and saying so is the point rather than a consolation.
 function missing(what) {
   const pane = el('detail');
   pane.textContent = '';
-  pane.append(node('p', 'px-3 py-6 text-base opacity-60', `No chain here called ${what}.`));
+  const wrap = node('div', 'px-3 py-6 flex flex-col gap-4');
+  const row = device && device.lib.get(what);
+  const onDevice = device && device.have.has(what);
+
+  if (onDevice) {
+    wrap.append(node('p', 'text-base leading-relaxed text-pretty',
+      `${what} is on the device and is not a chain this repo authors, `
+      + 'so there is no plist to install and no build to score.'));
+
+    const bar = node('div', 'flex flex-wrap gap-2');
+    const btn = (cls, to, label, icon) => {
+      const a = link('btn btn-sm ' + cls, to, null);
+      a.append(node('i', 'ph ' + icon));
+      a.append(node('span', null, label));
+      return a;
+    };
+    bar.append(btn('btn-primary', openLink(what), 'Open', 'ph-arrow-square-out'));
+    bar.append(btn('', runLink(what), 'Run', 'ph-play'));
+    wrap.append(bar);
+
+    if (row) {
+      // Its callers are the half no single file holds for a chain either, and
+      // here survey.py has already computed both directions, so both are shown.
+      const chip = (label, names) => {
+        if (!names || !names.length) return null;
+        const w = node('div', 'flex flex-wrap items-baseline gap-2');
+        w.append(node('span', 'text-xs uppercase tracking-wide opacity-50 w-20 shrink-0', label));
+        for (const n of names) {
+          const target = byName(n);
+          w.append(target
+            ? nav(link('badge badge-ghost badge-sm hover:badge-primary', href(target), n))
+            : node('span', 'badge badge-outline badge-sm opacity-60', n));
+        }
+        return w;
+      };
+      const rel = node('div', 'flex flex-col gap-2');
+      for (const c of [chip('Calls', row.calls), chip('Called by', row.callers)])
+        if (c) rel.append(c);
+      if (rel.children.length) wrap.append(rel);
+      el('meta').textContent = [row.tier, row.provenance, row.connectivity,
+                                row.actions + ' cards', 'from ' + row.from]
+                               .filter(Boolean).join(' · ');
+      el('tally').textContent = 'on device';
+    } else {
+      // In the manifest and not in the survey means installed since the dump,
+      // which is a fact worth stating rather than a gap worth hiding: 89 names
+      // were in that gap on 2026-09-19, and no listing exists for any of them
+      // until the next dump runs.
+      wrap.append(node('p', 'text-sm opacity-60 text-pretty',
+        'Installed since the last dump'
+        + (device.dumped ? ` (${device.dumped})` : '')
+        + ', so the survey has no listing for it yet.'));
+      el('meta').textContent = 'on device · newer than the dump';
+      el('tally').textContent = 'on device';
+    }
+  } else {
+    // Unread device is not an absent name. Without a token this page can see 77
+    // chains and nothing else, so it says what it checked rather than what it
+    // concluded.
+    wrap.append(node('p', 'text-base leading-relaxed text-pretty',
+      device
+        ? `Nothing called ${what}: not a chain in this catalog, and not on the device.`
+        : `No chain here called ${what}. The device has not been read, so a shortcut `
+          + 'by that name would not be visible from here.'));
+    el('meta').textContent = '';
+    el('tally').textContent = '';
+  }
+
+  pane.append(wrap);
   el('title').textContent = what;
-  el('tally').textContent = '';
-  el('meta').textContent = '';
   el('count').textContent = '';
 }
 
