@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'f4224c4';
-const BUILT = '2026-09-20T02:09:40Z';
+const BUILD = '3022697';
+const BUILT = '2026-09-20T02:27:40Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -82,9 +82,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   // Detect real Web Tools FAB or scripts in DOM (which cross the Isolated World barrier)
-  const realFab = () => document.querySelector('[aria-label="Web-tools panel"], [x-data*="fab"]');
+  const realFab = () => document.querySelector('[aria-label="Web-tools panel"], [x-data*="fab"][data-fab-root], [x-data*="fab"].fab-root');
   const hasWebToolsScript = () => !!document.querySelector(
-    'script[src*="gh-api"], script[src*="web-tools"], script[src*="fab.js"], link[href*="web-tools"]'
+    'script[src*="alpineComponents/fab.js"], ' +
+    'script[src*="mehrlander.github.io/web-tools"], ' +
+    'script[src*="/web-tools/app/"], ' +
+    'script[src*="lib/gh-api.js"], ' +
+    'link[href*="mehrlander.github.io/web-tools"]'
   );
 
   // A page that carries the loader will mount its own fab, and one that has
@@ -157,6 +161,101 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     return list;
   };
 
+  // Frame Discovery: inspects all browsing contexts (iframes and frames) on the
+  // page, including those inside open shadow roots. Distinguishes accessible
+  // same-origin frames from sealed cross-origin frames blocked by the browser SOP.
+  const findFrames = () => {
+    const list = [];
+    const elements = [];
+    for (const f of document.querySelectorAll('iframe, frame')) {
+      if (f.id === ID || f.closest?.('#' + ID)) continue;
+      elements.push(f);
+    }
+    for (const s of findShadowRoots()) {
+      for (const f of s.root.querySelectorAll('iframe, frame')) {
+        if (f.id === ID || f.closest?.('#' + ID)) continue;
+        elements.push(f);
+      }
+    }
+
+    elements.forEach((f, idx) => {
+      let accessible = false;
+      let doc = null;
+      let title = '';
+      let href = '';
+      let textLen = 0;
+      let linksCount = 0;
+      let error = '';
+
+      try {
+        doc = f.contentDocument || f.contentWindow?.document;
+        if (doc) {
+          title = doc.title || '';
+          href = doc.location?.href || f.src || '';
+          accessible = true;
+          textLen = (doc.body?.innerText || '').trim().length;
+          linksCount = doc.querySelectorAll?.('a[href]')?.length || 0;
+        }
+      } catch (err) {
+        accessible = false;
+        error = 'Cross-origin (Same-Origin Policy)';
+      }
+
+      if (!href) {
+        try { href = f.getAttribute('src') || f.src || '(no src)'; } catch { href = '(inaccessible)'; }
+      }
+
+      let label = f.getAttribute('title') || f.getAttribute('name') || f.getAttribute('id') || '';
+      if (!label && href && href !== '(no src)') {
+        try {
+          const u = new URL(href, location.href);
+          label = u.pathname.split('/').filter(Boolean).pop() || u.hostname;
+        } catch {
+          label = href.slice(0, 30);
+        }
+      }
+      if (!label) label = `Frame #${idx + 1}`;
+
+      list.push({
+        index: idx,
+        el: f,
+        accessible,
+        doc: accessible ? doc : null,
+        title: title || label,
+        label,
+        href,
+        textLen,
+        linksCount,
+        error,
+        name: f.name || f.id || '',
+      });
+    });
+
+    return list;
+  };
+
+  const getActiveDoc = () => {
+    if (state.activeFrameIndex >= 0 && state.frames && state.frames[state.activeFrameIndex]?.accessible) {
+      const f = state.frames[state.activeFrameIndex];
+      if (f.doc) return f.doc;
+    }
+    return document;
+  };
+
+  const getActiveDocTitle = () => {
+    if (state.activeFrameIndex >= 0 && state.frames && state.frames[state.activeFrameIndex]?.accessible) {
+      return state.frames[state.activeFrameIndex].title || 'Frame';
+    }
+    return page.title;
+  };
+
+  const getActiveDocHref = () => {
+    if (state.activeFrameIndex >= 0 && state.frames && state.frames[state.activeFrameIndex]?.accessible) {
+      return state.frames[state.activeFrameIndex].href || page.href;
+    }
+    return page.href;
+  };
+
   // Links, deduped by address. A page repeats its own navigation in a header
   // and a footer, and a list of forty links where fifteen are the same six
   // destinations is a list nobody reads. Anchors with no visible text are kept
@@ -168,6 +267,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // drop everything the first one found, ticks included; the first pass over
   // this returned five links after forty-five had gone by.
   const readLinks = () => {
+    const targetDoc = getActiveDoc();
     const processLink = a => {
       const href = a.href;
       if (!/^https?:/.test(href) || href === location.href) return;
@@ -176,9 +276,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
                    clean(a.querySelector('img')?.alt) || href.replace(/^https?:\/\//, '');
       state.seenLinks.set(href, text.slice(0, 120));
     };
-    for (const a of document.querySelectorAll('a[href]')) processLink(a);
-    for (const s of findShadowRoots()) {
-      for (const a of s.root.querySelectorAll('a[href]')) processLink(a);
+    for (const a of targetDoc.querySelectorAll('a[href]')) processLink(a);
+    if (targetDoc === document) {
+      for (const s of findShadowRoots()) {
+        for (const a of s.root.querySelectorAll('a[href]')) processLink(a);
+      }
     }
     const before = state.links.length;
     state.links = [...state.seenLinks].map(([href, text]) => ({ href, text }));
@@ -190,11 +292,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // than any heuristic could; the fallback picks the densest block rather than
   // the biggest, so a nav column of eighty short links does not beat the prose.
   const readText = () => {
-    let named = document.querySelector('article, main, [role="main"]');
+    const targetDoc = getActiveDoc();
+    let named = targetDoc.querySelector('article, main, [role="main"]');
     let best = named;
     if (!best) {
       let score = 0;
-      for (const el of document.querySelectorAll('body *')) {
+      for (const el of targetDoc.querySelectorAll('body *')) {
         if (/^(SCRIPT|STYLE|NAV|HEADER|FOOTER|ASIDE|SVG)$/.test(el.tagName)) continue;
         const t = el.innerText || '';
         if (t.length < 400) continue;
@@ -202,22 +305,20 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         if (s > score) { score = s; best = el; }
       }
     }
-    // Backup: Same-origin iframe harvester if main text is minimal
-    if (!best || (best.innerText || '').trim().length < 200) {
-      for (const frame of document.querySelectorAll('iframe')) {
-        try {
-          const doc = frame.contentDocument;
-          if (doc && doc.body && (doc.body.innerText || '').trim().length > 200) {
-            best = doc.querySelector('article, main, [role="main"]') || doc.body;
-            break;
-          }
-        } catch {}
+    // Backup: Same-origin iframe harvester if main text is minimal (when reading top document)
+    if (targetDoc === document && (!best || (best.innerText || '').trim().length < 200)) {
+      for (const frame of (state.frames || []).filter(f => f.accessible && f.doc)) {
+        const doc = frame.doc;
+        if (doc && doc.body && (doc.body.innerText || '').trim().length > 200) {
+          best = doc.querySelector('article, main, [role="main"]') || doc.body;
+          break;
+        }
       }
     }
     // clean() is wrong here: innerText already marks block boundaries with
     // newlines, and collapsing those runs every paragraph and heading into one
     // line. Horizontal runs collapse, vertical ones survive as a blank line.
-    return String((best || document.body).innerText || '')
+    return String((best || targetDoc.body || targetDoc.documentElement).innerText || '')
       .replace(/[^\S\n]+/g, ' ')
       .replace(/ ?\n ?/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
@@ -234,6 +335,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const BLOCKS = 'p, li, h1, h2, h3, h4, blockquote, dd, figcaption, td';
   const collectBlocks = () => {
     let added = 0;
+    const targetDoc = getActiveDoc();
     const process = el => {
       if (el.closest?.('nav, header, footer, aside')) return;
       const t = clean(el.innerText);
@@ -246,9 +348,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       state.blockChars += t.length;
       added++;
     };
-    for (const el of document.querySelectorAll(BLOCKS)) process(el);
-    for (const s of findShadowRoots()) {
-      for (const el of s.root.querySelectorAll(BLOCKS)) process(el);
+    for (const el of targetDoc.querySelectorAll(BLOCKS)) process(el);
+    if (targetDoc === document) {
+      for (const s of findShadowRoots()) {
+        for (const el of s.root.querySelectorAll(BLOCKS)) process(el);
+      }
     }
     return added;
   };
@@ -296,21 +400,24 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
                   blocks: [], blockChars: 0, seenLinks: new Map(), errand: null,
                   errandOut: '', localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
-                  shadowRoots: [],
+                  shadowRoots: [], frames: [], activeFrameIndex: -1,
                   fullscreen: false, metaOpen: false, autoCheck: getPref('autocheck_updates') };
 
   // DOM-to-Markdown extractor: converts article/main or content dense tree into
   // clean, structured Markdown, preserving headings, quotes, code blocks, lists,
   // bold/italics, links, and images.
   const domToMarkdown = () => {
+    const targetDoc = getActiveDoc();
+    const docTitle = getActiveDocTitle();
+    const docHref = getActiveDocHref();
     if (state.scope === 'sel' && state.sel) {
-      return `# ${page.title}\n\n${page.href}\n\n> ` + state.sel.replace(/\n+/g, '\n> ');
+      return `# ${docTitle}\n\n${docHref}\n\n> ` + state.sel.replace(/\n+/g, '\n> ');
     }
-    const named = document.querySelector('article, main, [role="main"]');
+    const named = targetDoc.querySelector('article, main, [role="main"]');
     let target = named;
     if (!target) {
       let score = 0;
-      for (const el of document.querySelectorAll('body *')) {
+      for (const el of targetDoc.querySelectorAll('body *')) {
         if (/^(SCRIPT|STYLE|NAV|HEADER|FOOTER|ASIDE|SVG|NOSCRIPT|IFRAME|FORM)$/.test(el.tagName)) continue;
         const t = el.innerText || '';
         if (t.length < 400) continue;
@@ -318,19 +425,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         if (s > score) { score = s; target = el; }
       }
     }
-    // Backup: Same-origin iframe fallback if main text is minimal
-    if (!target || (target.innerText || '').trim().length < 200) {
-      for (const frame of document.querySelectorAll('iframe')) {
-        try {
-          const doc = frame.contentDocument;
-          if (doc && doc.body && (doc.body.innerText || '').trim().length > 200) {
-            target = doc.querySelector('article, main, [role="main"]') || doc.body;
-            break;
-          }
-        } catch {}
+    // Backup: Same-origin iframe fallback if main text is minimal (when reading top document)
+    if (targetDoc === document && (!target || (target.innerText || '').trim().length < 200)) {
+      for (const frame of (state.frames || []).filter(f => f.accessible && f.doc)) {
+        const doc = frame.doc;
+        if (doc && doc.body && (doc.body.innerText || '').trim().length > 200) {
+          target = doc.querySelector('article, main, [role="main"]') || doc.body;
+          break;
+        }
       }
     }
-    target = target || document.body;
+    target = target || targetDoc.body || targetDoc.documentElement;
 
     const walk = (node, depth = 0) => {
       if (depth > 40 || !node) return '';
@@ -419,8 +524,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
     };
 
-    const out = [`# ${page.title}`, '', page.href];
-    if (page.description) out.push('', page.description);
+    const out = [`# ${getActiveDocTitle()}`, '', getActiveDocHref()];
+    if (page.description && state.activeFrameIndex < 0) out.push('', page.description);
     if (state.sel) out.push('', '> ' + state.sel.replace(/\n+/g, '\n> '));
 
     const bodyContent = state.blocks.length
@@ -532,13 +637,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // DOM HTML Formatter & Syntax Highlighter: formats and indents the live document
   // tree into clean, 2-space indented HTML with syntax coloring tokens for tags,
   // attributes, strings, comments, and doctypes.
-  const formatAndHighlightDom = (rootNode = document.documentElement) => {
+  const formatAndHighlightDom = (rootNode = null) => {
     const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+    const targetDoc = getActiveDoc();
+    if (!rootNode) rootNode = targetDoc.documentElement;
     const parts = [];
     let lines = 0;
     const MAX_LINES = 1800;
 
-    if (rootNode === document.documentElement) {
+    if (rootNode === targetDoc.documentElement) {
       parts.push('<span class="tok-doc">&lt;!DOCTYPE html&gt;</span>\n');
       lines++;
     }
@@ -637,6 +744,15 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       parts.push(open);
       lines++;
 
+      if (tag === 'iframe') {
+        let frameStatus = 'sealed';
+        try {
+          if (node.contentDocument) frameStatus = 'accessible (same-origin)';
+        } catch {}
+        parts.push(`${pad}  <span class="tok-com">&lt;!-- ⛶ frame [${frameStatus}] --&gt;</span>\n`);
+        lines++;
+      }
+
       // Traverse shadow root as declarative template if present
       if (node.shadowRoot && node !== host) {
         const mode = esc(node.shadowRoot.mode || 'open');
@@ -661,7 +777,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       lines++;
     };
 
-    if (rootNode === document.documentElement) {
+    if (rootNode === targetDoc.documentElement) {
       walk(rootNode, 0);
     } else {
       for (const kid of rootNode.childNodes) {
@@ -847,6 +963,35 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .meta-arr { font-size: 8px; transition: transform .2s; }
     .meta-toggle.on .meta-arr { transform: rotate(180deg); }
 
+    .head-frame-banner {
+      margin: .25rem 0 0; padding: .375rem .5rem; border-radius: .375rem;
+      background: ${mix(P, 10)}; border: 1px solid ${mix(P, 30)};
+      display: flex; flex-direction: column; gap: .25rem;
+    }
+    .head-frame-banner[hidden] { display: none; }
+    .frame-bar-top {
+      display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .frame-tag {
+      display: inline-flex; align-items: center; gap: .25rem;
+      font: 700 10.5px ui-sans-serif, system-ui, sans-serif; color: var(--wt-p);
+    }
+    .frame-tag svg { width: 11px; height: 11px; }
+    .frame-name {
+      font-weight: 600; font-size: 11px; color: var(--wt-bc);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;
+    }
+    .btn-return-main {
+      font: 600 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .15rem .45rem; border-radius: 9999px;
+      cursor: pointer; border: 1px solid ${mix(P, 40)};
+      background: var(--wt-b100); color: var(--wt-p);
+      transition: all .15s;
+    }
+    .btn-return-main:hover {
+      background: var(--wt-p); color: #fff;
+    }
+
     .head-sel-banner {
       margin: .25rem 0 0; padding: .375rem .5rem; border-radius: .375rem;
       background: ${mix(P, 8)}; border: 1px solid ${mix(P, 25)};
@@ -873,17 +1018,69 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-sel[hidden] { display: none; }
     .panel.fullscreen .head-intro,
     .panel.fullscreen .head-desc,
+    .panel.fullscreen .head-frame-banner,
     .panel.fullscreen .head-sel-banner,
     .panel.fullscreen .meta-toggle,
     .panel.fullscreen .page-meta { display: none !important; }
     .page-meta { margin-top: .25rem; padding: .5rem .625rem; border-radius: .5rem;
                  background: var(--wt-b200); border: 1px solid var(--wt-b300);
-                 font-size: 11px; max-height: 10rem; overflow-y: auto; }
+                 font-size: 11px; max-height: 16rem; overflow-y: auto; }
     .page-meta[hidden] { display: none; }
     .page-meta p { margin: 0 0 .375rem; overflow-wrap: break-word; }
     .page-meta p:last-child { margin-bottom: 0; }
     .page-meta .k { display: block; font: 10px ui-monospace, monospace;
                     color: ${mix('var(--wt-bc)', 55)}; margin-bottom: .125rem; }
+    .meta-scope-summary { font-weight: 600; margin-bottom: .375rem; color: var(--wt-bc); }
+    .meta-scope-list { display: flex; flex-direction: column; gap: .375rem; margin-top: .25rem; }
+    .meta-scope-item {
+      display: flex; flex-direction: column; gap: .2rem;
+      padding: .375rem .5rem; border-radius: .375rem;
+      background: var(--wt-b100); border: 1px solid var(--wt-b300);
+      font-size: 10.5px;
+    }
+    .meta-scope-item.active {
+      border-color: ${mix(P, 60)}; background: ${mix(P, 6)};
+    }
+    .meta-scope-header {
+      display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .meta-scope-name {
+      font-weight: 600; display: inline-flex; align-items: center; gap: .25rem;
+      color: var(--wt-bc); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .meta-scope-name svg { width: 11px; height: 11px; shrink: 0; color: var(--wt-p); }
+    .meta-scope-badge {
+      font: 700 9px ui-monospace, monospace; text-transform: uppercase;
+      padding: .1rem .35rem; border-radius: 9999px; letter-spacing: .03em; flex: none;
+    }
+    .meta-scope-badge.readable {
+      background: oklch(92% .08 140); color: oklch(45% .15 140);
+    }
+    .meta-scope-badge.sealed {
+      background: oklch(90% .04 30); color: oklch(50% .12 30);
+    }
+    .meta-scope-badge.main {
+      background: ${mix(P, 15)}; color: var(--wt-p);
+    }
+    .meta-scope-url {
+      color: ${mix('var(--wt-bc)', 70)}; font-family: ui-monospace, monospace; font-size: 9.5px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .meta-scope-stats {
+      color: ${mix('var(--wt-bc)', 65)}; font-size: 10px; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .meta-scope-act {
+      font: 600 10px ui-sans-serif, system-ui, sans-serif;
+      padding: .1rem .4rem; border-radius: .25rem;
+      cursor: pointer; transition: all .15s;
+      border: 1px solid ${mix(P, 40)}; background: var(--wt-b100); color: var(--wt-p);
+    }
+    .meta-scope-act:hover {
+      background: var(--wt-p); color: #fff;
+    }
+    .meta-scope-active-label {
+      font: 600 10px ui-monospace, monospace; color: oklch(50% .15 140);
+    }
     .meta-pref-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-top: .5rem; padding-top: .375rem;
@@ -1243,6 +1440,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <p class="head-desc" hidden></p>
           <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
         </div>
+        <div class="head-frame-banner" hidden>
+          <div class="frame-bar-top">
+            <span class="frame-tag">${svg(ICON.cardsThree)}<span>Frame Scope</span><span class="frame-name"></span></span>
+            <button type="button" class="btn-return-main" title="Return to Main Document">Return to Main Page ↩</button>
+          </div>
+        </div>
         <div class="head-sel-banner" hidden>
           <div class="sel-bar-top">
             <span class="sel-tag">${svg(ICON.note)}<span>Selection</span><span class="sel-chars"></span></span>
@@ -1259,6 +1462,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <p><span class="k">ADDRESS</span><span class="meta-href"></span></p>
           <p class="meta-desc-wrap" hidden><span class="k">DESCRIPTION</span><span class="meta-desc"></span></p>
           <p><span class="k">SELECTION</span><span class="meta-sel quote"></span></p>
+          <p><span class="k">SCOPES &amp; FRAMES</span><span class="meta-scopes"></span></p>
           <p><span class="k">SHADOW DOM</span><span class="meta-shadow"></span></p>
           <div class="meta-pref-row">
             <span class="k">AUTO-CHECK UPDATES</span>
@@ -1533,10 +1737,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         return target.map(l => `- [${l.text || l.href}](${l.href})`).join('\n');
       }
       case 'html': {
-        const root = document.documentElement;
+        const targetDoc = getActiveDoc();
+        const root = targetDoc.documentElement;
         if (typeof root.getHTML === 'function') {
           try {
-            const shadowRoots = Array.from(document.querySelectorAll('*'))
+            const shadowRoots = Array.from(targetDoc.querySelectorAll('*'))
               .map(el => el.shadowRoot)
               .filter(Boolean);
             const html = root.getHTML({ serializableShadowRoots: true, shadowRoots });
@@ -1550,10 +1755,20 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
       case 'json':
         return JSON.stringify({
-          title: page.title,
-          href: page.href,
+          scope: state.activeFrameIndex >= 0 ? 'frame' : 'page',
+          title: getActiveDocTitle(),
+          href: getActiveDocHref(),
           description: page.description,
           selection: state.sel,
+          frames: (state.frames || []).map(f => ({
+            index: f.index,
+            title: f.title,
+            href: f.href,
+            accessible: f.accessible,
+            sealed: !f.accessible,
+            textLength: f.textLen,
+            reason: f.error || undefined,
+          })),
           shadowRoots: (state.shadowRoots || []).map(r => ({ host: r.tag, mode: r.mode })),
           links: state.links,
           text: state.blocks.length ? state.blocks.join('\n\n') : state.text,
@@ -1573,10 +1788,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const headHtmlTools = q('.head-html-tools');
     const headScopeTools = q('.head-scope-tools');
 
+    qa('[data-scope="page"]').forEach(b => {
+      b.textContent = state.activeFrameIndex >= 0 ? 'Frame' : 'Page';
+    });
+
     if (state.fullscreen) {
       const slide = SLIDES[state.slide] || SLIDES[0];
       if (headTitle) headTitle.textContent = slide.label;
-      if (headSub) headSub.textContent = page.title;
+      if (headSub) headSub.textContent = (state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]) ? `[Frame: ${state.frames[state.activeFrameIndex].title}]` : page.title;
       if (plaque) plaque.innerHTML = svg(ICON[slide.icon]);
       if (curEl) curEl.textContent = String(state.slide + 1);
       if (headTools) headTools.hidden = slide.id !== 'md';
@@ -1584,7 +1803,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       if (headScopeTools) headScopeTools.hidden = !state.sel;
     } else {
       if (headTitle) headTitle.textContent = page.title;
-      if (headSub) headSub.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
+      const fLabel = state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex] ? ` · [${state.frames[state.activeFrameIndex].title}]` : '';
+      if (headSub) headSub.textContent = `${location.hostname}${fLabel} · ${BUILD} · built ${age(BUILT)}`;
       if (plaque) plaque.innerHTML = svg(ICON.sidebar);
       if (headTools) headTools.hidden = true;
       if (headHtmlTools) headHtmlTools.hidden = true;
@@ -1602,6 +1822,17 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         descEl.hidden = false;
       } else {
         descEl.hidden = true;
+      }
+    }
+
+    const frameBanner = q('.head-frame-banner');
+    const frameName = q('.frame-name');
+    if (frameBanner) {
+      if (state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]) {
+        if (frameName) frameName.textContent = `· ${state.frames[state.activeFrameIndex].title}`;
+        frameBanner.hidden = false;
+      } else {
+        frameBanner.hidden = true;
       }
     }
 
@@ -1624,8 +1855,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const descElMeta = q('.meta-desc');
     const selEl = q('.meta-sel');
 
-    if (titleEl) titleEl.textContent = page.title;
-    if (hrefEl) hrefEl.textContent = page.href;
+    if (titleEl) titleEl.textContent = getActiveDocTitle();
+    if (hrefEl) hrefEl.textContent = getActiveDocHref();
     if (descWrap && descElMeta) {
       if (page.description) {
         descElMeta.textContent = page.description;
@@ -1642,6 +1873,63 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         selEl.textContent = 'Nothing selected. Select text on the page, then reopen.';
         selEl.className = 'meta-sel none';
       }
+    }
+
+    const scopesEl = q('.meta-scopes');
+    if (scopesEl) {
+      const frames = state.frames || [];
+      const roots = state.shadowRoots || [];
+      const readable = frames.filter(f => f.accessible);
+      const sealed = frames.filter(f => !f.accessible);
+
+      let summary = '1 main document';
+      if (frames.length > 0) {
+        summary += ` · ${frames.length} frame${frames.length > 1 ? 's' : ''} (${readable.length} readable, ${sealed.length} sealed)`;
+      } else {
+        summary += ' · 0 frames';
+      }
+      if (roots.length > 0) {
+        summary += ` · ${roots.length} shadow root${roots.length > 1 ? 's' : ''}`;
+      }
+
+      let itemsHtml = `<div class="meta-scope-summary">${esc(summary)}</div><div class="meta-scope-list">`;
+      const isMain = state.activeFrameIndex === -1;
+      itemsHtml += `
+        <div class="meta-scope-item${isMain ? ' active' : ''}">
+          <div class="meta-scope-header">
+            <span class="meta-scope-name">${svg(ICON.sidebar)} Top Window (Main)</span>
+            <span class="meta-scope-badge main">MAIN</span>
+          </div>
+          <div class="meta-scope-url">${esc(location.href)}</div>
+          <div class="meta-scope-stats">
+            <span>${clean(document.body?.innerText || '').length.toLocaleString()} chars</span>
+            ${!isMain ? `<button type="button" class="meta-scope-act" data-pick-frame="-1">Switch to Main</button>` : `<span class="meta-scope-active-label">Active Scope ✓</span>`}
+          </div>
+        </div>`;
+
+      frames.forEach(f => {
+        const isAct = state.activeFrameIndex === f.index;
+        itemsHtml += `
+          <div class="meta-scope-item${isAct ? ' active' : ''}">
+            <div class="meta-scope-header">
+              <span class="meta-scope-name">${svg(ICON.cardsThree)} ${esc(f.title)}</span>
+              <span class="meta-scope-badge ${f.accessible ? 'readable' : 'sealed'}">${f.accessible ? 'READABLE' : '🔒 SEALED'}</span>
+            </div>
+            <div class="meta-scope-url">${esc(f.href)}</div>
+            <div class="meta-scope-stats">
+              ${f.accessible
+                ? `<span>${f.textLen.toLocaleString()} chars · ${f.linksCount} links</span>`
+                : `<span>Cross-origin · Blocked by Same-Origin Policy</span>`}
+              ${f.accessible
+                ? (isAct
+                    ? `<span class="meta-scope-active-label">Active Scope ✓</span>`
+                    : `<button type="button" class="meta-scope-act" data-pick-frame="${f.index}">Switch to Frame</button>`)
+                : ''}
+            </div>
+          </div>`;
+      });
+      itemsHtml += `</div>`;
+      scopesEl.innerHTML = itemsHtml;
     }
 
     const shadowEl = q('.meta-shadow');
@@ -1821,8 +2109,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           }
           if (rawContent) rawContent.hidden = true;
           const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
-          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : ' · no shadow DOM';
-          if (metaEl) metaEl.textContent = `${state.htmlLines} lines${sInfo}`;
+          const fCount = (state.frames && state.frames.length) || 0;
+          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : '';
+          const fInfo = fCount ? ` · ${fCount} frame${fCount > 1 ? 's' : ''}` : '';
+          const scopeLabel = state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]
+            ? ` (${state.frames[state.activeFrameIndex].title})` : '';
+          if (metaEl) metaEl.textContent = `${state.htmlLines} lines${scopeLabel}${sInfo}${fInfo}`;
         } else {
           const raw = getSlideText(i);
           if (rawContent) {
@@ -1831,9 +2123,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           }
           if (formattedWrap) formattedWrap.hidden = true;
           const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
-          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : ' · no shadow DOM';
+          const fCount = (state.frames && state.frames.length) || 0;
+          const sInfo = sCount ? ` · ${sCount} shadow root${sCount > 1 ? 's' : ''}` : '';
+          const fInfo = fCount ? ` · ${fCount} frame${fCount > 1 ? 's' : ''}` : '';
           const sizeStr = (raw.length > 10000) ? `${Math.round(raw.length / 1024)} KB` : `${raw.length} chars`;
-          if (metaEl) metaEl.textContent = `${sizeStr}${sInfo}`;
+          const scopeLabel = state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex]
+            ? ` (${state.frames[state.activeFrameIndex].title})` : '';
+          if (metaEl) metaEl.textContent = `${sizeStr}${scopeLabel}${sInfo}${fInfo}`;
         }
         break;
       }
@@ -2036,6 +2332,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.jinaMd = null;
     state.formattedHtml = null;
     state.shadowRoots = findShadowRoots();
+    state.frames = findFrames();
     readLinks();
     if (!state.blocks.length) state.text = readText();
     if (state.collect || state.blocks.length) collectBlocks();
@@ -2051,6 +2348,13 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (active?.shadowRoot?.getSelection) {
       const shadowSel = active.shadowRoot.getSelection();
       if (shadowSel && shadowSel.toString().trim()) return shadowSel;
+    }
+    if (state.activeFrameIndex >= 0 && state.frames && state.frames[state.activeFrameIndex]?.doc) {
+      try {
+        const frameWin = state.frames[state.activeFrameIndex].el?.contentWindow;
+        const frameSel = frameWin?.getSelection?.();
+        if (frameSel && frameSel.toString().trim()) return frameSel;
+      } catch {}
     }
     return s || null;
   };
@@ -2254,6 +2558,31 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   });
   syncScopeUI(state.scope);
 
+  const selectFrameScope = index => {
+    state.activeFrameIndex = index;
+    state.localMd = null;
+    state.formattedHtml = null;
+    state.seenLinks.clear();
+    state.links = [];
+    state.blocks = [];
+    state.blockChars = 0;
+    state.seen.clear();
+    readPage();
+    renderPageMeta();
+    syncSlideUI(state.slide);
+  };
+
+  q('.head-frame-banner .btn-return-main')?.addEventListener('click', () => {
+    selectFrameScope(-1);
+  });
+
+  q('.page-meta')?.addEventListener('click', e => {
+    const pickBtn = e.target.closest('[data-pick-frame]');
+    if (!pickBtn) return;
+    const idx = parseInt(pickBtn.getAttribute('data-pick-frame'), 10);
+    selectFrameScope(idx);
+  });
+
   // Deck scrolling & pagination: high-performance rAF updates tabs & dots instantly
   const track = q('.deck-track');
   let rAF = 0;
@@ -2454,8 +2783,10 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         if (el) {
           if (force) {
             const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
+            const fCount = (state.frames && state.frames.length) || 0;
             const sMsg = sCount ? `${sCount} shadow root${sCount > 1 ? 's' : ''}` : 'no shadow DOM';
-            el.textContent = `Build ${BUILD} is current · ${sMsg} on page`;
+            const fMsg = fCount ? ` · ${fCount} frame${fCount > 1 ? 's' : ''}` : '';
+            el.textContent = `Build ${BUILD} is current · ${sMsg}${fMsg} on page`;
             el.style.color = 'oklch(60% .18 140)';
             el.hidden = false;
             setTimeout(() => { if (el.textContent.includes('is current')) el.hidden = true; }, 3000);
