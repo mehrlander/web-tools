@@ -83,6 +83,9 @@ const NOT_MARKERS = {
   'definition list': '- **Frozen**: preserved on purpose.',
   'flavor then comma': '- **Stale, with a target**, in some file.',
   'hyphenated compound': '2. **Stale-branch piggybacking** rides old work.',
+  // A digit that is not a year: this line aborted home's verify at step 1 for
+  // four days in September 2026, under the rule "any digit inside the bold".
+  'digit that is not a year': '- **Corrected a real overstatement (Frame 3).** was wrong.',
 };
 
 for (const [label, line] of Object.entries(NOT_MARKERS)) {
