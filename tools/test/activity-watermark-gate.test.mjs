@@ -25,7 +25,7 @@ import { repoRoot } from './bootstrap.mjs';
 
 const shellSrc = readFileSync(path.join(repoRoot, 'app', 'index.html'), 'utf8');
 const gateSrc = shellSrc.slice(shellSrc.indexOf('const quiet = (repo) =>'),
-                               shellSrc.indexOf('const SCAN_SKEW_MS'));
+                               shellSrc.indexOf('// The scan gate itself lives in the crawl kit'));
 
 test('the gate requires BOTH halves, which is the clause most easily dropped', () => {
   // pushed_at cannot see a PR opening, merging or closing, and this cache
@@ -128,14 +128,14 @@ test('a null response is empty too, not a crash', async () => {
 
 // ── The deep-scan return boundary, run for real ───────────────────────────
 // A successful scan carries BranchStatus.scanOlder's rows and coverage out of
-// crawlRepoActivity. Execute the inline shell method itself so a block-scope
-// regression fails exactly as it does in the browser crawl.
+// the crawl. The crawl moved to lib/kits/activity-crawl.js on 2026-09-19 (the
+// headless runner is its second caller), so this loads the kit rather than
+// slicing the method out of the shell, which is what it had to do while the
+// crawl was an inline shell method.
 
-const crawlStart = shellSrc.indexOf('  async crawlRepoActivity(');
-const crawlEnd = shellSrc.indexOf('  // ── The app-route join', crawlStart);
-assert.ok(crawlStart >= 0 && crawlEnd > crawlStart, 'crawlRepoActivity source is present');
-const crawlMethodSrc = shellSrc.slice(crawlStart, crawlEnd).trim();
-const { crawlRepoActivity } = new Function(`return ({${crawlMethodSrc}})`)();
+const crawlWin = {};
+new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/activity-crawl.js'), 'utf8'))(crawlWin);
+const { crawlRepo } = crawlWin.ActivityCrawl;
 
 class ActivityGH {
   async commits(){ return [{ sha: 'main-sha', date: '2026-09-11T17:00:00Z' }]; }
@@ -152,25 +152,16 @@ class ActivityGH {
   }
 }
 
-const activityShell = () => ({
-  crawlRepoActivity,
-  ACTIVITY_RECENT_COMMITS: 40,
-  ACTIVITY_PR_REACH: 100,
-  ACTIVITY_SCAN_CAP: 30,
-  ACTIVITY_SCAN_KEEP: 200,
-  ACTIVITY_ERROR_RETRY: 7,
-});
-
-const crawl = async (B) => activityShell().crawlRepoActivity(
+const crawl = async (B, gh = new ActivityGH()) => crawlRepo(
   'mehrlander/web-tools',
   { default_branch: 'main', pushed_at: '2026-09-11T17:32:58Z' },
-  Date.parse('2026-09-11T18:00:00Z'), {}, B, null, true, null,
+  Date.parse('2026-09-11T18:00:00Z'),
+  { makeGH: () => gh, B, checks: null, cfg: null, deep: true, prev: null,
+    caps: { recentCommits: 40, prReach: 100, scanCap: 30, scanKeep: 200, errorRetry: 7 } },
 );
 
 test('a successful deep activity scan returns its rows and coverage', async () => {
-  const oldWindow = globalThis.window;
-  globalThis.window = { GH: ActivityGH, RepoChecks: null };
-  try {
+  {
     const out = await crawl({
       RECENT_DAYS: 14,
       daysAgo: () => 30,
@@ -189,15 +180,11 @@ test('a successful deep activity scan returns its rows and coverage', async () =
     assert.equal(out.scan.listOrdered, true);
     assert.equal(out.scan.listCapped, false);
     assert.deepEqual(out.scan.branches.map(b => b.name), ['codex/fresh-work']);
-  } finally {
-    globalThis.window = oldWindow;
   }
 });
 
 test('a rejected deep scan stays partial instead of publishing an empty scan', async () => {
-  const oldWindow = globalThis.window;
   const oldWarn = console.warn;
-  globalThis.window = { GH: ActivityGH, RepoChecks: null };
   console.warn = () => {};
   try {
     const out = await crawl({
@@ -210,6 +197,5 @@ test('a rejected deep scan stays partial instead of publishing an empty scan', a
     assert.equal(out.scan, undefined, 'mergeRepo will retain the prior scan');
   } finally {
     console.warn = oldWarn;
-    globalThis.window = oldWindow;
   }
 });

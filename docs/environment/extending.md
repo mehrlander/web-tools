@@ -2,10 +2,16 @@
 
 Claude Code supports [skills](https://code.claude.com/docs/en/skills), [subagents](https://code.claude.com/docs/en/sub-agents), [MCP servers](https://code.claude.com/docs/en/mcp), [hooks](https://code.claude.com/docs/en/hooks), [LSP servers](https://code.claude.com/docs/en/plugins-reference#lsp-servers), and [plugins](https://code.claude.com/docs/en/plugins).
 
-This repository uses two hooks and ships a third:
+This repository uses local Git hooks, two Claude startup delegates, and one
+plugin hook:
 
-* A Claude Code `SessionStart` hook that installs repository dependencies.
-* A commit-time `build-on-commit.sh` hook that stages deterministic derived artifacts when their sources change. See the [`tools/README.md`](../../tools/README.md#the-refresh-model) refresh model.
+* Two Claude Code `SessionStart` scripts that delegate checkout configuration
+  and remote dependency installation to the shared setup entry point.
+* Commit-time `pre-commit` and `pre-merge-commit` hooks that stage deterministic
+  derived artifacts when their sources change. A merge whose combined refresh
+  changes the index pauses for `git -c core.editor=true merge --continue`, so
+  the final tree is written through the ordinary commit path. See the
+  [`tools/README.md`](../../tools/README.md#the-refresh-model) refresh model.
 * A `Stop` hook carried by the `portable` plugin, which records the session where a checkout declares a store. It runs in every session that installs the plugin, not only in sessions on this repo, which is the point of putting it there. See [Stop: the session recorder](#stop-the-session-recorder) below.
 
 **Do not assume the `PreToolUse` hook ran** *(observed 2026-07-25, cause found 2026-07-27)*. `git commit` calls completed with `dist/web-tools.js` left stale, while `.claude/hooks/build-on-commit.sh` exited 0 and behaved correctly when piped its JSON payload by hand. The script was sound and the harness did not invoke it.
@@ -14,9 +20,26 @@ The cause is **where the session's project root sits**, which is not something t
 
 Two consequences worth carrying. Any repo whose hooks matter has to treat them as best-effort, not as a guarantee. And a silent guarantee needs a backstop that does not depend on the harness: `tools/test/derived-artifacts.test.mjs` re-runs the generators in `--check` mode inside `npm test`, so a stale artifact fails the suite wherever it is run. Regenerating by hand (`npm run build:lib`, `npm run pages-index`) after touching a source is still the fast path; the test is what makes forgetting loud.
 
-**Resolved 2026-08-06 by leaving the harness.** The two paragraphs above stand as the diagnosis, and the fix follows from them: a hook that must not depend on the project root should not be a Claude Code hook. Git resolves its hooks from the repository being committed to and has no notion of a root, so the script moved verbatim to `.githooks/pre-commit` and the `PreToolUse` block came out of `.claude/settings.json`. The stdin JSON parse and the `git commit` gate came off with it, both being scaffolding for the event it no longer listens to. The one thing git will not do is find a *committed* hooks folder, since `.git/hooks/` is local and absent on clone, so `core.hooksPath` has to be set once per clone; `.claude/hooks/session-githooks.sh` does it, and is itself discovered by filename by the dispatcher below, from any root. Confirmed the same day in a session rooted at `/home/user`: a commit touching `lib/` staged `dist/web-tools.js` on its own, which is the case that failed before. Home has run the identical pair since 2026-07-31.
+**Resolved 2026-08-06 by leaving the harness, and made explicit 2026-09-18.** The two paragraphs above stand as the diagnosis, and the fix follows from them: a hook that must not depend on the project root should not be a Claude Code hook. Git resolves its hooks from the repository being committed to and has no notion of a session root, so the refresher moved to `.githooks/pre-commit` and the `PreToolUse` block came out of `.claude/settings.json`. The stdin JSON parse and the `git commit` gate came off with it, both being scaffolding for the event it no longer listens to.
 
-The remaining gap is smaller and worth naming: a clone whose `core.hooksPath` was never set runs nothing, so the derived-artifacts gate keeps its job. `git commit --no-verify` is the deliberate bypass. And the generalization does not follow: a `PreToolUse` hook that is *not* about committing has no git event to move to, and would need a dispatcher of its own, with sequential execution, a small budget, and an any-deny-wins rule.
+Git still does not discover a committed hooks folder or a custom merge driver
+on clone. `npm run setup` is now the owner of those checkout settings and the
+development dependencies. It stores a relative `.githooks` path, uses
+worktree-specific config only when the repository already enabled that Git
+extension, and otherwise uses the shared local config that linked worktrees
+support. `npm run ready` asks Git for the effective hook path and driver config,
+then checks runtimes and npm's dependency metadata without writing. Neither
+command assumes `.git` is a directory. Claude's `session-githooks.sh` and
+`session-start.sh` delegate the git-only and dependency-only halves so their
+parallel dispatch cannot race two full setup runs.
+
+The remaining boundary is worth naming: a clone whose setup was skipped runs no
+committed hooks, `git commit --no-verify` is the deliberate local bypass, and a
+GitHub API, MCP, or server-side merge has no local checkout in which a hook can
+run. The derived-artifacts gate therefore keeps its independent job. The
+generalization also does not follow: a `PreToolUse` hook that is not about
+committing has no Git event to move to and would need a dispatcher of its own,
+with sequential execution, a small budget, and an any-deny-wins rule.
 
 ## Components
 
@@ -44,22 +67,37 @@ MCP tool definitions consume context. Claude Code can defer loading them through
 
 [`SessionStart`](https://code.claude.com/docs/en/hooks#sessionstart) fires at startup, resume, clear, and compaction. Other events cover tool use, file changes, subagents, notifications, and session termination.
 
-#### SessionStart dependency install
+#### SessionStart checkout delegates
 
 `.claude/hooks/session-start.sh` runs at session start. Nothing registers it: the `portable` plugin's dispatcher discovers it by its `session-*.sh` filename, from whatever project root the session has. This repo's `.claude/settings.json` declared it as a `SessionStart` hook until 2026-07-31 and no longer does, because the two together ran it twice whenever web-tools was the root. `session-githooks.sh` rides the same discovery, and since 2026-08-06 they are the only two, so `settings.json` declares no hooks at all.
 
 **A gated note is what that discovery is most useful for, and it is how you leave a check for a future session rather than holding it in mind.** The script runs every session and prints only while its condition is unmet, so a satisfied check is invisible and an unmet one reaches whichever session comes next. home carries three of them (the submittal deadline note, the news fetch, the memory manifest) and the plugin's own `invoke-default` is the same shape. A one-shot check clears itself by also speaking on success: it reports that it is finished and names itself for deletion, which is a one-line commit for the session that sees it. [`session-check-manifest.sh`](../../.claude/hooks/session-check-manifest.sh) is the worked example, and it stays silent on a snapshot older than the thing it verifies so it never nags about a condition that cannot yet be true. *(2026-09-14)*
 
-The script:
+`session-start.sh`:
 
 1. Exits unless `CLAUDE_CODE_REMOTE=true`.
-2. Reads `devDependencies` from `package.json`.
-3. Exits if each dependency has a corresponding `node_modules/<package>` directory.
-4. Otherwise runs `npm install`.
+2. Calls `tools/checkout-setup.mjs --dependencies-only`.
+3. Stays silent on success and prints the shared command's concrete failure plus
+   `npm run setup` / `npm run ready` recovery on failure.
+
+`session-githooks.sh` calls the same entry point with `--git-only` in every
+Claude session. That half is cheap and has no remote-only gate. Both wrappers
+always exit zero so a setup problem does not prevent the session from opening,
+but neither swallows a failed configuration write and calls it success.
 
 [`CLAUDE_CODE_REMOTE`](https://code.claude.com/docs/en/env-vars) is set to `true` in Claude Code cloud sessions. The check prevents the hook from installing dependencies in local sessions.
 
-The packages are repository `devDependencies`. They are declared in `package.json` and installed by the hook. They are not supplied as part of the Claude Code environment.
+The shared dependency check runs `npm ls --depth=0 --include=dev --json`, so an
+empty, obsolete, or invalid package directory does not satisfy it. Setup runs
+`npm install --include=dev` only when that metadata is not usable, with
+`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`. Browser installation belongs to the
+pixel-render path, not the browser-free build and test path. A local ignored
+`python3` command shim is created when a host supplies Python 3 only as
+`python`, preserving the command spelling used by the hooks and npm scripts.
+
+The packages are repository `devDependencies`. They are declared in
+`package.json` and installed by the shared entry point. They are not supplied
+as part of the Claude Code environment.
 
 `jsdom`, `alpinejs`, `fake-indexeddb`, and `idb-keyval` support browser-logic tests under Node. `playwright` drives the Chromium installation supplied by the web environment. It is pinned to `1.56.0` to match that browser build. See [capabilities.md](capabilities.md).
 
@@ -75,9 +113,13 @@ The preview harness runs the page under jsdom, executes the `gh.load` chain, mou
 
 The render tools serve the working tree over loopback and replace CDN requests with files from `node_modules`.
 
-The hook runs synchronously. `npm install` requires package-registry access. Claude Code's default [Trusted network configuration](https://code.claude.com/docs/en/claude-code-on-the-web#network-access-and-security) permits access to npm and other common package registries.
+The dependency delegate runs synchronously. `npm install` requires
+package-registry access. Claude Code's default
+[Trusted network configuration](https://code.claude.com/docs/en/claude-code-on-the-web#network-access-and-security)
+permits access to npm and other common package registries.
 
-A fresh web session normally runs the installation. A resumed session may reuse the existing `node_modules` directory.
+A fresh web session normally runs the check and installation. A resumed session
+may reuse the existing `node_modules` directory only when npm reports it usable.
 
 A cloud [setup script](https://code.claude.com/docs/en/claude-code-on-the-web#environment-caching) is the cached alternative. Claude Code runs the setup script when building an environment snapshot and reuses the resulting filesystem in later sessions. Repository hooks remain in source control and run at their configured lifecycle events.
 
@@ -201,10 +243,11 @@ anything else in that folder ->  ignored
 
 So a repo adopts it by **naming a file**, with nothing declared anywhere, and
 opts a script out the same way, by calling it something else. web-tools' own
-`session-start.sh` is picked up and its `build-on-commit.sh` is not, exactly as
-`tools/test/bootstrap.mjs` stays out of `node --test`. The name is the whole
-declaration, which is why the executable bit is not also required: a lost mode
-bit should not quietly turn a script off.
+`session-start.sh` and `session-githooks.sh` are picked up, while their shared
+`tools/checkout-setup.mjs` implementation is called only by those wrappers,
+exactly as `tools/test/bootstrap.mjs` stays out of `node --test`. The name is
+the whole declaration, which is why the executable bit is not also required: a
+lost mode bit should not quietly turn a script off.
 
 Each script runs with its own checkout as both cwd and `CLAUDE_PROJECT_DIR`, so
 a script already written for `.claude/settings.json` moves under the dispatcher
