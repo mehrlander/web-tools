@@ -1,384 +1,268 @@
-# Registries: the metadata model
+# Registries
 
-How the estate keeps stored information about its own contents, settled
-2026-08-08 after the harness registry re-derived, without noticing, the
-convention budget-drs had already built as its controlled-property registry.
-This document states the model once so the next accounting is an instance of it
-rather than a third invention. It is written to travel; the origin instrument is
-budget-drs's `properties.csv` in `mehrlander/home`.
+A **registry** is a committed CSV that records properties of a defined set of
+targets. A target is a file, a page, a test, a route, a field name, or anything
+else identified by a stable key.
 
-**What each field means is not here.** The declaration table is
-[`registries.csv`](registries.csv), one row per registry; its columns are
-declared in [`properties.csv`](properties.csv), one row per column; the values of
-every closed domain are glossed in [`vocabularies.csv`](vocabularies.csv). All
-three render in the app's **Map view, Registries tab**, which defines its own
-columns from them, so a reader who wants to know what `membership` or `required`
-holds should open the tab rather than read a paragraph about it. Gated by
+This document says when to create a registry, how registries divide authority,
+and what the suite checks. What each field means is not here. It is in
+[`registries.csv`](registries.csv), one row per registry;
+[`properties.csv`](properties.csv), one row per non-key column; and
+[`vocabularies.csv`](vocabularies.csv), one row per value of each closed
+domain. All three render in the app's **Map view, Registries tab**. The gate is
 [`properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs).
 
-This document carries what the tab cannot: the model, and the reasons.
+Settled 2026-08-08; the origin instrument is budget-drs's `properties.csv` in
+`mehrlander/home`. The dated account of how the model was reached and what its
+audits found was cut from this file on 2026-09-20 and stays in git history
+([last full copy](https://github.com/mehrlander/web-tools/blob/be2e302b8187/docs/registries.md)).
+
+## A worked example
+
+[`pages/pages.csv`](../pages/pages.csv) describes every page under `pages/` and
+owns `title` and `note`. [`docs/tools.csv`](tools.csv) selects the pages the
+Tools view shows and owns that selection and the `icon` it assigns. It does not
+repeat a page's title or note: its row in `registries.csv` declares
+`inherits: pages`, and the Tools view joins the two registries when it needs a
+description.
+
+| Target | Property | Owner |
+| --- | --- | --- |
+| `pages/toss-render.html` | `title` | `pages` |
+| `pages/toss-render.html` | inclusion in the Tools view | `tools` |
+| `pages/toss-render.html` | `icon` | `tools` |
+
+Copying `title` into `tools.csv` would store two answers to one question.
+Renaming the copy `tool_title` would hide the duplicate without removing it.
 
 ## The model
 
-Five things, normalized. A **target** is anything addressable by locator, files
-being the common case (budget-drs asserts properties of tables and rows; a
-content locator can refine below a file). A **property** is a named
-classification with a value domain, **closed** when its values are enumerated and
-**open** otherwise. A **scope** is the population a declaration covers. A
-**registry** is a committed CSV of assertions, one registry to one file. A
-**declaration** binds `scope × property → registry`; an **assertion** binds
-`target × property → value`, and a blank is not an assertion.
+| Term | Meaning |
+| --- | --- |
+| **Target** | The thing a row describes. |
+| **Key** | The column or columns that identify a target within one registry. |
+| **Identity space** | The naming system that lets keys from different registries identify the same target. |
+| **Scope** | The population a registry claims to cover. |
+| **Property** | A named fact a registry records about a target. Every non-key column is a declared property. |
+| **Assertion** | A nonblank property value for one target. A blank cell asserts nothing. |
+| **Registry** | One CSV holding assertions about one scope of targets. |
+| **Declaration** | A row in `properties.csv` that assigns a property to a registry and says how the property behaves. |
+| **Gate** | A test that fails when a registry and the repository disagree. |
+| **Projection** | A generated view of registry data, such as `docs/README.md` or `tracker/board.md`. Never authoritative, never edited. |
 
-The load-bearing choice is what an assertion does *not* carry: its registry.
-Which registry holds it is resolved through the declaration, which is what makes
-"one target must not answer to two registries" a checkable configuration rule
-rather than a comment in a generator. The committed CSVs are denormalized joins
-of declarations with their assertions, convenient for the browser and the diff.
-The test suite is the integrity layer: gates are this system's foreign keys,
-because git has none.
+An assertion does not record which registry holds it. The declaration resolves
+that, which is what makes "one target, one property, one registry" a rule the
+suite can check rather than a comment in a generator. The CSV is the convenient
+form for a browser and a diff; the gates are the integrity constraints a
+database would otherwise supply.
 
-A **projection** is a generated view of registry data, never authoritative and
-never edited: `tracker/board.md`, `docs/README.md`.
+## One owner per assertion
 
-**What a registry's own columns hold is a separate question, and this document
-does not answer it.** [column-primitives.md](column-primitives.md) does: one
-property, `column_primitive`, classifying every column as an `id`, a `label`, a
-`locator` or a `value`, crossed with the claim-versus-support position budget-drs
-already carries. It is the coarse question above `column_domain`. `docs/properties.csv`
-declares it on all 178 rows as of 2026-09-10, measured against each
-property's real column: value 86, label 63, locator 27, id 2. `id` is nearly
-absent by construction, since 28 of the 30 registries declare their key in
-`registries.csv` and do not repeat it as a property row.
+For any target and property, at most one registry may hold an assertion, and
+exactly one where the declaration requires a value. Two registries may declare
+the same property name; the conflict is two nonblank values for one property on
+one target.
 
-**A registry is a registry.** There are no species of them, and the words that
-implied there were are retired. `census`, `catalog` and `crosswalk` were values
-of a single `kind` column from 2026-08-09 to 2026-08-18, and that column answered
-two questions at once. The tell was in the app: `crosswalk` had to be unioned
-back into `catalog` to count the set correctly, then counted again on its own,
-because it was never a third answer to the first question. The two questions are
-now `membership` (can the row set be recomputed) and `inherits` (whose
-descriptions does it borrow), each with an answer that states a fact rather than
-names a kind. They cut across each other rather than nesting.
+When two registries overlap:
 
-## The integrity rule: ownership, not overlay
+1. Decide which registry owns the property.
+2. Blank the duplicate in the other registry. Keep the column where it serves
+   targets outside the overlap.
+3. Declare `inherits` where the second registry needs the owner's descriptions.
+4. Join the registries at render time.
 
-Any applicable `target × property` resolves to **at most one** authoritative
-registry, exactly one where the declaration requires it. Two registries claiming
-the same pair is an **invalid configuration**, surfaced by the gate, never
-resolved by precedence. Where nesting is intended, the subtraction is written
-into the scope definition (the harness scope is code under `tools/` and
-`scripts/`, *except* `tools/test/`, which the tests registry owns), so
-disjointness stays explicit and the check stays simple.
+Do not resolve a collision by renaming one property. A rename hides the
+duplicate from the ownership check and leaves both copies stored.
 
-The contrast that earns the rule its name: `.paths.json` keeps its
-nearest-declaration-wins cascade because frozen-ness has **overlay** semantics,
-many declarers layering policy over nested scopes, refinement being the point.
-Property assertions have **ownership** semantics, one authoritative answer per
-pair. Overlay resolves quietly; ownership must fail loudly, because knowing that
-two registries contend is the entire value of the governance layer.
+This is ownership, not overlay. `.paths.json` combines declarations by
+precedence, nearest wins, because frozen-ness layers. A registry has one owner
+per assertion, so two competing assertions are an error rather than a
+precedence question.
 
-Three things follow, and each was learned by getting it wrong:
+### Comparing keys across registries
 
-**Resolve a collision by inheritance, never by renaming.** The rule was written
-on 2026-08-08 and nothing read it until 2026-08-13, when its gate was finally
-built and found the rule false in two places (`role` on nine scripts, shared by
-harness and portable; `title` and `note` on four pages, shared by pages and
-tools). A rename would have satisfied the gate while leaving one claim stored
-twice, which is worse than the collision it hides: the duplication survives and
-the instrument that could find it is defused. Decide which registry owns the
-claim, blank it in the other, join at render time.
+The ownership check compares two keys only when both resolve into one identity
+space, declared per registry as `identity`:
 
-**The gate decides on assertions, not declarations.** Two registries may declare
-the same property name, which is common and fine (`kind`, `role`, `title` and
-`note` all recur); what fails is both carrying a **value** for it on one target.
-That is what lets an inheriting registry declare a property it fills only where
-no computed set owns it.
+- `path`: the key is a repository-relative path.
+- `path:pages/`: the key is a path relative to `pages/`.
+- another name, such as `registry-id`: its own space, separate from `path` even
+  when a value has the same spelling.
+- blank: the key is opaque and is compared with nothing.
 
-**Comparison needs an identity space**, since the same page is `annotate.html` to
-the page gallery and `pages/annotate.html` to the Tools gallery. That is what
-`identity` is for. An opaque key is comparable to nothing, which is honest rather
-than lax: a route key and a docs path are not the same kind of name, so no
-comparison of them means anything. Matching is exact, so `content.csv`'s
-directory locators do not collide with the files beneath them; nesting stays a
-scope question, handled by subtraction as above.
+So `href: toss-render.html` in `pages` and `path: pages/toss-render.html` in
+`tools` are one target, and a registry id spelled `skills` is not the path
+`skills`. Matching is exact: a directory locator does not match the files below
+it. Nesting is written into scopes instead. The `harness` scope covers `tools/`
+and `scripts/` and excludes `tools/test/`, which `tests` owns.
 
-And one rule that generalizes past this one: **a gate that passes on a clean tree
-would pass identically if it were broken.** The suite drives the same normalizer
-with a synthetic pair, so the detector is held to detecting.
+### Two questions, not a kind
 
-## The schema boundary
+A registry has no type. `membership` says how targets enter: `computed`, the
+row set can be derived; `curated`, inclusion is authored. `inherits` names the
+registry whose descriptions are joined rather than copied. `span` says where the
+population lives: `hub`, this checkout bounds it; `estate`, the CSV aggregates
+rows about other repositories. One `kind` column with the values `census`,
+`catalog` and `crosswalk` held these from 2026-08-09 to 2026-08-18 and answered
+two questions at once. Do not reintroduce one.
 
-The properties registry is not a schema registry. Its reach is exactly this: for
-a **governed** registry, its row in the index names the key field (structural
-identity, exempt), and every other per-row field must be a declared property,
-because an undeclared field appearing in a computed set is the early symptom of
-an unaccounted classification, which is the drift this instrument exists to
-catch. Registry-level blocks are the CSV's own metadata and outside the rule.
-Files the registry does not govern are untouched by it.
+The same separation holds for a property. `mode` is `recorded` (authored) or
+`computed` (derived by the script named in `deriver`). `required` is `value`
+(every target has an assertion), `counted` (blanks are legal and reported as a
+count) or `none` (optional, unchecked). `values` lists the closed domain, or is
+blank where the domain is open. [`column-primitives.md`](column-primitives.md)
+classifies what a column holds (id, label, locator or value); that is the
+column's role, not the registry's authority.
 
-**What no registry reaches at all** is the prose living inside `.js` and `.html`.
-[`data/design/content.csv`](../data/design/content.csv) covers it by declaring it
-`exclude`, which is an honest accounting rather than a fix;
-[`text-content.md`](text-content.md) measures what that hides and proposes a
-data file for it.
+**Do not close a young domain.** Few distinct values over many rows can be an
+enumeration still growing: each new project or npm script adds one, and closing
+it turns growth into a build failure. Some columns carry a grammar rather than a
+set; `harness.invocation` holds `npm:<script>`. Declare `values` only where the
+set is settled.
 
-**The index governs the registries, and now itself.** A registry row in the
-registry index was an unaccounted classification of exactly the kind the field
-check catches everywhere else, and the check could not reach the file it reads
-those registries from. The gate now applies the same rule to itself. The
-self-reference terminates the way `docs/README.md`'s does, being generated from
-the registry it is a row in: one more pass settles it, and the gate asserts
-convergence rather than assuming it.
+## Whether a registry is needed
 
-**CSV is the format for one reason, and it is not readability: a CSV cannot hold
-two tables.** That is what makes "a registry is a file" true by construction
-rather than by convention, and it is what let `carrier`, `rows` and `format`
-collapse into a single `path` on 2026-08-16. `carrier` existed only to name a
-file that might hold several registries; with one table per file the word had
-nothing left to mean. The gate asserts a `path` is a plain file path, so two
-registries cannot quietly move back into one file.
+Create a registry when a committed table must inventory or classify a defined
+population, and add its row to `registries.csv` in the same commit. Before
+creating one, ask where the assertions already live:
 
-The one thing CSV costs is the null. A blank cell cannot be told from an empty
-string, so **a blank means NOT ASSERTED**, and any property that must distinguish
-"checked, and the answer is none" carries an explicit token. `gate` is the first:
-`none` where nothing holds a registry, never a blank. Read the token, never the
-truthiness. A renderer that tested `gate` for truth showed a shield linking to a
-file called `none` for eleven days while the ledger figure beside it, which read
-the token, had the count right.
+- In code, as an authoritative array: render that array. Do not transcribe it.
+- In prose, with a CSV that only indexes it: state the relation and gate both
+  directions. `surfacing.csv` has this shape.
+- In an existing registry: add a projection, not a second authority.
+- In live state, such as the current branch or CI status: read it live.
 
-## The reader's view
+The question is whether the file would become the authoritative source for
+assertions that have none, not whether a CSV would be convenient to read.
 
-Four fields exist for the person reading the tab rather than for the model
-(`title`, `gloss`, `area`, and the derived `renders_in`), and they are declared
-and gated like everything else, because a classification held in a renderer's
-source is exactly the unaccounted kind.
+## Adding or changing a registry
 
-**`area` groups the tab, and the question is the point, not the label.** Without
-a stated rule the grouping is re-litigated on every addition, so the rule has to
-be answerable by someone who has never read this file. "Does the target have a
-path in this tree" is; a topical judgment is not. Files takes half the rows, so
-the split does little sorting, and that is accepted: a rule anyone can apply is
-worth more than a balanced one that needs a judgment call.
+1. State the target and the scope in plain language.
+2. Choose a stable key. Declare `identity` only if the key can be compared with
+   other registries' keys.
+3. One table, one CSV file. Two registries never share a file.
+4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
+   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `area`, `title`,
+   `gloss`. `fields` is `governed`; the suite asserts that no registry is
+   `ungoverned`, so declaring one means changing the test and stating why.
+   `gate` is a test path, or the token `none`. `area` is `files` where the
+   target has a path in this repository and `names` otherwise.
+5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
+   `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
+   `gloss`.
+6. Add each closed-domain value to `vocabularies.csv`.
+7. Where a property is computed, make its gate compare the committed values
+   with a fresh derivation.
+8. Run `npm run registries-reach` if app code changed, then `npm test`.
 
-**The first attempt was three areas and it did not survive contact.** The names
-were split into `conventions` and a `presentation` group, a **topical** grouping
-whose topic did not describe the targets: two of its four are names a program
-parses, the other two vocabulary a person picks from, and `manifest-fields` sat
-under conventions while being a program-parsed key like the routes. The seam that
-does exist inside `names` is program-parsed versus human-chosen, and it was not
-adopted either, because it classifies by the target's **consumer** rather than by
-the target. A registry is defined by what it asserts about, so a consumer axis
-would be a second dimension wearing one field. One axis that is right beats two
-that are tangled.
-
-**`renders_in` is derived**, the files under `lib/`, `pages/` and `app/` that
-name a registry's path in code, stamped by
-[`registries-reach.mjs`](../tools/build/registries-reach.mjs) over the same
-comment-stripped corpus as the docs registry's `reach`. A registry no surface
-renders is committed and gated and met by nobody, which is worth being able to
-see. The badge asks the question; it does not settle it, since a
-GitHub-rendered projection is a legitimate answer.
-
-Its first run also caught a defect in the shared scanner: a `/*` inside a `//`
-line comment opened a phantom block that swallowed hundreds of code lines, which
-had been mis-filing `docs/app-routes.csv` as an orphan. An instrument built to
-find unread registries found a bug in the instrument it was copied from, which is
-the pattern working. Its second lesson is duller and cost more: the corpus
-boundary is a literal list of directories, and when the app moved from `pages/`
-to `app/` nothing here moved with it, so the scanners read the app without
-reading the app's own shell.
+If the header of `registries.csv` changes, change `REGISTRY_COLS` in
+[`registries-load.mjs`](../tools/build/registries-load.mjs) in the same commit;
+the writer uses that list.
 
 ## Storage rules
 
-Where an assertion lives follows from its mode and its readers. **Recorded**
-values are stored, always: judgment cannot be recomputed. **Computed** values are
-stored only where a page or a gate needs a committed artifact (the browser
-fetches files, it does not run generators; a gate needs a stable thing to hold; a
-diff makes a derived change reviewable), and then the gate holds it to its source.
-What a live read already answers is never stored, branch state and CI status
-being the standing examples. Model-bridged output is stored when it is expensive
-and irreproducible, regenerated when it is scripted; chat-histories' two catalog
-layers are the worked precedent.
+A blank cell means *not asserted*, never an empty string or a checked result of
+none. Where that distinction matters, use a token: `gate: none` means checked,
+and nothing holds the registry. Read the token, not the cell's truthiness.
 
-**A registry's byte shape is part of the artifact, line endings included.**
-The files here are not uniform: some are stored LF and some CRLF, per file
-rather than per directory, and a diff is only reviewable when a one-row edit
-touches one row. Rewriting a registry through a CSV writer silently restamps
-every line to whatever that writer's default terminator is, so an added row
-arrives as a whole-file rewrite and the real change is unreadable inside it.
-Read the terminator off the committed copy and match it, and check the diff's
-line count before staging: an additive edit that reports more changed lines
-than rows touched has restamped the file.
+Store `recorded` values always; authored judgment cannot be recomputed. Store
+`computed` values only where a browser, a gate or a reviewable diff needs a
+committed artifact, and keep them held to their deriver. Never store what a
+live read supplies. Store model output when it is expensive and irreproducible;
+regenerate it when it is scripted.
 
-## When a registry is the wrong answer
+Preserve each file's line endings. Some registries are LF and some CRLF, per
+file. A CSV writer restamps every line to its own default, so a one-row edit
+arrives as a whole-file diff. Read the terminator off the committed copy, match
+it, and check the diff's line count before staging.
 
-A committed CSV that inventories part of the tree is a registry, and the rule
-above ("adding one means adding a row here") reads as an instruction to create
-one. It is a rule about *declaring* a registry, not about *needing* one. Where
-the same assertions already sit somewhere else, a new CSV stores them twice,
-which is the case the integrity rule is about.
+## What the suite checks
 
-**The worked case, 2026-09-06.** `lib/kits/prompt-link.js` holds the outbound
-prompt targets (a new Claude Code session, a chat, and one that cannot be
-reached, with its reason) as a `TARGETS` array. A `prompt-targets.csv` was
-proposed so the app's Map view could render them beside the showing mechanisms.
-It was not built. The array is already data, already gated by
-`tools/test/prompt-link.test.mjs`, and already carries the reasons in the kit's
-header; a CSV would have been a verbatim second copy whose only advantage was
-being readable by a view that reads CSVs. (The consumer that prompted the
-proposal, a pair of link buttons on every session row, was itself withdrawn the
-same day as too much furniture for a list row. The registry would have outlived
-its reason by hours.)
+[`properties-registry.test.mjs`](../tools/test/properties-registry.test.mjs),
+by its test names:
 
-**The test is where the assertions already live, not where they would be
-convenient to read.** Where a kit or a generator holds them, the registry is the
-kit, and what is missing is a renderer, which is a smaller thing to want. Where
-the prose holds them and the CSV indexes it (`surfacing.csv`), a two-way gate
-makes the pair safe. A CSV transcribing an array in the same repository has
-neither arrangement behind it.
+- the writer's column list matches the file it writes
+- registries are well-formed: unique ids, files and gates exist
+- every ungoverned registry says why, and the count is the one on the books (zero)
+- each governed registry holds exactly its key plus its declared properties
+- every value in a closed domain is in that domain
+- every `required: value` property is present on every row
+- a declared id is its registry key, and a declared label draws from a set or repeats
+- modes are coherent: computed names a real deriver, recorded names none
+- every registry declares its area, and leads with a title and a gloss
+- `renders_in` matches its derivation on every registry
+- no target answers to two registries for the same property
+- the ownership gate still fires when two registries do claim one pair (a
+  synthetic conflict, since a detector tested only on clean data can pass after
+  it stops detecting)
+- the ownership gate does not fire across two identity spaces
+- every tools row resolves to a page the gallery owns
 
-## What the audits keep teaching
+A gate reports a disagreement and does not choose the repair: sometimes the
+data is wrong, sometimes the declaration. Where a check can settle only part of
+a field, spend it on the bounds code can establish rather than storing a
+judgment as if it were derived.
 
-Three passes over this table, each on a different authored field.
+The two index files govern themselves. `registries.csv` and `properties.csv`
+each have a registry row, and every non-key column in both has a declaration.
 
-**Two authored fields were audited against the tree, and both held errors.**
-`why` ran nought for five: five registry rows were marked `fields: ungoverned`
-with a written reason, and every reason was either a false statement about the
-repo or a true statement about the gate mistaken for one about the file it
-described. None survived being checked, and the checking took minutes in each
-case. `required` then ran fifty-one for fifty-four: fifty-four declarations
-graded a property `value` and nothing checked any of them, and three were false.
-Both fields were written carefully by someone who believed them, so care alone
-did not prevent either error. `fields: ungoverned` now asserts zero and remains
-only so that adding one is a deliberate act that has to change a test.
+## Reader-facing fields
 
-**The repair is a judgment the gate cannot make.** Of the three false `required`
-grades, two moved the claim to fit the world (`tests.assertions` and `boot_smoke`
-are blank on browser-driven checks, where blank is correct and meaningful because
-`test()` is not their unit, so both became `counted`) and one moved the world to
-fit the claim (`pages.title` was blank on a page that genuinely had no `<title>`,
-and the page got one). That is why the gate reports rather than fixes.
+`title` and `gloss` identify a registry in the Map view. `area` groups the tab
+by one question: does the target have a path in this repository (`files`) or
+not (`names`). A topical grouping was tried first and did not hold. `renders_in`
+is derived by [`registries-reach.mjs`](../tools/build/registries-reach.mjs)
+from the files under `lib/`, `pages/` and `app/` that name the registry's path.
+That directory list is literal (`APP_DIRS`); when the app moves, move it. An
+empty `renders_in` says no app surface reads the registry, which is a question
+rather than a verdict, since a GitHub-rendered projection is a legitimate
+consumer.
 
-**Make a claim readable by a check where a check can decide.** `values` is the
-third of the authored trio and does not get the same treatment. The tempting
-heuristic is a ratio: few distinct values over many rows means a closed
-vocabulary. Run it and it flags four. Two are real. The other two are *young
-enumerations, not closed vocabularies*: every new project and every new npm
-script adds a value, so closing them would turn ordinary growth into a build
-failure and teach everyone to widen the declaration without thinking.
-`harness.invocation` makes the point sharply, reading as twenty-one distinct
-values because it carries `npm:<script>`, a grammar rather than an enumeration,
-which no ratio can see. Where a check cannot decide, the honest move is to say so
-here rather than ship a gate that is right twice and wrong twice and therefore
-ignored. A noisy gate is a third way for an unchecked claim to hide.
+## Limits of the model
 
-**Where a check can decide only part of a field, spend it on bounds.** The
-question above is put as though a claim were either checkable or not, and
-`app-routes.reads` is the case that is both. It names the derived caches each
-routed view consumes, and a scan settles less of it than it looks: every cache
-read goes through a kit constant, so `cache → module` derives cleanly, but
-`estate.js` reads three of the four caches and backs seven routed views, so the
-derivation stops one hop short of the answer and a composition through it would
-be coarser than the sentence it replaced. Neither authoring the field nor
-deriving it works. So the field is authored at the resolution the answer needs
-and the scan is spent on **bounds**: no view may claim a read no file of its own
-makes, and where a reading file backs exactly one route the claim is forced
-rather than merely allowed. That leaves 4 of its 11 entries genuinely authored,
-the residue being which of one wide component's views consumes which cache.
-[`cache-readers.mjs`](../tools/build/cache-readers.mjs) derives it,
-[`state-feeds.test.mjs`](../tools/test/state-feeds.test.mjs) holds both bounds,
-and nothing stores the composition.
+A registry row names one CSV. Authority spread across many files, such as each
+skill's `SKILL.md` owning that skill's description, cannot be a registry; the
+family rule for it lives in [`owners.csv`](owners.csv).
 
-### Two limits of the model, neither visible from inside it
+Declarations govern the columns of registered CSVs, not prose inside JavaScript
+or HTML. [`content.csv`](../data/design/content.csv) classifies those files as
+artifacts; [`text-content.md`](text-content.md) measures what that leaves out.
 
-*Authority can be distributed across files.* A registry names one path. But the
-authoritative statement of what a skill does is each skill's own `SKILL.md`, one
-file per target, which the declaration table cannot express. This is why the owners
-table's family rule stays where it is rather than moving into the declarations.
+A scope must match what its gate checks. Narrow the scope rather than adding
+targets to satisfy an overstated one.
 
-*A scope can overstate its own gate.* The docs registry declared "every file
-under docs/" while its gate walks `.md` and `.json` only, leaving four files
-inside the stated scope and outside the check. Corrected by narrowing the scope
-to what is enforced, which is the honest direction: pulling examples, prototypes
-and a favicon into a documentation registry would be filling rows to satisfy a
-gate.
+## Across repositories
 
-## Federation
+A project with its own registries declares them locally; the hub's table does
+not enumerate a project's internals. The ownership rule spans levels: one owner
+per target and property, anywhere.
 
-How finely responsibility is delegated is a configuration choice, not a model
-feature. A workspace that runs its own registries (budget-drs inside home)
-declares them in its own properties registry; the repo-level table covers the
-repo's own registries and does not enumerate a project's internals. The integrity
-rule spans levels unchanged: no pair, anywhere, has two owners.
+`span` separates the two populations this table can hold: `hub`, bounded by
+this checkout, and `estate`, an aggregate of rows other repositories author
+about themselves. A third arrangement does not fit: a governed artifact each
+repository carries, with no aggregate here. `.paths.json` has that shape and is
+not a row, because a registry's file must exist here and be CSV.
+[`estate-span.md`](estate-span.md) records the three arrangements.
 
-### The level above: the estate
+### The same model in budget-drs
 
-The same delegation runs one level up, and there `span` says which way. A
-hub-scoped registry is bounded by this checkout; an estate-scoped one holds an
-aggregate of rows each repo authors about itself, the crawl collecting rather
-than the hub inspecting. Four of twenty-two currently span the estate.
-
-A third shape does not fit the table at all: a governed artifact each repo
-carries with no aggregate anywhere, which is why `.paths.json` is still
-unregistered after the audits kept naming it. The gate requires a file that
-exists here and is a CSV, and both facts about `.paths.json` are the opposite.
-That refusal is correct, and [estate-span.md](estate-span.md) is where it is
-recorded, along with the outbound/inbound asymmetry it belongs to and the
-measurement behind the column.
-
-### Two normal forms, and how to pick
-
-budget-drs's `properties.csv` and this repo's registry pair express the same
-model in different normal forms, and neither should convert to the other. This
-repo factors a **registries** object out of its declarations because several
-properties share one registry file, and without the factoring the path, scope and
-gate would be restated on every one of them. budget-drs declares twenty
-properties across twenty distinct files, so the same factoring would add an
-object layer with exactly one declaration hanging off each entry.
-
-**Fan-out decides it.** One file to many properties wants the registry object;
-one-to-one does not. That is a property of the estate being described, not of the
-describer, so a repo adopting this model picks the form its own files imply
-rather than the form the hub happens to use. Neither is the canonical shape.
-
-**The column grain is the same shape under two vocabularies.** This repo's
-`properties.csv` describes the columns of its registries, and budget-drs's
-`data/design/lineage/columns.csv` describes the columns of its tables (145 of
-them, 12 of which are registries). The hub needs no separate column file because
-its registries are its only governed tables; budget-drs does because most of its
-tables are not. Field for field:
+budget-drs stores one property per file (54 of 54), so it declares properties
+directly and factors out no registry object. The hub's registries hold several
+properties each, so it does. Fan-out decides the form; neither is canonical.
+budget-drs's `columns.csv` describes the columns of every table, since most of
+its tables are not registries. Field for field:
 
 | hub `properties.csv` | budget-drs `columns.csv` | difference |
 | --- | --- | --- |
 | `registry`, `property` | `table`, `column` | the key |
-| `mode`: recorded, computed | `role`: source, carried, computed | `carried` has no hub value; the hub says borrowing at registry grain, as `inherits` |
-| `deriver` | `op`, `sources` | budget-drs carries the refs, the hub names the script |
+| `mode`: recorded, computed | `role`: source, authored, carried, computed | `recorded` is `authored`; `source` and `carried` have no hub value, since the hub says borrowing at registry grain, as `inherits` |
+| `deriver` | `op`, `sources` | the hub names the script; budget-drs records the operation and its inputs |
 | `values` | `domain`, resolved in `domains.csv` | an inline set against a keyed universe |
 | `gloss` | `transform`, `note` | one sentence either side |
 | `required`, `form`, `exclusive` | `additivity` | the enrichment each side needed |
 
-Neither vocabulary converts to the other, for the reason above: no consumer
-reads both, and a rename is a cost with nothing waiting for it. What this table
-buys is that a reader meeting `mode` here and `role` there does not have to
-rediscover that they are one concept, which is how the sentence "neither shape
-maps onto the other" got written on 2026-09-05 and retracted the same day.
-
-**The borrowing runs both ways, and one attempt at it failed usefully.** The
-origin instrument carries a `definition_owner` field, naming per property the
-document that defines its value domain. Adopting it here was tried and should not
-be: budget-drs has a design-doc layer, so every one of its properties is defined
-by a separate document, while in the hub almost every domain is defined in its
-registry itself or in a glossary beside the rows. The field would have been
-populated
-on a handful of rows and blank on the rest, and a field that is blank by
-construction teaches a reader nothing. Where a hub domain genuinely is defined
-elsewhere, the owners table already says so, and it is the better home because it
-also carries how the copy relates and what holds it.
-
-**What the attempt actually found was a missing gate.** Filling the field meant
-reading every closed domain, and doing that turned up this registry declaring
-eight closed domains and *reading none of them*. budget-drs's
-`verify-properties.py` hard-fails on any value outside a declared set, and that
-hard-fail is most of what makes its registry load-bearing. The hub's gate checked
-field names and never values. It now checks both. The borrowing was real; it was
-just a check rather than a column.
+No consumer reads both, so the names stay as they are. budget-drs's
+`definition_owner`, the document that defines each property's domain, was tried
+here and dropped: hub domains are defined in the registry itself or in
+`vocabularies.csv`, so the field would be blank by construction, and where a
+domain is defined elsewhere `owners.csv` already says so.
