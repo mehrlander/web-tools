@@ -808,3 +808,93 @@ test('a ctrl+click reporting button 0 still spends its gesture, and a plain tap 
   assert.equal(d.open, true, 'a left tap still opens the drawer');
   assert.equal(d.fabMenu, false);
 });
+
+// ── The touch guard, and what it must not cancel ─────────────────────────────
+//
+// holdTouch cancels touchstart across the launcher's whole subtree, because
+// only a cancelled touch stops a drag from reaching the host of a sheet-
+// presented in-app browser (docs/ios-sheet-drags.md). A cancelled touchstart
+// also suppresses the compatibility click AND an anchor's navigation, so every
+// element the subtree activates by a tap has to be exempt.
+//
+// It named 'button' alone until 2026-09-20, which shipped the credential rows
+// dead on every touch device: they are anchors, because that is the form that
+// hands a custom scheme to the system, so the tap produced no navigation, no
+// click, and not even the report those rows carry for a hand-off nothing
+// accepts. It was invisible from a desktop browser, which has no touchstart,
+// and invisible from the suite, which had nothing reading the two together.
+//
+// These read the RENDERED menu rather than the selector, so a row added in a
+// third element type fails here instead of on a phone.
+const sendTouch = (el, type = 'touchstart') => {
+  const ev = new window.Event(type, { bubbles: true, cancelable: true });
+  el.dispatchEvent(ev);
+  return ev;
+};
+
+const menuOf = (root) => root.querySelector('.absolute.bottom-full');
+
+test('every tappable row in the launcher menu survives the touch guard', async () => {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const d = Alpine.$data(root);
+
+  d.hasToken = false;          // the credential section is gated on it
+  d.openFabMenu();
+  await tick(4);
+
+  const menu = menuOf(root);
+  assert.ok(menu, 'the menu container renders');
+
+  // Everything carrying a click handler is what a reader taps.
+  const clickable = [...menu.querySelectorAll('*')].filter(el =>
+    el.getAttributeNames().some(n => n === '@click' || n === 'x-on:click'));
+  assert.ok(clickable.length >= 4, 'the menu has rows to check: ' + clickable.length);
+
+  for (const el of clickable) {
+    const ev = sendTouch(el);
+    assert.equal(ev.defaultPrevented, false,
+      'a tap on <' + el.tagName.toLowerCase() + '> row "'
+      + (el.textContent || '').trim().slice(0, 24)
+      + '" is cancelled by holdTouch, so on a phone it does nothing at all');
+  }
+});
+
+test('and the row that hands a custom scheme to the system is an anchor', async () => {
+  clearPages();
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="app/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const root = host.firstElementChild;
+  const d = Alpine.$data(root);
+  d.hasToken = false;
+  d.openFabMenu();
+  await tick(4);
+
+  // A click handler cannot navigate to a custom scheme reliably; the anchor's
+  // own href is what the system takes. Both rows that leave for Shortcuts are
+  // therefore anchors, and each is exempt from the guard above.
+  const schemed = [...menuOf(root).querySelectorAll('a')]
+    .filter(a => (a.getAttribute('href') || '').startsWith('shortcuts://'));
+  assert.ok(schemed.length >= 2,
+    'Get token and Test the bridge both carry a shortcuts:// href: ' + schemed.length);
+  for (const a of schemed) {
+    assert.equal(sendTouch(a).defaultPrevented, false);
+  }
+});
+
+test('the launcher disc itself is still guarded, which is what the guard is for', async () => {
+  clearPages();
+  const { surface } = await mountFabSurface();
+  // The drag surface is a div driven by pointer events, so cancelling its
+  // touchstart costs it nothing and buys the drag inside a sheet.
+  assert.equal(sendTouch(surface).defaultPrevented, true,
+    'exempting the rows must not exempt the drag handle');
+});
