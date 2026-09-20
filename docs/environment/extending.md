@@ -139,19 +139,9 @@ A repo opts out with `"conventions": "optout"` in its `.web-tools.json`, the fie
 
 #### Stop: the session recorder
 
-*Added 2026-07-30; wiring corrected the same day.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks. The marketplace entry declares nothing.
+*Added 2026-07-30.* The `portable` plugin carries a [`Stop`](https://code.claude.com/docs/en/hooks) hook in [`.claude/skills/hooks/hooks.json`](../../.claude/skills/hooks/hooks.json), running [`.claude/skills/hooks/session-record.sh`](../../.claude/skills/hooks/session-record.sh). It is found by **default discovery**: `hooks/hooks.json` in the plugin root, and the plugin root is the entry's `source`, so the file already sits where the loader looks.
 
-**Wrong 2026-07-30 → the paragraph below:** this section first said a marketplace entry accepts any plugin-manifest field, and so declared `"hooks": "./hooks/hooks.json"` on the entry. The loader rejects that form and refuses the whole plugin:
-
-```
-Status: × failed to load
-Error: Hook load failed: hooks: the file-path and array forms are not yet
-supported in a marketplace entry. Define hooks in the plugin's own
-hooks/hooks.json (or its plugin.json), or inline them here as an object
-mapping hook event names to matcher arrays.
-```
-
-Removing the key flipped the same command to `√ enabled`. The declaration was redundant even when it worked, since it named the location discovery already uses, so the fix costs nothing. The pinning assertion in the suite is inverted to match: the key must now be **absent**, because re-adding it reads as diligence.
+**The marketplace entry declares nothing, and must not.** A `hooks` key on the entry refuses the whole plugin: the file-path and array forms are not supported there, only an inline object. The suite pins the key's **absence**, because adding it reads as diligence.
 
 **The distribution channel is the whole point, and the alternative was measured failing.** `mehrlander/web-tools-private` holds a session recorder that writes one JSON record per session. Its own installer writes `~/.claude/settings.json`, correctly avoiding a repo hook for the project-root reason above. But that file is provisioned fresh for every container, carrying the account's marketplace and plugin configuration and nothing else, so a hand-installed hook survives exactly as long as the container. On 2026-07-30 the store held one record, dated 2026-07-29, the session that built the recorder. At least four other sessions ran that day and merged pull requests; none was recorded, and nothing reported the gap. The installed-by-hand hook records the session that installs it and no other.
 

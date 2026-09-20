@@ -152,13 +152,6 @@ space, so the gutter column drifts row to row and steps sideways the moment an
 index needs two characters. Inside, both are monospace and right-aligning the
 index holds the column at any width.
 
-**Wrong 2026-09-15 → the row above:** this table first read that superscript
-"keeps its shape outside a code span and flattens inside one". The screenshots
-it was drawn from show the digits raised and the same size in both, so the claim
-was a generalisation from one glance, and the real difference is spacing and
-alignment. Caught by the reader comparing a generated listing against the
-hand-typed ones that preceded it.
-
 **Superscript has a hazard worth knowing even though it did not bite here.**
 `¹ ² ³` come from Latin-1 Supplement and `⁰ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹` from the Superscripts
 block, so a font can draw them at different weights, and it would show at exactly

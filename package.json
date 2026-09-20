@@ -5,6 +5,7 @@
     "setup": "node tools/checkout-setup.mjs",
     "ready": "node tools/checkout-setup.mjs --check",
     "artifacts:refresh": "git hook run pre-commit -- --all",
+    "preflight": "npm run setup && npm run artifacts:refresh && npm test",
     "test": "node --require ./tools/test/runtime-command.cjs --test --test-reporter=spec \"tools/test/**/*.test.mjs\"",
     "preview": "node tools/render/preview.mjs",
     "shot": "node tools/render/screenshot.mjs",

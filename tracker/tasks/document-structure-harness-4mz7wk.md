@@ -7,7 +7,11 @@ closed: 2026-08-25
 ---
 
 > [!NOTE]
-> **Frozen 2026-08-25 → the private estate's `projects/local-models/instruments/docstruct/`:** the harness was built and validated, and it lives there rather than here. Everything below is the filing and the spike that shaped it, kept as the record. See the closing entry in the progress log for what changed and why.
+> Built and validated on 2026-08-25, and it lives in the private estate at
+> `projects/local-models/instruments/docstruct/` rather than here. Everything
+> below is the filing and the spike that shaped it, kept as written; the closing
+> entry in the progress log says what changed and why. This file is declared a
+> record in [`.paths.json`](../../.paths.json).
 # A multi-method harness for extracting structure from scanned documents
 
 Build the general, reusable front end that turns a scanned document into a

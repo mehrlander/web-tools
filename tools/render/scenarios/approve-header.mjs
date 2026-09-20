@@ -1,7 +1,7 @@
 // pages/approve.html — the two header controls, and the band that should not be.
 //
 //   node tools/render/screenshot.mjs pages/approve.html \
-//     --hash 'src=mehrlander/web-tools:approvals/2026-09-16-marker-vocabulary.request.json' \
+//     --hash 'src=mehrlander/web-tools:approvals/2026-09-19-activity-cache-prose.request.json' \
 //     --script tools/render/scenarios/approve-header.mjs \
 //     --out tools/.preview/approve-header.png --width 390 --height 844
 //
@@ -252,11 +252,11 @@ export default async function (page) {
   if (approve.text) bad('Approve is icon-only, so its label should be gone');
   if (!/btn-circle/.test(approve.cls) || !/btn-success/.test(approve.cls))
     bad('Approve should be a filled green circle');
-  if (!/SKILL\.md/.test(head)) bad('the header does not name the file on screen');
-  if (/fourth flavor/.test(head)) bad('the header still carries the request name rather than the file');
-  if (/Adds a fourth marker flavor/.test(prose)) bad("the item's commentary is still drawn above the document");
+  if (!/CLAUDE\.md/.test(head)) bad('the header does not name the file on screen');
+  if (/activity cache refresh/.test(head)) bad('the header still carries the request name rather than the file');
+  if (/build-and-check paragraph/.test(prose)) bad("the item's commentary is still drawn above the document");
   if (/Answers to/.test(prose)) bad('the related links are still drawn above the document');
-  if (!/README\.md/.test(next)) bad('the header did not follow the reader to the next file');
+  if (!/show-repo\.md/.test(next)) bad('the header did not follow the reader to the next file');
   // THE SLIDE IS THE DOCUMENT AND THE HEADER IS THE FILE'S. Under `hosted` the
   // card draws no row at all, so the readout and the layout toggle have nowhere
   // in the slide to go and the kit floats its own strip instead. Both halves

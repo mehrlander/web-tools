@@ -54,23 +54,22 @@ carries 150 of the manifest's 432 role declarations.
 
 `column_domain` says *which* shared value space a column draws from
 (`expenditure_authority`, `fund`, and eighteen others). `column_primitive` says
-*what kind* of space it is. The dependency looks like one line: a domain is only
-askable where the primitive is `label` or `locator`, since prose and a figure
-belong to no shared space. Measured on 2026-09-10, 566 of budget-drs's 1,171
-columns read `label` or `locator` and only 174 declare a domain, so **392 are
-domain-askable and unanswered**, which is most of the gap between 190 and 1,171.
-
-**Corrected 2026-09-10, and the correction is the interesting part.** That
-dependency holds for JOIN domains only, and budget-drs had already said so
-before this property existed. `domains.csv` carries `domain_identity`, which
-runs `exact` 11, `normalized` 6, `folded` 2 and **`measure` 1**. The measure is
-`dollars`, registered as a domain precisely so a column that looks like a key
-can be declared not to be one: `items_long.fund` holds money rather than an
-account, and the domain is what says so.
+*what kind* of space it is. A domain is askable only where the primitive is
+`label` or `locator`, since prose and a figure belong to no shared space, and
+only for JOIN domains. budget-drs had said the second half before this property
+existed. `domains.csv` carries `domain_identity`, which runs `exact` 11,
+`normalized` 6, `folded` 2 and **`measure` 1**. The measure is `dollars`,
+registered as a domain precisely so a column that looks like a key can be
+declared not to be one: `items_long.fund` holds money rather than an account,
+and the domain is what says so.
 [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)
 states it directly, that a domain is what lets a column that looks like a key be
 declared not to be one, and that shared domain membership is not evidence of a
 join.
+
+Measured on 2026-09-10, 566 of budget-drs's 1,171 columns read `label` or
+`locator` and only 174 declare a domain, so **392 are domain-askable and
+unanswered**, which is most of the gap between 190 and 1,171.
 
 So a gate on this dependency reads `domain_identity` rather than the bare
 presence of a domain. Classifying the 190 domain-bearing columns without using
