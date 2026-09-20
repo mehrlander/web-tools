@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '23061b1';
-const BUILT = '2026-09-20T20:22:44Z';
+const BUILD = '0b35266';
+const BUILT = '2026-09-20T20:30:51Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -925,7 +925,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .head-title { margin: 0; font-size: .875rem; font-weight: 600; line-height: 1.25;
                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wt-bc); }
     .head-sub { margin: 0; font-size: 11px; color: ${mix('var(--wt-bc)', 60)};
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; user-select: none; }
+    .head-sub:hover { color: var(--wt-bc); }
     .pill { display: inline-flex; align-items: center; gap: 1px;
             padding: .15rem .45rem; border-radius: 9999px;
             border: 1px solid var(--wt-b300); background: var(--wt-b200);
@@ -1102,8 +1103,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .quote { border-left: 2px solid ${mix(P, 40)}; padding-left: .625rem;
              color: ${mix('var(--wt-bc)', 80)}; }
     .none { color: ${mix('var(--wt-bc)', 50)}; font-style: italic; }
-    .stale { display: block; margin-top: .125rem; font-size: 11px; font-weight: 600;
-             color: oklch(55% .17 40); }
+    .stale { display: block; margin: .375rem .75rem .25rem; padding: .375rem .625rem;
+             font-size: 11px; font-weight: 600; border-radius: .5rem;
+             background: ${mix('var(--wt-b200)', 80)}; color: oklch(60% .18 140); }
     .stale[hidden] { display: none; }
 
     .errand-banner {
@@ -1407,7 +1409,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
           <div class="plaque">${svg(ICON.sidebar)}</div>
           <div class="head-titles">
             <h1 class="head-title"><span class="title-text"></span></h1>
-            <p class="head-sub"><span></span></p>
+            <p class="head-sub" title="Tap to check for updates"><span></span></p>
           </div>
           <div class="head-actions">
             <div class="head-tools" hidden>
@@ -1594,8 +1596,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
-      <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
+      <button class="row update-row" data-menu-update>${svg(ICON.refresh)}<span>Check for updates</span></button>
       <button class="row" data-toggle-autocheck>${svg(ICON.refresh)}<span>Auto-check updates</span><span class="pill-toggle on">ON</span></button>
+      <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
       <div class="menu-foot font-mono">${BUILD}</div>
     </div>
     <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}<span class="badge"></span></div>`;
@@ -2428,12 +2431,38 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (bd) bd.hidden = true;
   };
 
-  q('.reread').onclick = () => {
+  q('.reread').onclick = async () => {
     readPage();
-    checkBuild(true);
     const b = q('.reread');
-    b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
+    const anim = b?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 500, iterations: Infinity });
+    const el = q('.stale');
+    if (el) {
+      el.textContent = 'Checking for updates…';
+      el.style.color = 'var(--wt-p)';
+      el.hidden = false;
+    }
+    const headSubSpan = q('.head-sub span');
+    const origSub = headSubSpan ? headSubSpan.textContent : '';
+    if (headSubSpan) headSubSpan.textContent = 'Checking for updates…';
+    await checkBuild(true);
+    if (anim) anim.cancel();
+    if (headSubSpan && origSub) {
+      setTimeout(() => {
+        if (headSubSpan.textContent.includes('Checking') || headSubSpan.textContent.includes('current')) {
+          headSubSpan.textContent = `${location.hostname} · ${BUILD} · built ${age(BUILT)}`;
+        }
+      }, 3500);
+    }
   };
+
+  q('.head-sub')?.addEventListener('click', () => {
+    const headSubSpan = q('.head-sub span');
+    if (headSubSpan && headSubSpan.textContent.includes('reload')) {
+      location.reload();
+      return;
+    }
+    q('.reread')?.click();
+  });
 
   // COLLECTING, which is the answer to a page that changes under you. A lazy
   // feed adds rows as you scroll and a virtual one also REMOVES them, so a read
@@ -2685,6 +2714,36 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     };
   });
 
+  const menuUpdate = q('[data-menu-update]');
+  if (menuUpdate) {
+    menuUpdate.onclick = async e => {
+      e.stopPropagation();
+      const origHtml = `${svg(ICON.refresh)}<span>Check for updates</span>`;
+      menuUpdate.disabled = true;
+      menuUpdate.innerHTML = `${svg(ICON.refresh)}<span>Checking…</span>`;
+      const s = menuUpdate.querySelector('svg');
+      let anim = null;
+      if (s) anim = s.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 600, iterations: Infinity });
+
+      const res = await checkBuild(true);
+      if (anim) anim.cancel();
+      menuUpdate.disabled = false;
+
+      if (res?.type === 'downloaded') {
+        menuUpdate.innerHTML = `<span style="color:var(--wt-p);font-weight:600">Build ${res.build} downloaded · Tap to reload ↺</span>`;
+        menuUpdate.onclick = ev => { ev.stopPropagation(); location.reload(); };
+      } else if (res?.type === 'available') {
+        menuUpdate.innerHTML = `<a href="${res.url}" target="_blank" rel="noopener" style="color:inherit">Build ${res.build} available ↗</a>`;
+      } else if (res?.type === 'current') {
+        menuUpdate.innerHTML = `<span style="color:oklch(65% .18 140)">✓ Build ${BUILD} is current</span>`;
+        setTimeout(() => { if (menuUpdate && !menuUpdate.textContent.includes('downloaded')) menuUpdate.innerHTML = origHtml; }, 3500);
+      } else {
+        menuUpdate.innerHTML = `<span style="color:oklch(65% .18 30)">Check failed (${res?.error || 'network error'})</span>`;
+        setTimeout(() => { if (menuUpdate && !menuUpdate.textContent.includes('downloaded')) menuUpdate.innerHTML = origHtml; }, 3500);
+      }
+    };
+  }
+
   q('[data-hide]').onclick = () => { stopCollecting(); host.remove(); };
   menu.addEventListener('click', e => { if (e.target.closest('.row')) setMenu(false); });
   addEventListener('keydown', e => {
@@ -2758,13 +2817,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   const CHECK_COOLDOWN = 30 * 1000;
   const checkBuild = async (force = false) => {
     const now = Date.now();
-    if (!force && (now - lastBuildCheck < CHECK_COOLDOWN)) return;
+    if (!force && (now - lastBuildCheck < CHECK_COOLDOWN)) return { type: 'cooldown' };
     lastBuildCheck = now;
+    const el = q('.stale');
+    const headSubSpan = q('.head-sub span');
     try {
       const raw = await fetchText(MANIFEST + '?_=' + Date.now(), { Accept: 'application/json, */*' });
       const current = JSON.parse(raw)?.launcher?.build;
       if (!current || current === BUILD) {
-        const el = q('.stale');
         if (el) {
           if (force) {
             const sCount = (state.shadowRoots && state.shadowRoots.length) || 0;
@@ -2774,40 +2834,65 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             el.textContent = `Build ${BUILD} is current · ${sMsg}${fMsg} on page`;
             el.style.color = 'oklch(60% .18 140)';
             el.hidden = false;
-            setTimeout(() => { if (el.textContent.includes('is current')) el.hidden = true; }, 3000);
+            setTimeout(() => { if (el.textContent.includes('is current')) el.hidden = true; }, 3500);
           } else {
             el.hidden = true;
           }
         }
-        return;
+        if (force && headSubSpan) {
+          headSubSpan.textContent = `✓ Build ${BUILD} is current`;
+        }
+        return { type: 'current', build: BUILD };
       }
-      const el = q('.stale');
 
       const setVal = (typeof GM !== 'undefined' && GM.setValue) ? GM.setValue.bind(GM)
         : (typeof GM_setValue !== 'undefined' ? (k, v) => Promise.resolve(GM_setValue(k, v)) : null);
 
       if (setVal) {
-        el.textContent = `Downloading build ${current}…`;
-        el.style.color = 'var(--wt-p)';
-        el.hidden = false;
+        if (el) {
+          el.textContent = `Downloading build ${current}…`;
+          el.style.color = 'var(--wt-p)';
+          el.hidden = false;
+        }
+        if (headSubSpan) headSubSpan.textContent = `Downloading build ${current}…`;
         try {
           const freshCode = await fetchText(`https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/lib/launcher.js?_=${Date.now()}`);
           if (freshCode && freshCode.includes('window.wtLauncher')) {
             await setVal('wt_launcher_code', freshCode);
             await setVal('wt_launcher_build', current);
-            el.innerHTML = `Build ${current} downloaded · <a href="#" style="color:inherit;text-decoration:underline">Reload page to apply</a>`;
-            el.style.color = 'oklch(60% .18 140)';
-            el.querySelector('a')?.addEventListener('click', e => { e.preventDefault(); location.reload(); });
-            return;
+            if (el) {
+              el.innerHTML = `Build ${current} downloaded · <a href="#" style="color:inherit;text-decoration:underline">Reload page to apply ↺</a>`;
+              el.style.color = 'oklch(60% .18 140)';
+              el.querySelector('a')?.addEventListener('click', e => { e.preventDefault(); location.reload(); });
+            }
+            if (headSubSpan) headSubSpan.textContent = `Build ${current} ready · Tap to reload ↺`;
+            return { type: 'downloaded', build: current };
           }
         } catch { /* if background fetch fails, fall through to link */ }
       }
 
       const updateUrl = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/launcher.user.js?_=${Date.now()}`;
-      el.innerHTML = `<a href="${updateUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Build ${current} available · Tap to update ↗</a>`;
-      el.style.color = '';
-      el.hidden = false;
-    } catch { /* the page refused the fetch: say nothing rather than guess */ }
+      if (el) {
+        el.innerHTML = `<a href="${updateUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Build ${current} available · Tap to update ↗</a>`;
+        el.style.color = '';
+        el.hidden = false;
+      }
+      if (headSubSpan) headSubSpan.textContent = `Build ${current} available ↗`;
+      return { type: 'available', build: current, url: updateUrl };
+    } catch (err) {
+      if (force) {
+        if (el) {
+          el.textContent = `Check failed: ${err.message || 'network error'}`;
+          el.style.color = 'oklch(60% .18 30)';
+          el.hidden = false;
+          setTimeout(() => { if (el.textContent.includes('Check failed')) el.hidden = true; }, 3500);
+        }
+        if (headSubSpan) {
+          headSubSpan.textContent = `Check failed (${err.message || 'offline'})`;
+        }
+      }
+      return { type: 'error', error: err.message };
+    }
   };
   document.documentElement.append(host);
   window.__wtLauncherMounted = true;
