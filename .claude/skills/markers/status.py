@@ -14,7 +14,7 @@ skill, .claude/skills/markers/SKILL.md):
 
 They are not two spellings of one thing, and since 2026-09-20 they do not
 overlap either. A marker answers to a claim in a sentence; a declaration answers
-to a whole path. `Frozen` was the one flavor that answered to the path, which is
+to a whole path. `Frozen` was the one word that answered to the path, which is
 why it left the vocabulary: a whole file being preserved is what a `record`
 declaration already says, in a form that reaches `.html`, `.js`, and `.csv` as
 well as markdown.
@@ -41,7 +41,7 @@ import sys
 from pathlib import Path
 
 # Three, and the set is closed. A `Corrected` fourth was added 2026-09-16 and
-# A flavor describes one passage. `Corrected` was removed on 2026-09-19 (a note
+# A marker's kind describes one passage. `Corrected` was removed 2026-09-19 (a note
 # saying the text was already fixed is not a marker: in a living document the
 # move is to fix the sentence and leave no note) and `Frozen` on 2026-09-20.
 #
@@ -53,9 +53,9 @@ from pathlib import Path
 # which is a false statement in marker grammar and the one case the check could
 # not catch, since it only ever ran declaration -> banner. All of those are now
 # `record` or `frozen` entries in a `.paths.json`.
-FLAVORS = ("Stale", "Wrong")
+KINDS = ("Stale", "Wrong")
 
-# **Flavor YYYY[-MM[-DD]] [(note)] [-> target]:**
+# **Kind YYYY[-MM[-DD]] [(note)] [-> target]:**
 #
 # Two deliberate widenings over the first draft of this pattern, each made
 # because the stricter form silently dropped markers people had actually
@@ -69,7 +69,7 @@ FLAVORS = ("Stale", "Wrong")
 #
 # The close is `:**` or `.**`, since a prose target ends its own sentence.
 MARKER = re.compile(
-    r"\*\*(" + "|".join(FLAVORS) + r")\s+"    # flavor
+    r"\*\*(" + "|".join(KINDS) + r")\s+"      # kind
     r"(\d{4}(?:-\d{2}){0,2})"                  # date, to whatever precision
     r"(?:\s*\(([^)]*)\))?"                     # optional note
     r"(?:\s*→\s*(.+?))?"                  # optional living-copy target
@@ -80,7 +80,7 @@ MARKER = re.compile(
 # Anything that opens like a marker but did not parse. Two conditions, and both
 # are load-bearing:
 #
-#   * the flavor is followed by whitespace, which separates an attempted marker
+#   * the kind is followed by whitespace, which separates an attempted marker
 #     from ordinary bold prose (`**Stale**: aged out of truth`, a definition
 #     list in the convention's own worked-examples entry, or
 #     `**Stale-branch piggybacking**`);
@@ -90,9 +90,9 @@ MARKER = re.compile(
 #     word has none. Without this the detector fired on `**Stale claims.**` and
 #     `**Wrong references**`, ordinary prose in two skill files, and a check
 #     whose every finding is a false positive is one nobody reads.
-NEAR_MISS = re.compile(r"\*\*(" + "|".join(FLAVORS) + r")\s+[^*]*\d")
+NEAR_MISS = re.compile(r"\*\*(" + "|".join(KINDS) + r")\s+[^*]*\d")
 
-# `status: <flavor> YYYY-MM-DD; note` in frontmatter.
+# `status: <kind> YYYY-MM-DD; note` in frontmatter.
 STATUS_LINE = re.compile(
     r"^status:\s*(stale|wrong)\s+(\d{4}(?:-\d{2}){0,2})", re.IGNORECASE
 )
@@ -241,9 +241,9 @@ def status_of(rel: str, decls: list[Declaration], key: str | None = None) -> Dec
 
 
 class Marker:
-    def __init__(self, rel, line, flavor, date, note, target):
+    def __init__(self, rel, line, kind, date, note, target):
         self.rel, self.line = rel, line
-        self.flavor, self.date = flavor, date
+        self.kind, self.date = kind, date
         self.note, self.target = note or "", target or ""
 
     def resolved_target(self, root: Path) -> Path | None:
@@ -305,7 +305,7 @@ def scan_text(text: str, rel: str):
             mk = Marker(rel, n, m.group(1), m.group(2), m.group(3), m.group(4))
             # The line verbatim, for identity in dedupe_inlined. An inlined
             # copy is byte-identical to its source; two markers that merely
-            # share a flavor and date are not the same marker.
+            # share a kind and date are not the same marker.
             mk.text = line.strip()
             markers.append(mk)
         if not found and NEAR_MISS.search(line):
@@ -385,7 +385,7 @@ def collect_findings(root, decls, decl_problems, markers, malformed):
             findings.append(("marker", f"{m.rel}:{m.line}: arrow target missing: {m.target}"))
     # There was a crosscheck here until 2026-09-20: a markdown file declared
     # frozen had to carry a `Frozen` banner, so a reader opening it could see so.
-    # It went with the flavor, and the measurement is why it went quietly. Every
+    # It went with `Frozen`, and the measurement is why it went quietly. Every
     # `frozen` entry in the estate is a directory or a non-markdown artifact, so
     # the rule reached zero paths and had never once fired. What a reader sees is
     # now an ordinary sentence in the neighbouring README, which no check can
@@ -404,9 +404,9 @@ def cmd_inventory(root, args):
     print()
 
     print("MARKERS")
-    rows = [(m.flavor, m.date, m.target or "-", f"{m.rel}:{m.line}")
-            for m in sorted(markers, key=lambda m: (m.flavor, m.date, m.rel))]
-    print(fmt_table(rows, ("FLAVOR", "DATE", "SEE-TARGET", "LOCATION")))
+    rows = [(m.kind, m.date, m.target or "-", f"{m.rel}:{m.line}")
+            for m in sorted(markers, key=lambda m: (m.kind, m.date, m.rel))]
+    print(fmt_table(rows, ("KIND", "DATE", "SEE-TARGET", "LOCATION")))
     print()
 
     dups = duplicate_lines(markers)
@@ -517,9 +517,9 @@ def cmd_gate(root, args):
                                 capture_output=True, text=True).stdout
         after = subprocess.run(["git", "-C", str(root), "show", f":{rel}"],
                                capture_output=True, text=True).stdout
-        was = {m.text for m in scan_text(before, rel)[0] if m.flavor == "Wrong"}
+        was = {m.text for m in scan_text(before, rel)[0] if m.kind == "Wrong"}
         for m in scan_text(after, rel)[0]:
-            if m.flavor == "Wrong" and m.text not in was:
+            if m.kind == "Wrong" and m.text not in was:
                 bad.append((rel, m.line))
     if not bad:
         return 0

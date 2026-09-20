@@ -37,7 +37,8 @@ something outside the prose declares them.
 
 ## The vocabulary
 
-Two flavors, and both describe the text they sit beside without changing it:
+Two words a marker may open with, and both describe the text beside them
+without changing it:
 
 - **`Stale`**: no longer accurate, aged out of truth.
 - **`Wrong`**: flatly incorrect, not merely aged. The claim **stays as written**,
@@ -50,15 +51,15 @@ Two declaration keys, and both describe a whole path:
 - **`record`**: preserved as written. It may gain a dated appendix; its existing
   text stays. This is the key for a document that a successor superseded.
 
-**`Frozen` was a third flavor until 2026-09-20, and it left because it was
-answering the file question in the sentence form.** A census of all 21 in the
+**`Frozen` was a third until 2026-09-20, and it left because it was answering
+the file question in the sentence form.** A census of all 21 in the
 estate is the argument. Twelve said a whole file was preserved, which is
 `record`. Six more sat in a live README and described a frozen *neighbour*,
 so the banner asserted of its own file the opposite of what was true, and
 nothing could catch it: the check only ever ran declaration to banner, never
 back. Two were genuinely about a section, and both were the same file, whose
 repair is a split rather than a marker. The last was a banner quoted inside
-pasted evidence. So the flavor was carrying one real job, twice, in one file.
+pasted evidence. So `Frozen` was carrying one real job, twice, in one file.
 
 ## Marking a claim
 
@@ -81,8 +82,8 @@ Getting this backwards is logged twice in
 as `marker-on-a-living-doc`; `.githooks/pre-commit` refuses the case a fact can
 settle, a `Wrong` added to a path no declaration calls a record.
 
-A section, as a GFM alert with the flavor in the bold lead-in (`> [!WARNING]`
-for both flavors):
+A section, as a GFM alert with the word in the bold lead-in (`> [!WARNING]` for
+both):
 
 ```markdown
 > [!WARNING]
@@ -94,8 +95,8 @@ For a **whole file** there is no banner form, because there is no marker for it:
 write the `.paths.json` entry instead. A note at the top of the file explaining
 what superseded it is welcome and is ordinary prose, not a marker.
 
-Shape: `**Flavor YYYY[-MM[-DD]] [(note)] [→ target]:**`. Flavor, date, and
-target hold fixed positions so the set is auditable rather than merely
+Shape: `**Kind YYYY[-MM[-DD]] [(note)] [→ target]:**`. Kind, date, and target
+hold fixed positions so the set is auditable rather than merely
 greppable. The date is when you flagged it. The parenthetical is optional and
 usually cites the task that made the call. The target is optional and may be a path, a markdown link, or prose
 ("two successors below"); only path-shaped targets are existence-checked.
@@ -215,7 +216,7 @@ the installed copies means a normal run never silently exercises unmerged code.
 Every finding stays on one side of the split. **There was a fourth until
 2026-09-20**, crossing from a declaration to a marker: a markdown file declared
 frozen had to carry a `Frozen` banner, so a reader opening it could see so. It
-went with the flavor, and the measurement is why it went quietly. Every `frozen`
+went with `Frozen`, and the measurement is why it went quietly. Every `frozen`
 entry in the estate is a directory or a non-markdown artifact, so the rule
 reached zero paths and had never once fired. What tells a reader is a sentence
 in the file or its README, which no check can verify and which was doing the

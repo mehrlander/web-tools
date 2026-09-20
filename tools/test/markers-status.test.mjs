@@ -76,12 +76,12 @@ for (const [label, line] of Object.entries(ACCEPTED)) {
   });
 }
 
-// Ordinary bold prose that merely starts with a flavor word must not be
+// Ordinary bold prose that merely starts with a marker word must not be
 // mistaken for an attempted marker: the convention's own worked-examples entry
 // writes `**Stale**: aged out of truth` as a definition list.
 const NOT_MARKERS = {
   'definition list': '- **Stale**: aged out of truth.',
-  'flavor then comma': '- **Stale, with a target**, in some file.',
+  'marker word then comma': '- **Stale, with a target**, in some file.',
   'hyphenated compound': '2. **Stale-branch piggybacking** rides old work.',
 };
 
@@ -188,9 +188,9 @@ test('a missing or empty declared path fails the check', () => {
   });
 });
 
-// --- the retired flavor -----------------------------------------------------
+// --- the retired word -------------------------------------------------------
 
-test('Frozen is not a flavor, and not a near-miss either', () => {
+test('Frozen is not a marker word, and not a near-miss either', () => {
   // Retired 2026-09-20: a whole file being preserved is what a `record`
   // declaration says. The text has to read as ordinary prose, not as a
   // malformed marker, or every file still carrying the old banner becomes a
@@ -206,7 +206,7 @@ test('Frozen is not a flavor, and not a near-miss either', () => {
 });
 
 test('a declared record needs no banner, and a declared frozen path needs none either', () => {
-  // The cross-check that demanded one was removed with the flavor. It had
+  // The cross-check that demanded one was removed with `Frozen`. It had
   // reached zero paths estate-wide: every frozen entry is a directory or a
   // non-markdown artifact, neither of which can carry a GFM alert.
   withFixture({

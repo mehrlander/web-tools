@@ -1485,7 +1485,7 @@ snapshot README `Wrong` and left the false sentence standing under the banner,
 having invoked `/markers` in the same turn, and cited the rule to the user as
 the repo's own when it is the skill's. The scope is in the rule's own next
 sentence: a **dated file** stays put as a record. Nothing in the vocabulary
-names the living-document case, which is why reading the flavor list and
+names the living-document case, which is why reading the two marker words and
 stopping there lands on the wrong instrument.
 *(seen: 2026-08-06, 2026-09-16)*
 → [CONVENTIONS.md](CONVENTIONS.md)

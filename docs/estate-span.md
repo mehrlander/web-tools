@@ -36,7 +36,7 @@ the crawl.
 | `.paths.json` declaration files | 6, in 4 repos | all | hub carries two |
 
 The declarations were 2, in 2 repos, and the hub carried none, until 2026-09-20
-retired the `Frozen` marker flavor and moved every whole-path claim into the
+retired the `Frozen` marker word and moved every whole-path claim into the
 file that was already the place for it. The hub declares two (a closed tracker
 task and the `state-the-rule` log), home two (its root and budget-drs), and
 chat-histories and web-tools-private one each.
