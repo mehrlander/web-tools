@@ -1,0 +1,6 @@
+key,name,gloss
+support-daily-work,Support daily work,"Put tooling, data modeling, and research in direct service of our substantive day job."
+settle-labeling,Settle our labeling system,"Establish a consistent doctrine for file state, data properties, and domain entities across differing file kinds and contexts, resolving where metadata lives so material is legible to humans and tools."
+documentation-standards,Establish documentation standards,"Keep our writing compact and high-density, favoring data before display and eliminating narrative bloat."
+process-structures,Identify process structures,"Make workflows mechanical, reproducible, and visible through clear stages and automated checks."
+clarify-terminology,Clarify terminology,Stop competing terms from multiplying; retire vague words so each concept has one unambiguous name.
