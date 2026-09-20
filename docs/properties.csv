@@ -164,6 +164,9 @@ snags,targets,computed,tools/build/snags-index.mjs,none,list,no,,locator,"the do
 aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
 aims-goals,name,recorded,,none,column,yes,,value,the goal as a title
 aims-goals,gloss,recorded,,none,column,yes,,value,the goal in one sentence
+aims-initiatives,key,recorded,,none,column,yes,,id,"stable identifier, hyphenated"
+aims-initiatives,name,recorded,,none,column,yes,,value,the initiative as a title
+aims-initiatives,gloss,recorded,,none,column,yes,,value,the initiative in one sentence
 aims-reading,repo,recorded,,none,column,yes,,value,owner/repo when the document lives outside the hub; blank means the hub
 aims-reading,path,recorded,,none,column,yes,,id,path within its repo
 aims-reading,private,recorded,,none,column,yes,true,label,set when the link resolves only for the owner
