@@ -4,7 +4,7 @@ Two things live here: the **Web Tools app**, the front door to the development e
 
 ⭐ **[Open the Web Tools app →](https://mehrlander.github.io/web-tools/app/)**: browse any repo, stage and move files between repos, read cross-repo activity, and reach the tools. [docs/APP.md](docs/APP.md) states the mission; show-repo is the shell's internal name, and [docs/show-repo.md](docs/show-repo.md) is its reference. The [pages index](https://mehrlander.github.io/web-tools/pages/) lists every page with screenshots, live previews, and source links.
 
-[Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), plus the parts used to build them.
+[Pages](#pages), [bookmarklets](#bookmarklets), [popups](#popups), [console snippets](#console-snippets), and [development checkout](#development-checkout), plus the parts used to build them.
 
 Four shapes have emerged:
 
@@ -306,6 +306,38 @@ Recent pages that make good templates:
 - [`pages/compression-helper.html`](pages/compression-helper.html)
   for the compression kits with Alpine loaded directly, not via
   `alpine-bundle.js`.
+
+## Development checkout
+
+After cloning the repository or creating a linked worktree, run one command:
+
+```bash
+npm run setup
+```
+
+The command configures the committed Git hooks and the registry CSV merge
+driver for the checkout, installs usable development dependencies, and ends
+with a readiness check. It is safe to run again. It does not regenerate tracked
+artifacts or install a Playwright browser. If npm itself cannot start, the
+dependency-free equivalent is `node tools/checkout-setup.mjs`.
+In Windows PowerShell, use the `npm.cmd` spelling for all of these commands
+(`npm.cmd run setup`, `npm.cmd run ready`, and `npm.cmd test`); this bypasses a
+stale or policy-blocked PowerShell npm shim while using the same npm runtime.
+
+Use `npm run ready` for the same checks without writing anything, then run
+`npm test` for the browser-free suite. A pixel render is a separate path; hosts
+without the repository's expected browser can install Playwright's Chromium
+when they actually need `npm run shot`.
+
+Local commits refresh deterministic artifacts through the configured hooks.
+When a clean local merge changes derived output, the hook stages the combined
+refresh and asks for `git -c core.editor=true merge --continue`, which creates
+the merge commit through the ordinary marker and consent gates.
+For a tree written or merged through the GitHub API, MCP, or another server-side
+path, fetch that exact tree into a ready checkout, run
+`npm run artifacts:refresh` and `npm test`, run any additional generator the
+test names, then commit and push the repair. Server-side writes cannot execute
+a local checkout's hooks.
 
 ## Where to start
 
