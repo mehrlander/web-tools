@@ -28,7 +28,7 @@ const estateSrc = readFileSync(
 
 // The estate's sub-views share one container, so they all name it; every other
 // stop names itself.
-const ESTATE_VIEWS = ['activity', 'todo', 'jots', 'estate', 'stage'];
+const ESTATE_VIEWS = ['branches', 'activity', 'todo', 'jots', 'estate', 'stage'];
 
 // Literal attributes only: the pager's own lookup builds the selector from a
 // template, and matching that string back would be circular.
@@ -60,7 +60,7 @@ test('the estate sub-views all resolve to the one estate pane', () => {
 test('a repo view is not a carousel stop', () => {
   const { shell } = makeShell();
   const panes = paneKeys();
-  for (const view of ['landing', 'files', 'branches', 'config', 'atlas', 'app', 'public']) {
+  for (const view of ['landing', 'files', 'config', 'atlas', 'app', 'public']) {
     shell.view = view;
     assert.equal(panes.has(shell._paneKey), false,
       `${view} must not carry a pane: an iframe or repo view owns its own gestures`);
@@ -128,7 +128,7 @@ test('the Activity nav and the signed-in front door both open Sessions', () => {
   const activity = shell.estateNav.find(v => v.label === 'Activity');
   assert.ok(activity, 'the Activity stop is still in the nav');
   assert.equal(activity.view, 'sessions', 'its identity is the pane it opens');
-  assert.ok(activity.views.includes('activity'),
+  assert.ok(activity.views.includes('branches'),
     'and Branches still keeps the stop lit, so the group is one stop');
 
   activity.go();

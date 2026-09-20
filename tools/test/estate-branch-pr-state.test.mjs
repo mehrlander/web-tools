@@ -347,11 +347,12 @@ test('the badge opens the pane already narrowed to what it counted', () => {
     branchPRs: [{ head: 'claude/dropped', number: 300, state: 'closed', draft: false, count: 1 }],
   });
   const went = [];
-  window.__shell.goActivity = () => went.push('activity');
+  window.__shell.goBranches = () => went.push('branches');
+  window.__shell.goActivity = window.__shell.goBranches;
   data.openAbandoned('acme/widget');
   assert.equal(data.branchScope, 'abandoned');
   assert.equal(data.openRepoFilter, 'acme/widget');
-  assert.deepEqual(went, ['activity']);
+  assert.deepEqual(went, ['branches']);
 });
 
 test('the branch-count badge opens the same pane, narrowed to the repo', () => {
@@ -360,10 +361,11 @@ test('the branch-count badge opens the same pane, narrowed to the repo', () => {
   // what a dead call in a click handler looks like from the outside.
   seed({ branches: [{ name: 'claude/live', group: 'active' }] });
   const went = [];
-  window.__shell.goActivity = () => went.push('activity');
+  window.__shell.goBranches = () => went.push('branches');
+  window.__shell.goActivity = window.__shell.goBranches;
   data.openRepoBranches('acme/widget');
   assert.equal(data.openRepoFilter, 'acme/widget');
-  assert.deepEqual(went, ['activity']);
+  assert.deepEqual(went, ['branches']);
 });
 
 test('the row menu reaches a merged PR, and still offers a new one', () => {
