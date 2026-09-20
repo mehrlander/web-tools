@@ -16,3 +16,5 @@ the house style for pages,docs/HTML-STYLE.md,pointer,"none needed since 2026-08-
 the house style for pages,skills/daisy-alpine/references/mechanics.md,pointer,"none needed; it holds the other half, how to build rather than what to build, and names the skill as the binding one"
 what each skill does,docs/portable.csv role,paraphrase,"none; deliberately shorter per surface, honest while the owner is named"
 the working conventions text,.claude/skills/default/ (the plugin ships a copy of each traveling doc so an installed session reads it off disk),copy,"gate (derived-artifacts.test.mjs, byte-for-byte against docs/)"
+the assistant attribution table,AGENTS.md,copy,
+the assistant attribution table,GEMINI.md,pointer,

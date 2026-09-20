@@ -11,7 +11,7 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 18 are named by CLAUDE.md,
+2 arrive in every session's context, 19 are named by CLAUDE.md,
 11 by a skill, 28 by a page or component. The remaining 28 are
 marked *(orphan)* below: nothing points at them except this index.
 
@@ -78,6 +78,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
 - [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
+- [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
 
 ## docs/envelopes/
 

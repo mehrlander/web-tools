@@ -1,0 +1,8 @@
+branch,repo,assistant,basis,declared
+feat/rev-arrow-keys-banner-swipe,mehrlander/web-tools,gemini,identified as a Gemini branch that went out without its prefix in PR #735 (2026-09-18 lane),2026-09-20
+fix/top-swipe-and-rev-banner,mehrlander/web-tools,gemini,identified as a Gemini branch that went out without its prefix in PR #735 (2026-09-18 lane),2026-09-20
+fix/header-container-consistency,mehrlander/web-tools,gemini,identified as a Gemini branch that went out without its prefix in PR #735 (2026-09-18 lane),2026-09-20
+fix/rev-pager-pill-and-button-sizes,mehrlander/web-tools,gemini,identified as a Gemini branch that went out without its prefix in PR #735 (2026-09-18 lane),2026-09-20
+agent/paragraph-rewrites-grok,mehrlander/web-tools,grok,PR #686 body and its status comment are signed Chief of Staff (Grok),2026-09-20
+agent/document-visual-mapping-skill,mehrlander/web-tools,claude,PR #662 body carries the Claude Code footer and a session link,2026-09-20
+agent/abs-guide-refinement,mehrlander/home,claude,PR #656 body carries the Claude Code footer and a session link,2026-09-20

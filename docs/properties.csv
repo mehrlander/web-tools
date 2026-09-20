@@ -180,3 +180,7 @@ themes,shingle,computed,scripts/duplicated-claims.py,none,column,yes,,label,"wor
 themes,scanned,computed,scripts/duplicated-claims.py,none,column,yes,,label,"files scanned for this emission, identical on every row"
 sources,source,recorded,,none,column,yes,,locator,the named set a glob belongs to
 sources,glob,recorded,,none,column,yes,,locator,"one path pattern, anchored to a real directory"
+assistant-branches,repo,recorded,,none,column,yes,,value,owner/name of the repository the branch lives in
+assistant-branches,assistant,recorded,,none,column,yes,claude;codex;gemini;grok;copilot;human,label,who authored the branch; the same keys the assistant-mark kit draws
+assistant-branches,basis,recorded,,none,column,yes,,value,"the evidence behind the declaration: a PR body footer, a signature, a finding in a reviewed PR"
+assistant-branches,declared,recorded,,none,column,yes,,value,the date the row was declared
