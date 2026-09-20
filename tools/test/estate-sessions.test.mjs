@@ -102,11 +102,12 @@ const shell = {
   quickLinks: [],
   hasToken: () => true,
   _authState: 'auth',
-  view: 'activity',
+  view: 'branches',
   refreshConfigCache() {},
   refreshActivity() {},
   refreshSessions() { this.refreshSessionsCalled = true; },
-  goActivity() { this.view = 'activity'; },
+  goBranches() { this.view = 'branches'; },
+  goActivity() { this.view = 'branches'; },
   goSessions() { this.view = 'sessions'; },
   goTodo() { this.view = 'todo'; },
   goJots() { this.view = 'jots'; },
@@ -133,20 +134,21 @@ const ago = (d) => new Date(Date.now() - d * DAY).toISOString();
 
 // ── The tab getter: two collapses, different shapes ─────────────────────────
 
-test('todo and jots both resolve to one Lists pane; activity and sessions stay apart', () => {
+test('todo and jots both resolve to one Lists pane; branches and sessions stay apart', () => {
   shell.view = 'todo';   assert.equal(data.tab, 'lists');
   shell.view = 'jots';   assert.equal(data.tab, 'lists', '?view=jots must still land somewhere real');
-  shell.view = 'activity'; assert.equal(data.tab, 'activity');
+  shell.view = 'branches'; assert.equal(data.tab, 'branches');
+  shell.view = 'activity'; assert.equal(data.tab, 'branches');
   shell.view = 'sessions'; assert.equal(data.tab, 'sessions');
   shell.view = 'estate'; assert.equal(data.tab, 'repos');
 });
 
 test('the Sessions pill routes through the shell, so the URL keeps stamping', () => {
-  shell.view = 'activity';
+  shell.view = 'branches';
   data.goSub('sessions');
   assert.equal(shell.view, 'sessions');
-  data.goSub('activity');
-  assert.equal(shell.view, 'activity');
+  data.goSub('branches');
+  assert.equal(shell.view, 'branches');
 });
 
 // ── Loading ─────────────────────────────────────────────────────────────────

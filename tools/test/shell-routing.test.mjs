@@ -85,8 +85,8 @@ test('an alias resolves to its row rather than to a view of its own', () => {
 test('the Activity address opens what the Activity nav stop opens', () => {
   assert.equal(shell.routeForUrl('activity')?.key, 'sessions',
     '?view=activity must land on Sessions, the pane the nav stop opens');
-  assert.equal(shell.routeForUrl('branches')?.key, 'activity',
-    '?view=branches names the branch pane, whose internal key stays activity');
+  assert.equal(shell.routeForUrl('branches')?.key, 'branches',
+    '?view=branches names the branch pane, whose internal key is branches');
   const nav = page.match(/label: 'Activity', go: \(\) => this\.(\w+)\(\)/);
   assert.equal(nav?.[1], 'goSessions',
     'the nav stop moved; the address alias above has to move with it');
@@ -141,7 +141,7 @@ test('the second key rides along, for the views that carry one', () => {
     ['state', (s) => { s.stateItem = 'sessions'; }, 'item', 'sessions'],
     ['search', (s) => { s.searchSeed = { q: 'tracker', mode: 'names' }; }, 'sq', 'tracker'],
     ['map', (s) => { s.mapTab = 'showing'; }, 'tab', 'showing'],
-    ['activity', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
+    ['branches', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
   ];
   for (const [view, seed, key, want] of cases) {
     const { shell: s } = makeShell({ browserStore: {
@@ -382,13 +382,12 @@ test('the retired views alias onto what replaced them, carrying their scope', ()
 
   const branches = makeShell({ search: '?repo=mehrlander/home&view=branches',
                                browserStore: { repo: '' } });
-  assert.equal(branches.shell.routeForUrl('branches')?.key, 'activity',
+  assert.equal(branches.shell.routeForUrl('branches')?.key, 'branches',
     "the per-repo branch review moved into Activity's Branches tab");
 
-  // And neither is a view the shell can still enter, which is what would make
-  // an alias a lie: a row it aliases to must be the only thing that renders.
+  // `files` is a retired view that aliases onto search, not a view the shell enters directly.
   const keys = new Set(rows.map(r => r.key));
-  assert.ok(!keys.has('files') && !keys.has('branches'));
+  assert.ok(!keys.has('files') && keys.has('branches'));
 });
 
 // A file named by a pin, a recent, or a ?file= link opens in the central

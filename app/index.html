@@ -2033,7 +2033,7 @@ function app(){ return {
   // long-press menu is for a verb wanted before the drawer opens at all, not
   // a second address for one already inside it. The contract is unused here
   // now, kept for a future row rather than removed.
-  view: 'landing',        // 'estate' | 'todo' | 'jots' | 'activity' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
+  view: 'landing',        // 'estate' | 'todo' | 'jots' | 'branches' | 'sessions' | 'map' | 'tools' | 'search' | 'landing' | 'pages' | 'atlas' | 'stage' | 'config' | 'app' | 'public'
   // Window-level drag counter for the app-wide drop (init wires the listeners;
   // nested enter/leave is why it counts rather than flips), and what the cue
   // says about the drag in flight (dragNote). The app-wide PASTE beside it
@@ -5473,18 +5473,16 @@ function app(){ return {
     { key: 'public',   open(){ this.goPublicBrowse(); } },
     { key: 'todo',     open(){ this.goTodo(); } },
     { key: 'jots',     open(){ this.goJots(); } },
-    // The branch rollup. Its this.view stays 'activity' (see `writes` above) and
-    // its address is ?view=branches, which is also what the retired per-repo
-    // branch review was called, so an old link still lands where it always did.
-    { key: 'activity', writes: 'branches', open(){ this.goActivity(); },
+    // The branch rollup: its this.view and its address are ?view=branches.
+    { key: 'branches', open(){ this.goBranches(); },
       stamp(p){
         // The branch open in the takeover, when one is. Being inside the swiper
         // is a state worth linking to and was the one state here without an
-        // address: the list had ?view=activity, the branch had its standalone
+        // address: the list had ?view=branches, the branch had its standalone
         // page, and the reader in between could only be reached by tapping.
         if (this.detailSpec) p.set('detail', this.detailSpec);
         // The window is a reading parameter, so it travels with the link:
-        // without it a shared ?view=activity silently lands the reader on a
+        // without it a shared ?view=branches silently lands the reader on a
         // different slice than the one that was being discussed.
         const w = this.branchWindow;
         if (w && w !== this.BRANCH_WINDOW_DEFAULT) p.set('window', this.windowParam(w));
@@ -6095,7 +6093,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'activity', 'sessions', 'writes', 'chats', 'state'].includes(this.view); },
+  get isEstate(){ return ['estate', 'stage', 'todo', 'jots', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: its two
   // halves scroll inside themselves, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -6146,7 +6144,7 @@ function app(){ return {
   // same go* method and `view` string the router already uses.
   //
   // Activity is one nav stop over the estate's own motion, read several ways:
-  // Sessions, the work; Branches (internal key 'activity'), the artifacts it
+  // Sessions, the work; Branches (internal key 'branches'), the artifacts it
   // left; then Guides, State, Chats and Routes. The estate component's
   // segmented pill switches between them and the URL stamps the specific key,
   // so each deep-links on its own.
@@ -6161,10 +6159,10 @@ function app(){ return {
     return [
       // `views` is the set that keeps this entry lit and `view` is only its
       // identity, so moving the door to Sessions is the `go` and the `view`;
-      // ?view=activity still resolves to Branches, and the pill row still
-      // leads with it, since a chip that moves is a target a reader has to
+      // ?view=branches resolves to Branches, and the pill row leads with
+      // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'activity', 'writes', 'chats', 'state'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       { view: 'todo', views: ['todo', 'jots'],
         icon: 'ph-list-checks', label: 'Lists',  go: () => this.goTodo() },
@@ -6372,7 +6370,8 @@ function app(){ return {
     const m = /^(\d+(?:\.\d+)?)(h?)$/i.exec(s || '');
     return m ? +m[1] / (m[2] ? 24 : 1) : 0;
   },
-  goActivity(){ this.estateSeen = true; this.view = 'activity'; this.arrivalActivityRefresh?.(); this.syncUrl(); },
+  goBranches(){ this.estateSeen = true; this.view = 'branches'; this.arrivalActivityRefresh?.(); this.syncUrl(); },
+  goActivity(){ this.goBranches(); },
   // Arrival kick: one throttled crawl, scan included. Un-awaited by design;
   // there is no progress UI on this path, and the view re-reads on the event.
   // The scan is what keeps the branch verdicts current without anyone
@@ -6440,7 +6439,7 @@ function app(){ return {
     if (!this.hasToken()) return;
     const v = this.view;
     if (v === 'sessions' || v === 'state') this.warmSessionsCache();
-    if (v === 'activity' || v === 'state') this.arrivalActivityRefresh();
+    if (v === 'branches' || v === 'activity' || v === 'state') this.arrivalActivityRefresh();
     if (v === 'estate' || v === 'state') this.warmConfigCache();
   },
 
