@@ -83,6 +83,10 @@ const NOT_MARKERS = {
   'definition list': '- **Stale**: aged out of truth.',
   'marker word then comma': '- **Stale, with a target**, in some file.',
   'hyphenated compound': '2. **Stale-branch piggybacking** rides old work.',
+  // A digit that is not a year: a lead-in of this shape aborted home's verify
+  // at step 1 for four days in September 2026, under the rule "any digit
+  // inside the bold".
+  'digit that is not a year': '- **Wrong in 3 places (Frame 3).** the table repeated a row.',
 };
 
 for (const [label, line] of Object.entries(NOT_MARKERS)) {

@@ -84,13 +84,16 @@ MARKER = re.compile(
 #     from ordinary bold prose (`**Stale**: aged out of truth`, a definition
 #     list in the convention's own worked-examples entry, or
 #     `**Stale-branch piggybacking**`);
-#   * a digit follows, inside the same bold span. A marker's shape mandates a
-#     date, so an attempt at one has a date in it however badly formed
-#     (`**Stale July 2026:**`), while a bold lead-in that merely opens with the
-#     word has none. Without this the detector fired on `**Stale claims.**` and
-#     `**Wrong references**`, ordinary prose in two skill files, and a check
-#     whose every finding is a false positive is one nobody reads.
-NEAR_MISS = re.compile(r"\*\*(" + "|".join(KINDS) + r")\s+[^*]*\d")
+#   * a four-digit year follows, inside the same bold span. A marker's shape
+#     mandates a date, so an attempt at one has a year in it however badly
+#     formed (`**Stale July 2026:**`), while a bold lead-in that merely opens
+#     with the word has none. Without this the detector fired on `**Stale
+#     claims.**` and `**Wrong references**`, ordinary prose in two skill files,
+#     and a check whose every finding is a false positive is one nobody reads.
+#     Any digit was the rule until 2026-09-20, and it fired on a bold lead-in
+#     holding "(Frame 3)" in a home build note, which aborted home's verify
+#     suite at its first gate for four days.
+NEAR_MISS = re.compile(r"\*\*(" + "|".join(KINDS) + r")\s+[^*]*\d{4}")
 
 # `status: <kind> YYYY-MM-DD; note` in frontmatter.
 STATUS_LINE = re.compile(
