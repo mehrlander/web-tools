@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '0b35266';
-const BUILT = '2026-09-20T20:30:51Z';
+const BUILD = '8354e52';
+const BUILT = '2026-09-20T20:59:34Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -133,7 +133,18 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   //
   // Shadow DOM Discovery: recursively finds all open shadow roots across the
   // page, including nested shadow DOM inside web components, safely ignoring
-  // the launcher's own host root.
+  // Viewport detector: determines whether a node is currently visible inside
+  // the device's physical viewport window.
+  const isInViewport = el => {
+    if (!el) return false;
+    if (el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight || 800;
+    const vw = window.innerWidth || document.documentElement.clientWidth || 600;
+    return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw && (r.width > 0 || r.height > 0);
+  };
+
   const findShadowRoots = () => {
     const list = [];
     const seen = new Set();
@@ -271,6 +282,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     const processLink = a => {
       const href = a.href;
       if (!/^https?:/.test(href) || href === location.href) return;
+      if (state.scope === 'screen' && !isInViewport(a)) return;
       if (state.seenLinks.has(href)) return;
       const text = clean(a.innerText) || clean(a.getAttribute('aria-label')) ||
                    clean(a.querySelector('img')?.alt) || href.replace(/^https?:\/\//, '');
@@ -293,6 +305,26 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // the biggest, so a nav column of eighty short links does not beat the prose.
   const readText = () => {
     const targetDoc = getActiveDoc();
+    if (state.scope === 'sel' && state.sel) {
+      return state.sel;
+    }
+    if (state.scope === 'screen') {
+      const blocks = [];
+      const process = el => {
+        if (el.closest?.('nav, header, footer, aside') || el.closest?.('#' + ID)) return;
+        if (!isInViewport(el)) return;
+        const t = clean(el.innerText);
+        if (t.length < 20) return;
+        blocks.push(t);
+      };
+      for (const el of targetDoc.querySelectorAll(BLOCKS)) process(el);
+      if (targetDoc === document) {
+        for (const s of findShadowRoots()) {
+          for (const el of s.root.querySelectorAll(BLOCKS)) process(el);
+        }
+      }
+      return blocks.join('\n\n');
+    }
     let named = targetDoc.querySelector('article, main, [role="main"]');
     let best = named;
     if (!best) {
@@ -337,11 +369,12 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     let added = 0;
     const targetDoc = getActiveDoc();
     const process = el => {
-      if (el.closest?.('nav, header, footer, aside')) return;
+      if (el.closest?.('nav, header, footer, aside') || el.closest?.('#' + ID)) return;
+      if (state.scope === 'screen' && !isInViewport(el)) return;
       const t = clean(el.innerText);
-      // 40 characters is a paragraph rather than a label, and the cap keeps an
+      // 25 characters is a paragraph rather than a label, and the cap keeps an
       // infinite feed from becoming an infinite capture.
-      if (t.length < 40 || state.seen.has(t)) return;
+      if (t.length < 25 || state.seen.has(t)) return;
       if (state.blockChars > 200000) return;
       state.seen.add(t);
       state.blocks.push(t);
@@ -396,7 +429,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
 
   const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
-                  sel: '', selHtml: '', scope: 'page', collect: false, seen: new Set(),
+                  sel: '', selHtml: '', scope: 'page', collect: false, appendMode: false, seen: new Set(),
                   blocks: [], blockChars: 0, seenLinks: new Map(), errand: null,
                   errandOut: '', localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
@@ -415,7 +448,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
     const named = targetDoc.querySelector('article, main, [role="main"]');
     let target = named;
-    if (!target) {
+    if (state.scope === 'screen') {
+      target = targetDoc.body || targetDoc.documentElement;
+    } else if (!target) {
       let score = 0;
       for (const el of targetDoc.querySelectorAll('body *')) {
         if (/^(SCRIPT|STYLE|NAV|HEADER|FOOTER|ASIDE|SVG|NOSCRIPT|IFRAME|FORM)$/.test(el.tagName)) continue;
@@ -426,7 +461,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       }
     }
     // Backup: Same-origin iframe fallback if main text is minimal (when reading top document)
-    if (targetDoc === document && (!target || (target.innerText || '').trim().length < 200)) {
+    if (state.scope !== 'screen' && targetDoc === document && (!target || (target.innerText || '').trim().length < 200)) {
       for (const frame of (state.frames || []).filter(f => f.accessible && f.doc)) {
         const doc = frame.doc;
         if (doc && doc.body && (doc.body.innerText || '').trim().length > 200) {
@@ -439,6 +474,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     const walk = (node, depth = 0) => {
       if (depth > 40 || !node) return '';
+      if (state.scope === 'screen' && node.nodeType === Node.ELEMENT_NODE && !isInViewport(node)) return '';
       if (node.nodeType === Node.TEXT_NODE) {
         return node.textContent.replace(/[^\S\n]+/g, ' ');
       }
@@ -944,9 +980,26 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .panel:not(.fullscreen) .copy-btn { display: none !important; }
 
     .head-intro {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: .5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .375rem; flex-wrap: wrap;
     }
+    .head-intro-left {
+      display: flex; align-items: center; gap: .375rem; flex-wrap: wrap;
+    }
+    .head-intro-right {
+      display: flex; align-items: center; gap: .25rem; margin-left: auto;
+    }
+    .head-btn {
+      display: inline-flex; align-items: center; gap: .25rem;
+      padding: .15rem .45rem; border-radius: .25rem;
+      border: 1px solid var(--wt-b300); background: var(--wt-b200);
+      cursor: pointer; font: 600 10.5px ui-sans-serif, system-ui, sans-serif;
+      color: ${mix('var(--wt-bc)', 75)}; flex: none; user-select: none;
+    }
+    .head-btn:hover { background: var(--wt-b300); color: var(--wt-bc); }
+    .head-btn.on { background: ${mix(P, 15)}; border-color: ${mix(P, 40)}; color: var(--wt-p); }
+    .head-btn svg { width: 11px; height: 11px; color: ${mix(P, 80)}; }
+    .head-btn[hidden] { display: none; }
     .head-desc {
       margin: 0; font-size: 11.5px; line-height: 1.4;
       color: ${mix('var(--wt-bc)', 75)};
@@ -1425,22 +1478,26 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
                 <button type="button" class="seg-btn on" data-html-mode="pretty">Formatted</button>
                 <button type="button" class="seg-btn" data-html-mode="raw">Raw</button>
               </div>
-            </div>
-            <div class="head-scope-tools" hidden>
-              <div class="seg seg-sm" role="group" aria-label="Capture scope">
-                <button type="button" class="seg-btn on" data-scope="page">Page</button>
-                <button type="button" class="seg-btn" data-scope="sel">Selection</button>
-              </div>
-            </div>
             <button class="icon-btn copy-btn" aria-label="Copy current format" title="Copy">${svg(ICON.copy)}</button>
             <button class="icon-btn expand-btn" aria-label="Full Swipe Deck" title="Full Swipe Deck">${svg(ICON.cardsThree)}</button>
-            <button class="icon-btn reread" aria-label="Read this page again" title="Refresh">${svg(ICON.refresh)}</button>
+            <button class="icon-btn reread" aria-label="Recapture page content" title="Recapture">${svg(ICON.refresh)}</button>
             <div class="pill font-mono tabular-nums"><span class="cur-slide">1</span><span class="pill-sep">/</span><span>5</span></div>
           </div>
         </div>
         <div class="head-intro">
-          <p class="head-desc" hidden></p>
-          <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
+          <div class="head-intro-left">
+            <div class="seg seg-sm scope-seg" role="group" aria-label="Capture scope">
+              <button type="button" class="seg-btn on" data-scope="page">Page</button>
+              <button type="button" class="seg-btn" data-scope="screen">Screen</button>
+              <button type="button" class="seg-btn" data-scope="sel" hidden>Selection</button>
+            </div>
+            <button type="button" class="head-btn btn-recapture" title="Recapture live page content">${svg(ICON.refresh)}<span>Recapture</span></button>
+            <button type="button" class="head-btn btn-merge" title="Toggle append/merge mode (accumulates captures as you scroll or recapture)"><span>+ Merge</span></button>
+            <button type="button" class="head-btn btn-clear-merge" title="Clear accumulated captures and reset" hidden><span>Clear</span></button>
+          </div>
+          <div class="head-intro-right">
+            <button type="button" class="meta-toggle" aria-expanded="false" title="Page Details">${svg(ICON.info)}<span>Info</span><span class="meta-arr">▾</span></button>
+          </div>
         </div>
         <div class="head-frame-banner" hidden>
           <div class="frame-bar-top">
@@ -1451,10 +1508,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="head-sel-banner" hidden>
           <div class="sel-bar-top">
             <span class="sel-tag">${svg(ICON.note)}<span>Selection</span><span class="sel-chars"></span></span>
-            <div class="seg seg-sm" role="group" aria-label="Capture scope">
-              <button type="button" class="seg-btn on" data-scope="page">Page</button>
-              <button type="button" class="seg-btn" data-scope="sel">Selection</button>
-            </div>
           </div>
           <div class="head-sel quote"></div>
         </div>
@@ -1791,6 +1844,9 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     qa('[data-scope="page"]').forEach(b => {
       b.textContent = state.activeFrameIndex >= 0 ? 'Frame' : 'Page';
     });
+    qa('[data-scope="sel"]').forEach(b => {
+      b.hidden = !state.sel;
+    });
 
     if (state.fullscreen) {
       const slide = SLIDES[state.slide] || SLIDES[0];
@@ -1800,7 +1856,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       if (curEl) curEl.textContent = String(state.slide + 1);
       if (headTools) headTools.hidden = slide.id !== 'md';
       if (headHtmlTools) headHtmlTools.hidden = slide.id !== 'html';
-      if (headScopeTools) headScopeTools.hidden = !state.sel;
     } else {
       if (headTitle) headTitle.textContent = page.title;
       const fLabel = state.activeFrameIndex >= 0 && state.frames[state.activeFrameIndex] ? ` · [${state.frames[state.activeFrameIndex].title}]` : '';
@@ -1808,7 +1863,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       if (plaque) plaque.innerHTML = svg(ICON.sidebar);
       if (headTools) headTools.hidden = true;
       if (headHtmlTools) headHtmlTools.hidden = true;
-      if (headScopeTools) headScopeTools.hidden = true;
     }
   };
 
@@ -2334,8 +2388,11 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.shadowRoots = findShadowRoots();
     state.frames = findFrames();
     readLinks();
-    if (!state.blocks.length) state.text = readText();
-    if (state.collect || state.blocks.length) collectBlocks();
+    if (state.appendMode || state.collect) {
+      collectBlocks();
+    } else if (!state.blocks.length) {
+      state.text = readText();
+    }
     renderPageMeta();
     renderAllSlides();
     refresh();
@@ -2431,21 +2488,56 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (bd) bd.hidden = true;
   };
 
-  q('.reread').onclick = async () => {
-    readPage();
-    const b = q('.reread');
-    const anim = b?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 500, iterations: Infinity });
-    const el = q('.stale');
-    if (el) {
-      el.textContent = 'Checking for updates…';
-      el.style.color = 'var(--wt-p)';
-      el.hidden = false;
+  const doRecapture = (isManual = true) => {
+    const recapBtn = q('.btn-recapture');
+    const rereadBtn = q('.reread');
+    recapBtn?.querySelector('svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
+    rereadBtn?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], 400);
+
+    if (!state.appendMode) {
+      state.blocks = [];
+      state.blockChars = 0;
+      state.seen.clear();
+      state.seenLinks.clear();
+      state.links = [];
+      state.localMd = null;
+      state.jinaMd = null;
+      state.formattedHtml = null;
+      readPage();
+      if (recapBtn && isManual) {
+        const orig = recapBtn.innerHTML;
+        recapBtn.innerHTML = `<span>Recaptured ✓</span>`;
+        setTimeout(() => { if (recapBtn) recapBtn.innerHTML = orig; }, 1800);
+      }
+    } else {
+      const added = collectBlocks();
+      readLinks();
+      state.localMd = null;
+      state.formattedHtml = null;
+      renderAllSlides();
+      refresh();
+      if (recapBtn && isManual) {
+        const orig = recapBtn.innerHTML;
+        recapBtn.innerHTML = `<span>+${added || 0} blocks ✓</span>`;
+        setTimeout(() => { if (recapBtn) recapBtn.innerHTML = orig; }, 1800);
+      }
     }
+    updateMergeUI();
+  };
+
+  q('.reread').onclick = () => {
+    doRecapture(true);
+  };
+
+  q('.head-sub')?.addEventListener('click', async () => {
     const headSubSpan = q('.head-sub span');
+    if (headSubSpan && headSubSpan.textContent.includes('reload')) {
+      location.reload();
+      return;
+    }
     const origSub = headSubSpan ? headSubSpan.textContent : '';
     if (headSubSpan) headSubSpan.textContent = 'Checking for updates…';
     await checkBuild(true);
-    if (anim) anim.cancel();
     if (headSubSpan && origSub) {
       setTimeout(() => {
         if (headSubSpan.textContent.includes('Checking') || headSubSpan.textContent.includes('current')) {
@@ -2453,41 +2545,58 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         }
       }, 3500);
     }
-  };
-
-  q('.head-sub')?.addEventListener('click', () => {
-    const headSubSpan = q('.head-sub span');
-    if (headSubSpan && headSubSpan.textContent.includes('reload')) {
-      location.reload();
-      return;
-    }
-    q('.reread')?.click();
   });
 
-  // COLLECTING, which is the answer to a page that changes under you. A lazy
-  // feed adds rows as you scroll and a virtual one also REMOVES them, so a read
-  // taken at the end sees the last screen and calls it the page. While this is
-  // on, every change to the document is a chance to keep what has not been kept
-  // yet, and scrolling accumulates.
-  //
-  // The observer only raises a flag; the scan runs on a timer. A busy page
-  // mutates continuously, and re-reading every block on each mutation would
-  // make the launcher the reason the page stutters.
-  let dirty = false, timer = 0, watcher = null;
+  // COLLECTING / MERGING: captures new blocks across mutations and scrolling.
+  let dirty = false, timer = 0, watcher = null, scrollTimer = 0;
+  const onScrollPoll = () => {
+    if (!state.collect && !state.appendMode) return;
+    if (scrollTimer) return;
+    scrollTimer = setTimeout(() => {
+      scrollTimer = 0;
+      const added = collectBlocks();
+      if (added > 0) {
+        readLinks();
+        renderAllSlides();
+        refresh();
+        updateMergeUI();
+      }
+    }, 1200);
+  };
+
   const startCollecting = () => {
     collectBlocks();
-    watcher = new MutationObserver(() => {
-      if (dirty) return;
-      dirty = true;
-      timer = setTimeout(() => { dirty = false; readPage(); }, 700);
-    });
-    watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    readLinks();
+    if (!watcher) {
+      watcher = new MutationObserver(() => {
+        if (dirty) return;
+        dirty = true;
+        timer = setTimeout(() => {
+          dirty = false;
+          const added = collectBlocks();
+          if (added > 0) {
+            readLinks();
+            renderAllSlides();
+            refresh();
+            updateMergeUI();
+          }
+        }, 800);
+      });
+      watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+    window.addEventListener('scroll', onScrollPoll, { passive: true });
+    updateMergeUI();
   };
+
   const stopCollecting = () => {
     watcher?.disconnect();
     watcher = null;
+    window.removeEventListener('scroll', onScrollPoll);
     clearTimeout(timer);
+    clearTimeout(scrollTimer);
     dirty = false;
+    scrollTimer = 0;
+    updateMergeUI();
   };
 
   const setMenu = on => {
@@ -2531,12 +2640,14 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   };
   q('[data-collect]').onclick = () => {
     state.collect = !state.collect;
+    state.appendMode = state.collect;
     state.collect ? startCollecting() : stopCollecting();
     if (state.collect) state.withText = true;
     state.localMd = null;
     renderActiveSlide(1);
     refresh();
     if (state.slide === 0) renderActiveSlide(0);
+    updateMergeUI();
   };
 
   root.querySelectorAll('[data-md-engine]').forEach(b => {
@@ -2576,13 +2687,58 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     });
     state.localMd = null;
     state.formattedHtml = null;
-    renderActiveSlide(state.slide);
+    if (!state.appendMode && !state.blocks.length) {
+      state.text = readText();
+    }
+    renderAllSlides();
     refresh();
   };
   qa('[data-scope]').forEach(b => {
     b.onclick = () => syncScopeUI(b.getAttribute('data-scope'));
   });
   syncScopeUI(state.scope);
+
+  const updateMergeUI = () => {
+    const mergeBtn = q('.btn-merge');
+    const clearBtn = q('.btn-clear-merge');
+    if (mergeBtn) {
+      mergeBtn.classList.toggle('on', !!state.appendMode);
+      mergeBtn.innerHTML = state.appendMode
+        ? `<span>Merging (${state.blocks.length})</span>`
+        : `<span>+ Merge</span>`;
+    }
+    if (clearBtn) {
+      clearBtn.hidden = (state.blocks.length === 0 && !state.appendMode);
+      if (state.blocks.length > 0) {
+        clearBtn.innerHTML = `<span>Clear (${state.blocks.length})</span>`;
+      }
+    }
+  };
+
+  q('.btn-recapture')?.addEventListener('click', () => doRecapture(true));
+
+  q('.btn-merge')?.addEventListener('click', () => {
+    state.appendMode = !state.appendMode;
+    if (state.appendMode) {
+      startCollecting();
+    } else if (!state.collect) {
+      stopCollecting();
+    }
+    updateMergeUI();
+  });
+
+  q('.btn-clear-merge')?.addEventListener('click', () => {
+    state.blocks = [];
+    state.blockChars = 0;
+    state.seen.clear();
+    state.seenLinks.clear();
+    state.links = [];
+    state.appendMode = false;
+    stopCollecting();
+    state.collect = false;
+    readPage();
+    updateMergeUI();
+  });
 
   const selectFrameScope = index => {
     state.activeFrameIndex = index;
