@@ -92,7 +92,7 @@ test('rows are keyed by a unique subject and typed by kind', () => {
 // assertion about one statement. It stays here rather than moving to
 // the registry pair because its file is DISTRIBUTED (every skill's own
 // SKILL.md), and the declaration table's registries name a single file path.
-// See docs/registries.md, "What reconciliation found".
+// See docs/registries.md, "Limits of the model".
 test('a family row scopes itself; a statement row does not pretend to', () => {
   for (const r of rows) {
     if (r.kind === 'family') {

@@ -37,7 +37,7 @@ test('the set is typed and non-empty, and the plugins match the marketplace', ()
     // role here would be a second copy of one claim, which is what the
     // ownership gate in properties-registry.test.mjs now forbids. The Map view
     // joins the registry value for display, so the row is not left blank to a
-    // reader. See docs/registries.md, "the inheritance shape".
+    // reader. See docs/registries.md, "One owner per assertion".
     assert.ok(it.role || harnessPaths.has(it.path),
       it.path + ': needs a role, since no registry carries a description for it');
   }
