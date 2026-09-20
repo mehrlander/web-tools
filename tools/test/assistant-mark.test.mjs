@@ -17,7 +17,7 @@ const load = () => {
   return window;
 };
 
-test('classify correctly identifies all assistants and human fallback', () => {
+test('classify reads declarations and abstains when there are none', () => {
   const { assistantMark } = load();
 
   // Claude
@@ -30,8 +30,10 @@ test('classify correctly identifies all assistants and human fallback', () => {
 
   // Gemini
   assert.equal(assistantMark.classify({ name: 'gemini/activity-assistant-attribution' }), 'gemini');
-  assert.equal(assistantMark.classify({ name: 'agent/two-modes-github-flow-and-real-time' }), 'gemini');
-  assert.equal(assistantMark.classify({ name: 'agent/shortcut-run-test' }), 'gemini');
+  assert.equal(assistantMark.classify({ name: 'antigravity/csv-viewer-workbench-handoff' }), 'gemini');
+  // `agent/` declares nothing, so it abstains unless a row names the branch
+  assert.equal(assistantMark.classify({ name: 'agent/two-modes-github-flow-and-real-time' }), 'unknown');
+  assert.equal(assistantMark.classify({ name: 'agent/shortcut-run-test' }), 'unknown');
   assert.equal(assistantMark.classify({ name: 'feature-branch', trailer: 'Co-Authored-By: Gemini <gemini@google.com>' }), 'gemini');
   // Gemini, Codex, and Grok take precedence even when an ancestor commit carries a Claude session URL
   assert.equal(assistantMark.classify({ name: 'gemini/rebuild-app-prebuild', session: 'https://claude.ai/code/session_ancestor' }), 'gemini');
@@ -46,10 +48,53 @@ test('classify correctly identifies all assistants and human fallback', () => {
   // Copilot
   assert.equal(assistantMark.classify({ name: 'copilot/look-at-trackers' }), 'copilot');
 
-  // Human fallback
-  assert.equal(assistantMark.classify({ name: 'main' }), 'human');
-  assert.equal(assistantMark.classify({ name: 'my-feature' }), 'human');
-  assert.equal(assistantMark.classify(null), 'human');
+  // No signal is `unknown`, never `human`
+  assert.equal(assistantMark.classify({ name: 'main' }), 'unknown');
+  assert.equal(assistantMark.classify({ name: 'my-feature' }), 'unknown');
+  assert.equal(assistantMark.classify(null), 'unknown');
+});
+
+test('a declared row outranks every inference, and a repo-scoped row wins over a bare one', () => {
+  const { assistantMark } = load();
+  const n = assistantMark.declare([
+    { branch: 'fix/top-swipe-and-rev-banner', repo: 'me/tools', assistant: 'gemini', basis: 'PR #735' },
+    { branch: 'agent/shared-name', repo: 'me/tools', assistant: 'codex', basis: 'footer' },
+    { branch: 'agent/shared-name', repo: 'me/home', assistant: 'claude', basis: 'footer' },
+    { branch: 'hand-edit', repo: '', assistant: 'human', basis: 'the owner said so' },
+    { branch: '', assistant: 'grok' },
+  ]);
+  assert.equal(n, 6);
+  assert.equal(assistantMark.classify({ name: 'fix/top-swipe-and-rev-banner', repo: 'me/tools' }), 'gemini');
+  assert.equal(assistantMark.classify({ name: 'fix/top-swipe-and-rev-banner' }), 'gemini');
+  assert.equal(assistantMark.classify({ name: 'agent/shared-name', repo: 'me/tools' }), 'codex');
+  assert.equal(assistantMark.classify({ name: 'agent/shared-name', repo: 'me/home' }), 'claude');
+  assert.equal(assistantMark.classify({ name: 'agent/shared-name' }), 'codex');
+  assert.equal(assistantMark.classify({ name: 'hand-edit' }), 'human');
+  // A row outranks a session URL inherited from an ancestor commit
+  assert.equal(assistantMark.classify({ name: 'hand-edit', session: 'https://claude.ai/code/session_x' }), 'human');
+  assert.equal(assistantMark.declared('hand-edit'), 'human');
+  assert.equal(assistantMark.declared('nobody'), '');
+  // declare replaces the table rather than accumulating
+  assert.equal(assistantMark.declare([]), 0);
+  assert.equal(assistantMark.classify({ name: 'hand-edit' }), 'unknown');
+});
+
+test('docs/assistant-branches.csv parses, names known assistants, and states a basis on every row', () => {
+  const { assistantMark } = load();
+  const src = readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8');
+  const { window } = makeWindow();
+  new window.Function(src)();
+  const rows = window.Csv.rows(readFileSync(path.join(repoRoot, 'docs/assistant-branches.csv'), 'utf8'));
+  assert.ok(rows.length > 0);
+  const keys = new Set(Object.keys(assistantMark.LABEL));
+  for (const r of rows) {
+    assert.ok(r.branch && r.repo && r.assistant && r.basis && r.declared, JSON.stringify(r));
+    assert.ok(keys.has(r.assistant) && r.assistant !== 'unknown', r.branch + ': ' + r.assistant);
+    assert.match(r.declared, /^\d{4}-\d{2}-\d{2}$/, r.branch + ': declared');
+    assert.match(r.repo, /^[^/]+\/[^/]+$/, r.branch + ': repo');
+  }
+  assert.equal(assistantMark.declare(rows), new Set(rows.map(r => r.branch)).size + rows.length);
+  for (const r of rows) assert.equal(assistantMark.classify({ name: r.branch, repo: r.repo }), r.assistant);
 });
 
 test('svg renders distinct marks with appropriate stroke colors', () => {
@@ -75,8 +120,10 @@ test('svg renders distinct marks with appropriate stroke colors', () => {
   assert.match(grokSvg, /stroke:#52525b/);
   assert.ok(grokSvg.includes(assistantMark.PATH.grok));
 
-  // Human is empty by default
+  // Human and unclassified are empty by default
   assert.equal(assistantMark.svg('human'), '');
+  assert.equal(assistantMark.svg('unknown'), '');
+  assert.match(assistantMark.svg('unknown', { showHuman: true }), /stroke:#94a3b8/);
   // Unless showHuman is requested
   const humanSvg = assistantMark.svg('human', { showHuman: true });
   assert.match(humanSvg, /stroke:#64748b/);
@@ -98,6 +145,7 @@ test('label and color provide consistent metadata', () => {
   assert.equal(assistantMark.label('codex'), 'ChatGPT');
   assert.equal(assistantMark.label('grok'), 'Grok');
   assert.equal(assistantMark.label('human'), 'Human');
+  assert.equal(assistantMark.label('unknown'), 'Unclassified');
 
   assert.equal(assistantMark.color('gemini'), '#1a73e8');
   assert.equal(assistantMark.color('claude'), '#d97757');
@@ -134,7 +182,7 @@ test('estate integration: branch author helpers and filtering', () => {
   const window = load();
   const mockEstate = {
     branchAssistant(row) {
-      return row?.assistant || window.assistantMark?.classify?.(row) || 'human';
+      return row?.assistant || window.assistantMark?.classify?.(row) || 'unknown';
     },
     branchAssistantMark(row) {
       const a = this.branchAssistant(row);
@@ -213,9 +261,9 @@ test('estate integration: branch author helpers and filtering', () => {
   assert.ok(mockEstate.branchAssistantMark(geminiRow).includes('<svg'));
   assert.equal(mockEstate.branchAssistantTitle(geminiRow), 'Gemini branch');
 
-  assert.equal(mockEstate.branchAssistant(humanRow), 'human');
+  assert.equal(mockEstate.branchAssistant(humanRow), 'unknown');
   assert.equal(mockEstate.branchAssistantMark(humanRow), '');
-  assert.equal(mockEstate.branchAssistantTitle(humanRow), 'Human branch');
+  assert.equal(mockEstate.branchAssistantTitle(humanRow), 'Unclassified branch');
 
   // Assistant filter chips count
   const chips = mockEstate.openAssistants;
@@ -223,7 +271,7 @@ test('estate integration: branch author helpers and filtering', () => {
   assert.deepEqual(chips.map(c => [c.key, c.count]), [
     ['gemini', 2],
     ['claude', 1],
-    ['human', 1],
+    ['unknown', 1],
   ]);
 
   // Filtering by assistant
