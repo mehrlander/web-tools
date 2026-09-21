@@ -72,7 +72,7 @@ stub-hides-the-wiring,a test that stubs a lazy dependency cannot see it go missi
 page-skips-the-loader-ignores-use,a page outside the loader opts out of `?use=` with no error,1,2026-08-11,2026-08-11,loader.md
 derived-field-conflicts-per-branch,a merge conflict on a line no human wrote,1,2026-08-10,2026-08-10,../CLAUDE.md;../scripts/derived-csv-merge.mjs
 runner-tag-documented-unused,"a convention in the contract, used once, re-derived from memory",1,2026-08-09,2026-08-09,TRACKER.md
-status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,../.claude/skills/markers/status.py
+status-audit-skipped-index,the status audit silently dropped every marker in a file named `index.md`,1,2026-08-09,2026-08-09,
 venues-invisible-from-inside,a session inventories only the venues it can see from its own sandbox,1,2026-08-09,2026-08-09,venues.md
 daisy-color-in-variant,"a daisyUI color inside an arbitrary variant generates nothing, silently",1,2026-08-07,2026-08-07,show-repo.md
 pre-build-boots-alpine-early,a page's own gh.load chain runs after its components init,1,2026-08-07,2026-08-07,loader.md
