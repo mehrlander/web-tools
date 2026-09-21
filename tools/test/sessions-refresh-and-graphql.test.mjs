@@ -1,4 +1,4 @@
-﻿// tools/test/sessions-refresh-and-graphql.test.mjs — tests for:
+// tools/test/sessions-refresh-and-graphql.test.mjs — tests for:
 // 1. Sessions view "as of x" agePill in-place refreshActivityGroup wiring
 // 2. sessionsBusy flag covering activityGroupRefreshing
 // 3. crawlLabel('sessions') falling back to 'activity' progress while activityGroupRefreshing
@@ -137,24 +137,25 @@ test('branchesDatedSessions captures query, response, and extracted metadata in 
   assert.equal(window.__lastActivityGraphQL, captured, 'last activity GraphQL holds the same snapshot');
 });
 
-test('Activity view GraphQL inspector state and methods', async () => {
+test('State view GraphQL Activity Discovery inspector state, methods, and layout', async () => {
   const { window } = makeWindow({
-    html: '<!doctype html><html><body><div id="es" x-data="estate()"></div></body></html>',
+    html: '<!doctype html><html><body><div id="sv" x-data="stateView()"></div></body></html>',
   });
   window.TOKEN = 'test-tok';
   window.GH = FakeGH;
-  window.__shell = { hasToken: () => true };
+  window.__shell = { REGISTRY_REPO: 'mehrlander/web-tools-private' };
 
   const Alpine = await startAlpine(window, [
     'lib/alpine-bundle.js',
-    'lib/alpineComponents/estate.js',
+    'lib/alpineComponents/state-view.js',
   ]);
 
-  const est = Alpine.$data(window.document.getElementById('es'));
-  assert.equal(est.showGraphQL, false);
-  assert.equal(typeof est.toggleGraphQL, 'function');
-  assert.equal(typeof est.fetchActivityGraphQL, 'function');
-  assert.equal(typeof est.copyGraphQLText, 'function');
+  const sv = Alpine.$data(window.document.getElementById('sv'));
+  assert.ok(sv.template.includes('lg:grid-cols-2'), 'State view template contains responsive 2-column desktop grid');
+  assert.ok(sv.template.includes('BranchesDatedSessions'), 'State view template renders BranchesDatedSessions inspector');
+  assert.equal(typeof sv.fetchActivityGraphQL, 'function');
+  assert.equal(typeof sv.copyGraphQLText, 'function');
+  assert.equal(sv.graphQLTab, 'response');
 
   window.__graphQLByRepo = {
     'mehrlander/web-tools': {
@@ -167,12 +168,10 @@ test('Activity view GraphQL inspector state and methods', async () => {
     },
   };
 
-  est.graphQLRepo = 'mehrlander/web-tools';
-  assert.equal(est.currentGraphQL?.repo, 'mehrlander/web-tools');
-  assert.equal(est.currentGraphQL?.branchesCount, 5);
-
-  est.toggleGraphQL();
-  assert.equal(est.showGraphQL, true);
-  est.toggleGraphQL();
-  assert.equal(est.showGraphQL, false);
+  sv.graphQLRepo = 'mehrlander/web-tools';
+  assert.equal(sv.currentGraphQL?.repo, 'mehrlander/web-tools');
+  assert.equal(sv.currentGraphQL?.branchesCount, 5);
+  assert.ok(sv.graphQLReposList.includes('mehrlander/web-tools'));
+  assert.ok(sv.graphQLReposList.includes('mehrlander/web-tools-private'));
+  sv.destroy();
 });
