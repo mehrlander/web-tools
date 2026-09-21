@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'd05686d';
-const BUILT = '2026-09-21T13:20:22Z';
+const BUILD = 'c20b356';
+const BUILT = '2026-09-21T14:48:36Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -395,8 +395,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     if (setGm) setGm('wt_' + key, val).catch(() => {});
   };
 
-  const state = { slide: 0, links: [], text: '', picked: new Set(), withText: false,
-                  sel: '', selHtml: '', collect: false, appendMode: false, seen: new Set(),
+  const state = { slide: 0, links: [], text: '', picked: new Set(),
+                  sel: '', selHtml: '', appendMode: false, seen: new Set(),
                   blocks: [], blockChars: 0, seenLinks: new Map(), errand: null,
                   errandOut: '', localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
@@ -1549,8 +1549,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         <div class="deck-slide" data-slide-i="2">
           <div class="slide-tools">
             <div class="slide-tools-inner">
-              <button class="tool-btn" data-toggle-text></button>
-              <button class="tool-btn" data-collect></button>
               <span class="tool-meta text-count"></span>
             </div>
           </div>
@@ -2087,7 +2085,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
         if (textContent) {
           const full = state.blocks.length
             ? state.blocks.join('\n\n')
-            : (state.collect ? 'Nothing collected yet. Scroll the page.' : (state.text || 'No readable text found.'));
+            : (state.appendMode ? 'Nothing collected yet. Scroll the page.' : (state.text || 'No readable text found.'));
           if (state.sel && full.includes(state.sel)) {
             const parts = full.split(state.sel);
             textContent.innerHTML = parts.map(esc).join(`<mark class="sel-highlight">${esc(state.sel)}</mark>`);
@@ -2222,16 +2220,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
     const linksCount = q('.links-count');
     if (linksCount) linksCount.textContent = `${state.picked.size}/${state.links.length} picked`;
-    const t = q('[data-toggle-text]');
-    if (t) {
-      t.textContent = state.withText ? 'Included in MD' : 'Include in MD';
-      t.classList.toggle('on', state.withText);
-    }
-    const c = q('[data-collect]');
-    if (c) {
-      c.textContent = state.collect ? 'Collecting…' : 'Collect';
-      c.classList.toggle('on', state.collect);
-    }
     const textCount = q('.text-count');
     if (textCount) {
       textCount.textContent = state.blocks.length
@@ -2341,7 +2329,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.shadowRoots = findShadowRoots();
     state.frames = findFrames();
     readLinks();
-    if (state.appendMode || state.collect) {
+    if (state.appendMode) {
       collectBlocks();
     } else if (!state.blocks.length) {
       state.text = readText();
@@ -2506,7 +2494,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   // COLLECTING / MERGING: captures new blocks across mutations and scrolling.
   let dirty = false, timer = 0, watcher = null, scrollTimer = 0;
   const onScrollPoll = () => {
-    if (!state.collect && !state.appendMode) return;
+    if (!state.appendMode) return;
     if (scrollTimer) return;
     scrollTimer = setTimeout(() => {
       scrollTimer = 0;
@@ -2588,23 +2576,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     refresh();
     if (state.slide === 0) renderActiveSlide(0);
   };
-  q('[data-toggle-text]').onclick = () => {
-    state.withText = !state.withText;
-    state.localMd = null;
-    refresh();
-    if (state.slide === 0) renderActiveSlide(0);
-  };
-  q('[data-collect]').onclick = () => {
-    state.collect = !state.collect;
-    state.appendMode = state.collect;
-    state.collect ? startCollecting() : stopCollecting();
-    if (state.collect) state.withText = true;
-    state.localMd = null;
-    renderActiveSlide(2);
-    refresh();
-    if (state.slide === 0) renderActiveSlide(0);
-    updateMergeUI();
-  };
 
   root.querySelectorAll('[data-md-engine]').forEach(b => {
     b.onclick = () => {
@@ -2673,7 +2644,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.appendMode = !state.appendMode;
     if (state.appendMode) {
       startCollecting();
-    } else if (!state.collect) {
+    } else {
       stopCollecting();
     }
     updateMergeUI();
@@ -2687,7 +2658,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     state.links = [];
     state.appendMode = false;
     stopCollecting();
-    state.collect = false;
     readPage();
     updateMergeUI();
   });
