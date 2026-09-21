@@ -1,5 +1,6 @@
 kind,command,path,title,role,use
 skill,/portable:default,.claude/skills/default/SKILL.md,default,"loads the plugin-vendored working conventions, and the vendored guide-PR course when a PR is in play",plugin
+skill,/portable:sessions,.claude/skills/sessions/SKILL.md,sessions,"attaches and clones the session-record store named by sessionsStore or SESSIONS_STORE_REPO when no checkout declares one, so a task-spawned session is recorded like a hand-started one",plugin
 skill,/portable:load-skill,.claude/skills/load-skill/SKILL.md,load-skill,fetch any skill from the library on demand,plugin
 skill,/portable:show-repo,.claude/skills/show-repo/SKILL.md,show-repo,browse any repo and move files across repos,plugin
 skill,/portable:tree,.claude/skills/tree/SKILL.md,tree,"render a linked file tree of the repo, table-first for mobile",plugin
