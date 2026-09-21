@@ -10,8 +10,7 @@ closed: 2026-08-25
 > Built and validated on 2026-08-25, and it lives in the private estate at
 > `projects/local-models/instruments/docstruct/` rather than here. Everything
 > below is the filing and the spike that shaped it, kept as written; the closing
-> entry in the progress log says what changed and why. This file is declared a
-> record in [`.paths.json`](../../.paths.json).
+> entry in the progress log says what changed and why.
 # A multi-method harness for extracting structure from scanned documents
 
 Build the general, reusable front end that turns a scanned document into a
