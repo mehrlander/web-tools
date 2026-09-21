@@ -4,6 +4,11 @@
       "path": "tracker/tasks/document-structure-harness-4mz7wk.md",
       "since": "2026-08-25",
       "why": "The harness was built and validated in the private estate at projects/local-models/instruments/docstruct/. This file is the filing and the spike that shaped it, kept as written; the closing progress-log entry says what changed."
+    },
+    {
+      "path": "docs/github/mcp-server-routing.md",
+      "since": "2026-08-05",
+      "why": "Superseded by docs/github/mcp.md, which owns the operative routing rule on better evidence. Kept as the dated 2026-07-15 observation, annotated and not rewritten; docs/docs.csv already types it status: record."
     }
   ]
 }

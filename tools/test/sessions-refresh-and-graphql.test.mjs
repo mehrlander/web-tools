@@ -160,6 +160,7 @@ test('State view GraphQL Activity Discovery inspector state, methods, and layout
   assert.equal(typeof sv.copyGraphQLText, 'function');
   assert.equal(sv.graphQLTab, 'response');
   assert.equal(sv.graphQLRepo, 'all', 'defaults to all repositories');
+  assert.equal(sv.currentGraphQL, null, 'currentGraphQL is null when no repo snapshots exist');
 
   window.__graphQLByRepo = {
     'mehrlander/web-tools': {
