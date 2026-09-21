@@ -22,7 +22,6 @@
         "./in-flight",
         "./tasks",
         "./repo-review",
-        "./markers",
         "./sandbox-traps",
         "./content-registry",
         "./concept-index",
