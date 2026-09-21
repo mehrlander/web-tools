@@ -49,7 +49,4 @@ If `curl` is denied, use `mcp__github__get_file_contents` (owner `mehrlander`,
 repo `web-tools`), or WebFetch on the same raw URLs.
 
 Apply them with the current repo substituted into the URL templates; where the
-current repo's own CLAUDE.md conflicts on a point, the current repo wins. Then
-report the repo's frozen paths per [`markers/SKILL.md`](../markers/SKILL.md):
-nothing declared means say nothing; anything declared is named in one line
-before any editing.
+current repo's own CLAUDE.md conflicts on a point, the current repo wins.

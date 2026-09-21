@@ -7050,7 +7050,7 @@ function app(){ return {
     if (!window.RepoAddress) return false;
     if ([...(cd.items || [])].some(i => i.kind === 'file')) return false;
     const text = (cd.getData('text/plain') || '').trim();
-    if (!text) return false;
+    if (!text || /[\r\n]/.test(text)) return false;
 
     const addr = window.RepoAddress.fromPaste(text);
     if (addr) return this.openAddress(addr);
@@ -7062,12 +7062,106 @@ function app(){ return {
     // link to some other page on this origin is content rather than a route
     // this app can honour.
     let u;
-    try { u = new URL(text); } catch (e) { return false; }
-    if (u.origin !== location.origin || u.pathname !== location.pathname) return false;
-    history.replaceState(null, '', u.href);
-    const url = this.parseUrl();
-    await this.ensureBrowser(url?.repo, url?.ref);
-    await this.routeFromUrl(url);
+    try { u = new URL(text); } catch (e) { u = null; }
+    if (u && u.origin === location.origin && u.pathname === location.pathname) {
+      history.replaceState(null, '', u.href);
+      const url = this.parseUrl();
+      await this.ensureBrowser(url?.repo, url?.ref);
+      await this.routeFromUrl(url);
+      return true;
+    }
+
+    // A CLAUDE SESSION URL, or bare session ID: resolve against the private store
+    // and open the session detail takeover deck.
+    const sm = text.match(/^(?:https?:\/\/claude\.ai\/code\/)?(session_[A-Za-z0-9]+)(?:[?#].*)?$/i);
+    if (sm) return await this.openSessionByAgent(sm[1]);
+
+    // A BRANCH ADDRESS, as repo@branch, a GitHub tree URL, or an assistant branch name:
+    // opens the branch detail takeover deck.
+    const br = this.parseBranchPaste(text);
+    if (br) return this.openBranchSpec(br.repo, br.name);
+
+    return false;
+  },
+
+  // Open the session detail page for a Claude session URL / ID: resolves against
+  // in-memory estate sessions or fetches state/sessions.json from the private
+  // store, stamps the URL, switches to Sessions, and opens the takeover deck.
+  async openSessionByAgent(sessId){
+    const es = document.querySelector('[x-data^="estate"]');
+    const esData = es ? window.Alpine?.$data(es) : null;
+    let row = esData?.allSessionRows?.find(r => r.agent && r.agent.includes(sessId));
+
+    if (!row && this.hasToken() && window.GH) {
+      try {
+        const S = window.RepoSessionsCache;
+        const path = S?.CACHE_PATH || 'state/sessions.json';
+        const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
+        const cache = JSON.parse((await reg.get(path)).text);
+        if (esData && typeof esData.takeSessions === 'function') esData.takeSessions(cache);
+        row = (cache.rows || []).find(r => r.agent && r.agent.includes(sessId));
+      } catch (e) {
+        console.warn('resolving session by agent:', e?.message || e);
+      }
+    }
+
+    if (row && row.id) {
+      const p = new URLSearchParams(location.search);
+      p.set('view', 'sessions');
+      p.set('session', row.id);
+      history.replaceState(null, '', location.pathname + '?' + p.toString());
+      this.goSessions();
+      document.dispatchEvent(new CustomEvent('web-tools:open-session-detail', { detail: { id: row.id } }));
+      return true;
+    }
+
+    const toast = Alpine.store('toast');
+    toast?.('warning', 'Session ' + sessId + ' not found in sessions cache. A record is published when the session stops and crawls run periodically.', 'alert-warning', 6000);
+    return true;
+  },
+
+  // Parse a pasted string as a branch address: repo@branch, a GitHub tree URL,
+  // or an assistant-prefixed branch name. Returns { repo, name } or null.
+  parseBranchPaste(text){
+    if (!text || /[\r\n]/.test(text)) return null;
+    const s = String(text).trim();
+    // Form 1: GitHub tree URL: https://github.com/owner/repo/tree/branch-name
+    const gm = s.match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/tree\/(.+)$/i);
+    if (gm) {
+      return { repo: gm[1], name: gm[2].replace(/[?#].*$/, '').replace(/\/$/, '') };
+    }
+    // Form 2: repo@branch or shortRepo@branch (must not contain ':' which is RepoAddress)
+    const em = s.match(/^([\w.-]+(?:\/[\w.-]+)?)@([^:]+)$/);
+    if (em) {
+      let repo = em[1], name = em[2].replace(/[?#].*$/, '').replace(/\/$/, '');
+      if (!repo.includes('/')) {
+        const S = Alpine.store('browser');
+        const m = (S?.estateRepos || []).filter(r => (r.repo.split('/')[1] || '').toLowerCase() === repo.toLowerCase());
+        if (m.length === 1) repo = m[0].repo;
+      }
+      if (repo.includes('/') && name) return { repo, name };
+    }
+    // Form 3: assistant-prefixed bare branch: claude/..., codex/..., gemini/..., grok/..., agent/...
+    if (/^(?:claude|codex|gemini|grok|agent)\/[A-Za-z0-9_.-]+$/.test(s)) {
+      const es = document.querySelector('[x-data^="estate"]');
+      const esData = es ? window.Alpine?.$data(es) : null;
+      const hit = esData?.allBranchRows?.find(r => r.name === s);
+      const repo = hit ? hit.repo : (Alpine.store('browser')?.repo || this.DEFAULT_REPO);
+      return { repo, name: s };
+    }
+    return null;
+  },
+
+  // Open the branch takeover deck for a repo@name branch.
+  openBranchSpec(repo, name){
+    const p = new URLSearchParams(location.search);
+    p.set('view', 'branches');
+    p.set('detail', repo + '@' + name);
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+    this.goBranches();
+    document.dispatchEvent(new CustomEvent('web-tools:open-branch-detail', {
+      detail: { repo, name }
+    }));
     return true;
   },
 
