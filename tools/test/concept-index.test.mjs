@@ -106,3 +106,38 @@ test('--repo turns a finding into an openable URL', () => {
   assert.equal(res.paths_unlinked[0].url,
     'https://github.com/owner/name/blob/main/docs/HUB.md')
 })
+
+// The reader's common-ground table steers the check both ways.
+function known (root, rows) {
+  const path = join(root, 'common-ground.csv')
+  writeFileSync(path, ['kind,target,at,grade,by,graded_on,as_of,evidence,note', ...rows, ''].join('\n'))
+  return path
+}
+
+test('--known: a term graded bare is not flagged even when used without a handle', () => {
+  const root = fixture()
+  index(root)
+  const k = known(root, ['term,stage link,,bare,walk,2026-09-21,,,'])
+  const res = check(root, 'Use the stage link to move it.', ['--known', k])
+  assert.equal(res.terms_unhandled.length, 0)
+})
+
+test('--known: a term graded by-location is flagged whatever its tier, and carries the grade', () => {
+  const root = fixture()
+  index(root)
+  // render harness is assumed-tier and below the frequency floor; the reader's grade overrides both.
+  const k = known(root, ['term,render harness,,by-location,walk,2026-09-21,,,'])
+  const res = check(root, 'The render harness owns this.', ['--known', k])
+  assert.deepEqual(res.terms_unhandled.map(t => [t.term, t.reader]), [['render harness', 'by-location']])
+
+  const linked = check(root, 'The [render harness](https://example.com) owns this.', ['--known', k])
+  assert.equal(linked.terms_unhandled.length, 0)
+})
+
+test('--known: a located grade (non-blank at) does not steer the check', () => {
+  const root = fixture()
+  index(root)
+  const k = known(root, ['term,stage link,docs/,bare,walk,2026-09-21,,,'])
+  const res = check(root, 'Use the stage link to move it.', ['--known', k])
+  assert.deepEqual(res.terms_unhandled.map(t => t.term), ['stage link'])
+})
