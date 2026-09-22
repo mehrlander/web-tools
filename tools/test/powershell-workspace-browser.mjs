@@ -18,6 +18,7 @@ const P = 'projects/wps', R = 'example/powershell';
 const REV = 'a'.repeat(40), TREE = 'b'.repeat(40);
 const source = `# @file ${P}/app/Forms/Example/Example.ps1\r\nfunction Show-Example {\r\n    param([string]$Title = 'Today')\r\n    $button = $window.FindName('RefreshButton')\r\n    $button.Add_Click({ Write-Output $Title })\r\n}\r\n`;
 const A = P + '/app/Forms/Example/Example.ps1', B = P + '/app/Forms/Example/Example.xaml';
+const M = P + '/app/Modules/Example/Example.psm1';
 const files = {
   '.web-tools.json': JSON.stringify({ icon: 'ph-terminal', projects: [{ path: P, installation: P + '/data/installation.json' }] }),
   'README.md': '# PowerShell\n',
@@ -27,7 +28,7 @@ const files = {
   [P + '/data/observations.csv']: 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n',
   [A]: source,
   [B]: '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"><StackPanel><Button x:Name="RefreshButton" Content="Refresh" /></StackPanel></Window>\n',
-  [P + '/app/Modules/Example/Example.psm1']: "function Get-Example { 'Hello' }\nExport-ModuleMember -Function Get-Example\n",
+  [M]: "function Get-Example { 'Hello' }\nExport-ModuleMember -Function Get-Example\n",
 };
 const hash = text => createHash('sha1').update('blob ' + Buffer.byteLength(text) + '\0').update(text).digest('hex');
 const entries = () => Object.entries(files).map(([path, text]) => ({ path, type: 'blob', mode: '100644', sha: hash(text), size: Buffer.byteLength(text) }));
@@ -40,11 +41,20 @@ const server = http.createServer(async (req, res) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = 'http://127.0.0.1:' + server.address().port;
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+let browser;
+for (const options of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
+  try { browser = await chromium.launch({ ...options, args: ['--no-sandbox'] }); break; }
+  catch (error) { if (options.channel === 'msedge') { server.close(); throw error; } }
+}
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
 await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
 const page = await context.newPage();
 page.on('pageerror', e => errors.push(e.message));
+// Native clipboard transport may use CRLF on Windows. Observe the event's
+// actual plain text without intercepting it, then hold intake to those bytes.
+await page.addInitScript(() => document.addEventListener('paste', event => {
+  window.__lastPlainPaste = event.clipboardData?.getData('text/plain');
+}, true));
 await page.route('**/*', async route => {
   const request = route.request(), url = request.url(), u = new URL(url);
   const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -86,8 +96,66 @@ await page.route('**/*', async route => {
 const state = () => page.evaluate(() => {
   const el = document.querySelector('[x-data^="powershellWorkspace"]');
   const d = el && window.Alpine.$data(el);
-  return d ? { active: d.active, error: d.error, text: d.doc?.text, loading: d.loading, editorReady: d.editorReady, editorError: d.editorError, dirty: d.dirtyDocs.length } : null;
+  return d ? { active: d.active, error: d.error, text: d.doc?.text, loading: d.loading, editorReady: d.editorReady, editorError: d.editorError, dirty: d.dirtyDocs.length, pane: d.pane, diffAgainst: d.diffAgainst, received: d.localCheck?.content, pending: !!window.__shell.correspondencePending, view: window.__shell.view, projectTab: window.__shell.projectTab } : null;
 });
+const workspace = () => page.locator('[data-powershell-workspace]');
+const viewTab = name => workspace().getByRole('tab', { name, exact: true });
+const menuDialog = name => page.getByRole('dialog', { name, exact: true });
+async function menuAction(menu, action) {
+  await workspace().getByRole('button', { name: menu, exact: true }).click();
+  await menuDialog(menu).getByRole('button', { name: action, exact: true }).click();
+}
+async function ready() {
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[x-data^="powershellWorkspace"]');
+    const d = el && window.Alpine?.$data(el);
+    return d && !d.loading && (d.editorReady || d.editorError || d.error);
+  }, null, { timeout: 30000 });
+  assert.equal((await state()).error, '', JSON.stringify(await state()));
+  assert.equal((await state()).editorReady, true, JSON.stringify(await state()));
+}
+async function exactText(text) {
+  await page.waitForFunction(text => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).doc?.text === text, text);
+  await page.waitForFunction(() => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).saveState === 'Saved in this browser');
+  assert.equal((await state()).text, text);
+}
+async function clipboard(text) {
+  return page.evaluate(async text => {
+    await navigator.clipboard.writeText(text);
+    return navigator.clipboard.readText();
+  }, text);
+}
+async function pasteOnPage(text) {
+  // A focused view tab is outside CodeMirror and all native text inputs.
+  await viewTab('Compare').click();
+  await clipboard(text);
+  await page.evaluate(() => { window.__lastPlainPaste = null; });
+  await page.keyboard.press('Control+V');
+  await page.waitForFunction(() => typeof window.__lastPlainPaste === 'string');
+  const delivered = await page.evaluate(() => window.__lastPlainPaste);
+  assert.equal(delivered.replace(/\r\n?/g, '\n'), text.replace(/\r\n?/g, '\n'), 'native clipboard delivers the intended code');
+  return delivered;
+}
+async function received(text, path) {
+  await page.waitForFunction(({ text, path }) => {
+    const el = document.querySelector('[x-data^="powershellWorkspace"]');
+    const d = el && Alpine.$data(el);
+    return d?.active === path && d.localCheck?.content === text && !d.comparing;
+  }, { text, path });
+  const d = await state();
+  assert.equal(d.error, '', JSON.stringify(d));
+  assert.equal(d.view, 'project', 'intake keeps the project workspace open');
+  assert.equal(d.projectTab, 'code', 'intake keeps the Code route');
+  assert.equal(d.pane, 'diff', 'received text opens Compare');
+  assert.equal(d.diffAgainst, 'local', 'Compare selects the received copy');
+  assert.equal(await workspace().getByRole('textbox', { name: 'Supplied local copy', exact: true }).count(), 0, 'incoming code needs no parallel paste field');
+}
+async function withinViewport(locator, name, inset = 0) {
+  const box = await locator.boundingBox(), viewport = page.viewportSize();
+  assert.ok(box, name + ' is visible');
+  assert.ok(box.x >= inset - 1 && box.y >= inset - 1 && box.x + box.width <= viewport.width - inset + 1 && box.y + box.height <= viewport.height - inset + 1, name + ' stays on screen: ' + JSON.stringify({ box, viewport }));
+  return box;
+}
 async function checkSyntaxContrast(theme) {
   const ratios = await page.evaluate(async () => {
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -110,19 +178,14 @@ async function checkSyntaxContrast(theme) {
 try {
   const url = origin + '/app/index.html?repo=' + R + '&view=project&project=' + P + '&tab=code&item=' + A + '&shell=nav';
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.querySelector('[data-powershell-workspace]'), null, { timeout: 30000 });
-  await page.waitForFunction(() => {
-    const d = Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]'));
-    return !d.loading && (d.editorReady || d.editorError || d.error);
-  });
-  assert.equal((await state()).error, '');
-  assert.equal((await state()).editorReady, true, JSON.stringify(await state()));
+  await ready();
   assert.equal((await state()).text, source);
   const cm = page.locator('[data-editor-host] .CodeMirror');
   assert.ok((await cm.boundingBox()).height > 250, 'the editor receives viewport space');
+  assert.deepEqual(await workspace().getByRole('tablist', { name: 'Code views' }).getByRole('tab').allTextContents(), ['Code', 'Compare', 'History']);
   await checkSyntaxContrast('light');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-desktop.png') });
-  await page.getByRole('button', { name: 'Split companion', exact: true }).click();
+  await menuAction('File actions', 'Split companion');
   await page.locator('[data-companion-host] .CodeMirror').waitFor({ state: 'visible' });
   await page.waitForFunction(() => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).connections.some(row => row.name === 'RefreshButton'));
   await page.screenshot({ path: path.join(output, 'powershell-workspace-companion.png') });
@@ -132,48 +195,124 @@ try {
   await page.screenshot({ path: path.join(output, 'powershell-workspace-dark.png') });
   await page.evaluate(theme => theme ? document.documentElement.setAttribute('data-theme', theme) : document.documentElement.removeAttribute('data-theme'), originalTheme);
   await page.getByRole('button', { name: 'Close companion', exact: true }).click();
+  // Actual clipboard paste must reach CodeMirror, even when the code names a
+  // different repository file. The app-level signature router may not steal it.
+  const nativePaste = '# @file ' + M + "\nWrite-Output 'native editor paste'\n";
+  const pastedDraft = source + nativePaste.replace(/\n/g, '\r\n');
+  await cm.click();
+  await page.keyboard.press('Control+End');
+  await clipboard(nativePaste);
+  await page.keyboard.press('Control+V');
+  await exactText(pastedDraft);
+  assert.equal((await state()).active, A, 'native paste keeps the open file');
+  assert.equal((await state()).pane, 'code', 'native paste keeps the editor');
+  assert.equal((await state()).pending, false, 'native code signature does not open a routing choice');
+  assert.equal((await state()).received, undefined, 'native paste does not become a comparison');
+  await workspace().getByRole('button', { name: 'Undo', exact: true }).click();
+  await exactText(source);
+  await workspace().getByRole('button', { name: 'Redo', exact: true }).click();
+  await exactText(pastedDraft);
+  await workspace().getByRole('button', { name: 'Undo', exact: true }).click();
+  await exactText(source);
   await cm.click();
   await page.keyboard.press('Control+End');
   await page.keyboard.insertText("# browser edit: 'exact' ✓");
-  await page.waitForFunction(() => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).saveState === 'Saved in this browser');
-  assert.equal((await state()).text, source + "# browser edit: 'exact' ✓");
-  await page.getByRole('button', { name: 'Companion', exact: true }).click();
+  const editedDraft = source + "# browser edit: 'exact' ✓";
+  await exactText(editedDraft);
+  await menuAction('File actions', 'Companion');
   assert.equal((await state()).active, B);
   await page.getByRole('tab', { name: '● Example.ps1', exact: true }).click();
-  assert.equal((await state()).text, source + "# browser edit: 'exact' ✓");
+  assert.equal((await state()).text, editedDraft);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.Alpine && document.querySelector('[x-data^="powershellWorkspace"]') && Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]'))?.editorReady);
-  assert.equal((await state()).text, source + "# browser edit: 'exact' ✓", 'browser reload restores drafts');
+  await ready();
+  assert.equal((await state()).text, editedDraft, 'browser reload restores drafts');
   assert.equal(writes.length, 0, 'editing and restoration write only browser storage');
-  await page.getByRole('tab', { name: 'diff', exact: true }).click();
+
+  const incoming = source.replace(/\r\n/g, '\n').replace("'Today'", "'From the work machine'");
+  const deliveredIncoming = await pasteOnPage(incoming);
+  await received(deliveredIncoming, A);
+  assert.equal((await state()).text, editedDraft, 'page paste compares without replacing the browser draft');
+  assert.equal((await state()).dirty, 1, 'a received copy is not an editor draft');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-diff.png') });
+  await menuAction('File actions', 'Find and replace');
+  await cm.locator('.CodeMirror-dialog input').waitFor({ state: 'visible' });
+  assert.equal((await state()).pane, 'code', 'Find and replace from Compare opens the code editor');
+  assert.equal(await cm.locator('.CodeMirror-dialog input').evaluate(el => document.activeElement === el), true, 'Find and replace focuses its search field');
+  await page.keyboard.press('Escape');
+  await cm.locator('.CodeMirror-dialog').waitFor({ state: 'hidden' });
+
+  const moduleIncoming = '# @file ' + M + "\nfunction Get-Example { 'Changed on the work machine' }\n";
+  const deliveredModule = await pasteOnPage(moduleIncoming);
+  const choice = page.getByRole('dialog', { name: 'Choose repository file for comparison', exact: true });
+  await choice.waitFor({ state: 'visible' });
+  assert.equal((await state()).active, A, 'a mismatched signature waits for a target choice');
+  assert.equal((await state()).received, deliveredIncoming, 'no comparison is replaced before the choice');
+  await choice.getByRole('button', { name: /Example\.ps1.*open file/ }).click();
+  await received(deliveredModule, A);
+  assert.equal((await state()).text, editedDraft, 'choosing the open file retains its draft');
+  await pasteOnPage(moduleIncoming);
+  await choice.waitFor({ state: 'visible' });
+  await choice.getByRole('button', { name: /Example\.psm1.*# @file/ }).click();
+  await received(deliveredModule, M);
+  assert.equal((await state()).text, files[M], 'choosing a declared file opens its GitHub source unchanged');
+  assert.equal((await state()).dirty, 1, 'choosing a target does not create a draft');
+  await page.getByRole('tab', { name: '● Example.ps1', exact: true }).click();
+  await viewTab('Compare').click();
+
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export drafts', exact: true }).click();
+  await menuAction('Workspace actions', /^Back up drafts\b/);
   const exported = await download;
   const stream = await exported.createReadStream(), chunks = [];
   for await (const chunk of stream) chunks.push(chunk);
   const bundle = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  assert.equal(bundle.drafts[0].text, source + "# browser edit: 'exact' ✓");
+  assert.equal(bundle.drafts[0].text, editedDraft);
+  assert.equal(bundle.drafts.length, 1, 'received comparison text is excluded from draft backup');
   await page.getByRole('button', { name: /Review changes/ }).click();
   await page.getByRole('textbox', { name: 'New branch', exact: true }).fill('wps/browser-verification');
   assert.equal(writes.length, 0, 'review performs no writes');
   await page.getByRole('button', { name: 'Create branch and commit', exact: true }).click();
   await page.waitForFunction(() => !!Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).published);
   assert.deepEqual(writes.map(w => w.method + ' ' + w.path), ['POST git/trees', 'POST git/commits', 'POST git/refs']);
-  assert.equal(writes[0].body.tree[0].content, source + "# browser edit: 'exact' ✓");
+  assert.equal(writes[0].body.tree[0].content, editedDraft);
   assert.equal(writes[2].body.ref, 'refs/heads/wps/browser-verification');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.Alpine && document.querySelector('[x-data^="powershellWorkspace"]') && Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]'))?.editorReady);
-  await page.getByRole('tab', { name: 'diff', exact: true }).click();
+  await ready();
+  await viewTab('Code').click();
+  const phoneEditor = await withinViewport(cm, 'phone editor');
+  assert.ok(phoneEditor.height >= 320, 'phone editor retains at least 320px: ' + phoneEditor.height);
+  assert.ok(phoneEditor.y <= 280, 'phone toolbars leave the code near the top: ' + phoneEditor.y);
+  await withinViewport(workspace().getByRole('button', { name: /Review changes/ }), 'phone Review changes');
+  await page.screenshot({ path: path.join(output, 'powershell-workspace-phone-code.png') });
+  for (const name of ['Workspace actions', 'File actions']) {
+    await workspace().getByRole('button', { name, exact: true }).click();
+    const dialog = menuDialog(name);
+    await dialog.waitFor({ state: 'visible' });
+    await withinViewport(dialog, 'phone ' + name);
+    await page.screenshot({ path: path.join(output, 'powershell-workspace-phone-' + name.toLowerCase().replaceAll(' ', '-') + '.png') });
+    for (const control of await dialog.locator('button:visible, a:visible, select:visible').all()) {
+      await control.scrollIntoViewIfNeeded();
+      await withinViewport(control, 'phone menu control after scrolling');
+    }
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+  }
+  await viewTab('Compare').click();
+  const appIncoming = source.replace(/\r\n/g, '\n').replace("'Today'", "'Pasted from the app action'");
+  const deliveredApp = await clipboard(appIncoming);
+  await page.getByRole('button', { name: 'Web-tools panel', exact: true }).click({ button: 'right' });
+  await page.getByRole('button', { name: /(?:^|\s)Paste$/ }).click();
+  await received(deliveredApp, A);
+  assert.equal((await state()).text, editedDraft, 'the app Paste tap compares without replacing the draft');
+  assert.equal(writes.length, 3, 'phone intake performs no further GitHub writes');
   assert.ok((await page.locator('[data-code-diff]').boundingBox()).height > 200, 'phone diff retains readable viewport space');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'phone page has no horizontal overflow');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-phone.png') });
-  await page.getByRole('button', { name: 'All files', exact: true }).click();
+  await workspace().getByRole('button', { name: 'Files', exact: true }).click();
   await page.getByRole('button', { name: /Example.xaml/ }).first().click();
   assert.equal((await state()).active, B, 'phone explorer reaches a file');
   assert.deepEqual(errors, []);
-  console.log('PASS full app Code route, editor geometry, exact edits, companions, restored drafts, diff, JSON export, reviewed publication, phone navigation and overflow');
+  console.log('PASS full app Code route, exact native paste and undo, workspace comparison intake and target choice, app Paste tap, companions, retained drafts, backup, reviewed publication, phone menus and geometry');
 } catch (e) {
   console.error('State:', JSON.stringify(await state().catch(() => null)));
   console.error('Page errors:', errors);

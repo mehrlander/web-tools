@@ -11,6 +11,11 @@ Overview continues to own installation observations and adoption records.
 
 ## Working with code
 
+The workspace has three views for the selected file: **Code** edits its browser
+draft, **Compare** puts that draft beside its base, GitHub source or a supplied
+copy, and **History** lists the file's GitHub commits with links to inspect them.
+History is separate from the editor's undo history.
+
 The explorer groups files using the installation manifest's areas. Find file
 filters paths; Search reads source content at the captured revision and includes
 open drafts. Search stops at 500 results and reports that limit. New file creates
@@ -19,7 +24,7 @@ a browser draft under the project's `app/` folder.
 The editor provides PowerShell and XML syntax highlighting, line numbers,
 folding, bracket matching, indentation, undo/redo, Find and Replace, and word
 completion with Ctrl+Space. Ctrl+S saves the draft in this browser. Each open
-file keeps its own history. **Focus** uses the viewport; phone visits start in
+file keeps its own undo history. **Focus** uses the viewport; phone visits start in
 focus mode. **Exit focus** returns to the app frame.
 
 **Companion** opens the paired controller or XAML file. **Split companion**
@@ -47,18 +52,21 @@ holds the base revision, base blob, original text, edited text, and update date.
 Changing tabs or visiting another app view retains drafts. A failed or pending
 save also retains recovery text in the current app window, and a browser unload
 with unsaved text requests confirmation. Memory recovery cannot survive closing
-the browser. **Export drafts** writes a JSON bundle; **Import drafts** validates
-its scope, previews restoration, and refuses to replace different open drafts.
+the browser. **Workspace actions** provides **Back up drafts** and **Restore drafts**.
+Backup writes the browser drafts to a JSON bundle. Restore validates that bundle's
+repository, project and ref, previews restoration, and refuses to replace
+different open drafts.
 
 Browser storage is specific to its origin and browser profile. A branch preview
 rendered under another origin has separate storage. Concurrent editing of the
 same draft in multiple browser windows is not a collaborative editing protocol.
-Export before moving to another browser or origin.
+Make a backup before moving to another browser or origin.
 
 ## Comparing and publishing
 
-Diff compares the draft with its original base, the last checked GitHub source,
-or a supplied copy. **Check GitHub** captures a new revision. An unchanged blob
+**Compare** shows the draft against its original base, the last checked GitHub
+source, or a supplied copy. The branch control opens **GitHub source**, where
+**Check GitHub** captures a new revision. An unchanged blob
 can advance the draft's base revision without changing its text. When GitHub
 changed that file, the workspace retains the original base and draft. **Use
 current as base** displays the current-source diff, then asks for confirmation
@@ -80,10 +88,25 @@ remains available in either case.
 
 ## The separate work installation
 
-Supplied copy accepts pasted text or one chosen/dropped file. The existing
-correspondence kit recognizes UTF-16 BOMs and offers explicit alternate
-encodings. The check records the supplied text and pinned source in browser
-storage. **Use compared copy as draft** is a separate, confirmed action.
+PowerShell text can identify its repository file with the existing signature:
+
+```powershell
+# @file projects/wps/app/Modules/Forms/Forms.psm1
+```
+
+The path is relative to the repository root; the active repository and ref
+provide the rest of the address. App-level paste, outside the editor or through
+the app's paste control, recognizes that signature and opens the supplied copy
+in **Compare**. Native paste with the caret in the code editor edits the current
+draft normally. Recognition accepts BOM-prefixed text and LF, CRLF or CR line
+endings without rewriting the supplied source. Different `# @file` paths in
+one submission are rejected; repeated declarations of the same path are allowed.
+
+Compare also accepts pasted text or one chosen/dropped file for a selected
+source. The existing correspondence kit recognizes UTF-16 BOMs and offers
+explicit alternate encodings. A check records the supplied text and pinned
+source in browser storage. **Use as draft** is a separate,
+confirmed action; recognizing a signature does not replace the browser draft.
 
 Copy, Download, and publication do not record installation. **Installation**
 returns to the project's Overview and selected file. That view shows the
@@ -115,9 +138,9 @@ Its kits separate [repository and draft operations](../lib/kits/powershell-works
 Installation derivation and writing remain in [installation.js](../lib/kits/installation.js).
 
 `npm run preflight` runs the repository's derived-artifact checks and unit suite.
-`node tools/test/powershell-workspace-browser.mjs` exercises the full app route,
+`npm run test:powershell-workspace` exercises the full app route,
 editor, persistence, export, publication and phone layout against a local fixture.
-`node tools/test/powershell-editor.mjs` exercises actual CodeMirror behavior and
+`npm run test:powershell-editor` exercises actual CodeMirror behavior and
 the textarea fallback. The browser tests intercept GitHub requests and do not
 publish their fixture code.
 

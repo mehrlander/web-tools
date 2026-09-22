@@ -448,3 +448,119 @@ test('a GitHub check completing after teardown cannot save over the reopened dra
   assert.equal(f.records('wpsWorkspace.drafts')[0].text, latest);
   assert.equal(reopened.data.doc.text, latest);
 });
+
+test('received copies open Compare against the captured base without editing the browser draft', async () => {
+  const f = fixture(), v = await f.mount();
+  const intake = v.data.captureIntake(), incoming = '# @file ' + A + '\r\n' + ORIGINAL;
+  f.state.revision = NEXT;
+  assert.equal(await intake.receive(intake.selected, incoming, { source: 'clipboard', name: 'Report.ps1' }), true);
+  assert.equal(v.data.pane, 'diff'); assert.equal(v.data.diffAgainst, 'local');
+  assert.equal(v.data.localCheck.content, incoming); assert.equal(v.data.doc.text, ORIGINAL);
+  assert.ok(f.calls.some(c => c.path === 'commits?sha=' + REV + '&per_page=1'), 'Comparison must request the document base, not current main');
+  assert.equal(f.records('wpsWorkspace.drafts').length, 0);
+  assert.equal(v.el.querySelector('[aria-label="Supplied local copy"]'), null);
+  assert.deepEqual(f.writes, []);
+});
+
+test('the workspace receiver rethrows the retained comparison error unchanged for app recovery', async () => {
+  const f = fixture(), v = await f.mount();
+  const retained = Object.assign(new Error('Pinned source is unavailable'), { retained: true, pendingSaved: true });
+  const open = window.FileCorrespondence.open;
+  window.FileCorrespondence.open = async () => { throw retained; };
+  try {
+    const intake = v.data.captureIntake();
+    await assert.rejects(intake.receive(intake.selected, 'incoming copy'), error => {
+      assert.equal(error, retained, 'The app must receive the original recovery flags and error identity');
+      assert.equal(error.retained, true); assert.equal(error.pendingSaved, true);
+      return true;
+    });
+    assert.equal(v.data.error, retained.message); assert.equal(v.data.comparing, false);
+    assert.equal(v.data.doc.text, ORIGINAL); assert.deepEqual(f.writes, []);
+  } finally { window.FileCorrespondence.open = open; }
+});
+
+test('a failed new receive makes the previous comparison unadoptable during and after the request', async () => {
+  const f = fixture(), v = await f.mount(), previous = ORIGINAL + '# previous copy';
+  let intake = v.data.captureIntake();
+  await intake.receive(intake.selected, previous);
+  assert.equal(v.data.localCheck.content, previous);
+  v.data.confirmation = 'local';
+  const gate = deferred(), incoming = ORIGINAL + '# newly received copy';
+  f.gates.set('storage:put', gate); f.state.failPut = true;
+  intake = v.data.captureIntake();
+  const receiving = intake.receive(intake.selected, incoming);
+  const rejected = assert.rejects(receiving, error => {
+    assert.equal(error.retained, true); assert.equal(error.pendingSaved, false);
+    assert.match(error.message, /Browser storage is full/);
+    return true;
+  });
+  try {
+    await tick(3);
+    assert.equal(v.data.comparing, true);
+    assert.equal(v.data.localCheck, null); assert.equal(v.data.doc.localCheck, null);
+    assert.equal(v.data.confirmation, '', 'Receiving clears the earlier adoption confirmation');
+    assert.equal(button(v, 'Use as draft…').disabled, true);
+    assert.deepEqual([...v.data.diffRows], [], 'The old comparison no longer remains on screen');
+    v.data.confirmation = 'local'; await v.data.confirmAction();
+    assert.equal(v.data.doc.text, ORIGINAL, 'An already queued confirmation cannot adopt the old copy');
+    gate.resolve(); await rejected; await tick(3);
+    assert.equal(v.data.comparing, false);
+    assert.equal(v.data.localCheck, null); assert.equal(v.data.doc.localCheck, null);
+    v.data.confirmation = 'local'; await v.data.confirmAction();
+    assert.equal(v.data.doc.text, ORIGINAL, 'A failed receive cannot revive the old copy for adoption');
+    assert.equal(f.records('wpsWorkspace.drafts').length, 0);
+    assert.equal(f.records('wpsCorrespondence.checks').length, 1, 'The previous historical check is preserved');
+    assert.ok(Alpine.store('browser').stage.some(item => item.local && item.text === incoming), 'The failed copy remains available for app Stage recovery');
+    assert.deepEqual(f.writes, []);
+  } finally { gate.resolve(); await rejected; }
+});
+
+test('paste context expires when the explorer clears selection or the same file is reopened', async () => {
+  const f = fixture(), v = await f.mount();
+  const old = v.data.captureIntake();
+  v.data.active = '';
+  assert.equal(v.data.captureIntake().selected, null, 'The previous installationItem is not an active document');
+  assert.equal(old.isCurrent(), false);
+  await assert.rejects(old.receive(old.selected, 'incoming'), /open file changed/);
+  await v.data.open(A);
+  assert.equal(old.isCurrent(), false, 'Returning to the same path does not revive the gesture');
+  assert.equal(v.data.localCheck, null); assert.equal(v.data.doc.text, ORIGINAL);
+  unmount(v);
+  assert.equal(old.isCurrent(), false);
+});
+
+test('a declared workspace file can receive a comparison from the explorer', async () => {
+  const f = fixture(), v = await f.mount();
+  v.data.active = '';
+  const intake = v.data.captureIntake();
+  const incoming = '# @file ' + B + '\r\n' + f.files[B];
+  assert.equal(await intake.receive({ repo: REPO, ref: 'main', path: B }, incoming), true);
+  assert.equal(v.data.active, B); assert.equal(v.data.localCheck.content, incoming);
+  assert.equal(v.data.doc.text, f.files[B]);
+  const next = v.data.captureIntake();
+  assert.equal(await next.receive({ repo: REPO, ref: 'other', path: B }, incoming), false);
+  assert.equal(await next.receive({ repo: REPO, ref: 'main', path: 'projects/other/app/Test.ps1' }, incoming), false);
+  assert.deepEqual(f.writes, []);
+});
+
+test('a file opened for received code cannot overtake a newer file selection', async () => {
+  const f = fixture(), v = await f.mount();
+  const gate = deferred(); f.gates.set('git/blobs/' + gitBlob(f.files[B]), gate);
+  const intake = v.data.captureIntake();
+  const receiving = intake.receive({ repo: REPO, ref: 'main', path: B }, 'incoming for B');
+  const rejected = assert.rejects(receiving, /receiving file could not be opened/);
+  await tick(3); await v.data.open(C);
+  gate.resolve(); await rejected;
+  assert.equal(v.data.active, C); assert.equal(v.data.localCheck, null);
+  assert.equal(f.records('wpsCorrespondence.checks').length, 0);
+});
+
+test('a pasted draft bundle opens restoration review before any draft write', async () => {
+  const f = fixture(), v = await f.mount(), incoming = ORIGINAL + '# restored';
+  const bundle = window.PowerShellWorkspace.exportBundle({ repo: REPO, project: P, ref: 'main', revision: REV, drafts: [{ ...clone(v.data.doc), text: incoming }] });
+  await v.data.captureIntake().receive(null, JSON.stringify(bundle));
+  assert.equal(v.data.importBundle.drafts[0].text, incoming);
+  assert.equal(v.data.doc.text, ORIGINAL); assert.equal(f.records('wpsWorkspace.drafts').length, 0);
+  await v.data.restoreImport();
+  assert.equal(v.data.doc.text, incoming); assert.deepEqual(f.writes, []);
+});
