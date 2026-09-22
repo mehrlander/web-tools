@@ -88,6 +88,25 @@ const state = () => page.evaluate(() => {
   const d = el && window.Alpine.$data(el);
   return d ? { active: d.active, error: d.error, text: d.doc?.text, loading: d.loading, editorReady: d.editorReady, editorError: d.editorError, dirty: d.dirtyDocs.length } : null;
 });
+async function checkSyntaxContrast(theme) {
+  const ratios = await page.evaluate(async () => {
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const editor = document.querySelector('[data-editor-host] .CodeMirror');
+    const bg = getComputedStyle(editor).backgroundColor;
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    const pixels = color => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = bg; ctx.fillRect(0, 0, 1, 1); ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+    const luminance = rgb => rgb.map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const back = luminance(pixels(bg));
+    return ['keyword', 'variable-2', 'string', 'builtin', 'comment'].map(kind => {
+      const token = editor.querySelector('.cm-' + kind);
+      if (!token) throw new Error('Missing syntax fixture: ' + kind);
+      const front = luminance(pixels(getComputedStyle(token).color));
+      return { kind, ratio: (Math.max(front, back) + 0.05) / (Math.min(front, back) + 0.05) };
+    });
+  });
+  for (const { kind, ratio } of ratios) assert.ok(ratio >= 4.5, `${theme} ${kind} contrast ${ratio.toFixed(2)} must meet 4.5:1`);
+}
 try {
   const url = origin + '/app/index.html?repo=' + R + '&view=project&project=' + P + '&tab=code&item=' + A + '&shell=nav';
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -101,6 +120,7 @@ try {
   assert.equal((await state()).text, source);
   const cm = page.locator('[data-editor-host] .CodeMirror');
   assert.ok((await cm.boundingBox()).height > 250, 'the editor receives viewport space');
+  await checkSyntaxContrast('light');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-desktop.png') });
   await page.getByRole('button', { name: 'Split companion', exact: true }).click();
   await page.locator('[data-companion-host] .CodeMirror').waitFor({ state: 'visible' });
@@ -108,6 +128,7 @@ try {
   await page.screenshot({ path: path.join(output, 'powershell-workspace-companion.png') });
   const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await checkSyntaxContrast('dark');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-dark.png') });
   await page.evaluate(theme => theme ? document.documentElement.setAttribute('data-theme', theme) : document.documentElement.removeAttribute('data-theme'), originalTheme);
   await page.getByRole('button', { name: 'Close companion', exact: true }).click();
