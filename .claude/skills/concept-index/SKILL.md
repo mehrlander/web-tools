@@ -79,6 +79,25 @@ link", not "bare paths"), because nothing here can separate a repurposed common
 word from its plain sense without a lexicon. Expect one to three flags on a
 dense reply; a run with none is a normal result, not a broken tool.
 
+## The reader's own grades: `--known`
+
+`check` models the reader from the repo alone, which is the wrong reader when
+the reply is addressed to the estate's owner. A common-ground table (the shape
+is `mehrlander/home` `me/common-ground.md`: `kind,target,at,grade,…`, one grade
+per topic, folder or term) corrects it:
+
+```bash
+python3 $V check --index /tmp/vocab.json --known me/common-ground.csv < reply.md
+```
+
+Only `term` rows with a blank `at` apply, since a located grade needs the
+passage's own location. A term graded `bare` is never flagged; one graded
+`by-location` or `unknown` is flagged whenever it appears without a handle,
+whatever its tier or frequency, and the finding carries the grade as `reader`.
+Estate coinages are not in that table by design (the index derives them), so
+the canonical tier keeps flagging them: for that reader a coinage wants a link,
+not a definition.
+
 ## Interpretation
 
 The output is evidence, not a verdict. A term can be canonical, used bare, and

@@ -239,8 +239,27 @@ def build_index(root: Path, hubs, exclude=()):
 
 # ------------------------------------------------------------------------ check
 
-def check_text(index, text, repo=None, ref="main", tier_filter=None):
-    """The reply check: what did this text name, and did it give a handle?"""
+def load_known(path):
+    """A reader's common-ground table (mehrlander/home me/common-ground.csv):
+    kind,target,at,grade,... Only term rows with a blank `at` steer the check,
+    since a located grade needs the passage's own location to apply."""
+    import csv
+    known = {}
+    with open(path, encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            if row.get("kind") == "term" and not (row.get("at") or "").strip():
+                known[row["target"].strip().lower()] = row.get("grade", "").strip()
+    return known
+
+
+def check_text(index, text, repo=None, ref="main", tier_filter=None, reader=None):
+    """The reply check: what did this text name, and did it give a handle?
+
+    `reader` maps a term to the reader's grade (see load_known). `bare` means the reader needs no
+    handle, so the term is never flagged; `by-location` or `unknown` means a
+    bare use is flagged whatever the term's tier or frequency, and the finding
+    carries the grade as `reader`."""
+    reader = reader or {}
     def url(p):
         return f"https://github.com/{repo}/blob/{ref}/{p}" if repo else p
 
@@ -270,10 +289,16 @@ def check_text(index, text, repo=None, ref="main", tier_filter=None):
 
     # 2. Declared terms used without a handle at first mention.
     tiers = set(tier_filter or ("canonical",))
-    by_term = {t["term"]: t for t in index["terms"] if t["tier"] in tiers}
+    flagged = {t for t, g in reader.items() if g in ("by-location", "unknown")}
+    by_term = {t["term"]: t for t in index["terms"]
+               if t["tier"] in tiers or t["term"] in flagged}
+    for t in flagged - set(by_term):  # graded by the reader, unknown to the index
+        by_term[t] = {"term": t, "tier": "reader", "uses": 0, "declared_in": [], "gloss": ""}
     hits = scan({"_": text}, set(by_term))
     terms_found = []
     for term, occ in hits.items():
+        if reader.get(term) == "bare":
+            continue
         s = occ[0][1]
         if has_handle(text, s, term):
             continue
@@ -282,14 +307,15 @@ def check_text(index, text, repo=None, ref="main", tier_filter=None):
         if len(term.split()) == 1 and not referential_at(text, s):
             continue
         row = by_term[term]
-        if row["tier"] == "canonical" or row["uses"] >= 8:
+        if term in flagged or row["tier"] == "canonical" or row["uses"] >= 8:
             terms_found.append({
                 "term": term, "tier": row["tier"], "mentions": len(occ),
                 "declared_in": row["declared_in"],
                 "url": url(row["declared_in"][0]) if row["declared_in"] else None,
                 "gloss": row["gloss"][:200],
+                "reader": reader.get(term),
             })
-    terms_found.sort(key=lambda r: (r["tier"] != "canonical", -r["mentions"]))
+    terms_found.sort(key=lambda r: (r["reader"] is None, r["tier"] != "canonical", -r["mentions"]))
     return {"paths_unlinked": paths_found, "terms_unhandled": terms_found}
 
 
@@ -303,7 +329,8 @@ def render(res):
         out.append(f"\nDeclared terms used without a handle ({len(res['terms_unhandled'])}):")
         for t in res["terms_unhandled"]:
             src = t["declared_in"][0] if t["declared_in"] else "?"
-            out.append(f"  - {t['term']}  [{t['tier']}, x{t['mentions']}]  defined in {src}")
+            reader = f", reader: {t['reader']}" if t.get("reader") else ""
+            out.append(f"  - {t['term']}  [{t['tier']}, x{t['mentions']}{reader}]  defined in {src}")
             if t["gloss"]:
                 out.append(f"      {t['gloss'][:150]}")
     return "\n".join(out) or "nothing flagged"
@@ -326,6 +353,8 @@ def main():
     c.add_argument("--ref", default="main")
     c.add_argument("--json", action="store_true")
     c.add_argument("--tier", action="append", default=[])
+    c.add_argument("--known", help="a reader's common-ground CSV (kind,target,at,grade,...): "
+                   "term rows graded bare are never flagged; by-location or unknown always are")
     a = ap.parse_args()
 
     if a.cmd == "index":
@@ -337,7 +366,8 @@ def main():
         print(f"{out}  ({idx['files_scanned']} files, {idx['tiers']})")
     else:
         idx = json.loads(Path(a.index).read_text(encoding="utf-8"))
-        res = check_text(idx, sys.stdin.read(), a.repo, a.ref, tuple(a.tier) or None)
+        known = load_known(a.known) if a.known else None
+        res = check_text(idx, sys.stdin.read(), a.repo, a.ref, tuple(a.tier) or None, known)
         print(json.dumps(res, indent=2, ensure_ascii=False) if a.json else render(res))
 
 
