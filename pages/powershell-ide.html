@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter" class="h-full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerShell IDE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>⚡</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<script>
+  window.__depsReady = new Promise(r => { window.__depsDone = r; });
+</script>
+<script type="module">
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/powershell-ide.js');
+  await gh.load('kits/installation.js');
+  window.__depsDone();
+</script>
+</head>
+
+<body class="h-full bg-base-100 text-base-content font-sans flex flex-col" x-data="powershellIdePage()">
+  <!-- App Header Bar -->
+  <header class="border-b border-base-300 bg-base-200/50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <i class="ph ph-terminal-window text-2xl text-primary"></i>
+      <div>
+        <h1 class="text-base font-bold font-mono leading-tight">PowerShell IDE & Workbench</h1>
+        <p class="text-xs text-base-content/60">AST parser, Windows PowerShell 5.1 validator, and companion workbench</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-1 font-mono text-xs">
+      <button @click="tab = 'editor'" class="btn btn-sm" :class="tab === 'editor' ? 'btn-primary' : 'btn-ghost'" title="Editor">
+        <i class="ph ph-code"></i> Editor & AST
+      </button>
+      <button @click="tab = 'companion'" class="btn btn-sm" :class="tab === 'companion' ? 'btn-primary' : 'btn-ghost'" title="Companion">
+        <i class="ph ph-columns"></i> Companion Split
+      </button>
+      <button @click="tab = 'verify'" class="btn btn-sm" :class="tab === 'verify' ? 'btn-primary' : 'btn-ghost'" title="Verify">
+        <i class="ph ph-git-diff"></i> Diff & Verify
+      </button>
+      <button @click="tab = 'patterns'" class="btn btn-sm" :class="tab === 'patterns' ? 'btn-primary' : 'btn-ghost'" title="Patterns">
+        <i class="ph ph-bookmarks"></i> Patterns
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <main class="grow overflow-auto p-4 flex flex-col">
+    <!-- 1. Editor & AST Tab -->
+    <div x-show="tab === 'editor'" class="flex-1 flex flex-col gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 grow">
+        <!-- Left: Code Input & Editor Surface (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col border border-base-300 rounded-xl overflow-hidden bg-base-100 shadow-xs">
+          <div class="flex flex-wrap items-center justify-between px-3 py-2 bg-base-200/50 border-b border-base-300 gap-2 text-xs font-mono">
+            <div class="flex items-center gap-2">
+              <select x-model="scriptMode" @change="reparse()" class="select select-bordered select-xs" aria-label="Script Mode">
+                <option value="ps1">PowerShell (.ps1)</option>
+                <option value="psm1">Module (.psm1)</option>
+                <option value="xaml">WPF XAML (.xaml)</option>
+              </select>
+              <label class="btn btn-ghost btn-xs gap-1 cursor-pointer" title="Choose File">
+                <i class="ph ph-folder-open"></i> Open file
+                <input type="file" accept=".ps1,.psm1,.psd1,.ps1xml,.xaml,.txt" class="hidden" @change="onFilePicked($event)">
+              </label>
+              <template x-if="scriptMode !== 'xaml' && ast?.compatibility">
+                <span x-show="!ast.compatibility.length" class="badge badge-xs badge-success font-mono">PS 5.1 OK</span>
+              </template>
+              <template x-if="scriptMode !== 'xaml' && ast?.compatibility?.length">
+                <span class="badge badge-xs badge-warning font-mono" x-text="ast.compatibility.length + ' PS 5.1 issue(s)'"></span>
+              </template>
+            </div>
+            <div class="flex items-center gap-1">
+              <button @click="copyCode()" class="btn btn-ghost btn-xs gap-1" title="Copy Code">
+                <i class="ph ph-copy"></i> Copy
+              </button>
+              <button x-show="scriptMode !== 'xaml'" @click="copySuccinct()" class="btn btn-ghost btn-xs gap-1" title="Copy Succinct">
+                <i class="ph ph-scissors"></i> Copy Succinct
+              </button>
+              <button x-show="scriptMode !== 'xaml'" @click="stripInPlace()" class="btn btn-ghost btn-xs gap-1" title="Strip Comments">
+                <i class="ph ph-trash-simple"></i> Strip Comments
+              </button>
+              <button x-show="sourceText" @click="sourceText = ''; reparse()" class="btn btn-ghost btn-xs" title="Clear">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Code Surface -->
+          <div class="grow flex flex-col p-3 gap-2" @dragover.prevent @drop.prevent="onDropFile($event)">
+            <textarea x-model="sourceText" @input="reparse()"
+                      class="textarea textarea-bordered w-full grow font-mono text-xs leading-relaxed min-h-96 focus:outline-hidden"
+                      placeholder="Paste your PowerShell script or XAML layout here, or drop a file anywhere on this area..."></textarea>
+            <div class="flex items-center justify-between text-2xs font-mono text-base-content/50">
+              <span x-text="(sourceText ? sourceText.split('\n').length : 0) + ' lines · ' + (sourceText ? sourceText.length : 0) + ' chars'"></span>
+              <span>Drop file to load</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Symbol Inspector & Diagnostics (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col border border-base-300 rounded-xl overflow-hidden bg-base-100 shadow-xs">
+          <div class="px-3 py-2 bg-base-200/50 border-b border-base-300 font-mono text-xs font-semibold flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-tree-structure text-primary"></i>
+              <span>AST Symbol Outline & Audit</span>
+            </div>
+            <span class="badge badge-xs badge-neutral" x-text="scriptMode === 'xaml' ? 'XAML' : 'PowerShell'"></span>
+          </div>
+
+          <div class="p-3 overflow-y-auto max-h-[600px] flex flex-col gap-3 text-xs">
+            <div x-show="!ast" class="text-base-content/40 italic py-8 text-center">
+              Paste or open a file to extract AST symbols and audit compatibility.
+            </div>
+
+            <!-- PS 5.1 Compatibility Warnings -->
+            <template x-if="ast?.compatibility?.length">
+              <div class="flex flex-col gap-1.5 border border-warning/40 bg-warning/10 rounded-lg p-3">
+                <div class="font-mono text-2xs uppercase tracking-wider text-warning font-semibold flex items-center justify-between">
+                  <span>PS 5.1 Incompatibilities</span>
+                  <span class="badge badge-xs badge-warning" x-text="ast.compatibility.length"></span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <template x-for="c in ast.compatibility" :key="c.line + c.rule">
+                    <div class="rounded bg-base-100 p-2 text-2xs flex flex-col gap-1 border border-warning/30">
+                      <div class="flex items-center justify-between font-mono font-bold text-warning">
+                        <span x-text="c.rule"></span>
+                        <span x-text="'Line ' + c.line"></span>
+                      </div>
+                      <p class="text-base-content/80" x-text="c.message"></p>
+                      <pre class="bg-base-200/50 p-1 rounded font-mono truncate text-base-content/70" x-text="c.snippet"></pre>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- PowerShell Functions & Cmdlets -->
+            <template x-if="ast?.functions?.length">
+              <div class="flex flex-col gap-1.5">
+                <div class="font-mono text-2xs uppercase tracking-wider text-base-content/50 font-semibold flex items-center justify-between">
+                  <span>Functions & Cmdlets</span>
+                  <span class="badge badge-xs badge-ghost" x-text="ast.functions.length"></span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <template x-for="f in ast.functions" :key="f.name + f.line">
+                    <div class="rounded border border-base-300 bg-base-100 p-2 flex flex-col gap-1">
+                      <div class="flex items-center justify-between font-mono">
+                        <span class="font-semibold text-primary" x-text="f.name"></span>
+                        <span class="text-2xs text-base-content/40" x-text="'Line ' + f.line"></span>
+                      </div>
+                      <p x-show="f.synopsis" class="text-2xs italic text-base-content/70" x-text="f.synopsis"></p>
+                      <div x-show="f.params?.length" class="flex flex-wrap gap-1 mt-0.5">
+                        <template x-for="p in f.params" :key="p.name">
+                          <span class="badge badge-xs badge-ghost font-mono" x-text="(p.type ? '[' + p.type + '] ' : '') + '$' + p.name"></span>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Dot Sources -->
+            <template x-if="ast?.dotSources?.length">
+              <div class="flex flex-col gap-1.5">
+                <div class="font-mono text-2xs uppercase tracking-wider text-base-content/50 font-semibold flex items-center justify-between">
+                  <span>Dot-Sourced Companions</span>
+                  <span class="badge badge-xs badge-ghost" x-text="ast.dotSources.length"></span>
+                </div>
+                <div class="flex flex-col gap-1 font-mono text-2xs">
+                  <template x-for="d in ast.dotSources" :key="d.raw">
+                    <div class="rounded border border-base-200 bg-base-100 px-2 py-1 text-base-content/80 truncate" x-text="'. ' + d.raw"></div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Module Imports -->
+            <template x-if="ast?.imports?.length">
+              <div class="flex flex-col gap-1.5">
+                <div class="font-mono text-2xs uppercase tracking-wider text-base-content/50 font-semibold flex items-center justify-between">
+                  <span>Module Imports</span>
+                  <span class="badge badge-xs badge-ghost" x-text="ast.imports.length"></span>
+                </div>
+                <div class="flex flex-wrap gap-1 font-mono text-2xs">
+                  <template x-for="m in ast.imports" :key="m.module">
+                    <span class="badge badge-xs badge-secondary" x-text="m.module"></span>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- XAML Controls (when XAML) -->
+            <template x-if="scriptMode === 'xaml' && ast?.controls">
+              <div class="flex flex-col gap-2">
+                <div class="font-mono text-2xs uppercase tracking-wider text-base-content/50 font-semibold flex items-center justify-between">
+                  <span>Named Controls</span>
+                  <span class="badge badge-xs badge-ghost" x-text="ast.controls.length"></span>
+                </div>
+                <div class="grid grid-cols-1 gap-1.5 font-mono text-2xs">
+                  <template x-for="c in ast.controls" :key="c.name">
+                    <div class="rounded border border-base-300 bg-base-100 p-2 flex items-center justify-between">
+                      <span class="font-bold text-primary" x-text="c.name"></span>
+                      <span class="badge badge-xs badge-neutral" x-text="'<' + c.tag + '>'"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Dynamic Resources in XAML -->
+            <template x-if="scriptMode === 'xaml' && ast?.dynamicResources?.length">
+              <div class="flex flex-col gap-1.5">
+                <div class="font-mono text-2xs uppercase tracking-wider text-base-content/50 font-semibold flex items-center justify-between">
+                  <span>Dynamic Resources</span>
+                  <span class="badge badge-xs badge-ghost" x-text="ast.dynamicResources.length"></span>
+                </div>
+                <div class="flex flex-wrap gap-1 font-mono text-2xs">
+                  <template x-for="r in ast.dynamicResources" :key="r">
+                    <span class="badge badge-xs badge-info font-mono" x-text="r"></span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Companion Split View Tab -->
+    <div x-show="tab === 'companion'" class="flex-1 flex flex-col gap-4">
+      <div class="border border-base-300 rounded-xl p-3 bg-base-200/30 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-git-fork text-primary text-base"></i>
+          <span class="font-semibold">Controller + Layout Pairing Matrix</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-sm" :class="crossRef?.isFullyThemed ? 'badge-success' : 'badge-warning'"
+                x-text="crossRef?.isFullyThemed ? 'DynamicResource Theme OK' : 'Check Theme Resources'"></span>
+          <span class="badge badge-sm badge-info" x-text="(crossRef?.wired?.length || 0) + ' wired controls'"></span>
+          <span class="badge badge-sm badge-ghost" x-text="(crossRef?.unwired?.length || 0) + ' unwired controls'"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grow">
+        <!-- Left: Controller Script -->
+        <div class="flex flex-col border border-base-300 rounded-xl overflow-hidden bg-base-100 shadow-xs">
+          <div class="px-3 py-2 bg-base-200/50 border-b border-base-300 font-mono text-xs font-semibold flex items-center justify-between">
+            <span>PowerShell Controller (.ps1)</span>
+            <span class="text-2xs text-base-content/50">Events & Logic</span>
+          </div>
+          <textarea x-model="companionPs" @input="reparseCompanion()"
+                    class="textarea textarea-bordered w-full grow font-mono text-xs leading-relaxed min-h-80 border-0 rounded-none focus:outline-hidden"
+                    placeholder="Paste controller script (.ps1) here..."></textarea>
+        </div>
+
+        <!-- Right: XAML Layout -->
+        <div class="flex flex-col border border-base-300 rounded-xl overflow-hidden bg-base-100 shadow-xs">
+          <div class="px-3 py-2 bg-base-200/50 border-b border-base-300 font-mono text-xs font-semibold flex items-center justify-between">
+            <span>WPF Layout (.xaml)</span>
+            <span class="text-2xs text-base-content/50">Controls & Themes</span>
+          </div>
+          <textarea x-model="companionXaml" @input="reparseCompanion()"
+                    class="textarea textarea-bordered w-full grow font-mono text-xs leading-relaxed min-h-80 border-0 rounded-none focus:outline-hidden"
+                    placeholder="Paste WPF XAML markup here..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Diff & Verify Tab -->
+    <div x-show="tab === 'verify'" class="flex-1 flex flex-col gap-4">
+      <div class="border border-base-300 rounded-xl p-4 bg-base-100 shadow-xs flex flex-col gap-4">
+        <div>
+          <h2 class="font-mono text-sm font-semibold">Standalone Diff & Verification Bench</h2>
+          <p class="text-xs text-base-content/60">Compare two files or check a local file hash against expected text.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <span class="font-mono text-2xs font-semibold text-base-content/60 uppercase">Reference Source</span>
+            <textarea x-model="diffA" @input="computeDiff()" class="textarea textarea-bordered w-full min-h-36 font-mono text-xs"
+                      placeholder="Paste reference text here..."></textarea>
+            <div class="font-mono text-2xs text-base-content/60" x-text="'SHA-256: ' + (hashA || '...')"></div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="font-mono text-2xs font-semibold text-base-content/60 uppercase">Supplied Copy or Hash</span>
+            <textarea x-model="diffB" @input="computeDiff()" class="textarea textarea-bordered w-full min-h-36 font-mono text-xs"
+                      placeholder="Paste work machine copy or Get-FileHash output here..."></textarea>
+            <div class="font-mono text-2xs text-base-content/60" x-text="'Detected Hash: ' + (detectedHashB || '...')"></div>
+          </div>
+        </div>
+
+        <!-- Smart Hash Match Banner -->
+        <div x-show="detectedHashB" class="rounded-lg border p-3 flex flex-col gap-1"
+             :class="hashMatch ? 'border-success/40 bg-success/10' : 'border-warning/40 bg-warning/10'">
+          <div class="flex items-center gap-2 font-mono font-semibold text-xs"
+               :class="hashMatch ? 'text-success' : 'text-warning'">
+            <i class="ph text-base" :class="hashMatch ? 'ph-check-circle' : 'ph-warning'"></i>
+            <span x-text="hashMatch ? 'SHA-256 Verified Match' : 'SHA-256 Hash Mismatch'"></span>
+          </div>
+          <p class="text-xs text-base-content/70"
+             x-text="hashMatch ? 'The supplied hash matches the reference text byte-for-byte.' : 'The supplied hash differs from the reference text hash.'"></p>
+        </div>
+
+        <!-- Diff Output -->
+        <div x-show="diffRows?.length" class="border border-base-300 rounded-lg overflow-hidden flex flex-col">
+          <div class="px-3 py-1.5 bg-base-200/50 border-b border-base-300 font-mono text-xs font-semibold flex items-center justify-between">
+            <span>Unified Diff</span>
+            <span class="text-base-content/50" x-text="diffStat"></span>
+          </div>
+          <div class="p-2 overflow-auto max-h-72 font-mono text-xs flex flex-col bg-base-100">
+            <template x-for="(r, i) in diffRows" :key="i">
+              <div class="whitespace-pre px-2 py-0.5"
+                   :class="r.t === 'add' ? 'bg-success/15 text-success font-medium' : r.t === 'del' ? 'bg-error/15 text-error font-medium' : 'text-base-content/60'"
+                   x-text="(r.t === 'add' ? '+ ' : r.t === 'del' ? '- ' : '  ') + r.line"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Patterns Library Tab -->
+    <div x-show="tab === 'patterns'" class="flex-1 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-3">
+        <div>
+          <h2 class="font-mono text-sm font-semibold">PowerShell GUI Cookbook & Scripting Patterns</h2>
+          <p class="text-xs text-base-content/60">Curated, production-tested patterns for WPF, concurrency, and AST reflection.</p>
+        </div>
+        <select x-model="patternFilter" class="select select-bordered select-xs" aria-label="Pattern Category Filter">
+          <option value="">All Categories</option>
+          <option value="GUI & Layout">GUI & Layout</option>
+          <option value="Concurrency">Concurrency</option>
+          <option value="Browser Integration">Browser Integration</option>
+          <option value="Data & Utilities">Data & Utilities</option>
+          <option value="Documentation">Documentation</option>
+          <option value="Script Analysis">Script Analysis</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <template x-for="s in visibleSnippets" :key="s.id">
+          <div class="border border-base-300 rounded-lg p-3 bg-base-100 flex flex-col gap-2 shadow-xs">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="font-mono font-semibold text-xs text-primary" x-text="s.title"></h3>
+                <span class="badge badge-xs badge-neutral mt-0.5" x-text="s.category"></span>
+              </div>
+              <button @click="copySnippet(s.code)" class="btn btn-xs btn-outline gap-1" title="Copy Snippet">
+                <i class="ph ph-copy"></i> Copy
+              </button>
+            </div>
+            <p class="text-xs text-base-content/70" x-text="s.summary"></p>
+            <pre class="font-mono text-2xs bg-base-200/50 p-2 rounded max-h-48 overflow-auto whitespace-pre text-base-content/80" x-text="s.code"></pre>
+          </div>
+        </template>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('powershellIdePage', () => ({
+        tab: 'editor',
+        scriptMode: 'ps1',
+        sourceText: '',
+        ast: null,
+        companionPs: '',
+        companionXaml: '',
+        crossRef: null,
+        diffA: '',
+        diffB: '',
+        hashA: '',
+        diffRows: null,
+        diffStat: '',
+        patternFilter: '',
+
+        async init() {
+          await window.__depsReady;
+          this.sourceText = `function Get-ServiceReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [int]$Limit = 10
+    )
+    Get-Service -Name $Name | Select-Object -First $Limit
+}`;
+          this.reparse();
+        },
+
+        reparse() {
+          if (!window.PowerShellIde || !this.sourceText) {
+            this.ast = null;
+            return;
+          }
+          if (this.scriptMode === 'xaml') {
+            this.ast = window.PowerShellIde.parseXaml(this.sourceText);
+          } else {
+            this.ast = window.PowerShellIde.parseScript(this.sourceText);
+          }
+        },
+
+        reparseCompanion() {
+          if (!window.PowerShellIde) return;
+          const xamlAst = window.PowerShellIde.parseXaml(this.companionXaml);
+          const psAst = window.PowerShellIde.parseScript(this.companionPs);
+          this.crossRef = window.PowerShellIde.crossReference(xamlAst, psAst);
+        },
+
+        async computeDiff() {
+          if (!window.Installation) return;
+          if (this.diffA) {
+            this.hashA = await window.Installation.digest(this.diffA);
+          } else {
+            this.hashA = '';
+          }
+          if (this.diffA && this.diffB && window.textDiff) {
+            try {
+              const a = this.diffA.split(/\r?\n/);
+              const b = this.diffB.split(/\r?\n/);
+              const ops = window.textDiff.lines(a, b);
+              this.diffRows = ops ? window.textDiff.rows(ops, a, b) : null;
+              if (this.diffRows) {
+                const adds = this.diffRows.filter(r => r.t === 'add').length;
+                const dels = this.diffRows.filter(r => r.t === 'del').length;
+                this.diffStat = `+${adds} / -${dels} lines`;
+              }
+            } catch {
+              this.diffRows = null;
+              this.diffStat = '';
+            }
+          } else {
+            this.diffRows = null;
+            this.diffStat = '';
+          }
+        },
+
+        get detectedHashB() {
+          return window.PowerShellIde?.extractSha256(this.diffB) || null;
+        },
+
+        get hashMatch() {
+          if (!this.hashA || !this.detectedHashB) return false;
+          return this.hashA.toLowerCase() === this.detectedHashB.toLowerCase();
+        },
+
+        get visibleSnippets() {
+          const all = window.PowerShellIde?.SNIPPETS || [];
+          if (!this.patternFilter) return all;
+          return all.filter(s => s.category === this.patternFilter);
+        },
+
+        async copyCode() {
+          if (!this.sourceText) return;
+          await navigator.clipboard.writeText(this.sourceText);
+        },
+
+        async copySuccinct() {
+          if (!this.sourceText) return;
+          const clean = window.PowerShellIde?.stripComments ? window.PowerShellIde.stripComments(this.sourceText) : this.sourceText;
+          await navigator.clipboard.writeText(clean);
+        },
+
+        stripInPlace() {
+          if (!this.sourceText) return;
+          this.sourceText = window.PowerShellIde?.stripComments ? window.PowerShellIde.stripComments(this.sourceText) : this.sourceText;
+          this.reparse();
+        },
+
+        async copySnippet(code) {
+          await navigator.clipboard.writeText(code);
+        },
+
+        async onFilePicked(e) {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) await this.readFile(file);
+        },
+
+        async onDropFile(e) {
+          const file = e.dataTransfer?.files?.[0];
+          if (file) await this.readFile(file);
+        },
+
+        async readFile(file) {
+          const text = await file.text();
+          this.sourceText = text;
+          if (/\.xaml$/i.test(file.name)) this.scriptMode = 'xaml';
+          else if (/\.psm1$/i.test(file.name)) this.scriptMode = 'psm1';
+          else this.scriptMode = 'ps1';
+          this.reparse();
+        }
+      }));
+    });
+  </script>
+</body>
+</html>

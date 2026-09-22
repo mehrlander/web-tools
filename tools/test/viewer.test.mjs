@@ -433,3 +433,16 @@ test('a narrowed workbook reference is claimed by the grid', () => {
   assert.ok(!grid.claims({ name: 'a.csv', ext: 'csv', content: '' }, { filter: { col: 'a', find: 'b' } }),
     'a csv is the table mode, not this one');
 });
+
+test('a PowerShell or XAML file offers the ast outline mode alongside code', () => {
+  const R = window.ViewRegistry;
+  const psModes = R.getModes({ name: 'script.ps1', ext: 'ps1', content: 'function Test-Fn {}' });
+  const psIds = psModes.map(m => m.id);
+  assert.ok(psIds.includes('code'), 'code mode is offered for ps1');
+  assert.ok(psIds.includes('ast'), 'ast outline mode is offered for ps1');
+
+  const xamlModes = R.getModes({ name: 'form.xaml', ext: 'xaml', content: '<Window x:Name="Win"/>' });
+  const xamlIds = xamlModes.map(m => m.id);
+  assert.ok(xamlIds.includes('code'), 'code mode is offered for xaml');
+  assert.ok(xamlIds.includes('ast'), 'ast outline mode is offered for xaml');
+});

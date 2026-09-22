@@ -296,7 +296,35 @@ test('powershell IDE workbench: parses AST, provides transfer scripts, cross-ref
   assert.ok(data.diffRows);
   assert.match(data.diffStat, /\+\d+ \/ -\d+ lines/);
 
+  // Smart Hash Matcher
+  data.select(FORMS);
+  await settle();
+  assert.ok(Array.isArray(data.activeAst.compatibility));
+  assert.equal(data.activeAst.compatibility.length, 0, 'Forms.psm1 is clean PS 5.1');
+
+  // Paste a Get-FileHash output matching the current file
+  const digest = await window.Installation.digest(data.text);
+  assert.equal(data.currentSha256, digest);
+
+  data.compareDraft = `SHA256 ${digest.toUpperCase()} C:\\Forms.psm1`;
+  assert.equal(data.detectedHash, digest.toLowerCase());
+  assert.equal(data.hashMatchStatus, 'match');
+
+  // Stage verified hash record (confirm-before-write)
+  data.stageVerifiedHashRecord();
+  assert.ok(data.pending);
+  assert.equal(data.pending.kind, 'check');
+  assert.equal(data.pending.check.exact, true);
+  assert.equal(data.pending.check.incomingSha256, digest);
+
+  // Test hash mismatch
+  data.compareDraft = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  assert.equal(data.hashMatchStatus, 'mismatch');
+  data.stageDiffersHashRecord();
+  assert.equal(data.pending.check.exact, false);
+
   // Clean up
+  data.pending = null;
   data.compareDraft = '';
   data.ideTab = 'code';
 });

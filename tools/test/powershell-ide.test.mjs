@@ -196,7 +196,7 @@ test('highlightPowerShell and highlightXaml render formatted lines with line num
 
 test('SNIPPETS provides curated patterns from the PowerShell GUI Cookbook', () => {
   assert.ok(Array.isArray(IDE.SNIPPETS));
-  assert.ok(IDE.SNIPPETS.length >= 6);
+  assert.ok(IDE.SNIPPETS.length >= 7);
 
   const ids = IDE.SNIPPETS.map(s => s.id);
   assert.ok(ids.includes('wpf-theme'));
@@ -205,4 +205,99 @@ test('SNIPPETS provides curated patterns from the PowerShell GUI Cookbook', () =
   assert.ok(ids.includes('group-serialized'));
   assert.ok(ids.includes('comment-help'));
   assert.ok(ids.includes('ise-ast-profile'));
+  assert.ok(ids.includes('form-f1-navigation'));
+
+  const f1 = IDE.SNIPPETS.find(s => s.id === 'form-f1-navigation');
+  assert.match(f1.code, /Register-FormHelpNavigation/);
+  assert.match(f1.code, /\[System\.Windows\.Input\.Key\]::F1/);
+});
+
+test('validatePs51Compatibility flags PowerShell 7+ syntax incompatible with Windows PowerShell 5.1', () => {
+  const codeWithTernary = '$status = $count -gt 0 ? "active" : "inactive"';
+  const issues1 = IDE.validatePs51Compatibility(codeWithTernary);
+  assert.equal(issues1.length, 1);
+  assert.equal(issues1[0].rule, 'ternary-operator');
+  assert.match(issues1[0].message, /PowerShell 7\+/);
+
+  const codeWithNullCoalesce = '$name = $inputName ?? "default"';
+  const issues2 = IDE.validatePs51Compatibility(codeWithNullCoalesce);
+  assert.equal(issues2.length, 1);
+  assert.equal(issues2[0].rule, 'null-coalescing');
+
+  const codeWithNullCoalesceAssign = '$config ??= Get-DefaultConfig';
+  const issues3 = IDE.validatePs51Compatibility(codeWithNullCoalesceAssign);
+  assert.equal(issues3.length, 1);
+  assert.equal(issues3[0].rule, 'null-coalescing-assignment');
+
+  const codeWithChains = 'git pull && npm test || exit 1';
+  const issues4 = IDE.validatePs51Compatibility(codeWithChains);
+  assert.equal(issues4.length, 2);
+  assert.equal(issues4[0].rule, 'pipeline-chain');
+  assert.equal(issues4[1].rule, 'pipeline-chain');
+});
+
+test('validatePs51Compatibility passes valid Windows PowerShell 5.1 syntax without false positives', () => {
+  const cleanCode = `
+    # Comment mentioning $a ? $b : $c and ?? and &&
+    <#
+      Block comment with ? : and ||
+    #>
+    Get-Process | ? { $_.CPU -gt 10 }
+    Get-Service | ? Status -eq 'Running'
+    $envPath = $env:PATH
+    $result = [System.Math]::Round(3.1415, 2)
+    $msg = "Is it done? : Yes it is"
+    $hereString = @"
+      $a ? $b : $c
+"@
+    if ($x -gt 0 -and $y -lt 10) {
+      Write-Host "All good"
+    }
+  `;
+
+  const issues = IDE.validatePs51Compatibility(cleanCode);
+  assert.deepEqual(issues, []);
+});
+
+test('extractSha256 extracts 64-character hex strings from raw hashes and Get-FileHash output', () => {
+  const rawHash = 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0';
+  assert.equal(IDE.extractSha256(rawHash), rawHash);
+
+  const getFileHashOutput = `
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          5C4927902BA66AC1BE49B609E7B35AE71CEB0DF9A314B929B96985FF3342DE54     C:\\Profile.ps1
+`;
+  assert.equal(
+    IDE.extractSha256(getFileHashOutput),
+    '5c4927902ba66ac1be49b609e7b35ae71ceb0df9a314b929b96985ff3342de54'
+  );
+
+  assert.equal(IDE.extractSha256('no hash here'), null);
+  assert.equal(IDE.extractSha256(''), null);
+});
+
+test('stripComments removes single-line and block comments while preserving strings and semantics', () => {
+  const script = `
+<#
+.SYNOPSIS
+    Help block
+#>
+function Test-Succinct {
+    # Line comment here
+    param($Param1 = "hello # not a comment")
+    $here = @'
+line 1 # not comment
+'@
+    Write-Host "Done" # inline comment
+}
+`;
+
+  const succinct = IDE.stripComments(script);
+  assert.ok(!succinct.includes('.SYNOPSIS'));
+  assert.ok(!succinct.includes('# Line comment here'));
+  assert.ok(!succinct.includes('# inline comment'));
+  assert.ok(succinct.includes('param($Param1 = "hello # not a comment")'));
+  assert.ok(succinct.includes("line 1 # not comment"));
+  assert.ok(succinct.includes('Write-Host "Done"'));
 });

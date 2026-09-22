@@ -42,6 +42,7 @@ const NOTES = {
   'transform.html':            'Multi-tab rows ⇒ rows workbench: $name refs, worker run, profile and pivot views, gz bundles. The standalone face of lib/alpineComponents/transform-workbench.js.',
   'compression-helper.html':   'Compression bookmarklet packer.',
   'diff-tool.html':            'Side-by-side text diff tool.',
+  'powershell-ide.html':       'PowerShell & XAML IDE: AST symbol inspector, PS 5.1 validator, companion split view, and verification bench.',
   'review.html':               'A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target.',
   'shorter.html':              'Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM.',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
