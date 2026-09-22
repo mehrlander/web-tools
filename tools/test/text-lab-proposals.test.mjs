@@ -1,6 +1,6 @@
 // text-lab-proposals.test.mjs: the central proposal browser delegates to the
-// same source projection as the FAB and stays addressable without claiming an
-// apply operation or the whole private text collection.
+// same collection reader as the FAB and stays addressable without claiming an
+// apply operation.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -20,37 +20,28 @@ assert.ok(start >= 0 && stop > start, 'the Text Lab Alpine model is extractable'
 const MODEL = SRC.slice(start, stop);
 
 const ROWS = [
-  {
-    id: 'phrase-1', lane: 'phrase-reviews', action: 'qualify',
-    from: { text_id: 'from-1', text: 'families' },
-    to: { text_id: 'to-1', text: 'bill-section families' },
-    author: 'phrase import', purpose: 'Imported qualify recommendation',
-    origins: [{
-      scope: 'source-occurrence', record: 1,
-      source: { path: 'runs/phrases.csv', sha: 'abcdef012345', url: 'https://example.test/phrases' },
-      context: { section: 'A1', markdown: 'The surrounding passage.' },
-    }],
-  },
-  {
-    id: 'audit-1', lane: 'audit-packet', action: 'repair',
-    from: { text_id: 'from-2', text: 'converting to and from' },
-    to: { text_id: 'to-2', text: 'converting text to and from compressed form' },
-    author: 'audit import', purpose: 'repair',
-    origins: [{
-      scope: 'source-occurrence', record: 'r04', rationale: 'Name the referent.',
-      source: { path: 'runs/packet.json', sha: '9876543210ab', url: 'https://example.test/packet' },
-      patient: { repo: 'mehrlander/web-tools', path: 'README.md', url: 'https://example.test/readme' },
-    }],
-  },
+  { id: 'phrase-1', from: { text_id: 'from-1', text: 'families' }, to: { text_id: 'to-1', text: 'bill-section families' },
+    author: 'guarded editorial pass', purpose: 'qualify' },
+  { id: 'audit-1', from: { text_id: 'from-2', text: 'converting to and from' }, to: { text_id: 'to-2', text: 'converting text to and from compressed form' },
+    author: 'doc-audit', purpose: 'repair' },
+  { id: 'grok-1', from: { text_id: 'from-3', text: 'A long paragraph.' }, to: { text_id: 'to-3', text: 'A paragraph.' },
+    author: 'Chief of Staff (Grok)', purpose: 'half-length' },
 ];
+
+const INDEX = {
+  rows: ROWS,
+  proposals: ROWS,
+  summary: {
+    texts: 6,
+    proposals: 3,
+    by_author: { 'guarded editorial pass': 1, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 },
+    by_purpose: { qualify: 1, repair: 1, 'half-length': 1 },
+  },
+};
 
 function harness(search = '') {
   const address = new URL(`https://example.test/pages/text-lab.html${search}`);
-  const location = {
-    href: address.href,
-    search: address.search,
-    hostname: address.hostname,
-  };
+  const location = { href: address.href, search: address.search, hostname: address.hostname };
   const history = {
     writes: [],
     replaceState(_state, _title, value) {
@@ -67,11 +58,11 @@ function harness(search = '') {
   window.TOKEN = '';
   window.TextProposals = {
     load: async () => INDEX,
-    search(index, { q = '', lane = '', action = '' } = {}) {
+    search(index, { q = '', author = '', purpose = '' } = {}) {
       const needle = q.toLowerCase();
       return index.rows.filter(row =>
-        (!lane || row.lane === lane)
-        && (!action || row.action === action)
+        (!author || row.author === author)
+        && (!purpose || row.purpose === purpose)
         && (!needle || `${row.from.text}\n${row.to.text}`.toLowerCase().includes(needle)));
     },
     view(index, id) { return index.rows.find(row => row.id === id) || null; },
@@ -85,10 +76,7 @@ function harness(search = '') {
     },
   };
   let factory = null;
-  const Alpine = { data(name, fn) {
-    assert.equal(name, 'textInstruments');
-    factory = fn;
-  } };
+  const Alpine = { data(name, fn) { assert.equal(name, 'textInstruments'); factory = fn; } };
   const params = new URLSearchParams(location.search);
   new Function('document', 'Alpine', 'window', 'params', 'location', 'history', 'gh', MODEL)(
     document, Alpine, window, params, location, history, gh);
@@ -98,118 +86,92 @@ function harness(search = '') {
   return { model, window, location, history, loads, scrolls };
 }
 
-const INDEX = {
-  rows: ROWS,
-  proposals: ROWS,
-  summary: {
-    proposals: 2,
-    by_lane: { 'phrase-reviews': 1, 'audit-packet': 1 },
-    by_action: { qualify: 1, repair: 1 },
-  },
-};
-
 test('proposals is visible without changing the Probes landing', () => {
   const plain = harness().model;
   assert.equal(plain.pane, 'probes');
   assert.equal([...plain.PANES].join(','), 'probes,proposals,instruments,resources,runs');
-
   const linked = harness('?proposal=audit-1').model;
   assert.equal(linked.pane, 'proposals', 'a proposal id is the stronger pane address');
   assert.equal(linked.proposalOpen, 'audit-1');
 });
 
-test('the pane lazy-loads the shared projection once', async () => {
+test('the pane loads the collection reader once, and nothing else', async () => {
   const h = harness('?pane=proposals');
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
   await h.model.loadProposals();
   await h.model.loadProposals();
-
-  assert.equal(h.loads.join(','), 'kits/csv.js,kits/text-proposals.js');
+  assert.equal(h.loads.join(','), 'kits/text-proposals.js');
   assert.equal(h.model.proposalState, 'done');
-  assert.equal(h.model.proposalTotal, 2);
+  assert.equal(h.model.proposalTotal, 3);
 });
 
-test('search and facets are delegated, grouped, and deep links stay visible', () => {
-  const h = harness('?pane=proposals&q=families&lane=phrase-reviews&action=qualify');
+test('search and facets are delegated, grouped by purpose, and deep links stay visible', () => {
+  const h = harness('?pane=proposals&q=families&author=guarded%20editorial%20pass&purpose=qualify');
   h.model.proposalIndex = INDEX;
   h.model.proposalState = 'done';
   assert.equal(h.model.proposalRows.map(row => row.id).join(','), 'phrase-1');
-  assert.equal(h.model.proposalGroups().map(group => group.label).join(','), 'Phrase reviews');
-
+  assert.equal(h.model.proposalGroups().map(group => group.purpose).join(','), 'qualify');
+  assert.deepEqual(h.model.proposalFacet('purpose').map(row => row.key), ['half-length', 'qualify', 'repair'],
+    'facets are the collection\'s own values, counted');
   h.model.proposalQ = 'nothing matches';
   h.model.proposalOpen = 'audit-1';
-  assert.equal(h.model.proposalRows[0].id, 'audit-1',
-    'the exact proposal address wins over stale search filters');
-
+  assert.equal(h.model.proposalRows[0].id, 'audit-1', 'the exact proposal address wins over stale search filters');
 });
 
 test('a proposal deep link scrolls its expanded row into view after loading', async () => {
   const h = harness('?proposal=audit-1');
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
   await h.model.loadProposals();
-  assert.deepEqual(h.scrolls, [
-    { id: 'proposal-audit-1', options: { block: 'start' } },
-  ]);
+  assert.deepEqual(h.scrolls, [{ id: 'proposal-audit-1', options: { block: 'start' } }]);
 });
 
 test('proposal state round-trips through the address', () => {
   const h = harness('?use=branch&data=home-branch');
   h.model.pane = 'proposals';
   h.model.proposalQ = 'families';
-  h.model.proposalLane = 'phrase-reviews';
-  h.model.proposalAction = 'qualify';
-  h.model.toggleProposal('phrase-1');
-
+  h.model.proposalAuthor = 'doc-audit';
+  h.model.proposalPurpose = 'repair';
+  h.model.toggleProposal('audit-1');
   const url = new URL(h.location.href);
   assert.equal(url.searchParams.get('use'), 'branch');
   assert.equal(url.searchParams.get('data'), 'home-branch');
   assert.equal(url.searchParams.get('pane'), 'proposals');
   assert.equal(url.searchParams.get('q'), 'families');
-  assert.equal(url.searchParams.get('lane'), 'phrase-reviews');
-  assert.equal(url.searchParams.get('action'), 'qualify');
-  assert.equal(url.searchParams.get('proposal'), 'phrase-1');
-
-  h.model.setProposalFilter('action', 'repair');
+  assert.equal(url.searchParams.get('author'), 'doc-audit');
+  assert.equal(url.searchParams.get('purpose'), 'repair');
+  assert.equal(url.searchParams.get('proposal'), 'audit-1');
+  h.model.setProposalFilter('purpose', 'qualify');
   const filtered = new URL(h.location.href);
-  assert.equal(filtered.searchParams.get('action'), 'repair');
+  assert.equal(filtered.searchParams.get('purpose'), 'qualify');
   assert.equal(filtered.searchParams.has('proposal'), false,
     'changing the result set closes a detail that may no longer belong to it');
 });
 
-test('invalid proposal facets normalize to the visible all-state labels', () => {
-  const h = harness('?pane=proposals&lane=unknown&action=impossible');
+test('a facet the collection does not hold is dropped once the collection is read', async () => {
+  const h = harness('?pane=proposals&author=nobody&purpose=impossible');
   h.model.normalizeProposalParams();
-  assert.equal(h.model.proposalLane, '');
-  assert.equal(h.model.proposalAction, '');
+  assert.equal(h.model.proposalAuthor, 'nobody', 'before the load nothing is known to be invalid');
+  h.model.home = { repo: 'mehrlander/home', ref: 'main' };
+  await h.model.loadProposals();
+  assert.equal(h.model.proposalAuthor, '');
+  assert.equal(h.model.proposalPurpose, '');
   const url = new URL(h.location.href);
-  assert.equal(url.searchParams.has('lane'), false);
-  assert.equal(url.searchParams.has('action'), false);
+  assert.equal(url.searchParams.has('author'), false);
+  assert.equal(url.searchParams.has('purpose'), false);
 });
 
-test('the markup exposes provenance and never offers Apply', () => {
+test('the markup shows the four fields and never offers Apply', () => {
   assert.match(SRC, /x-show="pane === 'proposals'"/);
   assert.match(SRC, /Search proposals/);
-  assert.match(SRC, /Original text/);
   assert.match(SRC, /Proposed replacement/);
-  assert.match(SRC, /Provenance/);
-  assert.match(SRC, /Imported review/);
-  assert.match(SRC, /Relocation/);
-  assert.match(SRC, /Evidence/);
+  assert.match(SRC, />Purpose</);
+  assert.match(SRC, />Author</);
   assert.match(SRC, /prior work, not an automatic recommendation/);
-  assert.match(SRC, /:id="'proposal-' \+ p\.id"/,
-    'each stable proposal address resolves to a DOM target');
+  assert.match(SRC, /:id="'proposal-' \+ p\.id"/, 'each stable proposal address resolves to a DOM target');
   assert.doesNotMatch(SRC, />\s*apply\s*</i);
+  assert.doesNotMatch(SRC, /lane|Provenance|Relocation|Evidence/, 'nothing the collection does not carry is drawn');
   assert.match(SRC, /if \(!this\.proposalIndex \|\| !window\.TextProposals\) return \[\]/,
     'hidden Alpine expressions have a null-safe getter');
   assert.match(SRC, /const pane = this\.PANES\.includes\(name\)/,
     'async pane work keeps the pane that initiated it instead of rereading mutable state');
-});
-
-test('local model proposals have a visible group and addressable objective filters', () => {
-  const h = harness('?pane=proposals&lane=local-proposals&action=clarity');
-  h.model.proposalIndex = { ...INDEX, rows: [{ ...ROWS[0], id: 'local-1', lane: 'local-proposals', action: 'clarity' }] };
-  assert.equal(h.model.proposalRows.length, 1);
-  assert.equal(h.model.proposalGroups()[0].label, 'Local models');
-  assert.equal(h.model.PROPOSAL_LANES.some(row => row.key === 'local-proposals'), true);
-  assert.equal(h.model.PROPOSAL_ACTIONS.some(row => row.key === 'half'), true);
 });

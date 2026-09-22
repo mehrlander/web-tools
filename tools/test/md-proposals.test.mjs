@@ -3,8 +3,8 @@
 // the provenance line under each container.
 //
 // The index is hand-built in the shape text-proposals.js produces, since what
-// is under test is how this kit reads that shape, not how the projection is
-// built (tools/test/text-proposals.test.mjs holds that). Render runs under
+// is under test is how this kit reads that shape, not how the collection is
+// read (tools/test/text-proposals.test.mjs holds that). Render runs under
 // jsdom against the real marked and jsdiff, as md-diff's own test does: the
 // container count and the provenance join are DOM facts.
 
@@ -35,21 +35,12 @@ const DOC = `# Reading fund 600\n\n${P1}\n\nAn untouched paragraph between the t
 function index() {
   return {
     proposals: [
-      { id: 'p-clarity', from: 't1', to: 't1c', author: 'Ollama mistral:7b @ sha256:abc', purpose: 'Local proposal: clarity' },
-      { id: 'p-half', from: 't1', to: 't1h', author: 'Chief of Staff (Grok)', purpose: 'Half-length rewrite' },
-      { id: 'p-audit', from: 't3', to: 't3n', author: 'audit', purpose: 'qualify' },
+      { id: 'p-clarity', from: 't1', to: 't1c', author: 'Ollama mistral:7b', purpose: 'clarity' },
+      { id: 'p-half', from: 't1', to: 't1h', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
+      { id: 'p-audit', from: 't3', to: 't3n', author: 'doc-audit', purpose: 'qualify' },
       { id: 'p-elsewhere', from: 'tx', to: 'txn', author: 'x', purpose: 'y' },
     ],
     texts: { t1: P1, t1c: P1_CLARITY, t1h: P1_HALF, t3: P3, t3n: P3_NEW, tx: 'Not in this document.', txn: 'Still not.' },
-    sources: {}, contexts: {},
-    _lane_by_proposal: { 'p-clarity': 'local-proposals', 'p-half': 'web-tools-paragraphs', 'p-audit': 'audit-packet', 'p-elsewhere': 'audit-packet' },
-    _origins_by_proposal: {
-      'p-clarity': [{ proposal_id: 'p-clarity', operation: 'clarity', agent: 'Ollama mistral:7b', ratio: 0.95, rationale: 'Model note (unverified): splits the sentence.' }],
-      'p-half': [{ proposal_id: 'p-half', agent: 'Chief of Staff (Grok)', ratio: 0.5 }],
-      'p-audit': [{ proposal_id: 'p-audit', decision: 'qualify', agent: 'audit', rationale: 'Names the second base.' }],
-      'p-elsewhere': [{ proposal_id: 'p-elsewhere' }],
-    },
-    _analysis_by_proposal: {},
   };
 }
 
@@ -103,10 +94,9 @@ test('render draws one md-diff container per planned block, each with the right 
   assert.ok(who.every(Boolean), 'every container carries a provenance line');
   assert.match(who[0].textContent, /Ollama mistral:7b/);
   assert.match(who[0].textContent, /clarity/);
-  assert.match(who[0].textContent, /95% of the words/);
-  assert.match(who[0].textContent, /splits the sentence/);
-  assert.match(who[1].textContent, /audit/);
-  assert.match(who[1].textContent, /Names the second base/);
+  assert.match(who[0].textContent, /\d+% of the words/, 'the length against the original is computed from the two texts');
+  assert.match(who[1].textContent, /doc-audit/);
+  assert.match(who[1].textContent, /qualify/);
   const lab = who[1].querySelector('a');
   assert.equal(lab.getAttribute('href'), `${K.LAB}?proposal=p-audit`);
   assert.equal(who[0].querySelectorAll('[data-md-proposals-pick]').length, 2, 'the block with two proposals offers both');

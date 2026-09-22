@@ -62,24 +62,12 @@ python3 tools/allotment.py --fund 600 --lane appropriated
 `;
   const INDEX = {
     proposals: [
-      { id: 'demo-lanes-clarity', from: 'a', to: 'a1', author: 'Ollama mistral:7b @ sha256:demo', purpose: 'Local proposal: clarity' },
-      { id: 'demo-lanes-half', from: 'a', to: 'a2', author: 'Chief of Staff (Grok)', purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement' },
-      { id: 'demo-schedule', from: 'b', to: 'b1', author: 'phrase review', purpose: 'qualify' },
-      { id: 'demo-base-half', from: 'c', to: 'c1', author: 'Chief of Staff (Grok)', purpose: 'Half-length rewrite (targetRatio 0.5); retention is not endorsement' },
+      { id: 'demo-lanes-clarity', from: 'a', to: 'a1', author: 'Ollama mistral:7b', purpose: 'clarity' },
+      { id: 'demo-lanes-half', from: 'a', to: 'a2', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
+      { id: 'demo-schedule', from: 'b', to: 'b1', author: 'guarded editorial pass', purpose: 'qualify' },
+      { id: 'demo-base-half', from: 'c', to: 'c1', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
     ],
     texts: { a: P.lanes, a1: P.lanesClarity, a2: P.lanesHalf, b: P.schedule, b1: P.scheduleQualify, c: P.base, c1: P.baseHalf },
-    sources: {}, contexts: {},
-    _lane_by_proposal: { 'demo-lanes-clarity': 'local-proposals', 'demo-lanes-half': 'web-tools-paragraphs',
-                         'demo-schedule': 'phrase-reviews', 'demo-base-half': 'web-tools-paragraphs' },
-    _origins_by_proposal: {
-      'demo-lanes-clarity': [{ proposal_id: 'demo-lanes-clarity', operation: 'clarity', agent: 'Ollama mistral:7b', ratio: 1.02,
-                               rationale: 'Model note (unverified): splits the long sentence and states which lane moves.' }],
-      'demo-lanes-half': [{ proposal_id: 'demo-lanes-half', agent: 'Chief of Staff (Grok)', ratio: 0.48 }],
-      'demo-schedule': [{ proposal_id: 'demo-schedule', original_verdict: 'qualify', agent: 'phrase review', ratio: 1.1,
-                          rationale: 'A bare "reconciliation" left the reader to guess which two figures.' }],
-      'demo-base-half': [{ proposal_id: 'demo-base-half', agent: 'Chief of Staff (Grok)', ratio: 0.46 }],
-    },
-    _analysis_by_proposal: {},
   };
 
   const host = document.getElementById('doc');

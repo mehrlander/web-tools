@@ -473,19 +473,10 @@ test('match and retained proposals run with the read, without another tap', asyn
 });
 
 const proposalView = (id, from, to) => ({
-  id, lane: 'phrase-reviews',
+  id,
   from: { text_id: 'from-' + id, text: from },
   to: { text_id: 'to-' + id, text: to },
-  author: 'imported run', purpose: 'Imported qualify recommendation', action: 'qualify',
-  analysis: { ordinary_reading: 'households', closed_in_situ: 'no', fix_words: 2 },
-  origins: [{
-    proposal_id: id, lane: 'phrase-reviews', scope: 'source-occurrence', record: 1,
-    source: { repo: 'mehrlander/home', ref: 'main', path: 'review.csv', sha: 'abc', size: 1,
-      url: 'https://github.com/mehrlander/home/blob/main/review.csv', source_id: 'review.csv@abc' },
-    context: null, original_verdict: 'qualify', patient: null, operation: null,
-    original_status: null, original_note: null, decision: null, rationale: null,
-    relocation: null, evidence: [],
-  }],
+  author: 'guarded editorial pass', purpose: 'qualify',
 });
 
 test('retained proposals use the private home catalog and keep exact and contained apart', async () => {
@@ -493,7 +484,7 @@ test('retained proposals use the private home catalog and keep exact and contain
   const exact = proposalView('exact', 'families', 'bill-section families');
   const contained = { ...proposalView('inside', 'chrome', 'decoration'), spans: [[12, 18]] };
   const answer = { selection: { text: 'families' }, exact: [exact], contained: [contained],
-    warnings: ['Imported proposals are source-occurrence work, not automatic recommendations.'] };
+    warnings: ['Retained proposals are prior work on the same string, not recommendations for this selection.'] };
   let options = null, address = null;
   window.GH = function (o) { address = o; };
   window.TOKEN = 'stale-page-boot-token';
@@ -607,7 +598,8 @@ test('the retained-proposal pane is inspect-only and routes collection browsing 
   assert.match(SRC, /Same string found in this selection/);
   assert.match(SRC, /Same string found on this page/);
   assert.match(SRC, /text-lab\.html\?pane=proposals/);
-  assert.match(pane, /historical patient/);
+  assert.match(pane, /x-text="p\.author"/, 'the pane names who proposed it');
+  assert.doesNotMatch(pane, /historical patient|catalog source/, 'no provenance block: the collection records none');
   assert.doesNotMatch(pane, /@click="[^"]*apply/i, 'the drawer inspects proposals but cannot apply them');
 });
 

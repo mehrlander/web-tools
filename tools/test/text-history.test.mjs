@@ -406,14 +406,8 @@ test('schema validation rejects cross-wired revision endpoints, continuations, a
   proposals.proposals.find(row => row.id === 'proposal-old').from = IDS.earlierShort;
   await assert.rejects(build({ proposalIndex: proposals }), /does not start from a predecessor text/);
 
-  const unrelatedOrigin = proposalIndex();
-  unrelatedOrigin._origins_by_proposal['proposal-old'][0].document = {
-    repo: 'mehrlander/web-tools', path: 'docs/unrelated.md', commit: SOURCE_COMMIT,
-    start_line: 8, end_line: 8,
-  };
-  unrelatedOrigin._origins_by_proposal['proposal-old'][0].source_occurrence_id =
-    'proposal-source-direct';
-  await assert.rejects(build({ proposalIndex: unrelatedOrigin }),
-    /has no origin at its pinned proposal source occurrence/,
-    'equal proposal source text in another document is not occurrence provenance');
+  const byEdge = proposalIndex();
+  byEdge.proposals.find(row => row.id === 'proposal-old').id = 'renamed-by-the-collection';
+  await assert.rejects(build({ proposalIndex: byEdge }), /missing earlier proposal/,
+    'a record naming an id the index lacks needs its own from and to to be matched by edge');
 });
