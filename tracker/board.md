@@ -24,10 +24,10 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
-- 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L (needs: Type the subject on screen, and give the showing axis a registry)
+- 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
-- 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) · M (`claude/serene-einstein-dyr03b`)
+- (none)
 
 ## Blocked
 - (none)
@@ -108,5 +108,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Structural response decode + differentiated errors in toss-render](tasks/toss-render-decode-errors-xu3c6d.md)
 - 🎫 [toss-render ?query forwarding drops multi-param page queries](tasks/toss-render-multiparam-query-encoding-n9lbcp.md) (`claude/web-tools-tracker-review-bw48ga`)
 - 🎫 [Tracker review in show-repo, over a typed board projection](tasks/tracker-review-in-show-repo-v5km6b.md) (`claude/budget-drs-tracker-assessment-fwa13q`)
+- 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) (`claude/serene-einstein-dyr03b`)
 - 🎫 [Load the ?use= bundle by fetch + blob-import instead of jsDelivr](tasks/use-blob-import-bundle-dtuqjo.md) (`claude/loading-behavior-tracker-aqbf4f`)
 - 🎫 [Extend fetch + blob-import to the gh-api.js-chain ?use= boot](tasks/use-gh-api-chain-blob-import-y2hwqe.md)
