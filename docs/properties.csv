@@ -184,9 +184,9 @@ assistant-branches,repo,recorded,,none,column,yes,,value,owner/name of the repos
 assistant-branches,assistant,recorded,,none,column,yes,claude;codex;gemini;grok;copilot;human,label,who authored the branch; the same keys the assistant-mark kit draws
 assistant-branches,basis,recorded,,none,column,yes,,value,"the evidence behind the declaration: a PR body footer, a signature, a finding in a reviewed PR"
 assistant-branches,declared,recorded,,none,column,yes,,value,the date the row was declared
-subjects,label,recorded,,value,column,yes,,value,the type's display name
-subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a brief"
+subjects,label,recorded,,value,column,yes,,value,the type's display name, which is what the FAB captions
+subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a form"
 subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,"the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal"
-subjects,gloss,recorded,,value,column,yes,,value,what a subject of this type is
+subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
