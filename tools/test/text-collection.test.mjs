@@ -1,5 +1,5 @@
 // The collection, read in the browser from its three files. The fixture is a
-// miniature texts.jsonl, proposals.jsonl, and revisions.jsonl; what is under
+// miniature passages.jsonl, proposals.jsonl, and revisions.jsonl; what is under
 // test is identity, validation, lookup, search, the chain, and the read cache.
 
 import test from 'node:test';
@@ -19,7 +19,7 @@ const STRINGS = ['families', 'bill-section families', 'chrome', 'decoration', 'o
   'The lanes answer to different authorities.', 'The lanes answer to different authorities; adding them misleads.',
   'The oldest wording.'];
 const ID = Object.fromEntries(STRINGS.map(s => [s, sha(s)]));
-const TEXTS = STRINGS.map(s => JSON.stringify({ id: ID[s], text: s })).join('\n') + '\n';
+const PASSAGES = STRINGS.map(s => JSON.stringify({ id: ID[s], text: s })).join('\n') + '\n';
 const EDGES = [
   ['families', 'bill-section families', 'guarded editorial pass', 'qualify'],
   ['chrome', 'decoration', 'guarded editorial pass', 'rephrase'],
@@ -35,22 +35,22 @@ const REVISIONS = [
   { from: ID['chrome'], to: ID['new wording'], repo: 'mehrlander/web-tools', path: 'docs/b.md', commit: 'c'.repeat(40) },
 ].map(r => JSON.stringify(r)).join('\n') + '\n';
 
-const args = ({ texts = TEXTS, proposals = PROPOSALS, revisions = REVISIONS } = {}) => ({
-  files: { texts, proposals, revisions },
-  metadata: { texts: { sha: '1'.repeat(40), size: texts.length }, proposals: { sha: '2'.repeat(40), size: proposals.length }, revisions: { sha: '3'.repeat(40) } },
+const args = ({ passages = PASSAGES, proposals = PROPOSALS, revisions = REVISIONS } = {}) => ({
+  files: { passages, proposals, revisions },
+  metadata: { passages: { sha: '1'.repeat(40), size: passages.length }, proposals: { sha: '2'.repeat(40), size: proposals.length }, revisions: { sha: '3'.repeat(40) } },
   repo: 'mehrlander/home', ref: 'main',
 });
 const index = await T.build(args());
 
 test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.schema, 'text-collection/v1');
-  assert.equal(index.summary.texts, 9);
+  assert.equal(index.summary.passages, 9);
   assert.equal(index.summary.proposals, 4);
   assert.equal(index.summary.revisions, 3);
   assert.deepEqual(index.summary.by_purpose, { qualify: 1, rephrase: 1, repair: 1, 'half-length': 1 });
   assert.deepEqual(index.summary.by_author, { 'guarded editorial pass': 2, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 });
   assert.equal(index.proposals[0].id, pid(EDGES[0]), 'the proposal id is the hash text_store.propose writes');
-  assert.equal(index.sources.texts.path, P.texts);
+  assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.proposals.sha, '2'.repeat(40));
   assert.deepEqual(Object.keys(index.revisions[0]), ['from', 'to', 'repo', 'path', 'commit']);
 });
@@ -79,12 +79,12 @@ test('lookup matches the exact text only and honors Python edge trimming', () =>
 test('chain follows revisions back by id, newest first, with the proposals at each step', () => {
   const steps = T.chain(index, ID['new wording']);
   assert.deepEqual(steps.map(s => s.text), ['new wording', 'old wording', 'The oldest wording.']);
-  assert.equal(steps[0].revision, null, 'the text asked about was produced by nothing in this chain');
+  assert.equal(steps[0].revision, null, 'the passage asked about was produced by nothing in this chain');
   assert.equal(steps[1].revision.commit, 'b'.repeat(40), 'each step carries the revision that produced the step above it');
-  assert.equal(steps[0].also_from.length, 1, 'a second revision into the same text is listed, not followed');
+  assert.equal(steps[0].also_from.length, 1, 'a second revision into the same passage is listed, not followed');
   assert.equal(steps[0].also_from[0].path, 'docs/b.md');
-  assert.deepEqual(steps[1].proposals.map(p => p.purpose), ['repair'], 'the proposals made against the earlier text ride with it');
-  assert.equal(T.chain(index, ID['families']).length, 1, 'a text no revision led into is its own one-step chain');
+  assert.deepEqual(steps[1].proposals.map(p => p.purpose), ['repair'], 'the proposals made against the earlier passage ride with it');
+  assert.equal(T.chain(index, ID['families']).length, 1, 'a passage no revision led into is its own one-step chain');
   assert.equal(T.chain(index, 'nope').length, 0);
 });
 
@@ -96,18 +96,18 @@ test('search filters by author and purpose and reads both texts', () => {
   assert.equal(T.search(index, { q: 'not in the fixture' }).length, 0);
 });
 
-test('build refuses a text that does not hash to its id, and a row outside the collection', async () => {
-  await assert.rejects(T.build(args({ texts: TEXTS.replace('"text":"chrome"', '"text":"chromium"') })), /does not hash to its id/);
-  await assert.rejects(T.build(args({ texts: TEXTS.replace('"text":"chrome"', '"text":" chrome"') })), /not edge-trimmed/);
+test('build refuses a passage that does not hash to its id, and a row outside the collection', async () => {
+  await assert.rejects(T.build(args({ passages: PASSAGES.replace('"text":"chrome"', '"text":"chromium"') })), /does not hash to its id/);
+  await assert.rejects(T.build(args({ passages: PASSAGES.replace('"text":"chrome"', '"text":" chrome"') })), /not edge-trimmed/);
   await assert.rejects(T.build(args({ proposals: PROPOSALS + JSON.stringify({ from: 'x', to: ID.chrome, author: 'a', purpose: 'p' }) + '\n' })), /does not hold/);
   await assert.rejects(T.build(args({ proposals: PROPOSALS + JSON.stringify({ from: ID.chrome, to: ID.decoration, author: '', purpose: 'p' }) + '\n' })), /without an author/);
   await assert.rejects(T.build(args({ proposals: PROPOSALS + PROPOSALS.split('\n')[0] + '\n' })), /repeats proposal/);
-  await assert.rejects(T.build(args({ revisions: REVISIONS + JSON.stringify({ from: ID.chrome, to: ID.chrome, repo: 'r', path: 'p', commit: 'c' }) + '\n' })), /revises a text into itself/);
+  await assert.rejects(T.build(args({ revisions: REVISIONS + JSON.stringify({ from: ID.chrome, to: ID.chrome, repo: 'r', path: 'p', commit: 'c' }) + '\n' })), /revises a passage into itself/);
   await assert.rejects(T.build(args({ revisions: REVISIONS + JSON.stringify({ from: ID.chrome, to: ID.decoration, repo: 'r', path: 'p' }) + '\n' })), /missing one of/);
 });
 
 function fixtureGh({ token = '', failOnce = false } = {}) {
-  const blobs = { [P.texts]: TEXTS, [P.proposals]: PROPOSALS, [P.revisions]: REVISIONS };
+  const blobs = { [P.passages]: PASSAGES, [P.proposals]: PROPOSALS, [P.revisions]: REVISIONS };
   const calls = [];
   let shouldFail = failOnce;
   return {
@@ -115,7 +115,7 @@ function fixtureGh({ token = '', failOnce = false } = {}) {
     get headers() { return token ? { Authorization: `Bearer ${token}` } : {}; },
     async get(path, options = {}) {
       calls.push({ path, options });
-      if (path === P.texts && shouldFail) { shouldFail = false; const e = new Error('Not Found'); e.status = 404; throw e; }
+      if (path === P.passages && shouldFail) { shouldFail = false; const e = new Error('Not Found'); e.status = 404; throw e; }
       if (!(path in blobs)) { const e = new Error('Not Found'); e.status = 404; throw e; }
       return { text: blobs[path], sha: sha(blobs[path]), size: blobs[path].length, url: `https://github.com/mehrlander/home/blob/main/${path}` };
     },
@@ -127,7 +127,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   const a = await T.load(anon);
   const b = await T.load(anon);
   assert.equal(a, b, 'one read per client');
-  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.revisions, P.texts].sort());
+  assert.deepEqual(anon.calls.map(c => c.path).sort(), [P.proposals, P.revisions, P.passages].sort());
   assert.equal(a.summary.proposals, 4);
   const other = fixtureGh({ token: 'other' });
   assert.notEqual(await T.load(other), a, 'a different credential never receives another account\'s index');
@@ -135,7 +135,7 @@ test('load reads the three files at their fixed paths, and caches per credential
   await T.load(quiet, { quiet: true });
   assert.ok(quiet.calls.every(c => c.options.quiet === true), 'a quiet read stays quiet on every fetch');
   await T.load(anon, { fresh: true });
-  assert.equal(anon.calls.filter(c => c.path === P.texts).length, 2, 'fresh re-reads');
+  assert.equal(anon.calls.filter(c => c.path === P.passages).length, 2, 'fresh re-reads');
 });
 
 test('an unreachable collection reports the status, is held briefly, and recovers', async () => {

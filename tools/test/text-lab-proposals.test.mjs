@@ -20,11 +20,11 @@ assert.ok(start >= 0 && stop > start, 'the Text Lab Alpine model is extractable'
 const MODEL = SRC.slice(start, stop);
 
 const ROWS = [
-  { id: 'phrase-1', from: { text_id: 'from-1', text: 'families' }, to: { text_id: 'to-1', text: 'bill-section families' },
+  { id: 'phrase-1', from: { passage_id: 'from-1', text: 'families' }, to: { passage_id: 'to-1', text: 'bill-section families' },
     author: 'guarded editorial pass', purpose: 'qualify' },
-  { id: 'audit-1', from: { text_id: 'from-2', text: 'converting to and from' }, to: { text_id: 'to-2', text: 'converting text to and from compressed form' },
+  { id: 'audit-1', from: { passage_id: 'from-2', text: 'converting to and from' }, to: { passage_id: 'to-2', text: 'converting text to and from compressed form' },
     author: 'doc-audit', purpose: 'repair' },
-  { id: 'grok-1', from: { text_id: 'from-3', text: 'A long paragraph.' }, to: { text_id: 'to-3', text: 'A paragraph.' },
+  { id: 'grok-1', from: { passage_id: 'from-3', text: 'A long paragraph.' }, to: { passage_id: 'to-3', text: 'A paragraph.' },
     author: 'Chief of Staff (Grok)', purpose: 'half-length' },
 ];
 
@@ -32,7 +32,7 @@ const INDEX = {
   rows: ROWS,
   proposals: ROWS,
   summary: {
-    texts: 6,
+    passages: 6,
     proposals: 3,
     by_author: { 'guarded editorial pass': 1, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 },
     by_purpose: { qualify: 1, repair: 1, 'half-length': 1 },

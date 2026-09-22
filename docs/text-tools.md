@@ -41,15 +41,15 @@ house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
 **Prior revisions**, read from the private estate's Text collection. The
 browser reads `projects/text/current-sources.json` in `mehrlander/home` and
-then the two files it names: `texts.jsonl`, one line per distinct string with
-its id, and `proposals.jsonl`, one line per proposed edit as `from`, `to`,
-`author`, and `purpose`. Nothing is assembled from run inputs, and the
-collection does not say where a text was seen; a page is matched by its text.
-An exact band means the edge-trimmed selection equals a proposal's text. A
-contained band means the same case-sensitive, token-bounded string occurs
-inside the larger selection or page. Neither band is semantic, and neither
-says that prior work on the string should be applied to the occurrence now on
-screen.
+then the collection's three files: `passages.jsonl`, one line per distinct
+passage with its id, `proposals.jsonl`, one line per proposed edit as `from`,
+`to`, `author`, and `purpose`, and `revisions.jsonl`, one line per change that
+happened. Nothing is assembled from run inputs, and the collection does not
+say where a passage was seen; a page is matched by its text.
+A match means the edge-trimmed selection equals a proposal's passage, and
+that is the only match made: nothing fuzzier, nothing semantic, and nothing
+that says prior work on the passage should be applied to the occurrence now
+on screen.
 
 Every proposal shows its text and replacement, who proposed it, and the one
 word that says what kind of edit it is. There is no Apply action. A browse-all
@@ -228,16 +228,16 @@ the surface over a fixture, since a public page cannot read the collection.
 
 ## The History reading, on the document
 
-The collection's third file, `revisions.jsonl`, says one text became another
-in a commit at a path. The viewer's **History** mode uses it the way the
+The collection's third file, `revisions.jsonl`, says one passage became
+another in a commit at a path. The viewer's **History** mode uses it the way the
 Proposals mode uses proposals: [`kits/md-history.js`](../lib/kits/md-history.js)
 finds the paragraphs some revision led into, composes the file with each
 one's predecessor in place, and hands both to md-diff, so a paragraph is a
 swipeable container between what it said and what it says. Under each
 container is the chain, newest first: the commit that produced each step,
-linked, and the proposals that were made against each earlier text. The
-chain is `TextCollection.chain`, a walk back through revisions by text id;
-where two revisions led into one text, the first in file order is followed
+linked, and the proposals that were made against each earlier passage. The
+chain is `TextCollection.chain`, a walk back through revisions by passage id;
+where two revisions led into one passage, the first in file order is followed
 and the other is counted. Nothing is inferred, and nothing is applied.
 
 ## Proposals from a local model

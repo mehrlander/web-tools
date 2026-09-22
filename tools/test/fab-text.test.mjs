@@ -474,8 +474,8 @@ test('match and retained proposals run with the read, without another tap', asyn
 
 const proposalView = (id, from, to) => ({
   id,
-  from: { text_id: 'from-' + id, text: from },
-  to: { text_id: 'to-' + id, text: to },
+  from: { passage_id: 'from-' + id, text: from },
+  to: { passage_id: 'to-' + id, text: to },
   author: 'guarded editorial pass', purpose: 'qualify',
 });
 

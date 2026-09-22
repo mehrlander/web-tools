@@ -40,7 +40,7 @@ function index() {
       { id: 'p-audit', from: 't3', to: 't3n', author: 'doc-audit', purpose: 'qualify' },
       { id: 'p-elsewhere', from: 'tx', to: 'txn', author: 'x', purpose: 'y' },
     ],
-    texts: { t1: P1, t1c: P1_CLARITY, t1h: P1_HALF, t3: P3, t3n: P3_NEW, tx: 'Not in this document.', txn: 'Still not.' },
+    passages: { t1: P1, t1c: P1_CLARITY, t1h: P1_HALF, t3: P3, t3n: P3_NEW, tx: 'Not in this document.', txn: 'Still not.' },
   };
 }
 

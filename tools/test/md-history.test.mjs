@@ -31,7 +31,7 @@ const COMMIT_B = 'b'.repeat(40);
 
 function index() {
   return {
-    texts: { now: NOW, before: BEFORE, first: FIRST, then: PROPOSED_THEN, x: 'Elsewhere.', y: 'Elsewhere, revised.' },
+    passages: { now: NOW, before: BEFORE, first: FIRST, then: PROPOSED_THEN, x: 'Elsewhere.', y: 'Elsewhere, revised.' },
     proposals: [
       { id: 'p-then', from: 'before', to: 'then', author: 'doc-audit', purpose: 'repair' },
       { id: 'p-now', from: 'now', to: 'first', author: 'Chief of Staff (Grok)', purpose: 'half-length' },
