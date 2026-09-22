@@ -197,7 +197,7 @@ test('markdown offers a separate full-width History reading', () => {
   assert.match(doc.body.firstElementChild.className, /overflow-auto/);
 });
 
-test('History passes the untouched full file for Git blob scope while inspecting stripped Markdown', async () => {
+test('History hands the kit the stripped Markdown and the collection, and nothing else', async () => {
   const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
   const root = window.document.createElement('div');
   root.innerHTML = mod.render({});
@@ -223,8 +223,8 @@ test('History passes the untouched full file for Git blob scope while inspecting
     root.remove();
   }
   assert.equal(captured.markdown, '# Passage history\n\nCurrent wording.\n');
-  assert.equal(captured.opts.source, source, 'full bytes, including frontmatter, determine the Git blob');
-  assert.equal(captured.opts.ref, 'moving-main');
+  assert.deepEqual(captured.index, { id: 'history-index' });
+  assert.equal(captured.opts, undefined, 'the join is by text; no repo, ref, or blob rides along');
 });
 
 // ── the pdf mode ────────────────────────────────────────────────────────────
