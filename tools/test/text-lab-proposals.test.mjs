@@ -56,7 +56,7 @@ function harness(search = '') {
   window.self = window;
   window.top = window;
   window.TOKEN = '';
-  window.TextProposals = {
+  window.TextCollection = {
     load: async () => INDEX,
     search(index, { q = '', author = '', purpose = '' } = {}) {
       const needle = q.toLowerCase();
@@ -100,7 +100,7 @@ test('the pane loads the collection reader once, and nothing else', async () => 
   h.model.home = { repo: 'mehrlander/home', ref: 'main' };
   await h.model.loadProposals();
   await h.model.loadProposals();
-  assert.equal(h.loads.join(','), 'kits/text-proposals.js');
+  assert.equal(h.loads.join(','), 'kits/text-collection.js');
   assert.equal(h.model.proposalState, 'done');
   assert.equal(h.model.proposalTotal, 3);
 });
@@ -170,7 +170,7 @@ test('the markup shows the four fields and never offers Apply', () => {
   assert.match(SRC, /:id="'proposal-' \+ p\.id"/, 'each stable proposal address resolves to a DOM target');
   assert.doesNotMatch(SRC, />\s*apply\s*</i);
   assert.doesNotMatch(SRC, /lane|Provenance|Relocation|Evidence/, 'nothing the collection does not carry is drawn');
-  assert.match(SRC, /if \(!this\.proposalIndex \|\| !window\.TextProposals\) return \[\]/,
+  assert.match(SRC, /if \(!this\.proposalIndex \|\| !window\.TextCollection\) return \[\]/,
     'hidden Alpine expressions have a null-safe getter');
   assert.match(SRC, /const pane = this\.PANES\.includes\(name\)/,
     'async pane work keeps the pane that initiated it instead of rereading mutable state');

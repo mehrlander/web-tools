@@ -479,21 +479,21 @@ const proposalView = (id, from, to) => ({
   author: 'guarded editorial pass', purpose: 'qualify',
 });
 
-test('retained proposals use the private home catalog and keep exact and contained apart', async () => {
+test('retained proposals use the private home collection and match the exact text only', async () => {
   const d = await mountFab();
   const exact = proposalView('exact', 'families', 'bill-section families');
-  const contained = { ...proposalView('inside', 'chrome', 'decoration'), spans: [[12, 18]] };
-  const answer = { selection: { text: 'families' }, exact: [exact], contained: [contained],
+  const second = proposalView('again', 'families', 'the families');
+  const answer = { selection: { text: 'families' }, exact: [exact, second],
     warnings: ['Retained proposals are prior work on the same string, not recommendations for this selection.'] };
   let options = null, address = null;
   window.GH = function (o) { address = o; };
   window.TOKEN = 'stale-page-boot-token';
   window.ghAuth = { resolve: () => 'current-saved-token' };
-  window.TextProposals = {
-    load: async (_gh, o) => { options = o; return { proposals: [exact, contained] }; },
+  window.TextCollection = {
+    load: async (_gh, o) => { options = o; return { proposals: [exact, second] }; },
     lookup: (_index, text, o) => {
       assert.equal(text, 'families');
-      assert.equal(o.contained, true);
+      assert.equal(o, undefined, 'exact is the only match made; nothing fuzzier is asked for');
       return answer;
     },
   };
@@ -504,28 +504,24 @@ test('retained proposals use the private home catalog and keep exact and contain
   await tick(2);
 
   assert.deepEqual(problems.slice(problemCount), [],
-    'an exact row has no contained spans, and hidden Alpine bindings still evaluate');
+    'hidden Alpine bindings still evaluate');
   assert.equal(address.token, 'current-saved-token');
   assert.equal(address.repo, 'mehrlander/home');
   assert.equal(address.ref, 'main');
-  assert.equal(options.specPath, 'projects/text/current-sources.json');
   assert.equal(options.quiet, true, 'an optional background read cannot replace the host page');
   assert.equal(d.textPriorState, 'done');
   assert.equal(d.textPrior.selection.text, answer.selection.text);
   assert.equal(d.textPrior.exact[0].id, answer.exact[0].id);
-  assert.equal(d.textPrior.contained[0].id, answer.contained[0].id);
+  assert.equal(d.textPrior.exact[1].id, answer.exact[1].id);
   assert.equal(d.textPriorCount, 2);
-  assert.equal([...d.textPriorBands].map(b => b.label).join('|'),
-    'Exact source text|Same string found in this selection');
-  d.textScope = 'page';
-  assert.equal([...d.textPriorBands][1].label, 'Same string found on this page');
+  assert.equal([...d.textPriorBands].map(b => b.label).join('|'), 'Exact source text');
 });
 
 test('a later prior-revision scan wins when an earlier request settles last', async () => {
   const d = await mountFab();
   const waits = new Map();
   window.GH = function () {};
-  window.TextProposals = {
+  window.TextCollection = {
     load: async () => ({}),
     lookup: (_index, text) => new Promise(resolve => waits.set(text, resolve)),
   };
@@ -551,7 +547,7 @@ test('a proposal-index failure is isolated from the local text read', async () =
   const d = await mountFab();
   const stats = { body: 'families', visible: 'families', words: 1 };
   window.GH = function () {};
-  window.TextProposals = { load: async () => { throw new Error('catalog unavailable'); } };
+  window.TextCollection = { load: async () => { throw new Error('catalog unavailable'); } };
   d.textStats = stats;
   await d.textPriorRun();
   assert.equal(d.textPriorState, 'error');
@@ -565,7 +561,7 @@ test('a token change clears private proposal state before the next account read'
     'the app-wide credential follows the centralized account control');
   assert.match(AUTH_SRC, /window\.GH\.memoClear\?\.\(\)/,
     'GitHub response memoization cannot cross the account boundary');
-  assert.match(AUTH_SRC, /window\.TextProposals\?\.clear\?\.\(\)/,
+  assert.match(AUTH_SRC, /window\.TextCollection\?\.clear\?\.\(\)/,
     'the private proposal projection cannot cross the account boundary');
   assert.match(AUTH_SRC, /new CustomEvent\('web-tools:token-changed'\)/,
     'mounted private-data surfaces are told to discard their view');
@@ -595,8 +591,7 @@ test('the retained-proposal pane is inspect-only and routes collection browsing 
   const pane = SRC.slice(start, end);
   assert.ok(start > 0 && end > start, 'the retained-proposal block leads the Body figures');
   assert.match(SRC, /Exact source text/);
-  assert.match(SRC, /Same string found in this selection/);
-  assert.match(SRC, /Same string found on this page/);
+  assert.doesNotMatch(SRC, /Same string found/, 'containment was a third match rule and is gone');
   assert.match(SRC, /text-lab\.html\?pane=proposals/);
   assert.match(pane, /x-text="p\.author"/, 'the pane names who proposed it');
   assert.doesNotMatch(pane, /historical patient|catalog source/, 'no provenance block: the collection records none');

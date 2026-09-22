@@ -226,6 +226,20 @@ retained, not a way of accepting it. The demo at
 [`kits/demos/md-proposals.html`](../lib/kits/demos/md-proposals.html) shows
 the surface over a fixture, since a public page cannot read the collection.
 
+## The History reading, on the document
+
+The collection's third file, `revisions.jsonl`, says one text became another
+in a commit at a path. The viewer's **History** mode uses it the way the
+Proposals mode uses proposals: [`kits/md-history.js`](../lib/kits/md-history.js)
+finds the paragraphs some revision led into, composes the file with each
+one's predecessor in place, and hands both to md-diff, so a paragraph is a
+swipeable container between what it said and what it says. Under each
+container is the chain, newest first: the commit that produced each step,
+linked, and the proposals that were made against each earlier text. The
+chain is `TextCollection.chain`, a walk back through revisions by text id;
+where two revisions led into one text, the first in file order is followed
+and the other is counted. Nothing is inferred, and nothing is applied.
+
 ## Proposals from a local model
 
 Home's [local proposal worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/proposals)

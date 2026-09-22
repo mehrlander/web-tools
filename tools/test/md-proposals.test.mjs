@@ -2,7 +2,7 @@
 // retained proposals, the composition that hands md-diff a second text, and
 // the provenance line under each container.
 //
-// The index is hand-built in the shape text-proposals.js produces, since what
+// The index is hand-built in the shape text-collection.js produces, since what
 // is under test is how this kit reads that shape, not how the collection is
 // read (tools/test/text-proposals.test.mjs holds that). Render runs under
 // jsdom against the real marked and jsdiff, as md-diff's own test does: the
@@ -20,7 +20,7 @@ const { window } = makeWindow();
 window.marked = marked;
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;
-for (const kit of ['guide-render.js', 'swipe-deck.js', 'md-diff.js', 'text-proposals.js', 'md-proposals.js']) {
+for (const kit of ['guide-render.js', 'swipe-deck.js', 'md-diff.js', 'text-collection.js', 'md-proposals.js']) {
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits', kit), 'utf8'))(window, window.document);
 }
 const K = window.mdProposals;

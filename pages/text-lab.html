@@ -264,12 +264,12 @@
         this.proposalState = 'loading';
         this.proposalError = '';
         try {
-          await gh.load('kits/text-proposals.js');
-          this.proposalIndex = await window.TextProposals.load(this.home);
+          await gh.load('kits/text-collection.js');
+          this.proposalIndex = await window.TextCollection.load(this.home);
           this.proposalState = 'done';
           this.normalizeProposalParams();
           if (this.proposalOpen
-              && !window.TextProposals.view(this.proposalIndex, this.proposalOpen)) {
+              && !window.TextCollection.view(this.proposalIndex, this.proposalOpen)) {
             this.proposalOpen = '';
             this.syncProposalAddress();
           }
@@ -289,8 +289,8 @@
       },
 
       get proposalRows() {
-        if (!this.proposalIndex || !window.TextProposals) return [];
-        const rows = window.TextProposals.search(this.proposalIndex, {
+        if (!this.proposalIndex || !window.TextCollection) return [];
+        const rows = window.TextCollection.search(this.proposalIndex, {
           q: this.proposalQ,
           author: this.proposalAuthor,
           purpose: this.proposalPurpose,
@@ -298,7 +298,7 @@
         // A direct proposal address remains visible even when stale filters
         // also rode in the URL. The id is the stronger, exact address.
         if (this.proposalOpen && !rows.some(row => row.id === this.proposalOpen)) {
-          const selected = window.TextProposals.view(this.proposalIndex, this.proposalOpen);
+          const selected = window.TextCollection.view(this.proposalIndex, this.proposalOpen);
           if (selected) return [selected, ...rows];
         }
         return rows;
