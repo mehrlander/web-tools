@@ -1,4 +1,4 @@
-// alpineComponents/installation-view.js — the Installation pill under real
+// alpineComponents/installation-view.js - the Installation pill under real
 // Alpine in jsdom, against a stub repository. The derivation is held by
 // installation.test.mjs; what this holds is the surface's one rule and its
 // wiring: the corpus renders grouped with the local areas beside it, a
@@ -106,7 +106,7 @@ const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
 
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/alpineComponents/installation-view.js'])
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-ide.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -260,6 +260,100 @@ test('a form\'s controller and XAML are recorded apart', async () => {
   await data.confirmRecord(); await settle();
   assert.equal(data.stateOf(xaml).state, 'reported');
   assert.equal(data.stateOf(ctl).state, 'unknown');
+});
+
+test('powershell IDE workbench: parses AST, provides transfer scripts, cross-references companions, and computes diffs', async () => {
+  data.select(FORMS);
+  await settle();
+  assert.equal(data.codeLanguage, 'PowerShell Module (.psm1)');
+  assert.ok(data.activeAst);
+  assert.equal(data.activeAst.functions[0].name, 'Import-Form');
+  assert.ok(data.transfer);
+  assert.match(data.transfer.winPath, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
+  assert.match(data.transfer.verifyCmd, /Get-FileHash/);
+  assert.match(data.transfer.installCmd, /\[System\.IO\.File\]::WriteAllBytes/);
+  assert.match(data.transfer.installCmd, /FromBase64String/);
+  assert.match(data.transfer.headerSnippet, /# @file/);
+
+  // Companion cross-referencing on Bookmarks form
+  const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`;
+  data.select(xaml);
+  await settle();
+  assert.equal(data.codeLanguage, 'WPF XAML (.xaml)');
+  assert.ok(data.activeAst);
+  assert.equal(data.companionText, 'controller\n');
+  assert.ok(data.crossRef);
+
+  // Snippets and patterns library
+  data.ideTab = 'patterns';
+  assert.ok(data.visibleSnippets.length >= 6);
+  data.patternCategory = 'GUI & Layout';
+  assert.ok(data.visibleSnippets.every(s => s.category === 'GUI & Layout'));
+  data.patternCategory = 'Data & Utilities';
+  assert.ok(data.visibleSnippets.length >= 1);
+  assert.ok(data.visibleSnippets.every(s => s.category === 'Data & Utilities'));
+  data.patternCategory = '';
+
+  // In-IDE diff calculation
+  data.compareDraft = '<Window Title="Updated"/>\n';
+  await settle();
+  assert.ok(data.diffRows);
+  assert.match(data.diffStat, /\+\d+ \/ -\d+ lines/);
+
+  // Smart Hash Matcher
+  data.select(FORMS);
+  await settle();
+  assert.ok(Array.isArray(data.activeAst.compatibility));
+  assert.equal(data.activeAst.compatibility.length, 0, 'Forms.psm1 is clean PS 5.1');
+
+  // Paste a Get-FileHash output matching the current file
+  const digest = await window.Installation.digest(data.text);
+  assert.equal(data.currentSha256, digest);
+
+  data.compareDraft = `SHA256 ${digest.toUpperCase()} C:\\Forms.psm1`;
+  assert.equal(data.detectedHash, digest.toLowerCase());
+  assert.equal(data.hashMatchStatus, 'match');
+
+  // Stage verified hash record (confirm-before-write)
+  data.stageVerifiedHashRecord();
+  assert.ok(data.pending);
+  assert.equal(data.pending.kind, 'check');
+  assert.equal(data.pending.check.exact, true);
+  assert.equal(data.pending.check.incomingSha256, digest);
+
+  // Test hash mismatch
+  data.compareDraft = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  assert.equal(data.hashMatchStatus, 'mismatch');
+  data.stageDiffersHashRecord();
+  assert.equal(data.pending.check.exact, false);
+
+  // Clean up
+  data.pending = null;
+  data.compareDraft = '';
+  data.ideTab = 'code';
+});
+
+test('deep-linked selection loads file content and rapid selection avoids stale overwrite', async () => {
+  const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`;
+
+  // 1. Deep link on reload loads text and AST
+  data.selected = '';
+  data.text = '';
+  data.activeAst = null;
+  window.__shell.installationItem = FORMS;
+  await data.reload();
+  await settle();
+  assert.equal(data.selected, FORMS);
+  assert.ok(data.text.includes('Import-Form'));
+  assert.ok(data.activeAst);
+
+  // 2. Rapid selection switching: older request must not clobber newer selection
+  data.select(xaml);
+  data.select(FORMS);
+  await settle();
+  assert.equal(data.selected, FORMS);
+  assert.ok(data.text.includes('Import-Form'));
+  assert.equal(data.codeLanguage, 'PowerShell Module (.psm1)');
 });
 
 test('every ledger write in this run went through a confirm', () => {
