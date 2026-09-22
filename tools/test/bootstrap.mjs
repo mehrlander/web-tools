@@ -57,6 +57,7 @@ export const KIT_IMPORTS = {
   // interop the constructor namespace lands on `.default`, which is the shape
   // the kit's `m.default ?? m` already expects from the CDN build.
   'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm': () => import('exceljs'),
+  'https://cdn.jsdelivr.net/npm/pako@2.1.0/+esm': () => import('pako'),
 };
 
 // Run lib/kits/<name>.js against `window` (a plain object is fine for kits —
@@ -152,6 +153,11 @@ export function makeWindow({ html = '<!doctype html><html><body></body></html>',
   for (const name of ['ReadableStream', 'WritableStream', 'TransformStream',
                       'CompressionStream', 'DecompressionStream', 'Response']) {
     if (!window[name] && globalThis[name]) window[name] = globalThis[name];
+  }
+  if (!window.crypto?.subtle && globalThis.crypto?.subtle) {
+    try {
+      Object.defineProperty(window, 'crypto', { value: globalThis.crypto, configurable: true });
+    } catch {}
   }
   try {
     if (typeof new window.Blob(['x']).stream !== 'function') window.Blob = globalThis.Blob;
