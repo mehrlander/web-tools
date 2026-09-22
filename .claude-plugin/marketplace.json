@@ -9,7 +9,7 @@
       "name": "portable",
       "source": "./.claude/skills",
       "strict": false,
-      "description": "The to-go bag: the working-conventions loader and its surfacing contract, the skill-library loader, the show-repo instrument, the tracker operator, and the rest of the portable skill set; the roster, one row per piece, is docs/portable.csv, held to disk by tools/test/portable-manifest.test.mjs, so this description does not enumerate it. Also carries eight hooks that run on their own: the session recorder (Stop), inert unless a checkout declares a sessions store, the session dispatcher (SessionStart), which runs every checkout's own .claude/hooks/session-*.sh whatever the project root is, the MCP failure hint (PostToolUseFailure), which turns a -32003 approval wall into the sandbox-traps connector-vs-builtin diagnosis at the moment it fires, the PR-subscribe hint (PostToolUse), the reading-column guard (PreToolUse), which refuses a Tailwind class that narrows text to a reading column, the governing-docs warner (PostToolUse), which reminds the model that documentation edits need specific permission, the default-skill directive (SessionStart), which tells a session the contract did not reach to invoke it, and the send-later guard (PreToolUse), which refuses a scheduled self check-in on a pull request.",
+      "description": "The to-go bag: the working-conventions loader and its surfacing contract, the skill-library loader, the show-repo instrument, the tracker operator, and the rest of the portable skill set; the roster, one row per piece, is docs/portable.csv, held to disk by tools/test/portable-manifest.test.mjs, so this description does not enumerate it. Also carries nine hooks that run on their own: the session recorder (Stop), inert unless a checkout declares a sessions store, the session dispatcher (SessionStart), which runs every checkout's own .claude/hooks/session-*.sh whatever the project root is, the MCP failure hint (PostToolUseFailure), which turns a -32003 approval wall into the sandbox-traps connector-vs-builtin diagnosis at the moment it fires, the PR-subscribe hint (PostToolUse), the reading-column guard (PreToolUse), which refuses a Tailwind class that narrows text to a reading column, the governing-docs warner (PostToolUse), which reminds the model that documentation edits need specific permission, the default-skill directive (SessionStart), which tells a session the contract did not reach to invoke it, the sessions-store directive (SessionStart), which tells a session whose record store is not checked out to attach and clone it, and the send-later guard (PreToolUse), which refuses a scheduled self check-in on a pull request.",
       "author": {
         "name": "mehrlander"
       },
@@ -22,7 +22,6 @@
         "./in-flight",
         "./tasks",
         "./repo-review",
-        "./markers",
         "./sandbox-traps",
         "./content-registry",
         "./concept-index",
@@ -30,7 +29,8 @@
         "./file-retrieval",
         "./scour",
         "./gold-set",
-        "./apple-shortcuts-actions"
+        "./apple-shortcuts-actions",
+        "./sessions"
       ],
       "keywords": [
         "conventions",

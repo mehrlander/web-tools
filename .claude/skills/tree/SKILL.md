@@ -101,7 +101,7 @@ alignment, links, icons, optional gloss.
 | `├─ `📁 [hooks](https://github.com/mehrlander/web-tools/tree/main/.claude/hooks) | commit + session hooks |
 | `│  └─ `📄 [build-on-commit.sh](https://github.com/mehrlander/web-tools/blob/main/.claude/hooks/build-on-commit.sh) | regenerates derived files |
 | `└─ `📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) | the portable bag |
-| `   └─ `📁 [markers](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/markers) | the status system |
+| `   └─ `📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/tasks) | the tracker protocol |
 
 ### B. braille — invisible indent + icons
 
@@ -114,8 +114,8 @@ depth.
 | [.claude](https://github.com/mehrlander/web-tools/tree/main/.claude) |
 |---|
 | ⠀⠀⠀📁 [skills](https://github.com/mehrlander/web-tools/tree/main/.claude/skills) |
-| ⠀⠀⠀⠀⠀⠀📁 [markers](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/markers) |
-| ⠀⠀⠀⠀⠀⠀⠀⠀⠀📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/markers/SKILL.md) |
+| ⠀⠀⠀⠀⠀⠀📁 [tasks](https://github.com/mehrlander/web-tools/tree/main/.claude/skills/tasks) |
+| ⠀⠀⠀⠀⠀⠀⠀⠀⠀📄 [SKILL.md](https://github.com/mehrlander/web-tools/blob/main/.claude/skills/tasks/SKILL.md) |
 
 Pick A when depth or alignment matters, or a gloss column is wanted; pick B
 for a quiet, shallow orientation view. When unsure, A is the default.

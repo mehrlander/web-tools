@@ -5,7 +5,7 @@ reports three things: prior revisions retained for the same literal strings,
 figures about the prose, and which registered files the text names. The figures
 are local; the other two lanes read committed catalogs. No model is called and
 nothing is written anywhere. Built 2026-08-13 and connected to the shared Text
-proposal sources on 2026-09-17. This document is the design account and the
+collection on 2026-09-17, which became two committed files on 2026-09-22. This document is the design account and the
 honest assessment; the mechanics live in
 [`fab.js`](../lib/alpineComponents/fab.js) beside the code.
 
@@ -39,24 +39,22 @@ it.
 their average, reading time, the longest sentence with its text, and two
 house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
-**Prior revisions**, reconstructed from the private estate's durable Text
-sources. The browser reads `projects/text/current-sources.json`, the phrase
-review and its passage context, the document-audit packet, and (when declared)
-`web_tools_paragraphs.drafts_inventory` (gzip JSONL of draft-bearing rows with
-originals and path/line/paragraph provenance). Those inputs produce the
-attributed proposal subset counted live in Text Lab. An exact band
-means the edge-trimmed selection equals a proposal's original string. A
-contained band means the same case-sensitive, token-bounded string occurs
-inside the larger selection or page. Neither band is semantic, and neither says
-that prior source-occurrence work should be applied to the occurrence now on
-screen.
+**Prior revisions**, read from the private estate's Text collection. The
+browser reads `projects/text/current-sources.json` in `mehrlander/home` and
+then the collection's three files: `passages.jsonl`, one line per distinct
+passage with its id, `proposals.jsonl`, one line per proposed edit as `from`,
+`to`, `author`, and `purpose`, and `revisions.jsonl`, one line per change that
+happened. Nothing is assembled from run inputs, and the collection does not
+say where a passage was seen; a page is matched by its text.
+A match means the edge-trimmed selection equals a proposal's passage, and
+that is the only match made: nothing fuzzier, nothing semantic, and nothing
+that says prior work on the passage should be applied to the occurrence now
+on screen.
 
-Every proposal shows its earlier original and revision, action, attribution,
-and source provenance. Phrase reviews retain their passage and imported
-judgments. Document-audit proposals retain the historical patient revision,
-rationale, relocation, and evidence. There is no Apply action. A browse-all
-link opens the same records in Text Lab, where they can be searched, filtered,
-expanded, and addressed by proposal ID.
+Every proposal shows its text and replacement, who proposed it, and the one
+word that says what kind of edit it is. There is no Apply action. A browse-all
+link opens the same records in Text Lab, where they can be searched, filtered
+by author and purpose, expanded, and addressed by proposal ID.
 
 **One gate.** Under 6 mean words per text run, the page is treated as an app
 rather than a document, and the two house-rule rows are withheld: they are prose
@@ -123,8 +121,8 @@ lookup. The word "resolve" describes a string comparison.
 **Not a general capability.** The registered-file lane works because *this*
 estate keys its registries by path. Off `mehrlander/web-tools` there are no path
 descriptions at all, and within it `lib/` is uncovered, so many rows carry a
-link and nothing else. The proposal lane is also estate-specific:
-it reads `mehrlander/home@main` and requires the viewer's access to that private
+link and nothing else. The retained proposals are also estate-specific: they
+read `mehrlander/home@main` and require the viewer's access to that private
 repository.
 
 **Not built on the recognizer, deliberately.** `state/entities.json` reports ORG
@@ -183,11 +181,9 @@ not have. The `assumed` tier is a property of a repo's whole prose, so this pane
 can only reach it by fetching the vocabulary index the estate declines to
 commit. It likely stays an agent-side answer the tab links to.
 
-The private text project also builds an ignored, current-checkout collection far
-larger than this browser projection. The browser does not transport that
-machine-local store. It reconstructs only the proposals recoverable from
-committed review sources, so current occurrences, normalization and lemma
-relationships, the wider exact index, and any semantic index remain absent.
+The private text project also builds an ignored local store around the two
+files: current occurrences, normalization and lemma relationships, and any
+semantic index. The browser reads the two files only, so none of that is here.
 
 **Ask** (hand the text to a model) probably belongs in the FAB's existing
 take-away menu, whose job is already handing the page somewhere else.
@@ -208,7 +204,7 @@ was made rather than saying what a file is.
 Since 2026-09-18 the app's file viewer offers a **Proposals** mode for any
 markdown file, beside Preview. It puts the retained proposals on the document
 rather than beside it: [`kits/md-proposals.js`](../lib/kits/md-proposals.js)
-finds the paragraphs whose exact text has a proposal in the shared projection,
+finds the paragraphs whose exact text has a proposal in the collection,
 composes a second copy of the file with one proposal substituted per paragraph,
 and hands both to [`kits/md-diff.js`](../lib/kits/md-diff.js). Each such
 paragraph is then a swipeable container between the text as it stands, the
@@ -220,24 +216,36 @@ the swipe then compares. The strip counts the paragraphs and lights them all on
 one tap, which is the first question a reader arriving at a file has.
 
 The join is exact, on the paragraph's text with whitespace flattened, and that
-is the honest limit. Measured on 2026-09-18 over the web-tools paragraph lane,
-2,201 of 2,272 retained originals match a block of their document at `main`;
+is the honest limit. Measured on 2026-09-18 over the 2,272 half-length rewrites,
+2,201 of their originals match a block of their document at `main`;
 the 71 that do not are paragraphs edited since the scan, and they are not shown
 against the paragraph that replaced them. The mode reads the same private
-projection the Text tab reads, so it needs the reader's token, and it applies
+collection the Text tab reads, so it needs the reader's token, and it applies
 nothing: like the tab and Text Lab, it is a way of seeing what has been
 retained, not a way of accepting it. The demo at
 [`kits/demos/md-proposals.html`](../lib/kits/demos/md-proposals.html) shows
-the surface over a fixture, since a public page cannot read the projection.
+the surface over a fixture, since a public page cannot read the collection.
+
+## The History reading, on the document
+
+The collection's third file, `revisions.jsonl`, says one passage became
+another in a commit at a path. The viewer's **History** mode uses it the way the
+Proposals mode uses proposals: [`kits/md-history.js`](../lib/kits/md-history.js)
+finds the paragraphs some revision led into, composes the file with each
+one's predecessor in place, and hands both to md-diff, so a paragraph is a
+swipeable container between what it said and what it says. Under each
+container is the chain, newest first: the commit that produced each step,
+linked, and the proposals that were made against each earlier passage. The
+chain is `TextCollection.chain`, a walk back through revisions by passage id;
+where two revisions led into one passage, the first in file order is followed
+and the other is counted. Nothing is inferred, and nothing is applied.
 
 ## Proposals from a local model
 
 Home's [local proposal worker](https://github.com/mehrlander/home/tree/main/projects/text/instruments/proposals)
 snapshots source paragraphs and generates edits with installed Ollama weights.
-Retained bundles registered in `current-sources.json` under `local_proposals`
-appear in the **Local models** group. The shared projection preserves Text's
-proposal identities, model attribution, source revision, saved context and
-unverified model notes. Clarity, tightening and half-length experiments can be
-filtered separately. Diagnostic flags do not establish quality. Working-tree
-snapshots have no source permalink because a commit would show different bytes.
-The page displays proposals; generation and retention remain Home operations.
+Its `retain` command appends the valid ones to the collection, with the author
+`Ollama <model>` and the purpose `clarity`, `tighten`, or `half-length`, so they
+appear here like any other proposal. Diagnostic flags, the model digest, and
+the snapshot stay in the run directory and do not establish quality. The page
+displays proposals; generation and retention remain Home operations.

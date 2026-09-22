@@ -3,6 +3,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
 .claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,289,imported,no,no,yes
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
+.claude/skills/hooks/invoke-sessions.sh,,.claude/skills/hooks,104,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no
 .claude/skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,.claude/skills/hooks,95,hook:PostToolUse,no,yes,no
 .claude/skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,.claude/skills/hooks,105,hook:PreToolUse,no,no,yes
@@ -12,7 +13,7 @@ path,role,layer,lines,invocation,emits,named,tested
 .claude/skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,.claude/skills/hooks,89,hook:Stop,no,yes,yes
 .claude/skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry",.claude/skills/hooks,42,hook:PostToolUse,no,no,no
 .githooks/commit-msg,the consent gate: refuses a commit that files a task or rewrites a governing document without saying what it rests on,.githooks,56,git:commit-msg,no,yes,yes
-.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,372,git:pre-commit,no,yes,yes
+.githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,361,git:pre-commit,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through scripts/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists",.github/workflows,133,ci:push+repository_dispatch+schedule+workflow_dispatch,no,no,no
 .github/workflows/test.yml,runs npm test on every pull request and reports it as the PR's one platform-enforced check,.github/workflows,116,ci:pull_request+push+workflow_dispatch,no,yes,no
