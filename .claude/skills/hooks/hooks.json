@@ -18,6 +18,15 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/invoke-default.sh\""
           }
         ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/invoke-sessions.sh\""
+          }
+        ]
       }
     ],
     "PreToolUse": [
