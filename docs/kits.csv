@@ -17,7 +17,7 @@ lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet pac
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,115,yes,no,7,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,4,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",54,no,no,10,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",54,no,no,9,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,62,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
@@ -38,7 +38,7 @@ lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the nex
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1203,no,yes,10,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,14,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, and what was proposed along the way.",150,no,no,1,yes
-lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,231,no,yes,2,yes
+lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,230,no,yes,2,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
@@ -75,7 +75,7 @@ lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are 
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,24,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",940,no,no,1,yes
-lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",333,no,no,5,yes
+lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",329,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",394,yes,no,3,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,154,no,no,2,yes

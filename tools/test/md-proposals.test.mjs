@@ -4,7 +4,7 @@
 //
 // The index is hand-built in the shape text-collection.js produces, since what
 // is under test is how this kit reads that shape, not how the collection is
-// read (tools/test/text-proposals.test.mjs holds that). Render runs under
+// read (tools/test/text-collection.test.mjs holds that). Render runs under
 // jsdom against the real marked and jsdiff, as md-diff's own test does: the
 // container count and the provenance join are DOM facts.
 
@@ -12,11 +12,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot, makeWindow } from './bootstrap.mjs';
+import { repoRoot, makeWindow, deckGeometry } from './bootstrap.mjs';
 import { marked } from 'marked';
 import * as Diff from 'diff';
 
 const { window } = makeWindow();
+deckGeometry(window);
 window.marked = marked;
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;

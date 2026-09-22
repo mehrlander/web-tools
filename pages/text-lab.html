@@ -62,7 +62,7 @@
     ?use=<ref>   pins this page's own lib chain to a ref.
     ?data=<ref>  pins which ref of home is read (defaults to main).
     ?pane=<name> opens one pane.
-    ?q=<text>    searches the proposal projection.
+    ?q=<text>    searches the collection's proposals.
     ?author=<name> and ?purpose=<word> filter proposal rows.
     ?proposal=<id> opens one proposal and implies the proposals pane.
 -->
@@ -258,7 +258,7 @@
         }
       },
 
-      // The collection's two files, read by the shared kit that the FAB and the
+      // The collection's three files, read by the shared kit that the FAB and the
       // file viewer also read, so every surface has one answer.
       async loadProposals() {
         if (this.proposalState === 'loading' || this.proposalState === 'done') return;

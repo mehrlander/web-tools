@@ -49,7 +49,7 @@ test('build reads the three files and derives the Python identities', () => {
   assert.equal(index.summary.revisions, 3);
   assert.deepEqual(index.summary.by_purpose, { qualify: 1, rephrase: 1, repair: 1, 'half-length': 1 });
   assert.deepEqual(index.summary.by_author, { 'guarded editorial pass': 2, 'doc-audit': 1, 'Chief of Staff (Grok)': 1 });
-  assert.equal(index.proposals[0].id, pid(EDGES[0]), 'the proposal id is the hash text_store.propose writes');
+  assert.equal(index.proposals[0].id, pid(EDGES[0]), 'the browser hashes the four proposal fields using Python JSON spacing');
   assert.equal(index.sources.passages.path, P.passages);
   assert.equal(index.sources.proposals.sha, '2'.repeat(40));
   assert.deepEqual(Object.keys(index.revisions[0]), ['from', 'to', 'repo', 'path', 'commit']);
@@ -76,16 +76,31 @@ test('lookup matches the exact text only and honors Python edge trimming', () =>
   assert.equal(T.lookup(index, 'FAMILIES').exact.length, 0, 'case-sensitive');
 });
 
-test('chain follows revisions back by id, newest first, with the proposals at each step', () => {
+test('chain follows recorded revisions back by id, with the proposals at each step', () => {
   const steps = T.chain(index, ID['new wording']);
   assert.deepEqual(steps.map(s => s.text), ['new wording', 'old wording', 'The oldest wording.']);
-  assert.equal(steps[0].revision, null, 'the passage asked about was produced by nothing in this chain');
+  assert.equal(steps[0].revision, null, 'the matched passage has no transition to a later step');
   assert.equal(steps[1].revision.commit, 'b'.repeat(40), 'each step carries the revision that produced the step above it');
   assert.equal(steps[0].also_from.length, 1, 'a second revision into the same passage is listed, not followed');
   assert.equal(steps[0].also_from[0].path, 'docs/b.md');
   assert.deepEqual(steps[1].proposals.map(p => p.purpose), ['repair'], 'the proposals made against the earlier passage ride with it');
   assert.equal(T.chain(index, ID['families']).length, 1, 'a passage no revision led into is its own one-step chain');
   assert.equal(T.chain(index, 'nope').length, 0);
+});
+
+test('chain never promotes a proposal into a revision and stops at cycles or its limit', () => {
+  const proposalsOnly = { ...index, revisions: [] };
+  assert.deepEqual(T.chain(proposalsOnly, ID['new wording']).map(s => s.text), ['new wording'],
+    'a matching proposed replacement is not evidence of a change');
+  const cyclic = { ...index, revisions: [
+    ...index.revisions,
+    { from: ID['new wording'], to: ID['The oldest wording.'], repo: 'mehrlander/home', path: 'other.md', commit: 'd'.repeat(40) },
+  ] };
+  assert.deepEqual(T.chain(cyclic, ID['new wording']).map(s => s.text), ['new wording', 'old wording', 'The oldest wording.']);
+  assert.deepEqual(T.chain(cyclic, ID['new wording'], { limit: 2 }).map(s => s.text), ['new wording', 'old wording']);
+  const reordered = { ...index, revisions: index.revisions.toReversed() };
+  assert.deepEqual(T.chain(reordered, ID['new wording']).map(s => s.text), ['new wording', 'chrome'],
+    'file order chooses the traversal even across paths; the chain is not a verified occurrence history');
 });
 
 test('search filters by author and purpose and reads both texts', () => {
@@ -123,6 +138,11 @@ function fixtureGh({ token = '', failOnce = false } = {}) {
 }
 
 test('load reads the three files at their fixed paths, and caches per credential', async () => {
+  assert.deepEqual(P, {
+    passages: 'projects/text/passages.jsonl',
+    proposals: 'projects/text/proposals.jsonl',
+    revisions: 'projects/text/revisions.jsonl',
+  });
   const anon = fixtureGh();
   const a = await T.load(anon);
   const b = await T.load(anon);
@@ -136,6 +156,53 @@ test('load reads the three files at their fixed paths, and caches per credential
   assert.ok(quiet.calls.every(c => c.options.quiet === true), 'a quiet read stays quiet on every fetch');
   await T.load(anon, { fresh: true });
   assert.equal(anon.calls.filter(c => c.path === P.passages).length, 2, 'fresh re-reads');
+});
+
+test('both markdown readers lazy-load TextCollection and share its three-file read', async () => {
+  const reads = [];
+  const modules = [];
+  const w = { crypto: webcrypto, TextEncoder };
+  w.GH = class {
+    static FRESH = { cache: 'no-store' };
+    constructor({ token, repo, ref }) {
+      const gh = fixtureGh({ token });
+      Object.assign(this, { repo, ref, headers: gh.headers });
+      this.get = (path, options) => {
+        reads.push({ repo, ref, path, options });
+        return gh.get(path, options);
+      };
+    }
+  };
+  w.gh = { load: async path => {
+    modules.push(path);
+    assert.equal(path, 'kits/text-collection.js', 'no retired source adapter or CSV loader is needed');
+    loadKit('text-collection.js', { window: w });
+  } };
+  loadKit('md-proposals.js', { window: w });
+  loadKit('md-history.js', { window: w });
+  const proposals = await w.mdProposals.index({ token: 'reader' });
+  const history = await w.mdHistory.index({ token: 'reader' });
+  assert.equal(proposals, history, 'both viewer modes share the same authenticated collection');
+  assert.deepEqual(modules, ['kits/text-collection.js']);
+  assert.deepEqual(reads.map(r => r.path).sort(), Object.values(P).sort());
+  assert.ok(reads.every(r => r.repo === 'mehrlander/home' && r.ref === 'main' && r.options.quiet));
+  assert.equal(proposals.summary.proposals, 4);
+  assert.equal(history.summary.revisions, 3);
+});
+
+test('TextCollection and RepoProposals keep separate records and APIs when loaded together', async () => {
+  const w = { crypto: webcrypto, TextEncoder };
+  loadKit('repo-proposals.js', { window: w });
+  const repoProposals = w.RepoProposals;
+  loadKit('text-collection.js', { window: w });
+  const collection = await w.TextCollection.load(fixtureGh());
+  assert.equal(w.RepoProposals, repoProposals, 'loading the collection does not replace the write channel');
+  assert.deepEqual(repoProposals.pending(['write.json', 'passages.jsonl', 'proposals.jsonl', 'revisions.jsonl'], []), ['write.json']);
+  assert.equal(repoProposals.validate(collection.proposals[0]).ok, false, 'a retained prose proposal is not a write instruction');
+  assert.equal(typeof repoProposals.apply, 'function');
+  assert.equal(w.TextCollection.apply, undefined, 'collection readers offer no apply operation');
+  assert.equal(w.TextProposals, undefined);
+  assert.equal(w.TextHistory, undefined);
 });
 
 test('an unreachable collection reports the status, is held briefly, and recovers', async () => {
