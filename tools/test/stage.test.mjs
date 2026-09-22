@@ -3874,3 +3874,34 @@ test('executeGitChangeApply refuses default branch', async () => {
   await data.executeGitChangeApply();
   assert.match(data.gitChangeApplyError, /Refusing to write directly to default branch/);
 });
+
+test('send() with git-change routes through arming and deposits via executeGitChangeApply', async () => {
+  reset();
+  const { json, baseSha, expectedTree, branch } = makeTestGitChange({ draftPr: true });
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  data.destSpec = 'mehrlander/web-tools@' + branch;
+  data.gitChangeCreateBranch = true;
+  data.gitChangeOpenDraftPr = true;
+
+  assert.equal(data.sendArmed, false);
+  assert.equal(data.sendLabel, 'Apply patch');
+
+  // First tap arms
+  await data.send();
+  assert.equal(data.sendArmed, true);
+  assert.equal(data.sendLabel, 'Apply to ' + branch + ' ?');
+
+  // Second tap deposits
+  await data.send();
+  assert.equal(data.sendArmed, false);
+
+  const commitCall = calls.find(c => c.kind === 'commitFiles');
+  assert.ok(commitCall, 'calls commitFiles');
+  assert.equal(commitCall.opts.branch, branch);
+  assert.equal(commitCall.opts.requireBaseCommit, baseSha);
+  assert.equal(commitCall.opts.expectedTree, expectedTree);
+
+  const prCall = calls.find(c => c.kind === 'createPull');
+  assert.ok(prCall, 'calls createPull');
+  assert.equal(prCall.head, branch);
+});
