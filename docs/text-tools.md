@@ -5,7 +5,7 @@ reports three things: prior revisions retained for the same literal strings,
 figures about the prose, and which registered files the text names. The figures
 are local; the other two lanes read committed catalogs. No model is called and
 nothing is written anywhere. Built 2026-08-13 and connected to the shared Text
-collection on 2026-09-17, which became two committed files on 2026-09-22. This document is the design account and the
+collection on 2026-09-17, which since 2026-09-22 is committed JSONL files read at fixed paths. This document is the design account and the
 honest assessment; the mechanics live in
 [`fab.js`](../lib/alpineComponents/fab.js) beside the code.
 
@@ -40,11 +40,10 @@ their average, reading time, the longest sentence with its text, and two
 house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
 **Prior revisions**, read from the private estate's Text collection. The
-browser reads `projects/text/current-sources.json` in `mehrlander/home` and
-then the collection's three files: `passages.jsonl`, one line per distinct
-passage with its id, `proposals.jsonl`, one line per proposed edit as `from`,
-`to`, `author`, and `purpose`, and `revisions.jsonl`, one line per change that
-happened. Nothing is assembled from run inputs, and the collection does not
+browser reads two files in `mehrlander/home` under `projects/text/`, at fixed
+paths: `passages.jsonl`, one line per distinct passage with its id, and
+`proposals.jsonl`, one line per proposed edit as `from`, `to`, `author`, and
+`purpose`. Nothing is assembled from run inputs, and the collection does not
 say where a passage was seen; a page is matched by its text.
 A match means the edge-trimmed selection equals a proposal's passage, and
 that is the only match made: nothing fuzzier, nothing semantic, and nothing
