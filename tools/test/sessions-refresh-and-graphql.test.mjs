@@ -143,7 +143,10 @@ test('State view GraphQL Activity Discovery inspector state, methods, and layout
   });
   window.TOKEN = 'test-tok';
   window.GH = FakeGH;
-  window.__shell = { REGISTRY_REPO: 'mehrlander/web-tools-private' };
+  window.__shell = {
+    REGISTRY_REPO: 'mehrlander/web-tools-private',
+    estateRepos: [{ repo: 'mehrlander/web-tools' }, { repo: 'mehrlander/other-repo' }],
+  };
 
   const Alpine = await startAlpine(window, [
     'lib/alpine-bundle.js',
@@ -156,22 +159,51 @@ test('State view GraphQL Activity Discovery inspector state, methods, and layout
   assert.equal(typeof sv.fetchActivityGraphQL, 'function');
   assert.equal(typeof sv.copyGraphQLText, 'function');
   assert.equal(sv.graphQLTab, 'response');
+  assert.equal(sv.graphQLRepo, 'all', 'defaults to all repositories');
+  assert.equal(sv.currentGraphQL, null, 'currentGraphQL is null when no repo snapshots exist');
 
   window.__graphQLByRepo = {
     'mehrlander/web-tools': {
       repo: 'mehrlander/web-tools',
-      at: new Date().toISOString(),
-      branchesCount: 5,
-      sessionsCount: 3,
+      at: '2026-09-21T10:00:00Z',
+      duration: 120,
+      branchesCount: 2,
+      sessionsCount: 1,
+      branches: [{ name: 'main', date: '2026-09-21T09:00:00Z' }, { name: 'feat-1', date: '2026-09-21T10:00:00Z' }],
+      sessions: { 'feat-1': 'https://claude.ai/code/session_1' },
+      ordered: true,
+      raw: { repository: { refs: { nodes: [] } } },
+    },
+    'mehrlander/other-repo': {
+      repo: 'mehrlander/other-repo',
+      at: '2026-09-21T11:00:00Z',
+      duration: 80,
+      branchesCount: 1,
+      sessionsCount: 1,
+      branches: [{ name: 'dev', date: '2026-09-21T11:00:00Z' }],
+      sessions: { 'dev': 'https://claude.ai/code/session_2' },
       ordered: true,
       raw: { repository: { refs: { nodes: [] } } },
     },
   };
 
+  // Aggregated view
+  const all = sv.currentGraphQL;
+  assert.equal(all?.isAll, true);
+  assert.equal(all?.repoCount, 2);
+  assert.equal(all?.branchesCount, 3);
+  assert.equal(all?.duration, 200);
+  assert.equal(all?.branches[0].name, 'dev', 'sorted newest first');
+  assert.equal(all?.branches[0].repo, 'mehrlander/other-repo');
+
+  // Single repo view
   sv.graphQLRepo = 'mehrlander/web-tools';
   assert.equal(sv.currentGraphQL?.repo, 'mehrlander/web-tools');
-  assert.equal(sv.currentGraphQL?.branchesCount, 5);
+  assert.equal(sv.currentGraphQL?.branchesCount, 2);
+
+  assert.ok(sv.graphQLReposList.includes('all'));
   assert.ok(sv.graphQLReposList.includes('mehrlander/web-tools'));
+  assert.ok(sv.graphQLReposList.includes('mehrlander/other-repo'));
   assert.ok(sv.graphQLReposList.includes('mehrlander/web-tools-private'));
   sv.destroy();
 });

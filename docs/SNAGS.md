@@ -1521,6 +1521,13 @@ the repo's own when it is the skill's. The scope is in the rule's own next
 sentence: a **dated file** stays put as a record. Nothing in the vocabulary
 names the living-document case, which is why reading the two marker words and
 stopping there lands on the wrong instrument.
+
+**Resolved 2026-09-21 by retiring the instrument.** Measured across `home`'s 122
+markers: 58 of the 72 outside one batched act sat on living documents, so this
+was not a snag that recurred, it was the dominant use. The `Stale`/`Wrong`
+vocabulary, the arrow grammar, the scanner and this skill are gone. A false claim
+in a living document gets the sentence fixed; a dated record says so in an
+ordinary sentence.
 *(seen: 2026-08-06, 2026-09-16)*
 → [CONVENTIONS.md](CONVENTIONS.md)
 
@@ -1947,7 +1954,7 @@ workspaces sharing a banner and one file marking two claims the same way. Nothin
 in the text distinguishes them, so **duplicates are now reported, not dropped.**
 An explained double-count costs a line of output; a dropped marker costs the
 audit its only claim to being auditable. *(seen: 2026-08-09)*
-→ [markers/status.py](../.claude/skills/markers/status.py)
+→ `markers/status.py`, retired 2026-09-21 with the rest of the status system
 
 ### nul-byte-truncates-grep: one NUL in a source file bounds every `grep -rn` over it, silently
 
