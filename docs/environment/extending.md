@@ -13,6 +13,7 @@ plugin hook:
   the final tree is written through the ordinary commit path. See the
   [`tools/README.md`](../../tools/README.md#the-refresh-model) refresh model.
 * A `Stop` hook carried by the `portable` plugin, which records the session where a checkout declares a store. It runs in every session that installs the plugin, not only in sessions on this repo, which is the point of putting it there. See [Stop: the session recorder](#stop-the-session-recorder) below.
+* A `SessionStart` hook, also carried by the plugin, which tells a session whose record store is *not* checked out to invoke the skill that fetches it. See [SessionStart: the sessions-store directive](#sessionstart-the-sessions-store-directive) below.
 
 **Do not assume the `PreToolUse` hook ran** *(observed 2026-07-25, cause found 2026-07-27)*. `git commit` calls completed with `dist/web-tools.js` left stale, while `.claude/hooks/build-on-commit.sh` exited 0 and behaved correctly when piped its JSON payload by hand. The script was sound and the harness did not invoke it.
 
@@ -149,7 +150,9 @@ A plugin install is the only channel that repeats, because the platform performs
 
 **Finding the target without naming it.** The hook holds no repo name and no knowledge of the record format. A checkout whose `.web-tools.json` declares `"sessions": "<dir>"` owns the store, and `<store>/tools/on-stop.sh` does the recording and publishing, so the store can change its schema without a plugin release. Discovery is a bounded candidate list, since this runs on every turn: the project root, its children, and its siblings, which are the three shapes a session takes (root above the checkouts, root is the store, root is one checkout beside the store). `SESSIONS_STORE` names a store directly and skips the search.
 
-**Cost, since it fires on every turn of every session.** No store checked out means one `grep` over whatever manifests exist, measured at 10 ms, then exit. With a store, the delegate parses the transcript, measured at roughly 100 ms on a 400 KB transcript and growing with session length. Every path exits 0: a logger that cannot find its store is an ordinary state, not an error to report into someone's session.
+**Cost, since it fires at every idle of every session.** No store checked out means one `grep` over whatever manifests exist, measured at 10 ms, then exit. With a store, the delegate parses the transcript, measured at roughly 100 ms on a 400 KB transcript and growing with session length. Every path exits 0: a logger that cannot find its store is an ordinary state, not an error to report into someone's session.
+
+**When it fires, measured 2026-09-21.** Stop fires when the session idles, not once per assistant message. A turn the harness auto-continues (the "say what you are doing, then continue" nudge a background session receives) produces no Stop from any hook; the launcher's own git-check hook, instrumented alongside this one, was silent on the same turns. So the recorder's loss window is *until the next idle*, not one turn, and a long autonomous run can end its container before it idles once. Nothing plugin-side changes that. What a session can do is end a turn deliberately when it has something worth keeping, which is also what the sessions skill asks for after a clone.
 
 Two states are deliberately quiet rather than loud. A checkout can declare the store on a branch that predates the tooling, so a declaration whose `tools/on-stop.sh` is absent is declined rather than reported. And a malformed manifest is skipped, not raised.
 
@@ -166,6 +169,18 @@ The skill count remains the useful second half of a `details` check, confirming 
 **Status is per-directory, so run the check where the plugin is meant to be enabled.** The same `claude plugin list` reported `× failed to load` from `/home/user` and `/home/user/home` and `× disabled` from `/home/user/web-tools`, because this repo does not enable a plugin it *is* the source of. A status read in the wrong directory answers a different question than the one asked.
 
 **The delivered copy is not executable.** A plugin is installed by copy into `~/.claude/plugins/cache/<marketplace>/<plugin>/<sha>/`, and the cached files arrive `rw-r--r--`. A hook command written as a bare path would therefore fail on the permission bit, so the declaration invokes the interpreter explicitly (`bash "${CLAUDE_PLUGIN_ROOT}/..."`). Verified by running the cached copy through the declared command line, which recorded a real session.
+
+#### SessionStart: the sessions-store directive
+
+*Added 2026-09-21.* [`invoke-sessions.sh`](../../.claude/skills/hooks/invoke-sessions.sh), its own `SessionStart` entry in the same `hooks.json`, on the [`invoke-default`](#sessionstart-checkout-delegates) pattern: it asks whether the store is *checked out*, and when it is not, prints one line telling the session to invoke [`/portable:sessions`](../../.claude/skills/sessions/SKILL.md), which attaches the store and clones it beside the project root.
+
+**The gap it closes was measured the day it was written.** A task-spawned session begins in an empty working directory and attaches exactly the repos its task names. One ran for hours on 2026-09-21 with the recorder installed, firing, and finding nothing, because nothing had put `web-tools-private` beside the root. That silence is the recorder's designed behaviour for a session that was never meant to be recorded, and it is indistinguishable from the failure. The difference is whether anything *declared* that the session should be recorded, so that is what this reads.
+
+**The plugin still names no repo.** The Stop hook finds the store by a checkout's `sessions` declaration; this finds where to *get* the store by a checkout's `sessionsStore` declaration (`docs/manifest-fields.csv`), an owner/repo string on the repos whose sessions should be recorded, or by `SESSIONS_STORE_REPO` in the environment. The env var is not a convenience. It is the only voice a session has when it starts with no checkout at all, which is the spawned shape exactly; the same provisioning that installs the plugin into every container is where it belongs.
+
+**A hook cannot do the fetch.** An unattached private repo is unreachable from a shell in the sandbox (`git ls-remote` on one fails at the credential prompt), and attaching is a tool only the model holds. So the hook speaks and the skill acts, and the skill ends by asking the session to end its turn, because a record is written at idle and not before.
+
+Coverage is [`tools/test/invoke-sessions.test.mjs`](../../tools/test/invoke-sessions.test.mjs): speech on a pointer with no store, silence on a runnable store or on no pointer, the env var speaking for an empty root, the three search shapes, the soft failures, and the assertion that it holds its own hook entry so it cannot share the dispatcher's output budget.
 
 ### LSP servers
 
