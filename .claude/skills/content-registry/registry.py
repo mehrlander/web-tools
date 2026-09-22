@@ -14,7 +14,7 @@ Columns: locator, creation_mode, analysis_use, description.
 Locators are repo-relative paths. Two extensions beyond the ADR's file
 default, both from estate practice:
 
-- a trailing `/` declares a subtree (the `.paths.json` idiom); the most
+- a trailing `/` declares a subtree; the most
   specific declaration wins, file over directory, longer prefix over
   shorter;
 - component fragments use the ADR's controlled syntaxes:
