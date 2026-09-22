@@ -7,7 +7,7 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // The chain boot. md-proposals loads md-diff and text-proposals itself;
+  // The chain boot. md-proposals loads md-diff and text-collection itself;
   // naming them here is what makes the demo's dependencies readable.
   const ref = new URLSearchParams(location.search).get('use') || 'main';
   const base = `https://cdn.jsdelivr.net/gh/mehrlander/web-tools@${ref}/lib`;
@@ -19,12 +19,12 @@
   await gh.load('kits/text-collection.js');
   await gh.load('kits/md-proposals.js');
 
-  // A HAND-BUILT PROJECTION, in the shape kits/text-collection.js produces. The
+  // A HAND-BUILT INDEX, in the shape kits/text-collection.js produces. The
   // live one is read from mehrlander/home, which is private, so a public demo
   // cannot load it; what this page shows is the SURFACE, against a fixture at
   // the density proposals actually have: nine blocks, three with proposals,
   // one of those with two alternatives. The viewer's Proposals reading is the
-  // same kit over the live projection.
+  // same kit over the live collection.
   const P = {
     lanes: 'Fund 600 is reported as one number and read as two. The appropriated lane\ncarries recordkeeping and the agency\'s own operations, and it is the lane a\nbudget bill moves.',
     lanesClarity: 'Fund 600 is reported as one number and read as two. The appropriated lane carries recordkeeping and the agency\'s own operations. It is the only lane a budget bill moves.',

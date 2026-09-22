@@ -8,11 +8,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot, makeWindow } from './bootstrap.mjs';
+import { repoRoot, makeWindow, deckGeometry } from './bootstrap.mjs';
 import { marked } from 'marked';
 import * as Diff from 'diff';
 
 const { window } = makeWindow();
+deckGeometry(window);
 window.marked = marked;
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;

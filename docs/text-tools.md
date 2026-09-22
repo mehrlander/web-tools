@@ -1,11 +1,12 @@
 # Text tools on the page at hand
 
 The FAB drawer's Text tab. It reads the page or selection you are looking at and
-reports three things: prior revisions retained for the same literal strings,
+reports three things: proposals retained for the same literal strings,
 figures about the prose, and which registered files the text names. The figures
 are local; the other two lanes read committed catalogs. No model is called and
 nothing is written anywhere. Built 2026-08-13 and connected to the shared Text
-collection on 2026-09-17, which became two committed files on 2026-09-22. This document is the design account and the
+collection on 2026-09-17. Since 2026-09-22 the collection consists of three
+committed JSONL files. This document is the design account and the
 honest assessment; the mechanics live in
 [`fab.js`](../lib/alpineComponents/fab.js) beside the code.
 
@@ -39,9 +40,10 @@ it.
 their average, reading time, the longest sentence with its text, and two
 house-rule counts (em dashes, and path-shaped tokens sitting outside any link).
 
-**Prior revisions**, read from the private estate's Text collection. The
-browser reads `projects/text/current-sources.json` in `mehrlander/home` and
-then the collection's three files: `passages.jsonl`, one line per distinct
+**Retained proposals**, read from the private estate's Text collection. The
+browser's shared [`TextCollection` kit](../lib/kits/text-collection.js) reads
+three fixed paths under `projects/text/` in `mehrlander/home`:
+`passages.jsonl`, one line per distinct
 passage with its id, `proposals.jsonl`, one line per proposed edit as `from`,
 `to`, `author`, and `purpose`, and `revisions.jsonl`, one line per change that
 happened. Nothing is assembled from run inputs, and the collection does not
@@ -54,7 +56,11 @@ on screen.
 Every proposal shows its text and replacement, who proposed it, and the one
 word that says what kind of edit it is. There is no Apply action. A browse-all
 link opens the same records in Text Lab, where they can be searched, filtered
-by author and purpose, expanded, and addressed by proposal ID.
+by author and purpose, expanded, and addressed by proposal ID. These readers
+are separate from [`RepoProposals`](../lib/kits/repo-proposals.js), the
+app's cross-repository write channel. That channel reads instructions under
+`proposals/pending/` and records their outcomes; it does not consume Text's
+retained prose proposals.
 
 **One gate.** Under 6 mean words per text run, the page is treated as an app
 rather than a document, and the two house-rule rows are withheld: they are prose
@@ -181,9 +187,15 @@ not have. The `assumed` tier is a property of a repo's whole prose, so this pane
 can only reach it by fetching the vocabulary index the estate declines to
 commit. It likely stays an agent-side answer the tab links to.
 
-The private text project also builds an ignored local store around the two
-files: current occurrences, normalization and lemma relationships, and any
-semantic index. The browser reads the two files only, so none of that is here.
+The browser reads only the three committed collection files. Occurrences,
+normalization and lemma relationships, and semantic indexes are outside this
+reader's contract; no generated index is required to load the collection.
+
+**Proposal provenance is incomplete.** The collection retains `author` and
+`purpose`, but no run ID, source snapshot, model digest, diagnostic flags, or
+proposer note. Dated run folders preserve their original evidence, but a
+proposal ID has no stored link back to that evidence. The browser cannot
+recover or display those details from the collection alone.
 
 **Ask** (hand the text to a model) probably belongs in the FAB's existing
 take-away menu, whose job is already handing the page somewhere else.
@@ -210,7 +222,7 @@ and hands both to [`kits/md-diff.js`](../lib/kits/md-diff.js). Each such
 paragraph is then a swipeable container between the text as it stands, the
 marked reading, and the text as proposed, with a line underneath naming who
 proposed it, what kind of proposal it is, its length against the original, and
-the proposer's own note, labelled unverified where it is a model's. A paragraph
+a link to its Text Lab record. A paragraph
 with more than one proposal carries a row of alternatives; choosing one is what
 the swipe then compares. The strip counts the paragraphs and lights them all on
 one tap, which is the first question a reader arriving at a file has.
@@ -234,11 +246,18 @@ Proposals mode uses proposals: [`kits/md-history.js`](../lib/kits/md-history.js)
 finds the paragraphs some revision led into, composes the file with each
 one's predecessor in place, and hands both to md-diff, so a paragraph is a
 swipeable container between what it said and what it says. Under each
-container is the chain, newest first: the commit that produced each step,
+container is the chain, starting with the matched passage: the commit recorded
+for each step,
 linked, and the proposals that were made against each earlier passage. The
 chain is `TextCollection.chain`, a walk back through revisions by passage id;
 where two revisions led into one passage, the first in file order is followed
-and the other is counted. Nothing is inferred, and nothing is applied.
+and the other is counted. The browser follows recorded relationships and
+applies nothing. It does not check commit ancestry, restrict a chain to the
+open document's repository and path, or verify how a recorded predecessor was
+chosen. File order therefore selects a traversal, not a proven chronology for
+the occurrence on screen. A revision inferred during import is displayed with
+the same definite wording as a verified change because the revision shape has
+no field for that distinction.
 
 ## Proposals from a local model
 
