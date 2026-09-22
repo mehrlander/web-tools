@@ -26,7 +26,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
 
 ## In progress
-- (none)
+- 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) · M (`claude/serene-einstein-dyr03b`)
 
 ## Blocked
 - (none)
