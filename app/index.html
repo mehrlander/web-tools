@@ -171,6 +171,9 @@
   // The installation ledger's derivation and its one write, behind the
   // project view's Installation pill.
   await gh.load('kits/installation.js');
+  await gh.load('kits/powershell-workspace.js');
+  await gh.load('kits/powershell-language.js');
+  await gh.load('kits/powershell-editor.js');
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
@@ -1531,6 +1534,10 @@ html.dk-dragging main{transition:none !important}
                       :class="projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-files text-lg"></i>Docs
                 <span x-show="projectDocsCount" class="font-mono text-sm opacity-60" x-text="projectDocsCount"></span></button>
+              <button role="tab" x-show="project.installation" @click="goProjectTab('code')"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                      :class="projectTab==='code' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-code text-lg"></i>Code</button>
             </div>
             </div>
 
@@ -1542,7 +1549,15 @@ html.dk-dragging main{transition:none !important}
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
 
-            <div x-show="!(projectTab==='overview' && project.landing)"
+            <template x-if="projectTab==='code' && project.installation">
+              <div class="grow min-h-0 flex flex-col mt-3">
+                <template x-for="p in [project]" :key="p.path + '@' + $store.browser.repo + '@' + $store.browser.ref">
+                  <div x-data="powershellWorkspace(p)" class="grow min-h-0 flex flex-col"></div>
+                </template>
+              </div>
+            </template>
+
+            <div x-show="projectTab!=='code' && !(projectTab==='overview' && project.landing)"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
               <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
@@ -4386,7 +4401,7 @@ function app(){ return {
   // these properties directly instead, which is what makes picking a row in the
   // sidebar repaint the pane.
   projectPath: '',
-  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' — the pill row
+  projectTab: 'overview',   // 'overview' | 'board' | 'pages' | 'docs' | 'code'
   installationItem: '',     // the Installation pill's selected file (repo path), stamped as &item=
   projectHtml: '',
   projectLoading: false,
@@ -4427,7 +4442,7 @@ function app(){ return {
     // deliberately still accepted and falls through to 'overview', so a link
     // minted before the change lands where it always did rather than on a tab
     // that no longer exists.
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs') ? tab : 'overview';
+    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'code') ? tab : 'overview';
     // A deep link into that view may name the file it is about; the component
     // reads it at mount and stamps it back as it moves.
     if (typeof item === 'string' && item) this.installationItem = item;
@@ -5458,7 +5473,7 @@ function app(){ return {
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (this.projectTab === 'overview' && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
+        if (['overview', 'code'].includes(this.projectTab) && this.project?.installation && this.installationItem) p.set('item', this.installationItem);
       } },
     { key: 'estate',   open(){ this.goEstate(); } },
     // `surfaces` is the retired Saved pane, which listed the registry's
@@ -6537,7 +6552,7 @@ function app(){ return {
     // copy dropped anywhere on the page compares against it. That view is the
     // Overview of a workspace declaring a manifest, which is why this reads the
     // declaration rather than a tab named for it.
-    if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
+    if (this.view === 'project' && ['overview', 'code'].includes(this.projectTab) && this.project?.installation) {
       if (!this.installationItem) return null;
       const store = Alpine.store('browser');
       const file = { repo: store.repo, path: this.installationItem, ref: store.ref && store.ref !== store.defaultRef ? store.ref : '' };

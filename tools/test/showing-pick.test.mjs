@@ -55,6 +55,10 @@ test('a lib file several pages gh.load is offered to each, and the app lands on 
   const d = run('lib/kits/session-render.js,dist/web-tools.js');
   const pages = d.links.map(l => l.page);
   assert.ok(pages.includes('pages/session.html'), 'the page that names it in a gh.load chain');
+  for (const link of d.links) {
+    assert.doesNotMatch(link.page, /\\/, 'repository paths use forward slashes on every host');
+    assert.doesNotMatch(link.url, /\\|%5c/i, 'render URLs must not inherit filesystem separators');
+  }
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.equal(app.view, 'sessions', 'one declaring route means the link can land on it');
   assert.match(app.url, /&view=sessions$/);

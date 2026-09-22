@@ -241,7 +241,7 @@ def ref_facts(ref):
 # ---- who renders what ----------------------------------------------------
 
 def page_files():
-    pages = sorted(str(p.relative_to(ROOT)) for p in (ROOT / "pages").rglob("*.html"))
+    pages = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "pages").rglob("*.html"))
     app = "app/index.html"
     if (ROOT / app).exists():
         pages.append(app)

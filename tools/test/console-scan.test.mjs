@@ -97,7 +97,11 @@ test('watch: DOM churn triggers a capture pass (debounced)', async () => {
   await tick();
   assert.equal(w.glom.scan.data('msgs').length, 1);   // initial pass
   feed(w, 2);
-  await new Promise(r => setTimeout(r, 40));
+  // MutationObserver and its debounce each need a turn; a busy parallel suite
+  // can deliver the observer after a fixed 40ms timer was already queued.
+  for (let attempt = 0; attempt < 100 && w.glom.scan.data('msgs').length !== 2; attempt++) {
+    await new Promise(r => setTimeout(r, 10));
+  }
   assert.equal(w.glom.scan.data('msgs').length, 2);   // churn healed
   w.glom.scan.stop();
   feed(w, 3);

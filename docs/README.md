@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-11 by a skill, 28 by a page or component. The remaining 28 are
+11 by a skill, 28 by a page or component. The remaining 29 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -52,6 +52,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
+- [`powershell-workspace.md`](powershell-workspace.md) *(orphan)* — the PowerShell Code workspace: exact browser drafts, pinned GitHub source, deliberate publication and installation handoff
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the registry model: targets, keys, identity spaces, properties, assertions; one owner per assertion; how to add a registry and what the suite checks

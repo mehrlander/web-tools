@@ -220,14 +220,16 @@ def main(argv):
         for e in p["edges"]:
             w.writerow([e["a"], e["b"], e["w"], "true" if e["rule"] else "",
                         esc(e["quoted"]), p["shingle"], p["scanned"]])
-        text = buf.getvalue()
+        # Compare and write bytes: text I/O translates LF to CRLF on Windows,
+        # then hides the difference again when --check reads the artifact.
+        data = buf.getvalue().encode("utf-8")
         out = Path(args.emit)
         if args.check:
-            if not out.exists() or out.read_text(encoding="utf-8") != text:
+            if not out.exists() or out.read_bytes() != data:
                 print(f"{args.emit} is stale; run: npm run themes-graph", file=sys.stderr)
                 return 1
             return 0
-        out.write_text(text, encoding="utf-8")
+        out.write_bytes(data)
         print(f"themes-graph: {len(payload(files, hits)['nodes'])} nodes, "
               f"{len(hits)} edges -> {args.emit}")
         return 0
