@@ -26,8 +26,8 @@ const src = readFileSync(path.join(repoRoot, PAGE), 'utf8');
 // Lift a top-level function by its declaration, up to the closing brace at its
 // own indentation. A reformat past this reads back nothing and fails loudly.
 function lift(signature) {
-  const re = new RegExp('\\n {2}(?:async )?function ' + signature.replace(/[()]/g, '\\$&') +
-    ' \\{[\\s\\S]*?\\n {2}\\}\\n');
+  const re = new RegExp('\\r?\\n {2}(?:async )?function ' + signature.replace(/[()]/g, '\\$&') +
+    ' \\{[\\s\\S]*?\\r?\\n {2}\\}\\r?\\n');
   const m = src.match(re);
   assert.ok(m, signature + ' not found in ' + PAGE);
   return m[0];

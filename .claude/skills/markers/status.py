@@ -179,9 +179,8 @@ class Declaration:
             raise ValueError(f"{source}: entry is not a string or {{path: ...}}")
         self.entry = raw["path"]
         self.is_dir = self.entry.endswith("/")
-        self.path = os.path.normpath(os.path.join(base, self.entry)) if base else self.entry.rstrip("/")
-        if self.is_dir:
-            self.path = self.path.rstrip("/") + "/"
+        norm = os.path.normpath(os.path.join(base, self.entry)).replace("\\", "/") if base else self.entry.replace("\\", "/").rstrip("/")
+        self.path = (norm.rstrip("/") + "/") if self.is_dir else norm
         self.since = raw.get("since", "")
         self.why = raw.get("why", "")
         self.excepts = raw.get("except", []) or []
@@ -206,7 +205,7 @@ def load_declarations(root: Path) -> tuple[list[Declaration], list[str]]:
     """Every `.paths.json` in the tree, entries resolved to repo-relative."""
     decls, problems = [], []
     for rel in walk_files(root, name=".paths.json"):
-        base = str(Path(rel).parent)
+        base = Path(rel).parent.as_posix()
         base = "" if base == "." else base
         try:
             data = json.loads((root / rel).read_text(encoding="utf-8"))

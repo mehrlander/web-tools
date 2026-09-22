@@ -171,6 +171,9 @@
   // The installation ledger's derivation and its one write, behind the
   // project view's Installation pill.
   await gh.load('kits/installation.js');
+  // PowerShell IDE intelligence: AST parsing, XAML companion cross-referencing,
+  // syntax coloring, and no-direct-sync transfer commands.
+  await gh.load('kits/powershell-ide.js');
   // The estate's search calls (trees, code-search API, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');

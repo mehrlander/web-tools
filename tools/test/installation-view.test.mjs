@@ -106,7 +106,7 @@ const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
 
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/alpineComponents/installation-view.js'])
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-ide.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -260,6 +260,45 @@ test('a form\'s controller and XAML are recorded apart', async () => {
   await data.confirmRecord(); await settle();
   assert.equal(data.stateOf(xaml).state, 'reported');
   assert.equal(data.stateOf(ctl).state, 'unknown');
+});
+
+test('powershell IDE workbench: parses AST, provides transfer scripts, cross-references companions, and computes diffs', async () => {
+  data.select(FORMS);
+  await settle();
+  assert.equal(data.codeLanguage, 'PowerShell Module (.psm1)');
+  assert.ok(data.activeAst);
+  assert.equal(data.activeAst.functions[0].name, 'Import-Form');
+  assert.ok(data.transfer);
+  assert.match(data.transfer.winPath, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
+  assert.match(data.transfer.verifyCmd, /Get-FileHash/);
+  assert.match(data.transfer.installCmd, /Set-Content/);
+  assert.match(data.transfer.headerSnippet, /# @file/);
+
+  // Companion cross-referencing on Bookmarks form
+  const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`;
+  data.select(xaml);
+  await settle();
+  assert.equal(data.codeLanguage, 'WPF XAML (.xaml)');
+  assert.ok(data.activeAst);
+  assert.equal(data.companionText, 'controller\n');
+  assert.ok(data.crossRef);
+
+  // Snippets and patterns library
+  data.ideTab = 'patterns';
+  assert.ok(data.visibleSnippets.length >= 6);
+  data.patternCategory = 'GUI & Layout';
+  assert.ok(data.visibleSnippets.every(s => s.category === 'GUI & Layout'));
+  data.patternCategory = '';
+
+  // In-IDE diff calculation
+  data.compareDraft = '<Window Title="Updated"/>\n';
+  await settle();
+  assert.ok(data.diffRows);
+  assert.match(data.diffStat, /\+\d+ \/ -\d+ lines/);
+
+  // Clean up
+  data.compareDraft = '';
+  data.ideTab = 'code';
 });
 
 test('every ledger write in this run went through a confirm', () => {

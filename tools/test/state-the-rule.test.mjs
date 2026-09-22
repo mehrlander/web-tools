@@ -769,7 +769,7 @@ test('Standoff.kindOf agrees with segment.py on every unit of the repo corpus', 
   let n = 0, astral = 0;
   for (const rel of CORPUS) {
     const path = join(repoRoot, rel);
-    const text = readFileSync(path, 'utf8');
+    const text = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
     const map = toUtf16(text);
     astral += text.length - (map.length - 1);
     const units = execFileSync('python3', [join(SKILL, 'segment.py'), path, '1', '99999'],
