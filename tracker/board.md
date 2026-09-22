@@ -24,6 +24,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
+- 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L (needs: Type the subject on screen, and give the showing axis a registry)
 
 ## In progress
 - 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) · M (`claude/serene-einstein-dyr03b`)

@@ -55,3 +55,4 @@ sidebar sentence agrees with its own list.
 ## Progress log
 - 2026-09-22: filed and claimed on claude/serene-einstein-dyr03b after a design pass in chat that settled the model (subject types, views as labels, promotion as an attribute).
 - 2026-09-22: built on claude/serene-einstein-dyr03b, lands via PR #756: docs/subjects.csv registered and tested, routes-kinds and showing-mechanisms keyed into it, the FAB captioning the typed subject, show-repo.md's sidebar sentence corrected. Left open: the file picker on the app is only retitled, not demoted; the Tools view and tools.csv are untouched.
+- 2026-09-22: brief retired in favour of form after the design pass; the registry is retitled Object types and fab.js states the object model. Follow-up filed as views-forms-and-key-primitive-k5ngay.
