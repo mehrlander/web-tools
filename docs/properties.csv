@@ -74,7 +74,7 @@ routes-routes,renders,recorded,,value,column,yes,,value,the content type this ro
 routes-routes,doc,recorded,,value,column,yes,,locator,the envelope contract the route honors
 routes-routes,example,recorded,,value,column,yes,,locator,a worked address
 routes-kinds,label,recorded,,value,column,yes,,value,the kind's display name
-routes-kinds,subject,recorded,,value,column,yes,,label,which value of the showing frame's subject axis a link to this kind takes
+routes-kinds,subject,recorded,,value,column,yes,,value,"the subject type a link to this kind takes, a key into docs/subjects.csv"
 routes-kinds,detect,recorded,,value,column,yes,,value,"the rule that recognizes this kind, as ViewRegistry.KIND applies it"
 routes-kinds,exclusive,recorded,,none,column,yes,yes,label,"set where the viewer module is the only one that can display the file, so it outranks any default mode a host sets"
 routes-kinds,view,recorded,,none,column,yes,,label,the viewer module id this kind opens in; blank where the kind has its own page rather than a mode
@@ -90,7 +90,7 @@ routes-kinds,aim_icon,recorded,,none,column,yes,,value,"the phosphor glyph that 
 showing-mechanisms,glyph,recorded,,value,column,yes,,label,the marker the caption uses
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
-showing-mechanisms,subject,recorded,,value,column,yes,,value,what kind of thing it can show
+showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
 showing-mechanisms,version,recorded,,value,column,yes,,label,which version of the subject it reaches
 showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
 showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
@@ -118,7 +118,7 @@ text-fields,use_when,recorded,,value,column,yes,,value,"the rule for picking thi
 text-fields,instead_of,recorded,,none,column,yes,,value,"the names already in use that this one accounts for; the scan resolves them rather than reporting them as violations, so an existing file conforms by declaration rather than by rename"
 app-routes,address,recorded,,counted,column,yes,,value,"the URL shape that opens it, e.g. ?view=map; blank on the shell row, which draws every route and is addressable as none of them"
 app-routes,label,recorded,,value,column,yes,,value,its name in the nav and on the row
-app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,which context it is reached from
+app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,"the subject type the view takes, in docs/subjects.csv's terms: estate or repo (a project view narrows repo to a workspace); shell for an address that is not a screen"
 app-routes,what,recorded,,value,column,yes,,value,"what the destination is for, one line"
 app-routes,files,recorded,,counted,column,no,,locator,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
 app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or what qualifies the row"
@@ -184,3 +184,9 @@ assistant-branches,repo,recorded,,none,column,yes,,value,owner/name of the repos
 assistant-branches,assistant,recorded,,none,column,yes,claude;codex;gemini;grok;copilot;human,label,who authored the branch; the same keys the assistant-mark kit draws
 assistant-branches,basis,recorded,,none,column,yes,,value,"the evidence behind the declaration: a PR body footer, a signature, a finding in a reviewed PR"
 assistant-branches,declared,recorded,,none,column,yes,,value,the date the row was declared
+subjects,label,recorded,,value,column,yes,,value,the type's display name
+subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a brief"
+subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
+subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
+subjects,icon,recorded,,value,column,yes,,value,"the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal"
+subjects,gloss,recorded,,value,column,yes,,value,what a subject of this type is

@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-11 by a skill, 28 by a page or component. The remaining 28 are
+11 by a skill, 29 by a page or component. The remaining 28 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -62,6 +62,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
 - [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
 - [`show-repo.md`](show-repo.md) — the show-repo shell: views and transfer
+- [`subjects.csv`](subjects.csv) — the subject types: what is on screen, what carries each, and how the address gives it away
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix

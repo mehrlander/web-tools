@@ -377,8 +377,8 @@ changed (a repo's views for the estate's, say). It now closes only when you say
 so, by the scrim or the X, which makes the mobile drawer behave like the pinned
 desktop sidebar that never closed.
 
-The **sidebar** holds what is contextual: in a repo, its views (landing, atlas,
-files, branches), its projects, plus pins and recents; in the estate, the Repos index and the
+The **sidebar** holds what is contextual: in a repo, its views (Overview, Pages,
+Atlas, Config), its projects, a route out to Files, plus pins and recents; in the estate, the Repos index and the
 repo-sourced **app views** (promoted with `appView:true`, e.g. News). The app's
 own view set never appears in the sidebar; the app views appear in both places,
 since the header is the one-tap route and the sidebar is the one that holds up
