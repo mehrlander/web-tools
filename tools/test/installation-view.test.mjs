@@ -1,4 +1,4 @@
-// alpineComponents/installation-view.js — the Installation pill under real
+// alpineComponents/installation-view.js - the Installation pill under real
 // Alpine in jsdom, against a stub repository. The derivation is held by
 // installation.test.mjs; what this holds is the surface's one rule and its
 // wiring: the corpus renders grouped with the local areas beside it, a
@@ -271,7 +271,8 @@ test('powershell IDE workbench: parses AST, provides transfer scripts, cross-ref
   assert.ok(data.transfer);
   assert.match(data.transfer.winPath, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
   assert.match(data.transfer.verifyCmd, /Get-FileHash/);
-  assert.match(data.transfer.installCmd, /Set-Content/);
+  assert.match(data.transfer.installCmd, /\[System\.IO\.File\]::WriteAllBytes/);
+  assert.match(data.transfer.installCmd, /FromBase64String/);
   assert.match(data.transfer.headerSnippet, /# @file/);
 
   // Companion cross-referencing on Bookmarks form
@@ -288,6 +289,9 @@ test('powershell IDE workbench: parses AST, provides transfer scripts, cross-ref
   assert.ok(data.visibleSnippets.length >= 6);
   data.patternCategory = 'GUI & Layout';
   assert.ok(data.visibleSnippets.every(s => s.category === 'GUI & Layout'));
+  data.patternCategory = 'Data & Utilities';
+  assert.ok(data.visibleSnippets.length >= 1);
+  assert.ok(data.visibleSnippets.every(s => s.category === 'Data & Utilities'));
   data.patternCategory = '';
 
   // In-IDE diff calculation
@@ -327,6 +331,29 @@ test('powershell IDE workbench: parses AST, provides transfer scripts, cross-ref
   data.pending = null;
   data.compareDraft = '';
   data.ideTab = 'code';
+});
+
+test('deep-linked selection loads file content and rapid selection avoids stale overwrite', async () => {
+  const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`;
+
+  // 1. Deep link on reload loads text and AST
+  data.selected = '';
+  data.text = '';
+  data.activeAst = null;
+  window.__shell.installationItem = FORMS;
+  await data.reload();
+  await settle();
+  assert.equal(data.selected, FORMS);
+  assert.ok(data.text.includes('Import-Form'));
+  assert.ok(data.activeAst);
+
+  // 2. Rapid selection switching: older request must not clobber newer selection
+  data.select(xaml);
+  data.select(FORMS);
+  await settle();
+  assert.equal(data.selected, FORMS);
+  assert.ok(data.text.includes('Import-Form'));
+  assert.equal(data.codeLanguage, 'PowerShell Module (.psm1)');
 });
 
 test('every ledger write in this run went through a confirm', () => {

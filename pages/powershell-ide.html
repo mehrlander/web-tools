@@ -322,7 +322,7 @@
           <div class="p-2 overflow-auto max-h-72 font-mono text-xs flex flex-col bg-base-100">
             <template x-for="(r, i) in diffRows" :key="i">
               <div class="whitespace-pre px-2 py-0.5"
-                   :class="r.t === 'add' ? 'bg-success/15 text-success font-medium' : r.t === 'del' ? 'bg-error/15 text-error font-medium' : 'text-base-content/60'"
+                   :class="r.t === 'add' ? 'bg-success/10 text-success font-medium' : r.t === 'del' ? 'bg-error/10 text-error font-medium' : 'text-base-content/60'"
                    x-text="(r.t === 'add' ? '+ ' : r.t === 'del' ? '- ' : '  ') + r.line"></div>
             </template>
           </div>

@@ -1,4 +1,4 @@
-// tools/test/powershell-ide.test.mjs — tests for lib/kits/powershell-ide.js.
+// tools/test/powershell-ide.test.mjs - tests for lib/kits/powershell-ide.js.
 // Exercises AST symbol extraction, parameter resolution, dot-source detection,
 // XAML control extraction and cross-referencing, no-direct-sync transfer commands,
 // and syntax highlighting.
@@ -157,21 +157,38 @@ test('crossReference correlates XAML controls with controller code', () => {
   assert.equal(cross.isFullyThemed, true);
 });
 
-test('generateTransferHelper generates valid PowerShell commands and snippets', () => {
+test('generateTransferHelper generates byte-exact Base64 binary write and handles manifestRoot', () => {
   const item = {
     path: 'app/Modules/Bookmarks/Bookmarks.psm1',
     name: 'Bookmarks.psm1',
     installs: 'Modules/Bookmarks/Bookmarks.psm1'
   };
-  const text = 'function Get-Bookmark { param($id) }';
+  const text = 'function Get-Bookmark { param($id); Write-Host "it\'s a test" }';
 
+  // Default manifestRoot ($HOME\Documents\WindowsPowerShell)
   const helper = IDE.generateTransferHelper(item, text);
-
   assert.match(helper.winPath, /Documents\\WindowsPowerShell\\Modules\\Bookmarks\\Bookmarks\.psm1/);
   assert.match(helper.verifyCmd, /Get-FileHash -Path "\$HOME\\Documents\\WindowsPowerShell\\Modules\\Bookmarks\\Bookmarks\.psm1" -Algorithm SHA256/);
-  assert.match(helper.installCmd, /Set-Content -LiteralPath \$dest/);
-  assert.match(helper.installCmd, /Get-Bookmark/);
+  assert.match(helper.installCmd, /\[System\.IO\.File\]::WriteAllBytes\(\$dest, \[System\.Convert\]::FromBase64String\(/);
+  assert.ok(!helper.installCmd.includes('Set-Content'), 'does not use Set-Content');
   assert.match(helper.headerSnippet, /^# @file app\/Modules\/Bookmarks\/Bookmarks\.psm1\nfunction Get-Bookmark/);
+
+  // Custom manifestRoot derivation
+  const customHelper = IDE.generateTransferHelper(item, text, 'C:\\CustomRoot\\PowerShell');
+  assert.equal(customHelper.winPath, 'C:\\CustomRoot\\PowerShell\\Modules\\Bookmarks\\Bookmarks.psm1');
+  assert.match(customHelper.verifyCmd, /Get-FileHash -Path "C:\\CustomRoot\\PowerShell\\Modules\\Bookmarks\\Bookmarks\.psm1"/);
+
+  // Repository-only item (installs: null)
+  const repoOnlyItem = {
+    path: 'tests/run.ps1',
+    name: 'run.ps1',
+    installs: null
+  };
+  const repoOnlyHelper = IDE.generateTransferHelper(repoOnlyItem, text);
+  assert.equal(repoOnlyHelper.isRepoOnly, true);
+  assert.equal(repoOnlyHelper.verifyCmd, '');
+  assert.equal(repoOnlyHelper.installCmd, '');
+  assert.match(repoOnlyHelper.headerSnippet, /^# @file tests\/run\.ps1\n/);
 });
 
 test('highlightPowerShell and highlightXaml render formatted lines with line numbers', () => {
@@ -301,3 +318,74 @@ line 1 # not comment
   assert.ok(succinct.includes("line 1 # not comment"));
   assert.ok(succinct.includes('Write-Host "Done"'));
 });
+
+test('parseScript ignores functions and commands declared inside here-strings and string literals', () => {
+  const code = `
+function Real-Outer {
+    param($Name)
+    $template = @'
+function Fake-InsideSingleHere {
+    param($Ignored)
+    Write-Host "I am a template string"
+}
+filter Fake-FilterHere { $_ }
+'@
+    $interpolated = @"
+function Fake-InsideDoubleHere {
+    param($Ignored2)
+}
+"@
+    $inline = 'function Fake-Inline { Write-Host "ignored" }'
+    return $Name
+}
+
+function Real-Second {
+    Write-Host "Real function"
+}
+`;
+
+  const ast = IDE.parseScript(code);
+  assert.equal(ast.functions.length, 2);
+  assert.deepEqual(ast.functions.map(f => f.name), ['Real-Outer', 'Real-Second']);
+});
+
+test('parseXaml handles multiline element tags and ignores controls inside XML comments', () => {
+  const xaml = `
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- <TextBox x:Name="CommentedBox" Text="Should be ignored" /> -->
+    <Grid>
+        <!-- Multiline Button with x:Name on subsequent line -->
+        <Button
+            x:Name="btnMultilineSubmit"
+            Content="Submit Data"
+            Height="30"
+            Click="btnMultilineSubmit_Click" />
+
+        <!-- Multiline TextBox with Name on subsequent line -->
+        <TextBox
+            Margin="5"
+            Name="txtMultilineQuery"
+            ToolTip="Query Tooltip" />
+    </Grid>
+</Window>
+`;
+
+  const info = IDE.parseXaml(xaml);
+  assert.equal(info.controls.length, 2);
+  assert.deepEqual(info.controls.map(c => c.name), ['btnMultilineSubmit', 'txtMultilineQuery']);
+  assert.deepEqual(info.controls.map(c => c.tag), ['Button', 'TextBox']);
+  assert.equal(info.controls[0].label, 'Submit Data');
+  assert.equal(info.controls[1].label, 'Query Tooltip');
+  assert.ok(info.controls.every(c => c.name !== 'CommentedBox'), 'commented control was ignored');
+
+  assert.equal(info.eventAttributes.length, 1);
+  assert.equal(info.eventAttributes[0].event, 'Click');
+  assert.equal(info.eventAttributes[0].handler, 'btnMultilineSubmit_Click');
+});
+
+test('PowerShellInspector alias is exposed on window and mirrors PowerShellIde', () => {
+  assert.ok(scope.window.PowerShellInspector);
+  assert.equal(scope.window.PowerShellInspector, scope.window.PowerShellIde);
+});
+
