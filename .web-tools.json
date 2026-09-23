@@ -23,7 +23,7 @@
     {
       "path": "pages/json-viewers.html",
       "title": "JSON Viewer Examples",
-      "note": "Compare five JSON viewers recovered from WebSim and open saved CodePen examples.",
+      "note": "Compare six JSON viewers recovered from WebSim and open saved CodePen examples.",
       "appView": true,
       "viewLabel": "JSON examples",
       "icon": "ph-brackets-curly",

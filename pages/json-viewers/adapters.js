@@ -84,6 +84,30 @@ function launchPaths(source, sample) {
     'Launch Paths details');
 }
 
+function svgExplorer(source) {
+  source = replace(source, /async function fetchLaunchData\(\) \{[\s\S]*?(?=    function renderTree)/,
+    `function fetchLaunchData() {
+      document.getElementById('loading').style.display = 'none';
+      root = d3.hierarchy(createTreeData(__gallerySample));
+      renderTree(root);
+    }
+
+`, 'SVG Explorer data loader');
+  source = replace(source, /nodeUpdate\.select\('linearGradient'\)\s*\.transition\(\)/,
+    `nodeUpdate.select('linearGradient').selectAll('stop')
+          .attr('stop-color', function(_, index) {
+            const colors = getNodeFill(this.parentNode.__data__);
+            return index < 2 ? colors.key : colors.value;
+          });
+
+        nodeUpdate.select('linearGradient')
+          .transition()`, 'SVG Explorer selection colors');
+  return source
+    .replaceAll('${node.data.name}', '${__galleryEscape(node.data.name)}')
+    .replaceAll("${node.data.value || 'N/A'}", "${__galleryEscape(node.data.value ?? 'N/A')}")
+    .replace('rootNode.children.forEach(collapse);', 'rootNode.children?.forEach(collapse);');
+}
+
 export function prepareExample(id, source, sample) {
   source = source.replace(/\r\n/g, '\n');
   const adapters = {
@@ -92,6 +116,7 @@ export function prepareExample(id, source, sample) {
     'folding-editor': foldingEditor,
     'multi-view': multiView,
     'launch-paths': launchPaths,
+    'svg-explorer': svgExplorer,
   };
   if (!adapters[id]) throw new Error(`Unknown JSON example: ${id}`);
   source = adapters[id](source, sample);

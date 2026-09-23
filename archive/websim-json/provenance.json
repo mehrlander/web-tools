@@ -123,6 +123,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "svg-explorer",
+      "title": "Space-X Explorer",
+      "file": "svg-explorer.html",
+      "archiveFolder": "space_x_explorer",
+      "archiveFile": "space_x_explorer/index.html",
+      "sourceSha256": "92c2dab94c450ff4208dd191c923383c01559632ed51224e8e7add15ba1c674c",
+      "sourceBytes": 16137,
+      "manifestMatch": {
+        "status": "ambiguous-title-match",
+        "candidates": [
+          {
+            "id": "47l1ym_7rvjiu57uwxcw",
+            "title": "Space-X Explorer",
+            "version": 40
+          },
+          {
+            "id": "m0erqn13kmzhp0x89cdn",
+            "title": "Space-X Explorer",
+            "version": 1
+          }
+        ]
+      }
     }
   ]
 }

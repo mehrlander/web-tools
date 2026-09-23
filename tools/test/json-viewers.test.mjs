@@ -47,7 +47,7 @@ test('archived HTML bytes match their recorded SHA256 and byte counts', () => {
   assert.equal(provenance.archive.gitBlobSha, '80281b29a268d97662af09c7a11fcf02747a02ae');
   assert.match(provenance.archive.sha256, /^[a-f0-9]{64}$/);
   assert.deepEqual([...sources.keys()].sort(), [
-    'folding-editor', 'launch-paths', 'multi-view', 'object-tree', 'preview-tree',
+    'folding-editor', 'launch-paths', 'multi-view', 'object-tree', 'preview-tree', 'svg-explorer',
   ]);
   for (const example of provenance.examples) {
     const bytes = readFileSync(join(archive, example.file));
@@ -65,12 +65,11 @@ test('archived HTML bytes match their recorded SHA256 and byte counts', () => {
 });
 
 test('duplicate manifest titles remain explicitly unresolved', () => {
-  const preview = provenance.examples.find(example => example.id === 'preview-tree');
-  assert.equal(preview.manifestMatch.status, 'ambiguous-title-match');
-  assert.equal(preview.manifestMatch.candidates.length, 5);
-  for (const example of provenance.examples.filter(example => example !== preview)) {
-    assert.equal(example.manifestMatch.status, 'unique-title-match');
-    assert.equal(example.manifestMatch.candidates.length, 1);
+  const ambiguousCounts = new Map([['preview-tree', 5], ['svg-explorer', 2]]);
+  for (const example of provenance.examples) {
+    const count = ambiguousCounts.get(example.id) ?? 1;
+    assert.equal(example.manifestMatch.status, count > 1 ? 'ambiguous-title-match' : 'unique-title-match');
+    assert.equal(example.manifestMatch.candidates.length, count);
   }
 });
 
@@ -108,6 +107,38 @@ test('launch paths accepts an empty list and rejects incompatible records', () =
   for (const value of [null, {}, false, 0, '', [null], [1], [[]], [{}], [{ name: 'Atlas' }], [{ date_utc: '2025-01-10' }]]) {
     assert.throws(() => prepareExample('launch-paths', sources.get('launch-paths'), value),
       /array of objects with name and date_utc fields/);
+  }
+});
+
+test('SVG explorer loads local JSON and escapes the selected-node details', () => {
+  const source = sources.get('svg-explorer');
+  assert.match(source, /await fetch\(apiUrl\)/);
+  for (const sample of [null, [], {}, false, 0, '', hostileSample]) {
+    const { scripts, context } = inspectPreview('svg-explorer', sample);
+    const loading = { style: {} };
+    const rows = [];
+    const selectedNodesList = { innerHTML: '', appendChild: row => rows.push(row) };
+    context.document = {
+      getElementById: id => id === 'loading' ? loading : selectedNodesList,
+      createElement: () => ({}),
+    };
+    context.d3 = { hierarchy: data => ({ data }) };
+    const implementation = scripts.at(-1).replace(/\s*fetchLaunchData\(\);\s*$/, '\n');
+    runInContext(implementation, context);
+    runInContext('renderTree = node => { globalThis.rendered = node; }; fetchLaunchData();', context);
+    assert.equal(loading.style.display, 'none');
+    assert.equal(context.rendered.data.name, 'root');
+    if (sample === null || typeof sample !== 'object') {
+      assert.equal(context.rendered.data.value, String(sample));
+    } else {
+      assert.equal(context.rendered.data.children.length, Object.keys(sample).length);
+    }
+    context.selectedNode = { id: 1, data: { name: hostileText, value: hostileText, selected: true } };
+    runInContext('root = { descendants: () => [selectedNode] }; updateSelectedNodesList();', context);
+    assert.equal(rows.length, 1);
+    assert.ok(!rows[0].innerHTML.includes(hostileText));
+    assert.match(rows[0].innerHTML, /&lt;\/script&gt;/);
+    assert.doesNotMatch(rows[0].innerHTML, /<script>|<img/);
   }
 });
 
