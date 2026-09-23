@@ -1,0 +1,111 @@
+<!-- CodePen: Daisy collapse tree theme picker | https://codepen.io/Mark-E/pen/ByNaMoy | created 25-May-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Daisy collapse tree theme picker</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/ByNaMoy">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!doctype html><html lang="en" data-theme="emerald"><head>
+<meta charset="utf-8"><title>DOM Tree Viewer</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/@alpinejs/collapse"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head><body class="p-6 bg-base-100 text-base-content">
+
+<div x-data="themePicker()" x-effect="document.documentElement.setAttribute('data-theme', selected)">
+  <label class="form-control w-full max-w-xs mb-6">
+    <div class="label"><span class="label-text">Select theme</span></div>
+    <select x-model="selected" class="select select-bordered">
+      <template x-for="t in themes" :key="t"><option :value="t" x-text="t"></option></template>
+    </select>
+  </label>
+</div>
+
+<h1 class="text-xl font-bold mb-4">DOM Tree of <code>www.loc.gov</code></h1>
+
+<div x-data="domTree()" class="text-sm font-mono">
+  <span x-show="loading" class="loading loading-spinner loading-md"></span>
+  <div x-html="tree"></div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('themePicker', () => ({
+    themes:[], selected:'emerald',
+    init(){ fetch('https://cdn.jsdelivr.net/npm/daisyui@5/themes.css').then(r=>r.text()).then(t=>{
+      this.themes=[...new Set([...t.matchAll(/\[data-theme=([^\]]+)\]/g)].map(m=>m[1]))].sort()
+    }) }
+  }))
+
+  Alpine.data('domTree', () => ({
+    loading:true, tree:'',
+    esc:s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'),
+    sel(el){
+      const tag=`<span class="text-primary">${el.tagName.toLowerCase()}</span>`
+      const id=el.id?`<span class="text-info">#${this.esc(el.id)}</span>`:''
+      const cls=[...el.classList].map(c=>`<span class="text-accent">.${this.esc(c)}</span>`).join('')
+      return tag+id+cls
+    },
+    build(n){
+      if(n.nodeType===1){
+        const kids=[...n.childNodes].map(x=>this.build(x)).filter(Boolean)
+        return kids.length
+          ? `<li x-data="{o:true}" class="ml-1">
+               <div @click="o=!o" class="flex items-center gap-1 cursor-pointer select-none">
+                 <i x-show="!o" class="ph ph-caret-right text-xs w-3 text-base-content/70"></i>
+                 <i x-show="o"  class="ph ph-caret-down  text-xs w-3 text-base-content/70"></i>
+                 ${this.sel(n)}
+               </div>
+               <ul x-show="o" x-collapse class="ml-2 pl-2 border-l border-base-300 mt-1 space-y-0.5">${kids.join('')}</ul>
+             </li>`
+          : `<li class="ml-1"><div class="flex items-center gap-1">${this.sel(n)}</div></li>`
+      }
+      if(n.nodeType===3){ const t=n.textContent.trim(); return t?`<li class="ml-6 italic text-base-content/60">"${this.esc(t)}"</li>`:'' }
+      return ''
+    },
+    init(){
+      fetch('https://www.loc.gov').then(r=>r.text()).then(h=>{
+        const d=new DOMParser().parseFromString(h,'text/html')
+        this.tree=`<ul>${this.build(d.documentElement)}</ul>`; this.loading=false
+        this.$nextTick(()=>Alpine.initTree(this.$el))
+      }).catch(_=>{ this.tree='<div class="text-error">Failed to load.</div>'; this.loading=false })
+    }
+  }))
+})
+</script>
+
+</body></html>
+  
+  
+  
+</body>
+
+</html>

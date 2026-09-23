@@ -1,0 +1,106 @@
+<!-- CodePen: Tree.js | https://codepen.io/Mark-E/pen/mdvXmBg | created 19-Nov-23 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Tree.js</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/mdvXmBg">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  
+  
+    <script id="rendered-js" >
+let head = document.head;
+let body = document.body;
+
+// Append meta and title elements to the head
+head.appendChild(createMetaElement('UTF-8'));
+head.appendChild(createMetaElement('width=device-width, initial-scale=1.0', 'viewport'));
+head.appendChild(createMetaElement('ie=edge', 'X-UA-Compatible'));
+head.appendChild(createElement('title', {}, 'Your Page Title'));
+
+// Function to create meta elements
+function createMetaElement(content, name = 'charset') {
+  let meta = document.createElement('meta');
+  meta.setAttribute(name, content);
+  return meta;
+}
+
+// Function to create general elements
+function createElement(tag, attributes, content) {
+  let element = document.createElement(tag);
+  for (let key in attributes) {
+    element.setAttribute(key, attributes[key]);
+  }
+  element.textContent = content;
+  return element;
+}
+
+// Load external script
+let scriptSrc = document.createElement('script');
+scriptSrc.src = 'https://daweilv.github.io/treejs/dist/tree.min.js';
+
+// Error handling for script loading
+scriptSrc.onerror = function () {
+  console.error('Failed to load the tree.js script');
+};
+
+// Create and append the container div
+let container = createElement('div', { class: 'container' }, '');
+body.appendChild(container);
+
+// Append the main script only after the external script has loaded
+scriptSrc.onload = function () {
+  let mainScript = document.createElement('script');
+  mainScript.textContent = `
+            let data = [{ "id": "0", "text": "node-0", "children": [{ "id": "0-0", "text": "node-0-0", "children": [{ "id": "0-0-0", "text": "node-0-0-0" }, { "id": "0-0-1", "text": "node-0-0-1" }, { "id": "0-0-2", "text": "node-0-0-2" }] }, { "id": "0-1", "text": "node-0-1", "children": [{ "id": "0-1-0", "text": "node-0-1-0" }, { "id": "0-1-1", "text": "node-0-1-1" }, { "id": "0-1-2", "text": "node-0-1-2" }] }, { "id": "0-2", "text": "node-0-2", "children": [{ "id": "0-2-0", "text": "node-0-2-0" }, { "id": "0-2-1", "text": "node-0-2-1" }, { "id": "0-2-2", "text": "node-0-2-2" }] }] }, { "id": "1", "text": "node-1", "children": [{ "id": "1-0", "text": "node-1-0", "children": [{ "id": "1-0-0", "text": "node-1-0-0" }, { "id": "1-0-1", "text": "node-1-0-1" }, { "id": "1-0-2", "text": "node-1-0-2" }] }, { "id": "1-1", "text": "node-1-1", "children": [{ "id": "1-1-0", "text": "node-1-1-0" }, { "id": "1-1-1", "text": "node-1-1-1" }, { "id": "1-1-2", "text": "node-1-1-2" }] }, { "id": "1-2", "text": "node-1-2", "children": [{ "id": "1-2-0", "text": "node-1-2-0" }, { "id": "1-2-1", "text": "node-1-2-1" }, { "id": "1-2-2", "text": "node-1-2-2" }] }] }, { "id": "2", "text": "node-2", "children": [{ "id": "2-0", "text": "node-2-0", "children": [{ "id": "2-0-0", "text": "node-2-0-0" }, { "id": "2-0-1", "text": "node-2-0-1" }, { "id": "2-0-2", "text": "node-2-0-2" }] }, { "id": "2-1", "text": "node-2-1", "children": [{ "id": "2-1-0", "text": "node-2-1-0" }, { "id": "2-1-1", "text": "node-2-1-1" }, { "id": "2-1-2", "text": "node-2-1-2" }] }, { "id": "2-2", "text": "node-2-2", "children": [{ "id": "2-2-0", "text": "node-2-2-0" }, { "id": "2-2-1", "text": "node-2-2-1" }, { "id": "2-2-2", "text": "node-2-2-2" }] }] }]
+
+    let tree = new Tree('.container', {
+        data: [{ id: '-1', text: 'root', children: data }],
+        closeDepth: 3,
+        loaded: function () {
+            this.values = ['0-0-0', '0-1-1'];
+            console.log(this.selectedNodes);
+            console.log(this.values);
+            this.disables = ['0-0-0', '0-0-1', '0-0-2']
+        },
+        onChange: function () {
+            console.log(this.values);
+        }
+    })
+    `;
+  body.appendChild(mainScript);
+};
+
+head.appendChild(scriptSrc);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

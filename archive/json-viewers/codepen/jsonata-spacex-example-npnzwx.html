@@ -1,0 +1,102 @@
+<!-- CodePen: Jsonata spacex example | https://codepen.io/Mark-E/pen/NPNZwXa | created 16-Dec-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Jsonata spacex example</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/NPNZwXa">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/jsonata"></script>
+
+<body class="bg-slate-50 p-6 text-slate-800">
+  <div class="mx-auto max-w-6xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-semibold tracking-tight">SpaceX Launch Data</h2>
+      <div class="flex items-center gap-4">
+        <span id="status" class="text-xs font-mono text-slate-500"></span>
+        <button id="reload" class="bg-slate-900 text-white px-4 py-1.5 rounded-md text-sm hover:bg-slate-800 transition">Reload</button>
+      </div>
+    </div>
+
+    <div class="space-y-1">
+      <div class="text-[10px] font-bold text-slate-400 uppercase ml-1">JSONata Expression</div>
+      <input id="expr" type="text" 
+             class="w-full p-3 font-mono text-sm bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
+             value='$[[0..4]].{"Mission": name, "Date": date_utc, "Result": success}' />
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <section>
+        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Source JSON</div>
+        <pre id="raw" class="h-96 overflow-auto bg-white border border-slate-200 p-4 rounded-xl text-xs font-mono"></pre>
+      </section>
+      <section>
+        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Output</div>
+        <pre id="out" class="h-96 overflow-auto bg-slate-900 text-indigo-200 p-4 rounded-xl text-xs font-mono shadow-inner"></pre>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let rawData = null;
+
+    const render = async () => {
+      if (!rawData) return;
+      try {
+        const result = await jsonata($("expr").value).evaluate(rawData);
+        $("out").textContent = JSON.stringify(result, null, 2) || "// No results";
+        $("out").classList.remove("text-red-400");
+      } catch (e) {
+        $("out").textContent = `Query Error: ${e.message}`;
+        $("out").classList.add("text-red-400");
+      }
+    };
+
+    const load = async () => {
+      $("status").textContent = "Loading...";
+      const res = await fetch("https://api.spacexdata.com/v4/launches/past?limit=20");
+      rawData = await res.json();
+      $("raw").textContent = JSON.stringify(rawData, null, 2);
+      $("status").textContent = `Loaded ${rawData.length} items`;
+      render();
+    };
+
+    $("expr").addEventListener("input", render);
+    $("reload").addEventListener("click", load);
+    load();
+  </script>
+</body>
+  
+  
+  
+</body>
+
+</html>

@@ -1,0 +1,89 @@
+<!-- CodePen: Daisy succinct dom tree | https://codepen.io/Mark-E/pen/emNYbBJ | created 25-May-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Daisy succinct dom tree</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/emNYbBJ">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>DOM Tree Viewer - loc.gov</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" />
+</head>
+<body class="p-6 bg-base-100 text-base-content">
+
+<h1 class="text-xl font-bold mb-4">DOM Tree of <code>www.loc.gov</code></h1>
+<div id="dom-tree" class="text-sm font-mono"></div>
+
+<script>
+const build = node => {
+  if (node.nodeType === 1) {
+    const tag = node.tagName.toLowerCase();
+    const attrs = [...node.attributes]
+      .map(a => `<span class="text-success ml-2">${a.name}="<span class='text-warning'>${a.value}</span>"</span>`)
+      .join('');
+    const children = [...node.childNodes].map(build).filter(Boolean).join('');
+    return `
+      <li>
+        <details open class="ml-4">
+          <summary class="cursor-pointer">
+            <span class="text-primary">&lt;${tag}</span>${attrs}<span class="text-primary">&gt;</span>
+          </summary>
+          <ul class="pl-4 border-l border-base-300 ml-2">${children}</ul>
+        </details>
+      </li>`;
+  } else if (node.nodeType === 3) {
+    const text = node.textContent.trim();
+    return text ? `<li class="ml-6 text-neutral-content italic">"${text}"</li>` : '';
+  }
+  return '';
+};
+
+fetch("https://www.loc.gov")
+  .then(res => res.text())
+  .then(html => new DOMParser().parseFromString(html, "text/html"))
+  .then(doc => build(doc.documentElement))
+  .then(tree => {
+    document.getElementById("dom-tree").innerHTML = `<ul>${tree}</ul>`;
+  });
+</script>
+
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>

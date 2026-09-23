@@ -1,0 +1,191 @@
+<!-- CodePen: Lit JSON collapsible | https://codepen.io/Mark-E/pen/gOqvwxz | created 18-Nov-23 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Lit JSON collapsible</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/gOqvwxz">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  
+  
+    <script id="rendered-js" >
+import('https://cdn.jsdelivr.net/gh/lit/dist@3/all/lit-all.min.js').then(({ html, css, LitElement }) => {
+
+  class JsonTreeView extends LitElement {
+    static get properties() {
+      return {
+        jsonData: { type: Object },
+        expandedNodes: { type: Object } };
+
+    }
+
+    static get styles() {
+      return css`
+        .object-node, .array-node {
+          margin: 5px 0;
+          padding-left: 20px;
+          border-left: 2px solid #4b9cd3;
+        }
+        .object-node {
+          border-color: #4caf50;
+        }
+        .array-node {
+          border-color: #f44336;
+        }
+        .key-value {
+          display: flex;
+          align-items: center;
+          font-family: Arial, sans-serif;
+        }
+        .key {
+          font-weight: bold;
+          margin-right: 5px;
+          color: #333;
+        }
+        .value {
+          display: inline-block;
+          color: #666;
+        }
+        .expandable {
+          cursor: pointer;
+          background-color: #f0f0f0;
+          font-weight: bold;
+          padding: 2px 5px;
+          border-radius: 3px;
+          transition: background-color 0.3s;
+        }
+        .expandable:hover {
+          background-color: #e0e0e0;
+        }
+        ul {
+          list-style-type: none;
+          padding: 0;
+        }
+        span.value {
+          padding: 1px 3px;
+          border-radius: 2px;
+          background-color: #e7f4f9;
+        }
+      `;
+    }
+
+    constructor(jsonData = {}) {
+      super();
+      this.jsonData = jsonData;
+      this.expandedNodes = new Map();
+      Object.keys(jsonData).forEach(key => {
+        this.expandedNodes.set(key, false);
+      });
+    }
+
+    toggleNode(event, path) {
+      event.stopPropagation();
+      const currentValue = this.expandedNodes.get(path);
+      this.expandedNodes.set(path, !currentValue);
+      this.requestUpdate();
+    }
+
+    getValueAtPath(path) {
+      return path.split('.').reduce((obj, key) => obj && obj[key], this.jsonData);
+    }
+
+    isExpandable(value) {
+      return typeof value === 'object' && value !== null && !(value instanceof Date);
+    }
+
+    summarizeData(data) {
+      if (Array.isArray(data)) {
+        return data.map((item) =>
+        typeof item === 'object' && item !== null ? '[Object]' : JSON.stringify(item)).
+        join(', ').substring(0, 100) + '...';
+      } else if (typeof data === 'object') {
+        return Object.entries(data).slice(0, 5).map(([key, value]) =>
+        `${key}: ${typeof value === 'object' && value !== null ? '[Object]' : value}`).
+        join(', ') + '...';
+      }
+      return '';
+    }
+
+    renderTree(data, path = '') {
+      const summary = this.summarizeData(data);
+
+      if (Array.isArray(data) || typeof data === 'object' && data !== null) {
+        return html`
+          <div class="${Array.isArray(data) ? 'array-node' : 'object-node'}">
+            <div class="expandable" @click="${e => this.toggleNode(e, path)}"
+                 title="${summary}">
+              ${Array.isArray(data) ? '[Array]' : '[Object]'}
+            </div>
+            ${this.expandedNodes.get(path) ? html`
+              <ul>
+                ${Object.entries(data).map(([key, value]) => {
+          const newPath = path ? `${path}.${key}` : key;
+          return html`
+                    <li>
+                      <div class="key-value">
+                        <div class="key">${key}</div>
+                        <div class="value">
+                          ${this.isExpandable(value) ? this.renderTree(value, newPath) : value}
+                        </div>
+                      </div>
+                    </li>
+                  `;
+        })}
+              </ul>
+            ` : ''}
+          </div>
+        `;
+      } else {
+        return html`<span class="value">${data}</span>`;
+      }
+    }
+
+    render() {
+      return this.renderTree(this.jsonData);
+    }}
+
+
+  customElements.define('json-tree-view', JsonTreeView);
+
+  fetch('https://api.github.com/repositories').then(async response => {
+    const githubData = await response.json();
+    document.body.appendChild(new JsonTreeView(githubData));
+  });
+
+  fetch('https://swapi.dev/api/people/').then(async response => {
+    const starwarsData = await response.json();
+    document.body.appendChild(new JsonTreeView(starwarsData));
+  });
+});
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

@@ -1,0 +1,250 @@
+<!-- CodePen: JSON Tree Newer | https://codepen.io/Mark-E/pen/wvOVqjm | created 26-Feb-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>JSON Tree Newer</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/wvOVqjm">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  
+  
+    <script id="rendered-js" >
+import("https://cdn.jsdelivr.net/gh/lit/dist@3/all/lit-all.min.js").then(
+({ html, css, LitElement }) => {
+  class JsonTreeView extends LitElement {
+    static get properties() {
+      return {
+        jsonData: { type: Object },
+        expandedNodes: { type: Object } };
+
+    }
+
+    static get styles() {
+      return css`
+          .object-node,
+          .array-node {
+            margin: 5px 0;
+            padding-left: 20px;
+            border-left: 2px solid #4b9cd3;
+          }
+          .object-node {
+            border-color: green;
+          }
+          .object-key {
+            background: white;
+            padding: 2px 6px 2px 6px;
+            border: 1px solid #00aa00;
+            border-radius: 4px;
+            color: #333;
+          }
+          .array-node {
+            border-color: #f43;
+          }
+          .array-index {
+            background: white;
+            padding: 2px 6px 2px 6px;
+            border: 1px solid #FF3333;
+            border-radius: 4px;
+            color: #333;
+          }
+          .key-value {
+            display: flex;
+            align-items: center;
+          }
+          .key {
+            font-weight: bold;
+            margin-right: 5px;
+          }
+          .value {
+            display: inline-block;
+          }
+          .expandable {
+            cursor: pointer;
+            background-color: #eee;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+            display: inline-block;
+          }
+          .expandable:hover {
+            background-color: #ddd;
+          }
+          ul {
+            list-style-type: none;
+            padding: 0;
+          }
+          span.value {
+            padding: 1px 3px;
+            border-radius: 2px;
+            background-color: #0f0;
+          }
+        `;
+    }
+
+    constructor(jsonData = {}) {
+      super();
+      this.jsonData = jsonData;
+      this.expandedNodes = new Map();
+      Object.keys(jsonData).forEach(key => {
+        this.expandedNodes.set(key, false);
+      });
+    }
+
+    toggleNode(event, path) {
+      event.stopPropagation();
+      const currentValue = this.expandedNodes.get(path);
+      this.expandedNodes.set(path, !currentValue);
+      this.requestUpdate();
+    }
+
+    getValueAtPath(path) {
+      return path.
+      split(".").
+      reduce((obj, key) => obj && obj[key], this.jsonData);
+    }
+
+    isExpandable(value) {
+      return (
+        typeof value === "object" &&
+        value !== null &&
+        !(value instanceof Date));
+
+    }
+
+    summarizeData(data) {
+      if (Array.isArray(data)) {
+        return (
+          data.
+          map((item) =>
+          typeof item === "object" && item !== null ?
+          "[Object]" :
+          JSON.stringify(item)).
+
+          join(", ").
+          substring(0, 100) + "...");
+
+      } else if (typeof data === "object") {
+        return (
+          Object.entries(data).
+          slice(0, 5).
+          map(
+          ([key, value]) =>
+          `${key}: ${
+          typeof value === "object" && value !== null ?
+          "[Object]" :
+          value
+          }`).
+
+          join(", ") + "...");
+
+      }
+      return "";
+    }
+
+    renderTree(data, path = "") {
+      const summary = this.summarizeData(data);
+      const isExpanded = this.expandedNodes.get(path);
+
+      if (
+      Array.isArray(data) ||
+      typeof data === "object" && data !== null)
+      {
+        return html`
+            <div class="${Array.isArray(data) ? "array-node" : "object-node"}">
+              <div
+                class="expandable ${isExpanded ? "expanded" : "collapsed"}"
+                @click="${e => this.toggleNode(e, path)}"
+                title="${summary}"
+              >
+                ${Array.isArray(data) ? "[Array]" : "[Object]"}
+              </div>
+              ${isExpanded ?
+        html`
+                    <ul>
+                      ${Object.entries(data).map(([key, value]) => {
+          const newPath = path ? `${path}.${key}` : key;
+          const isValueExpandable = this.isExpandable(value);
+          return html`
+                          <li>
+                            <div class="key-value">
+                              <div
+                                class="key ${isValueExpandable &&
+          this.expandedNodes.get(newPath) ?
+          Array.isArray(data) ?
+          "array-index" :
+          "object-key" :
+          ""}"
+                              >
+                                ${key}
+                              </div>
+                              <div class="value">
+                                ${isValueExpandable ?
+          this.renderTree(value, newPath) :
+          value}
+                              </div>
+                            </div>
+                          </li>
+                        `;
+        })}
+                    </ul>
+                  ` :
+        ""}
+            </div>
+          `;
+      } else {
+        return html`
+            <span class="value">${data}</span>
+          `;
+      }
+    }
+
+    render() {
+      return this.renderTree(this.jsonData);
+    }}
+
+
+  customElements.define("json-tree-view", JsonTreeView);
+
+  fetch("https://api.github.com/repositories").then(async response => {
+    const githubData = await response.json();
+    document.body.appendChild(new JsonTreeView(githubData));
+  });
+
+  fetch("https://swapi.dev/api/people/").then(async response => {
+    const starwarsData = await response.json();
+    document.body.appendChild(new JsonTreeView(starwarsData));
+  });
+});
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

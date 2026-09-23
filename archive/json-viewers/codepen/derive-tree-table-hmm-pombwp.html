@@ -1,0 +1,250 @@
+<!-- CodePen: Derive tree table hmm | https://codepen.io/Mark-E/pen/poMbWPN | created 5-Oct-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Derive tree table hmm</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/poMbWPN">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Derive Tree Table Example</title>
+  <!-- Tabulator CSS -->
+  <link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h2 {
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Derive Tree Table Example</h1>
+
+  <!-- Original Table -->
+  <h2>Original Table</h2>
+  <div id="original-table"></div>
+
+  <!-- Tree Table -->
+  <h2>Tree Table</h2>
+  <div id="tree-table"></div>
+
+  <!-- Tabulator JS -->
+  <script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+  <script>
+    // Sample data
+    const data = [
+      { Category: 'Fruit', Type: 'Citrus', Name: 'Orange', Amount: 10 },
+      { Category: 'Fruit', Type: 'Berry', Name: 'Strawberry', Amount: 15 },
+      { Category: 'Vegetable', Type: 'Root', Name: 'Carrot', Amount: 12 },
+      { Category: 'Fruit', Type: 'Citrus', Name: 'Lemon', Amount: 8 },
+      { Category: 'Vegetable', Type: 'Leafy', Name: 'Spinach', Amount: 7 },
+    ];
+
+    // Function to build tree structure with specified grouping and value fields
+    function buildTree({
+      data,
+      groupingFields,
+      valueFields,
+      treeFieldName = 'name',
+    }) {
+      if (!Array.isArray(data) || data.length === 0) return [];
+
+      // Copy data to prevent mutating the original array
+      const dataCopy = JSON.parse(JSON.stringify(data));
+
+      // Sort data by grouping fields
+      dataCopy.sort((a, b) => {
+        for (let field of groupingFields) {
+          if (a[field] < b[field]) return -1;
+          if (a[field] > b[field]) return 1;
+        }
+        return 0;
+      });
+
+      // Recursive function to build the tree
+      function addNode(data, level) {
+        const field = groupingFields[level];
+        const groups = {};
+
+        // Group data by the current field
+        data.forEach(item => {
+          const key = item[field];
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(item);
+        });
+
+        // Build nodes for each group
+        const nodes = [];
+        for (let key in groups) {
+          const groupItems = groups[key];
+          const node = {
+            [treeFieldName]: key,
+          };
+
+          if (level + 1 < groupingFields.length) {
+            // Recursively add child nodes
+            node._children = addNode(groupItems, level + 1);
+          } else {
+            // Leaf nodes: Assign the item properties directly to the node
+            node._children = groupItems.map(item => {
+              const leafNode = {
+                [treeFieldName]: item[groupingFields[level]],
+              };
+              valueFields.forEach(valueField => {
+                leafNode[valueField.field] = item[valueField.field];
+              });
+              return leafNode;
+            });
+          }
+
+          // Aggregate value fields
+          valueFields.forEach(valueField => {
+            if (valueField.aggregation === 'sum') {
+              node[valueField.field] = groupItems.reduce(
+                (sum, item) => sum + (item[valueField.field] || 0),
+                0
+              );
+            } else if (valueField.aggregation === 'count') {
+              node[valueField.field] = groupItems.length;
+            } else if (valueField.aggregation === 'average') {
+              const sum = groupItems.reduce(
+                (sum, item) => sum + (item[valueField.field] || 0),
+                0
+              );
+              node[valueField.field] = sum / groupItems.length;
+            }
+            // Add other aggregation methods if needed
+          });
+
+          nodes.push(node);
+        }
+        return nodes;
+      }
+
+      // Build and return the tree starting from level 0
+      const tree = addNode(dataCopy, 0);
+      return tree;
+    }
+
+    // Function to derive a tree table from a Tabulator table or data array
+    function deriveTreeTable({
+      tableOrData,
+      groupingFields,
+      valueFields,
+      treeFieldName = 'name',
+      element,
+      options = {},
+    }) {
+      // Extract data from the Tabulator table or use the data array
+      const data = Array.isArray(tableOrData) ? tableOrData : tableOrData.getData();
+
+      // Build the tree data
+      const treeData = buildTree({
+        data,
+        groupingFields,
+        valueFields,
+        treeFieldName,
+      });
+
+      // Generate columns for the tree table
+      const treeColumns = [
+        {
+          title: treeFieldName.charAt(0).toUpperCase() + treeFieldName.slice(1),
+          field: treeFieldName,
+          width: 300,
+          formatter: 'tree',
+        },
+        ...valueFields.map(valueField => ({
+          title: valueField.field.charAt(0).toUpperCase() + valueField.field.slice(1),
+          field: valueField.field,
+          width: 100,
+          formatter: valueField.formatter || 'plaintext',
+          bottomCalc: valueField.aggregation === 'sum' ? 'sum' : valueField.aggregation === 'count' ? 'count' : null,
+        })),
+      ];
+
+      // Merge user-provided options
+      const tableOptions = {
+        data: treeData,
+        layout: "fitData",
+        dataTree: true,
+        dataTreeStartExpanded: true,
+        columns: treeColumns,
+        ...options,
+      };
+
+      // Create a new Tabulator instance attached to the provided element
+      const treeTable = new Tabulator(element, tableOptions);
+
+      return treeTable;
+    }
+
+    // Example usage
+    // Initialize the original table
+    const originalTable = new Tabulator("#original-table", {
+      data: data,
+      autoColumns: true,
+      layout: "fitData",
+    });
+
+    // Specify grouping and value fields
+    const groupingFields = ['Category', 'Type', 'Name'];
+    const valueFields = [
+      { field: 'Amount', aggregation: 'sum', formatter: 'money' },
+      { field: 'Count', aggregation: 'count' },
+    ];
+
+    // Derive the tree table
+    const treeTable = deriveTreeTable({
+      tableOrData: originalTable,
+      groupingFields,
+      valueFields,
+      treeFieldName: 'name',
+      element: document.getElementById('tree-table'),
+      options: {
+        // Additional Tabulator options if needed
+      },
+    });
+  </script>
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>
