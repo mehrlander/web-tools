@@ -1,1184 +1,613 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>JSON Lens · GitHub-Style Structural Explorer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Lens</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔬</text></svg>">
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
-
-<style>
-  :root[data-theme="light"] {
-    --gh-canvas: #f6f8fa;
-    --gh-surface: #ffffff;
-    --gh-border: #d0d7de;
-    --gh-border-subtle: #eaeef2;
-    --gh-text: #1f2328;
-    --gh-muted: #656d76;
-    --gh-accent: #0969da;
-    --gh-accent-subtle: #ddf4ff;
-    --gh-success: #1a7f37;
-    --gh-purple: #8250df;
-    --gh-danger: #cf222e;
-    --syntax-key: #0550ae;
-    --syntax-str: #0a3069;
-    --syntax-num: #116329;
-    --syntax-bool: #8250df;
-    --syntax-null: #cf222e;
-  }
-
-  :root[data-theme="dark"] {
-    --gh-canvas: #0d1117;
-    --gh-surface: #161b22;
-    --gh-border: #30363d;
-    --gh-border-subtle: #21262d;
-    --gh-text: #e6edf3;
-    --gh-muted: #7d8590;
-    --gh-accent: #2f81f7;
-    --gh-accent-subtle: #388bfd1a;
-    --gh-success: #3fb950;
-    --gh-purple: #bc8cff;
-    --gh-danger: #ff7b72;
-    --syntax-key: #79c0ff;
-    --syntax-str: #a5d6ff;
-    --syntax-num: #7ee787;
-    --syntax-bool: #d2a8ff;
-    --syntax-null: #ff7b72;
-  }
-
-  body {
-    background-color: var(--gh-canvas);
-    color: var(--gh-text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .font-mono-gh {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  }
-
-  .gh-box {
-    background-color: var(--gh-surface);
-    border: 1px solid var(--gh-border);
-    border-radius: 6px;
-  }
-
-  .gh-counter {
-    background-color: rgba(175, 184, 193, 0.2);
-    color: var(--gh-text);
-    border-radius: 20px;
-    padding: 1px 6px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .scroll-contained {
-    overscroll-behavior: contain;
-  }
-
-  /* Tree indentation guide line */
-  .tree-branch {
-    position: relative;
-    padding-left: 1.25rem;
-    margin-left: 0.5rem;
-    border-left: 1px dashed var(--gh-border);
-  }
-
-  /* Mobile bottom sheet */
-  #mobile-sheet {
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
-  }
-  #mobile-sheet.sheet-closed {
-    transform: translateY(100%);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* Syntax highlights */
-  .syn-key { color: var(--syntax-key); }
-  .syn-str { color: var(--syntax-str); }
-  .syn-num { color: var(--syntax-num); }
-  .syn-bool { color: var(--syntax-bool); }
-  .syn-null { color: var(--syntax-null); }
-</style>
+<script defer src="https://unpkg.com/alpinejs"></script>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col antialiased select-none">
+<!--
+  JSON Lens: a structural JSON tree beside a "lens" that reads the selected
+  value by what it looks like (image, colour, timestamp, URL, record set).
+  Started as a Gemini sketch (PR #764); rebuilt on Alpine so every value from
+  loaded JSON reaches the page through x-text or a bound attribute, never as
+  markup. The maintained explorer is the JSON Explorer kit; this page is
+  the idea, kept to be harvested from.
+-->
+<body class="bg-base-100 text-base-content" x-data="lens" x-effect="document.documentElement.dataset.theme = theme"
+      @keydown.window="key($event)" @dragover.window.prevent @drop.window.prevent="dropFile($event)">
+<div class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)]">
 
-  <!-- ================= 1. GITHUB HEADER ================= -->
-  <header class="h-12 border-b border-[var(--gh-border)] bg-[var(--gh-surface)] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
-    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-      <a href="https://github.com/mehrlander/web-tools" target="_blank" class="flex items-center gap-1.5 text-[var(--gh-text)] hover:opacity-80 transition-opacity shrink-0">
-        <i class="ph ph-github-logo text-xl"></i>
-        <span class="font-bold text-xs sm:text-sm">JSON Lens</span>
-      </a>
-
-      <span class="text-[var(--gh-border)]">/</span>
-
-      <!-- Dataset Picker -->
-      <div class="dropdown dropdown-bottom">
-        <div tabindex="0" role="button" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] hover:bg-[var(--gh-border-subtle)] rounded font-medium text-xs gap-1 shadow-xs">
-          <span id="active-dataset-label" class="truncate max-w-[110px] sm:max-w-none">e-commerce</span>
-          <i class="ph ph-caret-down text-[10px] text-[var(--gh-muted)]"></i>
-        </div>
-        <ul tabindex="0" class="dropdown-content z-50 menu p-1 shadow-lg bg-[var(--gh-surface)] border border-[var(--gh-border)] rounded-md w-52 text-xs mt-1">
-          <li class="menu-title text-[10px] text-[var(--gh-muted)] uppercase tracking-wider px-2 py-0.5">Preset Payloads</li>
-          <li><a class="dataset-opt active py-1" data-preset="ecommerce"><i class="ph ph-shopping-cart"></i> E-Commerce Order</a></li>
-          <li><a class="dataset-opt py-1" data-preset="github"><i class="ph ph-git-pull-request"></i> GitHub Repo API</a></li>
-          <li><a class="dataset-opt py-1" data-preset="legislation"><i class="ph ph-bank"></i> Legislative Bill</a></li>
-          <li><a class="dataset-opt py-1" data-preset="geojson"><i class="ph ph-map-pin"></i> GeoJSON Features</a></li>
-          <div class="divider my-0.5"></div>
-          <li><a id="btn-custom-modal" class="py-1 text-[var(--gh-accent)] font-medium"><i class="ph ph-plus"></i> Load Custom JSON...</a></li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Header Tools (Right) -->
-    <div class="flex items-center gap-2">
-      <!-- Search filter input -->
-      <div class="relative w-36 sm:w-48">
-        <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-[var(--gh-muted)] text-xs pointer-events-none"></i>
-        <input id="filter-input" type="text" placeholder="Filter tree... (/)"
-               class="input input-xs w-full pl-6 pr-6 font-mono-gh text-xs h-6 rounded bg-[var(--gh-canvas)] border border-[var(--gh-border)] focus:bg-[var(--gh-surface)] focus:border-[var(--gh-accent)] transition-all">
-        <button id="filter-clear" class="hidden absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--gh-muted)] hover:text-[var(--gh-text)]">
-          <i class="ph ph-x-circle text-xs"></i>
-        </button>
-      </div>
-
-      <!-- Theme Switcher -->
-      <button id="theme-toggle" class="btn btn-xs btn-ghost btn-square h-6 w-6 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] shadow-xs" title="Toggle Theme">
-        <i class="ph ph-sun text-xs theme-sun"></i>
-        <i class="ph ph-moon text-xs theme-moon hidden"></i>
+  <header class="flex items-center gap-2 px-3 h-12 border-b border-base-300 bg-base-200 min-w-0">
+    <i class="ph ph-brackets-curly text-xl text-primary shrink-0"></i>
+    <span class="font-bold shrink-0 hidden sm:inline">JSON Lens</span>
+    <div class="dropdown shrink-0">
+      <button tabindex="0" class="btn btn-sm btn-ghost gap-1 font-normal">
+        <span class="truncate max-w-32" x-text="source"></span><i class="ph ph-caret-down text-xs"></i>
       </button>
+      <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-56 z-50 shadow-lg">
+        <template x-for="s in presets" :key="s.id">
+          <li><a @click="load(SAMPLES[s.id], s.label); $el.blur()"><i class="ph" :class="s.icon"></i><span x-text="s.label"></span></a></li>
+        </template>
+        <li><a @click="$refs.loader.showModal()" class="text-primary"><i class="ph ph-plus"></i>Load JSON…</a></li>
+      </ul>
     </div>
+    <label class="input input-sm ml-auto w-40 sm:w-56">
+      <i class="ph ph-magnifying-glass opacity-60"></i>
+      <input x-ref="filter" type="search" placeholder="Filter  /" class="font-mono" x-model.debounce.120ms="query">
+    </label>
+    <button class="btn btn-sm btn-ghost btn-square" @click="theme = theme === 'dark' ? 'light' : 'dark'" aria-label="Toggle theme">
+      <i class="ph" :class="theme === 'dark' ? 'ph-moon' : 'ph-sun'"></i>
+    </button>
   </header>
 
-  <!-- ================= 2. BREADCRUMBS & TOPOLOGY STRIP ================= -->
-  <div class="border-b border-[var(--gh-border)] bg-[var(--gh-surface)] px-3 sm:px-4 py-1.5 flex flex-col gap-1.5 shrink-0 z-20">
-    <div class="flex items-center justify-between min-w-0">
-      <!-- Breadcrumb Path Bar -->
-      <div class="flex items-center gap-1.5 text-xs font-mono-gh min-w-0 overflow-x-auto whitespace-nowrap py-0.5">
-        <i class="ph ph-tree-view text-[var(--gh-accent)] text-sm shrink-0"></i>
-        <div id="breadcrumb-bar" class="flex items-center gap-1 min-w-0">
-          <!-- Rendered dynamically -->
-        </div>
-      </div>
-
-      <!-- Action Affordances -->
-      <div class="flex items-center gap-1 shrink-0 pl-2">
-        <button id="btn-copy-path" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] hover:bg-[var(--gh-border-subtle)] text-[var(--gh-text)] rounded font-mono-gh text-[11px] gap-1 shadow-xs" title="Copy JSONPath">
-          <i class="ph ph-copy"></i>
-          <span class="hidden sm:inline">Path</span>
-        </button>
-        <button id="btn-copy-json" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] hover:bg-[var(--gh-border-subtle)] text-[var(--gh-text)] rounded font-mono-gh text-[11px] gap-1 shadow-xs" title="Copy JSON Node">
-          <i class="ph ph-brackets-curly"></i>
-          <span class="hidden sm:inline">JSON</span>
-        </button>
-      </div>
+  <div class="flex flex-col gap-1.5 px-3 py-2 border-b border-base-300 min-w-0">
+    <div class="flex items-center gap-2 min-w-0">
+      <nav class="flex items-center gap-1 font-mono text-sm overflow-x-auto whitespace-nowrap min-w-0 flex-1">
+        <template x-for="(c, i) in crumbs" :key="i">
+          <span class="flex items-center gap-1">
+            <span x-show="i" class="opacity-40">/</span>
+            <button class="hover:underline" :class="i === crumbs.length - 1 ? 'font-bold' : 'text-primary'"
+                    @click="select(path.slice(0, i))" x-text="c"></button>
+          </span>
+        </template>
+      </nav>
+      <button class="btn btn-xs btn-ghost gap-1 font-mono" @click="copy(jsonPath(path), 'Path copied')"><i class="ph ph-copy"></i><span class="hidden sm:inline">Path</span></button>
+      <button class="btn btn-xs btn-ghost gap-1 font-mono" @click="copy(pretty(node), 'JSON copied')"><i class="ph ph-brackets-curly"></i><span class="hidden sm:inline">JSON</span></button>
     </div>
-
-    <!-- Structural Density Strip -->
-    <div id="topology-ribbon" class="w-full h-1.5 rounded-full overflow-hidden flex items-stretch gap-0.5 bg-[var(--gh-border-subtle)] cursor-pointer" title="Structural weight distribution across top-level keys">
-      <!-- Rendered dynamically -->
+    <div class="flex gap-0.5 h-5 rounded overflow-hidden text-xs" x-show="ribbon.length">
+      <template x-for="(seg, i) in ribbon" :key="seg.key">
+        <button class="min-w-0 px-1 truncate text-left text-white/90 transition-opacity"
+                :class="[palette[i % palette.length], String(path[0]) === seg.key ? 'ring-2 ring-inset ring-[var(--color-base-content)]' : 'opacity-70 hover:opacity-100']"
+                :style="`flex: ${seg.weight} 1 0%`" @click="select([seg.raw])" x-text="seg.key"></button>
+      </template>
     </div>
   </div>
 
-  <!-- ================= 3. MAIN SPLIT STAGE: TREE + LENS ================= -->
-  <main class="flex-1 min-h-0 relative flex overflow-hidden">
-    
-    <!-- LEFT PANE: INTERACTIVE COLLAPSIBLE TREE -->
-    <section class="flex-1 h-full flex flex-col min-w-0 border-r border-[var(--gh-border)] bg-[var(--gh-surface)]">
-      <!-- Tree Controls Header -->
-      <div class="h-8 border-b border-[var(--gh-border)] bg-[var(--gh-canvas)] px-3 flex items-center justify-between text-xs font-mono-gh shrink-0">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-[var(--gh-text)]">JSON Structure</span>
-          <span id="tree-node-count" class="gh-counter text-[10px]">0 nodes</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <button id="btn-expand-all" class="text-[11px] text-[var(--gh-muted)] hover:text-[var(--gh-text)] px-1.5 py-0.5 rounded hover:bg-[var(--gh-border-subtle)]">Expand</button>
-          <span class="text-[var(--gh-border)]">·</span>
-          <button id="btn-collapse-all" class="text-[11px] text-[var(--gh-muted)] hover:text-[var(--gh-text)] px-1.5 py-0.5 rounded hover:bg-[var(--gh-border-subtle)]">Collapse</button>
-        </div>
+  <main class="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_24rem] min-h-0">
+    <section class="flex flex-col min-h-0 border-r border-base-300">
+      <div class="flex items-center gap-2 px-3 h-9 border-b border-base-300 bg-base-200 text-xs">
+        <span class="badge badge-sm badge-ghost font-mono" x-text="`${total} nodes`"></span>
+        <span class="badge badge-sm badge-ghost font-mono" x-show="query" x-text="`${rows.length} shown`"></span>
+        <button class="btn btn-xs btn-ghost ml-auto" @click="collapsed = new Set()">Expand all</button>
+        <button class="btn btn-xs btn-ghost" @click="collapseAll()">Collapse all</button>
       </div>
-
-      <!-- Tree Scroll Viewport -->
-      <div id="tree-viewport" class="flex-1 overflow-y-auto p-3 font-mono-gh text-xs scroll-contained">
-        <!-- Rendered dynamically -->
+      <div class="overflow-auto min-h-0 flex-1 py-2 font-mono text-sm" x-ref="tree">
+        <template x-for="r in rows" :key="r.id">
+          <div class="flex items-stretch pr-2 cursor-pointer" :data-row="r.id"
+               :class="r.id === selectedId ? 'bg-primary/10' : 'hover:bg-base-200'" @click="pick(r)">
+            <template x-for="d in r.depth"><span class="w-4 ml-2 shrink-0 border-l border-dashed border-base-300"></span></template>
+            <button class="w-5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100" @click.stop="toggle(r)" :disabled="!r.kids">
+              <i class="ph text-xs" :class="r.kids ? (r.open ? 'ph-caret-down' : 'ph-caret-right') : ''"></i>
+            </button>
+            <div class="flex items-center gap-1.5 py-0.5 min-w-0">
+              <span class="shrink-0" :class="r.id === selectedId ? 'font-bold text-primary' : 'text-primary/80'" x-text="r.label"></span>
+              <span class="w-3 h-3 rounded-full shrink-0 border border-base-content/20" x-show="r.kind === 'color'" :style="{ background: r.kind === 'color' ? r.val : '' }"></span>
+              <i class="ph shrink-0 opacity-60" x-show="kindIcon[r.kind]" :class="kindIcon[r.kind]"></i>
+              <span class="truncate" :class="typeTone[r.type]" x-text="r.preview"></span>
+            </div>
+          </div>
+        </template>
+        <div class="px-4 py-2 text-xs opacity-60" x-show="query && !rows.length">No match</div>
       </div>
     </section>
 
-    <!-- RIGHT PANE: SEMANTIC LENS INSPECTOR (Desktop: visible; Mobile: hidden, opens sheet) -->
-    <aside id="desktop-inspector-pane" class="hidden md:flex w-80 lg:w-96 h-full flex-col shrink-0 bg-[var(--gh-surface)] overflow-y-auto scroll-contained z-10">
-      <div class="h-8 border-b border-[var(--gh-border)] bg-[var(--gh-canvas)] px-3 flex items-center justify-between text-xs font-mono-gh shrink-0">
-        <span class="font-bold text-[var(--gh-text)] flex items-center gap-1">
-          <i class="ph ph-magnifying-glass-plus text-[var(--gh-accent)]"></i> Semantic Lens
-        </span>
-        <span id="lens-target-label" class="gh-counter text-[10px]">root</span>
+    <div class="fixed inset-0 bg-black/40 z-30 md:hidden" x-show="sheet" x-transition.opacity @click="sheet = false"></div>
+    <aside class="fixed inset-x-0 bottom-0 z-40 max-h-[80dvh] rounded-t-box shadow-2xl bg-base-100 flex flex-col transition-transform duration-200
+                  md:static md:max-h-none md:rounded-none md:shadow-none md:translate-y-0 min-h-0"
+           :class="sheet ? 'translate-y-0' : 'translate-y-full'" x-ref="lens">
+      <div class="flex items-center gap-2 px-3 h-9 border-b border-base-300 bg-base-200 text-xs shrink-0">
+        <i class="ph ph-magnifying-glass-plus text-primary"></i>
+        <span class="font-bold font-mono truncate" x-text="crumbs[crumbs.length - 1]"></span>
+        <span class="badge badge-sm badge-ghost font-mono" x-text="type"></span>
+        <button class="btn btn-xs btn-ghost btn-square ml-auto md:hidden" @click="sheet = false" aria-label="Close"><i class="ph ph-x"></i></button>
       </div>
-      <div id="desktop-inspector-content" class="p-3.5 flex flex-col gap-3">
-        <!-- Rendered dynamically -->
+      <div class="overflow-y-auto min-h-0 p-3 flex flex-col gap-3 text-sm">
+        <button class="font-mono text-xs text-left break-all opacity-70 hover:opacity-100" @click="copy(jsonPath(path), 'Path copied')" x-text="jsonPath(path)"></button>
+
+        <template x-if="kind === 'image'">
+          <div class="flex flex-col gap-2">
+            <img :src="node" alt="" class="max-h-48 max-w-full object-contain rounded-box border border-base-300 bg-base-200 self-start">
+            <a :href="node" target="_blank" rel="noopener" class="link link-primary text-xs break-all" x-text="node"></a>
+          </div>
+        </template>
+        <template x-if="kind === 'color'">
+          <div class="flex items-center gap-3">
+            <span class="w-12 h-12 rounded-box border border-base-content/20" :style="{ background: node }"></span>
+            <span class="font-mono font-bold" x-text="node"></span>
+            <button class="btn btn-xs btn-ghost" @click="copy(node, 'Colour copied')"><i class="ph ph-copy"></i></button>
+          </div>
+        </template>
+        <template x-if="kind === 'date'">
+          <div class="flex flex-col gap-1">
+            <span class="font-bold" x-text="relative(node)"></span>
+            <span class="font-mono" x-text="new Date(node).toLocaleString()"></span>
+          </div>
+        </template>
+        <template x-if="kind === 'url'">
+          <a :href="node" target="_blank" rel="noopener" class="link link-primary break-all" x-text="node"></a>
+        </template>
+        <template x-if="kind === 'text'">
+          <pre class="font-mono whitespace-pre-wrap break-all bg-base-200 rounded-box p-2" :class="typeTone[type]" x-text="type === 'string' ? node : String(node)"></pre>
+        </template>
+
+        <template x-if="table">
+          <div class="flex flex-col gap-1">
+            <span class="text-xs opacity-60" x-text="`${node.length} records`"></span>
+            <div class="overflow-auto max-h-64 border border-base-300 rounded-box">
+              <table class="table table-xs table-pin-rows font-mono">
+                <thead><tr class="text-xs"><template x-for="c in table.cols" :key="c"><th x-text="c"></th></template></tr></thead>
+                <tbody>
+                  <template x-for="(r, i) in table.rows" :key="i">
+                    <tr class="hover:bg-base-200 cursor-pointer" @click="select([...path, i])">
+                      <template x-for="c in table.cols" :key="c"><td class="max-w-40 truncate" x-text="cell(r[c])"></td></template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="kids">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center">
+              <span class="text-xs opacity-60">TypeScript</span>
+              <button class="btn btn-xs btn-ghost ml-auto" @click="copy(ts, 'TypeScript copied')"><i class="ph ph-copy"></i></button>
+            </div>
+            <pre class="font-mono text-xs bg-base-200 rounded-box p-2 overflow-auto max-h-64" x-text="ts"></pre>
+          </div>
+        </template>
+
+        <div class="flex gap-2">
+          <button class="btn btn-sm flex-1 gap-1" @click="copy(pretty(node), 'JSON copied')"><i class="ph ph-copy"></i>Copy JSON</button>
+          <button class="btn btn-sm flex-1 gap-1" @click="download()"><i class="ph ph-download-simple"></i>Download</button>
+        </div>
       </div>
     </aside>
-
   </main>
+</div>
 
-  <!-- ================= 4. MOBILE BOTTOM SHEET (Semantic Lens Drawer) ================= -->
-  <div id="mobile-sheet-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden transition-opacity"></div>
-  <div id="mobile-sheet" class="fixed inset-x-0 bottom-0 max-h-[80vh] bg-[var(--gh-surface)] rounded-t-xl border-t border-[var(--gh-border)] shadow-2xl z-50 md:hidden flex flex-col sheet-closed">
-    <div class="w-full flex items-center justify-center pt-2 pb-1 cursor-grab" id="sheet-drag-handle">
-      <div class="w-8 h-1 rounded-full bg-[var(--gh-border)]"></div>
-    </div>
-    
-    <div class="px-4 py-2 border-b border-[var(--gh-border)] flex items-center justify-between">
-      <div class="min-w-0 flex-1">
-        <div class="text-[10px] font-mono-gh uppercase text-[var(--gh-muted)]">Inspecting Node</div>
-        <div id="mobile-sheet-title" class="font-bold text-xs text-[var(--gh-text)] font-mono-gh truncate">root</div>
-      </div>
-      <button id="btn-close-sheet" class="btn btn-xs btn-ghost btn-circle text-[var(--gh-muted)] hover:text-[var(--gh-text)]">
-        <i class="ph ph-x text-sm"></i>
-      </button>
-    </div>
-
-    <div id="mobile-sheet-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-contained">
-      <!-- Rendered dynamically -->
+<dialog class="modal" x-ref="loader">
+  <div class="modal-box flex flex-col gap-3">
+    <h3 class="font-bold">Load JSON</h3>
+    <form class="join w-full" @submit.prevent="fetchUrl()">
+      <input type="url" class="input input-sm join-item flex-1 font-mono" placeholder="https://…/data.json" x-model="url">
+      <button class="btn btn-sm join-item">Fetch</button>
+    </form>
+    <textarea class="textarea w-full h-40 font-mono text-xs" placeholder="Paste JSON, or drop a .json file anywhere" x-model="pasted"></textarea>
+    <span class="text-error text-sm" x-show="error" x-text="error"></span>
+    <div class="modal-action mt-0">
+      <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
+      <button class="btn btn-sm btn-primary" @click="loadPasted()">Load</button>
     </div>
   </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
-  <!-- ================= 5. MODAL: CUSTOM JSON INPUT ================= -->
-  <dialog id="modal-paste" class="modal">
-    <div class="modal-box max-w-lg bg-[var(--gh-surface)] border border-[var(--gh-border)] p-4 rounded-lg shadow-xl text-[var(--gh-text)]">
-      <div class="flex items-center justify-between pb-2 border-b border-[var(--gh-border)]">
-        <h3 class="font-bold text-xs flex items-center gap-1.5">
-          <i class="ph ph-file-plus text-[var(--gh-accent)] text-base"></i>
-          <span>Load Custom JSON</span>
-        </h3>
-        <form method="dialog"><button class="btn btn-xs btn-ghost btn-circle text-[var(--gh-muted)]"><i class="ph ph-x text-xs"></i></button></form>
-      </div>
+<div class="toast toast-top toast-end z-50" x-show="toast" x-transition.opacity>
+  <div class="alert alert-success py-2 text-sm" x-text="toast"></div>
+</div>
 
-      <div class="py-2.5 flex flex-col gap-2.5">
-        <div class="flex gap-1.5">
-          <input id="input-url" type="url" placeholder="Direct JSON URL..."
-                 class="input input-xs flex-1 font-mono-gh text-xs rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] h-7">
-          <button id="btn-fetch-url" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)]">Fetch</button>
-        </div>
-
-        <textarea id="paste-textarea" rows="6" placeholder='Paste JSON here...'
-                  class="textarea textarea-bordered font-mono-gh text-xs w-full bg-[var(--gh-canvas)] border border-[var(--gh-border)] focus:bg-[var(--gh-surface)] select-text p-2"></textarea>
-
-        <span id="paste-error" class="text-xs text-[var(--gh-danger)] font-medium"></span>
-      </div>
-
-      <div class="flex justify-end gap-1.5 pt-2 border-t border-[var(--gh-border)]">
-        <form method="dialog"><button class="btn btn-xs btn-ghost">Cancel</button></form>
-        <button id="btn-load-pasted" class="btn btn-xs bg-[var(--gh-accent)] hover:opacity-90 text-white border-none rounded">
-          Load
-        </button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-  </dialog>
-
-  <!-- ================= GITHUB TOAST NOTIFICATION ================= -->
-  <div id="toast" class="toast toast-top toast-center sm:toast-end z-50 transition-all duration-200 opacity-0 pointer-events-none -translate-y-2">
-    <div class="rounded bg-[#24292f] text-white text-xs py-1.5 px-3 shadow-lg flex items-center gap-1.5 border border-white/10 font-mono-gh">
-      <i class="ph ph-check text-[var(--gh-success)] text-xs"></i>
-      <span id="toast-msg">Copied</span>
-    </div>
-  </div>
-
-  <!-- ================= SCRIPTS ================= -->
-  <script>
-  (function () {
-    'use strict';
-
-    // ─── DATASETS ──────────────────────────────────────────────────────────
-    const SAMPLES = {
-      ecommerce: {
-        orderId: "ORD-2026-98124",
-        status: "shipped",
-        createdAt: "2026-09-18T14:32:00Z",
-        deliveredAt: null,
-        currency: "USD",
-        totals: {
-          subtotal: 384.50,
-          shipping: 12.00,
-          tax: 34.61,
-          grandTotal: 431.11,
-          discountCode: "AUTUMN20"
-        },
-        customer: {
-          id: "cust_7721",
-          name: "Eleanor Vance",
-          email: "eleanor.vance@hillhouse.design",
-          phone: "+1-555-0198",
-          loyaltyTier: "Platinum",
-          avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-          accentColor: "#7c3aed"
-        },
-        shippingAddress: {
-          street: "4122 Blackwood Ridge",
-          apartment: "Suite 4B",
-          city: "Olympia",
-          state: "WA",
-          postalCode: "98501",
-          country: "US",
-          coordinates: { lat: 47.0379, lng: -122.9007 }
-        },
-        lineItems: [
-          {
-            sku: "WL-KEY-01",
-            title: "Ergonomic Mechanical Keyboard (Linear)",
-            category: "Peripherals",
-            color: "#1e293b",
-            unitPrice: 169.00,
-            quantity: 1,
-            inStock: true,
-            weightGrams: 980,
-            previewImage: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&auto=format&fit=crop&q=80",
-            tags: ["ergonomics", "usb-c", "hot-swap"]
-          },
-          {
-            sku: "DS-MAT-09",
-            title: "Merino Wool Desk Mat (Deep Forest)",
-            category: "Accessories",
-            color: "#14532d",
-            unitPrice: 59.00,
-            quantity: 2,
-            inStock: true,
-            weightGrams: 420,
-            previewImage: "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?w=200&auto=format&fit=crop&q=80",
-            tags: ["natural", "water-resistant"]
-          },
-          {
-            sku: "MN-ARM-PRO",
-            title: "Precision Gas-Spring Monitor Arm",
-            category: "Mounts",
-            color: "#475569",
-            unitPrice: 97.50,
-            quantity: 1,
-            inStock: true,
-            weightGrams: 2450,
-            previewImage: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&auto=format&fit=crop&q=80",
-            tags: ["vesa", "aluminum"]
-          }
-        ],
-        fulfillment: {
-          carrier: "FedEx Ground",
-          trackingNumber: "782991024419",
-          trackingUrl: "https://www.fedex.com/fedextrack/?trknbr=782991024419",
-          estimatedArrival: "2026-09-24T18:00:00Z"
-        }
+<script>
+const SAMPLES = {
+  ecommerce: {
+    orderId: "ORD-2026-98124",
+    status: "shipped",
+    createdAt: "2026-09-18T14:32:00Z",
+    deliveredAt: null,
+    currency: "USD",
+    totals: {
+      subtotal: 384.50,
+      shipping: 12.00,
+      tax: 34.61,
+      grandTotal: 431.11,
+      discountCode: "AUTUMN20"
+    },
+    customer: {
+      id: "cust_7721",
+      name: "Eleanor Vance",
+      email: "eleanor.vance@hillhouse.design",
+      phone: "+1-555-0198",
+      loyaltyTier: "Platinum",
+      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      accentColor: "#7c3aed"
+    },
+    shippingAddress: {
+      street: "4122 Blackwood Ridge",
+      apartment: "Suite 4B",
+      city: "Olympia",
+      state: "WA",
+      postalCode: "98501",
+      country: "US",
+      coordinates: { lat: 47.0379, lng: -122.9007 }
+    },
+    lineItems: [
+      {
+        sku: "WL-KEY-01",
+        title: "Ergonomic Mechanical Keyboard (Linear)",
+        category: "Peripherals",
+        color: "#1e293b",
+        unitPrice: 169.00,
+        quantity: 1,
+        inStock: true,
+        weightGrams: 980,
+        previewImage: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&auto=format&fit=crop&q=80",
+        tags: ["ergonomics", "usb-c", "hot-swap"]
       },
-
-      github: {
-        repository: {
-          id: 91823746,
-          name: "web-tools",
-          fullName: "mehrlander/web-tools",
-          private: false,
-          owner: {
-            login: "mehrlander",
-            id: 4892110,
-            avatarUrl: "https://avatars.githubusercontent.com/u/4892110?v=4",
-            htmlUrl: "https://github.com/mehrlander",
-            type: "User",
-            siteAdmin: false
-          },
-          htmlUrl: "https://github.com/mehrlander/web-tools",
-          description: "Zero-build client-side web tools, offline utilities, and document workbenches.",
-          fork: false,
-          createdAt: "2024-03-12T19:22:15Z",
-          updatedAt: "2026-09-22T20:45:10Z",
-          pushedAt: "2026-09-22T20:46:00Z",
-          sizeKb: 14280,
-          stargazersCount: 428,
-          language: "JavaScript",
-          brandColor: "#0969da",
-          topics: ["client-side", "offline-first", "daisyui", "tailwind", "developer-tools", "json"],
-          defaultBranch: "main"
-        },
-        activeBranches: [
-          { name: "main", protected: true, commitSha: "8a1e2f9411bc" },
-          { name: "gemini/json-lens", protected: false, commitSha: "d94e23118fa0" },
-          { name: "codex/git-change-handoff", protected: false, commitSha: "72cfa881b2e1" }
-        ],
-        metrics: {
-          openIssues: 18,
-          closedIssues: 245,
-          pullRequests: 5,
-          healthScore: 98.4
-        }
+      {
+        sku: "DS-MAT-09",
+        title: "Merino Wool Desk Mat (Deep Forest)",
+        category: "Accessories",
+        color: "#14532d",
+        unitPrice: 59.00,
+        quantity: 2,
+        inStock: true,
+        weightGrams: 420,
+        previewImage: "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?w=200&auto=format&fit=crop&q=80",
+        tags: ["natural", "water-resistant"]
       },
-
-      legislation: {
-        billId: "HB 1832",
-        biennium: "2025-26",
-        title: "Concerning transparency and data management in municipal public records requests.",
-        primeSponsor: {
-          id: 1420,
-          name: "Rep. Sarah Bergquist",
-          district: "11th Legislative District",
-          party: "Democrat",
-          partyColor: "#0969da",
-          email: "sarah.bergquist@leg.wa.gov",
-          avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
-        },
-        status: {
-          currentStage: "Passed House",
-          isDead: false,
-          effectiveDate: "2026-07-01",
-          passedChamber: "House of Representatives",
-          passedVote: { yeas: 84, nays: 14, excused: 0 }
-        },
-        rcwCitations: [
-          { cite: "42.56.010", title: "Public Records Act - Definitions", chapter: "42.56" },
-          { cite: "42.56.120", title: "Charges for copying and inspection", chapter: "42.56" },
-          { cite: "40.14.070", title: "Destruction, disposition of local government records", chapter: "40.14" }
-        ]
-      },
-
-      geojson: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            id: "sea",
-            properties: {
-              city: "Seattle",
-              country: "United States",
-              population: 749256,
-              timezone: "America/Los_Angeles",
-              accentColor: "#0969da"
-            },
-            geometry: { type: "Point", coordinates: [-122.3321, 47.6062] }
-          },
-          {
-            type: "Feature",
-            id: "van",
-            properties: {
-              city: "Vancouver",
-              country: "Canada",
-              population: 675218,
-              timezone: "America/Vancouver",
-              accentColor: "#cf222e"
-            },
-            geometry: { type: "Point", coordinates: [-123.1207, 49.2827] }
-          },
-          {
-            type: "Feature",
-            id: "pdx",
-            properties: {
-              city: "Portland",
-              country: "United States",
-              population: 652503,
-              timezone: "America/Los_Angeles",
-              accentColor: "#1a7f37"
-            },
-            geometry: { type: "Point", coordinates: [-122.6784, 45.5152] }
-          }
-        ]
+      {
+        sku: "MN-ARM-PRO",
+        title: "Precision Gas-Spring Monitor Arm",
+        category: "Mounts",
+        color: "#475569",
+        unitPrice: 97.50,
+        quantity: 1,
+        inStock: true,
+        weightGrams: 2450,
+        previewImage: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&auto=format&fit=crop&q=80",
+        tags: ["vesa", "aluminum"]
       }
+    ],
+    fulfillment: {
+      carrier: "FedEx Ground",
+      trackingNumber: "782991024419",
+      trackingUrl: "https://www.fedex.com/fedextrack/?trknbr=782991024419",
+      estimatedArrival: "2026-09-24T18:00:00Z"
+    }
+  },
+
+  github: {
+    repository: {
+      id: 91823746,
+      name: "web-tools",
+      fullName: "mehrlander/web-tools",
+      private: false,
+      owner: {
+        login: "mehrlander",
+        id: 4892110,
+        avatarUrl: "https://avatars.githubusercontent.com/u/4892110?v=4",
+        htmlUrl: "https://github.com/mehrlander",
+        type: "User",
+        siteAdmin: false
+      },
+      htmlUrl: "https://github.com/mehrlander/web-tools",
+      description: "Zero-build client-side web tools, offline utilities, and document workbenches.",
+      fork: false,
+      createdAt: "2024-03-12T19:22:15Z",
+      updatedAt: "2026-09-22T20:45:10Z",
+      pushedAt: "2026-09-22T20:46:00Z",
+      sizeKb: 14280,
+      stargazersCount: 428,
+      language: "JavaScript",
+      brandColor: "#0969da",
+      topics: ["client-side", "offline-first", "daisyui", "tailwind", "developer-tools", "json"],
+      defaultBranch: "main"
+    },
+    activeBranches: [
+      { name: "main", protected: true, commitSha: "8a1e2f9411bc" },
+      { name: "gemini/json-lens", protected: false, commitSha: "d94e23118fa0" },
+      { name: "codex/git-change-handoff", protected: false, commitSha: "72cfa881b2e1" }
+    ],
+    metrics: {
+      openIssues: 18,
+      closedIssues: 245,
+      pullRequests: 5,
+      healthScore: 98.4
+    }
+  },
+
+  legislation: {
+    billId: "HB 1832",
+    biennium: "2025-26",
+    title: "Concerning transparency and data management in municipal public records requests.",
+    primeSponsor: {
+      id: 1420,
+      name: "Rep. Sarah Bergquist",
+      district: "11th Legislative District",
+      party: "Democrat",
+      partyColor: "#0969da",
+      email: "sarah.bergquist@leg.wa.gov",
+      avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+    },
+    status: {
+      currentStage: "Passed House",
+      isDead: false,
+      effectiveDate: "2026-07-01",
+      passedChamber: "House of Representatives",
+      passedVote: { yeas: 84, nays: 14, excused: 0 }
+    },
+    rcwCitations: [
+      { cite: "42.56.010", title: "Public Records Act - Definitions", chapter: "42.56" },
+      { cite: "42.56.120", title: "Charges for copying and inspection", chapter: "42.56" },
+      { cite: "40.14.070", title: "Destruction, disposition of local government records", chapter: "40.14" }
+    ]
+  },
+
+  geojson: {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        id: "sea",
+        properties: {
+          city: "Seattle",
+          country: "United States",
+          population: 749256,
+          timezone: "America/Los_Angeles",
+          accentColor: "#0969da"
+        },
+        geometry: { type: "Point", coordinates: [-122.3321, 47.6062] }
+      },
+      {
+        type: "Feature",
+        id: "van",
+        properties: {
+          city: "Vancouver",
+          country: "Canada",
+          population: 675218,
+          timezone: "America/Vancouver",
+          accentColor: "#cf222e"
+        },
+        geometry: { type: "Point", coordinates: [-123.1207, 49.2827] }
+      },
+      {
+        type: "Feature",
+        id: "pdx",
+        properties: {
+          city: "Portland",
+          country: "United States",
+          population: 652503,
+          timezone: "America/Los_Angeles",
+          accentColor: "#1a7f37"
+        },
+        geometry: { type: "Point", coordinates: [-122.6784, 45.5152] }
+      }
+    ]
+  }
+};
+
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const hasKids = v => v !== null && typeof v === 'object';
+const typeOf = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const entries = v => Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.entries(v);
+
+const RE = {
+  date: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/,
+  color: /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\))$/i,
+  url: /^https?:\/\/\S+$/i,
+  imageExt: /\.(png|jpe?g|gif|webp|svg|avif)(\?|#|$)/i,
+  imageKey: /image|avatar|photo|thumb|logo|icon|picture/i,
+  ident: /^[A-Za-z_$][\w$]*$/,
+};
+
+// What a value looks like, which decides the lens. An image needs an http(s)
+// URL with an image extension or an image-ish key, or a data:image URI; the
+// href and src bindings therefore never see a javascript: URL.
+function kindOf(v, key) {
+  if (typeof v !== 'string') return hasKids(v) ? 'tree' : 'text';
+  if (v.startsWith('data:image/')) return 'image';
+  if (RE.color.test(v)) return 'color';
+  if (RE.date.test(v) && !isNaN(Date.parse(v))) return 'date';
+  if (RE.url.test(v)) return RE.imageExt.test(v) || RE.imageKey.test(String(key)) ? 'image' : 'url';
+  return 'text';
+}
+
+function jsonPath(path) {
+  return '$' + path.map(p => typeof p === 'number' ? `[${p}]`
+    : RE.ident.test(p) ? `.${p}` : `[${JSON.stringify(p)}]`).join('');
+}
+
+function preview(v) {
+  if (Array.isArray(v)) return `[${v.length}]`;
+  if (isObj(v)) return `{${Object.keys(v).length}}`;
+  if (typeof v === 'string') return JSON.stringify(v.length > 60 ? v.slice(0, 60) + '…' : v);
+  return String(v);
+}
+
+// One TypeScript type from every sample of a position: array items merge, so
+// a key missing from some records comes out optional and mixed values union.
+function tsShape(vals, ind = '') {
+  const parts = new Set(), arrs = [], objs = [];
+  for (const v of vals) {
+    if (Array.isArray(v)) arrs.push(v);
+    else if (isObj(v)) objs.push(v);
+    else parts.add(v === null ? 'null' : typeof v);
+  }
+  if (arrs.length) {
+    const items = arrs.flat();
+    const inner = items.length ? tsShape(items, ind) : 'unknown';
+    parts.add(inner.includes(' | ') ? `(${inner})[]` : `${inner}[]`);
+  }
+  if (objs.length) {
+    const keys = [...new Set(objs.flatMap(o => Object.keys(o)))];
+    const lines = keys.map(k => {
+      const has = objs.filter(o => k in o);
+      const name = RE.ident.test(k) ? k : JSON.stringify(k);
+      return `${ind}  ${name}${has.length < objs.length ? '?' : ''}: ${tsShape(has.map(o => o[k]), ind + '  ')};`;
+    });
+    parts.add(keys.length ? `{\n${lines.join('\n')}\n${ind}}` : 'Record<string, never>');
+  }
+  return [...parts].join(' | ') || 'unknown';
+}
+
+function relative(iso) {
+  const s = (Date.now() - Date.parse(iso)) / 1000, a = Math.abs(s);
+  const [n, u] = a < 60 ? [0, ''] : a < 3600 ? [a / 60, 'm'] : a < 86400 ? [a / 3600, 'h'] : a < 2592000 ? [a / 86400, 'd'] : a < 31536000 ? [a / 2592000, 'mo'] : [a / 31536000, 'y'];
+  if (!u) return 'just now';
+  const t = `${Math.floor(n)}${u}`;
+  return s > 0 ? `${t} ago` : `in ${t}`;
+}
+
+document.addEventListener('alpine:init', () => Alpine.data('lens', () => ({
+  presets: [
+    { id: 'ecommerce', label: 'E-commerce order', icon: 'ph-shopping-cart' },
+    { id: 'github', label: 'GitHub repo API', icon: 'ph-git-pull-request' },
+    { id: 'legislation', label: 'Legislative bill', icon: 'ph-bank' },
+    { id: 'geojson', label: 'GeoJSON features', icon: 'ph-map-pin' },
+  ],
+  palette: ['bg-blue-600', 'bg-green-700', 'bg-violet-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-700'],
+  typeTone: { string: 'text-success', number: 'text-info', boolean: 'text-secondary', null: 'text-error', object: 'opacity-60', array: 'opacity-60' },
+  kindIcon: { image: 'ph-image', date: 'ph-clock', url: 'ph-link' },
+  theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  data: null, source: '', path: [], collapsed: new Set(), query: '', total: 0,
+  sheet: false, toast: '', url: '', pasted: '', error: '',
+
+  init() {
+    const src = new URLSearchParams(location.search).get('src');
+    this.load(SAMPLES.ecommerce, 'E-commerce order');
+    if (src) this.fetchUrl(src);
+  },
+
+  load(data, source) {
+    this.data = data; this.source = source; this.path = []; this.query = '';
+    this.total = 0;
+    const walk = v => { this.total++; if (hasKids(v)) for (const [, x] of entries(v)) walk(x); };
+    walk(data);
+    // A large document opens with only the top level showing.
+    this.collapsed = new Set();
+    if (this.total > 400) this.collapseAll(1);
+  },
+
+  get node() { return this.path.reduce((v, k) => v?.[k], this.data); },
+  get type() { return typeOf(this.node); },
+  get kids() { return hasKids(this.node); },
+  get kind() { return this.kids ? null : kindOf(this.node, this.path[this.path.length - 1]); },
+  get selectedId() { return JSON.stringify(this.path); },
+  get crumbs() { return ['root', ...this.path.map(String)]; },
+  get ts() { return this.kids ? tsShape([this.node]) : ''; },
+
+  get table() {
+    const v = this.node;
+    if (!Array.isArray(v) || !v.length || !v.every(isObj)) return null;
+    return { cols: [...new Set(v.flatMap(o => Object.keys(o)))].slice(0, 8), rows: v.slice(0, 50) };
+  },
+
+  get ribbon() {
+    if (!hasKids(this.data)) return [];
+    return entries(this.data).map(([k, v]) => ({
+      raw: k, key: String(k), weight: Math.max(1, Math.sqrt(hasKids(v) ? entries(v).length : 1)),
+    }));
+  },
+
+  // The tree as a flat list of visible rows. While filtering, a row shows when
+  // it or anything under it matches, and collapse state is ignored so a match
+  // is never hidden inside a closed branch.
+  get rows() {
+    const q = this.query.trim().toLowerCase(), out = [];
+    const hit = (k, v) => String(k).toLowerCase().includes(q)
+      || (hasKids(v) ? entries(v).some(([ck, cv]) => hit(ck, cv)) : String(v).toLowerCase().includes(q));
+    const visit = (k, v, path, depth) => {
+      if (q && !hit(k, v)) return;
+      const id = JSON.stringify(path), kids = hasKids(v);
+      const open = kids && (q || !this.collapsed.has(id));
+      out.push({ id, path, depth, kids, open, val: v, type: typeOf(v), kind: kindOf(v, k),
+                 label: path.length ? String(k) : 'root', preview: preview(v) });
+      if (open) for (const [ck, cv] of entries(v)) visit(ck, cv, [...path, ck], depth + 1);
     };
+    if (this.data !== null) visit('root', this.data, [], 0);
+    return out;
+  },
 
-    // ─── STATE ─────────────────────────────────────────────────────────────
-    let currentData = SAMPLES.ecommerce;
-    let currentPath = [];
-    let filterQuery = '';
-    let collapsedPaths = new Set();
+  select(path) { this.path = path; },
+  pick(r) {
+    this.select(r.path);
+    if (!matchMedia('(min-width: 768px)').matches) this.sheet = true;
+  },
+  toggle(r) {
+    if (!r.kids) return;
+    const c = new Set(this.collapsed);
+    c.has(r.id) ? c.delete(r.id) : c.add(r.id);
+    this.collapsed = c;
+  },
+  collapseAll(keepDepth = 0) {
+    const c = new Set();
+    const walk = (v, path) => {
+      if (!hasKids(v)) return;
+      if (path.length >= keepDepth) c.add(JSON.stringify(path));
+      for (const [k, x] of entries(v)) walk(x, [...path, k]);
+    };
+    walk(this.data, []);
+    this.collapsed = c;
+  },
 
-    const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-    const isArray = (v) => Array.isArray(v);
-    const isPrimitive = (v) => !isObject(v) && !isArray(v);
-
-    function getType(val) {
-      if (val === null) return 'null';
-      if (Array.isArray(val)) return 'array';
-      return typeof val;
+  // Arrow keys walk the visible rows; left and right fold and unfold.
+  key(e) {
+    const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+    if (e.key === '/' && !typing && !this.$refs.loader.open) { e.preventDefault(); this.$refs.filter.focus(); return; }
+    if (e.key === 'Escape') {
+      if (this.sheet) this.sheet = false;
+      else if (typing && e.target === this.$refs.filter) { this.query = ''; e.target.blur(); }
+      return;
     }
-
-    function getNodeAtPath(data, path) {
-      let curr = data;
-      for (const p of path) {
-        if (curr == null) return undefined;
-        curr = curr[p];
-      }
-      return curr;
-    }
-
-    function formatJsonPath(path) {
-      if (!path || !path.length) return '$';
-      return '$' + path.map(p => typeof p === 'number' || /^\d+$/.test(p) ? `[${p}]` : `.${p}`).join('');
-    }
-
-    function showToast(msg = 'Copied') {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toast-msg');
-      toastMsg.textContent = msg;
-      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
-      setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2'), 1800);
-    }
-
-    async function copyToClipboard(text, successMsg) {
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast(successMsg);
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        showToast(successMsg);
-      }
-    }
-
-    // ─── RECOGNIZERS ──────────────────────────────────────────────────────
-    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
-    const COLOR_HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
-    const COLOR_RGB_RE = /^rgba?\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)$/i;
-    const URL_RE = /^https?:\/\/[^\s$.?#].[^\s]*$/i;
-    const IMAGE_URL_RE = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i;
-
-    function relativeTime(isoStr) {
-      const ms = Date.parse(isoStr);
-      if (isNaN(ms)) return null;
-      const sec = Math.floor((Date.now() - ms) / 1000);
-      if (Math.abs(sec) < 60) return 'just now';
-      const min = Math.floor(sec / 60);
-      if (Math.abs(min) < 60) return min > 0 ? `${min}m ago` : `in ${-min}m`;
-      const hrs = Math.floor(min / 60);
-      if (Math.abs(hrs) < 24) return hrs > 0 ? `${hrs}h ago` : `in ${-hrs}h`;
-      const days = Math.floor(hrs / 24);
-      return days > 0 ? `${days}d ago` : `in ${-days}d`;
-    }
-
-    function inferTypeScriptType(val, name = 'RootObject') {
-      if (val === null) return 'null';
-      if (typeof val !== 'object') return typeof val;
-      if (Array.isArray(val)) {
-        if (!val.length) return 'any[]';
-        return `${inferTypeScriptType(val[0], 'Item')}[]`;
-      }
-      const lines = [`interface ${name} {`];
-      for (const [k, v] of Object.entries(val)) {
-        const opt = v === null || v === undefined ? '?' : '';
-        const t = v === null ? 'any' : isArray(v) ? (v.length ? `${inferTypeScriptType(v[0], 'Child')}[]` : 'any[]') : isObject(v) ? 'object' : typeof v;
-        lines.push(`  ${k}${opt}: ${t};`);
-      }
-      lines.push('}');
-      return lines.join('\n');
-    }
-
-    function countNodes(data) {
-      let count = 0;
-      function walk(node) {
-        count++;
-        if (isObject(node)) {
-          for (const k in node) walk(node[k]);
-        } else if (isArray(node)) {
-          for (let i = 0; i < node.length; i++) walk(node[i]);
-        }
-      }
-      walk(data);
-      return count;
-    }
-
-    // ─── RENDERING ────────────────────────────────────────────────────────
-
-    // Breadcrumbs
-    function renderBreadcrumbs() {
-      const container = document.getElementById('breadcrumb-bar');
-      container.innerHTML = '';
-
-      const rootBtn = document.createElement('button');
-      rootBtn.className = `font-semibold ${currentPath.length === 0 ? 'text-[var(--gh-text)] font-bold' : 'text-[var(--gh-accent)] hover:underline'} cursor-pointer`;
-      rootBtn.textContent = 'root';
-      rootBtn.onclick = () => selectPath([]);
-      container.appendChild(rootBtn);
-
-      let builtPath = [];
-      for (let i = 0; i < currentPath.length; i++) {
-        const part = currentPath[i];
-        builtPath.push(part);
-        const thisPath = [...builtPath];
-
-        const sep = document.createElement('span');
-        sep.className = 'text-[var(--gh-muted)]';
-        sep.textContent = '/';
-        container.appendChild(sep);
-
-        const btn = document.createElement('button');
-        const isCurrent = i === currentPath.length - 1;
-        btn.className = `font-semibold ${isCurrent ? 'text-[var(--gh-text)] font-bold' : 'text-[var(--gh-accent)] hover:underline'} cursor-pointer`;
-        btn.textContent = String(part);
-        btn.onclick = () => selectPath(thisPath);
-        container.appendChild(btn);
-      }
-    }
-
-    // Topology Ribbon
-    function renderTopologyRibbon() {
-      const ribbon = document.getElementById('topology-ribbon');
-      ribbon.innerHTML = '';
-      if (!isObject(currentData) && !isArray(currentData)) return;
-
-      const entries = Object.entries(currentData);
-      if (!entries.length) return;
-
-      const weights = entries.map(([key, val]) => {
-        let count = 1;
-        if (isArray(val)) count = Math.max(1, val.length);
-        else if (isObject(val)) count = Math.max(1, Object.keys(val).length);
-        return { key, count };
-      });
-
-      const total = weights.reduce((acc, w) => acc + w.count, 0);
-      const palette = ['#0969da', '#1f883d', '#8250df', '#cf222e', '#bf8700', '#1b7c83'];
-
-      weights.forEach((item, idx) => {
-        const pct = Math.max(4, (item.count / total) * 100);
-        const bar = document.createElement('div');
-        const isSelected = currentPath.length > 0 && String(currentPath[0]) === item.key;
-        bar.className = `h-full transition-opacity ${isSelected ? 'ring-1 ring-[var(--gh-text)]' : 'opacity-80 hover:opacity-100'}`;
-        bar.style.width = `${pct}%`;
-        bar.style.backgroundColor = palette[idx % palette.length];
-        bar.title = `${item.key}: ${item.count} items (${Math.round((item.count/total)*100)}%)`;
-        bar.onclick = () => selectPath([item.key]);
-        ribbon.appendChild(bar);
-      });
-    }
-
-    // ─── CORE VISUAL HIERARCHICAL TREE ──────────────────────────────────
-    function renderTree() {
-      const viewport = document.getElementById('tree-viewport');
-      viewport.innerHTML = '';
-
-      const query = filterQuery.trim().toLowerCase();
-
-      function matchesFilter(key, val) {
-        if (!query) return true;
-        if (String(key).toLowerCase().includes(query)) return true;
-        if (isPrimitive(val) && String(val).toLowerCase().includes(query)) return true;
-        if (isObject(val)) {
-          return Object.entries(val).some(([k, v]) => matchesFilter(k, v));
-        }
-        if (isArray(val)) {
-          return val.some((v, idx) => matchesFilter(idx, v));
-        }
-        return false;
-      }
-
-      function buildTreeNode(key, val, path) {
-        const pathStr = JSON.stringify(path);
-        const valType = getType(val);
-        const hasKids = valType === 'object' || valType === 'array';
-        const isSelected = JSON.stringify(path) === JSON.stringify(currentPath);
-
-        // Filter check
-        if (query && !matchesFilter(key, val)) return null;
-
-        const nodeEl = document.createElement('div');
-        nodeEl.className = 'tree-node select-none';
-
-        // Row item
-        const row = document.createElement('div');
-        row.className = `flex items-center gap-1.5 py-1 px-1.5 rounded transition-colors group cursor-pointer ${
-          isSelected
-            ? 'bg-[var(--gh-accent-subtle)] text-[var(--gh-accent)] font-semibold'
-            : 'hover:bg-[var(--gh-canvas)] text-[var(--gh-text)]'
-        }`;
-
-        // Chevron for collapsing
-        let toggleIcon = '';
-        const isCollapsed = collapsedPaths.has(pathStr);
-
-        if (hasKids) {
-          toggleIcon = `
-            <button class="node-toggle w-4 h-4 flex items-center justify-center text-[var(--gh-muted)] hover:text-[var(--gh-text)] rounded">
-              <i class="ph ${isCollapsed ? 'ph-caret-right' : 'ph-caret-down'} text-xs"></i>
-            </button>
-          `;
-        } else {
-          toggleIcon = `<span class="w-4 h-4 inline-block shrink-0"></span>`;
-        }
-
-        // Type icon / glyph
-        let icon = '';
-        let valPreview = '';
-
-        if (valType === 'object') {
-          icon = `<i class="ph ph-folder text-[var(--gh-accent)] text-xs shrink-0"></i>`;
-          valPreview = `<span class="gh-counter text-[10px]">{${Object.keys(val).length}}</span>`;
-        } else if (valType === 'array') {
-          icon = `<i class="ph ph-brackets-square text-[var(--gh-accent)] text-xs shrink-0"></i>`;
-          valPreview = `<span class="gh-counter text-[10px]">[${val.length}]</span>`;
-        } else if (valType === 'string') {
-          if (COLOR_HEX_RE.test(val) || COLOR_RGB_RE.test(val)) {
-            icon = `<span class="w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-xs border border-black/10" style="background:${val}"></span>`;
-          } else if (IMAGE_URL_RE.test(val) || val.startsWith('data:image/')) {
-            icon = `<i class="ph ph-image text-[var(--gh-accent)] text-xs shrink-0"></i>`;
-          } else if (ISO_DATE_RE.test(val)) {
-            icon = `<i class="ph ph-calendar text-[var(--gh-success)] text-xs shrink-0"></i>`;
-          } else {
-            icon = `<i class="ph ph-text-t text-[var(--gh-muted)] text-xs shrink-0"></i>`;
-          }
-          valPreview = `<span class="syn-str text-xs truncate max-w-xs">"${val.length > 32 ? val.slice(0, 32) + '…' : val}"</span>`;
-        } else if (valType === 'number') {
-          icon = `<i class="ph ph-hash text-[var(--gh-muted)] text-xs shrink-0"></i>`;
-          valPreview = `<span class="syn-num text-xs">${val}</span>`;
-        } else if (valType === 'boolean') {
-          icon = `<i class="ph ph-toggle-left text-[var(--gh-purple)] text-xs shrink-0"></i>`;
-          valPreview = `<span class="syn-bool text-xs font-semibold">${val}</span>`;
-        } else if (valType === 'null') {
-          icon = `<i class="ph ph-prohibit text-[var(--gh-danger)] text-xs shrink-0"></i>`;
-          valPreview = `<span class="syn-null text-xs font-semibold">null</span>`;
-        }
-
-        row.innerHTML = `
-          ${toggleIcon}
-          ${icon}
-          <span class="syn-key font-bold text-xs truncate">${key}:</span>
-          <div class="flex items-center gap-1 min-w-0">${valPreview}</div>
-        `;
-
-        row.onclick = (e) => {
-          if (e.target.closest('.node-toggle')) {
-            if (collapsedPaths.has(pathStr)) collapsedPaths.delete(pathStr);
-            else collapsedPaths.add(pathStr);
-            renderTree();
-            return;
-          }
-          selectPath(path);
-          if (window.innerWidth < 768) openMobileSheet();
-        };
-
-        nodeEl.appendChild(row);
-
-        // Children container
-        if (hasKids && !isCollapsed) {
-          const branch = document.createElement('div');
-          branch.className = 'tree-branch space-y-0.5 mt-0.5';
-
-          const entries = isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-          entries.forEach(([subKey, subVal]) => {
-            const childEl = buildTreeNode(subKey, subVal, [...path, subKey]);
-            if (childEl) branch.appendChild(childEl);
-          });
-          nodeEl.appendChild(branch);
-        }
-
-        return nodeEl;
-      }
-
-      const rootNode = buildTreeNode('root', currentData, []);
-      if (rootNode) viewport.appendChild(rootNode);
-
-      document.getElementById('tree-node-count').textContent = `${countNodes(currentData)} nodes`;
-    }
-
-    // ─── SEMANTIC LENS INSPECTOR CONTENT ──────────────────────────────────
-    function buildInspectorDOM() {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'flex flex-col gap-3';
-
-      const node = getNodeAtPath(currentData, currentPath);
-      const nodeType = getType(node);
-      const isArr = isArray(node);
-      const isObj = isObject(node);
-      const isPrim = isPrimitive(node);
-      const keyName = currentPath.length ? currentPath[currentPath.length - 1] : 'root';
-      const jsonPath = formatJsonPath(currentPath);
-
-      // Hero Card
-      const hero = document.createElement('div');
-      hero.className = 'gh-box p-3 shadow-xs';
-      hero.innerHTML = `
-        <div class="flex items-center justify-between pb-2 mb-2 border-b border-[var(--gh-border-subtle)]">
-          <div class="min-w-0">
-            <div class="text-[10px] font-mono-gh uppercase text-[var(--gh-muted)] font-semibold">Active Node</div>
-            <div class="text-xs font-bold font-mono-gh text-[var(--gh-text)] truncate">${keyName}</div>
-          </div>
-          <span class="gh-counter">${nodeType}</span>
-        </div>
-        <div class="flex items-center justify-between text-xs font-mono-gh text-[var(--gh-accent)] bg-[var(--gh-canvas)] px-2 py-1 rounded border border-[var(--gh-border)]">
-          <span class="truncate">${jsonPath}</span>
-          <button id="btn-lens-copy-path" class="text-[var(--gh-muted)] hover:text-[var(--gh-text)] ml-1" title="Copy Path">
-            <i class="ph ph-copy"></i>
-          </button>
-        </div>
-      `;
-      wrapper.appendChild(hero);
-
-      hero.querySelector('#btn-lens-copy-path').onclick = () => copyToClipboard(jsonPath, `Copied: ${jsonPath}`);
-
-      // Semantic Lens
-      if (isPrim) {
-        const lensBox = document.createElement('div');
-        lensBox.className = 'gh-box p-3 shadow-xs';
-
-        if (typeof node === 'string' && (IMAGE_URL_RE.test(node) || node.startsWith('data:image/'))) {
-          lensBox.innerHTML = `
-            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
-              <i class="ph ph-image text-[var(--gh-accent)]"></i> Image Asset Preview
-            </div>
-            <div class="rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] p-1.5 flex items-center justify-center max-h-48 overflow-hidden">
-              <img src="${node}" alt="Preview" class="max-h-40 max-w-full object-contain rounded">
-            </div>
-            <a href="${node}" target="_blank" class="btn btn-xs h-6 border border-[var(--gh-border)] bg-[var(--gh-surface)] text-[var(--gh-text)] mt-2 gap-1 text-[11px]">
-              <i class="ph ph-arrow-square-out"></i> Open Image
-            </a>
-          `;
-        } else if (typeof node === 'string' && (COLOR_HEX_RE.test(node) || COLOR_RGB_RE.test(node))) {
-          lensBox.innerHTML = `
-            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
-              <i class="ph ph-palette text-[var(--gh-accent)]"></i> Color Swatch
-            </div>
-            <div class="flex items-center gap-2.5 p-2 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)]">
-              <div class="w-10 h-10 rounded border border-black/10 shrink-0 shadow-xs" style="background-color: ${node};"></div>
-              <div class="flex flex-col font-mono-gh text-xs min-w-0">
-                <span class="font-bold text-[var(--gh-text)] truncate">${node}</span>
-                <button class="text-left text-[11px] text-[var(--gh-accent)] hover:underline" onclick="navigator.clipboard.writeText('${node}')">Copy Hex</button>
-              </div>
-            </div>
-          `;
-        } else if (typeof node === 'string' && ISO_DATE_RE.test(node)) {
-          const rel = relativeTime(node);
-          const date = new Date(node);
-          lensBox.innerHTML = `
-            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
-              <i class="ph ph-clock text-[var(--gh-success)]"></i> Timestamp
-            </div>
-            <div class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] space-y-1.5 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="text-[var(--gh-muted)]">Relative:</span>
-                <span class="badge badge-sm badge-success text-white font-medium">${rel}</span>
-              </div>
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-[var(--gh-muted)]">Local:</span>
-                <span class="font-mono-gh">${date.toLocaleString()}</span>
-              </div>
-            </div>
-          `;
-        } else if (typeof node === 'string' && URL_RE.test(node)) {
-          lensBox.innerHTML = `
-            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
-              <i class="ph ph-link text-[var(--gh-accent)]"></i> Link
-            </div>
-            <div class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] space-y-1.5 text-xs">
-              <div class="font-mono-gh text-[var(--gh-accent)] break-all font-medium">${node}</div>
-              <a href="${node}" target="_blank" class="btn btn-xs h-6 bg-[var(--gh-accent)] text-white border-none gap-1 mt-1 text-[11px]">
-                <i class="ph ph-arrow-square-out"></i> Visit URL
-              </a>
-            </div>
-          `;
-        } else {
-          lensBox.innerHTML = `
-            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1">Value</div>
-            <pre class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] font-mono-gh text-xs overflow-x-auto select-text">${String(node)}</pre>
-          `;
-        }
-        wrapper.appendChild(lensBox);
-      }
-
-      // Structure / TypeScript Lens (Objects & Arrays)
-      if (isObj || isArr) {
-        const schemaBox = document.createElement('div');
-        schemaBox.className = 'gh-box p-3 shadow-xs';
-        schemaBox.innerHTML = `
-          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--gh-border-subtle)]">
-            <span class="text-[11px] font-semibold text-[var(--gh-muted)] flex items-center gap-1">
-              <i class="ph ph-blueprint text-[var(--gh-accent)]"></i> TypeScript Shape
-            </span>
-            <button id="btn-copy-ts" class="btn btn-xs h-5 px-1.5 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded text-[10px]">
-              Copy TS
-            </button>
-          </div>
-          <pre class="bg-[var(--gh-canvas)] p-2 rounded border border-[var(--gh-border)] font-mono-gh text-[11px] text-[var(--gh-text)] overflow-x-auto max-h-36 select-text"><code>${inferTypeScriptType(node, isArr ? 'ItemType' : 'NodeType')}</code></pre>
-        `;
-
-        schemaBox.querySelector('#btn-copy-ts').onclick = () => {
-          copyToClipboard(inferTypeScriptType(node, isArr ? 'ItemType' : 'NodeType'), 'Copied TypeScript');
-        };
-
-        // Table Projection for Collections
-        if (isArr && node.length > 0 && isObject(node[0])) {
-          const tablePromo = document.createElement('div');
-          tablePromo.className = 'mt-2.5 p-2 rounded bg-[var(--gh-canvas)] border border-[var(--gh-border)] flex items-center justify-between';
-          tablePromo.innerHTML = `
-            <div>
-              <div class="text-xs font-bold text-[var(--gh-text)]">Table View</div>
-              <div class="text-[10px] text-[var(--gh-muted)]">${node.length} records</div>
-            </div>
-            <button id="btn-lens-table-toggle" class="btn btn-xs h-6 bg-[var(--gh-accent)] text-white border-none gap-1 text-[11px]">
-              <i class="ph ph-table"></i> Project Table
-            </button>
-          `;
-          tablePromo.querySelector('#btn-lens-table-toggle').onclick = () => {
-            renderTableViewInLens(wrapper, node);
-          };
-          schemaBox.appendChild(tablePromo);
-        }
-
-        wrapper.appendChild(schemaBox);
-      }
-
-      // Actions
-      const actBox = document.createElement('div');
-      actBox.className = 'gh-box p-2.5 shadow-xs';
-      actBox.innerHTML = `
-        <div class="grid grid-cols-2 gap-1.5">
-          <button id="btn-lens-copy-json" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded gap-1 text-[11px]">
-            <i class="ph ph-copy"></i> Copy JSON
-          </button>
-          <button id="btn-lens-download" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded gap-1 text-[11px]">
-            <i class="ph ph-download-simple"></i> Download
-          </button>
-        </div>
-      `;
-      wrapper.appendChild(actBox);
-
-      actBox.querySelector('#btn-lens-copy-json').onclick = () => copyToClipboard(JSON.stringify(node, null, 2), 'Copied JSON node');
-      actBox.querySelector('#btn-lens-download').onclick = () => {
-        const blob = new Blob([JSON.stringify(node, null, 2)], { type: 'application/json' });
-        const u = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = u;
-        a.download = `${keyName}.json`;
-        a.click();
-        URL.revokeObjectURL(u);
-      };
-
-      return wrapper;
-    }
-
-    // Inline Table in Lens
-    function renderTableViewInLens(container, records) {
-      const existing = container.querySelector('.lens-table-box');
-      if (existing) { existing.remove(); return; }
-
-      const box = document.createElement('div');
-      box.className = 'lens-table-box gh-box p-2 shadow-xs overflow-hidden flex flex-col gap-2 mt-1';
-      const cols = Array.from(new Set(records.flatMap(r => Object.keys(r)))).slice(0, 5);
-
-      box.innerHTML = `
-        <div class="flex items-center justify-between text-xs font-semibold">
-          <span>Records Preview (${records.length})</span>
-          <button class="btn btn-xs btn-ghost text-[var(--gh-muted)]" onclick="this.closest('.lens-table-box').remove()">✕</button>
-        </div>
-        <div class="overflow-x-auto max-h-48 border border-[var(--gh-border)] rounded">
-          <table class="table table-xs w-full font-mono-gh text-[11px]">
-            <thead>
-              <tr class="bg-[var(--gh-canvas)]">${cols.map(c => `<th>${c}</th>`).join('')}</tr>
-            </thead>
-            <tbody>
-              ${records.slice(0, 10).map(r => `
-                <tr class="hover:bg-[var(--gh-canvas)]">
-                  ${cols.map(c => `<td class="truncate max-w-[90px]">${r[c] !== undefined ? String(r[c]) : ''}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-      container.appendChild(box);
-    }
-
-    function renderInspector() {
-      const deskPane = document.getElementById('desktop-inspector-content');
-      deskPane.innerHTML = '';
-      deskPane.appendChild(buildInspectorDOM());
-
-      const mobPane = document.getElementById('mobile-sheet-content');
-      mobPane.innerHTML = '';
-      mobPane.appendChild(buildInspectorDOM());
-      const keyName = currentPath.length ? currentPath[currentPath.length - 1] : 'root';
-      document.getElementById('mobile-sheet-title').textContent = keyName;
-      document.getElementById('lens-target-label').textContent = keyName;
-    }
-
-    function openMobileSheet() {
-      renderInspector();
-      document.getElementById('mobile-sheet-backdrop').classList.remove('hidden');
-      document.getElementById('mobile-sheet').classList.remove('sheet-closed');
-    }
-
-    function closeMobileSheet() {
-      document.getElementById('mobile-sheet-backdrop').classList.add('hidden');
-      document.getElementById('mobile-sheet').classList.add('sheet-closed');
-    }
-
-    function selectPath(path) {
-      currentPath = path;
-      renderBreadcrumbs();
-      renderTree();
-      renderInspector();
-    }
-
-    function loadData(newData, datasetName = 'custom') {
-      currentData = newData;
-      currentPath = [];
-      collapsedPaths.clear();
-      document.getElementById('active-dataset-label').textContent = datasetName;
-      renderTopologyRibbon();
-      selectPath([]);
-    }
-
-    // ─── EVENTS ───────────────────────────────────────────────────────────
-    document.querySelectorAll('.dataset-opt').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const p = opt.dataset.preset;
-        if (SAMPLES[p]) {
-          loadData(SAMPLES[p], opt.textContent.trim().split(' ')[1] || p);
-          document.activeElement.blur();
-        }
-      });
-    });
-
-    const filterInput = document.getElementById('filter-input');
-    const filterClear = document.getElementById('filter-clear');
-
-    filterInput.addEventListener('input', (e) => {
-      filterQuery = e.target.value;
-      filterClear.classList.toggle('hidden', !filterQuery);
-      renderTree();
-    });
-
-    filterClear.addEventListener('click', () => {
-      filterInput.value = '';
-      filterQuery = '';
-      filterClear.classList.add('hidden');
-      renderTree();
-    });
-
-    // Expand/Collapse All
-    document.getElementById('btn-expand-all').addEventListener('click', () => {
-      collapsedPaths.clear();
-      renderTree();
-    });
-
-    document.getElementById('btn-collapse-all').addEventListener('click', () => {
-      function collect(node, p = []) {
-        if (isObject(node) || isArray(node)) {
-          collapsedPaths.add(JSON.stringify(p));
-          const entries = isArray(node) ? node.map((v, i) => [i, v]) : Object.entries(node);
-          entries.forEach(([k, v]) => collect(v, [...p, k]));
-        }
-      }
-      collect(currentData, []);
-      renderTree();
-    });
-
-    document.getElementById('btn-close-sheet').addEventListener('click', closeMobileSheet);
-    document.getElementById('mobile-sheet-backdrop').addEventListener('click', closeMobileSheet);
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement !== filterInput && !document.querySelector('dialog[open]')) {
-        e.preventDefault();
-        filterInput.focus();
-        return;
-      }
-      if (e.key === 'Escape') {
-        if (!document.getElementById('mobile-sheet').classList.contains('sheet-closed')) {
-          closeMobileSheet();
-          return;
-        }
-        if (filterInput === document.activeElement) {
-          filterInput.value = '';
-          filterQuery = '';
-          filterClear.classList.add('hidden');
-          filterInput.blur();
-          renderTree();
-        }
-      }
-    });
-
-    document.getElementById('btn-copy-path').addEventListener('click', () => {
-      const p = formatJsonPath(currentPath);
-      copyToClipboard(p, `Copied: ${p}`);
-    });
-
-    document.getElementById('btn-copy-json').addEventListener('click', () => {
-      const node = getNodeAtPath(currentData, currentPath);
-      copyToClipboard(JSON.stringify(node, null, 2), 'Copied JSON node');
-    });
-
-    const modalPaste = document.getElementById('modal-paste');
-    document.getElementById('btn-custom-modal').addEventListener('click', () => {
-      document.getElementById('paste-error').textContent = '';
-      modalPaste.showModal();
-    });
-
-    document.getElementById('btn-load-pasted').addEventListener('click', () => {
-      const text = document.getElementById('paste-textarea').value.trim();
-      const errEl = document.getElementById('paste-error');
-      errEl.textContent = '';
-      if (!text) { errEl.textContent = 'Please enter JSON text.'; return; }
-
-      try {
-        const parsed = JSON.parse(text);
-        loadData(parsed, 'custom-pasted');
-        modalPaste.close();
-        showToast('JSON loaded');
-      } catch (err) {
-        errEl.textContent = `Invalid JSON: ${err.message}`;
-      }
-    });
-
-    document.getElementById('btn-fetch-url').addEventListener('click', async () => {
-      const url = document.getElementById('input-url').value.trim();
-      const errEl = document.getElementById('paste-error');
-      errEl.textContent = '';
-      if (!url) return;
-
-      try {
-        errEl.textContent = 'Fetching...';
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const parsed = await res.json();
-        loadData(parsed, 'custom-url');
-        modalPaste.close();
-        showToast('Fetched JSON');
-      } catch (err) {
-        errEl.textContent = `Fetch failed: ${err.message}`;
-      }
-    });
-
-    window.addEventListener('dragover', (e) => e.preventDefault());
-    window.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      const file = e.dataTransfer?.files?.[0];
-      if (file && file.name.endsWith('.json')) {
-        try {
-          const text = await file.text();
-          loadData(JSON.parse(text), file.name);
-          showToast(`Loaded ${file.name}`);
-        } catch (err) {
-          alert(`Failed: ${err.message}`);
-        }
-      }
-    });
-
-    const themeBtn = document.getElementById('theme-toggle');
-    themeBtn.addEventListener('click', () => {
-      const html = document.documentElement;
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      document.querySelector('.theme-sun').classList.toggle('hidden', next === 'dark');
-      document.querySelector('.theme-moon').classList.toggle('hidden', next === 'light');
-    });
-
-    // ─── BOOT ─────────────────────────────────────────────────────────────
-    const params = new URLSearchParams(window.location.search);
-    const srcParam = params.get('src');
-    if (srcParam) {
-      fetch(srcParam).then(r => r.json()).then(data => loadData(data, 'remote')).catch(() => loadData(SAMPLES.ecommerce, 'e-commerce'));
-    } else {
-      loadData(SAMPLES.ecommerce, 'e-commerce');
-    }
-
-  })();
-  </script>
+    if (typing || this.$refs.loader.open) return;
+    const rows = this.rows, i = rows.findIndex(r => r.id === this.selectedId), r = rows[i];
+    if (e.key === 'ArrowDown' && i < rows.length - 1) this.select(rows[i + 1].path);
+    else if (e.key === 'ArrowUp' && i > 0) this.select(rows[i - 1].path);
+    else if (e.key === 'ArrowRight' && r?.kids && !r.open) this.toggle(r);
+    else if (e.key === 'ArrowLeft' && r?.kids && r.open) this.toggle(r);
+    else if (e.key === 'ArrowLeft' && this.path.length) this.select(this.path.slice(0, -1));
+    else return;
+    e.preventDefault();
+    this.$nextTick(() => [...this.$refs.tree.querySelectorAll('[data-row]')].find(el => el.dataset.row === this.selectedId)?.scrollIntoView({ block: 'nearest' }));
+  },
+
+  pretty: v => JSON.stringify(v, null, 2),
+  cell: v => v === undefined ? '' : hasKids(v) ? preview(v) : String(v),
+  jsonPath, relative,
+
+  async copy(text, msg) {
+    try { await navigator.clipboard.writeText(text); this.flash(msg); }
+    catch { this.flash('Copy failed'); }
+  },
+  flash(msg) {
+    this.toast = msg;
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.toast = '', 1600);
+  },
+  download() {
+    const name = String(this.path[this.path.length - 1] ?? 'root').replace(/[^\w.-]+/g, '_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([this.pretty(this.node)], { type: 'application/json' }));
+    a.download = `${name}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+
+  loadPasted() {
+    try { this.load(JSON.parse(this.pasted), 'Pasted'); this.error = ''; this.$refs.loader.close(); }
+    catch (err) { this.error = `Invalid JSON: ${err.message}`; }
+  },
+  async fetchUrl(url = this.url) {
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.load(await res.json(), new URL(url, location.href).pathname.split('/').pop() || 'Fetched');
+      this.error = ''; this.$refs.loader.close();
+    } catch (err) { this.error = `Fetch failed: ${err.message}`; this.$refs.loader.showModal(); }
+  },
+  async dropFile(e) {
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    try { this.load(JSON.parse(await file.text()), file.name); }
+    catch (err) { this.flash(`${file.name}: ${err.message}`); }
+  },
+})));
+</script>
 </body>
 </html>

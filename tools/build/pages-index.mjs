@@ -54,7 +54,6 @@ const NOTES = {
   'launcher.html':             'Popup launcher setup — paste a token, copy out the bookmarklet.',
   'demos/wring-text.html':     'Template induction on logs/records — kits/wring.js live.',
   'demos/wring-dom.html':      'Repeated DOM components from signatures or pasted HTML.',
-  'drop/json-lens.html':       'A GitHub-style structural JSON explorer demonstrating a visual collapsible tree paired with a semantic content lens.',
   'stories/bookmarklets-story.html': 'Field notes on bookmarklet packing.',
   // Kit demos live under lib/kits/demos/ — surfaced here under the kit-demos group.
   'kit-demos/card.html':         'Card kit — the ghost ✕ and the three ways out of a card.',
