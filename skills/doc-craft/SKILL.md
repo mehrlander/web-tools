@@ -1,6 +1,6 @@
 ---
 name: doc-craft
-description: Revise living engineering documentation to state current behavior, governing rules, and failure conditions without debugging history. Preserve dated records; edit generated docs at source.
+description: Revise documentation so each edit serves its critical objective and keeps the whole system recognizable, navigable, and maintainable; living docs state current behavior and rules, records stay as written, generated docs are edited at source.
 ---
 
 # Doc Craft

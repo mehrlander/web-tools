@@ -38,6 +38,8 @@ labels, and its alarm, and nothing about the machine. The label column is data:
 `check.py` never branches on it, so a question supplies its own vocabulary and
 the checker does not change.
 
+For revising a living doc of any kind, without the annotated pass, use [doc-craft](../doc-craft/SKILL.md).
+
 ## The pass
 
 Run the seven steps in order. Steps 1, 6 and 7 are mechanical or near-mechanical;
