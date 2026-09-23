@@ -298,12 +298,11 @@ test('framed: the head holds its place and the pane takes the scroll', async () 
   assert.ok(root.lastElementChild.className.includes('min-h-0'),
     'without which a flex child refuses to shrink and scrolls the document again');
   assert.ok(root.lastElementChild.className.includes('flex-1'), 'the container takes the remaining height');
-  const top = root.querySelector('[data-top-section]');
-  assert.match(top.getAttribute(':class') || '', /basis-1\/2/, 'top section takes top half');
-  assert.match(top.getAttribute(':class') || '', /max-h-\[50%\]/, 'top section capped at half height');
-  const rev = root.querySelector('[data-code-section]') || root.querySelector('[data-rev-section]');
-  assert.match(rev.getAttribute(':class') || '', /basis-1\/2/, 'bottom section takes bottom half');
-  assert.match(rev.getAttribute(':class') || '', /max-h-\[50%\]/, 'bottom section capped at half height');
+  for (const [sel, name] of [['[data-guide-section]', 'the guide'], ['[data-swipe-section]', 'the swiper']]) {
+    const el = root.querySelector(sel);
+    assert.match(el.getAttribute(':class') || '', /basis-1\/2/, name + ' takes half');
+    assert.match(el.getAttribute(':class') || '', /max-h-\[50%\]/, name + ' is capped at half height');
+  }
 });
 
 // THE HEAD'S CEILING. It was three bands and 188px at 390x844 until
@@ -514,22 +513,18 @@ test('a compare that lands after a step does not overwrite the newer branch', as
 // 2026-09-07: the list is SHUT, so it costs a heading row rather than a screen,
 // and the guide keeps the clip that made leading with it affordable.
 
-test('reviewable files and code files are separate swipe tracks in the tree', async () => {
+test('the guide leads and one swiper follows it in the tree', async () => {
   window.BranchBrief.forget();
   reset();
   const d = await mount('feat/a');
   await openFiles(d);
   await tick(8);
-  const topSec = d.$el.querySelector('[data-top-section]');
-  const codeSec = d.$el.querySelector('[data-code-section]');
-  assert.ok(topSec && codeSec, 'both sections are in the tree');
-  // DOCUMENT_POSITION_FOLLOWING: code section comes after top section.
-  assert.ok(topSec.compareDocumentPosition(codeSec) & 4,
-    'top section leads, code section follows');
-  const revStrip = d.$el.querySelector('[x-ref="revStrip"]');
-  const codeStrip = d.$el.querySelector('[x-ref="codeStrip"]');
-  assert.ok(revStrip && codeStrip, 'both swipe strips exist');
-  assert.ok(codeSec.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
+  const guide = d.$el.querySelector('[data-guide-section]');
+  const swipe = d.$el.querySelector('[data-swipe-section]');
+  assert.ok(guide && swipe, 'both sections are in the tree');
+  assert.ok(guide.compareDocumentPosition(swipe) & 4, 'the guide leads, the swiper follows');
+  assert.ok(d.$el.querySelector('[x-ref="swipeStrip"]'), 'one swipe strip');
+  assert.ok(swipe.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
 });
 
 test('with no PR, compare is read without asking', async () => {

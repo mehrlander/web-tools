@@ -115,251 +115,184 @@ test('the two sections partition the branch, and each heading counts its own', (
 
 // ── The reading order ───────────────────────────────────────────────────────
 //
-// What changed, then why, then the documents themselves. The order moved twice
-// in two days and each move was the reader's, so it is asserted rather than
-// left to whoever edits the template next.
+// Why, then what: the guide first, then one swiper over every changed file.
+// Asserted rather than left to whoever edits the template next, since the order
+// has moved several times and each move was the reader's.
 const sectionOrder = () => {
   const sections = window.document.querySelector('#m > div').lastElementChild;
   const kids = [...sections.children];
-  const revStrip = window.document.querySelector('[x-ref="revStrip"]');
-  const codeStrip = window.document.querySelector('[x-ref="codeStrip"]');
-  const top = kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="revStrip"]'));
-  const code = kids.findIndex(c => c.matches('[data-code-section]') || c.querySelector('[x-ref="codeStrip"]'));
-  const topSec = kids[top];
-  const codeSec = kids[code];
-  const rowEl = topSec?.firstElementChild;
   return { kids,
-           row: top,
-           rowEl,
-           top,
-           code,
-           topSec,
-           codeSec,
-           revStrip,
-           codeStrip };
+           guide: kids.findIndex(c => c.matches('[data-guide-section]')),
+           swipe: kids.findIndex(c => c.matches('[data-swipe-section]')),
+           strip: window.document.querySelector('[x-ref="swipeStrip"]') };
 };
 
-test('the page reads reviewable files, then code files', () => {
+test('the page reads the guide, then the files', () => {
   const o = sectionOrder();
-  assert.ok(o.top >= 0 && o.code >= 0,
-    'all sections are children of the one scroller');
-  const topSec = o.kids[o.top];
-  const headerCap = topSec.firstElementChild;
-  assert.ok(headerCap && o.revStrip && Boolean(headerCap.compareDocumentPosition(o.revStrip) & 4),
-    'the heading row heads the list it belongs to');
-  assert.ok(o.code > o.top, 'and the code files follow reviewable files');
+  assert.ok(o.guide >= 0 && o.swipe >= 0, 'both sections are children of the one scroller');
+  assert.ok(o.swipe > o.guide, 'and the files follow the guide');
+  const headerCap = o.kids[o.swipe].firstElementChild;
+  assert.ok(headerCap && o.strip && Boolean(headerCap.compareDocumentPosition(o.strip) & 4),
+    'the heading row heads the swiper it belongs to');
 });
 
 // ── The vertical rhythm ─────────────────────────────────────────────────────
 //
-// Two rules the page states with spacing rather than with prose, both reported
-// from a phone on 2026-09-07.
-//
-// ONE CORNER. The top section container and bottom reviewable document container
-// are the page's two content containers, both styled as rounded-lg with matching
-// curved header caps.
-//
-// GROUPING IS SPACING. A control sits closer to what it controls than sections
-// sit to each other.
+// ONE CORNER: the guide and the swiper are the page's two content containers,
+// both rounded-lg. GROUPING IS SPACING: a control sits closer to what it
+// controls than sections sit to each other.
 test('the content containers share one corner, and grouping is spacing', () => {
   const doc = window.document;
-  const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-)[a-z0-9]+\b/) || [])[0];
-  const topBox = doc.querySelector('[data-top-section]');
-  const panelWrap = doc.querySelector('[data-rev] .rounded-lg');
-  const found = { top: radius(topBox), panel: radius(panelWrap) };
-  assert.ok(found.top && found.panel, 'both containers carry a radius: ' + JSON.stringify(found));
-  assert.equal(found.top, 'rounded-lg',
-    'the theme token, so a theme that moves its radius moves both');
-  assert.equal(found.panel, 'rounded-lg');
-  // No fade gradient overlay remains: content stays in its container.
+  const radius = (el) => (String(el?.className || '').match(/\brounded-(?!b-|t-)[a-z0-9]+\b/) || [])[0];
+  const found = { guide: radius(doc.querySelector('[data-guide-section]')),
+                  swipe: radius(doc.querySelector('[data-swipe-section]')) };
+  assert.equal(found.guide, 'rounded-lg', 'the theme token: ' + JSON.stringify(found));
+  assert.equal(found.swipe, 'rounded-lg');
   assert.equal(doc.querySelectorAll('.bg-gradient-to-b').length, 0, 'no fade overlay on containers');
 
-  // The heading row is a header cap matching the file review container's header cap.
-  const row = doc.querySelector('[data-top-section] [role="tablist"]')?.closest('.border-b');
-  assert.ok(row, 'heading row found');
-  assert.match(row.className, /px-3 py-1\.5/, 'the header cap has standard padding');
-
-  // ONE GAP VALUE. The page ran 8 between sections and 4 inside one until the
-  // sections came down to 2 on 2026-09-07, and a control gap looser than a
-  // section gap is a scale with its meaning inverted. Every surviving gap is
-  // gap-0.5, and grouping is said by flushness instead.
   const shell = doc.querySelector('#m > div');
   const head = shell.firstElementChild;
   for (const [name, el] of [['shell', shell], ['head', head], ['sections', shell.lastElementChild]])
     assert.match(el.className, /\bgap-0\.5\b/, name + ' takes the one gap: ' + el.className);
 
-  // TWO strips in the head, not three: the ahead/behind figures ride the chip
-  // strip, because a 190px run of numbers beside a strip that scrolls is one
-  // band's worth of content taking two.
+  // TWO strips in the head: the ahead/behind figures ride the chip strip.
   assert.equal(head.children.length, 2, 'an identity block and one scrolling strip');
   const look = head.children[1];
   assert.match(look.className, /flex-nowrap/, 'the strip scrolls rather than wrapping');
   assert.match(look.textContent, /ahead/, 'and the figures lead it, since they are read not tapped');
-  // A wrapping child inside a nowrap scroller is the one shape that would put
-  // the strip back to two lines.
   for (const kid of look.children)
     assert.ok(!/\bflex-wrap\b/.test(kid.className || ''),
       'nothing inside the strip wraps: ' + kid.className);
-  // AND NO EXCEPTION INSIDE IT. A margin on one line of a block that already
-  // spaces its lines is a rhythm with a hole in it; the identity block carried
-  // mt-1 on the third of three and nothing on the first two.
   for (const line of head.firstElementChild.children)
     assert.ok(!/\b(mt|mb|my)-\d/.test(line.className || ''),
       'no line of the identity block spaces itself: ' + line.className);
 });
 
-// TWO SWIPE CONTAINERS: The top container holds reviewable files (.md, .html)
-// and the bottom container holds other changed files (listFiles).
-test('reviewable files and code files are two swipe containers', async () => {
-  await tick(6);
-  const top = window.document.querySelector('[data-top-section]');
-  const code = window.document.querySelector('[data-code-section]');
-  assert.ok(top && code, 'both containers exist');
-  const revStrip = top.querySelector('[x-ref="revStrip"]');
-  const codeStrip = code.querySelector('[x-ref="codeStrip"]');
-  assert.ok(revStrip && codeStrip, 'both strips exist');
-  assert.match(top.textContent, /Reviewable/);
-  assert.match(code.textContent, /Files/);
+test('the guide sits above one swiper holding every changed file', () => {
+  const guide = window.document.querySelector('[data-guide-section]');
+  const swipe = window.document.querySelector('[data-swipe-section]');
+  assert.ok(guide && swipe, 'both sections exist');
+  assert.ok(swipe.querySelector('[x-ref="swipeStrip"]'), 'the swiper holds the strip');
+  assert.deepEqual(j(data.swipeFiles.map(f => f.path)),
+    j([...data.reviewableFiles, ...data.listFiles].map(f => f.path)),
+    'reviewable files first, then the rest, the order the full deck reads');
+  // No PR in this fixture, so the guide section shows the commits instead.
+  assert.equal(data.hasGuide, false);
+  assert.match(guide.textContent, /What this branch did/);
 });
 
-test('the top container (reviewable) and bottom container (code) scroll without clips or expander buttons', () => {
-  const topCard = window.document.querySelector('[data-top-section] [data-rev] .rounded-lg');
-  assert.ok(topCard, 'a presented reviewable file is found');
-  assert.match(topCard.className, /overflow-y-auto/, 'and scrolls inside its card');
+test('with a pull request the guide renders its body at the top', () => withGuide(async () => {
+  const guide = window.document.querySelector('[data-guide-section]');
+  assert.match(guide.textContent, /#7/, 'the PR number');
+  assert.match(guide.textContent, /A guide/, 'and its title');
+  assert.ok(guide.querySelector('[x-html="guideHtml"]'), 'the body has somewhere to render');
+}));
 
-  const codeCard = window.document.querySelector('[data-code-section] [data-code] .rounded-lg');
-  assert.ok(codeCard, 'a presented code file is found');
-  assert.match(codeCard.className, /overflow-y-auto/, 'and scrolls inside its card');
-
-  // Neither top nor bottom carries more/less expander buttons
-  const buttons = [...window.document.querySelectorAll('[data-top-section] button, [data-code-section] button')]
-    .filter(b => /more|less/.test(b.textContent));
-  assert.equal(buttons.length, 0, 'no more/less buttons on panels');
+test('the guide and the slides scroll in place, with no clips or expander buttons', () => {
+  const scroller = window.document.querySelector('[data-guide-section] [x-ref="guide"]');
+  assert.match(scroller.className, /overflow-y-auto/, 'the guide scrolls inside its section');
+  const card = window.document.querySelector('[data-slide] .overflow-y-auto');
+  assert.ok(card, 'a slide scrolls inside itself');
+  const buttons = [...window.document.querySelectorAll('[data-guide-section] button, [data-swipe-section] button')]
+    .filter(b => /\b(more|less)\b/.test(b.textContent));
+  assert.equal(buttons.length, 0, 'no more/less buttons');
 });
 
-// The other half of that: the card inside a panel must not bound itself either,
-// or the panel scrolls a box the card has already clipped. `fill` is how a host
-// says it owns the bounding, and the branch's list cards do NOT say it, having
-// no host height to fill (file-review-card holds what the card does with it).
-test('a panel hands its card the bounding, and the expander goes with the clip', () => {
-  const f = data.reviewableFiles[0];
-  assert.ok(f, 'the fixture presents a document');
-  const opts = data.reviewCardOpts(f);
-  assert.equal(opts.fill, true, 'the panel bounds it, so the card must not');
-  assert.equal(opts.read, true);
-  assert.equal(opts.open, true, 'and it is open, a panel being the document itself');
-  assert.equal(data.cardOpts(f).fill, undefined, 'a list card bounds itself as before');
-
-  // The more/less expander was dispensed with: content stays in its container.
-  const panel = window.document.querySelector('[data-rev]');
-  const buttons = [...panel.querySelectorAll('button')]
-    .filter(b => /more|less/.test(b.textContent));
-  assert.equal(buttons.length, 0, 'neither more nor less is offered');
+// The slide owns the bounding, so its card must not bound itself: `fill`.
+// Reviewable files read as documents; the rest open on their diff.
+test('a slide hands its card the bounding, and reading follows the file', () => {
+  const doc = data.reviewableFiles[0], code = data.listFiles[0];
+  assert.ok(doc && code, 'the fixture has one of each');
+  const d = data.slideCardOpts(doc), c = data.slideCardOpts(code);
+  assert.equal(d.fill, true, 'the slide bounds it, so the card must not');
+  assert.equal(d.open, true);
+  assert.equal(d.read, true, 'a document reads');
+  assert.equal(c.read, false, 'code opens on its diff');
+  assert.equal(data.cardOpts(doc).fill, undefined, 'a list card bounds itself as before');
 });
 
-// ── The reviewable strip ────────────────────────────────────────────────────
+// ── The swiper ──────────────────────────────────────────────────────────────
 //
-// The presented files share ONE container and are swiped between, rather than
-// stacking. Stacked, three documents were three screens before the file list
-// and the deck button under it; the strip put that row back above the fold.
-// WAIT FOR THE STATE, NOT FOR A NUMBER. Growing the strip is a chain: the
-// x-for repopulates on the first flush and the sibling x-show re-reads later,
-// so a wait that ends too early reads a populated pager inside a row still
-// carrying display:none, which is a fixture artifact and not what the browser
-// does. This was ten flushes, and ten was enough until a card grew one more
-// effect, at which point the pager test failed about one run in six, and only
-// when the file ran beside another (2026-09-07). A count is a guess at the
-// length of a chain nobody is counting; the condition is not.
+// WAIT FOR THE STATE, NOT FOR A NUMBER: growing the strip is a chain of
+// flushes, so a fixed tick count reads a half-populated strip.
 const settle = async (ok, n = 60) => {
   for (let i = 0; i < n && !ok(); i++) await tick(1);
   return ok();
 };
-const stripReady = () => {
-  return data.revPanels().length === data.reviewableFiles.length;
-};
 const withReviewable = async (fn) => {
   const keep = data.brief.files;
-  data.brief = { ...data.brief, files: [...keep,
-    { path: 'docs/c.md', status: 'modified', additions: 2, deletions: 0 },
-    { path: 'pages/d.html', status: 'added', additions: 5, deletions: 0 }] };
-  await settle(stripReady);
-  try { return await fn(); } finally { data.brief = { ...data.brief, files: keep }; await tick(10); }
+  try {
+    data.brief = { ...data.brief, files: [...keep,
+      { path: 'docs/c.md', status: 'modified', additions: 2, deletions: 0 },
+      { path: 'pages/d.html', status: 'added', additions: 5, deletions: 0 }] };
+    await settle(() => data.panels().length === data.swipeFiles.length);
+    return await fn();
+  } finally { data.brief = { ...data.brief, files: keep }; data.go(0); await tick(10); }
 };
 
-test('the presented files are one swiped container, not a stack', () => withReviewable(async () => {
-  assert.equal(data.reviewableFiles.length, 3, 'three to page between');
-  const strip = window.document.querySelector('[x-ref="revStrip"]');
-  assert.ok(strip, 'the strip is mounted');
-  // Native scroll-snap, no kit: the browser owns the momentum and the landing.
-  for (const c of ['snap-x', 'snap-mandatory', 'overflow-x-auto'])
+test('the files are one swiped container, not a stack', () => withReviewable(async () => {
+  assert.equal(data.swipeFiles.length, 5, 'three documents and two other files');
+  const strip = window.document.querySelector('[x-ref="swipeStrip"]');
+  for (const c of ['snap-x', 'snap-mandatory', 'overflow-x-auto', 'overflow-y-hidden'])
     assert.match(strip.className, new RegExp(c.replace(/[-/]/g, '\\$&')), 'strip is ' + c);
-  // overflow-y is explicit because a box scrolling on one axis computes the
-  // other from visible to auto, which is a second scrollbar nobody asked for.
-  assert.match(strip.className, /overflow-y-hidden/, 'and it does not scroll vertically');
-
-  const panels = data.revPanels();
-  assert.equal(panels.length, 3, 'one panel per reviewable file');
+  const panels = data.panels();
+  assert.equal(panels.length, 5, 'one slide per file');
   for (const k of panels) {
-    assert.match(k.className, /w-full/, 'a panel is the strip wide');
+    assert.match(k.className, /w-full/, 'a slide is the strip wide');
     assert.match(k.className, /shrink-0/, 'and does not shrink to fit its neighbours');
     assert.match(k.className, /snap-center/, 'and is a snap point');
   }
-  // NOT strip.children. x-for leaves its <template> in the DOM as the
-  // insertion anchor, and a template is an element with an all-zero rect, so
-  // reading children put it at index 0: every panel off by one, and goRev(0)
-  // scrolling to a garbage offset. Caught in the browser, held here.
-  assert.ok(strip.children.length > panels.length,
-    'the x-for template is a child of the strip, which is why panels are named');
+  // NOT strip.children: x-for leaves its <template> as the insertion anchor.
+  assert.ok(strip.children.length > panels.length, 'the x-for template is a child of the strip');
   assert.ok(!panels.some(k => k.tagName === 'TEMPLATE'), 'and it is not one of them');
 }));
 
-test('an n/m pill on each card indicates position when there are multiple reviewable files',
-  () => withReviewable(async () => {
-    assert.equal(window.document.querySelector('[data-rev-pager]'), null, 'no inline dots pager row');
-    await settle(() => {
-      const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
-      return badges.length === 3;
-    });
-    const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
-    assert.equal(badges.length, 3, 'one pager pill per reviewable file');
-    assert.deepEqual(badges.map(b => b.textContent.trim()), ['1/3', '2/3', '3/3'], 'each card states its position');
-  }));
+test('the header says n/m once, and the cards carry no pager of their own', () => withReviewable(async () => {
+  const label = () => window.document.querySelector('[data-swipe-section] .tabular-nums')?.textContent.trim();
+  await settle(() => label() === '1/5');
+  assert.equal(label(), '1/5');
+  data.go(3);
+  await settle(() => label() === '4/5');
+  assert.equal(label(), '4/5', 'and it follows the swiper');
+  assert.equal(data.slideCardOpts(data.swipeFiles[0]).pager, undefined, 'no per-card pill');
+}));
 
-// One file is not a set to page through, so no pager pill is offered.
-test('with one reviewable file there is no pager', async () => {
-  await tick(4);
-  assert.equal(data.reviewableFiles.length, 1);
-  const badges = [...window.document.querySelectorAll('[data-rev] .badge')].filter(b => /\d+\/\d+/.test(b.textContent));
-  assert.equal(badges.length, 0, 'no n/m pill when only one reviewable file');
+test('with one file there is no pager', async () => {
+  const keep = data.brief.files;
+  data.brief = { ...data.brief, files: [keep[0]] };
+  await tick(6);
+  try {
+    assert.equal(data.swipeFiles.length, 1);
+    const pager = window.document.querySelector('[data-swipe-section] .tabular-nums').parentElement;
+    assert.equal(pager.style.display, 'none', 'nothing to page between');
+  } finally { data.brief = { ...data.brief, files: keep }; await tick(6); }
 });
 
 test('the strip reads its position and is driven to one', () => withReviewable(async () => {
-  const strip = window.document.querySelector('[x-ref="revStrip"]');
-  const panels = data.revPanels();
-  // jsdom does no layout, so the strip is given one: 300px panels with a 12px
-  // gap, scrolled to wherever scrollLeft says.
+  const strip = window.document.querySelector('[x-ref="swipeStrip"]');
+  const panels = data.panels();
+  // jsdom does no layout, so the strip is given one: 300px slides, 12px gap.
   const W = 300, GAP = 12;
   strip.scrollLeft = 0;
   strip.getBoundingClientRect = () => ({ left: 0, width: W });
   panels.forEach((k, i) => { k.getBoundingClientRect = () => ({ left: i * (W + GAP) - strip.scrollLeft, width: W }); });
   strip.scrollTo = ({ left }) => { strip.scrollLeft = left; };
 
-  assert.equal(data.revX(1), W + GAP, 'a panel offset counts the gap');
-  data.goRev(2);
-  assert.equal(strip.scrollLeft, 2 * (W + GAP), 'and driving one scrolls there');
-  assert.equal(data.revAt, 2, 'the state follows the drive');
+  data.go(2);
+  assert.equal(strip.scrollLeft, 2 * (W + GAP), 'driving one scrolls there, counting the gap');
+  assert.equal(data.at, 2, 'the state follows the drive');
+  data.go(99);
+  assert.equal(data.at, 4, 'a drive past the end stops at the last slide');
 
-  // A swipe lands between two panels; the nearer one is where it is.
   strip.scrollLeft = W + GAP + 40;
-  data.revScroll();
-  assert.equal(data.revAt, 1, 'a partly-swiped strip still has a position');
+  data.stripScroll();
+  assert.equal(data.at, 1, 'a partly-swiped strip still has a position');
   strip.scrollLeft = 2 * (W + GAP) - 30;
-  data.revScroll();
-  assert.equal(data.revAt, 2, 'and it is the nearest panel, not a division');
+  data.stripScroll();
+  assert.equal(data.at, 2, 'and it is the nearest slide, not a division');
 }));
 
-// A generated .md is machine output whatever its extension, so promoting one
-// would put a generator's docs above the work someone did.
+// A generated .md is machine output whatever its extension.
 test('a mechanical file is never reviewable, whatever the extension', async () => {
   const keep = data.brief.files;
   data.brief = { ...data.brief, files: [...keep,
@@ -372,27 +305,52 @@ test('a mechanical file is never reviewable, whatever the extension', async () =
   } finally { data.brief = { ...data.brief, files: keep }; await tick(2); }
 });
 
-// A branch with no page and no doc has no section to stand in the list's
-// place, so the list has to open itself. Not defensive: over 20 merged
-// branches sampled 2026-09-05, twelve changed no .html at all and two changed
-// neither .html nor .md.
-test('with no page and no doc the list opens itself', async () => {
+// Over 20 merged branches sampled 2026-09-05, twelve changed no .html at all
+// and two changed neither .html nor .md, so a swiper of only code is common.
+test('with no page and no doc the swiper still holds every file', async () => {
   const keep = data.brief.files;
   data.brief = { ...data.brief, files: keep.filter(f => !/\.md$/.test(f.path)) };
   await tick(2);
   try {
     assert.equal(data.reviewableFiles.length, 0);
-    assert.equal(data.filesShown, true, 'or the page would be a caret over nothing');
-    assert.ok(data.deckFiles.length > 0, 'so the deck still has something to page');
+    assert.equal(data.swipeFiles.length, data.listFiles.length);
+    assert.ok(data.deckFiles.length > 0, 'and the deck still has something to page');
   } finally { data.brief = { ...data.brief, files: keep }; await tick(2); }
 });
 
-test('reviewable files and code files mount their respective fileReview cards', async () => {
-  const revCards = [...window.document.querySelectorAll('[data-top-section] [x-data^="fileReview"]')];
-  const codeCards = [...window.document.querySelectorAll('[data-code-section] [x-data^="fileReview"]')];
-  assert.equal(revCards.length, data.reviewableFiles.length, 'reviewable strip mounts all reviewable files');
-  assert.equal(codeCards.length, data.listFiles.length, 'code strip mounts all code files');
-});
+// LAZY: a card mounts when the swiper nears it, then stays. Mounting every
+// card fetched every diff on load, generated bundles included.
+test('cards mount near the swiper, not all at once', () => withReviewable(async () => {
+  const cards = () => window.document.querySelectorAll('[data-slide] [x-data^="fileReview"]').length;
+  // Earlier tests in this file swiped across these slides; start clean.
+  data.mounted = {}; data.go(0); data.markNear();
+  await settle(() => cards() === 2);
+  assert.equal(cards(), 2, 'at the first slide, it and its neighbour');
+  data.go(4);
+  await settle(() => cards() === 4);
+  assert.equal(cards(), 4, 'a jump to the end mounts the last two and keeps the first two');
+}));
+
+// THE FILE LIST drops from the mark at the swiper's top left, the way the
+// full deck's contents do.
+test('the mark drops the file list, and a row jumps there', () => withReviewable(async () => {
+  const btn = window.document.querySelector('[data-file-list-btn]');
+  const list = window.document.querySelector('[data-file-list]');
+  assert.equal(list.style.display, 'none', 'shut until asked');
+  btn.click();
+  await settle(() => list.style.display !== 'none');
+  assert.notEqual(list.style.display, 'none', 'the mark opens it');
+  assert.match(btn.querySelector('i').className, /ph-caret-up/, 'and the mark says it puts the list away');
+  const rows = () => [...list.querySelectorAll('[data-file-row]')];
+  await settle(() => rows().length === 5);
+  assert.equal(rows().length, 5, 'one row per file');
+  assert.equal(rows()[0].getAttribute('aria-current'), 'true', 'the current file is marked');
+  assert.match(list.textContent, /Reviewable[\s\S]*Changed/, 'and the two kinds are labeled in order');
+  rows()[3].click();
+  await settle(() => list.style.display === 'none');
+  assert.equal(data.at, 3, 'a row jumps to its file');
+  assert.equal(list.style.display, 'none', 'and puts the list away');
+}));
 
 // The registry read is memoized per repo@ref for the swiper's sake (stepping
 // eight branches of one repo asked the same question eight times, and on a
@@ -485,42 +443,24 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   assert.ok(!sectionsSmall.has(R('overflow-y-auto')),
     'and it divides the box rather than scrolling it');
 
-  // TWO PANES AGAIN, since 2026-09-07, and the reason is different from the
-  // first time. The box scrolled as one while the guide was a fixed clip; now
-  // the guide is a pane that scrolls itself, so the reader asked for the two
-  // panels to divide the screen and for the guide to take the slack. The list
-  // gets its cap back with the pane it defends against.
-  const top = root.querySelector('[data-top-section]');
-  assert.ok(classes(top).has(R('flex-1')) && classes(top).has(R('min-h-0')),
-    'the top section takes half: ' + top.className);
-  const code = root.querySelector('[data-code-section]');
-  assert.ok(code, 'code section found');
-
-  // 50/50 SPLIT: the top section (reviewable files) and bottom section (code files)
-  // each take basis-1/2 and max-h-[50%].
-  assert.match(top.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(top.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
-  assert.match(code.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(code.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  // TWO PANES: the guide over the swiper, dividing the box half and half.
+  for (const sel of ['[data-guide-section]', '[data-swipe-section]']) {
+    const el = root.querySelector(sel);
+    assert.ok(el, sel + ' found');
+    assert.match(el.getAttribute(':class') || '', /roomy:basis-1\/2/, sel + ' takes half');
+    assert.match(el.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+    assert.match(el.getAttribute(':class') || '', /roomy:min-h-0/);
+  }
 });
 
-test('with no reviewable files the bottom half renders a placeholder, preserving the 50/50 split', async () => {
+test('with no changed files the swiper says so', async () => {
   const keep = data.brief.files;
-  data.brief = { ...data.brief, files: keep.filter(f => !/\.md$/.test(f.path)) };
+  data.brief = { ...data.brief, files: [] };
   await tick(4);
   try {
-    assert.equal(data.reviewableFiles.length, 0);
-    const placeholder = window.document.querySelector('[data-rev-placeholder]');
-    assert.ok(placeholder, 'placeholder is in the DOM');
+    const placeholder = window.document.querySelector('[data-swipe-placeholder]');
     assert.notEqual(placeholder.style.display, 'none', 'placeholder is visible');
-    assert.match(placeholder.textContent, /no reviewable docs/);
-
-    data.filesLoading = true;
-    await tick(4);
-    assert.match(placeholder.textContent, /reading changed files/);
-    data.filesLoading = false;
-    await tick(4);
-    assert.match(placeholder.textContent, /no reviewable docs/);
+    assert.match(placeholder.textContent, /no files changed/);
   } finally { data.brief = { ...data.brief, files: keep }; await tick(4); }
 });
 
