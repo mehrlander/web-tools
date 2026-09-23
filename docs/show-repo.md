@@ -569,9 +569,15 @@ the installation root and a state read from the workspace's observations ledger
 (`lib/kits/installation.js`): `local state unknown`, `reported installed`,
 `verified from supplied copy`, `GitHub changed since`, `local copy differs`, or
 `repository only`. Areas the manifest names as local-only or unresolved are
-listed without repository files. For the selected file: Compare copy (the flow
-above, with the page-wide paste and drop aimed at that file), Copy GitHub text,
-Download, Files, Stage, and **Record installed**, which opens a confirm showing
+listed without repository files. For the selected file: its source at the
+captured revision, read-only, under a header that carries Copy GitHub text,
+Download, and the comparison intakes (the clipboard through the app's Paste, a
+chosen file, or a drop on the column; the page-wide paste and drop still aim at
+that file, and a file that fails to decode is offered its encoding then), where
+a copy compared there stays on the Overview. When the work computer's known
+copy (a copy supplied in this browser, or the version the ledger last recorded)
+differs from GitHub now, the pane opens on Changes. Then: Open code workspace,
+and **Mark as installed**, which opens a confirm showing
 the exact ledger row and commits it on the branch being browsed only when the
 reader taps "I placed this on the work computer". A browser-local check can be
 promoted to a `verified` or `differs` row the same way. A comparison, copy, or

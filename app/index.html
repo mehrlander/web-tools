@@ -6645,7 +6645,9 @@ function app(){ return {
       }
       const result = await window.FileCorrespondence.open({ target, text, name, source });
       this.announceCheck(result);
-      this.goStage();
+      // The Overview shows the comparison in its own Source pane (Changes), so
+      // a copy compared there stays there; everywhere else it opens the Stage.
+      if (!(this.view === 'project' && this.projectTab === 'overview' && this.project?.installation)) this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
     } catch (e) { this.correspondenceFailure(e); }
