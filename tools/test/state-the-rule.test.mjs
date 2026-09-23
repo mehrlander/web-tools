@@ -1,6 +1,6 @@
-// skills/state-the-rule/ — the documentation-reduction tooling. Every figure it
+// scripts/annotate/ — the documentation-reduction tooling. Every figure it
 // has produced was read by hand, and each of the rules pinned here was learned
-// by getting it wrong on a real document (skills/state-the-rule/LOG.md). They
+// by getting it wrong on a real document (scripts/annotate/LOG.md). They
 // are the branchy part: a wrong answer here does not throw, it quietly passes a
 // cut that lost a rule, or fires on a correct one until nobody reads it.
 //
@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { repoRoot } from './bootstrap.mjs';
 
-const SKILL = join(repoRoot, 'skills', 'state-the-rule');
+const SKILL = join(repoRoot, 'scripts', 'annotate');
 
 // One rule kept, one reason dropped, one pointer in each. Small enough to hold
 // in the head, which is the point: every assertion below names a line of it.
@@ -747,7 +747,7 @@ test('applying the projection retires its insertions, because the digest stops m
 // heading straight after a fence) are not ones a fixture author thinks to write.
 
 const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md',
-                'skills/state-the-rule/SKILL.md', 'CLAUDE.md', 'docs/registries.md',
+                'docs/annotation.md', 'CLAUDE.md', 'docs/registries.md',
                 'docs/showing.md', 'docs/stage.md', 'docs/loader.md'];
 
 // PYTHON INDEXES BY CODE POINT AND JAVASCRIPT BY UTF-16 CODE UNIT, so one astral

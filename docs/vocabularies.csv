@@ -3,6 +3,7 @@ app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate
 app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view."
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.
 harness,layer,scripts,,"standalone and portable: argv-driven, runs from any repo root, travels via the hub"
+harness,layer,scripts/annotate,,"standalone scripts that segment, patch, project, and check a standoff annotation; they import each other, so they share a folder"
 harness,layer,tools,,repo-root harness files that fit no folder below
 harness,layer,tools/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
 harness,layer,tools/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"

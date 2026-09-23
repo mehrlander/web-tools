@@ -887,8 +887,7 @@ to compare anything at all. The corrected move is a boundary rather than a new
 format: each language stays native inside itself and converts where a number
 crosses, so the 37 places the page indexes the document are untouched and a
 document with no astral character maps to itself. →
-[`state-the-rule/SKILL.md`](../skills/state-the-rule/SKILL.md), "Offsets are
-code points"; `Standoff.adopt`/`emit`/`emitPatch` carry it and
+[`lib/kits/standoff.js`](../lib/kits/standoff.js): `Standoff.adopt`/`emit`/`emitPatch` carry it and
 `tools/test/standoff-kit.test.mjs` holds the round trip.
 | `line-clamp-is-not-a-height` | undated | the utility collided with a display four times in one branch, then failed only on the phone |
 | `safari-button-sizes-from-unclipped-content` | undated | the child clipped, the fade landed, and the button stayed tall |
