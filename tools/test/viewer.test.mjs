@@ -197,19 +197,22 @@ test('markdown offers a separate full-width History reading', () => {
   assert.match(doc.body.firstElementChild.className, /overflow-auto/);
 });
 
-test('History hands the kit the stripped Markdown and the collection, and nothing else', async () => {
+test('History hands the kit the stripped Markdown and a git source for the file\'s own repo, ref, and path', async () => {
   const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
   const root = window.document.createElement('div');
   root.innerHTML = mod.render({});
   window.document.body.append(root);
   const source = '---\ntitle: Pinned bytes\n---\n# Passage history\n\nCurrent wording.\n';
-  let captured = null;
+  const captured = [];
   const previous = window.mdHistory;
+  const previousGh = window.gh;
+  window.gh = { req: async () => [] };
   window.mdHistory = {
-    index: async () => ({ id: 'history-index' }),
-    render: async (host, markdown, index, opts) => {
-      captured = { host, markdown, index, opts };
-      return { count: 1, ambiguous: 0 };
+    LIMIT: 20,
+    gitSource: (gh, repo) => ({ gh, repo }),
+    render: async (host, markdown, opts) => {
+      captured.push({ host, markdown, opts });
+      return { count: 0, walked: { truncated: captured.length === 1, commits: new Array(opts.limit) } };
     },
   };
   try {
@@ -217,14 +220,24 @@ test('History hands the kit the stripped Markdown and the collection, and nothin
       ext: 'md', content: source, repo: 'mehrlander/web-tools',
       name: 'docs/history.md', ref: 'moving-main',
     }, { root, alive: () => true });
+    assert.equal(captured.length, 1);
+    assert.equal(captured[0].markdown, '# Passage history\n\nCurrent wording.\n');
+    assert.equal(captured[0].opts.source.repo, 'mehrlander/web-tools', 'the source addresses the file\'s repo');
+    assert.equal(captured[0].opts.source.gh, window.gh, 'through the page\'s client');
+    assert.equal(captured[0].opts.path, 'docs/history.md');
+    assert.equal(captured[0].opts.ref, 'moving-main');
+    assert.equal(captured[0].opts.limit, 20);
+    assert.match(root.textContent, /No paragraph of this file changed in the last 20 commits/);
+    await captured[0].opts.onMore(40);
+    assert.equal(captured[1].opts.limit, 40, 'more re-walks the same file with a wider window');
+    assert.match(root.textContent, /stands as it was first written/);
   } finally {
     if (previous === undefined) delete window.mdHistory;
     else window.mdHistory = previous;
+    if (previousGh === undefined) delete window.gh;
+    else window.gh = previousGh;
     root.remove();
   }
-  assert.equal(captured.markdown, '# Passage history\n\nCurrent wording.\n');
-  assert.deepEqual(captured.index, { id: 'history-index' });
-  assert.equal(captured.opts, undefined, 'the join is by text; no repo, ref, or blob rides along');
 });
 
 // ── the pdf mode ────────────────────────────────────────────────────────────
