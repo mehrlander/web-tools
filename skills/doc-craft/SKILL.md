@@ -5,12 +5,18 @@ description: Revise living engineering documentation to state current behavior, 
 
 # Doc Craft
 
+Documentation guides a living system. When successful, it delivers insight where needed and is unheard otherwise.
+
+Editing documentation changes more than the text. It changes what future participants are likely to notice and do, what they must hold in mind, and what someone must keep consistent later. Those effects extend beyond the edited document. A passage can become clearer while the system becomes harder to understand and govern.
+
+Improvement is deceptively challenging. Each change should read as though the document had been conceived with it, but minimize churn. Revisions must obsessively focus on keeping the whole recognizable, navigable, and maintainable.
+
 ## Classification
 
 Before revising, identify the document type:
 
 - **Living**: Describe current system behavior, interfaces, and operating instructions.
-- **Record**: Preserve point-in-time accounts. Add dated corrections or status notes instead of rewriting historical claims.
+- **Record**: Preserve point-in-time accounts. When a claim proves wrong, say so in an ordinary sentence that carries the date and links the successor; do not rewrite the original claim.
 - **Generated**: Edit the upstream source or generator, then regenerate.
 
 ## Editing Mechanics
@@ -21,6 +27,7 @@ Before revising, identify the document type:
 
 ## Living Documentation Rules
 
+- **Earn each sentence**: Name the decision a sentence changes for the next assistant. If there is none, cut it.
 - **State current reality**: Lead with what exists, what it does, and what the reader must do. Omit debugging narratives, discovery steps, and authoring commentary.
 - **Retain actionable rationale**: Include reasons only when they define a boundary, exception, condition, consequence, or trigger for reconsideration.
 - **Format non-obvious restrictions**: State the trigger condition, failure symptom, and required mitigation.
@@ -33,3 +40,5 @@ Before revising, identify the document type:
 1. Produce the revised document or patch in the requested form.
 2. Report only relocated content and unresolved ambiguities or unverified claims. Omit the report if neither exists.
 3. Do not narrate routine edits.
+
+To separate the binding rules of an executed document (a `CLAUDE.md`, a `SKILL.md`) from the explanation around them, use [state-the-rule](../state-the-rule/SKILL.md), which checks the cut mechanically.
