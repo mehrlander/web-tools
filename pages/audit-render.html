@@ -8,7 +8,7 @@
 <!--
   audit-render.html — a document coloured by what each of its units IS.
 
-  The audit pass (skills/state-the-rule, doc-audit's fourth question) puts one
+  The audit pass (scripts/annotate, doc-audit's fourth question) puts one
   label on every unit of a document. This page is where you look at the result:
   the whole document, every unit tinted, a legend that filters, and the density
   figure that says whether the document is worth a rewrite at all.
@@ -64,7 +64,7 @@ window.__audit = {
   "kind": "standoff/1",
   "question": "is this unit binding?",
   "self": {
-   "path": "skills/state-the-rule/runs/2026-08-29-conventions/standoff.json",
+   "path": "scripts/annotate/runs/2026-08-29-conventions/standoff.json",
    "repo": "mehrlander/web-tools"
   },
   "target": {
@@ -483,6 +483,10 @@ window.__audit = {
   const HUE = { WHAT: '16,185,129', HOW: '13,148,136', WHY: '245,158,11',
                 PROV: '219,39,119', EVID: '192,38,211', NAV: '79,70,229',
                 META: '148,163,184' };
+  // ANY VOCABULARY. A label this table does not know takes the color its
+  // vocabulary entry declares, or the next of these in turn: HUE reordered so
+  // neighbours differ in hue, and never a verdict's color.
+  const PALETTE = ['WHAT', 'WHY', 'NAV', 'PROV', 'HOW', 'EVID', 'META'].map(k => HUE[k]);
   // The second axis, and deliberately NOT a second run of the label palette.
   // That one is categorical, where no hue outranks another; this one is a
   // judgment, so KEEP is the quiet default and the lens works by making the
@@ -746,6 +750,9 @@ window.__audit = {
       // native; emit() puts it back. Identity on a document with no astral
       // character, which is every one annotated so far.
       this.a.standoff = Standoff.adopt(this.a.standoff, this.a.text);
+      (this.a.standoff.vocabulary || []).forEach((v, i) => {
+        if (!RGB[v.label]) RGB[v.label] = HUE[v.label] = v.color || PALETTE[i % PALETTE.length];
+      });
       this.sections = mdDoc.split(this.a.text);
       this.base = JSON.parse(JSON.stringify(this.a.standoff));
       this.$nextTick(() => { this.bindDoc(); this.paint(); this.syncReport(); window.__auditSettled?.(); });
@@ -858,6 +865,9 @@ window.__audit = {
       return this.units.filter(u => this.side(u.label) === side)
                        .reduce((n, u) => n + u.words, 0);
     },
+    // The binding vocabulary's headline figure. A vocabulary with no
+    // `explanation` side has no such figure, so the header says nothing.
+    get explains() { return (this.so.vocabulary || []).some(v => v.side === 'explanation'); },
     pctOn(side) { return Math.round(100 * this.wordsOn(side) / (this.words || 1)); },
     get words() { return this.units.reduce((n, u) => n + u.words, 0); },
     get shareOf() {
@@ -964,7 +974,7 @@ window.__audit = {
 
     // EDITING. Every rule about a standoff (the invariants, the four
     // operations, the serialization, where a save may land) lives in
-    // lib/kits/standoff.js, and skills/state-the-rule/ops.py is the same rules
+    // lib/kits/standoff.js, and scripts/annotate/ops.py is the same rules
     // in Python. This page is the view: it decides what to offer and where to
     // put it, and delegates what an operation MEANS.
     patch: [], at: 0, base: null, menu: null, boundaries: [], splitNote: '', opErr: '',
@@ -1878,7 +1888,8 @@ window.__audit = {
           const w = inSec.reduce((n, u) => n + u.words, 0);
           const exp = inSec.filter(u => this.side(u.label) === 'explanation')
                            .reduce((n, u) => n + u.words, 0);
-          head.textContent = `${s.title} · ${inSec.length} units · ${w ? Math.round(100 * exp / w) : 0}% explanation`;
+          head.textContent = `${s.title} · ${inSec.length} units` +
+            (this.explains ? ` · ${w ? Math.round(100 * exp / w) : 0}% explanation` : '');
           const body = document.createElement('div');
           body.className = 'px-4 pb-6 overflow-y-auto';
           slide.append(head, body);
@@ -1905,7 +1916,7 @@ window.__audit = {
         <span class="text-xs opacity-60" x-text="so.question"></span>
         <span class="text-xs font-mono opacity-70"
               x-text="`${units.length} units · ${words.toLocaleString()} words · ` + (lens === 'verdict'
-                        ? `${decided} decided` : `${pctOn('explanation')}% explanation`)"></span>
+                        ? `${decided} decided` : explains ? `${pctOn('explanation')}% explanation` : `${vocab.length} labels`)"></span>
         <a class="text-xs link link-primary" :href="so.target.url" x-show="so.target.url">source</a>
         <div id="audit-faults" class="text-xs font-mono w-full whitespace-pre-line leading-tight
                     text-base-content/50"
@@ -2187,7 +2198,7 @@ window.__audit = {
           <span class="text-error" x-show="saveErr" x-text="saveErr"></span>
         </div>
         <p class="text-xs opacity-60 mt-2 font-mono">
-          python3 skills/state-the-rule/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
+          python3 scripts/annotate/ops.py &lt;standoff.json&gt; patch.json &lt;doc.md&gt; --write
         </p>
         <form method="dialog" class="modal-backdrop"><button class="btn btn-sm btn-block mt-3">close</button></form>
       </div>

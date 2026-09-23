@@ -19,49 +19,30 @@ the artifact:
              Standoff view is the committed file, not a re-derivation of it.
 
     python3 tools/build/audit-payload.py standoff <doc.md> <run-dir> \
-        [--addr owner/repo@ref:path] [--self owner/repo] [--question <text>] [--reset]
+        [--addr owner/repo@ref:path] [--self owner/repo] [--question <text>] [--vocab <labels.tsv>] [--reset]
     python3 tools/build/audit-payload.py payload <doc.md> <run-dir> \
         [--inject <page.html>]
 """
 import sys, json, csv, re, hashlib, pathlib
 
-# state-the-rule's labels. A different question ships a different list, and
-# check.py never reads the label column, so the vocabulary is data.
+# THE LABELS ARE DATA. A vocabulary is a TSV of label / side / gloss, with an
+# optional color column (an "r,g,b" string the page paints with). The default
+# is doc-craft's binding question; --vocab names any other, and --question says
+# what that vocabulary asks. check.py never reads the label column, so nothing
+# downstream branches on which vocabulary a run used.
 #
 # TWO AXES, BOTH DECLARED. `vocabulary` says what a unit IS; `verdicts` says
-# what was decided about it. They are orthogonal: WHY is a kind of content and
-# DROP is a disposition, and a unit carries one of each. Carrying only the
-# label was right while the second axis would have arrived CLOSED, hardcoded
-# into an artifact whose whole generality is that its vocabulary is declared.
-# Declaring it beside the first answers that objection on its own terms.
-#
-# labels.tsv SEEDS both and owns neither, exactly as it already did for the
-# label: the pass writes it, the builder copies it in, and from then on the
-# standoff is the live one, because a relabel or a reverdict in the page lands
-# there. check.py still reads labels.tsv, so a pass that ends in the page
-# re-exports it rather than the two drifting.
-#
-# WHY is one label, not two. It was split into an operative reason and a
-# motivating one, and the split asked a reader to decide, per clause, whether a
-# reason changes how the rule applies at a boundary. That is the same judgement
-# the rewrite step already makes when it lifts a criterion into the
-# declaration, so the second label was paying twice for one call. One why, and
-# where it is blunt it is blunt. The criterion guidance survives in the skill,
-# which is where the lifting happens.
-#
-# CUT WAS A VERDICT WEARING A LABEL'S CLOTHES. It said the text should not be
-# here, which is a disposition, and it sat on the axis that says what a unit
-# is. It is DROP now, on the axis that owns removal, and the label axis is a
-# reading again.
-VOCAB = [
-    ("WHAT", "declaration", "a rule, a fact of the system, a value it may hold"),
-    ("HOW",  "declaration", "syntax, a procedure, an invocation"),
-    ("WHY",  "hinge",       "the reason behind the rule"),
-    ("PROV", "explanation", "when it changed, what it replaced, what failed"),
-    ("EVID", "explanation", "a measurement, a probe, an observation"),
-    ("NAV",  "apparatus",   "a pointer to the document or gate that owns something"),
-    ("META", "apparatus",   "a statement about this document"),
-]
+# what was decided about it. They are orthogonal, and a unit carries one of
+# each. labels.tsv seeds both and owns neither: the pass writes it, the builder
+# copies it in, and from then on the standoff is the live one, because a
+# relabel or a reverdict in the page lands there.
+BINDING = pathlib.Path(__file__).resolve().parents[2] / "skills/doc-craft/binding/vocab.tsv"
+
+def load_vocab(path):
+    rows = csv.DictReader(open(path, encoding="utf-8"), delimiter="\t")
+    return [{k: v for k, v in (("label", r["label"]), ("side", r.get("side") or ""),
+                                ("gloss", r.get("gloss") or ""), ("color", r.get("color")))
+             if v is not None and (k != "color" or v)} for r in rows]
 
 # The dispositions, in the order a pass walks them: leave it, say it better,
 # it belongs elsewhere, it should not be here. DROP is last and is the only
@@ -84,7 +65,7 @@ def parse_addr(spec):
                 "url": f"https://github.com/{repo}/blob/{ref}/{path}"}
     return out
 
-def build_standoff(doc, run, addr, self_repo, question):
+def build_standoff(doc, run, addr, self_repo, question, vocab):
     raw = pathlib.Path(doc).read_bytes()
     ann = {r["uid"]: r for r in csv.DictReader(open(f"{run}/labels.tsv"), delimiter="\t")}
     units = []
@@ -107,7 +88,7 @@ def build_standoff(doc, run, addr, self_repo, question):
             "question": question,
             "self": me,
             "target": addr | {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()},
-            "vocabulary": [{"label": l, "side": s, "gloss": g} for l, s, g in VOCAB],
+            "vocabulary": load_vocab(vocab),
             "verdicts": [{"verdict": v, "gloss": g} for v, g in VERDICTS],
             "units": units}
 
@@ -130,13 +111,14 @@ if __name__ == "__main__":
             i = a.index(flag); v = a[i + 1]; del a[i:i + 2]; return v
         return default
     addr, question, inject = opt("--addr"), opt("--question", "is this unit binding?"), opt("--inject")
+    vocab = opt("--vocab", BINDING)
     self_repo = opt("--self")
     cmd, doc, run = a[0], a[1], a[2].rstrip("/")
 
     if cmd == "standoff":
         out = pathlib.Path(f"{run}/standoff.json")
         # A REBUILD IS A RESET, NOT A REFRESH. units.jsonl and labels.tsv record
-        # steps 1 and 2; once a patch has moved the grain (skills/state-the-rule/
+        # steps 1 and 2; once a patch has moved the grain (scripts/annotate/
         # ops.py), the standoff carries units those inputs never held, and `from`
         # is the tell. Rebuilding would silently undo that work, so it refuses.
         #
@@ -156,7 +138,7 @@ if __name__ == "__main__":
             if lost and "--reset" not in sys.argv:
                 sys.exit(f"{out} carries {' and '.join(lost)} that units.jsonl and labels.tsv "
                          f"do not hold.\nRebuilding resets the grain. Pass --reset to mean it.")
-        s = build_standoff(doc, run, parse_addr(addr), self_repo, question)
+        s = build_standoff(doc, run, parse_addr(addr), self_repo, question, vocab)
         out.write_text(json.dumps(s, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         print(f"wrote {out}: {len(s['units'])} units over {s['target']['bytes']} bytes "
               f"(sha256 {s['target']['sha256'][:12]})")

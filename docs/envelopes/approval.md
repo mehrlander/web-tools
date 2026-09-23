@@ -2,7 +2,7 @@
 
 An `approval/1` surface asks for a **decision**, and it is the only envelope here whose reader is expected to refuse. Every other one carries content to a reader and ends there. [`inquiry/1`](surface.md) added a return leg, so answers come back. This adds the two things a decision needs that an answer does not: a verdict for the whole set, and a reason the author owed **before** asking rather than in response to being challenged.
 
-It exists because of a failure that recurred. A session changed a governing document, believed it had permission, and was right about the change and wrong about the permission. No gate could catch that, because "did the user approve this" is a fact about a conversation and no hook reads a conversation. This envelope moves the fact into the repository: you decide in a page, the page commits the verdict through your own token, and the commit gate resolves a citation to that file. A claim nobody could check becomes a file something can.
+It exists so a proposed edit arrives in a stylized form for efficient review and approval.
 
 **Authoritative artifact:** [`schemas/profiles/approval-v1.schema.json`](schemas/profiles/approval-v1.schema.json). A document claiming this profile validates against it **and** against the core [surface v2](schemas/surface-v2.schema.json) schema.
 
@@ -17,8 +17,6 @@ An approval is a request, a verdict, and a citation, and keeping them separate i
 | **citation** | the session | `Approved: <id>` in the commit message | the decision this commit rests on |
 
 The gate reads the citation, resolves it to the verdict, and checks three things: the verdict exists, its decision is an approval, and the paths this commit touches are among the ones it names. Nothing about the request is trusted at gate time; the request is what you read before deciding, not what authorizes anything.
-
-**This is not proof.** A session holds a write token too, so it could commit a verdict it was never given. What changes is the shape of the lie. A fabricated verdict is a separate commit with its own timestamp sitting beside the one it authorizes, which is visible in one `git log`; a sentence typed into a trailer is not checkable at all. Checkable by construction is the claim, not unforgeable.
 
 ## The two kinds
 

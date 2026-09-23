@@ -161,7 +161,7 @@ present. `amount` was already at its floor and comes back untouched.
   material out to its own linked pieces, and proves losslessness with a
   crosswalk. Reach for that one when what the document contains is in question.
   Reach here when only the phrasing is.
-- Not `state-the-rule`, which separates binding declarations from explanation in
+- Not doc-craft's annotated view, which separates binding declarations from explanation in
   a document an agent loads and executes.
 - Not `reduction-panel`, which fans readers out over a document's sections,
   collects competing shorter versions and a cut list, and puts a judge over the
