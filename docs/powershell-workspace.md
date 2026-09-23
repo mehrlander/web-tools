@@ -129,7 +129,8 @@ confirmed action; recognizing a signature does not replace the browser draft.
 
 Copy, Download, and publication do not record installation. **Installation**
 returns to the project's Overview and selected file. That view shows the
-declared destination, pending adoption limits, and dated observations. Its
+declared destination, pending adoption limits, dated observations, and the
+file's source, read-only. Its
 confirmation records the exact row. When the file has a pending-adoption entry,
 the first observation and removal of that entry land in one Git commit. A moved
 branch fails without replaying stale ledger content over the new tip.
