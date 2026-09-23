@@ -113,14 +113,17 @@ window.__unread = { id: 'nosuch', day: '2026-08-05', repo: STORE, framed: true,
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
+const { default: collapse } = await import('@alpinejs/collapse/dist/module.esm.js');
 window.Alpine = Alpine;
+Alpine.plugin(collapse);
 // pathOf lives in the sessions cache kit, and the component reads it there
 // rather than deriving a second copy. The Sessions pane always has it loaded;
 // a cold pages/session.html does not, which is the case the listing covers.
 for (const k of ['lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
-for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/session-brief.js']) {
+for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/file-review.js',
+                 'lib/alpineComponents/session-brief.js']) {
   new window.Function(readFileSync(path.join(repoRoot, p), 'utf8'))();
 }
 Alpine.start();
@@ -753,4 +756,159 @@ test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async ()
   data.destroy();
   assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
 });
+
+test('branchChips extracts active branch chips with branch view links', async () => {
+  window.__branchChipsSession = {
+    repo: STORE,
+    record: {
+      short: 'bc1',
+      schema: 4,
+      repos: [
+        { name: 'web-tools', branch: 'feat/session-file-swiper' },
+        { name: 'data-tools', branch: 'main' },
+      ],
+      files: {
+        'web-tools/lib/a.js': { read: 1 },
+      },
+    },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__branchChipsSession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+
+  const data = Alpine.$data(el);
+  const chips = data.branchChips;
+  assert.equal(chips.length, 2);
+  assert.equal(chips[0].repo, 'web-tools');
+  assert.equal(chips[0].branch, 'feat/session-file-swiper');
+  assert.match(chips[0].url, /branch\.html#gh=web-tools@feat%2Fsession-file-swiper/);
+  assert.equal(chips[1].repo, 'data-tools');
+  assert.equal(chips[1].branch, 'main');
+});
+
+test('files tab renders swiper with pager, header, activity annotations, and jump dropdown', async () => {
+  window.__swiperSession = {
+    repo: STORE,
+    pane: 'files',
+    record: {
+      short: 'sw1',
+      schema: 4,
+      repos: [{ name: 'web-tools', branch: 'feat/swiper' }],
+      files: {
+        'web-tools/lib/first.js': { edit: 6, read: 1 },
+        'web-tools/lib/second.js': { write: 2 },
+        'web-tools/lib/third.js': { read: 1 },
+      },
+    },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__swiperSession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(6);
+
+  const data = Alpine.$data(el);
+  assert.equal(data.pane, 'files');
+  assert.equal(data.fileRows.length, 3);
+  assert.equal(data.at, 0);
+
+  // Swiper header and pager
+  const pager = el.querySelector('[data-pager-label]');
+  assert.ok(pager, 'pager element exists');
+  assert.equal(pager.textContent.trim(), '1/3');
+
+  // Slide name
+  const slideName = el.querySelector('[data-slide-name]');
+  assert.ok(slideName, 'slide name container exists');
+  assert.match(slideName.textContent, /first\.js/);
+
+  // File activity annotations in slide header
+  const stats = el.querySelector('[data-change-stats]');
+  assert.ok(stats, 'activity stats exists');
+  assert.match(stats.textContent, /e6/);
+
+  // Dropdown file list toggle
+  const listBtn = el.querySelector('[data-file-list-btn]');
+  assert.ok(listBtn, 'file list button exists');
+  assert.equal(data.listOpen, false);
+  listBtn.click();
+  await tick(2);
+  assert.equal(data.listOpen, true);
+
+  // Step to next slide
+  data.go(1);
+  await tick(4);
+  assert.equal(data.at, 1);
+  assert.equal(pager.textContent.trim(), '2/3');
+  assert.match(slideName.textContent, /second\.js/);
+});
+
+test('files tab mounts cards lazily near current slide only', async () => {
+  window.__lazySession = {
+    repo: STORE,
+    pane: 'files',
+    record: {
+      short: 'lz1',
+      schema: 4,
+      repos: [{ name: 'web-tools', branch: 'feat/lazy' }],
+      files: {
+        'web-tools/lib/f0.js': { edit: 1 },
+        'web-tools/lib/f1.js': { edit: 1 },
+        'web-tools/lib/f2.js': { edit: 1 },
+        'web-tools/lib/f3.js': { edit: 1 },
+        'web-tools/lib/f4.js': { edit: 1 },
+      },
+    },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__lazySession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(6);
+
+  const data = Alpine.$data(el);
+  assert.equal(data.at, 0);
+  assert.equal(data.mounted['web-tools/lib/f0.js'], true, 'slide 0 is mounted');
+  assert.equal(data.mounted['web-tools/lib/f1.js'], true, 'slide 1 (neighbour) is mounted');
+  assert.equal(data.mounted['web-tools/lib/f3.js'], undefined, 'slide 3 is not mounted yet');
+  assert.equal(data.mounted['web-tools/lib/f4.js'], undefined, 'slide 4 is not mounted yet');
+
+  // Jump to slide 3
+  data.go(3);
+  await tick(4);
+  assert.equal(data.at, 3);
+  assert.equal(data.mounted['web-tools/lib/f2.js'], true, 'slide 2 (neighbour) is mounted');
+  assert.equal(data.mounted['web-tools/lib/f3.js'], true, 'slide 3 is mounted');
+  assert.equal(data.mounted['web-tools/lib/f4.js'], true, 'slide 4 (neighbour) is mounted');
+});
+
+test('file option initializes swiper at the matching file slide', async () => {
+  window.__targetFileSession = {
+    repo: STORE,
+    file: 'web-tools/lib/target.js',
+    record: {
+      short: 'tf1',
+      schema: 4,
+      repos: [{ name: 'web-tools', branch: 'feat/target' }],
+      files: {
+        'web-tools/lib/a.js': { read: 1 },
+        'web-tools/lib/target.js': { read: 2 },
+        'web-tools/lib/z.js': { read: 1 },
+      },
+    },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__targetFileSession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(6);
+
+  const data = Alpine.$data(el);
+  assert.equal(data.pane, 'files', 'file option defaults pane to files');
+  assert.equal(data.at, 0, 'highest weight file target.js is at index 0');
+  assert.equal(data.fileRows[data.at].path, 'web-tools/lib/target.js');
+});
+
 
