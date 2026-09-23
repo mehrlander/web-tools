@@ -117,11 +117,11 @@ test("the route says in-document, so the drawer offers no deployed twin", () => 
 
 test('moving to the next document moves the subject', async () => {
   const d = data();
-  d.goRev(1);
+  d.go(1);
   await tick(4);
-  assert.equal(d.revAt, 1);
+  assert.equal(d.at, 1);
   assert.equal(subject().path, 'docs/c.md');
-  d.goRev(0);
+  d.go(0);
   await tick(4);
   assert.equal(subject().path, 'docs/b.md', 'and back');
 });
@@ -135,15 +135,15 @@ test('a deck over the page owns the subject, so the strip underneath stays quiet
   const before = subject().path;
   window.swipeDeck = { top: () => ({ id: 'a deck' }) };
   try {
-    d.goRev(1);
+    d.go(1);
     await tick(4);
-    assert.equal(d.revAt, 1, 'the strip still moved');
+    assert.equal(d.at, 1, 'the strip still moved');
     assert.equal(subject().path, before, 'the subject did not');
   } finally {
     delete window.swipeDeck;
   }
   // And it resumes once the deck is gone, rather than staying stuck.
-  d.goRev(0);
+  d.go(0);
   await tick(4);
   assert.equal(subject().path, 'docs/b.md');
 });
@@ -161,7 +161,7 @@ test('framed, it reports upward instead of announcing', async () => {
   opts.onSubject = (s) => heard.push(s);
   d.framed = true;
   try {
-    d.goRev(1);
+    d.go(1);
     await tick(4);
     assert.equal(subject().path, before, 'the channel was not touched');
     const last = heard[heard.length - 1];
@@ -172,7 +172,7 @@ test('framed, it reports upward instead of announcing', async () => {
   } finally {
     delete opts.onSubject;
     d.framed = false;
-    d.goRev(0);
+    d.go(0);
     await tick(4);
   }
 });

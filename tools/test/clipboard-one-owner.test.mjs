@@ -46,7 +46,7 @@ test('every kit that copies delegates to io.copy and fetches it at load time', (
   // session-export.js was here and is not: it stopped copying on 2026-09-06,
   // so the delegate and the load-time fetch went with the button. A kit that
   // does not copy is not exempt from this rule, it is outside it.
-  const consumers = ['chat-render.js', 'vanilla-demo.js', 'md-doc.js', 'row-menu.js'];
+  const consumers = ['chat-render.js', 'vanilla-demo.js', 'md-doc.js', 'row-menu.js', 'json-explorer.js'];
   for (const name of consumers) {
     const src = readFileSync(join(KITS, name), 'utf8');
     assert.match(src, /window\.io\.copy\(text\)/, name + ' delegates the write');
