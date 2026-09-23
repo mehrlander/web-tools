@@ -1,8 +1,7 @@
-// json-lens.test.mjs — pages/drop/json-lens.html, the JSON tree-and-lens
-// sketch. What it pins: loaded JSON reaches the page as text and never as
-// markup (the Gemini original put keys and values through innerHTML), the
-// lens picks the right reading for a value, the filter reaches into collapsed
-// branches, and paths and TypeScript come out valid for awkward keys.
+// json-lens.test.mjs: pages/drop/json-lens.html. Pins four things: loaded
+// JSON reaches the page as text, not markup; the lens reads each value correctly;
+// the filter reaches collapsed branches; JSONPath and TypeScript stay valid for
+// awkward keys.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,8 +12,7 @@ import { makeWindow, startAlpine, repoRoot } from './bootstrap.mjs';
 const html = readFileSync(path.join(repoRoot, 'pages/drop/json-lens.html'), 'utf8');
 const { window } = makeWindow({ html });
 const doc = window.document;
-// jsdom has no layout and a <dialog> without showModal/close; the page only
-// needs them to exist.
+// jsdom lacks scrollIntoView and dialog methods; the page only calls them.
 window.Element.prototype.scrollIntoView ??= () => {};
 for (const d of doc.querySelectorAll('dialog')) {
   d.showModal ??= () => { d.open = true; };

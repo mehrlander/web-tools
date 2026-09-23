@@ -10,12 +10,10 @@
 <script defer src="https://unpkg.com/alpinejs"></script>
 </head>
 <!--
-  JSON Lens: a structural JSON tree beside a "lens" that reads the selected
-  value by what it looks like (image, colour, timestamp, URL, record set).
-  Started as a Gemini sketch (PR #764); rebuilt on Alpine so every value from
-  loaded JSON reaches the page through x-text or a bound attribute, never as
-  markup. The maintained explorer is the JSON Explorer kit; this page is
-  the idea, kept to be harvested from.
+  JSON Lens: a JSON tree beside a lens that reads the selected value by its
+  shape. A Gemini sketch (PR #764) rebuilt on Alpine, so loaded JSON reaches
+  the page only as text or bound attributes. The JSON Explorer kit is the
+  maintained explorer; this page keeps ideas for it.
 -->
 <body class="bg-base-100 text-base-content" x-data="lens" x-effect="document.documentElement.dataset.theme = theme"
       @keydown.window="key($event)" @dragover.window.prevent @drop.window.prevent="dropFile($event)">
@@ -395,9 +393,8 @@ const RE = {
   ident: /^[A-Za-z_$][\w$]*$/,
 };
 
-// What a value looks like, which decides the lens. An image needs an http(s)
-// URL with an image extension or an image-ish key, or a data:image URI; the
-// href and src bindings therefore never see a javascript: URL.
+// Picks the lens. Only http(s) and data:image values become links or images,
+// so no href or src binding ever receives a javascript: URL.
 function kindOf(v, key) {
   if (typeof v !== 'string') return hasKids(v) ? 'tree' : 'text';
   if (v.startsWith('data:image/')) return 'image';
@@ -419,8 +416,8 @@ function preview(v) {
   return String(v);
 }
 
-// One TypeScript type from every sample of a position: array items merge, so
-// a key missing from some records comes out optional and mixed values union.
+// One TypeScript type for every value at a position. Array items merge: a key
+// missing from some items is optional, and mixed types form a union.
 function tsShape(vals, ind = '') {
   const parts = new Set(), arrs = [], objs = [];
   for (const v of vals) {
@@ -504,9 +501,8 @@ document.addEventListener('alpine:init', () => Alpine.data('lens', () => ({
     }));
   },
 
-  // The tree as a flat list of visible rows. While filtering, a row shows when
-  // it or anything under it matches, and collapse state is ignored so a match
-  // is never hidden inside a closed branch.
+  // Visible rows, flattened. The filter keeps a row when it or a descendant
+  // matches, and ignores collapse so no match hides in a closed branch.
   get rows() {
     const q = this.query.trim().toLowerCase(), out = [];
     const hit = (k, v) => String(k).toLowerCase().includes(q)
