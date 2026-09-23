@@ -98,6 +98,7 @@ test('a page with no errand stages its links and nothing is sent back', async ()
   assert.match(item.text, /\| One \| https:\/\/plain\.example\/1 \|/);
   assert.doesNotMatch(item.text, /javascript:/, 'only http(s) links are kept');
   assert.equal(data.courier.links, 1);
+  assert.equal(data.destSpec, 'mehrlander/web-tools-private@main:courier/captures', 'with no errand, the bench aims at the default capture folder');
   assert.equal(sent.length, before, 'no errand, so no script goes back');
 });
 

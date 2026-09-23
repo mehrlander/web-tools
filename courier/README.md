@@ -248,7 +248,7 @@ does what this folder's public design could not:
 | | `courier.js` (current) | `courier-stage.js` (trial) |
 | --- | --- | --- |
 | errand list and scripts | public, read without a token | the private list in the registry first, then this one |
-| a page with no errand | a directory of open errands | its links and selection, staged as `<host>-<date>-links.md` |
+| a page with no errand | a directory of open errands | its links and selection, staged as `<host>-<date>-links.md` and aimed at web-tools-private `courier/captures/` |
 | the result's route | `#gz=` link, capped at 24K | a message, with no URL cap |
 | the write | the Stage's send, on your tap | the same |
 
