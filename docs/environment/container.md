@@ -37,10 +37,10 @@ from the environment snapshot, carrying the timestamp of the day that snapshot
 was built: `settings.json`, `CLAUDE.md`, and `plugins/`, including
 `plugins/installed_plugins.json` and the plugin cache below it.
 
-`projects/` was listed as written fresh at boot too, and it is not.
-**Stale 2026-07-30 → the section below.** A session's own material persists
-across a restart of its VM, mtimes intact, which matters far more now that the
-session record captures subagent transcripts from that directory.
+`projects/` was listed as written fresh at boot too, and it is not. Measured
+2026-07-30: a session's own material persists across a restart of its VM,
+mtimes intact, which matters far more now that the session record captures
+subagent transcripts from that directory.
 
 So **account skills sync every container and account plugins do not.** A plugin is
 pinned at the commit it held when the snapshot was built. Nothing surfaces that
