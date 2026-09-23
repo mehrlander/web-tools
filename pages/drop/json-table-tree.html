@@ -28,7 +28,7 @@
         </span>
       </template>
       <button class="btn btn-ghost btn-xs btn-square shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-40"
-              @click.stop="menu()" aria-label="Copy path or value"><i class="ph ph-dots-three text-base"></i></button>
+              @click.stop="menu($el)" aria-label="Copy path or value"><i class="ph ph-dots-three text-base"></i></button>
     </div>
 
     <template x-if="open && !leaf">
@@ -114,27 +114,17 @@
     </template>
   </main>
 
-  <dialog class="modal modal-bottom sm:modal-middle" x-ref="menu">
-    <div class="modal-box">
-      <form method="dialog"><button class="btn btn-ghost btn-sm btn-square absolute right-2 top-2" aria-label="Close"><i class="ph ph-x"></i></button></form>
-      <div class="font-mono text-sm break-all pr-8" x-text="m.path"></div>
-      <div class="flex flex-col mt-3">
-        <button class="btn btn-ghost justify-between" @click="copy('path', m.path)">
-          <span class="flex items-center gap-2"><i class="ph ph-path"></i> Copy path</span>
-          <span class="text-xs text-success" x-show="done === 'path'">copied</span>
-        </button>
-        <button class="btn btn-ghost justify-between" @click="copy('json', m.json)">
-          <span class="flex items-center gap-2"><i class="ph ph-brackets-curly"></i> <span x-text="m.text === null ? 'Copy value as JSON' : 'Copy JSON'"></span></span>
-          <span class="text-xs" :class="done === 'json' ? 'text-success' : 'text-base-content/50'" x-text="done === 'json' ? 'copied' : m.size"></span>
-        </button>
-        <button class="btn btn-ghost justify-between" x-show="m.text !== null" @click="copy('text', m.text)">
-          <span class="flex items-center gap-2"><i class="ph ph-text-aa"></i> Copy text</span>
-          <span class="text-xs text-success" x-show="done === 'text'">copied</span>
-        </button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-  </dialog>
+  <ul class="menu menu-sm fixed z-50 w-64 bg-base-100 rounded-box shadow-lg border border-base-300 p-1"
+      x-show="menuOpen" x-transition.opacity.duration.100ms :style="`left:${mx}px;top:${my}px`"
+      @click.outside="menuOpen = false" @keydown.escape.window="menuOpen = false">
+    <li class="menu-title font-mono font-normal normal-case truncate" x-text="m.path"></li>
+    <li><a @click="copy('path', m.path)"><i class="ph ph-path"></i> Copy path
+      <span class="ml-auto text-xs text-success" x-show="done === 'path'">copied</span></a></li>
+    <li><a @click="copy('json', m.json)"><i class="ph ph-brackets-curly"></i> Copy JSON
+      <span class="ml-auto text-xs" :class="done === 'json' ? 'text-success' : 'text-base-content/50'" x-text="done === 'json' ? 'copied' : m.size"></span></a></li>
+    <li x-show="m.text !== null"><a @click="copy('text', m.text)"><i class="ph ph-text-aa"></i> Copy text
+      <span class="ml-auto text-xs text-success" x-show="done === 'text'">copied</span></a></li>
+  </ul>
 
   <dialog class="modal" x-ref="paste">
     <div class="modal-box w-11/12 max-w-5xl">
@@ -284,7 +274,7 @@ function node(v, k, path, depth = 0, startOpen = false, root = false) {
     },
     sortBy(key) { this.sortDir = this.sortK === key ? -this.sortDir : 1; this.sortK = key; },
     toggle() { if (!leaf) this.open = !this.open; },
-    menu() { window.openMenu(path, v); },
+    menu(el) { window.openMenu(path, v, el); },
   };
 }
 
@@ -348,15 +338,21 @@ function app() {
   return {
     rev: 0, source: SAMPLES.launches.label, url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson', busy: false, err: '',
     pasted: '', pasteErr: '',
-    m: { path: '', json: '', text: null, size: '' }, done: null,
+    m: { path: '', json: '', text: null, size: '' }, done: null, menuOpen: false, mx: 0, my: 0,
     init() {
       // A node hands over its path and raw value; only strings enter reactive state.
-      window.openMenu = (p, v) => {
+      // The menu opens beside the button that asked for it, below or, near the
+      // bottom edge, above; any scroll closes it rather than leaving it adrift.
+      window.openMenu = (p, v, el) => {
         const json = JSON.stringify(v, null, 2) ?? 'null';
         this.m = { path: accessor(p), json, text: typeof v === 'string' ? v : null, size: bytes(json.length) };
         this.done = null;
-        this.$refs.menu.showModal();
+        const r = el.getBoundingClientRect(), h = this.m.text === null ? 120 : 156;
+        this.mx = Math.max(8, Math.min(r.left, innerWidth - 264));
+        this.my = r.bottom + h + 8 > innerHeight ? r.top - h - 4 : r.bottom + 4;
+        this.menuOpen = true;
       };
+      addEventListener('scroll', () => { this.menuOpen = false; }, { capture: true, passive: true });
     },
     show(d, label) { window.DOC = d; this.source = label; this.err = ''; this.rev++; },
     loadSample(key) { this.$refs.src.open = false; this.show(SAMPLES[key].make(), SAMPLES[key].label); },
@@ -377,7 +373,7 @@ function app() {
     copy(what, s) {
       navigator.clipboard?.writeText(s).then(() => {
         this.done = what;
-        setTimeout(() => this.$refs.menu.close(), 600);
+        setTimeout(() => { this.menuOpen = false; }, 600);
       });
     },
   };
