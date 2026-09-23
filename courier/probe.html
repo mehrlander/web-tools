@@ -76,10 +76,12 @@
 
 <script>
 document.addEventListener('alpine:init', () => {
+  // Window references stay out of Alpine's state: a reactive proxy probes the
+  // objects it wraps, and probing the cross-origin opener throws.
+  const top = window.top, opener = top.opener;
   Alpine.data('probe', () => ({
-    top: window.top,
-    opener: null,
-    here: '',
+    opener: !!opener,
+    here: top.location.origin,
     signedIn: false,
     privateNote: '',
     log: [],
@@ -90,14 +92,12 @@ document.addEventListener('alpine:init', () => {
     RUN: "return { h1: document.querySelector('h1')?.textContent?.trim() || null, forms: document.forms.length, pdfLinks: [...document.links].filter(a => /\\.pdf($|\\?)/i.test(a.href)).length }",
 
     init() {
-      this.opener = this.top.opener;
-      this.here = this.top.location.origin;
       let token = '';
       try { token = localStorage.getItem('ghToken') || ''; } catch {}
       this.signedIn = !!token;
       if (token) this.readPrivate(token);
-      this.top.addEventListener('message', e => this.receive(e));
-      if (this.opener) this.opener.postMessage({ type: 'ready' }, '*');
+      top.addEventListener('message', e => this.receive(e));
+      if (opener) opener.postMessage({ type: 'ready' }, '*');
     },
 
     async readPrivate(token) {
@@ -111,10 +111,10 @@ document.addEventListener('alpine:init', () => {
     receive(e) {
       const d = e.data;
       if (!d || typeof d !== 'object' || !['probe', 'ran'].includes(d.type)) return;
-      if (e.source !== this.opener) return;
+      if (!opener || e.source !== opener) return;
       this.log.unshift({ n: ++this.n, type: d.type, origin: e.origin, at: new Date().toLocaleTimeString(), data: d });
-      if (d.type === 'probe') e.source.postMessage({ type: 'run', code: this.RUN }, e.origin);
-      if (d.type === 'ran') e.source.postMessage({ type: 'done', links: this.log.find(m => m.type === 'probe')?.data.links.length ?? 0 }, e.origin);
+      if (d.type === 'probe') opener.postMessage({ type: 'run', code: this.RUN }, e.origin);
+      if (d.type === 'ran') opener.postMessage({ type: 'done', links: this.log.find(m => m.type === 'probe')?.data.links.length ?? 0 }, e.origin);
     },
   }));
 });
