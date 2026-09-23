@@ -216,6 +216,32 @@ test('a slide card is hosted, and code opens on its diff', () => {
   assert.equal(data.cardOpts(doc).fill, undefined, 'a list card bounds itself as before');
 });
 
+// WHAT A SLIDE COMPARES AGAINST: the merge base, the commit the file list was
+// diffed from, with the base branch's tip one pick away.
+test('cards compare against the merge base, and the menu offers main today', async () => {
+  const keep = data.brief;
+  data.brief = { ...keep, mergeBase: 'abc1234def5678' };
+  await tick(4);
+  try {
+    const f = data.swipeFiles[0];
+    const opts = data.slideCardOpts(f);
+    assert.equal(opts.base, 'abc1234def5678', 'the merge base, not the base branch tip');
+    assert.equal(opts.baseName, 'abc1234', 'named by its short sha');
+    assert.deepEqual(j(opts.baseChoices.map(c => c.label)), ['Branch changes \u00b7 abc1234', 'vs main today']);
+    assert.equal(data.subject.base, 'abc1234def5678', 'the subject names the same base');
+  } finally { data.brief = keep; await tick(4); }
+  // Unread, the base branch stands in.
+  assert.equal(data.slideCardOpts(data.swipeFiles[0]).base, 'main');
+});
+
+test('the header carries the compare menu beside the view buttons', () => {
+  const header = window.document.querySelector('[data-swipe-header]');
+  const menu = header.querySelector('[data-compare-menu]');
+  assert.ok(menu, 'the compare menu is in the header');
+  assert.ok(Boolean(menu.compareDocumentPosition(header.querySelector('[data-view-modes]')) & 4),
+    'and it sits before the view buttons');
+});
+
 // NO EXPANDER. A slide has nothing to collapse into, so no card in the swiper
 // carries the caret row, and the header is the only row of chrome.
 test('the swiper has one header row and no expander', async () => {
