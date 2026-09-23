@@ -78,6 +78,45 @@ test('declaration accepts repository-relative PowerShell paths and rejects local
   }
 });
 
+test('declaration recognizes BOM-prefixed, LF, CRLF and CR-only PowerShell source', () => {
+  const { win } = harness();
+  const K = win.FileCorrespondence;
+  for (const ending of ['\n', '\r\n', '\r']) {
+    for (const bom of ['', '\ufeff']) {
+      const first = bom + '# @file ' + target.path + ending + 'function Get-Form {}' + ending;
+      const later = bom + '# PowerShell module' + ending + '# @file ' + target.path + ending + 'function Get-Form {}';
+      assert.equal(K.declaration(first), target.path);
+      assert.equal(K.declaration(later), target.path);
+    }
+  }
+});
+
+test('multiple declarations require one exact repository file identity', () => {
+  const { win } = harness();
+  const K = win.FileCorrespondence;
+  assert.equal(K.declaration('# @file ' + target.path + '\r# @FILE ' + target.path + '\r'), target.path,
+    'repeating the same repository identity is unambiguous');
+  for (const second of [other, target.path.replace('Forms.psm1', 'forms.psm1')]) {
+    assert.throws(() => K.declaration('# @file ' + target.path + '\n# @file ' + second), /conflicting # @file/,
+      'GitHub paths remain case-sensitive');
+  }
+  for (const second of ['C:\\Users\\me\\Forms.psm1', '../Forms.psm1', '']) {
+    assert.throws(() => K.declaration('# @file ' + target.path + '\n# @file ' + second), /repository root/,
+      'a valid first declaration cannot hide an invalid later one');
+  }
+});
+
+test('conflicting signatures stop app intake before selecting a repository target', async () => {
+  const { shell, saved, unfinished, calls, browserStore, toasts } = harness();
+  shell.view = 'search'; shell.searchOpenFile = target;
+  await shell.takeCorrespondence('# @file ' + target.path + '\n# @file ' + other + '\nfunction F {}');
+  assert.equal(saved.length, 0);
+  assert.equal(unfinished.length, 0);
+  assert.equal(calls.length, 0);
+  assert.equal(browserStore.stage.length, 0);
+  assert.ok(toasts.some(t => /conflicting # @file/.test(t.msg || t[1] || '')));
+});
+
 test('a check pins the revision, holds exact incoming text, and persists an honest observation', async () => {
   const { win, saved, calls, browserStore } = harness();
   const result = await win.FileCorrespondence.open({ target, text: 'same\n', name: 'work.psm1' });

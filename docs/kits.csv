@@ -11,7 +11,7 @@ lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, reada
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
 lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",128,no,no,4,yes
 lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,7,yes
-lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,226,no,yes,18,yes
+lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,226,no,yes,19,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
 lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet packer.,365,no,yes,7,yes
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,115,yes,no,7,yes
@@ -27,12 +27,12 @@ lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",474,no,no,7,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",199,no,yes,8,yes
-lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,164,no,no,2,yes
+lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,13,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",652,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",98,no,no,3,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",445,no,no,13,yes
-lib/kits/installation.js,Installation,"The installation ledger: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed…",236,no,no,2,yes
+lib/kits/installation.js,Installation,"The installation ledger: what the repository holds for a work installation that has no Git checkout, where each file is meant to go, what has been observed…",325,no,no,2,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",216,no,yes,21,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,5,yes
@@ -48,6 +48,9 @@ lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,343,no,yes,7,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
+lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
+lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",247,no,no,1,yes
+lib/kits/powershell-workspace.js,PowerShellWorkspace,PowerShell code workspace data.,288,no,no,1,yes
 lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",810,no,no,3,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",83,no,no,16,yes

@@ -154,7 +154,7 @@ test('the driver writes each attributed file exactly as its deriver does', () =>
 
   for (const f of attrs) {
     const orig = readFileSync(path.join(repoRoot, f), 'utf8');
-    const cols = orig.split('\n')[0].split(',').map(c => c.replace(/^"|"$/g, ''));
+    const cols = orig.split(/\r?\n/)[0].split(',').map(c => c.replace(/^"|"$/g, ''));
     assert.equal(writeCsv(parseCsv(orig), cols), orig, `${f} would be reformatted by a resolved merge`);
   }
 });

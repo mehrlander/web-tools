@@ -7,7 +7,8 @@
 // a form's two files read apart, and a locally known area stays local. Then
 // the guards: no path but an explicit row() with kind `installed` produces
 // that claim, every row is validated, and append() writes exactly one line
-// against the sha it read.
+// against the sha it read. When an adoption is pending, the observation and
+// removal of that queue entry land together, or neither reaches the branch.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -83,6 +84,42 @@ test('the manifest carries the document pointer and no explanatory prose', () =>
   assert.equal('policy' in withProse.localAreas[0], false, 'a stray policy is dropped, not rendered');
   const g = K.groups(items, m);
   for (const area of g) assert.equal('note' in area, false, 'a group carries no prose either');
+});
+
+const LEDGER = P + '/data/observations.csv';
+const MANIFEST_PATH = P + '/data/installation.json';
+const pendingEntry = { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-14', transfer: 'changed',
+  limit: 'Module import has not run on the work computer' };
+const adoptionManifest = (entries = [pendingEntry]) => ({ ...JSON.parse(MANIFEST), pending_adoption: entries });
+
+test('pending adoption carries transfer limits without turning them into installation evidence', () => {
+  const raw = adoptionManifest([pendingEntry,
+    { path: 'app/Forms/Bookmarks/Bookmarks.ps1', since: '2026-09-15', transfer: 'new', limit: 'Live form untested', note: 'drop prose' },
+    { path: 'app/Scripts/Demos/Demo.ps1', transfer: 'new' },
+    { path: 'app/invalid.ps1', transfer: 'installed' }, null]);
+  const before = JSON.stringify(raw);
+  const pending = K.manifest(raw);
+  assert.deepEqual(pending.pendingAdoption[0], pendingEntry);
+  assert.equal(pending.pendingAdoption.length, 3);
+  assert.equal('note' in pending.pendingAdoption[1], false);
+  assert.deepEqual(K.manifest('{}').pendingAdoption, []);
+  assert.deepEqual(K.manifest({ pending_adoption: 'wrong shape' }).pendingAdoption, []);
+  const inventory = K.inventory({ tree, manifest: pending, projectPath: P });
+  const module = inventory.find(i => i.path === FORMS);
+  const form = inventory.find(i => i.kind === 'controller');
+  const script = inventory.find(i => i.kind === 'script');
+  assert.deepEqual(module.pendingAdoption, pendingEntry);
+  assert.equal(K.derive(module, []).state, 'pending-changed');
+  assert.equal(K.derive(form, []).label, 'new file awaiting adoption');
+  assert.equal(K.derive(module, []).latest, null, 'a queue entry is not an observed placement');
+  assert.equal(K.derive(script, []).state, 'repo-only', 'no destination takes priority over a malformed pending entry');
+  assert.equal(K.derive(module, [rowOf({})]).state, 'reported', 'recorded evidence takes priority even if stale manifest data remains');
+  assert.equal(K.derive(module, [rowOf({})]).conflict, true, 'a row beside a pending entry is named as a contradiction');
+  assert.equal(K.derive(module, [rowOf({})]).label, 'reported installed; pending entry still listed');
+  assert.equal(K.derive(module, []).conflict, false);
+  const profile = inventory.find(i => i.rel === 'app/Profile.ps1');
+  assert.equal(K.derive(profile, [rowOf({ path: profile.path, blobSha: sha40('1') })]).conflict, false, 'a row on a file without an entry is no contradiction');
+  assert.equal(JSON.stringify(raw), before, 'reading the manifest and deriving status never removes adoption entries');
 });
 
 test('the inventory places only app/ material, by the manifest, and pairs a form\'s two files', () => {
@@ -163,7 +200,8 @@ test('a form\'s controller and XAML read apart, and repository-only material say
   assert.equal(K.derive(script, [rowOf({ path: script.path, blobSha: sha40('8') })]).state, 'repo-only',
     'a row on a file with no destination does not make it installed material');
   assert.deepEqual(K.summary([K.derive(ctl, rows), K.derive(xaml, rows), K.derive(script, [])]),
-    { unknown: 1, reported: 1, verified: 0, changed: 0, differs: 0, 'differs-changed': 0, 'repo-only': 1 });
+    { unknown: 1, reported: 1, verified: 0, changed: 0, differs: 0, 'differs-changed': 0, 'repo-only': 1,
+      'pending-new': 0, 'pending-changed': 0 });
 });
 
 test('a locally known area is carried as local, never as a repository folder', () => {
@@ -226,17 +264,243 @@ test('append reads fresh, appends one line, and PUTs against the sha it read', a
   assert.equal(out.commit, sha40('9')); assert.equal(out.line, K.line(r));
 });
 
-test('append creates a missing ledger with the header, retries one conflict, and refuses a pinned ref', async () => {
+test('append creates a missing ledger, surfaces conflicts without retry, and refuses a pinned ref', async () => {
   const missing = ghStub({ missing: true });
   await K.append({ gh: missing.gh, path: 'p.csv', row: rowOf({}) });
   const body = missing.calls[1][3];
   assert.equal(body.sha, undefined);
   assert.ok(Buffer.from(body.content, 'base64').toString('utf8').startsWith(CSV_HEAD));
   const racy = ghStub({ failFirstPut: true });
-  await K.append({ gh: racy.gh, path: 'p.csv', row: rowOf({}) });
-  assert.deepEqual(racy.calls.map(c => c[0]), ['get', 'req', 'get', 'req'], 'a conflict re-reads before the one retry');
+  await assert.rejects(K.append({ gh: racy.gh, path: 'p.csv', row: rowOf({}) }), /conflict/);
+  assert.deepEqual(racy.calls.map(c => c[0]), ['get', 'req'], 'a conflict needs fresh user review, not an automatic second write');
   const pinned = ghStub(); pinned.gh.ref = sha40('a');
   await assert.rejects(K.append({ gh: pinned.gh, path: 'p.csv', row: rowOf({}) }), /branch/);
   const odd = ghStub({ text: 'date,path\n' });
   await assert.rejects(K.append({ gh: odd.gh, path: 'p.csv', row: rowOf({}) }), /header/);
+  assert.equal(odd.calls.some(c => c[0] === 'req'), false);
+});
+
+test('a delayed confirmation cannot append before a newer observation through the single-file API', async () => {
+  const newer = rowOf({ date: '2026-09-14T10:05:00Z' });
+  const { gh, calls } = ghStub({ text: CSV_HEAD + K.line(newer) + '\n' });
+  await assert.rejects(K.append({ gh, path: LEDGER, row: rowOf({}) }), /newer observation.*Refresh.*prepare/);
+  assert.equal(calls.some(c => c[0] === 'req'), false, 'the reviewed timestamp is rejected before any write');
+});
+
+// The stub holds immutable files at the parent and publishes a complete tree
+// only when the ref update succeeds. Failure tests inspect that published
+// state rather than accepting success because the expected API was called.
+function atomicStub({ ledger = CSV_HEAD, manifest = JSON.stringify(adoptionManifest()),
+  moved = false, failAt = '', status = 500, missingShaAt = '', afterSnapshot = () => {} } = {}) {
+  const calls = [], blobs = new Map(), trees = new Map();
+  const parent = sha40('a'), baseTree = sha40('b'), newTree = sha40('c'), newCommit = sha40('d');
+  const files = new Map([[LEDGER, ledger], [MANIFEST_PATH, manifest]]);
+  let tipReads = 0, published = false;
+  const gh = {
+    ref: 'codex/adoption', repo: 'owner/work',
+    async get(p, opts) {
+      calls.push({ method: 'GET', path: p, ref: this.ref, repo: this.repo, cache: opts?.cache });
+      assert.equal(this.ref, parent, 'every file read uses the captured commit, never a moving branch');
+      if (failAt === 'read ' + p) throw Object.assign(new Error('read failed'), { status });
+      const text = files.get(p);
+      if (text === null) throw Object.assign(new Error('Not Found'), { status: 404 });
+      return { text, sha: sha40('e') };
+    },
+    async req(p, opts = {}) {
+      const method = opts.method || 'GET', body = opts.body ? JSON.parse(opts.body) : undefined;
+      calls.push({ method, path: p, repo: this.repo, cache: opts.cache, body });
+      const stage = method + ' ' + p;
+      if (stage === failAt) throw Object.assign(new Error('write failed at ' + stage), { status });
+      if (stage === missingShaAt) return {};
+      if (p === 'git/ref/heads/codex/adoption') {
+        tipReads++;
+        if (tipReads === 2) afterSnapshot(gh);
+        return { object: { sha: moved && tipReads > 1 ? sha40('f') : parent } };
+      }
+      if (p === 'git/commits/' + parent) return { tree: { sha: baseTree } };
+      if (p === 'git/blobs' && method === 'POST') {
+        const sha = sha40(String(blobs.size + 1));
+        assert.equal(body.encoding, 'base64');
+        blobs.set(sha, Buffer.from(body.content, 'base64').toString('utf8'));
+        return { sha };
+      }
+      if (p === 'git/trees' && method === 'POST') {
+        assert.equal(body.base_tree, baseTree);
+        const next = new Map(files);
+        for (const entry of body.tree) next.set(entry.path, blobs.get(entry.sha));
+        trees.set(newTree, next);
+        return { sha: newTree };
+      }
+      if (p === 'git/commits' && method === 'POST') {
+        assert.deepEqual(body.parents, [parent]);
+        assert.equal(body.tree, newTree);
+        return { sha: newCommit };
+      }
+      if (p === 'git/refs/heads/codex/adoption' && method === 'PATCH') {
+        assert.deepEqual(body, { sha: newCommit, force: false });
+        for (const [key, value] of trees.get(newTree)) files.set(key, value);
+        published = true;
+        return { object: { sha: newCommit } };
+      }
+      throw new Error('Unexpected request: ' + stage);
+    },
+  };
+  return { gh, calls, files, blobs, published: () => published,
+    append: (over = {}) => K.append({ gh, path: LEDGER, manifestPath: MANIFEST_PATH, row: rowOf({}), ...over }) };
+}
+
+test('a delayed atomic confirmation leaves the newer ledger and pending adoption intact without writing Git objects', async () => {
+  const newer = rowOf({ path: P + '/app/Profile.ps1', date: '2026-09-14T10:05:00Z' });
+  const s = atomicStub({ ledger: CSV_HEAD + K.line(newer) + '\n' });
+  const before = [...s.files];
+  await assert.rejects(s.append(), /newer observation.*Refresh.*prepare/);
+  assert.deepEqual([...s.files], before);
+  assert.equal(s.published(), false);
+  assert.ok(s.calls.every(c => c.method === 'GET'), 'date validation precedes blob, tree, commit and ref writes');
+});
+
+test('an observation at the same ledger timestamp remains appendable', async () => {
+  const existing = rowOf({ path: P + '/app/Profile.ps1' });
+  const s = atomicStub({ ledger: CSV_HEAD + K.line(existing) + '\n' });
+  await s.append();
+  assert.equal(s.published(), true);
+  assert.deepEqual(K.observations(s.files.get(LEDGER)).map(r => r.date), [existing.date, existing.date]);
+});
+
+test('the first observation closes only its adoption entry in the same published commit', async () => {
+  const other = { path: 'app/Forms/Bookmarks/Bookmarks.ps1', transfer: 'new', since: '2026-09-15', limit: 'Unrun' };
+  const raw = { ...adoptionManifest([pendingEntry, other]), futureKey: { preserved: true } };
+  const existing = rowOf({ path: P + '/app/Profile.ps1', blobSha: sha40('1') });
+  const s = atomicStub({ manifest: JSON.stringify(raw), ledger: CSV_HEAD + K.line(existing) });
+  const observed = rowOf({});
+  const result = await s.append({ row: observed, message: 'Record the reviewed observation' });
+  assert.equal(s.published(), true);
+  assert.equal(result.adoptionClosed, true);
+  assert.equal(result.commit, sha40('d'));
+  assert.equal(result.sha, sha40('1'));
+  assert.equal(result.line, K.line(observed));
+  assert.equal(s.files.get(LEDGER), CSV_HEAD + K.line(existing) + '\n' + K.line(observed) + '\n');
+  assert.deepEqual(JSON.parse(s.files.get(MANIFEST_PATH)), { ...raw, pending_adoption: [other] });
+  const tree = s.calls.find(c => c.path === 'git/trees').body.tree;
+  assert.deepEqual(tree.map(f => f.path), [LEDGER, MANIFEST_PATH]);
+  assert.equal(s.calls.find(c => c.path === 'git/commits').body.message, 'Record the reviewed observation');
+  assert.ok(s.calls.filter(c => c.method === 'GET').every(c => c.cache === 'no-store'));
+  assert.equal(s.gh.ref, 'codex/adoption', 'snapshot reads leave the UI client on its selected branch');
+  assert.equal(K.manifest(s.files.get(MANIFEST_PATH)).pendingAdoption.some(e => e.path === pendingEntry.path), false);
+});
+
+test('verified and differing observations also close adoption without claiming an install or runtime test', async () => {
+  for (const exact of [true, false]) {
+    const s = atomicStub();
+    const observed = K.fromCheck({ path: FORMS, revision: sha40('a'), blobSha: sha40('2'),
+      incomingSha256: sha64('f'), exact, source: 'paste' });
+    await s.append({ row: observed });
+    const rows = K.observations(s.files.get(LEDGER));
+    const parsed = K.manifest(s.files.get(MANIFEST_PATH));
+    const item = K.inventory({ tree, manifest: parsed, projectPath: P }).find(i => i.path === FORMS);
+    assert.equal(parsed.pendingAdoption.length, 0);
+    assert.equal(rows.length, 1);
+    assert.notEqual(rows[0].kind, 'installed');
+    assert.equal(K.derive(item, rows).state, exact ? 'verified' : 'differs');
+    assert.equal(rows[0].method, 'paste');
+  }
+});
+
+test('a manifest without a matching pending entry stays byte-for-byte unchanged', async () => {
+  const raw = JSON.stringify(adoptionManifest([{ ...pendingEntry, path: 'app/Modules/Other/Forms.psm1' }]), null, 4);
+  const s = atomicStub({ manifest: raw });
+  const result = await s.append();
+  assert.equal(result.adoptionClosed, false);
+  assert.equal(s.files.get(MANIFEST_PATH), raw);
+  assert.equal(s.calls.find(c => c.path === 'git/trees').body.tree.length, 1);
+});
+
+test('a missing ledger can be created atomically while closing adoption', async () => {
+  const s = atomicStub({ ledger: null });
+  await s.append();
+  assert.equal(s.files.get(LEDGER), CSV_HEAD + K.line(rowOf({})) + '\n');
+  assert.deepEqual(JSON.parse(s.files.get(MANIFEST_PATH)).pending_adoption, []);
+});
+
+test('reading status and comparing a supplied copy perform no GitHub writes or adoption removal', () => {
+  const s = atomicStub();
+  const mfText = s.files.get(MANIFEST_PATH), ledger = s.files.get(LEDGER);
+  const m = K.manifest(mfText), rows = K.observations(ledger);
+  const all = K.inventory({ tree, manifest: m, projectPath: P });
+  K.groups(all, m);
+  K.summary(all.map(item => K.derive(item, rows)));
+  const check = { path: FORMS, revision: sha40('a'), blobSha: sha40('2'), incomingSha256: sha64('f'), exact: true, source: 'paste' };
+  K.fromCheck(check);
+  assert.equal(K.isRecorded(check, rows), false);
+  assert.equal(s.files.get(MANIFEST_PATH), mfText);
+  assert.equal(s.files.get(LEDGER), ledger);
+  assert.deepEqual(s.calls, []);
+  assert.equal(s.published(), false);
+});
+
+test('same relative file in a different project never closes this project\'s adoption', async () => {
+  const s = atomicStub();
+  const result = await s.append({ row: rowOf({ path: 'projects/other/app/Modules/Forms/Forms.psm1' }) });
+  assert.equal(result.adoptionClosed, false);
+  assert.deepEqual(JSON.parse(s.files.get(MANIFEST_PATH)).pending_adoption, [pendingEntry]);
+});
+
+test('manifest and ledger read failures leave both published files untouched', async () => {
+  const cases = [
+    { manifest: '{broken' },
+    { manifest: JSON.stringify({ ...adoptionManifest(), observations: 'some-other-ledger.csv' }) },
+    { manifest: JSON.stringify({ ...adoptionManifest(), pending_adoption: {} }) },
+    { ledger: 'date,path\n' },
+    { failAt: 'read ' + LEDGER, status: 403 },
+    { failAt: 'read ' + MANIFEST_PATH, status: 404 },
+    { missingShaAt: 'GET git/ref/heads/codex/adoption' },
+    { missingShaAt: 'GET git/commits/' + sha40('a') },
+  ];
+  for (const input of cases) {
+    const s = atomicStub(input);
+    const original = [...s.files];
+    await assert.rejects(s.append());
+    assert.equal(s.published(), false);
+    assert.deepEqual([...s.files], original);
+    assert.ok(s.calls.every(c => c.method === 'GET'), 'invalid input never reaches an object or branch write');
+  }
+});
+
+test('failures at each object or ref write never publish half an adoption or silently retry', async () => {
+  const stages = ['POST git/blobs', 'POST git/trees', 'POST git/commits', 'PATCH git/refs/heads/codex/adoption'];
+  for (const failAt of stages) {
+    for (const status of [409, 422, 500]) {
+      const s = atomicStub({ failAt, status });
+      const original = [...s.files];
+      await assert.rejects(s.append(), /write failed/);
+      assert.equal(s.published(), false);
+      assert.deepEqual([...s.files], original);
+      assert.equal(s.calls.filter(c => c.method + ' ' + c.path === failAt).length, 1, failAt + ' is never retried');
+    }
+  }
+  for (const missingShaAt of stages.slice(0, -1)) {
+    const s = atomicStub({ missingShaAt });
+    await assert.rejects(s.append(), /no sha/);
+    assert.equal(s.published(), false);
+    assert.equal(s.calls.some(c => c.method === 'PATCH'), false);
+  }
+});
+
+test('a moved branch refuses publication instead of rebuilding stale ledger bytes on the new tip', async () => {
+  const s = atomicStub({ moved: true });
+  const original = [...s.files];
+  await assert.rejects(s.append(), /branch moved.*Reload/);
+  assert.equal(s.published(), false);
+  assert.deepEqual([...s.files], original);
+  assert.equal(s.calls.filter(c => c.method === 'POST' && c.path === 'git/commits').length, 1);
+  assert.equal(s.calls.some(c => c.method === 'PATCH'), false);
+});
+
+test('navigation during an append cannot redirect the captured repository or branch write', async () => {
+  const s = atomicStub({ afterSnapshot: gh => { gh.ref = 'main'; gh.repo = 'owner/other'; } });
+  await s.append();
+  assert.equal(s.gh.ref, 'main');
+  assert.equal(s.gh.repo, 'owner/other');
+  assert.ok(s.calls.every(c => c.repo === 'owner/work'));
+  assert.equal(s.calls.find(c => c.method === 'PATCH').path, 'git/refs/heads/codex/adoption');
 });

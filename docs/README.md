@@ -12,14 +12,13 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-10 by a skill, 30 by a page or component. The remaining 32 are
+10 by a skill, 30 by a page or component. The remaining 33 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
 
 - [`APP.md`](APP.md) — the Web Tools app: mission, durable goals, and the name split
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
-- [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
 - [`HTML-STYLE.md`](HTML-STYLE.md) — a pointer to the house style, kept for the names the style guide is asked for: the rules themselves moved into the daisy-alpine skill on 2026-08-31, where they fire on page work unprompted, and the mechanics beside it
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
@@ -28,7 +27,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
-- [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
 - [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
@@ -54,6 +52,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
+- [`powershell-workspace.md`](powershell-workspace.md) *(orphan)* — the PowerShell Code workspace: exact browser drafts, pinned GitHub source, deliberate publication and installation handoff
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the registry model: targets, keys, identity spaces, properties, assertions; one owner per assertion; how to add a registry and what the suite checks
@@ -64,7 +63,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
 - [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
 - [`show-repo.md`](show-repo.md) — the show-repo shell: views and transfer
-- [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — why the showing boundaries sit where they are: the frame and the record behind routes.json
 - [`snags.csv`](snags.csv) *(orphan)* — every snag SNAGS.md records: its slug, one-line symptom, sightings and the doc carrying the fix
@@ -82,6 +80,9 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
 - [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
+- [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
+- [`DOC_CRAFT_STUDY.md`](DOC_CRAFT_STUDY.md) *(record, orphan)* — historical investigation of documentation problems and superseded drafting proposals
+- [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 
 ## docs/doc-craft-specimens/
 
