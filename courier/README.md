@@ -238,6 +238,27 @@ someone edits `errands.json`, which is the session's job on reading the result,
 not yours. Closing that loop from the browser would need a token to check the
 private results folder, and the courier holds none by design.
 
+## Trial: the Stage as the popup
+
+[`bookmarklets/courier-stage.js`](../bookmarklets/courier-stage.js) opens the
+Web Tools Stage itself as the popup, at `?view=stage&courier=1`, and talks to it
+by `postMessage`. The Stage is a first-party window holding your token, so it
+does what this folder's public design could not:
+
+| | `courier.js` (current) | `courier-stage.js` (trial) |
+| --- | --- | --- |
+| errand list and scripts | public, read without a token | the private list in the registry first, then this one |
+| a page with no errand | a directory of open errands | its links and selection, staged as `<host>-<date>-links.md` and aimed at web-tools-private `courier/captures/` |
+| the result's route | `#gz=` link, capped at 24K | a message, with no URL cap |
+| the write | the Stage's send, on your tap | the same |
+
+The Stage hears only the window that opened it, stages what arrives without
+sending it, and takes the destination from the errand record, never from a
+message. The one thing it sends back is the errand's script. A site that sets
+`Cross-Origin-Opener-Policy` cuts the link between the windows, and one whose
+Content Security Policy forbids `eval` refuses the script; `courier.js` remains
+the route there. Held by `tools/test/stage-courier.test.mjs`.
+
 ## What it is not for
 
 A page you can read from a session already. A file behind a login you would not
