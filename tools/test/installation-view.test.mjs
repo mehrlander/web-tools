@@ -196,7 +196,7 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
   assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
     'a title is the label of an icon-only control, never a sentence of explanation');
-  assert.match(data.headline, /^aaaaaaa · 5 files · 2 local state unknown · 1 repository only · 1 new file awaiting adoption · 1 update awaiting adoption$/);
+  assert.match(data.headline, /^aaaaaaa · 5 files · 2 assumed synced · 1 repository only · 1 new file · 1 update pending$/);
   assert.equal(publications.length, 0);
   assert.ok(reads.every(r => r.ref === REV), 'manifest and ledger are read at the captured revision');
 });
@@ -207,12 +207,12 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.equal(window.__shell.installationItem, FORMS);
   assert.ok(shellCalls.some(c => c[0] === 'syncUrl'));
   assert.match(el.textContent, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
-  assert.match(el.textContent, /local state unknown/);
-  assert.match(el.textContent, /Nothing recorded for this file/);
-  assert.equal(data.badgeOf(FORMS), 'badge-warning badge-outline');
+  assert.equal(data.statusOf(FORMS).label, 'Update pending');
+  assert.doesNotMatch(el.textContent, /Nothing recorded for this file|local state unknown/, 'no "we do not know" notes on the pane');
+  assert.equal(el.querySelector('[data-observations]').style.display, 'none', 'an empty ledger history is not shown');
   assert.match(el.querySelector('[data-adoption]').textContent, /Repository update awaiting adoption/);
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
-  q('button').find(b => b.textContent.includes('Open code workspace')).click();
+  await data.runAction(FORMS, 'code');
   assert.deepEqual(shellCalls.find(c => c[0] === 'goProject'), ['goProject', P, 'code', FORMS]);
   data.select(`${P}/app/Forms/Bookmarks/Bookmarks.xaml`);
   await settle();
@@ -221,8 +221,7 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
   assert.match(el.textContent, /no installation destination \(repository only\)/);
-  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
-  assert.equal(record.style.display, 'none', 'repository-only material offers no placement to record');
+  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['code'], 'repository-only material offers no placement to confirm');
   data.select(FORMS);
   await settle();
 });
@@ -236,8 +235,8 @@ test('a comparison goes through the shell and comes back as a browser check, wit
   assert.equal(data.checks.length, 1);
   assert.equal(data.checks[0].lineEndingsOnly, true);
   assert.equal(data.stateOf(FORMS).state, 'pending-changed', 'a check is browser-local; adoption stays pending');
-  assert.match(el.textContent, /Checks in this browser/);
-  assert.match(el.textContent, /matched, line endings differ/);
+  assert.equal(el.querySelector('[data-checks]'), null, 'no checks section; the menu carries what it offered');
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'record-check' && a.label === 'Record the match…'));
   assert.equal(publications.length, 0, 'comparing writes nothing');
 });
 
@@ -292,7 +291,7 @@ test('a browser check can be promoted to a verified row, and then reads as recor
   assert.equal(data.isRecorded(check), true);
   assert.equal(data.stateOf(FORMS).state, 'verified');
   assert.equal(data.stateOf(FORMS).history.length, 2, 'the installed row is kept beneath the verification');
-  assert.match(el.textContent, /recorded/);
+  assert.ok(!data.actionsFor(FORMS).some(a => a.key === 'record-check'), 'a recorded check is no longer offered');
 });
 
 test('the record survives a reload, and GitHub moving turns it into "changed since"', async () => {
@@ -480,8 +479,8 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   assert.doesNotMatch(body.className, /(^|\s)hidden(\s|$)/);
   assert.match(toggle.textContent, /Hide code/);
   // The pane follows the state and the actions in the detail column.
-  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
-  assert.ok(record.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING);
+  const status = [...el.querySelectorAll('[data-status]')].find(b => !b.closest('[data-row]'));
+  assert.ok(status.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the header\'s status menu precedes the pane');
   data.select(profile);
   await settle();
   assert.equal(data.sourceOpen, false, 'a new selection starts collapsed');
@@ -540,10 +539,10 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   const views = () => el.querySelector('[data-source-views]');
   const diff = () => el.querySelector('[data-source-diff]');
   const shown = node => !/(^|\s)hidden(\s|$)/.test(node.className);
-  // The action row is the placement flow: no Files, no Stage.
+  // No action row: no Files, no Stage, no Open code workspace, no Mark as installed.
   data.select(xaml); await settle();
-  const row = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim());
-  assert.ok(row.includes('Mark as installed')); assert.ok(!row.includes('Files')); assert.ok(!row.includes('Stage'));
+  const labels = q('button').map(b => b.textContent.trim());
+  for (const gone of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.ok(!labels.includes(gone), gone + ' is gone');
   // Recorded and unchanged since: nothing to compare, so Code only.
   assert.equal(data.stateOf(xaml).state, 'reported');
   assert.equal(views().style.display, 'none'); assert.equal(data.sourceView, 'code');
@@ -566,18 +565,16 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.sourceView, 'changes');
   assert.match(data.baseline.label, /^Copy supplied /);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
-  // The check row offers the same comparison.
-  const check = data.checks.find(c => c.path === xaml);
-  const button = q('button').find(b => b.textContent.trim() === 'Changes' && !b.closest('[data-source-views]'));
-  assert.ok(button, 'each check with kept text offers Changes');
-  data.setSourceView('code'); button.click(); await settle();
-  assert.equal(data.baseline.key, 'check:' + check.id); assert.equal(data.sourceView, 'changes');
-  // No evidence: say so rather than guess. A new file says it is new.
+  // The menu's Show changes returns to it from Code.
+  data.setSourceView('code'); await settle();
+  await data.runAction(xaml, 'changes'); await settle();
+  assert.equal(data.sourceView, 'changes');
+  // No evidence and nothing to guess: Code, with no note. A new file's
+  // pending box already says it is new; an assumed-synced file says nothing.
   data.select(ctl); await settle(); await settle();
-  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code');
-  assert.match(el.textContent, /New file: the work computer has no copy yet\./);
+  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code'); assert.equal(data.baselineNote, '');
   data.select(`${P}/app/Profile.ps1`); await settle(); await settle();
-  assert.match(data.baselineNote, /Nothing records what the work computer holds/);
+  assert.equal(data.baselineNote, '');
   assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'Changes writes nothing');
   files[xaml] = original; advanceHead(); await data.reload();
   data.select(FORMS); await settle();
@@ -602,6 +599,47 @@ test('a pending update with no record compares from the version before its chang
   assert.equal(data.baseline, null);
   assert.match(data.baselineNote, /No earlier version of this file/);
   files[manifestPath] = manifest; advanceHead(); await data.reload();
+  data.select(FORMS); await settle();
+});
+
+test('the status icon opens a menu of the actions the file\'s state allows, and a differing paste turns it red', async () => {
+  const profile = `${P}/app/Profile.ps1`, demo = `${P}/app/Scripts/Demo.ps1`;
+  const rowOf = path => q('[data-row]').find(r => r.textContent.includes(path.split('/').pop()));
+  const writes = publications.length;
+  data.select(''); await settle();
+  // Assumed in sync is an outline check; a ledger confirmation is filled.
+  assert.equal(data.statusOf(profile).cls, 'ph ph-check-circle text-success');
+  assert.equal(data.statusOf(FORMS).cls.split(' ')[0], 'ph-fill');
+  const icon = rowOf(profile).querySelector('[data-status]');
+  assert.equal(icon.getAttribute('title'), 'Assumed synced');
+  icon.click(); await settle();
+  const menu = rowOf(profile).querySelector('[data-status-menu]');
+  assert.notEqual(menu.style.display, 'none');
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in Code']);
+  // Right-click opens the same menu; Escape closes it.
+  data.menuFor = ''; await settle();
+  rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
+  assert.equal(data.menuFor, profile);
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
+  assert.equal(data.menuFor, '');
+  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['code'], 'repository-only material offers no placement');
+  // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
+  icon.click(); await settle();
+  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
+  for (let i = 0; i < 10 && !data.pending; i++) await tick(2);
+  assert.equal(data.selected, profile); assert.equal(data.pending.kind, 'installed');
+  assert.match(el.textContent, /I placed this on the work computer/);
+  assert.equal(publications.length, writes, 'the menu opens the confirm; it does not write');
+  data.pending = null;
+  // A paste that differs, newer than any ledger row, shows as Differs with Record the difference….
+  await data.compareDrop(dropped('something else\n')); await settle();
+  assert.equal(data.statusOf(profile).short, 'Differs');
+  assert.ok(data.actionsFor(profile).some(a => a.key === 'record-check' && a.label === 'Record the difference…'));
+  assert.ok(data.actionsFor(profile).some(a => a.key === 'changes'));
+  await data.runAction(profile, 'record-check'); await settle();
+  assert.equal(data.pending.kind, 'check'); assert.equal(data.pending.row.kind, 'differs');
+  data.pending = null; await settle();
+  assert.equal(publications.length, writes);
   data.select(FORMS); await settle();
 });
 
