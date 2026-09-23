@@ -215,14 +215,17 @@ test('destPills is empty when nothing is declared, and never guesses a root', ()
 });
 
 test('aim sets the destination and the picker label together', () => {
+  // Against the MOUNTED picker, not a stubbed $refs: the x-ref sits on the
+  // picker's own x-data root, so the stager's $refs never held it and a stub
+  // here passed while the real label stayed empty.
   store.repo = 'me/open';
-  const picker = { label: 'stale' };
-  data.$refs.destPicker = { __pathPicker: picker };
+  const picker = data.$root.querySelector('[x-ref="destPicker"]')?.__pathPicker;
+  assert.ok(picker, 'the destination picker is mounted');
+  picker.label = 'stale';
   data.aim('me/open:chron/dump');
   assert.equal(data.destSpec, 'me/open:chron/dump');
   assert.equal(picker.label, 'me/open:chron/dump',
     'the picker commits its own label, so destSpec alone would name one place while the send went to another');
-  delete data.$refs.destPicker;
 });
 
 // ---- grabbing from a repo, reading inline -----------------------------

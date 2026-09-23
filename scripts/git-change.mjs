@@ -261,8 +261,11 @@ Options:
     console.log(`\nStage Link Assessment:`);
     console.log(`  Encoded Fragment Length: ${gzPayload.length.toLocaleString()} characters (budget: ${GZ_MAX.toLocaleString()})`);
 
-    const appBase = opts.appUrl.replace(/#.*$/, '').replace(/\?.*$/, '');
-    const cleanAppBase = appBase.endsWith('/') ? appBase : appBase + '/';
+    // Keep the query: `?use=<sha>` is how a link reaches a branch's lib before merge.
+    const appUrl = new URL(opts.appUrl);
+    appUrl.hash = '';
+    if (!appUrl.pathname.endsWith('/') && !/\.html?$/.test(appUrl.pathname)) appUrl.pathname += '/';
+    const cleanAppBase = appUrl.href;
 
     if (gzPayload.length <= GZ_MAX) {
       const link = `${cleanAppBase}#gz=${gzPayload}`;
