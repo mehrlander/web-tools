@@ -4,17 +4,14 @@ A **surface** is a JSON file: a curated, annotated set of items presented for a 
 
 **A surface is not a saved stage.** It was addressed that way in show-repo until 2026-08-27: the Stage carried a Saved pane listing `.surface` files, and the bench could promote its working set into one. Both went, along with the kit's `fromStage`/`toStage` bridges. The format's profiles were never stage-shaped, and the one page reading a surface today, [`pages/branch.html`](../../pages/branch.html) through [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js), reads `branch-review/1`.
 
-**Authoritative artifacts:** the JSON Schemas beside this doc are the validation source of truth; this document carries the concepts, conventions, and worked examples.
-
-> [!WARNING]
-> **Stale 2026-08-05 (nothing validates against them):** "source of truth" states
-> the intent, not the practice. As of this date no code in `lib/`, `pages/`, or
-> the skills loads these schemas, and nothing validates a surface document
-> against them, so a producer that drifts from the schema gets no signal. They
-> are a written contract two readers can agree on, which is worth having; they
-> are not a gate. Found by the docs registry's reach pass, which is what made
-> the gap visible: they are the only files in `docs/` declared authoritative
-> that nothing reads.
+**Authoritative artifacts:** the JSON Schemas beside this doc are the validation
+source of truth by intent rather than in practice; this document carries the
+concepts, conventions, and worked examples. Checked 2026-09-23: no code in
+`lib/`, `pages/` or the skills loads these schemas, so a producer that drifts
+gets no signal. They are a written contract two readers can agree on, which is
+worth having; they are not a gate. The docs registry's reach pass is what made
+the gap visible: they are the only files in `docs/` declared authoritative that
+nothing reads.
 
 - [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json): the core schema.
 - [`schemas/profiles/branch-review-v1.schema.json`](schemas/profiles/branch-review-v1.schema.json): the first profile.
