@@ -1,7 +1,7 @@
 path,role,layer,lines,invocation,emits,named,tested
 .claude/hooks/session-githooks.sh,delegates the git-only half of shared checkout setup and surfaces a concrete recovery when configuration fails,.claude/hooks,33,session:SessionStart,no,yes,yes
 .claude/hooks/session-start.sh,delegates browser-free dependency setup in Claude remote sessions and reports shared readiness failures,.claude/hooks,21,session:SessionStart,no,yes,yes
-.claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,289,imported,no,no,yes
+.claude/skills/hooks/commit-consent.py,,.claude/skills/hooks,290,imported,no,no,yes
 .claude/skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the surfacing primitives; silent when they arrived or the repo opted out,.claude/skills/hooks,152,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/invoke-sessions.sh,,.claude/skills/hooks,104,hook:SessionStart,no,yes,yes
 .claude/skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,.claude/skills/hooks,41,hook:PostToolUseFailure,no,yes,no

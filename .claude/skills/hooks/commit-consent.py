@@ -36,10 +36,11 @@ THE TWO WAYS THE FIELD IS FILLED, and they differ in what can be checked.
                             be: it is a receipt, permanent and greppable, so a
                             thin one is legible later rather than invisible.
 
-WHAT IT DOES NOT CLAIM. A session holds a write token too, so it could commit a
-verdict it was never given. The gate raises the cost and changes the shape of
-the lie, from a sentence nobody can check to a separate commit sitting beside
-the one it authorizes. Checkable by construction, not unforgeable.
+WHAT THE FIELD IS FOR. Both forms record that the prose in this commit was seen
+before it was approved. A citation carries the prose itself, so the verdict
+names what it saw. A quotation does not, so quote the words that answered the
+prose, not the words that authorized the task. If you have not shown the prose,
+show it before you commit.
 
 Usage, from a repo's .githooks/commit-msg:
     python3 <this> "$1"           # $1 is the message file git passes
