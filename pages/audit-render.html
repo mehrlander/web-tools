@@ -509,7 +509,6 @@ window.__audit = {
   const MARKS = {
     fill:      { bg: .11, over: .26, sel: .34, tick: .45, under: 0 },
     underline: { bg: 0,   over: .10, sel: .16, tick: 0,   under: .65 },
-    separator: { bg: 0,   over: .10, sel: .16, tick: .75, under: 0 },
   };
 
   // `kind` is the segmenter's word, and the panel was printing it raw: a reader
@@ -1007,6 +1006,20 @@ window.__audit = {
       return true;
     },
     undo() { if (this.canUndo) this.replay(this.at - 1); },
+    // THE SAME STACK AS THE BUTTONS, FROM THE KEYBOARD. Ctrl or Cmd with Z
+    // steps back, and with Shift, or Ctrl+Y, steps forward. A text field keeps
+    // its own undo, so the page takes the keys only when focus is elsewhere.
+    // Bound with @keydown.window on <body> rather than in init(), which runs
+    // twice here, so a listener added there fires twice per press.
+    key(e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.target.closest?.('input,textarea,select,[contenteditable=""],[contenteditable="true"]')) return;
+      const k = e.key.toLowerCase();
+      const redo = (k === 'z' && e.shiftKey) || (k === 'y' && !e.shiftKey);
+      if (k !== 'z' && !redo) return;
+      e.preventDefault();
+      redo ? this.redo() : this.undo();
+    },
     redo() { if (this.canRedo) this.replay(this.at + 1); },
     // WHAT THE OPERATION WOULD HAVE NEEDED. ops.shift refuses an offset outside
     // the pair it moves between, and "was refused" alone leaves the reader to
@@ -1901,7 +1914,7 @@ window.__audit = {
   await gh.load('alpine-bundle.js');
 </script>
 </head>
-<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()">
+<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()" @keydown.window="key($event)">
 <template x-if="a">
   <div>
 
@@ -1931,29 +1944,14 @@ window.__audit = {
              x-text="reportStatus" x-show="reportStatus"
              title="this page files its own diagnostics when something goes wrong"></div>
 
-        <div class="join ml-auto">
-          <button class="join-item btn btn-xs" :class="view==='source' && 'btn-active'"
-                  @click="view='source'; paint()">Source</button>
-          <button class="join-item btn btn-xs" :class="view==='read' && 'btn-active'"
-                  @click="view='read'; paint()">Read</button>
-          <button class="join-item btn btn-xs" :class="view==='standoff' && 'btn-active'"
-                  @click="view='standoff'">Standoff</button>
-        </div>
-        <div class="join" x-show="view!=='standoff'" x-cloak aria-label="unit treatment">
-          <button class="join-item btn btn-xs" :class="mark==='fill' && 'btn-active'"
-                  @click="mark='fill'; paint()">Fill</button>
-          <button class="join-item btn btn-xs" :class="mark==='underline' && 'btn-active'"
-                  @click="mark='underline'; paint()">Underline</button>
-          <button class="join-item btn btn-xs" :class="mark==='separator' && 'btn-active'"
-                  @click="mark='separator'; paint()">Separators</button>
-        </div>
-        <!-- Which question the colour answers. The treatment switch above
-             decides what the tint is spent on; this decides what it MEANS. -->
-        <div class="join" x-show="view!=='standoff' && so.verdicts" x-cloak aria-label="colour by">
-          <button class="join-item btn btn-xs" :class="lens==='label' && 'btn-active'"
-                  @click="lens='label'; paint()">Label</button>
-          <button class="join-item btn btn-xs" :class="lens==='verdict' && 'btn-active'"
-                  @click="lens='verdict'; paint()">Verdict</button>
+        <!-- Which document is on screen. The two controls about the tint live on
+             the legend row below, so this row keeps its shape in every view. -->
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-auto" aria-label="view">
+          <template x-for="v in ['source', 'read', 'standoff']" :key="v">
+            <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
+                    :class="view === v ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                    @click="view = v; v !== 'standoff' && paint()" x-text="v"></button>
+          </template>
         </div>
         <button class="btn btn-xs btn-ghost" @click="deck()"><i class="ph ph-cards"></i> Sections</button>
         <button class="btn btn-xs btn-ghost" @click="$refs.reading.showModal()">Reading</button>
@@ -1971,7 +1969,7 @@ window.__audit = {
            names, so a label chip is tinted as its units are. Tapping one dims
            its units in place rather than hiding them, which keeps the document
            readable while one category is set aside. -->
-      <div class="px-4 pb-2 flex flex-wrap items-center gap-1">
+      <div class="px-4 pb-2 flex flex-wrap items-center gap-1" x-show="view !== 'standoff'">
         <template x-for="k in axis" :key="k">
           <button class="btn btn-xs gap-1.5 border-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
@@ -1983,6 +1981,24 @@ window.__audit = {
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
         </template>
+        <!-- What the colour answers, then what it is spent on. Both are about
+             the legend beside them, which is why they sit here. -->
+        <div class="flex items-center gap-1 ml-auto">
+          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" x-show="so.verdicts" aria-label="colour by">
+            <template x-for="l in ['label', 'verdict']" :key="l">
+              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
+                      :class="lens === l ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                      @click="lens = l; paint()" x-text="l"></button>
+            </template>
+          </div>
+          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="unit treatment">
+            <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
+              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none font-normal px-2" :aria-label="t[2]" :title="t[2]"
+                      :class="mark === t[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                      @click="mark = t[0]; paint()"><i class="ph text-sm" :class="t[1]"></i></button>
+            </template>
+          </div>
+        </div>
       </div>
     </header>
 
