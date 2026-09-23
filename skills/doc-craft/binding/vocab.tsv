@@ -1,0 +1,8 @@
+label	side	gloss
+WHAT	declaration	a rule, a fact of the system, a value it may hold
+HOW	declaration	syntax, a procedure, an invocation
+WHY	hinge	the reason behind the rule
+PROV	explanation	when it changed, what it replaced, what failed
+EVID	explanation	a measurement, a probe, an observation
+NAV	apparatus	a pointer to the document or gate that owns something
+META	apparatus	a statement about this document

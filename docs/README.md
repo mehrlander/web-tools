@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-11 by a skill, 29 by a page or component. The remaining 29 are
+10 by a skill, 30 by a page or component. The remaining 30 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -28,6 +28,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
+- [`annotation.md`](annotation.md) — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
 - [`aims-reading.csv`](aims-reading.csv) — the guided reading list Docs/Purpose offers a new reader
 - [`aims.json`](aims.json) — the mission sentence the estate's material serves; its goals and reading list moved to the two aims CSVs
@@ -88,7 +89,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`chat-results.md`](envelopes/chat-results.md) — the chat-results envelope contract
 - [`data-view.md`](envelopes/data-view.md) *(orphan)* — the data-view envelope contract
 - [`shorter.md`](envelopes/shorter.md) — the shorter envelope contract: a document and a shortening to adjudicate
-- [`surface.md`](envelopes/surface.md) — the surface format contract
+- [`surface.md`](envelopes/surface.md) *(orphan)* — the surface format contract
 - [`workbook-extract.md`](envelopes/workbook-extract.md) *(orphan)* — the workbook-extract envelope contract: sheet readings and individual modeled objects
 - [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 

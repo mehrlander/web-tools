@@ -41,7 +41,7 @@ test('CLAUDE.md delegates the showing material to the mechanisms table and the f
 // If this fails, see docs/CONVENTIONS.md ("Prose that describes state is
 // unimplemented"). Look to trim redundant state details, enforced rules, or
 // duplicated content. Material could also be moved. Sessions load this every
-// turn, so use the skills/state-the-rule pass.
+// turn, so use the doc-craft annotation pass.
 //
 // Raising the limit requires user approval.
 const LIMIT = 1600;

@@ -1,6 +1,6 @@
 // lib/kits/standoff.js — the standoff's rules as a browser runs them.
 //
-// skills/state-the-rule/ops.py is the same rules in Python and is the authority
+// scripts/annotate/ops.py is the same rules in Python and is the authority
 // that writes; tools/render/scenarios/audit-edit.mjs diffs the two over one
 // patch end to end. What is held here is the half a comparison cannot show: the
 // refusals. A patch that half-applies, a label off the vocabulary, a merge that
@@ -363,7 +363,7 @@ test('a patch converts its offsets and leaves an insertion alone', () => {
 });
 
 // ── THE PROJECTION, AGAINST THE PYTHON THAT OWNS IT ──────────────────────────
-// materialize() and skills/state-the-rule/materialize.py are the same edit in
+// materialize() and scripts/annotate/materialize.py are the same edit in
 // two languages, so the assertion is byte equality on the projected document
 // and key equality on the account, over fixtures covering every shape that
 // executes: a DROP, a head insertion anchored to nothing, a block insertion
@@ -395,7 +395,7 @@ function viaPython(so, text) {
     writeFileSync(path.join(dir, 'so.json'), JSON.stringify(so));
     writeFileSync(path.join(dir, 'doc.md'), text);
     const json = execFileSync('python3',
-      [path.join(repoRoot, 'skills/state-the-rule/materialize.py'),
+      [path.join(repoRoot, 'scripts/annotate/materialize.py'),
        path.join(dir, 'so.json'), path.join(dir, 'doc.md'),
        '--json', '--out', path.join(dir, 'out.md')],
       { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -493,7 +493,7 @@ test('merge and the Python that owns it agree on both sides', () => {
       writeFileSync(path.join(dir, 'doc.md'), DOC);
       writeFileSync(path.join(dir, 'patch.json'),
         JSON.stringify([{ op: 'merge', uid: 'u-001', keep }]));
-      execFileSync('python3', [path.join(repoRoot, 'skills/state-the-rule/ops.py'),
+      execFileSync('python3', [path.join(repoRoot, 'scripts/annotate/ops.py'),
                                path.join(dir, 'so.json'), path.join(dir, 'patch.json'),
                                path.join(dir, 'doc.md'), '--write'],
                    { cwd: repoRoot, stdio: ['ignore', 'ignore', 'pipe'] });

@@ -41,4 +41,6 @@ Before revising, identify the document type:
 2. Report only relocated content and unresolved ambiguities or unverified claims. Omit the report if neither exists.
 3. Do not narrate routine edits.
 
-To separate the binding rules of an executed document (a `CLAUDE.md`, a `SKILL.md`) from the explanation around them, use [state-the-rule](../state-the-rule/SKILL.md), which checks the cut mechanically.
+## Annotated view
+
+When the user asks what a document holds or asks for an audited cut, annotate it with [`docs/annotation.md`](https://github.com/mehrlander/web-tools/blob/main/docs/annotation.md) and hand over the view before rewriting. For an instruction file, use [`binding/vocab.tsv`](binding/vocab.tsv) and log the run in [`binding/runs.csv`](binding/runs.csv). A reason that names a condition, threshold, or exception belongs in the rule; otherwise it is only a reason.
