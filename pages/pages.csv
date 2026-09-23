@@ -48,6 +48,7 @@ drop,pages/drop/,at-file-nav,Path-following mention picker,drop/at-file-nav.html
 drop,pages/drop/,cm6-editor,Literate Solo Editor,drop/cm6-editor.html,thumbs/drop/cm6-editor.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/cm6-editor.html,
 drop,pages/drop/,diff-tool,Legislative Diff Tool,drop/diff-tool.html,thumbs/drop/diff-tool.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/diff-tool.html,
 drop,pages/drop/,gist-editor,Gist Editor,drop/gist-editor.html,thumbs/drop/gist-editor.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/gist-editor.html,
+drop,pages/drop/,json-lens,JSON Lens,drop/json-lens.html,thumbs/drop/json-lens.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-lens.html,
 drop,pages/drop/,json-table-tree,JSON Table Tree,drop/json-table-tree.html,thumbs/drop/json-table-tree.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-table-tree.html,
 drop,pages/drop/,json-viewers,JSON Viewers Gallery,drop/json-viewers.html,thumbs/drop/json-viewers.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-viewers.html,
 drop,pages/drop/,live-docs,Living Documentation — daisyUI,drop/live-docs.html,thumbs/drop/live-docs.png,https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs.html,
