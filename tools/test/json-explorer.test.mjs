@@ -151,15 +151,16 @@ test('JsonExplorer search filters and highlights matching nodes', () => {
   explorer.destroy();
 });
 
-test('JsonExplorer Schema view renders metric cards and collections', () => {
+test('JsonExplorer Schema view renders a one-line summary and collections', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
     data: sampleSession,
     mode: 'schema',
   });
 
-  const cards = container.querySelectorAll('.p-3.bg-base-200\\/50');
-  assert.equal(cards.length, 4, '4 metric cards rendered');
+  const summary = container.querySelector('[data-schema-summary]');
+  assert.ok(summary, 'summary line rendered');
+  assert.match(summary.textContent, /nodes · depth \d+ · \d+ collections?$/);
 
   const schemaTables = container.querySelectorAll('table');
   assert.ok(schemaTables.length >= 2, 'top keys and collection schema tables rendered');
