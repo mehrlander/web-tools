@@ -14,12 +14,11 @@
      children; a child exists only once its parent is open. -->
 <template id="node-tpl">
   <div class="min-w-0">
-    <div class="flex items-baseline gap-1.5 py-0.5 pr-2 rounded cursor-pointer hover:bg-base-200 whitespace-nowrap"
-         :class="isSel() && 'bg-base-200'" @click="toggle()">
+    <div class="group flex items-center gap-1.5 pr-1 rounded cursor-pointer hover:bg-base-200 whitespace-nowrap" x-show="!bare" @click="toggle()">
       <i class="ph ph-caret-right text-xs shrink-0 transition-transform" :class="[open && 'rotate-90', leaf && 'invisible']"></i>
       <span class="font-mono shrink-0" :class="typeof k === 'number' ? 'text-base-content/40' : 'text-base-content/80'" x-show="k !== null" x-text="k"></span>
       <span class="text-base-content/40 shrink-0" x-show="k !== null">:</span>
-      <span class="truncate"><template x-for="(s, n) in (open ? head : summary)" :key="n"><span :class="s.c" x-text="s.t"></span></template></span>
+      <span class="truncate min-w-0"><template x-for="(s, n) in (open ? head : summary)" :key="n"><span :class="s.c" x-text="s.t"></span></template></span>
       <template x-if="open && shape">
         <span class="flex items-center gap-1 shrink-0 text-xs text-base-content/50">
           <span x-text="shape.uniform ? 'same shape' : shape.loose ? 'varied' : 'ragged'"></span>
@@ -28,10 +27,12 @@
           </button>
         </span>
       </template>
+      <button class="btn btn-ghost btn-xs btn-square shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-40"
+              @click.stop="menu()" aria-label="Copy path or value"><i class="ph ph-dots-three text-base"></i></button>
     </div>
 
     <template x-if="open && !leaf">
-      <div class="ml-1.5 pl-3 border-l border-base-300">
+      <div :class="!bare && 'ml-1.5 pl-3 border-l border-base-300'">
 
         <template x-if="shape && asTable">
           <div>
@@ -43,7 +44,6 @@
                     <template x-for="col in shape.cols" :key="col.k">
                       <th class="cursor-pointer select-none whitespace-nowrap" :class="col.num && 'text-right'" @click="sortBy(col.k)">
                         <span x-text="col.k"></span>
-                        <span class="font-normal text-base-content/40" x-show="col.n < shape.n" x-text="`${col.n}/${shape.n}`"></span>
                         <i class="ph text-xs" :class="sortK !== col.k ? 'invisible ph-caret-down' : sortDir > 0 ? 'ph-caret-up' : 'ph-caret-down'"></i>
                       </th>
                     </template>
@@ -52,10 +52,10 @@
                 <template x-for="r in rows" :key="r.i">
                   <tbody x-data="{ ex: null }">
                     <tr class="hover:bg-base-200" :class="ex !== null && 'bg-base-200'">
-                      <td class="font-mono text-base-content/40 cursor-pointer" @click="ex = ex === '#' ? null : '#'; select([...path, r.i])" x-text="r.i"></td>
+                      <td class="font-mono text-base-content/40 cursor-pointer" @click="ex = ex === '#' ? null : '#'" x-text="r.i"></td>
                       <template x-for="col in shape.cols" :key="col.k">
                         <td class="whitespace-nowrap" :class="[col.num && 'text-right', expandable(r.v, col.k) && 'cursor-pointer']"
-                            @click="select([...path, r.i, col.k]); if (expandable(r.v, col.k)) ex = ex === col.k ? null : col.k">
+                            @click="if (expandable(r.v, col.k)) ex = ex === col.k ? null : col.k">
                           <div class="max-w-64 truncate"><template x-for="(s, n) in cell(r.v, col.k)" :key="n"><span :class="[s.c, ex === col.k && 'underline']" x-text="s.t"></span></template></div>
                         </td>
                       </template>
@@ -90,47 +90,72 @@
   </div>
 </template>
 
-<div x-data="app()" class="fixed inset-0 grid grid-rows-[auto_1fr_auto] min-h-0">
-  <header class="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-base-300">
-    <span class="font-semibold">JSON table tree</span>
-    <select class="select select-sm w-auto" x-model="sample" @change="loadSample()">
-      <template x-for="(s, key) in SAMPLES" :key="key"><option :value="key" x-text="s.label"></option></template>
-    </select>
-    <button class="btn btn-sm" @click="$refs.paste.showModal()"><i class="ph ph-clipboard-text"></i> Paste</button>
-    <form class="join" @submit.prevent="loadUrl()">
-      <input class="input input-sm join-item w-56 sm:w-80" x-model="url" placeholder="https://…" aria-label="JSON URL">
-      <button class="btn btn-sm join-item" :disabled="busy"><i class="ph ph-download-simple"></i> Load</button>
-    </form>
-    <span class="text-xs text-error" x-show="err" x-text="err"></span>
+<div x-data="app()" class="fixed inset-0 grid grid-rows-[auto_1fr] min-h-0">
+  <header class="flex items-center gap-3 px-3 py-2 border-b border-base-300 min-w-0">
+    <span class="font-semibold shrink-0">JSON table tree</span>
+    <details class="dropdown" x-ref="src">
+      <summary class="btn btn-sm gap-1"><span x-text="source"></span><i class="ph ph-caret-down text-xs"></i></summary>
+      <ul class="dropdown-content menu bg-base-100 rounded-box shadow-lg border border-base-300 z-20 w-52 p-1 mt-1">
+        <template x-for="(s, key) in SAMPLES" :key="key">
+          <li><a @click="loadSample(key)" x-text="s.label"></a></li>
+        </template>
+        <li class="menu-title pt-2">Your data</li>
+        <li><a @click="$refs.src.open = false; $refs.paste.showModal()"><i class="ph ph-clipboard-text"></i> Paste JSON…</a></li>
+        <li><a @click="$refs.src.open = false; $refs.fetch.showModal()"><i class="ph ph-globe-simple"></i> From URL…</a></li>
+      </ul>
+    </details>
+    <span class="text-sm text-error truncate" x-show="err" x-text="err"></span>
   </header>
 
   <main class="overflow-auto min-h-0 p-2 text-sm">
     <template x-for="v in [rev]" :key="v">
-      <div x-data="node(window.DOC, null, [], 0, true)" x-html="TPL"></div>
+      <div x-data="node(window.DOC, null, [], 0, true, true)" x-html="TPL"></div>
     </template>
   </main>
 
-  <footer class="flex items-center gap-2 px-3 py-1.5 border-t border-base-300 min-w-0 text-xs font-mono">
-    <template x-if="$store.sel.path">
-      <div class="flex items-center gap-2 min-w-0">
-        <button class="btn btn-ghost btn-xs" @click="copy(pointer($store.sel.path))"><i class="ph ph-copy"></i> pointer</button>
-        <span class="truncate" x-text="pointer($store.sel.path) || '/'"></span>
-        <button class="btn btn-ghost btn-xs" @click="copy(accessor($store.sel.path))"><i class="ph ph-copy"></i> accessor</button>
-        <span class="truncate text-base-content/60" x-text="accessor($store.sel.path)"></span>
-        <span class="text-success" x-show="copied">copied</span>
+  <dialog class="modal modal-bottom sm:modal-middle" x-ref="menu">
+    <div class="modal-box">
+      <form method="dialog"><button class="btn btn-ghost btn-sm btn-square absolute right-2 top-2" aria-label="Close"><i class="ph ph-x"></i></button></form>
+      <div class="font-mono text-sm break-all pr-8" x-text="m.path"></div>
+      <div class="flex flex-col mt-3">
+        <button class="btn btn-ghost justify-between" @click="copy('path', m.path)">
+          <span class="flex items-center gap-2"><i class="ph ph-path"></i> Copy path</span>
+          <span class="text-xs text-success" x-show="done === 'path'">copied</span>
+        </button>
+        <button class="btn btn-ghost justify-between" @click="copy('json', m.json)">
+          <span class="flex items-center gap-2"><i class="ph ph-brackets-curly"></i> <span x-text="m.text === null ? 'Copy value as JSON' : 'Copy JSON'"></span></span>
+          <span class="text-xs" :class="done === 'json' ? 'text-success' : 'text-base-content/50'" x-text="done === 'json' ? 'copied' : m.size"></span>
+        </button>
+        <button class="btn btn-ghost justify-between" x-show="m.text !== null" @click="copy('text', m.text)">
+          <span class="flex items-center gap-2"><i class="ph ph-text-aa"></i> Copy text</span>
+          <span class="text-xs text-success" x-show="done === 'text'">copied</span>
+        </button>
       </div>
-    </template>
-  </footer>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
 
   <dialog class="modal" x-ref="paste">
     <div class="modal-box w-11/12 max-w-5xl">
-      <textarea class="textarea w-full h-72 font-mono text-xs" x-model="pasted" placeholder="{ … }"></textarea>
+      <textarea class="textarea w-full h-72 font-mono text-xs" x-model="pasted" placeholder="{ … }" aria-label="JSON to show"></textarea>
       <div class="flex items-center gap-2 mt-2">
-        <span class="text-xs text-error flex-1" x-text="pasteErr"></span>
+        <span class="text-sm text-error flex-1" x-text="pasteErr"></span>
         <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
         <button class="btn btn-sm btn-primary" @click="loadPaste()">Show</button>
       </div>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
+  <dialog class="modal" x-ref="fetch">
+    <form class="modal-box flex flex-col gap-2" @submit.prevent="loadUrl()">
+      <input class="input w-full" x-model="url" placeholder="https://…" aria-label="JSON URL">
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-error flex-1" x-text="err"></span>
+        <button type="button" class="btn btn-sm btn-ghost" @click="$refs.fetch.close()">Cancel</button>
+        <button class="btn btn-sm btn-primary" :disabled="busy">Load</button>
+      </div>
+    </form>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>
 </div>
@@ -143,8 +168,8 @@ const STEP = 100;
 // An array of plain objects can always be drawn as a table. It opens as one
 // when the union of the items' keys is not much wider than a typical item;
 // wider than that ("varied"), it opens as a tree and the table is one click
-// away. "Same shape" means every item carries every key; otherwise the header
-// shows how many rows carry each column.
+// away. "Same shape" means every item carries every key, "ragged" that some
+// rows lack some columns.
 const isObj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const shapes = new WeakMap();
 function shapeOf(arr) {
@@ -223,11 +248,12 @@ function cellOf(v) {               // a table cell: never more than a line
 }
 
 // ---- a node ---------------------------------------------------------------
-function node(v, k, path, depth = 0, startOpen = false) {
+function node(v, k, path, depth = 0, startOpen = false, root = false) {
   const t = kind(v);
   const leaf = !(t === 'object' || t === 'array') || (t === 'object' ? !Object.keys(v).length : !v.length);
   return {
     k, path, leaf, depth,
+    bare: root && t === 'object',   // an object root shows its keys, not a line of its own
     open: !leaf && (startOpen || depth < 1 || (depth === 1 && shapeOf(v)?.loose === false)),
     asTable: !shapeOf(v)?.loose, limit: STEP, sortK: null, sortDir: 1,
     get shape() { return shapeOf(v); },
@@ -256,16 +282,15 @@ function node(v, k, path, depth = 0, startOpen = false) {
       return tk === 'object' ? Object.keys(x).length > 0 : tk === 'array' ? x.length > 0 : tk === 'string' && x.length > 60;
     },
     sortBy(key) { this.sortDir = this.sortK === key ? -this.sortDir : 1; this.sortK = key; },
-    toggle() { if (!leaf) this.open = !this.open; this.select(path); },
-    select(p) { Alpine.store('sel').path = p; },
-    isSel() { const s = Alpine.store('sel').path; return !!s && s.length === path.length && s.every((x, i) => x === path[i]); },
+    toggle() { if (!leaf) this.open = !this.open; },
+    menu() { window.openMenu(path, v); },
   };
 }
 
-// ---- paths ----------------------------------------------------------------
-const pointer = p => p.map(k => '/' + String(k).replace(/~/g, '~0').replace(/\//g, '~1')).join('');
+// ---- paths and sizes ------------------------------------------------------
 const accessor = p => p.reduce((s, k) => typeof k === 'number' ? `${s}[${k}]`
   : /^[A-Za-z_$][\w$]*$/.test(k) ? `${s}.${k}` : `${s}[${JSON.stringify(k)}]`, 'data');
+const bytes = n => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 
 // ---- samples: offline, deterministic --------------------------------------
 const pick = (a, i) => a[i % a.length];
@@ -318,25 +343,42 @@ const SAMPLES = {
 
 window.DOC = SAMPLES.launches.make();
 
-document.addEventListener('alpine:init', () => Alpine.store('sel', { path: null }));
-
 function app() {
   return {
-    rev: 0, sample: 'launches', url: 'https://api.spacexdata.com/v4/launches', busy: false, err: '',
-    pasted: '', pasteErr: '', copied: false,
-    show(d) { window.DOC = d; Alpine.store('sel').path = null; this.err = ''; this.rev++; },
-    loadSample() { this.show(SAMPLES[this.sample].make()); },
+    rev: 0, source: SAMPLES.launches.label, url: 'https://api.spacexdata.com/v4/launches', busy: false, err: '',
+    pasted: '', pasteErr: '',
+    m: { path: '', json: '', text: null, size: '' }, done: null,
+    init() {
+      // A node hands over its path and raw value; only strings enter reactive state.
+      window.openMenu = (p, v) => {
+        const json = JSON.stringify(v, null, 2) ?? 'null';
+        this.m = { path: accessor(p), json, text: typeof v === 'string' ? v : null, size: bytes(json.length) };
+        this.done = null;
+        this.$refs.menu.showModal();
+      };
+    },
+    show(d, label) { window.DOC = d; this.source = label; this.err = ''; this.rev++; },
+    loadSample(key) { this.$refs.src.open = false; this.show(SAMPLES[key].make(), SAMPLES[key].label); },
     loadPaste() {
-      try { this.show(JSON.parse(this.pasted)); this.pasteErr = ''; this.$refs.paste.close(); }
+      try { this.show(JSON.parse(this.pasted), 'Pasted JSON'); this.pasteErr = ''; this.$refs.paste.close(); }
       catch (e) { this.pasteErr = e.message; }
     },
     async loadUrl() {
-      this.busy = true;
-      try { const r = await fetch(this.url); if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); this.show(await r.json()); }
-      catch (e) { this.err = e.message; }
+      this.busy = true; this.err = '';
+      try {
+        const r = await fetch(this.url);
+        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+        this.show(await r.json(), new URL(this.url).hostname);
+        this.$refs.fetch.close();
+      } catch (e) { this.err = e.message; }
       this.busy = false;
     },
-    copy(s) { navigator.clipboard?.writeText(s).then(() => { this.copied = true; setTimeout(() => this.copied = false, 1200); }); },
+    copy(what, s) {
+      navigator.clipboard?.writeText(s).then(() => {
+        this.done = what;
+        setTimeout(() => this.$refs.menu.close(), 600);
+      });
+    },
   };
 }
 </script>
