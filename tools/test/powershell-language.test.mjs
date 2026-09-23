@@ -158,6 +158,26 @@ test('XAML inspection supports multiline tags, multiple tags per line, quotes, c
   assert.deepEqual(result.controls.map(c => [c.name, c.type, c.line]), [['MainWindow', 'Window', 5], ['SaveButton', 'Button', 7], ['Search', 'TextBox', 9], ['Status', 'TextBlock', 9]]);
   assert.deepEqual(result.resources.map(r => [r.name, r.kind]), [['AccentBrush', 'dynamic'], ['TextBrush', 'static'], ['AccentBrush', 'definition']]);
   assert.deepEqual(result.references, [{ name: 'OnSave', kind: 'handler', line: 8, detail: 'Click' }]);
+  assert.deepEqual(result.symbols.map(s => [s.name, s.kind, s.line]), [
+    ['MainWindow', 'control', 5], ['SaveButton', 'control', 7], ['AccentBrush', 'DynamicResource', 8], ['Search', 'control', 9], ['Status', 'control', 9], ['TextBrush', 'StaticResource', 9], ['AccentBrush', 'x:Key', 10],
+  ]);
+});
+
+test('the XAML outline lists each resource key once, at its first use, while every occurrence stays in resources', () => {
+  const source = [
+    '<ResourceDictionary>',
+    '  <SolidColorBrush x:Key="PanelBrush" Color="Gray"/>',
+    '  <Style x:Key="Heading"><Setter Property="Foreground" Value="{DynamicResource PanelBrush}"/></Style>',
+    '  <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource PanelBrush}"/>',
+    '</ResourceDictionary>',
+  ].join('\n');
+  const result = inspect(source, 'Theme.xaml');
+  assert.equal(result.resources.filter(r => r.kind === 'dynamic').length, 3);
+  assert.deepEqual(result.symbols, [
+    { name: 'PanelBrush', kind: 'x:Key', line: 2, detail: '' }, { name: 'Heading', kind: 'x:Key', line: 3, detail: '' },
+    { name: 'PanelBrush', kind: 'DynamicResource', line: 3, detail: '3 uses' },
+  ]);
+  assert.deepEqual(inspect('<Grid/>', 'Form.xaml').symbols, []);
 });
 
 test('companion matching requires explicit literal FindName lookups and respects WPF name casing', () => {
