@@ -74,10 +74,13 @@ await tick(6);
 const cards = () => [...window.document.querySelectorAll('[x-data^="fileReview"]')];
 
 test('the branch renders a card per drawn row, from both panels', () => {
-  // Two panels: reviewable files lead in the top pane, and other changed
-  // files follow in the bottom pane.
+  // Two panels, and which tab is up decides whether the first one draws. This
+  // branch carries no pull request, so the Guide tab is not drawn and Files is
+  // the only tab there is: the list draws, and its one open group mounts a card
+  // for lib/a.js. docs/b.md is reviewable, so its card sits in the strip below
+  // the tabs and mounts whichever tab is up. The list is first in the tree.
   assert.deepEqual(cards().map(el => Alpine.$data(el).path),
-    ['docs/b.md', 'lib/a.js']);
+    ['lib/a.js', 'docs/b.md']);
 });
 
 test('each card gets the repo as a string, not the repo data provider', () => {

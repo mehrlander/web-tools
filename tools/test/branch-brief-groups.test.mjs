@@ -121,33 +121,31 @@ test('the two sections partition the branch, and each heading counts its own', (
 const sectionOrder = () => {
   const sections = window.document.querySelector('#m > div').lastElementChild;
   const kids = [...sections.children];
-  const revStrip = window.document.querySelector('[x-ref="revStrip"]');
-  const codeStrip = window.document.querySelector('[x-ref="codeStrip"]');
-  const top = kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="revStrip"]'));
-  const code = kids.findIndex(c => c.matches('[data-code-section]') || c.querySelector('[x-ref="codeStrip"]'));
+  const topStrip = window.document.querySelector('[x-ref="topStrip"]');
+  const filesEl = window.document.querySelector('[x-ref="files"]');
+  const guideEl = window.document.querySelector('[x-ref="guide"]');
+  const top = kids.findIndex(c => c.matches('[data-top-section]') || c.querySelector('[x-ref="topStrip"]'));
   const topSec = kids[top];
-  const codeSec = kids[code];
-  const rowEl = topSec?.firstElementChild;
+  const rowEl = topSec?.querySelector('[role="tablist"]')?.closest('.border-b') || topSec?.firstElementChild;
   return { kids,
            row: top,
            rowEl,
            top,
-           code,
-           topSec,
-           codeSec,
-           revStrip,
-           codeStrip };
+           topStrip,
+           filesBeforeGuide: filesEl && guideEl ? Boolean(filesEl.compareDocumentPosition(guideEl) & 4) : true,
+           rev: kids.findIndex(c => c.querySelector('[x-ref="revStrip"]') || c.matches('[data-rev-section]')) };
 };
 
-test('the page reads reviewable files, then code files', () => {
+test('the page reads files, then the guide, then the documents', () => {
   const o = sectionOrder();
-  assert.ok(o.top >= 0 && o.code >= 0,
+  assert.ok(o.top >= 0 && o.rev >= 0,
     'all sections are children of the one scroller');
   const topSec = o.kids[o.top];
   const headerCap = topSec.firstElementChild;
-  assert.ok(headerCap && o.revStrip && Boolean(headerCap.compareDocumentPosition(o.revStrip) & 4),
+  assert.ok(headerCap && o.topStrip && Boolean(headerCap.compareDocumentPosition(o.topStrip) & 4),
     'the heading row heads the list it belongs to');
-  assert.ok(o.code > o.top, 'and the code files follow reviewable files');
+  assert.ok(o.filesBeforeGuide, 'the list leads, shut, so it costs a row not a screen');
+  assert.ok(o.rev > o.top, 'and the documents are last');
 });
 
 // ── The vertical rhythm ─────────────────────────────────────────────────────
@@ -208,33 +206,73 @@ test('the content containers share one corner, and grouping is spacing', () => {
       'no line of the identity block spaces itself: ' + line.className);
 });
 
-// TWO SWIPE CONTAINERS: The top container holds reviewable files (.md, .html)
-// and the bottom container holds other changed files (listFiles).
-test('reviewable files and code files are two swipe containers', async () => {
-  await tick(6);
-  const top = window.document.querySelector('[data-top-section]');
-  const code = window.document.querySelector('[data-code-section]');
-  assert.ok(top && code, 'both containers exist');
-  const revStrip = top.querySelector('[x-ref="revStrip"]');
-  const codeStrip = code.querySelector('[x-ref="codeStrip"]');
-  assert.ok(revStrip && codeStrip, 'both strips exist');
-  assert.match(top.textContent, /Reviewable/);
-  assert.match(code.textContent, /Files/);
+// TWO TABS, NOT A TOGGLE AND A JUMP. The row carried a caret that opened the
+// file list in place and a marker that scrolled to the guide: two gestures for
+// two things that are alternatives. The arrow on that marker pointed the wrong
+// way once per reorder, twice in two days, until a gate derived its direction;
+// it is gone with the marker, since a tab points at nothing.
+test('files and the guide are two tabs over one pane', async () => {
+  await tick(6);   // earlier tests mutate brief; let the pane's x-show settle
+  const o = sectionOrder();
+  const row = o.rowEl;
+  const tabs = [...row.querySelectorAll('[role="tab"]')];
+  assert.equal(tabs.length, 2, 'Files and Guide');
+  assert.deepEqual(tabs.map(t => t.textContent.replace(/\s+/g, ' ').trim().split(' ')[0]),
+    ['Files', 'Guide']);
+  assert.equal(row.querySelectorAll('.ph-arrow-up, .ph-arrow-down').length, 0,
+    'and no arrow, since a tab points at nothing');
+  const tablist = row.querySelector('[role="tablist"]');
+  assert.equal(tablist.querySelectorAll('.ph-caret-right, .ph-caret-down').length, 0,
+    'and no caret on the tabs, since there is no shut');
+
+  // ONE PANE, AND EXACTLY ONE OF THEM IN IT.
+  const shown = (el) => el && el.style.display !== 'none';
+  const files = window.document.querySelector('[x-ref="files"]');
+  const guide = window.document.querySelector('[x-ref="guide"]');
+  assert.equal([files, guide].filter(shown).length, 1, 'one of the two, never both');
+  assert.equal(shown(files), data.topPane === 'files');
+  assert.equal(shown(guide), data.topPane === 'guide');
 });
 
-test('the top container (reviewable) and bottom container (code) scroll without clips or expander buttons', () => {
-  const topCard = window.document.querySelector('[data-top-section] [data-rev] .rounded-lg');
-  assert.ok(topCard, 'a presented reviewable file is found');
-  assert.match(topCard.className, /overflow-y-auto/, 'and scrolls inside its card');
+// The default is the branch's, not a preference: a branch with no guide has one
+// tab, so Files is what the pane can show.
+test('with no guide there is one tab and it is the one showing', () => {
+  assert.equal(data.hasGuide, false, 'this fixture serves no pull request');
+  assert.equal(data.topPane, 'files');
+  const row = sectionOrder().rowEl;
+  const guideTab = [...row.querySelectorAll('[role="tab"]')]
+    .find(t => /Guide/.test(t.textContent));
+  assert.equal(guideTab.style.display, 'none', 'the Guide tab is not offered');
+});
 
-  const codeCard = window.document.querySelector('[data-code-section] [data-code] .rounded-lg');
-  assert.ok(codeCard, 'a presented code file is found');
-  assert.match(codeCard.className, /overflow-y-auto/, 'and scrolls inside its card');
+test('the top container (guide) and bottom container (panel) scroll without clips or expander buttons', () => {
+  const guide = window.document.querySelector('[x-ref="guide"]');
+  const guideScroller = guide.querySelector('.overflow-y-auto');
+  assert.ok(guideScroller, 'guide scroller found');
+  assert.match(guideScroller.className, /overflow-y-auto/, 'the guide scrolls in place');
 
-  // Neither top nor bottom carries more/less expander buttons
-  const buttons = [...window.document.querySelectorAll('[data-top-section] button, [data-code-section] button')]
+  const panel = window.document.querySelector('[data-rev] .rounded-lg');
+  assert.ok(panel, 'a presented file is found');
+  assert.match(panel.className, /overflow-y-auto/, 'and scrolls inside its container');
+
+  // Nothing pins the vertical overscroll, so a drag that reaches the end of the
+  // guide carries on down the page instead of stopping dead.
+  assert.ok(!/overscroll-y-contain|overscroll-contain/.test(guideScroller.className),
+    'and a drag past its end chains to the page');
+
+  // Neither guide nor panel carries more/less expander buttons
+  const buttons = [...window.document.querySelectorAll('[data-rev] button, [x-ref="guide"] button')]
     .filter(b => /more|less/.test(b.textContent));
-  assert.equal(buttons.length, 0, 'no more/less buttons on panels');
+  assert.equal(buttons.length, 0, 'no more/less buttons on guide or panel');
+
+  // The clip helper stubs exist and remain functional if called.
+  data.clipOpen = {};
+  assert.equal(data.clipExpanded('guide'), false);
+  data.toggleClip('guide');
+  assert.equal(data.clipExpanded('guide'), true, 'the guide expands on its own key');
+  assert.equal(data.clipExpanded('docs/b.md'), false, 'without touching a panel\'s');
+  data.toggleClip('guide');
+  assert.equal(data.clipExpanded('guide'), false, 'and collapses again');
 });
 
 // The other half of that: the card inside a panel must not bound itself either,
@@ -387,11 +425,24 @@ test('with no page and no doc the list opens itself', async () => {
   } finally { data.brief = { ...data.brief, files: keep }; await tick(2); }
 });
 
-test('reviewable files and code files mount their respective fileReview cards', async () => {
-  const revCards = [...window.document.querySelectorAll('[data-top-section] [x-data^="fileReview"]')];
-  const codeCards = [...window.document.querySelectorAll('[data-code-section] [x-data^="fileReview"]')];
-  assert.equal(revCards.length, data.reviewableFiles.length, 'reviewable strip mounts all reviewable files');
-  assert.equal(codeCards.length, data.listFiles.length, 'code strip mounts all code files');
+test('a shut list and a collapsed group both mount nothing until opened', async () => {
+  // SHUT MEANS UNMOUNTED at both levels, and x-show is not enough for either:
+  // it leaves the rows in the DOM, so a collapsed list still built a
+  // fileReview component per row and paid for every one (measured 2026-09-05,
+  // 23 cards on a page drawing three). The list answers with displayGroups
+  // returning nothing; a group inside it answers with x-if, as it always did.
+  const cards = () => [...window.document.querySelectorAll('[x-data^="fileReview"]')].length;
+  await withGuide(async () => {
+    assert.equal(cards(), 1, 'on the Guide tab, the reviewable section alone');
+    data.setPane('files');
+    await tick(4);
+    assert.equal(cards(), 2, 'the list opens on its authored group; mechanical stays shut');
+    data.toggleGroup('mechanical');
+    await tick(3);
+    assert.equal(cards(), 3);
+    data.groupState = {};   // not toggle-back: that leaves an explicit false behind
+    await tick(2);
+  });
 });
 
 // The registry read is memoized per repo@ref for the swiper's sake (stepping
@@ -492,16 +543,22 @@ test('standalone: the document is left alone, and the lock is roomy-only', () =>
   // gets its cap back with the pane it defends against.
   const top = root.querySelector('[data-top-section]');
   assert.ok(classes(top).has(R('flex-1')) && classes(top).has(R('min-h-0')),
-    'the top section takes half: ' + top.className);
-  const code = root.querySelector('[data-code-section]');
-  assert.ok(code, 'code section found');
+    'the top section takes whatever the others leave: ' + top.className);
+  const guide = root.querySelector('[x-ref="guide"]');
+  const guideScroller = guide.querySelector('.overflow-y-auto');
+  assert.ok(guideScroller, 'guide scroller found');
+  assert.match(guideScroller.className, /overflow-y-auto/, 'scrolling what does not fit');
+  assert.doesNotMatch(guideScroller.className, /max-h-\[18rem\]/, 'no 18rem clip on guide');
 
-  // 50/50 SPLIT: the top section (reviewable files) and bottom section (code files)
-  // each take basis-1/2 and max-h-[50%].
+  // 50/50 SPLIT: the top pane (files and guide) and bottom section (reviewable
+  // files) each take basis-1/2 and max-h-[50%] so the top pane sticks to the
+  // top half regardless of whether reviewables exist.
   assert.match(top.getAttribute(':class') || '', /roomy:basis-1\/2/);
   assert.match(top.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
-  assert.match(code.getAttribute(':class') || '', /roomy:basis-1\/2/);
-  assert.match(code.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
+  const rev = root.querySelector('[data-rev-section]');
+  assert.ok(rev, 'reviewable section found');
+  assert.match(rev.getAttribute(':class') || '', /roomy:basis-1\/2/);
+  assert.match(rev.getAttribute(':class') || '', /roomy:max-h-\[50%\]/);
 });
 
 test('with no reviewable files the bottom half renders a placeholder, preserving the 50/50 split', async () => {
@@ -764,8 +821,12 @@ test('past the cap the list draws its budget and offers the rest', async () => {
 test('a modest branch is drawn whole, so the cap is invisible where it costs nothing', async () => {
   assert.equal(data.brief.files.length, 3);
   assert.equal(data.hiddenFileCount, 0);
-  assert.equal(data.filesShown, true, 'the list is what the pane shows');
+  assert.equal(data.filesShown, true, 'one tab, so the list is what the pane shows');
   assert.deepEqual(j(data.displayGroups.map(g => g.files.length)), [1, 1]);
+  return withGuide(() => {
+    assert.equal(data.filesShown, false, 'and on the other tab it draws nothing at all');
+    assert.deepEqual(j(data.displayGroups.map(g => g.files.length)), []);
+  });
 });
 
 // The marker on the heading row is the only thing at the top saying the guide
