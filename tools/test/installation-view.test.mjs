@@ -38,10 +38,13 @@ const files = {
     doc: `${P}/docs/INSTALLATION.md`,
     local_areas: [{ name: 'Leg', status: 'unresolved', shape: 'reportedly bill collections' },
                   { name: 'ISELog', status: 'local-only', shape: 'ZIP snapshots of editor text' }],
+    pending_adoption: [{ path: 'app/Modules/ExcelService/ExcelSnag.ps1', since: '2026-09-14', transfer: 'new',
+                         limit: 'scope resolution has never run against live Excel COM' }],
   }),
   [`${P}/data/observations.csv`]: 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n',
   [`${P}/app/Profile.ps1`]: 'profile\n',
   [`${P}/app/Modules/Forms/Forms.psm1`]: 'function Import-Form {}\n',
+  [`${P}/app/Modules/ExcelService/ExcelSnag.ps1`]: 'function Copy-Selection {}\n',
   [`${P}/app/Forms/Bookmarks/Bookmarks.ps1`]: 'controller\n',
   [`${P}/app/Forms/Bookmarks/Bookmarks.xaml`]: '<Window/>\n',
   [`${P}/app/Scripts/Demo.ps1`]: 'demo\n',
@@ -126,9 +129,9 @@ const FORMS = `${P}/app/Modules/Forms/Forms.psm1`;
 test('mounts with the corpus grouped by area and the local areas beside it', () => {
   assert.deepEqual(problems, []);
   assert.equal(data.err, '');
-  assert.equal(data.items.length, 5, 'docs/ is not installation material');
+  assert.equal(data.items.length, 6, 'docs/ is not installation material');
   assert.deepEqual([...data.groups.map(g => g.area)], ['Profile', 'Modules', 'Forms', 'Scripts']);
-  assert.equal(q('[data-installation] section button.text-left').length, 5, 'one row per file');
+  assert.equal(q('[data-installation] section button.text-left').length, 6, 'one row per file');
   const text = el.textContent;
   assert.match(text, /Local areas/); assert.match(text, /Leg/); assert.match(text, /local only/); assert.match(text, /unresolved/);
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
@@ -138,7 +141,28 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
   assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
     'a title is the label of an icon-only control, never a sentence of explanation');
-  assert.match(data.headline, /^aaaaaaa · 5 files · 4 local state unknown · 1 repository only$/);
+  assert.match(data.headline, /^aaaaaaa · 6 files · 4 local state unknown · 1 repository ahead, not yet placed · 1 repository only$/);
+  assert.equal(puts.length, 0);
+});
+
+test('a file the repository holds ahead of the work computer says so, with its limit, until a row lands', async () => {
+  const SNAG = `${P}/app/Modules/ExcelService/ExcelSnag.ps1`;
+  assert.equal(data.stateOf(SNAG).state, 'ahead');
+  assert.equal(data.stateOf(SNAG).label, 'repository ahead, not yet placed (new file)');
+  data.select(SNAG); await settle();
+  const pane = el.querySelector('[data-ahead]');
+  assert.ok(pane, 'the entry renders on the selected file');
+  assert.match(pane.textContent, /since 2026-09-14, no copy at the destination yet/);
+  assert.match(pane.textContent, /Not yet exercised: scope resolution has never run against live Excel COM/);
+  assert.match(el.textContent, /never, and the repository is ahead of the work computer/);
+  // The filter narrows to the ahead files, like any other state.
+  data.filter = 'ahead'; await settle();
+  assert.equal(q('[data-installation] section button.text-left').length, 1);
+  data.filter = ''; await settle();
+  // The confirm text says the entry ends with this row; nothing is written yet.
+  await data.askInstalled(); await settle();
+  assert.match(data.pending.why, /pending_adoption entry/);
+  data.pending = null; data.select(''); await settle();
   assert.equal(puts.length, 0);
 });
 

@@ -163,7 +163,38 @@ test('a form\'s controller and XAML read apart, and repository-only material say
   assert.equal(K.derive(script, [rowOf({ path: script.path, blobSha: sha40('8') })]).state, 'repo-only',
     'a row on a file with no destination does not make it installed material');
   assert.deepEqual(K.summary([K.derive(ctl, rows), K.derive(xaml, rows), K.derive(script, [])]),
-    { unknown: 1, reported: 1, verified: 0, changed: 0, differs: 0, 'differs-changed': 0, 'repo-only': 1 });
+    { unknown: 1, ahead: 0, reported: 1, verified: 0, changed: 0, differs: 0, 'differs-changed': 0, 'repo-only': 1 });
+});
+
+test('a pending_adoption entry reads as ahead until the first observation row lands', () => {
+  const mf = K.manifest(JSON.stringify({ ...JSON.parse(MANIFEST), pending_adoption: [
+    { path: 'app/Modules/Forms/Forms.psm1', since: '2026-09-23', transfer: 'changed', limit: 'never loaded since the change' },
+    { path: 'app/Forms/Bookmarks/Bookmarks.xaml', since: '2026-09-23', transfer: 'new', limit: 'drawn, never opened' },
+    { path: 'app/Scripts/Demos/Demo.ps1', since: '2026-09-23', transfer: 'new', limit: 'repository-retained; the check refuses this' },
+    { limit: 'no path' },
+  ] }));
+  assert.equal(mf.pending.length, 3, 'an entry without a path is dropped');
+  const inv = K.inventory({ tree, manifest: mf, projectPath: P });
+  const forms = inv.find(it => it.rel === 'app/Modules/Forms/Forms.psm1');
+  const xaml = inv.find(it => it.rel === 'app/Forms/Bookmarks/Bookmarks.xaml');
+  const ctl = inv.find(it => it.rel === 'app/Forms/Bookmarks/Bookmarks.ps1');
+  const demo = inv.find(it => it.rel === 'app/Scripts/Demos/Demo.ps1');
+  assert.equal(forms.ahead.limit, 'never loaded since the change');
+  assert.equal(ctl.ahead, null, 'the entry names one file, not its companion');
+  // Ahead, with the transfer on the label so the list says which kind.
+  assert.equal(K.derive(forms, []).state, 'ahead');
+  assert.equal(K.derive(forms, []).label, 'repository ahead, not yet placed (changed file)');
+  assert.equal(K.derive(xaml, []).label, 'repository ahead, not yet placed (new file)');
+  assert.equal(K.derive(forms, []).ahead.since, '2026-09-23');
+  assert.equal(K.derive(ctl, []).state, 'unknown', 'a file without an entry keeps the presumption');
+  assert.equal(K.derive(demo, []).state, 'repo-only', 'no destination outranks the entry');
+  // The first row ends the entry's claim: newest evidence wins, as everywhere.
+  const d = K.derive(forms, [rowOf({})]);
+  assert.equal(d.state, 'reported');
+  assert.equal(d.ahead, null);
+  const counts = K.summary([K.derive(forms, []), K.derive(xaml, []), K.derive(ctl, []), K.derive(demo, [])]);
+  assert.equal(counts.ahead, 2);
+  assert.equal(K.STATES.indexOf('ahead'), K.STATES.indexOf('unknown') + 1, 'ahead follows unknown in the headline order');
 });
 
 test('a locally known area is carried as local, never as a repository folder', () => {
