@@ -735,7 +735,7 @@ window.__audit = {
   // not, the split ran through inline markup, which is a finding.
 
   window.auditPage = () => ({
-    a: null, view: 'read', docView: 'read', mark: 'fill', lens: 'label', off: {}, sel: null, selPt: null,
+    a: null, view: 'read', docView: 'read', soView: 'table', hdrH: 0, mark: 'fill', lens: 'label', off: {}, sel: null, selPt: null,
     sections: [], ref: '',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
@@ -766,6 +766,12 @@ window.__audit = {
         if (e.target.closest('[data-uid],[data-ins],[data-edge],[data-panel],dialog,header,button')) return;
         this.sel = null; this.menu = null; this.armed = null; this.paint();
       }, true);
+      // The standoff view fills the viewport under the header and scrolls
+      // inside itself, so it needs the header's height, which wraps on a phone.
+      this.$nextTick(() => {
+        const h = this.$refs.hdr;
+        if (h) new ResizeObserver(() => { this.hdrH = h.offsetHeight; }).observe(h);
+      });
       addEventListener('resize', () => this.placePanel());
       addEventListener('scroll', () => this.placePanel(), true);
       // Pinching and the on-screen keyboard move the visual viewport without
@@ -1004,6 +1010,17 @@ window.__audit = {
       this.armed = null;
       this.paint();
       return true;
+    },
+    // One Rendered/Raw control over two objects. For the document it picks
+    // between the read and source views; for the standoff, table or JSON.
+    get form() {
+      return this.view === 'standoff' ? (this.soView === 'json' ? 'raw' : 'rendered')
+                                      : (this.view === 'source' ? 'raw' : 'rendered');
+    },
+    setForm(f) {
+      if (this.view === 'standoff') { this.soView = f === 'raw' ? 'json' : 'table'; return; }
+      this.view = this.docView = f === 'raw' ? 'source' : 'read';
+      this.paint();
     },
     undo() { if (this.canUndo) this.replay(this.at - 1); },
     // THE SAME STACK AS THE BUTTONS, FROM THE KEYBOARD. Ctrl or Cmd with Z
@@ -1923,7 +1940,7 @@ window.__audit = {
          to a reading column. The figure is one compact line, not stat cards:
          the reading that gives those numbers meaning is one tap away, under
          Reading. -->
-    <header class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b border-base-300">
+    <header x-ref="hdr" class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b border-base-300">
       <div class="px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span class="font-semibold" x-text="a.title"></span>
         <span class="text-xs opacity-60" x-text="so.question"></span>
@@ -1970,8 +1987,18 @@ window.__audit = {
            names, so a label chip is tinted as its units are. Tapping one dims
            its units in place rather than hiding them, which keeps the document
            readable while one category is set aside. -->
-      <div class="px-4 pb-2 flex flex-wrap items-center gap-1" x-show="view !== 'standoff'">
-        <template x-for="k in axis" :key="k">
+      <div class="px-4 pb-2 flex flex-wrap items-center gap-1">
+        <!-- Rendered or raw, for whichever object is on screen: the document as
+             formatted text or markdown, the annotation as a table or its JSON.
+             First on the row, so it stays put when the view changes. -->
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] mr-1" aria-label="shown as">
+          <template x-for="d in [['rendered', 'Rendered'], ['raw', 'Raw']]" :key="d[0]">
+            <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                    :class="form === d[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                    @click="setForm(d[0])" x-text="d[1]"></button>
+          </template>
+        </div>
+        <template x-for="k in (view === 'standoff' ? [] : axis)" :key="k">
           <button class="btn btn-xs gap-1.5 border-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
@@ -1982,16 +2009,9 @@ window.__audit = {
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
         </template>
-        <!-- How the document is shown, what the colour answers, and what the
-             colour is spent on: all three change only the document view. -->
-        <div class="flex items-center gap-1 ml-auto">
-          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="document as">
-            <template x-for="d in [['read', 'Rendered'], ['source', 'Raw']]" :key="d[0]">
-              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
-                      :class="view === d[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                      @click="view = docView = d[0]; paint()" x-text="d[1]"></button>
-            </template>
-          </div>
+        <!-- What the colour answers, and what it is spent on. Both change only
+             the document view. -->
+        <div class="flex items-center gap-1 ml-auto" x-show="view !== 'standoff'">
           <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" x-show="so.verdicts" aria-label="colour by">
             <template x-for="l in ['label', 'verdict']" :key="l">
               <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
@@ -2025,8 +2045,11 @@ window.__audit = {
     <!-- The annotation as the thing it is: rows over spans, and the committed
          bytes underneath. The page never re-derives this; the builder copies
          standoff.json in verbatim, so what is on screen is what is in the file. -->
-    <div class="px-4 py-4" x-show="view==='standoff'" x-cloak>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-3">
+    <!-- Fills the viewport under the header, and the table or the JSON scrolls
+         inside it, so the column headings stay in view. -->
+    <div class="px-4 pt-3 pb-2 flex flex-col" x-show="view==='standoff'" x-cloak
+         :style="`height:calc(100dvh - ${hdrH}px)`">
+      <div class="shrink-0 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-2">
         <span x-text="so.kind"></span>
         <a class="link link-primary" :href="so.target.url" x-text="so.target.path"></a>
         <span x-text="so.target.bytes + ' bytes'"></span>
@@ -2035,8 +2058,8 @@ window.__audit = {
         <a class="link link-secondary" href="#" @click="toShorter($event)"
            x-text="shorterLabel">adjudicate</a>
       </div>
-      <div class="overflow-x-auto">
-        <table class="table table-xs">
+      <div class="flex-1 min-h-0 overflow-auto border border-base-300 rounded" x-show="soView === 'table'">
+        <table class="table table-xs table-pin-rows">
           <thead><tr><th class="text-right">#</th>
                      <th class="text-right">start</th><th class="text-right">end</th>
                      <th>kind</th><th class="text-right">w</th>
@@ -2061,10 +2084,8 @@ window.__audit = {
           </tbody>
         </table>
       </div>
-      <details class="mt-4">
-        <summary class="cursor-pointer text-xs opacity-60">standoff.json, verbatim</summary>
-        <pre class="mt-2 text-xs overflow-x-auto bg-base-200 p-3 rounded" x-text="raw"></pre>
-      </details>
+      <pre class="flex-1 min-h-0 overflow-auto text-xs bg-base-200 p-3 rounded"
+           x-show="soView === 'json'" x-text="raw"></pre>
     </div>
 
     <!-- Above the shared FAB (z-80), which is fixed to this same corner and was
