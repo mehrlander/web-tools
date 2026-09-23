@@ -1,0 +1,115 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Infinite Tree Demo with API Data | id jpy4r0znq8jurdta4qtz v2 -->
+<meta charset="utf-8" />
+<title>Infinite Tree Demo with API Data</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/infinite-tree/1.18.0/infinite-tree.css">
+<style>
+  body {
+    margin: 20px;
+    font-family: system-ui, sans-serif;
+    background: #f7f7f7;
+  }
+  
+  .tree-container {
+    width: 500px;
+    height: 600px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .loading {
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+  }
+
+  .infinite-tree-name {
+    color: #2c3e50;
+  }
+
+  .infinite-tree-node:hover {
+    background: #f0f7ff;
+  }
+</style>
+</head>
+<body>
+
+<h2>File System Directory Structure - JSONPlaceholder API</h2>
+<div class="tree-container">
+  <div id="tree"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/infinite-tree/1.18.0/infinite-tree.min.js"></script>
+<script>
+// Helper function to transform API data into tree nodes
+const transformData = (item, type) => {
+  return {
+    id: item.id.toString(),
+    name: type === 'post' ? item.title : item.name,
+    loadOnDemand: type === 'user',
+    type: type,
+    userId: item.userId || item.id
+  };
+};
+
+// Initialize tree with loading state
+const tree = new InfiniteTree(document.querySelector('#tree'), {
+  loadNodes: (parentNode, done) => {
+    let apiUrl;
+    
+    if (!parentNode) {
+      // Root level - load users
+      apiUrl = 'https://jsonplaceholder.typicode.com/users';
+    } else {
+      // Load posts for selected user
+      apiUrl = `https://jsonplaceholder.typicode.com/posts?userId=${parentNode.userId}`;
+    }
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const nodes = data.map(item => 
+          transformData(item, parentNode ? 'post' : 'user')
+        );
+        done(null, nodes);
+      })
+      .catch(err => {
+        console.error('Failed to load nodes:', err);
+        done(err);
+      });
+  },
+  
+  rowRenderer: function(node, opts) {
+    const icon = node.type === 'user' ? '👤' : '📝';
+    return `
+      <div class="infinite-tree-item" style="margin-left: ${node.state.depth * 18}px">
+        <div class="infinite-tree-node">
+          <span class="infinite-tree-title">
+            ${icon} 
+            <span class="infinite-tree-name">${node.name}</span>
+          </span>
+        </div>
+      </div>
+    `;
+  }
+});
+
+// Event listeners
+tree.on('openNode', (node) => {
+  console.log('Node opened:', node);
+});
+
+tree.on('closeNode', (node) => {
+  console.log('Node closed:', node);
+});
+
+tree.on('selectNode', (node) => {
+  console.log('Selected node:', node);
+});
+
+// Initial load indicator
+document.querySelector('#tree').innerHTML = '<div class="loading">Loading users and posts...</div>';
+</script>
+
+</body></html>

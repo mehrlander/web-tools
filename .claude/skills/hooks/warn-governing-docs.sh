@@ -7,7 +7,7 @@
 # skills trees, and any CLAUDE.md or SKILL.md. Never chron/, tracker/tasks/,
 # blog/, or dump trays, which are written freely by design.
 HOOK_PAYLOAD="$(cat)" python3 <<'PY'
-import csv, fnmatch, json, os, subprocess, sys
+import csv, json, os, re, subprocess, sys
 
 data = json.loads(os.environ.get("HOOK_PAYLOAD") or "{}")
 path = (data.get("tool_input") or {}).get("file_path") or ""
@@ -31,7 +31,13 @@ if reg and os.path.exists(reg):
 if not globs:
     globs = ["docs/**/*.md", "*.md", "skills/**/*.md", ".claude/skills/**/*.md"]
 
-hit = any(fnmatch.fnmatch(rel, g) or fnmatch.fnmatch(rel, g.replace("**/", "")) for g in globs) \
+# `*` stays inside one folder and `**/` spans any number, none included; fnmatch
+# lets `*` cross `/`, so the root-only `*.md` matched every Markdown file.
+def glob_hit(rel, g):
+    rx = re.escape(g).replace(r"\*\*/", "(?:[^/]+/)*").replace(r"\*", "[^/]*")
+    return re.fullmatch(rx, rel) is not None
+
+hit = any(glob_hit(rel, g) for g in globs) \
       or os.path.basename(rel) in ("CLAUDE.md", "SKILL.md")
 if hit:
     print(f"{rel} is documentation ({basis}). Edit it only with the user's specific "

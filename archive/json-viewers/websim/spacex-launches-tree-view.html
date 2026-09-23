@@ -1,0 +1,324 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): SpaceX Launches Tree View | id cepyqj5j4435nxgpgg_r v21 -->
+<html>
+<head>
+  <title>SpaceX Launches Tree View</title>
+  <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.2/dist/full.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.2/jsoneditor.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .fancytree-container {
+      background: transparent !important;
+      border: none !important;
+    }
+    .fancytree-node { 
+      color: inherit !important; 
+    }
+    .fancytree-node:hover { 
+      background: rgba(0,0,0,0.1) !important; 
+    }
+    span.fancytree-node span.fancytree-title { 
+      color: inherit !important; 
+    }
+    .success { 
+      color: #4CAF50; 
+    }
+    .failure { 
+      color: #f44336; 
+    }
+    .jsoneditor { 
+      border: none !important; 
+    }
+    .jsoneditor-menu {
+      background-color: #1d283a !important;
+      border-bottom: none !important;
+    }
+
+    #pathSelector {
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+
+    #pathPills {
+      max-height: 200px;
+      overflow-y: auto;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      margin: 1rem 0;
+      border: none;
+    }
+
+    #tree {
+      background: transparent;
+      padding: 0;
+      box-shadow: none;
+    }
+    .btn.btn-sm {
+      transition: all 0.2s ease;
+    }
+
+    .btn.btn-sm[data-active="true"] {
+      opacity: 1;
+    }
+
+    .btn.btn-sm[data-active="false"] {
+      opacity: 0.7;
+      background-color: transparent;
+    }
+  </style>
+</head>
+<body data-theme="emerald" class="min-h-screen p-4">
+  <div id="pathSelector" class="container mx-auto max-w-full">
+    <h2 class="text-xl font-bold mb-2">SpaceX Data Explorer</h2>
+    <div class="flex gap-2 mb-2 pb-2 border-b border-base-300">
+      <button class="btn btn-sm btn-info" id="typeObject" data-active="true">
+        Objects
+      </button>
+      <button class="btn btn-sm btn-success" id="typeArray" data-active="true">
+        Arrays
+      </button>
+      <button class="btn btn-sm btn-warning" id="typeLeaf" data-active="true">
+        Leaves
+      </button>
+    </div>
+    <div id="pathPills" class="flex flex-wrap gap-1">
+      <!-- Pills will be added here dynamically -->
+    </div>
+    <details>
+      <summary class="cursor-pointer p-2 hover:bg-base-200 rounded-lg transition-colors">
+        View Raw JSON Data
+      </summary>
+      <div id="jsoneditor" class="mt-2 h-[400px]"></div>
+    </details>
+  </div>
+
+  <div id="tree" class="container mx-auto max-w-full mt-8">
+    <div class="loading text-center text-lg">Loading SpaceX Launch Data...</div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38/dist/jquery.fancytree-all-deps.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.2/jsoneditor.min.js"></script>
+
+  <script>
+    $(document).ready(function(){
+      let rawLaunches = [];
+      let tree;
+      let editor;
+      let allPaths = [];
+      let activePaths = new Set();
+
+      // Initialize JSON Editor
+      const container = document.getElementById('jsoneditor');
+      const options = {
+        mode: 'code',
+        modes: ['code', 'view'],
+        onError: function(err) {
+          console.error(err);
+        }
+      };
+      editor = new JSONEditor(container, options);
+
+      // Setup type toggle buttons
+      $('.btn').on('click', function() {
+        const $btn = $(this);
+        $btn.attr('data-active', $btn.attr('data-active') === 'true' ? 'false' : 'true');
+        updateButtonStyle($btn);
+        updatePathSelector();
+      });
+
+      function updateButtonStyle($btn) {
+        if ($btn.attr('data-active') === 'true') {
+          $btn.removeClass('btn-outline');
+        } else {
+          $btn.addClass('btn-outline');
+        }
+      }
+
+      // Fetch data
+      fetch('https://api.spacexdata.com/v4/launches')
+        .then(response => response.json())
+        .then(launches => {
+          rawLaunches = launches;
+          editor.set(launches);
+          initializeTree(processLaunches(launches));
+          extractPaths(launches[0]);
+          updatePathSelector();
+        });
+
+      function extractPaths(obj, prefix = '') {
+        for (const key in obj) {
+          const value = obj[key];
+          const path = prefix ? `${prefix}.${key}` : key;
+          
+          if (value !== null && typeof value === 'object') {
+            if (Array.isArray(value)) {
+              allPaths.push({ path, type: 'array', value });
+            } else {
+              allPaths.push({ path, type: 'object', value });
+            }
+            extractPaths(value, path);
+          } else {
+            allPaths.push({ path, type: 'leaf', value });
+          }
+        }
+      }
+
+      function getBadgeClass(type, isActive) {
+        const baseClass = {
+          'object': isActive ? 'badge-info' : 'badge-info badge-outline',
+          'array': isActive ? 'badge-success' : 'badge-success badge-outline',
+          'leaf': isActive ? 'badge-warning' : 'badge-warning badge-outline'
+        }[type];
+        return `badge ${baseClass} cursor-pointer tooltip`;
+      }
+
+      function updatePathSelector() {
+        const pillsContainer = $('#pathPills');
+        const selectedTypes = getSelectedTypes();
+        
+        pillsContainer.empty();
+        
+        allPaths.forEach(({path, type, value}) => {
+          const isActive = activePaths.has(path);
+          const isTypeEnabled = selectedTypes.includes(type);
+          const displayValue = type === 'leaf' ? 
+            `Value: ${typeof value === 'string' ? `"${value}"` : value}` : 
+            type === 'array' ? 
+            `Array with ${value.length} items` : 
+            'Object';
+          
+          const badge = $(`<div class="${getBadgeClass(type, isActive)} opacity-${isTypeEnabled ? '100' : '50'}" 
+            data-tip="${displayValue}"
+            data-type="${type}" 
+            data-path="${path}"
+          >${path}</div>`);
+          
+          badge.on('click', function() {
+            if (!selectedTypes.includes(type)) return;
+            
+            const $badge = $(this);
+            const path = $badge.data('path');
+            const isCurrentlyActive = activePaths.has(path);
+            
+            if (isCurrentlyActive) {
+              activePaths.delete(path);
+            } else {
+              activePaths.add(path);
+            }
+            
+            $badge.attr('class', getBadgeClass(type, !isCurrentlyActive) + ` opacity-${isTypeEnabled ? '100' : '50'}`);
+            updateTreeAndJson();
+          });
+          
+          pillsContainer.append(badge);
+        });
+        
+        updateTreeAndJson();
+      }
+
+      function getSelectedTypes() {
+        return ['Object', 'Array', 'Leaf'].filter(type => 
+          $(`#type${type}`).attr('data-active') === 'true'
+        ).map(type => type.toLowerCase());
+      }
+
+      function updateRawJson(data) {
+        editor.set(data);
+      }
+
+      function updateTreeAndJson() {
+        let filteredData;
+        
+        if (activePaths.size > 0) {
+          filteredData = rawLaunches.map(launch => {
+            const result = {
+              date_utc: launch.date_utc,
+              name: launch.name
+            };
+            activePaths.forEach(path => {
+              result[path] = getNestedValue(launch, path);
+            });
+            return result;
+          });
+        } else {
+          filteredData = rawLaunches;
+        }
+        
+        updateRawJson(filteredData);
+        tree.reload(processLaunches(filteredData));
+      }
+      
+      function getNestedValue(obj, path) {
+        return path.split('.').reduce((current, key) => 
+          current && current[key] !== undefined ? current[key] : undefined, obj);
+      }
+
+      function processLaunches(launches) {
+        const launchesbyYear = {};
+        
+        launches.forEach(launch => {
+          const year = new Date(launch.date_utc).getFullYear();
+          if (!launchesbyYear[year]) {
+            launchesbyYear[year] = [];
+          }
+          launchesbyYear[year].push(launch);
+        });
+
+        return Object.entries(launchesbyYear).map(([year, yearLaunches]) => ({
+          title: `${year} (${yearLaunches.length} launches)`,
+          folder: true,
+          expanded: false,
+          children: yearLaunches.map(launch => ({
+            title: formatLaunchTitle(launch),
+            data: launch,
+            children: [
+              {
+                title: `<strong>Details:</strong><br>
+                        ${launch.value !== undefined ? 
+                          `Selected Value: ${JSON.stringify(launch.value)}<br>` : ''}
+                        ${launch.rocket ? `Rocket: ${launch.rocket}<br>` : ''}
+                        ${launch.launchpad ? `Launch Site: ${launch.launchpad}<br>` : ''}
+                        ${launch.success !== undefined ? 
+                          `Success: <span class="${launch.success ? 'success' : 'failure'}">${launch.success ? '✓' : '✗'}</span><br>` : ''}
+                        ${launch.flight_number ? `Flight Number: ${launch.flight_number}` : ''}`
+              }
+            ]
+          }))
+        })).sort((a, b) => b.title.localeCompare(a.title));
+      }
+
+      function formatLaunchTitle(launch) {
+        const date = new Date(launch.date_utc).toLocaleDateString();
+        return `${date} - ${launch.name}`;
+      }
+
+      function initializeTree(treeData) {
+        $('.loading').remove();
+        tree = $('#tree').fancytree({
+          source: treeData,
+          escapeTitles: false,
+          extensions: ['filter'],
+          filter: {
+            autoApply: true,
+            counter: true,
+            fuzzy: false,
+            hideExpandedCounter: true,
+            hideExpanders: false,
+            highlight: true,
+            leavesOnly: false,
+            nodata: true,
+            mode: 'dimm'
+          },
+          activate: function(event, data) {
+            // Handle node activation if needed
+          }
+        }).fancytree('getTree');
+      }
+    });
+  </script>
+</body>
+</html>

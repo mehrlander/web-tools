@@ -153,3 +153,14 @@ test('a merge or revert message is skipped, and so is the running log', () => {
                    { 'chron/2026/09/a.md': 'Two.\n' }, 'Log it\n');
   assert.equal(log.status, 0, log.err);
 });
+
+test('a root-level glob stays at the root: a README in a subfolder is not documentation', () => {
+  // The fallback registry's `*.md` names the repo root. fnmatch let `*` cross
+  // `/`, so it claimed every Markdown file, archive/**/README.md included.
+  const nested = gate({ 'archive/x/README.md': '# X\n\nOld.\n' }, { 'archive/x/README.md': '# X\n\nNew.\n' }, 'Revise a nested readme\n');
+  assert.equal(nested.status, 0, nested.err);
+  const root = gate({ 'README.md': '# R\n\nOld.\n' }, { 'README.md': '# R\n\nNew.\n' }, 'Revise the root readme\n');
+  assert.notEqual(root.status, 0);
+  assert.match(root.err, /documentation changed: README\.md/);
+});
+
