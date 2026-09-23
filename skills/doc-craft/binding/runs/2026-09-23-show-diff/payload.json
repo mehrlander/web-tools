@@ -1,0 +1,484 @@
+{
+ "kind": "audit/1",
+ "title": "SKILL.md",
+ "standoff": {
+  "kind": "standoff/1",
+  "question": "is this unit binding?",
+  "self": {
+   "path": "skills/doc-craft/binding/runs/2026-09-23-show-diff/standoff.json",
+   "repo": "mehrlander/web-tools"
+  },
+  "target": {
+   "path": "skills/show-diff/SKILL.md",
+   "repo": "mehrlander/web-tools",
+   "ref": "main",
+   "url": "https://github.com/mehrlander/web-tools/blob/main/skills/show-diff/SKILL.md",
+   "bytes": 2902,
+   "sha256": "36913b483c407caa85ee625b3a459506a388445990ebf046e0132b63a4797796"
+  },
+  "vocabulary": [
+   {
+    "label": "WHAT",
+    "side": "declaration",
+    "gloss": "a rule, a fact of the system, a value it may hold"
+   },
+   {
+    "label": "HOW",
+    "side": "declaration",
+    "gloss": "syntax, a procedure, an invocation"
+   },
+   {
+    "label": "WHY",
+    "side": "hinge",
+    "gloss": "the reason behind the rule"
+   },
+   {
+    "label": "PROV",
+    "side": "explanation",
+    "gloss": "when it changed, what it replaced, what failed"
+   },
+   {
+    "label": "EVID",
+    "side": "explanation",
+    "gloss": "a measurement, a probe, an observation"
+   },
+   {
+    "label": "NAV",
+    "side": "apparatus",
+    "gloss": "a pointer to the document or gate that owns something"
+   },
+   {
+    "label": "META",
+    "side": "apparatus",
+    "gloss": "a statement about this document"
+   }
+  ],
+  "verdicts": [
+   {
+    "verdict": "KEEP",
+    "gloss": "stands as written"
+   },
+   {
+    "verdict": "REWRITE",
+    "gloss": "the content earns its place; the sentence does not"
+   },
+   {
+    "verdict": "MOVE",
+    "gloss": "belongs in another document"
+   },
+   {
+    "verdict": "DROP",
+    "gloss": "says nothing the document needs"
+   }
+  ],
+  "units": [
+   {
+    "uid": "skill-001",
+    "start": 0,
+    "end": 265,
+    "kind": "sent",
+    "words": 48,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-002",
+    "start": 266,
+    "end": 335,
+    "kind": "sent",
+    "words": 16,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-003",
+    "start": 336,
+    "end": 422,
+    "kind": "sent",
+    "words": 11,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-004",
+    "start": 423,
+    "end": 484,
+    "kind": "sent",
+    "words": 12,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-005",
+    "start": 485,
+    "end": 521,
+    "kind": "sent",
+    "words": 6,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-006",
+    "start": 523,
+    "end": 534,
+    "kind": "h1",
+    "words": 3,
+    "label": "META",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-007",
+    "start": 536,
+    "end": 546,
+    "kind": "h2",
+    "words": 2,
+    "label": "META",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-008",
+    "start": 548,
+    "end": 682,
+    "kind": "sent",
+    "words": 29,
+    "label": "WHY",
+    "verdict": "REWRITE",
+    "note": "Merge with 009 into one sentence: a change stated as prose or as a raw paste makes the reader rebuild it by hand."
+   },
+   {
+    "uid": "skill-009",
+    "start": 683,
+    "end": 726,
+    "kind": "sent",
+    "words": 7,
+    "label": "WHY",
+    "verdict": "DROP",
+    "note": "Restates 008."
+   },
+   {
+    "uid": "skill-010",
+    "start": 727,
+    "end": 908,
+    "kind": "sent",
+    "words": 31,
+    "label": "WHY",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-011",
+    "start": 909,
+    "end": 966,
+    "kind": "sent",
+    "words": 10,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-012",
+    "start": 968,
+    "end": 986,
+    "kind": "h2",
+    "words": 4,
+    "label": "META",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-013",
+    "start": 988,
+    "end": 1137,
+    "kind": "sent",
+    "words": 22,
+    "label": "WHAT",
+    "verdict": "REWRITE",
+    "note": "'reading like a view the app already owned' is connotation; name the visual properties instead (edge-to-edge, no card)."
+   },
+   {
+    "uid": "skill-014",
+    "start": 1138,
+    "end": 1183,
+    "kind": "sent",
+    "words": 4,
+    "label": "NAV",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-015",
+    "start": 1184,
+    "end": 1204,
+    "kind": "sent",
+    "words": 4,
+    "label": "HOW",
+    "verdict": "DROP",
+    "note": "Duplicates the Process list below."
+   },
+   {
+    "uid": "skill-016",
+    "start": 1206,
+    "end": 1216,
+    "kind": "h2",
+    "words": 2,
+    "label": "META",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-017",
+    "start": 1218,
+    "end": 1272,
+    "kind": "sent",
+    "words": 7,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-018",
+    "start": 1273,
+    "end": 1380,
+    "kind": "sent",
+    "words": 18,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-019",
+    "start": 1381,
+    "end": 1434,
+    "kind": "sent",
+    "words": 10,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-020",
+    "start": 1435,
+    "end": 1454,
+    "kind": "sent",
+    "words": 4,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-021",
+    "start": 1455,
+    "end": 1540,
+    "kind": "sent",
+    "words": 16,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-022",
+    "start": 1541,
+    "end": 1623,
+    "kind": "sent",
+    "words": 15,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-023",
+    "start": 1625,
+    "end": 1640,
+    "kind": "h2",
+    "words": 3,
+    "label": "META",
+    "verdict": "REWRITE",
+    "note": "'Key insights' does not say what the section holds. Candidate: 'Template behavior'."
+   },
+   {
+    "uid": "skill-024",
+    "start": 1642,
+    "end": 1660,
+    "kind": "sent",
+    "words": 2,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-025",
+    "start": 1661,
+    "end": 1682,
+    "kind": "sent",
+    "words": 4,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-026",
+    "start": 1683,
+    "end": 1748,
+    "kind": "sent",
+    "words": 12,
+    "label": "WHY",
+    "verdict": "DROP",
+    "note": "Restates 011: the Premise already requires rendering unaided."
+   },
+   {
+    "uid": "skill-027",
+    "start": 1749,
+    "end": 1831,
+    "kind": "sent",
+    "words": 13,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-028",
+    "start": 1832,
+    "end": 1916,
+    "kind": "sent",
+    "words": 12,
+    "label": "WHY",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-029",
+    "start": 1917,
+    "end": 2003,
+    "kind": "sent",
+    "words": 14,
+    "label": "WHY",
+    "verdict": "DROP",
+    "note": "028 already states the effect; this adds no condition or boundary."
+   },
+   {
+    "uid": "skill-030",
+    "start": 2004,
+    "end": 2038,
+    "kind": "sent",
+    "words": 5,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-031",
+    "start": 2039,
+    "end": 2141,
+    "kind": "sent",
+    "words": 14,
+    "label": "WHY",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-032",
+    "start": 2142,
+    "end": 2178,
+    "kind": "sent",
+    "words": 4,
+    "label": "WHY",
+    "verdict": "DROP",
+    "note": "Restates the bullet's own claim (030)."
+   },
+   {
+    "uid": "skill-033",
+    "start": 2179,
+    "end": 2204,
+    "kind": "sent",
+    "words": 5,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-034",
+    "start": 2205,
+    "end": 2232,
+    "kind": "sent",
+    "words": 3,
+    "label": "HOW",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-035",
+    "start": 2233,
+    "end": 2334,
+    "kind": "sent",
+    "words": 17,
+    "label": "WHY",
+    "verdict": "KEEP",
+    "note": "Model restriction: trigger, symptom, mitigation in one sentence."
+   },
+   {
+    "uid": "skill-036",
+    "start": 2335,
+    "end": 2387,
+    "kind": "sent",
+    "words": 7,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-037",
+    "start": 2388,
+    "end": 2434,
+    "kind": "sent",
+    "words": 9,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-038",
+    "start": 2435,
+    "end": 2560,
+    "kind": "sent",
+    "words": 18,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-039",
+    "start": 2562,
+    "end": 2574,
+    "kind": "h2",
+    "words": 2,
+    "label": "META",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-040",
+    "start": 2576,
+    "end": 2661,
+    "kind": "sent",
+    "words": 14,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-041",
+    "start": 2662,
+    "end": 2717,
+    "kind": "sent",
+    "words": 9,
+    "label": "WHY",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-042",
+    "start": 2718,
+    "end": 2791,
+    "kind": "sent",
+    "words": 11,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   },
+   {
+    "uid": "skill-043",
+    "start": 2792,
+    "end": 2811,
+    "kind": "sent",
+    "words": 4,
+    "label": "WHY",
+    "verdict": "REWRITE",
+    "note": "Fragment. Say which layout is cramped: side-by-side on a phone, which is why it collapses."
+   },
+   {
+    "uid": "skill-044",
+    "start": 2812,
+    "end": 2901,
+    "kind": "sent",
+    "words": 14,
+    "label": "WHAT",
+    "verdict": "KEEP"
+   }
+  ]
+ },
+ "text": "---\nname: show-diff\ndescription: \"Summoned when proposing a change to an existing document the user will review, a skill file, a piece of prose, a config, and you want the edit shown rather than described in words or dumped as a block to paste into a separate tool. Also when the user asks to see an edit as a diff or a tracked change. Renders one before/after pair as a self-contained, dependency-free HTML diff artifact. Not for writing a document, only for showing a change to one. Read before proposing the edit.\"\n---\n\n# Show Diff\n\n## Premise\n\nA proposed edit to an existing document is hard to take in as prose (\"change X to Y\") or as a raw block to paste into a separate tool. The reader reconstructs the change by hand. The usual library stack (Tailwind, daisyUI, Alpine, a diff lib over CDN) does not render in the artifact frame without the baking pipeline, which is too much apparatus for a glance. The diff must stand alone, fetch nothing, render on open.\n\n## Goal and output\n\nOne self-contained HTML artifact: a console-style inline diff of a single before/after pair, edge-to-edge, reading like a view the app already owned. Companion template at `assets/doc-diff.html`. Fill it, present it.\n\n## Process\n\n- Copy `assets/doc-diff.html` to the output directory.\n- Old text into the hidden `<pre id=\"a\">`, new text into `<pre id=\"b\">`, each HTML-escaped (`&`, `<`, `>`).\n- Set the `.name` label to the document under review.\n- Present the file.\n- For a coarse, line-level change a fenced `diff` block in chat is the cheaper route. Reach for the artifact when the edit is surgical, long, or wants the console view.\n\n## Key insights\n\n- Dependency-free. No CDN, no framework. Plain HTML, CSS, JS, so it renders in the artifact frame unaided.\n- Before and after sit in hidden `<pre>` blocks, read back through `.textContent`. The decode renders backticks, `${...}`, quotes, and tags inside the documents inert. The documents are often skill files carrying all of these; the decode is load-bearing.\n- Line-based diff, not word-based. A word-level pass mis-pairs repeated tokens, bullet markers and punctuation, and smears the highlight. Whole-line highlighting stays clean.\n- The tally counts lines.\n- `text-size-adjust: 100%`. Without it iOS Safari inflates wide non-wrapping lines, so long lines grow and row heights go ragged.\n- One line-number column, the resulting-file number. A removed line carries the sign and no number.\n- Chrome stripped: no card, no radius, safe-area insets, light and dark through `prefers-color-scheme` on a git-diff palette.\n\n## Extending\n\n- Word-level highlight inside changed lines: pair changed line i with i, diff within. Recovers the surgical-edit case the line view gives up.\n- Side-by-side on desktop, collapsing to unified below a width threshold. Cramped on a phone.\n- Copyable git patch: standard `@@` hunks with `+`/`-` prefixes as plain selectable text.\n"
+}
