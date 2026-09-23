@@ -1,12 +1,9 @@
-// The shell answers nothing on load. It used to fulfil the mailbox's read kinds
-// on every page load, with an allowlist guarding the kinds it could not serve;
-// the first real ask was eaten on 2026-08-13 before that allowlist existed.
-// Since 2026-09-24 a read a session files is an errand like any other, and it
-// waits on the Stage for a tap (lib/kits/errands.js), so the whole class of
-// "answered before anyone saw it" is closed by there being no loop at all.
+// The shell answers nothing on load. A read a session files is an errand, and
+// it waits on the Stage for a tap like every other (lib/kits/errands.js), so no
+// record is answered before a person has seen it.
 //
-// What breaks without this: a boot-time loop coming back, spending the token on
-// records a session wrote straight to the registry's main, with nobody watching.
+// What breaks without this: a boot-time loop spending the token on records a
+// session wrote straight to the registry's main, with nobody watching.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

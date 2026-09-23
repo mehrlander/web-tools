@@ -159,8 +159,8 @@
   await gh.load('kits/route-activity.js');
   await gh.load('kits/route-join.js');
   // Errands: what a session needs this browser for, one record for reads of
-  // your repos, courier runs, and material only you have. The mailbox kit is
-  // kept for its read helper, which an errand's Run calls; nothing runs on load.
+  // your repos, courier runs, and material only you have. The mailbox kit
+  // performs the reads, when an errand's Run is tapped.
   await gh.load('kits/repo-mailbox.js');
   await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
@@ -4171,9 +4171,8 @@ function app(){ return {
   },
 
 
-  // The mailbox used to be answered here, on every load, for its read-only
-  // kinds. It is not any more: a read a session files is an errand, and it
-  // waits on the Stage for a tap like every other (lib/kits/errands.js).
+  // Nothing a session files is answered here. A read is an errand, and it waits
+  // on the Stage for a tap like every other (lib/kits/errands.js).
   // How many proposals are waiting. One cheap pair of directory reads at boot,
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop

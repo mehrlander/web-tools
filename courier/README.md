@@ -2,8 +2,8 @@
 
 A deferred read **from a page**, run by you in the browser you already have.
 
-An **errand** is anything a session needs your browser for, and since
-2026-09-24 there is one kind of record for all of them
+An **errand** is anything a session needs your browser for, and there is one
+kind of record for all of them
 ([`lib/kits/errands.js`](../lib/kits/errands.js)): a read of one of your repos,
 material only you have, or a read from a **web page a session cannot reach**.
 The last is the courier's: the courier is the mechanism, and a courier errand
