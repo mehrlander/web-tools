@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "archive": {
+    "repository": "mehrlander/home",
+    "path": "chron/2026/07/2026-07-06-websim-account-export.zip",
+    "gitBlobSha": "80281b29a268d97662af09c7a11fcf02747a02ae",
+    "sha256": "0dfecb8fc098a0c1587918dde98c550261bab5a5a5ae39afec8007a4c7eb2e1d"
+  },
+  "preservation": "Each HTML file is copied byte for byte from the archive. Preview adaptations are separate.",
+  "matching": "The manifest names projects without archive folder paths. Duplicate titles are listed as candidates; numeric folder suffixes are not treated as proof of identity.",
+  "examples": [
+    {
+      "id": "object-tree",
+      "title": "Object Tree Viewer",
+      "file": "object-tree.html",
+      "archiveFolder": "object_tree_viewer",
+      "archiveFile": "object_tree_viewer/index.html",
+      "sourceSha256": "c3b2e815ec2424011440c9046a52d9a7928e45e4c023d26e9536c0c585a79124",
+      "sourceBytes": 5115,
+      "manifestMatch": {
+        "status": "unique-title-match",
+        "candidates": [
+          {
+            "id": "k8b9xfrsius5av6uec2i",
+            "title": "Object Tree Viewer",
+            "version": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "preview-tree",
+      "title": "Elegant Tree View Component",
+      "file": "preview-tree.html",
+      "archiveFolder": "elegant_tree_view_component_4",
+      "archiveFile": "elegant_tree_view_component_4/index.html",
+      "sourceSha256": "596c96e9044318d98cd8634e2bfcb6eb7848224a012d87cdb5e8f5c15e1d9bfa",
+      "sourceBytes": 8202,
+      "manifestMatch": {
+        "status": "ambiguous-title-match",
+        "candidates": [
+          {
+            "id": "5vy17cot07p_wpr3gpty",
+            "title": "Elegant Tree View Component",
+            "version": 1
+          },
+          {
+            "id": "6dqej48r81kz3zolnl3k",
+            "title": "Elegant Tree View Component",
+            "version": 1
+          },
+          {
+            "id": "_w38fx61to8stqien7wl",
+            "title": "Elegant Tree View Component",
+            "version": 1
+          },
+          {
+            "id": "lks3x0l_p39pxusk7e81",
+            "title": "Elegant Tree View Component",
+            "version": 1
+          },
+          {
+            "id": "ujeych7w3oq9fvul7_tv",
+            "title": "Elegant Tree View Component",
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "folding-editor",
+      "title": "CodeMirror JSON Folding with Enhanced Widget and Property Analysis",
+      "file": "folding-editor.html",
+      "archiveFolder": "codemirror_json_folding_with_enhanced_wi",
+      "archiveFile": "codemirror_json_folding_with_enhanced_wi/index.html",
+      "sourceSha256": "f37a3919ca7d3500f13ef2608a8e48030abaa6890868f2bf93a3f183752715b5",
+      "sourceBytes": 10393,
+      "manifestMatch": {
+        "status": "unique-title-match",
+        "candidates": [
+          {
+            "id": "va39cr29wmln9dkh6zyq",
+            "title": "CodeMirror JSON Folding with Enhanced Widget and Property Analysis",
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "multi-view",
+      "title": "API JSON Viewer with FancyTree",
+      "file": "multi-view.html",
+      "archiveFolder": "api_json_viewer_with_fancytree",
+      "archiveFile": "api_json_viewer_with_fancytree/index.html",
+      "sourceSha256": "e84f6fb828fa26250908774c4297b94cf1047a345e797ed43eecce4b2fec896d",
+      "sourceBytes": 8399,
+      "manifestMatch": {
+        "status": "unique-title-match",
+        "candidates": [
+          {
+            "id": "_8e3q6b9sh57awpvpojz",
+            "title": "API JSON Viewer with FancyTree",
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "launch-paths",
+      "title": "SpaceX Launches Tree View",
+      "file": "launch-paths.html",
+      "archiveFolder": "spacex_launches_tree_view",
+      "archiveFile": "spacex_launches_tree_view/index.html",
+      "sourceSha256": "f17557763b887d8e7a76539d1ebf05a2b4522b6fc766e1048781f740cf784b8e",
+      "sourceBytes": 10292,
+      "manifestMatch": {
+        "status": "unique-title-match",
+        "candidates": [
+          {
+            "id": "cepyqj5j4435nxgpgg_r",
+            "title": "SpaceX Launches Tree View",
+            "version": 21
+          }
+        ]
+      }
+    }
+  ]
+}

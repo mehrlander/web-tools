@@ -121,6 +121,10 @@ const EXEMPT = new Map([
   ['pages/wsl-sync/pension-map.html',
     'A self-contained page in docs/loader.md\'s first tier: no gh-api, no ' +
     'gh.load, no bundle. It cannot reach window.esc without changing tier.'],
+  ['pages/json-viewers/adapters.js',
+    'The helper is emitted into sandboxed srcdoc with allow-scripts and an ' +
+    'opaque origin. Those independent archived experiments cannot access the ' +
+    'parent window.esc; loading the full app bundle would change their runtime.'],
   ['pages/drop/fills-concepts/1-chain-constructor/aic.html', FILLS],
   ['pages/drop/fills-concepts/2-tagged-factory/aic-1.html', FILLS],
   ['pages/drop/fills-concepts/3-reactive-surface/aic-2.html', FILLS],

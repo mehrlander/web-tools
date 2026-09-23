@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Tree Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-jsonview/1.2.3/jquery.jsonview.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-jsonview/1.2.3/jquery.jsonview.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Object Tree Viewer</h1>
+    <div>
+        <button onclick="showSimpleObject()">Show Simple Object</button>
+        <button onclick="showComplexObject()">Show Complex Object</button>
+        <button onclick="showNestedArrays()">Show Nested Arrays</button>
+    </div>
+    <div class="container" id="tree-container"></div>
+
+    <script>
+        function displayTree(data) {
+            const container = document.getElementById('tree-container');
+            $(container).JSONView(data, { collapsed: false });
+        }
+
+        function showSimpleObject() {
+            const simpleObject = {
+                name: "John Doe",
+                age: 30,
+                isStudent: false,
+                hobbies: ["reading", "gaming", "coding"],
+                address: {
+                    street: "123 Main St",
+                    city: "Boston",
+                    country: "USA"
+                }
+            };
+            displayTree(simpleObject);
+        }
+
+        function showComplexObject() {
+            const complexObject = {
+                id: "xyz789",
+                metadata: {
+                    created: new Date().toISOString(),
+                    lastModified: null,
+                    version: 2.1,
+                },
+                settings: {
+                    theme: {
+                        dark: true,
+                        colors: {
+                            primary: "#FF0000",
+                            secondary: "#00FF00",
+                            accent: "#0000FF"
+                        },
+                        fonts: ["Arial", "Helvetica", "sans-serif"]
+                    },
+                    notifications: {
+                        email: true,
+                        push: false,
+                        frequency: "daily",
+                        exceptions: [
+                            { type: "holiday", enabled: false },
+                            { type: "weekend", enabled: true }
+                        ]
+                    }
+                },
+                data: [
+                    { id: 1, value: "first" },
+                    { id: 2, value: "second" },
+                    { id: 3, value: "third", extra: { note: "special" } }
+                ]
+            };
+            displayTree(complexObject);
+        }
+
+        function showNestedArrays() {
+            const nestedArrays = {
+                matrix: [
+                    [1, 2, 3],
+                    [4, 5, 6],
+                    [7, 8, 9]
+                ],
+                mixed: [
+                    1,
+                    "string",
+                    { obj: "value" },
+                    [
+                        { nested: "object" },
+                        [1, 2, 3],
+                        null,
+                        "undefined" // Changed from undefined to "undefined"
+                    ]
+                ],
+                deepNesting: {
+                    level1: {
+                        level2: {
+                            level3: {
+                                array: [1, 2, [3, 4, [5, 6]]]
+                            }
+                        }
+                    }
+                }
+            };
+            displayTree(nestedArrays);
+        }
+
+        // Show initial demo
+        $(document).ready(function() {
+            showSimpleObject();
+        });
+    </script>
+</body>
+</html>
+
+In this updated version, I've made the following change:
+
+1. In the `showNestedArrays` function, I replaced `undefined` with `"undefined"` (as a string). This is because `undefined` is not a valid JSON value, but we can represent it as a string.
+
+This modification should resolve the error you encountered with the nested arrays function. Now, all three functions (Simple Object, Complex Object, and Nested Arrays) should work correctly.
+
+If you still encounter any issues, please let me know, and I'll be happy to help further.
+
+</body></html>

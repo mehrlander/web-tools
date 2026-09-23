@@ -31,6 +31,7 @@ the link-dense text twin of the visual index above.
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
+| `json-viewers` | JSON Viewer Examples | [view](https://mehrlander.github.io/web-tools/pages/json-viewers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/json-viewers.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |

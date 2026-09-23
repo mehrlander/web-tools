@@ -21,6 +21,16 @@
   ],
   "pages": [
     {
+      "path": "pages/json-viewers.html",
+      "title": "JSON Viewer Examples",
+      "note": "Compare five JSON viewers recovered from WebSim and open saved CodePen examples.",
+      "appView": true,
+      "viewLabel": "JSON examples",
+      "icon": "ph-brackets-curly",
+      "order": 51,
+      "slug": "json-examples"
+    },
+    {
       "path": "pages/doc-growth.html",
       "title": "Doc Growth",
       "note": "This repo's markdown over time: every file a bubble, drifting right as it grows."
