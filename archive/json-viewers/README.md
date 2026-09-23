@@ -2,19 +2,19 @@
 
 These are old JSON and tree viewers, pulled out of two archives on 2026-09-23. They were gathered to find display ideas for the reader that the tracker task [own-json-tree-retire-vje-i0lcj2](../../tracker/tasks/own-json-tree-retire-vje-i0lcj2.md) proposes. That reader would be a themed, lazy, display-only JSON tree with no CDN dependency. vanilla-jsoneditor would stay as the edit mode. [`pages/drop/json-viewers.html`](../../pages/drop/json-viewers.html) lists all 62 pages, lets you step through them, and shows the selected one live.
 
-The files sit under `archive/` rather than `pages/` because they are preserved source. The repo's style and lint scans skip `archive/`, and these files should not be rewritten to pass them. The thumbnails in `thumbs/` were made once with `tools/render/screenshot.mjs` through `pages-shots`, and no hook refreshes them.
+The files sit under `archive/` rather than `pages/` because they are preserved source. The repo's style and lint scans skip `archive/`, and these files should not be rewritten to pass them. The thumbnails in `thumbs/` were shot once with `tools/render/screenshot.mjs` and reduced to 320-pixel-wide WebP, since the gallery shows them at 112 pixels. No hook refreshes them. Pages that load live data were shot without it, so their thumbnails show an empty page.
 
 ## Where the files came from
 
 - **`websim/`**: 33 projects copied from the whitecloud WebSim export in the home repo: `chron/2026/07/2026-07-06-websim-account-export.zip`. Each project was a folder holding one `index.html`, and here each is flattened to `<slug>.html`. A comment at the top of each file names the WebSim project. The gallery shows the version count from the export's `manifest.json` where the title is unique. WebSim generated these pages from prompts, so the version count shows how long a prompt thread ran, not how much hand editing a page had.
-- **`codepen/`**: 29 pens by Mark-E, picked by title from the pen log in the home repo: `chron/2026/03/2026-03-29-codepen-log.json`. `codepen.io` is blocked in this sandbox. The source came from `cdpn.io/Mark-E/fullpage/<id>`, whose `srcdoc` attribute holds each pen compiled into one page. The pen's URL and creation date are in the file's first line.
+- **`codepen/`**: 31 pens by Mark-E, picked by title from the pen log in the home repo: `chron/2026/03/2026-03-29-codepen-log.json`. `codepen.io` is blocked in this sandbox. The source came from `cdpn.io/Mark-E/fullpage/<id>`, whose `srcdoc` attribute holds each pen compiled into one page. The pen's URL and creation date are in the file's first line.
 - **Two changes to the pen source.** CodePen's loop-guard script and its `window.CP` calls are removed, since they fail outside CodePen. The CodePen favicon links are also removed. The WebSim files are unchanged apart from the provenance comment.
 
 **Many of these pages fetch live data**, from sources such as SpaceX, GitHub, swapi.dev and the Art Institute of Chicago. The loc.gov and legislature DOM trees assume WebSim's fetch proxy, so outside WebSim those requests are blocked by CORS. Seven files are broken as extracted. The gallery labels all of these. It also has a filter for pages that run without live data, although that filter cannot catch a page whose fetch fails silently.
 
 ## Ideas worth taking, ranked
 
-Four readers went through all 62 files. The ranking is by how much each idea would improve a display-only tree. Line numbers are approximate.
+Four readers went through the first 62 files. The last two pens, SpaceX Array Analysis and Object flattening and schematization, were added afterward for the inline-table idea below and are covered there rather than in this ranking. The ranking is by how much each idea would improve a display-only tree. Line numbers are approximate.
 
 1. **A folded node shows a summary shaped by its type.** [`codemirror-json-and-html-folding-demo`](websim/codemirror-json-and-html-folding-demo.html) (lines 141 to 220):
    - An object shows `key: value` for its scalar values, and `{}` or `[]` for nested ones.
@@ -36,7 +36,7 @@ Four readers went through all 62 files. The ranking is by how much each idea wou
    - Clicking it builds the children and caches them in a `WeakMap`. Clicking the opening `{` folds the node again.
    - The expanded text keeps its quotes, commas and indentation, so selecting it and copying gives valid JSON.
 
-   It is the only lazy renderer that works among the 62 files. In Alpine, `x-if` on first open does the same.
+   It is the only lazy renderer that works among the 62 files the readers covered. In Alpine, `x-if` on first open does the same.
 6. **The path is the node's identity.**
    - [`chicago-art-institute-tree-view`](codepen/chicago-art-institute-tree-view-opyaxg.html) (line 83) stores which nodes are open as a `Set` of path strings. Serialized into the URL fragment, that set would be a deep link.
    - [`json-structure-visualizer`](websim/json-structure-visualizer.html) (lines 231 to 327) builds a path such as `data[3].id` for each node. That path feeds a clickable breadcrumb and a prev and next control that steps through siblings.
@@ -60,4 +60,12 @@ Four readers went through all 62 files. The ranking is by how much each idea wou
 
 ## What none of them has
 
-None of the 62 pages has search. None handles a very wide array, such as 100,000 items at one level. None keeps integers larger than 2^53 exact. The tracker task names these three as the hard parts, so there is no existing work to borrow for them.
+None of the 64 pages has search. None handles a very wide array, such as 100,000 items at one level. None keeps integers larger than 2^53 exact. The tracker task names these three as the hard parts, so there is no existing work to borrow for them.
+
+## What came of it
+
+[`pages/drop/json-table-tree.html`](../../pages/drop/json-table-tree.html) is a prototype built on idea 2, an array of records drawn as a table in place. Three files supplied its parts:
+
+- [`elegant-tree-view-component-with-api-sel`](websim/elegant-tree-view-component-with-api-sel.html) lines up folded records as columns.
+- [SpaceX Array Analysis](codepen/spacex-array-analysis-bynrlo.html) tests whether every item in an array has the same keys (`haveSameProps`), and profiles each key.
+- [Object flattening and schematization](codepen/object-flattening-and-schematization-mypwvm.html) groups every object in a payload by its set of keys.

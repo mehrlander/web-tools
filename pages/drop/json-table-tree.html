@@ -21,7 +21,7 @@
       <span class="truncate min-w-0"><template x-for="(s, n) in (open ? head : summary)" :key="n"><span :class="s.c" x-text="s.t"></span></template></span>
       <template x-if="open && shape">
         <span class="flex items-center gap-1 shrink-0 text-xs text-base-content/50">
-          <span x-text="shape.uniform ? 'same shape' : shape.loose ? 'varied' : 'ragged'"></span>
+          <span x-text="shape.wide ? `wide · ${shape.cols.length} columns` : shape.varied ? 'varied' : shape.uniform ? 'same shape' : 'ragged'"></span>
           <button class="btn btn-ghost btn-xs btn-square" @click.stop="asTable = !asTable" :aria-label="asTable ? 'Show as tree' : 'Show as table'">
             <i class="ph text-sm" :class="asTable ? 'ph-tree-structure' : 'ph-table'"></i>
           </button>
@@ -159,8 +159,10 @@ const STEP = 100;
 // An array of plain objects can always be drawn as a table. It opens as one
 // when the union of the items' keys is not much wider than a typical item;
 // wider than that ("varied"), it opens as a tree and the table is one click
-// away. "Same shape" means every item carries every key, "ragged" that some
-// rows lack some columns.
+// away. The same holds past MAX_COLS columns ("wide"), where a table no longer
+// reads at a glance. "Same shape" means every item carries every key, "ragged"
+// that some rows lack some columns.
+const MAX_COLS = 12;
 const isObj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const shapes = new WeakMap();
 function shapeOf(arr) {
@@ -182,8 +184,8 @@ function shapeOf(arr) {
     const avg = total / arr.length;
     if (cols.size) {
       const list = [...cols.values()].map(({ k, n, nums, other }) => ({ k, n, num: nums > 0 && !other }));
-      s = { n: arr.length, cols: list, uniform: list.every(c => c.n === arr.length),
-            loose: cols.size > Math.max(avg * 1.5, avg + 2) };
+      const varied = cols.size > Math.max(avg * 1.5, avg + 2), wide = cols.size > MAX_COLS;
+      s = { n: arr.length, cols: list, uniform: list.every(c => c.n === arr.length), varied, wide, loose: varied || wide };
     }
   }
   shapes.set(arr, s);
@@ -214,7 +216,7 @@ function summaryOf(v) {            // the folded line: a preview shaped by type
   }
   if (t === 'array') {
     const s = shapeOf(v);
-    if (s && !s.loose) return [dim(`${s.n} × { `), T(s.cols.slice(0, 6).map(c => c.k).join(', '), 'text-base-content/70'), dim(s.cols.length > 6 ? `, … +${s.cols.length - 6} }` : ' }')];
+    if (s && !s.varied) return [dim(`${s.n} × { `), T(s.cols.slice(0, 6).map(c => c.k).join(', '), 'text-base-content/70'), dim(s.cols.length > 6 ? `, … +${s.cols.length - 6} }` : ' }')];
     if (v.length && v.every(x => !isObj(x) && !Array.isArray(x))) {
       const out = [dim('[ ')];
       v.slice(0, 8).forEach((x, i) => { if (i) out.push(dim(', ')); out.push(scalar(x, 20)); });
@@ -230,7 +232,7 @@ function cellOf(v) {               // a table cell: never more than a line
   if (t === 'object') return [dim(Object.keys(v).length ? `{${Object.keys(v).length}}` : '{}')];
   if (t === 'array') {
     const s = shapeOf(v);
-    if (s && !s.loose) return [dim(`${s.n} × {…}`)];
+    if (s && !s.varied) return [dim(`${s.n} × {…}`)];
     if (v.length && v.every(x => !isObj(x) && !Array.isArray(x))) return [T(clip(v.join(', '), 40))];
     return [dim(v.length ? `[${v.length}]` : '[]')];
   }

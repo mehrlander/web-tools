@@ -109,7 +109,7 @@ function gallery() {
     },
     alone(r) { return r ? (hosted ? new URL(UP + r.p, location.href).href : this.frameSrc(r)) : '#'; },
     thumb(r) {
-      const t = `thumbs/${r.p.replace(/\.html$/, '.png')}`;
+      const t = `thumbs/${r.p.replace(/\.html$/, '.webp')}`;
       return hosted ? UP + t : `https://raw.githubusercontent.com/${REPO}/${ref}/${DIR}${t}`;
     },
   };
