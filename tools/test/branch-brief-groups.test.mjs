@@ -211,8 +211,10 @@ test('a slide card is hosted, and code opens on its diff', () => {
     assert.equal(o.read, true, 'a reading surface, as in the full deck');
     assert.equal(typeof o.onChrome, 'function', 'and it tells the header when its controls change');
   }
-  assert.equal(d.openOn, '', 'a document opens on itself');
+  assert.equal(d.openOn, 'mddiff', 'markdown opens on the rendered comparison');
   assert.equal(c.openOn, 'diff', 'code opens on its diff');
+  assert.equal(data.slideCardOpts({ path: 'pages/d.html' }).openOn, '', 'a page opens on itself');
+  assert.equal(d.stats, true, 'and every slide counts its change');
   assert.equal(data.cardOpts(doc).fill, undefined, 'a list card bounds itself as before');
 });
 
@@ -298,7 +300,7 @@ test('the files are one swiped container, not a stack', () => withReviewable(asy
 }));
 
 test('the header says n/m once, and the cards carry no pager of their own', () => withReviewable(async () => {
-  const label = () => window.document.querySelector('[data-swipe-section] .tabular-nums')?.textContent.trim();
+  const label = () => window.document.querySelector('[data-pager-label]')?.textContent.trim();
   await settle(() => label() === '1/5');
   assert.equal(label(), '1/5');
   data.go(3);
@@ -313,7 +315,7 @@ test('with one file there is no pager', async () => {
   await tick(6);
   try {
     assert.equal(data.swipeFiles.length, 1);
-    const pager = window.document.querySelector('[data-swipe-section] .tabular-nums').parentElement;
+    const pager = window.document.querySelector('[data-pager-label]').parentElement;
     assert.equal(pager.style.display, 'none', 'nothing to page between');
   } finally { data.brief = { ...data.brief, files: keep }; await tick(6); }
 });

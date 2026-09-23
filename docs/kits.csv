@@ -37,7 +37,7 @@ lib/kits/io.js,io,"user data in and out of the page: file picker, file download,
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",976,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,5,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,2,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1203,no,yes,10,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1205,no,yes,10,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,14,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, and what was proposed along the way.",150,no,no,1,yes
 lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,231,no,yes,2,yes

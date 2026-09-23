@@ -1125,3 +1125,24 @@ test('versions are the branch commits that touched the file, and a pick stays on
     assert.ok(!c.compareChoices.some(x => x.base === 's1cccccccc'), 'and the pick is not listed twice');
   } finally { proto.req = keep; }
 });
+
+// THE SCOPE OF THE CHANGE, counted with jsdiff over the two texts on screen,
+// so it follows the comparison. Only a card asked for it counts.
+test('a card asked for stats counts the lines it compares, and recounts when the base moves', async () => {
+  const D = await import('diff');
+  window.Diff = D.default || D;
+  const c = data('hosted');
+  assert.equal(c.stats, false, 'not asked, not counted');
+  c.stats = true;
+  c.base = 'mb-sha'; c.compareOff = false;
+  c.newText = 'a\nb\nc\nd\n'; c.baseText = 'a\nx\nc\n'; c.loaded = true; c.loading = false;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: 2, removed: 1 });
+  c.baseText = null;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: 4, removed: 0 }, 'a new file is all added');
+  c.compareOff = true;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: null, removed: null }, 'no comparison, the length alone');
+  c.compareOff = false;
+});
