@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" class="[scrollbar-gutter:stable]">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1276,7 +1276,7 @@ window.__audit = {
       // the padding the page and the deck slide had each given it.
       const box = document.createElement('div');
       box.className = this.view === 'source'
-        ? 'whitespace-pre-wrap font-mono text-base leading-7'
+        ? 'whitespace-pre-wrap font-mono text-[0.8125rem] leading-relaxed'
         : GuideRender.bodyClass();
       host_.appendChild(box);
 
