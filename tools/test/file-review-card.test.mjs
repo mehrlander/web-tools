@@ -1082,3 +1082,67 @@ test('the kinds ViewRegistry knows and the card does not are named, not silent',
   assert.equal(await kindOfPath('a.xlsx'), '',
     'the card has no workbook kind yet, which is the next one of these to close');
 });
+
+// ── The file's versions on the branch ───────────────────────────────────────
+//
+// Each branch commit that touched the file is a version, newest first and
+// numbered from the oldest. Main's history is left out by the scope the host
+// passes, and a pick moves this card alone: v2 of one file means nothing to
+// another, so it does not go out on the shared compare channel.
+test('versions are the branch commits that touched the file, and a pick stays on its card', async () => {
+  const c = data('hosted');
+  const other = data('srcRead');
+  const otherBase = other.base;
+  const proto = window.GH.prototype;
+  const keep = proto.req;
+  proto.req = async (q) => {
+    fetched.push('req:' + q);
+    return [
+      { sha: 's3aaaaaaaa', parents: [{}], commit: { message: 'third\nbody', committer: { date: '2026-09-23T04:59:00Z' } } },
+      { sha: 's2bbbbbbbb', parents: [{}, {}], commit: { message: 'Merge main', committer: { date: '2026-09-22T12:00:00Z' } } },
+      { sha: 's1cccccccc', parents: [{}], commit: { message: 'first', committer: { date: '2026-09-22T10:00:00Z' } } },
+      { sha: 'main000000', parents: [{}], commit: { message: 'on main before the branch', committer: { date: '2026-09-01T00:00:00Z' } } },
+    ];
+  };
+  try {
+    assert.equal(c.versions, null, 'nothing is read until asked');
+    c.versionScope = ['s3aaaaaaaa', 's2bbbbbbbb', 's1cccccccc'];
+    await c.loadVersions();
+    assert.ok(fetched.some(f => /^req:commits\?path=lib%2Fd\.js&sha=feat%2Fx/.test(f)), 'one commits query for the path');
+    const v = c.versionChoices;
+    assert.deepEqual(v.map(x => x.label), ['v3', 'v2 merge', 'v1'],
+      'newest first, numbered from the oldest, the merge said as one, main left out');
+    assert.equal(v[0].current, true, 'the newest is the file as it stands');
+    assert.equal(v[0].title, 's3aaaaa · third', 'the sha and subject ride along as the hover text');
+
+    c.pickVersion(v[0]);
+    assert.notEqual(c.base, 's3aaaaaaaa', 'the current version is not a comparison');
+    c.pickVersion(v[2]);
+    await tick(4);
+    assert.equal(c.base, 's1cccccccc', 'a pick compares against that version');
+    assert.equal(c.versionChoices[2].on, true, 'and marks it');
+    assert.equal(other.base, otherBase, 'another card does not move');
+    assert.ok(!c.compareChoices.some(x => x.base === 's1cccccccc'), 'and the pick is not listed twice');
+  } finally { proto.req = keep; }
+});
+
+// THE SCOPE OF THE CHANGE, counted with jsdiff over the two texts on screen,
+// so it follows the comparison. Only a card asked for it counts.
+test('a card asked for stats counts the lines it compares, and recounts when the base moves', async () => {
+  const D = await import('diff');
+  window.Diff = D.default || D;
+  const c = data('hosted');
+  assert.equal(c.stats, false, 'not asked, not counted');
+  c.stats = true;
+  c.base = 'mb-sha'; c.compareOff = false;
+  c.newText = 'a\nb\nc\nd\n'; c.baseText = 'a\nx\nc\n'; c.loaded = true; c.loading = false;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: 2, removed: 1 });
+  c.baseText = null;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: 4, removed: 0 }, 'a new file is all added');
+  c.compareOff = true;
+  await c._countChange();
+  assert.deepEqual(JSON.parse(JSON.stringify(c.changeStats)), { lines: 4, added: null, removed: null }, 'no comparison, the length alone');
+  c.compareOff = false;
+});
