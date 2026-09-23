@@ -735,7 +735,7 @@ window.__audit = {
   // not, the split ran through inline markup, which is a finding.
 
   window.auditPage = () => ({
-    a: null, view: 'read', mark: 'fill', lens: 'label', off: {}, sel: null, selPt: null,
+    a: null, view: 'read', docView: 'read', mark: 'fill', lens: 'label', off: {}, sel: null, selPt: null,
     sections: [], ref: '',
     async init() {
       this.ref = (typeof gh !== 'undefined' && gh.ref) || '';
@@ -1944,14 +1944,15 @@ window.__audit = {
              x-text="reportStatus" x-show="reportStatus"
              title="this page files its own diagnostics when something goes wrong"></div>
 
-        <!-- Which document is on screen. The two controls about the tint live on
-             the legend row below, so this row keeps its shape in every view. -->
-        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-auto" aria-label="view">
-          <template x-for="v in ['source', 'read', 'standoff']" :key="v">
-            <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
-                    :class="view === v ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                    @click="view = v; v !== 'standoff' && paint()" x-text="v"></button>
-          </template>
+        <!-- Two different objects: the document, tinted by its annotation, or
+             the annotation itself as data. How the document is shown (rendered
+             or raw markdown) is a display choice, so it sits on the legend row
+             with the other two. -->
+        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-auto" aria-label="what is on screen">
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view !== 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  @click="view = docView; paint()">Document</button>
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  @click="view = 'standoff'">Standoff</button>
         </div>
         <button class="btn btn-xs btn-ghost" @click="deck()"><i class="ph ph-cards"></i> Sections</button>
         <button class="btn btn-xs btn-ghost" @click="$refs.reading.showModal()">Reading</button>
@@ -1981,9 +1982,16 @@ window.__audit = {
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
         </template>
-        <!-- What the colour answers, then what it is spent on. Both are about
-             the legend beside them, which is why they sit here. -->
+        <!-- How the document is shown, what the colour answers, and what the
+             colour is spent on: all three change only the document view. -->
         <div class="flex items-center gap-1 ml-auto">
+          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="document as">
+            <template x-for="d in [['read', 'Rendered'], ['source', 'Raw']]" :key="d[0]">
+              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
+                      :class="view === d[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                      @click="view = docView = d[0]; paint()" x-text="d[1]"></button>
+            </template>
+          </div>
           <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" x-show="so.verdicts" aria-label="colour by">
             <template x-for="l in ['label', 'verdict']" :key="l">
               <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal capitalize"
