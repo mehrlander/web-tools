@@ -92,12 +92,12 @@ function gallery() {
     },
     go(n, open) {
       this.i = Math.max(0, Math.min(n, this.rows.length - 1));
-      if (this.cur) history.replaceState(null, '', `#f=${this.filter}&p=${this.cur.p}`);
-      if (open && window.innerWidth < 1024 && this.pane === 'list') { this.pane = 'frame'; history.pushState(null, '', location.hash); }
+      if (this.cur) try { history.replaceState(null, '', `#f=${this.filter}&p=${this.cur.p}`); } catch {}
+      if (open && window.innerWidth < 1024 && this.pane === 'list') { this.pane = 'frame'; try { history.pushState('frame', '', location.hash); } catch {} }
       this.$nextTick(() => this.$refs.list.querySelector(`[data-n="${this.i}"]`)?.scrollIntoView({ block: 'nearest' }));
     },
     step(d) { this.go(this.i + d, false); },
-    back() { history.back(); this.pane = 'list'; },
+    back() { if (history.state === 'frame') history.back(); this.pane = 'list'; },
     key(e) {
       if (e.target.closest('select,input,textarea')) return;
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); this.step(1); }
