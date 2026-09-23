@@ -1110,10 +1110,10 @@ test('versions are the branch commits that touched the file, and a pick stays on
     await c.loadVersions();
     assert.ok(fetched.some(f => /^req:commits\?path=lib%2Fd\.js&sha=feat%2Fx/.test(f)), 'one commits query for the path');
     const v = c.versionChoices;
-    assert.deepEqual(v.map(x => x.label), ['v3 · s3aaaaa', 'v2 merge · s2bbbbb', 'v1 · s1ccccc'],
+    assert.deepEqual(v.map(x => x.label), ['v3', 'v2 merge', 'v1'],
       'newest first, numbered from the oldest, the merge said as one, main left out');
     assert.equal(v[0].current, true, 'the newest is the file as it stands');
-    assert.equal(v[0].subject, 'third', 'the commit subject rides along');
+    assert.equal(v[0].title, 's3aaaaa · third', 'the sha and subject ride along as the hover text');
 
     c.pickVersion(v[0]);
     assert.notEqual(c.base, 's3aaaaaaaa', 'the current version is not a comparison');

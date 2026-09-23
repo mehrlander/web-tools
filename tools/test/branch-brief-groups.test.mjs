@@ -228,8 +228,8 @@ test('cards compare against the merge base, and the menu offers main today', asy
     const f = data.swipeFiles[0];
     const opts = data.slideCardOpts(f);
     assert.equal(opts.base, 'abc1234def5678', 'the merge base, not the base branch tip');
-    assert.equal(opts.baseName, 'abc1234', 'named by its short sha');
-    assert.deepEqual(j(opts.baseChoices.map(c => c.label)), ['Branch changes \u00b7 since abc1234', 'vs main today']);
+    assert.equal(opts.baseName, 'merge base', 'named for what it is, not by its sha');
+    assert.deepEqual(j(opts.baseChoices.map(c => c.label)), ['vs merge base', 'vs main today']);
     assert.equal(data.subject.base, 'abc1234def5678', 'the subject names the same base');
     assert.deepEqual(j(opts.versionScope), j((data.brief.commits || []).map(c => c.sha)),
       'versions are chosen from the branch\'s own commits');
