@@ -5,11 +5,11 @@ description: Revise living engineering documentation to state current behavior, 
 
 # Doc Craft
 
-Documentation guides a living system. When successful, it delivers insight where needed and is unheard otherwise.
+Documentation guides a living system. When successful, it delivers insight where needed and is unheard otherwise. Improvement is deceptively challenging. Any edit changes what future participants are likely to notice and do, what they must hold in mind, and what someone must keep consistent later. A passage can become clearer while the system becomes harder to understand and govern.
 
-Editing documentation changes more than the text. It changes what future participants are likely to notice and do, what they must hold in mind, and what someone must keep consistent later. Those effects extend beyond the edited document. A passage can become clearer while the system becomes harder to understand and govern.
+The burden on any edit is higher than is typically recognized. The inclination is to patch: close a gap from the immediate perspective, but each patch erodes the integrity of the whole. While it spotlights every contour of its own point, the audience leaves. Ideally, every change would reconsider all relevant context, but review is expensive and churn is itself costly.
 
-Improvement is deceptively challenging. Each change should read as though the document had been conceived with it, but minimize churn. Revisions must obsessively focus on keeping the whole recognizable, navigable, and maintainable.
+Deep attention to the editing process is vital for consideration of latent structure, balance, and alignment of focus. What is the critical objective of the edit, and what are the options for achieving it? A slight adjustment in framing can solve a problem and preserve flow. Revisions must obsessively focus on keeping the whole recognizable, navigable, and maintainable.
 
 ## Classification
 
