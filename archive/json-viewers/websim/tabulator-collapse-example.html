@@ -1,0 +1,50 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): State Pension Systems -->
+<title>State Pension Systems</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.0/dist/css/tabulator.min.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="h-screen flex flex-col m-0 p-0">
+    <div class="bg-slate-800 text-white p-2">
+        <h2 class="text-xs font-light text-center">State Pension System Responsibilities</h2>
+    </div>
+    <div id="example-table" class="flex-1"></div>
+
+<script>
+var rawData = [
+    {
+        state: "Washington",
+        adminSystem: "**Department of Retirement Systems (DRS)**\nLed by a Director appointed by the Governor.",
+        contribRates: "**Pension Funding Council (PFC)**\nCouncil with executive and legislative representation; chaired by Governor/designee.\n\n**Leoff 2 Board**\nAppointed by Governor; includes a Senate and House member.\n\n**Legislature**\nFinal approval as part of budget process.",
+        benefits: "**Legislature**\nDetermines benefits through legislation.",
+        investment: "**Washington State Investment Board (WSIB)**\nLed by a Director, with a board including state officials, legislators, and public representatives."
+    },
+    {
+        state: "California",
+        adminSystem: "**California Public Employees' Retirement System (CalPERS)**\nLed by a Chief Executive Officer and governed by a 13-member Board of Administration.",
+        contribRates: "**CalPERS Board**\nSets employer and employee contribution rates based on actuarial valuations.\n\n**Legislature**\nMay review and modify rates through budget process.",
+        benefits: "**Legislature**\nEstablishes benefit levels through legislation.\n\n**CalPERS Board**\nInterprets and implements benefit provisions.",
+        investment: "**CalPERS Investment Committee**\nOversees investment strategies and policies with support from investment staff."
+    }
+];
+
+// Convert markdown to HTML in the data
+var tableData = rawData.map(row => ({
+    ...row,
+    adminSystem: marked.parse(row.adminSystem),
+    contribRates: marked.parse(row.contribRates),
+    benefits: marked.parse(row.benefits),
+    investment: marked.parse(row.investment)
+}));
+
+var table = new Tabulator("#example-table", {
+    data: tableData,
+    layout:"fitColumns",
+    groupBy:"state",
+    height:"calc(100vh - 32px)", // Subtracting banner height
+    autoColumns:true,
+    columnDefaults: {formatter: "html"}
+});
+</script>
+</body></html>

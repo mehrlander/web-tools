@@ -1,0 +1,88 @@
+<!-- CodePen: Shoelace tree multiple select | https://codepen.io/Mark-E/pen/QWYXXQW | created 16-Dec-23 -->
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-light">
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Shoelace tree multiple select</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/QWYXXQW">
+  <meta name="viewport" content="width=device-width">
+  
+  
+  
+<style>
+@import 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css';
+
+body {
+  font: 16px sans-serif;
+  background-color: var(--sl-color-neutral-0);
+  color: var(--sl-color-neutral-900);
+  padding: 1rem;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace.js"></script>
+
+<sl-tree class="custom-icons" selection="multiple">
+  <sl-tree-item>
+    Deciduous
+    <sl-tree-item>Birch</sl-tree-item>
+    <sl-tree-item>
+      Maple
+      <sl-tree-item>Field maple</sl-tree-item>
+      <sl-tree-item>Red maple</sl-tree-item>
+      <sl-tree-item>Sugar maple</sl-tree-item>
+    </sl-tree-item>
+    <sl-tree-item>Oak</sl-tree-item>
+  </sl-tree-item>
+
+  <sl-tree-item>
+    Coniferous
+    <sl-tree-item>Cedar</sl-tree-item>
+    <sl-tree-item>Pine</sl-tree-item>
+    <sl-tree-item>Spruce</sl-tree-item>
+  </sl-tree-item>
+
+  <sl-tree-item>
+    Non-trees
+    <sl-tree-item>Bamboo</sl-tree-item>
+    <sl-tree-item>Cactus</sl-tree-item>
+    <sl-tree-item>Fern</sl-tree-item>
+  </sl-tree-item>
+</sl-tree>
+
+<style>
+  .custom-icons sl-tree-item::part(checkbox) {
+    /* Hide checkboxes! */
+    width: 0;
+    opacity: 0;
+  }
+</style>
+  
+  
+  
+</body>
+
+</html>

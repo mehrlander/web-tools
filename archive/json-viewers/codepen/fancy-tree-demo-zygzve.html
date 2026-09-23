@@ -1,0 +1,109 @@
+<!-- CodePen: Fancy Tree Demo | https://codepen.io/Mark-E/pen/zYgZVeP | created 15-Oct-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Fancy Tree Demo</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/zYgZVeP">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FancyTree Demo</title>
+    <!-- FancyTree CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.3/dist/skin-lion/ui.fancytree.min.css" rel="stylesheet">
+    <style>
+      .fancytree-container {
+        outline: none;
+      }
+    </style>
+</head>
+<body>
+
+<p><a id="button1">Toggle Node 3.1</a></p>
+<div id="tree"></div>
+<div id="statusLine">Fancytree Demo - Click any node!</div>
+
+<!-- jQuery and FancyTree JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.3/dist/jquery.fancytree-all-deps.min.js"></script>
+
+<script>
+$("#tree").fancytree({
+  checkbox: true,
+  selectMode: 3,
+
+  source: [
+    { title: "Node 1" },
+    { title: "Node 2" },
+    {
+      title: "Folder 3",
+      folder: true,
+      expanded: true,
+      children: [
+        { title: "Node 3.1", key: "id3.1" },
+        { title: "Node 3.2", selected: true }
+      ]
+    },
+    {
+      title: "Folder 4",
+      folder: true,
+      children: [{ title: "Node 4.1" }, { title: "Node 4.2" }]
+    }
+  ],
+  activate: function(event, data) {
+    $("#statusLine").text(event.type + ": " + data.node);
+  },
+  select: function(event, data) {
+    $("#statusLine").text(
+      event.type + ": " + data.node.isSelected() + " " + data.node
+    );
+  }
+});
+
+$("#button1").click(function() {
+  var tree = $("#tree").fancytree("getTree"),
+    node = tree.getNodeByKey("id3.1");
+
+  node.toggleSelected();
+});
+
+</script>
+
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>

@@ -1,0 +1,196 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): API JSON Viewer with FancyTree | id _8e3q6b9sh57awpvpojz v1 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API JSON Viewer with FancyTree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.9.2/jsoneditor.min.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.9.2/jsoneditor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.2/dist/skin-lion/ui.fancytree.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38.2/dist/jquery.fancytree-all-deps.min.js"></script>
+    <style>
+        #jsoneditor, #prism-container, #fancytree-container {
+            height: calc(100vh - 120px);
+            overflow: auto;
+        }
+        .jsoneditor {
+            border: none;
+        }
+        @media (max-width: 640px) {
+            #jsoneditor, #fancytree-container {
+                transform: scale(0.8);
+                transform-origin: top left;
+                width: 125% !important;
+                height: 125% !important;
+            }
+        }
+        #tree {
+            font-size: 14px;
+        }
+        .fancytree-icon {
+            display: none !important;
+        }
+        .fancytree-node {
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-gray-700 p-6">API JSON Viewer</h1>
+
+        <div class="flex flex-wrap items-center gap-4 mb-4 px-6">
+            <div class="flex-grow">
+                <select id="api-select" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="github">GitHub Repositories API</option>
+                    <option value="starwars">Star Wars API</option>
+                    <option value="spacex">SpaceX Launch Data API</option>
+                </select>
+            </div>
+
+            <div>
+                <select id="font-size-selector" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="4">4pt</option>
+                    <option value="6">6pt</option>
+                    <option value="8" selected>8pt</option>
+                    <option value="10">10pt</option>
+                    <option value="12">12pt</option>
+                </select>
+            </div>
+
+            <div>
+                <select id="view-selector" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="prism">Prism View</option>
+                    <option value="editor">JSONEditor View</option>
+                    <option value="fancytree">FancyTree View</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="prism-container" class="hidden">
+            <pre class="line-numbers"><code class="language-json" id="raw-json-content">
+/* JSON data will be displayed here */
+            </code></pre>
+        </div>
+
+        <div id="jsoneditor" class="hidden"></div>
+
+        <div id="fancytree-container" class="hidden">
+            <div id="tree"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            let editor;
+            let tree;
+
+            function updateFontSize(sizeInPt) {
+                $('#raw-json-content').css('font-size', sizeInPt + 'pt');
+                $('.line-numbers-rows span').css('font-size', sizeInPt + 'pt');
+                $('#tree').css('font-size', sizeInPt + 'pt');
+            }
+
+            function initializeJSONEditor(data) {
+                if (editor) {
+                    editor.destroy();
+                }
+                editor = new JSONEditor(document.getElementById('jsoneditor'), {
+                    mode: 'tree',
+                    modes: ['tree', 'view', 'form', 'code', 'text', 'preview'],
+                });
+                editor.set(data);
+            }
+
+            function initializeFancyTree(data) {
+                if (tree) {
+                    tree.fancytree("destroy");
+                }
+                $("#tree").fancytree({
+                    source: convertToFancyTreeFormat(data),
+                    activate: function(event, data) {
+                        // Handle node activation if needed
+                    },
+                    createNode: function(event, data) {
+                        // Customize node appearance if needed
+                    }
+                });
+                tree = $("#tree").fancytree("getTree");
+            }
+
+            function convertToFancyTreeFormat(data) {
+                function convert(obj, key) {
+                    if (Array.isArray(obj)) {
+                        return {
+                            title: key,
+                            folder: true,
+                            children: obj.map((item, index) => convert(item, `[${index}]`))
+                        };
+                    } else if (typeof obj === 'object' && obj !== null) {
+                        return {
+                            title: key,
+                            folder: true,
+                            children: Object.keys(obj).map(k => convert(obj[k], k))
+                        };
+                    } else {
+                        return {
+                            title: `${key}: ${obj}`
+                        };
+                    }
+                }
+                return [convert(data, 'root')];
+            }
+
+            function fetchAPI(apiUrl) {
+                $.getJSON(apiUrl)
+                    .done(function(data) {
+                        $('#raw-json-content').text(JSON.stringify(data, null, 2));
+                        Prism.highlightElement($('#raw-json-content')[0]);
+                        initializeJSONEditor(data);
+                        initializeFancyTree(data);
+                        updateView();
+                    })
+                    .fail(function(jqxhr, textStatus, error) {
+                        console.error("Error fetching API data:", textStatus, error);
+                    });
+            }
+
+            function updateView() {
+                const selectedView = $('#view-selector').val();
+                $('#prism-container, #jsoneditor, #fancytree-container').addClass('hidden');
+                $(`#${selectedView === 'editor' ? 'jsoneditor' : selectedView === 'fancytree' ? 'fancytree-container' : 'prism-container'}`).removeClass('hidden');
+            }
+
+            $('#font-size-selector').change(function() {
+                updateFontSize($(this).val());
+            });
+
+            $('#api-select').change(function() {
+                let apiUrl;
+                switch ($(this).val()) {
+                    case 'github':
+                        apiUrl = 'https://api.github.com/repositories';
+                        break;
+                    case 'starwars':
+                        apiUrl = 'https://swapi.dev/api/people/';
+                        break;
+                    case 'spacex':
+                        apiUrl = 'https://api.spacexdata.com/v4/launches/latest';
+                        break;
+                }
+                fetchAPI(apiUrl);
+            });
+
+            $('#view-selector').change(updateView);
+
+            updateFontSize($('#font-size-selector').val());
+            fetchAPI('https://api.github.com/repositories');
+        });
+    </script>
+</body></html>

@@ -1,0 +1,92 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): XML Tree Visualizer with Mermaid.js (Horizontal Layout) | id 3mdmbj3kr_ua9g6h4gjg v1 -->
+<title>XML Tree Visualizer with Mermaid.js (Horizontal Layout)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+  }
+  #input-container {
+    margin-bottom: 20px;
+  }
+  #xml-input {
+    width: 100%;
+    height: 200px;
+    font-family: monospace;
+  }
+  #visualize-btn {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  #visualize-btn:hover {
+    background-color: #45a049;
+  }
+  #diagram {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  #diagram svg {
+    max-width: none;
+    width: auto;
+  }
+</style>
+</head>
+<body>
+  <h1>XML Tree Visualizer (Horizontal Layout)</h1>
+  <div id="input-container">
+    <textarea id="xml-input" placeholder="Paste your XML here..."></textarea>
+    <button id="visualize-btn" onclick="visualizeXML()">Visualize</button>
+  </div>
+  <div id="diagram"></div>
+
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: false, 
+      theme: 'default',
+      flowchart: {
+        nodeSpacing: 30,
+        rankSpacing: 80,
+        curve: 'basis'
+      }
+    });
+
+    function visualizeXML() {
+      const xmlString = document.getElementById('xml-input').value;
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+      function createMermaidGraph(node, prefix = '') {
+        let graph = '';
+        const nodeName = node.nodeName === '#document' ? 'Root' : node.nodeName;
+        const nodeId = prefix ? `${prefix}-${nodeName}` : nodeName;
+
+        for (let i = 0; i < node.children.length; i++) {
+          const child = node.children[i];
+          const childId = `${nodeId}-${i + 1}`;
+          graph += `${nodeId}["${nodeName}"] --> ${childId}["${child.nodeName}"]\n`;
+          graph += createMermaidGraph(child, childId);
+        }
+
+        return graph;
+      }
+
+      const mermaidGraph = 'graph LR\n' + createMermaidGraph(xmlDoc);
+
+      const diagramElement = document.getElementById('diagram');
+      diagramElement.innerHTML = '';
+      mermaid.render('mermaid-diagram', mermaidGraph).then(result => {
+        diagramElement.innerHTML = result.svg;
+      });
+    }
+  </script>
+</body>
+</html>

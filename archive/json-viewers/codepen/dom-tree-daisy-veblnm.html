@@ -1,0 +1,286 @@
+<!-- CodePen: Dom tree Daisy | https://codepen.io/Mark-E/pen/vEBLNMo | created 4-Dec-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Dom tree Daisy</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/vEBLNMo">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM Tree Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            DEFAULT: '#002147',
+                            light: '#193657'
+                        },
+                        burgundy: {
+                            DEFAULT: '#8B0000',
+                            light: '#990000'
+                        },
+                        stone: {
+                            DEFAULT: '#7C7977',
+                            light: '#9A9A9A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50">
+    <div class="bg-navy text-white shadow-lg">
+        <div class="container mx-auto">
+            <div class="navbar">
+                <div class="flex-1">
+                    <h1 class="text-2xl font-bold px-4">DOM Tree Viewer - www.loc.gov</h1>
+                </div>
+                <div class="flex-none gap-2 px-4">
+                    <div class="join">
+                        <button id="expand-all" class="btn bg-burgundy hover:bg-burgundy-light text-white border-none join-item">Expand All</button>
+                        <button id="collapse-all" class="btn bg-stone hover:bg-stone-light text-white border-none join-item">Collapse All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container mx-auto p-4">
+        <div id="loading" class="flex justify-center p-4">
+            <span class="loading loading-spinner loading-lg text-burgundy"></span>
+        </div>
+        <div id="tree" class="font-mono text-sm hidden overflow-x-auto"></div>
+    </main>
+
+    <script>
+        class TreeNode {
+            constructor(tagName, attributes = {}) {
+                this.tagName = tagName;
+                this.attributes = attributes;
+                this.children = [];
+                this.isExpanded = false;
+                this.isSelected = false;
+            }
+
+            addChild(childNode) {
+                if (childNode) {
+                    this.children.push(childNode);
+                }
+            }
+        }
+
+        function createNodeElement(node) {
+            const container = document.createElement('div');
+            container.className = 'py-0';
+
+            // Create node content with template literal
+            container.innerHTML = `
+                <div class="flex items-center group hover:bg-base-200 rounded py-0.5 px-2 cursor-pointer">
+                    <div class="w-4 mr-2 flex items-center">
+                        ${node.children.length > 0 ? `
+                            <i class="bi bi-chevron-right text-xs ${node.children.length === 1 ? 'text-burgundy' : 'text-navy'}"></i>
+                        ` : ''}
+                    </div>
+                    <div class="flex-1 flex flex-wrap items-center gap-2">
+                        <span class="text-navy-light font-semibold">${node.tagName}</span>
+                        ${Object.entries(node.attributes).map(([key, value]) => `
+                            <span class="text-sm whitespace-nowrap">
+                                <span class="text-burgundy font-medium">${key}</span>
+                                <span class="text-stone mx-0.5">=</span>
+                                <span class="text-stone">"</span>
+                                <span class="text-navy">${value}</span>
+                                <span class="text-stone">"</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                ${node.children.length > 0 ? `
+                    <div class="ml-4 border-l border-base-200 pl-2 hidden">
+                        ${node.children.map(child => createNodeElement(child).outerHTML).join('')}
+                    </div>
+                ` : ''}
+            `;
+
+            // Add event listeners
+            const nodeContent = container.firstElementChild;
+            nodeContent.onclick = (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.bg-primary/10').forEach(el => 
+                    el.classList.remove('bg-primary/10'));
+                nodeContent.classList.add('bg-primary/10');
+                node.isSelected = true;
+            };
+
+            if (node.children.length > 0) {
+                const toggleBtn = container.querySelector('.bi-chevron-right');
+                toggleBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleNode(node, container, toggleBtn);
+                };
+            }
+
+            return container;
+        }
+
+        function toggleNode(node, container, toggleBtn) {
+            node.isExpanded = !node.isExpanded;
+            const childrenContainer = container.querySelector('div.ml-4');
+            if (childrenContainer) {
+                childrenContainer.classList.toggle('hidden');
+                toggleBtn.classList.toggle('bi-chevron-right');
+                toggleBtn.classList.toggle('bi-chevron-down');
+            }
+        }
+
+        function expandAll(rootNode, rootElement) {
+            function expand(node, element) {
+                if (node.children.length > 0) {
+                    node.isExpanded = true;
+                    const toggleBtn = element.querySelector('.bi-chevron-right, .bi-chevron-down');
+                    if (toggleBtn) {
+                        toggleBtn.classList.remove('bi-chevron-right');
+                        toggleBtn.classList.add('bi-chevron-down');
+                    }
+                    const childrenContainer = element.querySelector('div.ml-4');
+                    if (childrenContainer) {
+                        childrenContainer.classList.remove('hidden');
+                        const childElements = element.querySelectorAll(':scope > div.ml-4 > div');
+                        node.children.forEach((child, index) => {
+                            expand(child, childElements[index]);
+                        });
+                    }
+                }
+            }
+            expand(rootNode, rootElement);
+        }
+
+        function collapseAll(rootNode, rootElement) {
+            function collapse(node, element) {
+                if (node.children.length > 0) {
+                    node.isExpanded = false;
+                    const toggleBtn = element.querySelector('.bi-chevron-right, .bi-chevron-down');
+                    if (toggleBtn) {
+                        toggleBtn.classList.remove('bi-chevron-down');
+                        toggleBtn.classList.add('bi-chevron-right');
+                    }
+                    const childrenContainer = element.querySelector('div.ml-4');
+                    if (childrenContainer) {
+                        childrenContainer.classList.add('hidden');
+                        const childElements = element.querySelectorAll(':scope > div.ml-4 > div');
+                        node.children.forEach((child, index) => {
+                            collapse(child, childElements[index]);
+                        });
+                    }
+                }
+            }
+            collapse(rootNode, rootElement);
+        }
+
+        function createTreeFromNode(node) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const attributes = {};
+                for (let i = 0; i < node.attributes.length; i++) {
+                    const attr = node.attributes[i];
+                    attributes[attr.name] = attr.value;
+                }
+                
+                const treeNode = new TreeNode(node.tagName.toLowerCase(), attributes);
+                
+                for (let child of node.childNodes) {
+                    if (child.nodeType === Node.ELEMENT_NODE) {
+                        const childNode = createTreeFromNode(child);
+                        if (childNode) {
+                            treeNode.addChild(childNode);
+                        }
+                    }
+                }
+                
+                return treeNode;
+            }
+            return null;
+        }
+
+        async function init() {
+            const loading = document.getElementById('loading');
+            const treeContainer = document.getElementById('tree');
+            
+            try {
+                console.log("Fetching www.loc.gov...");
+                const response = await fetch('https://www.loc.gov');
+                const html = await response.text();
+                
+                console.log("Parsing HTML...");
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                console.log("Creating tree...");
+                const rootNode = createTreeFromNode(doc.documentElement);
+                
+                if (rootNode) {
+                    const rootElement = createNodeElement(rootNode);
+                    treeContainer.appendChild(rootElement);
+                    
+                    document.getElementById('expand-all').onclick = () => expandAll(rootNode, rootElement);
+                    document.getElementById('collapse-all').onclick = () => collapseAll(rootNode, rootElement);
+                    
+                    loading.classList.add('hidden');
+                    treeContainer.classList.remove('hidden');
+                    
+                    // Expand first level by default
+                    expandAll(rootNode, rootElement);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                treeContainer.textContent = `Error: ${error.message}`;
+                loading.classList.add('hidden');
+                treeContainer.classList.remove('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>

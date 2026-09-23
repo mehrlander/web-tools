@@ -1,0 +1,320 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Space-X Launch Data Explorer - Refined Interactive Tree View -->
+  <title>Space-X Launch Data Explorer - Refined Interactive Tree View</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+    h1, h2 {
+      color: #005288;
+      text-align: center;
+    }
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    #error {
+      color: #d32f2f;
+      text-align: center;
+      font-weight: bold;
+    }
+    #tree-container {
+      width: 100%;
+      height: 800px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: auto;
+    }
+    .node rect {
+      fill: #fff;
+      stroke: #005288;
+      stroke-width: 2px;
+    }
+    .node text {
+      font: 12px sans-serif;
+    }
+    .link {
+      fill: none;
+      stroke: #ccc;
+      stroke-width: 2px;
+    }
+    .node-key {
+      font-weight: bold;
+    }
+    .node-value {
+      fill: #666;
+    }
+    .node--internal rect {
+      cursor: pointer;
+    }
+    .node--internal rect:hover {
+      fill: #e6e6e6;
+    }
+    .node--collapsed rect {
+      fill: #f2f2f2;
+    }
+    .node--expanded rect {
+      fill: #e6f3ff;
+    }
+    .node--leaf-expanded rect {
+      fill: #fffde7;
+      stroke: #005288;
+      stroke-width: 2px;
+    }
+    .node--leaf-expanded text {
+      font-size: 16px;
+      text-anchor: middle;
+    }
+  </style>
+</head>
+<body>
+  <h1>Space-X Launch Data Explorer</h1>
+  <h2>Refined Interactive Tree Visualization</h2>
+  
+  <div id="loading">Fetching Space-X launch data...</div>
+  <div id="error"></div>
+  <div id="tree-container"></div>
+
+  <script>
+    const apiUrl = 'https://api.spacexdata.com/v4/launches/latest';
+
+    function createTreeData(obj, name = 'root') {
+      const node = { name };
+      if (typeof obj === 'object' && obj !== null) {
+        node.children = Object.entries(obj).map(([key, value]) => createTreeData(value, key));
+      } else {
+        node.value = String(obj);
+      }
+      return node;
+    }
+
+    async function fetchLaunchData() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        loading.style.display = 'none';
+        renderTree(createTreeData(data));
+      } catch (err) {
+        loading.style.display = 'none';
+        error.textContent = 'Error fetching Space-X launch data: ' + err.message;
+      }
+    }
+
+    function renderTree(treeData) {
+      const width = document.getElementById('tree-container').offsetWidth;
+      const height = 800;
+      const margin = { top: 20, right: 90, bottom: 20, left: 90 };
+
+      const svg = d3.select('#tree-container')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const tree = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
+      const root = d3.hierarchy(treeData);
+      root.x0 = height / 2;
+      root.y0 = 0;
+
+      let i = 0;
+
+      function update(source) {
+        const treeData = tree(root);
+        const nodes = treeData.descendants();
+        const links = treeData.descendants().slice(1);
+
+        nodes.forEach(d => { d.y = d.depth * 220; });
+
+        // Sort nodes to ensure expanded nodes are always on top
+        nodes.sort((a, b) => {
+          if (a.data.expanded && !b.data.expanded) return 1;
+          if (!a.data.expanded && b.data.expanded) return -1;
+          return 0;
+        });
+
+        const node = svg.selectAll('g.node')
+          .data(nodes, d => d.id || (d.id = ++i));
+
+        const nodeEnter = node.enter().append('g')
+          .attr('class', d => `node ${d._children ? 'node--collapsed' : ''} ${d.children ? 'node--expanded' : ''} ${d.data.expanded ? 'node--leaf-expanded' : ''}`)
+          .attr('transform', d => `translate(${source.y0},${source.x0})`)
+          .on('click', (event, d) => {
+            if (d.children || d._children) {
+              if (d.children) {
+                d._children = d.children;
+                d.children = null;
+              } else {
+                d.children = d._children;
+                d._children = null;
+              }
+            } else {
+              d.data.expanded = !d.data.expanded;
+            }
+            update(d);
+          });
+
+        nodeEnter.append('rect')
+          .attr('width', d => d.data.expanded ? 280 : 180)
+          .attr('height', d => d.data.expanded ? 50 : 30)
+          .attr('x', d => d.data.expanded ? -140 : -90)
+          .attr('y', d => d.data.expanded ? -15 : -15)
+          .attr('rx', 5)
+          .attr('ry', 5);
+
+        nodeEnter.append('text')
+          .attr('dy', '.35em')
+          .attr('x', d => d.data.expanded ? 0 : -85)
+          .attr('class', 'node-key')
+          .attr('text-anchor', d => d.data.expanded ? 'middle' : 'start')
+          .text(d => d.data.expanded ? d.data.name : truncateText(d.data.name, 12));
+
+        nodeEnter.append('text')
+          .attr('dy', d => d.data.expanded ? '1.5em' : '.35em')
+          .attr('x', d => d.data.expanded ? 0 : 5)
+          .attr('class', 'node-value')
+          .attr('text-anchor', d => d.data.expanded ? 'middle' : 'start')
+          .text(d => {
+            if (d.data.value) {
+              return d.data.expanded ? d.data.value : truncateText(d.data.value, 12);
+            }
+            return '';
+          });
+
+        const nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition()
+          .duration(750)
+          .attr('transform', d => `translate(${d.y},${d.x})`)
+          .attr('class', d => `node ${d._children ? 'node--collapsed' : ''} ${d.children ? 'node--expanded' : ''} ${d.data.expanded ? 'node--leaf-expanded' : ''}`);
+
+        nodeUpdate.select('rect')
+          .transition()
+          .duration(750)
+          .attr('width', d => d.data.expanded ? 280 : 180)
+          .attr('height', d => d.data.expanded ? 50 : 30)
+          .attr('x', d => d.data.expanded ? -140 : -90)
+          .attr('y', d => d.data.expanded ? -15 : -15)
+          .attr('fill', d => d._children ? '#f2f2f2' : (d.children ? '#e6f3ff' : (d.data.expanded ? '#fffde7' : '#fff')));
+
+        nodeUpdate.select('text.node-key')
+          .transition()
+          .duration(750)
+          .attr('x', d => d.data.expanded ? 0 : -85)
+          .attr('dy', d => d.data.expanded ? '.35em' : '.35em')
+          .attr('text-anchor', d => d.data.expanded ? 'middle' : 'start')
+          .text(d => d.data.expanded ? d.data.name : truncateText(d.data.name, 12));
+
+        nodeUpdate.select('text.node-value')
+          .transition()
+          .duration(750)
+          .attr('x', d => d.data.expanded ? 0 : 5)
+          .attr('dy', d => d.data.expanded ? '1.5em' : '.35em')
+          .attr('text-anchor', d => d.data.expanded ? 'middle' : 'start')
+          .text(d => {
+            if (d.data.value) {
+              return d.data.expanded ? d.data.value : truncateText(d.data.value, 12);
+            }
+            return '';
+          });
+
+        // Ensure expanded nodes are on top
+        svg.selectAll('.node').sort((a, b) => {
+          if (a.data.expanded && !b.data.expanded) return 1;
+          if (!a.data.expanded && b.data.expanded) return -1;
+          return 0;
+        });
+
+        const nodeExit = node.exit().transition()
+          .duration(750)
+          .attr('transform', d => `translate(${source.y},${source.x})`)
+          .remove();
+
+        nodeExit.select('rect')
+          .attr('width', 1e-6)
+          .attr('height', 1e-6);
+
+        nodeExit.select('text')
+          .style('fill-opacity', 1e-6);
+
+        const link = svg.selectAll('path.link')
+          .data(links, d => d.id);
+
+        const linkEnter = link.enter().insert('path', 'g')
+          .attr('class', 'link')
+          .attr('d', d => {
+            const o = {x: source.x0, y: source.y0};
+            return diagonal(o, o);
+          });
+
+        const linkUpdate = linkEnter.merge(link);
+
+        linkUpdate.transition()
+          .duration(750)
+          .attr('d', d => diagonal(d, d.parent));
+
+        const linkExit = link.exit().transition()
+          .duration(750)
+          .attr('d', d => {
+            const o = {x: source.x, y: source.y};
+            return diagonal(o, o);
+          })
+          .remove();
+
+        nodes.forEach(d => {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+      }
+
+      function diagonal(s, d) {
+        const path = `M ${s.y} ${s.x}
+                      C ${(s.y + d.y) / 2} ${s.x},
+                        ${(s.y + d.y) / 2} ${d.x},
+                        ${d.y} ${d.x}`;
+        return path;
+      }
+
+      function truncateText(text, maxLength) {
+        return text.length > maxLength ? text.substr(0, maxLength - 3) + '...' : text;
+      }
+
+      // Collapse all nodes initially except the root
+      root.children.forEach(collapse);
+      update(root);
+
+      function collapse(d) {
+        if (d.children) {
+          d._children = d.children;
+          d._children.forEach(collapse);
+          d.children = null;
+        }
+      }
+
+      // Add zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on('zoom', (event) => {
+          svg.attr('transform', event.transform);
+        });
+
+      d3.select('#tree-container > svg').call(zoom);
+    }
+
+    // Fetch data on load
+    fetchLaunchData();
+  </script>
+</body></html>

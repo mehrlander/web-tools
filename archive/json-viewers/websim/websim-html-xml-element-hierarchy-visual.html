@@ -1,0 +1,255 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): WebSim HTML/XML Element Hierarchy Visualizer | id aln14kf341ov6a5s1dba v1 -->
+<title>WebSim HTML/XML Element Hierarchy Visualizer</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f4f8;
+    color: #333;
+    line-height: 1.6;
+  }
+  #chart-container {
+    width: 100%;
+    height: 600px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  h1, h2 {
+    color: #2c3e50;
+    text-align: center;
+  }
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  textarea {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+  }
+  button {
+    background-color: #3498db;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #2980b9;
+  }
+  #info-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+  }
+  #query-info, #data-info {
+    margin-bottom: 20px;
+  }
+  pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 15px;
+    overflow-x: auto;
+    font-size: 14px;
+  }
+  #error-message {
+    color: #e74c3c;
+    font-weight: bold;
+    margin-top: 10px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <h1>WebSim HTML/XML Element Hierarchy Visualizer</h1>
+  <div id="chart-container"></div>
+  <div class="controls">
+    <textarea id="input-text" placeholder="Paste your HTML or XML here..."></textarea>
+    <button onclick="visualizeHierarchy()">Visualize Hierarchy</button>
+  </div>
+  <div id="error-message"></div>
+  <div id="info-container">
+    <div id="query-info">
+      <h2>Query Information</h2>
+      <pre id="query-display"></pre>
+    </div>
+    <div id="data-info">
+      <h2>Processed Data</h2>
+      <pre id="data-display"></pre>
+    </div>
+  </div>
+
+<script>
+// Initialize the ECharts instance
+var chart = echarts.init(document.getElementById('chart-container'));
+
+// Function to parse HTML/XML and create hierarchy data
+function parseHierarchy(text) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'text/html');
+  
+  function processNode(node, depth = 0) {
+    let result = {
+      name: node.nodeName,
+      children: [],
+      depth: depth,
+      value: 1
+    };
+    
+    for (let child of node.children) {
+      let childNode = processNode(child, depth + 1);
+      result.children.push(childNode);
+      result.value += childNode.value;
+    }
+    
+    if (result.children.length === 0) {
+      delete result.children;
+    }
+    
+    return result;
+  }
+  
+  // If parsing as HTML failed, try XML
+  if (doc.body.firstChild && doc.body.firstChild.nodeName === 'parsererror') {
+    const xmlDoc = parser.parseFromString(text, 'text/xml');
+    if (xmlDoc.documentElement.nodeName !== 'parsererror') {
+      return processNode(xmlDoc.documentElement);
+    } else {
+      throw new Error('Failed to parse input as HTML or XML');
+    }
+  }
+  
+  return processNode(doc.documentElement);
+}
+
+// Function to create and update the sunburst diagram
+function createSunburstDiagram(data) {
+  const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+  
+  let option = {
+    series: {
+      type: 'sunburst',
+      data: [data],
+      radius: [0, '90%'],
+      itemStyle: {
+        borderRadius: 7,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.5)'
+      },
+      label: {
+        rotate: 'radial',
+        minAngle: 15,
+        show: function (params) {
+          // Show labels only for segments that take up more than 10% of the total
+          // and have an angle of at least 15 degrees
+          return params.value / data.value > 0.1 && params.endAngle - params.startAngle >= 15;
+        }
+      },
+      levels: [{
+        r0: '0%',
+        r: '20%',
+        itemStyle: {
+          color: colors[0]
+        }
+      }, {
+        r0: '20%',
+        r: '45%',
+        itemStyle: {
+          color: colors[1]
+        }
+      }, {
+        r0: '45%',
+        r: '65%',
+        itemStyle: {
+          color: colors[2]
+        }
+      }, {
+        r0: '65%',
+        r: '80%',
+        itemStyle: {
+          color: colors[3]
+        }
+      }, {
+        r0: '80%',
+        r: '90%',
+        itemStyle: {
+          color: colors[4]
+        }
+      }]
+    },
+    tooltip: {
+      formatter: function (params) {
+        let tooltipContent = `<b>${params.data.name}</b><br>`;
+        tooltipContent += `Depth: ${params.data.depth}<br>`;
+        tooltipContent += `Child Elements: ${params.data.value - 1}<br>`;
+        tooltipContent += `Percentage: ${(params.value / data.value * 100).toFixed(2)}%`;
+        return tooltipContent;
+      }
+    }
+  };
+
+  chart.setOption(option);
+}
+
+// Function to visualize the hierarchy
+function visualizeHierarchy() {
+  let inputText = document.getElementById('input-text').value;
+  if (inputText.trim() === '') {
+    alert('Please enter some HTML or XML');
+    return;
+  }
+  
+  try {
+    let hierarchyData = parseHierarchy(inputText);
+    createSunburstDiagram(hierarchyData);
+    
+    // Update query information
+    document.getElementById('query-display').textContent = 
+      `Input Type: ${inputText.trim().startsWith('<?xml') ? 'XML' : 'HTML'}
+Input Length: ${inputText.length} characters
+Elements Parsed: ${hierarchyData.value}`;
+
+    // Update data information
+    document.getElementById('data-display').textContent = 
+      JSON.stringify(hierarchyData, null, 2);
+    
+    // Clear any previous error message
+    document.getElementById('error-message').textContent = '';
+  } catch (error) {
+    document.getElementById('error-message').textContent = 'Error parsing input. The visualization may be incomplete or incorrect.';
+    console.error(error);
+    
+    // Attempt to visualize whatever we could parse
+    let hierarchyData = { name: 'root', children: [], value: 1 };
+    createSunburstDiagram(hierarchyData);
+  }
+}
+
+// Resize chart when window size changes
+window.addEventListener('resize', function() {
+  chart.resize();
+});
+</script>
+
+</body></html>

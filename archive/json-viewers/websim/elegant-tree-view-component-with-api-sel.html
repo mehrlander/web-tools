@@ -1,0 +1,446 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): elegant-tree-view-component-with-api-sel -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'mckinsey-blue': '#003767',
+        'mckinsey-light-blue': '#5B7F95',
+        'mckinsey-gray': '#54565A',
+        'accent-blue': {
+          DEFAULT: '#1E4D8C',  // Array (slightly lighter)
+          100: '#E6F3FF',      // Array Leaf
+          200: '#7AA0D4',      // Array Object (slightly darker)
+        },
+        'accent-gray': {
+          DEFAULT: '#A0A0A0',  // Object (changed from beige to gray, darker)
+          100: '#E0E4E8',      // Property Leaf
+        },
+      },
+      fontFamily: {
+        'ibm-plex-sans': ['IBM Plex Sans', 'sans-serif'],
+      },
+    },
+  },
+}
+</script>
+<style>
+  .tooltip {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -40%);
+    z-index: 1000;
+  }
+  .tree-container {
+    transition: max-height 0.3s ease-in-out;
+  }
+</style>
+</head>
+<body class="bg-gray-50 p-4 font-ibm-plex-sans">
+  <h1 class="text-xl font-light mb-4 text-mckinsey-blue">Elegant Tree View Component with API Selection</h1>
+  
+  <div class="mb-4 p-2 bg-white border border-gray-200 rounded-sm shadow-sm">
+    <h2 class="text-sm font-semibold mb-2">Border Accent Key</h2>
+    <div class="flex space-x-4">
+      <div class="flex items-center">
+        <div class="w-4 h-4 bg-accent-blue mr-2"></div>
+        <span class="text-xs">Array</span>
+      </div>
+      <div class="flex items-center">
+        <div class="w-4 h-4 bg-accent-blue-200 mr-2"></div>
+        <span class="text-xs">Array Object</span>
+      </div>
+      <div class="flex items-center">
+        <div class="w-4 h-4 bg-accent-blue-100 mr-2"></div>
+        <span class="text-xs">Array Leaf</span>
+      </div>
+      <div class="flex items-center">
+        <div class="w-4 h-4 bg-accent-gray mr-2"></div>
+        <span class="text-xs">Object</span>
+      </div>
+      <div class="flex items-center">
+        <div class="w-4 h-4 bg-accent-gray-100 mr-2"></div>
+        <span class="text-xs">Property Leaf</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <div class="flex justify-between items-center mb-1">
+      <select id="api-select" class="text-sm font-semibold py-1 px-2 border border-gray-300 rounded">
+        <option value="github">GitHub Repositories API</option>
+        <option value="starwars">Star Wars API</option>
+        <option value="spacex">SpaceX Launch Data API</option>
+      </select>
+      <div>
+        <button id="expand-btn" class="text-xs bg-mckinsey-blue text-white px-2 py-1 rounded mr-2">Expand</button>
+        <button id="collapse-btn" class="text-xs bg-mckinsey-gray text-white px-2 py-1 rounded">Collapse</button>
+      </div>
+    </div>
+    <div id="tree-container" class="tree-container overflow-x-auto whitespace-nowrap max-w-full pb-2.5 overflow-y-auto bg-white border border-gray-200 rounded-sm shadow-sm" style="max-height: 400px;"><div class="inline-block min-w-full"></div></div>
+  </div>
+
+<script>
+class JsonTreeView {
+  constructor(data, isRoot = true, isArrayElement = false, arrayId = 'root', parentKey = '') {
+    this.data = data;
+    this.isRoot = isRoot;
+    this.isArrayElement = isArrayElement;
+    this.arrayId = arrayId;
+    this.parentKey = parentKey;
+    this.element = document.createElement('div');
+    this.element.className = 'p-2';
+    this.colorPalette = [
+      'bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200',
+      'bg-pink-200', 'bg-indigo-200', 'bg-gray-200', 'bg-orange-200', 'bg-teal-200'
+    ];
+    this.headerColorPalette = [
+      'bg-red-300', 'bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-purple-300',
+      'bg-pink-300', 'bg-indigo-300', 'bg-gray-300', 'bg-orange-300', 'bg-teal-300'
+    ];
+    this.keyWidths = new Map();
+    this.render();
+    this.addEventListeners();
+  }
+
+  render() {
+    const widths = this.calculateKeyWidths(this.data);
+    this.keyWidths.set(this.arrayId, widths);
+    this.element.innerHTML = this.generateHtml(this.data, this.isRoot ? (Array.isArray(this.data) ? 'Array' : 'Object') : '', this.isRoot, 0, this.isArrayElement, this.arrayId);
+    this.setConsistentWidths();
+  }
+
+  calculateKeyWidths(obj) {
+    const widths = {};
+    const processItem = (item, parentKey = '') => {
+      if (typeof item === 'object' && item !== null) {
+        for (let [key, value] of Object.entries(item)) {
+          const keyWidth = this.calculateTextWidth(key);
+          const valueWidth = this.calculateValueWidth(value, key);
+          const maxWidth = Math.min(Math.max(keyWidth, valueWidth), 100 * 6);
+          widths[key] = Math.max(widths[key] || 0, maxWidth);
+        }
+      } else if (Array.isArray(item)) {
+        const arrayLabel = parentKey || 'Array';
+        widths['__array__'] = this.calculateTextWidth(`${arrayLabel} (${item.length})`);
+      }
+    };
+
+    if (Array.isArray(obj)) {
+      if (obj.length > 0 && typeof obj[0] === 'object' && obj[0] !== null) {
+        obj.forEach(processItem);
+      } else {
+        const arrayLabel = this.parentKey || 'Array';
+        widths['__array__'] = this.calculateTextWidth(`${arrayLabel} (${obj.length})`);
+      }
+    } else {
+      processItem(obj);
+    }
+    return widths;
+  }
+
+  calculateTextWidth(text) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = '12px IBM Plex Sans';
+    return context.measureText(text).width + 16; // Add padding
+  }
+
+  calculateValueWidth(value, key) {
+    if (typeof value === 'object' && value !== null) {
+      return this.calculateTextWidth(Array.isArray(value) ? `${key} (${value.length})` : '{ ... }');
+    } else if (typeof value === 'number') {
+      return this.calculateTextWidth(value.toString());
+    } else {
+      return this.calculateTextWidth(String(value));
+    }
+  }
+
+  generateHtml(obj, key = '', isRoot = false, depth = 0, isArrayElement = false, arrayId) {
+    const indentation = this.generateIndentation(depth);
+    if (Array.isArray(obj)) {
+      const newArrayId = `${arrayId}_${key}`;
+      const widths = this.calculateKeyWidths(obj);
+      this.keyWidths.set(newArrayId, widths);
+      return this.generateArrayHtml(obj, key, isRoot, depth, newArrayId);
+    } else if (typeof obj === 'object' && obj !== null) {
+      return this.generateObjectHtml(obj, key, isRoot, depth, isArrayElement, arrayId);
+    } else {
+      return this.generateLeafHtml(obj, key, depth, isArrayElement);
+    }
+  }
+
+  generateIndentation(depth) {
+    return `<div class="inline-block" style="width:${depth * 16}px"></div>`;
+  }
+
+  generateHeaderContent(obj, key, depth, isArrayElement, arrayId) {
+    const indentation = this.generateIndentation(depth);
+    let borderColor;
+    if (Array.isArray(obj)) {
+      borderColor = 'border-accent-blue';
+    } else if (isArrayElement) {
+      borderColor = 'border-accent-blue-200';
+    } else {
+      borderColor = 'border-accent-gray';
+    }
+    const preview = Array.isArray(obj) ? this.generateArrayHeader(obj, key, arrayId) : this.generateObjectPreview(obj, isArrayElement, arrayId);
+    const bracketOpen = Array.isArray(obj) ? '[' : '{';
+    const bracketClose = Array.isArray(obj) ? ']' : '}';
+
+    return `
+      <div class="flex items-center cursor-pointer bg-mckinsey-light-blue bg-opacity-5 hover:bg-opacity-10 transition-colors duration-200 rounded py-0.5 my-0.5 whitespace-nowrap overflow-hidden overflow-ellipsis border-l-4 ${borderColor}">
+        <div class="flex items-center bg-white bg-opacity-10 border-r border-gray-200">
+          ${indentation}
+          <div class="w-[150px] text-right pr-1.5 flex-shrink-0 text-xs text-mckinsey-gray">${key}</div>
+        </div>
+        <div class="w-3 flex justify-center items-center flex-shrink-0">
+          <div class="w-2 h-2 flex-shrink-0 transition-transform duration-200 transform rotate-0 text-mckinsey-light-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <div class="flex items-center flex-grow min-w-0">
+          <span class="text-mckinsey-gray text-xs">${bracketOpen}</span>
+          <div class="inline-flex overflow-x-auto whitespace-nowrap ml-1">
+            ${Array.isArray(obj) ? '<div class="w-4"></div>' : ''}
+            ${preview}
+          </div>
+          <span class="text-mckinsey-gray text-xs">${bracketClose}</span>
+        </div>
+      </div>`;
+  }
+
+  generateArrayHtml(arr, key, isRoot, depth, arrayId) {
+    let html = `<div>
+      ${this.generateHeaderContent(arr, key, depth, true, arrayId)}
+      <div class="hidden">`;
+    arr.forEach((item, index) => {
+      html += this.generateHtml(item, index, false, depth + 1, true, arrayId);
+    });
+    html += `</div></div>`;
+    return html;
+  }
+
+  generateObjectHtml(obj, key, isRoot, depth, isArrayElement, arrayId) {
+    let html = `<div>
+      ${this.generateHeaderContent(obj, key, depth, isArrayElement, arrayId)}
+      <div class="hidden">`;
+    for (let [k, v] of Object.entries(obj)) {
+      html += this.generateHtml(v, k, false, depth + 1, false, arrayId);
+    }
+    html += `</div></div>`;
+    return html;
+  }
+
+  generateObjectPreview(obj, isArrayElement, arrayId) {
+    let preview = '';
+    let index = 0;
+    const widths = this.keyWidths.get(arrayId);
+    for (let [k, v] of Object.entries(obj)) {
+      let value = this.formatPreviewValue(v);
+      if (isArrayElement) {
+        let colorClass = this.colorPalette[index % this.colorPalette.length];
+        preview += `<span class="inline-block px-1 mr-0.5 rounded text-xs ${colorClass} overflow-hidden overflow-ellipsis" data-cell="${k}" data-array-id="${arrayId}" style="width: ${widths[k]}px;" title="${value}">${value}</span>`;
+      } else {
+        preview += `<span class="inline-block px-1 mr-0.5 rounded text-xs bg-gray-300 overflow-hidden overflow-ellipsis" data-header="${k}" data-array-id="${arrayId}" style="width: ${widths[k]}px;" title="${k}: ${value}">${k}: ${value}</span>`;
+      }
+      index++;
+    }
+    return preview;
+  }
+
+  formatPreviewValue(value) {
+    if (typeof value === 'object' && value !== null) {
+      return Array.isArray(value) ? `Array (${value.length})` : '{ ... }';
+    } else if (typeof value === 'string') {
+      return `"${value}"`;
+    } else {
+      return String(value);
+    }
+  }
+
+  generateArrayHeader(arr, key, arrayId) {
+    const widths = this.keyWidths.get(arrayId);
+    if (arr.length > 0 && typeof arr[0] === 'object' && arr[0] !== null) {
+      let allKeys = new Set();
+      arr.forEach(item => {
+        if (typeof item === 'object' && item !== null) {
+          Object.keys(item).forEach(key => allKeys.add(key));
+        }
+      });
+      
+      let header = ``;
+      let index = 0;
+      allKeys.forEach(key => {
+        let colorClass = this.headerColorPalette[index % this.headerColorPalette.length];
+        let tooltipData = this.generateTooltipData(arr, key, colorClass);
+        header += `<span class="inline-block px-1 mr-0.5 rounded text-xs font-semibold ${colorClass} overflow-hidden overflow-ellipsis" 
+                         data-header="${key}" 
+                         data-array-id="${arrayId}" 
+                         data-tooltip='${JSON.stringify(tooltipData)}'
+                         style="width: ${widths[key]}px;" 
+                         title="${key}">${key}</span>`;
+        index++;
+      });
+      return header;
+    } else {
+      const arrayLabel = key || 'Array';
+      return `<span class="inline-block px-1 mr-0.5 rounded text-xs bg-gray-300" style="width: ${widths['__array__']}px;">${arrayLabel} (${arr.length})</span>`;
+    }
+  }
+
+  generateTooltipData(arr, key, colorClass) {
+    let longestItem = '';
+    let itemCount = 0;
+    arr.forEach(item => {
+      if (typeof item === 'object' && item !== null && key in item) {
+        itemCount++;
+        if (String(item[key]).length > longestItem.length) {
+          longestItem = String(item[key]);
+        }
+      }
+    });
+    return {
+      name: key,
+      color: colorClass,
+      longestItem: longestItem,
+      itemCount: itemCount,
+      totalItems: arr.length
+    };
+  }
+
+  generateLeafHtml(value, key, depth, isArrayElement) {
+    let type = typeof value;
+    if (value === null) type = 'null';
+    let valueClass = {
+      'string': 'text-green-700',
+      'number': 'text-purple-700',
+      'boolean': 'text-red-700',
+      'null': 'text-gray-500'
+    }[type] || 'text-mckinsey-gray';
+    const borderColor = isArrayElement ? 'border-accent-blue-100' : 'border-accent-gray-100';
+    return `<div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis border-l-4 ${borderColor}">
+      <div class="flex items-center bg-white bg-opacity-10 border-r border-gray-200">
+        ${this.generateIndentation(depth)}
+        <div class="w-[150px] text-right pr-1.5 flex-shrink-0 text-xs text-mckinsey-gray">${key}</div>
+      </div>
+      <div class="w-3"></div>
+      <div class="flex items-center flex-grow min-w-0">
+        <span class="${valueClass} text-xs overflow-hidden overflow-ellipsis" title="${JSON.stringify(value)}">${JSON.stringify(value)}</span>
+      </div>
+    </div>`;
+  }
+
+  addEventListeners() {
+    this.element.addEventListener('click', (event) => {
+      const container = event.target.closest('.bg-white.bg-opacity-10');
+      if (container) {
+        const row = container.closest('.flex.items-center.cursor-pointer');
+        if (row) {
+          const arrow = row.querySelector('svg');
+          const content = row.nextElementSibling;
+          
+          arrow.classList.toggle('rotate-90');
+          content.classList.toggle('hidden');
+          row.classList.toggle('bg-opacity-10');
+        }
+      }
+    });
+
+    this.element.addEventListener('click', (event) => {
+      const cell = event.target.closest('[data-header], [data-cell]');
+      if (cell) {
+        event.stopPropagation();
+        if (cell.dataset.tooltip) {
+          this.showTooltip(cell, JSON.parse(cell.dataset.tooltip));
+        }
+      }
+    });
+  }
+
+  showTooltip(element, data) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip bg-white border border-gray-200 rounded shadow-lg p-4';
+    tooltip.innerHTML = `
+      <h3 class="font-bold mb-2">${data.name}</h3>
+      <p><span class="font-semibold">Color:</span> <span class="${data.color} px-2 rounded">${data.color}</span></p>
+      <p><span class="font-semibold">Longest item:</span> ${data.longestItem}</p>
+      <p><span class="font-semibold">Count:</span> ${data.itemCount} / ${data.totalItems}</p>
+    `;
+    
+    document.body.appendChild(tooltip);
+    
+    const closeTooltip = () => {
+      document.body.removeChild(tooltip);
+      document.removeEventListener('click', closeTooltip);
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('click', closeTooltip);
+    }, 0);
+  }
+
+  setConsistentWidths() {
+    this.keyWidths.forEach((widths, arrayId) => {
+      const headerCells = this.element.querySelectorAll(`[data-header][data-array-id="${arrayId}"], [data-cell][data-array-id="${arrayId}"]`);
+      headerCells.forEach(cell => {
+        const key = cell.dataset.header || cell.dataset.cell;
+        cell.style.width = `${widths[key]}px`;
+      });
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const apiSelect = document.getElementById('api-select');
+  const treeContainer = document.getElementById('tree-container');
+  const expandBtn = document.getElementById('expand-btn');
+  const collapseBtn = document.getElementById('collapse-btn');
+
+  function loadAPI(apiUrl) {
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        treeContainer.querySelector('div').innerHTML = '';
+        treeContainer.querySelector('div').appendChild(new JsonTreeView(data).element);
+      })
+      .catch(error => console.error('Error:', error));
+  }
+
+  apiSelect.addEventListener('change', (event) => {
+    const selectedAPI = event.target.value;
+    let apiUrl;
+
+    switch(selectedAPI) {
+      case 'github':
+        apiUrl = 'https://api.github.com/repositories';
+        break;
+      case 'starwars':
+        apiUrl = 'https://swapi.dev/api/people/';
+        break;
+      case 'spacex':
+        apiUrl = 'https://api.spacexdata.com/v4/launches/latest';
+        break;
+    }
+
+    loadAPI(apiUrl);
+  });
+
+  expandBtn.addEventListener('click', () => {
+    treeContainer.style.maxHeight = treeContainer.scrollHeight + 'px';
+  });
+
+  collapseBtn.addEventListener('click', () => {
+    treeContainer.style.maxHeight = '400px';
+  });
+
+  // Load initial API
+  loadAPI('https://api.github.com/repositories');
+});
+</script>
+</body></html>
