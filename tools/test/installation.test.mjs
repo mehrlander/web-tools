@@ -247,6 +247,24 @@ function ghStub({ text = CSV_HEAD, sha = sha40('c'), failFirstPut = false, missi
   } };
 }
 
+test('a transfer script places the exact bytes under the manifest root and claims nothing', () => {
+  const bytes = new TextEncoder().encode("\ufeffWrite-Output 'ändrad'\r\n");
+  const base = { path: 'app/Modules/Forms/Forms.psm1', name: 'Forms.psm1', installs: 'Modules/Forms/Forms.psm1', root: 'Documents\\WindowsPowerShell', revision: 'a'.repeat(40), blobSha: 'b'.repeat(40), bytes };
+  const script = K.transferScript(base);
+  assert.match(script, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1'\r$/m);
+  assert.deepEqual(Buffer.from(/FromBase64String\('([^']+)'\)/.exec(script)[1], 'base64'), Buffer.from(bytes), 'the BOM and Unicode survive the round trip');
+  assert.match(script, /^if \(\$blob -eq 'b{40}'\)/m);
+  assert.doesNotMatch(script, /\?\?|&&|\|\|/, 'Windows PowerShell 5.1 only');
+  assert.doesNotMatch(script, /observations|installed/i, 'the script neither names nor writes the ledger');
+  const profile = K.transferScript({ ...base, path: "app/It's.ps1", name: "It's.ps1", installs: '' });
+  assert.match(profile, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\It''s\.ps1'\r$/m);
+  assert.match(profile, /filename; adjust \$dest/);
+  assert.match(K.transferScript({ ...base, root: 'C:\\Tools\\' }), /^\$dest = 'C:\\Tools\\Modules\\Forms\\Forms\.psm1'\r$/m);
+  assert.throws(() => K.transferScript({ ...base, installs: null }), /no installation destination/);
+  assert.throws(() => K.transferScript({ ...base, blobSha: 'short' }), /Git blob sha/);
+  assert.throws(() => K.transferScript({ ...base, bytes: 'text' }), /source bytes/);
+});
+
 test('append reads fresh, appends one line, and PUTs against the sha it read', async () => {
   const { gh, calls } = ghStub({ text: CSV_HEAD + 'x,y\n' });
   const r = rowOf({});
