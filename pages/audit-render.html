@@ -1971,6 +1971,15 @@ window.__audit = {
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Standoff</button>
         </div>
+        <!-- Raw, on or off, for whichever object is on screen: markdown instead
+             of the formatted document, standoff.json instead of the table. One
+             icon, as the Map view's deck does it, so the row does not wrap. -->
+        <button class="btn btn-xs h-6 min-h-0 px-2 border border-base-300 transition-none"
+                :class="form === 'raw' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                :aria-pressed="form === 'raw'"
+                :title="form === 'raw' ? 'Showing raw; tap for rendered' : 'Show raw'"
+                aria-label="raw" @click="setForm(form === 'raw' ? 'rendered' : 'raw')">
+          <i class="ph ph-code text-sm"></i></button>
         <button class="btn btn-xs btn-ghost" @click="deck()"><i class="ph ph-cards"></i> Sections</button>
         <button class="btn btn-xs btn-ghost" @click="$refs.reading.showModal()">Reading</button>
         <div class="join" x-show="patch.length" x-cloak>
@@ -1988,16 +1997,6 @@ window.__audit = {
            its units in place rather than hiding them, which keeps the document
            readable while one category is set aside. -->
       <div class="px-4 pb-2 flex flex-wrap items-center gap-1">
-        <!-- Rendered or raw, for whichever object is on screen: the document as
-             formatted text or markdown, the annotation as a table or its JSON.
-             First on the row, so it stays put when the view changes. -->
-        <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] mr-1" aria-label="shown as">
-          <template x-for="d in [['rendered', 'Rendered'], ['raw', 'Raw']]" :key="d[0]">
-            <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal"
-                    :class="form === d[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                    @click="setForm(d[0])" x-text="d[1]"></button>
-          </template>
-        </div>
         <template x-for="k in (view === 'standoff' ? [] : axis)" :key="k">
           <button class="btn btn-xs gap-1.5 border-0"
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
