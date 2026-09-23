@@ -1,0 +1,228 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): HTML Tree Viewer | id doa93ryjg9mghfgc92eg v25 -->
+<title>HTML Tree Viewer</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/jquery.fancytree/2.38.3/skin-win8/ui.fancytree.min.css" rel="stylesheet">
+<style>
+  /* Make node styling very specific and consistent */
+  span.fancytree-node.unwrappable span.fancytree-title {
+    color: #999 !important;
+  }
+
+  span.fancytree-node.text-node span.fancytree-title {
+    color: #0066cc !important;
+    font-style: italic;
+  }
+
+  .fancytree-container {
+    width: 100%;
+    overflow: auto;
+    border: 1px dotted #000;
+  }
+
+  .fancytree-title {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: break-spaces;
+  }
+
+  .fancytree-title.nowrap {
+    white-space: nowrap;
+    word-wrap: normal;
+    overflow-wrap: normal;
+  }
+</style>
+</head>
+<body>
+  <div class="controls">
+    <select id="urlSelect" onchange="fetchAndParse()">
+      <option value="https://www.loc.gov/">Library of Congress</option>
+      <option value="https://www.legis.state.pa.us">Pennsylvania Legislature</option>
+      <option value="http://www.wvlegislature.gov">West Virginia Legislature</option>
+    </select>
+    <input type="checkbox" id="unwrapCheckbox" onchange="toggleUnwrap()">
+    <label for="unwrapCheckbox">Unwrap single-child elements</label>
+    <button onclick="expandAll()">Expand All</button>
+    <input type="checkbox" id="wrapLinesCheckbox" onchange="toggleWrapLines()" checked>
+    <label for="wrapLinesCheckbox">Wrap Lines</label>
+    <span id="loading" class="loading">Loading...</span>
+  </div>
+  <div id="tree" class="fancytree-container"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.fancytree/2.38.3/jquery.fancytree-all-deps.min.js"></script>
+<script>
+function hasTextContent(element) {
+  if (element.nodeType === 3) {
+    return element.textContent.trim().length > 0;
+  }
+  
+  for (const child of element.childNodes) {
+    if (hasTextContent(child)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function countContentChildren(element) {
+  let count = 0;
+  for (const child of element.childNodes) {
+    if (child.nodeType === 1 && hasTextContent(child)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function countTextNodes(element) {
+  let count = 0;
+  for (const child of element.childNodes) {
+    if (child.nodeType === 3 && child.textContent.trim().length > 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function shouldBeUnwrapped(element) {
+  const contentChildren = countContentChildren(element);
+  const textNodes = countTextNodes(element);
+  return contentChildren === 1 && textNodes === 0 && element.nodeName.toLowerCase() !== 'body';
+}
+
+function createTreeData(element, index = 0, shouldUnwrap = false) {
+  if (!hasTextContent(element)) {
+    return null;
+  }
+
+  if (element.nodeName.toLowerCase() === 'script' || element.nodeName.toLowerCase() === 'style') {
+    return null;
+  }
+
+  const contentChildrenCount = countContentChildren(element);
+  const textNodesCount = countTextNodes(element);
+  const isUnwrappable = shouldBeUnwrapped(element);
+  
+  if (shouldUnwrap && isUnwrappable) {
+    for (const child of element.childNodes) {
+      if (child.nodeType === 1 && hasTextContent(child)) {
+        return createTreeData(child, index, shouldUnwrap);
+      }
+    }
+  }
+
+  const node = {
+    title: element.nodeName.toLowerCase(),
+    expanded: index === 0,
+    children: [],
+    extraClasses: element.nodeType === 3 ? 'text-node' : (isUnwrappable ? 'unwrappable' : '')
+  };
+  
+  let attrs = '';
+  if (element.attributes && element.attributes.length > 0) {
+    attrs = Array.from(element.attributes)
+      .map(attr => `${attr.name}="${attr.value}"`)
+      .join(' ');
+  }
+  
+  if (element.nodeType === 1) {
+    const unwrappable = isUnwrappable ? ' [UNWRAPPABLE]' : '';
+    if (attrs) {
+      node.title += ` [${attrs}] [contentChildren: ${contentChildrenCount}] [textNodes: ${textNodesCount}]${unwrappable}`;
+    } else {
+      node.title += ` [contentChildren: ${contentChildrenCount}] [textNodes: ${textNodesCount}]${unwrappable}`;
+    }
+  }
+
+  if (element.nodeType === 3 && element.textContent.trim()) {
+    node.title += `: "${element.textContent.trim()}"`;
+  }
+
+  Array.from(element.childNodes).forEach(child => {
+    if (child.nodeType === 1 || (child.nodeType === 3 && child.textContent.trim())) {
+      const childData = createTreeData(child, index + 1, shouldUnwrap);
+      if (childData) {
+        node.children.push(childData);
+      }
+    }
+  });
+
+  if (node.children.length === 0 && element.nodeType !== 3) {
+    return null;
+  }
+
+  return node;
+}
+
+function toggleUnwrap() {
+  fetchAndParse();
+}
+
+function expandAll() {
+  const tree = $("#tree").fancytree("getTree");
+  tree.visit(function(node) {
+    node.setExpanded(true);
+  });
+}
+
+function toggleWrapLines() {
+  const wrap = document.getElementById('wrapLinesCheckbox').checked;
+  const titles = document.querySelectorAll('.fancytree-title');
+  titles.forEach(title => {
+    if (wrap) {
+      title.classList.remove('nowrap');
+    } else {
+      title.classList.add('nowrap');
+    }
+  });
+}
+
+function fetchAndParse() {
+  const url = document.getElementById('urlSelect').value;
+  const shouldUnwrap = document.getElementById('unwrapCheckbox').checked;
+  const loadingSpan = document.getElementById('loading');
+  loadingSpan.style.display = 'inline';
+  
+  const $tree = $("#tree");
+  if ($tree.fancytree("instance")) {
+    $tree.fancytree("destroy");
+  }
+
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then(html => {
+      if (!html || html.trim().length === 0) {
+        throw new Error('Received empty response');
+      }
+      
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const treeData = [createTreeData(doc.documentElement, 0, shouldUnwrap)];
+      
+      $("#tree").fancytree({
+        source: treeData,
+        escapeTitles: false,
+        click: function(event, data) {
+          console.log(data.node);
+        }
+      });
+      
+      toggleWrapLines();
+      loadingSpan.style.display = 'none';
+    })
+    .catch(error => {
+      console.error('Error fetching the page:', error);
+      loadingSpan.style.display = 'none';
+      alert(`Error fetching the page: ${error.message}`);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', fetchAndParse);
+</script>
+</body></html>

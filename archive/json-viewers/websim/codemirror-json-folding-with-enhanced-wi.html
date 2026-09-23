@@ -1,0 +1,287 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): CodeMirror JSON Folding with Enhanced Widget and Property Analysis | id va39cr29wmln9dkh6zyq v1 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeMirror JSON Folding with Enhanced Widget and Property Analysis</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldgutter.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #editor { border: 1px solid #ccc; margin-bottom: 20px; }
+    .CodeMirror { height: auto; }
+    .CodeMirror-scroll { overflow-x: auto; }
+    .CodeMirror-foldmarker { color: blue; text-shadow: none; }
+    .fold-widget { 
+        display: inline-flex; 
+        flex-wrap: wrap; 
+        gap: 2px; 
+        position: relative;
+    }
+    .fold-widget-item { 
+        padding: 1px 4px; 
+        border-radius: 3px; 
+        font-size: 11px;
+        border: 1px solid #ccc;
+    }
+    .fold-widget-count {
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        font-size: 10px;
+        color: #888;
+        z-index: 1000;
+    }
+    #propertyAnalysis {
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .property-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 20px;
+    }
+    .property-item {
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        color: #000;
+    }
+    .array-mapping {
+        margin-top: 10px;
+        font-size: 14px;
+    }
+    .array-path {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+</style>
+</head>
+<body>
+<h1>CodeMirror JSON Folding with Enhanced Widget and Property Analysis</h1>
+<div id="editor"></div>
+<div id="propertyAnalysis"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/brace-fold.min.js"></script>
+<script>
+$(document).ready(function() {
+    const jsonSample = `{
+  "menu": {
+    "id": "file",
+    "value": "File",
+    "popup": {
+      "menuitem": [
+        {
+          "value": "New",
+          "onclick": "CreateNewDoc()"
+        },
+        {
+          "value": "Open",
+          "onclick": "OpenDoc()"
+        },
+        {
+          "value": "Close",
+          "onclick": "CloseDoc()"
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "name": "John",
+      "age": 30,
+      "city": "New York"
+    },
+    {
+      "name": "Alice",
+      "job": "Engineer",
+      "company": "Tech Corp"
+    },
+    {
+      "name": "Bob",
+      "hobby": "Reading",
+      "favBook": "1984"
+    }
+  ]
+}`;
+
+    function generateConsistentLightColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const hue = (i * 137.508) % 360;
+            const saturation = 60 + (i * 7) % 20;
+            const lightness = 90; // Even lighter value
+            colors.push(chroma.hsl(hue, saturation / 100, lightness / 100).hex());
+        }
+        return colors;
+    }
+
+    const propertySet = new Set();
+    const colorMapping = {};
+    const arrayMappings = {};
+
+    function analyzeJSON(json) {
+        const data = JSON.parse(json);
+
+        function traverse(obj, path = '') {
+            if (Array.isArray(obj)) {
+                const arrayPath = path.slice(0, -1); // Remove trailing dot
+                arrayMappings[arrayPath] = new Set();
+                obj.forEach((item, index) => {
+                    if (typeof item === 'object' && item !== null) {
+                        Object.keys(item).forEach(key => {
+                            propertySet.add(key);
+                            arrayMappings[arrayPath].add(key);
+                        });
+                    }
+                    traverse(item, `${path}[${index}].`);
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                Object.keys(obj).forEach(key => {
+                    propertySet.add(key);
+                    traverse(obj[key], `${path}${key}.`);
+                });
+            }
+        }
+
+        traverse(data);
+    }
+
+    analyzeJSON(jsonSample);
+
+    const properties = Array.from(propertySet);
+    const colors = generateConsistentLightColors(properties.length);
+    properties.forEach((prop, index) => {
+        colorMapping[prop] = colors[index];
+    });
+
+    const editor = CodeMirror($('#editor')[0], {
+        value: jsonSample,
+        mode: {name: "javascript", json: true},
+        lineNumbers: true,
+        lineWrapping: false,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
+        foldOptions: {
+            widget: (from, to) => {
+                let content;
+                let startToken = '{', endToken = '}';
+                const prevLine = editor.getLine(from.line);
+                const isArray = prevLine.lastIndexOf('[') > prevLine.lastIndexOf('{');
+                const isArrayElement = prevLine.trim().startsWith('{');
+                if (isArray) {
+                    startToken = '[', endToken = ']';
+                }
+                const internal = editor.getRange(from, to);
+                const toParse = startToken + internal + endToken;
+                try {
+                    const parsed = JSON.parse(toParse);
+                    
+                    if (isArray && Array.isArray(parsed)) {
+                        const properties = new Set();
+                        parsed.forEach(item => {
+                            if (typeof item === 'object' && item !== null) {
+                                Object.keys(item).forEach(key => properties.add(key));
+                            }
+                        });
+                        content = Array.from(properties);
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        if (isArrayElement) {
+                            content = Object.entries(parsed).map(([key, value]) => {
+                                if (typeof value === 'string') return { key, value };
+                                return { key, value: JSON.stringify(value) };
+                            });
+                        } else {
+                            content = Object.entries(parsed).map(([key, value]) => {
+                                if (typeof value === 'object' && value !== null) {
+                                    return `${key}: ${Array.isArray(value) ? '[]' : '{}'}`;
+                                }
+                                return `${key}: ${JSON.stringify(value)}`;
+                            });
+                        }
+                    } else {
+                        return $('<span>\u2194</span>')[0];
+                    }
+                    
+                    const $container = $('<span class="fold-widget"></span>');
+                    if (Array.isArray(content)) {
+                        content.forEach((item) => {
+                            let $itemElement;
+                            if (typeof item === 'object' && item.key && item.value) {
+                                $itemElement = $(`<span class="fold-widget-item">${item.value}</span>`);
+                                if (colorMapping[item.key]) {
+                                    $itemElement.css('backgroundColor', colorMapping[item.key]);
+                                }
+                            } else {
+                                $itemElement = $(`<span class="fold-widget-item">${item}</span>`);
+                                if (colorMapping[item]) {
+                                    $itemElement.css('backgroundColor', colorMapping[item]);
+                                }
+                            }
+                            $container.append($itemElement);
+                        });
+                    } else {
+                        content.forEach((item) => {
+                            const $itemElement = $(`<span class="fold-widget-item">${item}</span>`);
+                            $container.append($itemElement);
+                        });
+                    }
+
+                    if (isArray && Array.isArray(parsed)) {
+                        $container.append(`<span class="fold-widget-count">${parsed.length} items</span>`);
+                    }
+
+                    return $container[0];
+                } catch(e) {
+                    console.error("Error parsing JSON:", e);
+                    return $('<span>\u2194</span>')[0];
+                }
+            }
+        }
+    });
+
+    editor.operation(() => {
+        for (let i = 0; i < editor.lineCount(); i++) {
+            editor.foldCode(CodeMirror.Pos(i, 0));
+        }
+    });
+
+    const $analysisContainer = $('#propertyAnalysis');
+    
+    const propertyList = properties.map((prop, index) => `
+        <span class="property-item" style="background-color: ${colorMapping[prop]};">
+            ${index}: ${prop}
+        </span>
+    `).join('');
+
+    const arrayMappingHtml = Object.entries(arrayMappings).map(([path, props]) => `
+        <div class="array-mapping">
+            <div class="array-path">${path}:</div>
+            <div class="property-list">
+                ${Array.from(props).map(prop => `
+                    <span class="property-item" style="background-color: ${colorMapping[prop]};">
+                        ${prop}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    $analysisContainer.html(`
+        <h3>Global Property Analysis</h3>
+        <div class="property-list">${propertyList}</div>
+        <h3>Array Property Mappings</h3>
+        ${arrayMappingHtml}
+    `);
+});
+</script>
+</body>
+</html>

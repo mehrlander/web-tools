@@ -1,0 +1,132 @@
+<!-- CodePen: Shoelace tree as list | https://codepen.io/Mark-E/pen/BabNxWV | created 29-Dec-23 -->
+<!DOCTYPE html>
+<html lang="en" class="sl-theme-light">
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Shoelace tree as list</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/BabNxWV">
+  <meta name="viewport" content="width=device-width">
+  
+  
+  
+<style>
+@import 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css';
+
+body {
+  font: 16px sans-serif;
+  background-color: var(--sl-color-neutral-0);
+  color: var(--sl-color-neutral-900);
+  padding: 1rem;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace.js"></script>
+<style>
+  sl-tree {
+    width: 200px;
+    border: solid 1px grey;
+  }
+  sl-tree-item {
+    margin: 0px;
+    background: cornsilk;
+    border: solid 2px transparent;
+  }
+  sl-tree-item::part(base) {}
+  sl-tree-item::part(expand-button), sl-tree-item::part(checkbox) {
+    display: none;
+  }
+  sl-tree-item::part(label) {
+    height: 40px; /* SET ITEM HEIGHT HERE */
+    width: 100%;
+  }
+  sl-tree-item * {
+    height: 100%;
+    margin: 0px;
+  }
+  sl-tree-item > span {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    padding: 0 5px;
+  }
+  /* Icon is simple, centered */
+  sl-tree-item > sl-icon {
+    flex: 0 0 20px;
+    padding: 0 2px;
+    color: #555;
+  }
+  /* Icon button supports more CSS than Icon */
+  sl-tree-item sl-icon-button {
+    --sl-spacing-x-small: 0.3rem; /* Override token */
+    font-size: 1rem;
+    flex: 0 0 20px;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+  }
+  sl-tree-item > sl-tooltip::part(body) {}
+  sl-tree-item:hover {
+    border: solid 2px lightblue;
+    background: rgba(255,255,255,.8);
+  }
+</style>
+
+<sl-tree>
+  <sl-tree-item>
+      <sl-icon name="image"></sl-icon>
+      <span>birds.jpg</span>
+      <sl-tooltip content="Edit">
+        <sl-icon-button name="pencil" label="Edit"></sl-icon-button>
+      </sl-tooltip>
+  </sl-tree-item>
+  <sl-tree-item>
+    <sl-icon name="image"></sl-icon>
+    <span>kitten.jpg</span>
+  </sl-tree-item>
+  <sl-tree-item>
+      <sl-tree-item>
+        Taco
+       </sl-tree-item>
+      <sl-icon name="file"></sl-icon>
+      <span>draft.txt</span>
+      <span>text</span>
+  </sl-tree-item>
+  <sl-tree-item>
+      <sl-icon name="file-pdf"></sl-icon>
+      <span>final.pdf</span>
+  </sl-tree-item>
+  <sl-tree-item>
+      <sl-icon name="file-bar-graph"></sl-icon>
+      <span>sales.xls</span>
+  </sl-tree-item>
+</sl-tree>
+  
+  
+  
+</body>
+
+</html>

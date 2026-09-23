@@ -1,0 +1,141 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Library of Congress DOM Tree using Tabulator | id 865m6mh8e6awt4jp7de9 v15 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library of Congress DOM Tree using Tabulator</title>
+
+<!-- Tabulator CSS -->
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+
+<!-- Tabulator JavaScript -->
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+  }
+  #header {
+    background-color: #0c2340;
+    color: white;
+    padding: 0.5rem;
+    text-align: center;
+  }
+  #header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  #controls {
+    padding: 0.5rem;
+    text-align: center;
+  }
+  #treeContainer {
+    height: calc(100% - 80px);
+    margin: 0 1rem;
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>Library of Congress DOM Tree</h1>
+</div>
+<div id="controls">
+  <button id="expandAll">Expand All</button>
+  <button id="collapseAll">Collapse All</button>
+</div>
+<div id="treeContainer"></div>
+
+<script>
+function createTreeDataFromDOM(node, parentId = null, index = 0, parentPath = '') {
+  const nodeId = parentId ? `${parentId}-${index}` : `${index}`;
+  
+  let currentPath = '';
+  const siblings = node.parentNode ? Array.from(node.parentNode.childNodes).filter(child => 
+    child.nodeType === Node.ELEMENT_NODE || (child.nodeType === Node.TEXT_NODE && child.nodeValue.trim() !== '')
+  ) : [];
+  const siblingCount = siblings.length;
+  
+  if (siblingCount === 1) {
+    currentPath = parentPath ? `${parentPath}>${node.nodeName.toLowerCase()}` : node.nodeName.toLowerCase();
+  } else {
+    const sameTagSiblings = siblings.filter(sibling => sibling.nodeName === node.nodeName);
+    const needsIndex = sameTagSiblings.length > 1;
+    const separator = parentPath ? '.' : '';
+    currentPath = `${parentPath}${separator}${node.nodeName.toLowerCase()}${needsIndex ? `[${sameTagSiblings.indexOf(node)}]` : ''}`;
+  }
+  
+  const childNodes = Array.from(node.childNodes).filter(child => 
+    child.nodeType === Node.ELEMENT_NODE || (child.nodeType === Node.TEXT_NODE && child.nodeValue.trim() !== '')
+  );
+  
+  const nodeData = {
+    id: nodeId,
+    nodeName: node.nodeName,
+    path: currentPath,
+    attributes: node.nodeType === Node.ELEMENT_NODE ? 
+      Array.from(node.attributes).map(attr => `${attr.name}="${attr.value}"`).join(' ') : '',
+    nodeValue: node.nodeValue ? node.nodeValue.trim() : '',
+    childCount: childNodes.length,
+    _children: []
+  };
+
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    childNodes.forEach((child, childIndex) => {
+      nodeData._children.push(createTreeDataFromDOM(child, nodeId, childIndex, currentPath));
+    });
+  }
+
+  // Remove the _children property if it's empty
+  if (nodeData._children.length === 0) {
+    delete nodeData._children;
+  }
+
+  return nodeData;
+}
+
+let table;
+
+function fetchAndRenderTree() {
+  fetch('https://www.loc.gov/')
+    .then(response => response.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const treeData = createTreeDataFromDOM(doc.documentElement);
+
+      table = new Tabulator("#treeContainer", {
+        data: [treeData], // Start with the entire document
+        columns: [
+          {title: "Node Name", field: "nodeName", width: 150},
+          {title: "Path", field: "path", width: 300},
+          {title: "Child Count", field: "childCount", width: 100, hozAlign: "center"},
+          {title: "Attributes", field: "attributes", width: 300},
+          {title: "Node Value", field: "nodeValue", width: 300}
+        ],
+        dataTree: true,
+        dataTreeStartExpanded: false,
+        layout: "fitColumns",
+        height: "100%"
+      });
+    })
+    .catch(error => console.error('Error fetching LOC website:', error));
+}
+
+document.getElementById('expandAll').addEventListener('click', function() {
+  if (table) {
+    table.getRows().forEach(row => row.treeExpand());
+  }
+});
+
+document.getElementById('collapseAll').addEventListener('click', function() {
+  if (table) {
+    table.getRows().forEach(row => row.treeCollapse());
+  }
+});
+
+fetchAndRenderTree();
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!-- CodePen: Daisy link tree | https://codepen.io/Mark-E/pen/vEEZmNK | created 25-Apr-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Daisy link tree</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/vEEZmNK">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOC Tree</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head><body class="bg-base-200 h-dvh overflow-hidden">
+
+<div class="h-full grid grid-rows-[auto_1fr]" x-data="app()" x-init="init()"
+  x-effect="theme && document.documentElement.setAttribute('data-theme',theme); sel && fetchPage()">
+
+  <header class="bg-base-200/90 backdrop-blur border-b border-base-300">
+    <div class="max-w-7xl mx-auto p-4 flex items-center justify-between gap-3">
+      <div class="font-bold">LOC Tree</div>
+
+      <div class="flex items-end gap-3">
+        <div class="flex items-center gap-2 text-sm self-end pb-[2px]">
+          <span x-show="loading" class="loading loading-spinner loading-sm"></span>
+          <span x-text="count?`${count} urls`:''"></span>
+        </div>
+
+        <label class="form-control">
+          <div class="label py-0"><span class="label-text text-xs">Theme</span></div>
+          <select class="select select-bordered select-xs" x-model="theme" :disabled="!themes.length">
+            <option value="" disabled>loading…</option>
+            <template x-for="t in themes" :key="t">
+              <option :value="t" x-text="t"></option>
+            </template>
+          </select>
+        </label>
+
+        <div class="form-control">
+          <div class="label py-0"><span class="label-text text-xs">Selected</span></div>
+          <div class="input input-bordered input-xs max-w-[26rem] truncate"
+               :class="sel?'':'opacity-60'" :title="sel?fullSel:''">
+            <span class="truncate" x-text="sel?fullSel:'—'"></span>
+          </div>
+        </div>
+
+        <div class="form-control">
+          <div class="label py-0"><span class="label-text text-xs opacity-0">.</span></div>
+          <button class="btn btn-xs btn-success" @click="visit()" :disabled="!sel">Visit</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="p-4 overflow-hidden">
+    <div class="max-w-7xl mx-auto h-full grid grid-cols-[16rem_1fr] gap-4">
+      <div class="bg-base-100 rounded-box shadow overflow-auto">
+        <ul class="menu" x-ref="menu" @click="pick($event)">
+          <template x-if="error"><li class="text-error p-4" x-text="error"></li></template>
+        </ul>
+      </div>
+
+      <pre tabindex="0"
+        class="bg-base-100 rounded-box shadow p-4 overflow-auto text-xs whitespace-pre-wrap
+               focus:outline-none focus:ring focus:ring-primary/30"
+        @click="$el.focus()"
+        @keydown.ctrl.a.prevent="selectAll($el)"
+        @keydown.meta.a.prevent="selectAll($el)"
+        x-text="raw||'Select a path to preview'"></pre>
+    </div>
+  </main>
+</div>
+ 
+<script>
+document.addEventListener('alpine:init',()=>Alpine.data('app',()=>({
+  SITE:"https://www.loc.gov",
+  themes:[], theme:"",
+  loading:1, error:"", count:0, sel:"", raw:"", lastFetched:"",
+
+  get fullSel(){ return this.sel ? new URL(this.sel, this.SITE).href : "" },
+
+  init(){ this.loadThemes(); this.loadTree() },
+  visit(){ this.sel && open(this.fullSel,"_blank") },
+
+  selectAll(el){
+    const r=document.createRange(); r.selectNodeContents(el)
+    const s=getSelection(); s.removeAllRanges(); s.addRange(r)
+  },
+
+  pick(e){
+    const a=e.target.closest("a[data-p]"); if(!a)return;
+    e.preventDefault(); this.sel=a.dataset.p;
+    this.$refs.menu.querySelectorAll("a.menu-active").forEach(x=>x.classList.remove("menu-active"));
+    a.classList.add("menu-active");
+  },
+
+  async fetchPage(){
+    if(this.lastFetched===this.sel) return;
+    this.lastFetched=this.sel;
+    this.raw="loading…";
+    try{ 
+      const r=await fetch(this.fullSel);
+      this.raw=await r.text();
+    }catch(e){ 
+      console.error("fetchPage error:",e);
+      this.raw="Failed to fetch: "+e.message;
+    }
+  },
+
+  loadThemes(){
+    fetch('https://cdn.jsdelivr.net/npm/daisyui@5/themes.css').then(r=>r.text()).then(t=>{
+      this.themes=[...new Set([...t.matchAll(/\[data-theme=([^\]]+)\]/g)].map(m=>m[1]))].sort();
+      this.$nextTick(()=>this.theme=this.themes.includes('emerald')?'emerald':this.themes[0]);
+    }).catch(()=>{ this.themes=['emerald']; this.theme='emerald' });
+  },
+
+  add(T,p){
+    let t=T; for(const s of(p=="/"?["Home"]:p.split("/").filter(Boolean))) t=t[s]||(t[s]={_:""});
+    t._||=p;
+  },
+
+  html(T,k){
+    const kids=Object.keys(T).filter(x=>x!="_").sort(), p=T._||"/";
+    return kids.length
+      ? `<li><details open><summary>${k}</summary><ul>
+           <li><a href="#" data-p="${p}">${k}</a></li>
+           ${kids.map(x=>this.html(T[x],x)).join("")}
+         </ul></details></li>`
+      : `<li><a href="#" data-p="${p}">${k}</a></li>`;
+  },
+
+  async loadTree(){
+    this.loading=1; this.error=""; this.count=0; this.sel=""; this.raw=""; this.lastFetched="";
+    try{
+      const h=await fetch(this.SITE).then(r=>r.text()),
+            d=new DOMParser().parseFromString(h,"text/html"),
+            origin=new URL(this.SITE).origin,
+            seen=new Set([...d.querySelectorAll("a[href]")]
+              .map(a=>a.getAttribute("href")).filter(Boolean).map(h=>{
+                try{ const u=new URL(h,this.SITE); return u.origin===origin?(u.pathname||"/"):null }catch{return null}
+              }).filter(Boolean));
+      this.count=seen.size;
+      const T={}; [...seen].forEach(p=>this.add(T,p));
+      this.$refs.menu.innerHTML=Object.keys(T).sort().map(k=>this.html(T[k],k)).join("");
+    }catch(e){ this.error="nope"; console.error("loadTree error:",e) }
+    finally{ this.loading=0 }
+  }
+})));
+</script>
+
+</body></html>
+  
+  
+  
+</body>
+
+</html>

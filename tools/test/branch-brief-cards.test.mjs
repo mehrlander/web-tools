@@ -74,13 +74,10 @@ await tick(6);
 const cards = () => [...window.document.querySelectorAll('[x-data^="fileReview"]')];
 
 test('the branch renders a card per drawn row, from both panels', () => {
-  // Two panels, and which tab is up decides whether the first one draws. This
-  // branch carries no pull request, so the Guide tab is not drawn and Files is
-  // the only tab there is: the list draws, and its one open group mounts a card
-  // for lib/a.js. docs/b.md is reviewable, so its card sits in the strip below
-  // the tabs and mounts whichever tab is up. The list is first in the tree.
+  // Two panels: reviewable files lead in the top pane, and other changed
+  // files follow in the bottom pane.
   assert.deepEqual(cards().map(el => Alpine.$data(el).path),
-    ['lib/a.js', 'docs/b.md']);
+    ['docs/b.md', 'lib/a.js']);
 });
 
 test('each card gets the repo as a string, not the repo data provider', () => {
@@ -97,16 +94,17 @@ test('the ref pair reaches the cards too', () => {
   assert.equal(d.baseName, 'main');
 });
 
-test('a LIST card mounts without fetching; a PRESENTED one fetches, because that is what it is for', () => {
-  // The split, and it is a cost worth naming rather than a regression. A card
-  // in the list holds its patch and reads nothing until a tab asks for bytes.
-  // A card in the reviewable section is mounted open on the file itself, and
-  // there is no way to show a rendered document without fetching it: since
-  // 2026-09-05 that is two content calls per reviewable file at load, one per
-  // ref. Here that is docs/b.md and nothing else, lib/a.js being in the list.
+test('only the slides near the swiper fetch, whatever the branch holds', () => {
+  // A slide is mounted open, so it reads what it shows: a document its own
+  // bytes, code both sides of its diff. What bounds the cost is the lazy mount,
+  // the slide in view and its neighbours, so a long branch reads three files at
+  // load rather than all of them. The Files list, where it shows, reads nothing.
   const cardReads = fetched.filter(f => !f.endsWith(':data/design/content.csv'));
-  assert.ok(cardReads.every(f => f.endsWith(':docs/b.md')),
-    'only the presented file was read: ' + JSON.stringify(cardReads));
+  const d = Alpine.$data(window.document.getElementById('m'));
+  const near = new Set(d.swipeFiles.slice(0, 2).map(f => f.path));
+  assert.ok(cardReads.length > 0, 'the slide in view reads its file');
+  assert.ok(cardReads.every(f => near.has(f.slice(f.lastIndexOf(':') + 1))),
+    'and nothing past its neighbour was read: ' + JSON.stringify(cardReads));
   assert.ok(fetched.some(f => f.endsWith(':data/design/content.csv')),
     'and the pane still makes its one registry probe');
 });

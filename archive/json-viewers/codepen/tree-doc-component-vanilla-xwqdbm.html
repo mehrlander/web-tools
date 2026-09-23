@@ -1,0 +1,200 @@
+<!-- CodePen: Tree doc component vanilla | https://codepen.io/Mark-E/pen/XWQdbma | created 9-Mar-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Tree doc component vanilla</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/XWQdbma">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <tree-doc>
+  <tree-el name="html" attributes="lang:en; color:red;">
+    <tree-el name="head">
+      <tree-el name="title">My Website</tree-el>
+    </tree-el>
+    <tree-el name="body" attributes="class:main-content;">
+      <tree-el name="header">
+        <tree-el name="h1">Welcome to my site!</tree-el>
+        <tree-el name="nav">
+          <tree-el name="ul">
+            <tree-el name="li"><a href="#">Home</a></tree-el>
+            <tree-el name="li"><a href="#">About</a></tree-el>
+            <tree-el name="li"><a href="#">Contact</a></tree-el>
+          </tree-el>
+        </tree-el>
+      </tree-el>
+      <tree-el name="main">
+        <tree-el name="p">This is the main content of the page.</tree-el>
+      </tree-el>
+      <tree-el name="footer">
+        <tree-el name="p">&copy; 2023 My Website. All rights reserved.</tree-el>
+      </tree-el>
+    </tree-el>
+  </tree-el>
+</tree-doc>
+  
+    <script id="rendered-js" >
+class TreeDoc extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+    font-family: Arial, sans-serif;
+    padding: 16px;
+  }
+
+  ::slotted(tree-el) {
+    display: block;
+    margin-left: 16px;
+  }
+</style>
+<slot></slot>`;
+  }}
+
+
+customElements.define("tree-doc", TreeDoc);
+
+class TreeEl extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+  }
+
+  .tree-el {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 4px;
+  }
+
+  .tree-el:hover {
+    background-color: #eee;
+  }
+
+  .arrow {
+    margin-right: 8px;
+    font-size: .5rem;
+    color: #888;
+  }
+
+  .name {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .attributes {
+    margin-left: 5px;
+    font-size: .8rem;
+    font-style: italic;
+    color: #555;
+  }
+
+  .attribute-key {
+    color: #08f;
+  }
+
+  .attribute-value {
+    color: #888;
+  }
+
+  .children {
+    display: none;
+    margin-left: 16px;
+    padding-left: 10px;
+    border-left: 2px solid #ccc;
+  }
+
+  :host(.expanded) .children {
+    display: block;
+  }
+
+  :host(:not(.has-children)) .arrow {
+    display: none;
+  }
+</style>
+<div class="tree-el">
+  <span class="arrow">▶</span>
+  <span class="name"></span>
+  <span class="attributes"></span>
+</div>
+<div class="children">
+  <slot></slot>
+</div>`;
+  }
+
+  connectedCallback() {
+    this.shadowRoot.querySelector(".name").textContent = this.getAttribute(
+    "name");
+
+    const attributes = this.getAttribute("attributes");
+    if (attributes) {
+      const attributesHtml = attributes.
+      trim().
+      replace(/^;+|;+$/g, '').
+      split(/\s*;\s*/).
+      map(attr => {
+        const [key, value] = attr.split(":");
+        return `<span class="attribute-key">${key}</span>=<span class="attribute-value">&quot;${value}&quot;</span>`;
+      }).
+      join(" ");
+      this.shadowRoot.querySelector(".attributes").innerHTML = `{${attributesHtml}}`;
+    }
+
+    if (this.hasChildNodes()) {
+      this.classList.add("has-children");
+    }
+
+    this.shadowRoot.
+    querySelector(".tree-el").
+    addEventListener("click", this.toggleExpanded.bind(this));
+  }
+
+  toggleExpanded() {
+    this.classList.toggle("expanded");
+    const arrow = this.shadowRoot.querySelector(".arrow");
+    arrow.textContent = this.classList.contains("expanded") ? "▼" : "▶";
+  }}
+
+
+customElements.define("tree-el", TreeEl);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

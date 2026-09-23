@@ -1,0 +1,250 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Space-X Launch Data Explorer - Refined Collapsible Tree View | id kznybuhd8x1pj_8k4fr2 v1 -->
+  <title>Space-X Launch Data Explorer - Refined Collapsible Tree View</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+    h1, h2 {
+      color: #005288;
+      text-align: center;
+    }
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    #error {
+      color: #d32f2f;
+      text-align: center;
+      font-weight: bold;
+    }
+    #tree-container {
+      width: 100%;
+      height: 800px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: auto;
+    }
+    .node circle {
+      fill: #fff;
+      stroke: #005288;
+      stroke-width: 2px;
+    }
+    .node text {
+      font: 12px sans-serif;
+    }
+    .link {
+      fill: none;
+      stroke: #ccc;
+      stroke-width: 2px;
+    }
+    .node-key {
+      font-weight: bold;
+    }
+    .node-value {
+      fill: #666;
+    }
+    .node--internal circle {
+      cursor: pointer;
+    }
+    .node--internal circle:hover {
+      fill: #cce5ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Space-X Launch Data Explorer</h1>
+  <h2>Refined Collapsible Tree Visualization</h2>
+  
+  <div id="loading">Fetching Space-X launch data...</div>
+  <div id="error"></div>
+  <div id="tree-container"></div>
+
+  <script>
+    const apiUrl = 'https://api.spacexdata.com/v4/launches/latest';
+
+    function createTreeData(obj, name = 'root') {
+      const node = { name };
+      if (typeof obj === 'object' && obj !== null) {
+        node.children = Object.entries(obj).map(([key, value]) => createTreeData(value, key));
+      } else {
+        node.value = String(obj);
+      }
+      return node;
+    }
+
+    async function fetchLaunchData() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        loading.style.display = 'none';
+        renderTree(createTreeData(data));
+      } catch (err) {
+        loading.style.display = 'none';
+        error.textContent = 'Error fetching Space-X launch data: ' + err.message;
+      }
+    }
+
+    function renderTree(treeData) {
+      const width = document.getElementById('tree-container').offsetWidth;
+      const height = 800;
+      const margin = { top: 20, right: 90, bottom: 20, left: 90 };
+
+      const svg = d3.select('#tree-container')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const tree = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
+      const root = d3.hierarchy(treeData);
+      root.x0 = height / 2;
+      root.y0 = 0;
+
+      let i = 0;
+
+      function update(source) {
+        const treeData = tree(root);
+        const nodes = treeData.descendants();
+        const links = treeData.descendants().slice(1);
+
+        nodes.forEach(d => { d.y = d.depth * 180; });
+
+        const node = svg.selectAll('g.node')
+          .data(nodes, d => d.id || (d.id = ++i));
+
+        const nodeEnter = node.enter().append('g')
+          .attr('class', 'node')
+          .attr('transform', d => `translate(${source.y0},${source.x0})`)
+          .on('click', (event, d) => {
+            if (d.children) {
+              d._children = d.children;
+              d.children = null;
+            } else {
+              d.children = d._children;
+              d._children = null;
+            }
+            update(d);
+          });
+
+        nodeEnter.append('circle')
+          .attr('r', 1e-6)
+          .style('fill', d => d._children ? 'lightsteelblue' : '#fff');
+
+        nodeEnter.append('text')
+          .attr('dy', '.35em')
+          .attr('x', d => d.children || d._children ? -13 : -13)
+          .attr('text-anchor', 'end')
+          .attr('class', 'node-key')
+          .text(d => d.data.name + ':');
+
+        nodeEnter.append('text')
+          .attr('dy', '.35em')
+          .attr('x', 13)
+          .attr('text-anchor', 'start')
+          .attr('class', 'node-value')
+          .text(d => {
+            if (d.data.value) {
+              return d.data.value.length > 20 ? d.data.value.substring(0, 20) + '...' : d.data.value;
+            }
+            return '';
+          });
+
+        const nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition()
+          .duration(750)
+          .attr('transform', d => `translate(${d.y},${d.x})`);
+
+        nodeUpdate.select('circle')
+          .attr('r', 5)
+          .style('fill', d => d._children ? 'lightsteelblue' : '#fff');
+
+        const nodeExit = node.exit().transition()
+          .duration(750)
+          .attr('transform', d => `translate(${source.y},${source.x})`)
+          .remove();
+
+        nodeExit.select('circle')
+          .attr('r', 1e-6);
+
+        nodeExit.select('text')
+          .style('fill-opacity', 1e-6);
+
+        const link = svg.selectAll('path.link')
+          .data(links, d => d.id);
+
+        const linkEnter = link.enter().insert('path', 'g')
+          .attr('class', 'link')
+          .attr('d', d => {
+            const o = {x: source.x0, y: source.y0};
+            return diagonal(o, o);
+          });
+
+        const linkUpdate = linkEnter.merge(link);
+
+        linkUpdate.transition()
+          .duration(750)
+          .attr('d', d => diagonal(d, d.parent));
+
+        const linkExit = link.exit().transition()
+          .duration(750)
+          .attr('d', d => {
+            const o = {x: source.x, y: source.y};
+            return diagonal(o, o);
+          })
+          .remove();
+
+        nodes.forEach(d => {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+      }
+
+      function diagonal(s, d) {
+        return `M ${s.y} ${s.x}
+                C ${(s.y + d.y) / 2} ${s.x},
+                  ${(s.y + d.y) / 2} ${d.x},
+                  ${d.y} ${d.x}`;
+      }
+
+      // Collapse all nodes initially except the root
+      root.children.forEach(collapse);
+      update(root);
+
+      function collapse(d) {
+        if (d.children) {
+          d._children = d.children;
+          d._children.forEach(collapse);
+          d.children = null;
+        }
+      }
+
+      // Add zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on('zoom', (event) => {
+          svg.attr('transform', event.transform);
+        });
+
+      d3.select('#tree-container > svg').call(zoom);
+    }
+
+    // Fetch data on load
+    fetchLaunchData();
+  </script>
+</body></html>

@@ -1,0 +1,182 @@
+<!-- CodePen: renderJson | https://codepen.io/Mark-E/pen/mdYYXdq | created 28-Jun-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>renderJson</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/mdYYXdq">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .json { font-family: monospace; }
+  .parent { cursor: pointer; }
+  .collapsed-summary { color: #888; }
+  .expanded-content { display: block; margin-left: 20px; }
+  .key { color: #00008B; }
+  .string { color: #006400; }
+  .number { color: #8B0000; }
+  .boolean { color: #8B008B; }
+  .null { color: #808080; }
+  #json-input { width: 100%; height: 100px; margin-bottom: 10px; }
+  #get-sample-data { margin-bottom: 10px; }
+</style>
+
+<h1>renderjson Demo</h1>
+<textarea id="json-input" placeholder="Paste your JSON here"></textarea>
+<button id="get-sample-data">Get Sample Data</button>
+<div id="json-container"></div>
+
+<script>
+const renderjson = (() => {
+    const createSpan = (className = '', ...children) => {
+        const element = document.createElement('span');
+        element.append(...children);
+        return Object.assign(element, { className, title: className });
+    };
+
+    const getTypeClasses = (jsonElement) => {
+        const simpleType = Array.isArray(jsonElement) ? "array" : 
+                           jsonElement instanceof Date ? "date" :
+                           jsonElement === null ? "null" : 
+                           typeof jsonElement;
+        
+        let length = 0;
+        if (simpleType === "array") {
+            length = jsonElement.length;
+        } else if (simpleType === "object") {
+            length = Object.keys(jsonElement).length;
+        } else if (simpleType === "string") {
+            length = jsonElement.length;
+        }
+
+        const lengthClass = length > 0 ? `parent ${length}` : "empty";
+        return [simpleType, simpleType === "object" || simpleType === "array" ? lengthClass : ""].join(" ").trim();
+    };
+
+    const renderJsonElement = (jsonElement, typeClasses, indent = '') => {
+        return typeClasses.includes('parent') ? parentManager.createSummary(jsonElement, typeClasses, indent) : createSpan(typeClasses, JSON.stringify(jsonElement));
+    };
+
+    class ParentManager {
+        constructor() {
+            this.detailCache = new WeakMap();
+            this.summaryCache = new WeakMap();
+        }
+
+        createSummary(jsonElement, typeClasses, indent) {
+            const isArray = Array.isArray(jsonElement);
+            const delimiters = { open: isArray ? '[' : '{', close: isArray ? ']' : '}' };
+            let summary = createSpan(`collapsed-summary ${typeClasses}`, `${delimiters.open}${isArray ? jsonElement.length : Object.keys(jsonElement).length} items${delimiters.close}`);
+            summary.addEventListener('click', () => {
+                const detail = this.detailCache.get(jsonElement);
+                summary.parentNode.replaceChild(detail ?? this.buildDetail(jsonElement, typeClasses, indent, isArray, delimiters), summary);
+            });
+            this.summaryCache.set(jsonElement, summary);
+            return summary;
+        }
+
+        buildDetail(jsonElement, typeClasses, indent, isArray, delimiters) {
+            let details = createSpan(`expanded-content ${typeClasses}`, '');
+            let openDelimiter = createSpan('open-delimiter', `${delimiters.open}\n`);
+            openDelimiter.addEventListener('click', () => {
+                this.collapseToSummary(jsonElement, details);
+            });
+            details.append(openDelimiter);
+        
+            (isArray ? jsonElement : Object.entries(jsonElement)).forEach((item, index, array) => {
+                if (isArray) {
+                    details.append(`${indent}    `, renderJsonElement(item, getTypeClasses(item), `${indent}    `), index < array.length - 1 ? ',\n' : '\n');
+                } else {
+                    const keySpan = createSpan('key', `"${item[0]}"`);
+                    const valueClasses = getTypeClasses(item[1]);
+                    if (valueClasses.includes('parent')) {
+                        keySpan.classList.add('parent');
+                        keySpan.title = keySpan.className;
+                    }
+                    const valueSpan = renderJsonElement(item[1], valueClasses, `${indent}    `);
+
+                    details.append(`${indent}    `, keySpan, ': ', valueSpan, index < array.length - 1 ? ',\n' : '\n');
+                }
+            });
+        
+            details.append(`${indent}${delimiters.close}`);
+            this.detailCache.set(jsonElement, details);
+            return details;
+        }
+
+        collapseToSummary(jsonElement, detailsElement) {
+            const summary = this.summaryCache.get(jsonElement);
+            detailsElement.parentNode.replaceChild(summary, detailsElement);
+        }
+    }
+
+    const parentManager = new ParentManager();
+    return (json) => createSpan('json', renderJsonElement(json, getTypeClasses(json), ''));
+})();
+
+const jsonInput = document.getElementById('json-input');
+const jsonContainer = document.getElementById('json-container');
+const getSampleDataButton = document.getElementById('get-sample-data');
+
+function renderJson(jsonString) {
+    try {
+        const jsonData = JSON.parse(jsonString);
+        jsonContainer.innerHTML = '';
+        jsonContainer.appendChild(renderjson(jsonData));
+    } catch (error) {
+        jsonContainer.innerHTML = `<p style="color: red;">Invalid JSON: ${error.message}</p>`;
+    }
+}
+
+jsonInput.addEventListener('input', (event) => {
+    renderJson(event.target.value);
+});
+
+getSampleDataButton.addEventListener('click', () => {
+    fetch('https://swapi.dev/api/people/1/')
+        .then(response => response.json())
+        .then(data => {
+            jsonInput.value = JSON.stringify(data, null, 2);
+            renderJson(jsonInput.value);
+        })
+        .catch(error => {
+            jsonContainer.innerHTML = `<p style="color: red;">Error fetching data: ${error.message}</p>`;
+        });
+});
+
+// Initial render with empty object
+renderJson('{}');
+</script>
+  
+  
+  
+</body>
+
+</html>
