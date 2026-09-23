@@ -21,6 +21,16 @@
   ],
   "pages": [
     {
+      "path": "pages/json-explorer.html",
+      "title": "JSON Explorer",
+      "note": "Explore JSON as a collapsible tree and filter the fields shown.",
+      "appView": true,
+      "viewLabel": "JSON explorer",
+      "icon": "ph-tree-structure",
+      "order": 52,
+      "slug": "json-explorer"
+    },
+    {
       "path": "pages/json-viewers.html",
       "title": "JSON Viewer Examples",
       "note": "Compare six JSON viewers recovered from WebSim and open saved CodePen examples.",

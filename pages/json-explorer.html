@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Field Explorer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-3">
+    <h1 class="font-semibold">JSON field explorer</h1>
+    <a id="examples-link" href="json-viewers.html" class="ml-auto link text-sm">Examples ↗</a>
+  </header>
+  <main class="min-w-0">
+    <details id="data-panel" class="border-b border-base-300">
+      <summary class="cursor-pointer px-4 py-3 text-sm">JSON data <span id="data-count" class="ml-2 text-base-content/60"></span></summary>
+      <div class="grid gap-3 px-4 pb-4">
+        <textarea id="sample" aria-label="JSON data" spellcheck="false" class="textarea w-full h-56 font-mono text-sm"></textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="apply" class="btn btn-sm btn-primary">Apply JSON</button>
+          <button id="reset" class="btn btn-sm btn-ghost">Reset sample</button>
+          <span id="data-status" role="status" class="text-sm"></span>
+        </div>
+      </div>
+    </details>
+    <section aria-labelledby="filter-heading" class="border-b border-base-300 px-4 py-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 id="filter-heading" class="font-semibold">Field filters</h2>
+        <button id="all-fields" class="btn btn-sm btn-primary" aria-pressed="true">All fields</button>
+        <span id="selection-status" role="status" class="text-sm text-base-content/70"></span>
+      </div>
+      <div class="mt-3 flex items-center gap-3">
+        <input id="field-search" type="search" class="input input-sm min-w-0 flex-1 sm:flex-none sm:w-64" placeholder="Find a field…" aria-label="Find a field">
+        <label class="flex min-h-10 shrink-0 items-center gap-2 text-sm"><input id="nested-paths" type="checkbox" class="checkbox checkbox-sm">Nested paths</label>
+      </div>
+      <div id="field-pills" class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Fields to include"></div>
+      <p id="no-fields" class="hidden py-2 text-sm text-base-content/70">No matching fields</p>
+      <details id="selected-panel" class="mt-3 hidden">
+        <summary id="selected-summary" class="cursor-pointer text-sm">Selected paths</summary>
+        <div id="selected-pills" class="mt-2 flex flex-wrap gap-2"></div>
+      </details>
+    </section>
+    <section aria-labelledby="tree-heading" class="min-w-0 px-4 py-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 id="tree-heading" class="font-semibold">Tree preview</h2>
+        <span id="tree-count" class="text-sm text-base-content/70"></span>
+        <button id="collapse" class="btn btn-sm btn-ghost ml-auto">Collapse</button>
+        <button id="download" class="btn btn-sm btn-ghost">Save JSON ↓</button>
+      </div>
+      <div class="my-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" aria-label="Color key">
+        <span class="text-base-content/70">Color = type</span>
+        <div id="type-key" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div id="tree" class="min-w-0 border-y border-base-300" aria-label="Filtered JSON tree"></div>
+      <p id="load-error" class="hidden py-3 text-error" role="alert"></p>
+    </section>
+  </main>
+  <script type="module">
+    const $ = id => document.getElementById(id);
+    // Semantic colors stay identical in the field pills, previews, and leaves.
+    // The type symbol and written legend provide a second cue beside color.
+    const types = {
+      string: { label: 'Text', symbol: 'Aa', className: 'bg-sky-50 text-sky-950 border-sky-300', selected: 'border-sky-800' },
+      number: { label: 'Number', symbol: '#', className: 'bg-amber-50 text-amber-950 border-amber-300', selected: 'border-amber-800' },
+      boolean: { label: 'Boolean', symbol: 'T/F', className: 'bg-violet-50 text-violet-950 border-violet-300', selected: 'border-violet-800' },
+      object: { label: 'Object', symbol: '{}', className: 'bg-slate-100 text-slate-900 border-slate-300', selected: 'border-slate-800' },
+      array: { label: 'Array', symbol: '[]', className: 'bg-teal-50 text-teal-950 border-teal-300', selected: 'border-teal-800' },
+      null: { label: 'Null', symbol: '∅', className: 'bg-white text-gray-700 border-gray-300', selected: 'border-gray-700' },
+      mixed: { label: 'Mixed types', symbol: '±', className: 'bg-white text-slate-900 border-slate-300', selected: 'border-slate-800' },
+    };
+    const sample = [
+      { name: 'Atlas', date_utc: '2025-01-10T12:00:00Z', success: true,
+        rocket: { name: 'Falcon', stages: 2 }, payloads: [{ name: 'Research', mass_kg: 240 }],
+        links: { webcast: null }, tags: ['science', 'orbit'] },
+      { name: 'Aurora', date_utc: '2025-03-21T08:30:00Z', success: false,
+        rocket: { name: 'Falcon', stages: 2 }, payloads: [{ name: 'Weather', mass_kg: 180 }, { name: 'Imaging', mass_kg: 90 }],
+        links: { webcast: null }, tags: [], notes: 'A second record for comparing array previews.' },
+    ];
+    let data = sample, fields = [], selected = new Set(), projected;
+    let kindOf, collectFields, projectFields;
+    const expanded = new Set(['[]']);
+    const node = (tag, className, text) => {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text !== undefined) element.textContent = text;
+      return element;
+    };
+    const typeFor = field => types[field.types.length === 1 ? field.types[0] : 'mixed'];
+    const count = value => {
+      const type = kindOf(value);
+      const size = type === 'array' ? value.length : type === 'object' ? Object.keys(value).length : 1;
+      const noun = type === 'array' ? 'item' : type === 'object' ? 'field' : 'value';
+      return `${size} ${noun}${size === 1 ? '' : 's'}`;
+    };
+    function typeLabel(type) {
+      const info = types[type];
+      return node('span', `inline-flex items-center gap-1 rounded border px-2 py-1 ${info.className}`, `${info.symbol} ${info.label}`);
+    }
+    for (const type of Object.keys(types).filter(type => type !== 'mixed')) $('type-key').append(typeLabel(type));
+    function filterPill(field, removeOnly = false) {
+      const info = typeFor(field), active = selected.has(field.id);
+      const colors = active ? info.className.replace(/border-[a-z]+-\d+/, info.selected) : info.className;
+      const button = node('button', `inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border-2 px-3 py-2 text-sm break-all text-left ${colors} ${active ? 'font-semibold' : ''}`);
+      button.type = 'button'; button.dataset.fieldId = field.id;
+      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-label', `${removeOnly ? 'Remove ' : ''}${field.label} (${field.types.map(type => types[type].label).join(', ')})`);
+      const symbol = node('span', 'shrink-0 font-mono text-xs', active ? '✓' : info.symbol);
+      symbol.setAttribute('aria-hidden', 'true');
+      button.append(symbol, node('span', 'min-w-0', field.label));
+      button.addEventListener('click', () => {
+        if (selected.has(field.id)) selected.delete(field.id);
+        else {
+          // A child refines its parent; a parent replaces its selected children.
+          const prefix = (a, b) => a.length <= b.length && a.every((part, index) => part === b[index]);
+          for (const other of fields) if (selected.has(other.id) && (prefix(field.segments, other.segments) || prefix(other.segments, field.segments))) selected.delete(other.id);
+          selected.add(field.id);
+        }
+        render();
+        const replacement = [...$('field-pills').children, ...$('selected-pills').children].find(item => item.dataset.fieldId === field.id);
+        (replacement || $('all-fields')).focus({ preventScroll: true });
+      });
+      return button;
+    }
+    function renderPills() {
+      const query = $('field-search').value.trim().toLocaleLowerCase();
+      const nested = $('nested-paths').checked;
+      const topDepth = Array.isArray(data) ? 2 : 1;
+      const visible = fields.filter(field => (nested || query || field.segments.length <= topDepth) && field.label.toLocaleLowerCase().includes(query));
+      $('field-pills').replaceChildren(...visible.map(field => filterPill(field)));
+      $('no-fields').classList.toggle('hidden', visible.length !== 0);
+      const hiddenSelected = fields.filter(field => selected.has(field.id) && !visible.includes(field));
+      $('selected-panel').classList.toggle('hidden', hiddenSelected.length === 0);
+      $('selected-summary').textContent = `${hiddenSelected.length} selected path${hiddenSelected.length === 1 ? '' : 's'} outside this list`;
+      $('selected-pills').replaceChildren(...hiddenSelected.map(field => filterPill(field, true)));
+      $('selected-panel').open = hiddenSelected.length > 0;
+      $('all-fields').classList.toggle('btn-primary', selected.size === 0);
+      $('all-fields').setAttribute('aria-pressed', String(selected.size === 0));
+      $('selection-status').textContent = selected.size ? `${selected.size} selected · tap again to remove` : 'Tap fields to focus';
+    }
+    function valuePreview(value) {
+      if (kindOf(value) === 'object') return `{${count(value)}}`;
+      if (kindOf(value) === 'array') return `[${count(value)}]`;
+      const text = JSON.stringify(value);
+      return text.length > 76 ? text.slice(0, 73) + '…' : text;
+    }
+    function chip(key, value) {
+      const type = kindOf(value), info = types[type];
+      const cell = node('span', `inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded border px-2 py-1 [overflow-wrap:anywhere] ${info.className}`);
+      cell.dataset.valueType = type;
+      if (key !== null) cell.append(node('span', 'font-semibold', key + ':'));
+      cell.append(node('span', '', valuePreview(value)));
+      return cell;
+    }
+    function treeNode(value, label, path, root = false) {
+      const type = kindOf(value), info = types[type], container = type === 'object' || type === 'array';
+      if (!container) {
+        const row = node('div', 'flex min-w-0 flex-wrap items-baseline gap-2 py-2');
+        row.append(node('span', 'font-semibold break-all', label + ':'), node('span', `rounded border px-2 py-1 whitespace-pre-wrap break-all ${info.className}`, JSON.stringify(value)));
+        row.dataset.valueType = type;
+        return row;
+      }
+      const id = JSON.stringify(path), entries = Object.entries(value);
+      const detail = node('details', 'min-w-0 border-b border-base-200 last:border-b-0');
+      detail.dataset.treePath = id;
+      const summary = node('summary', 'flex cursor-pointer list-none items-start gap-2 py-3 [&::-webkit-details-marker]:hidden');
+      const arrow = node('span', 'mt-1 shrink-0 text-slate-500', expanded.has(id) ? '▾' : '▸');
+      arrow.setAttribute('aria-hidden', 'true');
+      const line = node('span', 'flex min-w-0 flex-1 flex-wrap items-baseline gap-2');
+      line.append(node('span', 'font-semibold break-all', label), node('span', `rounded border px-2 py-1 text-sm ${info.className}`, `${info.symbol} ${count(value)}`));
+      if (!root) for (const [key, child] of entries.slice(0, 8)) line.append(chip(type === 'array' ? `[${key}]` : key, child));
+      if (!root && entries.length > 8) line.append(node('span', 'text-sm text-base-content/70', `+${entries.length - 8} more`));
+      summary.append(arrow, line);
+      const children = node('div', 'ml-2 min-w-0 border-l-2 border-base-200 pl-3 sm:ml-4');
+      let painted = 0, populated = false;
+      const more = node('button', 'btn btn-sm btn-ghost my-2', 'Show more');
+      more.type = 'button';
+      function paint() {
+        populated = true;
+        more.remove();
+        const end = Math.min(entries.length, painted + 100);
+        for (; painted < end; painted++) {
+          const [key, child] = entries[painted];
+          children.append(treeNode(child, type === 'array' ? `[${key}]` : key, [...path, key]));
+        }
+        if (painted < entries.length) {
+          more.textContent = `Show next ${Math.min(100, entries.length - painted)} · ${entries.length - painted} remaining`;
+          children.append(more);
+        }
+        if (!entries.length) children.append(node('div', 'py-2 text-base-content/70', type === 'array' ? 'Empty array' : 'Empty object'));
+      }
+      more.addEventListener('click', () => {
+        const start = painted;
+        paint();
+        const first = children.children[start];
+        const target = first.querySelector('summary') || first;
+        if (target === first) target.tabIndex = -1;
+        target.focus();
+      });
+      detail.append(summary, children);
+      detail.open = expanded.has(id);
+      if (detail.open) paint();
+      detail.addEventListener('toggle', () => {
+        arrow.textContent = detail.open ? '▾' : '▸';
+        if (detail.open) { expanded.add(id); if (!populated) paint(); }
+        else expanded.delete(id);
+      });
+      return detail;
+    }
+    function render() {
+      renderPills();
+      projected = projectFields(data, [...selected]);
+      $('tree-count').textContent = count(projected);
+      $('tree').replaceChildren(treeNode(projected, 'root', [], true));
+    }
+    function load(value) {
+      data = value; fields = collectFields(data);
+      if (Array.isArray(data) && data.length && data.every(row => kindOf(row) === 'object')) fields = fields.filter(field => field.id !== '[null]');
+      $('type-key').replaceChildren(...Object.keys(types).filter(type => type !== 'mixed' || fields.some(field => field.types.length > 1)).map(typeLabel));
+      selected.clear(); expanded.clear(); expanded.add('[]');
+      $('data-count').textContent = count(data);
+      $('field-search').value = '';
+      render();
+    }
+    $('sample').value = JSON.stringify(sample, null, 2);
+    const ref = new URLSearchParams(location.search).get('use');
+    if (ref) $('examples-link').href = `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${ref}:pages/json-viewers.html`;
+    $('apply').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse($('sample').value);
+        load(parsed); $('data-status').textContent = 'Applied'; $('data-panel').open = false;
+      } catch (error) { $('data-status').textContent = 'Invalid JSON: ' + error.message; }
+    });
+    $('reset').addEventListener('click', () => {
+      $('sample').value = JSON.stringify(sample, null, 2); load(sample); $('data-status').textContent = 'Sample restored';
+    });
+    $('field-search').addEventListener('input', renderPills);
+    $('nested-paths').addEventListener('change', renderPills);
+    $('all-fields').addEventListener('click', () => { selected.clear(); render(); });
+    $('collapse').addEventListener('click', () => { expanded.clear(); expanded.add('[]'); render(); });
+    $('download').addEventListener('click', () => {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(projected, null, 2)], { type: 'application/json' }));
+      const link = node('a'); link.href = url; link.download = 'filtered.json'; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    // Fetch-to-blob preserves the selected revision inside toss previews.
+    try {
+      const response = await fetch('json-viewers/field-model.js');
+      if (!response.ok) throw new Error(`Could not load the field explorer (${response.status}).`);
+      const moduleURL = URL.createObjectURL(new Blob([await response.text()], { type: 'text/javascript' }));
+      try { ({ kindOf, collectFields, projectFields } = await import(moduleURL)); }
+      finally { URL.revokeObjectURL(moduleURL); }
+      load(sample);
+    } catch (error) { $('load-error').textContent = error.message; $('load-error').classList.remove('hidden'); }
+  </script>
+</body>
+</html>

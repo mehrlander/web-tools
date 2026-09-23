@@ -14,6 +14,7 @@
       <button id="websim-tab" class="btn btn-sm join-item btn-primary" aria-pressed="true">WebSim</button>
       <button id="codepen-tab" class="btn btn-sm join-item" aria-pressed="false">CodePen links</button>
     </nav>
+    <a id="focused-explorer" class="btn btn-sm btn-ghost" href="json-explorer.html" target="_blank" rel="noopener">Tree + field filters ↗</a>
     <label id="compare-control" class="ml-auto flex items-center gap-2 text-sm"><input id="compare" type="checkbox" class="checkbox checkbox-sm">Compare</label>
   </header>
   <main id="websim-panel">
@@ -99,6 +100,9 @@
     const revision = { left: 0, right: 0 };
     const params = new URLSearchParams(location.search);
     const ref = params.get('use') || 'main';
+    if (params.get('use')) {
+      $('focused-explorer').href = 'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + encodeURIComponent(ref) + ':pages/json-explorer.html';
+    }
     const valid = id => examples.some(([key]) => key === id);
     $('sample').value = JSON.stringify(sample, null, 2);
     for (const side of ['left', 'right']) {
