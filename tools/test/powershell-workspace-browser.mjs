@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The full app Code route, real CodeMirror and browser storage. Network writes
+// The full app Code route, real CodeMirror 6 and browser storage. Network writes
 // are captured by the fixture; this test never contacts GitHub. Run separately
 // from npm test: node tools/test/powershell-workspace-browser.mjs
 import assert from 'node:assert/strict';
@@ -180,7 +180,7 @@ async function toolbarTargets() {
   }
 }
 async function compactPhoneCode(label) {
-  const cm = workspace().locator('[data-editor-host] .CodeMirror');
+  const cm = workspace().locator('[data-editor-host] .cm-editor');
   const box = await withinViewport(cm, label + ' editor'), viewport = page.viewportSize();
   assert.ok(box.y <= 116, label + ' code starts after only two chrome rows: ' + box.y);
   assert.ok(box.x <= 1 && box.width >= viewport.width - 1, label + ' source uses the continuous full-width surface');
@@ -240,7 +240,7 @@ async function findFromMenu() {
   const text = (await state()).text;
   await viewTab('Compare').click();
   await menuAction('File actions', 'Find');
-  const input = workspace().locator('[data-editor-host] .CodeMirror-dialog input');
+  const input = workspace().locator('[data-editor-host] .cm-panel.cm-search input[name=search]');
   await input.waitFor({ state: 'visible' });
   assert.equal((await state()).pane, 'code', 'Find from the menu opens Code');
   assert.equal(await input.evaluate(el => document.activeElement === el), true, 'Find focuses its search field');
@@ -367,14 +367,14 @@ async function diffCountContrast(theme) {
 async function checkSyntaxContrast(theme) {
   const ratios = await page.evaluate(async () => {
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const editor = document.querySelector('[data-editor-host] .CodeMirror');
+    const editor = document.querySelector('[data-editor-host] .cm-editor');
     const bg = getComputedStyle(editor).backgroundColor;
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
     const ctx = canvas.getContext('2d');
     const pixels = color => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = bg; ctx.fillRect(0, 0, 1, 1); ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3); };
     const luminance = rgb => rgb.map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
     const back = luminance(pixels(bg));
-    return ['keyword', 'variable-2', 'string', 'builtin', 'comment'].map(kind => {
+    return ['keyword', 'variable', 'string', 'builtin', 'comment'].map(kind => {
       const token = editor.querySelector('.cm-' + kind);
       if (!token) throw new Error('Missing syntax fixture: ' + kind);
       const front = luminance(pixels(getComputedStyle(token).color));
@@ -389,7 +389,7 @@ try {
   await ready();
   assert.equal((await state()).text, source);
   assert.equal(await workspace().getByRole('tablist', { name: 'Open files' }).count(), 0, 'one desktop file does not need a separate tab row');
-  const cm = page.locator('[data-editor-host] .CodeMirror');
+  const cm = page.locator('[data-editor-host] .cm-editor');
   assert.ok((await cm.boundingBox()).height > 250, 'the editor receives viewport space');
   assert.deepEqual((await workspace().getByRole('tablist', { name: 'Code views' }).getByRole('tab').allTextContents()).map(text => text.trim()), ['Code', 'Compare', 'History']);
   await keyboardViews();
@@ -426,7 +426,7 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await ready();
   await menuAction('File actions', 'Split companion');
-  await page.locator('[data-companion-host] .CodeMirror').waitFor({ state: 'visible' });
+  await page.locator('[data-companion-host] .cm-editor').waitFor({ state: 'visible' });
   await page.waitForFunction(() => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).connections.some(row => row.name === 'RefreshButton'));
   await page.screenshot({ path: path.join(output, 'powershell-workspace-companion.png') });
   const originalTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
@@ -439,7 +439,7 @@ try {
   // different repository file. The app-level signature router may not steal it.
   const nativePaste = '# @file ' + M + "\nWrite-Output 'native editor paste'\n";
   const pastedDraft = source + nativePaste.replace(/\n/g, '\r\n');
-  await cm.click();
+  await cm.locator('.cm-content').click();
   await page.keyboard.press('Control+End');
   await clipboard(nativePaste);
   await page.keyboard.press('Control+V');
@@ -454,7 +454,7 @@ try {
   await exactText(pastedDraft);
   await workspace().getByRole('button', { name: 'Undo', exact: true }).click();
   await exactText(source);
-  await cm.click();
+  await cm.locator('.cm-content').click();
   await page.keyboard.press('Control+End');
   await page.keyboard.insertText("# browser edit: 'exact' ✓");
   const editedDraft = source + "# browser edit: 'exact' ✓";
@@ -477,11 +477,11 @@ try {
   await changedComparison(false);
   await page.screenshot({ path: path.join(output, 'powershell-workspace-diff.png') });
   await menuAction('File actions', 'Find and replace');
-  await cm.locator('.CodeMirror-dialog input').waitFor({ state: 'visible' });
+  await cm.locator('.cm-panel.cm-search input[name=search]').waitFor({ state: 'visible' });
   assert.equal((await state()).pane, 'code', 'Find and replace from Compare opens the code editor');
-  assert.equal(await cm.locator('.CodeMirror-dialog input').evaluate(el => document.activeElement === el), true, 'Find and replace focuses its search field');
+  assert.equal(await cm.locator('.cm-panel.cm-search input[name=search]').evaluate(el => document.activeElement === el), true, 'Find and replace focuses its search field');
   await page.keyboard.press('Escape');
-  await cm.locator('.CodeMirror-dialog').waitFor({ state: 'hidden' });
+  await cm.locator('.cm-panel.cm-search').waitFor({ state: 'hidden' });
 
   const moduleIncoming = '# @file ' + M + "\nfunction Get-Example { 'Changed on the work machine' }\n";
   const deliveredModule = await pasteOnPage(moduleIncoming);

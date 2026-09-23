@@ -238,6 +238,57 @@ function readSpec(spec, repoRoot, combine) {
   return null;
 }
 
+// The esm.sh half of the story above: `/<pkg>[@version][/subpath]` to the
+// package's ESM entry (exports["."].import, then module, then main) or the
+// subpath's exports pattern, then every bare specifier in the served text
+// rewritten to an absolute esm.sh URL so the browser asks this resolver again.
+// Only static `import … from` / `export … from` and dynamic `import('…')` forms
+// are rewritten, and only when the specifier is bare (no leading `.`, `/`, or
+// scheme). The CM6 dist files are plain ESM of exactly that shape.
+function esmEntry(dir, sub) {
+  const pj = path.join(dir, 'package.json');
+  let j = {};
+  try { j = JSON.parse(readFileSync(pj, 'utf8')); } catch { return null; }
+  const pick = v => typeof v === 'string' ? v : v && (v.import || v.module || v.default || v.browser);
+  if (!sub) {
+    const dot = j.exports && (typeof j.exports === 'string' ? j.exports : j.exports['.'] || (j.exports.import ? j.exports : null));
+    const rel = pick(dot) || j.module || j.main || 'index.js';
+    return typeof rel === 'string' ? path.join(dir, rel) : null;
+  }
+  const ex = j.exports && typeof j.exports === 'object' ? j.exports : null;
+  if (ex) {
+    if (ex['./' + sub]) { const rel = pick(ex['./' + sub]); if (rel) return path.join(dir, rel); }
+    for (const [key, val] of Object.entries(ex)) {
+      if (!key.includes('*')) continue;
+      const [head, tail] = key.slice(2).split('*');
+      if (sub.startsWith(head) && sub.endsWith(tail)) {
+        const star = sub.slice(head.length, sub.length - tail.length);
+        const rel = pick(val);
+        if (rel) return path.join(dir, rel.replace('*', star));
+      }
+    }
+  }
+  for (const cand of [sub, sub + '.js', sub + '/index.js']) {
+    const fp = path.join(dir, cand);
+    if (existsSync(fp) && statSync(fp).isFile()) return fp;
+  }
+  return null;
+}
+const BARE = /((?:^|[^\w$.])(?:import|export)\s*(?:[^'"`;]*?\s+from\s*)?)(['"])([^'"./][^'"]*)\2|(\bimport\s*\(\s*)(['"])([^'"./][^'"]*)\5/g;
+export function readEsm(pathname, repoRoot) {
+  const spec = decodeURIComponent(pathname.replace(/^\/+/, '')).replace(/^v\d+\//, '').replace(/^stable\//, '');
+  const m = spec.match(/^(@[^/@]+\/[^/@]+|[^/@]+)(?:@[^/]+)?(?:\/(.*))?$/);
+  if (!m) return null;
+  const pkg = m[1], sub = (m[2] || '').replace(/\?.*$/, '');
+  const dir = path.join(repoRoot, 'node_modules', pkg);
+  if (!existsSync(dir)) return null;
+  const fp = esmEntry(dir, sub);
+  if (!fp || !existsSync(fp)) return null;
+  const text = readFileSync(fp, 'utf8').replace(BARE, (all, pre, q, name, dpre, dq, dname) =>
+    pre !== undefined ? `${pre}${q}https://esm.sh/${name}${q}` : `${dpre}${dq}https://esm.sh/${dname}${dq}`);
+  return { body: text, contentType: 'application/javascript; charset=utf-8' };
+}
+
 export function resolveCdn(rawUrl, repoRoot, ref) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
@@ -523,8 +574,21 @@ export function resolveCdn(rawUrl, repoRoot, ref) {
     return { kind: 'empty', contentType: typeFor(u.pathname), tag: `MISS unpkg ${u.pathname}` };
   }
 
-  // --- Known-but-unvendored module CDNs (e.g. cm6's esm.sh imports) ---
-  if (host === 'esm.sh' || host === 'cdnjs.cloudflare.com') {
+  // --- esm.sh: a bare ESM package graph, served from node_modules ---
+  // esm.sh serves each package as a module whose imports are rewritten to
+  // absolute esm.sh URLs. A page that imports `https://esm.sh/@codemirror/view`
+  // therefore never needs an import map. To stand in for it offline, serve the
+  // package's ESM entry from node_modules and rewrite ITS bare specifiers the
+  // same way, so `from '@codemirror/state'` inside the served file becomes a
+  // request this resolver answers on the next hop. A package that is not
+  // installed still answers empty, as before, so a page reaching for one the
+  // checkout lacks fails the way it did rather than hitting the network.
+  if (host === 'esm.sh') {
+    const r = readEsm(u.pathname, repoRoot);
+    if (r) return { kind: 'fulfill', body: Buffer.from(r.body), contentType: r.contentType, tag: `esm ${u.pathname}` };
+    return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `skip ${host}${u.pathname}` };
+  }
+  if (host === 'cdnjs.cloudflare.com') {
     return { kind: 'empty', contentType: 'application/javascript; charset=utf-8', tag: `skip ${host}${u.pathname}` };
   }
 

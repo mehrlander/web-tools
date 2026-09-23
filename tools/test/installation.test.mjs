@@ -114,6 +114,11 @@ test('pending adoption carries transfer limits without turning them into install
   assert.equal(K.derive(module, []).latest, null, 'a queue entry is not an observed placement');
   assert.equal(K.derive(script, []).state, 'repo-only', 'no destination takes priority over a malformed pending entry');
   assert.equal(K.derive(module, [rowOf({})]).state, 'reported', 'recorded evidence takes priority even if stale manifest data remains');
+  assert.equal(K.derive(module, [rowOf({})]).conflict, true, 'a row beside a pending entry is named as a contradiction');
+  assert.equal(K.derive(module, [rowOf({})]).label, 'reported installed; pending entry still listed');
+  assert.equal(K.derive(module, []).conflict, false);
+  const profile = inventory.find(i => i.rel === 'app/Profile.ps1');
+  assert.equal(K.derive(profile, [rowOf({ path: profile.path, blobSha: sha40('1') })]).conflict, false, 'a row on a file without an entry is no contradiction');
   assert.equal(JSON.stringify(raw), before, 'reading the manifest and deriving status never removes adoption entries');
 });
 
