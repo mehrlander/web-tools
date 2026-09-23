@@ -2,7 +2,7 @@
 
 The estate answers one question in a dozen ways: **something exists somewhere, and someone needs to look at it.** [SURFACING.md](SURFACING.md) is the etiquette that decides what to hand over; the Web Tools app ([APP.md](APP.md) the mission, [show-repo.md](show-repo.md) the shell's reference) is what you hand it from. The one-line split, since "surfacing" and "showing" are near-synonyms in ordinary English and this only holds if it is stated: **surfacing decides what to hand over; showing is what makes it openable.**
 
-> **The reference is the app, not this file.** Every mechanism, the address to write for each, what it reaches and misses, its trap, and the rule for picking one are rows in [`docs/showing-mechanisms.csv`](showing-mechanisms.csv); the three axes they are indexed by and the picker rules are the `showing` block of [`docs/routes.json`](routes.json). Both render in show-repo's **Map view, Showing tab**.
+> **The reference is the app, not this file.** Every mechanism, the address to write for each, what it reaches and misses, its trap, and the rule for picking one are rows in [`docs/showing-mechanisms.csv`](showing-mechanisms.csv); the three axes they are indexed by and the picker rules are the `showing` block of [`docs/routes.json`](routes.json), except the subject axis, which is a registry of its own, [`docs/subjects.csv`](subjects.csv), since two tables key into it. All of it renders in show-repo's **Map view, Showing tab**.
 
 What stays here is what no row can hold: why the boundaries are where they are, and the relations between rows.
 
@@ -78,9 +78,8 @@ That is the general shape of every failure recorded on this page: not a link tha
 
 The table's `viewer` axis carries this; the one criterion no row holds is that the Claude app's in-app browser keeps its own storage, so treat `ghToken` as possibly absent there. When it is, bake the page and publish a 📦 artifact, or fall back to 🥏 `#gz=`. Matrix and pipeline: [docs/artifacts.md](artifacts.md).
 
-## What a kind is doing on this tab
+## The subject, typed, and the kind under it
 
-The `subject` axis says a file needs a renderer. [`docs/routes-kinds.csv`](routes-kinds.csv) says which file, which renderer, and what a note can be pinned to inside it once it is open. That last clause is why it belongs here rather than beside the annotator: **showing does not end when the pixels land.** A link that reaches a markdown file and a link that reaches a PDF have put the reader in two different places, and what each can do next differs for the same reason the link did.
+[`subjects.csv`](subjects.csv) types what is on screen: the estate, a repo, a project, a branch, a session, a page, a file, data, a fileset. It was the frame's five subject strings until 2026-09-22; the parenthetical each carried (renders itself, needs a renderer) is its `needs` column, and the FAB's layer strip reads `detect` to caption a layer by type rather than by its place in the stack. Two things are not types: a view is the app's closed vocabulary over the estate or a repo (`group` in `app-routes.csv`) and rides as the label under the subject; promotion (`appView`) is an attribute of a page.
 
-The boundary that took finding: a kind is neither a page type nor a route. Markdown has no route of its own and is the kind with the most built on it; the `data` route carries five kinds; a PDF has two routes. So the tables join by column and stay separate by key, the arrangement [`registries.md`](registries.md) calls inheriting. The `subject` and `shown_by` cells are checked against the frame and the mechanism table by `routes-manifest.test.mjs`, so the association is a join rather than a resemblance.
-
+One level down, [`routes-kinds.csv`](routes-kinds.csv) says which file, which renderer, and what a note can be pinned to inside it once open, because showing does not end when the pixels land. A kind is neither a page type nor a route: markdown has none and `data` carries five kinds. The tables join by key and stay separate, the arrangement [`registries.md`](registries.md) calls inheriting, and `routes-manifest.test.mjs` holds every join.

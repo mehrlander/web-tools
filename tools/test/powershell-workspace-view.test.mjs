@@ -564,3 +564,218 @@ test('a pasted draft bundle opens restoration review before any draft write', as
   await v.data.restoreImport();
   assert.equal(v.data.doc.text, incoming); assert.deepEqual(f.writes, []);
 });
+
+test('unchanged original and checked GitHub comparisons report exact identity without rendering source rows', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  await d.setPane('diff');
+  assert.equal(d.diffState, 'identical');
+  assert.equal(d.diffBeforeLabel, 'Original GitHub version');
+  assert.match(d.diffMessage, /exactly matches original GitHub version/);
+  assert.deepEqual(clone(d.diffRows), []);
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+  await d.refreshUpstream(); d.diffAgainst = 'current'; d.buildDiff();
+  assert.equal(d.diffState, 'identical');
+  assert.equal(d.diffBeforeLabel, 'Last checked GitHub');
+  assert.match(d.diffMessage, /exactly matches last checked GitHub/);
+  assert.deepEqual(clone(d.shownDiff), []);
+  assert.equal(d.doc.text, ORIGINAL); assert.deepEqual(f.writes, []);
+});
+
+test('received-copy identity compares with the browser draft, not the check against original GitHub', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data, received = ORIGINAL + '# received edit';
+  d.localText = received; await d.compareCopy();
+  assert.equal(d.localCheck.exact, false);
+  assert.equal(d.diffState, 'changed');
+  d.edit(received);
+  assert.equal(d.diffBeforeLabel, 'Received copy');
+  assert.equal(d.diffState, 'identical');
+  assert.match(d.diffMessage, /exactly matches received copy/i);
+  assert.deepEqual(clone(d.diffRows), []);
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+  d.localText = ORIGINAL; await d.compareCopy();
+  assert.equal(d.localCheck.exact, true, 'This observation names the pinned GitHub original');
+  assert.equal(d.diffState, 'changed', 'The browser draft still contains its received edit');
+  assert.ok(d.diffCounts.added > 0);
+  assert.equal(d.doc.text, received); assert.deepEqual(f.writes, []);
+});
+
+test('empty existing files and empty compared texts are available exact matches', async () => {
+  const f = fixture(); f.files[A] = '';
+  const v = await f.mount(), d = v.data;
+  assert.notEqual(d.doc.baseBlob, '');
+  d.doc.currentText = ''; d.localCheck = { content: '', exact: false };
+  for (const source of ['base', 'current', 'local']) {
+    d.diffAgainst = source; d.buildDiff();
+    assert.equal(d.diffState, 'identical', source);
+    assert.match(d.diffMessage, /exactly matches/i);
+    assert.deepEqual(clone(d.diffRows), []);
+    assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+  }
+});
+
+test('unavailable, unchecked, removed and unreceived sources never claim an unchanged draft', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  d.doc.text = 'different draft'; d.buildDiff(); assert.equal(d.diffState, 'changed');
+  d.doc.baseText = undefined; d.diffAgainst = 'base'; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /original GitHub text is unavailable/i);
+  d.doc.currentText = undefined; d.diffAgainst = 'current'; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /Check GitHub/i);
+  d.doc.currentText = null; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /removed from GitHub/i);
+  d.diffAgainst = 'local'; d.localText = 'Uncompared incoming text';
+  for (const check of [null, {}, { content: null }]) {
+    d.localCheck = check; d.buildDiff();
+    assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /Receive a copy/i);
+    assert.deepEqual(clone(d.diffRows), []);
+    assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+    assert.equal(d.diffWarning, '');
+  }
+  d.active = ''; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /Choose a file/i);
+});
+
+test('line-ending-only comparisons remain distinct from exact identity and preserve both source texts', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  for (const [source, before, after] of [
+    ['base', 'first\r\nsecond\r\n', 'first\nsecond\n'],
+    ['current', 'first\rsecond\r', 'first\nsecond\n'],
+    ['local', 'first\r\nsecond\rthird\n', 'first\nsecond\nthird\r\n'],
+  ]) {
+    d.doc.baseText = before; d.doc.currentText = before; d.localCheck = { content: before, exact: true };
+    d.doc.text = after; d.diffAgainst = source; d.buildDiff();
+    assert.equal(d.diffState, 'line-endings', source);
+    assert.match(d.diffMessage, /Only line endings differ/);
+    assert.match(d.diffMessage, /Exact text is preserved/);
+    if (source !== 'local') assert.match(d.diffMessage, /GitHub/);
+    assert.equal(d.doc.text, after); assert.equal(d.doc.baseText, before); assert.equal(d.localCheck.content, before);
+    assert.deepEqual(clone(d.diffRows), []);
+    assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+    assert.equal(d.diffWarning, '');
+  }
+  d.doc.baseText = 'first\n'; d.doc.text = 'first'; d.diffAgainst = 'base'; d.buildDiff();
+  assert.equal(d.diffState, 'changed', 'Removing the final newline changes text beyond its newline encoding');
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 1 });
+  d.doc.baseText = '\ufefffirst'; d.doc.text = 'first'; d.buildDiff();
+  assert.equal(d.diffState, 'changed', 'A BOM difference is not a line-ending-only difference');
+});
+
+test('changed comparisons retain line positions, additions, deletions and contextual filtering', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  d.doc.baseText = 'first\nold\nlast'; d.doc.text = 'first\nnew\nextra\nlast'; d.buildDiff();
+  assert.equal(d.diffState, 'changed');
+  assert.deepEqual(clone(d.diffCounts), { added: 2, removed: 1 });
+  assert.deepEqual(clone(d.diffRows), [
+    { type: 'eq', a: 1, b: 1, text: 'first' },
+    { type: 'del', a: 2, b: '', text: 'old' },
+    { type: 'add', a: '', b: 2, text: 'new' },
+    { type: 'add', a: '', b: 3, text: 'extra' },
+    { type: 'eq', a: 3, b: 4, text: 'last' },
+  ]);
+  d.onlyChanges = true;
+  assert.deepEqual(clone(d.shownDiff).map(row => row.text), ['old', 'new', 'extra']);
+  assert.deepEqual(clone(d.diffCounts), { added: 2, removed: 1 });
+  d.onlyChanges = false; assert.equal(d.shownDiff.length, 5);
+  d.doc.currentText = d.doc.text; d.diffAgainst = 'current'; d.buildDiff();
+  assert.equal(d.diffState, 'identical'); assert.deepEqual(clone(d.shownDiff), []);
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+  d.localCheck = null; d.diffAgainst = 'local'; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.deepEqual(clone(d.shownDiff), []);
+});
+
+test('empty sources produce pure additions or deletions without a phantom empty-line replacement', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  d.doc.baseText = ''; d.doc.text = 'first\nsecond'; d.buildDiff();
+  assert.equal(d.diffState, 'changed');
+  assert.deepEqual(clone(d.diffCounts), { added: 2, removed: 0 });
+  assert.ok(d.diffRows.every(row => row.type === 'add' && row.a === ''));
+  d.doc.baseText = 'first\nsecond'; d.doc.text = ''; d.buildDiff();
+  assert.equal(d.diffState, 'changed');
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 2 });
+  assert.ok(d.diffRows.every(row => row.type === 'del' && row.b === ''));
+});
+
+test('edits to CR-only code retain correct visual line numbers without changing saved separators', async () => {
+  const before = '# heading\rWrite-Output "old"\r# end';
+  const after = '# heading\rWrite-Output "new"\rWrite-Output "added"\r# end';
+  const f = fixture(); f.files[A] = before;
+  const v = await f.mount(), d = v.data;
+  d.edit(after); await d.persist(d.doc); await d.refreshUpstream();
+  d.localText = before; await d.compareCopy();
+  for (const source of ['base', 'current', 'local']) {
+    d.diffAgainst = source; d.buildDiff();
+    assert.equal(d.diffState, 'changed', source);
+    assert.deepEqual(clone(d.diffCounts), { added: 2, removed: 1 });
+    assert.deepEqual(clone(d.diffRows), [
+      { type: 'eq', a: 1, b: 1, text: '# heading' },
+      { type: 'del', a: 2, b: '', text: 'Write-Output "old"' },
+      { type: 'add', a: '', b: 2, text: 'Write-Output "new"' },
+      { type: 'add', a: '', b: 3, text: 'Write-Output "added"' },
+      { type: 'eq', a: 3, b: 4, text: '# end' },
+    ]);
+  }
+  assert.equal(d.doc.text, after); assert.equal(d.doc.baseText, before);
+  assert.equal(d.doc.currentText, before); assert.equal(d.localCheck.content, before);
+  assert.equal(f.records('wpsWorkspace.drafts')[0].text, after);
+  assert.equal(f.records('wpsCorrespondence.checks')[0].content, before);
+  assert.equal(f.files[A], before); assert.deepEqual(f.writes, []);
+});
+
+test('new files retain an additions review and distinguish an intentionally empty new file', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  d.newPath = P + '/app/Scripts/New-Comparison.ps1'; await d.newFile();
+  assert.equal(d.doc.baseBlob, ''); assert.equal(d.doc.baseText, '');
+  d.doc.text = 'Write-Output "new file"'; d.diffAgainst = 'base'; d.buildDiff();
+  assert.equal(d.diffBeforeLabel, 'New file'); assert.equal(d.diffState, 'changed');
+  assert.deepEqual(clone(d.diffCounts), { added: 1, removed: 0 });
+  assert.deepEqual(clone(d.diffRows), [{ type: 'add', a: '', b: 1, text: 'Write-Output "new file"' }]);
+  d.doc.text = ''; d.buildDiff();
+  assert.equal(d.diffState, 'identical'); assert.equal(d.diffMessage, 'This new file is empty.');
+  assert.deepEqual(clone(d.diffRows), []);
+  d.diffAgainst = 'current'; d.buildDiff();
+  assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /Check GitHub/i);
+});
+
+test('a capped alignment keeps its honest replacement warning and clears it on a new comparison', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data;
+  d.doc.baseText = Array(650).fill('old repeated line').join('\n');
+  d.doc.text = Array(650).fill('new repeated line').join('\n'); d.buildDiff();
+  assert.equal(d.diffState, 'changed'); assert.match(d.diffWarning, /too different to align.*replacement/i);
+  assert.deepEqual(clone(d.diffCounts), { added: 650, removed: 650 });
+  d.doc.text = d.doc.baseText; d.buildDiff();
+  assert.equal(d.diffState, 'identical'); assert.equal(d.diffWarning, '');
+  assert.deepEqual(clone(d.diffRows), []);
+  assert.deepEqual(clone(d.diffCounts), { added: 0, removed: 0 });
+});
+
+test('a missing diff engine cannot claim changed text is unchanged, but exact identity remains knowable', async () => {
+  const f = fixture(), v = await f.mount(), d = v.data, engine = window.textDiff;
+  try {
+    window.textDiff = null; d.doc.text = ORIGINAL + '# changed'; d.buildDiff();
+    assert.equal(d.diffState, 'unavailable'); assert.match(d.diffMessage, /comparison tool is unavailable/i);
+    assert.deepEqual(clone(d.diffRows), []);
+    d.doc.text = ORIGINAL; d.buildDiff();
+    assert.equal(d.diffState, 'identical'); assert.match(d.diffMessage, /exactly matches/i);
+  } finally { window.textDiff = engine; }
+});
+
+test('workspace tabs support arrow and Home/End navigation with linked panels and one tab stop', async () => {
+  const f = fixture(), v = await f.mount();
+  const group = v.el.querySelector('[aria-label="Code views"]');
+  const tabs = [...group.querySelectorAll('[role="tab"]')];
+  const key = (el, value) => el.dispatchEvent(new window.KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+  tabs[0].focus(); key(tabs[0], 'ArrowRight'); await tick(3);
+  assert.equal(v.data.pane, 'diff'); assert.equal(window.document.activeElement, tabs[1]);
+  assert.deepEqual(tabs.map(el => el.tabIndex), [-1, 0, -1]);
+  assert.equal(v.el.querySelector('#' + tabs[1].getAttribute('aria-controls')).getAttribute('role'), 'tabpanel');
+  assert.equal(v.data.diffState, 'identical');
+  key(tabs[1], 'End'); await tick(3);
+  assert.equal(v.data.pane, 'history'); assert.equal(window.document.activeElement, tabs[2]);
+  key(tabs[2], 'Home'); await tick(3);
+  assert.equal(v.data.pane, 'code'); assert.deepEqual(tabs.map(el => el.tabIndex), [0, -1, -1]);
+  await v.data.open(B); await tick(3);
+  const files = [...v.el.querySelectorAll('[aria-label="Open files"] [role="tab"]')];
+  files[1].focus(); key(files[1], 'ArrowLeft'); await tick(3);
+  assert.equal(v.data.active, A); assert.equal(window.document.activeElement, files[0]);
+  assert.deepEqual(files.map(el => el.tabIndex), [0, -1]);
+  assert.equal(v.data.doc.text, ORIGINAL); assert.deepEqual(f.writes, []);
+});

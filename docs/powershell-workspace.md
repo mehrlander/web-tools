@@ -12,9 +12,11 @@ Overview continues to own installation observations and adoption records.
 ## Working with code
 
 The workspace has three views for the selected file: **Code** edits its browser
-draft, **Compare** puts that draft beside its base, GitHub source or a supplied
+draft, **Compare** compares that draft with its base, GitHub source or a supplied
 copy, and **History** lists the file's GitHub commits with links to inspect them.
-History is separate from the editor's undo history.
+History is separate from the editor's undo history. The open-file and view tabs
+support Left/Right Arrow, Home and End keys. The icon toolbars use 48-pixel touch
+targets; **Workspace actions** and **File actions** group the remaining commands.
 
 The explorer groups files using the installation manifest's areas. Find file
 filters paths; Search reads source content at the captured revision and includes
@@ -32,7 +34,8 @@ shows the paired source beside the editable file. Connections lists explicit
 `FindName` lookups found in that companion. A companion already open as a draft
 contributes its draft text; otherwise the comparison uses pinned source.
 
-Outline and References locate symbols and source expressions. Problems reports
+**Code insights** opens Outline, Problems and References; it starts closed on
+phones. Outline and References locate symbols and source expressions. Problems reports
 selected lexical and PowerShell 5.1 compatibility observations. These browser
 checks use a lexer and conservative patterns. They do not run the PowerShell
 parser, PSScriptAnalyzer, WPF, COM, or the code itself. An empty Problems list
@@ -65,7 +68,15 @@ Make a backup before moving to another browser or origin.
 ## Comparing and publishing
 
 **Compare** shows the draft against its original base, the last checked GitHub
-source, or a supplied copy. The branch control opens **GitHub source**, where
+source, or a supplied copy. An exact match shows **No changes** without repeating
+the code; a new empty draft shows **New empty file**. **Line endings differ** is a
+separate result that preserves both texts. Missing source versions show
+**Comparison unavailable**. Changed lines label the source and browser draft
+and retain explicit added/removed marks.
+Desktop gutters label **From** and **Draft** line numbers. A phone uses one gutter:
+the source line for a removal, otherwise the draft line.
+
+The branch control opens **GitHub source**, where
 **Check GitHub** captures a new revision. An unchanged blob
 can advance the draft's base revision without changing its text. When GitHub
 changed that file, the workspace retains the original base and draft. **Use
