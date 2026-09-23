@@ -1,0 +1,253 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Refined SpaceX JSON Viewer with Smart Folding V3 -->
+  <title>Refined SpaceX JSON Viewer with Smart Folding V3</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    #json-editor {
+      height: calc(100% - 100px);
+    }
+    .CodeMirror {
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100">
+  <div id="controls" class="p-4 bg-white shadow-md">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="toggle-arrays" class="form-checkbox" checked>
+        <label for="toggle-arrays" class="text-sm">Arrays</label>
+      </div>
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="toggle-objects" class="form-checkbox" checked>
+        <label for="toggle-objects" class="text-sm">Objects</label>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <label for="fold-strategy" class="text-sm font-medium">Fold:</label>
+        <select id="fold-strategy" class="form-select text-sm">
+          <option value="">Select</option>
+          <option value="all">All</option>
+          <option value="more-than-50">More than 50 characters</option>
+          <option value="more-than-100">More than 100 characters</option>
+          <option value="more-than-200">More than 200 characters</option>
+          <option value="after-level-1">After level 1</option>
+          <option value="after-level-2">After level 2</option>
+          <option value="after-level-3">After level 3</option>
+        </select>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <label for="unfold-property" class="text-sm font-medium">Fold all except:</label>
+        <select id="unfold-property" class="form-select text-sm">
+          <option value="">Select</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="message" class="p-2 bg-yellow-100 text-yellow-800 text-sm hidden"></div>
+  <div id="json-editor"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      let editor;
+      let spaceXData;
+
+      function initializeEditor() {
+        editor = CodeMirror(document.getElementById('json-editor'), {
+          mode: { name: 'javascript', json: true },
+          lineNumbers: true,
+          foldGutter: true,
+          gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+          matchBrackets: true,
+          autoCloseBrackets: true
+        });
+      }
+
+      function shouldFold(line, foldArrays, foldObjects) {
+        return (foldArrays && line.includes('[')) || (foldObjects && line.includes('{'));
+      }
+
+      function autoFoldObjects(cmInstance, options) {
+        const { foldArrays, foldObjects, foldStrategy, unfoldProperty } = options;
+
+        cmInstance.operation(() => {
+          let stack = [{ depth: 0, path: '', isArray: false }];
+          let foldedRanges = [];
+          
+          for (let i = 0; i < cmInstance.lineCount(); i++) {
+            const line = cmInstance.getLine(i);
+            const currentDepth = stack[stack.length - 1].depth;
+            const currentPath = stack[stack.length - 1].path;
+            const isInArray = stack[stack.length - 1].isArray;
+
+            if (shouldFold(line, foldArrays, foldObjects)) {
+              const match = line.match(/^(\s*)"?(\w+)"?\s*:/);
+              const propertyName = match ? match[2] : '';
+              const newPath = currentPath ? `${currentPath}.${propertyName}` : propertyName;
+              const isNewArray = line.includes('[');
+
+              let shouldFoldThis = true;
+
+              // Check fold strategy
+              if (foldStrategy.startsWith('more-than-')) {
+                const charLimit = parseInt(foldStrategy.split('-')[2]);
+                let endLine = i;
+                let bracketCount = 0;
+                const openBracket = line.includes('{') ? '{' : '[';
+                const closeBracket = line.includes('{') ? '}' : ']';
+
+                for (let j = i; j < cmInstance.lineCount(); j++) {
+                  const currentLine = cmInstance.getLine(j);
+                  bracketCount += (currentLine.match(new RegExp('\\' + openBracket, 'g')) || []).length;
+                  bracketCount -= (currentLine.match(new RegExp('\\' + closeBracket, 'g')) || []).length;
+
+                  if (bracketCount === 0) {
+                    endLine = j;
+                    break;
+                  }
+                }
+
+                const objectText = cmInstance.getRange({line: i, ch: 0}, {line: endLine, ch: cmInstance.getLine(endLine).length});
+                shouldFoldThis = objectText.length > charLimit;
+              } else if (foldStrategy.startsWith('after-level-')) {
+                const levelLimit = parseInt(foldStrategy.split('-')[2]);
+                shouldFoldThis = currentDepth >= levelLimit;
+              }
+
+              if (shouldFoldThis) {
+                const foldedRange = cmInstance.foldCode(CodeMirror.Pos(i, 0), null, "fold");
+                if (foldedRange) {
+                  foldedRanges.push({ range: foldedRange, path: newPath, isArray: isNewArray, isInArray });
+                }
+              }
+
+              stack.push({ depth: currentDepth + 1, path: newPath, isArray: isNewArray });
+            }
+
+            if (line.includes('}') || line.includes(']')) {
+              stack.pop();
+            }
+          }
+
+          // Unfold property and its ancestors
+          if (unfoldProperty) {
+            let unfoldCount = 0;
+            foldedRanges.forEach(({ range, path, isArray, isInArray }) => {
+              if (
+                (unfoldProperty === 'Array Values' && isInArray) ||
+                (unfoldProperty === 'Property Names' && !isInArray) ||
+                path.includes(unfoldProperty)
+              ) {
+                cmInstance.unfoldCode(range);
+                unfoldCount++;
+                // Unfold all ancestors
+                let ancestorPath = path.split('.').slice(0, -1).join('.');
+                while (ancestorPath) {
+                  foldedRanges.forEach(({ range: ancestorRange, path: ancestorRangePath }) => {
+                    if (ancestorRangePath === ancestorPath) {
+                      cmInstance.unfoldCode(ancestorRange);
+                      unfoldCount++;
+                    }
+                  });
+                  ancestorPath = ancestorPath.split('.').slice(0, -1).join('.');
+                }
+              }
+            });
+            
+            // Show message about unfolding
+            if (unfoldCount > 0) {
+              $('#message').text(`Unfolded ${unfoldCount} items for "${unfoldProperty}"`).removeClass('hidden');
+            } else {
+              $('#message').text(`No items found to unfold for "${unfoldProperty}"`).removeClass('hidden');
+            }
+          } else {
+            $('#message').addClass('hidden');
+          }
+        });
+      }
+
+      function refreshEditor() {
+        const options = {
+          foldArrays: $('#toggle-arrays').prop('checked'),
+          foldObjects: $('#toggle-objects').prop('checked'),
+          foldStrategy: $('#fold-strategy').val(),
+          unfoldProperty: $('#unfold-property').val()
+        };
+
+        if (spaceXData) {
+          const jsonString = JSON.stringify(spaceXData, null, 2);
+          editor.setValue(jsonString);
+          autoFoldObjects(editor, options);
+        }
+
+        // Reset select boxes
+        $('#fold-strategy, #unfold-property').val('');
+      }
+
+      function populateUnfoldPropertySelect(data) {
+        const propertyFrequency = {};
+        
+        function countProperties(obj, isArray = false) {
+          if (Array.isArray(obj)) {
+            obj.forEach(item => countProperties(item, true));
+          } else if (typeof obj === 'object' && obj !== null) {
+            for (const key in obj) {
+              if (typeof obj[key] === 'object' && obj[key] !== null) {
+                propertyFrequency[key] = (propertyFrequency[key] || 0) + 1;
+                countProperties(obj[key]);
+              }
+            }
+          }
+        }
+
+        countProperties(data);
+
+        const sortedProperties = Object.entries(propertyFrequency)
+          .sort((a, b) => b[1] - a[1])
+          .map(entry => ({ name: entry[0], count: entry[1] }));
+
+        const $select = $('#unfold-property');
+        $select.empty().append('<option value="">Select</option>');
+
+        // Add special options
+        $select.append('<option value="Array Values">Array Values</option>');
+        $select.append('<option value="Property Names">Property Names</option>');
+
+        // Add sorted properties with counts
+        sortedProperties.forEach(prop => {
+          $select.append(`<option value="${prop.name}">${prop.name} (${prop.count})</option>`);
+        });
+      }
+
+      initializeEditor();
+
+      // Fetch SpaceX launches data
+      $.getJSON('https://api.spacexdata.com/v4/launches')
+        .done(function(data) {
+          spaceXData = data;
+          populateUnfoldPropertySelect(data);
+          refreshEditor();
+        })
+        .fail(function(jqxhr, textStatus, error) {
+          console.error('Error fetching SpaceX data:', error);
+        });
+
+      // Event listeners
+      $('#toggle-arrays, #toggle-objects, #fold-strategy, #unfold-property').on('change', refreshEditor);
+    });
+  </script>
+</body></html>

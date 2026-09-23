@@ -1,0 +1,256 @@
+<!-- CodePen: SpaceX Array Analysis | https://codepen.io/Mark-E/pen/ByNRLOG | created 5-Jun-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>SpaceX Array Analysis</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/ByNRLOG">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpaceX Launch Data Array Analysis</title>
+    <base href="https://websim.space/">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <!-- Add Prism.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-300 p-2">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-xl font-bold text-center text-blue-400 mb-2">SpaceX Launch Data Array Analysis</h1>
+        <div id="loading" class="text-center">Loading and analyzing SpaceX data...</div>
+        <div class="flex justify-between items-center mb-2 text-xs">
+            <button id="prevBtn" class="px-2 py-1 bg-blue-500 text-white rounded">&lt;</button>
+            <div id="arrayInfo" class="flex-grow text-center"></div>
+            <button id="nextBtn" class="px-2 py-1 bg-blue-500 text-white rounded">&gt;</button>
+            <button id="toggleSize" class="ml-2 px-2 py-1 bg-green-500 text-white rounded">Expand</button>
+        </div>
+        <div id="analysis" class="mb-4 h-96 overflow-auto bg-gray-800 p-2 border border-gray-700 font-mono text-xs"></div>
+        <div class="mt-4 relative">
+            <div id="functionDisplay"></div>
+            <button id="copyBtn" class="absolute top-2 right-2 px-2 py-1 bg-blue-500 text-white rounded">Copy</button>
+        </div>
+    </div>
+
+    <script>
+    let currentIndex = 0;
+    let arrayInfos = [];
+    let isExpanded = false;
+    let editor;
+
+    const colors = [
+        'red', 'yellow', 'green', 'blue', 'indigo', 'purple',
+        'pink', 'orange', 'teal', 'cyan', 'lime', 'emerald',
+        'sky', 'violet', 'fuchsia', 'rose', 'amber', 'gray'
+    ];
+
+    const getPropType = value => Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
+
+    const haveSameProps = arr => arr.every(o => Object.keys(o).sort().join() === Object.keys(arr[0]).sort().join());
+
+    const getArrayInfo = (obj, path = 'data') => {
+        const result = [];
+        let colorIndex = 0;
+        let index = 0;
+
+        const analyze = (data, currentPath, level = 0) => {
+            if (Array.isArray(data)) {
+                const name = currentPath.match(/(\D[^.]*)(?:\.\d+)*$/)?.[1] || currentPath;
+                const info = {
+                    index: index++,
+                    level,
+                    path: currentPath,
+                    name,
+                    length: data.length,
+                    kind: 'empty',
+                    columns: {},
+                    values: [],
+                    objects: [],
+                    arrays: []
+                };
+
+                if (data.length > 0) {
+                    let allObjects = true;
+                    data.forEach((item, index) => {
+                        if (Array.isArray(item)) {
+                            info.arrays.push(item);
+                            allObjects = false;
+                        } else if (item && typeof item === 'object') {
+                            info.objects.push(item);
+                            Object.entries(item).forEach(([key, value]) => {
+                                if (!info.columns[key]) {
+                                    info.columns[key] = {
+                                        values: new Set(),
+                                        maxLength: 0,
+                                        count: 0,
+                                        types: new Set(),
+                                        color: `bg-${colors[colorIndex++ % colors.length]}-300`
+                                    };
+                                }
+                                const col = info.columns[key];
+                                col.count++;
+                                const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                                col.values.add(strVal);
+                                col.maxLength = Math.max(col.maxLength, strVal.length);
+                                col.types.add(getPropType(value));
+                            });
+                        } else {
+                            info.values.push(item);
+                            allObjects = false;
+                        }
+                        analyze(item, `${currentPath}[${index}]`, level + 1);
+                    });
+
+                    info.kind = info.arrays.length || info.objects.length
+                        ? (allObjects ? (haveSameProps(info.objects) ? 'objects-same' : 'objects-varied') : 'mixed')
+                        : 'simple';
+                }
+
+                Object.values(info.columns).forEach(col => {
+                    col.values = Array.from(col.values);
+                    col.types = Array.from(col.types).join(', ');
+                });
+
+                result.push(info);
+            } else if (data && typeof data === 'object') {
+                Object.entries(data).forEach(([key, value]) => 
+                    analyze(value, currentPath ? `${currentPath}.${key}` : key, level + 1)
+                );
+            }
+        };
+
+        analyze(obj, Array.isArray(obj) && path, 0);
+      
+        return result.sort((a, b) => a.index - b.index);
+    };
+
+    const syntaxHighlight = json => {
+        if (typeof json != 'string') {
+            json = JSON.stringify(json, undefined, 2);
+        }
+        return Prism.highlight(json, Prism.languages.json, 'json');
+    };
+
+    const display = index => {
+        currentIndex = index;
+        const analysisDiv = document.getElementById('analysis');
+        const info = {...arrayInfos[index]};
+        
+        ['values', 'objects', 'arrays'].forEach(prop => {
+            if (info[prop].length > 10) {
+                info[prop] = info[prop].slice(0, 10).concat(['...']);
+            }
+        });
+
+        Object.keys(info.columns).forEach(key => {
+            if (info.columns[key].values.length > 10) {
+                info.columns[key].values = info.columns[key].values.slice(0, 10).concat(['...']);
+            }
+        });
+
+        let highlightedJson = syntaxHighlight(info);
+        
+        Object.keys(info.columns).forEach(key => {
+            const color = info.columns[key].color;
+            const colorSquare = `<span class="inline-block w-3 h-3 ${color} mr-1"></span>`;
+            highlightedJson = highlightedJson.replace(`"${key}":`, `${colorSquare}"${key}":`);
+        });
+
+        analysisDiv.innerHTML = `<pre><code class="language-json">${highlightedJson}</code></pre>`;
+        Prism.highlightAll(); // Re-highlight after dynamic content insertion
+
+        document.getElementById('arrayInfo').innerHTML = `
+            <div class="mb-1">${index + 1} of ${arrayInfos.length}</div>
+            <div class="font-bold">${info.path}</div>
+            <div>${info.name}</div>
+        `;
+    };
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        currentIndex = (currentIndex - 1 + arrayInfos.length) % arrayInfos.length;
+        display(currentIndex);
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        currentIndex = (currentIndex + 1) % arrayInfos.length;
+        display(currentIndex);
+    });
+
+    document.getElementById('toggleSize').addEventListener('click', () => {
+        const analysisDiv = document.getElementById('analysis');
+        const toggleBtn = document.getElementById('toggleSize');
+        isExpanded = !isExpanded;
+        analysisDiv.style.height = isExpanded ? 'auto' : '24rem';
+        toggleBtn.textContent = isExpanded ? 'Collapse' : 'Expand';
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(editor.getValue()).then(() => {
+            alert('Function copied to clipboard!');
+        });
+    });
+
+    fetch('https://api.spacexdata.com/v4/launches')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            
+            arrayInfos = getArrayInfo(data);
+            display(0);
+
+            editor = CodeMirror(document.getElementById('functionDisplay'), {
+                value: getArrayInfo.toString(),
+                mode: "javascript",
+                theme: "monokai",
+                lineNumbers: true,
+                readOnly: true
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading').textContent = 'Error loading SpaceX data. Please try again later.';
+        });
+    </script>
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>

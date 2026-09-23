@@ -50,7 +50,6 @@ Exit 0 to allow, 1 to reject with the prompt on stderr.
 from __future__ import annotations
 
 import csv
-import fnmatch
 import json
 import os
 import re
@@ -161,7 +160,16 @@ def is_doc(rel, globs):
         return True
     if not rel.endswith(".md"):
         return False
-    return any(fnmatch.fnmatch(rel, g) or fnmatch.fnmatch(rel, g.replace("**/", "")) for g in globs)
+    return any(glob_hit(rel, g) for g in globs)
+
+
+def glob_hit(rel, g):
+    """Match `rel` against a registry glob the way the registry means it: `*`
+    stays inside one folder and `**/` spans any number of folders, none
+    included. fnmatch lets `*` cross `/`, so `*.md`, written for the root,
+    matched every Markdown file in the repo."""
+    rx = re.escape(g).replace(r"\*\*/", "(?:[^/]+/)*").replace(r"\*", "[^/]*")
+    return re.fullmatch(rx, rel) is not None
 
 
 def staged(root):

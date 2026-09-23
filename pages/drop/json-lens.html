@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Lens</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔬</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<!--
+  JSON Lens: a JSON tree beside a lens that reads the selected value by its
+  shape. A Gemini sketch (PR #764) rebuilt on Alpine, so loaded JSON reaches
+  the page only as text or bound attributes. The JSON Explorer kit is the
+  maintained explorer; this page keeps ideas for it.
+-->
+<body class="bg-base-100 text-base-content" x-data="lens" x-effect="document.documentElement.dataset.theme = theme"
+      @keydown.window="key($event)" @dragover.window.prevent @drop.window.prevent="dropFile($event)">
+<div class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)]">
+
+  <header class="flex items-center gap-2 px-3 h-12 border-b border-base-300 bg-base-200 min-w-0">
+    <i class="ph ph-brackets-curly text-xl text-primary shrink-0"></i>
+    <span class="font-bold shrink-0 hidden sm:inline">JSON Lens</span>
+    <div class="dropdown shrink-0">
+      <button tabindex="0" class="btn btn-sm btn-ghost gap-1 font-normal">
+        <span class="truncate max-w-32" x-text="source"></span><i class="ph ph-caret-down text-xs"></i>
+      </button>
+      <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box w-56 z-50 shadow-lg">
+        <template x-for="s in presets" :key="s.id">
+          <li><a @click="load(SAMPLES[s.id], s.label); $el.blur()"><i class="ph" :class="s.icon"></i><span x-text="s.label"></span></a></li>
+        </template>
+        <li><a @click="$refs.loader.showModal()" class="text-primary"><i class="ph ph-plus"></i>Load JSON…</a></li>
+      </ul>
+    </div>
+    <label class="input input-sm ml-auto w-40 sm:w-56">
+      <i class="ph ph-magnifying-glass opacity-60"></i>
+      <input x-ref="filter" type="search" placeholder="Filter  /" class="font-mono" x-model.debounce.120ms="query">
+    </label>
+    <button class="btn btn-sm btn-ghost btn-square" @click="theme = theme === 'dark' ? 'light' : 'dark'" aria-label="Toggle theme">
+      <i class="ph" :class="theme === 'dark' ? 'ph-moon' : 'ph-sun'"></i>
+    </button>
+  </header>
+
+  <div class="flex flex-col gap-1.5 px-3 py-2 border-b border-base-300 min-w-0">
+    <div class="flex items-center gap-2 min-w-0">
+      <nav class="flex items-center gap-1 font-mono text-sm overflow-x-auto whitespace-nowrap min-w-0 flex-1">
+        <template x-for="(c, i) in crumbs" :key="i">
+          <span class="flex items-center gap-1">
+            <span x-show="i" class="opacity-40">/</span>
+            <button class="hover:underline" :class="i === crumbs.length - 1 ? 'font-bold' : 'text-primary'"
+                    @click="select(path.slice(0, i))" x-text="c"></button>
+          </span>
+        </template>
+      </nav>
+      <button class="btn btn-xs btn-ghost gap-1 font-mono" @click="copy(jsonPath(path), 'Path copied')"><i class="ph ph-copy"></i><span class="hidden sm:inline">Path</span></button>
+      <button class="btn btn-xs btn-ghost gap-1 font-mono" @click="copy(pretty(node), 'JSON copied')"><i class="ph ph-brackets-curly"></i><span class="hidden sm:inline">JSON</span></button>
+    </div>
+    <div class="flex gap-0.5 h-5 rounded overflow-hidden text-xs" x-show="ribbon.length">
+      <template x-for="(seg, i) in ribbon" :key="seg.key">
+        <button class="min-w-0 px-1 truncate text-left text-white/90 transition-opacity"
+                :class="[palette[i % palette.length], String(path[0]) === seg.key ? 'ring-2 ring-inset ring-[var(--color-base-content)]' : 'opacity-70 hover:opacity-100']"
+                :style="`flex: ${seg.weight} 1 0%`" @click="select([seg.raw])" x-text="seg.key"></button>
+      </template>
+    </div>
+  </div>
+
+  <main class="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_24rem] min-h-0">
+    <section class="flex flex-col min-h-0 border-r border-base-300">
+      <div class="flex items-center gap-2 px-3 h-9 border-b border-base-300 bg-base-200 text-xs">
+        <span class="badge badge-sm badge-ghost font-mono" x-text="`${total} nodes`"></span>
+        <span class="badge badge-sm badge-ghost font-mono" x-show="query" x-text="`${rows.length} shown`"></span>
+        <button class="btn btn-xs btn-ghost ml-auto" @click="collapsed = new Set()">Expand all</button>
+        <button class="btn btn-xs btn-ghost" @click="collapseAll()">Collapse all</button>
+      </div>
+      <div class="overflow-auto min-h-0 flex-1 py-2 font-mono text-sm" x-ref="tree">
+        <template x-for="r in rows" :key="r.id">
+          <div class="flex items-stretch pr-2 cursor-pointer" :data-row="r.id"
+               :class="r.id === selectedId ? 'bg-primary/10' : 'hover:bg-base-200'" @click="pick(r)">
+            <template x-for="d in r.depth"><span class="w-4 ml-2 shrink-0 border-l border-dashed border-base-300"></span></template>
+            <button class="w-5 shrink-0 flex items-center justify-center opacity-60 hover:opacity-100" @click.stop="toggle(r)" :disabled="!r.kids">
+              <i class="ph text-xs" :class="r.kids ? (r.open ? 'ph-caret-down' : 'ph-caret-right') : ''"></i>
+            </button>
+            <div class="flex items-center gap-1.5 py-0.5 min-w-0">
+              <span class="shrink-0" :class="r.id === selectedId ? 'font-bold text-primary' : 'text-primary/80'" x-text="r.label"></span>
+              <span class="w-3 h-3 rounded-full shrink-0 border border-base-content/20" x-show="r.kind === 'color'" :style="{ background: r.kind === 'color' ? r.val : '' }"></span>
+              <i class="ph shrink-0 opacity-60" x-show="kindIcon[r.kind]" :class="kindIcon[r.kind]"></i>
+              <span class="truncate" :class="typeTone[r.type]" x-text="r.preview"></span>
+            </div>
+          </div>
+        </template>
+        <div class="px-4 py-2 text-xs opacity-60" x-show="query && !rows.length">No match</div>
+      </div>
+    </section>
+
+    <div class="fixed inset-0 bg-black/40 z-30 md:hidden" x-show="sheet" x-transition.opacity @click="sheet = false"></div>
+    <aside class="fixed inset-x-0 bottom-0 z-40 max-h-[80dvh] rounded-t-box shadow-2xl bg-base-100 flex flex-col transition-transform duration-200
+                  md:static md:max-h-none md:rounded-none md:shadow-none md:translate-y-0 min-h-0"
+           :class="sheet ? 'translate-y-0' : 'translate-y-full'" x-ref="lens">
+      <div class="flex items-center gap-2 px-3 h-9 border-b border-base-300 bg-base-200 text-xs shrink-0">
+        <i class="ph ph-magnifying-glass-plus text-primary"></i>
+        <span class="font-bold font-mono truncate" x-text="crumbs[crumbs.length - 1]"></span>
+        <span class="badge badge-sm badge-ghost font-mono" x-text="type"></span>
+        <button class="btn btn-xs btn-ghost btn-square ml-auto md:hidden" @click="sheet = false" aria-label="Close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="overflow-y-auto min-h-0 p-3 flex flex-col gap-3 text-sm">
+        <button class="font-mono text-xs text-left break-all opacity-70 hover:opacity-100" @click="copy(jsonPath(path), 'Path copied')" x-text="jsonPath(path)"></button>
+
+        <template x-if="kind === 'image'">
+          <div class="flex flex-col gap-2">
+            <img :src="node" alt="" class="max-h-48 max-w-full object-contain rounded-box border border-base-300 bg-base-200 self-start">
+            <a :href="node" target="_blank" rel="noopener" class="link link-primary text-xs break-all" x-text="node"></a>
+          </div>
+        </template>
+        <template x-if="kind === 'color'">
+          <div class="flex items-center gap-3">
+            <span class="w-12 h-12 rounded-box border border-base-content/20" :style="{ background: node }"></span>
+            <span class="font-mono font-bold" x-text="node"></span>
+            <button class="btn btn-xs btn-ghost" @click="copy(node, 'Colour copied')"><i class="ph ph-copy"></i></button>
+          </div>
+        </template>
+        <template x-if="kind === 'date'">
+          <div class="flex flex-col gap-1">
+            <span class="font-bold" x-text="relative(node)"></span>
+            <span class="font-mono" x-text="new Date(node).toLocaleString()"></span>
+          </div>
+        </template>
+        <template x-if="kind === 'url'">
+          <a :href="node" target="_blank" rel="noopener" class="link link-primary break-all" x-text="node"></a>
+        </template>
+        <template x-if="kind === 'text'">
+          <pre class="font-mono whitespace-pre-wrap break-all bg-base-200 rounded-box p-2" :class="typeTone[type]" x-text="type === 'string' ? node : String(node)"></pre>
+        </template>
+
+        <template x-if="table">
+          <div class="flex flex-col gap-1">
+            <span class="text-xs opacity-60" x-text="`${node.length} records`"></span>
+            <div class="overflow-auto max-h-64 border border-base-300 rounded-box">
+              <table class="table table-xs table-pin-rows font-mono">
+                <thead><tr class="text-xs"><template x-for="c in table.cols" :key="c"><th x-text="c"></th></template></tr></thead>
+                <tbody>
+                  <template x-for="(r, i) in table.rows" :key="i">
+                    <tr class="hover:bg-base-200 cursor-pointer" @click="select([...path, i])">
+                      <template x-for="c in table.cols" :key="c"><td class="max-w-40 truncate" x-text="cell(r[c])"></td></template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="kids">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center">
+              <span class="text-xs opacity-60">TypeScript</span>
+              <button class="btn btn-xs btn-ghost ml-auto" @click="copy(ts, 'TypeScript copied')"><i class="ph ph-copy"></i></button>
+            </div>
+            <pre class="font-mono text-xs bg-base-200 rounded-box p-2 overflow-auto max-h-64" x-text="ts"></pre>
+          </div>
+        </template>
+
+        <div class="flex gap-2">
+          <button class="btn btn-sm flex-1 gap-1" @click="copy(pretty(node), 'JSON copied')"><i class="ph ph-copy"></i>Copy JSON</button>
+          <button class="btn btn-sm flex-1 gap-1" @click="download()"><i class="ph ph-download-simple"></i>Download</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<dialog class="modal" x-ref="loader">
+  <div class="modal-box flex flex-col gap-3">
+    <h3 class="font-bold">Load JSON</h3>
+    <form class="join w-full" @submit.prevent="fetchUrl()">
+      <input type="url" class="input input-sm join-item flex-1 font-mono" placeholder="https://…/data.json" x-model="url">
+      <button class="btn btn-sm join-item">Fetch</button>
+    </form>
+    <textarea class="textarea w-full h-40 font-mono text-xs" placeholder="Paste JSON, or drop a .json file anywhere" x-model="pasted"></textarea>
+    <span class="text-error text-sm" x-show="error" x-text="error"></span>
+    <div class="modal-action mt-0">
+      <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
+      <button class="btn btn-sm btn-primary" @click="loadPasted()">Load</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<div class="toast toast-top toast-end z-50" x-show="toast" x-transition.opacity>
+  <div class="alert alert-success py-2 text-sm" x-text="toast"></div>
+</div>
+
+<script>
+const SAMPLES = {
+  ecommerce: {
+    orderId: "ORD-2026-98124",
+    status: "shipped",
+    createdAt: "2026-09-18T14:32:00Z",
+    deliveredAt: null,
+    currency: "USD",
+    totals: {
+      subtotal: 384.50,
+      shipping: 12.00,
+      tax: 34.61,
+      grandTotal: 431.11,
+      discountCode: "AUTUMN20"
+    },
+    customer: {
+      id: "cust_7721",
+      name: "Eleanor Vance",
+      email: "eleanor.vance@hillhouse.design",
+      phone: "+1-555-0198",
+      loyaltyTier: "Platinum",
+      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      accentColor: "#7c3aed"
+    },
+    shippingAddress: {
+      street: "4122 Blackwood Ridge",
+      apartment: "Suite 4B",
+      city: "Olympia",
+      state: "WA",
+      postalCode: "98501",
+      country: "US",
+      coordinates: { lat: 47.0379, lng: -122.9007 }
+    },
+    lineItems: [
+      {
+        sku: "WL-KEY-01",
+        title: "Ergonomic Mechanical Keyboard (Linear)",
+        category: "Peripherals",
+        color: "#1e293b",
+        unitPrice: 169.00,
+        quantity: 1,
+        inStock: true,
+        weightGrams: 980,
+        previewImage: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&auto=format&fit=crop&q=80",
+        tags: ["ergonomics", "usb-c", "hot-swap"]
+      },
+      {
+        sku: "DS-MAT-09",
+        title: "Merino Wool Desk Mat (Deep Forest)",
+        category: "Accessories",
+        color: "#14532d",
+        unitPrice: 59.00,
+        quantity: 2,
+        inStock: true,
+        weightGrams: 420,
+        previewImage: "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?w=200&auto=format&fit=crop&q=80",
+        tags: ["natural", "water-resistant"]
+      },
+      {
+        sku: "MN-ARM-PRO",
+        title: "Precision Gas-Spring Monitor Arm",
+        category: "Mounts",
+        color: "#475569",
+        unitPrice: 97.50,
+        quantity: 1,
+        inStock: true,
+        weightGrams: 2450,
+        previewImage: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&auto=format&fit=crop&q=80",
+        tags: ["vesa", "aluminum"]
+      }
+    ],
+    fulfillment: {
+      carrier: "FedEx Ground",
+      trackingNumber: "782991024419",
+      trackingUrl: "https://www.fedex.com/fedextrack/?trknbr=782991024419",
+      estimatedArrival: "2026-09-24T18:00:00Z"
+    }
+  },
+
+  github: {
+    repository: {
+      id: 91823746,
+      name: "web-tools",
+      fullName: "mehrlander/web-tools",
+      private: false,
+      owner: {
+        login: "mehrlander",
+        id: 4892110,
+        avatarUrl: "https://avatars.githubusercontent.com/u/4892110?v=4",
+        htmlUrl: "https://github.com/mehrlander",
+        type: "User",
+        siteAdmin: false
+      },
+      htmlUrl: "https://github.com/mehrlander/web-tools",
+      description: "Zero-build client-side web tools, offline utilities, and document workbenches.",
+      fork: false,
+      createdAt: "2024-03-12T19:22:15Z",
+      updatedAt: "2026-09-22T20:45:10Z",
+      pushedAt: "2026-09-22T20:46:00Z",
+      sizeKb: 14280,
+      stargazersCount: 428,
+      language: "JavaScript",
+      brandColor: "#0969da",
+      topics: ["client-side", "offline-first", "daisyui", "tailwind", "developer-tools", "json"],
+      defaultBranch: "main"
+    },
+    activeBranches: [
+      { name: "main", protected: true, commitSha: "8a1e2f9411bc" },
+      { name: "gemini/json-lens", protected: false, commitSha: "d94e23118fa0" },
+      { name: "codex/git-change-handoff", protected: false, commitSha: "72cfa881b2e1" }
+    ],
+    metrics: {
+      openIssues: 18,
+      closedIssues: 245,
+      pullRequests: 5,
+      healthScore: 98.4
+    }
+  },
+
+  legislation: {
+    billId: "HB 1832",
+    biennium: "2025-26",
+    title: "Concerning transparency and data management in municipal public records requests.",
+    primeSponsor: {
+      id: 1420,
+      name: "Rep. Sarah Bergquist",
+      district: "11th Legislative District",
+      party: "Democrat",
+      partyColor: "#0969da",
+      email: "sarah.bergquist@leg.wa.gov",
+      avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+    },
+    status: {
+      currentStage: "Passed House",
+      isDead: false,
+      effectiveDate: "2026-07-01",
+      passedChamber: "House of Representatives",
+      passedVote: { yeas: 84, nays: 14, excused: 0 }
+    },
+    rcwCitations: [
+      { cite: "42.56.010", title: "Public Records Act - Definitions", chapter: "42.56" },
+      { cite: "42.56.120", title: "Charges for copying and inspection", chapter: "42.56" },
+      { cite: "40.14.070", title: "Destruction, disposition of local government records", chapter: "40.14" }
+    ]
+  },
+
+  geojson: {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        id: "sea",
+        properties: {
+          city: "Seattle",
+          country: "United States",
+          population: 749256,
+          timezone: "America/Los_Angeles",
+          accentColor: "#0969da"
+        },
+        geometry: { type: "Point", coordinates: [-122.3321, 47.6062] }
+      },
+      {
+        type: "Feature",
+        id: "van",
+        properties: {
+          city: "Vancouver",
+          country: "Canada",
+          population: 675218,
+          timezone: "America/Vancouver",
+          accentColor: "#cf222e"
+        },
+        geometry: { type: "Point", coordinates: [-123.1207, 49.2827] }
+      },
+      {
+        type: "Feature",
+        id: "pdx",
+        properties: {
+          city: "Portland",
+          country: "United States",
+          population: 652503,
+          timezone: "America/Los_Angeles",
+          accentColor: "#1a7f37"
+        },
+        geometry: { type: "Point", coordinates: [-122.6784, 45.5152] }
+      }
+    ]
+  }
+};
+
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const hasKids = v => v !== null && typeof v === 'object';
+const typeOf = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const entries = v => Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.entries(v);
+
+const RE = {
+  date: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/,
+  color: /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\))$/i,
+  url: /^https?:\/\/\S+$/i,
+  imageExt: /\.(png|jpe?g|gif|webp|svg|avif)(\?|#|$)/i,
+  imageKey: /image|avatar|photo|thumb|logo|icon|picture/i,
+  ident: /^[A-Za-z_$][\w$]*$/,
+};
+
+// Picks the lens. Only http(s) and data:image values become links or images,
+// so no href or src binding ever receives a javascript: URL.
+function kindOf(v, key) {
+  if (typeof v !== 'string') return hasKids(v) ? 'tree' : 'text';
+  if (v.startsWith('data:image/')) return 'image';
+  if (RE.color.test(v)) return 'color';
+  if (RE.date.test(v) && !isNaN(Date.parse(v))) return 'date';
+  if (RE.url.test(v)) return RE.imageExt.test(v) || RE.imageKey.test(String(key)) ? 'image' : 'url';
+  return 'text';
+}
+
+function jsonPath(path) {
+  return '$' + path.map(p => typeof p === 'number' ? `[${p}]`
+    : RE.ident.test(p) ? `.${p}` : `[${JSON.stringify(p)}]`).join('');
+}
+
+function preview(v) {
+  if (Array.isArray(v)) return `[${v.length}]`;
+  if (isObj(v)) return `{${Object.keys(v).length}}`;
+  if (typeof v === 'string') return JSON.stringify(v.length > 60 ? v.slice(0, 60) + '…' : v);
+  return String(v);
+}
+
+// One TypeScript type for every value at a position. Array items merge: a key
+// missing from some items is optional, and mixed types form a union.
+function tsShape(vals, ind = '') {
+  const parts = new Set(), arrs = [], objs = [];
+  for (const v of vals) {
+    if (Array.isArray(v)) arrs.push(v);
+    else if (isObj(v)) objs.push(v);
+    else parts.add(v === null ? 'null' : typeof v);
+  }
+  if (arrs.length) {
+    const items = arrs.flat();
+    const inner = items.length ? tsShape(items, ind) : 'unknown';
+    parts.add(inner.includes(' | ') ? `(${inner})[]` : `${inner}[]`);
+  }
+  if (objs.length) {
+    const keys = [...new Set(objs.flatMap(o => Object.keys(o)))];
+    const lines = keys.map(k => {
+      const has = objs.filter(o => k in o);
+      const name = RE.ident.test(k) ? k : JSON.stringify(k);
+      return `${ind}  ${name}${has.length < objs.length ? '?' : ''}: ${tsShape(has.map(o => o[k]), ind + '  ')};`;
+    });
+    parts.add(keys.length ? `{\n${lines.join('\n')}\n${ind}}` : 'Record<string, never>');
+  }
+  return [...parts].join(' | ') || 'unknown';
+}
+
+function relative(iso) {
+  const s = (Date.now() - Date.parse(iso)) / 1000, a = Math.abs(s);
+  const [n, u] = a < 60 ? [0, ''] : a < 3600 ? [a / 60, 'm'] : a < 86400 ? [a / 3600, 'h'] : a < 2592000 ? [a / 86400, 'd'] : a < 31536000 ? [a / 2592000, 'mo'] : [a / 31536000, 'y'];
+  if (!u) return 'just now';
+  const t = `${Math.floor(n)}${u}`;
+  return s > 0 ? `${t} ago` : `in ${t}`;
+}
+
+document.addEventListener('alpine:init', () => Alpine.data('lens', () => ({
+  presets: [
+    { id: 'ecommerce', label: 'E-commerce order', icon: 'ph-shopping-cart' },
+    { id: 'github', label: 'GitHub repo API', icon: 'ph-git-pull-request' },
+    { id: 'legislation', label: 'Legislative bill', icon: 'ph-bank' },
+    { id: 'geojson', label: 'GeoJSON features', icon: 'ph-map-pin' },
+  ],
+  palette: ['bg-blue-600', 'bg-green-700', 'bg-violet-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-700'],
+  typeTone: { string: 'text-success', number: 'text-info', boolean: 'text-secondary', null: 'text-error', object: 'opacity-60', array: 'opacity-60' },
+  kindIcon: { image: 'ph-image', date: 'ph-clock', url: 'ph-link' },
+  theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  data: null, source: '', path: [], collapsed: new Set(), query: '', total: 0,
+  sheet: false, toast: '', url: '', pasted: '', error: '',
+
+  init() {
+    const src = new URLSearchParams(location.search).get('src');
+    this.load(SAMPLES.ecommerce, 'E-commerce order');
+    if (src) this.fetchUrl(src);
+  },
+
+  load(data, source) {
+    this.data = data; this.source = source; this.path = []; this.query = '';
+    this.total = 0;
+    const walk = v => { this.total++; if (hasKids(v)) for (const [, x] of entries(v)) walk(x); };
+    walk(data);
+    // A large document opens with only the top level showing.
+    this.collapsed = new Set();
+    if (this.total > 400) this.collapseAll(1);
+  },
+
+  get node() { return this.path.reduce((v, k) => v?.[k], this.data); },
+  get type() { return typeOf(this.node); },
+  get kids() { return hasKids(this.node); },
+  get kind() { return this.kids ? null : kindOf(this.node, this.path[this.path.length - 1]); },
+  get selectedId() { return JSON.stringify(this.path); },
+  get crumbs() { return ['root', ...this.path.map(String)]; },
+  get ts() { return this.kids ? tsShape([this.node]) : ''; },
+
+  get table() {
+    const v = this.node;
+    if (!Array.isArray(v) || !v.length || !v.every(isObj)) return null;
+    return { cols: [...new Set(v.flatMap(o => Object.keys(o)))].slice(0, 8), rows: v.slice(0, 50) };
+  },
+
+  get ribbon() {
+    if (!hasKids(this.data)) return [];
+    return entries(this.data).map(([k, v]) => ({
+      raw: k, key: String(k), weight: Math.max(1, Math.sqrt(hasKids(v) ? entries(v).length : 1)),
+    }));
+  },
+
+  // Visible rows, flattened. The filter keeps a row when it or a descendant
+  // matches, and ignores collapse so no match hides in a closed branch.
+  get rows() {
+    const q = this.query.trim().toLowerCase(), out = [];
+    const hit = (k, v) => String(k).toLowerCase().includes(q)
+      || (hasKids(v) ? entries(v).some(([ck, cv]) => hit(ck, cv)) : String(v).toLowerCase().includes(q));
+    const visit = (k, v, path, depth) => {
+      if (q && !hit(k, v)) return;
+      const id = JSON.stringify(path), kids = hasKids(v);
+      const open = kids && (q || !this.collapsed.has(id));
+      out.push({ id, path, depth, kids, open, val: v, type: typeOf(v), kind: kindOf(v, k),
+                 label: path.length ? String(k) : 'root', preview: preview(v) });
+      if (open) for (const [ck, cv] of entries(v)) visit(ck, cv, [...path, ck], depth + 1);
+    };
+    if (this.data !== null) visit('root', this.data, [], 0);
+    return out;
+  },
+
+  select(path) { this.path = path; },
+  pick(r) {
+    this.select(r.path);
+    if (!matchMedia('(min-width: 768px)').matches) this.sheet = true;
+  },
+  toggle(r) {
+    if (!r.kids) return;
+    const c = new Set(this.collapsed);
+    c.has(r.id) ? c.delete(r.id) : c.add(r.id);
+    this.collapsed = c;
+  },
+  collapseAll(keepDepth = 0) {
+    const c = new Set();
+    const walk = (v, path) => {
+      if (!hasKids(v)) return;
+      if (path.length >= keepDepth) c.add(JSON.stringify(path));
+      for (const [k, x] of entries(v)) walk(x, [...path, k]);
+    };
+    walk(this.data, []);
+    this.collapsed = c;
+  },
+
+  // Arrow keys walk the visible rows; left and right fold and unfold.
+  key(e) {
+    const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+    if (e.key === '/' && !typing && !this.$refs.loader.open) { e.preventDefault(); this.$refs.filter.focus(); return; }
+    if (e.key === 'Escape') {
+      if (this.sheet) this.sheet = false;
+      else if (typing && e.target === this.$refs.filter) { this.query = ''; e.target.blur(); }
+      return;
+    }
+    if (typing || this.$refs.loader.open) return;
+    const rows = this.rows, i = rows.findIndex(r => r.id === this.selectedId), r = rows[i];
+    if (e.key === 'ArrowDown' && i < rows.length - 1) this.select(rows[i + 1].path);
+    else if (e.key === 'ArrowUp' && i > 0) this.select(rows[i - 1].path);
+    else if (e.key === 'ArrowRight' && r?.kids && !r.open) this.toggle(r);
+    else if (e.key === 'ArrowLeft' && r?.kids && r.open) this.toggle(r);
+    else if (e.key === 'ArrowLeft' && this.path.length) this.select(this.path.slice(0, -1));
+    else return;
+    e.preventDefault();
+    this.$nextTick(() => [...this.$refs.tree.querySelectorAll('[data-row]')].find(el => el.dataset.row === this.selectedId)?.scrollIntoView({ block: 'nearest' }));
+  },
+
+  pretty: v => JSON.stringify(v, null, 2),
+  cell: v => v === undefined ? '' : hasKids(v) ? preview(v) : String(v),
+  jsonPath, relative,
+
+  async copy(text, msg) {
+    try { await navigator.clipboard.writeText(text); this.flash(msg); }
+    catch { this.flash('Copy failed'); }
+  },
+  flash(msg) {
+    this.toast = msg;
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.toast = '', 1600);
+  },
+  download() {
+    const name = String(this.path[this.path.length - 1] ?? 'root').replace(/[^\w.-]+/g, '_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([this.pretty(this.node)], { type: 'application/json' }));
+    a.download = `${name}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+
+  loadPasted() {
+    try { this.load(JSON.parse(this.pasted), 'Pasted'); this.error = ''; this.$refs.loader.close(); }
+    catch (err) { this.error = `Invalid JSON: ${err.message}`; }
+  },
+  async fetchUrl(url = this.url) {
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.load(await res.json(), new URL(url, location.href).pathname.split('/').pop() || 'Fetched');
+      this.error = ''; this.$refs.loader.close();
+    } catch (err) { this.error = `Fetch failed: ${err.message}`; this.$refs.loader.showModal(); }
+  },
+  async dropFile(e) {
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    try { this.load(JSON.parse(await file.text()), file.name); }
+    catch (err) { this.flash(`${file.name}: ${err.message}`); }
+  },
+})));
+</script>
+</body>
+</html>

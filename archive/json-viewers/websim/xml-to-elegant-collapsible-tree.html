@@ -1,0 +1,119 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): XML to Elegant Collapsible Tree | id yx8gf2ae_t515fgxqj8c v3 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XML to Elegant Collapsible Tree</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.fancytree/2.38.3/skin-lion/ui.fancytree.min.css">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.2/dist/full.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .fancytree-container {
+    border: none !important;
+  }
+  #xmlContent {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+</style>
+</head>
+<body class="min-h-screen bg-base-200 p-8">
+  <div class="container mx-auto">
+    <div class="flex flex-col md:flex-row gap-8">
+      <div class="flex-1 card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title text-2xl font-bold mb-4">Input XML</h2>
+          <div id="xmlContent" contenteditable="true" 
+               class="min-h-[300px] p-4 mb-4 bg-base-200 rounded-lg font-mono text-sm"></div>
+          <div class="card-actions justify-start gap-2">
+            <button onclick="pasteXML()" 
+                    class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V19.5a2.25 2.25 0 002.25 2.25h.75"></path>
+              </svg>
+              Paste XML
+            </button>
+            <button onclick="parseXML()" 
+                    class="btn btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              Generate Tree
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex-1 card bg-base-100 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title text-2xl font-bold mb-4">Output Tree</h2>
+          <div id="tree" class="bg-base-200 rounded-lg p-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.fancytree/2.38.3/jquery.fancytree-all-deps.min.js"></script>
+  <script>
+    async function pasteXML() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('xmlContent').textContent = text.trim();
+        parseXML();
+      } catch (err) {
+        console.error('Failed to read clipboard:', err);
+        alert('Please grant clipboard permission or paste manually');
+      }
+    }
+
+    function parseXML() {
+      const xmlString = document.getElementById('xmlContent').textContent.trim();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+      
+      const treeData = xmlToTreeData(xmlDoc.documentElement);
+      
+      $('#tree').fancytree({
+        source: treeData,
+        activate: function(event, data) {
+          var node = data.node;
+        },
+        renderNode: function(event, data) {
+        }
+      });
+    }
+
+    function xmlToTreeData(node) {
+      const result = {
+        title: node.nodeName,
+        children: []
+      };
+
+      if (node.attributes && node.attributes.length > 0) {
+        for (let i = 0; i < node.attributes.length; i++) {
+          const attr = node.attributes[i];
+          result.children.push({
+            title: `@${attr.name}: ${attr.value}`,
+            icon: false
+          });
+        }
+      }
+
+      if (node.childNodes.length === 1 && node.childNodes[0].nodeType === Node.TEXT_NODE) {
+        const trimmedText = node.textContent.trim();
+        if (trimmedText) {
+          result.title += ': ' + trimmedText;
+        }
+      } else {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          const child = node.childNodes[i];
+          if (child.nodeType === Node.ELEMENT_NODE) {
+            result.children.push(xmlToTreeData(child));
+          }
+        }
+      }
+
+      return result;
+    }
+  </script>
+</body>
+</html>

@@ -8,6 +8,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md) · M
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
+- 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
 - 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
 - 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
 - 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded)

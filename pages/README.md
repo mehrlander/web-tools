@@ -73,6 +73,9 @@ the link-dense text twin of the visual index above.
 | `cm6-editor` | Literate Solo Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/cm6-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/cm6-editor.html) |
 | `diff-tool` | Legislative Diff Tool | [view](https://mehrlander.github.io/web-tools/pages/drop/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/diff-tool.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/drop/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/gist-editor.html) |
+| `json-lens` | JSON Lens | [view](https://mehrlander.github.io/web-tools/pages/drop/json-lens.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-lens.html) |
+| `json-table-tree` | JSON Table Tree | [view](https://mehrlander.github.io/web-tools/pages/drop/json-table-tree.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-table-tree.html) |
+| `json-viewers` | JSON Viewers Gallery | [view](https://mehrlander.github.io/web-tools/pages/drop/json-viewers.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/json-viewers.html) |
 | `live-docs` | Living Documentation — daisyUI | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs.html) |
 | `live-docs-concept` | Living Documentation — a concept | [view](https://mehrlander.github.io/web-tools/pages/drop/live-docs-concept.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/live-docs-concept.html) |
 | `word-frequencies` | Word Frequency & POS APIs | [view](https://mehrlander.github.io/web-tools/pages/drop/word-frequencies.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/drop/word-frequencies.html) |

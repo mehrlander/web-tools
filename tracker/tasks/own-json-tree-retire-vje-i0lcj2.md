@@ -73,6 +73,8 @@ ones nobody tests. Build the reader, keep the writer.
 - `dist/web-tools.js`: offline artifact still CDN-importing VJE on the default path
 - task `data-view-mobile-chrome-x5plcv`: double-switcher friction VJE will not negotiate
 - PR #288: `#data=` session that filed the size and CDN counts
+- `pages/drop/json-table-tree.html`: standalone display-tree prototype (PR #760); not wired into `viewer.js`
+- `archive/json-viewers/`: 64 older viewers and a README ranking their display ideas (PR #760)
 
 ## Done when
 A `tree` module renders with no network call, honors the theme, and caps
@@ -100,3 +102,4 @@ has held this task for its whole life.
   That is a stronger case for the split than the body made, not a weaker one, and
   it was found by reading the mounts rather than the task.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-09-23: PR #760 landed a display-tree prototype, `pages/drop/json-table-tree.html`: an array of records opens as a table in place, nested values open under their rows, children render only when opened, and it loads no editor. It stands alone and does not yet meet Done when (no `tree` module, `viewer.js` unchanged). The design sources are archived in `archive/json-viewers/`.

@@ -1,0 +1,206 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Library of Congress Vanilla JS Collapsible Tree with Attributes | id f3ob4qhrxk87ibzv95zr v1 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library of Congress Vanilla JS Collapsible Tree with Attributes</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+    font-size: 14px;
+  }
+  #header {
+    background-color: #0c2340;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+  }
+  #treeContainer {
+    padding: 1rem;
+    overflow-y: auto;
+    overflow-x: auto;
+    height: calc(100% - 80px);
+    white-space: nowrap;
+  }
+  .tree-node {
+    margin-left: 20px;
+    position: relative;
+  }
+  .tree-content {
+    padding: 5px;
+    border: 1px solid #ccc;
+    display: inline-block;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .tree-children {
+    margin-left: 20px;
+  }
+  .tree-node::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -20px;
+    border-left: 1px solid #ccc;
+    height: 100%;
+  }
+  .tree-node::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: -20px;
+    border-top: 1px solid #ccc;
+    width: 20px;
+  }
+  .tree-node:last-child::before {
+    height: 15px;
+  }
+  .collapsed > .tree-children {
+    display: none;
+  }
+  .compact-child {
+    margin-left: 0;
+  }
+  .compact-child::before,
+  .compact-child::after {
+    display: none;
+  }
+  .attribute {
+    color: #0066cc;
+    margin-left: 5px;
+  }
+  .toggle-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    text-align: center;
+    line-height: 16px;
+    margin-right: 5px;
+    font-size: 14px;
+    border: 1px solid #999;
+    border-radius: 3px;
+  }
+  /* Remove all list-style */
+  ul, li, .tree-node {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  /* Ensure consistent font size */
+  .tree-content, .attribute, .toggle-icon, .tree-node {
+    font-size: 14px !important;
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>Library of Congress Vanilla JS Collapsible Tree with Attributes</h1>
+</div>
+<div id="treeContainer"></div>
+
+<script>
+class TreeNode {
+  constructor(name, attributes = {}, children = []) {
+    this.name = name;
+    this.attributes = attributes;
+    this.children = children;
+  }
+}
+
+function createTreeFromDOM(element, depth = 0) {
+  if (depth > 5) return null; // Limit depth to prevent excessive nesting
+  
+  const attributes = {};
+  Array.from(element.attributes).forEach(attr => {
+    attributes[attr.name] = attr.value;
+  });
+
+  const node = new TreeNode(element.tagName.toLowerCase(), attributes);
+  
+  Array.from(element.children).forEach(child => {
+    const childNode = createTreeFromDOM(child, depth + 1);
+    if (childNode) node.children.push(childNode);
+  });
+  
+  return node;
+}
+
+function renderTree(node, container, isCompact = false) {
+  const nodeElement = document.createElement('div');
+  nodeElement.className = 'tree-node' + (isCompact ? ' compact-child' : '');
+
+  const contentElement = document.createElement('div');
+  contentElement.className = 'tree-content';
+  
+  if (node.children.length > 1) {
+    const toggleIcon = document.createElement('span');
+    toggleIcon.className = 'toggle-icon';
+    toggleIcon.textContent = '+';
+    contentElement.appendChild(toggleIcon);
+  }
+
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = node.name;
+  contentElement.appendChild(nameSpan);
+
+  Object.entries(node.attributes).forEach(([key, value]) => {
+    const attrSpan = document.createElement('span');
+    attrSpan.className = 'attribute';
+    attrSpan.textContent = ` ${key}="${value}"`;
+    contentElement.appendChild(attrSpan);
+  });
+
+  nodeElement.appendChild(contentElement);
+
+  if (node.children.length > 0) {
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'tree-children';
+
+    if (node.children.length === 1) {
+      const onlyChild = node.children[0];
+      contentElement.appendChild(document.createTextNode(' > '));
+      renderTree(onlyChild, contentElement, true);
+    } else {
+      node.children.forEach(child => {
+        renderTree(child, childrenContainer, false);
+      });
+      nodeElement.appendChild(childrenContainer);
+    }
+
+    if (node.children.length > 1) {
+      contentElement.addEventListener('click', (e) => {
+        if (e.target === contentElement || e.target.classList.contains('toggle-icon') || e.target === nameSpan) {
+          nodeElement.classList.toggle('collapsed');
+          const toggleIcon = contentElement.querySelector('.toggle-icon');
+          if (toggleIcon) {
+            toggleIcon.textContent = nodeElement.classList.contains('collapsed') ? '+' : '-';
+          }
+        }
+      });
+    }
+  }
+
+  container.appendChild(nodeElement);
+}
+
+function fetchAndRenderTree() {
+  fetch('https://www.loc.gov/')
+    .then(response => response.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const root = createTreeFromDOM(doc.body);
+      const treeContainer = document.getElementById('treeContainer');
+      renderTree(root, treeContainer);
+    })
+    .catch(error => console.error('Error fetching LOC website:', error));
+}
+
+fetchAndRenderTree();
+</script>
+</body>
+</html>

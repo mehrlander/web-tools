@@ -1,0 +1,321 @@
+<!-- CodePen: Shoelace Tree as list | https://codepen.io/Mark-E/pen/ZEPPOPG | created 17-Feb-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Shoelace Tree as list</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/ZEPPOPG">
+  
+  
+  
+  
+<style>
+@import 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css';
+
+body {
+  font: 16px sans-serif;
+  background-color: var(--sl-color-neutral-0);
+  color: var(--sl-color-neutral-900);
+  padding: 1rem;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace.js"></script>
+<style>
+  .container {
+    width: 50%;
+    border: solid 1px grey;
+    padding: 20px;
+  }
+
+  .outline * {
+    outline: solid 1px pink;
+  }
+
+  sl-split-panel {
+    --divider-width: 20px;
+    margin: 10px 0;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  sl-split-panel::part(divider) {
+    background: pink;
+  }
+
+  sl-split-panel > * {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  sl-tree {
+    margin: 0px;
+    padding: 4px;
+    overflow: hidden;
+  }
+
+  sl-tree-item {
+    margin: 0px;
+  }
+
+  sl-tree-item:hover {
+    background: #def;
+  }
+
+  sl-tree-item::part(base) {}
+
+  sl-tree-item::part(expand-button),
+  sl-tree-item::part(checkbox) {
+    display: none;
+  }
+
+  sl-tree-item::part(label) {
+    height: var(--sl-tree-item-height, 30px);
+    /* Default height */
+    width: 100%;
+  }
+
+  sl-tree-item * {
+    height: 100%;
+    margin: 1px;
+  }
+
+  sl-tree-item:hover * {}
+
+  sl-tree-item span {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 5px;
+  }
+
+  /* sl-icon is simple, centered */
+  sl-icon {
+    flex: 0 0 20px;
+    padding: 0 2px;
+    color: #555;
+  }
+
+  /* sl-icon-button has more features */
+  sl-icon-button {
+    --sl-spacing-x-small: 0.3rem;
+    /* Override token */
+    flex: 0 0 20px;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+  }
+
+  sl-dropdown {
+    display: flex;
+    align-items: center;
+  }
+
+  sl-dropdown::part(panel) {
+    z-index: var(--sl-z-index-tooltip);
+    position: relative;
+    background: white;
+  }
+
+  sl-menu {
+    position: relative;
+    background: white;
+    padding: 0px;
+  }
+  
+  sl-menu-item {
+    background: white;
+    margin: 0px;
+    padding: 0px;
+  }
+  
+  sl-menu-item::part(label) {
+    font-size: .6rem;
+    padding: 0px;
+    margin: 0px;
+    gap: 0px;
+  }
+  
+  sl-menu-item::part(base) {
+    
+  }
+
+  sl-button {
+    margin: 0px;
+    padding: 0px;
+    position: relative;
+  }
+
+  sl-button::part(base) {
+    padding: 0px;
+    margin: 0px;
+  }
+
+  sl-tooltip::part(body) {}
+
+  ul {
+    width: 100%;
+    list-style-type: none;
+    display: flex;
+    justify-content: space-between;
+    padding: 0;  
+  }
+
+  li {
+    flex-grow: 1;
+    text-align: left;
+    padding: 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;  }
+  
+</style>
+
+<div class="container">
+  <div class="controls" style="display:flex; justify-content: right; align-items: center; gap: 10px;">
+    <sl-range id="height-range" label="Height" value=30></sl-range>
+    <sl-select id="selection-mode" value="single">
+      <sl-option value="single">Single Select</sl-option>
+      <sl-option value="multiple">Multiple Select</sl-option>
+    </sl-select>
+    <sl-checkbox id="toggleOutline">Outline</sl-checkbox>
+  </div>
+  <sl-split-panel>
+    <sl-icon name="grid" slot="divider" style="color:#666; z-index: 10;"></sl-icon>
+    <div slot="start">
+      <sl-tree>
+        <sl-tree-item>
+          <sl-icon name="image"></sl-icon>
+          <span>birds.jpg</span>
+          <sl-tooltip content="Edit">
+            <sl-icon-button name="pencil" label="Edit"></sl-icon-button>
+          </sl-tooltip>
+        </sl-tree-item>
+        <sl-tree-item>
+          <sl-icon name="image"></sl-icon>
+          <span>kitten.jpg</span>
+        </sl-tree-item>
+        <sl-tree-item>
+          <sl-icon name="file"></sl-icon>
+          <span>draft.txt</span>
+          <span>text</span>
+        </sl-tree-item>
+        <sl-tree-item>
+          <sl-icon name="file-pdf"></sl-icon>
+          <span>final.pdf</span>
+          <sl-dropdown  placement="bottom-end" hoist>
+            <sl-button slot="trigger" pill size="small" variant="primary" caret>Push</sl-button>
+            <sl-menu>
+              <sl-menu-item value="copy">Copy</sl-menu-item>
+              <sl-menu-item value="paste">Paste</sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+        </sl-tree-item>
+        <sl-tree-item>
+          <sl-icon name="file-bar-graph"></sl-icon>
+          <span>sales.xls</span>
+        </sl-tree-item>
+      </sl-tree>
+    </div>
+    <div slot="end">
+      <sl-tree>
+        <sl-tree-item>
+          <ul>
+            <li>Hot dogs</li>
+            <li>Pancakes</li>
+            <li>Pizza</li>
+          </ul>
+        </sl-tree-item>
+        <sl-tree-item>
+          <ul>
+            <li>Hot dogs</li>
+          </ul>
+        </sl-tree-item>
+        <sl-tree-item>
+          <ul>
+            <li>Hot dogs</li>
+          </ul>
+        </sl-tree-item>
+        <sl-tree-item>
+          <ul>
+            <li>Hot dogs</li>
+          </ul>
+        </sl-tree-item>
+        <sl-tree-item>
+          <ul>
+            <li>Hot dogs</li>
+          </ul>
+        </sl-tree-item>
+      </sl-tree>
+  </sl-split-panel>
+</div>
+</div>
+  
+    <script id="rendered-js" >
+document.addEventListener('DOMContentLoaded', () => {
+  const getTreeItems = () => document.querySelectorAll('sl-tree-item, sl-tree');
+
+  const toggleOutline = () => {
+    const isChecked = document.querySelector('#toggleOutline').checked;
+    getTreeItems().forEach(item => {
+      item.classList.toggle('outline', isChecked);
+    });
+  };
+
+  document.querySelector('#toggleOutline').addEventListener('sl-change', toggleOutline);
+  toggleOutline(); // Initial call to set the outline based on the checkbox state
+
+  const updateTreeItemHeight = height => {
+    getTreeItems().forEach(item => {
+      item.style.setProperty('--sl-tree-item-height', `${height}px`);
+    });
+  };
+
+  document.getElementById('height-range').addEventListener('sl-input', event => {
+    updateTreeItemHeight(event.target.value);
+  });
+
+  const updateSelectionMode = () => {
+    const selectionModeValue = document.querySelector('#selection-mode').value;
+    document.querySelectorAll('sl-tree').forEach(tree => {
+      // Reset selection for each tree
+      const treeItems = tree.querySelectorAll('sl-tree-item');
+      treeItems.forEach(item => item.selected = false);
+      // Apply the new selection mode
+      tree.selection = selectionModeValue;
+    });
+  };
+
+  document.querySelector('#selection-mode').addEventListener('sl-change', updateSelectionMode);
+  updateSelectionMode(); // Initial call to set the selection mode based on the dropdown state
+});
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>
