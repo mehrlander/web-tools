@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Viewer Examples</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-2">
+    <h1 class="font-semibold">JSON Viewer Examples</h1>
+    <nav class="join" aria-label="Example collections">
+      <button id="websim-tab" class="btn btn-sm join-item btn-primary" aria-pressed="true">WebSim</button>
+      <button id="codepen-tab" class="btn btn-sm join-item" aria-pressed="false">CodePen links</button>
+    </nav>
+    <a id="focused-explorer" class="btn btn-sm btn-ghost" href="json-explorer.html" target="_blank" rel="noopener">Tree + field filters ↗</a>
+    <label id="compare-control" class="ml-auto flex items-center gap-2 text-sm"><input id="compare" type="checkbox" class="checkbox checkbox-sm">Compare</label>
+  </header>
+  <main id="websim-panel">
+    <details id="data-panel" class="border-b border-base-300">
+      <summary class="cursor-pointer px-4 py-3 text-sm">Shared JSON data</summary>
+      <div class="grid gap-3 px-4 pb-4">
+        <textarea id="sample" aria-label="JSON data for both viewers" spellcheck="false" class="textarea w-full h-56 font-mono text-sm"></textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="apply" class="btn btn-sm btn-primary">Apply to viewers</button>
+          <button id="reset" class="btn btn-sm btn-ghost">Reset sample</button>
+          <span id="data-status" role="status" class="text-sm"></span>
+        </div>
+      </div>
+    </details>
+    <div id="viewers" class="grid grid-cols-1 min-w-0">
+      <section id="left-panel" class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2 border-b border-base-300 px-4 py-2">
+          <label for="left-select" class="sr-only">First viewer</label>
+          <select id="left-select" class="select select-sm flex-1 min-w-0"></select>
+          <a id="left-source" class="btn btn-sm btn-ghost" target="_blank" rel="noopener">Original source ↗</a>
+          <button id="left-reload" class="btn btn-sm btn-ghost" aria-label="Reload first viewer">↻</button>
+        </div>
+        <p id="left-error" class="hidden px-4 py-3 text-error" role="alert"></p>
+        <iframe id="left-frame" title="First JSON viewer example" sandbox="allow-scripts" referrerpolicy="no-referrer" class="block w-full h-[calc(100dvh-11rem)] min-h-96 border-0 bg-white"></iframe>
+      </section>
+      <section id="right-panel" class="hidden min-w-0 border-t lg:border-t-0 lg:border-l border-base-300">
+        <div class="flex flex-wrap items-center gap-2 border-b border-base-300 px-4 py-2">
+          <label for="right-select" class="sr-only">Second viewer</label>
+          <select id="right-select" class="select select-sm flex-1 min-w-0"></select>
+          <a id="right-source" class="btn btn-sm btn-ghost" target="_blank" rel="noopener">Original source ↗</a>
+          <button id="right-reload" class="btn btn-sm btn-ghost" aria-label="Reload second viewer">↻</button>
+        </div>
+        <p id="right-error" class="hidden px-4 py-3 text-error" role="alert"></p>
+        <iframe id="right-frame" title="Second JSON viewer example" sandbox="allow-scripts" referrerpolicy="no-referrer" class="block w-full h-[calc(100dvh-11rem)] min-h-96 border-0 bg-white"></iframe>
+      </section>
+    </div>
+    <footer class="flex flex-wrap items-center gap-3 border-t border-base-300 px-4 py-2 text-sm">
+      <button id="previous" class="btn btn-sm btn-ghost" aria-label="Previous example">←</button>
+      <span id="position" aria-live="polite"></span>
+      <button id="next" class="btn btn-sm btn-ghost" aria-label="Next example">→</button>
+      <a class="ml-auto link" href="https://github.com/mehrlander/home/blob/main/chron/2026/07/2026-07-06-websim-account-export.md" target="_blank" rel="noopener">WebSim archive ↗</a>
+    </footer>
+  </main>
+  <section id="codepen-panel" class="hidden">
+    <div class="flex flex-wrap items-center gap-3 border-b border-base-300 px-4 py-3 text-sm">
+      <span>Saved links · source code not archived</span>
+      <a class="ml-auto link" href="https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-29-codepen-log.json" target="_blank" rel="noopener">CodePen catalog ↗</a>
+    </div>
+    <ul id="pens" class="divide-y divide-[var(--color-base-300)]"></ul>
+  </section>
+  <script type="module">
+    // Archive HTML stays byte-preserved. Only the sandboxed preview receives
+    // the local-data adapters. Relative fetches also work through toss's ref shim.
+    const examples = [
+      ['object-tree', 'Object tree · expand and collapse'],
+      ['preview-tree', 'Compact tree · value previews'],
+      ['folding-editor', 'CodeMirror · folding summaries'],
+      ['multi-view', 'FancyTree · JSONEditor · Prism'],
+      ['launch-paths', 'Tree · path filtering'],
+      ['svg-explorer', 'Space-X Explorer · SVG key/value nodes'],
+    ];
+    const pens = [
+      ['JoYxMvP', 'JSON editor breadcrumb filtering'],
+      ['YPyRdgr', 'JSON editor bread crumb path'],
+      ['ZYbwRYN', 'Vanilla json editor keypad'],
+      ['RNadRKj', 'JSE header footer best of show'],
+      ['WNBBMQL', 'renderJson prettified clickable'],
+      ['wvOVqjm', 'JSON Tree Newer'],
+      ['gOqvwxz', 'Lit JSON collapsible'],
+    ];
+    const sample = [
+      { name: 'Atlas', date_utc: '2025-01-10T12:00:00Z', success: true,
+        rocket: { name: 'Falcon', stages: 2 }, payloads: [{ name: 'Research', mass_kg: 240 }],
+        links: { webcast: null }, tags: ['science', 'orbit'] },
+      { name: 'Aurora', date_utc: '2025-03-21T08:30:00Z', success: false,
+        rocket: { name: 'Falcon', stages: 2 }, payloads: [{ name: 'Weather', mass_kg: 180 }, { name: 'Imaging', mass_kg: 90 }],
+        links: { webcast: null }, tags: [], notes: 'A second record for comparing array previews.' },
+    ];
+    const $ = id => document.getElementById(id);
+    let data = sample;
+    let prepareExample;
+    const cache = new Map();
+    const revision = { left: 0, right: 0 };
+    const params = new URLSearchParams(location.search);
+    const ref = params.get('use') || 'main';
+    if (params.get('use')) {
+      $('focused-explorer').href = 'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + encodeURIComponent(ref) + ':pages/json-explorer.html';
+    }
+    const valid = id => examples.some(([key]) => key === id);
+    $('sample').value = JSON.stringify(sample, null, 2);
+    for (const side of ['left', 'right']) {
+      for (const [id, title] of examples) $(side + '-select').add(new Option(title, id));
+      $(side + '-select').value = side === 'left' ? (valid(params.get('example')) ? params.get('example') : 'preview-tree') : 'folding-editor';
+      $(side + '-select').addEventListener('change', () => render(side));
+      $(side + '-reload').addEventListener('click', () => render(side));
+    }
+    for (const [id, title] of pens) {
+      const item = document.createElement('li');
+      const a = document.createElement('a');
+      a.className = 'flex items-center justify-between gap-4 px-4 py-5 hover:bg-base-200';
+      a.href = 'https://codepen.io/Mark-E/pen/' + id;
+      a.target = '_blank'; a.rel = 'noopener'; a.textContent = title + ' ↗';
+      item.append(a); $('pens').append(item);
+    }
+    async function read(path) {
+      if (!cache.has(path)) cache.set(path, fetch(path).then(r => {
+        if (!r.ok) throw new Error(`Could not load ${path} (${r.status}).`);
+        return r.text();
+      }).catch(error => { cache.delete(path); throw error; }));
+      return cache.get(path);
+    }
+    async function render(side) {
+      const turn = ++revision[side];
+      const id = $(side + '-select').value;
+      const error = $(side + '-error');
+      const frame = $(side + '-frame');
+      error.classList.add('hidden'); frame.removeAttribute('srcdoc');
+      $(side + '-source').href = `https://github.com/mehrlander/web-tools/blob/${ref}/archive/websim-json/${id}.html`;
+      if (side === 'left') $('position').textContent = `${examples.findIndex(([key]) => key === id) + 1} / ${examples.length}`;
+      try {
+        const html = await read('../archive/websim-json/' + id + '.html');
+        if (turn !== revision[side]) return;
+        frame.srcdoc = prepareExample(id, html, data);
+      } catch (e) {
+        if (turn !== revision[side]) return;
+        error.textContent = e.message; error.classList.remove('hidden');
+      }
+    }
+    function refresh() { return Promise.all(['left', ...($('compare').checked ? ['right'] : [])].map(render)); }
+    $('compare').addEventListener('change', () => {
+      const enabled = $('compare').checked;
+      $('right-panel').classList.toggle('hidden', !enabled);
+      $('viewers').classList.toggle('lg:grid-cols-2', enabled);
+      if (enabled) render('right');
+      else { ++revision.right; $('right-frame').removeAttribute('srcdoc'); }
+    });
+    $('apply').addEventListener('click', () => {
+      try { data = JSON.parse($('sample').value); $('data-status').textContent = 'Applied'; refresh(); }
+      catch (e) { $('data-status').textContent = 'Invalid JSON: ' + e.message; }
+    });
+    $('reset').addEventListener('click', () => {
+      data = sample; $('sample').value = JSON.stringify(sample, null, 2);
+      $('data-status').textContent = 'Sample restored'; refresh();
+    });
+    function move(delta) {
+      const select = $('left-select');
+      select.selectedIndex = (select.selectedIndex + delta + examples.length) % examples.length;
+      render('left');
+    }
+    $('previous').addEventListener('click', () => move(-1));
+    $('next').addEventListener('click', () => move(1));
+    document.addEventListener('keydown', event => {
+      if (event.target.closest('input, textarea, select') || !$('codepen-panel').classList.contains('hidden')) return;
+      if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1); }
+      if (event.key === 'ArrowRight') { event.preventDefault(); move(1); }
+      if (event.key === 'Escape') $('data-panel').open = false;
+    });
+    function collection(codepen) {
+      $('websim-panel').classList.toggle('hidden', codepen);
+      $('codepen-panel').classList.toggle('hidden', !codepen);
+      $('compare-control').classList.toggle('hidden', codepen);
+      for (const key of ['websim', 'codepen']) {
+        const active = (key === 'codepen') === codepen;
+        $(key + '-tab').classList.toggle('btn-primary', active);
+        $(key + '-tab').setAttribute('aria-pressed', String(active));
+      }
+    }
+    $('websim-tab').addEventListener('click', () => collection(false));
+    $('codepen-tab').addEventListener('click', () => collection(true));
+    try {
+      const moduleURL = URL.createObjectURL(new Blob([await read('json-viewers/adapters.js')], { type: 'text/javascript' }));
+      try { ({ prepareExample } = await import(moduleURL)); } finally { URL.revokeObjectURL(moduleURL); }
+      await refresh();
+    } catch (e) { $('left-error').textContent = e.message; $('left-error').classList.remove('hidden'); }
+  </script>
+</body>
+</html>

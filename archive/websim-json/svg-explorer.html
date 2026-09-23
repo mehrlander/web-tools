@@ -1,0 +1,429 @@
+  <title>Space-X Explorer</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+  <h1 class="text-3xl font-bold text-center text-blue-800 mb-6">Space-X Explorer</h1>
+  
+  <div class="flex flex-col items-center mb-4 space-y-4">
+    <details class="bg-white p-4 rounded-md shadow-md w-full max-w-md">
+      <summary class="font-bold text-lg cursor-pointer">Color Key</summary>
+      <ul class="space-y-2 mt-2">
+        <li class="flex items-center">
+          <div class="w-32 h-8 mr-2 flex">
+            <div class="w-1/2 h-full bg-[#d1d5db] border border-[#1e40af] rounded-l-md flex items-center justify-center text-xs">Key</div>
+            <div class="w-1/2 h-full bg-[#e5e7eb] border border-[#1e40af] rounded-r-md flex items-center justify-center text-xs">Value</div>
+          </div>
+          <span>Collapsed parent node</span>
+        </li>
+        <li class="flex items-center">
+          <div class="w-32 h-8 mr-2 flex">
+            <div class="w-1/2 h-full bg-[#bfdbfe] border border-[#1e40af] rounded-l-md flex items-center justify-center text-xs">Key</div>
+            <div class="w-1/2 h-full bg-[#dbeafe] border border-[#1e40af] rounded-r-md flex items-center justify-center text-xs">Value</div>
+          </div>
+          <span>Expanded parent node</span>
+        </li>
+        <li class="flex items-center">
+          <div class="w-32 h-8 mr-2 flex">
+            <div class="w-1/2 h-full bg-[#f3f4f6] border border-[#1e40af] rounded-l-md flex items-center justify-center text-xs">Key</div>
+            <div class="w-1/2 h-full bg-[#ffffff] border border-[#1e40af] rounded-r-md flex items-center justify-center text-xs">Value</div>
+          </div>
+          <span>Leaf node (not selected)</span>
+        </li>
+        <li class="flex items-center">
+          <div class="w-32 h-12 mr-2 flex flex-col">
+            <div class="w-full h-1/2 bg-[#fde68a] border-2 border-[#1e40af] rounded-t-md flex items-center justify-center text-xs">Key</div>
+            <div class="w-full h-1/2 bg-[#fef3c7] border-2 border-[#1e40af] rounded-b-md flex items-center justify-center text-xs">Value</div>
+          </div>
+          <span>Selected leaf node</span>
+        </li>
+      </ul>
+    </details>
+
+    <details class="bg-white p-4 rounded-md shadow-md w-full max-w-md">
+      <summary class="font-bold text-lg cursor-pointer">Line Style Options</summary>
+      <div class="flex justify-center space-x-4 mt-2">
+        <select id="lineStyle" class="px-4 py-2 border rounded-md">
+          <option value="insideCurve">Inside Curve</option>
+          <option value="outsideCurve">Outside Curve</option>
+          <option value="straight">Straight</option>
+          <option value="stepline">Step Line</option>
+        </select>
+        <select id="lineColor" class="px-4 py-2 border rounded-md">
+          <option value="#999">Gray</option>
+          <option value="#3b82f6">Blue</option>
+          <option value="#10b981">Green</option>
+          <option value="#ef4444">Red</option>
+        </select>
+      </div>
+    </details>
+
+    <details class="bg-white p-4 rounded-md shadow-md w-full max-w-md">
+      <summary class="font-bold text-lg cursor-pointer">Selected Nodes</summary>
+      <ul id="selectedNodesList" class="space-y-2 mt-2">
+      </ul>
+    </details>
+  </div>
+
+  <div id="loading" class="text-center text-lg mt-5">Fetching Space-X launch data...</div>
+  <div id="error" class="text-red-600 text-center font-bold"></div>
+  <div id="tree-container" class="w-full h-[800px] bg-white rounded-lg shadow-md overflow-auto"></div>
+
+  <script>
+    const apiUrl = 'https://api.spacexdata.com/v4/launches/latest';
+    let lineStyle = 'insideCurve';
+    let lineColor = '#999';
+    let root;
+
+    function createTreeData(obj, name = 'root') {
+      const node = { name };
+      if (Array.isArray(obj)) {
+        node.children = obj.map((value, index) => createTreeData(value, `[${index}]`));
+        node.count = obj.length;
+        node.type = 'array';
+      } else if (typeof obj === 'object' && obj !== null) {
+        node.children = Object.entries(obj).map(([key, value]) => createTreeData(value, key));
+        node.count = Object.keys(obj).length;
+        node.type = 'object';
+      } else {
+        node.value = String(obj);
+      }
+      return node;
+    }
+
+    function getNodeBackgroundColor(d) {
+      const colors = getNodeFill(d);
+      return colors.key; 
+    }
+
+    function updateSelectedNodesList() {
+      const selectedNodesList = document.getElementById('selectedNodesList');
+      selectedNodesList.innerHTML = '';
+
+      if (root && typeof root.descendants === 'function') {
+        const selectedNodes = root.descendants().filter(d => d.data.selected);
+
+        selectedNodes.forEach(node => {
+          const li = document.createElement('li');
+          const colors = getNodeFill(node);
+          const bgColor = colors.key;
+          const isYellow = bgColor === '#fde68a';
+          
+          li.innerHTML = `
+            <span class="font-bold">ID: ${node.id}</span>
+            <br>
+            Name: ${node.data.name}
+            <br>
+            Value: ${node.data.value || 'N/A'}
+            <br>
+            Background Color: 
+            <span style="display: inline-block; width: 20px; height: 20px; background-color: ${bgColor}; vertical-align: middle;"></span>
+            ${bgColor}
+            ${!isYellow ? '<span class="text-red-600 font-bold"> (Not Yellow!)</span>' : ''}
+            <br>
+            Node Type: ${node._children ? 'Collapsed Parent' : (node.children ? 'Expanded Parent' : 'Leaf')}
+          `;
+          li.className = 'mb-2 p-2 border rounded';
+          selectedNodesList.appendChild(li);
+        });
+      }
+    }
+
+    function getNodeFill(d) {
+      if (d._children) return { key: '#d1d5db', value: '#e5e7eb' }; 
+      if (d.children) return { key: '#bfdbfe', value: '#dbeafe' }; 
+      if (d.data.selected) return { key: '#fde68a', value: '#fef3c7' }; 
+      return { key: '#f3f4f6', value: '#ffffff' }; 
+    }
+
+    async function fetchLaunchData() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        loading.style.display = 'none';
+        const treeData = createTreeData(data);
+        root = d3.hierarchy(treeData);
+        renderTree(root);
+      } catch (err) {
+        loading.style.display = 'none';
+        error.textContent = 'Error fetching Space-X launch data: ' + err.message;
+      }
+    }
+
+    function renderTree(rootNode) {
+      const width = document.getElementById('tree-container').offsetWidth;
+      const height = 800;
+      const margin = { top: 20, right: 90, bottom: 20, left: 90 };
+
+      const svg = d3.select('#tree-container')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const tree = d3.tree().size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
+      rootNode.x0 = height / 2;
+      rootNode.y0 = 0;
+
+      let i = 0;
+
+      function update(source) {
+        const treeData = tree(rootNode);
+        const nodes = treeData.descendants();
+        const links = treeData.descendants().slice(1);
+
+        nodes.forEach(d => { d.y = d.depth * 220; });
+
+        const node = svg.selectAll('g.node')
+          .data(nodes, d => d.id || (d.id = ++i));
+
+        const nodeEnter = node.enter().append('g')
+          .attr('class', 'node')
+          .attr('transform', d => `translate(${source.y0},${source.x0})`)
+          .on('click', (event, d) => {
+            if (d.children || d._children) {
+              if (d.children) {
+                d._children = d.children;
+                d.children = null;
+              } else {
+                d.children = d._children;
+                d._children = null;
+              }
+              function resetSelected(node) {
+                node.data.selected = false;
+                if (node.children) node.children.forEach(resetSelected);
+                if (node._children) node._children.forEach(resetSelected);
+              }
+              resetSelected(d);
+            } else {
+              d.data.selected = !d.data.selected;
+            }
+            update(d);
+          });
+
+        nodeEnter.append('linearGradient')
+          .attr('id', d => `gradient-${d.id}`)
+          .attr('x1', '0%')
+          .attr('y1', '0%')
+          .attr('x2', '100%')
+          .attr('y2', '0%')
+          .selectAll('stop')
+          .data(d => [
+            {offset: '0%', color: getNodeFill(d).key},
+            {offset: '49.9%', color: getNodeFill(d).key},
+            {offset: '50%', color: getNodeFill(d).value},
+            {offset: '100%', color: getNodeFill(d).value}
+          ])
+          .enter().append('stop')
+          .attr('offset', d => d.offset)
+          .attr('stop-color', d => d.color);
+
+        nodeEnter.append('rect')
+          .attr('class', 'node-background')
+          .attr('width', d => d.data.selected ? 280 : 180)
+          .attr('height', d => d.data.selected ? 70 : 30)
+          .attr('x', d => d.data.selected ? -140 : -90)
+          .attr('y', d => d.data.selected ? -25 : -15)
+          .attr('rx', 5)
+          .attr('ry', 5)
+          .attr('fill', d => `url(#gradient-${d.id})`)
+          .attr('stroke', '#1e40af')
+          .attr('stroke-width', d => d.data.selected ? 2 : 1);
+
+        nodeEnter.append('text')
+          .attr('class', 'key-text')
+          .attr('x', d => d.data.selected ? 0 : -85)
+          .attr('y', d => d.data.selected ? -17.5 : 0) 
+          .attr('dy', '.35em')
+          .attr('text-anchor', d => d.data.selected ? 'middle' : 'start')
+          .text(d => truncateText(d.data.name, d.data.selected ? 40 : 10, d.data.selected))
+          .attr('fill', '#000000')
+          .call(wrap, 270);
+
+        nodeEnter.append('text')
+          .attr('class', 'value-text')
+          .attr('x', d => d.data.selected ? 0 : 5)
+          .attr('y', d => d.data.selected ? 17.5 : 0) 
+          .attr('dy', '.35em')
+          .attr('text-anchor', d => d.data.selected ? 'middle' : 'start')
+          .text(d => truncateText(d.data.value || '', d.data.selected ? 40 : 10, d.data.selected))
+          .attr('fill', '#000000')
+          .call(wrap, 270);
+
+        const nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition()
+          .duration(750)
+          .attr('transform', d => `translate(${d.y},${d.x})`);
+
+        nodeUpdate.select('rect.node-background')
+          .transition()
+          .duration(750)
+          .attr('width', d => d.data.selected ? 280 : 180)
+          .attr('height', d => d.data.selected ? 70 : 30)
+          .attr('x', d => d.data.selected ? -140 : -90)
+          .attr('y', d => d.data.selected ? -25 : -15)
+          .attr('stroke-width', d => d.data.selected ? 2 : 1);
+
+        nodeUpdate.select('linearGradient')
+          .transition()
+          .duration(750)
+          .attr('x1', d => d.data.selected ? '0%' : '0%')
+          .attr('y1', d => d.data.selected ? '0%' : '0%')
+          .attr('x2', d => d.data.selected ? '0%' : '100%')
+          .attr('y2', d => d.data.selected ? '100%' : '0%');
+
+        nodeUpdate.select('text.key-text')
+          .transition()
+          .duration(750)
+          .attr('x', d => d.data.selected ? 0 : -85)
+          .attr('y', d => d.data.selected ? -17.5 : 0) 
+          .attr('text-anchor', d => d.data.selected ? 'middle' : 'start')
+          .text(d => truncateText(d.data.name, d.data.selected ? 40 : 10, d.data.selected))
+          .call(wrap, 270);
+
+        nodeUpdate.select('text.value-text')
+          .transition()
+          .duration(750)
+          .attr('x', d => d.data.selected ? 0 : 5)
+          .attr('y', d => d.data.selected ? 17.5 : 0) 
+          .attr('text-anchor', d => d.data.selected ? 'middle' : 'start')
+          .text(d => truncateText(d.data.value || '', d.data.selected ? 40 : 10, d.data.selected))
+          .call(wrap, 270);
+
+        const nodeExit = node.exit().transition()
+          .duration(750)
+          .attr('transform', d => `translate(${source.y},${source.x})`)
+          .remove();
+
+        nodeExit.select('rect')
+          .attr('width', 1e-6)
+          .attr('height', 1e-6);
+
+        nodeExit.selectAll('text')
+          .style('fill-opacity', 1e-6);
+
+        const link = svg.selectAll('path.link')
+          .data(links, d => d.id);
+
+        const linkEnter = link.enter().insert('path', 'g')
+          .attr('class', 'link')
+          .attr('d', d => {
+            const o = {x: source.x0, y: source.y0};
+            return getPath(o, o);
+          })
+          .attr('fill', 'none')
+          .attr('stroke', lineColor);
+
+        const linkUpdate = linkEnter.merge(link);
+
+        linkUpdate.transition()
+          .duration(750)
+          .attr('d', d => getPath(d, d.parent))
+          .attr('stroke', lineColor);
+
+        const linkExit = link.exit().transition()
+          .duration(750)
+          .attr('d', d => {
+            const o = {x: source.x, y: source.y};
+            return getPath(o, o);
+          })
+          .remove();
+
+        nodes.forEach(d => {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+
+        updateSelectedNodesList();
+      }
+
+      function getPath(s, d) {
+        switch (lineStyle) {
+          case 'outsideCurve':
+            return `M${s.y},${s.x}C${(s.y + d.y) / 2},${d.x} ${(s.y + d.y) / 2},${s.x} ${d.y},${d.x}`;
+          case 'straight':
+            return `M${s.y},${s.x}L${d.y},${d.x}`;
+          case 'stepline':
+            const midY = (s.y + d.y) / 2;
+            return `M${s.y},${s.x}H${midY}V${d.x}H${d.y}`;
+          default: 
+            return `M${s.y},${s.x}C${(s.y + d.y) / 2},${s.x} ${(s.y + d.y) / 2},${d.x} ${d.y},${d.x}`;
+        }
+      }
+
+      function truncateText(text, maxLength, isSelected = false) {
+        if (typeof text !== 'string') {
+          text = String(text);
+        }
+        if (isSelected) {
+          return text; 
+        }
+        return text.length > maxLength ? text.substr(0, maxLength - 3) + '...' : text;
+      }
+
+      rootNode.children.forEach(collapse);
+      update(rootNode);
+
+      function collapse(d) {
+        if (d.children) {
+          d._children = d.children;
+          d._children.forEach(collapse);
+          d.children = null;
+        }
+      }
+
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on('zoom', (event) => {
+          svg.attr('transform', event.transform);
+        });
+
+      d3.select('#tree-container > svg').call(zoom);
+
+      document.getElementById('lineStyle').addEventListener('change', function() {
+        lineStyle = this.value;
+        update(rootNode);
+      });
+
+      document.getElementById('lineColor').addEventListener('change', function() {
+        lineColor = this.value;
+        update(rootNode);
+      });
+    }
+
+    function wrap(text, width) {
+      text.each(function() {
+        var text = d3.select(this),
+            words = text.text().split(/\s+/).reverse(),
+            word,
+            line = [],
+            lineNumber = 0,
+            lineHeight = 1.1,
+            y = text.attr("y"),
+            dy = parseFloat(text.attr("dy")),
+            tspan = text.text(null).append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", dy + "em");
+        
+        while (word = words.pop()) {
+          line.push(word);
+          tspan.text(line.join(" "));
+          if (tspan.node().getComputedTextLength() > width) {
+            line.pop();
+            tspan.text(line.join(" "));
+            line = [word];
+            tspan = text.append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word).attr("text-anchor", text.attr("text-anchor"));
+          }
+        }
+      });
+    }
+
+    fetchLaunchData();
+  </script>
+</body></html>
