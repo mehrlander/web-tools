@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JSON Lens · GitHub-Style Structural Explorer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔬</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<style>
+  :root[data-theme="light"] {
+    --gh-canvas: #f6f8fa;
+    --gh-surface: #ffffff;
+    --gh-border: #d0d7de;
+    --gh-border-subtle: #eaeef2;
+    --gh-text: #1f2328;
+    --gh-muted: #656d76;
+    --gh-accent: #0969da;
+    --gh-accent-subtle: #ddf4ff;
+    --gh-success: #1a7f37;
+    --gh-purple: #8250df;
+    --gh-danger: #cf222e;
+    --syntax-key: #0550ae;
+    --syntax-str: #0a3069;
+    --syntax-num: #116329;
+    --syntax-bool: #8250df;
+    --syntax-null: #cf222e;
+  }
+
+  :root[data-theme="dark"] {
+    --gh-canvas: #0d1117;
+    --gh-surface: #161b22;
+    --gh-border: #30363d;
+    --gh-border-subtle: #21262d;
+    --gh-text: #e6edf3;
+    --gh-muted: #7d8590;
+    --gh-accent: #2f81f7;
+    --gh-accent-subtle: #388bfd1a;
+    --gh-success: #3fb950;
+    --gh-purple: #bc8cff;
+    --gh-danger: #ff7b72;
+    --syntax-key: #79c0ff;
+    --syntax-str: #a5d6ff;
+    --syntax-num: #7ee787;
+    --syntax-bool: #d2a8ff;
+    --syntax-null: #ff7b72;
+  }
+
+  body {
+    background-color: var(--gh-canvas);
+    color: var(--gh-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .font-mono-gh {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  .gh-box {
+    background-color: var(--gh-surface);
+    border: 1px solid var(--gh-border);
+    border-radius: 6px;
+  }
+
+  .gh-counter {
+    background-color: rgba(175, 184, 193, 0.2);
+    color: var(--gh-text);
+    border-radius: 20px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .scroll-contained {
+    overscroll-behavior: contain;
+  }
+
+  /* Tree indentation guide line */
+  .tree-branch {
+    position: relative;
+    padding-left: 1.25rem;
+    margin-left: 0.5rem;
+    border-left: 1px dashed var(--gh-border);
+  }
+
+  /* Mobile bottom sheet */
+  #mobile-sheet {
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
+  }
+  #mobile-sheet.sheet-closed {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Syntax highlights */
+  .syn-key { color: var(--syntax-key); }
+  .syn-str { color: var(--syntax-str); }
+  .syn-num { color: var(--syntax-num); }
+  .syn-bool { color: var(--syntax-bool); }
+  .syn-null { color: var(--syntax-null); }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col antialiased select-none">
+
+  <!-- ================= 1. GITHUB HEADER ================= -->
+  <header class="h-12 border-b border-[var(--gh-border)] bg-[var(--gh-surface)] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+      <a href="https://github.com/mehrlander/web-tools" target="_blank" class="flex items-center gap-1.5 text-[var(--gh-text)] hover:opacity-80 transition-opacity shrink-0">
+        <i class="ph ph-github-logo text-xl"></i>
+        <span class="font-bold text-xs sm:text-sm">JSON Lens</span>
+      </a>
+
+      <span class="text-[var(--gh-border)]">/</span>
+
+      <!-- Dataset Picker -->
+      <div class="dropdown dropdown-bottom">
+        <div tabindex="0" role="button" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] hover:bg-[var(--gh-border-subtle)] rounded font-medium text-xs gap-1 shadow-xs">
+          <span id="active-dataset-label" class="truncate max-w-[110px] sm:max-w-none">e-commerce</span>
+          <i class="ph ph-caret-down text-[10px] text-[var(--gh-muted)]"></i>
+        </div>
+        <ul tabindex="0" class="dropdown-content z-50 menu p-1 shadow-lg bg-[var(--gh-surface)] border border-[var(--gh-border)] rounded-md w-52 text-xs mt-1">
+          <li class="menu-title text-[10px] text-[var(--gh-muted)] uppercase tracking-wider px-2 py-0.5">Preset Payloads</li>
+          <li><a class="dataset-opt active py-1" data-preset="ecommerce"><i class="ph ph-shopping-cart"></i> E-Commerce Order</a></li>
+          <li><a class="dataset-opt py-1" data-preset="github"><i class="ph ph-git-pull-request"></i> GitHub Repo API</a></li>
+          <li><a class="dataset-opt py-1" data-preset="legislation"><i class="ph ph-bank"></i> Legislative Bill</a></li>
+          <li><a class="dataset-opt py-1" data-preset="geojson"><i class="ph ph-map-pin"></i> GeoJSON Features</a></li>
+          <div class="divider my-0.5"></div>
+          <li><a id="btn-custom-modal" class="py-1 text-[var(--gh-accent)] font-medium"><i class="ph ph-plus"></i> Load Custom JSON...</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Header Tools (Right) -->
+    <div class="flex items-center gap-2">
+      <!-- Search filter input -->
+      <div class="relative w-36 sm:w-48">
+        <i class="ph ph-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-[var(--gh-muted)] text-xs pointer-events-none"></i>
+        <input id="filter-input" type="text" placeholder="Filter tree... (/)"
+               class="input input-xs w-full pl-6 pr-6 font-mono-gh text-xs h-6 rounded bg-[var(--gh-canvas)] border border-[var(--gh-border)] focus:bg-[var(--gh-surface)] focus:border-[var(--gh-accent)] transition-all">
+        <button id="filter-clear" class="hidden absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--gh-muted)] hover:text-[var(--gh-text)]">
+          <i class="ph ph-x-circle text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Theme Switcher -->
+      <button id="theme-toggle" class="btn btn-xs btn-ghost btn-square h-6 w-6 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] shadow-xs" title="Toggle Theme">
+        <i class="ph ph-sun text-xs theme-sun"></i>
+        <i class="ph ph-moon text-xs theme-moon hidden"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 2. BREADCRUMBS & TOPOLOGY STRIP ================= -->
+  <div class="border-b border-[var(--gh-border)] bg-[var(--gh-surface)] px-3 sm:px-4 py-1.5 flex flex-col gap-1.5 shrink-0 z-20">
+    <div class="flex items-center justify-between min-w-0">
+      <!-- Breadcrumb Path Bar -->
+      <div class="flex items-center gap-1.5 text-xs font-mono-gh min-w-0 overflow-x-auto whitespace-nowrap py-0.5">
+        <i class="ph ph-tree-view text-[var(--gh-accent)] text-sm shrink-0"></i>
+        <div id="breadcrumb-bar" class="flex items-center gap-1 min-w-0">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Action Affordances -->
+      <div class="flex items-center gap-1 shrink-0 pl-2">
+        <button id="btn-copy-path" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] hover:bg-[var(--gh-border-subtle)] text-[var(--gh-text)] rounded font-mono-gh text-[11px] gap-1 shadow-xs" title="Copy JSONPath">
+          <i class="ph ph-copy"></i>
+          <span class="hidden sm:inline">Path</span>
+        </button>
+        <button id="btn-copy-json" class="btn btn-xs h-6 px-2 border border-[var(--gh-border)] bg-[var(--gh-canvas)] hover:bg-[var(--gh-border-subtle)] text-[var(--gh-text)] rounded font-mono-gh text-[11px] gap-1 shadow-xs" title="Copy JSON Node">
+          <i class="ph ph-brackets-curly"></i>
+          <span class="hidden sm:inline">JSON</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Structural Density Strip -->
+    <div id="topology-ribbon" class="w-full h-1.5 rounded-full overflow-hidden flex items-stretch gap-0.5 bg-[var(--gh-border-subtle)] cursor-pointer" title="Structural weight distribution across top-level keys">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- ================= 3. MAIN SPLIT STAGE: TREE + LENS ================= -->
+  <main class="flex-1 min-h-0 relative flex overflow-hidden">
+    
+    <!-- LEFT PANE: INTERACTIVE COLLAPSIBLE TREE -->
+    <section class="flex-1 h-full flex flex-col min-w-0 border-r border-[var(--gh-border)] bg-[var(--gh-surface)]">
+      <!-- Tree Controls Header -->
+      <div class="h-8 border-b border-[var(--gh-border)] bg-[var(--gh-canvas)] px-3 flex items-center justify-between text-xs font-mono-gh shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-[var(--gh-text)]">JSON Structure</span>
+          <span id="tree-node-count" class="gh-counter text-[10px]">0 nodes</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button id="btn-expand-all" class="text-[11px] text-[var(--gh-muted)] hover:text-[var(--gh-text)] px-1.5 py-0.5 rounded hover:bg-[var(--gh-border-subtle)]">Expand</button>
+          <span class="text-[var(--gh-border)]">·</span>
+          <button id="btn-collapse-all" class="text-[11px] text-[var(--gh-muted)] hover:text-[var(--gh-text)] px-1.5 py-0.5 rounded hover:bg-[var(--gh-border-subtle)]">Collapse</button>
+        </div>
+      </div>
+
+      <!-- Tree Scroll Viewport -->
+      <div id="tree-viewport" class="flex-1 overflow-y-auto p-3 font-mono-gh text-xs scroll-contained">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- RIGHT PANE: SEMANTIC LENS INSPECTOR (Desktop: visible; Mobile: hidden, opens sheet) -->
+    <aside id="desktop-inspector-pane" class="hidden md:flex w-80 lg:w-96 h-full flex-col shrink-0 bg-[var(--gh-surface)] overflow-y-auto scroll-contained z-10">
+      <div class="h-8 border-b border-[var(--gh-border)] bg-[var(--gh-canvas)] px-3 flex items-center justify-between text-xs font-mono-gh shrink-0">
+        <span class="font-bold text-[var(--gh-text)] flex items-center gap-1">
+          <i class="ph ph-magnifying-glass-plus text-[var(--gh-accent)]"></i> Semantic Lens
+        </span>
+        <span id="lens-target-label" class="gh-counter text-[10px]">root</span>
+      </div>
+      <div id="desktop-inspector-content" class="p-3.5 flex flex-col gap-3">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ================= 4. MOBILE BOTTOM SHEET (Semantic Lens Drawer) ================= -->
+  <div id="mobile-sheet-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden transition-opacity"></div>
+  <div id="mobile-sheet" class="fixed inset-x-0 bottom-0 max-h-[80vh] bg-[var(--gh-surface)] rounded-t-xl border-t border-[var(--gh-border)] shadow-2xl z-50 md:hidden flex flex-col sheet-closed">
+    <div class="w-full flex items-center justify-center pt-2 pb-1 cursor-grab" id="sheet-drag-handle">
+      <div class="w-8 h-1 rounded-full bg-[var(--gh-border)]"></div>
+    </div>
+    
+    <div class="px-4 py-2 border-b border-[var(--gh-border)] flex items-center justify-between">
+      <div class="min-w-0 flex-1">
+        <div class="text-[10px] font-mono-gh uppercase text-[var(--gh-muted)]">Inspecting Node</div>
+        <div id="mobile-sheet-title" class="font-bold text-xs text-[var(--gh-text)] font-mono-gh truncate">root</div>
+      </div>
+      <button id="btn-close-sheet" class="btn btn-xs btn-ghost btn-circle text-[var(--gh-muted)] hover:text-[var(--gh-text)]">
+        <i class="ph ph-x text-sm"></i>
+      </button>
+    </div>
+
+    <div id="mobile-sheet-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-contained">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- ================= 5. MODAL: CUSTOM JSON INPUT ================= -->
+  <dialog id="modal-paste" class="modal">
+    <div class="modal-box max-w-lg bg-[var(--gh-surface)] border border-[var(--gh-border)] p-4 rounded-lg shadow-xl text-[var(--gh-text)]">
+      <div class="flex items-center justify-between pb-2 border-b border-[var(--gh-border)]">
+        <h3 class="font-bold text-xs flex items-center gap-1.5">
+          <i class="ph ph-file-plus text-[var(--gh-accent)] text-base"></i>
+          <span>Load Custom JSON</span>
+        </h3>
+        <form method="dialog"><button class="btn btn-xs btn-ghost btn-circle text-[var(--gh-muted)]"><i class="ph ph-x text-xs"></i></button></form>
+      </div>
+
+      <div class="py-2.5 flex flex-col gap-2.5">
+        <div class="flex gap-1.5">
+          <input id="input-url" type="url" placeholder="Direct JSON URL..."
+                 class="input input-xs flex-1 font-mono-gh text-xs rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] h-7">
+          <button id="btn-fetch-url" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)]">Fetch</button>
+        </div>
+
+        <textarea id="paste-textarea" rows="6" placeholder='Paste JSON here...'
+                  class="textarea textarea-bordered font-mono-gh text-xs w-full bg-[var(--gh-canvas)] border border-[var(--gh-border)] focus:bg-[var(--gh-surface)] select-text p-2"></textarea>
+
+        <span id="paste-error" class="text-xs text-[var(--gh-danger)] font-medium"></span>
+      </div>
+
+      <div class="flex justify-end gap-1.5 pt-2 border-t border-[var(--gh-border)]">
+        <form method="dialog"><button class="btn btn-xs btn-ghost">Cancel</button></form>
+        <button id="btn-load-pasted" class="btn btn-xs bg-[var(--gh-accent)] hover:opacity-90 text-white border-none rounded">
+          Load
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
+  <!-- ================= GITHUB TOAST NOTIFICATION ================= -->
+  <div id="toast" class="toast toast-top toast-center sm:toast-end z-50 transition-all duration-200 opacity-0 pointer-events-none -translate-y-2">
+    <div class="rounded bg-[#24292f] text-white text-xs py-1.5 px-3 shadow-lg flex items-center gap-1.5 border border-white/10 font-mono-gh">
+      <i class="ph ph-check text-[var(--gh-success)] text-xs"></i>
+      <span id="toast-msg">Copied</span>
+    </div>
+  </div>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ─── DATASETS ──────────────────────────────────────────────────────────
+    const SAMPLES = {
+      ecommerce: {
+        orderId: "ORD-2026-98124",
+        status: "shipped",
+        createdAt: "2026-09-18T14:32:00Z",
+        deliveredAt: null,
+        currency: "USD",
+        totals: {
+          subtotal: 384.50,
+          shipping: 12.00,
+          tax: 34.61,
+          grandTotal: 431.11,
+          discountCode: "AUTUMN20"
+        },
+        customer: {
+          id: "cust_7721",
+          name: "Eleanor Vance",
+          email: "eleanor.vance@hillhouse.design",
+          phone: "+1-555-0198",
+          loyaltyTier: "Platinum",
+          avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+          accentColor: "#7c3aed"
+        },
+        shippingAddress: {
+          street: "4122 Blackwood Ridge",
+          apartment: "Suite 4B",
+          city: "Olympia",
+          state: "WA",
+          postalCode: "98501",
+          country: "US",
+          coordinates: { lat: 47.0379, lng: -122.9007 }
+        },
+        lineItems: [
+          {
+            sku: "WL-KEY-01",
+            title: "Ergonomic Mechanical Keyboard (Linear)",
+            category: "Peripherals",
+            color: "#1e293b",
+            unitPrice: 169.00,
+            quantity: 1,
+            inStock: true,
+            weightGrams: 980,
+            previewImage: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&auto=format&fit=crop&q=80",
+            tags: ["ergonomics", "usb-c", "hot-swap"]
+          },
+          {
+            sku: "DS-MAT-09",
+            title: "Merino Wool Desk Mat (Deep Forest)",
+            category: "Accessories",
+            color: "#14532d",
+            unitPrice: 59.00,
+            quantity: 2,
+            inStock: true,
+            weightGrams: 420,
+            previewImage: "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?w=200&auto=format&fit=crop&q=80",
+            tags: ["natural", "water-resistant"]
+          },
+          {
+            sku: "MN-ARM-PRO",
+            title: "Precision Gas-Spring Monitor Arm",
+            category: "Mounts",
+            color: "#475569",
+            unitPrice: 97.50,
+            quantity: 1,
+            inStock: true,
+            weightGrams: 2450,
+            previewImage: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&auto=format&fit=crop&q=80",
+            tags: ["vesa", "aluminum"]
+          }
+        ],
+        fulfillment: {
+          carrier: "FedEx Ground",
+          trackingNumber: "782991024419",
+          trackingUrl: "https://www.fedex.com/fedextrack/?trknbr=782991024419",
+          estimatedArrival: "2026-09-24T18:00:00Z"
+        }
+      },
+
+      github: {
+        repository: {
+          id: 91823746,
+          name: "web-tools",
+          fullName: "mehrlander/web-tools",
+          private: false,
+          owner: {
+            login: "mehrlander",
+            id: 4892110,
+            avatarUrl: "https://avatars.githubusercontent.com/u/4892110?v=4",
+            htmlUrl: "https://github.com/mehrlander",
+            type: "User",
+            siteAdmin: false
+          },
+          htmlUrl: "https://github.com/mehrlander/web-tools",
+          description: "Zero-build client-side web tools, offline utilities, and document workbenches.",
+          fork: false,
+          createdAt: "2024-03-12T19:22:15Z",
+          updatedAt: "2026-09-22T20:45:10Z",
+          pushedAt: "2026-09-22T20:46:00Z",
+          sizeKb: 14280,
+          stargazersCount: 428,
+          language: "JavaScript",
+          brandColor: "#0969da",
+          topics: ["client-side", "offline-first", "daisyui", "tailwind", "developer-tools", "json"],
+          defaultBranch: "main"
+        },
+        activeBranches: [
+          { name: "main", protected: true, commitSha: "8a1e2f9411bc" },
+          { name: "gemini/json-lens", protected: false, commitSha: "d94e23118fa0" },
+          { name: "codex/git-change-handoff", protected: false, commitSha: "72cfa881b2e1" }
+        ],
+        metrics: {
+          openIssues: 18,
+          closedIssues: 245,
+          pullRequests: 5,
+          healthScore: 98.4
+        }
+      },
+
+      legislation: {
+        billId: "HB 1832",
+        biennium: "2025-26",
+        title: "Concerning transparency and data management in municipal public records requests.",
+        primeSponsor: {
+          id: 1420,
+          name: "Rep. Sarah Bergquist",
+          district: "11th Legislative District",
+          party: "Democrat",
+          partyColor: "#0969da",
+          email: "sarah.bergquist@leg.wa.gov",
+          avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+        },
+        status: {
+          currentStage: "Passed House",
+          isDead: false,
+          effectiveDate: "2026-07-01",
+          passedChamber: "House of Representatives",
+          passedVote: { yeas: 84, nays: 14, excused: 0 }
+        },
+        rcwCitations: [
+          { cite: "42.56.010", title: "Public Records Act - Definitions", chapter: "42.56" },
+          { cite: "42.56.120", title: "Charges for copying and inspection", chapter: "42.56" },
+          { cite: "40.14.070", title: "Destruction, disposition of local government records", chapter: "40.14" }
+        ]
+      },
+
+      geojson: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            id: "sea",
+            properties: {
+              city: "Seattle",
+              country: "United States",
+              population: 749256,
+              timezone: "America/Los_Angeles",
+              accentColor: "#0969da"
+            },
+            geometry: { type: "Point", coordinates: [-122.3321, 47.6062] }
+          },
+          {
+            type: "Feature",
+            id: "van",
+            properties: {
+              city: "Vancouver",
+              country: "Canada",
+              population: 675218,
+              timezone: "America/Vancouver",
+              accentColor: "#cf222e"
+            },
+            geometry: { type: "Point", coordinates: [-123.1207, 49.2827] }
+          },
+          {
+            type: "Feature",
+            id: "pdx",
+            properties: {
+              city: "Portland",
+              country: "United States",
+              population: 652503,
+              timezone: "America/Los_Angeles",
+              accentColor: "#1a7f37"
+            },
+            geometry: { type: "Point", coordinates: [-122.6784, 45.5152] }
+          }
+        ]
+      }
+    };
+
+    // ─── STATE ─────────────────────────────────────────────────────────────
+    let currentData = SAMPLES.ecommerce;
+    let currentPath = [];
+    let filterQuery = '';
+    let collapsedPaths = new Set();
+
+    const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+    const isArray = (v) => Array.isArray(v);
+    const isPrimitive = (v) => !isObject(v) && !isArray(v);
+
+    function getType(val) {
+      if (val === null) return 'null';
+      if (Array.isArray(val)) return 'array';
+      return typeof val;
+    }
+
+    function getNodeAtPath(data, path) {
+      let curr = data;
+      for (const p of path) {
+        if (curr == null) return undefined;
+        curr = curr[p];
+      }
+      return curr;
+    }
+
+    function formatJsonPath(path) {
+      if (!path || !path.length) return '$';
+      return '$' + path.map(p => typeof p === 'number' || /^\d+$/.test(p) ? `[${p}]` : `.${p}`).join('');
+    }
+
+    function showToast(msg = 'Copied') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      toastMsg.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+      setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2'), 1800);
+    }
+
+    async function copyToClipboard(text, successMsg) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMsg);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast(successMsg);
+      }
+    }
+
+    // ─── RECOGNIZERS ──────────────────────────────────────────────────────
+    const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+    const COLOR_HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+    const COLOR_RGB_RE = /^rgba?\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)$/i;
+    const URL_RE = /^https?:\/\/[^\s$.?#].[^\s]*$/i;
+    const IMAGE_URL_RE = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i;
+
+    function relativeTime(isoStr) {
+      const ms = Date.parse(isoStr);
+      if (isNaN(ms)) return null;
+      const sec = Math.floor((Date.now() - ms) / 1000);
+      if (Math.abs(sec) < 60) return 'just now';
+      const min = Math.floor(sec / 60);
+      if (Math.abs(min) < 60) return min > 0 ? `${min}m ago` : `in ${-min}m`;
+      const hrs = Math.floor(min / 60);
+      if (Math.abs(hrs) < 24) return hrs > 0 ? `${hrs}h ago` : `in ${-hrs}h`;
+      const days = Math.floor(hrs / 24);
+      return days > 0 ? `${days}d ago` : `in ${-days}d`;
+    }
+
+    function inferTypeScriptType(val, name = 'RootObject') {
+      if (val === null) return 'null';
+      if (typeof val !== 'object') return typeof val;
+      if (Array.isArray(val)) {
+        if (!val.length) return 'any[]';
+        return `${inferTypeScriptType(val[0], 'Item')}[]`;
+      }
+      const lines = [`interface ${name} {`];
+      for (const [k, v] of Object.entries(val)) {
+        const opt = v === null || v === undefined ? '?' : '';
+        const t = v === null ? 'any' : isArray(v) ? (v.length ? `${inferTypeScriptType(v[0], 'Child')}[]` : 'any[]') : isObject(v) ? 'object' : typeof v;
+        lines.push(`  ${k}${opt}: ${t};`);
+      }
+      lines.push('}');
+      return lines.join('\n');
+    }
+
+    function countNodes(data) {
+      let count = 0;
+      function walk(node) {
+        count++;
+        if (isObject(node)) {
+          for (const k in node) walk(node[k]);
+        } else if (isArray(node)) {
+          for (let i = 0; i < node.length; i++) walk(node[i]);
+        }
+      }
+      walk(data);
+      return count;
+    }
+
+    // ─── RENDERING ────────────────────────────────────────────────────────
+
+    // Breadcrumbs
+    function renderBreadcrumbs() {
+      const container = document.getElementById('breadcrumb-bar');
+      container.innerHTML = '';
+
+      const rootBtn = document.createElement('button');
+      rootBtn.className = `font-semibold ${currentPath.length === 0 ? 'text-[var(--gh-text)] font-bold' : 'text-[var(--gh-accent)] hover:underline'} cursor-pointer`;
+      rootBtn.textContent = 'root';
+      rootBtn.onclick = () => selectPath([]);
+      container.appendChild(rootBtn);
+
+      let builtPath = [];
+      for (let i = 0; i < currentPath.length; i++) {
+        const part = currentPath[i];
+        builtPath.push(part);
+        const thisPath = [...builtPath];
+
+        const sep = document.createElement('span');
+        sep.className = 'text-[var(--gh-muted)]';
+        sep.textContent = '/';
+        container.appendChild(sep);
+
+        const btn = document.createElement('button');
+        const isCurrent = i === currentPath.length - 1;
+        btn.className = `font-semibold ${isCurrent ? 'text-[var(--gh-text)] font-bold' : 'text-[var(--gh-accent)] hover:underline'} cursor-pointer`;
+        btn.textContent = String(part);
+        btn.onclick = () => selectPath(thisPath);
+        container.appendChild(btn);
+      }
+    }
+
+    // Topology Ribbon
+    function renderTopologyRibbon() {
+      const ribbon = document.getElementById('topology-ribbon');
+      ribbon.innerHTML = '';
+      if (!isObject(currentData) && !isArray(currentData)) return;
+
+      const entries = Object.entries(currentData);
+      if (!entries.length) return;
+
+      const weights = entries.map(([key, val]) => {
+        let count = 1;
+        if (isArray(val)) count = Math.max(1, val.length);
+        else if (isObject(val)) count = Math.max(1, Object.keys(val).length);
+        return { key, count };
+      });
+
+      const total = weights.reduce((acc, w) => acc + w.count, 0);
+      const palette = ['#0969da', '#1f883d', '#8250df', '#cf222e', '#bf8700', '#1b7c83'];
+
+      weights.forEach((item, idx) => {
+        const pct = Math.max(4, (item.count / total) * 100);
+        const bar = document.createElement('div');
+        const isSelected = currentPath.length > 0 && String(currentPath[0]) === item.key;
+        bar.className = `h-full transition-opacity ${isSelected ? 'ring-1 ring-[var(--gh-text)]' : 'opacity-80 hover:opacity-100'}`;
+        bar.style.width = `${pct}%`;
+        bar.style.backgroundColor = palette[idx % palette.length];
+        bar.title = `${item.key}: ${item.count} items (${Math.round((item.count/total)*100)}%)`;
+        bar.onclick = () => selectPath([item.key]);
+        ribbon.appendChild(bar);
+      });
+    }
+
+    // ─── CORE VISUAL HIERARCHICAL TREE ──────────────────────────────────
+    function renderTree() {
+      const viewport = document.getElementById('tree-viewport');
+      viewport.innerHTML = '';
+
+      const query = filterQuery.trim().toLowerCase();
+
+      function matchesFilter(key, val) {
+        if (!query) return true;
+        if (String(key).toLowerCase().includes(query)) return true;
+        if (isPrimitive(val) && String(val).toLowerCase().includes(query)) return true;
+        if (isObject(val)) {
+          return Object.entries(val).some(([k, v]) => matchesFilter(k, v));
+        }
+        if (isArray(val)) {
+          return val.some((v, idx) => matchesFilter(idx, v));
+        }
+        return false;
+      }
+
+      function buildTreeNode(key, val, path) {
+        const pathStr = JSON.stringify(path);
+        const valType = getType(val);
+        const hasKids = valType === 'object' || valType === 'array';
+        const isSelected = JSON.stringify(path) === JSON.stringify(currentPath);
+
+        // Filter check
+        if (query && !matchesFilter(key, val)) return null;
+
+        const nodeEl = document.createElement('div');
+        nodeEl.className = 'tree-node select-none';
+
+        // Row item
+        const row = document.createElement('div');
+        row.className = `flex items-center gap-1.5 py-1 px-1.5 rounded transition-colors group cursor-pointer ${
+          isSelected
+            ? 'bg-[var(--gh-accent-subtle)] text-[var(--gh-accent)] font-semibold'
+            : 'hover:bg-[var(--gh-canvas)] text-[var(--gh-text)]'
+        }`;
+
+        // Chevron for collapsing
+        let toggleIcon = '';
+        const isCollapsed = collapsedPaths.has(pathStr);
+
+        if (hasKids) {
+          toggleIcon = `
+            <button class="node-toggle w-4 h-4 flex items-center justify-center text-[var(--gh-muted)] hover:text-[var(--gh-text)] rounded">
+              <i class="ph ${isCollapsed ? 'ph-caret-right' : 'ph-caret-down'} text-xs"></i>
+            </button>
+          `;
+        } else {
+          toggleIcon = `<span class="w-4 h-4 inline-block shrink-0"></span>`;
+        }
+
+        // Type icon / glyph
+        let icon = '';
+        let valPreview = '';
+
+        if (valType === 'object') {
+          icon = `<i class="ph ph-folder text-[var(--gh-accent)] text-xs shrink-0"></i>`;
+          valPreview = `<span class="gh-counter text-[10px]">{${Object.keys(val).length}}</span>`;
+        } else if (valType === 'array') {
+          icon = `<i class="ph ph-brackets-square text-[var(--gh-accent)] text-xs shrink-0"></i>`;
+          valPreview = `<span class="gh-counter text-[10px]">[${val.length}]</span>`;
+        } else if (valType === 'string') {
+          if (COLOR_HEX_RE.test(val) || COLOR_RGB_RE.test(val)) {
+            icon = `<span class="w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-xs border border-black/10" style="background:${val}"></span>`;
+          } else if (IMAGE_URL_RE.test(val) || val.startsWith('data:image/')) {
+            icon = `<i class="ph ph-image text-[var(--gh-accent)] text-xs shrink-0"></i>`;
+          } else if (ISO_DATE_RE.test(val)) {
+            icon = `<i class="ph ph-calendar text-[var(--gh-success)] text-xs shrink-0"></i>`;
+          } else {
+            icon = `<i class="ph ph-text-t text-[var(--gh-muted)] text-xs shrink-0"></i>`;
+          }
+          valPreview = `<span class="syn-str text-xs truncate max-w-xs">"${val.length > 32 ? val.slice(0, 32) + '…' : val}"</span>`;
+        } else if (valType === 'number') {
+          icon = `<i class="ph ph-hash text-[var(--gh-muted)] text-xs shrink-0"></i>`;
+          valPreview = `<span class="syn-num text-xs">${val}</span>`;
+        } else if (valType === 'boolean') {
+          icon = `<i class="ph ph-toggle-left text-[var(--gh-purple)] text-xs shrink-0"></i>`;
+          valPreview = `<span class="syn-bool text-xs font-semibold">${val}</span>`;
+        } else if (valType === 'null') {
+          icon = `<i class="ph ph-prohibit text-[var(--gh-danger)] text-xs shrink-0"></i>`;
+          valPreview = `<span class="syn-null text-xs font-semibold">null</span>`;
+        }
+
+        row.innerHTML = `
+          ${toggleIcon}
+          ${icon}
+          <span class="syn-key font-bold text-xs truncate">${key}:</span>
+          <div class="flex items-center gap-1 min-w-0">${valPreview}</div>
+        `;
+
+        row.onclick = (e) => {
+          if (e.target.closest('.node-toggle')) {
+            if (collapsedPaths.has(pathStr)) collapsedPaths.delete(pathStr);
+            else collapsedPaths.add(pathStr);
+            renderTree();
+            return;
+          }
+          selectPath(path);
+          if (window.innerWidth < 768) openMobileSheet();
+        };
+
+        nodeEl.appendChild(row);
+
+        // Children container
+        if (hasKids && !isCollapsed) {
+          const branch = document.createElement('div');
+          branch.className = 'tree-branch space-y-0.5 mt-0.5';
+
+          const entries = isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
+          entries.forEach(([subKey, subVal]) => {
+            const childEl = buildTreeNode(subKey, subVal, [...path, subKey]);
+            if (childEl) branch.appendChild(childEl);
+          });
+          nodeEl.appendChild(branch);
+        }
+
+        return nodeEl;
+      }
+
+      const rootNode = buildTreeNode('root', currentData, []);
+      if (rootNode) viewport.appendChild(rootNode);
+
+      document.getElementById('tree-node-count').textContent = `${countNodes(currentData)} nodes`;
+    }
+
+    // ─── SEMANTIC LENS INSPECTOR CONTENT ──────────────────────────────────
+    function buildInspectorDOM() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex flex-col gap-3';
+
+      const node = getNodeAtPath(currentData, currentPath);
+      const nodeType = getType(node);
+      const isArr = isArray(node);
+      const isObj = isObject(node);
+      const isPrim = isPrimitive(node);
+      const keyName = currentPath.length ? currentPath[currentPath.length - 1] : 'root';
+      const jsonPath = formatJsonPath(currentPath);
+
+      // Hero Card
+      const hero = document.createElement('div');
+      hero.className = 'gh-box p-3 shadow-xs';
+      hero.innerHTML = `
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-[var(--gh-border-subtle)]">
+          <div class="min-w-0">
+            <div class="text-[10px] font-mono-gh uppercase text-[var(--gh-muted)] font-semibold">Active Node</div>
+            <div class="text-xs font-bold font-mono-gh text-[var(--gh-text)] truncate">${keyName}</div>
+          </div>
+          <span class="gh-counter">${nodeType}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono-gh text-[var(--gh-accent)] bg-[var(--gh-canvas)] px-2 py-1 rounded border border-[var(--gh-border)]">
+          <span class="truncate">${jsonPath}</span>
+          <button id="btn-lens-copy-path" class="text-[var(--gh-muted)] hover:text-[var(--gh-text)] ml-1" title="Copy Path">
+            <i class="ph ph-copy"></i>
+          </button>
+        </div>
+      `;
+      wrapper.appendChild(hero);
+
+      hero.querySelector('#btn-lens-copy-path').onclick = () => copyToClipboard(jsonPath, `Copied: ${jsonPath}`);
+
+      // Semantic Lens
+      if (isPrim) {
+        const lensBox = document.createElement('div');
+        lensBox.className = 'gh-box p-3 shadow-xs';
+
+        if (typeof node === 'string' && (IMAGE_URL_RE.test(node) || node.startsWith('data:image/'))) {
+          lensBox.innerHTML = `
+            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
+              <i class="ph ph-image text-[var(--gh-accent)]"></i> Image Asset Preview
+            </div>
+            <div class="rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] p-1.5 flex items-center justify-center max-h-48 overflow-hidden">
+              <img src="${node}" alt="Preview" class="max-h-40 max-w-full object-contain rounded">
+            </div>
+            <a href="${node}" target="_blank" class="btn btn-xs h-6 border border-[var(--gh-border)] bg-[var(--gh-surface)] text-[var(--gh-text)] mt-2 gap-1 text-[11px]">
+              <i class="ph ph-arrow-square-out"></i> Open Image
+            </a>
+          `;
+        } else if (typeof node === 'string' && (COLOR_HEX_RE.test(node) || COLOR_RGB_RE.test(node))) {
+          lensBox.innerHTML = `
+            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
+              <i class="ph ph-palette text-[var(--gh-accent)]"></i> Color Swatch
+            </div>
+            <div class="flex items-center gap-2.5 p-2 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)]">
+              <div class="w-10 h-10 rounded border border-black/10 shrink-0 shadow-xs" style="background-color: ${node};"></div>
+              <div class="flex flex-col font-mono-gh text-xs min-w-0">
+                <span class="font-bold text-[var(--gh-text)] truncate">${node}</span>
+                <button class="text-left text-[11px] text-[var(--gh-accent)] hover:underline" onclick="navigator.clipboard.writeText('${node}')">Copy Hex</button>
+              </div>
+            </div>
+          `;
+        } else if (typeof node === 'string' && ISO_DATE_RE.test(node)) {
+          const rel = relativeTime(node);
+          const date = new Date(node);
+          lensBox.innerHTML = `
+            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
+              <i class="ph ph-clock text-[var(--gh-success)]"></i> Timestamp
+            </div>
+            <div class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] space-y-1.5 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-[var(--gh-muted)]">Relative:</span>
+                <span class="badge badge-sm badge-success text-white font-medium">${rel}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-[var(--gh-muted)]">Local:</span>
+                <span class="font-mono-gh">${date.toLocaleString()}</span>
+              </div>
+            </div>
+          `;
+        } else if (typeof node === 'string' && URL_RE.test(node)) {
+          lensBox.innerHTML = `
+            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1.5 flex items-center gap-1">
+              <i class="ph ph-link text-[var(--gh-accent)]"></i> Link
+            </div>
+            <div class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] space-y-1.5 text-xs">
+              <div class="font-mono-gh text-[var(--gh-accent)] break-all font-medium">${node}</div>
+              <a href="${node}" target="_blank" class="btn btn-xs h-6 bg-[var(--gh-accent)] text-white border-none gap-1 mt-1 text-[11px]">
+                <i class="ph ph-arrow-square-out"></i> Visit URL
+              </a>
+            </div>
+          `;
+        } else {
+          lensBox.innerHTML = `
+            <div class="text-[11px] font-semibold text-[var(--gh-muted)] mb-1">Value</div>
+            <pre class="p-2.5 rounded border border-[var(--gh-border)] bg-[var(--gh-canvas)] font-mono-gh text-xs overflow-x-auto select-text">${String(node)}</pre>
+          `;
+        }
+        wrapper.appendChild(lensBox);
+      }
+
+      // Structure / TypeScript Lens (Objects & Arrays)
+      if (isObj || isArr) {
+        const schemaBox = document.createElement('div');
+        schemaBox.className = 'gh-box p-3 shadow-xs';
+        schemaBox.innerHTML = `
+          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[var(--gh-border-subtle)]">
+            <span class="text-[11px] font-semibold text-[var(--gh-muted)] flex items-center gap-1">
+              <i class="ph ph-blueprint text-[var(--gh-accent)]"></i> TypeScript Shape
+            </span>
+            <button id="btn-copy-ts" class="btn btn-xs h-5 px-1.5 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded text-[10px]">
+              Copy TS
+            </button>
+          </div>
+          <pre class="bg-[var(--gh-canvas)] p-2 rounded border border-[var(--gh-border)] font-mono-gh text-[11px] text-[var(--gh-text)] overflow-x-auto max-h-36 select-text"><code>${inferTypeScriptType(node, isArr ? 'ItemType' : 'NodeType')}</code></pre>
+        `;
+
+        schemaBox.querySelector('#btn-copy-ts').onclick = () => {
+          copyToClipboard(inferTypeScriptType(node, isArr ? 'ItemType' : 'NodeType'), 'Copied TypeScript');
+        };
+
+        // Table Projection for Collections
+        if (isArr && node.length > 0 && isObject(node[0])) {
+          const tablePromo = document.createElement('div');
+          tablePromo.className = 'mt-2.5 p-2 rounded bg-[var(--gh-canvas)] border border-[var(--gh-border)] flex items-center justify-between';
+          tablePromo.innerHTML = `
+            <div>
+              <div class="text-xs font-bold text-[var(--gh-text)]">Table View</div>
+              <div class="text-[10px] text-[var(--gh-muted)]">${node.length} records</div>
+            </div>
+            <button id="btn-lens-table-toggle" class="btn btn-xs h-6 bg-[var(--gh-accent)] text-white border-none gap-1 text-[11px]">
+              <i class="ph ph-table"></i> Project Table
+            </button>
+          `;
+          tablePromo.querySelector('#btn-lens-table-toggle').onclick = () => {
+            renderTableViewInLens(wrapper, node);
+          };
+          schemaBox.appendChild(tablePromo);
+        }
+
+        wrapper.appendChild(schemaBox);
+      }
+
+      // Actions
+      const actBox = document.createElement('div');
+      actBox.className = 'gh-box p-2.5 shadow-xs';
+      actBox.innerHTML = `
+        <div class="grid grid-cols-2 gap-1.5">
+          <button id="btn-lens-copy-json" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded gap-1 text-[11px]">
+            <i class="ph ph-copy"></i> Copy JSON
+          </button>
+          <button id="btn-lens-download" class="btn btn-xs h-7 border border-[var(--gh-border)] bg-[var(--gh-canvas)] text-[var(--gh-text)] rounded gap-1 text-[11px]">
+            <i class="ph ph-download-simple"></i> Download
+          </button>
+        </div>
+      `;
+      wrapper.appendChild(actBox);
+
+      actBox.querySelector('#btn-lens-copy-json').onclick = () => copyToClipboard(JSON.stringify(node, null, 2), 'Copied JSON node');
+      actBox.querySelector('#btn-lens-download').onclick = () => {
+        const blob = new Blob([JSON.stringify(node, null, 2)], { type: 'application/json' });
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u;
+        a.download = `${keyName}.json`;
+        a.click();
+        URL.revokeObjectURL(u);
+      };
+
+      return wrapper;
+    }
+
+    // Inline Table in Lens
+    function renderTableViewInLens(container, records) {
+      const existing = container.querySelector('.lens-table-box');
+      if (existing) { existing.remove(); return; }
+
+      const box = document.createElement('div');
+      box.className = 'lens-table-box gh-box p-2 shadow-xs overflow-hidden flex flex-col gap-2 mt-1';
+      const cols = Array.from(new Set(records.flatMap(r => Object.keys(r)))).slice(0, 5);
+
+      box.innerHTML = `
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <span>Records Preview (${records.length})</span>
+          <button class="btn btn-xs btn-ghost text-[var(--gh-muted)]" onclick="this.closest('.lens-table-box').remove()">✕</button>
+        </div>
+        <div class="overflow-x-auto max-h-48 border border-[var(--gh-border)] rounded">
+          <table class="table table-xs w-full font-mono-gh text-[11px]">
+            <thead>
+              <tr class="bg-[var(--gh-canvas)]">${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+              ${records.slice(0, 10).map(r => `
+                <tr class="hover:bg-[var(--gh-canvas)]">
+                  ${cols.map(c => `<td class="truncate max-w-[90px]">${r[c] !== undefined ? String(r[c]) : ''}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.appendChild(box);
+    }
+
+    function renderInspector() {
+      const deskPane = document.getElementById('desktop-inspector-content');
+      deskPane.innerHTML = '';
+      deskPane.appendChild(buildInspectorDOM());
+
+      const mobPane = document.getElementById('mobile-sheet-content');
+      mobPane.innerHTML = '';
+      mobPane.appendChild(buildInspectorDOM());
+      const keyName = currentPath.length ? currentPath[currentPath.length - 1] : 'root';
+      document.getElementById('mobile-sheet-title').textContent = keyName;
+      document.getElementById('lens-target-label').textContent = keyName;
+    }
+
+    function openMobileSheet() {
+      renderInspector();
+      document.getElementById('mobile-sheet-backdrop').classList.remove('hidden');
+      document.getElementById('mobile-sheet').classList.remove('sheet-closed');
+    }
+
+    function closeMobileSheet() {
+      document.getElementById('mobile-sheet-backdrop').classList.add('hidden');
+      document.getElementById('mobile-sheet').classList.add('sheet-closed');
+    }
+
+    function selectPath(path) {
+      currentPath = path;
+      renderBreadcrumbs();
+      renderTree();
+      renderInspector();
+    }
+
+    function loadData(newData, datasetName = 'custom') {
+      currentData = newData;
+      currentPath = [];
+      collapsedPaths.clear();
+      document.getElementById('active-dataset-label').textContent = datasetName;
+      renderTopologyRibbon();
+      selectPath([]);
+    }
+
+    // ─── EVENTS ───────────────────────────────────────────────────────────
+    document.querySelectorAll('.dataset-opt').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const p = opt.dataset.preset;
+        if (SAMPLES[p]) {
+          loadData(SAMPLES[p], opt.textContent.trim().split(' ')[1] || p);
+          document.activeElement.blur();
+        }
+      });
+    });
+
+    const filterInput = document.getElementById('filter-input');
+    const filterClear = document.getElementById('filter-clear');
+
+    filterInput.addEventListener('input', (e) => {
+      filterQuery = e.target.value;
+      filterClear.classList.toggle('hidden', !filterQuery);
+      renderTree();
+    });
+
+    filterClear.addEventListener('click', () => {
+      filterInput.value = '';
+      filterQuery = '';
+      filterClear.classList.add('hidden');
+      renderTree();
+    });
+
+    // Expand/Collapse All
+    document.getElementById('btn-expand-all').addEventListener('click', () => {
+      collapsedPaths.clear();
+      renderTree();
+    });
+
+    document.getElementById('btn-collapse-all').addEventListener('click', () => {
+      function collect(node, p = []) {
+        if (isObject(node) || isArray(node)) {
+          collapsedPaths.add(JSON.stringify(p));
+          const entries = isArray(node) ? node.map((v, i) => [i, v]) : Object.entries(node);
+          entries.forEach(([k, v]) => collect(v, [...p, k]));
+        }
+      }
+      collect(currentData, []);
+      renderTree();
+    });
+
+    document.getElementById('btn-close-sheet').addEventListener('click', closeMobileSheet);
+    document.getElementById('mobile-sheet-backdrop').addEventListener('click', closeMobileSheet);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== filterInput && !document.querySelector('dialog[open]')) {
+        e.preventDefault();
+        filterInput.focus();
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (!document.getElementById('mobile-sheet').classList.contains('sheet-closed')) {
+          closeMobileSheet();
+          return;
+        }
+        if (filterInput === document.activeElement) {
+          filterInput.value = '';
+          filterQuery = '';
+          filterClear.classList.add('hidden');
+          filterInput.blur();
+          renderTree();
+        }
+      }
+    });
+
+    document.getElementById('btn-copy-path').addEventListener('click', () => {
+      const p = formatJsonPath(currentPath);
+      copyToClipboard(p, `Copied: ${p}`);
+    });
+
+    document.getElementById('btn-copy-json').addEventListener('click', () => {
+      const node = getNodeAtPath(currentData, currentPath);
+      copyToClipboard(JSON.stringify(node, null, 2), 'Copied JSON node');
+    });
+
+    const modalPaste = document.getElementById('modal-paste');
+    document.getElementById('btn-custom-modal').addEventListener('click', () => {
+      document.getElementById('paste-error').textContent = '';
+      modalPaste.showModal();
+    });
+
+    document.getElementById('btn-load-pasted').addEventListener('click', () => {
+      const text = document.getElementById('paste-textarea').value.trim();
+      const errEl = document.getElementById('paste-error');
+      errEl.textContent = '';
+      if (!text) { errEl.textContent = 'Please enter JSON text.'; return; }
+
+      try {
+        const parsed = JSON.parse(text);
+        loadData(parsed, 'custom-pasted');
+        modalPaste.close();
+        showToast('JSON loaded');
+      } catch (err) {
+        errEl.textContent = `Invalid JSON: ${err.message}`;
+      }
+    });
+
+    document.getElementById('btn-fetch-url').addEventListener('click', async () => {
+      const url = document.getElementById('input-url').value.trim();
+      const errEl = document.getElementById('paste-error');
+      errEl.textContent = '';
+      if (!url) return;
+
+      try {
+        errEl.textContent = 'Fetching...';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const parsed = await res.json();
+        loadData(parsed, 'custom-url');
+        modalPaste.close();
+        showToast('Fetched JSON');
+      } catch (err) {
+        errEl.textContent = `Fetch failed: ${err.message}`;
+      }
+    });
+
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.name.endsWith('.json')) {
+        try {
+          const text = await file.text();
+          loadData(JSON.parse(text), file.name);
+          showToast(`Loaded ${file.name}`);
+        } catch (err) {
+          alert(`Failed: ${err.message}`);
+        }
+      }
+    });
+
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      document.querySelector('.theme-sun').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.theme-moon').classList.toggle('hidden', next === 'light');
+    });
+
+    // ─── BOOT ─────────────────────────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const srcParam = params.get('src');
+    if (srcParam) {
+      fetch(srcParam).then(r => r.json()).then(data => loadData(data, 'remote')).catch(() => loadData(SAMPLES.ecommerce, 'e-commerce'));
+    } else {
+      loadData(SAMPLES.ecommerce, 'e-commerce');
+    }
+
+  })();
+  </script>
+</body>
+</html>
