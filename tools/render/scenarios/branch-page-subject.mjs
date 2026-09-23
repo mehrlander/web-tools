@@ -96,11 +96,11 @@ export default async function (page) {
 
     // And it follows the strip: step to the second document and the drawer
     // re-points, without the reader touching the drawer.
-    d.goRev(1);
+    d.go(1);
     await wait(500);
     const second = announced();
     const afterPath = f ? f.path : null;
-    d.goRev(0);
+    d.go(0);
     await wait(400);
 
     return { docs: d.reviewableFiles.map(x => x.path), listening,
@@ -119,7 +119,7 @@ export default async function (page) {
       + ' liveTwin=' + out.adopted.liveTwin : '(no fab)');
   p('compare bar', out.bar.box + '   (viewport ' + out.width + 'px)');
   p('  it says', out.bar.says || '(nothing)');
-  p('after goRev(1)', (out.second ? out.second.path : '(nothing)') + '  fab now at ' + out.afterPath);
+  p('after go(1)', (out.second ? out.second.path : '(nothing)') + '  fab now at ' + out.afterPath);
   console.log('─'.repeat(60) + '\n');
   await page.waitForTimeout(300);
 }

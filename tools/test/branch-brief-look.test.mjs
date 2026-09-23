@@ -224,7 +224,7 @@ test('lent pages populate pageChips while brief is pending', async () => {
   assert.equal(d.pageChips[0].path, 'pages/branch.html');
 });
 
-test('desktop arrow keys step through reviewable files when hovered over review section', async () => {
+test('desktop arrow keys step through the swiper when the pointer is over it', async () => {
   const el = window.document.createElement('div');
   el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows', base: 'main',
                                            facts: { ahead: 2, behind: 0 }, sha: '${TIP}' })`);
@@ -237,26 +237,33 @@ test('desktop arrow keys step through reviewable files when hovered over review 
     files: [
       { path: 'docs/a.md', status: 'modified' },
       { path: 'docs/b.md', status: 'modified' },
+      { path: 'src/c.js', status: 'modified' },
     ],
   };
   await tick(4);
-  assert.equal(d.reviewableFiles.length, 2, 'two reviewable files exist');
-  assert.equal(d.revAt, 0, 'starts at first file');
+  assert.equal(d.swipeFiles.length, 3, 'two documents and one code file');
+  assert.equal(d.at, 0, 'starts at the first file');
+  const key = (k) => {
+    const e = new window.KeyboardEvent('keydown', { key: k, cancelable: true, bubbles: true });
+    window.dispatchEvent(e);
+    return e;
+  };
 
-  d.revHovered = true;
-  const evtRight = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
-  window.dispatchEvent(evtRight);
-  assert.equal(d.revAt, 1, 'ArrowRight steps to second reviewable file');
-  assert.equal(evtRight.defaultPrevented, true, 'and prevents default');
-
-  const evtLeft = new window.KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true, bubbles: true });
-  window.dispatchEvent(evtLeft);
-  assert.equal(d.revAt, 0, 'ArrowLeft steps back to first reviewable file');
-  assert.equal(evtLeft.defaultPrevented, true, 'and prevents default');
+  d.swipeHovered = true;
+  const right = key('ArrowRight');
+  assert.equal(d.at, 1, 'ArrowRight steps to the next file');
+  assert.equal(right.defaultPrevented, true, 'and prevents default');
+  key('ArrowRight');
+  assert.equal(d.at, 2, 'and crosses from the documents into the code');
+  key('ArrowRight');
+  assert.equal(d.at, 2, 'and stops at the last file');
+  const left = key('ArrowLeft');
+  assert.equal(d.at, 1, 'ArrowLeft steps back');
+  assert.equal(left.defaultPrevented, true, 'and prevents default');
   el.remove();
 });
 
-test('desktop arrow keys switch between files and guide when hovered over top section', async () => {
+test('arrow keys leave the page alone when the pointer is elsewhere', async () => {
   const el = window.document.createElement('div');
   el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows-top', base: 'main' })`);
   window.document.body.append(el);
@@ -266,23 +273,14 @@ test('desktop arrow keys switch between files and guide when hovered over top se
   d.brief = {
     ...d.brief,
     prs: [{ number: 10, title: 'PR 10', body: 'Guide content', state: 'open' }],
-    files: [{ path: 'src/app.js', status: 'modified' }],
+    files: [{ path: 'src/app.js', status: 'modified' }, { path: 'src/b.js', status: 'modified' }],
   };
   await tick(4);
-  assert.equal(d.hasGuide, true, 'branch has guide');
-  d.setPane('files');
-  assert.equal(d.topPane, 'files');
-
-  d.topHovered = true;
-  const evtRight = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
-  window.dispatchEvent(evtRight);
-  assert.equal(d.topPane, 'guide', 'ArrowRight switches to guide');
-  assert.equal(evtRight.defaultPrevented, true, 'and prevents default');
-
-  const evtLeft = new window.KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true, bubbles: true });
-  window.dispatchEvent(evtLeft);
-  assert.equal(d.topPane, 'files', 'ArrowLeft switches back to files');
-  assert.equal(evtLeft.defaultPrevented, true, 'and prevents default');
+  d.swipeHovered = false;
+  const e = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
+  window.dispatchEvent(e);
+  assert.equal(d.at, 0, 'the swiper does not move');
+  assert.equal(e.defaultPrevented, false, 'and the key is not taken, so the guide can scroll');
   el.remove();
 });
 

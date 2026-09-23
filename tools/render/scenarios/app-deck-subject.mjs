@@ -74,7 +74,7 @@ export default async function (page, ctx) {
                       fabPath: f.path, fabBase: f.subjectBase };
 
     // The strip moves, and the drawer follows without being touched.
-    bb.goRev(1);
+    bb.go(1);
     await wait(700);
     const moved = { subject: say(window.__tossSubject), fabPath: f.path };
 
