@@ -28,10 +28,18 @@ const files = {
   [project + '/app/Modules/Fixture/A.psm1']: 'function Get-Message {\r\n    param([string]$Name)\r\n    "Hello, $Name"\r\n}\r\n',
   [project + '/app/Modules/Fixture/B.psm1']: 'function Get-Total {\n    param([int[]]$Values)\n    ($Values | Measure-Object -Sum).Sum\n}\n',
   [project + '/app/Modules/Fixture/Form.xaml']: '<Window xmlns="x">\n  <Grid/>\n</Window>\n',
+  [project + '/app/Modules/Fixture/C.psm1']: 'function Get-Count {\n    param([int]$Step = 2)\n    $Step * 10\n}\n',
 };
 const A = project + '/app/Modules/Fixture/A.psm1', B = project + '/app/Modules/Fixture/B.psm1', X = project + '/app/Modules/Fixture/Form.xaml';
-const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])) };
-const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'alpineComponents/installation-view.js'];
+// C was recorded installed at an older revision, so it reads "GitHub changed
+// since" and its Source pane opens on Changes: that older text against now.
+const C = project + '/app/Modules/Fixture/C.psm1', oldRevision = 'c'.repeat(40);
+const oldC = 'function Get-Count {\n    $Step = 1\n    $Step * 10\n}\n';
+files[project + '/data/observations.csv'] = 'date,path,kind,revision,blob_sha,local_sha256,match,method,note\n'
+  + ['2026-09-01T00:00:00Z', C, 'installed', oldRevision, blob(oldC), createHash('sha256').update(oldC).digest('hex'), '', 'copy', ''].join(',') + '\n';
+const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])),
+  oldRevision, old: { [C]: { text: oldC, sha: blob(oldC) } } };
+const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'alpineComponents/installation-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -46,6 +54,7 @@ window.GH = class {
   async get(path) {
     const f = window.__fixture;
     f.calls.push({ method: 'GET', path, ref: this.ref });
+    if (this.ref === f.oldRevision && f.old[path]) return f.old[path];
     if (path in f.files) return { text: f.files[path], sha: f.blobs[path] };
     throw Object.assign(new Error('Not found'), { status: 404 });
   }
@@ -187,15 +196,32 @@ try {
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-editor]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-editor]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
   });
+  await check('a file changed since it was recorded opens on Changes, and Code is one tap away', async () => {
+    await desk.select(C); await desk.settled();
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).sourceView === 'changes');
+    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
+    assert.equal(await desk.page.locator('[data-source] .cm-editor').isVisible(), false);
+    const rows = await desk.page.locator('[data-source-diff] [role=row]').evaluateAll(rs => rs
+      .map(r => r.querySelector('[aria-label]').getAttribute('aria-label') + ' ' + r.querySelector('pre').textContent)
+      .filter(t => !t.startsWith('Unchanged')));
+    assert.deepEqual(rows, ['Removed     $Step = 1', 'Added     param([int]$Step = 2)']);
+    assert.match(await desk.page.locator('[data-source-diff]').innerText(), /reported installed at ccccccc/);
+    for (const label of ['Files', 'Stage']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
+    await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
+    await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
+    assert.equal((await desk.editor()).text, files[C]);
+    assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false);
+  });
   await check('the pane writes nothing to GitHub', async () => { assert.equal(await desk.writes(), 0); });
   await desk.context.close();
 
   const phone = await openPage({ width: 390, height: 844 });
-  await check('on a phone the code is collapsed below Record installed until Show code', async () => {
+  await check('on a phone the code is collapsed below Mark as installed until Show code', async () => {
     await phone.select(A); await phone.settled();
-    const record = phone.page.getByRole('button', { name: 'Record installed' });
+    const record = phone.page.getByRole('button', { name: 'Mark as installed' });
     const box = await record.boundingBox();
-    assert.ok(box && box.y + box.height <= 844, 'Record installed is above the fold');
+    assert.ok(box && box.y + box.height <= 844, 'Mark as installed is above the fold');
     assert.equal(await phone.page.locator('[data-source] .cm-editor').isVisible(), false);
     for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare a file with this file'])
       assert.equal(await phone.page.getByLabel(label, { exact: true }).isVisible(), true, label + ' shows while the code is collapsed');

@@ -158,7 +158,7 @@ const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
 
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/alpineComponents/installation-view.js'])
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -215,7 +215,7 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
   assert.match(el.textContent, /no installation destination \(repository only\)/);
-  const record = q('button').find(b => /Record installed/.test(b.textContent));
+  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
   assert.equal(record.style.display, 'none', 'repository-only material offers no placement to record');
   data.select(FORMS);
   await settle();
@@ -474,7 +474,7 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   assert.doesNotMatch(body.className, /(^|\s)hidden(\s|$)/);
   assert.match(toggle.textContent, /Hide code/);
   // The pane follows the state and the actions in the detail column.
-  const record = q('button').find(b => /Record installed/.test(b.textContent));
+  const record = q('button').find(b => /Mark as installed/.test(b.textContent));
   assert.ok(record.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING);
   data.select(profile);
   await settle();
@@ -525,6 +525,55 @@ test('a file that fails to decode is offered its encoding, and the retry compare
   await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
   data.select(`${P}/app/Profile.ps1`); await settle();
   assert.equal(data.compareRetry, null, 'reselecting clears the offer');
+  data.select(FORMS); await settle();
+});
+
+test('Changes shows what the work computer is known to hold against GitHub now, and opens by default when they differ', async () => {
+  const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`, ctl = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, original = files[xaml];
+  const writes = requests.filter(r => r.method !== 'GET').length;
+  const views = () => el.querySelector('[data-source-views]');
+  const diff = () => el.querySelector('[data-source-diff]');
+  const shown = node => !/(^|\s)hidden(\s|$)/.test(node.className);
+  // The action row is the placement flow: no Files, no Stage.
+  data.select(xaml); await settle();
+  const row = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim());
+  assert.ok(row.includes('Mark as installed')); assert.ok(!row.includes('Files')); assert.ok(!row.includes('Stage'));
+  // Recorded and unchanged since: nothing to compare, so Code only.
+  assert.equal(data.stateOf(xaml).state, 'reported');
+  assert.equal(views().style.display, 'none'); assert.equal(data.sourceView, 'code');
+  // GitHub moves past the recorded version: Changes opens on the update.
+  files[xaml] = '<Window>\n  <Grid/>\n</Window>\n'; advanceHead();
+  await data.reload(); data.select(xaml); await settle(); await settle();
+  assert.equal(data.stateOf(xaml).state, 'changed');
+  assert.equal(data.sourceView, 'changes', 'the update is the default view');
+  assert.notEqual(views().style.display, 'none'); assert.ok(shown(diff()));
+  assert.ok(!shown(el.querySelector('[data-source-plain]')));
+  assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
+  assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
+    ['del <Window/>', 'add <Window>', 'add   <Grid/>', 'add </Window>']);
+  assert.match(diff().textContent, /GitHub now at/);
+  // Code is one tap away and Changes comes back.
+  [...views().querySelectorAll('button')].find(b => b.textContent === 'Code').click(); await settle();
+  assert.equal(data.sourceView, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
+  // A copy supplied from the work computer is newer evidence and takes over.
+  await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
+  assert.equal(data.sourceView, 'changes');
+  assert.match(data.baseline.label, /^Copy supplied /);
+  assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
+  // The check row offers the same comparison.
+  const check = data.checks.find(c => c.path === xaml);
+  const button = q('button').find(b => b.textContent.trim() === 'Changes' && !b.closest('[data-source-views]'));
+  assert.ok(button, 'each check with kept text offers Changes');
+  data.setSourceView('code'); button.click(); await settle();
+  assert.equal(data.baseline.key, 'check:' + check.id); assert.equal(data.sourceView, 'changes');
+  // No evidence: say so rather than guess. A new file says it is new.
+  data.select(ctl); await settle(); await settle();
+  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code');
+  assert.match(el.textContent, /New file: the work computer has no copy yet\./);
+  data.select(`${P}/app/Profile.ps1`); await settle(); await settle();
+  assert.match(data.baselineNote, /Nothing records what the work computer holds/);
+  assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'Changes writes nothing');
+  files[xaml] = original; advanceHead(); await data.reload();
   data.select(FORMS); await settle();
 });
 
