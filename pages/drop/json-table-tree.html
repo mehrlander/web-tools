@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JSON Table Tree</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-100">
+
+<!-- One node of the tree. Mounted through x-html, so a node can mount its own
+     children; a child exists only once its parent is open. -->
+<template id="node-tpl">
+  <div class="min-w-0">
+    <div class="flex items-baseline gap-1.5 py-0.5 pr-2 rounded cursor-pointer hover:bg-base-200 whitespace-nowrap"
+         :class="isSel() && 'bg-base-200'" @click="toggle()">
+      <i class="ph ph-caret-right text-xs shrink-0 transition-transform" :class="[open && 'rotate-90', leaf && 'invisible']"></i>
+      <span class="font-mono shrink-0" :class="typeof k === 'number' ? 'text-base-content/40' : 'text-base-content/80'" x-show="k !== null" x-text="k"></span>
+      <span class="text-base-content/40 shrink-0" x-show="k !== null">:</span>
+      <span class="truncate"><template x-for="(s, n) in (open ? head : summary)" :key="n"><span :class="s.c" x-text="s.t"></span></template></span>
+      <template x-if="open && shape">
+        <span class="flex items-center gap-1 shrink-0 text-xs text-base-content/50">
+          <span x-text="shape.uniform ? 'same shape' : shape.loose ? 'varied' : 'ragged'"></span>
+          <button class="btn btn-ghost btn-xs btn-square" @click.stop="asTable = !asTable" :aria-label="asTable ? 'Show as tree' : 'Show as table'">
+            <i class="ph text-sm" :class="asTable ? 'ph-tree-structure' : 'ph-table'"></i>
+          </button>
+        </span>
+      </template>
+    </div>
+
+    <template x-if="open && !leaf">
+      <div class="ml-1.5 pl-3 border-l border-base-300">
+
+        <template x-if="shape && asTable">
+          <div>
+            <div class="overflow-x-auto">
+              <table class="table w-auto tabular-nums [&_td]:py-0.5 [&_td]:px-2 [&_th]:py-1 [&_th]:px-2 [&_td]:align-top">
+                <thead>
+                  <tr>
+                    <th class="text-base-content/40 font-normal">#</th>
+                    <template x-for="col in shape.cols" :key="col.k">
+                      <th class="cursor-pointer select-none whitespace-nowrap" :class="col.num && 'text-right'" @click="sortBy(col.k)">
+                        <span x-text="col.k"></span>
+                        <span class="font-normal text-base-content/40" x-show="col.n < shape.n" x-text="`${col.n}/${shape.n}`"></span>
+                        <i class="ph text-xs" :class="sortK !== col.k ? 'invisible ph-caret-down' : sortDir > 0 ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                      </th>
+                    </template>
+                  </tr>
+                </thead>
+                <template x-for="r in rows" :key="r.i">
+                  <tbody x-data="{ ex: null }">
+                    <tr class="hover:bg-base-200" :class="ex !== null && 'bg-base-200'">
+                      <td class="font-mono text-base-content/40 cursor-pointer" @click="ex = ex === '#' ? null : '#'; select([...path, r.i])" x-text="r.i"></td>
+                      <template x-for="col in shape.cols" :key="col.k">
+                        <td class="whitespace-nowrap" :class="[col.num && 'text-right', expandable(r.v, col.k) && 'cursor-pointer']"
+                            @click="select([...path, r.i, col.k]); if (expandable(r.v, col.k)) ex = ex === col.k ? null : col.k">
+                          <div class="max-w-64 truncate"><template x-for="(s, n) in cell(r.v, col.k)" :key="n"><span :class="[s.c, ex === col.k && 'underline']" x-text="s.t"></span></template></div>
+                        </td>
+                      </template>
+                    </tr>
+                    <template x-for="e in (ex === null ? [] : [ex])" :key="e">
+                      <tr>
+                        <td></td>
+                        <td :colspan="shape.cols.length" class="bg-base-200/50">
+                          <div x-data="node(e === '#' ? Alpine.raw(r).v : Alpine.raw(r).v[e], e === '#' ? r.i : e, e === '#' ? [...path, r.i] : [...path, r.i, e], depth + 1, true)" x-html="TPL"></div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </template>
+              </table>
+            </div>
+            <button class="btn btn-ghost btn-xs mt-1" x-show="limit < shape.n" @click="limit += STEP" x-text="`${shape.n - limit} more rows`"></button>
+          </div>
+        </template>
+
+        <template x-if="!(shape && asTable)">
+          <div>
+            <template x-for="c in kids" :key="c.k">
+              <div x-data="node(Alpine.raw(c).v, c.k, [...path, c.k], depth + 1)" x-html="TPL"></div>
+            </template>
+            <button class="btn btn-ghost btn-xs" x-show="limit < size" @click="limit += STEP" x-text="`${size - limit} more`"></button>
+          </div>
+        </template>
+
+      </div>
+    </template>
+  </div>
+</template>
+
+<div x-data="app()" class="fixed inset-0 grid grid-rows-[auto_1fr_auto] min-h-0">
+  <header class="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-base-300">
+    <span class="font-semibold">JSON table tree</span>
+    <select class="select select-sm w-auto" x-model="sample" @change="loadSample()">
+      <template x-for="(s, key) in SAMPLES" :key="key"><option :value="key" x-text="s.label"></option></template>
+    </select>
+    <button class="btn btn-sm" @click="$refs.paste.showModal()"><i class="ph ph-clipboard-text"></i> Paste</button>
+    <form class="join" @submit.prevent="loadUrl()">
+      <input class="input input-sm join-item w-56 sm:w-80" x-model="url" placeholder="https://…" aria-label="JSON URL">
+      <button class="btn btn-sm join-item" :disabled="busy"><i class="ph ph-download-simple"></i> Load</button>
+    </form>
+    <span class="text-xs text-error" x-show="err" x-text="err"></span>
+  </header>
+
+  <main class="overflow-auto min-h-0 p-2 text-sm">
+    <template x-for="v in [rev]" :key="v">
+      <div x-data="node(window.DOC, null, [], 0, true)" x-html="TPL"></div>
+    </template>
+  </main>
+
+  <footer class="flex items-center gap-2 px-3 py-1.5 border-t border-base-300 min-w-0 text-xs font-mono">
+    <template x-if="$store.sel.path">
+      <div class="flex items-center gap-2 min-w-0">
+        <button class="btn btn-ghost btn-xs" @click="copy(pointer($store.sel.path))"><i class="ph ph-copy"></i> pointer</button>
+        <span class="truncate" x-text="pointer($store.sel.path) || '/'"></span>
+        <button class="btn btn-ghost btn-xs" @click="copy(accessor($store.sel.path))"><i class="ph ph-copy"></i> accessor</button>
+        <span class="truncate text-base-content/60" x-text="accessor($store.sel.path)"></span>
+        <span class="text-success" x-show="copied">copied</span>
+      </div>
+    </template>
+  </footer>
+
+  <dialog class="modal" x-ref="paste">
+    <div class="modal-box w-11/12 max-w-5xl">
+      <textarea class="textarea w-full h-72 font-mono text-xs" x-model="pasted" placeholder="{ … }"></textarea>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="text-xs text-error flex-1" x-text="pasteErr"></span>
+        <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
+        <button class="btn btn-sm btn-primary" @click="loadPaste()">Show</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+</div>
+
+<script>
+const TPL = document.getElementById('node-tpl').innerHTML;
+const STEP = 100;
+
+// ---- shape: the one decision this page exists for -----------------------
+// An array of plain objects can always be drawn as a table. It opens as one
+// when the union of the items' keys is not much wider than a typical item;
+// wider than that ("varied"), it opens as a tree and the table is one click
+// away. "Same shape" means every item carries every key; otherwise the header
+// shows how many rows carry each column.
+const isObj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+const shapes = new WeakMap();
+function shapeOf(arr) {
+  if (!Array.isArray(arr)) return null;
+  if (shapes.has(arr)) return shapes.get(arr);
+  let s = null;
+  if (arr.length >= 1 && arr.every(isObj)) {
+    const cols = new Map();
+    let total = 0;
+    for (const o of arr) {
+      const ks = Object.keys(o);
+      total += ks.length;
+      for (const k of ks) {
+        const c = cols.get(k) || cols.set(k, { k, n: 0, nums: 0, other: 0 }).get(k);
+        c.n++;
+        if (typeof o[k] === 'number') c.nums++; else if (o[k] !== null) c.other++;
+      }
+    }
+    const avg = total / arr.length;
+    if (cols.size) {
+      const list = [...cols.values()].map(({ k, n, nums, other }) => ({ k, n, num: nums > 0 && !other }));
+      s = { n: arr.length, cols: list, uniform: list.every(c => c.n === arr.length),
+            loose: cols.size > Math.max(avg * 1.5, avg + 2) };
+    }
+  }
+  shapes.set(arr, s);
+  return s;
+}
+
+// ---- tokens: text plus a class, rendered with x-text ---------------------
+const kind = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const TONE = { string: '', number: 'text-info', boolean: 'text-info', null: 'text-base-content/40 italic' };
+const T = (t, c = '') => ({ t, c });
+const dim = t => T(t, 'text-base-content/40');
+const clip = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+const scalar = (v, n) => T(typeof v === 'string' ? `"${clip(v, n)}"` : String(v), TONE[kind(v)]);
+
+function mini(v) {                 // one value inside a summary
+  const t = kind(v);
+  if (t === 'object') return [dim(Object.keys(v).length ? `{${Object.keys(v).length}}` : '{}')];
+  if (t === 'array') return [dim(v.length ? `[${v.length}]` : '[]')];
+  return [scalar(v, 24)];
+}
+function summaryOf(v) {            // the folded line: a preview shaped by type
+  const t = kind(v);
+  if (t === 'object') {
+    const es = Object.entries(v), out = [dim('{ ')];
+    es.slice(0, 5).forEach(([k, x], i) => { if (i) out.push(dim(', ')); out.push(T(k, 'text-base-content/70'), dim(': '), ...mini(x)); });
+    if (es.length > 5) out.push(dim(` … +${es.length - 5}`));
+    return [...out, dim(' }')];
+  }
+  if (t === 'array') {
+    const s = shapeOf(v);
+    if (s && !s.loose) return [dim(`${s.n} × { `), T(s.cols.slice(0, 6).map(c => c.k).join(', '), 'text-base-content/70'), dim(s.cols.length > 6 ? `, … +${s.cols.length - 6} }` : ' }')];
+    if (v.length && v.every(x => !isObj(x) && !Array.isArray(x))) {
+      const out = [dim('[ ')];
+      v.slice(0, 8).forEach((x, i) => { if (i) out.push(dim(', ')); out.push(scalar(x, 20)); });
+      return [...out, dim(v.length > 8 ? ` … ${v.length} ]` : ' ]')];
+    }
+    return [dim(v.length ? `[${v.length}]` : "[]")];
+  }
+  return [scalar(v, 400)];
+}
+function cellOf(v) {               // a table cell: never more than a line
+  const t = kind(v);
+  if (v === undefined) return [];
+  if (t === 'object') return [dim(Object.keys(v).length ? `{${Object.keys(v).length}}` : '{}')];
+  if (t === 'array') {
+    const s = shapeOf(v);
+    if (s && !s.loose) return [dim(`${s.n} × {…}`)];
+    if (v.length && v.every(x => !isObj(x) && !Array.isArray(x))) return [T(clip(v.join(', '), 40))];
+    return [dim(v.length ? `[${v.length}]` : '[]')];
+  }
+  if (t === 'null') return [T('null', TONE.null)];
+  return [T(clip(String(v), 60))];     // inside a table the column says what it is
+}
+
+// ---- a node ---------------------------------------------------------------
+function node(v, k, path, depth = 0, startOpen = false) {
+  const t = kind(v);
+  const leaf = !(t === 'object' || t === 'array') || (t === 'object' ? !Object.keys(v).length : !v.length);
+  return {
+    k, path, leaf, depth,
+    open: !leaf && (startOpen || depth < 1 || (depth === 1 && shapeOf(v)?.loose === false)),
+    asTable: !shapeOf(v)?.loose, limit: STEP, sortK: null, sortDir: 1,
+    get shape() { return shapeOf(v); },
+    get size() { return t === 'array' ? v.length : t === 'object' ? Object.keys(v).length : 0; },
+    get summary() { return summaryOf(v); },
+    get head() { return t === 'array' ? [dim(`[${v.length}]`)] : [dim(`{${Object.keys(v).length}}`)]; },
+    get kids() {
+      const all = t === 'array' ? v.map((x, i) => ({ k: i, v: x })) : Object.entries(v).map(([key, x]) => ({ k: key, v: x }));
+      return all.slice(0, this.limit);
+    },
+    get rows() {
+      const rs = v.map((x, i) => ({ i, v: x }));
+      const key = this.sortK, d = this.sortDir;
+      if (key !== null) rs.sort((a, b) => {
+        const x = a.v[key], y = b.v[key];
+        if (x === y) return 0;
+        if (x === undefined || x === null) return 1;
+        if (y === undefined || y === null) return -1;
+        return (x < y ? -1 : 1) * d;
+      });
+      return rs.slice(0, this.limit);
+    },
+    cell: (row, key) => cellOf(row[key]),
+    expandable(row, key) {
+      const x = row[key], tk = kind(x);
+      return tk === 'object' ? Object.keys(x).length > 0 : tk === 'array' ? x.length > 0 : tk === 'string' && x.length > 60;
+    },
+    sortBy(key) { this.sortDir = this.sortK === key ? -this.sortDir : 1; this.sortK = key; },
+    toggle() { if (!leaf) this.open = !this.open; this.select(path); },
+    select(p) { Alpine.store('sel').path = p; },
+    isSel() { const s = Alpine.store('sel').path; return !!s && s.length === path.length && s.every((x, i) => x === path[i]); },
+  };
+}
+
+// ---- paths ----------------------------------------------------------------
+const pointer = p => p.map(k => '/' + String(k).replace(/~/g, '~0').replace(/\//g, '~1')).join('');
+const accessor = p => p.reduce((s, k) => typeof k === 'number' ? `${s}[${k}]`
+  : /^[A-Za-z_$][\w$]*$/.test(k) ? `${s}.${k}` : `${s}[${JSON.stringify(k)}]`, 'data');
+
+// ---- samples: offline, deterministic --------------------------------------
+const pick = (a, i) => a[i % a.length];
+const SAMPLES = {
+  launches: { label: 'Launches', make: () => ({
+    source: 'sample shaped like api.spacexdata.com/v4/launches', generated: '2026-09-23',
+    launches: Array.from({ length: 24 }, (_, i) => ({
+      flight_number: i + 1,
+      name: pick(['FalconSat', 'DemoSat', 'Trailblazer', 'RatSat', 'RazakSat', 'COTS 1', 'CRS-1', 'CASSIOPE', 'SES-8', 'Thaicom 6', 'Orbcomm', 'CRS-5'], i) + (i > 11 ? ' II' : ''),
+      date_utc: new Date(Date.UTC(2006 + Math.floor(i / 2), (i * 5) % 12, 1 + (i * 7) % 27)).toISOString(),
+      rocket: i < 5 ? 'Falcon 1' : i % 7 === 6 ? 'Falcon Heavy' : 'Falcon 9',
+      success: i % 6 === 1 ? false : true,
+      details: i % 4 === 0 ? null : 'Payload deployed to the target orbit after a nominal ascent, with the second stage performing its deorbit burn as planned.',
+      cores: Array.from({ length: i % 7 === 6 ? 3 : 1 }, (_, j) => ({
+        core: `B1${String(10 + i).padStart(3, '0')}${j ? '-' + j : ''}`, flight: 1 + (i + j) % 4,
+        reused: (i + j) % 4 > 0, landing_attempt: i > 8, landing_success: i > 8 ? (i + j) % 5 !== 0 : null,
+        landing_type: i > 8 ? pick(['ASDS', 'RTLS'], i + j) : null,
+      })),
+      payloads: Array.from({ length: 1 + i % 3 }, (_, j) => `5eb0e4b${i}${j}`),
+      failures: i % 6 === 1 ? [{ time: 139 + i, altitude: 40 + i, reason: 'engine shutdown during first stage burn' }] : [],
+      crew: i > 19 ? [{ crew: 'c1', role: 'Commander' }, { crew: 'c2', role: 'Pilot' }] : [],
+      links: { patch: { small: `https://images2.imgbox.com/p${i}s.png`, large: `https://images2.imgbox.com/p${i}l.png` },
+               webcast: `https://www.youtube.com/watch?v=v${i}`, article: i % 3 ? `https://spaceflightnow.com/${i}` : null },
+    })),
+  }) },
+  repos: { label: 'Repos (ragged)', make: () => Array.from({ length: 14 }, (_, i) => Object.assign(
+    { id: 1000 + i * 37, name: pick(['alpine', 'daisyui', 'tabulator', 'lodash', 'marked', 'jszip', 'winbox'], i) + (i > 6 ? '-fork' : ''),
+      stars: (i * 7919) % 40000, fork: i > 6, language: pick(['JavaScript', 'TypeScript', 'CSS', null], i),
+      topics: i % 3 ? ['ui', 'web', pick(['tables', 'css', 'parsing'], i)] : [] },
+    i % 4 ? { license: { key: pick(['mit', 'apache-2.0', 'bsd-3-clause'], i), name: pick(['MIT License', 'Apache License 2.0', 'BSD 3-Clause'], i) } } : { license: null },
+    i % 5 ? { homepage: `https://example.org/${i}` } : {},
+    i % 6 === 2 ? { archived: true } : {},
+  )) },
+  mixed: { label: 'Mixed', make: () => ({
+    config: { theme: 'light', retries: 3, endpoints: { api: 'https://api.example.org', cdn: 'https://cdn.example.org' } },
+    tags: ['alpha', 'beta', 'gamma'],
+    matrix: [[1, 2, 3], [4, 5, 6]],
+    events: [
+      { type: 'push', at: '2026-09-01T10:00:00Z', sha: 'a1b2c3', files: 4 },
+      { type: 'issue', at: '2026-09-02T11:30:00Z', number: 17, title: 'Table view drops a column' },
+      { type: 'push', at: '2026-09-03T09:15:00Z', sha: 'd4e5f6', files: 1 },
+      { type: 'release', at: '2026-09-04T16:00:00Z', tag: 'v1.2.0', assets: [{ name: 'app.zip', bytes: 20480 }, { name: 'app.tar.gz', bytes: 18222 }] },
+    ],
+    people: [{ name: 'Ada', role: 'lead' }, { name: 'Lin', role: 'review' }, { name: 'Sam', role: 'docs' }],
+  }) },
+  wide: { label: '2,000 rows', make: () => ({ readings: Array.from({ length: 2000 }, (_, i) => ({
+    t: 1700000000 + i * 60, sensor: pick(['north', 'south', 'east', 'west'], i), temp: Math.round((12 + 8 * Math.sin(i / 40)) * 10) / 10,
+    ok: i % 97 !== 0 })) }) },
+};
+
+window.DOC = SAMPLES.launches.make();
+
+document.addEventListener('alpine:init', () => Alpine.store('sel', { path: null }));
+
+function app() {
+  return {
+    rev: 0, sample: 'launches', url: 'https://api.spacexdata.com/v4/launches', busy: false, err: '',
+    pasted: '', pasteErr: '', copied: false,
+    show(d) { window.DOC = d; Alpine.store('sel').path = null; this.err = ''; this.rev++; },
+    loadSample() { this.show(SAMPLES[this.sample].make()); },
+    loadPaste() {
+      try { this.show(JSON.parse(this.pasted)); this.pasteErr = ''; this.$refs.paste.close(); }
+      catch (e) { this.pasteErr = e.message; }
+    },
+    async loadUrl() {
+      this.busy = true;
+      try { const r = await fetch(this.url); if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); this.show(await r.json()); }
+      catch (e) { this.err = e.message; }
+      this.busy = false;
+    },
+    copy(s) { navigator.clipboard?.writeText(s).then(() => { this.copied = true; setTimeout(() => this.copied = false, 1200); }); },
+  };
+}
+</script>
+</body>
+</html>
