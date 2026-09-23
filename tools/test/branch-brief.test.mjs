@@ -61,6 +61,17 @@ test('assemble derives the whole branch from one compare', () => {
   assert.equal(b.commitCount, 2);
 });
 
+// The commit the three-dot compare diffs from. A card comparing against it
+// shows the change the file list names; the base branch's tip reads a
+// squash-merged branch as unchanged.
+test('assemble keeps the merge base the compare diffed from', () => {
+  const b = BB.assemble({ repo: 'acme/w', branch: 'f', base: 'main',
+    compare: { ...compare(), merge_base_commit: { sha: 'abc1234def567' } } });
+  assert.equal(b.mergeBase, 'abc1234def567');
+  const unread = BB.assemble({ repo: 'acme/w', branch: 'f', base: 'main' });
+  assert.equal(unread.mergeBase, '', 'empty until the compare is read');
+});
+
 test('the lifespan runs oldest unique commit to newest', () => {
   const b = BB.assemble({ repo: 'acme/w', branch: 'f', base: 'main', compare: compare() });
   assert.equal(b.firstDate, '2026-07-20T00:00:00Z');
