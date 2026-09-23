@@ -676,3 +676,81 @@ test('the note names the checkouts and promises nothing runs unasked', () => {
     'the one promise the far end has to keep: to=send paints the destination, never acts');
   assert.equal(d.scopeNames, 'web-tools');
 });
+
+test('branchGroups groups session fileRows by repository and branch', async () => {
+  window.__branchGroupSession = {
+    repo: STORE,
+    record: {
+      short: 'bg1',
+      schema: 4,
+      repos: [
+        { name: 'web-tools', branch: 'feat/json-explorer' },
+        { name: 'other-repo', branch: 'main' },
+      ],
+      files: {
+        'web-tools/lib/kits/json-explorer.js': { edit: 2, read: 5 },
+        'web-tools/test/json-explorer.test.mjs': { write: 1 },
+        'other-repo/README.md': { read: 1 },
+        'unassigned/notes.txt': { read: 1 },
+      },
+    },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__branchGroupSession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+
+  const data = Alpine.$data(el);
+  const groups = data.branchGroups;
+  assert.equal(groups.length, 3);
+  assert.equal(groups[0].repo, 'web-tools');
+  assert.equal(groups[0].branch, 'feat/json-explorer');
+  assert.equal(groups[0].files.length, 2);
+  assert.match(groups[0].branchUrl, /branch\.html#gh=web-tools@feat%2Fjson-explorer/);
+
+  assert.equal(groups[1].repo, 'other-repo');
+  assert.equal(groups[1].branch, 'main');
+  assert.equal(groups[1].files.length, 1);
+
+  assert.equal(groups[2].repo, 'other');
+  assert.equal(groups[2].files.length, 1);
+});
+
+test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async () => {
+  let mountedWith = null;
+  let destroyed = false;
+  window.JsonExplorer = {
+    mount: (box, opts) => {
+      mountedWith = { box, opts };
+      const expEl = window.document.createElement('div');
+      expEl.className = 'json-explorer';
+      box.append(expEl);
+      return {
+        destroy: () => { destroyed = true; expEl.remove(); },
+      };
+    },
+  };
+
+  window.__rawSession = {
+    repo: STORE,
+    record: { short: 'raw1', schema: 4, day: '2026-08-05' },
+  };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__rawSession)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+
+  const data = Alpine.$data(el);
+  await data.mountRaw();
+
+  assert.ok(mountedWith, 'JsonExplorer.mount was called');
+  assert.equal(mountedWith.opts.name, 'raw1.json');
+  assert.equal(mountedWith.opts.data.short, 'raw1');
+  assert.ok(el.querySelector('.json-explorer'), '.json-explorer DOM mounted');
+
+  data.destroy();
+  assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
+});
+
