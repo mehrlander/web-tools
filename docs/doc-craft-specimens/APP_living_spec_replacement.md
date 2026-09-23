@@ -4,7 +4,7 @@ genre: living
 invariants: strict
 ---
 
-> Historical specimen from the 2026-09-19 study, retained for review. It is not current guidance or an approved replacement. See [Doc Craft](../SKILL.md) for the current skill.
+> Historical specimen from the 2026-09-19 study, retained for review. It is not current guidance or an approved replacement. See [Doc Craft](../../skills/doc-craft/SKILL.md) for the current skill.
 
 # The Web Tools app
 
@@ -35,7 +35,7 @@ The path `pages/show-repo/show-repo.html` is a permanent redirect stub preservin
 > **Do not delete the redirect stub.** 151 files across sibling repositories link directly to the legacy address. Deleting the stub breaks external deep links. Active application logic lives exclusively in `app/index.html`.
 
 > [!NOTE]
-> **Architectural Provenance:** For the dated deliberation log, code string audits, and test renaming history, see [chron/2026-09-08-naming-split.md](file:///C:/Users/mehrl/Code/gh/home/chron/2026-09-08-naming-split.md).
+> **Architectural Provenance:** For the dated deliberation log, code string audits, and test renaming history, see [2026-09-08-naming-split.md](2026-09-08-naming-split.md).
 
 ---
 

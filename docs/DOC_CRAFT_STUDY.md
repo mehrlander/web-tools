@@ -4,7 +4,7 @@
 **Date:** 2026-09-19  
 **Status:** Historical exploratory analysis; drafting principles superseded  
 
-**2026-09-23 update:** The proposed rules in section 4 and the original specimen rewrites are retained as a record of the investigation. They are superseded by [Doc Craft](../skills/doc-craft/SKILL.md), which uses document classification, integrated edits, actionable rationale, and observable verification without mandatory genre frontmatter or the ORIT retention gate.
+**2026-09-23 update:** The proposed rules in section 4 and the original specimen rewrites (in [doc-craft-specimens/](doc-craft-specimens/)) are retained as a record of the investigation. They are superseded by [Doc Craft](../skills/doc-craft/SKILL.md), which uses document classification, integrated edits, actionable rationale, and observable verification without mandatory genre frontmatter or the ORIT retention gate.
 
 ---
 

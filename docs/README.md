@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-10 by a skill, 30 by a page or component. The remaining 30 are
+10 by a skill, 30 by a page or component. The remaining 32 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -82,6 +82,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
 - [`direct-to-main.csv`](direct-to-main.csv) *(orphan)* — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
+
+## docs/doc-craft-specimens/
+
+- [`2026-09-08-naming-split.md`](doc-craft-specimens/2026-09-08-naming-split.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md's naming-split history recast as a dated record
+- [`APP_living_spec_replacement.md`](doc-craft-specimens/APP_living_spec_replacement.md) *(record, orphan)* — a specimen from the doc-craft study: APP.md rewritten as a living spec, not adopted
 
 ## docs/envelopes/
 
