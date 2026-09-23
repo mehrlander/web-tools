@@ -36,8 +36,9 @@
 
         <template x-if="shape && asTable">
           <div>
-            <div class="overflow-x-auto">
-              <table class="table w-auto tabular-nums [&_td]:py-0.5 [&_td]:px-2 [&_th]:py-1 [&_th]:px-2 [&_td]:align-top">
+            <div class="overflow-auto max-h-[60vh] w-fit max-w-full rounded-box border border-base-300"
+                 @scroll.passive="if (limit < shape.n && $el.scrollTop + $el.clientHeight > $el.scrollHeight - 200) limit += STEP">
+              <table class="table table-pin-rows w-auto tabular-nums [&_td]:py-0.5 [&_td]:px-2 [&_th]:py-1 [&_th]:px-2 [&_td]:align-top">
                 <thead>
                   <tr>
                     <th class="text-base-content/40 font-normal">#</th>
@@ -71,8 +72,8 @@
                   </tbody>
                 </template>
               </table>
+              <button class="btn btn-ghost btn-xs m-1" x-show="limit < shape.n" @click="limit += STEP" x-text="`${shape.n - limit} more rows`"></button>
             </div>
-            <button class="btn btn-ghost btn-xs mt-1" x-show="limit < shape.n" @click="limit += STEP" x-text="`${shape.n - limit} more rows`"></button>
           </div>
         </template>
 
