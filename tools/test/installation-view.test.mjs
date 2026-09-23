@@ -54,7 +54,7 @@ const files = {
 const tree = snapshot => Object.entries(snapshot).map(([p, t]) => ({ type: 'blob', path: p, sha: gitBlob(t), size: t.length }));
 const publications = [], reads = [], requests = [];
 const snapshots = new Map([[REV, { ...files }]]), blobs = new Map(), trees = new Map(), commits = new Map(), changedTrees = new Map();
-let currentRevision = REV, readGate = null, commitGate = null;
+let currentRevision = REV, readGate = null, commitGate = null, history = null;
 const snapshotAt = ref => snapshots.get(ref) || files;
 const advanceHead = () => {
   currentRevision = gitBlob(JSON.stringify(files));
@@ -112,6 +112,12 @@ window.GH = class {
       treeReads++;
       const revision = p.slice('git/trees/'.length).split('?')[0];
       return { tree: tree(snapshotAt(revision)) };
+    }
+    // A file's history before a date: answered only for the one file a test
+    // declares in `history`, so every other file reads as having none.
+    if (method === 'GET' && p.startsWith('commits?') && p.includes('&path=')) {
+      const q = new URLSearchParams(p.slice('commits?'.length));
+      return history && q.get('path') === history.path && q.get('until') === history.until ? [{ sha: history.revision }] : [];
     }
     if (method === 'GET' && p.startsWith('commits?')) {
       const revision = currentRevision;
@@ -574,6 +580,28 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.match(data.baselineNote, /Nothing records what the work computer holds/);
   assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'Changes writes nothing');
   files[xaml] = original; advanceHead(); await data.reload();
+  data.select(FORMS); await settle();
+});
+
+test('a pending update with no record compares from the version before its change', async () => {
+  const profile = `${P}/app/Profile.ps1`, manifestPath = `${P}/data/installation.json`, manifest = files[manifestPath];
+  const older = 'profile v1\n', revision = 'b'.repeat(40);
+  snapshots.set(revision, { ...files, [profile]: older });
+  const m = JSON.parse(manifest);
+  m.pending_adoption.push({ path: 'app/Profile.ps1', transfer: 'changed', since: '2026-09-20', limit: 'one line changed' });
+  files[manifestPath] = JSON.stringify(m); advanceHead();
+  history = { path: profile, until: '2026-09-20T00:00:00Z', revision };
+  await data.reload(); data.select(profile); await settle(); await settle();
+  assert.equal(data.stateOf(profile).state, 'pending-changed');
+  assert.equal(data.sourceView, 'changes', 'the pending update is the default view');
+  assert.equal(data.baseline.label, 'Before the pending change (bbbbbbb, before 2026-09-20)');
+  assert.deepEqual([...data.diffRows.map(r => r.type + ' ' + r.text)], ['del profile v1', 'add profile']);
+  // No earlier version: say so.
+  history = null;
+  await data.reload(); data.select(profile); await settle(); await settle();
+  assert.equal(data.baseline, null);
+  assert.match(data.baselineNote, /No earlier version of this file/);
+  files[manifestPath] = manifest; advanceHead(); await data.reload();
   data.select(FORMS); await settle();
 });
 
