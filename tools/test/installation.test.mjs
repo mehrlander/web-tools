@@ -117,7 +117,8 @@ test('pending adoption carries transfer limits without turning them into install
   assert.equal(K.derive(module, [rowOf({})]).conflict, true, 'a row beside a pending entry is named as a contradiction');
   assert.equal(K.derive(module, [rowOf({})]).label, 'reported installed; pending entry still listed');
   assert.equal(K.derive(module, []).conflict, false);
-  assert.equal(K.derive(form, [rowOf({ path: form.path, blobSha: sha40('5') })]).conflict, false, 'a row on a file without an entry is no contradiction');
+  const profile = inventory.find(i => i.rel === 'app/Profile.ps1');
+  assert.equal(K.derive(profile, [rowOf({ path: profile.path, blobSha: sha40('1') })]).conflict, false, 'a row on a file without an entry is no contradiction');
   assert.equal(JSON.stringify(raw), before, 'reading the manifest and deriving status never removes adoption entries');
 });
 
