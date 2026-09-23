@@ -8,6 +8,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { makeWindow, startAlpine, tick, deckGeometry } from './bootstrap.mjs';
 
 const calls = [];
@@ -45,8 +50,16 @@ class FakeGH {
     return { content: btoa('CONTENT ' + this.repo + ':' + path), sha: 'x' };
   }
   async commitFiles(files, opts = {}) {
-    calls.push({ kind: 'commitFiles', repo: this.repo, ref: this.ref, files, message: opts.message });
-    return { sha: 'c0ffee1234', branch: this.ref || 'main', tree: 't', files: files.length };
+    calls.push({ kind: 'commitFiles', repo: this.repo, ref: this.ref, files, opts, message: opts.message });
+    return { sha: 'c0ffee1234', branch: opts.branch || this.ref || 'main', tree: opts.expectedTree || 't', files: files.length, alreadyApplied: !!opts.alreadyApplied };
+  }
+  async createPull(opts = {}) {
+    calls.push({ kind: 'createPull', repo: this.repo, ...opts });
+    return { number: 42, url: 'https://github.com/' + this.repo + '/pull/42', html_url: 'https://github.com/' + this.repo + '/pull/42', alreadyExists: !!opts.alreadyExists };
+  }
+  async getBlob(sha) {
+    calls.push({ kind: 'getBlob', sha });
+    return { content: btoa('test blob content'), sha };
   }
   async save(path, value, msg) { calls.push({ kind: 'save', repo: this.repo, ref: this.ref, path, value, msg }); return { content: { sha: 'x' } }; }
   async saveBytes(path, bytes, msg) { calls.push({ kind: 'saveBytes', repo: this.repo, ref: this.ref, path, bytes, msg }); return { content: { sha: 'x' } }; }
@@ -81,6 +94,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/repo-mailbox.js',
   'lib/kits/surface.js',
   'lib/kits/text-diff.js',
+  'lib/kits/git-change.js',
   // The reader's shell, and the channel it tells the sidebar what it is
   // showing on. stage.js gh.loads both on demand in a browser; here they are
   // present up front, since there is no loader in this realm.
@@ -112,6 +126,12 @@ const reset = () => {
   data._mdText = null;
   store.stage = []; store.stageFocus = ''; store.stageOffers = []; data.reader = null;
   data.diffA = 0; data.diffB = 0; data._diffTouched = false; data.diffRows = null;
+  data.gitChangeVerified = 'idle'; data.gitChangeVerificationError = '';
+  data.gitChangeApplyArmed = false; data.gitChangeApplying = false;
+  data.gitChangeApplyStatus = ''; data.gitChangeApplyError = '';
+  data.gitChangeCommitResult = null; data.gitChangePrCreated = null;
+  data.gitChangeLinkError = '';
+  calls.length = 0;
 };
 
 // THE REAL srcGh, HELD SO A STUB CAN BE PUT BACK. Three tests below swap in a
@@ -195,14 +215,17 @@ test('destPills is empty when nothing is declared, and never guesses a root', ()
 });
 
 test('aim sets the destination and the picker label together', () => {
+  // Against the MOUNTED picker, not a stubbed $refs: the x-ref sits on the
+  // picker's own x-data root, so the stager's $refs never held it and a stub
+  // here passed while the real label stayed empty.
   store.repo = 'me/open';
-  const picker = { label: 'stale' };
-  data.$refs.destPicker = { __pathPicker: picker };
+  const picker = data.$root.querySelector('[x-ref="destPicker"]')?.__pathPicker;
+  assert.ok(picker, 'the destination picker is mounted');
+  picker.label = 'stale';
   data.aim('me/open:chron/dump');
   assert.equal(data.destSpec, 'me/open:chron/dump');
   assert.equal(picker.label, 'me/open:chron/dump',
     'the picker commits its own label, so destSpec alone would name one place while the send went to another');
-  delete data.$refs.destPicker;
 });
 
 // ---- grabbing from a repo, reading inline -----------------------------
@@ -3688,4 +3711,200 @@ test('noteSubject survives a stage that no longer holds the subject', () => {
   store.stage = [];
   assert.equal(data.noteSubject, null, 'the panel draws nothing rather than a header about nothing');
   data.cancelNote();
+});
+
+// ── Git Change Handoff Tests ────────────────────────────────────────────────
+
+function makeTestGitChange(opts = {}) {
+  const tempDir = mkdtempSync(path.join(tmpdir(), 'git-change-stage-test-'));
+  const git = (args) => execFileSync('git', args.split(' '), { cwd: tempDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  try {
+    git('init --initial-branch=main');
+    git('config user.name Test');
+    git('config user.email test@example.com');
+    writeFileSync(path.join(tempDir, 'base.txt'), 'base text\n');
+    git('add base.txt');
+    git('commit -m Base');
+    const baseSha = git('rev-parse HEAD').trim();
+    const branch = opts.branch || 'codex/test-change';
+    if (branch !== 'main' && branch !== 'master') git(`checkout -b ${branch}`);
+    writeFileSync(path.join(tempDir, 'feature.txt'), 'feature content\n');
+    git('add feature.txt');
+    git('commit -m Feature-subject');
+    const headSha = git('rev-parse HEAD').trim();
+    const expectedTree = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { cwd: tempDir, encoding: 'utf8' }).trim();
+
+    const bundlePath = path.join(tempDir, 'payload.bundle');
+    execFileSync('git', ['bundle', 'create', bundlePath, `refs/heads/${branch}`, `^${baseSha}`], { cwd: tempDir, encoding: 'utf8' });
+    const bundleBytes = readFileSync(bundlePath);
+    const bundleSha256 = createHash('sha256').update(bundleBytes).digest('hex');
+
+    const envelope = {
+      schema: 'git-change/1',
+      repository: opts.repo || 'mehrlander/web-tools',
+      proposed_branch: branch,
+      base: baseSha,
+      source_head: headSha,
+      expected_tree: expectedTree,
+      commit: {
+        subject: 'Feature subject',
+        message: 'Feature subject\n\nFull details here.',
+      },
+      changed_files: [{ path: 'feature.txt', status: 'A' }],
+      ...(opts.draftPr ? { draft_pr: { base: 'main', title: 'Feature subject', draft: true } } : {}),
+      payload: {
+        format: 'git-bundle',
+        encoding: 'base64',
+        byte_count: bundleBytes.length,
+        sha256: bundleSha256,
+        data: bundleBytes.toString('base64'),
+      },
+    };
+    return { envelope, json: JSON.stringify(envelope, null, 2), baseSha, headSha, expectedTree, branch };
+  } finally {
+    try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+  }
+}
+
+test('StageIntake.isGitChange identifies git-change envelopes and rejects other text', () => {
+  const { json } = makeTestGitChange();
+  assert.equal(window.StageIntake.isGitChange(json), true);
+  assert.equal(window.StageIntake.isGitChange('{"hello": "world"}'), false);
+  assert.equal(window.StageIntake.isGitChange('not json at all'), false);
+  assert.equal(window.StageIntake.isGitChange(null), false);
+});
+
+test('intake names and marks a git-change envelope when pasted or dropped', () => {
+  reset();
+  const { json } = makeTestGitChange();
+  const added = window.StageIntake.take({ text: json });
+  assert.equal(added.length, 1);
+  assert.equal(added[0].isGitChange, true);
+  assert.equal(added[0].name, 'test-change.git-change.json');
+  assert.equal(window.StageIntake.extForText(json), 'git-change.json');
+});
+
+test('StageLink.decodeLocals unpacks git-change envelope from #gz= fragment', async () => {
+  const { json } = makeTestGitChange();
+  const gz = await window.StageLink.encodeLocals([{ local: true, isText: true, name: 'test.git-change.json', text: json }]);
+  const decoded = await window.StageLink.decodeLocals(gz);
+  assert.equal(decoded.length, 1);
+  assert.equal(decoded[0].name, 'test.git-change.json');
+  const item = window.StageIntake.textItem(decoded[0].name, decoded[0].text);
+  assert.equal(item.isGitChange, true);
+});
+
+test('stager recognizes gitChangeItem and verifies SHA-256 integrity', async () => {
+  reset();
+  const { envelope, json } = makeTestGitChange();
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  assert.notEqual(data.gitChangeItem, null);
+  assert.equal(data.gitChangeEnv.proposed_branch, envelope.proposed_branch);
+  assert.equal(data.gitChangeEnv.base, envelope.base);
+
+  await data.verifyGitChange();
+  assert.equal(data.gitChangeVerified, 'verified');
+
+  // Tampered envelope
+  const tampered = JSON.parse(json);
+  tampered.payload.sha256 = '0000000000000000000000000000000000000000000000000000000000000000';
+  store.stage = [window.StageIntake.textItem('bad.git-change.json', JSON.stringify(tampered))];
+  await data.verifyGitChange();
+  assert.equal(data.gitChangeVerified, 'mismatch');
+});
+
+test('stager two-step arm and manual CLI instructions generation', () => {
+  reset();
+  const { json } = makeTestGitChange();
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  assert.equal(data.gitChangeApplyArmed, false);
+  data.armGitChangeApply();
+  assert.equal(data.gitChangeApplyArmed, true);
+  data.disarmGitChangeApply();
+  assert.equal(data.gitChangeApplyArmed, false);
+
+  let copiedText = '';
+  window.navigator.clipboard = {
+    writeText: async (t) => { copiedText = t; return Promise.resolve(); }
+  };
+  data.copyGitChangeInstructions();
+  assert.match(copiedText, /git fetch test-change\.git-bundle refs\/heads\/codex\/test-change:codex\/test-change/);
+});
+
+test('copyGitChangeStageLink mints link when within budget', async () => {
+  reset();
+  const { json } = makeTestGitChange();
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  let copiedText = '';
+  window.navigator.clipboard = {
+    writeText: async (t) => { copiedText = t; return Promise.resolve(); }
+  };
+  await data.copyGitChangeStageLink();
+  assert.match(copiedText, /#gz=/);
+  assert.equal(data.gitChangeLinkCopied, true);
+});
+
+test('executeGitChangeApply commits changes to target branch and opens draft PR', async () => {
+  reset();
+  const { json, baseSha, headSha, expectedTree, branch } = makeTestGitChange({ draftPr: true });
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  data.gitChangeCreateBranch = true;
+  data.gitChangeOpenDraftPr = true;
+
+  await data.executeGitChangeApply();
+
+  const commitCall = calls.find(c => c.kind === 'commitFiles');
+  assert.ok(commitCall, 'calls commitFiles');
+  assert.equal(commitCall.opts.branch, branch);
+  assert.equal(commitCall.opts.requireBaseCommit, baseSha);
+  assert.equal(commitCall.opts.expectedTree, expectedTree);
+  assert.equal(commitCall.opts.refuseDefaultBranch, true);
+  assert.match(commitCall.message, /Co-Authored-By: Codex <codex@openai\.com>/);
+
+  const prCall = calls.find(c => c.kind === 'createPull');
+  assert.ok(prCall, 'calls createPull');
+  assert.equal(prCall.head, branch);
+  assert.equal(prCall.draft, true);
+
+  assert.equal(data.gitChangeCommitResult.sha, 'c0ffee1234');
+  assert.equal(data.gitChangePrCreated.number, 42);
+});
+
+test('executeGitChangeApply refuses default branch', async () => {
+  reset();
+  const { json } = makeTestGitChange({ branch: 'main' });
+  store.stage = [window.StageIntake.textItem('main.git-change.json', json)];
+  await data.executeGitChangeApply();
+  assert.match(data.gitChangeApplyError, /Refusing to write directly to default branch/);
+});
+
+test('send() with git-change routes through arming and deposits via executeGitChangeApply', async () => {
+  reset();
+  const { json, baseSha, expectedTree, branch } = makeTestGitChange({ draftPr: true });
+  store.stage = [window.StageIntake.textItem('change.git-change.json', json)];
+  data.destSpec = 'mehrlander/web-tools@' + branch;
+  data.gitChangeCreateBranch = true;
+  data.gitChangeOpenDraftPr = true;
+
+  assert.equal(data.sendArmed, false);
+  assert.equal(data.sendLabel, 'Apply patch');
+
+  // First tap arms
+  await data.send();
+  assert.equal(data.sendArmed, true);
+  assert.equal(data.sendLabel, 'Apply to ' + branch + ' ?');
+
+  // Second tap deposits
+  await data.send();
+  assert.equal(data.sendArmed, false);
+
+  const commitCall = calls.find(c => c.kind === 'commitFiles');
+  assert.ok(commitCall, 'calls commitFiles');
+  assert.equal(commitCall.opts.branch, branch);
+  assert.equal(commitCall.opts.requireBaseCommit, baseSha);
+  assert.equal(commitCall.opts.expectedTree, expectedTree);
+
+  const prCall = calls.find(c => c.kind === 'createPull');
+  assert.ok(prCall, 'calls createPull');
+  assert.equal(prCall.head, branch);
 });
