@@ -273,11 +273,14 @@ test('the registry is read once per ref, not once per mount', async () => {
   data.forgetRegistry();
   reset();
   await mount('feat/c');
-  assert.equal(calls.csv.length, 1, 'the repo declares none, which is a 404 worth paying once');
+  // The stub records every contents read; the mounted slides read their files
+  // too, so count the registry path alone.
+  const reg = () => calls.csv.filter(c => c.endsWith(':data/design/content.csv')).length;
+  assert.equal(reg(), 1, 'the repo declares none, which is a 404 worth paying once');
   window.BranchBrief.forget();
   reset();
   await mount('feat/c');
-  assert.equal(calls.csv.length, 0, 'and not again inside the memo\'s life');
+  assert.equal(reg(), 0, 'and not again inside the memo\'s life');
 });
 
 // ── The layout, and where the scrollbar lives ────────────────────────────────

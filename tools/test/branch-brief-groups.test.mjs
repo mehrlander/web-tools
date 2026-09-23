@@ -198,17 +198,39 @@ test('the guide and the slides scroll in place, with no clips or expander button
   assert.equal(buttons.length, 0, 'no more/less buttons');
 });
 
-// The slide owns the bounding, so its card must not bound itself: `fill`.
-// Reviewable files read as documents; the rest open on their diff.
-test('a slide hands its card the bounding, and reading follows the file', () => {
+// HOSTED, as the full deck mounts its slides: the swiper's header names the
+// file and carries its controls, so the card draws no row of its own. The
+// slide owns the bounding, so the card must not bound itself either: `fill`.
+test('a slide card is hosted, and code opens on its diff', () => {
   const doc = data.reviewableFiles[0], code = data.listFiles[0];
   assert.ok(doc && code, 'the fixture has one of each');
   const d = data.slideCardOpts(doc), c = data.slideCardOpts(code);
-  assert.equal(d.fill, true, 'the slide bounds it, so the card must not');
-  assert.equal(d.open, true);
-  assert.equal(d.read, true, 'a document reads');
-  assert.equal(c.read, false, 'code opens on its diff');
+  for (const o of [d, c]) {
+    assert.equal(o.hosted, true, 'the header draws the chrome');
+    assert.equal(o.fill, true, 'the slide bounds it, so the card must not');
+    assert.equal(o.read, true, 'a reading surface, as in the full deck');
+    assert.equal(typeof o.onChrome, 'function', 'and it tells the header when its controls change');
+  }
+  assert.equal(d.openOn, '', 'a document opens on itself');
+  assert.equal(c.openOn, 'diff', 'code opens on its diff');
   assert.equal(data.cardOpts(doc).fill, undefined, 'a list card bounds itself as before');
+});
+
+// NO EXPANDER. A slide has nothing to collapse into, so no card in the swiper
+// carries the caret row, and the header is the only row of chrome.
+test('the swiper has one header row and no expander', async () => {
+  await tick(6);
+  const slides = [...window.document.querySelectorAll('[data-slide]')];
+  assert.ok(slides.some(k => k.querySelector('[x-data^="fileReview"]')), 'a card is mounted');
+  const shown = (el) => { for (let n = el; n && n !== window.document.body; n = n.parentElement)
+                            if (n.style && n.style.display === 'none') return false; return true; };
+  for (const k of slides)
+    assert.equal([...k.querySelectorAll('.ph-caret-right, .ph-caret-down')].filter(shown).length, 0,
+      'no caret inside a slide');
+  const header = window.document.querySelector('[data-swipe-header]');
+  assert.ok(header.querySelector('[data-file-list-btn]'), 'the header holds the list mark');
+  assert.ok(header.querySelector('[data-slide-name]'), 'and names the file');
+  assert.ok(header.querySelector('[data-view-modes]'), 'and holds the view buttons');
 });
 
 // ── The swiper ──────────────────────────────────────────────────────────────
