@@ -192,11 +192,10 @@ test('mounts with the corpus grouped by area and the local areas beside it', () 
   assert.match(text, /reportedly bill collections/, 'the shape reads on the row');
   // The explanation is linked, not copied onto the pane, and nothing on it
   // parks a fact in a title where a phone and a screenshot cannot reach it.
-  assert.match(data.docUrl, /INSTALLATION\.md$/);
   const titled = [...el.querySelectorAll('[title]')].map(e => e.getAttribute('title'));
   assert.deepEqual(titled.filter(t => t.split(/\s+/).length > 2), [],
     'a title is the label of an icon-only control, never a sentence of explanation');
-  assert.match(data.headline, /^aaaaaaa · 5 files · 2 assumed synced · 1 repository only · 1 new file · 1 update pending$/);
+  assert.doesNotMatch(el.textContent, /the installation map|5 files/, 'no map link and no counts line in the header');
   assert.equal(publications.length, 0);
   assert.ok(reads.every(r => r.ref === REV), 'manifest and ledger are read at the captured revision');
 });
@@ -210,17 +209,19 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.equal(data.statusOf(FORMS).label, 'Update pending');
   assert.doesNotMatch(el.textContent, /Nothing recorded for this file|local state unknown/, 'no "we do not know" notes on the pane');
   assert.equal(el.querySelector('[data-observations]').style.display, 'none', 'an empty ledger history is not shown');
-  assert.match(el.querySelector('[data-adoption]').textContent, /Repository update awaiting adoption/);
+  const line = () => el.querySelector('[data-status-line]').textContent;
+  assert.equal(line(), 'Update pending · since 2026-09-14', 'one status line carries the state and its date');
+  assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
+  assert.equal(el.querySelector('[data-installation] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
   await data.runAction(FORMS, 'code');
   assert.deepEqual(shellCalls.find(c => c[0] === 'goProject'), ['goProject', P, 'code', FORMS]);
   data.select(`${P}/app/Forms/Bookmarks/Bookmarks.xaml`);
   await settle();
-  assert.match(el.textContent, /companion/);
-  assert.match(el.textContent, /Bookmarks\.ps1/);
+  assert.match(el.textContent, /with\s+Bookmarks\.ps1/, 'the companion reads as "with <file>"');
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
-  assert.match(el.textContent, /no installation destination \(repository only\)/);
+  assert.equal(el.querySelector('[data-destination]').textContent, `${P}/app/Scripts/Demo.ps1`, 'repository-only material shows its repository path');
   assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['code'], 'repository-only material offers no placement to confirm');
   data.select(FORMS);
   await settle();
@@ -274,7 +275,7 @@ test('recording shows the exact row and adoption closure before publishing both 
   assert.equal(JSON.parse(files[`${P}/data/installation.json`]).pending_adoption.length, 1);
   assert.equal(data.revision, publications[0].body.sha);
   assert.match(el.textContent, /reported installed/);
-  assert.match(el.textContent, /this file has not changed since/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Confirmed installed · \d{4}-\d{2}-\d{2}$/);
 });
 
 test('a browser check can be promoted to a verified row, and then reads as recorded', async () => {
@@ -306,7 +307,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.lastTransfer[FORMS], undefined, 'a download of older bytes is not evidence of transferring the new file');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.textContent, /this file has changed on GitHub since/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Update pending · installed \d{4}-\d{2}-\d{2}$/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
