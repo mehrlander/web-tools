@@ -1,6 +1,6 @@
 registry,property,value,label,gloss
-app-routes,group,estate,Estate,Above any repo: the constellation's own dashboard.
-app-routes,group,repo,Repo,Reached with a repo open: the browser over one repository.
+app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate (docs/subjects.csv), the constellation read as one thing."
+app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view."
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.
 harness,layer,scripts,,"standalone and portable: argv-driven, runs from any repo root, travels via the hub"
 harness,layer,tools,,repo-root harness files that fit no folder below

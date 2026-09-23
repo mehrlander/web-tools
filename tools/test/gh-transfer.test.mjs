@@ -240,3 +240,54 @@ test('createPull opens a draft by default, on the repo default base', async () =
   const body = reqs.find(r => r.path === 'pulls').body;
   assert.deepEqual(body, { title: 'T', head: 'topic', base: 'trunk', body: '', draft: true });
 });
+
+test('commitFiles refuses the default branch when refuseDefaultBranch is set', async () => {
+  const { gh } = makeGH({ defaultBranch: 'main' });
+  await assert.rejects(
+    () => gh.commitFiles(FILES, { branch: 'main', refuseDefaultBranch: true }),
+    /Refusing to commit directly to the default branch/
+  );
+});
+
+test('commitFiles verifies resulting tree equals expectedTree before ref update', async () => {
+  const { gh, reqs } = makeGH();
+  // expectedTree mismatch
+  await assert.rejects(
+    () => gh.commitFiles(FILES, { branch: 'topic', expectedTree: 'wrong-tree-sha' }),
+    /Tree verification failed/
+  );
+  assert.equal(reqs.filter(r => r.method === 'PATCH').length, 0, 'ref must not be touched if tree verification fails');
+
+  // expectedTree match
+  const ok = await gh.commitFiles(FILES, { branch: 'topic', expectedTree: 'newtree0' });
+  assert.equal(ok.tree, 'newtree0');
+});
+
+test('commitFiles refuses moved branch when requireBaseCommit is set', async () => {
+  const { gh } = makeGH();
+  await assert.rejects(
+    () => gh.commitFiles(FILES, { branch: 'topic', requireBaseCommit: 'older-base-commit' }),
+    /Branch topic has moved/
+  );
+});
+
+test('commitFiles is idempotent when current head already has expectedTree', async () => {
+  const { GH } = makeGH();
+  const gh = new GH({ repo: 'me/dest' });
+  let patchCalled = false;
+  gh.req = async (p, opts = {}) => {
+    if (p === '') return { default_branch: 'main' };
+    if (p === 'git/ref/heads/topic') return { object: { sha: 'already-at-target' } };
+    if (p === 'git/commits/already-at-target') return { tree: { sha: 'matching-tree' } };
+    if (opts.method === 'PATCH') patchCalled = true;
+    throw new Error('Unexpected call: ' + p);
+  };
+  const res = await gh.commitFiles([{ path: 'a.txt', sha: 'blob1' }], {
+    branch: 'topic',
+    requireBaseCommit: 'already-at-target',
+    expectedTree: 'matching-tree',
+  });
+  assert.equal(res.alreadyApplied, true);
+  assert.equal(patchCalled, false);
+});
+

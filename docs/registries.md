@@ -74,10 +74,9 @@ When two registries overlap:
 Do not resolve a collision by renaming one property. A rename hides the
 duplicate from the ownership check and leaves both copies stored.
 
-This is ownership, not overlay. `.paths.json` combines declarations by
-precedence, nearest wins, because frozen-ness layers. A registry has one owner
-per assertion, so two competing assertions are an error rather than a
-precedence question.
+This is ownership, not overlay. An overlay resolves competing declarations by
+precedence, nearest wins. A registry has one owner per assertion, so two
+competing assertions are an error rather than a precedence question.
 
 ### Comparing keys across registries
 
@@ -240,9 +239,10 @@ per target and property, anywhere.
 `span` separates the two populations this table can hold: `hub`, bounded by
 this checkout, and `estate`, an aggregate of rows other repositories author
 about themselves. A third arrangement does not fit: a governed artifact each
-repository carries, with no aggregate here. `.paths.json` has that shape and is
-not a row, because a registry's file must exist here and be CSV.
-[`estate-span.md`](estate-span.md) records the three arrangements.
+repository carries, with no aggregate here. `.paths.json` had that shape until
+the hub retired it on 2026-09-21, and was not a row, because a registry's file
+must exist here and be CSV. [`estate-span.md`](estate-span.md) records the
+three arrangements.
 
 ### The same model in budget-drs
 

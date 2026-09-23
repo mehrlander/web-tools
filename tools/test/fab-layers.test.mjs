@@ -97,6 +97,87 @@ test('the app view is three layers, and the outermost stops calling itself the s
   assert.equal(layers[2].path, subject.path);
 });
 
+// ── The typed subject: the second reading of the same walk ─────────────────
+//
+// The role says where a row sits; the type says what it is, in the terms of
+// docs/subjects.csv. A lone unframed layer used to be captioned "page", which
+// on the deployed app read as one more file being rendered.
+test('the deployed app is the estate, captioned by its view rather than as a page', async () => {
+  const d = await mountFab();
+  const [L] = d.readLayers({ frames: [], location: { search: '?view=sessions', hash: '' } });
+  assert.equal(L.role, 'page', 'the stack reading is unchanged');
+  assert.equal(L.type, 'estate');
+  assert.equal(L.typeLabel, 'Sessions', 'with no shell on the window the key stands in for the nav label');
+  assert.equal(d.layerCaption(L), 'estate');
+  assert.equal(d.layerLabel(L), 'Sessions');
+  assert.equal(d.layerIcon(L), 'ph-toolbox opacity-50');
+});
+
+test('a repo open in the app is a repo, and a project narrows it', async () => {
+  const d = await mountFab();
+  const [R] = d.readLayers({ frames: [], location: { search: '?repo=mehrlander/home&view=atlas', hash: '' } });
+  assert.equal(R.type, 'repo');
+  assert.equal(R.typeLabel, 'mehrlander/home › Atlas');
+  const [O] = d.readLayers({ frames: [], location: { search: '?repo=mehrlander/home', hash: '' } });
+  assert.equal(O.typeLabel, 'mehrlander/home', 'the Overview is the repo itself, not a stop under it');
+  const [P] = d.readLayers({ frames: [], location: { search: '?repo=mehrlander/home&view=project&project=projects/budget-drs', hash: '' } });
+  assert.equal(P.type, 'project');
+  assert.equal(P.typeLabel, 'mehrlander/home / budget-drs › Project');
+  // An estate view scoped by a repo keeps the estate as its subject.
+  const [B] = d.readLayers({ frames: [], location: { search: '?view=branches&repo=mehrlander/home', hash: '' } });
+  assert.equal(B.type, 'estate');
+});
+
+test('the shell on the window supplies the nav label', async () => {
+  const d = await mountFab();
+  const shell = { estateCtx: true,
+    estateNav: [{ view: 'sessions', views: ['sessions', 'branches'], label: 'Activity' }] };
+  const [L] = d.readLayers({ frames: [], __shell: shell, location: { search: '?view=branches', hash: '' } });
+  assert.equal(L.typeLabel, 'Activity › Branches');
+});
+
+test('a brief is typed by what it carries: the branch, or the session', async () => {
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/branch.html"');
+  const [B] = d.readLayers({ frames: [], location: { search: '', hash: '#gh=mehrlander/home@claude/serene-einstein-dyr03b' } });
+  assert.equal(B.type, 'branch');
+  assert.equal(B.typeLabel, 'claude/serene-einstein-dyr03b');
+  assert.equal(d.layerLabel(B), 'branch.html · claude/serene-einstein-dyr03b');
+  const [P] = d.readLayers({ frames: [], location: { search: '', hash: '#gh=mehrlander/home&pr=364' } });
+  assert.equal(P.typeLabel, 'PR #364');
+  const s = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/session.html"');
+  const [S] = s.readLayers({ frames: [], location: { search: '', hash: '#id=abc12345' } });
+  assert.equal(S.type, 'session');
+  assert.equal(S.typeLabel, 'abc12345');
+});
+
+test('in the app view the app is a carrier and the tossed page is the subject', async () => {
+  const d = await mountFab();
+  const subject = { repo: 'mehrlander/home', ref: 'main', path: 'projects/budget-drs/app/view/app.html' };
+  const renderer = pagesWin('pages/toss-render.html', { subject, frames: [blobWin()] });
+  const layers = d.readLayers({ frames: [renderer], location: { search: '?app=budget-drs', hash: '' } });
+  assert.deepEqual(Array.from(layers.map(L => L.type)), ['', '', 'page']);
+  assert.deepEqual(Array.from(layers.map(L => d.layerCaption(L))), ['app', 'renderer', 'page']);
+});
+
+test('tossed content is typed coarsely by extension, and a brief framed inside the app keeps its hash', async () => {
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const md = d.readLayers({ frames: [blobWin()], location: { href: 'x' },
+    __tossSubject: { repo: 'mehrlander/home', ref: 'main', path: 'chron/2026/09/x.md' } });
+  assert.equal(md[1].type, 'file');
+  const json = d.readLayers({ frames: [blobWin()], location: { href: 'x' },
+    __tossSubject: { repo: 'mehrlander/home', ref: 'main', path: 'app/data.json' } });
+  assert.equal(json[1].type, 'data');
+  const app = await mountFab();
+  const brief = pagesWin('pages/branch.html');
+  brief.location.hash = '#gh=mehrlander/home@claude/x';
+  const layers = app.readLayers({ frames: [brief], location: { search: '?view=sessions', hash: '' } });
+  assert.equal(layers[1].type, 'branch');
+  assert.equal(layers[1].typeLabel, 'claude/x');
+  app.layers = layers; app.layerIndex = 1;
+  assert.equal(app.subjectHead, 'Branch · claude/x');
+  assert.equal(app.subjectIcon, 'ph-git-branch');
+});
+
 test('a ?use= pin is the renderer layer own ref, not the page own', async () => {
   const d = await mountFab();
   const subject = { repo: 'mehrlander/home', ref: 'main', path: 'a/b/c.html' };

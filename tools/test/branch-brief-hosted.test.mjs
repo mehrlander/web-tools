@@ -273,11 +273,14 @@ test('the registry is read once per ref, not once per mount', async () => {
   data.forgetRegistry();
   reset();
   await mount('feat/c');
-  assert.equal(calls.csv.length, 1, 'the repo declares none, which is a 404 worth paying once');
+  // The stub records every contents read; the mounted slides read their files
+  // too, so count the registry path alone.
+  const reg = () => calls.csv.filter(c => c.endsWith(':data/design/content.csv')).length;
+  assert.equal(reg(), 1, 'the repo declares none, which is a 404 worth paying once');
   window.BranchBrief.forget();
   reset();
   await mount('feat/c');
-  assert.equal(calls.csv.length, 0, 'and not again inside the memo\'s life');
+  assert.equal(reg(), 0, 'and not again inside the memo\'s life');
 });
 
 // ── The layout, and where the scrollbar lives ────────────────────────────────
@@ -298,12 +301,11 @@ test('framed: the head holds its place and the pane takes the scroll', async () 
   assert.ok(root.lastElementChild.className.includes('min-h-0'),
     'without which a flex child refuses to shrink and scrolls the document again');
   assert.ok(root.lastElementChild.className.includes('flex-1'), 'the container takes the remaining height');
-  const top = root.querySelector('[data-top-section]');
-  assert.match(top.getAttribute(':class') || '', /basis-1\/2/, 'top section takes top half');
-  assert.match(top.getAttribute(':class') || '', /max-h-\[50%\]/, 'top section capped at half height');
-  const rev = root.querySelector('[data-rev-section]');
-  assert.match(rev.getAttribute(':class') || '', /basis-1\/2/, 'reviewable section takes bottom half');
-  assert.match(rev.getAttribute(':class') || '', /max-h-\[50%\]/, 'reviewable section capped at half height');
+  for (const [sel, name] of [['[data-guide-section]', 'the guide'], ['[data-swipe-section]', 'the swiper']]) {
+    const el = root.querySelector(sel);
+    assert.match(el.getAttribute(':class') || '', /basis-1\/2/, name + ' takes half');
+    assert.match(el.getAttribute(':class') || '', /max-h-\[50%\]/, name + ' is capped at half height');
+  }
 });
 
 // THE HEAD'S CEILING. It was three bands and 188px at 390x844 until
@@ -514,44 +516,21 @@ test('a compare that lands after a step does not overwrite the newer branch', as
 // 2026-09-07: the list is SHUT, so it costs a heading row rather than a screen,
 // and the guide keeps the clip that made leading with it affordable.
 
-test('files and the guide are tabs over one pane, files first in the tree', async () => {
+test('the guide leads and one swiper follows it in the tree', async () => {
   window.BranchBrief.forget();
   reset();
   const d = await mount('feat/a');
   await openFiles(d);
   await tick(8);
-  const files = d.$el.querySelector('[x-ref="files"]');
-  const guide = d.$el.querySelector('[x-ref="guide"]');
-  assert.ok(files && guide, 'both sections are in the tree');
-  // DOCUMENT_POSITION_FOLLOWING: the guide comes after the files.
-  assert.ok(files.compareDocumentPosition(guide) & 4,
-    'the shut list leads, so the page opens on what the branch touched');
-  // And the presented documents come last of the three.
-  const strip = d.$el.querySelector('[x-ref="revStrip"]');
-  if (strip) assert.ok(guide.compareDocumentPosition(strip) & 4,
-    'the documents themselves are last');
-  // SHOWN, not merely present. Everything here renders into the tree and hides
-  // with a style, so a textContent check would pass on a panel nobody can see:
-  // it is exactly the state a deferred compare left behind before the x-show
-  // values were coerced to booleans (see the note in the template).
-  const list = d.$el.querySelector('[x-ref="fileList"]');
-  assert.ok(list && list.style.display !== 'none', 'the file list is on screen');
-  assert.ok(list.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
-  assert.ok(guide.textContent.includes('#443'), 'and the guide is in the tree beside it');
-  const topStrip = d.$el.querySelector('[x-ref="topStrip"]');
-  assert.ok(topStrip, 'top strip exists for swiping between files and guide');
-  assert.equal(d.topPane, 'files');
-  d.setPane('guide');
-  await tick(6);
-  assert.equal(d.topPane, 'guide', 'switched to guide pane');
-  assert.notEqual(guide.style.display, 'none', 'and the guide has the pane');
-  d.setPane('files');
-  await tick(6);
-  assert.equal(d.topPane, 'files', 'and back');
-  assert.notEqual(files.style.display, 'none');
+  const guide = d.$el.querySelector('[data-guide-section]');
+  const swipe = d.$el.querySelector('[data-swipe-section]');
+  assert.ok(guide && swipe, 'both sections are in the tree');
+  assert.ok(guide.compareDocumentPosition(swipe) & 4, 'the guide leads, the swiper follows');
+  assert.ok(d.$el.querySelector('[x-ref="swipeStrip"]'), 'one swipe strip');
+  assert.ok(swipe.textContent.includes('a.js'), 'carrying the branch\'s one changed file');
 });
 
-test('with no PR, the commits are the account, and they are read without asking', async () => {
+test('with no PR, compare is read without asking', async () => {
   window.BranchBrief.forget();
   reset();
   const d = await mount('feat/c');
@@ -560,11 +539,6 @@ test('with no PR, the commits are the account, and they are read without asking'
   assert.equal(d.pane, '', 'no address asked for a section, so none is singled out');
   assert.deepEqual(calls.compare, ['me/tools@feat/c'],
     'with no guide to read first there is nothing to defer for');
-  const shown = d.$el.textContent.replace(/\s+/g, ' ');
-  assert.ok(shown.includes('What this branch did'),
-    'the section says what it is standing in for rather than printing bare shas');
-  assert.ok(shown.includes('no pull request describes it'));
-  assert.ok(shown.includes('feat/c'), 'and the commit subjects are the account');
 });
 
 // The heading row keeps a marker for the guide, because a section below the

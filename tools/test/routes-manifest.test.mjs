@@ -176,6 +176,50 @@ test('every showing mechanism declares its three axes and its boundary', () => {
 
 test('the axes are the three the mechanisms are indexed by', () => {
   assert.deepEqual(Object.keys(manifest.showing.axes), ['subject', 'version', 'viewer']);
+  // The subject axis is a registry rather than a list, since two tables key
+  // into it; the other two stay inline, nothing keys on them.
+  assert.equal(manifest.showing.axes.subject, 'docs/subjects.csv');
+  assert.ok(existsSync(path.join(repoRoot, manifest.showing.axes.subject)));
+});
+
+// ── Subjects: the axis itself, typed ────────────────────────────────────────
+//
+// docs/subjects.csv is what is on screen, by type. It was the subject axis's
+// five strings in routes.json until 2026-09-22, extended with the estate's own
+// objects once the FAB needed to caption them. Three things key into it and
+// are held here: routes-kinds.subject and showing-mechanisms.subject by key,
+// and fab.js's SUBJECT_ICON literal, which carries the glyph column into a
+// component that mounts on any page and cannot fetch the registry each time.
+manifest.subjects = parseCsv(read('subjects.csv'));
+const subjectKeys = new Set(manifest.subjects.map(t => t.key));
+const fabSrc = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
+
+test('subjects table: fields, and one row per type', () => {
+  assert.ok(manifest.subjects.length >= 9, 'suspiciously few subject types');
+  for (const t of manifest.subjects)
+    for (const k of ['key', 'label', 'needs', 'carrier', 'detect', 'icon', 'gloss'])
+      assert.ok(t[k], `subject ${t.key || '?'} is missing ${k}`);
+  assert.equal(subjectKeys.size, manifest.subjects.length, 'duplicate subject key');
+});
+
+test('every showing mechanism names subject types that exist', () => {
+  for (const m of manifest.showing.mechanisms)
+    for (const t of m.subject.split(';').filter(Boolean))
+      assert.ok(subjectKeys.has(t), `${m.key}: subject "${t}" is not a row of docs/subjects.csv`);
+});
+
+test('the FAB glyph literal and the repo-view list are the registries, verbatim', () => {
+  const block = fabSrc.match(/const SUBJECT_ICON = \{([\s\S]*?)\};/);
+  assert.ok(block, 'SUBJECT_ICON literal not found in lib/alpineComponents/fab.js');
+  const icons = Object.fromEntries([...block[1].matchAll(/(\w+):\s*'([^']+)'/g)].map(m => [m[1], m[2]]));
+  const fromTable = Object.fromEntries(manifest.subjects.map(t => [t.key, t.icon]));
+  assert.deepEqual(icons, fromTable, 'fab.js SUBJECT_ICON and docs/subjects.csv icon have drifted; the CSV is the owner');
+
+  const views = fabSrc.match(/const REPO_VIEWS = \[([^\]]*)\];/);
+  assert.ok(views, 'REPO_VIEWS literal not found');
+  const listed = [...views[1].matchAll(/'([^']+)'/g)].map(m => m[1]).sort();
+  const repoGroup = parseCsv(read('app-routes.csv')).filter(r => r.group === 'repo').map(r => r.key).sort();
+  assert.deepEqual(listed, repoGroup, 'fab.js REPO_VIEWS and app-routes.csv group=repo have drifted; the CSV is the owner');
 });
 
 test('the picker only routes to mechanisms that exist', () => {
@@ -289,13 +333,12 @@ function classifierKinds(src) {
   return out;
 }
 
-test('kinds table: fields, and the subject axis it is written against', () => {
+test('kinds table: fields, and the subject registry it is written against', () => {
   assert.ok(manifest.kinds.length > 1);
-  const axis = manifest.showing.axes.subject;
   for (const k of manifest.kinds) {
     assert.ok(k.kind && k.label && k.detect, k.kind + ': kind/label/detect');
-    assert.ok(axis.includes(k.subject),
-      `${k.kind}: subject "${k.subject}" is not a value of the showing axis`);
+    assert.ok(subjectKeys.has(k.subject),
+      `${k.kind}: subject "${k.subject}" is not a row of docs/subjects.csv`);
   }
   const keys = manifest.kinds.map(k => k.kind);
   assert.equal(new Set(keys).size, keys.length, 'duplicate kind key');

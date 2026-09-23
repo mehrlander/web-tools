@@ -8,6 +8,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Finish commentary trim: accuracy pass or paired fan-out](tasks/comment-trim-rule-first-b0o3bu.md) · M
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
+- 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
 - 🎫 [Let the Files pane find and the deck read, and stop it doing both](tasks/files-pane-finds-deck-reads-ubu13s.md) · M
 - 🎫 [Let a brief cover one picked region instead of a whole page](tasks/focus-a-ui-component-f0awt7.md) · M
 - 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M (awaiting: four axis choices, all with recommended answers in the body: recent slope, presence, labelled corners, injected docs excluded)
@@ -24,6 +25,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide the remaining stranded title attributes, panel or leave](tasks/stranded-titles-panel-or-drop-o6hqom.md) · S
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) · XS (awaiting: fortnight sample after 2026-09-24 PT)
+- 🎫 [Split show-repo.md by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
 - (none)
@@ -107,5 +109,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Structural response decode + differentiated errors in toss-render](tasks/toss-render-decode-errors-xu3c6d.md)
 - 🎫 [toss-render ?query forwarding drops multi-param page queries](tasks/toss-render-multiparam-query-encoding-n9lbcp.md) (`claude/web-tools-tracker-review-bw48ga`)
 - 🎫 [Tracker review in show-repo, over a typed board projection](tasks/tracker-review-in-show-repo-v5km6b.md) (`claude/budget-drs-tracker-assessment-fwa13q`)
+- 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) (`claude/serene-einstein-dyr03b`)
 - 🎫 [Load the ?use= bundle by fetch + blob-import instead of jsDelivr](tasks/use-blob-import-bundle-dtuqjo.md) (`claude/loading-behavior-tracker-aqbf4f`)
 - 🎫 [Extend fetch + blob-import to the gh-api.js-chain ?use= boot](tasks/use-gh-api-chain-blob-import-y2hwqe.md)
