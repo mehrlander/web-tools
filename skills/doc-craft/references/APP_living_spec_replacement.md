@@ -4,6 +4,8 @@ genre: living
 invariants: strict
 ---
 
+> Historical specimen from the 2026-09-19 study, retained for review. It is not current guidance or an approved replacement. See [Doc Craft](../SKILL.md) for the current skill.
+
 # The Web Tools app
 
 ⭐ **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/)

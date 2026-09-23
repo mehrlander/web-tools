@@ -6,6 +6,8 @@ genre: record
 status: archived
 ---
 
+> Historical specimen from the 2026-09-19 study, retained for review. It is not current guidance or an approved replacement. See [Doc Craft](../SKILL.md) for the current skill.
+
 # Deliberation Record: Name Split Holding Audit & Commit Attribution Refactoring
 
 ## 1. Context & Prior Assumptions
