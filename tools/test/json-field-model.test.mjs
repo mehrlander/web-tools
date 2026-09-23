@@ -6,11 +6,58 @@ import { join } from 'node:path';
 import { repoRoot } from '../repo-root.mjs';
 
 const source = readFileSync(join(repoRoot, 'pages/json-viewers/field-model.js'), 'utf8');
-const { collectFields, projectFields, kindOf } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const { collectFields, projectFields, kindOf, tableColumns } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const id = (...segments) => JSON.stringify(segments);
 
 test('JSON kinds distinguish arrays and null from objects', () => {
   assert.deepEqual([null, [], {}, '', 0, false].map(kindOf), ['null', 'array', 'object', 'string', 'number', 'boolean']);
+});
+
+test('table columns align shuffled and missing fields in first-seen order', () => {
+  const rows = Object.freeze([
+    Object.freeze({ name: 'First', active: false, count: 0 }),
+    Object.freeze({ count: 'unknown', name: 'Second', metadata: null }),
+    Object.freeze({ metadata: { orbit: 'LEO' }, active: true, payloads: [] }),
+  ]);
+  assert.deepEqual(tableColumns(rows), [
+    { key: 'name', types: ['string'] },
+    { key: 'active', types: ['boolean'] },
+    { key: 'count', types: ['number', 'string'] },
+    { key: 'metadata', types: ['null', 'object'] },
+    { key: 'payloads', types: ['array'] },
+  ]);
+  assert.deepEqual(tableColumns([{}, {}]), []);
+});
+
+test('table schema reads beyond the first hundred rows and rejects a late nonobject row', () => {
+  const rows = Array.from({ length: 125 }, (_, index) => ({ name: `Row ${index}` }));
+  rows.push({ name: null, late: false });
+  assert.deepEqual(tableColumns(rows), [
+    { key: 'name', types: ['null', 'string'] },
+    { key: 'late', types: ['boolean'] },
+  ]);
+  assert.equal(tableColumns([...rows, null]), null);
+});
+
+test('table column keys preserve literal dots and prototype names as ordinary own keys', () => {
+  const rows = [
+    JSON.parse('{"__proto__":false,"a.b":0,"items[]":null,"constructor":"first"}'),
+    Object.assign(Object.create(null), { constructor: 0, 'a.b': 'later', '': true }),
+  ];
+  assert.deepEqual(tableColumns(rows), [
+    { key: '__proto__', types: ['boolean'] },
+    { key: 'a.b', types: ['number', 'string'] },
+    { key: 'items[]', types: ['null'] },
+    { key: 'constructor', types: ['number', 'string'] },
+    { key: '', types: ['boolean'] },
+  ]);
+  assert.equal({}.polluted, undefined);
+});
+
+test('table columns fall back for nonarrays, empty arrays, and mixed or nonplain rows', () => {
+  for (const value of [null, {}, 0, false, 'text', [], [null], [[]], [1], [{}, false], [{}, []], [new Date(0)], [new Map()], [new (class Record {})()]]) {
+    assert.equal(tableColumns(value), null);
+  }
 });
 
 test('fields union every row and remain stable when sibling keys or rows are reordered', () => {

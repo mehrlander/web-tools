@@ -8,13 +8,13 @@
   <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="min-h-dvh bg-base-100 text-base-content">
-  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-3">
+  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-base-300 bg-base-100 px-3 py-2">
     <h1 class="font-semibold">JSON field explorer</h1>
     <a id="examples-link" href="json-viewers.html" class="ml-auto link text-sm">Examples ↗</a>
   </header>
   <main class="min-w-0">
     <details id="data-panel" class="border-b border-base-300">
-      <summary class="cursor-pointer px-4 py-3 text-sm">JSON data <span id="data-count" class="ml-2 text-base-content/60"></span></summary>
+      <summary class="cursor-pointer px-3 py-2 text-sm">JSON data <span id="data-count" class="ml-2 text-base-content/60"></span></summary>
       <div class="grid gap-3 px-4 pb-4">
         <textarea id="sample" aria-label="JSON data" spellcheck="false" class="textarea w-full h-56 font-mono text-sm"></textarea>
         <div class="flex flex-wrap items-center gap-3">
@@ -24,33 +24,33 @@
         </div>
       </div>
     </details>
-    <section aria-labelledby="filter-heading" class="border-b border-base-300 px-4 py-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <section aria-labelledby="filter-heading" class="border-b border-base-300 px-3 py-2">
+      <div class="flex flex-wrap items-center gap-2">
         <h2 id="filter-heading" class="font-semibold">Field filters</h2>
         <button id="all-fields" class="btn btn-sm btn-primary" aria-pressed="true">All fields</button>
         <span id="selection-status" role="status" class="text-sm text-base-content/70"></span>
       </div>
-      <div class="mt-3 flex items-center gap-3">
+      <div class="mt-2 flex items-center gap-2">
         <input id="field-search" type="search" class="input input-sm min-w-0 flex-1 sm:flex-none sm:w-64" placeholder="Find a field…" aria-label="Find a field">
-        <label class="flex min-h-10 shrink-0 items-center gap-2 text-sm"><input id="nested-paths" type="checkbox" class="checkbox checkbox-sm">Nested paths</label>
+        <label class="flex min-h-8 shrink-0 items-center gap-2 text-sm"><input id="nested-paths" type="checkbox" class="checkbox checkbox-sm">Nested paths</label>
       </div>
-      <div id="field-pills" class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Fields to include"></div>
+      <div id="field-pills" class="mt-2 flex flex-wrap gap-1" role="group" aria-label="Fields to include"></div>
       <p id="no-fields" class="hidden py-2 text-sm text-base-content/70">No matching fields</p>
       <details id="selected-panel" class="mt-3 hidden">
         <summary id="selected-summary" class="cursor-pointer text-sm">Selected paths</summary>
-        <div id="selected-pills" class="mt-2 flex flex-wrap gap-2"></div>
+        <div id="selected-pills" class="mt-2 flex flex-wrap gap-1"></div>
       </details>
     </section>
-    <section aria-labelledby="tree-heading" class="min-w-0 px-4 py-3">
+    <section aria-labelledby="tree-heading" class="min-w-0 px-3 py-2">
       <div class="flex flex-wrap items-center gap-2">
         <h2 id="tree-heading" class="font-semibold">Tree preview</h2>
         <span id="tree-count" class="text-sm text-base-content/70"></span>
         <button id="collapse" class="btn btn-sm btn-ghost ml-auto">Collapse</button>
         <button id="download" class="btn btn-sm btn-ghost">Save JSON ↓</button>
       </div>
-      <div class="my-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" aria-label="Color key">
+      <div class="my-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-label="Color key">
         <span class="text-base-content/70">Color = type</span>
-        <div id="type-key" class="flex flex-wrap gap-2"></div>
+        <div id="type-key" class="flex flex-wrap gap-1"></div>
       </div>
       <div id="tree" class="min-w-0 border-y border-base-300" aria-label="Filtered JSON tree"></div>
       <p id="load-error" class="hidden py-3 text-error" role="alert"></p>
@@ -78,8 +78,9 @@
         links: { webcast: null }, tags: [], notes: 'A second record for comparing array previews.' },
     ];
     let data = sample, fields = [], selected = new Set(), projected;
-    let kindOf, collectFields, projectFields;
+    let kindOf, collectFields, projectFields, tableColumns;
     const expanded = new Set(['[]']);
+    const tableOpen = new Map();
     const node = (tag, className, text) => {
       const element = document.createElement(tag);
       if (className) element.className = className;
@@ -95,13 +96,13 @@
     };
     function typeLabel(type) {
       const info = types[type];
-      return node('span', `inline-flex items-center gap-1 rounded border px-2 py-1 ${info.className}`, `${info.symbol} ${info.label}`);
+      return node('span', `inline-flex items-center gap-1 rounded-sm border px-1.5 leading-5 ${info.className}`, `${info.symbol} ${info.label}`);
     }
     for (const type of Object.keys(types).filter(type => type !== 'mixed')) $('type-key').append(typeLabel(type));
     function filterPill(field, removeOnly = false) {
       const info = typeFor(field), active = selected.has(field.id);
       const colors = active ? info.className.replace(/border-[a-z]+-\d+/, info.selected) : info.className;
-      const button = node('button', `inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border-2 px-3 py-2 text-sm break-all text-left ${colors} ${active ? 'font-semibold' : ''}`);
+      const button = node('button', `inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-sm leading-5 break-all text-left ${colors} ${active ? 'font-semibold' : ''}`);
       button.type = 'button'; button.dataset.fieldId = field.id;
       button.setAttribute('aria-pressed', String(active));
       button.setAttribute('aria-label', `${removeOnly ? 'Remove ' : ''}${field.label} (${field.types.map(type => types[type].label).join(', ')})`);
@@ -146,37 +147,144 @@
     }
     function chip(key, value) {
       const type = kindOf(value), info = types[type];
-      const cell = node('span', `inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded border px-2 py-1 [overflow-wrap:anywhere] ${info.className}`);
+      const cell = node('span', `inline-flex max-w-full flex-wrap items-baseline gap-x-1 rounded-sm border px-1.5 py-0.5 leading-tight [overflow-wrap:anywhere] ${info.className}`);
       cell.dataset.valueType = type;
       if (key !== null) cell.append(node('span', 'font-semibold', key + ':'));
       cell.append(node('span', '', valuePreview(value)));
       return cell;
     }
+    let tableSequence = 0;
+    function objectTable(rows, label, path, columns) {
+      const box = node('div', 'min-w-0 max-w-full');
+      const region = node('div', 'min-w-0 max-w-full overflow-x-auto');
+      region.tabIndex = 0; region.setAttribute('role', 'region');
+      region.setAttribute('aria-label', `${label}: object table, scroll horizontally for more columns`);
+      const table = node('table', 'table-fixed border-collapse text-left text-base leading-tight');
+      table.dataset.arrayPath = JSON.stringify(path);
+      table.setAttribute('aria-label', label + ' objects');
+      // Size each column once from the entire array, never separately per row.
+      const widths = columns.map(({ key }) => Math.max(80, Math.min(256,
+        20 + 8 * rows.reduce((longest, row) => Object.hasOwn(row, key) ? Math.max(longest, valuePreview(row[key]).length + (['array', 'object'].includes(kindOf(row[key])) ? 2 : 0)) : longest, key.length))));
+      table.style.width = (48 + widths.reduce((sum, width) => sum + width, 0)) + 'px';
+      const colgroup = node('colgroup');
+      for (const width of [48, ...widths]) {
+        const col = node('col'); col.style.width = width + 'px'; colgroup.append(col);
+      }
+      const head = node('thead'), headings = node('tr');
+      const indexHead = node('th', 'sticky left-0 z-10 border-b border-base-300 bg-base-100 px-1 py-1 text-sm font-normal', '#');
+      indexHead.scope = 'col'; headings.append(indexHead);
+      for (const column of columns) {
+        const info = typeFor(column);
+        const th = node('th', 'border-b border-base-300 px-0.5 py-1 text-sm font-semibold');
+        th.scope = 'col'; th.dataset.columnKey = column.key;
+        th.append(node('span', `block truncate rounded-sm border px-1.5 py-0.5 ${info.className}`, column.key.trim() ? column.key : JSON.stringify(column.key)));
+        headings.append(th);
+      }
+      head.append(headings);
+      const body = node('tbody'); table.append(colgroup, head, body); region.append(table); box.append(region);
+      if (rows.some(row => columns.some(({ key }) => !Object.hasOwn(row, key)))) box.append(node('div', 'pt-1 text-xs text-base-content/60', '— missing property'));
+      let painted = 0;
+      function addRow(index) {
+        const value = rows[index], rowPath = [...path, String(index)], rowId = JSON.stringify(rowPath);
+        const row = node('tr'); row.dataset.itemIndex = String(index);
+        const detailRow = node('tr'), detailCell = node('td', 'border-b border-base-300 p-1');
+        detailCell.colSpan = columns.length + 1;
+        const panel = node('div', 'sticky left-0 min-w-0 max-w-[calc(100vw-6rem)] border-l-2 border-base-300 pl-2');
+        panel.id = 'array-detail-' + (++tableSequence);
+        detailCell.append(panel); detailRow.append(detailCell);
+        const buttons = new Map();
+        function buttonFor(key, text, className) {
+          const button = node('button', className, text);
+          button.type = 'button'; button.setAttribute('aria-controls', panel.id);
+          button.setAttribute('aria-label', key === null ? `Expand item ${index}` : `Inspect ${key.trim() ? key : JSON.stringify(key)} in item ${index}: ${valuePreview(value[key])}`);
+          button.addEventListener('click', () => {
+            if (tableOpen.has(rowId) && (key === null || tableOpen.get(rowId) === key)) tableOpen.delete(rowId);
+            else {
+              tableOpen.set(rowId, key);
+              expanded.add(JSON.stringify(key === null ? rowPath : [...rowPath, key]));
+            }
+            showDetail();
+          });
+          buttons.set(key, button); return button;
+        }
+        const indexCell = node('th', 'sticky left-0 z-10 border-b border-base-200 bg-base-100 p-0.5 font-normal');
+        indexCell.scope = 'row';
+        const indexButton = buttonFor(null, `▸ ${index}`, 'block w-full rounded-sm px-1 py-1 text-left text-sm hover:bg-base-200 focus-visible:outline-2');
+        indexCell.append(indexButton); row.append(indexCell);
+        for (const { key } of columns) {
+          const cell = node('td', 'border-b border-base-200 p-0.5 align-top');
+          cell.dataset.columnKey = key;
+          if (Object.hasOwn(value, key)) {
+            const type = kindOf(value[key]), info = types[type];
+            const text = (type === 'array' || type === 'object' ? '▸ ' : '') + valuePreview(value[key]);
+            const button = buttonFor(key, text, `block w-full truncate rounded-sm border px-1.5 py-0.5 text-left leading-tight aria-expanded:font-semibold aria-expanded:underline underline-offset-2 ${info.className}`);
+            button.dataset.valueType = type; cell.append(button);
+          } else {
+            const missing = node('span', 'block px-1.5 py-0.5 text-base-content/50', '—');
+            missing.setAttribute('aria-label', 'Missing property'); cell.append(missing);
+          }
+          row.append(cell);
+        }
+        body.append(row, detailRow);
+        function showDetail() {
+          const key = tableOpen.get(rowId);
+          if (tableOpen.has(rowId) && key !== null && !Object.hasOwn(value, key)) tableOpen.delete(rowId);
+          const active = tableOpen.has(rowId);
+          for (const [buttonKey, button] of buttons) button.setAttribute('aria-expanded', String(active && key === buttonKey));
+          indexButton.setAttribute('aria-expanded', String(active));
+          indexButton.setAttribute('aria-label', `${active ? 'Collapse' : 'Expand'} item ${index}`);
+          indexButton.textContent = `${active ? '▾' : '▸'} ${index}`;
+          detailRow.hidden = !active;
+          if (!active) { panel.replaceChildren(); return; }
+          panel.replaceChildren(treeNode(key === null ? value : value[key], key === null ? `[${index}]` : key, key === null ? rowPath : [...rowPath, key], true));
+        }
+        showDetail();
+        return indexButton;
+      }
+      const more = node('button', 'btn btn-sm btn-ghost my-1'); more.type = 'button';
+      function paint() {
+        more.remove();
+        const end = Math.min(rows.length, painted + 100);
+        let first;
+        for (; painted < end; painted++) { const button = addRow(painted); first ||= button; }
+        if (painted < rows.length) {
+          more.textContent = `Show next ${Math.min(100, rows.length - painted)} · ${rows.length - painted} remaining`;
+          box.append(more);
+        }
+        return first;
+      }
+      more.addEventListener('click', () => paint()?.focus());
+      paint();
+      return box;
+    }
     function treeNode(value, label, path, root = false) {
       const type = kindOf(value), info = types[type], container = type === 'object' || type === 'array';
       if (!container) {
-        const row = node('div', 'flex min-w-0 flex-wrap items-baseline gap-2 py-2');
-        row.append(node('span', 'font-semibold break-all', label + ':'), node('span', `rounded border px-2 py-1 whitespace-pre-wrap break-all ${info.className}`, JSON.stringify(value)));
+        const row = node('div', 'flex min-w-0 flex-wrap items-baseline gap-1.5 py-1');
+        row.append(node('span', 'font-semibold break-all', label + ':'), node('span', `rounded-sm border px-1.5 py-0.5 leading-tight whitespace-pre-wrap break-all ${info.className}`, JSON.stringify(value)));
         row.dataset.valueType = type;
         return row;
       }
       const id = JSON.stringify(path), entries = Object.entries(value);
+      const columns = tableColumns(value);
       const detail = node('details', 'min-w-0 border-b border-base-200 last:border-b-0');
       detail.dataset.treePath = id;
-      const summary = node('summary', 'flex cursor-pointer list-none items-start gap-2 py-3 [&::-webkit-details-marker]:hidden');
+      const summary = node('summary', 'flex cursor-pointer list-none items-start gap-1.5 py-1.5 [&::-webkit-details-marker]:hidden');
       const arrow = node('span', 'mt-1 shrink-0 text-slate-500', expanded.has(id) ? '▾' : '▸');
       arrow.setAttribute('aria-hidden', 'true');
-      const line = node('span', 'flex min-w-0 flex-1 flex-wrap items-baseline gap-2');
-      line.append(node('span', 'font-semibold break-all', label), node('span', `rounded border px-2 py-1 text-sm ${info.className}`, `${info.symbol} ${count(value)}`));
-      if (!root) for (const [key, child] of entries.slice(0, 8)) line.append(chip(type === 'array' ? `[${key}]` : key, child));
-      if (!root && entries.length > 8) line.append(node('span', 'text-sm text-base-content/70', `+${entries.length - 8} more`));
+      const line = node('span', 'flex min-w-0 flex-1 flex-wrap items-baseline gap-1');
+      line.append(node('span', 'font-semibold break-all', label), node('span', `rounded-sm border px-1.5 text-sm leading-5 ${info.className}`, `${info.symbol} ${count(value)}`));
+      if (columns !== null) line.append(node('span', 'text-sm text-base-content/60', `${columns.length} columns ↔`));
+      if (!root && columns === null) for (const [key, child] of entries.slice(0, 8)) line.append(chip(type === 'array' ? `[${key}]` : key, child));
+      if (!root && columns === null && entries.length > 8) line.append(node('span', 'text-sm text-base-content/70', `+${entries.length - 8} more`));
       summary.append(arrow, line);
-      const children = node('div', 'ml-2 min-w-0 border-l-2 border-base-200 pl-3 sm:ml-4');
+      const children = node('div', columns === null ? 'ml-2 min-w-0 border-l-2 border-base-200 pl-2' : 'min-w-0 pb-1');
       let painted = 0, populated = false;
       const more = node('button', 'btn btn-sm btn-ghost my-2', 'Show more');
       more.type = 'button';
       function paint() {
         populated = true;
+        if (columns !== null) { children.append(objectTable(value, label, path, columns)); return; }
         more.remove();
         const end = Math.min(entries.length, painted + 100);
         for (; painted < end; painted++) {
@@ -217,7 +325,7 @@
       data = value; fields = collectFields(data);
       if (Array.isArray(data) && data.length && data.every(row => kindOf(row) === 'object')) fields = fields.filter(field => field.id !== '[null]');
       $('type-key').replaceChildren(...Object.keys(types).filter(type => type !== 'mixed' || fields.some(field => field.types.length > 1)).map(typeLabel));
-      selected.clear(); expanded.clear(); expanded.add('[]');
+      selected.clear(); expanded.clear(); expanded.add('[]'); tableOpen.clear();
       $('data-count').textContent = count(data);
       $('field-search').value = '';
       render();
@@ -237,7 +345,7 @@
     $('field-search').addEventListener('input', renderPills);
     $('nested-paths').addEventListener('change', renderPills);
     $('all-fields').addEventListener('click', () => { selected.clear(); render(); });
-    $('collapse').addEventListener('click', () => { expanded.clear(); expanded.add('[]'); render(); });
+    $('collapse').addEventListener('click', () => { expanded.clear(); expanded.add('[]'); tableOpen.clear(); render(); });
     $('download').addEventListener('click', () => {
       const url = URL.createObjectURL(new Blob([JSON.stringify(projected, null, 2)], { type: 'application/json' }));
       const link = node('a'); link.href = url; link.download = 'filtered.json'; link.click();
@@ -248,7 +356,7 @@
       const response = await fetch('json-viewers/field-model.js');
       if (!response.ok) throw new Error(`Could not load the field explorer (${response.status}).`);
       const moduleURL = URL.createObjectURL(new Blob([await response.text()], { type: 'text/javascript' }));
-      try { ({ kindOf, collectFields, projectFields } = await import(moduleURL)); }
+      try { ({ kindOf, collectFields, projectFields, tableColumns } = await import(moduleURL)); }
       finally { URL.revokeObjectURL(moduleURL); }
       load(sample);
     } catch (error) { $('load-error').textContent = error.message; $('load-error').classList.remove('hidden'); }

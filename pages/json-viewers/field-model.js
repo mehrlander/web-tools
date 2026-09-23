@@ -4,6 +4,22 @@ export function kindOf(value) {
   return Array.isArray(value) ? 'array' : typeof value;
 }
 
+/** Share one column order across an array of JSON records, including late and missing keys. */
+export function tableColumns(value) {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const columns = new Map();
+  for (const row of value) {
+    if (kindOf(row) !== 'object') return null;
+    const prototype = Object.getPrototypeOf(row);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    for (const [key, item] of Object.entries(row)) {
+      if (!columns.has(key)) columns.set(key, new Set());
+      columns.get(key).add(kindOf(item));
+    }
+  }
+  return [...columns].map(([key, types]) => ({ key, types: [...types].sort() }));
+}
+
 function fieldLabel(segments) {
   let label = '';
   for (const [index, segment] of segments.entries()) {
