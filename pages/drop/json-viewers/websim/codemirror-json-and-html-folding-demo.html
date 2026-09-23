@@ -1,0 +1,313 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): SpaceX Latest Launch Data Viewer -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpaceX Latest Launch Data Viewer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldgutter.min.css">
+<link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+</head>
+<body class="font-sans p-5">
+<h1 class="text-lg font-bold mb-2">SpaceX Latest Launch Data Viewer</h1>
+<select id="dataSource" class="mb-4 p-2 border rounded">
+    <option value="spacex">SpaceX Latest Launch</option>
+    <option value="trivia">Trivia Data</option>
+    <option value="countries">Countries Data</option>
+    <option value="pokemon">Pokémon Data</option>
+    <option value="cartoons">Cartoons 2D Data</option>
+</select>
+<div id="editor" class="border border-gray-300 mb-5"></div>
+<div id="propertyAnalysis" class="mt-5 border border-gray-300 p-2.5 rounded"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/fold/brace-fold.min.js"></script>
+<script>
+$(document).ready(function() {
+    let editor;
+    const propertySet = new Set();
+    const colorMapping = {};
+    const arrayMappings = {};
+
+    const dataSources = {
+        spacex: 'https://api.spacexdata.com/v4/launches/latest',
+        trivia: 'https://opentdb.com/api.php?amount=10',
+        countries: 'https://restcountries.com/v3.1/all',
+        pokemon: 'https://pokeapi.co/api/v2/pokemon?limit=100',
+        cartoons: 'https://api.sampleapis.com/cartoons/cartoons2D'
+    };
+
+    $('#dataSource').change(function() {
+        const selectedSource = $(this).val();
+        console.log("Selected source:", selectedSource);
+        fetchData(selectedSource);
+    });
+
+    function fetchData(source) {
+        console.log("Fetching data for source:", source);
+        $.ajax({
+            url: dataSources[source],
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                console.log("Data fetched successfully");
+                const jsonData = JSON.stringify(data, null, 2);
+                resetAndInitializeEditor(jsonData);
+            },
+            error: function(xhr, status, error) {
+                console.error("Error fetching data:", error);
+                $('#editor').html('<p>Error loading data. Please try again later.</p>');
+                $('#propertyAnalysis').empty();
+            }
+        });
+    }
+
+    function resetAndInitializeEditor(jsonData) {
+        propertySet.clear();
+        Object.keys(colorMapping).forEach(key => delete colorMapping[key]);
+        Object.keys(arrayMappings).forEach(key => delete arrayMappings[key]);
+        
+        if (editor) {
+            editor.setValue('');
+            editor.clearHistory();
+        }
+        
+        $('#editor').empty();
+        
+        initializeEditor(jsonData);
+    }
+
+    function generateConsistentLightColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const hue = (i * 137.508) % 360;
+            const saturation = 60 + (i * 7) % 20;
+            const lightness = 90;
+            colors.push(chroma.hsl(hue, saturation / 100, lightness / 100).hex());
+        }
+        return colors;
+    }
+
+    function analyzeJSON(json) {
+        const data = JSON.parse(json);
+
+        function traverse(obj, path = '') {
+            if (Array.isArray(obj)) {
+                const arrayPath = path.slice(0, -1);
+                arrayMappings[arrayPath] = new Set();
+                obj.forEach((item, index) => {
+                    if (typeof item === 'object' && item !== null) {
+                        Object.keys(item).forEach(key => {
+                            propertySet.add(key);
+                            arrayMappings[arrayPath].add(key);
+                        });
+                    }
+                    traverse(item, `${path}[${index}].`);
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                Object.keys(obj).forEach(key => {
+                    propertySet.add(key);
+                    traverse(obj[key], `${path}${key}.`);
+                });
+            }
+        }
+
+        traverse(data);
+    }
+
+    function initializeEditor(jsonData) {
+        analyzeJSON(jsonData);
+
+        const properties = Array.from(propertySet);
+        const colors = generateConsistentLightColors(properties.length);
+        properties.forEach((prop, index) => {
+            colorMapping[prop] = colors[index];
+        });
+
+        editor = CodeMirror($('#editor')[0], {
+            value: jsonData,
+            mode: {name: "javascript", json: true},
+            lineNumbers: true,
+            lineWrapping: false,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
+            foldOptions: {
+                widget: (from, to) => {
+                    let content;
+                    let startToken = '{', endToken = '}';
+                    const prevLine = editor.getLine(from.line);
+                    const isArray = prevLine.lastIndexOf('[') > prevLine.lastIndexOf('{');
+                    const isArrayElement = prevLine.trim().startsWith('{');
+                    if (isArray) {
+                        startToken = '[', endToken = ']';
+                    }
+                    const internal = editor.getRange(from, to);
+                    const toParse = startToken + internal + endToken;
+                    try {
+                        const parsed = JSON.parse(toParse);
+                        
+                        if (isArray && Array.isArray(parsed)) {
+                            if (parsed.every(item => typeof item !== 'object' || item === null)) {
+                                content = parsed.map(item => `<span class="inline-flex flex-wrap gap-0.5">${JSON.stringify(item)}</span>`).join('');
+                            } else {
+                                const properties = new Set();
+                                parsed.forEach(item => {
+                                    if (typeof item === 'object' && item !== null) {
+                                        Object.keys(item).forEach(key => properties.add(key));
+                                    }
+                                });
+                                content = Array.from(properties);
+                            }
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            if (isArrayElement) {
+                                content = Object.entries(parsed).map(([key, value]) => {
+                                    if (typeof value === 'string') return { key, value };
+                                    return { key, value: JSON.stringify(value) };
+                                });
+                            } else {
+                                content = Object.entries(parsed).map(([key, value]) => {
+                                    if (typeof value === 'object' && value !== null) {
+                                        return `${key}: ${Array.isArray(value) ? '[]' : '{}'}`;
+                                    }
+                                    return `${key}: ${JSON.stringify(value)}`;
+                                });
+                            }
+                        } else {
+                            return $('<span>\u2194</span>')[0];
+                        }
+                        
+                        const $container = $('<span class="inline-flex flex-wrap gap-0.5 relative max-w-full overflow-x-auto"></span>');
+                        if (typeof content === 'string') {
+                            $container.html(content);
+                        } else if (Array.isArray(content)) {
+                            content.forEach((item) => {
+                                let $itemElement;
+                                if (typeof item === 'object' && item.key && item.value) {
+                                    $itemElement = $(`<span class="px-1 py-0.5 rounded text-xs border border-gray-300 whitespace-nowrap">${item.value}</span>`);
+                                    if (colorMapping[item.key]) {
+                                        $itemElement.css('backgroundColor', colorMapping[item.key]);
+                                    }
+                                } else {
+                                    $itemElement = $(`<span class="px-1 py-0.5 rounded text-xs border border-gray-300 whitespace-nowrap">${item}</span>`);
+                                    if (colorMapping[item]) {
+                                        $itemElement.css('backgroundColor', colorMapping[item]);
+                                    }
+                                }
+                                $container.append($itemElement);
+                            });
+                        } else {
+                            content.forEach((item) => {
+                                const $itemElement = $(`<span class="px-1 py-0.5 rounded text-xs border border-gray-300 whitespace-nowrap">${item}</span>`);
+                                $container.append($itemElement);
+                            });
+                        }
+
+                        if (isArray && Array.isArray(parsed)) {
+                            $container.append(`<span class="absolute top-full left-0 text-xs text-gray-500 z-10">${parsed.length} items</span>`);
+                        }
+
+                        return $container[0];
+                    } catch(e) {
+                        console.error("Error parsing JSON:", e);
+                        return $('<span>\u2194</span>')[0];
+                    }
+                }
+            }
+        });
+
+        editor.operation(() => {
+            for (let i = 0; i < editor.lineCount(); i++) {
+                editor.foldCode(CodeMirror.Pos(i, 0));
+            }
+        });
+
+        updatePropertyAnalysis();
+    }
+
+    function generateArrayPropertyTable() {
+        const tableData = [];
+        Object.entries(arrayMappings).forEach(([path, props]) => {
+            Array.from(props).forEach(prop => {
+                tableData.push({
+                    arrayPath: path,
+                    property: prop,
+                    color: colorMapping[prop],
+                    longestValue: findLongestValue(path, prop),
+                    dataType: getDataType(path, prop),
+                    frequency: getFrequency(path, prop)
+                });
+            });
+        });
+
+        new Tabulator("#arrayPropertyTable", {
+            data: tableData,
+            layout: "fitColumns",
+            groupBy: "arrayPath",
+            columns: [
+                {title: "Property", field: "property"},
+                {title: "Color", field: "color", formatter: "color"},
+                {title: "Longest Value", field: "longestValue"},
+                {title: "Data Type", field: "dataType"},
+                {title: "Frequency", field: "frequency"}
+            ],
+            columnDefaults: {
+                headerFilter: true
+            }
+        });
+    }
+
+    function findLongestValue(path, prop) {
+        const data = JSON.parse(editor.getValue());
+        const arrayData = path.split('.').reduce((obj, key) => obj[key], data);
+        let longestValue = '';
+        arrayData.forEach(item => {
+            if (item[prop] && item[prop].toString().length > longestValue.length) {
+                longestValue = item[prop].toString();
+            }
+        });
+        return longestValue;
+    }
+
+    function getDataType(path, prop) {
+        const data = JSON.parse(editor.getValue());
+        const arrayData = path.split('.').reduce((obj, key) => obj[key], data);
+        const value = arrayData[0][prop];
+        return Array.isArray(value) ? 'array' : typeof value;
+    }
+
+    function getFrequency(path, prop) {
+        const data = JSON.parse(editor.getValue());
+        const arrayData = path.split('.').reduce((obj, key) => obj[key], data);
+        return arrayData.filter(item => prop in item).length;
+    }
+
+    function updatePropertyAnalysis() {
+        const $analysisContainer = $('#propertyAnalysis');
+        
+        const propertyList = Array.from(propertySet).map((prop, index) => `
+            <span class="inline-block px-1 py-0.5 rounded text-xs" style="background-color: ${colorMapping[prop]};">
+                ${index}: ${prop}
+            </span>
+        `).join('');
+
+        $analysisContainer.html(`
+            <h3 class="text-lg font-bold mb-2">Global Property Analysis</h3>
+            <div class="flex flex-wrap gap-1 mb-5">${propertyList}</div>
+            <h3 class="text-lg font-bold mb-2">Array Property Analysis</h3>
+            <div id="arrayPropertyTable"></div>
+        `);
+
+        generateArrayPropertyTable();
+    }
+
+    fetchData('spacex');
+});
+</script>
+</body>
+</html>

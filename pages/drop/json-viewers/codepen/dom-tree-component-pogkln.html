@@ -1,0 +1,215 @@
+<!-- CodePen: dom-tree component | https://codepen.io/Mark-E/pen/PogKLNp | created 28-Mar-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>dom-tree component</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/PogKLNp">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <dom-tree target="#sample-content" levels="3"></dom-tree>
+
+<div id="sample-content">
+  <header>
+    <h1>Welcome to my website</h1>
+    <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <article>
+      <h2>Latest Blog Post</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed auctor, magna a bibendum bibendum, augue magna tincidunt enim, eget ultricies magna augue eget est.</p>
+    </article>
+  </main>
+  <footer>
+    <p>&copy; 2023 My Website. All rights reserved.</p>
+  </footer>
+</div>
+  
+    <script id="rendered-js" >
+class DOMTree extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+
+    const style = document.createElement('style');
+    style.textContent = `:host {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  font-size: 14px;
+}
+
+details {
+  margin-left: 20px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+  outline: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+.attributes {
+  color: #0077cc;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+details[role="treeitem"] > summary {
+  list-style-type: none;
+}
+
+details[role="treeitem"] {
+  padding-left: 20px;
+  border-left: 2px solid #ddd;
+}
+
+details[role="treeitem"]:hover {
+  background-color: #f5f5f5;
+}
+
+.text-node {
+  color: #555;
+  font-style: italic;
+  margin-left: 20px;
+  display: block;
+}
+
+.text-node:before {
+  content: 'Text: ';
+  font-weight: bold;
+  color: #888;
+}
+
+summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent #555;
+  margin-right: 5px;
+  vertical-align: middle;
+  transition: transform 0.2s;
+}
+
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details[role="treeitem"] > summary::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+details[role="treeitem"][open] > summary::before {
+  background-color: #1a73e8;
+  border-color: #1a73e8;
+}
+`;
+    this.shadowRoot.append(style);
+  }
+
+  connectedCallback() {
+    const ancestor = this.hasAttribute('target') ? document.querySelector(this.getAttribute('target')) : document.body;
+    const levels = this.hasAttribute('levels') ? parseInt(this.getAttribute('levels'), 10) : Infinity;
+    this.shadowRoot.append(this.createTree(ancestor, 0, levels));
+  }
+
+  createTree(element, currentLevel, levels) {
+    if (currentLevel > levels || !element) return null;
+
+    const node = element.nodeType === Node.TEXT_NODE ?
+    this.createTextElement(element) :
+    this.createElementElement(element, currentLevel, levels);
+
+    return node;
+  }
+
+  createTextElement(textNode) {
+    const content = textNode.textContent.trim();
+    if (!content) return null;
+
+    const textElement = document.createElement('span');
+    textElement.className = 'text-node';
+    textElement.textContent = `"${content}"`;
+
+    return textElement;
+  }
+
+  createElementElement(element, currentLevel, levels) {
+    const details = document.createElement('details');
+    details.setAttribute('role', 'treeitem');
+
+    const summary = document.createElement('summary');
+    summary.textContent = element.tagName.toLowerCase();
+
+    const attributes = [...element.attributes].map(attr => `${attr.name}="${attr.value}"`).join(' ');
+    if (attributes) {
+      const attrsSpan = document.createElement('span');
+      attrsSpan.className = 'attributes';
+      attrsSpan.textContent = attributes;
+      summary.appendChild(attrsSpan);
+    }
+
+    details.appendChild(summary);
+
+    Array.from(element.childNodes).forEach(child => {
+      const childTree = this.createTree(child, currentLevel + 1, levels);
+      childTree && details.appendChild(childTree);
+    });
+
+    return details;
+  }}
+
+
+customElements.define('dom-tree', DOMTree);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

@@ -1,0 +1,228 @@
+<!-- CodePen: Tree component good from templates | https://codepen.io/Mark-E/pen/vYMLvJR | created 8-Mar-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Tree component good from templates</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/vYMLvJR">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <style>
+  ul {
+    list-style-type: none;
+  }
+
+  li::before {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.25rem;
+    content: "";
+  }
+
+  .open::before,
+  .closed::before {
+    background-size: 1rem 1rem;
+    position: relative;
+    top: 0.25rem;
+    opacity: 0.3;
+  }
+
+  .open::before {
+    background-image: url(img/down.png);
+  }
+
+  .closed::before {
+    background-image: url(img/right.png);
+  }
+
+  .closed .closed::before,
+  .closed .open::before {
+    display: none;
+  }
+</style><tree-doc>
+  <tree-el name="html" attributes="lang=&quot;en&quot;">
+    <tree-el name="head">
+      <tree-el name="title">My Website</tree-el>
+    </tree-el>
+    <tree-el name="body" attributes="class=&quot;main-content&quot;">
+      <tree-el name="header">
+        <tree-el name="h1">Welcome to my site!</tree-el>
+        <tree-el name="nav">
+          <tree-el name="ul">
+            <tree-el name="li"><a href="#">Home</a></tree-el>
+            <tree-el name="li"><a href="#">About</a></tree-el>
+            <tree-el name="li"><a href="#">Contact</a></tree-el>
+          </tree-el>
+        </tree-el>
+      </tree-el>
+      <tree-el name="main">
+        <tree-el name="p">This is the main content of the page.</tree-el>
+      </tree-el>
+      <tree-el name="footer">
+        <tree-el name="p">&copy; 2023 My Website. All rights reserved.</tree-el>
+      </tree-el>
+    </tree-el>
+  </tree-el>
+</tree-doc>
+
+<template id="tree-doc-template">
+  <style>
+    :host {
+      display: block;
+      font-family: Arial, sans-serif;
+      padding: 16px;
+    }
+    ::slotted(tree-el) {
+      display: block;
+      margin-left: 16px;
+    }
+  </style>
+  <slot></slot>
+</template>
+
+<template id="tree-el-template">
+  <style>
+    :host {
+      display: block;
+    }
+    .tree-el {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      border-radius: 4px;
+    }
+    .tree-el:hover {
+      background-color: #f0f0f0;
+    }
+    .arrow {
+      margin-right: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+    .name {
+      font-weight: bold;
+      color: #333;
+    }
+    .attributes {
+      margin-left: 16px;
+      font-size: 14px;
+      color: #555;
+    }
+    .attribute-key {
+      color: #888;
+    }
+    .attribute-value {
+      color: #007bff;
+    }
+    .children {
+      display: none;
+      margin-left: 16px;
+      padding-left: 16px;
+      border-left: 2px solid #ccc;
+    }
+    :host(.expanded) .children {
+      display: block;
+    }
+    :host(:not(.has-children)) .arrow {
+      display: none;
+    }
+  </style>
+  <div class="tree-el">
+    <span class="arrow">▶</span>
+    <span class="name"></span>
+    <span class="attributes"></span>
+  </div>
+  <div class="children">
+    <slot></slot>
+  </div>
+</template>
+  
+    <script id="rendered-js" >
+class TreeDoc extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.appendChild(
+    document.getElementById("tree-doc-template").content.cloneNode(true));
+
+  }}
+
+
+customElements.define("tree-doc", TreeDoc);
+
+class TreeEl extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.appendChild(
+    document.getElementById("tree-el-template").content.cloneNode(true));
+
+  }
+
+  connectedCallback() {
+    this.shadowRoot.querySelector(".name").textContent = this.getAttribute(
+    "name");
+
+    const attributes = this.getAttribute("attributes");
+    if (attributes) {
+      const attributesHtml = attributes.
+      split(" ").
+      map(attr => {
+        const [key, value] = attr.split("=");
+        return `<span class="attribute-key">${key}</span>=<span class="attribute-value">${value}</span>`;
+      }).
+      join(" ");
+      this.shadowRoot.querySelector(".attributes").innerHTML = attributesHtml;
+    }
+
+    if (this.hasChildNodes()) {
+      this.classList.add("has-children");
+    }
+
+    this.shadowRoot.
+    querySelector(".tree-el").
+    addEventListener("click", this.toggleExpanded.bind(this));
+  }
+
+  toggleExpanded() {
+    this.classList.toggle("expanded");
+    const arrow = this.shadowRoot.querySelector(".arrow");
+    arrow.textContent = this.classList.contains("expanded") ? "▼" : "▶";
+  }}
+
+
+customElements.define("tree-el", TreeEl);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

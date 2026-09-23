@@ -1,0 +1,469 @@
+<!-- CodePen: Local storage explorer | https://codepen.io/Mark-E/pen/gOJVwYO | created 1-Jul-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Local storage explorer</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/gOJVwYO">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <html><head><title>Local Storage Explorer</title>
+<style>
+body, html {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.status-bar {
+    padding: 10px;
+    background-color: #252525;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.storage-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.storage-list {
+    width: 30%;
+    background-color: #252525;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    margin-right: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.storage-list h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.key-list-container {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.storage-list ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.storage-list li {
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.storage-list li:hover {
+    background-color: #333;
+}
+
+.storage-list li.selected {
+    background-color: #4da6ff;
+    color: #000000;
+}
+
+.storage-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.storage-details h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.details-content {
+    background-color: #252525;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.button {
+    background-color: #4da6ff;
+    color: #1e1e1e;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover {
+    background-color: #3a8ad6;
+}
+
+.input-field {
+    width: calc(100% - 22px);
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    resize: none;
+    flex: 1;
+}
+
+.progress-bar {
+    height: 10px;
+    background-color: #4da6ff;
+    border-radius: 5px;
+    margin-top: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar-used {
+    height: 100%;
+    background-color: #ff4d4d;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.key-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8em;
+    color: inherit;
+    margin-bottom: 2px;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="status-bar" id="statusBar"></div>
+    <div class="storage-content">
+        <div class="storage-list">
+            <h3>Stored Keys</h3>
+            <div class="key-list-container">
+                <ul id="keyList"></ul>
+            </div>
+        </div>
+        <div class="storage-details">
+            <h3>Key Details</h3>
+            <div class="details-content">
+                <textarea id="keyValue" class="input-field" placeholder="Key value"></textarea>
+                <div class="button-group">
+                    <div>
+                        <button id="saveButton" class="button">Save</button>
+                        <button id="deleteButton" class="button">Delete</button>
+                        <button id="renameButton" class="button">Rename</button>
+                    </div>
+                    <div>
+                        <button id="newKeyButton" class="button">New Key</button>
+                        <button id="downloadButton" class="button">Download</button>
+                        <input type="file" id="uploadInput" style="display: none;">
+                        <button id="uploadButton" class="button">Upload</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body></html>
+  
+    <script id="rendered-js" >
+// Helper function to get DOM elements
+const $ = selector => document.querySelector(selector);
+
+// Helper function to format bytes
+const formatBytes = bytes => bytes.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+// Helper function to handle errors
+const handleError = message => {
+  console.error(message);
+  updateStatus(`Error: ${message}`);
+};
+
+// LocalStorage helper functions
+const LS = {
+  get: key => localStorage.getItem(key),
+  set: (key, value) => localStorage.setItem(key, value),
+  remove: key => localStorage.removeItem(key),
+  clear: () => localStorage.clear(),
+  keys: () => Object.keys(localStorage),
+  size: key => key ? LS.get(key).length : JSON.stringify(localStorage).length,
+  usage: () => LS.size(),
+  quota: () => {
+    try {
+      const testKey = 'test';
+      LS.set(testKey, 'a'.repeat(1024 * 1024));
+      LS.remove(testKey);
+      return 5 * 1024 * 1024;
+    } catch (e) {
+      return e instanceof DOMException && (
+      e.code === 22 ||
+      e.code === 1014 ||
+      e.name === 'QuotaExceededError' ||
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED') ?
+      5 * 1024 * 1024 : 0;
+    }
+  },
+  isFull: () => LS.usage() >= LS.quota() };
+
+
+// Binary data handling functions
+const BinaryData = {
+  encode: (data, type) => {
+    let buffer;
+    if (type === 'text') {
+      buffer = new TextEncoder().encode(data).buffer;
+    } else {
+      buffer = new ArrayBuffer(data.length * 4);
+      let view = type === 'int' ? new Int32Array(buffer) : new Float32Array(buffer);
+      view.set(data);
+    }
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
+  },
+  decode: (base64String, type) => {
+    let binaryString = atob(base64String);
+    let buffer = new ArrayBuffer(binaryString.length);
+    let uint8View = new Uint8Array(buffer);
+    for (let i = 0; i < binaryString.length; i++) {
+      uint8View[i] = binaryString.charCodeAt(i);
+    }
+    if (type === 'text') {
+      return new TextDecoder().decode(uint8View);
+    } else {
+      return Array.from(type === 'int' ? new Int32Array(buffer) : new Float32Array(buffer));
+    }
+  },
+  save: (key, type, start, indexes, ...data) => {
+    if (!['int', 'float', 'text'].includes(type)) {
+      throw new Error('Invalid type. Allowed types: int, float, text');
+    }
+    let encodedData = BinaryData.encode(type === 'text' ? data[0] : data.slice(start, start + indexes), type);
+    LS.set(key, JSON.stringify({ type, data: encodedData }));
+  },
+  load: (key, type, start, indexes) => {
+    let storedData = LS.get(key);
+    if (!storedData) return null;
+    let { data: base64String } = JSON.parse(storedData);
+    let decodedData = BinaryData.decode(base64String, type);
+    if (type === 'text') {
+      return decodedData.slice(start * 4, (start + indexes) * 4);
+    } else {
+      return decodedData.slice(start, start + indexes);
+    }
+  } };
+
+
+// UI update functions
+const UI = {
+  updateKeyList: () => {
+    const keyList = $('#keyList');
+    keyList.innerHTML = '';
+    const quota = LS.quota();
+    LS.keys().forEach((key, index) => {
+      const li = document.createElement('li');
+      const keySize = LS.size(key);
+      const keyPercentage = (keySize / quota * 100).toFixed(2);
+      li.innerHTML = `
+        <div class="key-info">
+          <span>${key}</span>
+          <span>${formatBytes(keySize)} bytes (${keyPercentage}%)</span>
+        </div>
+      `;
+      li.onclick = e => UI.selectKey(key, index, e);
+      if (selectedKeys.has(key)) {
+        li.classList.add('selected');
+      }
+      keyList.appendChild(li);
+    });
+  },
+  selectKey: (key, index, event) => {
+    if (event.ctrlKey) {
+      selectedKeys.has(key) ? selectedKeys.delete(key) : selectedKeys.add(key);
+    } else if (event.shiftKey && lastSelectedKey !== null) {
+      const keys = LS.keys();
+      const [start, end] = [keys.indexOf(lastSelectedKey), index].sort((a, b) => a - b);
+      for (let i = start; i <= end; i++) {
+        selectedKeys.add(keys[i]);
+      }
+    } else {
+      selectedKeys.clear();
+      selectedKeys.add(key);
+    }
+    lastSelectedKey = key;
+    UI.updateKeyList();
+    if (selectedKeys.size === 1) {
+      UI.loadKeyDetails(key);
+    } else {
+      $('#keyValue').value = '';
+    }
+  },
+  loadKeyDetails: key => {
+    $('#keyValue').value = LS.get(key);
+    $('#saveButton').onclick = () => UI.saveKeyValue(key);
+    $('#deleteButton').onclick = UI.deleteSelectedKeys;
+    $('#downloadButton').onclick = UI.downloadSelectedKeys;
+    $('#renameButton').onclick = () => UI.renameKey(key);
+    UI.updateKeyList();
+  },
+  saveKeyValue: key => {
+    LS.set(key, $('#keyValue').value);
+    UI.updateKeyList();
+    updateStatus(`Key "${key}" saved successfully.`);
+  },
+  deleteSelectedKeys: () => {
+    selectedKeys.forEach(key => LS.remove(key));
+    selectedKeys.clear();
+    lastSelectedKey = null;
+    UI.updateKeyList();
+    $('#keyValue').value = '';
+    updateStatus(`Selected keys deleted successfully.`);
+  },
+  downloadSelectedKeys: () => {
+    const zip = new JSZip();
+    selectedKeys.forEach(key => {
+      zip.file(`${key}.txt`, LS.get(key));
+    });
+    zip.generateAsync({ type: "blob" }).then(content => {
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'localStorage_keys.zip';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    updateStatus(`Selected keys downloaded successfully.`);
+  },
+  uploadKey: () => {
+    const file = $('#uploadInput').files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const key = file.name.replace('.txt', '');
+        LS.set(key, e.target.result);
+        selectedKeys.clear().add(key);
+        lastSelectedKey = key;
+        UI.updateKeyList();
+        UI.loadKeyDetails(key);
+        updateStatus(`Key "${key}" uploaded successfully.`);
+      };
+      reader.readAsText(file);
+    }
+  },
+  renameKey: oldKey => {
+    const newKey = prompt("Enter new key name:", oldKey);
+    if (newKey && newKey !== oldKey) {
+      LS.set(newKey, LS.get(oldKey));
+      LS.remove(oldKey);
+      selectedKeys.delete(oldKey).add(newKey);
+      lastSelectedKey = newKey;
+      UI.updateKeyList();
+      UI.loadKeyDetails(newKey);
+      updateStatus(`Key "${oldKey}" renamed to "${newKey}".`);
+    }
+  },
+  createNewKey: () => {
+    const newKey = prompt("Enter new key name:");
+    if (newKey) {
+      LS.set(newKey, "");
+      selectedKeys.clear().add(newKey);
+      lastSelectedKey = newKey;
+      UI.updateKeyList();
+      UI.loadKeyDetails(newKey);
+      updateStatus(`New key "${newKey}" created.`);
+    }
+  } };
+
+
+// Status update function
+const updateStatus = message => {
+  const usage = LS.usage();
+  const quota = LS.quota();
+  const percentage = (usage / quota * 100).toFixed(2);
+  $('#statusBar').innerHTML = `
+    ${message}<br>
+    Storage usage: ${formatBytes(usage)} / ${formatBytes(quota)} bytes (${percentage}%)
+    <div class="progress-bar">
+      <div class="progress-bar-used" style="width: ${percentage}%"></div>
+    </div>
+  `;
+};
+
+// Event listeners
+$('#uploadButton').onclick = () => $('#uploadInput').click();
+$('#uploadInput').onchange = UI.uploadKey;
+$('#newKeyButton').onclick = UI.createNewKey;
+
+// Initialize
+let selectedKeys = new Set();
+let lastSelectedKey = null;
+UI.updateKeyList();
+updateStatus('Ready.');
+
+// Load JSZip if not available
+if (typeof JSZip === 'undefined') {
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js';
+  script.onload = () => {JSZip = window.JSZip;};
+  document.head.appendChild(script);
+}
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

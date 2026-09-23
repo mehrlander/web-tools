@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JSON Viewers Gallery</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-100">
+<div x-data="gallery()" x-init="boot()" @keydown.window="key($event)"
+     class="fixed inset-0 grid grid-rows-[auto_1fr_auto] min-h-0">
+
+  <header class="flex items-center gap-2 px-3 py-2 border-b border-base-300 min-w-0">
+    <button class="btn btn-ghost btn-sm btn-square lg:hidden" x-show="pane==='frame'" @click="back()" aria-label="Back to list"><i class="ph ph-arrow-left text-lg"></i></button>
+    <span class="font-semibold truncate">JSON viewers</span>
+    <select class="select select-sm w-auto" x-model="filter" @change="refilter()">
+      <template x-for="f in filters" :key="f.k"><option :value="f.k" x-text="`${f.label} · ${count(f.k)}`"></option></template>
+    </select>
+    <span class="text-xs font-mono text-base-content/60 shrink-0" x-text="`${i + 1}/${rows.length}`"></span>
+    <span class="flex-1"></span>
+    <a class="btn btn-ghost btn-sm" :href="alone(cur)" target="_blank" rel="noopener" x-show="cur">Open <i class="ph ph-arrow-square-out"></i></a>
+    <a class="btn btn-ghost btn-sm hidden sm:inline-flex" :href="cur?.url" target="_blank" rel="noopener" x-show="cur?.url">Pen <i class="ph ph-arrow-square-out"></i></a>
+  </header>
+
+  <main class="grid lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] min-h-0 min-w-0">
+    <ul class="overflow-y-auto min-h-0 border-r border-base-300" :class="pane==='frame' && 'max-lg:hidden'" x-ref="list">
+      <template x-for="(r, n) in rows" :key="r.p">
+        <li :data-n="n" @click="go(n, true)"
+            class="flex gap-3 p-3 cursor-pointer border-b border-base-200 hover:bg-base-200"
+            :class="n===i && 'bg-base-200'">
+          <img :src="thumb(r)" loading="lazy" alt="" class="w-28 aspect-[16/10] object-cover object-top rounded border border-base-300 shrink-0 bg-base-200">
+          <div class="min-w-0 flex flex-col gap-1">
+            <div class="font-medium text-sm flex items-center gap-1">
+              <i class="ph-fill ph-star text-warning" x-show="r.pick"></i>
+              <span class="truncate" x-text="r.t"></span>
+            </div>
+            <div class="text-sm text-base-content/70 text-pretty" x-text="r.idea"></div>
+            <div class="text-xs text-base-content/50 flex flex-wrap gap-x-2">
+              <span x-text="r.s + (r.d ? ' ' + r.d : '') + (r.v ? ' · v' + r.v : '')"></span>
+              <span x-text="r.lib"></span>
+              <span class="text-warning" x-show="r.needs" x-text="needsLabel[r.needs]"></span>
+            </div>
+          </div>
+        </li>
+      </template>
+    </ul>
+    <section class="min-h-0 min-w-0 bg-white" :class="pane==='list' && 'max-lg:hidden'">
+      <iframe x-show="cur" :src="cur ? frameSrc(cur) : 'about:blank'" class="w-full h-full border-0"></iframe>
+    </section>
+  </main>
+
+  <footer class="flex items-center gap-3 px-3 py-2 border-t border-base-300">
+    <button class="btn btn-sm btn-ghost" @click="step(-1)" :disabled="i===0"><i class="ph ph-caret-left"></i></button>
+    <progress class="progress flex-1" :value="i + 1" :max="rows.length"></progress>
+    <button class="btn btn-sm btn-ghost" @click="step(1)" :disabled="i>=rows.length-1"><i class="ph ph-caret-right"></i></button>
+  </footer>
+</div>
+
+<script>
+const DATA = [{"p": "websim/codemirror-json-and-html-folding-demo.html","t": "CodeMirror JSON and HTML Folding Demo","s": "WebSim","lib": "CodeMirror 5, chroma.js, Tabulator","needs": "net","idea": "Fold widgets shaped by type; one color per key everywhere (golden-angle hues); per-array schema table","pick": 1,"v": 100},{"p": "websim/elegant-tree-view-component-with-api-sel.html","t": "Elegant Tree View Component with API Selection #1","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "A collapsed array of objects reads as a table: key-union header, aligned value chips, presence counts","pick": 2},{"p": "codepen/renderjson-mdyyxd.html","t": "renderJson","s": "CodePen","lib": "hand-written","needs": "","idea": "Lazy: a collapsed node is \"{12 items}\", built on first click, cached; the output stays valid, copyable JSON","pick": 3,"url": "https://codepen.io/Mark-E/pen/mdYYXdq","d": "28-Jun-24"},{"p": "codepen/tree-display-component-rwowwz.html","t": "Tree display component · rwowwz","s": "CodePen","lib": "web component","needs": "","idea": "Single-child chains fold onto one line; connector lines drawn in CSS alone","pick": 4,"url": "https://codepen.io/Mark-E/pen/RwOWwzJ","d": "5-Mar-24"},{"p": "codepen/chicago-art-institute-tree-view-opyaxg.html","t": "Chicago art institute tree view","s": "CodePen","lib": "Alpine, Tailwind, Lucide","needs": "net","idea": "Open state kept as a Set of paths; children rendered only when open; [n] and {…} summaries","pick": 5,"url": "https://codepen.io/Mark-E/pen/OPyaxGJ","d": "1-Sep-25"},{"p": "websim/json-structure-visualizer.html","t": "JSON Structure Visualizer","s": "WebSim","lib": "D3 (head lost in export)","needs": "broken","idea": "Every node carries its path: clickable breadcrumb, prev/next steps through siblings","pick": 6,"v": 49},{"p": "websim/spacex-json-viewer-with-auto-folding.html","t": "SpaceX JSON Viewer with Auto-Folding","s": "WebSim","lib": "CodeMirror 5","needs": "net","idea": "Fold policies: below depth N, longer than N characters, everything but one key with ancestors revealed","pick": 7,"v": 12},{"p": "websim/spacex-launches-tree-view.html","t": "SpaceX Launches Tree View","s": "WebSim","lib": "FancyTree, daisyUI","needs": "net","idea": "Every dotted path as a pill; pick pills to project records to those columns","pick": 8,"v": 21},{"p": "codepen/daisy-link-tree-veezmn.html","t": "Daisy link tree","s": "CodePen","lib": "Alpine, daisyUI","needs": "cors","idea": "Native <details> in a daisyUI menu is the whole tree; three lines rebuild a tree from flat paths","pick": 9,"url": "https://codepen.io/Mark-E/pen/vEEZmNK","d": "25-Apr-25"},{"p": "codepen/daisy-collapse-tree-theme-picker-bynamo.html","t": "Daisy collapse tree theme picker","s": "CodePen","lib": "Alpine, daisyUI","needs": "cors","idea": "Per-node x-data with x-collapse; colors only from theme tokens, so every theme restyles it","pick": 10,"url": "https://codepen.io/Mark-E/pen/ByNaMoy","d": "25-May-25"},{"p": "codepen/tree-view-test-grlwee.html","t": "tree view test","s": "CodePen","lib": "hand-written","needs": "","idea": "Hover toolbar copies a node's path; XPath filter box; ancestor chain as label","pick": 11,"url": "https://codepen.io/Mark-E/pen/GRLwEEZ","d": "19-Apr-24"},{"p": "websim/library-of-congress-dom-tree-using-tabul.html","t": "Library of Congress DOM Tree using Tabulator","s": "WebSim","lib": "Tabulator","needs": "cors","idea": "The tree as table rows, with path and child-count columns","pick": 12,"v": 15},{"p": "codepen/json-tree-newer-wvovqj.html","t": "JSON Tree Newer","s": "CodePen","lib": "Lit","needs": "net","idea": "Left border colored by container type runs the length of an open node","pick": 13,"url": "https://codepen.io/Mark-E/pen/wvOVqjm","d": "26-Feb-24"},{"p": "codepen/json-dmp-qennea.html","t": "JSON dmp","s": "CodePen","lib": "jsondiffpatch","needs": "","idea": "Hide unchanged: a display filter that keeps only what differs","pick": 14,"url": "https://codepen.io/Mark-E/pen/qENNEaq","d": "7-Jan-26"},{"p": "codepen/jsonata-spacex-example-npnzwx.html","t": "Jsonata spacex example","s": "CodePen","lib": "JSONata, Tailwind","needs": "net","idea": "Query first: an expression box drives what is shown","pick": 15,"url": "https://codepen.io/Mark-E/pen/NPNZwXa","d": "16-Dec-25"},{"p": "codepen/local-storage-explorer-gojvwy.html","t": "Local storage explorer","s": "CodePen","lib": "hand-written","needs": "","idea": "Byte size and share of quota on every row","pick": 16,"url": "https://codepen.io/Mark-E/pen/gOJVwYO","d": "1-Jul-24"},{"p": "codepen/alpine-tree-veywpb.html","t": "Alpine tree","s": "CodePen","lib": "hand-written","needs": "cors","idea": "loc.gov DOM tree","url": "https://codepen.io/Mark-E/pen/vEYWPBQ","d": "13-Mar-25"},{"p": "codepen/another-tree-veywpl.html","t": "Another tree","s": "CodePen","lib": "hand-written, Tailwind","needs": "cors","idea": "loc.gov DOM tree with truncated labels","url": "https://codepen.io/Mark-E/pen/vEYWPLv","d": "13-Mar-25"},{"p": "codepen/daisy-succinct-dom-tree-emnybb.html","t": "Daisy succinct dom tree","s": "CodePen","lib": "daisyUI","needs": "cors","idea": "About 20 lines: DOM into nested <details>","url": "https://codepen.io/Mark-E/pen/emNYbBJ","d": "25-May-25"},{"p": "codepen/derive-tree-table-hmm-pombwp.html","t": "Derive tree table hmm","s": "CodePen","lib": "Tabulator","needs": "","idea": "Flat rows grouped into a tree table with rolled-up totals","url": "https://codepen.io/Mark-E/pen/poMbWPN","d": "5-Oct-24"},{"p": "codepen/dom-tree-daisy-veblnm.html","t": "Dom tree Daisy","s": "CodePen","lib": "daisyUI","needs": "broken","idea": "loc.gov DOM tree with expand all; invalid selector throws","url": "https://codepen.io/Mark-E/pen/vEBLNMo","d": "4-Dec-24"},{"p": "codepen/dom-tree-component-pogkln.html","t": "dom-tree component","s": "CodePen","lib": "web component","needs": "","idea": "<details> tree in shadow DOM with a depth limit","url": "https://codepen.io/Mark-E/pen/PogKLNp","d": "28-Mar-24"},{"p": "codepen/fancy-tree-demo-zygzve.html","t": "Fancy Tree Demo","s": "CodePen","lib": "FancyTree, jQuery","needs": "","idea": "Stock FancyTree demo","url": "https://codepen.io/Mark-E/pen/zYgZVeP","d": "15-Oct-24"},{"p": "codepen/lit-json-collapsible-goqvwx.html","t": "Lit JSON collapsible","s": "CodePen","lib": "Lit","needs": "net","idea": "Earlier form of JSON Tree Newer","url": "https://codepen.io/Mark-E/pen/gOqvwxz","d": "18-Nov-23"},{"p": "codepen/paste-in-tree-display-working-well-wnwgar.html","t": "Paste-in tree display working well","s": "CodePen","lib": "web component","needs": "input","idea": "Paste XML or HTML, get a collapsible tree","url": "https://codepen.io/Mark-E/pen/WNWgarw","d": "16-Apr-24"},{"p": "codepen/renderjson-prettified-clickable-wnbbmq.html","t": "renderJson prettified clickable","s": "CodePen","lib": "hand-written","needs": "","idea": "Eager variant of renderJson; keeps pre-wrap and item pluralization","url": "https://codepen.io/Mark-E/pen/WNBBMQL","d": "28-Jun-24"},{"p": "codepen/shoelace-tree-as-list-babnxw.html","t": "Shoelace tree as list","s": "CodePen","lib": "Shoelace","needs": "","idea": "sl-tree restyled as a flat list","url": "https://codepen.io/Mark-E/pen/BabNxWV","d": "29-Dec-23"},{"p": "codepen/shoelace-tree-as-list-zeppop.html","t": "Shoelace Tree as list","s": "CodePen","lib": "Shoelace","needs": "","idea": "sl-tree restyled as a flat list, with a split panel","url": "https://codepen.io/Mark-E/pen/ZEPPOPG","d": "17-Feb-24"},{"p": "codepen/shoelace-tree-multiple-select-qwyxxq.html","t": "Shoelace tree multiple select","s": "CodePen","lib": "Shoelace","needs": "","idea": "Stock multiple-select demo","url": "https://codepen.io/Mark-E/pen/QWYXXQW","d": "16-Dec-23"},{"p": "codepen/tree-component-good-from-templates-vymlvj.html","t": "Tree component good from templates","s": "CodePen","lib": "web component","needs": "","idea": "Hand-written <tree-el> markup made collapsible by templates","url": "https://codepen.io/Mark-E/pen/vYMLvJR","d": "8-Mar-24"},{"p": "codepen/tree-display-component-qwplqp.html","t": "Tree display component · qwplqp","s": "CodePen","lib": "web component","needs": "broken","idea": "Chain folding with path tooltip; lost its click handler","url": "https://codepen.io/Mark-E/pen/QWPLQpY","d": "27-Feb-24"},{"p": "codepen/tree-doc-component-vanilla-xwqdbm.html","t": "Tree doc component vanilla","s": "CodePen","lib": "web component","needs": "","idea": "Self-contained form of the <tree-el> idea","url": "https://codepen.io/Mark-E/pen/XWQdbma","d": "9-Mar-24"},{"p": "codepen/tree-view-working-mdgvqb.html","t": "Tree view working","s": "CodePen","lib": "web component","needs": "","idea": "DOM tree of the host page","url": "https://codepen.io/Mark-E/pen/mdgVQbP","d": "8-Mar-24"},{"p": "codepen/tree-display-more-test-pogkgy.html","t": "tree-display more test","s": "CodePen","lib": "web component","needs": "broken","idea": "Same as qwplqp without Shoelace","url": "https://codepen.io/Mark-E/pen/PogKgYe","d": "28-Mar-24"},{"p": "codepen/tree-js-mdvxmb.html","t": "Tree.js","s": "CodePen","lib": "treejs","needs": "","idea": "Checkbox tree with closeDepth","url": "https://codepen.io/Mark-E/pen/mdvXmBg","d": "19-Nov-23"},{"p": "websim/api-data-tree.html","t": "API Data Tree","s": "WebSim","lib": "Alpine, Pico","needs": "broken","idea": "Two-level tree; mock fetch installed too late","v": 1},{"p": "websim/api-json-viewer-with-fancytree.html","t": "API JSON Viewer with FancyTree","s": "WebSim","lib": "FancyTree, JSONEditor 9, Prism","needs": "net","idea": "One payload, three renderers side by side","v": 1},{"p": "websim/codemirror-json-folding-with-enhanced-wi.html","t": "CodeMirror JSON Folding with Enhanced Widget and Property Analysis","s": "WebSim","lib": "CodeMirror 5, chroma.js","needs": "","idea": "Middle step of the fold-widget line; runs on inline sample data","v": 1},{"p": "websim/codemirror-json-folding-with-html-widget.html","t": "CodeMirror JSON Folding with HTML Widget Demo","s": "WebSim","lib": "CodeMirror 5","needs": "","idea": "First fold-widget version: key chips only","v": 1},{"p": "websim/data-explorer-with-tabulator.html","t": "Data Explorer with Tabulator","s": "WebSim","lib": "Tabulator, Alpine","needs": "broken","idea": "Paged table; calls Alpine 2 API under Alpine 3","v": 3},{"p": "websim/elegant-tree-view-component.html","t": "Elegant Tree View Component #1","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Ellipsis rows, tinted open rows"},{"p": "websim/elegant-tree-view-component-2.html","t": "Elegant Tree View Component #2","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Simplest of the elegant-tree line"},{"p": "websim/elegant-tree-view-component-3.html","t": "Elegant Tree View Component #3","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Colored preview chips under containers"},{"p": "websim/elegant-tree-view-component-4.html","t": "Elegant Tree View Component #4","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Array headers show the union of item keys"},{"p": "websim/elegant-tree-view-component-5.html","t": "Elegant Tree View Component #5","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Fixed key gutter, role borders, measured column widths"},{"p": "websim/elegant-tree-view-component-with-api-sel-2.html","t": "Elegant Tree View Component with API Selection #2","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Adds a raw JSON pane and array legend cards"},{"p": "websim/elegant-tree-view-component-with-expanda.html","t": "Elegant Tree View Component with Expandable Containers","s": "WebSim","lib": "hand-written, Tailwind","needs": "net","idea": "Accent legend and key stats popup","v": 1},{"p": "websim/html-tree-viewer.html","t": "HTML Tree Viewer","s": "WebSim","lib": "FancyTree","needs": "cors","idea": "DOM tree with unwrapping and empty-node pruning","v": 25},{"p": "websim/infinite-tree-demo-with-api-data.html","t": "Infinite Tree Demo with API Data","s": "WebSim","lib": "infinite-tree","needs": "broken","idea": "The one lazy library; no root data supplied","v": 2},{"p": "websim/interactive-file-tree-view.html","t": "Interactive File Tree View","s": "WebSim","lib": "Preline, Lucide","needs": "","idea": "Static folder tree, not JSON","v": 1},{"p": "websim/library-of-congress-vanilla-js-collapsib.html","t": "Library of Congress Vanilla JS Collapsible Tree with Attributes","s": "WebSim","lib": "hand-written","needs": "cors","idea": "Neatest single-child compaction, no library","v": 1},{"p": "websim/nested-tabulator-tables-with-popups.html","t": "Nested Tabulator Tables with Popups","s": "WebSim","lib": "Tabulator, Tippy","needs": "","idea": "A table inside a column-header popover","v": 6},{"p": "websim/nice-table-demo-data-agnostic-with-api.html","t": "Nice Table Demo - Data-Agnostic with API and Object Data Support","s": "WebSim","lib": "web component","needs": "net","idea": "Row click shows the row as JSON","v": 1},{"p": "websim/object-tree-viewer.html","t": "Object Tree Viewer","s": "WebSim","lib": "jquery-jsonview","needs": "","idea": "Thin library wrapper","v": 2},{"p": "websim/space-x-launch-data-explorer-refined-c.html","t": "Space-X Launch Data Explorer - Refined Collapsible Tree View","s": "WebSim","lib": "D3","needs": "net","idea": "Stock collapsible D3 tree","v": 1},{"p": "websim/space-x-launch-data-explorer-refined-i.html","t": "Space-X Launch Data Explorer - Refined Interactive Tree View #1","s": "WebSim","lib": "D3","needs": "net","idea": "Rectangular key/value nodes, leaf enlarge"},{"p": "websim/space-x-launch-data-explorer-refined-i-2.html","t": "Space-X Launch Data Explorer - Refined Interactive Tree View #2","s": "WebSim","lib": "D3","needs": "net","idea": "D3 tree with [n] and {n} counts on collapsed nodes"},{"p": "websim/space-x-launch-data-explorer-refined-r.html","t": "Space-X Launch Data Explorer - Refined Rectangular Node Tree View","s": "WebSim","lib": "D3","needs": "net","idea": "Rectangular key/value nodes","v": 1},{"p": "websim/tabulator-collapse-example.html","t": "Tabulator Collapse Example","s": "WebSim","lib": "Tabulator, marked","needs": "","idea": "groupBy with Markdown cells","v": 10},{"p": "websim/websim-html-xml-element-hierarchy-visual.html","t": "WebSim HTML/XML Element Hierarchy Visualizer","s": "WebSim","lib": "ECharts","needs": "input","idea": "Sunburst weighted by subtree size","v": 1},{"p": "websim/xml-to-elegant-collapsible-tree.html","t": "XML to Elegant Collapsible Tree","s": "WebSim","lib": "FancyTree, daisyUI","needs": "input","idea": "XML with attributes as @name children","v": 3},{"p": "websim/xml-tree-visualizer-with-mermaid-js-hor.html","t": "XML Tree Visualizer with Mermaid.js (Horizontal Layout)","s": "WebSim","lib": "Mermaid","needs": "broken","idea": "Mermaid graph; child IDs do not match parent edges","v": 1}];
+
+function gallery() {
+  const hosted = /(^|\.)github\.io$|^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  const ref = window.__ref || 'main';
+  const REPO = 'mehrlander/web-tools', DIR = 'pages/drop/json-viewers/';
+  return {
+    all: DATA, rows: [], i: 0, filter: 'pick', pane: 'list',
+    filters: [
+      { k: 'pick', label: 'Picks' }, { k: 'all', label: 'All' },
+      { k: 'CodePen', label: 'CodePen' }, { k: 'WebSim', label: 'WebSim' },
+      { k: 'offline', label: 'Runs offline' },
+    ],
+    needsLabel: { net: 'live API', cors: 'CORS-blocked fetch', input: 'paste input', broken: 'broken as extracted' },
+    get cur() { return this.rows[this.i]; },
+    test(k, r) {
+      return k === 'all' || (k === 'pick' ? !!r.pick : k === 'offline' ? !r.needs : r.s === k);
+    },
+    count(k) { return this.all.filter(r => this.test(k, r)).length; },
+    boot() {
+      const h = new URLSearchParams(location.hash.slice(1));
+      if (h.get('f')) this.filter = h.get('f');
+      this.refilter(h.get('p'));
+      if (h.get('p') && window.innerWidth < 1024) this.pane = 'frame';
+      addEventListener('popstate', () => { if (this.pane === 'frame') this.pane = 'list'; });
+    },
+    refilter(p) {
+      this.rows = this.all.filter(r => this.test(this.filter, r));
+      const n = this.rows.findIndex(r => r.p === p);
+      this.go(n < 0 ? 0 : n, false);
+    },
+    go(n, open) {
+      this.i = Math.max(0, Math.min(n, this.rows.length - 1));
+      if (this.cur) history.replaceState(null, '', `#f=${this.filter}&p=${this.cur.p}`);
+      if (open && window.innerWidth < 1024 && this.pane === 'list') { this.pane = 'frame'; history.pushState(null, '', location.hash); }
+      this.$nextTick(() => this.$refs.list.querySelector(`[data-n="${this.i}"]`)?.scrollIntoView({ block: 'nearest' }));
+    },
+    step(d) { this.go(this.i + d, false); },
+    back() { history.back(); this.pane = 'list'; },
+    key(e) {
+      if (e.target.closest('select,input,textarea')) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); this.step(1); }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); this.step(-1); }
+      if (e.key === 'Escape' && this.pane === 'frame') this.back();
+    },
+    frameSrc(r) {
+      return hosted ? r.p : `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=${REPO}@${ref}:${DIR}${r.p}`;
+    },
+    alone(r) { return r ? (hosted ? new URL(r.p, location.href).href : this.frameSrc(r)) : '#'; },
+    thumb(r) {
+      const t = `thumbs/drop/json-viewers/${r.p.replace(/\.html$/, '.png')}`;
+      return hosted ? `../../${t}` : `https://raw.githubusercontent.com/${REPO}/${ref}/pages/${t}`;
+    },
+  };
+}
+</script>
+</body>
+</html>

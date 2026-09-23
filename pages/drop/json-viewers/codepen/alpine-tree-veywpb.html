@@ -1,0 +1,135 @@
+<!-- CodePen: Alpine tree | https://codepen.io/Mark-E/pen/vEYWPBQ | created 13-Mar-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Alpine tree</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/vEYWPBQ">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elegant DOM Explorer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800">
+  <div x-data="domTree()" class="max-w-3xl mx-auto py-10 px-6">
+    <div class="flex gap-3 items-center mb-8">
+      <input x-model="url" type="text" class="flex-1 p-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="Enter URL" />
+      <button @click="fetchDOM" class="px-5 py-3 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition">Explore</button>
+    </div>
+    <div id="treeContainer" class="bg-white rounded-lg shadow p-5 max-h-[70vh] overflow-auto"></div>
+  </div>
+  <script>
+    function domTree() {
+      return {
+        url: 'https://www.loc.gov',
+        async fetchDOM() {
+          try {
+            const res = await fetch(this.url);
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            renderTree([buildTree(doc.documentElement, 0)]);
+          } catch (error) {
+            document.getElementById('treeContainer').innerHTML = '<div class="text-red-500">Failed to fetch content.</div>';
+          }
+        }
+      };
+    }
+
+    function buildTree(node, depth) {
+      if (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()) return null;
+      if (node.nodeType === Node.TEXT_NODE) return { label: node.textContent.trim(), children: [], type: 'text', depth };
+      if (node.nodeType !== Node.ELEMENT_NODE) return null;
+
+      const label = node.tagName.toLowerCase() + (node.id ? '#' + node.id : '') + (node.className ? '.' + node.className.split(/\s+/).join('.') : '');
+      const children = Array.from(node.childNodes).map(n => buildTree(n, depth + 1)).filter(Boolean);
+      return { label, children, type: 'element', depth };
+    }
+
+    function renderNode(node) {
+      const li = document.createElement('li');
+      const div = document.createElement('div');
+      div.className = `flex items-center cursor-pointer py-1 hover:bg-gray-50 transition rounded-sm`;
+
+      if (node.children.length) {
+        const icon = document.createElement('i');
+        icon.className = 'ti ti-chevron-right text-blue-500 mr-1 transition-transform duration-150';
+        div.appendChild(icon);
+        div.onclick = (e) => {
+          e.stopPropagation();
+          icon.classList.toggle('rotate-90');
+          ul.classList.toggle('hidden');
+        };
+      } else {
+        const spacer = document.createElement('span');
+        spacer.className = 'inline-block w-4 mr-1';
+        div.appendChild(spacer);
+      }
+
+      const span = document.createElement('span');
+      span.textContent = node.label;
+      span.className = node.type === 'text' ? 'italic text-gray-400 font-light mono text-sm' : 'mono font-medium text-sm';
+      div.appendChild(span);
+      li.appendChild(div);
+
+      if (node.children.length) {
+        var ul = document.createElement('ul');
+        ul.className = 'ml-2 pl-2 border-l border-gray-300 hidden';
+        node.children.forEach(child => ul.appendChild(renderNode(child)));
+        li.appendChild(ul);
+      }
+      return li;
+    }
+
+    function renderTree(tree) {
+      const container = document.getElementById('treeContainer');
+      container.innerHTML = '';
+      const ul = document.createElement('ul');
+      tree.forEach(node => ul.appendChild(renderNode(node)));
+      container.appendChild(ul);
+    }
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('domTree', domTree);
+    });
+  </script>
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>
