@@ -1,19 +1,12 @@
-// processMailbox: the shell's side of the mailbox channel, and specifically the
-// guard that keeps an `ask` alive, and with it any kind this loop cannot serve.
+// The shell answers nothing on load. It used to fulfil the mailbox's read kinds
+// on every page load, with an allowlist guarding the kinds it could not serve;
+// the first real ask was eaten on 2026-08-13 before that allowlist existed.
+// Since 2026-09-24 a read a session files is an errand like any other, and it
+// waits on the Stage for a tap (lib/kits/errands.js), so the whole class of
+// "answered before anyone saw it" is closed by there being no loop at all.
 //
-// The trap this exists to prevent is quiet and total. fulfill() returns a result
-// for an unsupported kind rather than throwing, and processMailbox writes every
-// result it gets. Writing a result is what marks a request answered, since
-// pending means "no same-named result file exists". So an ask that reached
-// fulfill() would be closed by its own rejection on the very first page load,
-// with a result saying "unsupported kind: ask" and nothing on screen. The
-// channel would look implemented and deliver nothing. That is not hypothetical:
-// it happened to the first real ask on 2026-08-13, under a guard that knew only
-// `ask` by name. The guard is an allowlist now, so the case below covers the
-// kind nobody has added yet as well as the one that was eaten.
-//
-// The shell's app() lives inline in app/index.html, so this evaluates the plain
-// <script> block against stubs via the shared shell.mjs harness.
+// What breaks without this: a boot-time loop coming back, spending the token on
+// records a session wrote straight to the registry's main, with nobody watching.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,108 +15,16 @@ import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
 
-const mailboxSrc = readFileSync(path.join(repoRoot, 'lib/kits/repo-mailbox.js'), 'utf8');
+const html = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 
-// A registry-repo stub: ls() lists the two mailbox directories, get() returns
-// records, save() records what was written. Every write the shell makes to the
-// mailbox lands in `saved`, which is the whole assertion surface here.
-function makeRegistry({ requests = {}, results = [] } = {}) {
-  const saved = [];
-  class GH {
-    constructor(conf) { this.conf = conf; }
-    async ls(dir) {
-      if (dir === 'mailbox/requests') return Object.keys(requests).map(name => ({ name, type: 'file' }));
-      if (dir === 'mailbox/results') return results.map(name => ({ name, type: 'file' }));
-      const e = new Error('404'); e.status = 404; throw e;
-    }
-    async get(p) {
-      const name = p.split('/').pop();
-      if (p.startsWith('mailbox/requests/') && name in requests) {
-        return { text: JSON.stringify(requests[name]) };
-      }
-      const e = new Error('404'); e.status = 404; throw e;
-    }
-    async save(p, body, msg) { saved.push({ path: p, body, msg }); return { content: { sha: 'x' } }; }
-    // Reached only if a read kind slips through to fulfill().
-    async req() { return { tree: [] }; }
-    async branches() { return []; }
-  }
-  return { GH, saved };
-}
-
-function shellWith(registry) {
-  const win = {};
-  new Function('window', mailboxSrc)(win);       // window.RepoMailbox
-  const { shell } = makeShell({ win });
-  win.TOKEN = 'real-token';
-  win.GH = registry.GH;
-  return shell;
-}
-
-test('an ask is skipped by the fulfil loop, so no result is written for it', async () => {
-  const registry = makeRegistry({
-    requests: {
-      'ask-wps.json': { id: 'ask-wps', kind: 'ask', note: 'the PowerShell files', dest: 'o/r:projects/wps/dump' },
-    },
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.deepEqual(registry.saved, [],
-    'writing any result for an ask closes it: pending means no same-named result exists');
+test('the shell has no mailbox loop, and fulfils nothing', () => {
+  const { shell } = makeShell({ win: {} });
+  assert.equal(shell.processMailbox, undefined, 'no boot-time fulfilment');
+  assert.doesNotMatch(html, /\.fulfill\(/, 'nothing in the shell answers a request');
 });
 
-test('a malformed ask is skipped too, since the guard reads the kind not the verdict', async () => {
-  const registry = makeRegistry({
-    requests: { 'ask-bad.json': { id: 'ask-bad', kind: 'ask' } },   // no note, no dest
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.deepEqual(registry.saved, [],
-    'a half-written ask must wait for a person, not be answered by its own rejection');
-});
-
-test('a kind the loop has never heard of is skipped, not closed by its rejection', async () => {
-  const registry = makeRegistry({
-    requests: { 'later.json': { id: 'later', kind: 'some-kind-invented-in-2027', repo: 'o/r' } },
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.deepEqual(registry.saved, [],
-    'the guard is an allowlist, so a kind added to this channel later is left for '
-    + 'whoever can serve it rather than eaten on the first page load, which is what '
-    + 'happened to the first real ask on 2026-08-13 under a guard that knew only `ask`');
-});
-
-test('the read kinds still fulfil, so the guard did not switch the channel off', async () => {
-  const registry = makeRegistry({
-    requests: { 'br.json': { id: 'br', kind: 'branches', repo: 'o/r' } },
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.equal(registry.saved.length, 1);
-  assert.equal(registry.saved[0].path, 'mailbox/results/br.json');
-  assert.equal(registry.saved[0].body.ok, true);
-});
-
-test('an ask alongside a read kind blocks neither', async () => {
-  const registry = makeRegistry({
-    requests: {
-      'ask-wps.json': { id: 'ask-wps', kind: 'ask', note: 'files', dest: 'o/r:d' },
-      'br.json': { id: 'br', kind: 'branches', repo: 'o/r' },
-    },
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.deepEqual(registry.saved.map(s => s.path), ['mailbox/results/br.json'],
-    'the ask waits and the read is served, in one pass');
-});
-
-test('an already-answered ask is not listed as pending', async () => {
-  const registry = makeRegistry({
-    requests: { 'ask-wps.json': { id: 'ask-wps', kind: 'ask', note: 'files', dest: 'o/r:d' } },
-    results: ['ask-wps.json'],
-  });
-  const shell = shellWith(registry);
-  await shell.processMailbox();
-  assert.deepEqual(registry.saved, [], 'a closed ask stays closed');
+test('the errands kit is loaded, after the mailbox kit whose read it calls', () => {
+  const mailbox = html.indexOf("gh.load('kits/repo-mailbox.js')");
+  const errands = html.indexOf("gh.load('kits/errands.js')");
+  assert.ok(mailbox > -1 && errands > mailbox);
 });
