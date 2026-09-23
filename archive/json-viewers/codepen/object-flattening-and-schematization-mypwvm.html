@@ -1,0 +1,86 @@
+<!-- CodePen: Object flattening and schematization | https://codepen.io/Mark-E/pen/myPWVMQ | created 17-Nov-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Object flattening and schematization</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/myPWVMQ">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Flat Views</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/lodash"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel=stylesheet>
+<script type=module>import{flatten}from'https://cdn.jsdelivr.net/npm/flat@6.0.0/+esm';window.flatten=flatten</script>
+<body class="p-8 bg-base-200"><div class="max-w-7xl mx-auto space-y-4">
+<header><h1 class="text-3xl font-bold">Flat Views</h1></header>
+<div class="flex justify-between items-center">
+  <h2 id=t class="text-lg font-bold">Raw</h2>
+  <div class="flex gap-1 text-xs opacity-80 items-center"><span id=s></span><div id=tabs class=join></div></div>
+</div>
+<pre id=o class="overflow-auto h-[70vh] text-xs bg-base-100 p-4 rounded whitespace-pre-wrap"></pre>
+</div>
+<script>
+const walk=(v,f)=>_.isArray(v)?v.forEach(w=>walk(w,f)):_.isPlainObject(v)&&(f(v),_.forEach(v,w=>walk(w,f)))
+const hasArr=v=>_.isArray(v)||_.isPlainObject(v)&&_.some(v,hasArr)
+const norm=v=>_.isArray(v)?[]:_.isPlainObject(v)?_.mapValues(v,norm):v
+
+fetch('https://api.spacexdata.com/v4/launches/past?limit=20')
+  .then(r=>r.json())
+  .then(d=>{
+    const r=JSON.stringify(d,null,2),fl=JSON.stringify(flatten(d),null,2)
+    const c={}
+    walk(d,v=>{const f=flatten(v);for(const k in f)c[k]=~~c[k]+1})
+    const fp=JSON.stringify(c,null,2)
+    const g={}
+    walk(d,v=>{const sig=JSON.stringify({k:_.keys(flatten(norm(v))).sort(),h:hasArr(v)});g[sig]={...g[sig]||{count:0,keys:_.keys(flatten(norm(v))).sort(),hasArray:hasArr(v)},count:~~g[sig]?.count+1}})
+    const fo=JSON.stringify(_.orderBy(_.values(g),['count','keys.length'],['desc','asc']),null,2)
+    o.ds={r,fl,fp,fo,l:[r,fl,fp,fo].map(x=>x.length),i:0}
+    const T=i=>{
+      o.ds.i=i
+      const n=["Raw","Flat","Flat Paths","Flat Objects"]
+      tabs.querySelectorAll('button').forEach((b,j)=>b.classList.toggle("btn-active",i==j))
+      t.textContent=n[i]
+      o.textContent=[r,fl,fp,fo][i]
+      s.textContent=o.ds.l[i]+" chars ("+Math.round(o.ds.l[i]/o.ds.l[0]*100)+"%)"
+    }
+    ["Raw","Flat","Flat Paths","Flat Objects"].forEach((n,i)=>
+      tabs.appendChild(Object.assign(document.createElement("button"),{
+        id:"b"+i,onclick:()=>T(i),className:"join-item btn btn-xs btn-outline"+(i==0?" btn-active":""),textContent:n
+      }))
+    )
+    T(0)
+  })
+</script>
+</body></html>
+  
+  
+  
+</body>
+
+</html>

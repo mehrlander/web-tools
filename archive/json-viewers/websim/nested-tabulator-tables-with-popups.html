@@ -1,0 +1,171 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Nested Tabulator Tables with Popups | id mph8b83hj150qmb_5y9x v6 -->
+<title>Nested Tabulator Tables with Popups</title>
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<style>
+.header-popup {
+    background: white;
+}
+
+.tabulator {
+    font-size: 14px;
+    margin: 0;
+}
+
+#main-table {
+    margin: 20px;
+}
+
+.header-popup .tabulator {
+    width: auto;
+}
+
+.tippy-content .header-popup {
+    display: block;
+}
+
+.tabulator-col:hover {
+    cursor: pointer;
+    background-color: #f5f5f5;
+}
+
+.tippy-box[data-theme~='custom'] {
+    background-color: transparent;
+    color: black;
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+}
+
+.tippy-box[data-theme~='custom'] .tippy-content {
+    padding: 0;
+}
+
+.tippy-box[data-theme~='custom'] .tippy-arrow {
+    display: none;
+}
+</style>
+</head>
+<body>
+
+<div id="main-table"></div>
+
+<script>
+const mainTableData = [
+    { name: "John", age: 25, city: "New York", salary: 50000 },
+    { name: "Jane", age: 30, city: "London", salary: 60000 },
+    { name: "Bob", age: 35, city: "Paris", salary: 55000 },
+    { name: "Alice", age: 28, city: "Tokyo", salary: 65000 },
+];
+
+const nameDetails = [
+    { frequency: "Common", origin: "English", meaning: "God's grace" },
+    { frequency: "Rare", origin: "Hebrew", meaning: "Beloved" },
+];
+
+const ageStats = [
+    { range: "20-30", percentage: "45%", count: 1250 },
+    { range: "31-40", percentage: "35%", count: 980 },
+];
+
+const cityStats = [
+    { population: "8.4M", country: "USA", timezone: "EST" },
+    { population: "8.9M", country: "UK", timezone: "GMT" },
+];
+
+const salaryStats = [
+    { level: "Entry", range: "40k-50k", average: 45000 },
+    { level: "Mid", range: "50k-70k", average: 60000 },
+];
+
+function createPopupTable(elementId, data, columns) {
+    return new Tabulator(`#${elementId}`, {
+        data: data,
+        columns: columns,
+        layout: "fitDataTable",
+        maxHeight: "400px",
+    });
+}
+
+const mainTable = new Tabulator("#main-table", {
+    data: mainTableData,
+    layout: "fitColumns",
+    columns: [
+        { title: "Name", field: "name" },
+        { title: "Age", field: "age" },
+        { title: "City", field: "city" },
+        { title: "Salary", field: "salary" },
+    ],
+});
+
+const popupContainers = {
+    name: document.createElement('div'),
+    age: document.createElement('div'),
+    city: document.createElement('div'),
+    salary: document.createElement('div')
+};
+
+Object.keys(popupContainers).forEach(key => {
+    popupContainers[key].className = 'header-popup';
+    popupContainers[key].id = `${key}Popup`;
+    document.body.appendChild(popupContainers[key]);
+});
+
+const tableConfigs = {
+    name: {data: nameDetails, columns: [
+        { title: "Frequency", field: "frequency" },
+        { title: "Origin", field: "origin" },
+        { title: "Meaning", field: "meaning" }
+    ]},
+    age: {data: ageStats, columns: [
+        { title: "Range", field: "range" },
+        { title: "Percentage", field: "percentage" },
+        { title: "Count", field: "count" }
+    ]},
+    city: {data: cityStats, columns: [
+        { title: "Population", field: "population" },
+        { title: "Country", field: "country" },
+        { title: "Timezone", field: "timezone" }
+    ]},
+    salary: {data: salaryStats, columns: [
+        { title: "Level", field: "level" },
+        { title: "Range", field: "range" },
+        { title: "Average", field: "average" }
+    ]}
+};
+
+Object.keys(tableConfigs).forEach(key => {
+    createPopupTable(
+        `${key}Popup`,
+        tableConfigs[key].data,
+        tableConfigs[key].columns
+    );
+});
+
+mainTable.on("tableBuilt", function(){
+    document.querySelectorAll('.tabulator-col').forEach(header => {
+        const field = header.getAttribute('tabulator-field');
+        if (field && popupContainers[field]) {
+            tippy(header, {
+                content: popupContainers[field],
+                interactive: true,
+                placement: 'bottom',
+                trigger: 'mouseenter',
+                arrow: true,
+                theme: 'custom',
+                appendTo: document.body,
+                delay: [200, 0],
+                duration: [200, 200],
+                hideOnClick: false,
+                maxWidth: 'none',
+                animation: 'fade'
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): elegant-tree-view-component-5 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'mckinsey-blue': '#003767',
+        'mckinsey-light-blue': '#5B7F95',
+        'mckinsey-gray': '#54565A',
+      },
+      fontFamily: {
+        'ibm-plex-sans': ['IBM Plex Sans', 'sans-serif'],
+      },
+    },
+  },
+}
+</script>
+</head>
+<body class="bg-gray-50 p-4 font-ibm-plex-sans">
+  <h1 class="text-xl font-light mb-4 text-mckinsey-blue">Elegant Tree View Component</h1>
+  <div id="github-tree" class="mb-4 overflow-x-auto whitespace-nowrap max-w-full pb-2.5"><div class="inline-block min-w-full"></div></div>
+  <div id="starwars-tree" class="overflow-x-auto whitespace-nowrap max-w-full pb-2.5"><div class="inline-block min-w-full"></div></div>
+
+<script>
+class JsonTreeView {
+  constructor(data, isRoot = true, isArrayElement = false, arrayId = 'root') {
+    this.data = data;
+    this.isRoot = isRoot;
+    this.isArrayElement = isArrayElement;
+    this.arrayId = arrayId;
+    this.element = document.createElement('div');
+    this.element.className = 'bg-white border border-gray-200 rounded-sm shadow-sm p-2';
+    this.colorPalette = [
+      'bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200',
+      'bg-pink-200', 'bg-indigo-200', 'bg-gray-200', 'bg-orange-200', 'bg-teal-200'
+    ];
+    this.keyWidths = new Map();
+    this.render();
+    this.addEventListeners();
+  }
+
+  render() {
+    const widths = this.calculateKeyWidths(this.data);
+    this.keyWidths.set(this.arrayId, widths);
+    this.element.innerHTML = this.generateHtml(this.data, '', this.isRoot, 0, this.isArrayElement, this.arrayId);
+    this.setConsistentWidths();
+  }
+
+  calculateKeyWidths(obj) {
+    const widths = {};
+    if (Array.isArray(obj)) {
+      obj.forEach(item => {
+        if (typeof item === 'object' && item !== null) {
+          for (let [key, value] of Object.entries(item)) {
+            const keyWidth = this.calculateTextWidth(key);
+            const valueWidth = this.calculateValueWidth(value);
+            const maxWidth = Math.min(Math.max(keyWidth, valueWidth), 100 * 6);
+            widths[key] = Math.max(widths[key] || 0, maxWidth);
+          }
+        }
+      });
+    } else if (typeof obj === 'object' && obj !== null) {
+      for (let [key, value] of Object.entries(obj)) {
+        const keyWidth = this.calculateTextWidth(key);
+        const valueWidth = this.calculateValueWidth(value);
+        const maxWidth = Math.min(Math.max(keyWidth, valueWidth), 100 * 6);
+        widths[key] = Math.max(widths[key] || 0, maxWidth);
+      }
+    }
+    return widths;
+  }
+
+  calculateTextWidth(text) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = '12px IBM Plex Sans';
+    return context.measureText(text).width + 16; // Add padding
+  }
+
+  calculateValueWidth(value) {
+    if (typeof value === 'object' && value !== null) {
+      return this.calculateTextWidth(Array.isArray(value) ? '[ ... ]' : '{ ... }');
+    } else if (typeof value === 'number') {
+      return this.calculateTextWidth(value.toString());
+    } else {
+      return this.calculateTextWidth(String(value));
+    }
+  }
+
+  generateHtml(obj, key = '', isRoot = false, depth = 0, isArrayElement = false, arrayId) {
+    const indentation = this.generateIndentation(depth);
+    if (Array.isArray(obj)) {
+      const newArrayId = `${arrayId}_${key}`;
+      const widths = this.calculateKeyWidths(obj);
+      this.keyWidths.set(newArrayId, widths);
+      return this.generateArrayHtml(obj, key, isRoot, depth, newArrayId);
+    } else if (typeof obj === 'object' && obj !== null) {
+      return this.generateObjectHtml(obj, key, isRoot, depth, isArrayElement, arrayId);
+    } else {
+      return this.generateLeafHtml(obj, key, depth);
+    }
+  }
+
+  generateIndentation(depth) {
+    return `<div class="inline-block" style="width:${depth * 16}px"></div>`;
+  }
+
+  generateArrayHtml(arr, key, isRoot, depth, arrayId) {
+    let arrayHeader = this.generateArrayHeader(arr, arrayId);
+    let html = `<div>
+      <div class="flex items-center cursor-pointer bg-mckinsey-light-blue bg-opacity-5 hover:bg-opacity-10 transition-colors duration-200 rounded px-0.5 py-0.5 my-0.5 whitespace-nowrap overflow-hidden overflow-ellipsis border-l-4 border-blue-500">
+        <div class="flex items-center bg-red-100 bg-opacity-50">
+          ${this.generateIndentation(depth)}
+          <div class="w-[150px] text-right pr-1.5 flex-shrink-0 text-xs text-mckinsey-gray">${key}:</div>
+        </div>
+        <div class="w-3 flex justify-center items-center flex-shrink-0">
+          <div class="w-2 h-2 flex-shrink-0 transition-transform duration-200 transform rotate-0 text-mckinsey-light-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <div class="flex items-center flex-grow min-w-0">
+          <span class="text-mckinsey-gray text-xs">[</span>
+          <div class="inline-flex overflow-x-auto whitespace-nowrap ml-1">${arrayHeader}</div>
+          <span class="text-mckinsey-gray text-xs">]</span>
+        </div>
+      </div>
+      <div class="hidden">`;
+    arr.forEach((item, index) => {
+      html += this.generateHtml(item, index, false, depth + 1, true, arrayId);
+    });
+    html += `</div></div>`;
+    return html;
+  }
+
+  generateObjectHtml(obj, key, isRoot, depth, isArrayElement, arrayId) {
+    let preview = this.generateObjectPreview(obj, isArrayElement, arrayId);
+    let borderColor = isArrayElement ? 'border-green-500' : 'border-yellow-500';
+    let html = `<div>
+      <div class="flex items-center cursor-pointer bg-mckinsey-light-blue bg-opacity-5 hover:bg-opacity-10 transition-colors duration-200 rounded px-0.5 py-0.5 my-0.5 whitespace-nowrap overflow-hidden overflow-ellipsis border-l-4 ${borderColor}">
+        <div class="flex items-center bg-red-100 bg-opacity-50">
+          ${this.generateIndentation(depth)}
+          <div class="w-[150px] text-right pr-1.5 flex-shrink-0 text-xs text-mckinsey-gray">${key}:</div>
+        </div>
+        <div class="w-3 flex justify-center items-center flex-shrink-0">
+          <div class="w-2 h-2 flex-shrink-0 transition-transform duration-200 transform rotate-0 text-mckinsey-light-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <div class="flex items-center flex-grow min-w-0">
+          <span class="text-mckinsey-gray text-xs">{</span>
+          <div class="inline-flex overflow-x-auto whitespace-nowrap ml-1">${preview}</div>
+          <span class="text-mckinsey-gray text-xs">}</span>
+        </div>
+      </div>
+      <div class="hidden">`;
+    for (let [k, v] of Object.entries(obj)) {
+      html += this.generateHtml(v, k, false, depth + 1, false, arrayId);
+    }
+    html += `</div></div>`;
+    return html;
+  }
+
+  generateObjectPreview(obj, isArrayElement, arrayId) {
+    let preview = '';
+    let index = 0;
+    const widths = this.keyWidths.get(arrayId);
+    for (let [k, v] of Object.entries(obj)) {
+      let value = this.formatPreviewValue(v);
+      if (isArrayElement) {
+        let colorClass = this.colorPalette[index % this.colorPalette.length];
+        preview += `<span class="inline-block px-1 mr-0.5 rounded text-xs ${colorClass} overflow-hidden overflow-ellipsis" data-cell="${k}" data-array-id="${arrayId}" style="width: ${widths[k]}px;" title="${value}">${value}</span>`;
+      } else {
+        preview += `<span class="inline-block px-1 mr-0.5 rounded text-xs bg-gray-200 overflow-hidden overflow-ellipsis" data-header="${k}" data-array-id="${arrayId}" style="width: ${widths[k]}px;" title="${k}: ${value}">${k}: ${value}</span>`;
+      }
+      index++;
+    }
+    return preview;
+  }
+
+  formatPreviewValue(value) {
+    if (typeof value === 'object' && value !== null) {
+      return Array.isArray(value) ? '[ ... ]' : '{ ... }';
+    } else if (typeof value === 'string') {
+      return `"${value}"`;
+    } else {
+      return String(value);
+    }
+  }
+
+  generateArrayHeader(arr, arrayId) {
+    let allKeys = new Set();
+    let allTypes = new Set();
+    arr.forEach(item => {
+      if (typeof item === 'object' && item !== null) {
+        Object.keys(item).forEach(key => allKeys.add(key));
+      } else {
+        allTypes.add(typeof item);
+      }
+    });
+    
+    let header = `<div class="inline-block" style="width:16px"></div>`;
+    let index = 0;
+    const widths = this.keyWidths.get(arrayId);
+    if (allKeys.size > 0) {
+      allKeys.forEach(key => {
+        let colorClass = this.colorPalette[index % this.colorPalette.length];
+        header += `<span class="inline-block px-1 mr-0.5 rounded text-xs font-semibold ${colorClass} overflow-hidden overflow-ellipsis" data-header="${key}" data-array-id="${arrayId}" style="width: ${widths[key]}px;" title="${key}">${key}</span>`;
+        index++;
+      });
+    } else {
+      allTypes.forEach(type => {
+        header += `<span class="inline-block px-1 mr-0.5 rounded text-xs bg-gray-200">${type}</span>`;
+      });
+      header += `<span class="inline-block px-1 mr-0.5 rounded text-xs bg-gray-200">count: ${arr.length}</span>`;
+    }
+    return header;
+  }
+
+  generateLeafHtml(value, key, depth) {
+    let type = typeof value;
+    if (value === null) type = 'null';
+    let valueClass = {
+      'string': 'text-green-700',
+      'number': 'text-purple-700',
+      'boolean': 'text-red-700',
+      'null': 'text-gray-500'
+    }[type] || 'text-mckinsey-gray';
+    return `<div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+      <div class="flex items-center bg-red-100 bg-opacity-50">
+        ${this.generateIndentation(depth)}
+        <div class="w-[150px] text-right pr-1.5 flex-shrink-0 text-xs text-mckinsey-gray">${key}:</div>
+      </div>
+      <div class="w-3"></div>
+      <div class="flex items-center flex-grow min-w-0">
+        <span class="${valueClass} text-xs overflow-hidden overflow-ellipsis" title="${JSON.stringify(value)}">${JSON.stringify(value)}</span>
+      </div>
+    </div>`;
+  }
+
+  addEventListeners() {
+    this.element.addEventListener('click', (event) => {
+      const pinkContainer = event.target.closest('.bg-red-100.bg-opacity-50');
+      if (pinkContainer) {
+        const row = pinkContainer.closest('.flex.items-center.cursor-pointer');
+        if (row) {
+          const arrow = row.querySelector('svg');
+          const content = row.nextElementSibling;
+          
+          arrow.classList.toggle('rotate-90');
+          content.classList.toggle('hidden');
+          row.classList.toggle('bg-opacity-10');
+        }
+      }
+    });
+
+    this.element.addEventListener('click', (event) => {
+      const cell = event.target.closest('[data-header], [data-cell]');
+      if (cell) {
+        event.stopPropagation();
+      }
+    });
+  }
+
+  setConsistentWidths() {
+    this.keyWidths.forEach((widths, arrayId) => {
+      const headerCells = this.element.querySelectorAll(`[data-header][data-array-id="${arrayId}"], [data-cell][data-array-id="${arrayId}"]`);
+      headerCells.forEach(cell => {
+        const key = cell.dataset.header || cell.dataset.cell;
+        cell.style.width = `${widths[key]}px`;
+      });
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetch("https://api.github.com/repositories").then(async (response) => {
+    const githubData = await response.json();
+    document.querySelector('#github-tree > div').appendChild(new JsonTreeView(githubData).element);
+  });
+
+  fetch("https://swapi.dev/api/people/").then(async (response) => {
+    const starwarsData = await response.json();
+    document.querySelector('#starwars-tree > div').appendChild(new JsonTreeView(starwarsData).element);
+  });
+});
+</script>
+</body></html>

@@ -1,0 +1,70 @@
+<!-- WebSim (whitecloud export, home chron/2026/07/2026-07-06-websim-account-export.zip): Tree View with Tailwind Play CDN -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree View with Tailwind Play CDN</title>
+  <!-- Include Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Include Preline UI core -->
+  <script src="https://cdn.jsdelivr.net/npm/preline/dist/preline.js"></script>
+  <!-- Include Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 p-5">
+
+  <div class="max-w-lg mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Interactive File Tree View</h1>
+
+    <!-- Tree View -->
+    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+      <div class="hs-accordion-group">
+        <div class="hs-accordion active" id="folder-1">
+          <button class="hs-accordion-toggle flex items-center gap-x-3 w-full font-semibold text-left text-gray-800 transition py-1 px-0" 
+                  aria-controls="folder-1-collapse">
+            <i data-lucide="chevron-right" class="hs-accordion-active:rotate-90 w-4 h-4 transition-transform"></i>
+            <i data-lucide="folder" class="w-4 h-4 text-yellow-500"></i>
+            assets
+          </button>
+          <div id="folder-1-collapse" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 pl-6">
+            <div class="flex items-center gap-x-3 py-2">
+              <i data-lucide="image" class="w-4 h-4 text-blue-500"></i>
+              <span>image.jpg</span>
+            </div>
+            <div class="flex items-center gap-x-3 py-2">
+              <i data-lucide="video" class="w-4 h-4 text-red-500"></i>
+              <span>video.mp4</span>
+            </div>
+            
+            <!-- Nested folder -->
+            <div class="hs-accordion" id="subfolder-1">
+              <button class="hs-accordion-toggle flex items-center gap-x-3 w-full font-semibold text-left text-gray-800 transition py-1 px-0" 
+                      aria-controls="subfolder-1-collapse">
+                <i data-lucide="chevron-right" class="hs-accordion-active:rotate-90 w-4 h-4 transition-transform"></i>
+                <i data-lucide="folder" class="w-4 h-4 text-yellow-500"></i>
+                images
+              </button>
+              <div id="subfolder-1-collapse" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300 pl-6">
+                <div class="flex items-center gap-x-3 py-2">
+                  <i data-lucide="image" class="w-4 h-4 text-blue-500"></i>
+                  <span>photo1.png</span>
+                </div>
+                <div class="flex items-center gap-x-3 py-2">
+                  <i data-lucide="image" class="w-4 h-4 text-blue-500"></i>
+                  <span>photo2.png</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Initialize Preline UI
+    HSAccordion.autoInit();
+  </script>
+
+</body></html>

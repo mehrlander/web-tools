@@ -1,0 +1,255 @@
+<!-- CodePen: Paste-in tree display working well | https://codepen.io/Mark-E/pen/WNWgarw | created 16-Apr-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+    <title>Paste-in tree display working well</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/WNWgarw">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <tree-display paste></tree-display>
+  
+    <script id="rendered-js" >
+class TreeDisplay extends HTMLElement {
+  static get observedAttributes() {
+    return ["selector", "showAttributes", "paste", "opener"];
+  }
+
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { font-family: monospace; display: flex;}
+        ul { list-style: none; padding-left: 20px; margin: 0; }
+        li { margin: 5px 0; }
+        .parent { cursor: pointer; color: #333; padding: 2px 5px; transition: background-color 0.3s; }
+        .parent:hover { background-color: #f0f0f0; }
+        .parent { background-color: #e0e0e0; }
+        .tag-name { font-weight: bold; color: #05c; margin-right: 5px; }
+        .attributes { font-style: italic; }
+        .attribute-key { color: #d34; }
+        .attribute-value { color: #666; }
+        .text-content { color: #242; }
+        .chain-el { color: #999; font-size: 80%; }
+        .expanded > .expandable { background-color: #efe; }
+        .expanded > ul { display: block; }
+        .collapsed > ul { display: none; }
+      </style>
+      <ul id="content"></ul>
+    `;
+    this.shadowRoot.addEventListener("click", this.handleClick.bind(this));
+
+    this.selector = this.getAttribute("selector");
+    this.showAttributes = this.getAttribute("showAttributes");
+    this.paste = this.hasAttribute("paste");
+    this.opener = this.hasAttribute("opener");
+  }
+
+  connectedCallback() {
+    this.render();
+    if (this.paste) {
+      this.addEventListener("paste", this.handlePaste.bind(this));
+    }
+  }
+
+  disconnectedCallback() {
+    if (this.paste) {
+      this.removeEventListener("paste", this.handlePaste.bind(this));
+    }
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (
+    (name === "selector" || name === "showAttributes" || name === "paste" || name === "opener") &&
+    oldValue !== newValue)
+    {
+      this[name] = newValue;
+      this.render();
+    }
+  }
+
+  handlePaste(event) {
+    event.preventDefault();
+    const pastedText = event.clipboardData.getData("text/plain");
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(pastedText, "text/xml");
+    const container = this.shadowRoot.querySelector("#content");
+    container.innerHTML = "";
+    container.appendChild(this.generateTreeView(xmlDoc.documentElement));
+  }
+
+  async fetchAndRender(url) {
+    try {
+      const response = await fetch(url);
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const container = this.shadowRoot.querySelector("#content");
+      container.innerHTML = "";
+      container.appendChild(this.generateTreeView(xmlDoc.documentElement));
+    } catch (error) {
+      console.error("Error fetching and rendering XML:", error);
+    }
+  }
+
+  handleClick(event) {
+    const expandable = event.target.closest(".expandable");
+    if (expandable && expandable.classList.contains("parent")) {
+      const li = expandable.parentElement;
+      li.classList.toggle("expanded");
+      li.classList.toggle("collapsed");
+    }
+  }
+
+  async render() {
+    if (this.selector) {
+      const element = document.querySelector(this.selector);
+      const container = this.shadowRoot.querySelector("#content");
+      container.innerHTML = "";
+      container.appendChild(this.generateTreeView(element));
+    } else {
+      let url;
+      if (this.opener && window.opener) {
+        url = window.opener.location.href;
+      } else {
+        url = window.location.href;
+      }
+      await this.fetchAndRender(url);
+    }
+  }
+
+  getAttributeContent(el) {
+    const attributesToShow = this.showAttributes ?
+    this.showAttributes.split(",").map(attr => attr.trim()) :
+    Array.from(el.attributes).map(attr => attr.name);
+
+    const attrs = attributesToShow.
+    map(attr => {
+      if (attr === "href" && el.href) {
+        return `<span class="attribute-key">href</span>="<a href='${el.href}' target='_blank'>${el.href}</a>"`;
+      } else {
+        const attrValue = el.getAttribute(attr);
+        return attrValue ?
+        `<span class="attribute-key">${attr}</span>="<span class="attribute-value">${this.escapeHtml(
+        attrValue)
+        }</span>"` :
+        null;
+      }
+    }).
+    filter(Boolean);
+
+    return attrs.length > 0 ? `{${attrs.join(" ")}}` : "";
+  }
+
+  getTagContent(el) {
+    let content = `<span class="tag-name">${el.tagName.toLowerCase()}</span>`;
+    const attrsContent = this.getAttributeContent(el);
+    if (attrsContent) {
+      content += `<span class="attributes">${attrsContent}</span>`;
+    }
+    return content;
+  }
+
+  generateTreeView(el) {
+    const li = document.createElement("li");
+    li.classList.add("collapsed");
+
+    const { displayElement, nextElement } = this.generateTreeItem(el);
+    li.appendChild(displayElement);
+
+    if (nextElement.childNodes.length > 0) {
+      const childrenList = document.createElement("ul");
+
+      for (const childNode of nextElement.childNodes) {
+        if (childNode.nodeType === Node.ELEMENT_NODE) {
+          childrenList.appendChild(this.generateTreeView(childNode));
+        } else if (childNode.nodeType === Node.TEXT_NODE) {
+          const textContent = childNode.textContent.trim();
+          if (textContent) {
+            const textItem = document.createElement("li");
+            textItem.classList.add("text-item");
+            textItem.textContent = textContent;
+            childrenList.appendChild(textItem);
+          }
+        }
+      }
+
+      if (childrenList.children.length > 0) {
+        li.appendChild(childrenList);
+      }
+    }
+
+    return li;
+  }
+
+  generateTreeItem(el) {
+    const expandable = document.createElement("div");
+    expandable.classList.add("expandable");
+
+    let itemContent = this.getTagContent(el);
+
+    expandable.innerHTML = itemContent;
+
+    const textContent = el.textContent.trim();
+    if (textContent && !el.children.length) {
+      expandable.innerHTML += `<span class="text-content">${this.escapeHtml(
+      textContent)
+      }</span>`;
+    }
+
+    if (el.children.length > 0) {
+      expandable.classList.add("parent");
+    }
+
+    return {
+      displayElement: expandable,
+      nextElement: el };
+
+  }
+
+  escapeHtml(string) {
+    const htmlEscapes = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;" };
+
+
+    return string.replace(/[&<>"']/g, match => htmlEscapes[match]);
+  }}
+
+
+customElements.define("tree-display", TreeDisplay);
+//# sourceURL=pen.js
+  </script>
+
+  
+</body>
+
+</html>

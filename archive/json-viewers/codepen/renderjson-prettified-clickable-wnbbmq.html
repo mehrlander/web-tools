@@ -1,0 +1,172 @@
+<!-- CodePen: renderJson prettified clickable | https://codepen.io/Mark-E/pen/WNBBMQL | created 28-Jun-24 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>renderJson prettified clickable</title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/WNBBMQL">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .json { font-family: monospace; white-space: pre-wrap; }
+  .parent > .key, .parent > .collapsed-summary { cursor: pointer; }
+  .collapsed-summary { color: #888; }
+  .expanded-content { display: block; }
+  .key { color: #00008B; }
+  .string { color: #006400; }
+  .number { color: #8B0000; }
+  .boolean { color: #8B008B; }
+  .null { color: #808080; }
+  #json-input { width: 100%; height: 100px; margin-bottom: 10px; }
+  #get-sample-data { margin-bottom: 10px; }
+</style>
+
+<h1>renderjson Demo</h1>
+<textarea id="json-input" placeholder="Paste your JSON here"></textarea>
+<button id="get-sample-data">Get Sample Data</button>
+<div id="json-container"></div>
+
+<script>
+const renderjson = (() => {
+    const createSpan = (className = '', ...children) => {
+        const element = document.createElement('span');
+        element.append(...children);
+        return Object.assign(element, { className });
+    };
+
+    const getTypeClasses = (jsonElement) => {
+        const simpleType = Array.isArray(jsonElement) ? "array" : 
+                           jsonElement instanceof Date ? "date" :
+                           jsonElement === null ? "null" : 
+                           typeof jsonElement;
+        
+        const length = (simpleType === "array" || simpleType === "object") ? 
+                       Object.keys(jsonElement).length : 0;
+        return [simpleType, length ? `parent` : ""].join(" ").trim();
+    };
+
+    const renderJsonElement = (jsonElement, indent = '') => {
+        const typeClasses = getTypeClasses(jsonElement);
+        if (typeClasses.includes('parent')) {
+            const isArray = Array.isArray(jsonElement);
+            const delimiters = { open: isArray ? '[' : '{', close: isArray ? ']' : '}' };
+            const itemCount = Object.keys(jsonElement).length;
+
+            let summary = createSpan(`collapsed-summary ${typeClasses}`, `${delimiters.open}${itemCount} item${itemCount !== 1 ? 's' : ''}${delimiters.close}`);
+            let details = createSpan(`expanded-content ${typeClasses}`, `${indent}${delimiters.open}\n`);
+            
+            Object.entries(jsonElement).forEach(([key, value], index, array) => {
+                const valueSpan = renderJsonElement(value, indent + '  ');
+                if (isArray) {
+                    details.append(`${indent}  `, valueSpan);
+                } else {
+                    const keySpan = createSpan('key', `"${key}": `);
+                    details.append(`${indent}  `, keySpan, valueSpan);
+                }
+                if (index < array.length - 1) details.append(',');
+                details.append('\n');
+            });
+            
+            details.append(`${indent}${delimiters.close}`);
+            
+            const toggle = (show) => {
+                if (show) {
+                    summary.parentNode.replaceChild(details, summary);
+                } else {
+                    details.parentNode.replaceChild(summary, details);
+                }
+            };
+
+            summary.addEventListener('click', () => toggle(true));
+            if (!isArray) {
+                const keyElement = details.querySelector(':scope > .key');
+                if (keyElement) {
+                    keyElement.addEventListener('click', () => toggle(false));
+                }
+            }
+            
+            return createSpan('parent', summary);
+        } else {
+            return createSpan(typeClasses, JSON.stringify(jsonElement));
+        }
+    };
+
+    return (json) => {
+        const rootSpan = createSpan('json');
+        rootSpan.appendChild(document.createTextNode('\n'));
+        rootSpan.appendChild(renderJsonElement(json, ''));
+        rootSpan.appendChild(document.createTextNode('\n'));
+        return rootSpan;
+    };
+})();
+
+const jsonInput = document.getElementById('json-input');
+const jsonContainer = document.getElementById('json-container');
+const getSampleDataButton = document.getElementById('get-sample-data');
+
+function renderJson(jsonString) {
+    try {
+        const jsonData = JSON.parse(jsonString);
+        jsonContainer.innerHTML = '';
+        jsonContainer.appendChild(renderjson(jsonData));
+    } catch (error) {
+        jsonContainer.innerHTML = `<p style="color: red;">Invalid JSON: ${error.message}</p>`;
+    }
+}
+
+jsonInput.addEventListener('input', (event) => {
+    renderJson(event.target.value);
+});
+
+getSampleDataButton.addEventListener('click', () => {
+    getSampleDataButton.disabled = true;
+    fetch('https://swapi.dev/api/people/1/')
+        .then(response => response.json())
+        .then(data => {
+            jsonInput.value = JSON.stringify(data, null, 2);
+            renderJson(jsonInput.value);
+        })
+        .catch(error => {
+            jsonContainer.innerHTML = `<p style="color: red;">Error fetching data: ${error.message}</p>`;
+        })
+        .finally(() => {
+            getSampleDataButton.disabled = false;
+        });
+});
+
+// Initial render with empty object
+renderJson('{}');
+</script>
+  
+  
+  
+</body>
+
+</html>

@@ -1,0 +1,205 @@
+<!-- CodePen: Chicago art institute tree view | https://codepen.io/Mark-E/pen/OPyaxGJ | created 1-Sep-25 -->
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  
+  <meta charset="UTF-8">
+  
+
+
+
+
+
+
+
+  
+  
+
+  <title>Chicago art institute tree view </title>
+
+    <link rel="canonical" href="https://codepen.io/Mark-E/pen/OPyaxGJ">
+  
+  
+  
+  
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no">
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Tree View</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-white">
+  <div x-data="treeView()" x-init="init()" class="min-h-screen">
+    <!-- Loading State -->
+    <div 
+      x-show="loading" 
+      class="flex items-center justify-center h-screen"
+    >
+      <i data-lucide="loader-2" class="animate-spin w-8 h-8 text-gray-800"></i>
+    </div>
+
+    <!-- Error State -->
+    <div 
+      x-show="error" 
+      class="p-4 bg-red-50"
+    >
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
+        <p class="text-sm text-red-700" x-text="error"></p>
+      </div>
+    </div>
+
+    <!-- Tree View -->
+    <div x-show="!loading && !error" class="h-full">
+      <div x-show="data" class="recursive-tree" x-html="renderTree(data, 0)" x-effect="$nextTick(() => lucide.createIcons())"></div>
+    </div>
+  </div>
+
+  <script>
+    function treeView() {
+      return {
+        data: null,
+        loading: true,
+        error: null,
+        expandedNodes: new Set(),
+
+        async init() {
+          lucide.createIcons();
+          await this.fetchData();
+        },
+
+        async fetchData() {
+          try {
+            this.loading = true;
+            this.error = null;
+            const response = await fetch('https://api.artic.edu/api/v1/artworks?limit=5');
+            if (!response.ok) throw new Error('Failed to fetch data');
+            const result = await response.json();
+            this.data = result;
+          } catch (error) {
+            this.error = error.message;
+            console.error('Error fetching data:', error);
+          } finally {
+            this.loading = false;
+            this.$nextTick(() => lucide.createIcons());
+          }
+        },
+
+        toggleNode(nodeId) {
+          if (this.expandedNodes.has(nodeId)) {
+            this.expandedNodes.delete(nodeId);
+          } else {
+            this.expandedNodes.add(nodeId);
+          }
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        isExpanded(nodeId) {
+          return this.expandedNodes.has(nodeId);
+        },
+
+        getNodeType(value) {
+          if (value === null) return 'null';
+          if (Array.isArray(value)) return 'array';
+          return typeof value;
+        },
+
+        getNodeIcon(type) {
+          switch(type) {
+            case 'object': return 'folder';
+            case 'array': return 'list';
+            case 'string': return 'text';
+            case 'number': return 'hash';
+            case 'boolean': return 'toggle-left';
+            case 'null': return 'ban';
+            default: return 'help-circle';
+          }
+        },
+
+        renderValue(value, type) {
+          if (type === 'string') return `"${value}"`;
+          if (type === 'null') return 'null';
+          return String(value);
+        },
+
+        renderTree(data, level, path = '') {
+          let html = '';
+          const indent = level * 24; // Increased from 16 to 24
+          
+          if (typeof data !== 'object' || data === null) {
+            const type = this.getNodeType(data);
+            const icon = this.getNodeIcon(type);
+            return `
+              <div class="flex items-start gap-x-2 py-1.5 hover:bg-gray-50" style="padding-left: ${indent}px">
+                <i data-lucide="${icon}" class="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400"></i>
+                <span class="text-sm text-gray-600 font-mono break-all">${this.renderValue(data, type)}</span>
+              </div>
+            `;
+          }
+
+          const entries = Object.entries(data);
+          entries.forEach(([key, value], index) => {
+            const nodeId = `${path}-${key}`;
+            const type = this.getNodeType(value);
+            const isExpandable = type === 'object' || type === 'array';
+            const icon = this.getNodeIcon(type);
+            
+            if (isExpandable && value !== null) {
+              html += `
+                <div class="tree-node">
+                  <button 
+                    class="flex items-center gap-x-2 w-full py-1.5 px-2 hover:bg-gray-50/80 bg-gray-50/40 transition-colors"
+                    style="padding-left: ${indent}px"
+                    @click="toggleNode('${nodeId}')"
+                  >
+                    <i data-lucide="chevron-right" 
+                      class="w-4 h-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${this.isExpanded(nodeId) ? 'rotate-90' : ''}"
+                    ></i>
+                    <i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0 text-gray-400"></i>
+                    <span class="text-sm font-medium font-mono">${key}</span>
+                    <span class="text-xs text-gray-500 font-mono">${type === 'array' ? `[${value.length}]` : '{...}'}</span>
+                  </button>
+                  ${this.isExpanded(nodeId) ? this.renderTree(value, level + 1, nodeId) : ''}
+                </div>
+              `;
+            } else {
+              html += `
+                <div class="flex items-start gap-x-2 py-1.5 px-2 hover:bg-gray-50" style="padding-left: ${indent}px">
+                  <div class="flex gap-x-2 flex-shrink-0">
+                    <i data-lucide="${icon}" class="w-4 h-4 mt-0.5 text-gray-400"></i>
+                    <span class="text-sm font-medium font-mono whitespace-nowrap">${key}:</span>
+                  </div>
+                  <span class="text-sm text-gray-600 font-mono break-all">${this.renderValue(value, type)}</span>
+                </div>
+              `;
+            }
+          });
+          
+          return html;
+        }
+      };
+    }
+  </script>
+</body>
+</html>
+  
+  
+  
+</body>
+
+</html>
