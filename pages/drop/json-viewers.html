@@ -64,7 +64,7 @@ const DATA = [{"p": "websim/codemirror-json-and-html-folding-demo.html","t": "Co
 function gallery() {
   const hosted = /(^|\.)github\.io$|^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   const ref = window.__ref || 'main';
-  const REPO = 'mehrlander/web-tools', DIR = 'pages/drop/json-viewers/';
+  const REPO = 'mehrlander/web-tools', DIR = 'archive/json-viewers/', UP = '../../' + DIR;
   return {
     all: DATA, rows: [], i: 0, filter: 'pick', pane: 'list',
     filters: [
@@ -105,12 +105,12 @@ function gallery() {
       if (e.key === 'Escape' && this.pane === 'frame') this.back();
     },
     frameSrc(r) {
-      return hosted ? r.p : `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=${REPO}@${ref}:${DIR}${r.p}`;
+      return hosted ? UP + r.p : `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=${REPO}@${ref}:${DIR}${r.p}`;
     },
-    alone(r) { return r ? (hosted ? new URL(r.p, location.href).href : this.frameSrc(r)) : '#'; },
+    alone(r) { return r ? (hosted ? new URL(UP + r.p, location.href).href : this.frameSrc(r)) : '#'; },
     thumb(r) {
-      const t = `thumbs/drop/json-viewers/${r.p.replace(/\.html$/, '.png')}`;
-      return hosted ? `../../${t}` : `https://raw.githubusercontent.com/${REPO}/${ref}/pages/${t}`;
+      const t = `thumbs/${r.p.replace(/\.html$/, '.png')}`;
+      return hosted ? UP + t : `https://raw.githubusercontent.com/${REPO}/${ref}/${DIR}${t}`;
     },
   };
 }

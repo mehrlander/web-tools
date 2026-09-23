@@ -1,6 +1,8 @@
-# pages/drop/json-viewers/
+# archive/json-viewers/
 
-These are old JSON and tree viewers, pulled out of two archives on 2026-09-23. They were gathered to find display ideas for the reader that the tracker task [own-json-tree-retire-vje-i0lcj2](../../../tracker/tasks/own-json-tree-retire-vje-i0lcj2.md) proposes. That reader would be a themed, lazy, display-only JSON tree with no CDN dependency. vanilla-jsoneditor would stay as the edit mode. [`gallery.html`](gallery.html) lists all 62 pages, lets you step through them, and shows the selected one live.
+These are old JSON and tree viewers, pulled out of two archives on 2026-09-23. They were gathered to find display ideas for the reader that the tracker task [own-json-tree-retire-vje-i0lcj2](../../tracker/tasks/own-json-tree-retire-vje-i0lcj2.md) proposes. That reader would be a themed, lazy, display-only JSON tree with no CDN dependency. vanilla-jsoneditor would stay as the edit mode. [`pages/drop/json-viewers.html`](../../pages/drop/json-viewers.html) lists all 62 pages, lets you step through them, and shows the selected one live.
+
+The files sit under `archive/` rather than `pages/` because they are preserved source. The repo's style and lint scans skip `archive/`, and these files should not be rewritten to pass them. The thumbnails in `thumbs/` were made once with `tools/render/screenshot.mjs` through `pages-shots`, and no hook refreshes them.
 
 ## Where the files came from
 
