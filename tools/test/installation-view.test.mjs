@@ -127,7 +127,7 @@ const checks = [];
 const shellCalls = [];
 window.FileCorrespondence = {
   applies: t => /\.(ps1|psm1|xaml)$/i.test(t?.path || ''),
-  decodeBytes: bytes => new TextDecoder().decode(bytes),
+  decodeBytes: (bytes, encoding = 'auto') => new TextDecoder(encoding === 'auto' ? 'utf-8' : encoding, { fatal: true }).decode(bytes),
   checksUnder: async (repo, prefix) => checks.filter(c => c.repo === repo && c.path.startsWith(prefix)),
   reopen: async c => { shellCalls.push(['reopen', c.id]); },
 };
@@ -135,6 +135,7 @@ window.__shell = {
   installationItem: '',
   syncUrl() { shellCalls.push(['syncUrl']); },
   goStage() { shellCalls.push(['goStage']); },
+  pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.installationItem]); },
   goProject(...args) { shellCalls.push(['goProject', ...args]); },
   openFile(p) { shellCalls.push(['openFile', p]); },
   async openCorrespondence(target, text, name, source) {
@@ -220,11 +221,12 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   await settle();
 });
 
+const dropped = text => ({ dataTransfer: { files: [], getData: () => text } });
+
 test('a comparison goes through the shell and comes back as a browser check, with no ledger write', async () => {
-  data.compareDraft = 'function Import-Form {}\r\n';
-  await data.submitCompare();
+  await data.compareDrop(dropped('function Import-Form {}\r\n'));
   await settle();
-  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare'), [['compare', FORMS, 'field']]);
+  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare'), [['compare', FORMS, 'drop']]);
   assert.equal(data.checks.length, 1);
   assert.equal(data.checks[0].lineEndingsOnly, true);
   assert.equal(data.stateOf(FORMS).state, 'pending-changed', 'a check is browser-local; adoption stays pending');
@@ -277,7 +279,7 @@ test('a browser check can be promoted to a verified row, and then reads as recor
   await settle();
   assert.equal(data.pending.row.kind, 'verified');
   assert.equal(data.pending.row.match, 'line-endings');
-  assert.equal(data.pending.row.method, 'field');
+  assert.equal(data.pending.row.method, 'drop');
   await data.confirmRecord();
   await settle();
   assert.equal(publications.length, 2);
@@ -483,6 +485,46 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   assert.equal(data.sourceState, '');
   assert.equal(pane(), null, 'deselecting removes the pane');
   assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'the pane writes nothing');
+  data.select(FORMS); await settle();
+});
+
+test('the Source header carries copy, download and compare; the action row keeps placement and navigation', async () => {
+  data.select(FORMS); await settle();
+  const tools = el.querySelector('[data-source-tools]');
+  const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
+  assert.deepEqual(labels, ['Copy GitHub text', 'Download GitHub text', 'Compare the clipboard with this file', 'Compare a file with this file']);
+  assert.ok(tools.querySelector('input[type=file]'), 'the file picker rides the compare icon');
+  const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
+  for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
+  assert.equal(el.querySelector('textarea'), null, 'no paste field: the page-wide paste and the clipboard icon take a copy');
+  assert.equal(q('select').length, 1, 'only the state filter; encoding is asked for when decoding fails');
+  tools.querySelector('[aria-label="Compare the clipboard with this file"]').click();
+  assert.deepEqual(shellCalls.at(-1), ['pasteAnywhere', FORMS], 'the clipboard goes through the app\'s Paste, aimed at this file');
+});
+
+test('a file that fails to decode is offered its encoding, and the retry compares it', async () => {
+  data.select(FORMS); await settle();
+  const before = shellCalls.filter(c => c[0] === 'compare').length;
+  // “Import” in Windows-1252 quotes: 0x93 and 0x94 are not UTF-8.
+  const bytes = Uint8Array.from([0x93, ...Buffer.from('Import'), 0x94, 0x0a]);
+  const file = { name: 'Forms.psm1', arrayBuffer: async () => bytes.buffer };
+  await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
+  await settle();
+  assert.equal(shellCalls.filter(c => c[0] === 'compare').length, before, 'nothing compared on a failed decode');
+  assert.ok(data.compareRetry);
+  const box = el.querySelector('[data-compare-error]');
+  assert.notEqual(box.style.display, 'none');
+  const choices = [...box.querySelectorAll('button')].map(b => b.textContent);
+  assert.deepEqual(choices, ['UTF-16 LE', 'UTF-16 BE', 'Windows-1252']);
+  [...box.querySelectorAll('button')].find(b => b.textContent === 'Windows-1252').click();
+  for (let i = 0; i < 10 && shellCalls.filter(c => c[0] === 'compare').length === before; i++) await tick(2);
+  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare').at(-1), ['compare', FORMS, 'drop']);
+  assert.equal(checks.at(-1).content, '\u201cImport\u201d\n');
+  assert.equal(data.compareRetry, null); assert.equal(data.compareError, '');
+  // A retry never lands on a different selection.
+  await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
+  data.select(`${P}/app/Profile.ps1`); await settle();
+  assert.equal(data.compareRetry, null, 'reselecting clears the offer');
   data.select(FORMS); await settle();
 });
 

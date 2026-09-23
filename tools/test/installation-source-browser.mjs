@@ -3,9 +3,11 @@
 // Alpine, Tailwind and CodeMirror 6, with GitHub fixture reads and every CDN
 // asset resolved from node_modules through tools/render/cdn.mjs. No external
 // requests. Holds what jsdom cannot: a selected file renders in .cm-editor
-// read-only, a second selection reuses the same view through open(), a phone
-// width keeps the code collapsed below Record installed, the <pre> fallback
-// when esm.sh is unreachable, and no GitHub write from any of it.
+// read-only, a second selection reuses the same view through open(), the
+// Source header's tools are visible at both widths and a real drop on the
+// pane compares, a phone width keeps the code collapsed below Record
+// installed, the <pre> fallback when esm.sh is unreachable, and no GitHub
+// write from any of it.
 // Run explicitly: node tools/test/installation-source-browser.mjs
 // SHOTS=<dir> also writes a desktop and a phone screenshot there.
 // Kept outside *.test.mjs because npm test is browser-free.
@@ -32,7 +34,7 @@ const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entrie
 const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'alpineComponents/installation-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5/daisyui.css">
 <script>
 window.__fixture = ${JSON.stringify(fixture).replace(/</g, '\\u003c')};
@@ -56,7 +58,10 @@ window.GH = class {
     throw Object.assign(new Error('Not found'), { status: 404 });
   }
 };
-window.__shell = { installationItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {} };
+window.__shell = { installationItem: '', syncUrl() {}, goProject() {}, goStage() {}, openFile() {},
+  compared: [], pasted: 0,
+  async openCorrespondence(target, text, name, source) { this.compared.push({ path: target.path, text, name, source }); },
+  pasteAnywhere() { this.pasted++; } };
 document.addEventListener('alpine:init', () => Alpine.store('browser',
   { repo: window.__fixture.repo, ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: window.__fixture.repo, ref: 'main' }) }));
 </script>
@@ -159,6 +164,29 @@ try {
     const e = await desk.editor();
     assert.equal(e.text, display(files[A])); assert.equal(e.same, false, 'a fresh view after teardown');
   });
+  await check('the Source header tools are visible and a drop on the pane compares against the file', async () => {
+    await desk.select(A); await desk.settled();
+    for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare the clipboard with this file', 'Compare a file with this file'])
+      assert.equal(await desk.page.getByLabel(label, { exact: true }).isVisible(), true, label);
+    assert.equal(await desk.page.locator('textarea').count(), 0);
+    await desk.page.getByLabel('Compare the clipboard with this file', { exact: true }).click();
+    assert.equal(await desk.page.evaluate(() => window.__shell.pasted), 1);
+    await desk.page.evaluate(async () => {
+      const target = document.querySelector('[data-source] .cm-content'), dt = new DataTransfer();
+      dt.setData('text/plain', 'function Get-Message {}\n');
+      for (const type of ['dragenter', 'dragover']) target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+      await new Promise(resolve => setTimeout(resolve, 50)); // Alpine applies the binding on its next flush
+      window.__ringWhileDragging = document.querySelector('[data-source-editor]').classList.contains('ring-2');
+      target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    });
+    assert.equal(await desk.page.evaluate(() => window.__ringWhileDragging), true, 'the code box highlights under a drag');
+    await desk.page.waitForFunction(() => window.__shell.compared.length === 1);
+    const compared = await desk.page.evaluate(() => window.__shell.compared[0]);
+    assert.deepEqual(compared, { path: A, text: 'function Get-Message {}\n', name: 'A.psm1', source: 'drop' });
+    assert.equal((await desk.editor()).text, display(files[A]), 'a drop compares; it does not insert into the read-only view');
+    await desk.page.waitForFunction(() => !document.querySelector('[data-source-editor]').classList.contains('ring-2'));
+    assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-editor]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
+  });
   await check('the pane writes nothing to GitHub', async () => { assert.equal(await desk.writes(), 0); });
   await desk.context.close();
 
@@ -169,6 +197,8 @@ try {
     const box = await record.boundingBox();
     assert.ok(box && box.y + box.height <= 844, 'Record installed is above the fold');
     assert.equal(await phone.page.locator('[data-source] .cm-editor').isVisible(), false);
+    for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare a file with this file'])
+      assert.equal(await phone.page.getByLabel(label, { exact: true }).isVisible(), true, label + ' shows while the code is collapsed');
     const toggle = phone.page.locator('[data-source-toggle]');
     assert.equal(await toggle.isVisible(), true);
     await toggle.click();
