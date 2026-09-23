@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Real CodeMirror + Alpine + IndexedDB workspace checks, with GitHub fixture
+// Real CodeMirror 6 + Alpine + IndexedDB workspace checks, with GitHub fixture
 // reads and every CDN asset resolved from node_modules. No external requests.
 // Run explicitly: node tools/test/powershell-editor.mjs
 // Kept outside *.test.mjs because npm test is browser-free.
@@ -110,7 +110,7 @@ try {
       return w && !w.loading && (w.editorReady || w.editorError);
     });
     const state = await workspace(); assert.equal(state.editorError, ''); assert.equal(state.ready, true);
-    await page.locator('.CodeMirror').waitFor({ state: 'visible' });
+    await page.locator('.cm-editor').waitFor({ state: 'visible' });
   };
   const open = async name => {
     await page.evaluate(async name => {
@@ -125,13 +125,21 @@ try {
     return w.saveState === 'Saved in this browser' || w.saveState === 'Save failed';
   }).then(async () => assert.notEqual((await workspace()).saveState, 'Save failed'));
   const source = name => files.find(file => file.name === name).text;
+  // The actions live in menus since the workspace's header refactor: File
+  // actions holds Find and Find and replace, and Workspace actions the backup.
+  const menuDialog = name => page.getByRole('dialog', { name, exact: true });
+  const menuAction = async (menu, action) => {
+    await page.getByRole('button', { name: 'File actions', exact: true }).click();
+    if (menu !== 'File actions') await menuDialog('File actions').getByRole('button', { name: menu, exact: true }).click();
+    await menuDialog(menu).getByRole('button', { name: action, exact: true }).click();
+  };
   const display = text => text.replace(/\r\n?|\n/g, '\n');
   const editor = () => page.evaluate(() => {
-    const cm = document.querySelector('.CodeMirror').CodeMirror;
-    return { text: cm.getValue(), lines: cm.lineCount(), cursor: cm.getCursor(), history: cm.historySize(), selection: cm.getSelection() };
+    const v = document.querySelector('[data-editor-host]').__editor, r = v.state.selection.main;
+    return { text: v.state.doc.toString(), lines: v.state.doc.lines, cursor: r.head, selection: v.state.doc.sliceString(r.from, r.to) };
   });
   const insertEnd = async text => {
-    await page.locator('.CodeMirror textarea').focus();
+    await page.locator('.cm-content').focus();
     await page.keyboard.press('Control+End');
     await page.keyboard.insertText(text);
     await saved();
@@ -170,25 +178,27 @@ try {
   await check('PowerShell folding collapses a function without editing source', async () => {
     await open('A.psm1');
     const before = (await workspace()).doc.text;
-    const gutter = page.locator('.CodeMirror-foldgutter-open').first(); await gutter.click();
-    assert.ok(await page.locator('.CodeMirror-foldmarker').count());
+    await page.locator('.cm-foldGutter span[title="Fold line"]').first().click();
+    assert.ok(await page.locator('.cm-foldPlaceholder').count());
     assert.equal((await workspace()).doc.text, before);
-    await page.locator('.CodeMirror-foldmarker').first().click();
+    await page.locator('.cm-foldPlaceholder').first().click();
   });
-  await check('Find and Replace operate through actual CodeMirror dialogs', async () => {
+  await check('Find and Replace operate through the actual CodeMirror search panel', async () => {
     await open('A.psm1');
-    await page.getByRole('button', { name: 'Find', exact: true }).click();
-    let input = page.locator('.CodeMirror-dialog input'); await input.fill('Get-Message'); await input.press('Enter');
+    await menuAction('File actions', 'Find');
+    const panel = page.locator('.cm-panel.cm-search');
+    // The panel commits a field on keyup, as a person's typing does; fill() sets a value with no key events.
+    let input = panel.locator('input[name=search]'); await input.fill(''); await input.pressSequentially('Get-Message'); await input.press('Enter');
     assert.equal((await editor()).selection, 'Get-Message');
-    await page.getByRole('button', { name: 'Replace', exact: true }).click();
-    input = page.locator('.CodeMirror-dialog input'); await input.fill('Hello'); await input.press('Enter');
-    input = page.locator('.CodeMirror-dialog input'); await input.fill('Welcome'); await input.press('Enter');
-    await page.locator('.CodeMirror-dialog').getByRole('button', { name: 'All', exact: true }).click(); await saved();
+    await menuAction('File actions', 'Find and replace');
+    input = panel.locator('input[name=search]'); await input.fill(''); await input.pressSequentially('Hello');
+    const replaceField = panel.locator('input[name=replace]'); await replaceField.fill(''); await replaceField.pressSequentially('Welcome');
+    await panel.locator('button[name=replaceAll]').click(); await saved();
     assert.equal((await workspace()).doc.text, (source('A.psm1') + '# A draft').replace('Hello', 'Welcome'));
   });
   await check('exported draft download is valid JSON that restores exact browser text', async () => {
     const downloadEvent = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Export drafts', exact: true }).click();
+    await menuAction('Workspace actions', /^Back up drafts\b/);
     const download = await downloadEvent, stream = await download.createReadStream();
     const chunks = []; for await (const chunk of stream) chunks.push(chunk);
     const bundle = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -215,9 +225,8 @@ try {
     await check(name + ' undo/redo restores deleted original separators across file switches', async () => {
       const before = (await workspace()).doc.text;
       await page.evaluate(() => {
-        const cm = document.querySelector('.CodeMirror').CodeMirror;
-        cm.getDoc().changeGeneration(true);
-        cm.setSelection({ line: 0, ch: 0 }, { line: 3, ch: 0 }); cm.focus();
+        const v = document.querySelector('[data-editor-host]').__editor;
+        v.dispatch({ selection: { anchor: v.state.doc.line(1).from, head: v.state.doc.line(4).from } }); v.focus();
       });
       await page.keyboard.insertText('# replacement\n'); await saved();
       const edited = (await workspace()).doc.text;
@@ -234,12 +243,8 @@ try {
   await check('mixed-ending replace-all and one undo restore exact bytes across a compound operation', async () => {
     await open('Mixed.ps1'); const before = (await workspace()).doc.text;
     await page.evaluate(() => {
-      const cm = document.querySelector('.CodeMirror').CodeMirror;
-      cm.getDoc().changeGeneration(true);
-      cm.operation(() => {
-        cm.replaceRange('Alpha', { line: 0, ch: 2 }, { line: 0, ch: 7 }, '+input');
-        cm.replaceRange('Beta', { line: 2, ch: 5 }, { line: 2, ch: 11 }, '+input');
-      });
+      const v = document.querySelector('[data-editor-host]').__editor, l1 = v.state.doc.line(1), l3 = v.state.doc.line(3);
+      v.dispatch({ changes: [{ from: l1.from + 2, to: l1.from + 7, insert: 'Alpha' }, { from: l3.from + 5, to: l3.from + 11, insert: 'Beta' }], userEvent: 'input' });
     });
     await saved(); assert.notEqual((await workspace()).doc.text, before);
     await page.getByRole('button', { name: 'Undo', exact: true }).click(); await saved();
@@ -253,7 +258,7 @@ try {
   await fallbackContext.route('**/*', async route => {
     const url = route.request().url();
     if (url.startsWith(origin + '/')) return route.continue();
-    if (url.includes('codemirror@')) return route.fulfill({ status: 503, body: 'Editor intentionally unavailable' });
+    if (url.includes('esm.sh/')) return route.fulfill({ status: 503, body: 'Editor intentionally unavailable' });
     const resolved = resolveCdn(url, repoRoot);
     if (resolved.kind === 'fulfill') return route.fulfill({ status: 200, contentType: resolved.contentType, body: resolved.body });
     return route.abort();

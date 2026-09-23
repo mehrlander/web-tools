@@ -163,7 +163,13 @@ editor, persistence, export, publication and phone layout against a local fixtur
 the textarea fallback. The browser tests intercept GitHub requests and do not
 publish their fixture code.
 
-The editor uses the repository's existing CodeMirror 5 dependency and its
-[documented APIs](https://codemirror.net/5/doc/manual.html).
+The editor is CodeMirror 6, the same esm.sh module graph the app's other
+editor kit (`lib/kits/cm6.js`) loads, so the app carries one CodeMirror. The
+PowerShell mode is CodeMirror 6's legacy stream port of the CodeMirror 5
+tokenizer (`@codemirror/legacy-modes/mode/powershell`); XAML uses
+`@codemirror/lang-xml`. The browser checks serve those packages from
+`node_modules` through `tools/render/cdn.mjs`, which stands in for esm.sh
+offline. The port from CodeMirror 5 landed on 2026-09-23 at the owner's
+direction.
 PowerShell installation choices still need to honor Microsoft's
 [encoding guidance](https://learn.microsoft.com/en-us/powershell/scripting/dev-cross-plat/vscode/understanding-file-encoding).
