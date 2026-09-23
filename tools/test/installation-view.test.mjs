@@ -450,6 +450,42 @@ test('empty repository files are cached and can be transferred without inventing
   await data.reload();
 });
 
+// jsdom has no CodeMirror, so the pane takes the <pre> fallback; the editor
+// path is held by installation-source-browser.mjs.
+test('the source pane shows the selected file read-only, swaps on reselect, and collapses on a phone', async () => {
+  assert.equal(window.PowerShellEditor, undefined, 'this harness carries no editor kit');
+  const profile = `${P}/app/Profile.ps1`, writes = requests.filter(r => r.method !== 'GET').length;
+  data.select(FORMS);
+  await settle();
+  const pane = () => el.querySelector('[data-source]');
+  const plain = () => el.querySelector('[data-source-plain]');
+  assert.equal(data.sourceState, 'plain');
+  assert.equal(plain().textContent, files[FORMS]);
+  assert.doesNotMatch(plain().className, /(^|\s)hidden(\s|$)/);
+  assert.match(el.querySelector('[data-source-editor]').className, /(^|\s)hidden(\s|$)/);
+  // Collapsed below @3xl until the toggle; the container variant shows it on desktop.
+  const body = el.querySelector('[data-source-body]'), toggle = el.querySelector('[data-source-toggle]');
+  assert.match(body.className, /(^|\s)hidden(\s|$)/); assert.match(body.className, /@3xl:block/);
+  assert.match(toggle.textContent, /Show code/); assert.match(toggle.className, /@3xl:hidden/);
+  toggle.click(); await settle();
+  assert.equal(data.sourceOpen, true);
+  assert.doesNotMatch(body.className, /(^|\s)hidden(\s|$)/);
+  assert.match(toggle.textContent, /Hide code/);
+  // The pane follows the state and the actions in the detail column.
+  const record = q('button').find(b => /Record installed/.test(b.textContent));
+  assert.ok(record.compareDocumentPosition(pane()) & window.Node.DOCUMENT_POSITION_FOLLOWING);
+  data.select(profile);
+  await settle();
+  assert.equal(data.sourceOpen, false, 'a new selection starts collapsed');
+  assert.equal(plain().textContent, files[profile]);
+  data.select('');
+  await settle();
+  assert.equal(data.sourceState, '');
+  assert.equal(pane(), null, 'deselecting removes the pane');
+  assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'the pane writes nothing');
+  data.select(FORMS); await settle();
+});
+
 test('every ledger write in this run went through a confirm', () => {
   assert.equal(publications.length, 4);
   assert.deepEqual(problems, []);
