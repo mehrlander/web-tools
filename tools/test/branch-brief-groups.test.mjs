@@ -211,8 +211,10 @@ test('a slide card is hosted, and code opens on its diff', () => {
     assert.equal(o.read, true, 'a reading surface, as in the full deck');
     assert.equal(typeof o.onChrome, 'function', 'and it tells the header when its controls change');
   }
-  assert.equal(d.openOn, '', 'a document opens on itself');
+  assert.equal(d.openOn, 'mddiff', 'markdown opens on the rendered comparison');
   assert.equal(c.openOn, 'diff', 'code opens on its diff');
+  assert.equal(data.slideCardOpts({ path: 'pages/d.html' }).openOn, '', 'a page opens on itself');
+  assert.equal(d.stats, true, 'and every slide counts its change');
   assert.equal(data.cardOpts(doc).fill, undefined, 'a list card bounds itself as before');
 });
 
@@ -226,9 +228,11 @@ test('cards compare against the merge base, and the menu offers main today', asy
     const f = data.swipeFiles[0];
     const opts = data.slideCardOpts(f);
     assert.equal(opts.base, 'abc1234def5678', 'the merge base, not the base branch tip');
-    assert.equal(opts.baseName, 'abc1234', 'named by its short sha');
-    assert.deepEqual(j(opts.baseChoices.map(c => c.label)), ['Branch changes \u00b7 abc1234', 'vs main today']);
+    assert.equal(opts.baseName, 'merge base', 'named for what it is, not by its sha');
+    assert.deepEqual(j(opts.baseChoices.map(c => c.label)), ['vs merge base', 'vs main today']);
     assert.equal(data.subject.base, 'abc1234def5678', 'the subject names the same base');
+    assert.deepEqual(j(opts.versionScope), j((data.brief.commits || []).map(c => c.sha)),
+      'versions are chosen from the branch\'s own commits');
   } finally { data.brief = keep; await tick(4); }
   // Unread, the base branch stands in.
   assert.equal(data.slideCardOpts(data.swipeFiles[0]).base, 'main');
@@ -296,7 +300,7 @@ test('the files are one swiped container, not a stack', () => withReviewable(asy
 }));
 
 test('the header says n/m once, and the cards carry no pager of their own', () => withReviewable(async () => {
-  const label = () => window.document.querySelector('[data-swipe-section] .tabular-nums')?.textContent.trim();
+  const label = () => window.document.querySelector('[data-pager-label]')?.textContent.trim();
   await settle(() => label() === '1/5');
   assert.equal(label(), '1/5');
   data.go(3);
@@ -311,7 +315,7 @@ test('with one file there is no pager', async () => {
   await tick(6);
   try {
     assert.equal(data.swipeFiles.length, 1);
-    const pager = window.document.querySelector('[data-swipe-section] .tabular-nums').parentElement;
+    const pager = window.document.querySelector('[data-pager-label]').parentElement;
     assert.equal(pager.style.display, 'none', 'nothing to page between');
   } finally { data.brief = { ...data.brief, files: keep }; await tick(6); }
 });
