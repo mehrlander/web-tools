@@ -19,7 +19,7 @@ catalog doc.
 | `cm6-editor.html` | A CodeMirror-based single-file text editor. |
 | `diff-tool.html` | A diff tool for comparing legislative text. Kept as the record of where the A/B source slots and the normalize-then-diff stage came from; both now live in [`pages/diff-tool.html`](../diff-tool.html), which has the better engine. Use that one. |
 | `gist-editor.html` | An editor for reading and writing GitHub gists. |
-| `json-lens.html` | A GitHub-style structural JSON explorer demonstrating a visual collapsible tree paired with a semantic content lens for rich primitives and collection types. |
+| `json-lens.html` | A JSON tree beside a lens that reads the selected value by its shape (image, colour, timestamp, URL, record table) and gives its TypeScript type. A Gemini sketch (PR #764) rebuilt on Alpine. The maintained explorer is [`lib/kits/json-explorer.js`](../../lib/kits/json-explorer.js). |
 | `live-docs.html` | A living-documentation page, built on daisyUI. |
 | `live-docs-concept.html` | An earlier concept pass at the same living-documentation idea. |
 | `word-frequencies.html` | A word-frequency and part-of-speech API reference. |
