@@ -106,9 +106,30 @@ test('selected compatibility warnings ignore comments, literals, and here-string
   ].join('\n');
   const result = inspect(source);
   assert.deepEqual(result.diagnostics.map(d => [d.rule, d.line]).sort((a, b) => a[1] - b[1]), [
-    ['ps51-requires', 1], ['ps51-pipeline-chain', 8], ['ps51-null-coalescing', 9], ['ps51-parallel', 10],
+    ['ps51-requires', 1], ['ps51-pipeline-chain', 8], ['ps51-null-coalescing-assignment', 9], ['ps51-parallel', 10],
   ]);
   assert.deepEqual(inspect('#requires -Version 5.1\n$value = \'??\'').diagnostics, []);
+});
+
+test('ternary and null-coalescing observations skip the Where-Object alias, scope and drive colons, wildcards, and masked text', () => {
+  const source = [
+    "$label = $ready ? 'Ready' : 'Waiting'",
+    '$count = ($items | ? { $_.Enabled }).Count',
+    '? Name -like "a*"',
+    '$rows = $items | ? Name -eq $script:name',
+    "$name = $item.Name ?? 'none'",
+    '$first = $items[0] ?? $default',
+    'Get-ChildItem ??.txt',
+    '# $x ? 1 : 2 ?? 3',
+    "$example = '$x ? 1 : 2'",
+    '$value = if ($ready) { 1 } else { 2 }',
+    '$path = C:\\Temp\\out.txt; $script:total ??= 0',
+    '$size = ($file.Length -gt 0) ? "$($file.Length) bytes" : \'empty\'',
+  ].join('\r\n');
+  assert.deepEqual(inspect(source).diagnostics.map(d => [d.rule, d.line]), [
+    ['ps51-ternary', 1], ['ps51-null-coalescing', 5], ['ps51-null-coalescing', 6], ['ps51-null-coalescing-assignment', 11], ['ps51-ternary', 12],
+  ]);
+  assert.match(inspect('$a ? 1 : 2').diagnostics[0].message, /if and else/);
 });
 
 test('unclosed lexical regions are observations with a location, not runtime validation', () => {
