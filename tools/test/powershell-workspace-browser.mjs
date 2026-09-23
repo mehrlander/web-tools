@@ -96,13 +96,23 @@ await page.route('**/*', async route => {
 const state = () => page.evaluate(() => {
   const el = document.querySelector('[x-data^="powershellWorkspace"]');
   const d = el && window.Alpine.$data(el);
-  return d ? { active: d.active, error: d.error, text: d.doc?.text, loading: d.loading, editorReady: d.editorReady, editorError: d.editorError, dirty: d.dirtyDocs.length, pane: d.pane, panel: d.panel, diffAgainst: d.diffAgainst, received: d.localCheck?.content, pending: !!window.__shell.correspondencePending, view: window.__shell.view, projectTab: window.__shell.projectTab } : null;
+  return d ? { active: d.active, open: d.docs.map(doc => doc.path), error: d.error, text: d.doc?.text, loading: d.loading, editorReady: d.editorReady, editorError: d.editorError, dirty: d.dirtyDocs.length, pane: d.pane, panel: d.panel, diffAgainst: d.diffAgainst, received: d.localCheck?.content, pending: !!window.__shell.correspondencePending, view: window.__shell.view, projectTab: window.__shell.projectTab } : null;
 });
 const workspace = () => page.locator('[data-powershell-workspace]');
 const viewTab = name => workspace().getByRole('tab', { name, exact: true });
 const menuDialog = name => page.getByRole('dialog', { name, exact: true });
+async function openActions(menu) {
+  const direct = workspace().getByRole('button', { name: menu, exact: true });
+  if (menu !== 'Receive copy' && await direct.isVisible()) {
+    await direct.click();
+    return menu;
+  }
+  await workspace().getByRole('button', { name: 'File actions', exact: true }).click();
+  await menuDialog('File actions').getByRole('button', { name: menu, exact: true }).click();
+  return 'File actions';
+}
 async function menuAction(menu, action) {
-  await workspace().getByRole('button', { name: menu, exact: true }).click();
+  await openActions(menu);
   await menuDialog(menu).getByRole('button', { name: action, exact: true }).click();
 }
 async function ready() {
@@ -160,14 +170,41 @@ async function noOverflow(label) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, label + ' has no horizontal page overflow');
 }
 async function toolbarTargets() {
-  for (const name of ['Files', 'GitHub source', 'Workspace actions', 'File actions', 'Review changes', 'Find', 'Undo', 'Redo']) {
+  for (const name of ['Files', 'GitHub source', 'File actions', 'Review changes', 'Undo', 'Redo']) {
     const box = await withinViewport(workspace().getByRole('button', { name, exact: true }), name);
-    assert.ok(box.width >= 44 && box.height >= 44, name + ' has a 44px touch target: ' + JSON.stringify(box));
+    assert.ok(box.width >= 48 && box.height >= 48, name + ' has a 48px touch target: ' + JSON.stringify(box));
   }
   for (const name of ['Code', 'Compare', 'History']) {
     const box = await withinViewport(viewTab(name), name + ' tab');
-    assert.ok(box.width >= 44 && box.height >= 44, name + ' tab has a 44px touch target: ' + JSON.stringify(box));
+    assert.ok(box.width >= 48 && box.height >= 48, name + ' tab has a 48px touch target: ' + JSON.stringify(box));
   }
+}
+async function compactPhoneCode(label) {
+  const cm = workspace().locator('[data-editor-host] .CodeMirror');
+  const box = await withinViewport(cm, label + ' editor'), viewport = page.viewportSize();
+  assert.ok(box.y <= 116, label + ' code starts after only two chrome rows: ' + box.y);
+  assert.ok(box.x <= 1 && box.width >= viewport.width - 1, label + ' source uses the continuous full-width surface');
+  assert.ok(box.height >= 600, label + ' leaves at least 600px of code at 844px screen height: ' + box.height);
+  const top = await workspace().locator('[data-workspace-toolbar]').boundingBox();
+  const views = await workspace().locator('[data-view-toolbar]').boundingBox();
+  const commands = await workspace().locator('[data-editor-toolbar]').boundingBox();
+  assert.ok(top.height <= 56 && views.height <= 49, label + ' keeps its 56px and 48px chrome rows');
+  assert.ok(commands.y >= views.y && commands.y + commands.height <= views.y + views.height, label + ' embeds editing commands in the view row');
+  assert.equal(await workspace().getByRole('tablist', { name: 'Open files' }).count(), 0, label + ' has no phone file-tab row');
+  assert.equal(await workspace().getByRole('button', { name: 'Find', exact: true }).count(), 0, label + ' keeps Find in the file menu');
+  const rounded = await cm.evaluate(el => {
+    const found = [];
+    for (let parent = el; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent);
+      if ([style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomLeftRadius, style.borderBottomRightRadius].some(r => Number.parseFloat(r) > 0)) found.push({ tag: parent.tagName, id: parent.id, radius: style.borderRadius });
+      if (parent.hasAttribute('data-powershell-workspace')) break;
+    }
+    return found;
+  });
+  assert.deepEqual(rounded, [], label + ' source has no rounded document-card ancestor');
+  await toolbarTargets();
+  await noOverflow(label);
+  console.log('LAYOUT ' + label + ': editor top=' + box.y + 'px, height=' + box.height + 'px');
 }
 async function keyboardViews() {
   await viewTab('Code').focus();
@@ -181,12 +218,11 @@ async function keyboardViews() {
   }
 }
 async function filePickerActions() {
-  for (const { trigger, menu, action, input } of [
-    { trigger: 'Workspace actions', menu: 'Workspace actions', action: 'Restore drafts…', input: 'Restore draft bundle' },
-    { trigger: 'File actions', menu: 'Receive copy', action: 'Choose file…', input: 'Receive a file' },
+  for (const { menu, action, input } of [
+    { menu: 'Workspace actions', action: 'Restore drafts…', input: 'Restore draft bundle' },
+    { menu: 'Receive copy', action: 'Choose file…', input: 'Receive a file' },
   ]) {
-    await workspace().getByRole('button', { name: trigger, exact: true }).click();
-    if (menu !== trigger) await menuDialog(trigger).getByRole('button', { name: menu, exact: true }).click();
+    await openActions(menu);
     const dialog = menuDialog(menu);
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser', { timeout: 10000 }),
@@ -199,6 +235,39 @@ async function filePickerActions() {
     assert.equal((await state()).dirty, 0, 'cancelled file picking creates no draft');
     assert.equal((await state()).text, source, 'cancelled file picking preserves source');
   }
+}
+async function findFromMenu() {
+  const text = (await state()).text;
+  await viewTab('Compare').click();
+  await menuAction('File actions', 'Find');
+  const input = workspace().locator('[data-editor-host] .CodeMirror-dialog input');
+  await input.waitFor({ state: 'visible' });
+  assert.equal((await state()).pane, 'code', 'Find from the menu opens Code');
+  assert.equal(await input.evaluate(el => document.activeElement === el), true, 'Find focuses its search field');
+  await page.keyboard.type('Show-Example');
+  await page.keyboard.press('Escape');
+  await input.waitFor({ state: 'hidden' });
+  assert.equal((await state()).text, text, 'finding text never edits the file');
+  await menuAction('File actions', 'Code insights');
+  await workspace().locator('[data-code-insights]').waitFor({ state: 'visible' });
+  await menuAction('File actions', 'Code insights');
+  await workspace().locator('[data-code-insights]').waitFor({ state: 'hidden' });
+}
+async function closeAndReopenCompanion(draft) {
+  await menuAction('File actions', 'Companion');
+  assert.equal((await state()).active, B);
+  await menuAction('File actions', 'Close file');
+  await page.waitForFunction(path => Alpine.$data(document.querySelector('[x-data^="powershellWorkspace"]')).active === path, A);
+  assert.equal((await state()).text, draft, 'closing a companion preserves the open draft');
+  assert.ok(!(await state()).open.includes(B), 'Close file removes the clean companion tab');
+  await menuAction('File actions', 'Companion');
+  assert.equal((await state()).text, files[B], 'reopening the closed companion recovers its exact source');
+  await menuAction('File actions', 'Companion');
+  assert.equal((await state()).text, draft, 'returning from the companion preserves the exact draft');
+  await menuAction('File actions', 'Close file');
+  assert.equal((await state()).active, A, 'closing a dirty file requires an explicit draft decision');
+  assert.equal((await state()).text, draft, 'Close file cannot discard a draft');
+  await workspace().getByRole('button', { name: 'Dismiss notice', exact: true }).click();
 }
 async function emptyComparison(label) {
   await viewTab('Compare').click();
@@ -242,9 +311,7 @@ async function changedComparison(mobile) {
 }
 async function menuSheets(label) {
   for (const name of ['Workspace actions', 'File actions', 'GitHub source', 'Receive copy']) {
-    const trigger = name === 'Receive copy' ? 'File actions' : name;
-    await workspace().getByRole('button', { name: trigger, exact: true }).click();
-    if (name === 'Receive copy') await menuDialog('File actions').getByRole('button', { name, exact: true }).click();
+    const trigger = await openActions(name);
     const dialog = menuDialog(name);
     await dialog.waitFor({ state: 'visible' });
     assert.equal(await dialog.evaluate(el => el.matches(':modal')), true, name + ' uses the browser modal top layer');
@@ -254,7 +321,7 @@ async function menuSheets(label) {
     for (const control of await dialog.locator('button:visible, a:visible, select:visible').all()) {
       await control.scrollIntoViewIfNeeded();
       const box = await withinViewport(control, label + ' menu control after scrolling');
-      if (await control.evaluate(el => el.matches('button, select'))) assert.ok(box.width >= 44 && box.height >= 44, name + ' control has a 44px touch target: ' + JSON.stringify(box));
+      if (await control.evaluate(el => el.matches('button, select'))) assert.ok(box.width >= 48 && box.height >= 48, name + ' control has a 48px touch target: ' + JSON.stringify(box));
       const reachable = await control.evaluate(el => {
         const box = el.getBoundingClientRect();
         return [box.x + box.width / 2, box.right - Math.min(20, box.width / 4)].every(x => {
@@ -290,7 +357,7 @@ async function controlContrast(locator, label) {
   }
 }
 async function selectedContrast(theme) {
-  await controlContrast(workspace().getByRole('tablist', { name: 'Open files' }).getByRole('tab', { selected: true }), theme + ' selected file');
+  await controlContrast(workspace().locator('[data-document-title]'), theme + ' selected file');
   await controlContrast(viewTab('Code'), theme + ' selected Code tab');
 }
 async function diffCountContrast(theme) {
@@ -321,6 +388,7 @@ try {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await ready();
   assert.equal((await state()).text, source);
+  assert.equal(await workspace().getByRole('tablist', { name: 'Open files' }).count(), 0, 'one desktop file does not need a separate tab row');
   const cm = page.locator('[data-editor-host] .CodeMirror');
   assert.ok((await cm.boundingBox()).height > 250, 'the editor receives viewport space');
   assert.deepEqual((await workspace().getByRole('tablist', { name: 'Code views' }).getByRole('tab').allTextContents()).map(text => text.trim()), ['Code', 'Compare', 'History']);
@@ -338,13 +406,21 @@ try {
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.setAttribute('data-theme', theme), theme);
       await viewTab('Code').click();
-      await toolbarTargets();
+      await compactPhoneCode(width + 'px ' + theme + ' single file');
       await checkSyntaxContrast(theme);
       await selectedContrast(theme);
       await noOverflow(width + 'px ' + theme + ' code');
       await page.screenshot({ path: path.join(output, `powershell-workspace-phone-${width}-${theme}-code-clean.png`) });
       await emptyComparison(`phone-${width}-${theme}`);
     }
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+    await viewTab('Code').click();
+    await menuAction('File actions', 'Companion');
+    await menuAction('File actions', 'Companion');
+    assert.equal((await state()).open.length, 2, 'the phone has two open documents');
+    await compactPhoneCode(width + 'px multiple files');
+    await page.screenshot({ path: path.join(output, `powershell-workspace-phone-${width}-light-code-multiple.png`) });
+    if (width === 390) await findFromMenu();
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -385,6 +461,7 @@ try {
   await exactText(editedDraft);
   await menuAction('File actions', 'Companion');
   assert.equal((await state()).active, B);
+  assert.equal(await workspace().getByRole('tablist', { name: 'Open files' }).isVisible(), true, 'multiple desktop files expose their tab row');
   await page.getByRole('tab', { name: '● Example.ps1', exact: true }).click();
   assert.equal((await state()).text, editedDraft);
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -446,10 +523,8 @@ try {
   assert.equal((await state()).panel, '', 'restoring a draft does not open phone analysis panels');
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await viewTab('Code').click();
-  const phoneEditor = await withinViewport(cm, 'phone editor');
-  assert.ok(phoneEditor.height >= 320, 'phone editor retains at least 320px: ' + phoneEditor.height);
-  assert.ok(phoneEditor.y <= 280, 'phone toolbars leave the code near the top: ' + phoneEditor.y);
-  await toolbarTargets();
+  await closeAndReopenCompanion(editedDraft);
+  await compactPhoneCode('restored phone draft with companion');
   await withinViewport(workspace().getByRole('button', { name: /Review changes/ }), 'phone Review changes');
   await page.screenshot({ path: path.join(output, 'powershell-workspace-phone-code.png') });
   await menuSheets('phone');
@@ -464,6 +539,8 @@ try {
   assert.ok((await page.locator('[data-code-diff]').boundingBox()).height > 200, 'phone diff retains readable viewport space');
   await changedComparison(true);
   await page.screenshot({ path: path.join(output, 'powershell-workspace-phone.png') });
+  const dismissNotice = workspace().getByRole('button', { name: 'Dismiss notice', exact: true });
+  if (await dismissNotice.isVisible()) await dismissNotice.click();
   for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 844 });
     for (const theme of ['light', 'dark']) {
@@ -473,7 +550,7 @@ try {
       await diffCountContrast(theme);
       await page.screenshot({ path: path.join(output, `powershell-workspace-phone-${width}-${theme}-compare.png`) });
       await viewTab('Code').click();
-      await toolbarTargets();
+      await compactPhoneCode(width + 'px ' + theme + ' edited files');
       await checkSyntaxContrast(theme);
       await noOverflow(width + 'px ' + theme + ' edited code');
       await page.screenshot({ path: path.join(output, `powershell-workspace-phone-${width}-${theme}-code.png`) });
@@ -485,7 +562,7 @@ try {
   assert.equal((await state()).active, B, 'phone explorer reaches a file');
   assert.deepEqual(errors, []);
   assert.deepEqual(contrastIssues, [], 'control text must meet 4.5:1 contrast');
-  console.log('PASS full app Code route, native modal file pickers, exact native paste and undo, comparison intake and target choices, app Paste tap, companions, retained drafts, backup, publication, unchanged comparison state, single mobile diff gutter, labelled desktop gutters, keyboard view tabs, 360/390px light/dark views, 44px toolbar targets, selected-text/diff-count contrast, menu bounds and unobstructed actions');
+  console.log('PASS two-row continuous phone editor, single/multiple file layouts, nested workspace actions, Find/insights/close/reopen menus, native modal file pickers, exact paste and undo, comparison intake and target choices, app Paste, retained drafts, backup, publication, unchanged comparison state, single phone diff gutter, labelled desktop gutters, keyboard view tabs, 360/390px light/dark views, 48px targets, contrast and unobstructed modal actions');
 } catch (e) {
   console.error('State:', JSON.stringify(await state().catch(() => null)));
   console.error('Page errors:', errors);

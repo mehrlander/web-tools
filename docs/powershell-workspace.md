@@ -14,9 +14,15 @@ Overview continues to own installation observations and adoption records.
 The workspace has three views for the selected file: **Code** edits its browser
 draft, **Compare** compares that draft with its base, GitHub source or a supplied
 copy, and **History** lists the file's GitHub commits with links to inspect them.
-History is separate from the editor's undo history. The open-file and view tabs
-support Left/Right Arrow, Home and End keys. The icon toolbars use 48-pixel touch
-targets; **Workspace actions** and **File actions** group the remaining commands.
+History is separate from the editor's undo history.
+
+The top bar shows the current filename and its project/ref, with **Files**,
+**Review changes** and **File actions** beside it. **Code**, **Compare** and
+**History** share a second row with Undo/Redo. Phones switch documents through
+**Files**; desktop open-file tabs appear when multiple files are open. Both tab
+sets support Left/Right Arrow, Home and End keys. Icon actions keep 48-pixel
+touch targets. **File actions** contains Find, Find and replace, Code insights,
+Close file, and the nested **Workspace actions** menu.
 
 The explorer groups files using the installation manifest's areas. Find file
 filters paths; Search reads source content at the captured revision and includes
@@ -34,8 +40,9 @@ shows the paired source beside the editable file. Connections lists explicit
 `FindName` lookups found in that companion. A companion already open as a draft
 contributes its draft text; otherwise the comparison uses pinned source.
 
-**Code insights** opens Outline, Problems and References; it starts closed on
-phones. Outline and References locate symbols and source expressions. Problems reports
+**File actions → Code insights** opens Outline, Problems and References; it
+starts closed on phones. Outline and References locate symbols and source
+expressions. Problems reports
 selected lexical and PowerShell 5.1 compatibility observations. These browser
 checks use a lexer and conservative patterns. They do not run the PowerShell
 parser, PSScriptAnalyzer, WPF, COM, or the code itself. An empty Problems list
@@ -55,7 +62,8 @@ holds the base revision, base blob, original text, edited text, and update date.
 Changing tabs or visiting another app view retains drafts. A failed or pending
 save also retains recovery text in the current app window, and a browser unload
 with unsaved text requests confirmation. Memory recovery cannot survive closing
-the browser. **Workspace actions** provides **Back up drafts** and **Restore drafts**.
+the browser. **Workspace actions**, reached through **File actions** when a file
+is open, provides **Back up drafts** and **Restore drafts**.
 Backup writes the browser drafts to a JSON bundle. Restore validates that bundle's
 repository, project and ref, previews restoration, and refuses to replace
 different open drafts.
@@ -76,7 +84,7 @@ and retain explicit added/removed marks.
 Desktop gutters label **From** and **Draft** line numbers. A phone uses one gutter:
 the source line for a removal, otherwise the draft line.
 
-The branch control opens **GitHub source**, where
+The filename and project/ref control opens **GitHub source**, where
 **Check GitHub** captures a new revision. An unchanged blob
 can advance the draft's base revision without changing its text. When GitHub
 changed that file, the workspace retains the original base and draft. **Use
