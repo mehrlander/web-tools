@@ -1,7 +1,7 @@
 // Does the guide renderer give the audit's table real cell padding, now that
 // `prose prose-sm` is gone? Measures rather than eyeballs, then frames it.
 export default async function (page) {
-  await page.click('button:has-text("Read")');
+  await page.waitForSelector('[x-ref="doc"] [data-uid]');   // rendered is the default
   await page.waitForTimeout(700);
   const r = await page.evaluate(() => {
     const td = document.querySelector('[x-ref="doc"] table td');

@@ -43,7 +43,7 @@ lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read 
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the proposals the Text collection holds…",275,no,no,2,yes
 lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,231,no,yes,2,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
-lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
+lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,15,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
@@ -76,7 +76,7 @@ lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,ye
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,533,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
-lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",577,no,no,2,yes
+lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",576,no,no,2,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,24,yes
