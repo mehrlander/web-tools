@@ -127,7 +127,7 @@ explicit alternate encodings. A check records the supplied text and pinned
 source in browser storage. **Use as draft** is a separate,
 confirmed action; recognizing a signature does not replace the browser draft.
 
-Copy, Download, and publication do not record installation. **Installation**
+Copy, Download, the transfer script, and publication do not record installation. **Installation**
 returns to the project's Overview and selected file. That view shows the
 declared destination, pending adoption limits, dated observations, and the
 file's source, read-only. Its

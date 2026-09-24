@@ -24,5 +24,5 @@ when the work computer's known copy differs from GitHub.
 Confirm installed, and Record the match or the difference for a browser-local
 check. Each opens a confirm showing the exact ledger row and commits it on the
 browsed branch only after the reader taps "I placed this on the work computer".
-Comparing, copying and downloading never write a row. The ledger is appended,
+Comparing, copying, downloading and the transfer script never write a row. The ledger is appended,
 never rewritten.
