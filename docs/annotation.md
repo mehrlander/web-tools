@@ -1,15 +1,15 @@
 # Annotating a document
 
 An **annotation** splits a document into units about a sentence long and gives each
-unit a **label** from a declared vocabulary (what the unit is) and a **verdict**
-(`KEEP`, `REWRITE`, `MOVE`, `DROP`). It is stored beside the document as a
+unit a **label** from a declared vocabulary (what the unit is), a **verdict**
+(`KEEP` or `DROP`), and an optional **note**. It is stored beside the document as a
 **standoff**: a JSON file of character spans, the question, the vocabulary, and a
 `sha256` of the document it describes. Any question works; the vocabulary is data.
 
 The user reviews it in [`pages/audit-render.html`](../pages/audit-render.html),
-which shows the whole document tinted by label or by verdict, and lets them
-relabel, change a verdict, split, merge, or drag a unit's edges, then save to the
-branch.
+which shows the whole document tinted by label, removed units struck through, and
+lets them relabel, remove, add a note, split, merge, or drag a unit's edges, then
+save to the branch.
 
 The scripts are in [`scripts/annotate/`](../scripts/annotate/); the builder is
 [`tools/build/audit-payload.py`](../tools/build/audit-payload.py).
@@ -26,17 +26,18 @@ A vocabulary is a TSV of `label`, `side`, `gloss`, and an optional `color`
 2. **Label.** Write `labels.tsv` with columns `uid`, `label`, `verdict`.
 3. **Build and hand over.**
    `python3 tools/build/audit-payload.py standoff <doc> <run-dir> [--vocab <tsv>] [--question <text>]`,
-   then `… payload <doc> <run-dir>`, which the page loads from `?src=<spec>` or
-   `--inject <page>`. Hand the user the page before rewriting anything.
+   The page loads the standoff from `?src=<spec>`, and Save writes it back;
+   `… payload <doc> <run-dir> --inject <page>` embeds it instead. Hand the user
+   the page before rewriting anything.
 4. **Rewrite** from the corrected annotation.
    `python3 scripts/annotate/materialize.py <standoff.json> <doc> --out <file>`
-   drafts it from the `DROP`s and insertions.
+   drafts it from the `DROP`s and insertions, and lists the noted units to reword.
 5. **Check.**
    `python3 scripts/annotate/check.py units.jsonl labels.tsv <original> <rewrite> [--section <heading>]`,
    then `python3 scripts/annotate/seams.py` with the same arguments. `check.py`
    over-reports: most candidates on loose prose are reworded survivors, so probe
    each for its distinctive words before calling it a loss. If the rewrite
-   removes a `KEEP` unit after all, change its verdict to `REWRITE`.
+   removes a `KEEP` unit after all, change its verdict to `DROP`.
 6. **Record** surprises in
    [`scripts/annotate/LOG.md`](../scripts/annotate/LOG.md).
 

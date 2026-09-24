@@ -141,7 +141,7 @@ await page.route('**/*', route => {
   if (r.tag) log.push(r.tag);
   if (r.kind === 'continue') return route.continue();
   if (r.kind === 'empty') return route.fulfill({ status: 200, contentType: r.contentType, body: '' });
-  return route.fulfill({ status: 200, contentType: r.contentType, body: r.body });
+  return route.fulfill({ status: r.status || 200, contentType: r.contentType, body: r.body });
 });
 
 page.on('console', m => consoleLines.push(`[${m.type()}] ${m.text()}`));

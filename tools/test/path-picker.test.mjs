@@ -315,3 +315,73 @@ test('descending announces itself so a host can clear its own field', () => {
   host.removeEventListener('path-descend', onDescend);
   assert.deepEqual(plain_(seen), [['me/open'], ['me/open', 'lib']]);
 });
+
+// ---- inline and based: the Files views (alpineComponents/file-browser.js) ----
+
+class DeepGH {
+  constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = ''; }
+  async req(path) {
+    treeCalls.push({ repo: this.repo, path });
+    return { truncated: false, tree: [
+      { type: 'blob', path: 'README.md' },
+      { type: 'tree', path: 'projects' },
+      { type: 'tree', path: 'projects/wps' },
+      { type: 'tree', path: 'projects/wps/app' },
+      { type: 'blob', path: 'projects/wps/app/Profile.ps1' },
+      { type: 'blob', path: 'projects/wps/README.md' },
+      { type: 'tree', path: 'projects/other' },
+      { type: 'blob', path: 'projects/other/x.md' },
+    ] };
+  }
+}
+
+test('a based, inline picker opens on its folder and never climbs out of it', async () => {
+  Alpine.store('browser').gh = new DeepGH({ token: 't', repo: 'me/home' });
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', "pathPicker({ inline: true, trigger: false, base: { repo: 'me/home', ref: 'dev', dir: 'projects/wps/' } })");
+  window.document.body.appendChild(host);
+  Alpine.initTree(host);
+  const d = Alpine.$data(host);
+  for (let i = 0; i < 20 && d.floor === 0; i++) await new Promise(r => setTimeout(r, 0));
+  assert.equal(d.open, true, 'inline is open from the start, with no opener');
+  assert.deepEqual(plain_(d.scope.map(n => n.name)), ['me/home@dev', 'projects', 'wps']);
+  assert.equal(d.floor, 3);
+  assert.deepEqual(plain_(d.children().map(n => n.name)), ['app', 'README.md']);
+  d.up(); d.jump(0);
+  assert.deepEqual(plain_(d.scope.map(n => n.name)), ['me/home@dev', 'projects', 'wps'], 'Up and the crumbs stop at the base');
+  await d.choose(d.children().find(n => n.name === 'app'));
+  const picked = [];
+  host.addEventListener('path-pick', e => picked.push(plain_(e.detail)));
+  await d.choose(d.children().find(n => n.name === 'Profile.ps1'));
+  assert.deepEqual(picked, [{ repo: 'me/home', ref: 'dev', path: 'projects/wps/app/Profile.ps1' }]);
+  assert.equal(d.picked, 'projects/wps/app/Profile.ps1', 'the picked file is marked in the list');
+  assert.equal(d.pathOf({ name: 'Profile.ps1' }), 'projects/wps/app/Profile.ps1');
+  await new Promise(r => setTimeout(r, 0));
+  const visible = el => el.style.display === 'none' ? ''
+    : el.children.length ? [...el.children].map(visible).join('') : el.textContent.trim();
+  const crumbs = [...host.querySelectorAll('nav[aria-label="Current path"] > span')].map(visible).filter(Boolean);
+  assert.deepEqual(crumbs, ['wps', '/app'], 'the crumbs begin at the base');
+  assert.equal(host.querySelector('[aria-label="Close"]').style.display, 'none', 'inline has no close button');
+});
+
+test('a start folder under the base opens there, with the crumbs above it walkable', async () => {
+  Alpine.store('browser').gh = new DeepGH({ token: 't', repo: 'me/home' });
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', "pathPicker({ inline: true, trigger: false, base: { repo: 'me/home', dir: '' }, start: 'projects/wps/app' })");
+  window.document.body.appendChild(host);
+  Alpine.initTree(host);
+  const d = Alpine.$data(host);
+  for (let i = 0; i < 20 && d.scope.length < 4; i++) await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(plain_(d.scope.map(n => n.name)), ['me/home', 'projects', 'wps', 'app']);
+  assert.equal(d.floor, 1, 'the floor is the repo root, not the start');
+  d.jump(0);
+  assert.deepEqual(plain_(d.scope.map(n => n.name)), ['me/home']);
+  // A base folder the tree lacks says so rather than posing as the root.
+  const bad = window.document.createElement('div');
+  bad.setAttribute('x-data', "pathPicker({ inline: true, trigger: false, base: { repo: 'me/home', dir: 'projects/gone' } })");
+  window.document.body.appendChild(bad);
+  Alpine.initTree(bad);
+  const b = Alpine.$data(bad);
+  for (let i = 0; i < 20 && !b.error; i++) await new Promise(r => setTimeout(r, 0));
+  assert.match(b.error, /No folder projects\/gone in me\/home/);
+});

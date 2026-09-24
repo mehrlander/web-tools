@@ -53,6 +53,21 @@ nothing in lib or the app breaks. The commit hook wants a
 documentation-approval trailer per doc file, so the approval has to name
 the split as a whole.
 
+**Scope widened 2026-09-24.** The table above covers ten estate sections
+and no repo view. Part 1 covers every row of `app-routes.csv`: a view with
+material gets `docs/views/<key>.md`, a view without any gets a blank `doc`
+cell, and a view whose contract already has a reference (stage, proposals)
+points at it. The misfiled blocks move by content, not by heading: the Map,
+Tools, the repo dialog and token gating sit under "Sessions cache" today.
+
+**Writing rule for the split (owner, 2026-09-24).** Keep only what changes
+what a future assistant does: addresses, the files that draw a view, the
+data it reads and writes, and the invariants an edit could break, each with
+the test that holds it. Cut history, measurements, rationale and design
+narration; git and the code comments hold them. The assistant finds things
+well, so the documents connect and organize rather than explain. The move is
+one commit and the trim follows it, so the diff stays reviewable.
+
 ## 2. The FAB and the deck
 
 A deck slide reaches the layer strip as an in-document subject and is
@@ -125,3 +140,6 @@ column; the FAB captions a deck slide by its type with a deck row above it;
 
 ## Progress log
 - 2026-09-22: filed from the design pass on claude/serene-einstein-dyr03b, after PR #756.
+- 2026-09-24: claimed on claude/show-docs-restructure-fc9r96 for part 1, with the scope widened to every route and the owner's trim rule added above.
+- 2026-09-24: part 1 on claude/show-docs-restructure-fc9r96, PR #778: show-repo.md split into docs/views/ and docs/forms/ (31,586 words to 5,333), doc columns on app-routes.csv and subjects.csv held by app-routes.test.mjs, routes folded into the Map doc. Parts 2 to 4 remain.
+- 2026-09-24: part 1 done on claude/show-docs-restructure-fc9r96 (PR #778, ready to merge); returned to backlog for parts 2 to 4. Also open: four code comments in app/index.html and lib still say "Installation pill", left for the next shell change.

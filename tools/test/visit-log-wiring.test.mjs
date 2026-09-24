@@ -149,7 +149,9 @@ test('a row is one line: the thing, then the short context, and never both the s
   };
 
   assert.deepEqual(say('/web-tools/app/?view=search&sfile=mehrlander/home:CLAUDE.md'),
-    ['CLAUDE.md', 'Files'], 'a file row leads with the file, not with its category');
+    ['CLAUDE.md', 'Search'], 'a file row leads with the file, not with its category');
+  assert.deepEqual(say('/web-tools/app/?repo=mehrlander/home&view=files&path=docs&file=docs/SURFACING.md'),
+    ['SURFACING.md', 'Files'], 'a Files-view row names its file the same way');
   assert.deepEqual(say('/web-tools/app/?view=project&project=projects/budget-drs&tab=board'),
     ['budget-drs', 'Project']);
   assert.deepEqual(say('/web-tools/app/?view=sessions&session=2bf8fcae'),

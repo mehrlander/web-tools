@@ -31,11 +31,10 @@ import sys, json, csv, re, hashlib, pathlib
 # what that vocabulary asks. check.py never reads the label column, so nothing
 # downstream branches on which vocabulary a run used.
 #
-# TWO AXES, BOTH DECLARED. `vocabulary` says what a unit IS; `verdicts` says
-# what was decided about it. They are orthogonal, and a unit carries one of
-# each. labels.tsv seeds both and owns neither: the pass writes it, the builder
-# copies it in, and from then on the standoff is the live one, because a
-# relabel or a reverdict in the page lands there.
+# A LABEL AND A REMOVE MARKER, BOTH DECLARED. `vocabulary` says what a unit
+# IS; `verdicts` is KEEP or DROP, whether it stays. labels.tsv seeds both and
+# owns neither: the pass writes it, the builder copies it in, and from then on
+# the standoff is the live one, because an edit in the page lands there.
 BINDING = pathlib.Path(__file__).resolve().parents[2] / "skills/doc-craft/binding/vocab.tsv"
 
 def load_vocab(path):
@@ -44,14 +43,12 @@ def load_vocab(path):
                                 ("gloss", r.get("gloss") or ""), ("color", r.get("color")))
              if v is not None and (k != "color" or v)} for r in rows]
 
-# The dispositions, in the order a pass walks them: leave it, say it better,
-# it belongs elsewhere, it should not be here. DROP is last and is the only
-# destructive one, which is why the page strikes it through under either lens.
+# Whether a unit stays: the one edit the tools carry out. Anything else, a
+# rewording asked for or a destination named, goes in the unit's note, which
+# materialize.py reports as the brief for the rewrite.
 VERDICTS = [
-    ("KEEP",    "stands as written"),
-    ("REWRITE", "the content earns its place; the sentence does not"),
-    ("MOVE",    "belongs in another document"),
-    ("DROP",    "says nothing the document needs"),
+    ("KEEP", "stays; a note on it asks for any rewording"),
+    ("DROP", "removed from the document"),
 ]
 
 def parse_addr(spec):
