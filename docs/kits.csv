@@ -25,6 +25,7 @@ lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engin
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,6,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",497,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,172,no,no,4,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",474,no,no,7,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",199,no,yes,8,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
@@ -60,7 +61,7 @@ lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web
 lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",149,yes,no,13,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
-lib/kits/repo-mailbox.js,RepoMailbox,"Private mailbox: an async, git-backed request/response channel between an agent session (limited repo scope) and show-repo in the browser (the user's…",148,no,no,2,yes
+lib/kits/repo-mailbox.js,RepoMailbox,"The mailbox's reads: tree, branches and fetch against one of the user's repos, with the user's token.",126,no,no,2,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the read-only mailbox (lib/kits/repo-mailbox.js).,658,no,no,2,yes
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1753,no,no,5,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes

@@ -92,6 +92,7 @@ const Alpine = await startAlpine(window, [
   // fulfil. show-repo loads every kit before any component, so this mirrors the
   // page's own order rather than adding a dependency the page lacks.
   'lib/kits/repo-mailbox.js',
+  'lib/kits/errands.js',
   'lib/kits/surface.js',
   'lib/kits/text-diff.js',
   'lib/kits/git-change.js',
@@ -3406,10 +3407,9 @@ test('Done resumes dictation only if the keyboard interrupted it', async () => {
   data.dictCancel();
 });
 
-// ---- asks: what a session wants FROM you ---------------------------------
-// The mailbox's fourth kind. The other three are deferred reads from a repo and
-// answer themselves on page load; this one waits for a person, so the stage is
-// where it is read and closed.
+// ---- errands: what a session needs this browser for ---------------------
+// One list for reads of your repos, courier runs, and material only you have.
+// Nothing runs on its own; each card is graded, and one button completes it.
 
 test('askAge is coarse, and says nothing when the record carries no date', () => {
   assert.equal(data.askAge(''), '');
@@ -3419,77 +3419,130 @@ test('askAge is coarse, and says nothing when the record carries no date', () =>
   assert.equal(data.askAge(new Date(Date.now() - 86400000 * 9).toISOString()), '9 days');
 });
 
-test('askTaskUrl links the citation, and stays quiet without one', () => {
-  assert.equal(data.askTaskUrl({ task: 'mehrlander/home:projects/wps/tracker/tasks/x.md' }),
+test('errandTaskUrl links the citation, and stays quiet without one', () => {
+  assert.equal(data.errandTaskUrl({ for: 'mehrlander/home:projects/wps/tracker/tasks/x.md' }),
     'https://github.com/mehrlander/home/blob/HEAD/projects/wps/tracker/tasks/x.md');
-  assert.equal(data.askTaskUrl({ task: 'mehrlander/home@main:t.md' }),
+  assert.equal(data.errandTaskUrl({ for: 'mehrlander/home@main:t.md' }),
     'https://github.com/mehrlander/home/blob/main/t.md');
-  assert.equal(data.askTaskUrl({}), '');
-  assert.equal(data.askTaskUrl({ task: 'nonsense' }), '');
+  assert.equal(data.errandTaskUrl({}), '');
+  assert.equal(data.errandTaskUrl({ for: 'nonsense' }), '');
 });
 
-test('loadAsks keeps valid asks and drops everything it cannot use', async () => {
-  const requests = {
-    'ask-ok.json': { id: 'ask-ok', kind: 'ask', note: 'the PowerShell files', dest: 'me/dest:projects/wps/dump' },
-    'ask-bad.json': { id: 'ask-bad', kind: 'ask' },              // no note or dest
-    'br.json': { id: 'br', kind: 'branches', repo: 'me/open' },  // a read kind, not ours
-    'junk.json': '<<<not json>>>',
-  };
-  window.__shell = { REGISTRY_REPO: 'me/registry' };
-  data.srcGh = () => ({
+// A registry with both folders and the public courier list, for loadErrands.
+function errandRegistry({ requests = {}, results = [], mailbox = {}, mailboxResults = [], list = null } = {}) {
+  const saved = [];
+  const gh = (repo) => ({
     async ls(dir) {
-      if (dir === 'mailbox/requests') return Object.keys(requests).map(name => ({ name, type: 'file' }));
-      return [];
+      if (dir === 'errands/requests') return Object.keys(requests).map(name => ({ name, type: 'file' }));
+      if (dir === 'errands/results') return results.map(name => ({ name, type: 'file' }));
+      if (dir === 'mailbox/requests') return Object.keys(mailbox).map(name => ({ name, type: 'file' }));
+      if (dir === 'mailbox/results') return mailboxResults.map(name => ({ name, type: 'file' }));
+      throw new Error('404');
     },
     async get(p) {
+      if (repo === 'mehrlander/web-tools') {
+        if (p === 'courier/errands.json' && list) return { text: JSON.stringify(list) };
+        if (p === 'bookmarklets/courier-stage.js') return { text: 'javascript:void 0\n' };
+        throw new Error('404');
+      }
       const name = p.split('/').pop();
-      const v = requests[name];
+      const v = (p.startsWith('mailbox/') ? mailbox : requests)[name];
       if (v === undefined) throw new Error('404');
       return { text: typeof v === 'string' ? v : JSON.stringify(v) };
     },
+    async save(path, body, msg) { saved.push({ path, body, msg }); return {}; },
   });
-  await data.loadAsks();
-  assert.deepEqual(plain_(data.asks.map(a => a.id)), ['ask-ok'],
-    'a malformed ask and an unparsable record drop their own row, not the section');
-  assert.equal(data.asks[0].dest, 'me/dest:projects/wps/dump');
+  return { gh, saved };
+}
+
+test('loadErrands gathers every source as one list, and drops what it cannot use', async () => {
+  const reg = errandRegistry({
+    requests: {
+      'hand-ok.json': { id: 'hand-ok', action: 'hand', note: 'the PowerShell files', dest: 'me/dest:dump' },
+      'done.json': { id: 'done', action: 'hand', note: 'already closed', dest: 'me/dest:d' },
+      'bad.json': { id: 'bad', action: 'hand' },
+      'junk.json': '<<<not json>>>',
+    },
+    results: ['done.json', 'pub-closed.json'],
+    mailbox: {
+      'ask-old.json': { id: 'ask-old', kind: 'ask', note: 'an older ask', dest: 'me/dest:x', task: 'me/t:a.md' },
+      'req-tree.json': { id: 'req-tree', kind: 'tree', repo: 'me/open' },
+    },
+    list: { errands: [
+      { id: 'pub-open', host: 'site.example', status: 'open', title: 'Public', url: 'https://site.example/', script: 's.js',
+        result: { repo: 'me/private', branch: 'main', path: 'courier/results/pub-open.md' } },
+      { id: 'pub-closed', host: 'site.example', status: 'open', title: 'Closed privately', url: 'https://site.example/', script: 's.js',
+        result: { repo: 'me/private', branch: 'main', path: 'r/pub-closed.md' } },
+    ] },
+  });
+  window.__shell = { REGISTRY_REPO: 'me/registry' };
+  data.srcGh = (repo) => reg.gh(repo);
+  await data.loadErrands();
+  assert.deepEqual(plain_(data.errands.map(e => e.id)).sort(), ['ask-old', 'hand-ok', 'pub-open', 'req-tree'],
+    'a closed errand, a malformed one and an unparsable file each drop their own row, not the panel');
+  const ask = data.errands.find(e => e.id === 'ask-old');
+  assert.equal(ask.action, 'hand', 'an old ask is a hand errand');
+  assert.equal(ask.src.res, 'mailbox/results', 'and closes where it was filed');
+  const pub = data.errands.find(e => e.id === 'pub-open');
+  assert.equal(pub.dest, 'me/private@main:courier/results');
+  assert.equal(pub.src.res, 'errands/results', 'a public courier errand closes by a private record');
+  assert.equal(data.pointer, 'javascript:void 0', 'the bookmarklet comes from the one copy in the repo');
   data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
-test('resolveAsk writes the result that closes it, and drops the row', async () => {
-  const saved = [];
+test('nothing runs on load: a read waits for Run, then its grade decides the button', async () => {
+  const reg = errandRegistry({ requests: { 'r.json': { id: 'r', action: 'fetch', repo: 'me/open', paths: ['a.md', 'b.md'] } } });
   window.__shell = { REGISTRY_REPO: 'me/registry' };
-  data.srcGh = () => ({ async save(path, body, msg) { saved.push({ path, body, msg }); return {}; } });
-  data.asks = [{ name: 'ask-ok.json', id: 'ask-ok', kind: 'ask', dest: 'me/dest:d', message: '', busy: false }];
-
-  await data.resolveAsk(data.asks[0], true);
-  assert.equal(saved.length, 1);
-  assert.equal(saved[0].path, 'mailbox/results/ask-ok.json', 'the result takes the request name; that is what closes it');
-  assert.equal(saved[0].body.answered, true);
-  assert.deepEqual(plain_(data.asks), []);
-
+  data.srcGh = (repo) => reg.gh(repo);
+  await data.loadErrands();
+  const e = data.errands[0];
+  assert.equal(e.outcome, null, 'listing an errand reads nothing on its behalf');
+  assert.equal(data.errandGrade(e), null);
+  const realGH = window.GH;
+  window.GH = class { async get(p) { if (p === 'b.md') throw new Error('404'); return { text: 'x', size: 1 }; } };
+  await data.runErrand(e);
+  assert.equal(data.errandGrade(e).level, 'amber', 'one of two files read is partial');
+  window.GH = class { async get() { return { text: 'x', size: 1 }; } };
+  await data.runErrand(e);
+  assert.equal(data.errandGrade(e).level, 'green');
+  assert.equal(data.errandOkLabel(e), 'OK, send it back');
+  await data.completeErrand(e);
+  assert.equal(reg.saved.length, 1);
+  assert.equal(reg.saved[0].path, 'errands/results/r.json');
+  assert.equal(reg.saved[0].body.data.ok, true, 'what was read goes back with the closing record');
+  assert.equal(reg.saved[0].body.verdict.level, 'green');
+  window.GH = realGH;
   data.srcGh = realSrcGh;
   delete window.__shell;
 });
 
-test('resolveAsk refuses a decline with no reason, and leaves the row standing', async () => {
+test('a hand errand is graded against the bench, and a decline must say why', async () => {
+  reset();
   const saved = [];
   window.__shell = { REGISTRY_REPO: 'me/registry' };
   data.srcGh = () => ({ async save(path, body, msg) { saved.push({ path, body, msg }); return {}; } });
-  data.asks = [{ name: 'ask-ok.json', id: 'ask-ok', kind: 'ask', dest: 'me/dest:d', message: '  ', busy: false }];
+  const e = { ...window.Errands.normalize({ id: 'h', action: 'hand', note: 'scripts', dest: 'me/dest:d', expect: { names: ['*.ps1'] } },
+                                         { repo: 'me/registry', res: 'errands/results', name: 'h.json' }),
+              message: '  ', busy: false, armed: false, outcome: null };
+  data.errands = [e];
+  assert.equal(data.errandGrade(data.errands[0]).level, 'red', 'nothing staged yet');
+  store.stage = [window.StageIntake.textItem('notes.txt', 'hello')];
+  assert.equal(data.errandGrade(data.errands[0]).level, 'amber', 'a file, but not the kind asked for');
+  store.stage = [window.StageIntake.textItem('Get-Thing.ps1', 'hello')];
+  assert.equal(data.errandGrade(data.errands[0]).level, 'green');
 
-  await data.resolveAsk(data.asks[0], false);
+  await data.closeErrand(data.errands[0], false);
   assert.deepEqual(saved, [], 'a decline is the valuable answer, so it must say why');
-  assert.equal(data.asks.length, 1, 'nothing was written, so nothing was closed');
-
-  data.asks[0].message = 'nothing references it, stop looking';
-  await data.resolveAsk(data.asks[0], false);
-  assert.equal(saved.length, 1);
+  data.errands[0].message = 'nothing references it, stop looking';
+  await data.closeErrand(data.errands[0], false);
+  assert.equal(saved[0].path, 'errands/results/h.json');
   assert.equal(saved[0].body.answered, false);
   assert.equal(saved[0].body.ok, true, 'a decline is a served request, not a failure');
-
+  assert.deepEqual(plain_(data.errands), []);
   data.srcGh = realSrcGh;
   delete window.__shell;
+  reset();
 });
 
 // ── The bench's Paste button, and what it says when it takes nothing ────────
