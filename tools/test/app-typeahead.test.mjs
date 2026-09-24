@@ -197,7 +197,7 @@ test('the id the router names is the id the finder carries', () => {
 const DECLARED = [
   ['app/index.html', 'the Pages filter and the project Docs path filter', 2],
   ['lib/alpineComponents/search-view.js', 'the Files view query', 1],
-  ['lib/alpineComponents/estate.js', "the Sessions pane's filter and the Chats pane's filter", 2],
+  ['lib/alpineComponents/estate.js', "the Activity query, one box above the pane pills", 1],
   // Distribution, Docs Inventory, and Skills are sibling mapTab sections.
   // x-show leaves only the selected section with client rects, so the router
   // still sees exactly one visible primary finder at a time.

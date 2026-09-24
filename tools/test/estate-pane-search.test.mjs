@@ -1,5 +1,5 @@
-// alpineComponents/estate.js — the text box on the Sessions pane and the one on
-// the Chats pane.
+// alpineComponents/estate.js — the Activity query, one box above the pane
+// pills, as each pane applies it.
 //
 // The two panes browse two venues by facet (scope, repo and closing state on
 // one; provider, tag and hand-layer on the other) and neither had a way to
@@ -13,7 +13,11 @@
 //     its own that matched only the visible columns;
 //   - a stub session (named by a branch's commit trailer, carrying no record)
 //     stays findable by that branch name rather than dropping out entirely;
-//   - the Chats box narrows the LOADED months and does not reach for shards.
+//   - the Chats box narrows the LOADED months and does not reach for shards;
+//   - since 2026-09-24 the box is ONE, shared by Sessions, Branches, Writes and
+//     Chats: it narrows inside the lit scope and never moves it, each pill
+//     counts its pane's matches, and Branches and Writes match on their own
+//     fields.
 //
 // Driven over a stub GH, like the sibling estate tests; no network, no pixels.
 
@@ -95,29 +99,30 @@ const ROWS = [
 ];
 
 function seedSessions() {
+  data.activityQuery = '';
   data.sessionRows_ = ROWS;
   data.activity = {};
   data.sessionScope = 'all';
+  data.branchScope = 'active';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
-  data.sessionQuery = '';
 }
 
 test('the box narrows the row set, over the fields the cache row carries', () => {
   seedSessions();
   assert.equal(data.queriedSessions.length, 3);
   // The title.
-  data.sessionQuery = 'session search';
+  data.activityQuery = 'session search';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['aaaaaaaa', 'cccccccc']);
   // The opening ask.
-  data.sessionQuery = 'allotment schedule';
+  data.activityQuery = 'allotment schedule';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['bbbbbbbb']);
   // A file the session opened, which is on the row and is not something the
   // session said.
-  data.sessionQuery = 'estate-search.js';
+  data.activityQuery = 'estate-search.js';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['aaaaaaaa']);
   // A repo it stood in.
-  data.sessionQuery = 'home';
+  data.activityQuery = 'home';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['bbbbbbbb']);
 });
 
@@ -129,7 +134,7 @@ test('the scope chips recount UNDER the query, so an empty scope says widen', ()
   assert.equal(count('all'), 3);
   // Both "session search" rows are outside Week; one is inside Month's window
   // only by being today's. The chips are what tell the reader that.
-  data.sessionQuery = 'session search';
+  data.activityQuery = 'session search';
   assert.equal(count('day'), 1);
   assert.equal(count('week'), 1);
   assert.equal(count('all'), 2, 'the second pass is 40 days old and still findable');
@@ -137,7 +142,7 @@ test('the scope chips recount UNDER the query, so an empty scope says widen', ()
 
 test('one query narrows both row lenses, which is why the table lost its own box', () => {
   seedSessions();
-  data.sessionQuery = 'session search';
+  data.activityQuery = 'session search';
   data.sessionGrain = 'session';
   assert.deepEqual([...data.grainRows.map(r => r.id)], ['aaaaaaaa', 'cccccccc']);
   assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa', 'cccccccc']);
@@ -156,10 +161,10 @@ test('a stub session stays findable by the branch name, which is all it has', ()
   ] } } };
   const stub = data.sessionTree.nodes.find(n => n.kind === 'stub');
   assert.ok(stub, 'the fixture should produce a stub');
-  data.sessionQuery = 'wsl-fetch';
+  data.activityQuery = 'wsl-fetch';
   assert.deepEqual([...data.sessionNodes.map(n => n.key)], [stub.key]);
   // And it is not matched by a word that appears nowhere on it.
-  data.sessionQuery = 'allotment';
+  data.activityQuery = 'allotment';
   assert.equal(data.sessionNodes.some(n => n.kind === 'stub'), false);
 });
 
@@ -187,11 +192,11 @@ test('an attached file is on the row as a count and a name, not as a path', () =
   assert.match(data.sessionAsk(data.sessionRows_[0]), /^Please review the attached documents/);
 
   // The box finds it by filename and by the question; the UUID is gone.
-  data.sessionQuery = 'COREPAM_Decision_Package';
+  data.activityQuery = 'COREPAM_Decision_Package';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['dddd4444']);
-  data.sessionQuery = 'submittal view';
+  data.activityQuery = 'submittal view';
   assert.deepEqual([...data.queriedSessions.map(r => r.id)], ['dddd4444']);
-  data.sessionQuery = '444455556666';
+  data.activityQuery = '444455556666';
   assert.equal(data.queriedSessions.length, 0);
 });
 
@@ -199,21 +204,21 @@ test('the count says what the query left and what it searched', () => {
   seedSessions();
   // Blank with no query: a count against no filter is furniture.
   assert.equal(data.sessionQueryCount, '');
-  data.sessionQuery = 'session search';
+  data.activityQuery = 'session search';
   // The denominator is the WHOLE store, not the open scope, which is the half
   // of the question the chip row alone did not answer.
   data.sessionScope = 'day';
   assert.equal(data.sessionQueryCount, '2 of 3');
   data.sessionScope = 'all';
   assert.equal(data.sessionQueryCount, '2 of 3');
-  data.sessionQuery = '   ';
+  data.activityQuery = '   ';
   assert.equal(data.sessionQueryCount, '');
 });
 
 test('the exhaustive pass is a named hop, carrying the query as typed', () => {
   seedSessions();
   SEARCHES.length = 0;
-  data.sessionQuery = '  merge guide  ';
+  data.activityQuery = '  merge guide  ';
   data.openSessionGrep();
   // Field by field: the object crosses the vm boundary, so it is structurally
   // equal to a literal here and never reference-equal to one.
@@ -221,7 +226,7 @@ test('the exhaustive pass is a named hop, carrying the query as typed', () => {
   assert.equal(SEARCHES[0].q, 'merge guide', 'trimmed, so a stray space is not searched');
   assert.equal(SEARCHES[0].mode, 'sessions');
   // An empty box hands off nothing rather than opening the whole store.
-  data.sessionQuery = '   ';
+  data.activityQuery = '   ';
   data.openSessionGrep();
   assert.equal(SEARCHES.length, 1);
 });
@@ -242,20 +247,20 @@ const CHAT_ROWS = [
 function seedChats() {
   data.chatLoadedMonths = ['2026-07'];
   data.chatRowsByMonth = { '2026-07': CHAT_ROWS };
-  data.chatProvider = ''; data.chatTag = ''; data.chatHandOnly = false; data.chatQuery = '';
+  data.chatProvider = ''; data.chatTag = ''; data.chatHandOnly = false; data.activityQuery = '';
 }
 
 test('the chats box matches title, tags and summary, and composes with the chips', () => {
   seedChats();
   assert.equal(data.visibleChatRows.length, 2);
-  data.chatQuery = 'base64url';
+  data.activityQuery = 'base64url';
   assert.deepEqual([...data.visibleChatRows.map(r => r.provider)], ['claude']);
-  data.chatQuery = 'allotment';
+  data.activityQuery = 'allotment';
   assert.deepEqual([...data.visibleChatRows.map(r => r.provider)], ['gemini']);
-  data.chatQuery = 'wa-budget';
+  data.activityQuery = 'wa-budget';
   assert.deepEqual([...data.visibleChatRows.map(r => r.provider)], ['gemini']);
   // The query narrows what the chips leave, rather than replacing them.
-  data.chatQuery = 'allotment';
+  data.activityQuery = 'allotment';
   data.chatHandOnly = true;
   assert.equal(data.visibleChatRows.length, 0);
 });
@@ -266,7 +271,7 @@ test('the provider chips recount under the query, as the session chips do', () =
   assert.equal(data.queriedChatRows.length, 2);
   assert.equal(count('claude'), 1);
   assert.equal(count('gemini'), 1);
-  data.chatQuery = 'allotment';
+  data.activityQuery = 'allotment';
   assert.equal(data.queriedChatRows.length, 1);
   // Which provider holds the thing is the answer a chip row owes a query.
   assert.equal(count('claude'), undefined, 'a provider with nothing left drops its chip');
@@ -277,18 +282,124 @@ test('the provider chips recount under the query, as the session chips do', () =
 test('a query counts as a filter, so the clear control appears for it', () => {
   seedChats();
   assert.equal(data.chatFiltered, false);
-  data.chatQuery = 'gzip';
+  data.activityQuery = 'gzip';
   assert.equal(data.chatFiltered, true);
-  data.chatQuery = '   ';
+  // But "clear filters" clears the chips only: the query is every pane's.
+  assert.equal(data.chatChipFiltered, false);
+  data.activityQuery = '   ';
   assert.equal(data.chatFiltered, false, 'whitespace is not a filter');
 });
 
 test('the archive-wide search is a named hop to the Chats lane', () => {
   seedChats();
   SEARCHES.length = 0;
-  data.chatQuery = 'gzip';
+  data.activityQuery = 'gzip';
   data.openChatSearch();
   assert.equal(SEARCHES.length, 1);
   assert.equal(SEARCHES[0].q, 'gzip');
   assert.equal(SEARCHES[0].mode, 'chats');
+});
+
+// ── One query across the Activity view ──────────────────────────────────────
+
+test('a query narrows inside the lit scope and never moves it', () => {
+  seedSessions();
+  data.sessionScope = 'day';
+  data.activityQuery = 'session search';
+  assert.equal(data.sessionScope, 'day');
+  assert.equal(data.branchScope, 'active');
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa']);
+  // The chips say where the rest are, which is the reader's cue to widen.
+  const count = (key) => data.sessionScopes.find(s => s.key === key).count;
+  assert.equal(count('all'), 2);
+  data.activityQuery = '';
+  assert.equal(data.sessionScope, 'day');
+});
+
+const BRANCHES = { 'me/web-tools': { defaultBranch: 'main',
+  openPRs: [{ number: 812, head: 'claude/laughing-planck-ipsl5h', title: 'One Activity query', updatedAt: iso(0) }],
+  scan: { branches: [
+    { name: 'claude/laughing-planck-ipsl5h', group: 'active', date: iso(0), subject: 'estate: shared box' },
+    { name: 'claude/old-thing-aa11bb', group: 'landed', date: iso(60), subject: 'docs: a landed change' },
+  ] } } };
+
+test('the Branches pane matches name, subject and PR, and its chips recount', () => {
+  seedSessions();
+  data.activity = BRANCHES;
+  const count = (key) => data.branchScopes.find(s => s.key === key).count;
+  assert.equal(data.queriedBranchRows.length, 2);
+  data.activityQuery = 'laughing-planck';
+  assert.deepEqual([...data.openBranches.map(r => r.name)], ['claude/laughing-planck-ipsl5h']);
+  assert.equal(count('landed'), 0);
+  data.activityQuery = '#812';
+  assert.equal(data.queriedBranchRows.length, 1, 'the PR number');
+  data.activityQuery = 'activity query';
+  assert.equal(data.queriedBranchRows.length, 1, 'the PR title, AND across terms');
+  data.activityQuery = 'landed change';
+  assert.equal(count('landed'), 1, 'the tip subject, at any age');
+});
+
+test('the Writes pane matches the commit line, repo and kind', () => {
+  seedSessions();
+  window.WriteKinds = { classify: (c) => ({ key: /^docs/.test(c.msg) ? 'docs' : 'dev', label: /^docs/.test(c.msg) ? 'Docs' : 'Dev' }),
+                        tally: (rows) => rows.reduce((t, r) => (t[r.kind.key] = (t[r.kind.key] || 0) + 1, t), {}),
+                        KINDS: [{ key: 'dev' }, { key: 'docs' }] };
+  data.activity = { 'me/web-tools': { recentCommits: [
+    { sha: 'abc1234', msg: 'estate: one Activity query\n\nBody', date: iso(0) },
+    { sha: 'def5678', msg: 'docs: refresh the map', date: iso(1) },
+  ] } };
+  data.writeKind = '';
+  assert.equal(data.queriedWriteRows.length, 2);
+  data.activityQuery = 'activity query';
+  assert.deepEqual([...data.writeList.map(r => r.sha)], ['abc1234']);
+  data.activityQuery = 'docs';
+  assert.deepEqual([...data.writeList.map(r => r.sha)], ['def5678']);
+  assert.equal(data.writeKindsWithCount.find(k => k.key === 'dev').count, undefined,
+    'the kind chips recount under the query');
+  data.activityQuery = 'def5678';
+  assert.equal(data.queriedWriteRows.length, 1, 'the SHA');
+  delete window.WriteKinds;
+});
+
+test('each pill counts its own pane, and no query means no counts', () => {
+  seedSessions();
+  seedChats();
+  data.activity = BRANCHES;
+  assert.equal(data.activityCounts, null);
+  data.activityQuery = 'allotment';
+  const c = data.activityCounts;
+  assert.equal(c.sessions, 1);
+  assert.equal(c.branches, 0);
+  assert.equal(c.chats, 1);
+  data.activityQuery = 'laughing-planck';
+  assert.equal(data.activityCounts.branches, 1);
+  assert.equal(data.activityCounts.sessions, 0);
+});
+
+test('the long lists draw a page at a time, and a new question starts at the top', async () => {
+  seedSessions();
+  const many = Array.from({ length: 130 }, (_, i) => row('p' + String(i).padStart(7, '0'), { age: 0, title: 'Paged row ' + i }));
+  data.sessionRows_ = many;
+  assert.equal(data.sessionNodes.length, 130);
+  assert.equal(data.sessionNodesShown.length, data.LIST_PAGE);
+  data.sessionShowN += data.LIST_PAGE;
+  assert.equal(data.sessionNodesShown.length, 120);
+  data.activityQuery = 'paged row';
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(data.sessionShowN, data.LIST_PAGE, 'the query reset the page');
+  assert.equal(data.sessionNodes.length, 130, 'counts and rails still read the whole list');
+  data.activityQuery = '';
+  await new Promise(r => setTimeout(r, 0));
+});
+
+test('the memoised lists still move when their inputs do', () => {
+  seedSessions();
+  const a = data.sessionNodes;
+  assert.equal(data.sessionNodes, a, 'a second read is the same array');
+  data.activityQuery = 'allotment';
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['bbbbbbbb']);
+  data.activityQuery = '';
+  data.sessionRows_ = [...ROWS.slice(0, 1)];
+  assert.equal(data.sessionTree.nodes.length, 1, 'new rows rebuild the tree');
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa']);
 });
