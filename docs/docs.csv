@@ -36,7 +36,7 @@ docs/environment/README.md,"the environment docs' front door, and their update d
 docs/environment/capabilities.md,what the sandbox can run and reach,measured,project,3553,"authored; per-claim verification dates, edited in place and re-dated, probes preferred over assertions",
 docs/environment/container.md,what the box is and what persists across sessions,measured,project,2846,"authored; per-claim verification dates, edited in place",
 docs/environment/extending.md,the Claude Code component model and the hooks this repo runs,living,project,4477,"authored; mostly stable conceptual knowledge, only the repo-specific inventory is dated",
-docs/environment/testing.md,how to test HTML and JS in the sandbox,measured,project,3119,"authored; per-claim verification dates, edited in place",
+docs/environment/testing.md,how to test HTML and JS in the sandbox,measured,project,3159,"authored; per-claim verification dates, edited in place",
 docs/estate-span.md,"what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column",measured,app,1008,"authored; the measurement is dated and re-probed rather than reasoned about, and the reasoning stands until the inbound register it argues for exists",
 docs/favicons/README.md,the favicon archive: active marks and retired ones,living,orphan,715,"authored; the retired section is the record half, kept so iteration does not lose history",
 docs/github/README.md,"the github folder's front door: renderer, git treatment, MCP routing, surfacing",living,orphan,271,"authored; the folder's front door, gathering two strands that used to live apart; hand-listed, not generated from the folder as docs/README.md is",

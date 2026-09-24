@@ -1,6 +1,6 @@
 # Testing HTML/JS in the sandbox
 
-*(verified 2026-07-15)*
+*(verified 2026-09-24)*
 
 How to exercise a page or component in the Claude Code web sandbox. This file
 states current truth only; superseded methods and discovery stories live in git
@@ -33,7 +33,8 @@ kinds of traffic:
 - **Own code** (the jsDelivr `gh-api.js` import, then every contents-API
   `gh.load`) → local files, so the render shows branch edits, committed or not.
 - **Own data**: `cdn.mjs` impersonates the GitHub API *for this repo only*.
-  Contents listings, file reads, `/repos/<repo>` metadata, and `git/trees` are
+  Contents listings, file reads, `/repos/<repo>` metadata, `git/trees`, and
+  `commits` and `commits/<sha>` (from `git log`, `main` meaning HEAD) are
   answered from the on-disk checkout. No token is involved at any step.
   The `git/trees` blobs carry real byte sizes (2026-07: added for
   repo-atlas, which maps by them). Two fidelity gaps to remember: the
@@ -44,7 +45,9 @@ kinds of traffic:
   API's response.
   Identity endpoints (`/user`, `/user/repos`) are not impersonated; "who am I"
   has no local answer. Other repos' API calls pass through to the network and
-  fail on the sandbox's spent anonymous quota.
+  fail on the sandbox's spent anonymous quota. In the app shell a rate-limit
+  403 replaces the view with the "GitHub token needed" screen, so a check
+  that times out waiting for its view has usually met that screen.
 - **Third-party libs** (Tailwind / daisyUI / Phosphor / Alpine, jsDelivr +
   unpkg) → npm-vendored copies under `node_modules`. The portable, repo-agnostic
   write-up of this vendor-and-intercept technique (with a standalone Playwright
