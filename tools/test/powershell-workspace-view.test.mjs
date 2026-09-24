@@ -46,7 +46,7 @@ test.afterEach(async () => {
 
 function fixture(options = {}) {
   const files = { [A]: ORIGINAL, [X]: '<Window><Button x:Name="Save"/></Window>\n',
-    [B]: "function Get-Utility { 'search needle' }\n", [C]: "# search needle\nWrite-Output 'another needle'\n" };
+    [B]: "function Get-Utility { 'search needle' }\n", [C]: "# search needle\nWrite-Output 'another needle'\n", ...options.files };
   const manifest = JSON.stringify({ root: 'Documents\\WindowsPowerShell',
     correspondence: [{ repo: 'app/Forms/', area: 'Forms', installs: 'Forms/' },
       { repo: 'app/Modules/', area: 'Modules', installs: 'Modules/' }, { repo: 'app/Scripts/', area: 'Scripts', installs: 'Scripts/' }] });
@@ -778,4 +778,22 @@ test('workspace tabs support arrow and Home/End navigation with linked panels an
   assert.equal(v.data.active, A); assert.equal(window.document.activeElement, files[0]);
   assert.deepEqual(files.map(el => el.tabIndex), [0, -1]);
   assert.equal(v.data.doc.text, ORIGINAL); assert.deepEqual(f.writes, []);
+});
+
+test('a XAML form reports DynamicResource keys Theme.xaml does not define, and a Theme.xaml draft changes the answer', async () => {
+  const T = `${P}/app/Modules/Forms/Theme.xaml`;
+  const f = fixture({ files: {
+    [X]: '<Window>\n  <Button x:Name="Save" Background="{DynamicResource Accent}"/>\n  <TextBox Style="{DynamicResource MonoTextBox}"/>\n</Window>\n',
+    [T]: '<ResourceDictionary>\n  <SolidColorBrush x:Key="Accent" Color="Blue"/>\n</ResourceDictionary>\n' } });
+  const v = await f.mount();
+  await v.data.open(X);
+  await until(() => v.data.analysis.diagnostics.some(d => d.rule === 'theme-unresolved'), 'Theme check did not report the missing key');
+  assert.deepEqual(clone(v.data.analysis.diagnostics).map(d => [d.rule, d.line]), [['theme-unresolved', 3]]);
+  assert.match(v.data.analysis.diagnostics[0].message, /MonoTextBox/);
+  await v.data.open(T);
+  assert.deepEqual(clone(v.data.analysis.diagnostics), [], 'Theme.xaml is not checked against itself');
+  v.data.doc.text = v.data.doc.text.replace('</ResourceDictionary>', '  <Style x:Key="MonoTextBox"/>\n</ResourceDictionary>');
+  await v.data.open(X); v.data.analyze();
+  assert.deepEqual(clone(v.data.analysis.diagnostics), [], 'A Theme.xaml draft that defines the key clears the report');
+  assert.deepEqual(f.writes, []);
 });

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const window = {};
 new Function('window', readFileSync(new URL('../../lib/kits/powershell-language.js', import.meta.url), 'utf8'))(window);
-const { inspect, compareCompanions } = window.PowerShellLanguage;
+const { inspect, compareCompanions, compareTheme } = window.PowerShellLanguage;
 
 test('PowerShell outline masks comments, here-strings, multiline strings, and escaped quotes', () => {
   const source = [
@@ -215,4 +215,24 @@ test('event receivers are never inferred from unrelated same-name variable assig
   const source = "function First { $button.Add_Click({}) }\nfunction Second { $button = $window.FindName('Save') }";
   assert.deepEqual(inspect(source).references.find(r => r.kind === 'event'), { name: '$button', kind: 'event', line: 1, detail: 'Click' });
   assert.deepEqual(inspect('<TextBlock Text="{}{StaticResource Example}"/>', 'Form.xaml').resources, []);
+});
+
+test('a DynamicResource key defined neither in the form nor in Theme.xaml is reported at its line', () => {
+  const theme = '<ResourceDictionary>\n  <SolidColorBrush x:Key="BorderColor" Color="Gray"/>\n  <Style x:Key="MonoText"/>\n</ResourceDictionary>';
+  const form = [
+    '<Window>',
+    '  <Window.Resources><SolidColorBrush x:Key="LinkBlue" Color="Blue"/></Window.Resources>',
+    '  <!-- <Border BorderBrush="{DynamicResource Commented}"/> -->',
+    '  <Border BorderBrush="{DynamicResource BorderColor}" Background="{DynamicResource LinkBlue}"/>',
+    '  <TextBox Style="{DynamicResource MonoTextBox}"/>',
+    '  <Grid Background="{StaticResource NotChecked}"/>',
+    '  <TextBox Style="{DynamicResource MonoTextBox}"/>',
+    '</Window>',
+  ].join('\r\n');
+  const result = compareTheme(form, theme);
+  assert.deepEqual(result.unresolved.map(r => [r.name, r.line]), [['MonoTextBox', 5], ['MonoTextBox', 7]]);
+  assert.deepEqual(result.diagnostics.map(d => [d.rule, d.line]), [['theme-unresolved', 5], ['theme-unresolved', 7]]);
+  assert.match(result.diagnostics[0].message, /MonoTextBox.*WPF keeps the property default/);
+  assert.deepEqual(compareTheme(inspect(form, 'Form.xaml'), inspect(theme, 'Theme.xaml')).unresolved.length, 2);
+  assert.deepEqual(compareTheme('<Grid Background="Red"/>', theme).diagnostics, []);
 });
