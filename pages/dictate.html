@@ -181,8 +181,12 @@
   2026-09-24, because nothing in the estate opened an arbitrary markdown file,
   took edits, and committed it back. Five things change and nothing else does:
 
-    THE BOTTOM ROW IS COPY AND SAVE. Send, Jot and Drop file a note somewhere
-    new, which is the wrong act for words that already have a home.
+    THE BOTTOM ROW IS COPY AND SEND. Jot and Drop file a note somewhere new,
+    which is the wrong act for words that already have a home. Send opens the
+    same sheet as ever with two things added: WHAT GOES (the edit as a patch,
+    or the whole file) above the rows, and SAVE TO GITHUB as the first row, so
+    committing is one destination among the places the edit can go rather than
+    a button of its own.
 
     SAVE WRITES WITH THE SHA IT LOADED, AND NOTHING ELSE. It does not go
     through GH.prototype.save, whose recovery answers a 409 by fetching the
@@ -227,10 +231,9 @@
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
     it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
-    edit leaves by the menu: Copy patch, a unified diff `git apply` takes, and
-    Send patch to Claude Code, which opens a session on the repository with the
-    patch in the prompt when it fits under the link's ceiling. Copy in the
-    bottom row copies the whole buffer.
+    edit leaves by Send: a Claude Code session gets the patch with a line saying
+    where it belongs, Share and Copy in the sheet's foot get the bare patch
+    (`git apply` takes it). Copy in the bottom row copies the whole buffer.
 
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
@@ -470,6 +473,8 @@
       showMarks: ls.get('dictate:marks') !== '0',
       delPop: null,             // a tapped removal: { text, at, x, y }
       patchMenu: false,
+      // File mode's Send: what rides, the edit as a patch or the whole file.
+      sendWhat: 'patch',
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get dirty() {
         this.beat;
@@ -1884,7 +1889,7 @@
         this.beat;
         // Only while the menu is open: Alpine evaluates the menu's bindings even
         // hidden, and a whole-file diff per keystroke is not free.
-        if (!this.patchMenu || !FILE || this.fileBase == null) return '';
+        if (!(this.patchMenu || this.sendOpen) || !FILE || this.fileBase == null) return '';
         return window.MdSurface?.patch(FILE.path, this.fileBase, this.text) || '';
       },
       // What rides to Claude Code: where the edit belongs, what it was made
@@ -1897,6 +1902,14 @@
           + '. Review it, then apply it with `git apply` on a new branch and open a PR.\n\n```diff\n' + this.patchText + '\n```';
       },
       get patchFits() { return !!window.PromptLink && window.PromptLink.fits(this.patchPrompt); },
+      async copyPayload() {
+        try {
+          await navigator.clipboard.writeText(this.sharePayload);
+          Alpine.store('toast')('clipboard-text', FILE && this.sendWhat === 'patch' ? 'Copied the patch' : 'Copied the file', 'alert-success', 2500);
+        } catch {
+          Alpine.store('toast')('warning', 'The browser refused the clipboard', 'alert-error', 4000);
+        }
+      },
       async copyPatch() {
         try {
           await navigator.clipboard.writeText(this.patchText);
@@ -2184,7 +2197,7 @@
         }
       },
       async share() {
-        const t = this.outgoing();
+        const t = this.sendOpen || FILE ? this.sharePayload : this.outgoing();
         try { await navigator.share({ text: t }); } catch {}
       },
       // Jot and Drop file it, so both clear: the note has a home now and the
@@ -2234,7 +2247,19 @@
       // words are still on this page when you come back, which matters more
       // for this one than for the other two, since the far end may refuse
       // them (over the cap) or the reader may change their mind about where.
-      openSend() { this.sendOpen = true; this.loadRepos(); },
+      openSend() {
+        // FILE MODE SENDS A FILE, not a note: the edit or the whole of it, and
+        // one of the places it can go is back to GitHub. With changes, the
+        // sheet opens on the edit and on Save; without, on the file and on a
+        // session, since there is nothing to save.
+        if (FILE) {
+          this.d.flush();
+          this.sendWhat = this.dirty ? 'patch' : 'file';
+          this.sendTarget = this.dirty ? 'save' : 'code';
+          if (!this.sendRepos.length) this.sendRepos = [FILE.repo];
+        }
+        this.sendOpen = true; this.loadRepos();
+      },
 
       // The account's repositories, most recently updated first. Fetched once,
       // on the first open, because a page that is usually only dictated into
@@ -2286,7 +2311,29 @@
       // a second way to finish, not a third destination. The rows above are
       // the ones that need a repository or a warning read first; Share needs
       // neither and should cost what Copy costs.
-      get sendTargets() { return (window.PromptLink?.targets) || []; },
+      get sendTargets() {
+        const rows = (window.PromptLink?.targets) || [];
+        if (!FILE) return rows;
+        const save = {
+          key: 'save', label: 'Save to GitHub', icon: 'ph-floppy-disk', submits: false,
+          hint: 'Commit to ' + this.fileWhere,
+          available: this.dirty && !!this.token && !this.fileLoading,
+          reason: !this.dirty ? 'Nothing to save: the file is as GitHub has it'
+                : !this.token ? 'No token on this browser' : 'Still loading',
+        };
+        return [save, ...rows];
+      },
+      // What rides. A session or a chat gets the patch WITH a line saying where
+      // it belongs; Share and Copy get the bare patch, which is what git and a
+      // paste want. The whole file is the buffer either way.
+      get sendPayload() {
+        if (FILE && this.sendWhat === 'patch') return this.patchPrompt;
+        return this.outgoing();
+      },
+      get sharePayload() {
+        if (FILE && this.sendWhat === 'patch') return this.patchText;
+        return this.outgoing();
+      },
       get sendTargetRow() { return this.sendTargets.find((t) => t.key === this.sendTarget) || null; },
 
       // The link, and what it could not carry. Recomputed on every change
@@ -2295,8 +2342,9 @@
       get sendLink() {
         const P = window.PromptLink;
         if (!P) return { url: '', carried: [], dropped: ['prompt-link kit not loaded'] };
+        if (this.sendTarget === 'save') return { url: '', carried: [], dropped: [] };
         return P.url(this.sendTarget, {
-          prompt: this.outgoing(),
+          prompt: this.sendPayload,
           repos: this.sendTarget === 'code' ? this.sendRepos : [],
         });
       },
@@ -2309,11 +2357,15 @@
       // text with no address to fit it into, so it is never over.
       get sendOver() {
         const P = window.PromptLink;
-        return !!P && this.outgoing().length > P.PROMPT_MAX;
+        return !!P && this.sendTarget !== 'save' && this.sendPayload.length > P.PROMPT_MAX;
       },
-      get sendReady() { return !!this.sendLink.url && !this.sendOver; },
+      get sendReady() {
+        if (this.sendTarget === 'save') return this.dirty && !this.saving && !this.fileLoading;
+        return !!this.sendLink.url && !this.sendOver;
+      },
 
       send() {
+        if (this.sendTarget === 'save') { this.sendOpen = false; this.saveFile(); return; }
         const link = this.sendLink;
         if (!link.url) {
           Alpine.store('toast')('warning', link.dropped[0] || 'Nowhere to send this', 'alert-error', 5000);
@@ -2463,16 +2515,6 @@
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
-          </button>
-          <button x-show="file && dirty" @click="patchMenu = true; $nextTick(() => { copyPatch(); patchMenu = false; menu = false })"
-                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Copy the edit as a unified diff: git apply takes it, or paste it into a session">
-            <i class="ph ph-clipboard-text text-lg opacity-60"></i>Copy patch
-          </button>
-          <button x-show="file && dirty" @click="patchMenu = true; $nextTick(() => { if (patchFits) sendPatch(); else { copyPatch(); Alpine.store('toast')('info', 'Too long for a link: the patch is on the clipboard to paste into a session', 'alert-info', 5000) } patchMenu = false; menu = false })"
-                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Open a Claude Code session on this repository with the patch in the prompt">
-            <i class="ph ph-terminal-window text-lg opacity-60"></i>Send patch to Claude Code
           </button>
           <button x-show="file" @click="toggleMarks()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
@@ -2836,19 +2878,14 @@
          because it was one, and it took the row to five across and cost the
          other four their labels under 375px. Folding it in gives all of that
          back: four buttons, four labels, one width. -->
-    <!-- FILE MODE'S ONE DESTINATION, standing in for the three below it. Lit
-         only while there is something to write, so its colour answers "is this
-         saved" without the band above having to be read. -->
-    <button x-show="file" @click="saveFile()" :disabled="!!(!dirty || blank || !!saving || fileLoading)"
+    <!-- IN FILE MODE SEND IS THE DESTINATION BUTTON, and Save is one of the
+         places it goes: back to GitHub, to a Claude Code session, to the
+         system sheet. It is lit while the edit is unsaved, so its colour still
+         answers "is this saved" the way Save's did. -->
+    <button @click="openSend()" :disabled="blank && !file"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="dirty ? 'btn-primary' : 'btn-ghost bg-base-200'"
-            :title="'Commit the buffer to ' + fileWhere">
-      <span x-show="saving" class="loading loading-spinner loading-sm"></span>
-      <i x-show="!saving" class="ph ph-floppy-disk text-lg"></i>Save
-    </button>
-    <button x-show="!file" @click="openSend()" :disabled="blank"
-            class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="lead('send')" title="Share it, or send it somewhere that can act on it">
+            :class="file ? (dirty ? 'btn-primary' : 'btn-ghost bg-base-200') : lead('send')"
+            :title="file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it'">
       <i class="ph ph-paper-plane-tilt text-lg"></i>Send
     </button>
     <button x-show="!file" @click="jot()" :disabled="blank || !!saving"
@@ -2908,11 +2945,25 @@
          style="padding-bottom:calc(env(safe-area-inset-bottom) + 1.5rem)">
       <div class="flex items-center gap-2">
         <span class="font-medium">Send</span>
-        <span class="font-mono text-xs opacity-40" x-text="words + ' words'"></span>
+        <span class="font-mono text-xs opacity-40"
+              x-text="file ? (sendWhat === 'patch' ? (patchText.split('\n').length + ' patch lines') : (words + ' words')) : (words + ' words')"></span>
         <div class="grow"></div>
         <button @click="sendOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
       </div>
 
+      <!-- WHAT GOES, in file mode, above where: the edit as a patch, which is
+           what a reviewer or a session wants, or the whole file. Save commits
+           the file either way; the choice is for the other rows and the foot. -->
+      <div x-show="file" class="join w-full">
+        <button @click="sendWhat = 'patch'" :disabled="!dirty" class="join-item btn btn-sm grow"
+                :class="sendWhat === 'patch' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-git-diff"></i>The edit
+        </button>
+        <button @click="sendWhat = 'file'" class="join-item btn btn-sm grow"
+                :class="sendWhat === 'file' ? 'btn-active' : 'btn-ghost bg-base-200'">
+          <i class="ph ph-file-text"></i>The whole file
+        </button>
+      </div>
       <div class="flex flex-col gap-1">
         <template x-for="t in sendTargets" :key="t.key">
           <button @click="t.available && (sendTarget = t.key)" :disabled="!t.available"
@@ -2986,10 +3037,15 @@
           <i class="ph ph-share-network text-lg"></i>
           <span>Share</span>
         </button>
+        <button x-show="file" @click="copyPayload()"
+                class="btn h-12 min-h-0 grow basis-0 gap-1.5 btn-ghost bg-base-200"
+                :title="sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
+          <i class="ph ph-clipboard-text text-lg"></i><span>Copy</span>
+        </button>
         <button @click="send()" :disabled="!sendReady"
                 class="btn btn-primary h-12 min-h-0 gap-2 grow">
-          <i class="ph ph-paper-plane-tilt text-lg"></i>
-          <span x-text="(sendTargetRow && sendTargetRow.submits) ? 'Open and send' : 'Open, prefilled'"></span>
+          <i class="ph text-lg" :class="sendTarget === 'save' ? 'ph-floppy-disk' : 'ph-paper-plane-tilt'"></i>
+          <span x-text="sendTarget === 'save' ? (saving ? 'Saving\u2026' : 'Save') : (sendTargetRow && sendTargetRow.submits) ? 'Open and send' : 'Open, prefilled'"></span>
         </button>
       </div>
     </div>
