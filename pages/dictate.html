@@ -2,7 +2,7 @@
 <html lang="en" data-theme="winter">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Dictate</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎙️</text></svg>">
@@ -262,6 +262,24 @@
 
 <script type="module">
   const q = new URLSearchParams(location.search);
+  // NO FOCUS ZOOM. Safari zooms the page when the keyboard opens on a field it
+  // judges too small, and reported 2026-09-24 on file mode's 17px textarea
+  // inside a toss. The cause at that size is not established; the remedy is
+  // the one kits/annotate.js settled on for the same report at 16px:
+  // maximum-scale=1 on the TOP document's viewport meta, which stops the focus
+  // zoom and leaves pinch zoom alone (iOS ignores it for gestures since iOS 10).
+  // This page's own meta carries it statically; a same-origin shell around it
+  // (the toss) gets it here. A cross-origin top is left alone.
+  try {
+    if (window.top !== window) {
+      const top = window.top.document;
+      let m = top.querySelector('meta[name=viewport]');
+      if (!m) { m = top.createElement('meta'); m.name = 'viewport'; top.head.appendChild(m); }
+      const parts = (m.getAttribute('content') || 'width=device-width, initial-scale=1')
+        .split(',').map((x) => x.trim()).filter((x) => x && !/^maximum-scale/.test(x));
+      m.setAttribute('content', parts.concat('maximum-scale=1').join(', '));
+    }
+  } catch {}
   const ref = q.get('use');
   // THE PAGE ADOPTS ITS OWN PRE-BUILD (dist/dictate.js), and the reason is
   // arrival time on a phone rather than bytes. The gh.load chain below is a
