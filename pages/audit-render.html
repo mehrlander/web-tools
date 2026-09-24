@@ -2170,11 +2170,16 @@ window.__audit = {
         </template>
         <!-- Whether the unit stays. The one edit the tools carry out; anything
              else, a rewording included, goes in the note below. -->
-        <button class="btn btn-xs h-6 min-h-0 gap-1" x-show="so.verdicts" x-cloak
-                :class="sel?.verdict === 'DROP' ? 'btn-error' : 'btn-ghost border border-base-300'"
+        <!-- Colour alone carries the state, as with the page's other toggles:
+             red when the unit is removed, muted when it stays. -->
+        <button class="inline-flex items-center gap-1 h-6 px-1 cursor-pointer rounded-field font-medium
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-error)]"
+                x-show="so.verdicts" x-cloak
+                :class="sel?.verdict === 'DROP' ? 'text-error' : 'text-base-content/50'"
                 :aria-pressed="sel?.verdict === 'DROP'"
                 @click="push({op:'verdict', uid:sel.uid, verdict: sel?.verdict === 'DROP' ? 'KEEP' : 'DROP'})">
-          <i class="ph ph-trash"></i><span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
+          <i class="text-base" :class="sel?.verdict === 'DROP' ? 'ph-fill ph-trash' : 'ph ph-trash'"></i>
+          <span x-text="sel?.verdict === 'DROP' ? 'Removed' : 'Remove'"></span></button>
 
       </div>
 
