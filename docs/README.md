@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-10 by a skill, 30 by a page or component. The remaining 47 are
+12 by a skill, 28 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -145,7 +145,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`estate.md`](views/estate.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
 - [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)
 - [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's pills, the Installation pill and its observations ledger
-- [`routes.md`](views/routes.md) *(orphan)* — the Routes view: the app's own destinations from app-routes.csv, dated by their files
 - [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
 - [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
 - [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history

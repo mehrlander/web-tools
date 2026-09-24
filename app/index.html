@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!-- ── Where the writing about this page lives ───────────────────────────────
-     THE CONTRACT IS docs/show-repo.md: the views, the stage and its link
-     grammar, the .web-tools.json manifest, the caches, the branch overlay, the
-     boundary against toss-render. It is the reader-facing account and the one
-     to update when behaviour changes.
+     THE CONTRACT IS docs/show-repo.md for the shell (routing, chrome, shared
+     gestures, boundaries), plus one document per view and per form, named in
+     the `doc` column of docs/app-routes.csv and docs/subjects.csv. Those are
+     the reader-facing account and the ones to update when behaviour changes.
 
      THE COMMENTS HERE explain the code they sit beside, and are addressed to
      whoever edits it: why a control is where it is, what left and why, the
@@ -4294,7 +4294,7 @@ function app(){ return {
 
   // ── Projects: the workspaces a repo declares in its manifest ──────────────
   // Rendered indented under the repo's row in the sidebar Repos index. The
-  // defining convention (docs/show-repo.md): a workspace running a tracker is
+  // defining convention (docs/manifest.md): a workspace running a tracker is
   // a project, so `projects` is declarative and generatable (home's
   // tools/generate-tracker-registry.py syncs the field from the trackers it
   // finds), and the sidebar reads it from the config cache already in hand
