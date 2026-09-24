@@ -52,7 +52,7 @@ lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,
 lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,343,no,yes,7,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
 lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
-lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",289,no,no,1,yes
+lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",366,no,no,1,yes
 lib/kits/powershell-workspace.js,PowerShellWorkspace,PowerShell code workspace data.,304,no,no,1,yes
 lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",810,no,no,3,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes

@@ -39,7 +39,7 @@ files[project + '/data/observations.csv'] = 'date,path,kind,revision,blob_sha,lo
   + ['2026-09-01T00:00:00Z', C, 'installed', oldRevision, blob(oldC), createHash('sha256').update(oldC).digest('hex'), '', 'copy', ''].join(',') + '\n';
 const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])),
   oldRevision, old: { [C]: { text: oldC, sha: blob(oldC) } } };
-const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'alpineComponents/installation-view.js'];
+const scripts = ['kits/csv.js', 'kits/installation.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-language.js', 'alpineComponents/installation-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Installation source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -173,12 +173,14 @@ try {
     const e = await desk.editor();
     assert.equal(e.text, display(files[A])); assert.equal(e.same, false, 'a fresh view after teardown');
   });
-  await check('the Source header tools are visible and a drop on the pane compares against the file', async () => {
+  await check('the Source header tools and the paste zone are visible, and a drop on the pane is described, then compared', async () => {
     await desk.select(A); await desk.settled();
-    for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare the clipboard with this file', 'Compare a file with this file'])
+    for (const label of ['Open in editor', 'Copy GitHub text'])
       assert.equal(await desk.page.getByLabel(label, { exact: true }).isVisible(), true, label);
+    for (const gone of ['Download GitHub text', 'Copy transfer script', 'Compare a file with this file'])
+      assert.equal(await desk.page.getByLabel(gone, { exact: true }).count(), 0, gone + ' is gone');
     assert.equal(await desk.page.locator('textarea').count(), 0);
-    await desk.page.getByLabel('Compare the clipboard with this file', { exact: true }).click();
+    await desk.page.locator('[data-copy-zone]').click();
     assert.equal(await desk.page.evaluate(() => window.__shell.pasted), 1);
     await desk.page.evaluate(async () => {
       const target = document.querySelector('[data-source] .cm-content'), dt = new DataTransfer();
@@ -189,9 +191,14 @@ try {
       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
     });
     assert.equal(await desk.page.evaluate(() => window.__ringWhileDragging), true, 'the code box highlights under a drag');
-    // The view compares the drop itself, in memory: Changes opens on it and
-    // nothing goes to the shell's stored-check flow.
+    // The view compares the drop itself, in memory: a summary says what the
+    // copy is, Changes is one tap away, and nothing goes to the shell's
+    // stored-check flow.
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Supplied copy');
+    await desk.page.locator('[data-copy-summary]').waitFor({ state: 'visible' });
+    assert.match(await desk.page.locator('[data-copy-summary]').innerText(), /differs from GitHub[\s\S]*Changed: Get-Message/);
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'copy-summary-desktop.png'), fullPage: true });
+    await desk.page.locator('[data-copy-summary] button', { hasText: 'Show line changes' }).click();
     await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
     assert.equal(await desk.page.evaluate(() => window.__shell.compared.length), 0);
     assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
@@ -242,8 +249,8 @@ try {
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
     assert.equal(await phone.page.locator('[data-source] .cm-editor').isVisible(), false);
-    for (const label of ['Copy GitHub text', 'Download GitHub text', 'Compare a file with this file'])
-      assert.equal(await phone.page.getByLabel(label, { exact: true }).isVisible(), true, label + ' shows while the code is collapsed');
+    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows while the code is collapsed');
+    assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone shows while the code is collapsed');
     const toggle = phone.page.locator('[data-source-toggle]');
     assert.equal(await toggle.isVisible(), true);
     await toggle.click();
