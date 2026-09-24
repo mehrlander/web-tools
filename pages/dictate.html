@@ -329,6 +329,10 @@
   await gh.load('kits/prompt-link.js');
   // The composer-to-page handoff, read once at init. See kits/dictate-handoff.js.
   await gh.load('kits/dictate-handoff.js');
+  // File mode's Unwrap lines (window.mdUnwrap). Loaded for every arrival, since
+  // a literal path is what lets the pre-build carry it; it is 5k and does nothing
+  // until asked.
+  await gh.load('kits/md-unwrap.js');
 
   const REGISTRY = 'mehrlander/web-tools-private';
   const JOTS = 'lists/jots.json';
@@ -645,6 +649,23 @@
         this.fileLoading = false;
         this.menu = false;
         this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+      // One rewrite of the whole buffer, so one undo takes it back, and unsaved
+      // until Save, so the reader looks before anything is committed. The rule
+      // and what it leaves alone are in kits/md-unwrap.js.
+      unwrapLines() {
+        this.menu = false;
+        if (this.edit) this.editClose();
+        this.d.flush();
+        const r = window.mdUnwrap.unwrap(this.d.text);
+        if (!r.joined) {
+          Alpine.store('toast')('info', 'No wrapped lines to join', 'alert-info', 2500);
+          return;
+        }
+        this.d.text = r.text;
+        this.d.caretAt(0);
+        this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+        Alpine.store('toast')('check', `Joined ${r.joined} line break${r.joined === 1 ? '' : 's'}. Undo reverses it.`, 'alert-success', 3500);
       },
       async saveFile() {
         if (!FILE || !this.dirty) return;
@@ -2060,6 +2081,11 @@
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   title="Discard the local edit and reopen the file as GitHub holds it">
             <i class="ph ph-arrow-clockwise text-lg opacity-60"></i>Reload
+          </button>
+          <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
+                  title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
+            <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
