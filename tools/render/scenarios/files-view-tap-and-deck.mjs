@@ -18,6 +18,11 @@ export default async (page) => {
   const fail = (what, got) => { throw new Error('files-view: ' + what + ' ' + JSON.stringify(got)); };
   const until = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 10000 }).then(() => true, () => false);
   await page.waitForSelector('[data-file-browser] [role=option]', { timeout: 20000 });
+  // A folder opens on its first file, not an empty lower half.
+  if (!await until(() => {
+    const d = Alpine.$data(document.querySelector('[data-file-browser]').parentElement);
+    return d.at === 0 && d.sel === d.folderFiles[0];
+  })) fail('a folder must open on its first file', await data());
   await page.locator('[data-file-browser] [role=option]', { hasText: 'README.md' }).first().click();
   // Visible is not shown: the reader must have been handed the file (a mode)
   // and drawn something. The frame alone passed while it was empty.
