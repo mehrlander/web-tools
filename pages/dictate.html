@@ -2558,7 +2558,7 @@
            :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
         <div class="card-body gap-2">
           <div class="text-xs opacity-60">Removed since GitHub's copy</div>
-          <div class="text-base line-through decoration-error/70 bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
+          <div class="text-base line-through decoration-[var(--color-error)] bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
           <div x-show="delPop?.by" class="text-sm"><span class="opacity-60">Replaced by </span><span class="bg-success/20 rounded px-1" x-text="delPop?.by"></span></div>
           <div class="card-actions justify-end">
             <button class="btn btn-sm btn-ghost" @click="delPop = null">Close</button>
