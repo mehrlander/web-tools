@@ -15,8 +15,9 @@
 //     stays findable by that branch name rather than dropping out entirely;
 //   - the Chats box narrows the LOADED months and does not reach for shards;
 //   - since 2026-09-24 the box is ONE, shared by Sessions, Branches, Writes and
-//     Chats: it lifts a time window while it stands, each pill counts its
-//     pane's matches, and Branches and Writes match on their own fields.
+//     Chats: it narrows inside the lit scope and never moves it, each pill
+//     counts its pane's matches, and Branches and Writes match on their own
+//     fields.
 //
 // Driven over a stub GH, like the sibling estate tests; no network, no pixels.
 
@@ -98,8 +99,6 @@ const ROWS = [
 ];
 
 function seedSessions() {
-  // The query first, for the reason listRows gives in the rail test: clearing
-  // it restores whatever scope a lift replaced.
   data.activityQuery = '';
   data.sessionRows_ = ROWS;
   data.activity = {};
@@ -303,39 +302,18 @@ test('the archive-wide search is a named hop to the Chats lane', () => {
 
 // ── One query across the Activity view ──────────────────────────────────────
 
-test('a query lifts a time window, and clearing it puts the window back', () => {
+test('a query narrows inside the lit scope and never moves it', () => {
   seedSessions();
   data.sessionScope = 'day';
   data.activityQuery = 'session search';
-  assert.equal(data.sessionScope, 'all', 'a lookup does not stop at 24 hours');
-  assert.equal(data.branchScope, 'all', 'nor at the Recent window');
-  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa', 'cccccccc']);
-  // Editing the query is not a second lift.
-  data.activityQuery = 'session search second';
-  assert.equal(data.sessionScope, 'all');
-  data.activityQuery = '';
   assert.equal(data.sessionScope, 'day');
   assert.equal(data.branchScope, 'active');
-});
-
-test('a scope the reader picked under a query survives the clear', () => {
-  seedSessions();
-  data.sessionScope = 'week';
-  data.activityQuery = 'allotment';
-  data.sessionScope = 'month';           // the reader's own tap
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa']);
+  // The chips say where the rest are, which is the reader's cue to widen.
+  const count = (key) => data.sessionScopes.find(s => s.key === key).count;
+  assert.equal(count('all'), 2);
   data.activityQuery = '';
-  assert.equal(data.sessionScope, 'month');
-});
-
-test('a category scope is not a window, so a query leaves it lit', () => {
-  seedSessions();
-  data.sessionScope = 'failed';
-  data.branchScope = 'stranded';
-  data.activityQuery = 'anything';
-  assert.equal(data.sessionScope, 'failed');
-  assert.equal(data.branchScope, 'stranded');
-  data.activityQuery = '';
-  assert.equal(data.sessionScope, 'failed');
+  assert.equal(data.sessionScope, 'day');
 });
 
 const BRANCHES = { 'me/web-tools': { defaultBranch: 'main',
@@ -396,19 +374,6 @@ test('each pill counts its own pane, and no query means no counts', () => {
   data.activityQuery = 'laughing-planck';
   assert.equal(data.activityCounts.branches, 1);
   assert.equal(data.activityCounts.sessions, 0);
-});
-
-test('a query shorter than three characters filters inside the window and lifts nothing', () => {
-  seedSessions();
-  data.sessionScope = 'day';
-  data.activityQuery = 'se';
-  assert.equal(data.sessionScope, 'day', 'one letter matched 760 of 889 live sessions; lifting on it drew them all');
-  assert.equal(data.branchScope, 'active');
-  data.activityQuery = 'ses';
-  assert.equal(data.sessionScope, 'all', 'three characters is a lookup');
-  data.activityQuery = 'se';
-  assert.equal(data.sessionScope, 'day', 'and shortening below three puts the window back');
-  data.activityQuery = '';
 });
 
 test('the long lists draw a page at a time, and a new question starts at the top', async () => {

@@ -255,8 +255,6 @@ const liveRow = (startedHoursAgo, endedHoursAgo, beats) => ({
 // strip needs. Every narrowing is cleared, so what the strip sums is the whole
 // fixture and a failure is never a filter.
 function listRows(key, rows) {
-  // The query first: clearing it restores a windowed scope the Activity
-  // query lifted, which would overwrite the scope set below if it came after.
   data.activityQuery = '';
   data.sessionScope = key;
   data.railNow = LIVE;
