@@ -255,10 +255,12 @@ const liveRow = (startedHoursAgo, endedHoursAgo, beats) => ({
 // strip needs. Every narrowing is cleared, so what the strip sums is the whole
 // fixture and a failure is never a filter.
 function listRows(key, rows) {
+  // The query first: clearing it restores a windowed scope the Activity
+  // query lifted, which would overwrite the scope set below if it came after.
+  data.activityQuery = '';
   data.sessionScope = key;
   data.railNow = LIVE;
   data.sessionRows_ = rows;
-  data.sessionQuery = '';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
 }
@@ -460,9 +462,9 @@ test('the strip is memoised, since a getter recomputes on every read', () => {
   // a 300-session Month, and the pointer handlers read it on every pointermove.
   assert.equal(a, b, 'a second read is the same array, not a second fold');
   // And the cache is keyed, not permanent: a narrowing has to be seen.
-  data.sessionQuery = 'nothing matches this';
+  data.activityQuery = 'nothing matches this';
   assert.notEqual(data.sessionRailAll, a, 'a filter change refolds');
-  data.sessionQuery = '';
+  data.activityQuery = '';
 });
 
 test('the hot column is an attribute on the few marks, not a stylesheet edit', () => {
