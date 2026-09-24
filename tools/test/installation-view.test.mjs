@@ -536,11 +536,11 @@ test('the source pane shows the selected file read-only, swaps on reselect, and 
   data.select(FORMS); await settle();
 });
 
-test('the Source header carries only Open in editor and Copy; a copy arrives through the paste zone', async () => {
+test('the Source header carries only Open in deck and Copy; a copy arrives through the paste zone', async () => {
   data.select(FORMS); await settle();
   const tools = el.querySelector('[data-source-tools]');
   const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
-  assert.deepEqual(labels, ['Open in editor', 'Copy GitHub text']);
+  assert.deepEqual(labels, ['Open in deck', 'Copy GitHub text']);
   assert.equal(el.querySelector('input[type=file]'), null, 'no file picker: a file is dropped on the zone or the column');
   assert.ok(data.actionsFor(FORMS).some(a => a.key === 'script' && a.label === 'Copy install script'), 'a file awaiting adoption offers the install script from its status menu');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
@@ -582,20 +582,22 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   const writes = requests.filter(r => r.method !== 'GET').length;
   const views = () => el.querySelector('[data-source-views]');
   const diff = () => el.querySelector('[data-source-diff]');
-  const shown = node => !/(^|\s)hidden(\s|$)/.test(node.className);
+  // Hidden by its own class or by a pane of the file component around it.
+  const shown = node => { for (let n = node; n && !n.hasAttribute?.('data-ps-file'); n = n.parentElement) if (/(^|\s)hidden(\s|$)/.test(n.className)) return false; return true; };
+  const tabs = () => [...views().querySelectorAll('[role=tab]')].map(b => b.textContent.trim());
   // No action row: no Files, no Stage, no Open code workspace, no Mark as installed.
   data.select(xaml); await settle();
   const labels = q('button').map(b => b.textContent.trim());
   for (const gone of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.ok(!labels.includes(gone), gone + ' is gone');
   // Recorded and unchanged since: nothing to compare, so Code only.
   assert.equal(data.stateOf(xaml).state, 'reported');
-  assert.equal(views().style.display, 'none'); assert.equal(data.sourceView, 'code');
+  assert.ok(!tabs().includes('Work copy')); assert.equal(data.sourceView, 'code');
   // GitHub moves past the recorded version: Changes opens on the update.
   files[xaml] = '<Window>\n  <Grid/>\n</Window>\n'; advanceHead();
   await data.reload(); data.select(xaml); await settle(); await settle();
   assert.equal(data.stateOf(xaml).state, 'changed');
   assert.equal(data.sourceView, 'changes', 'the update is the default view');
-  assert.notEqual(views().style.display, 'none'); assert.ok(shown(diff()));
+  assert.ok(tabs().includes('Work copy')); assert.ok(shown(diff()));
   assert.ok(!shown(el.querySelector('[data-source-plain]')));
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
@@ -663,7 +665,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in editor']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in deck']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
@@ -702,7 +704,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   const original = files[FORMS], written = publications.length, writes = requests.filter(r => r.method !== 'GET').length;
   const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
   data.filter = ''; data.select(''); await settle();
-  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'deck' && a.label === 'Open in editor'));
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'deck' && a.label === 'Open in deck'));
   await data.runAction(FORMS, 'deck');
   const deck = window.swipeDeck.stack.at(-1);
   assert.ok(deck, 'the deck opened');
@@ -740,7 +742,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   assert.equal(stored.baseText, original);
   assert.equal(stored.baseBlob, gitBlob(original));
   assert.equal(card().analysis.diagnostics.map(d => d.rule).join(), 'ps51-ternary', 'Problems follow the draft');
-  card().setPane('changes');
+  card().setPane('draft');
   assert.equal(card().diffRows.filter(r => r.type === 'add').length, 1);
   assert.equal(card().diffRows.filter(r => r.type === 'del').length, 0);
   const rows = card().menuRows().map(r => r.label);
@@ -858,6 +860,47 @@ test('the Overview reads a Windows-1252 file as Windows-1252 and says so', async
   assert.equal(await data.fetchText(), files[FORMS]);
   assert.equal(data.textEncoding, '');
   delete files[ANSI]; advanceHead(); await data.reload(); await settle();
+});
+
+test('the Overview\'s source pane is the file component: Edit, a draft, and the same view across selections', async () => {
+  const editors = [];
+  window.PowerShellEditor = { create: async (host, cfg) => {
+    const e = { host, cfg, readOnlyOn: cfg.readOnly, text: cfg.value, opened: [],
+      open(key, text) { this.text = text; this.opened.push(key); }, readOnly(v) { this.readOnlyOn = v; }, go() {}, command() {}, focus() {}, refresh() {}, destroy() { this.destroyed = true; } };
+    editors.push(e); return e;
+  } };
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  const writes = requests.filter(r => r.method !== 'GET').length, original = files[FORMS], profile = `${P}/app/Profile.ps1`;
+  data.select(''); await settle();
+  data.select(FORMS); await settle();
+  const card = () => Alpine.$data(el.querySelector('[data-source] [data-ps-file]'));
+  await poll(() => card()?.ready && !card().loading, 'the inline pane did not load');
+  assert.equal(data.sourceState, 'editor');
+  assert.equal(editors.length, 1); assert.equal(editors[0].readOnlyOn, true, 'read-only until Edit');
+  const bar = () => el.querySelector('[data-file-actions]');
+  const labels = [...card().menuRows().map(r => r.label)];
+  for (const gone of ['Copy GitHub text', 'Copy install script']) assert.ok(!labels.includes(gone), gone + ' stays on the Overview, not in the pane menu');
+  bar().querySelector('[title="Edit"]').click(); await tick(2);
+  assert.equal(editors[0].readOnlyOn, false);
+  assert.ok(bar().querySelector('[title="Undo"]') && bar().querySelector('[title="Done editing"]'));
+  editors[0].cfg.onChange(original + '# edited\n');
+  await poll(() => data.drafts[FORMS], 'the inline edit did not reach the Overview draft list');
+  assert.equal(data.draftList.length, 1);
+  assert.ok(card().panes.some(p => p.key === 'draft'), 'a Draft tab appears');
+  bar().querySelector('[title="Done editing"]').click(); await tick(2);
+  data.select(profile); await settle();
+  await poll(() => card().item?.path === profile && !card().loading, 'the pane did not follow the selection');
+  assert.equal(editors.length, 1, 'one editor view across selections');
+  assert.equal(editors[0].text, files[profile]);
+  data.select(FORMS); await settle();
+  await poll(() => card().item?.path === FORMS && !card().loading, 'the pane did not come back');
+  assert.equal(card().text, original + '# edited\n', 'the draft is restored on reselect');
+  await card().discard();
+  await poll(() => !data.drafts[FORMS], 'discard did not clear the list mark');
+  assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'the pane writes nothing to GitHub');
+  data.select(''); await settle();
+  assert.equal(editors[0].destroyed, true, 'deselecting tears the editor down');
+  delete window.PowerShellEditor;
 });
 
 test('every ledger write in this run went through a confirm', () => {
