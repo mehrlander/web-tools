@@ -219,14 +219,17 @@
     backspace at the start of a heading or item drops its marker; Enter makes a
     paragraph, or the next list item.
 
-    AND IT MARKS WHAT CHANGED since GitHub's copy, the way an editor's gutter
-    and a word processor's tracked changes do: a green wash on new words, a red
-    wedge where words were removed (tap it to read them and put them back), and
-    a bar beside each changed block, green when the block is new and amber
-    otherwise. Removed words are never drawn back into the text, since the
-    buffer no longer holds them and every tap is an offset into the buffer.
-    Whitespace-only changes are not marked, so an Unwrap marks nothing. Mark
-    changes in the menu turns them off.
+    AND IT TRACKS CHANGES IN PLACE, the way a word processor does. Each block
+    that differs from GitHub's copy is drawn as a CARD in the flow, on its
+    inline reading: removed words struck, added words green, both where they
+    stand. Deleting an original word strikes it; typing shows green; deleting
+    your own green text simply removes it, since the changes are the difference
+    between the buffer and the base rather than a log. Struck words are drawn
+    and never mapped, so the caret cannot land in them; tapping one offers it
+    back. A card's stops (old, inline, new) and a sideways swipe pick the
+    reading, old being the base and read-only; its number opens Reject this
+    change and the other readings. Track changes in the menu turns the cards
+    off. kits/md-surface.js (tracked) draws them.
 
     A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
     in the Changes face: Reject this change puts that block back as GitHub has
@@ -743,6 +746,7 @@
           // simply absent.
           await gh.load('kits/md-diff.js');
           await window.mdDiff.needDiff();
+          await gh.load('kits/row-menu.js');
           // NOT content-visibility:auto, though it halved a re-render on a 160k
           // file: fresh blocks lay out at their placeholder height for a frame,
           // so the caret and the selection were measured a line off, and blocks
@@ -1106,6 +1110,8 @@
         const lineOf = () => parseFloat(getComputedStyle(this.$refs.view).lineHeight) || 26;
         surface.addEventListener('pointerdown', (e) => {
           if (this.edit || this.view === 'changes') return;
+          // A card's number and stops are controls, not text: no caret, no long press.
+          if (e.target?.closest?.('[data-md-ui]')) { anchor = null; clear(); return; }
           // ANY TOUCH ON THE WORDS ENDS A PENDING STITCH. It was reported as
           // the missing exit: the marker went up and tapping the canvas left
           // it there, because the only disarm was a change in the text and a
@@ -1257,7 +1263,17 @@
           // moved the caret to the far end of the gesture. Same 10px slop the
           // move handler uses, and the count resets so a scroll cannot become
           // the first half of a double.
+          if (e.target?.closest?.('[data-md-ui]')) { taps = 0; return; }
+          // A SIDEWAYS SWIPE ON A CARD turns it to the next reading, the way the
+          // Changes face's cards swipe: left for the one after, right for the one
+          // before. The card carries touch-action:pan-y, so the drag reaches here.
+          const card = this.rendered && e.target?.closest?.('[data-md-card]');
+          const dx = e.clientX - x, dy = e.clientY - y;
+          if (card && Math.abs(dx) > 50 && Math.abs(dy) < 40) { taps = 0; this.swipeCard(+card.dataset.mdCard, dx < 0 ? 1 : -1); return; }
           if (Math.abs(e.clientX - x) > 10 || Math.abs(e.clientY - y) > 10) { taps = 0; return; }
+          // A struck word is the base's, not the buffer's: tapping it offers it back.
+          const gone = this.rendered && e.target?.closest?.('del');
+          if (gone && this.$refs.md.contains(gone)) { taps = 0; this.tapRemoved(gone); return; }
           const pin = e.target?.closest?.('[data-edge]');
           if (!pin && !surface.contains(e.target)) { taps = 0; return; }
           // ARMING ENDS A RUN. pointerdown already armed the pin, and counting
@@ -1684,7 +1700,7 @@
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
-            base: this.fileBase, marks: this.showMarks,
+            base: this.fileBase, marks: false, track: this.showMarks,
           });
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
@@ -1923,6 +1939,59 @@
         const link = window.PromptLink.code({ prompt: this.patchPrompt, repos: [FILE.repo], branch: FILE.ref || undefined });
         window.open(link.url, '_blank', 'noopener');
         this.patchMenu = false;
+      },
+
+      // ── The change cards ──────────────────────────────────────────────
+      // Each block that differs from GitHub's copy is a card in the Rendered
+      // face (kits/md-surface.js, tracked). Its stops and a sideways swipe pick
+      // the reading; its number opens what can be done to the change.
+      cardModes(i) {
+        const e = window.MdSurface.cards(this.$refs.md)[i];
+        return !e ? [] : e.kind === 'removed' ? ['gone'] : e.kind === 'added' ? ['inline'] : ['old', 'inline', 'new'];
+      },
+      setCardReading(i, mode) {
+        window.MdSurface.setReading(this.$refs.md, i, mode);
+        this.paint();
+      },
+      swipeCard(i, step) {
+        const modes = this.cardModes(i);
+        if (modes.length < 2) return;
+        const cur = window.MdSurface.readingOf(this.$refs.md, i);
+        const k = Math.max(0, Math.min(modes.length - 1, modes.indexOf(cur) + step));
+        this.setCardReading(i, modes[k]);
+      },
+      cardTap(ev) {
+        const read = ev.target?.closest?.('[data-md-card-read]');
+        if (read) { const [i, m] = read.dataset.mdCardRead.split(':'); this.setCardReading(+i, m); return; }
+        const badge = ev.target?.closest?.('[data-md-card-badge]');
+        if (!badge || !window.rowMenu) return;
+        const i = +badge.dataset.mdCardBadge;
+        const e = window.MdSurface.cards(this.$refs.md)[i];
+        if (!e) return;
+        const r = badge.getBoundingClientRect();
+        const cur = window.MdSurface.readingOf(this.$refs.md, i);
+        const LABEL = { old: 'Original', inline: 'Marked', new: 'Clean' };
+        window.rowMenu.open({ x: r.left, y: r.bottom + 4, items: [
+          { label: e.kind === 'removed' ? 'Put this block back' : 'Reject this change', icon: 'ph-arrow-u-up-left',
+            run: () => { this.rejectCard(e); } },
+          ...this.cardModes(i).filter((m) => m !== 'gone' && m !== cur)
+            .map((m) => ({ label: 'Show ' + LABEL[m].toLowerCase(), icon: m === 'old' ? 'ph-clock-counter-clockwise' : m === 'new' ? 'ph-file-text' : 'ph-git-diff',
+                           run: () => { this.setCardReading(i, m); } })),
+        ] });
+      },
+      rejectCard(e) {
+        this.d.text = window.mdDiff.revert(this.fileBase, this.text, e);
+        this.d.caretAt(Math.min(e.newRange ? e.newRange.start : e.insertAt, this.d.text.length));
+        this.$refs.md.__readings = {};           // numbering shifts once a card goes
+        this.paint();
+      },
+      // A tapped struck word: where it would go back is the caret the tap would
+      // have placed, which is just before it.
+      tapRemoved(del) {
+        const at = window.MdSurface.offsetAt(this.$refs.md, del.getBoundingClientRect().left + 1, del.getBoundingClientRect().top + 2);
+        const b = del.getBoundingClientRect();
+        this.delPop = { text: del.textContent, at: at ?? 0, with: null, by: '',
+                        x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
       },
 
       // ── The change marks ──────────────────────────────────────────────
@@ -2518,8 +2587,8 @@
           </button>
           <button x-show="file" @click="toggleMarks()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Mark what changed since GitHub's copy: a wash on new words, a wedge where words went, a bar beside each changed block">
-            <i class="ph ph-highlighter text-lg opacity-60"></i>Mark changes
+                  title="Show each changed block as a card: the change marked in place, swipe for the original or the clean text">
+            <i class="ph ph-highlighter text-lg opacity-60"></i>Track changes
             <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
@@ -2638,7 +2707,7 @@
         <!-- File mode's Rendered face. Its classes are set once from
              GuideRender.bodyClass() when the renderer loads, so the document
              reads in the house markdown type. -->
-        <div x-show="rendered" x-ref="md" @contextmenu.prevent></div>
+        <div x-show="rendered" x-ref="md" @contextmenu.prevent @click="cardTap($event)"></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes

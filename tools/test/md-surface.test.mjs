@@ -171,3 +171,32 @@ test('the patch applies with git and reproduces the edit byte for byte', async (
   assert.equal(rd(path.join(dir, 'docs/SURFACING.md'), 'utf8'), text);
   assert.equal(M().patch('x.md', base, base), '', 'no edit, no patch');
 });
+
+// Tracked: the edit drawn as cards in the document. Removed words are shown
+// and never mapped, so every stamped run is still the buffer's text; a removed
+// block is a card with nothing in it the caret can reach.
+test('tracked render draws changed blocks as cards and maps only the buffer', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  window.GuideRender = { render: (md) => ({ html: marked.parse(md) }) };
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const base = '# Title\n\nThe canonical source is here.\n\nGone para.\n\nSame para.\n';
+  const text = '# Title\n\nThe official source is here.\n\nSame para.\n\nAdded para.\n';
+  host.__mdKey = null; host.__readings = {};
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
+  const cards = [...host.querySelectorAll('[data-md-card]')];
+  assert.equal(cards.length, 3, 'changed, removed and added blocks each get a card');
+  assert.deepEqual([...host.querySelectorAll('del')].map((d) => d.textContent), ['canonical']);
+  assert.ok(![...host.querySelectorAll('del [data-src], [data-md-ghost] [data-src], [data-md-ui] [data-src]')].length,
+    'removed words, removed blocks and card controls carry no offset');
+  for (const sp of host.querySelectorAll('[data-src]')) {
+    const s = +sp.dataset.src, t = sp.firstChild.data;
+    assert.equal(text.slice(s, s + t.length), t, `run at ${s}`);
+  }
+  window.MdSurface.setReading(host, 0, 'old');
+  window.MdSurface.paint(host, { text, base, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(window.MdSurface.readingOf(host, 0), 'old');
+  assert.ok(host.querySelector('[data-md-card="0"] [data-md-ghost]').textContent.includes('canonical'), 'old shows the base, unmapped');
+  host.__mdKey = null;
+  window.MdSurface.paint(host, { text, base: text, track: true, overlay: window.document.getElementById('box') });
+  assert.equal(host.querySelectorAll('[data-md-card]').length, 0, 'no change, no cards');
+});
