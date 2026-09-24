@@ -9,7 +9,9 @@ export default async (page) => {
   const data = () => page.evaluate(() => {
     const d = Alpine.$data(document.querySelector('[data-file-browser]').parentElement);
     return { file: d.file, busy: d.busy, note: d.note, folder: d.folderFiles.length,
-             shown: !!document.querySelector('[data-file-viewer]')?.offsetParent };
+             shown: !!document.querySelector('[data-file-viewer]')?.offsetParent,
+             mode: document.querySelector('[data-file-viewer]')?.__viewer?.mode || '',
+             text: (document.querySelector('[data-file-viewer]')?.innerText || '').trim().length };
   });
   const fail = (what, got) => { throw new Error('files-view: ' + what + ' ' + JSON.stringify(got)); };
   await page.waitForSelector('[data-file-browser] [role=option]', { timeout: 20000 });
@@ -19,7 +21,12 @@ export default async (page) => {
     return d.file && !d.busy;
   }, null, { timeout: 15000 });
   let s = await data();
-  if (s.file !== 'docs/README.md' || !s.shown || s.note) fail('a tapped file must show in the reader', s);
+  // Visible is not shown: the reader must have been handed the file (a mode)
+  // and drawn something. The frame alone passed while it was empty.
+  await page.waitForFunction(() => !!document.querySelector('[data-file-viewer]')?.__viewer?.mode, null, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  s = await data();
+  if (s.file !== 'docs/README.md' || !s.shown || s.note || !s.mode || s.text < 20) fail('a tapped file must show in the reader', s);
   if (s.folder < 2) fail('the folder must list its files for the deck', s);
   await page.locator('[data-file-browser] button:has(.ph-cards-three)').click();
   await page.waitForTimeout(2000);

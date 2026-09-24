@@ -188,7 +188,7 @@ tools/render/scenarios/fab-traffic-toss.mjs,"the Traffic tab inside a toss: the 
 tools/render/scenarios/fab-traffic.mjs,the fab's Traffic tab with a real BOOT band from the loopback render,tools/render/scenarios,78,driver,no,no,no
 tools/render/scenarios/fab-width-bar.mjs,"the FAB Render tab's width bar, shot on toss-render where the lever is live",tools/render/scenarios,30,driver,no,no,no
 tools/render/scenarios/fence-label-clear.mjs,,tools/render/scenarios,64,driver,no,no,no
-tools/render/scenarios/files-view-tap-and-deck.mjs,,tools/render/scenarios,34,driver,no,no,yes
+tools/render/scenarios/files-view-tap-and-deck.mjs,,tools/render/scenarios,41,driver,no,no,yes
 tools/render/scenarios/inbox-demo.mjs,the inbox resolution with the armed redirect button on screen,tools/render/scenarios,36,driver,no,yes,no
 tools/render/scenarios/installation-home.mjs,,tools/render/scenarios,91,driver,no,no,no
 tools/render/scenarios/jumpover-coverage.mjs,the exact-file jump-overs rendered headlessly with seeded rows,tools/render/scenarios,67,driver,no,no,no
