@@ -92,7 +92,8 @@
     "sample-workbook": "node tools/build/sample-workbook.mjs",
     "test:powershell-editor": "node tools/test/powershell-editor.mjs",
     "test:powershell-workspace": "node tools/test/powershell-workspace-browser.mjs",
-    "test:installation-source": "node tools/test/installation-source-browser.mjs"
+    "test:installation-source": "node tools/test/installation-source-browser.mjs",
+    "test:files-view": "node tools/test/files-view-browser.mjs"
   },
   "devDependencies": {
     "@alpinejs/collapse": "^3.15.12",

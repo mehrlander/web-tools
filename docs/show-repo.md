@@ -44,12 +44,11 @@ repos browse with no auth; private repos and branches need the viewer's token.
 Deep-link params: `&view=` takes any of `estate`, `activity`, `sessions`,
 `chats`, `todo`, `jots`, `stage`, `surfaces`, `tools`, `map`,
 `state`, `search`, `proposals`, `public`, `app` (the estate's own views) or
-`landing`, `pages`, `atlas`, `config`, `project` (a repo's). `files` and
-`branches` are retired per-repo views whose keys still resolve, to the Files
-view and to Activity.
+`landing`, `pages`, `atlas`, `config`, `files`, `project` (a repo's).
+`branches` is a retired per-repo view whose key still resolves, to Activity.
 Beside it: `&file=<path>`, `&path=<dir>`, and a second key for the views that
 carry one, `&tab=<tab>` (**project**'s pill row, **Map**'s tabs), `&item=`
-(**State**), `&detail=` (**Branches**), the `&sq=` family (**Files**: `sq`,
+(**State**), `&detail=` (**Branches**), the `&sq=` family (**Search**: `sq`,
 `smode`, `srepo`, `sref`, `spath`, `sfile`), `&window=`. A view
 keeps its default second key out of the URL, so an existing bare link still
 opens where it always did. `&view=portable` is a retired alias that still
@@ -288,7 +287,7 @@ and a Go row appears for a name that is not in the list), and a **lightning
 button that jumps to the most recently committed branch**, which hides itself
 when the newest branch is the default one.
 
-**It is not the Files view's ref picker, and the two are easy to confuse.**
+**It is not the Search view's ref picker, and the two are easy to confuse.**
 That one chooses which ref of the *browsed* repo you are reading; this one
 chooses which ref of `mehrlander/web-tools` **show-repo itself runs from**. Same
 vocabulary, different subject, so the panel spells out the repo and path it acts
@@ -414,37 +413,16 @@ The per-repo views in the sidebar:
   rather than moving one, and the page keeps the FAB's full-page bust-out that
   every framed view has.
 - **atlas**: a standing structural view, available for every repo.
-- **Files** *(a route out, not a view)*: hands the estate's **Files** view this
-  repo at the ref being browsed and goes there, carrying an ↗ so the row says
-  it leaves. A repo keeps a one-tap way to its files, and there is one place
-  they are read.
+- **files**: the repo's tree beside the file it opens. A project's **Files**
+  tab is the same view based at the project folder (see Search, below).
 - **config**: the repo's `.web-tools.json`, as a form and as raw JSON.
 
-**Two per-repo views were removed rather than moved** (2026-08-14), and the
-question they answer is the test: *does this repository answer it better than
-the estate does?*
+**`branches` was retired** (2026-08-14) for **Activity → Branches**, the same
+rollup across every repo; `?view=branches` still resolves there. `files` was
+retired with it and returned on 2026-09-24.
 
-| Retired | Why | Where it went |
-| --- | --- | --- |
-| **files** | the tree walk. Reading a file is not a per-repo job: it is wanted by name, by folder, or by content, and across repos as often as within one | the estate's **Files** view, which walks the same tree and reads the file in place |
-| **branches** | the per-repo branch review | **Activity → Branches**, the same rollup with the same landed/stranded signal, across every repo at once, opening the branch takeover |
-
-Neither key 404s: `?view=files` aliases onto the Files view and carries its
-`?path=` through as the folder scope, `?view=branches` aliases onto Activity,
-and a `?file=` link opens the central reader scoped to that file's folder. What
-the explorer uniquely had was a **live directory read**, and only one thing on
-it was ever missed: a file's size on its row. That turned out not to need the
-live read at all, since the recursive trees call reports a blob's size on the
-entry, so the Files view now shows the size off the cache it already walks and
-gives up nothing but the guarantee that the number is a second old. The cache
-is what buys free descent and folder counts. The ref compare went with the
-branch review, its only caller anywhere,
-and the component was deleted with `nav-repo.html`, its last mount, a day later.
-
-**`?ref=` moved with them.** The browsed ref was the Files view's key, stamped
-by its row, back when that view was the only thing that read it. The atlas, the
-config form, the pages gallery and mention all read it, so it is repo-scoped
-state and stamps beside `repo` from any repo view.
+**`?ref=` is repo-scoped:** the browsed ref stamps beside `repo` from any repo
+view, since the atlas, the config form, the pages gallery and mention all read it.
 
 **GitHub jump-overs.** show-repo is a wrapper over GitHub, not a wall: every
 view keeps a one-tap route to the GitHub presentation of what it is showing.
@@ -530,9 +508,9 @@ the header nav the way a repo shows landing/atlas/files/…:
   (`?view=chats`), and **Routes** (`?view=routes`) (all below).
 - **Lists** — the two personal piles, To-do over Jot, in one pane rather than
   two tabs. Both `?view=todo` and `?view=jots` resolve here (below).
-- **Files** (`?view=search`) — the central file surface: file names at any ref under any folder, contents through the code-search API, the session records, and the file itself read in place (below). The `?view=` key stays `search`, its name since the view was a results list: an address is not a label, and every link ever shared still opens it.
+- **Search** (`?view=search`) — file names at any ref under any folder, contents through the code-search API, the session records and the chat catalog, with a hit read in place (below).
 
-For a PowerShell or XAML file open in Files, **Compare copy** accepts pasted
+For a PowerShell or XAML file open in Search, **Compare copy** accepts pasted
 text, a dropped file, or a chosen file (including on a phone). App-wide paste
 and drop use the open file as context. A
 `# @file projects/wps/app/Modules/Forms/Forms.psm1` line instead names a
@@ -550,7 +528,7 @@ For a correspondence pair, Stage normalizes CRLF and CR to LF in its displayed
 diff. A check labels a difference caused only by line endings; its exact-match
 observation remains strict, and the submitted text and hash stay unchanged.
 The check stores the submitted text, path, repository, branch, revision and
-hashes in browser IndexedDB; the Files panel can reopen it or export its JSON.
+hashes in browser IndexedDB; the Search panel can reopen it or export its JSON.
 If repository lookup fails, the submission remains in Stage and in a
 browser-local unfinished list in **Compare copy**. From there, retry its
 address or associate it with the currently open file. A match describes only
@@ -2001,12 +1979,10 @@ toss-render `#gh=` the same way the pages catalog does. The list is authored, a
 sibling to `pins` and `stage.files`, maintained by hand
 (`lib/alpineComponents/tools.js`).
 
-### Files (`?view=search`): the central file surface
+### Search (`?view=search`)
 
-**Files** (`lib/alpineComponents/search-view.js`) is where files are found
-**and read**. It is named for the thing rather than the verb, so it sits beside
-Repos and Stage rather than reading as an activity next to them; the URL key
-stays `search`. Three modes behind a pill row, all served by the same core the
+**Search** (`lib/alpineComponents/search-view.js`) finds files and records and
+reads a hit in place. Its modes sit behind a pill row, all served by the same core the
 sidebar finder uses ([`lib/kits/estate-search.js`](../lib/kits/estate-search.js),
 one implementation, one cache, so a tree the finder fetched is a tree this view
 never re-fetches):
@@ -2114,14 +2090,11 @@ that repo. The position steps through the file hits, so a result set is walkable
 without returning to the list. One button leaves for the repo's **Files** view,
 for when the question is where a file *sits* rather than what it says.
 
-**Why it is not the repo's Files view.** Every repo carries its own Files view,
-and reading a file there means first choosing a repository and then walking a
-tree. A file is rarely wanted as a position in a tree; it is wanted by name, by
-folder, or by what is inside it, and this view answers all three, across every
-repo at once, which no per-repo tree walk can. The per-repo walk was retired
-with the rest of the duplication on 2026-08-14; `?view=files` aliases here,
-carrying its `?path=` as the folder scope, and a repo's sidebar keeps a Files
-row that hands this view the repo it is standing in.
+**Search finds; Files browses.** A repo's **Files** view and a project's
+**Files** tab (`lib/alpineComponents/file-browser.js`) walk one scope's tree
+beside the open file: the Stage's picker, inline and based at the scope, next to
+the shared reader. Pins, recents, Docs and the finder's file hits open there,
+on the file's folder (`?view=files&path=&file=`).
 
 **The screen is the address, not the query behind it.**
 `?view=search&sq=&smode=&srepo=&sref=&spath=&sfile=` round-trips the query, the
