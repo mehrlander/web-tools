@@ -21,9 +21,11 @@ unit-tested, and shared by the activity crawl and the live scan
 
 - **landed:** the default branch holds those bytes now, at this path or moved
   anywhere, or the branch deleted the path;
-- **differs:** the default branch holds the path with other bytes;
-- **missing:** neither path nor bytes. This is the only class that says
-  deleting the branch would lose something.
+- **differs:** the default branch holds the path with other bytes. That is
+  either unlanded edits or the default branch's own drift since, and the scan
+  cannot tell which, so inspect these files before deleting the branch;
+- **missing:** neither path nor bytes. Deleting the branch loses these
+  outright.
 
 Read these, not `ahead_by`: squash merges and history rewrites make ref-level
 "unmerged" unreliable, and a branch with no merge base reports its whole line.

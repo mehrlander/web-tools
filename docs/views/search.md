@@ -9,7 +9,7 @@ Docs and the sidebar finder's file hits open in Files at the file's folder
 
 ## Modes
 
-All three share the sidebar finder's core, [`lib/kits/estate-search.js`](../../lib/kits/estate-search.js):
+All four share the sidebar finder's core, [`lib/kits/estate-search.js`](../../lib/kits/estate-search.js):
 one implementation and one cache.
 
 | Mode | Reaches | Misses |
@@ -17,6 +17,7 @@ one implementation and one cache.
 | **Names** | repo trees at any ref, under any folder | anything inside a file |
 | **Contents** | full text, through the code-search API | non-default branches, unindexed pushes, files over ~384 KB, past ten calls a minute |
 | **Sessions** | captured session records (asks, prompts, replies) | anything not captured |
+| **Chats** | the chat archive's catalog: each chat's title, tags, and hand or machine summary, every month (about 10 MB, once per session) | the words spoken in a chat; full text is chat-histories' `tools/search_chats.py` |
 
 In Names, a query is a recursive match and an empty query under a repo is one
 level of the tree (`EstateSearch.names`, `EstateSearch.level`, both off one
