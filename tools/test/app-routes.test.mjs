@@ -457,3 +457,25 @@ test('the manifest builder keeps the shell out of the routes and names it twice'
   assert.ok(manifest.groups.length > 1, 'group glosses came from the vocabulary');
   assert.equal(manifest.groups.every(g => g.key && g.label), true);
 });
+
+// ── docs/views/ and docs/forms/ answer to the two registries ───────────────
+//
+// Each view's document is named on its app-routes row, and each form's on its
+// subjects row. Held both ways: a named doc exists, and a file in either folder
+// is named by a row, so a document cannot drift out of the app's own index.
+test('every doc a view or a type names exists, and every view or form doc is named', async () => {
+  const { readdirSync } = await import('node:fs');
+  const named = new Set();
+  for (const [file, key] of [['app-routes.csv', 'key'], ['subjects.csv', 'key']]) {
+    for (const r of rows(file)) {
+      if (!r.doc) continue;
+      assert.ok(existsSync(path.join(repoRoot, r.doc)), `${file} ${r[key]}: doc missing on disk: ${r.doc}`);
+      named.add(r.doc);
+    }
+  }
+  for (const dir of ['docs/views', 'docs/forms']) {
+    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md'))) {
+      assert.ok(named.has(`${dir}/${f}`), `${dir}/${f} is named by no app-routes or subjects row`);
+    }
+  }
+});

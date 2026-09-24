@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `tools/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 19 are named by CLAUDE.md,
-10 by a skill, 30 by a page or component. The remaining 33 are
+10 by a skill, 30 by a page or component. The remaining 47 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -124,6 +124,11 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`README.md`](favicons/README.md) *(orphan)* — the favicon archive: active marks and retired ones
 
+## docs/forms/
+
+- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
+- [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
+
 ## docs/github/
 
 - [`README.md`](github/README.md) *(orphan)* — the github folder's front door: renderer, git treatment, MCP routing, surfacing
@@ -132,6 +137,21 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/views/
+
+- [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
+- [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
+- [`estate.md`](views/estate.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
+- [`map.md`](views/map.md) *(orphan)* — the Map view: its tabs over the coordination layer (Distribution, Surfacing, Showing, Docs, Harness)
+- [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's pills, the Installation pill and its observations ledger
+- [`routes.md`](views/routes.md) *(orphan)* — the Routes view: the app's own destinations from app-routes.csv, dated by their files
+- [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
+- [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
+- [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
+- [`todo.md`](views/todo.md) *(orphan)* — the Lists view: To-do, Jot and Pins, and the registry files behind them
+- [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
+- [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
 
 11 shared statements are registered in
 [`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

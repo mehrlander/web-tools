@@ -122,6 +122,7 @@ app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,"the subject
 app-routes,what,recorded,,value,column,yes,,value,"what the destination is for, one line"
 app-routes,files,recorded,,counted,column,no,,locator,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
 app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or what qualifies the row"
+app-routes,doc,recorded,,none,column,yes,,locator,"the document for this view; blank where the row's what and note say enough, and a shared reference (stage.md, manifest.md) where one already owns the view"
 app-routes,alias,recorded,,none,column,yes,,locator,a retired key that still resolves
 app-routes,tabs,recorded,,none,column,no,,label,the sub-tabs addressable within it
 app-routes,stop,recorded,,counted,column,yes,,value,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"
@@ -187,6 +188,7 @@ assistant-branches,declared,recorded,,none,column,yes,,value,the date the row wa
 subjects,label,recorded,,value,column,yes,,value,the type's display name, which is what the FAB captions
 subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a form"
 subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
+subjects,doc,recorded,,none,column,yes,,locator,"the document for the form that draws this type; blank for a type with no form"
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,"the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal"
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
