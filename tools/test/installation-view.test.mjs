@@ -108,6 +108,13 @@ window.GH = class {
       publications.push({ body, paths: changedTrees.get(commit.tree), snapshot: { ...files } });
       return { object: { sha: currentRevision } };
     }
+    if (method === 'GET' && p.startsWith('git/blobs/')) {
+      const sha = p.slice('git/blobs/'.length);
+      const hit = [...snapshots.values(), files].flatMap(s => Object.entries(s)).find(([, t]) => gitBlob(t) === sha);
+      if (!hit) throw Object.assign(new Error('Not Found'), { status: 404 });
+      await readGate?.(hit[0], this.ref);
+      return { sha, encoding: 'base64', content: Buffer.from(hit[1], 'utf8').toString('base64') };
+    }
     if (method === 'GET' && p.startsWith('git/trees/')) {
       treeReads++;
       const revision = p.slice('git/trees/'.length).split('?')[0];
@@ -159,7 +166,18 @@ const saves = [], clip = [];
 window.io = { save: (data, name) => saves.push({ data, name }) };
 Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async t => { clip.push(t); } } });
 
-for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/alpineComponents/installation-view.js'])
+// Browser drafts live in the app's persistence kit; an in-memory collection
+// stands in, observable as `draftStore`.
+const draftStore = new Map();
+window.persistence = { collection: () => ({
+  async find(match) { return [...draftStore.values()].filter(match).map(r => ({ ...r })); },
+  async put(record) { draftStore.set(record.id, { ...record }); return { ...record }; },
+  async delete(id) { draftStore.delete(id); },
+}) };
+window.Element.prototype.scrollTo ??= function () {};
+window.Element.prototype.scrollIntoView ??= function () {};
+for (const rel of ['lib/kits/csv.js', 'lib/kits/installation.js', 'lib/kits/text-diff.js', 'lib/kits/powershell-workspace.js', 'lib/kits/powershell-language.js',
+  'lib/kits/swipe-deck.js', 'lib/alpineComponents/powershell-file.js', 'lib/alpineComponents/installation-view.js'])
   new window.Function(readFileSync(path.join(repoRoot, rel), 'utf8'))();
 const toasts = [];
 Alpine.store('browser', { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main', gh: new window.GH({ repo: 'mehrlander/home', ref: 'main' }) });
@@ -217,7 +235,7 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   data.select(`${P}/app/Scripts/Demo.ps1`);
   await settle();
   assert.equal(el.querySelector('[data-destination]').textContent, `${P}/app/Scripts/Demo.ps1`, 'repository-only material shows its repository path');
-  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['code'], 'repository-only material offers no placement to confirm');
+  assert.deepEqual([...data.actionsFor(`${P}/app/Scripts/Demo.ps1`).map(a => a.key)], ['deck', 'code'], 'repository-only material offers no placement to confirm');
   data.select(FORMS);
   await settle();
 });
@@ -354,9 +372,31 @@ test('an older file fetch cannot replace the new selection\'s text or busy state
   assert.equal(await data.fetchText(), files[FORMS]);
 });
 
+test('the transfer script carries the exact GitHub bytes to the manifest destination and records nothing', async () => {
+  const written = publications.length;
+  data.select(FORMS); await settle();
+  await data.copyTransferScript();
+  const script = clip[clip.length - 1];
+  assert.match(script, /^\$dest = Join-Path \$HOME 'Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1'\r$/m);
+  const encoded = /FromBase64String\('([^']+)'\)/.exec(script)[1];
+  assert.equal(Buffer.from(encoded, 'base64').toString('utf8'), files[FORMS]);
+  assert.match(script, /WriteAllBytes\(\$dest, \$bytes\)/);
+  assert.ok(script.includes(gitBlob(files[FORMS])), 'the script names the Git blob the placed file should hash to');
+  assert.equal(data.lastTransfer[FORMS], 'script');
+  assert.equal(publications.length, written, 'a transfer script is not an installation');
+  assert.equal(window.PowerShellLanguage.inspect(script).diagnostics.length, 0, 'the script itself uses no PowerShell 7 syntax');
+  const demo = `${P}/app/Scripts/Demo.ps1`, copies = clip.length;
+  data.select(demo); await settle();
+  assert.equal(el.querySelector('[aria-label="Copy transfer script"]').style.display, 'none', 'repository-only material offers no script');
+  await data.copyTransferScript();
+  assert.equal(clip.length, copies, 'repository-only material has no destination to script');
+  assert.match(data.err, /no installation destination/);
+  data.err = ''; data.select(FORMS); await settle();
+});
+
 test('selection changes cancel pending copy, download, and installed-row preparation', async () => {
   const profile = `${P}/app/Profile.ps1`;
-  for (const method of ['copyText', 'downloadText', 'askInstalled']) {
+  for (const method of ['copyText', 'downloadText', 'copyTransferScript', 'askInstalled']) {
     data.select(FORMS);
     const gate = deferred(), copies = clip.length, downloads = saves.length;
     readGate = p => p === FORMS ? gate.promise : undefined;
@@ -495,7 +535,7 @@ test('the Source header carries copy, download and compare; the action row keeps
   data.select(FORMS); await settle();
   const tools = el.querySelector('[data-source-tools]');
   const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
-  assert.deepEqual(labels, ['Copy GitHub text', 'Download GitHub text', 'Compare the clipboard with this file', 'Compare a file with this file']);
+  assert.deepEqual(labels, ['Open in editor', 'Copy GitHub text', 'Download GitHub text', 'Copy transfer script', 'Compare the clipboard with this file', 'Compare a file with this file']);
   assert.ok(tools.querySelector('input[type=file]'), 'the file picker rides the compare icon');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
@@ -613,14 +653,14 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in Code']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in editor', 'Open in Code']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
   assert.equal(data.menuFor, profile);
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
   assert.equal(data.menuFor, '');
-  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['code'], 'repository-only material offers no placement');
+  assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['deck', 'code'], 'repository-only material offers no placement');
   // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
   icon.click(); await settle();
   [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
@@ -639,6 +679,114 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   data.pending = null; await settle();
   assert.equal(publications.length, writes);
   data.select(FORMS); await settle();
+});
+
+test('the file deck reads one file per slide, edits into a browser draft, and writes nothing to GitHub', async () => {
+  const editors = [];
+  window.PowerShellEditor = { create: async (host, cfg) => {
+    const e = { host, cfg, readOnlyOn: cfg.readOnly, text: cfg.value, commands: [],
+      open(key, text) { this.text = text; }, readOnly(v) { this.readOnlyOn = v; }, go(line) { this.line = line; },
+      command(name) { this.commands.push(name); }, focus() {}, refresh() {}, destroy() { this.destroyed = true; } };
+    editors.push(e); return e;
+  } };
+  const original = files[FORMS], written = publications.length, writes = requests.filter(r => r.method !== 'GET').length;
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  data.filter = ''; data.select(''); await settle();
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'deck' && a.label === 'Open in editor'));
+  await data.runAction(FORMS, 'deck');
+  const deck = window.swipeDeck.stack.at(-1);
+  assert.ok(deck, 'the deck opened');
+  // jsdom never scrolls, so land the track on the start slide the way the
+  // browser's start jump does: a scroll event the deck reads back.
+  const order = data.visibleGroups.flatMap(g => g.units.flatMap(u => u.files)).filter(it => it.comparable);
+  const start = order.findIndex(it => it.path === FORMS);
+  Object.defineProperty(deck.deck.track, 'scrollLeft', { configurable: true, get: () => start });
+  deck.deck.track.dispatchEvent(new window.Event('scroll'));
+  const card = () => [...deck.el.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item?.path === FORMS);
+  await poll(() => card() && !card().loading && editors.some(e => e.cfg.path === FORMS && deck.el.contains(e.host)), 'the slide did not load its source');
+  const editor = editors.find(e => e.cfg.path === FORMS && deck.el.contains(e.host));
+  await poll(() => deck.title === 'Forms.psm1', 'the header names the chosen file');
+  assert.equal(editor.readOnlyOn, true, 'a slide opens read-only');
+  assert.equal(card().text, original);
+  const button = title => deck.el.querySelector(`[title="${title}"]`);
+  await poll(() => button('Edit'), 'the header offers Edit');
+  button('Edit').click(); await tick(2);
+  assert.equal(editor.readOnlyOn, false, 'Edit unlocks the editor');
+  assert.equal(deck.deck.track.style.overflowX, 'hidden', 'and pauses the swipe');
+  assert.ok(button('Undo') && button('Redo') && button('Done editing'), 'the header carries the editing actions');
+  const moves = [], go = deck.deck.go; deck.deck.go = i => { moves.push(i); return go(i); };
+  editor.host.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  editor.host.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight' }));
+  await tick(2);
+  assert.deepEqual(moves.length, 1, 'arrow keys and Escape inside the editor stay with the editor; outside, the deck steps');
+  assert.equal(window.swipeDeck.stack.at(-1), deck, 'Escape inside the editor does not dismiss the deck');
+  deck.deck.go = go;
+  button('Undo').click();
+  assert.deepEqual(editor.commands, ['undo']);
+  editor.cfg.onChange(original + '$x = $a ? 1 : 2\n');
+  await poll(() => [...draftStore.values()].some(d => d.path === FORMS), 'the edit was not saved as a browser draft');
+  const stored = [...draftStore.values()].find(d => d.path === FORMS);
+  assert.equal(stored.baseText, original);
+  assert.equal(stored.baseBlob, gitBlob(original));
+  assert.equal(card().analysis.diagnostics.map(d => d.rule).join(), 'ps51-ternary', 'Problems follow the draft');
+  card().setPane('changes');
+  assert.equal(card().diffRows.filter(r => r.type === 'add').length, 1);
+  assert.equal(card().diffRows.filter(r => r.type === 'del').length, 0);
+  const rows = card().menuRows().map(r => r.label);
+  for (const label of ['Find', 'Copy GitHub text', 'Download', 'Copy transfer script', 'Discard draft…', 'Review and publish in Code'])
+    assert.ok(rows.includes(label), label + ' is in the file menu');
+  button('Done editing').click(); await tick(2);
+  assert.equal(editor.readOnlyOn, true);
+  assert.equal(deck.deck.track.style.overflowX, '', 'Done restores the swipe');
+  deck.close(); await settle();
+  await poll(() => data.drafts[FORMS], 'the list marks the file with a browser draft');
+  assert.ok(el.querySelector('[data-draft-mark]:not([style*="display: none"])'), 'the mark renders');
+  await data.openFileDeck(FORMS);
+  const again = window.swipeDeck.stack.at(-1);
+  const reopened = () => [...again.el.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item?.path === FORMS);
+  await poll(() => reopened() && !reopened().loading, 'the slide did not reload');
+  assert.equal(reopened().draft, true, 'a reopened deck restores the draft');
+  await reopened().discard();
+  assert.equal(draftStore.size, 0, 'Discard removes the browser draft');
+  assert.equal(reopened().text, original);
+  again.close(); await settle();
+  assert.equal(data.drafts[FORMS], undefined);
+  assert.equal(publications.length, written, 'the deck publishes nothing');
+  assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'and writes nothing to GitHub');
+  delete window.PowerShellEditor;
+});
+
+test('a Windows-1252 file opens decoded and read-only, and its transfer script carries the exact bytes', async () => {
+  const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
+  // "Width)×$(" as Windows PowerShell 5.1 saves it with no BOM: 0xD7 is ×.
+  const bytes = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
+  files[ANSI] = bytes; advanceHead(); await data.reload(); await settle();
+  window.PowerShellEditor = { create: async (host, cfg) => ({ host, cfg, open() {}, readOnly() {}, go() {}, command() {}, focus() {}, refresh() {}, destroy() {} }) };
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  await data.openFileDeck(ANSI);
+  const deck = window.swipeDeck.stack.at(-1);
+  const order = data.visibleGroups.flatMap(g => g.units.flatMap(u => u.files)).filter(it => it.comparable);
+  Object.defineProperty(deck.deck.track, 'scrollLeft', { configurable: true, get: () => order.findIndex(it => it.path === ANSI) });
+  deck.deck.track.dispatchEvent(new window.Event('scroll'));
+  const card = () => [...deck.el.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item?.path === ANSI);
+  await poll(() => card() && !card().loading, 'the Windows-1252 slide did not load');
+  assert.equal(card().error, '');
+  assert.equal(card().text, 'Width)×$(\r\n', 'decoded as Windows-1252');
+  assert.equal(card().ansi, true);
+  assert.match(card().notice, /Windows-1252.*read-only/);
+  await poll(() => deck.title === 'Ansi.psm1', 'the header names the file');
+  assert.equal(deck.el.querySelector('[title="Edit"]'), null, 'no Edit on a Windows-1252 file');
+  card().setEditing(true);
+  assert.equal(card().editing, false);
+  const copies = clip.length;
+  await card().copyScript();
+  assert.equal(clip.length, copies + 1);
+  const encoded = /FromBase64String\('([^']+)'\)/.exec(clip.at(-1))[1];
+  assert.equal(Buffer.from(encoded, 'base64').compare(bytes), 0, 'the script carries the blob bytes, not a UTF-8 re-encoding');
+  deck.close(); await settle();
+  delete files[ANSI]; advanceHead(); await data.reload(); await settle();
+  delete window.PowerShellEditor;
 });
 
 test('every ledger write in this run went through a confirm', () => {
