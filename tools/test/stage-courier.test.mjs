@@ -1,8 +1,9 @@
 // alpineComponents/stage.js: the Stage as the courier's popup. Opened by the
 // courier bookmarklet with `courier=1`, the bench hears only the window that
-// opened it, stages what the page sends, reads the errand for that host with
-// its own token, sends the errand's script back, and stages the script's
-// result aimed at the errand's destination.
+// opened it, stages what the page sends, finds the courier errand for that
+// host among the errands (the registry's folder, then the public list) with its
+// own token, sends the errand's script back, and stages the script's result
+// aimed at the errand's destination.
 //
 // Its own file because the intake is fixed at load: the flag is read from the
 // address before the shell can rewrite it, and window.opener exists only here.
@@ -21,24 +22,32 @@ const sent = [];
 const opener = { postMessage(msg, origin) { sent.push({ msg, origin }); } };
 Object.defineProperty(window, 'opener', { value: opener, configurable: true });
 
-const ERRANDS = {
-  'mehrlander/web-tools-private': { errands: [
-    { id: 'priv', host: 'private.example', status: 'open', title: 'A private errand', script: 'sites/private.example/go.js',
-      result: { repo: 'mehrlander/web-tools-private', branch: 'main', path: 'courier/results/priv.md' } },
-  ] },
-  'mehrlander/web-tools': { errands: [
-    { id: 'pub', host: 'site.example', status: 'open', title: 'A public errand', script: 'sites/site.example/go.js',
-      result: { repo: 'mehrlander/web-tools-private', branch: 'main', path: 'courier/results/pub.md' } },
-    { id: 'shut', host: 'closed.example', status: 'done', title: 'Closed', script: 'sites/closed.example/go.js',
-      result: { repo: 'x/y', branch: 'main', path: 'r.md' } },
-  ] },
+// The registry holds one private courier errand as its own file; the public
+// list holds one open and one closed.
+const PRIVATE = {
+  'priv.json': { id: 'priv', action: 'courier', url: 'https://private.example/', title: 'A private errand',
+                 script: 'sites/private.example/go.js', dest: 'mehrlander/web-tools-private@main:courier/results' },
 };
+const PUBLIC = { errands: [
+  { id: 'pub', host: 'site.example', url: 'https://site.example/', status: 'open', title: 'A public errand',
+    script: 'sites/site.example/go.js',
+    result: { repo: 'mehrlander/web-tools-private', branch: 'main', path: 'courier/results/pub.md' } },
+  { id: 'shut', host: 'closed.example', url: 'https://closed.example/', status: 'done', title: 'Closed',
+    script: 'sites/closed.example/go.js', result: { repo: 'x/y', branch: 'main', path: 'r.md' } },
+] };
 const reads = [];
 class FakeGH {
   constructor(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
+  async ls(dir) {
+    if (this.repo === 'mehrlander/web-tools-private' && dir === 'errands/requests')
+      return Object.keys(PRIVATE).map(name => ({ name, type: 'file' }));
+    throw Object.assign(new Error('404'), { status: 404 });
+  }
   async get(path) {
     reads.push(this.repo + ':' + path);
-    if (path === 'courier/errands.json' && ERRANDS[this.repo]) return { text: JSON.stringify(ERRANDS[this.repo]) };
+    if (this.repo === 'mehrlander/web-tools-private' && path.startsWith('errands/requests/'))
+      return { text: JSON.stringify(PRIVATE[path.split('/').pop()]) };
+    if (this.repo === 'mehrlander/web-tools' && path === 'courier/errands.json') return { text: JSON.stringify(PUBLIC) };
     if (path.endsWith('/go.js')) return { text: 'return "script from ' + this.repo + '"' };
     throw Object.assign(new Error('404'), { status: 404 });
   }
@@ -49,6 +58,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/url-params.js',
   'lib/kits/repo-address.js',
   'lib/kits/repo-mailbox.js',
+  'lib/kits/errands.js',
   'lib/kits/surface.js',
   'lib/kits/text-diff.js',
   'lib/kits/git-change.js',
@@ -118,11 +128,9 @@ test('an errand for the host sends its script back, aims the bench, and stages t
   assert.equal(data.courier.state, 'ran');
 });
 
-test('the private list is read first, so a private errand wins for its host', async () => {
-  reads.length = 0;
+test('a private errand is found in the registry folder, and its script is read from there', async () => {
   deliver({ type: 'courier-page', url: 'https://private.example/', title: 'P', links: [] }, opener, 'https://private.example');
   await settle();
-  assert.equal(reads[0], 'mehrlander/web-tools-private:courier/errands.json');
   assert.equal(sent.at(-1).msg.id, 'priv');
   assert.equal(sent.at(-1).msg.code, 'return "script from mehrlander/web-tools-private"');
 });
