@@ -3477,7 +3477,10 @@ test('loadErrands reads the one folder, and drops what it cannot use', async () 
   const ps = data.errands.find(e => e.id === 'ps');
   assert.equal(data.errandKind(ps), 'ise-f5');
   assert.equal(ps.run.outputReturn, 'direct-to-clipboard', 'the card shows the value the registry filled');
-  assert.ok(data.errandRules(ps).includes('ends with Set-Clipboard'));
+  assert.equal(data.errandScriptPath(ps), 'ps/list.ps1');
+  assert.equal(data.errandBody(data.errands.find(e => e.id === 'ask-old')), '', 'a one-line note is the title, printed once');
+  assert.equal(data.errandBody({ title: 'Loaders', note: 'Loaders\nAEF05.ps1 is missing.' }), 'AEF05.ps1 is missing.');
+  assert.equal(data.errandBody({ title: 'Set', note: 'Other text' }), 'Other text', 'an explicit title leaves the note whole');
   assert.equal(data.errandScriptUrl(ps), 'https://github.com/me/tools/blob/main/ps/list.ps1');
   for (let i = 0; i < 5; i++) await tick();
   assert.equal(ps.scriptText, '# @file ps/list.ps1\n$x = 1', 'the script bytes are on the card');

@@ -1,7 +1,7 @@
 // docs/run-methods.csv owns how a person runs an errand's script; kits/errands.js
 // carries a copy as its METHODS literal, so validate() and normalize() need no
-// fetch. What breaks without this: the registry and the kit drift, and the card
-// shows one method's rules while validate() enforces another's venues.
+// fetch. What breaks without this: the registry and the kit drift, and validate()
+// enforces venues and return routes the registry no longer declares.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
