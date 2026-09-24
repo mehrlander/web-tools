@@ -85,7 +85,8 @@ try {
   });
 
   ok('Pivot headers marked with .pvt-hdr', pivotStats.hdrsCount > 0, `found ${pivotStats.hdrsCount}`);
-  ok('Pivot headers have white text color', pivotStats.sampleHdr?.color === 'rgb(255, 255, 255)', pivotStats.sampleHdr?.color);
+  ok('Pivot headers have light blue background (rgb(200, 225, 238))', pivotStats.sampleHdr?.bg === 'rgb(200, 225, 238)', pivotStats.sampleHdr?.bg);
+  ok('Pivot headers have black text color', pivotStats.sampleHdr?.color === 'rgb(0, 0, 0)', pivotStats.sampleHdr?.color);
   ok('Pivot subtotals marked with .pvt-subtotal', pivotStats.subtotalsCount > 0, `found ${pivotStats.subtotalsCount}`);
   ok('Pivot grand total has double bottom border', pivotStats.sampleGrandTotal?.borderBottom === 'double', pivotStats.sampleGrandTotal?.borderBottom);
   ok('Pivot row hierarchy parent toggles present', pivotStats.toggles > 0, `found ${pivotStats.toggles}`);
@@ -133,7 +134,8 @@ try {
   });
 
   ok('Table headers marked with .tbl-hdr', tableStats.tblHdrsCount > 0, `found ${tableStats.tblHdrsCount}`);
-  ok('Table headers have white text color', tableStats.sampleHdr?.color === 'rgb(255, 255, 255)', tableStats.sampleHdr?.color);
+  ok('Table headers have light blue background (rgb(200, 225, 238))', tableStats.sampleHdr?.bg === 'rgb(200, 225, 238)', tableStats.sampleHdr?.bg);
+  ok('Table headers have black text color', tableStats.sampleHdr?.color === 'rgb(0, 0, 0)', tableStats.sampleHdr?.color);
   ok('Table headers carry filter dropdown carets', tableStats.sampleHdr?.hasCaret === true);
   ok('Alternating data rows have zebra striping (.tbl-stripe)', tableStats.stripes > 0, `found ${tableStats.stripes}`);
   ok('Table total row marked with .tbl-total', tableStats.totals > 0, `found ${tableStats.totals}`);
