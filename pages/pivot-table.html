@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Excel Pivot Table Viewer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📊</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  pivot-table.html — Interactive Excel Pivot Table Viewer in the browser.
+
+  Demonstrates pure client-side cross-tabulation, multi-level hierarchy grouping
+  with expand/collapse, subtotal and grand total rows, Excel-grade accounting
+  number formatting ($#,##0;($#,##0);-), bi-directional data bars, and HSL
+  heatmaps across state budget and pension administration datasets.
+-->
+<style>
+  :root {
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .pivot-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .pivot-table th, .pivot-table td {
+    padding: 7px 12px;
+    border-right: 1px solid var(--color-base-300, #e5e7eb);
+    border-bottom: 1px solid var(--color-base-300, #e5e7eb);
+  }
+  .pivot-table th:first-child, .pivot-table td:first-child {
+    border-left: 1px solid var(--color-base-300, #e5e7eb);
+  }
+  .pivot-table thead tr:first-child th {
+    border-top: 1px solid var(--color-base-300, #e5e7eb);
+  }
+  .pivot-table thead th {
+    background-color: var(--color-base-200, #f3f4f6);
+    font-weight: 600;
+  }
+  .pivot-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .subtotal-row {
+    background-color: color-mix(in srgb, var(--color-base-200, #f3f4f6) 65%, transparent);
+    font-weight: 600;
+  }
+  .grandtotal-row {
+    background-color: var(--color-base-200, #e5e7eb);
+    font-weight: 700;
+    border-top: 2px solid var(--color-base-content, #1f2937) !important;
+    border-bottom: 3px double var(--color-base-content, #1f2937) !important;
+  }
+  .data-bar-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 18px;
+  }
+  .data-bar-fill {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    border-radius: 2px;
+    opacity: 0.35;
+  }
+  .bar-pos { background-color: #0284c7; }
+  .bar-neg { background-color: #dc2626; }
+  .tree-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    opacity: 0.75;
+    transition: all 0.15s ease;
+  }
+  .tree-toggle:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, currentColor 15%, transparent);
+  }
+</style>
+</head>
+<body class="bg-base-200 min-h-screen flex flex-col text-base-content">
+
+  <!-- Header -->
+  <header class="navbar bg-base-100 border-b border-base-300 px-4 py-2 flex-wrap gap-2 justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <i class="ph ph-table text-lg"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base leading-tight">Excel Pivot Table Viewer</h1>
+        <p class="text-xs opacity-60">Client-Side Cross-Tabulation &amp; Hierarchical Aggregation</p>
+      </div>
+    </div>
+
+    <!-- Active Dataset Pill -->
+    <div class="flex items-center gap-3">
+      <div class="badge badge-outline gap-1.5 py-3 text-xs">
+        <span class="w-2 h-2 rounded-full bg-success"></span>
+        <span id="activeDatasetLabel">AFRS Actuals &amp; Allocations (24 rows)</span>
+      </div>
+      <div class="join">
+        <button id="btnTabPivot" class="btn btn-sm join-item btn-primary" onclick="setTab('pivot')">
+          <i class="ph ph-squares-four"></i> Pivot View
+        </button>
+        <button id="btnTabRaw" class="btn btn-sm join-item btn-ghost" onclick="setTab('raw')">
+          <i class="ph ph-list-dashes"></i> Raw Data
+        </button>
+        <button id="btnTabDocs" class="btn btn-sm join-item btn-ghost" onclick="setTab('docs')">
+          <i class="ph ph-info"></i> Architecture
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Panel -->
+  <div class="bg-base-100 border-b border-base-300 px-4 py-3 shadow-xs">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+      
+      <!-- Row Hierarchy 1 -->
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold opacity-70 uppercase text-[10px] tracking-wider">Primary Row Field</label>
+        <select id="selRow1" onchange="renderPivot()" class="select select-sm select-bordered w-full">
+          <option value="Division" selected>Division</option>
+          <option value="Program">Program</option>
+          <option value="Fund">Fund</option>
+          <option value="Object">Object</option>
+        </select>
+      </div>
+
+      <!-- Row Hierarchy 2 -->
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold opacity-70 uppercase text-[10px] tracking-wider">Nested Row Field (Hierarchy)</label>
+        <select id="selRow2" onchange="renderPivot()" class="select select-sm select-bordered w-full">
+          <option value="Program" selected>Program</option>
+          <option value="Object">Object</option>
+          <option value="Fund">Fund</option>
+          <option value="None">(None - Flat Rows)</option>
+        </select>
+      </div>
+
+      <!-- Column Field -->
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold opacity-70 uppercase text-[10px] tracking-wider">Column Field (Cross-Tab)</label>
+        <select id="selCol" onchange="renderPivot()" class="select select-sm select-bordered w-full">
+          <option value="FiscalYear" selected>FiscalYear</option>
+          <option value="Quarter">Quarter</option>
+          <option value="Fund">Fund</option>
+        </select>
+      </div>
+
+      <!-- Measure Field & Aggregation -->
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold opacity-70 uppercase text-[10px] tracking-wider">Values Field &amp; Math</label>
+        <div class="join w-full">
+          <select id="selMeasure" onchange="renderPivot()" class="select select-sm select-bordered join-item flex-1">
+            <option value="Actual" selected>Actual ($)</option>
+            <option value="Budget">Budget ($)</option>
+            <option value="Variance">Variance ($)</option>
+            <option value="FTE">FTE Count</option>
+          </select>
+          <select id="selAgg" onchange="renderPivot()" class="select select-sm select-bordered join-item w-20">
+            <option value="SUM" selected>SUM</option>
+            <option value="AVG">AVG</option>
+            <option value="COUNT">COUNT</option>
+            <option value="MAX">MAX</option>
+            <option value="MIN">MIN</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Format Toggles -->
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold opacity-70 uppercase text-[10px] tracking-wider">Excel Options</label>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
+          <label class="cursor-pointer flex items-center gap-1.5">
+            <input type="checkbox" id="chkSubtotals" checked onchange="renderPivot()" class="checkbox checkbox-xs checkbox-primary">
+            <span>Subtotals</span>
+          </label>
+          <label class="cursor-pointer flex items-center gap-1.5">
+            <input type="checkbox" id="chkGrandTotals" checked onchange="renderPivot()" class="checkbox checkbox-xs checkbox-primary">
+            <span>Grand Totals</span>
+          </label>
+          <label class="cursor-pointer flex items-center gap-1.5">
+            <input type="checkbox" id="chkHeatmap" onchange="renderPivot()" class="checkbox checkbox-xs checkbox-primary">
+            <span>Heatmap</span>
+          </label>
+          <label class="cursor-pointer flex items-center gap-1.5">
+            <input type="checkbox" id="chkDataBars" onchange="renderPivot()" class="checkbox checkbox-xs checkbox-primary">
+            <span>Data Bars</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main View Area -->
+  <main class="flex-1 p-4 overflow-auto">
+    
+    <!-- Tab 1: Pivot View -->
+    <div id="viewPivot" class="flex flex-col gap-3">
+      <!-- Quick Metric Stat Pills -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 shadow-xs">
+          <div class="opacity-60">Source Records</div>
+          <div class="font-bold text-base" id="statSourceRecords">24</div>
+        </div>
+        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 shadow-xs">
+          <div class="opacity-60">Computed Grid Cells</div>
+          <div class="font-bold text-base" id="statComputedCells">0</div>
+        </div>
+        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 shadow-xs">
+          <div class="opacity-60">Active Aggregation</div>
+          <div class="font-bold text-base text-primary" id="statActiveAgg">SUM (Actual)</div>
+        </div>
+        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 shadow-xs">
+          <div class="opacity-60">Overall Grand Total</div>
+          <div class="font-bold text-base font-mono" id="statGrandTotal">$0</div>
+        </div>
+      </div>
+
+      <!-- Pivot Table Container -->
+      <div class="bg-base-100 rounded-xl border border-base-300 shadow-xs overflow-x-auto">
+        <table class="pivot-table" id="pivotTableElement">
+          <!-- Populated by JavaScript -->
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Raw Data View -->
+    <div id="viewRaw" class="hidden flex flex-col gap-3">
+      <div class="bg-base-100 rounded-xl border border-base-300 shadow-xs overflow-x-auto p-1">
+        <table class="table table-xs table-zebra w-full" id="rawTableElement">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Division</th>
+              <th>Program</th>
+              <th>Fund</th>
+              <th>Object</th>
+              <th>Year</th>
+              <th>Qtr</th>
+              <th class="text-right">FTE</th>
+              <th class="text-right">Budget ($)</th>
+              <th class="text-right">Actual ($)</th>
+              <th class="text-right">Variance ($)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Architecture & Context -->
+    <div id="viewDocs" class="hidden flex flex-col gap-4 max-w-4xl mx-auto">
+      <div class="card bg-base-100 border border-base-300 shadow-xs p-6">
+        <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+          <i class="ph ph-git-commit text-primary"></i>
+          How This Compares to Excel &amp; xlsx.js
+        </h2>
+        <div class="space-y-4 text-sm leading-relaxed opacity-90">
+          <p>
+            This page provides the browser-side equivalent of Excel's <strong>Tabular PivotTable</strong> engine. In native Excel, a PivotTable is not just a standard grid—it operates off a decoupled <code class="font-mono bg-base-200 px-1 py-0.5 rounded text-xs">pivotCacheDefinition</code> and <code class="font-mono bg-base-200 px-1 py-0.5 rounded text-xs">pivotCacheRecords</code> part in OpenXML.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+            <div class="border border-base-300 rounded-lg p-3 bg-base-200/50">
+              <h3 class="font-bold text-xs uppercase tracking-wide opacity-70 mb-1">1. In-Workbook (Static XLSX Snapshot)</h3>
+              <p class="text-xs">
+                When an <code class="font-mono">.xlsx</code> is saved, Excel writes out pre-calculated text cells into the worksheet XML (<code class="font-mono">sheet1.xml</code>). In <code class="font-mono">xlsx.js</code> / <code class="font-mono">viewer.js</code>, that snapshot is drawn faithfully with fonts, merges, and number formats, but is not sliceable.
+              </p>
+            </div>
+            <div class="border border-base-300 rounded-lg p-3 bg-base-200/50">
+              <h3 class="font-bold text-xs uppercase tracking-wide opacity-70 mb-1">2. Browser Dynamic Engine (This Page)</h3>
+              <p class="text-xs">
+                This engine takes multi-dimensional records (like those recovered by <code class="font-mono">xlsxKit.pivotRecords</code>), builds an internal aggregation matrix, and generates clean HTML hierarchy rows with collapsible tree nodes, intermediate subtotals, and accounting formats.
+              </p>
+            </div>
+          </div>
+
+          <h3 class="font-bold text-sm pt-2">Key Formatting Semantics Implemented:</h3>
+          <ul class="list-disc pl-5 space-y-1 text-xs">
+            <li><strong>Accounting Format:</strong> Uses <code class="font-mono">$#,##0;($#,##0);-</code> where negative variances receive accounting parentheses and zero values render as clean hyphens.</li>
+            <li><strong>Row Hierarchy Spans:</strong> Primary row categories use HTML <code class="font-mono">rowspan</code> so category blocks anchor their children without label duplication down the spine.</li>
+            <li><strong>Foldable Branch State:</strong> Clicking <code class="font-mono">[-]</code> / <code class="font-mono">[+]</code> toggles the subtree visibility and replaces child rows with the rolled-up subtotal.</li>
+            <li><strong>Bi-Directional Data Bars:</strong> Calculates relative positive/negative bar widths originating from a 50% centerline for quick variance diagnosis.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer Status Bar -->
+  <footer class="footer bg-base-100 border-t border-base-300 px-4 py-2 text-xs flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <span class="badge badge-sm badge-success">Live Engine</span>
+      <span>Form: <strong>Tabular Hierarchy</strong></span>
+      <span class="opacity-30">|</span>
+      <span id="footerRecordSummary">24 Records | 4 Divisions | 8 Programs</span>
+    </div>
+    <div class="opacity-60 font-mono">
+      web-tools &bull; pages/pivot-table.html
+    </div>
+  </footer>
+
+  <script>
+    // -------------------------------------------------------------
+    // Sample State Budget & Pension Allocation Dataset
+    // -------------------------------------------------------------
+    const RAW_RECORDS = [
+      { id: 1, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 3.5, Budget: 420000, Actual: 415000 },
+      { id: 2, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Contracts (C)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 1100000, Actual: 1145000 },
+      { id: 3, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 3.8, Budget: 450000, Actual: 462000 },
+      { id: 4, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Contracts (C)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 1250000, Actual: 1230000 },
+
+      { id: 5, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 5.0, Budget: 580000, Actual: 575000 },
+      { id: 6, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 85000, Actual: 92000 },
+      { id: 7, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 5.2, Budget: 610000, Actual: 605000 },
+      { id: 8, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 90000, Actual: 88000 },
+
+      { id: 9, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 001', Object: 'Contracts (C)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 14.0, Budget: 3400000, Actual: 3380000 },
+      { id: 10, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 600', Object: 'Equipment (G)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 620000, Actual: 645000 },
+      { id: 11, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 001', Object: 'Contracts (C)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 16.0, Budget: 3850000, Actual: 3910000 },
+      { id: 12, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 600', Object: 'Equipment (G)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 450000, Actual: 430000 },
+
+      { id: 13, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 8.0, Budget: 1100000, Actual: 1090000 },
+      { id: 14, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 340000, Actual: 355000 },
+      { id: 15, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 8.5, Budget: 1180000, Actual: 1175000 },
+      { id: 16, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 360000, Actual: 370000 },
+
+      { id: 17, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 6.0, Budget: 680000, Actual: 672000 },
+      { id: 18, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 120000, Actual: 118000 },
+      { id: 19, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 6.0, Budget: 710000, Actual: 724000 },
+      { id: 20, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 130000, Actual: 135000 },
+
+      { id: 21, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 4.0, Budget: 490000, Actual: 485000 },
+      { id: 22, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 210000, Actual: 228000 },
+      { id: 23, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 4.0, Budget: 515000, Actual: 520000 },
+      { id: 24, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 220000, Actual: 215000 }
+    ];
+
+    // Compute derived variance
+    RAW_RECORDS.forEach(r => {
+      r.Variance = r.Actual - r.Budget;
+      r.Status = r.Variance > 0 ? 'Over' : (r.Variance < 0 ? 'Under' : 'Target');
+    });
+
+    // Track collapsed hierarchy state
+    const collapsedNodes = new Set();
+
+    function toggleNode(nodeKey) {
+      if (collapsedNodes.has(nodeKey)) {
+        collapsedNodes.delete(nodeKey);
+      } else {
+        collapsedNodes.add(nodeKey);
+      }
+      renderPivot();
+    }
+
+    // Tab Navigation
+    function setTab(tabId) {
+      ['pivot', 'raw', 'docs'].forEach(t => {
+        const viewEl = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btnEl = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (t === tabId) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = 'btn btn-sm join-item btn-primary';
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = 'btn btn-sm join-item btn-ghost';
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Formatters
+    // -------------------------------------------------------------
+    function formatAccounting(val, isFTE = false) {
+      if (val === null || val === undefined || isNaN(val)) return '-';
+      if (val === 0) return '-';
+      if (isFTE) return val.toFixed(1);
+      const absVal = Math.round(Math.abs(val)).toLocaleString('en-US');
+      if (val < 0) return `($${absVal})`;
+      return `$${absVal}`;
+    }
+
+    // -------------------------------------------------------------
+    // Populate Raw Data Table
+    // -------------------------------------------------------------
+    function populateRawTable() {
+      const tbody = document.querySelector('#rawTableElement tbody');
+      tbody.innerHTML = '';
+      RAW_RECORDS.forEach(r => {
+        const tr = document.createElement('tr');
+        const badgeColor = r.Variance > 0 ? 'badge-error' : (r.Variance < 0 ? 'badge-success' : 'badge-ghost');
+        tr.innerHTML = `
+          <td class="font-mono opacity-60">${r.id}</td>
+          <td><strong>${r.Division}</strong></td>
+          <td>${r.Program}</td>
+          <td><span class="badge badge-xs badge-outline">${r.Fund}</span></td>
+          <td>${r.Object}</td>
+          <td class="font-mono">${r.FiscalYear}</td>
+          <td class="font-mono">${r.Quarter}</td>
+          <td class="text-right font-mono">${r.FTE.toFixed(1)}</td>
+          <td class="text-right font-mono">${formatAccounting(r.Budget)}</td>
+          <td class="text-right font-mono">${formatAccounting(r.Actual)}</td>
+          <td class="text-right font-mono font-semibold ${r.Variance > 0 ? 'text-error' : (r.Variance < 0 ? 'text-success' : '')}">${formatAccounting(r.Variance)}</td>
+          <td><span class="badge badge-xs ${badgeColor}">${r.Status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Core Dynamic Pivot Rendering
+    // -------------------------------------------------------------
+    function renderPivot() {
+      const row1Field = document.getElementById('selRow1').value;
+      const row2Field = document.getElementById('selRow2').value;
+      const colField = document.getElementById('selCol').value;
+      const measureField = document.getElementById('selMeasure').value;
+      const aggFunc = document.getElementById('selAgg').value;
+
+      const showSubtotals = document.getElementById('chkSubtotals').checked;
+      const showGrandTotals = document.getElementById('chkGrandTotals').checked;
+      const useHeatmap = document.getElementById('chkHeatmap').checked;
+      const useDataBars = document.getElementById('chkDataBars').checked;
+
+      const hasHierarchy = row2Field !== 'None' && row2Field !== row1Field;
+      const isFTE = measureField === 'FTE';
+
+      // Column dimension values
+      const colKeys = [...new Set(RAW_RECORDS.map(d => d[colField]))].sort();
+
+      // Row hierarchy structure: matrix[r1][r2][col] = array of values
+      const matrix = {};
+      const row1Keys = [...new Set(RAW_RECORDS.map(d => d[row1Field]))].sort();
+
+      row1Keys.forEach(r1 => {
+        matrix[r1] = {};
+        if (hasHierarchy) {
+          const subKeys = [...new Set(RAW_RECORDS.filter(d => d[row1Field] === r1).map(d => d[row2Field]))].sort();
+          subKeys.forEach(r2 => {
+            matrix[r1][r2] = {};
+            colKeys.forEach(c => matrix[r1][r2][c] = []);
+          });
+        } else {
+          matrix[r1]['_all_'] = {};
+          colKeys.forEach(c => matrix[r1]['_all_'][c] = []);
+        }
+      });
+
+      // Distribute records into matrix
+      RAW_RECORDS.forEach(d => {
+        const r1 = d[row1Field];
+        const r2 = hasHierarchy ? d[row2Field] : '_all_';
+        const c = d[colField];
+        const val = d[measureField] || 0;
+        if (matrix[r1] && matrix[r1][r2] && matrix[r1][r2][c]) {
+          matrix[r1][r2][c].push(val);
+        }
+      });
+
+      // Aggregation Helper
+      function computeAgg(vals) {
+        if (!vals || vals.length === 0) return 0;
+        if (aggFunc === 'SUM') return vals.reduce((a, b) => a + b, 0);
+        if (aggFunc === 'AVG') return vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (aggFunc === 'COUNT') return vals.length;
+        if (aggFunc === 'MAX') return Math.max(...vals);
+        if (aggFunc === 'MIN') return Math.min(...vals);
+        return 0;
+      }
+
+      // Collect cell values for min/max scaling
+      const allComputedValues = [];
+      row1Keys.forEach(r1 => {
+        Object.keys(matrix[r1]).forEach(r2 => {
+          colKeys.forEach(c => {
+            const v = computeAgg(matrix[r1][r2][c]);
+            if (v !== 0) allComputedValues.push(v);
+          });
+        });
+      });
+      const minVal = allComputedValues.length ? Math.min(...allComputedValues) : 0;
+      const maxVal = allComputedValues.length ? Math.max(...allComputedValues) : 1;
+      const maxAbsVal = Math.max(Math.abs(minVal), Math.abs(maxVal)) || 1;
+
+      // Build Pivot Table DOM
+      const table = document.getElementById('pivotTableElement');
+      table.innerHTML = '';
+
+      // Thead
+      const thead = document.createElement('thead');
+      let h1 = `<tr>
+        <th rowspan="2" class="align-bottom text-left">${row1Field}</th>`;
+      if (hasHierarchy) {
+        h1 += `<th rowspan="2" class="align-bottom text-left">${row2Field}</th>`;
+      }
+      h1 += `<th colspan="${colKeys.length}" class="text-center font-bold border-b border-base-300">${colField}</th>`;
+      if (showGrandTotals) {
+        h1 += `<th rowspan="2" class="pivot-num align-bottom font-bold">Total (${aggFunc})</th>`;
+      }
+      h1 += `</tr>`;
+
+      let h2 = `<tr>`;
+      colKeys.forEach(c => {
+        h2 += `<th class="pivot-num font-semibold">${c}</th>`;
+      });
+      h2 += `</tr>`;
+
+      thead.innerHTML = h1 + h2;
+      table.appendChild(thead);
+
+      // Tbody
+      const tbody = document.createElement('tbody');
+      const colGrandValues = {};
+      colKeys.forEach(c => colGrandValues[c] = []);
+      let totalComputedCells = 0;
+      let totalRowValuesForGrand = [];
+
+      row1Keys.forEach(r1 => {
+        const subKeys = Object.keys(matrix[r1]);
+        const isCollapsed = collapsedNodes.has(r1);
+
+        // Pre-calculate subtotal values for r1
+        const r1SubValues = {};
+        colKeys.forEach(c => {
+          let accum = [];
+          subKeys.forEach(r2 => accum.push(...matrix[r1][r2][c]));
+          r1SubValues[c] = accum;
+          colGrandValues[c].push(...accum);
+        });
+
+        const r1SubtotalAggs = {};
+        colKeys.forEach(c => {
+          r1SubtotalAggs[c] = computeAgg(r1SubValues[c]);
+        });
+        const r1RowSubtotal = computeAgg(colKeys.flatMap(c => r1SubValues[c]));
+
+        // If collapsed: show only parent row with rolled up subtotal
+        if (isCollapsed) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/60 cursor-pointer';
+          let rowHtml = `<td ${hasHierarchy ? 'colspan="2"' : ''} class="font-bold" onclick="toggleNode('${r1}')">
+            <span class="tree-toggle">+</span>${r1}
+          </td>`;
+
+          colKeys.forEach(c => {
+            const v = r1SubtotalAggs[c];
+            rowHtml += `<td class="pivot-num font-semibold">${formatAccounting(v, isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            rowHtml += `<td class="pivot-num font-bold bg-base-200/50">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+          return;
+        }
+
+        // Expanded: render child rows
+        subKeys.forEach((r2, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/40';
+          let rowHtml = '';
+
+          // Parent cell with rowspan
+          if (idx === 0) {
+            const spanCount = subKeys.length + (showSubtotals && hasHierarchy ? 1 : 0);
+            rowHtml += `<td rowspan="${spanCount}" class="align-top font-bold bg-base-100 border-r border-base-300">
+              <span class="tree-toggle" onclick="toggleNode('${r1}')">-</span>${r1}
+            </td>`;
+          }
+
+          if (hasHierarchy) {
+            rowHtml += `<td class="pl-4 opacity-90">${r2}</td>`;
+          }
+
+          let childRowAccum = [];
+          colKeys.forEach(c => {
+            const rawVals = matrix[r1][r2][c];
+            const agg = computeAgg(rawVals);
+            totalComputedCells++;
+            childRowAccum.push(...rawVals);
+
+            let cellStyle = '';
+            let contentHtml = formatAccounting(agg, isFTE);
+
+            if (useHeatmap && agg !== 0) {
+              const ratio = (agg - minVal) / (maxVal - minVal || 1);
+              const hue = Math.round((1 - ratio) * 120); // 120=Green, 0=Red
+              cellStyle = `background-color: hsla(${hue}, 80%, 70%, 0.28);`;
+            } else if (useDataBars && agg !== 0) {
+              const barWidth = Math.min(100, Math.round((Math.abs(agg) / maxAbsVal) * 100));
+              const isPos = agg >= 0;
+              contentHtml = `
+                <div class="data-bar-wrapper">
+                  <div class="data-bar-fill ${isPos ? 'bar-pos' : 'bar-neg'}" style="${isPos ? 'left:50%' : 'right:50%'}; width:${barWidth / 2}%;"></div>
+                  <span class="relative z-10 w-full text-right">${formatAccounting(agg, isFTE)}</span>
+                </div>
+              `;
+            }
+
+            rowHtml += `<td class="pivot-num" style="${cellStyle}">${contentHtml}</td>`;
+          });
+
+          if (showGrandTotals) {
+            const rowTot = computeAgg(childRowAccum);
+            rowHtml += `<td class="pivot-num font-semibold bg-base-200/30">${formatAccounting(rowTot, isFTE)}</td>`;
+          }
+
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+        });
+
+        // Subtotal row for this primary category
+        if (hasHierarchy && showSubtotals) {
+          const subTr = document.createElement('tr');
+          subTr.className = 'subtotal-row';
+          let subHtml = `<td class="pl-4 font-bold">Total ${r1}</td>`;
+
+          colKeys.forEach(c => {
+            subHtml += `<td class="pivot-num font-semibold">${formatAccounting(r1SubtotalAggs[c], isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            subHtml += `<td class="pivot-num font-bold">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          subTr.innerHTML = subHtml;
+          tbody.appendChild(subTr);
+        }
+      });
+
+      // Grand Total Row
+      if (showGrandTotals) {
+        const grandTr = document.createElement('tr');
+        grandTr.className = 'grandtotal-row';
+        let grandHtml = `<td ${hasHierarchy ? 'colspan="2"' : ''}>Grand Total</td>`;
+
+        let allValuesEverywhere = [];
+        colKeys.forEach(c => {
+          const colAgg = computeAgg(colGrandValues[c]);
+          allValuesEverywhere.push(...colGrandValues[c]);
+          grandHtml += `<td class="pivot-num font-bold">${formatAccounting(colAgg, isFTE)}</td>`;
+        });
+        const overallTotal = computeAgg(allValuesEverywhere);
+        grandHtml += `<td class="pivot-num font-bold">${formatAccounting(overallTotal, isFTE)}</td>`;
+
+        grandTr.innerHTML = grandHtml;
+        tbody.appendChild(grandTr);
+
+        // Update stats
+        document.getElementById('statGrandTotal').textContent = formatAccounting(overallTotal, isFTE);
+      }
+
+      table.appendChild(tbody);
+
+      // Header summary stats
+      document.getElementById('statSourceRecords').textContent = RAW_RECORDS.length;
+      document.getElementById('statComputedCells').textContent = totalComputedCells;
+      document.getElementById('statActiveAgg').textContent = `${aggFunc} (${measureField})`;
+    }
+
+    // Initialize on load
+    populateRawTable();
+    renderPivot();
+  </script>
+</body>
+</html>
