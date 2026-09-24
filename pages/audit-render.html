@@ -2044,9 +2044,20 @@ window.__audit = {
           </button>
         </template>
         </div>
-        <!-- How what is on screen is drawn: rendered or raw, for either view,
-             then the display settings, which only the document has. -->
+        <!-- How what is on screen is drawn: the unit marks, which only the
+             document has, then rendered or raw for either view, far right. -->
         <div class="flex items-center gap-1 shrink-0">
+          <!-- How a unit is drawn, Doc only: its label's tint over the whole
+               span, or an underline. -->
+          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]"
+               x-show="view !== 'standoff'" aria-label="unit marks">
+            <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
+              <button class="join-item btn btn-xs h-6 min-h-0 px-2 border-none transition-none"
+                      :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
+                      :class="mark === t[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                      @click="mark = t[0]; paint()"><i class="ph text-sm" :class="t[1]"></i></button>
+            </template>
+          </div>
           <!-- Rendered, on or off, for whichever object is on screen: the
                formatted document or the spans table when on, the markdown or
                standoff.json when off. -->
@@ -2056,22 +2067,6 @@ window.__audit = {
                   :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
                   aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
             <i class="ph ph-eye text-sm"></i></button>
-
-          <!-- Display settings, the diff tool's pattern: a menu with a titled
-               section per setting. -->
-          <div class="dropdown dropdown-end" x-show="view !== 'standoff'">
-            <button tabindex="0" class="btn btn-ghost btn-xs h-6 min-h-0 px-2 border border-base-300"
-                    title="Display settings" aria-label="Display settings">
-              <i class="ph ph-sliders-horizontal text-sm"></i></button>
-            <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box border border-base-300 shadow-lg z-50 w-56 mt-1">
-              <li class="menu-title">Unit marks</li>
-              <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
-                <li><a :class="mark === t[0] && 'menu-active'" @click="mark = t[0]; paint()">
-                  <i class="ph" :class="t[1]"></i><span x-text="t[2]"></span>
-                  <i class="ph ph-check ml-auto" x-show="mark === t[0]"></i></a></li>
-              </template>
-            </ul>
-          </div>
         </div>
       </div>
     </header>
