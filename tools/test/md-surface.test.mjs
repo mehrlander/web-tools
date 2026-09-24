@@ -120,3 +120,19 @@ test('Enter continues a list, ends it on an empty item, and otherwise makes a pa
   assert.equal(end.text.slice(0, end.caret), '- one\n\n', 'a blank line stands between the list and what comes next');
   assert.deepEqual(M().enter('para', 2), { text: 'pa\n\nra', caret: 4 });
 });
+
+// What the change marks draw. jsdiff is the same library md-diff loads from the
+// CDN; the vendored copy stands in for it here.
+test('changes are inserted runs and removal points, with a replacement paired', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  const base = 'the only output channel, shipped beside it and here';
+  const text = 'the single output channel, here';
+  const { ins, del } = M().changes(base, text);
+  assert.deepEqual(ins.map(([a, b]) => text.slice(a, b)), ['single']);
+  const swap = del.find((d) => d.text === 'only');
+  assert.ok(swap && text.slice(swap.with[0], swap.with[1]) === 'single', 'the removal knows what replaced it');
+  const gone = del.find((d) => d.text.includes('shipped'));
+  assert.ok(gone && !gone.with, 'a pure removal replaces nothing');
+  assert.equal(text.slice(gone.at - 2, gone.at + 4), ', here');
+  assert.deepEqual(M().changes(text, text), { ins: [], del: [] });
+});

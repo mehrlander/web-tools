@@ -215,6 +215,15 @@
     backspace at the start of a heading or item drops its marker; Enter makes a
     paragraph, or the next list item.
 
+    AND IT MARKS WHAT CHANGED since GitHub's copy, the way an editor's gutter
+    and a word processor's tracked changes do: a green wash on new words, a red
+    wedge where words were removed (tap it to read them and put them back), and
+    a bar beside each changed block, green when the block is new and amber
+    otherwise. Removed words are never drawn back into the text, since the
+    buffer no longer holds them and every tap is an offset into the buffer.
+    Whitespace-only changes are not marked, so an Unwrap marks nothing. Mark
+    changes in the menu turns them off.
+
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
   on its own the first time. Once the reader has allowed it, the grant is
@@ -448,6 +457,10 @@
       mdReady: false, changesCount: 0,
       // Typing into the Rendered face: the sink has focus and the keyboard is up.
       typing: false, composing: false,
+      // Marks for what changed since GitHub's copy, drawn over the Rendered
+      // face (kits/md-surface.js). On unless the reader turned them off.
+      showMarks: ls.get('dictate:marks') !== '0',
+      delPop: null,             // a tapped removal: { text, at, x, y }
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get dirty() {
         this.beat;
@@ -711,6 +724,11 @@
           await gh.load('kits/standoff.js');
           await gh.load('kits/md-surface.js');
           await window.GuideRender.needMarked();
+          // jsdiff, for the change marks, through md-diff's own loader so the
+          // Changes face and the marks share one copy. Without it the marks are
+          // simply absent.
+          await gh.load('kits/md-diff.js');
+          await window.mdDiff.needDiff();
           // NOT content-visibility:auto, though it halved a re-render on a 160k
           // file: fresh blocks lay out at their placeholder height for a frame,
           // so the caret and the selection were measured a line off, and blocks
@@ -784,6 +802,7 @@
           this.fileBase = text;
           this.restored = 0;
           ls.del(FILE_DRAFT);
+          this.paint();             // the base moved, so the change marks clear
           Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
         } catch (e) {
           const conflict = e?.status === 409 || e?.status === 422;
@@ -1643,6 +1662,7 @@
             text: this.text, interim: this.interim,
             range: this.d ? this.d.range : null, armed: this.pinned ? this.armed : null,
             overlay: this.$refs.layer, handles: !this.precise && !this.edit, reach: 0,
+            base: this.fileBase, marks: this.showMarks,
           });
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
@@ -1830,6 +1850,35 @@
           this.applyEdit(window.MdSurface.tidy(this.d.text, c));
         }
         this.syncSink();
+        this.paint();
+      },
+
+      // ── The change marks ──────────────────────────────────────────────
+      toggleMarks() {
+        this.showMarks = !this.showMarks;
+        ls.set('dictate:marks', this.showMarks ? '1' : '0');
+        this.menu = false;
+        this.paint();
+      },
+      // A removal's wedge was tapped: show what went, with a way to put it back.
+      delTap(e) {
+        const w = e.target?.closest?.('[data-md-del]');
+        if (!w) return;
+        e.preventDefault(); e.stopPropagation();
+        const d = window.MdSurface.removals(this.$refs.md)[+w.getAttribute('data-md-del')];
+        if (!d) return;
+        const b = w.getBoundingClientRect();
+        this.delPop = { text: d.text, at: d.at, with: d.with || null,
+                        by: d.with ? this.d.text.slice(d.with[0], d.with[1]) : '', x: Math.max(8, Math.min(window.innerWidth - 288, b.left - 20)), y: b.bottom + 6 };
+      },
+      restoreRemoval() {
+        const p = this.delPop;
+        if (!p) return;
+        const t = this.d.text;
+        const [a, b] = p.with || [p.at, p.at];
+        this.d.text = t.slice(0, a) + p.text + t.slice(b);
+        this.d.caretAt(a + p.text.length);
+        this.delPop = null;
         this.paint();
       },
 
@@ -2356,6 +2405,12 @@
                   title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
           </button>
+          <button x-show="file" @click="toggleMarks()"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Mark what changed since GitHub's copy: a wash on new words, a wedge where words went, a bar beside each changed block">
+            <i class="ph ph-highlighter text-lg opacity-60"></i>Mark changes
+            <i x-show="showMarks" class="ph ph-check ml-auto text-lg text-success"></i>
+          </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
                   :title="breakable ? 'Break into paragraphs where you paused longest' : 'Needs the pause record, which typing replaces'">
@@ -2435,7 +2490,7 @@
        The LAYER is the handles' home: outside the scroll box and unclipped,
        so a pin may hang above the first line rather than being cut in half. -->
   <div class="grow min-h-0 relative touch-manipulation flex" x-ref="layer"
-       @pointerdown="pinDown($event)" data-no-swipe>
+       @pointerdown="pinDown($event)" @click="delTap($event)" data-no-swipe>
 
     <div class="relative grow min-w-0">
       <!-- ALWAYS RENDERED, hidden by opacity rather than by `x-show`, and the
@@ -2495,6 +2550,22 @@
                 @beforeinput="sinkBefore($event)" @input="sinkInput()"
                 @compositionstart="composing = true" @compositionend="composing = false; sinkInput()"
                 @blur="if (typing) stopTyping()"></textarea>
+
+      <!-- A REMOVAL, SHOWN AGAIN. The marks can only point at where words went,
+           since the buffer no longer holds them; this is where they are read. -->
+      <div x-show="delPop" x-cloak @click.outside="delPop = null"
+           class="fixed z-50 w-72 card card-sm bg-base-100 border border-base-300 shadow-xl"
+           :style="delPop ? 'left:' + delPop.x + 'px;top:' + delPop.y + 'px' : ''">
+        <div class="card-body gap-2">
+          <div class="text-xs opacity-60">Removed since GitHub's copy</div>
+          <div class="text-base line-through decoration-error/70 bg-error/10 rounded px-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words" x-text="delPop?.text"></div>
+          <div x-show="delPop?.by" class="text-sm"><span class="opacity-60">Replaced by </span><span class="bg-success/20 rounded px-1" x-text="delPop?.by"></span></div>
+          <div class="card-actions justify-end">
+            <button class="btn btn-sm btn-ghost" @click="delPop = null">Close</button>
+            <button class="btn btn-sm btn-primary" @click="restoreRemoval()"><i class="ph ph-arrow-u-up-left"></i>Put back</button>
+          </div>
+        </div>
+      </div>
 
       <!-- File mode's Changes face: the document against what GitHub holds,
            drawn by kits/md-diff.js. Read-only, and above the text pane, so no
