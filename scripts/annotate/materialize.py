@@ -3,26 +3,19 @@
 
     python3 materialize.py <standoff.json> <doc.md> [--out <file>] [--json]
 
-WHAT IT EXECUTES IS EXACTLY WHAT THE ANNOTATION SPECIFIES, which is two of the
-four verdicts and every insertion:
+WHAT IT EXECUTES IS EXACTLY WHAT THE ANNOTATION SPECIFIES: every DROP and
+every insertion.
 
     KEEP      the span stands                            (nothing to do)
     DROP      the span is removed                        mechanical
     insert    the text is placed at its boundary         mechanical
-    REWRITE   the span stands, and is REPORTED           no replacement is stored
-    MOVE      the span stands, and is REPORTED           no destination is stored
+    note      on a kept span: it stands, and is REPORTED  the note is the brief
 
-`REWRITE` says the content earns its place and the sentence does not; `MOVE`
-says the content belongs to a named owner. Neither names the resulting text, so
-neither can be executed without inventing it, and inventing it is the one thing
-a projection must not do. They are left standing and named, so what comes out is
-a DRAFT for step 4 rather than a finished rewrite.
-
-`MOVE` is left standing rather than removed on purpose, and this is the one
-place this tool disagrees with check.py. That check reads DROP and MOVE together
-as "should have left", which is right when it is JUDGING a rewrite a person
-made: the person put the moved text somewhere. Here there is nowhere to put it,
-so removing it would lose text with no record of where it went.
+A note on a kept unit may ask for a rewording or say where the content belongs.
+It does not hold the resulting text, so executing it would mean inventing that
+text, which is the one thing a projection must not do. Those units are left
+standing and listed with their notes, so what comes out is a DRAFT for step 4
+plus its brief, not a finished rewrite.
 
 WHAT IT DOES NOT DO IS TIDY. Removing a span leaves the whitespace the span sat
 in, so a join can produce a double space or a run of blank lines. Collapsing
@@ -47,7 +40,7 @@ def placements(so, text):
     A boundary whose gap holds a blank line separates blocks, so the text
     arrives as its own block; anything else is a run, so it joins with a space.
     Reading the separator off the document is mechanical; picking one would be
-    the same kind of guess as inventing a REWRITE.
+    the same kind of guess as inventing the text a note asks for.
 
     THE ANNOTATION MAY OVERRULE THE READING, and only the annotation: an `as` of
     "block" or "run" on the insertion is honored over the gap. That is not the
@@ -89,9 +82,9 @@ def materialize(so, text):
     tally = {}
     for u in units:
         tally[u.get("verdict") or "KEEP"] = tally.get(u.get("verdict") or "KEEP", 0) + 1
-    standing = [{"uid": u["uid"], "verdict": u["verdict"], "label": u.get("label", ""),
-                 "text": " ".join(text[u["start"]:u["end"]].split())[:96]}
-                for u in units if u.get("verdict") in ("REWRITE", "MOVE")]
+    standing = [{"uid": u["uid"], "verdict": u.get("verdict") or "KEEP", "label": u.get("label", ""),
+                 "note": u["note"], "text": " ".join(text[u["start"]:u["end"]].split())[:96]}
+                for u in units if u.get("verdict") != "DROP" and u.get("note")]
     # What the removals left behind, counted rather than cleaned. Three shapes,
     # and the third is the one a first pass missed: cutting the LAST unit of a
     # line leaves the space that preceded it stranded before the newline, which
@@ -121,9 +114,7 @@ def report(r):
     w = [f"materialize: {r['target']} -> {r['bytes']['after']:,} bytes "
          f"(was {r['bytes']['before']:,})"]
     for v, n in sorted(r["verdicts"].items()):
-        note = {"DROP": f", {r['dropped_words']} words removed",
-                "REWRITE": ", left standing: no replacement is stored",
-                "MOVE": ", left standing: no destination is stored"}.get(v, "")
+        note = {"DROP": f", {r['dropped_words']} words removed"}.get(v, "")
         w.append(f"  {v:<8} {n:>3} unit(s){note}")
     if r["inserted"]:
         shapes = (f", {r['stated']} stating a shape, "
@@ -131,8 +122,10 @@ def report(r):
         w.append(f"  {'insert':<8} {r['inserted']:>3} placed{shapes}")
     for k, n in r["joins"].items():
         w.append(f"  {'joins':<8} {n:>3} {k}(s) left by a removal, not cleaned up")
+    if r["standing"]:
+        w.append(f"  {'noted':<8} {len(r['standing']):>3} kept unit(s) with a note, left standing")
     for s in r["standing"]:
-        w.append(f"\n{s['verdict']:<8} {s['uid']}  {s['text']}")
+        w.append(f"\n{s['uid']}  {s['text']}\n  note: {s['note']}")
     if r["inserted"]:
         # THE INSERTION'S LIFECYCLE, said where it becomes true. Writing this
         # output over the target changes the bytes, so the digest stops matching

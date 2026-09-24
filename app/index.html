@@ -158,8 +158,11 @@
   // branch chips read too.
   await gh.load('kits/route-activity.js');
   await gh.load('kits/route-join.js');
-  // The private request/response mailbox (mailbox/requests -> results).
+  // Errands: what a session needs this browser for, one record for reads of
+  // your repos, courier runs, and material only you have. The mailbox kit
+  // performs the reads, when an errand's Run is tapped.
   await gh.load('kits/repo-mailbox.js');
+  await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
   // The owner/repo[@ref]:path grammar, and the inbox/outbox boxes built on it.
@@ -1089,14 +1092,12 @@ html.dk-dragging main{transition:none !important}
                 :class="view==='atlas' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
           <i class="ph ph-map-trifold text-base"></i><span>Atlas</span>
         </button>
-        <!-- Files LEAVES the repo, and that is the point: reading a file is
-             central now, so this row hands that surface this repo at the ref
-             being browsed and goes there. -->
-        <button @click="searchRepoFiles()"
-                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-base hover:bg-base-200 transition-colors text-base-content/80">
-          <i class="ph ph-files text-base"></i><span>Files</span>
-          <span class="grow"></span>
-          <i class="ph ph-arrow-up-right text-sm opacity-30"></i>
+        <!-- The repo's own tree beside the file it opens. Until 2026-09-24
+             this row left the repo for the central Search view. -->
+        <button @click="goFiles()"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-base hover:bg-base-200 transition-colors"
+                :class="view==='files' ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
+          <i class="ph ph-folder-simple text-base"></i><span>Files</span>
         </button>
         <button @click="goConfig()"
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-base hover:bg-base-200 transition-colors"
@@ -1500,7 +1501,7 @@ html.dk-dragging main{transition:none !important}
                      :title="project.path + ' on GitHub'" :aria-label="project.path + ' on GitHub'"
                      class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
                     <i class="ph ph-github-logo text-xl leading-none"></i></a>
-                  <button @click="openProjectFiles()" :title="project.path + ' in Files'" :aria-label="project.path + ' in Files'"
+                  <button @click="goProjectTab('files')" :title="project.path + ': files'" :aria-label="project.path + ': files'"
                           class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
                     <i class="ph ph-folder-simple text-xl leading-none"></i></button>
                   <button x-show="project.board && !projectBoardFile"
@@ -1544,6 +1545,10 @@ html.dk-dragging main{transition:none !important}
                       class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
                       :class="projectTab==='code' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-code text-lg"></i>Code</button>
+              <button role="tab" @click="goProjectTab('files')"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                      :class="projectTab==='files' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-folder-simple text-lg"></i>Files</button>
             </div>
             </div>
 
@@ -1563,7 +1568,19 @@ html.dk-dragging main{transition:none !important}
               </div>
             </template>
 
-            <div x-show="projectTab!=='code' && !(projectTab==='overview' && project.landing)"
+            <!-- Files: the project folder's tree beside the file it opens
+                 (alpineComponents/file-browser.js), based at the project so the
+                 crumbs never climb out of it. Remounted per project, repo and
+                 ref. -->
+            <template x-if="projectTab==='files'">
+              <div class="grow min-h-0 flex flex-col px-6 pb-6 mt-4">
+                <template x-for="p in [project]" :key="p.path + '@' + $store.browser.repo + '@' + $store.browser.ref">
+                  <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: p.path })"></div>
+                </template>
+              </div>
+            </template>
+
+            <div x-show="projectTab!=='code' && projectTab!=='files' && !(projectTab==='overview' && project.landing)"
                  class="grow min-h-0 overflow-y-auto px-6 pb-8 mt-4">
 
               <!-- OVERVIEW IS WHATEVER THE WORKSPACE DECLARES AS ITS FRONT, in
@@ -1861,6 +1878,18 @@ html.dk-dragging main{transition:none !important}
          the 7xl cap left 320px of dead margin down each side while the reader's
          own column ran 455px. Uncapped now, like Tools and Map. A cap on this
          pane is not a small size choice; it is the corridor. -->
+    <!-- The repo's Files view: alpineComponents/file-browser.js based at the
+         repo root, opening on filesPath with filesFile beside it. -->
+    <div x-show="view==='files'" class="h-full flex flex-col min-h-0">
+      <template x-if="view==='files' && $store.browser.repo">
+        <div class="grow min-h-0 flex flex-col px-4 lg:px-6 pt-4 pb-6">
+          <template x-for="k in [$store.browser.repo + '@' + ($store.browser.ref || '') + '#' + filesKey]" :key="k">
+            <div class="grow min-h-0" x-data="fileBrowser({ repo: $store.browser.repo, ref: $store.browser.ref || '', dir: '', start: filesPath, file: filesFile })"></div>
+          </template>
+        </div>
+      </template>
+    </div>
+
     <div x-show="view==='search'" data-pane="search" class="h-full overflow-y-auto">
       <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="searchSeen">
@@ -2353,7 +2382,7 @@ function app(){ return {
         this._routed.then(() => this.warmEstateCaches());
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
-          this.processMailbox(); this.loadProposalCount();
+          this.loadProposalCount();
         }
       }
       // Announced for views that mount before auth resolves and would otherwise
@@ -2381,7 +2410,6 @@ function app(){ return {
     // from both places was the double-fire the watcher's note describes.
     this._sidebarToken = this.hasToken() ? window.TOKEN : '';
     this._inboxToken = this._sidebarToken;
-    this.processMailbox();
     this.loadProposalCount();
 
     // A ref switch keeps the ?ref deep link honest. It used to fire only in the
@@ -4175,13 +4203,8 @@ function app(){ return {
   },
 
 
-  // ── Private mailbox: fulfill request files an agent session dropped in the
-  // registry repo, using the viewer's token, and write results back. Read-only
-  // kinds only (tree / branches / fetch), so this never spends write access on
-  // agent-authored instructions. Polled once per page load (a pending request
-  // wants prompt service and listing is cheap); a dropped request is picked up
-  // on the next load. Results are keyed by the request filename so nothing
-  // re-runs. See lib/kits/repo-mailbox.js and web-tools-private/mailbox/README.md.
+  // Nothing a session files is answered here. A read is an errand, and it waits
+  // on the Stage for a tap like every other (lib/kits/errands.js).
   // How many proposals are waiting. One cheap pair of directory reads at boot,
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop
@@ -4199,38 +4222,6 @@ function app(){ return {
         done.filter(f => f.type === 'file').map(f => f.name),
       ).length;
     } catch { this.proposalCount = 0; }
-  },
-
-  async processMailbox(){
-    if (!this.hasToken() || !window.RepoMailbox) return;
-    const M = window.RepoMailbox;
-    try {
-      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
-      let reqs = [], results = [];
-      try { reqs = await reg.ls(M.REQ_DIR); } catch {}      // 404 = no mailbox yet
-      if (!reqs.length) return;
-      try { results = await reg.ls(M.RES_DIR); } catch {}
-      const names = M.pending(
-        reqs.filter(f => f.type === 'file').map(f => f.name),
-        results.filter(f => f.type === 'file').map(f => f.name)
-      );
-      for (const name of names){
-        let req;
-        try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
-        catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
-        // Answer only what this loop recognises, and leave everything else
-        // alone. The guard is an allowlist rather than a skip for `ask`:
-        // saving a result is what marks a request answered and fulfill()
-        // returns one for every kind it does not know, so an unrecognised
-        // record reaching it is closed by its own rejection before anyone
-        // sees it. Whatever the loop passes over is served elsewhere, an ask
-        // by a person from the stage. A kit too old to carry servable skips
-        // everything, which is the safe direction to fail.
-        if (!M.servable || !M.servable(req)) continue;
-        const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
-        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
-      }
-    } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates a
@@ -4448,7 +4439,7 @@ function app(){ return {
     // deliberately still accepted and falls through to 'overview', so a link
     // minted before the change lands where it always did rather than on a tab
     // that no longer exists.
-    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'code') ? tab : 'overview';
+    this.projectTab = (tab === 'board' || tab === 'pages' || tab === 'docs' || tab === 'code' || tab === 'files') ? tab : 'overview';
     // A deep link into that view may name the file it is about; the component
     // reads it at mount and stamps it back as it moves.
     if (typeof item === 'string' && item) this.installationItem = item;
@@ -4777,10 +4768,7 @@ function app(){ return {
   // The three routes out of the view, all one tap: the workspace as files, its
   // board here, its folder on GitHub (the last two are the sidebar row's own
   // buttons, spelled out).
-  openProjectFiles(){
-    const p = this.project;
-    if (p) this.openFolder(p.path);
-  },
+  openProjectFiles(){ if (this.project) this.goProjectTab('files'); },
   // The board, in the app: a FILE board routes to the project view's Board
   // pill, so every board tap (estate row, repo sidebar row, header button)
   // lands on the same rendered, navigable surface. A `tracker` naming a folder
@@ -4846,7 +4834,7 @@ function app(){ return {
     ];
     if (s.ref && s.defaultRef && s.ref !== s.defaultRef)
       out.push({ key: 'ref', icon: 'ph-git-branch', label: s.ref, mono: true,
-                 title: 'Browsing ' + s.ref + ', not ' + s.defaultRef, action: () => this.searchRepoFiles() });
+                 title: 'Browsing ' + s.ref + ', not ' + s.defaultRef, action: () => this.goFiles() });
     return out;
   },
   // Going home from the crumb leaves the drawer OPEN, unlike every other
@@ -5543,6 +5531,13 @@ function app(){ return {
         // default stays out of the URL so a plain ?view=map link keeps working.
         if (this.mapTab && this.mapTab !== 'set') p.set('tab', this.mapTab);
       } },
+    // The repo's Files view: its tree beside the file it opens
+    // (alpineComponents/file-browser.js). It was folded into Search until
+    // 2026-09-24, when browsing and searching became separate surfaces again;
+    // an old ?view=files&path=docs link lands here on that folder. An open
+    // file rides as `file`, which routeFromUrl hands to openFile.
+    { key: 'files', open(u){ this.goFiles(u.path || '', ''); },
+      stamp(p){ if (this.filesPath) p.set('path', this.filesPath); if (this.filesFile) p.set('file', this.filesFile); } },
     { key: 'tools',     open(){ this.goTools(); } },
     { key: 'proposals', open(){ this.goProposals(); } },
     { key: 'state', open(u){ this.goState(u.item); },
@@ -5554,13 +5549,9 @@ function app(){ return {
     // opens it empty. There is no `if (!sd.q) return` guard any more: since the
     // view browses on a repo or a folder alone, a screen with no query at all
     // is a screen worth addressing.
-    // `files` is the retired per-repo tree walk, whose reading moved here.
-    { key: 'search', alias: 'files',
-      // `path` and `file` are the retired view's keys, read as fallbacks so an
-      // old ?view=files&path=docs link opens this view scoped to that folder
-      // rather than at the repo root.
+    { key: 'search',
       open(u){ this.goSearch({ q: u.sq, mode: u.smode, repo: u.srepo, ref: u.sref,
-                               path: u.spath || u.path, file: u.sfile }); },
+                               path: u.spath, file: u.sfile }); },
       stamp(p){
         const sd = this.searchSeed;
         if (!sd) return;
@@ -5920,7 +5911,7 @@ function app(){ return {
     if (v.kind === 'toss') return (v.path || '').split('/').pop() || v.repo || '';
     // The most specific thing the row names, falling back to the route itself
     // when the route IS the destination (Repos, Tools, the Map).
-    const file = v.sfile && v.sfile.split(/[:/]/).pop();
+    const file = (v.sfile || v.file) && (v.sfile || v.file).split(/[:/]/).pop();
     return file || (v.project && v.project.split('/').pop()) || v.session || v.detail
         || v.app || v.item || this.routeLabel(v.view);
   },
@@ -6092,20 +6083,22 @@ function app(){ return {
   //
   // The ref rides only when it is off the default, which is that view's rule
   // for '' and not a shortcut taken here.
+  // A file or a folder opens in the repo's Files view, at the ref being
+  // browsed: the tree opens on the folder and the file beside it. Search is
+  // for finding; these callers already know where the thing is.
   openFile(path){
-    const s = Alpine.store('browser');
-    const ref = s.ref && s.ref !== s.defaultRef ? s.ref : '';
-    this.goSearch({
-      mode: 'names', repo: s.repo, ref,
-      path: path.split('/').slice(0, -1).join('/'),
-      file: s.repo + (ref ? '@' + ref : '') + ':' + path,
-    });
+    const p = String(path || '').replace(/^\/+/, '');
+    this.goFiles(p.split('/').slice(0, -1).join('/'), p);
   },
-
-  openFolder(path){
-    const s = Alpine.store('browser');
-    this.goSearch({ mode: 'names', repo: s.repo,
-                    ref: s.ref && s.ref !== s.defaultRef ? s.ref : '', path });
+  openFolder(path){ this.goFiles(String(path || '').replace(/^\/+|\/+$/g, ''), ''); },
+  // The Files view's state is its address: the folder the tree opens on and
+  // the file beside it. filesKey remounts the component when either changes,
+  // since the component does not follow a scope change on its own.
+  filesPath: '', filesFile: '', filesKey: 0,
+  goFiles(path = '', file = ''){
+    this.filesPath = path; this.filesFile = file; this.filesKey++;
+    this.view = 'files';
+    this.syncUrl();
   },
 
   // The estate is a context above any repo, with views of its own: the repo
@@ -6198,7 +6191,7 @@ function app(){ return {
       // is what a reader is looking for in this row. The ?view= key stays
       // `search`: an address is not a label, and every ?view=search link ever
       // shared still opens it.
-      { view: 'search',   icon: 'ph-files', label: 'Files', go: () => this.goSearch() },
+      { view: 'search',   icon: 'ph-magnifying-glass', label: 'Search', go: () => this.goSearch() },
       // `routes` rides here because the Views tab is where ?view=routes lands
       // now. It keeps this stop lit for a saved link that predates the move,
       // which is the whole reason the key survives at all.

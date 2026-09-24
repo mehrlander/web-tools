@@ -89,6 +89,14 @@ const DOORS = [
   { what: 'Map / Kits', file: 'lib/alpineComponents/map.js',
     anchor: 'openKitDeck(kitRows[0])', noun: 'kit',
     count: "plural(kitRows.length, 'kit')", pending: false, tone: 'ghost' },
+  // The ninth, 2026-09-24: a repo's or a project's Files view, over the folder
+  // its tree is showing. Primary, like the Search view's: reading the folder
+  // through is one of the two things the view is for. Tight, like the branch
+  // detail's, whose swiper header it copies: the owner found the 44px phone
+  // floor made that header too tall.
+  { what: 'Files browser', file: 'lib/alpineComponents/file-browser.js',
+    anchor: 'openDeck()', noun: 'file', count: "plural(folderFiles.length, 'file')",
+    pending: false, size: 'tight' },
 ];
 
 const src = (d) => readFileSync(path.join(repoRoot, d.file), 'utf8');

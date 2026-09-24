@@ -9,9 +9,8 @@
 // the same paint() over the same units, and a per-section keep figure in the
 // slide head. Opens on the Status section, the one with a table and two fences.
 export default async function (page) {
-  await page.waitForSelector('button:has-text("Sections")');
-  await page.click('button:has-text("Read")');
-  await page.click('button:has-text("Sections")');
+  await page.waitForSelector('[aria-label="Read by section"]');
+  await page.click('[aria-label="Read by section"]');
   await page.waitForTimeout(700);
   await page.evaluate(() => {
     const t = document.querySelector('[style*="scroll-snap-type"], .snap-x') ||

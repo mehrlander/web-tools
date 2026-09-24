@@ -412,9 +412,9 @@ const CASES = {
     MUNITS, [{ after: 'm-1', text: 'Placed between rules.' }]],
   'a stated shape overrules the gap the document holds': [
     MUNITS, [{ after: 'm-1', text: 'joined on', as: 'run' }]],
-  'REWRITE and MOVE stand, and are reported by uid': [
-    MUNITS.map(u => u.uid === 'm-1' ? { ...u, verdict: 'REWRITE' }
-                  : u.uid === 'm-3' ? { ...u, verdict: 'MOVE' } : u), null],
+  'a kept unit with a note stands, and is reported with its note': [
+    MUNITS.map(u => u.uid === 'm-1' ? { ...u, note: 'shorter' }
+                  : u.uid === 'm-3' ? { ...u, note: 'belongs elsewhere' } : u), null],
   'a drop and an insertion in one pass do not disturb each other': [
     MUNITS.map(u => u.uid === 'm-2' ? { ...u, verdict: 'DROP' } : u),
     [{ after: 'm-1', text: 'Standing in for it.' }]],

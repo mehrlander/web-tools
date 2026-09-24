@@ -25,6 +25,7 @@ lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engin
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,6,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",497,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,172,no,no,4,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",474,no,no,7,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",199,no,yes,8,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
@@ -44,7 +45,7 @@ lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",420,no,no,1,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
-lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes
+lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,15,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,3,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2063,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",778,no,yes,11,yes
@@ -62,7 +63,7 @@ lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web
 lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",149,yes,no,13,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
-lib/kits/repo-mailbox.js,RepoMailbox,"Private mailbox: an async, git-backed request/response channel between an agent session (limited repo scope) and show-repo in the browser (the user's…",148,no,no,2,yes
+lib/kits/repo-mailbox.js,RepoMailbox,"The mailbox's reads: tree, branches and fetch against one of the user's repos, with the user's token.",126,no,no,2,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the read-only mailbox (lib/kits/repo-mailbox.js).,658,no,no,2,yes
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1753,no,no,5,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes
@@ -77,10 +78,10 @@ lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,ye
 lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,533,yes,yes,11,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",126,no,no,4,no
-lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",650,no,no,4,yes
+lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",649,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,7,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",205,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,24,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1391,no,yes,25,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",940,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",284,no,no,5,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
