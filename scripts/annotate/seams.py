@@ -24,7 +24,7 @@ units = [json.loads(l) for l in open(uf)]
 ann = {r['uid']: r for r in csv.DictReader(open(af), delimiter='\t')}
 new = open(newf).read()
 norm = lambda s: re.sub(r'\s+', ' ', s).strip()
-gone = {u['uid'] for u in units if ann[u['uid']]['verdict'] in ('DROP', 'MOVE')}
+gone = {u['uid'] for u in units if ann[u['uid']]['verdict'] == 'DROP'}
 found, seen = [], set()
 
 # 1. A neighbour left pointing at nothing.
@@ -59,7 +59,7 @@ for n, line in enumerate(new.split('\n'), 1):
         found.append(('heading-absorbed', f'line {n}',
                       'a heading line carries prose after it', line[:90]))
 
-# 3. A phrase the rewrite now says twice. A REWRITE that restates the neighbour
+# 3. A phrase the rewrite now says twice. A reworded unit that restates the neighbour
 #    it was meant to absorb shows up as a shingle repeated in the output that
 #    appeared once in the source. The script never sees the new text, so it
 #    looks for the symptom rather than comparing versions.

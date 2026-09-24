@@ -38,11 +38,11 @@ function fixture(rewrite) {
   writeFileSync(uf, units);
   const ids = units.trim().split('\n').map(l => JSON.parse(l).uid);
   // unit 1 is the rule, 2 the reason carrying notes.md, 3 the provenance
-  // carrying probe.md. KEEP / DROP / MOVE in that order.
+  // carrying probe.md. KEEP / DROP / DROP in that order.
   const ann = ['uid\tlabel\tstruct\tverdict',
                `${ids[0]}\tWHAT\t0\tKEEP`,
                `${ids[1]}\tWHY-MOT\t0\tDROP`,
-               `${ids[2]}\tPROV\t0\tMOVE`].join('\n') + '\n';
+               `${ids[2]}\tPROV\t0\tDROP`].join('\n') + '\n';
   const af = join(dir, 'ann.tsv');
   writeFileSync(af, ann);
   const out = execFileSync('python3', [join(SKILL, 'check.py'), uf, af, orig, rw],
@@ -575,17 +575,18 @@ test('a split re-derives the kind of both halves, in both languages', () => {
 
 // ── PROJECTING A STANDOFF ONTO TEXT ──────────────────────────────────────────
 // materialize.py runs the edits the annotation SPECIFIES and reports the ones it
-// cannot: DROP and insert are mechanical, REWRITE and MOVE each imply content
-// the standoff does not carry. The failure worth pinning is not a crash, it is a
-// projection that quietly invents something: a MOVE silently removed, a
-// separator chosen rather than read, or an insertion applied a second time.
+// cannot: DROP and insert are mechanical, and a note on a kept unit may ask for
+// content the standoff does not carry. The failure worth pinning is not a crash,
+// it is a projection that quietly invents something: a noted unit silently
+// rewritten or removed, a separator chosen rather than read, or an insertion
+// applied a second time.
 
 function project(mut, args = ['--json'], fixture = null) {
   const dir = mkdtempSync(join(tmpdir(), 'mat-'));
   const doc = join(dir, 'doc.md'), sf = join(dir, 'so.json'), out = join(dir, 'out.md');
   writeFileSync(doc, fixture ? fixture.text : DOC);
   const so = fixture ? fixture.so() : BASE();
-  so.verdicts = ['KEEP', 'REWRITE', 'MOVE', 'DROP'].map(verdict => ({ verdict }));
+  so.verdicts = ['KEEP', 'DROP'].map(verdict => ({ verdict }));
   so.units.forEach(u => { u.verdict = 'KEEP'; });
   mut(so);
   writeFileSync(sf, JSON.stringify(so));
@@ -602,32 +603,30 @@ test('an annotation specifying nothing executable projects the document unchange
   assert.deepEqual(r.json.joins, {}, 'nothing was removed, so nothing was left behind');
 });
 
-test('DROP is executed and REWRITE and MOVE are left standing, named', () => {
+test('DROP is executed and a kept unit with a note is left standing, named with its note', () => {
   const r = project((so) => {
-    so.units[0].verdict = 'REWRITE';
-    so.units[1].verdict = 'MOVE';
+    so.units[0].note = 'shorter';
+    so.units[1].note = 'belongs in probe.md';
   });
-  assert.match(r.text, /Close the lid/, 'a REWRITE keeps its text: no replacement is stored');
-  assert.match(r.text, /Check it twice/, 'a MOVE keeps its text: no destination is stored');
-  assert.deepEqual(r.json.standing.map(s => [s.uid, s.verdict]),
-    [['u-001', 'REWRITE'], ['u-002', 'MOVE']]);
+  assert.match(r.text, /Close the lid/, 'a noted unit keeps its text: no replacement is stored');
+  assert.match(r.text, /Check it twice/, 'a noted unit keeps its text: no destination is stored');
+  assert.deepEqual(r.json.standing.map(s => [s.uid, s.note]),
+    [['u-001', 'shorter'], ['u-002', 'belongs in probe.md']]);
 
   const dropped = project((so) => { so.units[1].verdict = 'DROP'; });
   assert.doesNotMatch(dropped.text, /Check it twice/);
   assert.equal(dropped.json.dropped_words, 3);
 });
 
-// MOVE is the one place this disagrees with check.py, which reads DROP and MOVE
-// together as "should have left". That is right when JUDGING a rewrite a person
-// made, because the person put the text somewhere. Here there is nowhere.
-test('a MOVE is not a DROP: removing it would lose text with no record of where it went', () => {
-  const r = project((so) => { so.units[1].verdict = 'MOVE'; });
-  assert.match(r.text, /Check it twice/);
-  assert.equal(r.json.dropped_words, 0);
+// The brief is the noted units only: a kept unit with no note is not a task,
+// and a removed unit's note travels with its removal.
+test('a kept unit without a note, and a removed unit with one, are not in the brief', () => {
+  const r = project((so) => { so.units[1].verdict = 'DROP'; so.units[1].note = 'restates u-001'; });
+  assert.deepEqual(r.json.standing, []);
 });
 
 // The separator is READ off the document, not chosen. Picking one would be the
-// same kind of guess as inventing a REWRITE.
+// same kind of guess as inventing the text a note asks for.
 test('an insertion inherits the separator already standing at its boundary', () => {
   // u-001 and u-002 are separated by a blank line, so that boundary is a block.
   const block = project((so) => {

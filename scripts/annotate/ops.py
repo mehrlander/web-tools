@@ -211,7 +211,7 @@ def shift(so, text, after, to, why=None):
     work and would lose both uids, so the grain's history would read as two
     units appearing where two units were already standing.
 
-    Not `move`, which named this operation, the MOVE verdict, and any future
+    Not `move`, which named this operation, a since-retired MOVE verdict, and any future
     drag-a-span at once. The op gave up the name: its object is the one thing
     the other two are not."""
     units = sorted(so["units"], key=lambda x: x["start"])
