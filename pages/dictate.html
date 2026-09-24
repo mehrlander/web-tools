@@ -2420,7 +2420,7 @@
        generous in the axis a thumb actually misses in. Tapped over and over
        inside one note, so they are the tall row, and being the tall row is
        what qualifies a control to be here. -->
-  <div x-show="!edit" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
+  <div x-show="!edit && !(file && view === 'changes')" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
     <template x-for="k in pad" :key="k.k">
       <button @pointerdown.prevent="key(k.k)" :title="k.t"
               class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl font-semibold"
