@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = 'c20b356';
-const BUILT = '2026-09-21T14:48:36Z';
+const BUILD = 'aa18d32';
+const BUILT = '2026-09-24T18:23:16Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -60,7 +60,6 @@ const REF = 'main';
 // unlooked-up answer reading as a good one is worse than no verdict, which is
 // the rule the shortcut library already runs on its own build manifest.
 const MANIFEST = `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/userscripts/builds.json`;
-const ERRANDS_MANIFEST = 'https://api.github.com/repos/mehrlander/web-tools/contents/courier/errands.json';
 const STAGE = 'https://mehrlander.github.io/web-tools/app/';
 const GZ_MAX = 24 * 1024;
 
@@ -397,8 +396,8 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
 
   const state = { slide: 0, links: [], text: '', picked: new Set(),
                   sel: '', selHtml: '', appendMode: false, seen: new Set(),
-                  blocks: [], blockChars: 0, seenLinks: new Map(), errand: null,
-                  errandOut: '', localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
+                  blocks: [], blockChars: 0, seenLinks: new Map(),
+                  localMd: null, jinaMd: null, mdEngine: 'local', mdView: 'preview',
                   htmlMode: getPrefVal('html_mode', 'pretty'), formattedHtml: null, htmlLines: 0,
                   shadowRoots: [], frames: [], activeFrameIndex: -1,
                   fullscreen: false, metaOpen: false, autoCheck: getPref('autocheck_updates') };
@@ -832,18 +831,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .btn.on { background: ${mix(P, 30)}; border-color: ${mix(P, 50)}; }
     .btn svg { width: 1.5rem; height: 1.5rem; color: ${mix(P, 40)}; transition: color .3s; }
     .btn.on svg { color: var(--wt-p); }
-    .btn.has-errand {
-      border-color: oklch(75% .18 55);
-      background: ${mix('oklch(75% .18 55)', 15)};
-      box-shadow: 0 0 0 2px ${mix('oklch(75% .18 55)', 35)};
-    }
-    .btn.has-errand svg { color: oklch(75% .18 55); }
-    .badge {
-      position: absolute; top: -3px; right: -3px; width: 10px; height: 10px;
-      border-radius: 9999px; background: oklch(75% .18 55);
-      border: 2px solid var(--wt-b100); display: none;
-    }
-    .btn.has-errand .badge { display: block; }
 
     .menu { position: absolute; bottom: 100%; right: 0; margin-bottom: .5rem;
             width: 15rem; border-radius: 1rem; border: 1px solid var(--wt-b300);
@@ -855,12 +842,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     .row:hover, .row:active { background: var(--wt-b200); }
     .row svg { width: 17px; height: 17px; color: var(--wt-p); flex: none; }
     .row span { font-size: .875rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .row.errand-row {
-      background: ${mix('oklch(75% .18 55)', 12)};
-      border-bottom: 1px solid var(--wt-b300);
-    }
-    .row.errand-row svg { color: oklch(65% .18 55); }
-    .row.errand-row span { color: oklch(45% .18 55); }
     .row[hidden] { display: none; }
     .pill-toggle {
       font: 700 10px ui-sans-serif, system-ui, sans-serif;
@@ -1125,36 +1106,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
              background: ${mix('var(--wt-b200)', 80)}; color: oklch(60% .18 140); }
     .stale[hidden] { display: none; }
 
-    .errand-banner {
-      margin: .5rem .875rem .25rem; padding: .625rem .75rem; border-radius: .75rem;
-      background: ${mix('oklch(75% .18 55)', 12)};
-      border: 1px solid ${mix('oklch(75% .18 55)', 40)};
-      display: flex; flex-direction: column; gap: .375rem;
-    }
-    .errand-banner[hidden] { display: none; }
-    .errand-tag {
-      display: inline-flex; align-items: center; gap: .25rem;
-      font: 700 10px ui-monospace, monospace; color: oklch(65% .18 55);
-      text-transform: uppercase; letter-spacing: .05em;
-    }
-    .errand-tag svg { width: 12px; height: 12px; }
-    .errand-title {
-      display: block; font-size: .8125rem; font-weight: 600;
-      color: var(--wt-bc);
-    }
-    .errand-note {
-      font-size: .75rem; color: ${mix('var(--wt-bc)', 75)}; margin: 0; line-height: 1.35;
-    }
-    .errand-result[hidden] { display: none; }
-    .errand-out {
-      width: 100%; height: 95px; font: 11px/1.4 ui-monospace, monospace;
-      border: 1px solid var(--wt-b300); border-radius: .375rem;
-      background: var(--wt-b100); color: var(--wt-bc); padding: .375rem;
-      resize: vertical; box-sizing: border-box; margin-top: .375rem;
-    }
-    .errand-bar { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; }
-    .errand-status { font: 10px ui-monospace, monospace; color: ${mix('var(--wt-bc)', 60)}; margin-left: auto; }
-
     .deck-nav { border-bottom: 1px solid var(--wt-b300); flex: none; background: var(--wt-b100); }
     .deck-bar { display: flex; overflow-x: auto; scrollbar-width: none;
                 padding: 0 .375rem; gap: .125rem; }
@@ -1405,7 +1356,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     hide: 'M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C25,88.84,9.38,123.2,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208a127.11,127.11,0,0,0,52.07-10.83l22,24.21a8,8,0,1,0,11.84-10.76Zm47.33,75.84,41.67,45.85a32,32,0,0,1-41.67-45.85ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.16,133.16,0,0,1,25,128c4.69-8.79,19.66-33.39,47.35-49.38l18,19.75a48,48,0,0,0,63.66,70l14.73,16.2A112,112,0,0,1,128,192Zm6-95.43a8,8,0,0,1,3-15.72,48.16,48.16,0,0,1,38.77,42.64,8,8,0,0,1-7.22,8.71,6.39,6.39,0,0,1-.75,0,8,8,0,0,1-8-7.26A32.09,32.09,0,0,0,134,96.57Zm113.28,34.69c-.42.94-10.55,23.37-33.36,43.8a8,8,0,1,1-10.67-11.92A132.77,132.77,0,0,0,231.05,128a133.15,133.15,0,0,0-23.12-30.77C185.67,75.19,158.78,64,128,64a118.37,118.37,0,0,0-19.36,1.57A8,8,0,1,1,106,49.79,134,134,0,0,1,128,48c34.88,0,66.57,13.26,91.66,38.35,18.83,18.83,27.3,37.62,27.65,38.41A8,8,0,0,1,247.31,131.26Z',
     refresh: 'M224,48V96a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h28.69L182.06,73.37a79.56,79.56,0,0,0-56.13-23.43h-.45A79.52,79.52,0,0,0,69.59,72.71,8,8,0,0,1,58.41,61.27a96,96,0,0,1,135,.79L208,76.69V48a8,8,0,0,1,16,0ZM186.41,183.29a80,80,0,0,1-112.47-.66L59.31,168H88a8,8,0,0,0,0-16H40a8,8,0,0,0-8,8v48a8,8,0,0,0,16,0V179.31l14.63,14.63A95.43,95.43,0,0,0,130,222.06h.53a95.36,95.36,0,0,0,67.07-27.33,8,8,0,0,0-11.18-11.44Z',
     check: 'M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z',
-    lightning: 'M212.92,106.84A8,8,0,0,0,206,104H144V24a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,40,128h64v80a8,8,0,0,0,13.66,5.66l96-96A8,8,0,0,0,212.92,106.84Z',
     code: 'M69.66,154.34a8,8,0,0,1-11.32,11.32l-40-40a8,8,0,0,1,0-11.32l40-40a8,8,0,0,1,11.32,11.32L35.31,120Zm152-40a8,8,0,0,0-11.32-11.32l-40,40a8,8,0,0,0,0,11.32l40,40a8,8,0,0,0,11.32-11.32L180.69,120ZM101.44,213.6l56-176a8,8,0,0,0-15.28-4.8l-56,176a8,8,0,1,0,15.28,4.8Z',
     jina: 'M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM192,152H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Zm0-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z',
     expand: 'M208,40H160a8,8,0,0,0,0,16h28.69L141.34,103.34a8,8,0,0,0,11.32,11.32L200,67.31V96a8,8,0,0,0,16,0V48A8,8,0,0,0,208,40ZM103.34,141.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l47.35-47.34a8,8,0,0,0-11.32-11.32Z',
@@ -1478,20 +1428,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <span class="k">AUTO-CHECK UPDATES</span>
             <button type="button" class="meta-pref-btn on" data-toggle-autocheck>ON</button>
           </div>
-        </div>
-      </div>
-      <div class="errand-banner" hidden>
-        <span class="errand-tag">${svg(ICON.lightning)} Errand Available</span>
-        <span class="errand-title"></span>
-        <p class="errand-note"></p>
-        <div class="errand-bar">
-          <button class="act run-errand">Run Errand</button>
-          <button class="act copy-errand" hidden>Copy</button>
-          <a class="act send-errand" hidden target="_blank" rel="noopener">Send to Stage ↗</a>
-          <span class="errand-status"></span>
-        </div>
-        <div class="errand-result" hidden>
-          <textarea class="errand-out" readonly></textarea>
         </div>
       </div>
       <div class="deck-nav">
@@ -1621,7 +1557,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   wrap.className = 'wrap';
   wrap.innerHTML = `
     <div class="menu" hidden>
-      <button class="row errand-row" data-menu-errand hidden>${svg(ICON.lightning)}<span>Run Errand</span></button>
       <a class="row" data-capture>${svg(ICON.note)}<span>Capture selection</span></a>
       <a class="row" href="${app}">${svg(ICON.out)}<span>Web Tools</span></a>
       <button class="row update-row" data-menu-update>${svg(ICON.refresh)}<span>Check for updates</span></button>
@@ -1629,7 +1564,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       <button class="row" data-hide>${svg(ICON.hide)}<span>Hide until reload</span></button>
       <div class="menu-foot font-mono">${BUILD}</div>
     </div>
-    <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}<span class="badge"></span></div>`;
+    <div class="btn" tabindex="0" role="button" aria-label="Web Tools launcher">${svg(ICON.sidebar)}</div>`;
 
   const vp = document.createElement('div');
   vp.className = 'vp';
@@ -2228,83 +2163,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
     }
   };
 
-  const runActiveErrand = async () => {
-    if (!state.errand) return;
-    const errand = state.errand;
-    const banner = q('.errand-banner');
-    const runBtn = banner.querySelector('.run-errand');
-    const copyBtn = banner.querySelector('.copy-errand');
-    const sendLink = banner.querySelector('.send-errand');
-    const statusEl = banner.querySelector('.errand-status');
-    const resultBox = banner.querySelector('.errand-result');
-    const outEl = banner.querySelector('.errand-out');
-
-    runBtn.disabled = true;
-    statusEl.textContent = 'reading script…';
-
-    try {
-      const scriptUrl = `https://api.github.com/repos/mehrlander/web-tools/contents/${errand.script}`;
-      const src = await fetchText(scriptUrl);
-      statusEl.textContent = 'running…';
-
-      let out;
-      try {
-        out = await new Function('ctx', src)({ errand });
-      } catch (err) {
-        out = 'ERROR: ' + (err && err.stack || err);
-      }
-      if (typeof out !== 'string') out = JSON.stringify(out, null, 2);
-      state.errandOut = out;
-
-      resultBox.hidden = false;
-      outEl.value = out;
-      copyBtn.hidden = false;
-
-      const name = errand.result?.path?.split('/').pop() || `${errand.id}.md`;
-      const dir = errand.result?.path?.slice(0, -name.length).replace(/\/$/, '') || '';
-      const dest = errand.result?.repo
-        ? `${errand.result.repo}@${errand.result.branch || 'main'}${dir ? ':' + dir : ''}`
-        : '';
-      const stageUrl = await packToStage(name, out, dest);
-      if (stageUrl) {
-        sendLink.href = stageUrl;
-        sendLink.hidden = false;
-        statusEl.textContent = `${out.length.toLocaleString()} chars · staged`;
-      } else {
-        sendLink.hidden = true;
-        statusEl.textContent = `${out.length.toLocaleString()} chars · copy only`;
-      }
-    } catch (e) {
-      statusEl.textContent = 'failed: ' + e.message;
-    } finally {
-      runBtn.disabled = false;
-      runBtn.textContent = 'Run Errand';
-    }
-  };
-
-  const checkErrands = async () => {
-    try {
-      const raw = await fetchText(ERRANDS_MANIFEST);
-      const data = JSON.parse(raw);
-      const errand = (data.errands || []).find(e => e.host === location.hostname && e.status === 'open');
-      if (!errand) return;
-
-      state.errand = errand;
-      btn.classList.add('has-errand');
-      btn.setAttribute('title', `Errand available: ${errand.title}`);
-
-      const banner = q('.errand-banner');
-      banner.querySelector('.errand-title').textContent = errand.title;
-      banner.querySelector('.errand-note').textContent = errand.note || '';
-      banner.hidden = false;
-
-      const menuErrand = q('[data-menu-errand]');
-      if (menuErrand) menuErrand.hidden = false;
-    } catch {
-      // Fail silently if network/CORS blocks background check
-    }
-  };
-
   const renderLinks = () => {
     list.innerHTML = state.links.map(({ href, text }, i) => `
       <button class="link${state.picked.has(href) ? ' on' : ''}" data-i="${i}">
@@ -2757,19 +2615,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   if (sendEl) sendEl.addEventListener('click', () => setTimeout(closeDrawer, 300));
 
 
-  q('.run-errand').onclick = runActiveErrand;
-  q('.copy-errand').onclick = () => {
-    if (state.errandOut) copyText(state.errandOut, q('.copy-errand'), 'Copied');
-  };
-  const menuErrand = q('[data-menu-errand]');
-  if (menuErrand) {
-    menuErrand.onclick = () => {
-      setMenu(false);
-      openDrawer();
-      runActiveErrand();
-    };
-  }
-
   const updateAutoCheckUI = () => {
     const on = !!state.autoCheck;
     qa('[data-toggle-autocheck]').forEach(el => {
@@ -2975,7 +2820,6 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
   document.documentElement.append(host);
   window.__wtLauncherMounted = true;
   window.__wtLauncherMounting = false;
-  checkErrands();
 
   // The second half of the yield rule. A web-tools page boots its loader and
   // mounts the real fab after document-end, so the synchronous check above can

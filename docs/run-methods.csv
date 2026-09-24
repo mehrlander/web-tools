@@ -1,0 +1,4 @@
+method,venues,output_return,rules,gloss
+ise-f5,personal-laptop;work-machine,direct-to-clipboard,"Windows PowerShell 5.1;no param block;runs unsaved;settings as plain variables at the top;""# @file <path>"" first line;no other comments;ends with Set-Clipboard","Paste into the PowerShell ISE script pane and press F5."
+console-enter,browser,direct-to-clipboard,"plain expression or IIFE;no imports;no comments;ends with copy(...)","Paste into the browser's developer console on the page and press Enter."
+courier-bookmark,browser,courier-message,"the courier contract in courier/README.md: reads and returns, never navigates or writes;no comments","Tap the courier bookmarklet on the page; the Stage popup sends the script and receives the result by message."

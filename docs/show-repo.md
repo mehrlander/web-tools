@@ -163,7 +163,7 @@ no GitHub quota. Private repos 404; jsDelivr's listing can lag a push by about
 | Subject | Reference |
 | --- | --- |
 | the stage and the `#stage=` grammar | [stage.md](stage.md) |
-| `.web-tools.json`, the config cache, mailbox and proposals | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
+| `.web-tools.json`, the config cache, errands and proposals | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
 | the branch takeover and the overlay | [branch-overlay.md](branch-overlay.md) |
 | which link shows what | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 

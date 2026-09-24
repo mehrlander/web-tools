@@ -16,7 +16,7 @@ the one place Refresh lives.
 - **This browser:** the search caches and the page itself (the reload calls the
   FAB's `hardRefresh` through `web-tools:hard-refresh`).
 - Authored registry content (lists, the private config) and captured records
-  (sessions, mailbox, proposals) are named at the foot and get no rows: they
+  (sessions, errands, proposals) are named at the foot and get no rows: they
   are not derived.
 
 ## What a row reads
