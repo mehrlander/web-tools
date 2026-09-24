@@ -136,3 +136,38 @@ test('changes are inserted runs and removal points, with a replacement paired', 
   assert.equal(text.slice(gone.at - 2, gone.at + 4), ', here');
   assert.deepEqual(M().changes(text, text), { ins: [], del: [] });
 });
+
+// The edit as blocks to reject, and as a patch. md-diff supplies the block
+// splitter the edits are measured in; the patch is held to git itself.
+test('edits list changed blocks, and rejecting one restores exactly that block', async () => {
+  window.Diff = (await import('diff')).default ?? (await import('diff'));
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const base = '# Title\n\nFirst para.\n\nSecond para.\n\n- a\n- b\n';
+  const text = '# Title\n\nFirst para, edited.\n\nSecond para.\n\nA new one.\n\n- a\n- b\n';
+  const es = M().edits(base, text);
+  assert.deepEqual(es.map((e) => e.kind), ['changed', 'added']);
+  assert.equal(es[0].oldText, 'First para.');
+  assert.equal(es[0].newText, 'First para, edited.');
+  assert.equal(M().reject(base, text, es[1]), '# Title\n\nFirst para, edited.\n\nSecond para.\n\n- a\n- b\n');
+  assert.equal(M().reject(base, text, es[0]), '# Title\n\nFirst para.\n\nSecond para.\n\nA new one.\n\n- a\n- b\n');
+  const gone = M().edits(base, '# Title\n\nSecond para.\n\n- a\n- b\n');
+  assert.equal(gone[0].kind, 'removed');
+  assert.equal(M().reject(base, '# Title\n\nSecond para.\n\n- a\n- b\n', gone[0]), base, 'a removed block comes back with its blank line');
+  assert.deepEqual(M().edits(base, base.replace('First para.', 'First\npara.')), [], 'a whitespace-only change is no edit');
+});
+
+test('the patch applies with git and reproduces the edit byte for byte', async () => {
+  const { mkdtempSync, writeFileSync, readFileSync: rd, mkdirSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
+  const os = await import('node:os');
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'md-patch-'));
+  const base = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
+  const text = base.replace('only output channel', 'single output channel') + '\nA closing line.\n';
+  mkdirSync(path.join(dir, 'docs'));
+  writeFileSync(path.join(dir, 'docs/SURFACING.md'), base);
+  execFileSync('git', ['init', '-q'], { cwd: dir });
+  writeFileSync(path.join(dir, 'edit.patch'), M().patch('docs/SURFACING.md', base, text));
+  execFileSync('git', ['apply', 'edit.patch'], { cwd: dir });
+  assert.equal(rd(path.join(dir, 'docs/SURFACING.md'), 'utf8'), text);
+  assert.equal(M().patch('x.md', base, base), '', 'no edit, no patch');
+});
