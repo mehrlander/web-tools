@@ -158,8 +158,11 @@
   // branch chips read too.
   await gh.load('kits/route-activity.js');
   await gh.load('kits/route-join.js');
-  // The private request/response mailbox (mailbox/requests -> results).
+  // Errands: what a session needs this browser for, one record for reads of
+  // your repos, courier runs, and material only you have. The mailbox kit
+  // performs the reads, when an errand's Run is tapped.
   await gh.load('kits/repo-mailbox.js');
+  await gh.load('kits/errands.js');
   // The write-side channel: proposed cross-repo edits, applied only on confirm.
   await gh.load('kits/repo-proposals.js');
   // The owner/repo[@ref]:path grammar, and the inbox/outbox boxes built on it.
@@ -1480,29 +1483,35 @@ html.dk-dragging main{transition:none !important}
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-6 pt-8">
-            <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <!-- A project's masthead: the repository it lives in, then the
+                 project, under a project mark. The ways out are icons beside
+                 the name, the convention every project row in the sidebar
+                 already follows: the github-logo opens the folder on GitHub
+                 and peeks its README, the folder opens it in Files, and a
+                 folder board keeps its icon (a file board has its own pill).
+                 These were three outlined buttons until 2026-09-24. -->
+            <div class="flex items-center gap-3 mb-4 min-w-0">
+              <span class="shrink-0 size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
+                <i class="ph-duotone ph-kanban text-2xl"></i></span>
               <div class="min-w-0">
-                <h1 class="text-2xl font-bold tracking-tight truncate" x-text="project.label"></h1>
-                <p class="text-base-content/50 mt-1 font-mono text-base truncate"
-                   x-text="$store.browser.repo + ' / ' + project.path"></p>
-              </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button @click="openProjectFiles()" class="btn btn-outline gap-1.5">
-                  <i class="ph ph-folders"></i> Files
-                </button>
-                <!-- A file board lives in the pill row below, so the header
-                     button remains only for a folder board, which has no one
-                     file to render in-pane. -->
-                <button x-show="project.board && !projectBoardFile"
-                        @click="openProjectBoard($store.browser.repo, project)"
-                        class="btn btn-outline gap-1.5">
-                  <i class="ph ph-list-checks"></i> Board
-                </button>
-                <a :href="projectGithubUrl($store.browser.repo, project)"
-                   :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
-                   :title="project.path + ' on GitHub'" class="btn btn-outline gap-1.5">
-                  <i class="ph ph-github-logo"></i> GitHub
-                </a>
+                <button @click="goLanding()" class="block max-w-full truncate font-mono text-sm text-base-content/50 hover:text-primary transition-colors"
+                        :title="$store.browser.repo" x-text="$store.browser.repo"></button>
+                <div class="flex items-center gap-1 min-w-0">
+                  <h1 class="text-2xl font-bold tracking-tight truncate mr-1" x-text="project.label"></h1>
+                  <a :href="projectGithubUrl($store.browser.repo, project)"
+                     :data-peek="projectReadmePeek($store.browser.repo, project)" target="_blank" rel="noopener"
+                     :title="project.path + ' on GitHub'" :aria-label="project.path + ' on GitHub'"
+                     class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-github-logo text-xl leading-none"></i></a>
+                  <button @click="openProjectFiles()" :title="project.path + ' in Files'" :aria-label="project.path + ' in Files'"
+                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-folder-simple text-xl leading-none"></i></button>
+                  <button x-show="project.board && !projectBoardFile"
+                          @click="openProjectBoard($store.browser.repo, project)"
+                          :title="'Task board: ' + project.board" aria-label="Task board"
+                          class="shrink-0 p-1.5 text-base-content/40 hover:text-primary transition-colors">
+                    <i class="ph ph-list-checks text-xl leading-none"></i></button>
+                </div>
               </div>
             </div>
 
@@ -2347,7 +2356,7 @@ function app(){ return {
         this._routed.then(() => this.warmEstateCaches());
         if (this._inboxToken !== window.TOKEN) {
           this._inboxToken = window.TOKEN;
-          this.processMailbox(); this.loadProposalCount();
+          this.loadProposalCount();
         }
       }
       // Announced for views that mount before auth resolves and would otherwise
@@ -2375,7 +2384,6 @@ function app(){ return {
     // from both places was the double-fire the watcher's note describes.
     this._sidebarToken = this.hasToken() ? window.TOKEN : '';
     this._inboxToken = this._sidebarToken;
-    this.processMailbox();
     this.loadProposalCount();
 
     // A ref switch keeps the ?ref deep link honest. It used to fire only in the
@@ -4169,13 +4177,8 @@ function app(){ return {
   },
 
 
-  // ── Private mailbox: fulfill request files an agent session dropped in the
-  // registry repo, using the viewer's token, and write results back. Read-only
-  // kinds only (tree / branches / fetch), so this never spends write access on
-  // agent-authored instructions. Polled once per page load (a pending request
-  // wants prompt service and listing is cheap); a dropped request is picked up
-  // on the next load. Results are keyed by the request filename so nothing
-  // re-runs. See lib/kits/repo-mailbox.js and web-tools-private/mailbox/README.md.
+  // Nothing a session files is answered here. A read is an errand, and it waits
+  // on the Stage for a tap like every other (lib/kits/errands.js).
   // How many proposals are waiting. One cheap pair of directory reads at boot,
   // token-gated like everything that touches the registry; the count is what
   // gates the nav entry, so an empty channel is invisible rather than a stop
@@ -4193,38 +4196,6 @@ function app(){ return {
         done.filter(f => f.type === 'file').map(f => f.name),
       ).length;
     } catch { this.proposalCount = 0; }
-  },
-
-  async processMailbox(){
-    if (!this.hasToken() || !window.RepoMailbox) return;
-    const M = window.RepoMailbox;
-    try {
-      const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
-      let reqs = [], results = [];
-      try { reqs = await reg.ls(M.REQ_DIR); } catch {}      // 404 = no mailbox yet
-      if (!reqs.length) return;
-      try { results = await reg.ls(M.RES_DIR); } catch {}
-      const names = M.pending(
-        reqs.filter(f => f.type === 'file').map(f => f.name),
-        results.filter(f => f.type === 'file').map(f => f.name)
-      );
-      for (const name of names){
-        let req;
-        try { req = JSON.parse((await reg.get(M.REQ_DIR + '/' + name)).text); }
-        catch(e){ continue; } // unreadable/!JSON request: leave it, don't loop
-        // Answer only what this loop recognises, and leave everything else
-        // alone. The guard is an allowlist rather than a skip for `ask`:
-        // saving a result is what marks a request answered and fulfill()
-        // returns one for every kind it does not know, so an unrecognised
-        // record reaching it is closed by its own rejection before anyone
-        // sees it. Whatever the loop passes over is served elsewhere, an ask
-        // by a person from the stage. A kit too old to carry servable skips
-        // everything, which is the safe direction to fail.
-        if (!M.servable || !M.servable(req)) continue;
-        const result = await M.fulfill(req, { GH: window.GH, token: window.TOKEN });
-        await reg.save(M.RES_DIR + '/' + name, result, 'Fulfill mailbox request ' + name + ' via Web Tools');
-      }
-    } catch(e){ console.warn('mailbox:', e?.message || e); }
   },
 
   // web-tools -> its pages index ('gallery'); a repo whose manifest designates a
@@ -6642,6 +6613,14 @@ function app(){ return {
       if (intake?.workspace) {
         if (await intake.workspace.receive(target, text, { name, source })) return;
         this.assertCorrespondenceIntake(intake);
+      }
+      // The installation Overview compares a copy in memory and shows it in
+      // its own Changes view; nothing is saved to the browser and the Stage
+      // does not open. Every other surface keeps the stored check below.
+      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
+        const host = document.querySelector('[x-data^="installationView"]');
+        const view = host && Alpine.$data?.(host);
+        if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
       }
       const result = await window.FileCorrespondence.open({ target, text, name, source });
       this.announceCheck(result);

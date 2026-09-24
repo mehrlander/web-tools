@@ -2,23 +2,27 @@
 
 A deferred read **from a page**, run by you in the browser you already have.
 
-The mailbox is a deferred read from a repo, answered on load by a browser
-holding your token. Proposals are a deferred write to a repo, answered on your
-confirm. `ask` is a deferred read from you. The courier is the fourth: a read
-from a **web page a session cannot reach**, answered when you visit that page
-and tap one bookmark.
+An **errand** is anything a session needs your browser for, and there is one
+kind of record for all of them
+([`lib/kits/errands.js`](../lib/kits/errands.js)): a read of one of your repos,
+material only you have, or a read from a **web page a session cannot reach**.
+The last is the courier's: the courier is the mechanism, and a courier errand
+is one job it runs, answered when you visit that page and tap one bookmark.
 
-What decides a channel in code is whether a browser can answer it unattended:
-`RepoMailbox.servable` is the allowlist, and anything outside it waits for a
-person. The courier is the mechanism; an errand is one job it runs.
+Every errand waits on the Stage for a tap, reads included; nothing is answered
+on load. A session files one as `errands/requests/<id>.json` in the private
+registry and hands you `?view=stage&errand=<id>`, which opens the Stage on that
+errand's card. The card says in one line whether the errand got what it came
+for (a read grades itself; a courier or hand errand is graded against its
+`expect` field), and its one green button completes it. Closing writes
+`errands/results/<id>.json`, with a reason required on a decline.
 
 ## Why it works where a background fetch does not
 
 CORS is the **server's** decision. A page on `mehrlander.github.io` cannot read
 `wsldocs.sos.wa.gov`, because that host sends no
 `Access-Control-Allow-Origin`. Nothing in the app can fix that, and a mailbox
-kind that fetched arbitrary URLs would hit the same wall while giving up the
-property that makes the existing kinds safe to auto-fulfil.
+read that fetched arbitrary URLs would hit the same wall.
 
 Turn the request around and the wall is not there:
 
@@ -237,6 +241,27 @@ URL, which made its cap a guess rather than a measurement.
 someone edits `errands.json`, which is the session's job on reading the result,
 not yours. Closing that loop from the browser would need a token to check the
 private results folder, and the courier holds none by design.
+
+## The Stage as the popup
+
+[`bookmarklets/courier-stage.js`](../bookmarklets/courier-stage.js) opens the
+Web Tools Stage itself as the popup, at `?view=stage&courier=1`, and talks to it
+by `postMessage`. The Stage is a first-party window holding your token, so it
+does what this folder's public design could not:
+
+| | `courier.js` (older) | `courier-stage.js` |
+| --- | --- | --- |
+| errand list and scripts | public, read without a token | the private errands folder in the registry, then this public list |
+| a page with no errand | a directory of open errands | its links and selection, staged as `<host>-<date>-links.md` and aimed at web-tools-private `courier/captures/` |
+| the result's route | `#gz=` link, capped at 24K | a message, with no URL cap |
+| the write | the Stage's send, on your tap | the same |
+
+The Stage hears only the window that opened it, stages what arrives without
+sending it, and takes the destination from the errand record, never from a
+message. The one thing it sends back is the errand's script. A site that sets
+`Cross-Origin-Opener-Policy` cuts the link between the windows, and one whose
+Content Security Policy forbids `eval` refuses the script; `courier.js` remains
+the route there. Held by `tools/test/stage-courier.test.mjs`.
 
 ## What it is not for
 
