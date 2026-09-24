@@ -757,6 +757,38 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   delete window.PowerShellEditor;
 });
 
+test('a Windows-1252 file opens decoded and read-only, and its transfer script carries the exact bytes', async () => {
+  const ANSI = `${P}/app/Modules/Ansi/Ansi.psm1`;
+  // "Width)×$(" as Windows PowerShell 5.1 saves it with no BOM: 0xD7 is ×.
+  const bytes = Buffer.from([0x57, 0x69, 0x64, 0x74, 0x68, 0x29, 0xd7, 0x24, 0x28, 0x0d, 0x0a]);
+  files[ANSI] = bytes; advanceHead(); await data.reload(); await settle();
+  window.PowerShellEditor = { create: async (host, cfg) => ({ host, cfg, open() {}, readOnly() {}, go() {}, command() {}, focus() {}, refresh() {}, destroy() {} }) };
+  const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
+  await data.openFileDeck(ANSI);
+  const deck = window.swipeDeck.stack.at(-1);
+  const order = data.visibleGroups.flatMap(g => g.units.flatMap(u => u.files)).filter(it => it.comparable);
+  Object.defineProperty(deck.deck.track, 'scrollLeft', { configurable: true, get: () => order.findIndex(it => it.path === ANSI) });
+  deck.deck.track.dispatchEvent(new window.Event('scroll'));
+  const card = () => [...deck.el.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item?.path === ANSI);
+  await poll(() => card() && !card().loading, 'the Windows-1252 slide did not load');
+  assert.equal(card().error, '');
+  assert.equal(card().text, 'Width)×$(\r\n', 'decoded as Windows-1252');
+  assert.equal(card().ansi, true);
+  assert.match(card().notice, /Windows-1252.*read-only/);
+  await poll(() => deck.title === 'Ansi.psm1', 'the header names the file');
+  assert.equal(deck.el.querySelector('[title="Edit"]'), null, 'no Edit on a Windows-1252 file');
+  card().setEditing(true);
+  assert.equal(card().editing, false);
+  const copies = clip.length;
+  await card().copyScript();
+  assert.equal(clip.length, copies + 1);
+  const encoded = /FromBase64String\('([^']+)'\)/.exec(clip.at(-1))[1];
+  assert.equal(Buffer.from(encoded, 'base64').compare(bytes), 0, 'the script carries the blob bytes, not a UTF-8 re-encoding');
+  deck.close(); await settle();
+  delete files[ANSI]; advanceHead(); await data.reload(); await settle();
+  delete window.PowerShellEditor;
+});
+
 test('every ledger write in this run went through a confirm', () => {
   assert.equal(publications.length, 4);
   assert.deepEqual(problems, []);
