@@ -373,34 +373,36 @@ test('the repo sidebar hands its Files row to the central surface, scoped', () =
 test('the retired views alias onto what replaced them, carrying their scope', () => {
   const files = makeShell({ search: '?repo=mehrlander/home&view=files&path=docs',
                             browserStore: { repo: '' } });
-  assert.equal(files.shell.routeForUrl('files')?.key, 'search',
-    'the tree walk moved into the central Files view');
+  assert.equal(files.shell.routeForUrl('files')?.key, 'files',
+    'the tree walk is a Files view of its own again (2026-09-24), no longer folded into Search');
   files.shell.routeForUrl('files').open.call(files.shell, files.shell.parseUrl());
-  assert.equal(files.shell.view, 'search');
-  assert.equal(files.shell.searchSeed.path, 'docs',
-    'the old ?path= scopes the new view rather than being dropped on the floor');
+  assert.equal(files.shell.view, 'files');
+  assert.equal(files.shell.filesPath, 'docs',
+    'an old ?path= opens the tree on that folder rather than being dropped on the floor');
 
   const branches = makeShell({ search: '?repo=mehrlander/home&view=branches',
                                browserStore: { repo: '' } });
   assert.equal(branches.shell.routeForUrl('branches')?.key, 'branches',
     "the per-repo branch review moved into Activity's Branches tab");
 
-  // `files` is a retired view that aliases onto search, not a view the shell enters directly.
   const keys = new Set(rows.map(r => r.key));
-  assert.ok(!keys.has('files') && keys.has('branches'));
+  assert.ok(keys.has('files') && keys.has('branches'));
 });
 
-// A file named by a pin, a recent, or a ?file= link opens in the central
-// reader, scoped to its folder so the walk around it is right there.
+// A file named by a pin, a recent, or a ?file= link opens in the repo's Files
+// view, the tree open on its folder and the file beside it, at the browsed ref.
 test('opening a file routes to the Files view, scoped to its folder', () => {
   const { shell: s } = makeShell({ browserStore: {
     repo: 'mehrlander/home', ref: 'claude/topic', defaultRef: 'main', path: '' } });
   s.openFile('docs/envelopes/surface.md');
-  assert.equal(s.view, 'search');
-  assert.equal(s.searchSeed.repo, 'mehrlander/home');
-  assert.equal(s.searchSeed.path, 'docs/envelopes');
-  assert.equal(s.searchSeed.file, 'mehrlander/home@claude/topic:docs/envelopes/surface.md');
-  assert.equal(s.searchSeed.q, '', 'a named file is not a search for it');
+  assert.equal(s.view, 'files');
+  assert.equal(s.filesPath, 'docs/envelopes');
+  assert.equal(s.filesFile, 'docs/envelopes/surface.md');
+  const qs = s.deepLinkParams(new URLSearchParams()).toString();
+  assert.match(qs, /view=files/); assert.match(qs, /path=docs%2Fenvelopes/);
+  assert.match(qs, /file=docs%2Fenvelopes%2Fsurface\.md/); assert.match(qs, /ref=claude%2Ftopic/);
+  s.openFolder('lib/kits/');
+  assert.equal(s.view, 'files'); assert.equal(s.filesPath, 'lib/kits'); assert.equal(s.filesFile, '');
 });
 
 // The browsed ref is repo-scoped state, not a view's. It rode the Files view's
