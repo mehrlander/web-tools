@@ -79,7 +79,7 @@ tools/build/tools-index.mjs,restamp the derived half of this registry,tools/buil
 tools/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",tools/build,53,npm:vendor-docs,yes,no,yes
 tools/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,tools/build,86,npm:verify-build,no,yes,no
 tools/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",tools,421,npm:setup,yes,yes,yes
-tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,598,imported,no,yes,yes
+tools/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,tools/render,655,imported,no,yes,yes
 tools/render/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,tools/render,72,none found,no,no,no
 tools/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",tools/render,158,imported,no,yes,no
 tools/render/preview.mjs,"the jsdom logic render: run the full gh.load chain, mount Alpine, report state; no pixels",tools/render,370,npm:preview,yes,yes,yes
