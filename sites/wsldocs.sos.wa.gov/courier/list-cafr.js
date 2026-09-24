@@ -1,7 +1,3 @@
-// Courier errand wsl-drs-cafr-index. Collects every document link on the DRS
-// financial-report index. Why it must run here, and what the result decides:
-// sites/wsldocs.sos.wa.gov/README.md.
-
 const rows = [];
 for (const a of document.querySelectorAll('a[href]')) {
   const href = a.href;

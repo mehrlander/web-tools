@@ -118,6 +118,9 @@ sandbox, since the script has the page's full authority while it runs; the
 protection is that you read it on the errand card before it runs, which is the
 Proposals rule ("show the bytes, not a description of them") applied to code.
 
+**No comments.** The errand's `note` says what the script is for, and the card
+shows both, so a comment header repeats the note in a worse place.
+
 Two habits earn their place. Report the shape of what was found, not only the
 findings, since the caller cannot see the page: the DRS script returns a count
 of links per host, which is what decides whether the session can fetch the

@@ -25,7 +25,7 @@ lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engin
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,262,no,yes,6,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",497,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
-lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,306,no,no,3,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,307,no,no,3,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",474,no,no,7,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",199,no,yes,8,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
