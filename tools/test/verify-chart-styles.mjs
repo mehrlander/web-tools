@@ -180,6 +180,26 @@ try {
   await sheet2Containers[1].screenshot({ path: c4Path });
   await copyFile(c4Path, path.join(artifactsDir, 'rendered-chart-4-pie.png'));
 
+  // 3. Mobile Gutter Scroll Test: verify charts slide behind the sticky row number gutter
+  console.log('Testing mobile viewport and horizontal scroll over gutter...');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(500);
+
+  // Scroll the stage horizontally so that the chart is partially under the sticky row gutter
+  const scrolled = await page.evaluate(() => {
+    const pane = document.querySelector('[data-sheet="stage"] > div') || document.querySelector('[data-sheet="stage"]');
+    if (pane) {
+      pane.scrollLeft = 850;
+      return { scrollLeft: pane.scrollLeft, maxScroll: pane.scrollWidth - pane.clientWidth };
+    }
+    return null;
+  });
+  ok('scrolled horizontally on mobile width', scrolled?.scrollLeft > 0, `scrollLeft: ${scrolled?.scrollLeft}`);
+
+  const mobileGutterPath = path.join(previewDir, 'mobile-gutter-scrolled.png');
+  await page.screenshot({ path: mobileGutterPath, fullPage: false });
+  await copyFile(mobileGutterPath, path.join(artifactsDir, 'mobile-gutter-scrolled.png'));
+
   console.log('\nAll chart tests completed successfully!');
 } catch (err) {
   console.error('Test error:', err);
