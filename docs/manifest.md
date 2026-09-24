@@ -3,7 +3,7 @@
 The manifest is how a repository tells the Web Tools app, and any other
 web-tools page, how to present it. This is its reference, split out of
 [show-repo.md](show-repo.md) on 2026-08-16: the file's contract, the
-membership rule, the config cache, the mailbox, inbox and outbox, proposals,
+membership rule, the config cache, errands, inbox and outbox, proposals,
 the repo menu, and editing the manifest from the shell. The field list itself
 stays data, one row per key in [manifest-fields.csv](manifest-fields.csv), held
 to the estate's real manifests by `tools/test/manifest-registry.test.mjs`; this
@@ -255,56 +255,14 @@ operate on that repo. Stage history falls out for free: a repo's declared
 `stage.files` lives in its config, so versioning the config versions the declared
 stage. Design and future ideas: `web-tools-private/DESIGN.md`.
 
-## Mailbox (`mailbox/requests` → `mailbox/results`)
+## Errands (`errands/requests` → `errands/results`)
 
-An async request/response channel between an agent session (limited repo scope)
-and show-repo (the user's full-access token), built by `lib/kits/repo-mailbox.js`.
-The agent drops a request file in the registry repo; show-repo, on load with a
-token, fulfills every pending request and writes the result back; the agent
-reads it on a later turn. This lets the agent see files and answers from repos it
-never added to its own scope, by borrowing the browser's token asynchronously.
-
-`processMailbox()` polls once per page load (a pending request wants prompt
-service, and listing is one call), keyed by request filename so nothing re-runs.
-It is **read-only**: the kinds (`tree`, `branches`, `fetch`) only read the user's
-repos and only write results into the mailbox, so auto-fulfilling on load never
-spends write access on agent-authored instructions. It is manual-triggered, not
-live: show-repo is the worker and only runs when the user opens it. Protocol and
-schema: `web-tools-private/mailbox/README.md`.
-
-**A fourth kind, `ask`, addresses the user instead of their repos**, and it
-completes the channel family rather than extending it. Lay the two channels out
-by who has to act and one cell is empty:
-
-| | Deferred read | Deferred write |
-| --- | --- | --- |
-| **from a repo** | mailbox `tree`/`branches`/`fetch`, answered on load | proposals, answered on your confirm |
-| **from you** | **`ask`**, answered when you go and get it | (nothing: handing you a file is immediate) |
-
-An ask names what is wanted in **prose** and where it lands as a **structured
-`dest`**. The split is the design: what is wanted often has no filename
-("whatever is in that folder", "a listing of that directory"), so a path schema
-would drop the real cases or fake them, while `dest` has to be an address
-because it aims the stage and lets one list span every repo.
-
-**It is never auto-fulfilled, and the guard must run before `fulfill()`.**
-`fulfill()` returns a *result* for an unsupported kind rather than throwing, and
-writing a result is what marks a request answered, so an ask reaching the fulfil
-loop would be closed by its own rejection on the first page load and never seen.
-`processMailbox` skips on `RepoMailbox.isAsk`, which keys on the record and not
-on a validation verdict, so a half-written ask waits for a person rather than
-being answered by its own malformity.
-
-**The Stage reads and closes them**, in the lens column under the destination
-picker, because that is the order of the act: read what is wanted, aim (one tap,
-the destination pills are already there), add the material through the intakes
-that already exist (upload, paste, dictation), send, close. No new transport was
-built; the only new steps are the reading and the closing. Closing writes a
-result at the request's own name, carrying `answered: true` when material was
-sent and `false` on a decline, `ok: true` either way. A message is optional on a
-send and required on a decline, since "nothing references that file, stop
-looking" is often worth more to the next session than the file, while a bare
-refusal wastes its time as surely as silence.
+An errand is work a session needs this browser for: `tree`, `branches` or
+`fetch` (read one of your repos), `courier` (run a script on a page the session
+cannot reach; see `courier/README.md`), or `hand` (material only you have).
+File `errands/requests/<id>.json` in the registry, with the fields in
+`lib/kits/errands.js`, and hand the user `?view=stage&errand=<id>`. Nothing runs
+until they tap, reads included. The answer lands at `errands/results/<id>.json`.
 
 ## Inbox and outbox
 
@@ -391,15 +349,14 @@ for on the private side.
 
 ## Proposals (`proposals/pending` → `proposals/applied`)
 
-The write-side counterpart to the mailbox, built by `lib/kits/repo-proposals.js` and
+The write-side counterpart to errands, built by `lib/kits/repo-proposals.js` and
 reviewed in the **Proposals** view (`?view=proposals`,
 `lib/alpineComponents/proposals.js`). A session that cannot reach a repo drops a
 proposed edit into the registry; show-repo shows it and commits it to the target
 with the user's token, on a two-tap confirm.
 
-The asymmetry with the mailbox is the point. The mailbox fulfills on load
-because its kinds only read. A proposal writes to a repo the session could not
-reach, so **nothing is ever applied automatically**: page load costs one
+A proposal writes to a repo the session could not reach, so **nothing is ever
+applied automatically**: page load costs one
 directory listing to count what is pending, and the count is all that happens
 without a gesture. The nav entry appears only while something is pending, so an
 empty channel costs no attention.
@@ -551,8 +508,8 @@ A target that cannot be read, or is not the JSON it claims to be, lists as
 unresolved with its error and no Apply. The write goes through `gh-transfer.js`'s
 `saveRaw` (lazy-loaded, stale-SHA retry), and the outcome is written to
 `proposals/applied/<same-name>.json`, which is what marks a proposal spent:
-`gh-store` has no delete, so a result file is the tombstone, exactly as in the
-mailbox. A successful record carries the landed commit as both `commit` (the
+`gh-store` has no delete, so a result file is the tombstone, exactly as for
+errands. A successful record carries the landed commit as both `commit` (the
 sha) and **`commitUrl`** (the github.com address), so a reader holding only the
 JSON can open what actually landed without building the URL by hand.
 
