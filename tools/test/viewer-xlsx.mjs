@@ -456,9 +456,9 @@ try {
   ok('a kind this workbook has none of is present and disabled',
      e0.cells.find(c => c.sheet === 'Budget' && c.kind === 'validations')?.disabled === true,
      JSON.stringify(e0.cells.filter(c => c.disabled)));
-  ok('the checklist draws every sheet with its own eight readings',
-     e0.cells.filter(c => c.sheet === 'Budget').length === 8 &&
-     e0.cells.filter(c => c.sheet === 'Notes').length === 8,
+  ok('the checklist draws every sheet with its own nine readings',
+     e0.cells.filter(c => c.sheet === 'Budget').length === 9 &&
+     e0.cells.filter(c => c.sheet === 'Notes').length === 9,
      JSON.stringify(e0.cells.map(c => [c.sheet, c.kind])));
   ok('the three modeled objects are individual choices',
      e0.objects.length === 3 &&
