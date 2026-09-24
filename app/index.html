@@ -5946,7 +5946,7 @@ function app(){ return {
     if (v.kind === 'toss') return (v.path || '').split('/').pop() || v.repo || '';
     // The most specific thing the row names, falling back to the route itself
     // when the route IS the destination (Repos, Tools, the Map).
-    const file = v.sfile && v.sfile.split(/[:/]/).pop();
+    const file = (v.sfile || v.file) && (v.sfile || v.file).split(/[:/]/).pop();
     return file || (v.project && v.project.split('/').pop()) || v.session || v.detail
         || v.app || v.item || this.routeLabel(v.view);
   },
