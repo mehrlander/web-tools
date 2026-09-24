@@ -38,6 +38,10 @@ export default async (page) => {
   await page.waitForTimeout(800);
   s = await data();
   if (s.picked !== s.sel) fail('the tree must follow the swiper', s);
+  // One row lit, not two: a tap left the picker's cursor on the tapped row.
+  const lit = await page.evaluate(() => [...document.querySelectorAll('[data-file-browser] [role=option]')]
+    .filter(r => r.className.includes('bg-primary/10')).map(r => r.getAttribute('title')));
+  if (lit.length !== 1) fail('exactly one row must be lit after a swipe', { ...s, lit });
   const before = s.sel;
   // And the full deck moves it too.
   await page.locator('[data-deck-door]').click();
