@@ -137,23 +137,23 @@ test('changes are inserted runs and removal points, with a replacement paired', 
   assert.deepEqual(M().changes(text, text), { ins: [], del: [] });
 });
 
-// The edit as blocks to reject, and as a patch. md-diff supplies the block
-// splitter the edits are measured in; the patch is held to git itself.
-test('edits list changed blocks, and rejecting one restores exactly that block', async () => {
+// Rejecting one change: mdDiff.revert over the entries align() returns, which
+// carry where each change sits. The patch is held to git itself.
+test('reverting one change restores exactly that block, blank lines included', async () => {
   window.Diff = (await import('diff')).default ?? (await import('diff'));
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(window, window.document);
+  const D = window.mdDiff;
   const base = '# Title\n\nFirst para.\n\nSecond para.\n\n- a\n- b\n';
-  const text = '# Title\n\nFirst para, edited.\n\nSecond para.\n\nA new one.\n\n- a\n- b\n';
-  const es = M().edits(base, text);
-  assert.deepEqual(es.map((e) => e.kind), ['changed', 'added']);
-  assert.equal(es[0].oldText, 'First para.');
-  assert.equal(es[0].newText, 'First para, edited.');
-  assert.equal(M().reject(base, text, es[1]), '# Title\n\nFirst para, edited.\n\nSecond para.\n\n- a\n- b\n');
-  assert.equal(M().reject(base, text, es[0]), '# Title\n\nFirst para.\n\nSecond para.\n\nA new one.\n\n- a\n- b\n');
-  const gone = M().edits(base, '# Title\n\nSecond para.\n\n- a\n- b\n');
-  assert.equal(gone[0].kind, 'removed');
-  assert.equal(M().reject(base, '# Title\n\nSecond para.\n\n- a\n- b\n', gone[0]), base, 'a removed block comes back with its blank line');
-  assert.deepEqual(M().edits(base, base.replace('First para.', 'First\npara.')), [], 'a whitespace-only change is no edit');
+  const text = '# Title\n\nFirst para, edited.\n\nA new one.\n\n- a\n- b\n';
+  const cs = D.changes(base, text);
+  assert.deepEqual(cs.map((c) => c.kind).sort(), ['added', 'changed', 'removed']);
+  const by = (k) => cs.find((c) => c.kind === k);
+  assert.equal(D.revert(base, text, by('changed')), '# Title\n\nFirst para.\n\nA new one.\n\n- a\n- b\n');
+  assert.equal(D.revert(base, text, by('added')), '# Title\n\nFirst para, edited.\n\n- a\n- b\n');
+  assert.equal(D.revert(base, text, by('removed')), '# Title\n\nFirst para, edited.\n\nA new one.\n\nSecond para.\n\n- a\n- b\n');
+  let t = text;
+  for (let c = D.changes(base, t)[0]; c; c = D.changes(base, t)[0]) t = D.revert(base, t, c);
+  assert.equal(t, base, 'reverting every change, one at a time, gives back the base exactly');
 });
 
 test('the patch applies with git and reproduces the edit byte for byte', async () => {

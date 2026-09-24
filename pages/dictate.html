@@ -224,11 +224,13 @@
     Whitespace-only changes are not marked, so an Unwrap marks nothing. Mark
     changes in the menu turns them off.
 
-    THE UNSAVED BADGE OPENS THE EDIT AS A WHOLE: each changed block with a
-    Reject that puts that block back as GitHub has it, Reject all, Copy patch
-    (a unified diff `git apply` takes), and Send to Claude Code, which opens a
-    session on the repository with the patch in the prompt when it fits under
-    the link's ceiling. Copy in the bottom row copies the whole buffer.
+    A CHANGE IS REJECTED FROM ITS OWN INDEX, the numbered pill on each change
+    in the Changes face: Reject this change puts that block back as GitHub has
+    it (mdDiff.revert), and Edit here opens the Rendered face at it. The whole
+    edit leaves by the menu: Copy patch, a unified diff `git apply` takes, and
+    Send patch to Claude Code, which opens a session on the repository with the
+    patch in the prompt when it fits under the link's ceiling. Copy in the
+    bottom row copies the whole buffer.
 
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
@@ -467,7 +469,7 @@
       // face (kits/md-surface.js). On unless the reader turned them off.
       showMarks: ls.get('dictate:marks') !== '0',
       delPop: null,             // a tapped removal: { text, at, x, y }
-      editsOpen: false, editList: [],
+      patchMenu: false,
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get dirty() {
         this.beat;
@@ -767,8 +769,16 @@
         if (!host) return;
         try {
           await gh.load('kits/md-diff.js');
+          await gh.load('kits/row-menu.js');
           this.d.flush();
-          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe' });
+          // A change's own index opens what can be done to that change.
+          const menu = (chg) => [
+            { label: 'Reject this change', icon: 'ph-arrow-u-up-left', run: () => { this.rejectChange(chg); } },
+            ...(chg.newRange ? [{ label: 'Edit here', icon: 'ph-cursor-text', run: () => {
+              this.d.caretAt(chg.newRange.start); this.setView('rendered');
+            } }] : []),
+          ];
+          const h = await window.mdDiff.render(host, this.fileBase || '', this.text, { layout: 'swipe', menu });
           this.changesCount = h?.count || 0;
         } catch (e) {
           host.textContent = 'Could not draw the changes: ' + (e?.message || e);
@@ -1860,61 +1870,21 @@
         this.paint();
       },
 
-      // ── The edit as a whole ───────────────────────────────────────────
-      // One menu, off the unsaved badge, for everything done to the edit
-      // rather than in it: each changed block with a Reject, the whole edit as
-      // a patch, and the patch handed to a Claude Code session. Blocks, the
-      // patch and the rejection are kits/md-surface.js's.
-      async openEdits() {
-        if (this.editsOpen) { this.editsOpen = false; return; }
-        if (!(await this.ensureMd())) return;
-        this.d.flush();
-        this.editList = this.withSnips(window.MdSurface.edits(this.fileBase, this.text));
-        this.editsOpen = true;
-      },
-      // A changed block shown as its changed WORDS, marked in place, with a
-      // little context either side: a whole paragraph twice over hides a
-      // one-word edit in plain sight.
-      withSnips(list) {
-        const CTX = 32;
-        for (const e of list) {
-          if (e.kind !== 'changed' || !window.Diff) continue;
-          const parts = window.Diff.diffWordsWithSpace(e.oldText, e.newText);
-          e.snip = parts.map((p, i) => {
-            let t = p.value;
-            if (!p.added && !p.removed) {
-              const first = i === 0, last = i === parts.length - 1;
-              if (first && t.length > CTX) t = '\u2026' + t.slice(-CTX);
-              else if (last && t.length > CTX) t = t.slice(0, CTX) + '\u2026';
-              else if (!first && !last && t.length > 2 * CTX) t = t.slice(0, CTX) + ' \u2026 ' + t.slice(-CTX);
-            }
-            return { t, k: p.added ? 'ins' : p.removed ? 'del' : 'same' };
-          });
-        }
-        return list;
-      },
-      rejectEdit(e) {
-        this.d.text = window.MdSurface.reject(this.fileBase, this.text, e);
-        this.d.caretAt(Math.min(e.new[0], this.d.text.length));
-        this.editList = this.withSnips(window.MdSurface.edits(this.fileBase, this.text));
-        if (!this.editList.length) this.editsOpen = false;
-        this.afterReject();
-      },
-      rejectAll() {
-        this.d.text = this.fileBase;
-        this.d.caretAt(0);
-        this.editList = []; this.editsOpen = false;
-        this.afterReject();
-        Alpine.store('toast')('check', 'Back to GitHub\u2019s copy. Undo brings the edit back.', 'alert-success', 3500);
-      },
-      afterReject() {
-        if (this.view === 'changes') this.renderChanges(); else this.paint();
+      // ── The edit as a patch ───────────────────────────────────────────
+      // Rejecting one change lives on that change's index in the Changes face
+      // (renderChanges); these are the whole edit, as a unified diff to copy or
+      // to hand to a Claude Code session.
+      async rejectChange(chg) {
+        this.d.text = window.mdDiff.revert(this.fileBase, this.text, chg);
+        const at = chg.newRange ? chg.newRange.start : chg.insertAt;
+        this.d.caretAt(Math.min(at, this.d.text.length));
+        await this.renderChanges();
       },
       get patchText() {
         this.beat;
         // Only while the menu is open: Alpine evaluates the menu's bindings even
         // hidden, and a whole-file diff per keystroke is not free.
-        if (!this.editsOpen || !FILE || this.fileBase == null) return '';
+        if (!this.patchMenu || !FILE || this.fileBase == null) return '';
         return window.MdSurface?.patch(FILE.path, this.fileBase, this.text) || '';
       },
       // What rides to Claude Code: where the edit belongs, what it was made
@@ -1939,7 +1909,7 @@
         if (!this.patchFits) return;
         const link = window.PromptLink.code({ prompt: this.patchPrompt, repos: [FILE.repo], branch: FILE.ref || undefined });
         window.open(link.url, '_blank', 'noopener');
-        this.editsOpen = false;
+        this.patchMenu = false;
       },
 
       // ── The change marks ──────────────────────────────────────────────
@@ -2494,6 +2464,16 @@
                   title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
           </button>
+          <button x-show="file && dirty" @click="patchMenu = true; $nextTick(() => { copyPatch(); patchMenu = false; menu = false })"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Copy the edit as a unified diff: git apply takes it, or paste it into a session">
+            <i class="ph ph-clipboard-text text-lg opacity-60"></i>Copy patch
+          </button>
+          <button x-show="file && dirty" @click="patchMenu = true; $nextTick(() => { if (patchFits) sendPatch(); else { copyPatch(); Alpine.store('toast')('info', 'Too long for a link: the patch is on the clipboard to paste into a session', 'alert-info', 5000) } patchMenu = false; menu = false })"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
+                  title="Open a Claude Code session on this repository with the patch in the prompt">
+            <i class="ph ph-terminal-window text-lg opacity-60"></i>Send patch to Claude Code
+          </button>
           <button x-show="file" @click="toggleMarks()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
                   title="Mark what changed since GitHub's copy: a wash on new words, a wedge where words went, a bar beside each changed block">
@@ -2546,12 +2526,7 @@
     <a :href="fileUrl" target="_blank" rel="noopener" class="link link-hover font-mono truncate min-w-0"
        :title="fileWhere" x-text="fileWhere"></a>
     <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
-    <!-- THE UNSAVED BADGE OPENS THE EDIT: its blocks to reject one by one, and
-         the whole of it as a patch to copy or hand to a session. -->
-    <button x-show="dirty" @click.stop="openEdits()" class="badge badge-warning badge-sm shrink-0 gap-0.5 cursor-pointer"
-            title="The edits: reject one, copy a patch, or send it to Claude Code">
-      unsaved<i class="ph text-[10px]" :class="editsOpen ? 'ph-caret-up' : 'ph-caret-down'"></i>
-    </button>
+    <span x-show="dirty" class="badge badge-warning badge-sm shrink-0">unsaved</span>
     <!-- The three faces. Icons, since the band is one line on a phone; the
          titles name them for a reader who hovers or long-presses. -->
     <div class="join ml-auto shrink-0">
@@ -2566,44 +2541,6 @@
     </div>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
-  <div x-show="editsOpen" x-cloak @click.outside="editsOpen = false" class="relative z-40">
-    <div class="absolute inset-x-2 top-1 max-h-[60vh] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-xl">
-      <div class="px-3 pt-2 pb-1 text-xs opacity-60"
-           x-text="editList.length + (editList.length === 1 ? ' edit' : ' edits') + ' since GitHub\u2019s copy'"></div>
-      <template x-for="(e, i) in editList" :key="i + ':' + e.new[0] + ':' + e.old[0]">
-        <div class="flex items-start gap-2 px-3 py-2 border-t border-base-200">
-          <span class="badge badge-xs mt-1 shrink-0"
-                :class="e.kind === 'added' ? 'badge-success' : e.kind === 'removed' ? 'badge-error' : 'badge-warning'" x-text="e.kind"></span>
-          <div class="min-w-0 grow text-sm leading-snug">
-            <div x-show="e.snip" class="break-words">
-              <template x-for="(p, j) in (e.snip || [])" :key="j">
-                <span :class="p.k === 'ins' ? 'bg-success/20 rounded' : p.k === 'del' ? 'bg-error/15 line-through decoration-[var(--color-error)] rounded' : ''" x-text="p.t"></span>
-              </template>
-            </div>
-            <div x-show="!e.snip && e.oldText" class="line-through decoration-[var(--color-error)] bg-error/10 rounded px-1 break-words"
-                 x-text="e.oldText.length > 140 ? e.oldText.slice(0, 140) + '\u2026' : e.oldText"></div>
-            <div x-show="!e.snip && e.newText" class="bg-success/15 rounded px-1 mt-0.5 break-words"
-                 x-text="e.newText.length > 140 ? e.newText.slice(0, 140) + '\u2026' : e.newText"></div>
-          </div>
-          <button class="btn btn-xs btn-ghost shrink-0" @click="rejectEdit(e)" title="Reject this edit: the block goes back to GitHub's copy">
-            <i class="ph ph-arrow-u-up-left"></i>Reject
-          </button>
-        </div>
-      </template>
-      <div class="flex flex-col gap-1 p-2 border-t border-base-300 bg-base-200/40">
-        <button class="btn btn-sm justify-start" @click="copyPatch()"><i class="ph ph-clipboard-text"></i>Copy patch</button>
-        <button class="btn btn-sm justify-start" @click="sendPatch()" :disabled="!patchFits">
-          <i class="ph ph-terminal-window"></i>Send to Claude Code
-        </button>
-        <div x-show="!patchFits" class="px-1 text-xs opacity-60"
-             x-text="'Too long for a link (' + patchPrompt.length + ' characters): copy the patch and paste it into a session.'"></div>
-        <button class="btn btn-sm btn-ghost justify-start text-error" @click="rejectAll()">
-          <i class="ph ph-arrow-counter-clockwise"></i>Reject all
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ── The text ────────────────────────────────────────────────────────
        The whole width and the whole remaining height. THE COMPOSER'S MARK
        COLUMN DID NOT COME ACROSS, and it is the one piece of that card's
