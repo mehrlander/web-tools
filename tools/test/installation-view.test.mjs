@@ -144,16 +144,11 @@ window.__shell = {
   pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.installationItem]); },
   goProject(...args) { shellCalls.push(['goProject', ...args]); },
   openFile(p) { shellCalls.push(['openFile', p]); },
+  // As the app does on the Overview (app/index.html openCorrespondence): the
+  // copy goes to the view, which compares it in memory and stores nothing.
   async openCorrespondence(target, text, name, source) {
     shellCalls.push(['compare', target.path, source]);
-    const file = snapshotAt(target.ref)[target.path];
-    const exact = text === file;
-    const rec = { id: 'c' + checks.length, repo: target.repo, path: target.path, revision: snapshots.has(target.ref) ? target.ref : currentRevision, blobSha: gitBlob(file),
-      incomingSha256: createHash('sha256').update(text, 'utf8').digest('hex'), exact,
-      lineEndingsOnly: !exact && text.replace(/\r\n?/g, '\n') === file.replace(/\r\n?/g, '\n'),
-      source, checkedAt: new Date().toISOString(), content: text };
-    checks.push(rec);
-    window.dispatchEvent(new window.CustomEvent('correspondence-check', { detail: rec }));
+    await window.Alpine.$data(window.document.getElementById('v')).takeCopy(target, text, name, source);
   },
 };
 // The pane links the explanation document and the ledger through the shared
@@ -232,7 +227,8 @@ const dropped = text => ({ dataTransfer: { files: [], getData: () => text } });
 test('a comparison goes through the shell and comes back as a browser check, with no ledger write', async () => {
   await data.compareDrop(dropped('function Import-Form {}\r\n'));
   await settle();
-  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare'), [['compare', FORMS, 'drop']]);
+  assert.deepEqual([...data.checks.map(c => c.path + ' ' + c.source)], [FORMS + ' drop'], 'the copy is held by the view');
+  assert.equal(checks.length, 0, 'nothing is written to the browser-local check store');
   assert.equal(data.checks.length, 1);
   assert.equal(data.checks[0].lineEndingsOnly, true);
   assert.equal(data.stateOf(FORMS).state, 'pending-changed', 'a check is browser-local; adoption stays pending');
@@ -379,12 +375,13 @@ test('selection changes cancel pending copy, download, and installed-row prepara
 
 test('a selected file cannot change while a supplied copy is being read', async () => {
   data.select(FORMS);
-  const gate = deferred(), comparisons = shellCalls.filter(c => c[0] === 'compare').length;
+  const gate = deferred(), comparisons = data.checks.length;
   const pending = data.compareFile({ name: 'Forms.psm1', arrayBuffer: () => gate.promise }, 'file picker');
   data.select(`${P}/app/Profile.ps1`);
   gate.resolve(new TextEncoder().encode(files[FORMS]).buffer);
   await pending;
-  assert.equal(shellCalls.filter(c => c[0] === 'compare').length, comparisons);
+  assert.equal(data.checks.filter(c => c.path === FORMS).length <= 1, true);
+  assert.equal(data.checks.length, comparisons);
 });
 
 test('a reload reads manifest, inventory, and ledger from the same revision even when the branch moves', async () => {
@@ -510,22 +507,22 @@ test('the Source header carries copy, download and compare; the action row keeps
 
 test('a file that fails to decode is offered its encoding, and the retry compares it', async () => {
   data.select(FORMS); await settle();
-  const before = shellCalls.filter(c => c[0] === 'compare').length;
+  const before = data.checks.find(c => c.path === FORMS)?.id;
   // “Import” in Windows-1252 quotes: 0x93 and 0x94 are not UTF-8.
   const bytes = Uint8Array.from([0x93, ...Buffer.from('Import'), 0x94, 0x0a]);
   const file = { name: 'Forms.psm1', arrayBuffer: async () => bytes.buffer };
   await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
   await settle();
-  assert.equal(shellCalls.filter(c => c[0] === 'compare').length, before, 'nothing compared on a failed decode');
+  assert.equal(data.checks.find(c => c.path === FORMS)?.id, before, 'nothing compared on a failed decode');
   assert.ok(data.compareRetry);
   const box = el.querySelector('[data-compare-error]');
   assert.notEqual(box.style.display, 'none');
   const choices = [...box.querySelectorAll('button')].map(b => b.textContent);
   assert.deepEqual(choices, ['UTF-16 LE', 'UTF-16 BE', 'Windows-1252']);
   [...box.querySelectorAll('button')].find(b => b.textContent === 'Windows-1252').click();
-  for (let i = 0; i < 10 && shellCalls.filter(c => c[0] === 'compare').length === before; i++) await tick(2);
-  assert.deepEqual(shellCalls.filter(c => c[0] === 'compare').at(-1), ['compare', FORMS, 'drop']);
-  assert.equal(checks.at(-1).content, '\u201cImport\u201d\n');
+  for (let i = 0; i < 10 && data.checks.find(c => c.path === FORMS)?.id === before; i++) await tick(2);
+  assert.equal(data.checks[0].path, FORMS); assert.equal(data.checks[0].source, 'drop');
+  assert.equal(data.checks[0].content, '\u201cImport\u201d\n');
   assert.equal(data.compareRetry, null); assert.equal(data.compareError, '');
   // A retry never lands on a different selection.
   await data.compareDrop({ dataTransfer: { files: [file], getData: () => '' } });
@@ -564,7 +561,7 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   // A copy supplied from the work computer is newer evidence and takes over.
   await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
   assert.equal(data.sourceView, 'changes');
-  assert.match(data.baseline.label, /^Copy supplied /);
+  assert.equal(data.baseline.label, 'Supplied copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
   // The menu's Show changes returns to it from Code.
   data.setSourceView('code'); await settle();
@@ -603,7 +600,7 @@ test('a pending update with no record compares from the version before its chang
   data.select(FORMS); await settle();
 });
 
-test('the status icon opens a menu of the actions the file\'s state allows, and a differing paste turns it red', async () => {
+test('the status icon opens a menu of the actions the file\'s state allows; a differing paste does not recolour it', async () => {
   const profile = `${P}/app/Profile.ps1`, demo = `${P}/app/Scripts/Demo.ps1`;
   const rowOf = path => q('[data-row]').find(r => r.textContent.includes(path.split('/').pop()));
   const writes = publications.length;
@@ -634,7 +631,7 @@ test('the status icon opens a menu of the actions the file\'s state allows, and 
   data.pending = null;
   // A paste that differs, newer than any ledger row, shows as Differs with Record the difference….
   await data.compareDrop(dropped('something else\n')); await settle();
-  assert.equal(data.statusOf(profile).short, 'Differs');
+  assert.equal(data.statusOf(profile).short, 'Assumed synced', 'only a recorded difference turns the icon red');
   assert.ok(data.actionsFor(profile).some(a => a.key === 'record-check' && a.label === 'Record the difference…'));
   assert.ok(data.actionsFor(profile).some(a => a.key === 'changes'));
   await data.runAction(profile, 'record-check'); await settle();

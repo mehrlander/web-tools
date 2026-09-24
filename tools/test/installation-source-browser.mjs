@@ -189,9 +189,13 @@ try {
       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
     });
     assert.equal(await desk.page.evaluate(() => window.__ringWhileDragging), true, 'the code box highlights under a drag');
-    await desk.page.waitForFunction(() => window.__shell.compared.length === 1);
-    const compared = await desk.page.evaluate(() => window.__shell.compared[0]);
-    assert.deepEqual(compared, { path: A, text: 'function Get-Message {}\n', name: 'A.psm1', source: 'drop' });
+    // The view compares the drop itself, in memory: Changes opens on it and
+    // nothing goes to the shell's stored-check flow.
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Supplied copy');
+    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
+    assert.equal(await desk.page.evaluate(() => window.__shell.compared.length), 0);
+    assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
+    await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
     assert.equal((await desk.editor()).text, display(files[A]), 'a drop compares; it does not insert into the read-only view');
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-editor]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-editor]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');

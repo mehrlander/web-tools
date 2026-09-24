@@ -6643,11 +6643,17 @@ function app(){ return {
         if (await intake.workspace.receive(target, text, { name, source })) return;
         this.assertCorrespondenceIntake(intake);
       }
+      // The installation Overview compares a copy in memory and shows it in
+      // its own Changes view; nothing is saved to the browser and the Stage
+      // does not open. Every other surface keeps the stored check below.
+      if (this.view === 'project' && this.projectTab === 'overview' && this.project?.installation) {
+        const host = document.querySelector('[x-data^="installationView"]');
+        const view = host && Alpine.$data?.(host);
+        if (view?.takeCopy && await view.takeCopy(target, text, name, source)) return;
+      }
       const result = await window.FileCorrespondence.open({ target, text, name, source });
       this.announceCheck(result);
-      // The Overview shows the comparison in its own Source pane (Changes), so
-      // a copy compared there stays there; everywhere else it opens the Stage.
-      if (!(this.view === 'project' && this.projectTab === 'overview' && this.project?.installation)) this.goStage();
+      this.goStage();
       Alpine.store('toast')('git-diff', result.record.observation + (result.saved ? ' Check saved in this browser.' : ''),
                             result.saved ? 'alert-info' : 'alert-warning', 5000);
     } catch (e) { this.correspondenceFailure(e); }
