@@ -1976,19 +1976,19 @@ window.__audit = {
              with the other two. -->
         <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-auto" aria-label="what is on screen">
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view !== 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                  @click="view = docView; paint()">Document</button>
+                  @click="view = docView; paint()">Doc</button>
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                  @click="view = 'standoff'">Standoff</button>
+                  @click="view = 'standoff'">Spans</button>
         </div>
-        <!-- Raw, on or off, for whichever object is on screen: markdown instead
-             of the formatted document, standoff.json instead of the table. One
-             icon, as the Map view's deck does it, so the row does not wrap. -->
+        <!-- Rendered, on or off, for whichever object is on screen: the
+             formatted document or the spans table when on, the markdown or
+             standoff.json when off. -->
         <button class="btn btn-xs h-6 min-h-0 px-2 border border-base-300 transition-none"
-                :class="form === 'raw' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                :aria-pressed="form === 'raw'"
-                :title="form === 'raw' ? 'Showing raw; tap for rendered' : 'Show raw'"
-                aria-label="raw" @click="setForm(form === 'raw' ? 'rendered' : 'raw')">
-          <i class="ph ph-code text-sm"></i></button>
+                :class="form === 'rendered' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                :aria-pressed="form === 'rendered'"
+                :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
+                aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
+          <i class="ph ph-eye text-sm"></i></button>
         <button class="btn btn-xs btn-ghost h-6 min-h-0 px-2" @click="deck()"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-base"></i></button>
         <div class="join" x-show="patch.length" x-cloak>
@@ -2021,14 +2021,22 @@ window.__audit = {
           </button>
         </template>
         </div>
-        <!-- What the colour is spent on. -->
+        <!-- How the colour is drawn. -->
         <div class="flex items-center gap-1 shrink-0">
-          <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]" aria-label="unit treatment">
-            <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
-              <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none font-normal px-2" :aria-label="t[2]" :title="t[2]"
-                      :class="mark === t[0] ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                      @click="mark = t[0]; paint()"><i class="ph text-sm" :class="t[1]"></i></button>
-            </template>
+          <!-- Display settings, the diff tool's pattern: a menu with a titled
+               section per setting. -->
+          <div class="dropdown dropdown-end">
+            <button tabindex="0" class="btn btn-ghost btn-xs h-6 min-h-0 px-2 border border-base-300"
+                    title="Display settings" aria-label="Display settings">
+              <i class="ph ph-sliders-horizontal text-sm"></i></button>
+            <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box border border-base-300 shadow-lg z-50 w-56 mt-1">
+              <li class="menu-title">Unit marks</li>
+              <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
+                <li><a :class="mark === t[0] && 'menu-active'" @click="mark = t[0]; paint()">
+                  <i class="ph" :class="t[1]"></i><span x-text="t[2]"></span>
+                  <i class="ph ph-check ml-auto" x-show="mark === t[0]"></i></a></li>
+              </template>
+            </ul>
           </div>
         </div>
       </div>
