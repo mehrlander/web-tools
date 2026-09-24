@@ -397,3 +397,44 @@ test('each pill counts its own pane, and no query means no counts', () => {
   assert.equal(data.activityCounts.branches, 1);
   assert.equal(data.activityCounts.sessions, 0);
 });
+
+test('a query shorter than three characters filters inside the window and lifts nothing', () => {
+  seedSessions();
+  data.sessionScope = 'day';
+  data.activityQuery = 'se';
+  assert.equal(data.sessionScope, 'day', 'one letter matched 760 of 889 live sessions; lifting on it drew them all');
+  assert.equal(data.branchScope, 'active');
+  data.activityQuery = 'ses';
+  assert.equal(data.sessionScope, 'all', 'three characters is a lookup');
+  data.activityQuery = 'se';
+  assert.equal(data.sessionScope, 'day', 'and shortening below three puts the window back');
+  data.activityQuery = '';
+});
+
+test('the long lists draw a page at a time, and a new question starts at the top', async () => {
+  seedSessions();
+  const many = Array.from({ length: 130 }, (_, i) => row('p' + String(i).padStart(7, '0'), { age: 0, title: 'Paged row ' + i }));
+  data.sessionRows_ = many;
+  assert.equal(data.sessionNodes.length, 130);
+  assert.equal(data.sessionNodesShown.length, data.LIST_PAGE);
+  data.sessionShowN += data.LIST_PAGE;
+  assert.equal(data.sessionNodesShown.length, 120);
+  data.activityQuery = 'paged row';
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(data.sessionShowN, data.LIST_PAGE, 'the query reset the page');
+  assert.equal(data.sessionNodes.length, 130, 'counts and rails still read the whole list');
+  data.activityQuery = '';
+  await new Promise(r => setTimeout(r, 0));
+});
+
+test('the memoised lists still move when their inputs do', () => {
+  seedSessions();
+  const a = data.sessionNodes;
+  assert.equal(data.sessionNodes, a, 'a second read is the same array');
+  data.activityQuery = 'allotment';
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['bbbbbbbb']);
+  data.activityQuery = '';
+  data.sessionRows_ = [...ROWS.slice(0, 1)];
+  assert.equal(data.sessionTree.nodes.length, 1, 'new rows rebuild the tree');
+  assert.deepEqual([...data.sessionNodes.map(n => n.id)], ['aaaaaaaa']);
+});
