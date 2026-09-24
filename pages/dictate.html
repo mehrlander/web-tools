@@ -174,6 +174,32 @@
     ?target=code|chat            which of Send's rows opens selected
     ?lang=en-US               recognition language, default the browser's
     ?use=<ref>                pin the lib chain to a branch for previewing
+    ?file=owner/repo[@ref]:path  open that file into the buffer (file mode)
+
+  FILE MODE opens an existing file instead of a blank page, so the same pad,
+  voice and keyboard revise a document rather than start a note. Added
+  2026-09-24, because nothing in the estate opened an arbitrary markdown file,
+  took edits, and committed it back. Five things change and nothing else does:
+
+    THE BOTTOM ROW IS COPY AND SAVE. Send, Jot and Drop file a note somewhere
+    new, which is the wrong act for words that already have a home.
+
+    SAVE WRITES WITH THE SHA IT LOADED, AND NOTHING ELSE. It does not go
+    through GH.prototype.save, whose recovery answers a 409 by fetching the
+    current sha and writing again: right for the estate's own JSON, and a
+    silent overwrite of somebody else's edit here. A conflict is reported, the
+    buffer stays, and Reload is the way back to what GitHub holds.
+
+    THE DRAFT IS KEYED TO THE FILE and carries the sha it was begun from, so an
+    interrupted edit reopens in the file it belongs to, and a save of it still
+    conflicts if the file moved in the meantime.
+
+    NOTHING STARTS LISTENING ON ARRIVAL. The remembered grant opens a blank
+    page into the microphone, which is what a blank page is for; a document is
+    opened to be read first, and words landing at its end unasked are damage.
+
+    THE TYPE IS SMALLER, 17px against 21, since a document is read at reading
+    distance and a note is spoken at arm's length.
 
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
@@ -310,6 +336,19 @@
     return m ? { repo: m[1], ref: m[2] || '', dir: m[3].replace(/^\/|\/$/g, '') } : null;
   };
   const DEST = parseDest(q.get('dest')) || { repo: 'mehrlander/home', ref: '', dir: 'chron/dump' };
+  // File mode's address, in the same grammar with a file where the directory
+  // was. Null is the blank page, which is every arrival without ?file=.
+  const FILE = ((f) => f && f.dir ? { repo: f.repo, ref: f.ref, path: f.dir } : null)(parseDest(q.get('file')));
+  const FILE_DRAFT = FILE ? `dictate:file:${FILE.repo}@${FILE.ref}:${FILE.path}` : '';
+
+  // Base64 of UTF-8, chunked: a spread of a whole document's bytes into
+  // String.fromCharCode overruns the argument limit somewhere past 100 KB.
+  const b64 = (s) => {
+    const u = new TextEncoder().encode(s);
+    let bin = '';
+    for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
 
   document.addEventListener('alpine:init', () => {
     Alpine.data('dictate', () => ({
@@ -355,6 +394,18 @@
       canShare: typeof navigator !== 'undefined' && !!navigator.share,
       destName: DEST.repo.split('/')[1] + '/' + DEST.dir,
       _wake: null,
+      // ── File mode ───────────────────────────────────────────────────────
+      // `fileBase` is the text GitHub holds at `fileSha`, as far as this page
+      // knows, and `dirty` is the buffer measured against it.
+      file: FILE,
+      fileSha: '', fileBase: null, fileErr: '', fileLoading: false,
+      get fileName() { return FILE ? FILE.path.split('/').pop() : ''; },
+      get fileWhere() { return FILE ? FILE.repo.split('/')[1] + (FILE.ref ? '@' + FILE.ref : '') + ':' + FILE.path : ''; },
+      get fileUrl() { return FILE ? `https://github.com/${FILE.repo}/blob/${FILE.ref || 'HEAD'}/${FILE.path}` : ''; },
+      get dirty() {
+        this.beat;
+        return !!FILE && this.fileBase !== null && (this.edit ? this.draft : this.text) !== this.fileBase;
+      },
 
       get token() { return window.TOKEN || ls.get('ghToken') || ''; },
       get words() { const t = (this.text + ' ' + this.interim).trim(); return t ? t.split(/\s+/).length : 0; },
@@ -482,10 +533,14 @@
         // aside under its own key and offered back in the band above the words,
         // one tap, above whatever is there by then. That is the same join, made
         // when the reader asks for it rather than guessed on their behalf.
-        const sent = window.dictateHandoff?.take?.() || null;
-        const held = (ls.get(DRAFT) || '').replace(/\s+$/, '');
-        this.aside = (ls.get(ASIDE) || '').replace(/\s+$/, '');
-        if (sent) {
+        // File mode takes neither: the buffer is the file, and a handoff left
+        // untaken stays in its slot for the next blank page.
+        const sent = FILE ? null : (window.dictateHandoff?.take?.() || null);
+        const held = FILE ? '' : (ls.get(DRAFT) || '').replace(/\s+$/, '');
+        this.aside = FILE ? '' : (ls.get(ASIDE) || '').replace(/\s+$/, '');
+        if (FILE) {
+          this.loadFile();
+        } else if (sent) {
           this.d.text = sent.text.replace(/\s+$/, '');
           // The newest set-aside wins: an older one the reader has walked past
           // twice is not what "bring back what was here" means to them.
@@ -532,7 +587,74 @@
         // The remembered grant. WebKit will not raise the microphone prompt
         // outside a user gesture, so the first arrival must be tapped; after
         // that the permission is the site's and the page can simply begin.
-        if (ls.get(GRANT) && this.d.available()) this.begin();
+        if (!FILE && ls.get(GRANT) && this.d.available()) this.begin();
+      },
+
+      // ── File mode: load and save ──────────────────────────────────────
+      // A held draft wins over the file, with the sha it was begun from, so
+      // saving it conflicts if the file moved since. `fresh` discards it,
+      // which is what Reload and the band's Start fresh mean here.
+      async loadFile(fresh = false) {
+        if (!FILE) return;
+        this.fileLoading = true; this.fileErr = '';
+        if (fresh) ls.del(FILE_DRAFT);
+        let held = null;
+        try { held = JSON.parse(ls.get(FILE_DRAFT) || 'null'); } catch {}
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const res = await gh2.get(FILE.path, window.GH.FRESH);
+          this.fileBase = res.text;
+          if (held && typeof held.text === 'string' && held.text !== res.text) {
+            this.fileSha = held.sha || res.sha;
+            this.d.text = held.text;
+            this.restored = held.text.length;
+          } else {
+            this.fileSha = res.sha;
+            this.d.text = res.text;
+            this.restored = 0;
+          }
+          // A document opens at its top with the caret there, so the first
+          // spoken word lands where the reader is looking. The painter follows
+          // growth to the end when no range is set, which is right for a note
+          // and would open every file on its last line.
+          this.d.caretAt(0);
+          this.started = true;
+        } catch (e) {
+          this.fileErr = e?.status === 404
+            ? 'Not found, or this browser’s token cannot read it: ' + this.fileWhere
+            : 'Could not open ' + this.fileWhere + ': ' + (e?.message || e);
+        }
+        this.fileLoading = false;
+        this.menu = false;
+        this.$nextTick(() => { this.paint(); if (this.$refs.view) this.$refs.view.scrollTop = 0; });
+      },
+      async saveFile() {
+        if (!FILE || !this.dirty) return;
+        if (!this.token) {
+          Alpine.store('toast')('warning', 'No token on this browser: Copy instead', 'alert-error', 5000);
+          return;
+        }
+        if (this.edit) this.editClose();
+        const text = this.outgoing();
+        this.saving = FILE.repo;
+        try {
+          const gh2 = new window.GH({ token: this.token, repo: FILE.repo, ref: FILE.ref || '' });
+          const body = { message: `Edit ${this.fileName} via dictate`, content: b64(text), sha: this.fileSha };
+          if (FILE.ref) body.branch = FILE.ref;
+          const res = await gh2.req('contents/' + FILE.path, { method: 'PUT', body: JSON.stringify(body) });
+          this.fileSha = res.content.sha;
+          this.fileBase = text;
+          this.restored = 0;
+          ls.del(FILE_DRAFT);
+          Alpine.store('toast')('check', 'Saved ' + this.fileWhere, 'alert-success', 3200);
+        } catch (e) {
+          const conflict = e?.status === 409 || e?.status === 422;
+          Alpine.store('toast')('warning', conflict
+            ? 'Not saved: the file changed on GitHub after you opened it. Copy your text, then Reload.'
+            : 'Not saved: ' + (e?.message || e), 'alert-error', 8000);
+        }
+        this.saving = '';
+        this.beat++;
       },
 
       // ── The two modifier taps ─────────────────────────────────────────
@@ -639,7 +761,15 @@
       },
       unwake() { try { this._wake && this._wake.release(); } catch {} this._wake = null; },
 
-      save() { this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT); },
+      save() {
+        if (FILE) {
+          // Before the file has loaded, the buffer is not an edit of anything.
+          if (this.fileBase === null) return;
+          this.text !== this.fileBase ? ls.set(FILE_DRAFT, JSON.stringify({ text: this.text, sha: this.fileSha })) : ls.del(FILE_DRAFT);
+          return;
+        }
+        this.text.trim() ? ls.set(DRAFT, this.text) : ls.del(DRAFT);
+      },
 
       // ── The painted surface and its gestures ──────────────────────────
       // The notes composer's set, which is a version on from the stage's and
@@ -1619,7 +1749,7 @@
       // the reader's, and a URL that could file a note on arrival would be a
       // different and much less safe thing. It is the only difference between
       // the four buttons, so it is a class rather than a branch.
-      lead(k) { return this.dest === k ? 'btn-primary' : 'btn-ghost bg-base-200'; },
+      lead(k) { return !FILE && this.dest === k ? 'btn-primary' : 'btn-ghost bg-base-200'; },
 
       // Copy and Share only READ the buffer, so they leave it standing and
       // leave the draft in place: nothing durable has happened yet and a
@@ -1902,9 +2032,16 @@
         </button>
         <div x-show="menu" x-cloak
              class="absolute right-0 top-full mt-1 z-50 w-56 rounded-box border border-base-300 bg-base-100 shadow-xl py-1 flex flex-col">
-          <button @click="clear(); menu = false"
+          <button x-show="!file" @click="clear(); menu = false"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200">
             <i class="ph ph-file-dashed text-lg opacity-60"></i>New
+          </button>
+          <!-- File mode's New: back to what GitHub holds, the local edit discarded.
+               One step of undo still reaches the edit, as it does for New. -->
+          <button x-show="file" @click="loadFile(true)" :disabled="fileLoading"
+                  class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
+                  title="Discard the local edit and reopen the file as GitHub holds it">
+            <i class="ph ph-arrow-clockwise text-lg opacity-60"></i>Reload
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
@@ -1942,8 +2079,19 @@
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
             title="Put the draft this page was holding back above these words">Bring back</button>
-    <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
+    <button @click="file ? loadFile(true) : clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
+  <!-- FILE MODE'S ONE LINE: which file, and whether the buffer differs from
+       it. The name links to GitHub, the only place a reader can check what
+       Save would overwrite. -->
+  <div x-show="file" class="shrink-0 px-4 py-1.5 text-sm border-b border-base-300 flex items-center gap-2 min-w-0">
+    <i class="ph ph-file-text opacity-60 shrink-0"></i>
+    <a :href="fileUrl" target="_blank" rel="noopener" class="link link-hover font-mono truncate min-w-0"
+       :title="fileWhere" x-text="fileWhere"></a>
+    <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
+    <span x-show="dirty" class="badge badge-warning badge-sm shrink-0">unsaved</span>
+  </div>
+  <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
 
   <!-- ── The text ────────────────────────────────────────────────────────
        The whole width and the whole remaining height. THE COMPOSER'S MARK
@@ -1990,18 +2138,18 @@
            permits the programmatic focus this is all for. -->
       <textarea x-ref="ta" x-model="draft" :tabindex="edit ? 0 : -1"
                 @blur="editClose()" @keydown.escape="editClose()"
-                class="absolute inset-0 w-full h-full resize-none textarea rounded-none border-0 text-[21px] leading-[1.65] tracking-[-0.01em] break-words px-4 py-3 focus:outline-none"
-                :class="edit ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+                class="absolute inset-0 w-full h-full resize-none textarea rounded-none border-0 leading-[1.65] tracking-[-0.01em] break-words px-4 py-3 focus:outline-none"
+                :class="(edit ? 'opacity-100' : 'opacity-0 pointer-events-none') + (file ? ' text-[17px]' : ' text-[21px]')"
                 placeholder="Type instead"></textarea>
 
       <div x-show="!edit" x-ref="view" data-dictate-view class="absolute inset-0 overflow-y-auto px-4 py-3" @scroll="paint()">
-        <div class="whitespace-pre-wrap break-words text-[21px] leading-[1.65] tracking-[-0.01em]"
+        <div class="whitespace-pre-wrap break-words leading-[1.65] tracking-[-0.01em]" :class="file ? 'text-[17px]' : 'text-[21px]'"
              x-ref="body" @contextmenu.prevent></div>
 
         <!-- Nothing said yet. The whole empty surface IS the start button,
              which is the one tap WebKit's gesture requirement makes
              unavoidable and the largest target a page can offer for it. -->
-        <button x-show="!text && !interim" @click="started ? mic() : begin()"
+        <button x-show="!text && !interim && !(file && (fileLoading || fileErr))" @click="started ? mic() : begin()"
                 class="absolute inset-0 w-full flex flex-col items-center justify-center gap-3 text-center px-8">
           <i class="ph text-6xl opacity-20" :class="listening ? 'ph-waveform' : 'ph-microphone'"></i>
           <span class="text-lg opacity-50" x-text="listening ? 'Go ahead.' : (started ? 'Paused. Tap to carry on.' : 'Tap anywhere to start talking.')"></span>
@@ -2204,17 +2352,27 @@
          because it was one, and it took the row to five across and cost the
          other four their labels under 375px. Folding it in gives all of that
          back: four buttons, four labels, one width. -->
-    <button @click="openSend()" :disabled="blank"
+    <!-- FILE MODE'S ONE DESTINATION, standing in for the three below it. Lit
+         only while there is something to write, so its colour answers "is this
+         saved" without the band above having to be read. -->
+    <button x-show="file" @click="saveFile()" :disabled="!dirty || blank || !!saving || fileLoading"
+            class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
+            :class="dirty ? 'btn-primary' : 'btn-ghost bg-base-200'"
+            :title="'Commit the buffer to ' + fileWhere">
+      <span x-show="saving" class="loading loading-spinner loading-sm"></span>
+      <i x-show="!saving" class="ph ph-floppy-disk text-lg"></i>Save
+    </button>
+    <button x-show="!file" @click="openSend()" :disabled="blank"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('send')" title="Share it, or send it somewhere that can act on it">
       <i class="ph ph-paper-plane-tilt text-lg"></i>Send
     </button>
-    <button @click="jot()" :disabled="blank || !!saving"
+    <button x-show="!file" @click="jot()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('jot')" title="File it in the estate's jots pile, beside the others">
       <i class="ph ph-note-pencil text-lg"></i>Jot
     </button>
-    <button @click="drop()" :disabled="blank || !!saving"
+    <button x-show="!file" @click="drop()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="lead('drop')" :title="'Write a dated markdown file into ' + destName + ', for the next drain'">
       <i class="ph ph-tray-arrow-down text-lg"></i>Drop
