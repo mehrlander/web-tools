@@ -469,6 +469,7 @@ window.__audit = {
   await gh.load('kits/standoff.js');       // the annotation's rules, shared with ops.py
   await gh.load('kits/dictate.js');        // Dictate.pins: the settled edge-pin treatment
   await gh.load('kits/page-report.js');
+  await gh.load('kits/note.js');           // the chips' notes
   // THE OPT-IN, and it is the page's, not the reader's. Reporting is on from
   // here: a failure that needs a tap before it is recorded is a failure nobody
   // records, and the person holding the phone is the last one who should have
@@ -855,6 +856,26 @@ window.__audit = {
       const v = (this.so.vocabulary || []).find(x => x.label === k)
              || (this.so.verdicts || []).find(x => x.verdict === k);
       return v ? v.gloss : '';
+    },
+    // WHAT A CHIP'S NOTE SAYS: what Reading's modal used to hold, per key.
+    // The gloss, the key's share of the document, and on the label lens the
+    // side it belongs to with that side's share. Kept inside note.js's six
+    // lines, since a note that would scroll is a card.
+    noteTitle(k) {
+      const sd = this.lens === 'label' ? this.side(k) : '';
+      return sd ? `${k} · ${sd}` : k;
+    },
+    noteText(k) {
+      const us = this.units.filter(u => this.keyOf(u) === k);
+      const w = Math.round(100 * us.reduce((n, u) => n + u.words, 0) / (this.words || 1));
+      const lines = [this.gloss(k), `${us.length} unit${us.length === 1 ? '' : 's'}, ${w}% of words`];
+      const sd = this.lens === 'label' && this.side(k);
+      // A side holding only this label would repeat the line above.
+      if (sd && this.vocab.filter(v => v.side === sd).length > 1) {
+        const n = this.units.filter(u => this.side(u.label) === sd).length;
+        lines.push(`${sd} side: ${n} units, ${this.pctOn(sd)}% of words`);
+      }
+      return lines.filter(Boolean).join('\n');
     },
     // Unused keys are omitted from the legend on both axes: a chip for a label
     // nothing carries is a filter that does nothing.
@@ -1254,6 +1275,17 @@ window.__audit = {
     },
     dim(u) { return this.off[this.keyOf(u)] ? .12 : 1 },
     toggle(l) { this.off[l] = !this.off[l]; this.paint(); },
+    // ONE TAP, ONE THING, ON A TOUCHSCREEN. note.js opens a chip's note on
+    // tap where nothing can hover, so a tap there used to open the note and
+    // dim the label at once. There the first tap shows the note and the next
+    // tap on the same chip, which closes it, dims. A pointer that hovers gets
+    // the note on hover, so every click dims.
+    noteFor: null,
+    chipTap(k) {
+      if (matchMedia('(hover: none)').matches && this.noteFor !== k) { this.noteFor = k; return; }
+      this.noteFor = null;
+      this.toggle(k);
+    },
     // WHERE IN THE DOCUMENT, and only that. This opened with the target's path,
     // which is the same for every unit on the page and is already in the
     // header, so the first 21 characters of the panel's TALLEST line never
@@ -1938,8 +1970,8 @@ window.__audit = {
     <!-- Tenant chrome: this page is routinely tossed inside an iframe, so it
          sticks rather than taking the viewport, and it does not narrow itself
          to a reading column. The figure is one compact line, not stat cards:
-         the reading that gives those numbers meaning is one tap away, under
-         Reading. -->
+         the reading that gives those numbers meaning is in each legend chip's
+         note. -->
     <header x-ref="hdr" class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b border-base-300">
       <div class="px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span class="font-semibold" x-text="a.title"></span>
@@ -1982,7 +2014,6 @@ window.__audit = {
           <i class="ph ph-code text-sm"></i></button>
         <button class="btn btn-xs btn-ghost h-6 min-h-0 px-2" @click="deck()"
                 title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-base"></i></button>
-        <button class="btn btn-xs btn-ghost" @click="$refs.reading.showModal()">Reading</button>
         <div class="join" x-show="patch.length" x-cloak>
           <button class="join-item btn btn-xs" :disabled="!canUndo" @click="undo()"
                   aria-label="undo"><i class="ph ph-arrow-counter-clockwise"></i></button>
@@ -2006,8 +2037,8 @@ window.__audit = {
                   :style="`background:rgba(${HUE[k]},${off[k]?0.05:0.22});
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${off[k]?0.2:0.9})`"
                   :class="off[k] && 'opacity-40'"
-                  :title="gloss(k)"
-                  @click="toggle(k)">
+                  :data-note="noteText(k)" :data-note-title="noteTitle(k)" data-note-bare
+                  @click="chipTap(k)">
             <span x-text="k"></span>
             <span class="opacity-60 font-mono" x-text="tally(k)"></span>
           </button>
@@ -2252,35 +2283,6 @@ window.__audit = {
       </div>
     </dialog>
 
-    <!-- Where the numbers went: the header carries the figure, the reading that
-         makes it mean something lives here, one tap away. -->
-    <dialog class="modal" x-ref="reading">
-      <div class="modal-box max-w-lg">
-        <table class="table table-sm">
-          <thead><tr><th>side</th><th>units</th><th>words</th></tr></thead>
-          <tbody>
-            <template x-for="sd in sides" :key="sd">
-              <tr><td x-text="sd"></td>
-                  <td class="font-mono" x-text="units.filter(u => side(u.label) === sd).length"></td>
-                  <td class="font-mono" x-text="pctOn(sd) + '%'"></td></tr>
-            </template>
-          </tbody>
-        </table>
-        <table class="table table-sm mt-2">
-          <thead><tr><th>label</th><th>units</th><th>words</th><th>side</th><th>is</th></tr></thead>
-          <tbody>
-            <template x-for="v in vocab" :key="v.label">
-              <tr><td class="font-mono" x-text="v.label"></td>
-                  <td class="font-mono" x-text="count(v.label)"></td>
-                  <td class="font-mono" x-text="shareOf[v.label] + '%'"></td>
-                  <td class="opacity-60" x-text="v.side"></td>
-                  <td class="opacity-60" x-text="v.gloss"></td></tr>
-            </template>
-          </tbody>
-        </table>
-        <form method="dialog" class="modal-backdrop"><button class="btn btn-sm btn-block mt-3">close</button></form>
-      </div>
-    </dialog>
 
   </div>
 </template>
