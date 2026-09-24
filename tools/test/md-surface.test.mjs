@@ -95,3 +95,28 @@ test('the document re-renders only when the text changes', () => {
   window.MdSurface.paint(host, { text: '# One\n\nthree', overlay: window.document.getElementById('box') });
   assert.notEqual(host.firstElementChild, first);
 });
+
+// The typing rules, as pure functions over the markdown and a caret.
+const M = () => window.MdSurface;
+test('a wrapper goes when its last character does, and not before', () => {
+  assert.equal(M().tidy('a **b** c', 5), null, 'one character left: the markers stay');
+  assert.deepEqual(M().tidy('a **** c', 4), { text: 'a  c', caret: 2 });
+  assert.deepEqual(M().tidy('a `` c', 3), { text: 'a  c', caret: 2 });
+  assert.deepEqual(M().tidy('see [](https://x.test) now', 5), { text: 'see  now', caret: 4 });
+});
+
+test('backspace at a line start drops its marker, or joins the block before', () => {
+  assert.deepEqual(M().backspace('## Head', 3), { text: 'Head', caret: 0 });
+  assert.deepEqual(M().backspace('- item', 2), { text: 'item', caret: 0 });
+  assert.deepEqual(M().backspace('one\n\ntwo', 5), { text: 'onetwo', caret: 3 });
+  assert.equal(M().backspace('## Head', 5), null, 'mid-line is an ordinary backspace');
+});
+
+test('Enter continues a list, ends it on an empty item, and otherwise makes a paragraph', () => {
+  assert.deepEqual(M().enter('- one', 5), { text: '- one\n- ', caret: 8 });
+  assert.deepEqual(M().enter('9. x', 4), { text: '9. x\n10. ', caret: 9 });
+  const end = M().enter('- one\n- ', 8);
+  assert.equal(end.text, '- one\n\n');
+  assert.equal(end.text.slice(0, end.caret), '- one\n\n', 'a blank line stands between the list and what comes next');
+  assert.deepEqual(M().enter('para', 2), { text: 'pa\n\nra', caret: 4 });
+});

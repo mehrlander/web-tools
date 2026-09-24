@@ -41,7 +41,7 @@ lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,15,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the proposals the Text collection holds…",275,no,no,2,yes
 lib/kits/md-proposals.js,mdProposals,a markdown document read WITH the proposals retained against its paragraphs.,231,no,yes,2,yes
-lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",195,no,no,1,yes
+lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",267,no,no,1,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,68,no,yes,4,yes
 lib/kits/note.js,Note,"the NOTE of the house popup rule: `data-note=""…""` in place of `title=""…""`.",344,no,yes,14,yes

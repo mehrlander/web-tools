@@ -209,6 +209,12 @@
     an edit to the markdown string. CHANGES is kits/md-diff.js over the buffer
     and what GitHub holds, read-only. A markdown file opens Rendered.
 
+    TYPING WORKS IN THE RENDERED FACE TOO, through an invisible textarea that
+    holds the caret's line of source (see startTyping). A wrapper such as
+    `**…**` stays while one character of it remains and goes with the last;
+    backspace at the start of a heading or item drops its marker; Enter makes a
+    paragraph, or the next list item.
+
   THE ONE TAP ON ARRIVAL is not a design choice. WebKit needs a user gesture
   before it will raise the microphone prompt, so a page cannot start listening
   on its own the first time. Once the reader has allowed it, the grant is
@@ -440,6 +446,8 @@
       // document against what GitHub holds, read-only.
       view: FILE ? ((/\.(md|markdown)$/i.test(FILE.path) && ls.get(VIEW)) || (/\.(md|markdown)$/i.test(FILE.path) ? 'rendered' : 'source')) : 'source',
       mdReady: false, changesCount: 0,
+      // Typing into the Rendered face: the sink has focus and the keyboard is up.
+      typing: false, composing: false,
       get rendered() { return !!FILE && this.view === 'rendered' && this.mdReady; },
       get dirty() {
         this.beat;
@@ -718,6 +726,7 @@
       async setView(v) {
         if (!FILE) return;
         if (this.edit) this.editClose();
+        if (this.typing) this.stopTyping();
         if (v === 'rendered' && !(await this.ensureMd())) v = 'source';
         // Each face draws its own furniture into the shared layer, so the one
         // being left takes its marks with it.
@@ -1165,6 +1174,11 @@
           this.pinDrag = this.armed;
           this.paint();
         });
+        // WHILE TYPING, A TAP MOVES THE CARET AND KEEPS THE KEYBOARD. The
+        // compatibility mousedown would move focus off the sink, so it is
+        // cancelled, and the release puts focus back in case the platform took
+        // it anyway.
+        surface.addEventListener('mousedown', (e) => { if (this.typing) e.preventDefault(); });
         surface.addEventListener('pointercancel', () => {
           clear(); anchor = null; dragging = false; word = null; this.pinDrag = null; unhold();
         });
@@ -1237,6 +1251,7 @@
           if (this.pinned) { this.d.moveEdge(this.armed, i); this.armed = null; }
           else this.d.caretAt(i);
           this.paint();
+          if (this.typing) { try { this.$refs.sink.focus({ preventScroll: true }); } catch {} }
         });
       },
       // ── A pinhead is tapped OR dragged ────────────────────────────────
@@ -1631,6 +1646,7 @@
           });
           const layer = this.$refs.layer;
           if (layer) for (const pin of layer.querySelectorAll('[data-edge]')) this.holdTouch(pin);
+          if (this.typing) this.syncSink();
           return;
         }
         if (!this._host) return;
@@ -1729,6 +1745,94 @@
         // sticky case is the one asked for by tapping again.
         this.shift = false;
       },
+      // ── Typing into the Rendered face ─────────────────────────────────
+      // A phone raises its keyboard only for a focused field, so an invisible
+      // textarea (the SINK) takes focus and every keystroke goes through it.
+      // It holds the caret's line of source, caret placed to match, so the
+      // platform's autocorrect and capitalization see real context; each input
+      // is read as a difference against what the sink held and applied to the
+      // buffer at the same place, through the kit's type() and erase(), whose
+      // undo coalesces a run of typing into one step. The document re-renders
+      // around it. The rules for Enter, a line-start backspace, and a wrapper
+      // losing its last character are kits/md-surface.js's.
+      startTyping(at) {
+        this.d.flush();
+        if (typeof at === 'number') this.d.caretAt(at);
+        this._resume = this.listening;
+        this.d.stop();
+        this.typing = true;
+        const k = this.$refs.sink;
+        this.syncSink(true);
+        try { k.focus({ preventScroll: true }); } catch { k.focus(); }
+        this.paint();
+      },
+      stopTyping() {
+        this.typing = false;
+        try { this.$refs.sink.blur(); } catch {}
+        this.paint();
+        if (this._resume) this.begin();
+        this._resume = false;
+      },
+      syncSink(force = false) {
+        const k = this.$refs.sink;
+        if (!k || this.composing) return;
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        const L = window.MdSurface.lineAt(t, r.start);
+        const le = Math.max(L.le, t.indexOf('\n', r.end) < 0 ? t.length : t.indexOf('\n', r.end));
+        const v = t.slice(L.ls, le);
+        this._sinkBase = L.ls;
+        if (force || k.value !== v) k.value = v;
+        this._sinkVal = v;
+        const a = r.start - L.ls, b = r.end - L.ls;
+        if (force || k.selectionStart !== a || k.selectionEnd !== b) { try { k.setSelectionRange(a, b); } catch {} }
+      },
+      applyEdit(res) {
+        if (!res) return false;
+        this.d.text = res.text;
+        this.d.caretAt(res.caret);
+        return true;
+      },
+      sinkBefore(e) {
+        const t = this.d.text, r = this.d.range || { start: t.length, end: t.length };
+        if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+          e.preventDefault();
+          this.applyEdit(window.MdSurface.enter(t, r.start, r.end));
+        } else if (e.inputType === 'deleteContentBackward' && r.start === r.end) {
+          const res = window.MdSurface.backspace(t, r.start);
+          if (!res) return;
+          e.preventDefault();
+          this.applyEdit(res);
+        } else return;
+        this.syncSink(true);
+        this.paint();
+      },
+      sinkInput() {
+        if (!this.typing) return;
+        const k = this.$refs.sink, old = this._sinkVal ?? '', nw = k.value, base = this._sinkBase ?? 0;
+        if (old === nw) return;
+        let p = 0;
+        while (p < old.length && p < nw.length && old[p] === nw[p]) p++;
+        let q = 0;
+        while (q < old.length - p && q < nw.length - p && old[old.length - 1 - q] === nw[nw.length - 1 - q]) q++;
+        const a = base + p, b = base + old.length - q, ins = nw.slice(p, nw.length - q);
+        const r = this.d.range;
+        const atCaret = r && r.start === r.end && r.start === b;
+        if (!ins && b - a === 1 && atCaret) this.d.erase();
+        else {
+          if (!(atCaret && a === b)) this.d.select(a, b);
+          this.d.type(ins);
+        }
+        this._sinkVal = nw;
+        // The wrapper rule, after a deletion: markers whose last character just
+        // went go with it.
+        if (!ins) {
+          const c = this.d.range ? this.d.range.start : this.d.text.length;
+          this.applyEdit(window.MdSurface.tidy(this.d.text, c));
+        }
+        this.syncSink();
+        this.paint();
+      },
+
       // ── Formatting, file mode ─────────────────────────────────────────
       // Each is ONE write to the buffer, so one undo takes it back, and each
       // leaves the words it acted on selected, so a second tap undoes it or the
@@ -1793,6 +1897,13 @@
       // has; the button has none and takes the selection instead. Both end at
       // the same call, so the textarea is always opened somewhere deliberate.
       editOpen(at) {
+        // In the Rendered face the keyboard types where the caret is, into the
+        // document as it reads, rather than swapping in the source.
+        if (this.rendered) {
+          if (at === undefined && this.typing) { this.stopTyping(); return; }
+          this.startTyping(at);
+          return;
+        }
         this.d.flush();                  // the phrase on screen is part of what is being edited
         this._resume = this.listening;
         this.d.stop();
@@ -2215,8 +2326,8 @@
            does the other thing, and it is the reason it exists rather than
            being a second route to the same place: whatever is selected comes
            across selected, so the first thing typed replaces it. -->
-      <button @click="editOpen()" :disabled="edit"
-              class="btn btn-ghost btn-md btn-square"
+      <button @click="editOpen()" @pointerdown.prevent :disabled="edit"
+              class="btn btn-md btn-square" :class="typing ? 'btn-info' : 'btn-ghost'"
               title="Type. Anything selected comes across selected, so typing replaces it.">
         <i class="ph ph-keyboard text-xl"></i>
       </button>
@@ -2374,6 +2485,16 @@
           <span x-show="!started" class="text-sm opacity-30">Your phone will ask for the microphone once.</span>
         </button>
       </div>
+
+      <!-- THE SINK: the Rendered face's keyboard input. Invisible, 16px so a
+           phone does not zoom to it, and holding the caret's line of source so
+           autocorrect has context (see startTyping). -->
+      <textarea x-ref="sink" tabindex="-1" rows="1" aria-hidden="true"
+                autocapitalize="sentences" autocomplete="off" spellcheck="true"
+                class="absolute top-0 left-0 w-px h-px opacity-0 pointer-events-none resize-none text-[16px] p-0 border-0"
+                @beforeinput="sinkBefore($event)" @input="sinkInput()"
+                @compositionstart="composing = true" @compositionend="composing = false; sinkInput()"
+                @blur="if (typing) stopTyping()"></textarea>
 
       <!-- File mode's Changes face: the document against what GitHub holds,
            drawn by kits/md-diff.js. Read-only, and above the text pane, so no
